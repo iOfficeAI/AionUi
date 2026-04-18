@@ -39,6 +39,20 @@ describe('markdownLinkPreview', () => {
     expect(resolveLocalMarkdownLinkPath('README.md:3', { baseDir: '/workspace/docs' })).toBe(
       '/workspace/docs/README.md'
     );
+
+    expect(resolveLocalMarkdownLinkPath('../api.md', { baseDir: '/workspace/docs/guide' })).toBe(
+      '/workspace/docs/api.md'
+    );
+  });
+
+  it('strips fragment and query suffixes before classifying local markdown links', () => {
+    expect(resolveLocalMarkdownLinkPath('README.md#usage', { baseDir: '/workspace/docs' })).toBe(
+      '/workspace/docs/README.md'
+    );
+
+    expect(resolveLocalMarkdownLinkPath('./guide.md?raw=1', { baseDir: '/workspace/docs' })).toBe(
+      '/workspace/docs/guide.md'
+    );
   });
 
   it('opens workspace files in the preview panel instead of treating them as browser links', async () => {
@@ -92,5 +106,11 @@ describe('markdownLinkPreview', () => {
         workspace: '/workspace',
       })
     ).toBe('file:///workspace/docs/todo.md');
+
+    expect(
+      resolveMarkdownLinkFallbackHref('../guide.md#intro', 'http://127.0.0.1/workspace/docs/notes/guide.md#intro', {
+        baseDir: '/workspace/docs/notes',
+      })
+    ).toBe('file:///workspace/docs/guide.md');
   });
 });

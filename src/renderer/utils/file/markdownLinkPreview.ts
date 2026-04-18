@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import { joinPath } from '@/common/chat/chatLib';
 import type { PreviewContentType } from '@/common/types/preview';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
@@ -75,6 +74,14 @@ const normalizeLocalHref = (href: string): string => {
   return withoutProtocol;
 };
 
+const stripQueryAndHash = (value: string): string => {
+  const cutoff = [value.indexOf('?'), value.indexOf('#')]
+    .filter((index) => index >= 0)
+    .reduce<number | null>((minIndex, index) => (minIndex === null ? index : Math.min(minIndex, index)), null);
+
+  return cutoff === null ? value : value.slice(0, cutoff);
+};
+
 const stripLineSuffix = (value: string): string => {
   const match = value.match(LINE_SUFFIX_REGEX);
   if (!match) {
@@ -98,6 +105,57 @@ const normalizePreviewPath = (value: string): string => {
 const normalizeComparablePath = (value: string): string => {
   const normalized = normalizePreviewPath(value).replace(/\/+$/, '');
   return WINDOWS_ABSOLUTE_PATH_REGEX.test(normalized) ? normalized.toLowerCase() : normalized;
+};
+
+const normalizeResolvedLocalPath = (value: string): string => {
+  const normalizedValue = normalizePreviewPath(value);
+  const isWindowsDrivePath = WINDOWS_ABSOLUTE_PATH_REGEX.test(normalizedValue);
+  const isNetworkPath = normalizedValue.startsWith('//');
+  const isUnixAbsolutePath = normalizedValue.startsWith('/');
+
+  let prefix = '';
+  let segments: string[] = [];
+
+  if (isWindowsDrivePath) {
+    const [drive, ...rest] = normalizedValue.split('/');
+    prefix = drive;
+    segments = rest;
+  } else if (isNetworkPath) {
+    const [, , server = '', share = '', ...rest] = normalizedValue.split('/');
+    prefix = `//${server}/${share}`;
+    segments = rest;
+  } else {
+    segments = normalizedValue.split('/').filter(Boolean);
+  }
+
+  const normalizedSegments: string[] = [];
+  for (const segment of segments) {
+    if (!segment || segment === '.') {
+      continue;
+    }
+    if (segment === '..') {
+      if (normalizedSegments.length > 0) {
+        normalizedSegments.pop();
+      }
+      continue;
+    }
+    normalizedSegments.push(segment);
+  }
+
+  if (prefix) {
+    return normalizedSegments.length > 0 ? `${prefix}/${normalizedSegments.join('/')}` : prefix;
+  }
+
+  if (isUnixAbsolutePath) {
+    return normalizedSegments.length > 0 ? `/${normalizedSegments.join('/')}` : '/';
+  }
+
+  return normalizedSegments.join('/');
+};
+
+const resolveRelativeLocalPath = (basePath: string, relativePath: string): string => {
+  const normalizedBase = normalizePreviewPath(basePath).replace(/\/+$/, '');
+  return normalizeResolvedLocalPath(`${normalizedBase}/${relativePath}`);
 };
 
 const normalizeLargeTextPreview = (
@@ -141,13 +199,14 @@ export const resolveLocalMarkdownLinkPath = (
   { workspace, baseDir }: MarkdownLinkPreviewContext = {}
 ): string | null => {
   const normalizedHref = normalizeLocalHref(href);
-  if (!normalizedHref || EXTERNAL_URL_REGEX.test(normalizedHref)) {
+  const hrefWithoutQueryOrHash = stripQueryAndHash(normalizedHref);
+  if (!hrefWithoutQueryOrHash || EXTERNAL_URL_REGEX.test(hrefWithoutQueryOrHash)) {
     return null;
   }
 
-  const strippedPath = stripLineSuffix(normalizedHref);
+  const strippedPath = stripLineSuffix(hrefWithoutQueryOrHash);
   if (isAbsoluteLocalPath(strippedPath)) {
-    return normalizePreviewPath(strippedPath);
+    return normalizeResolvedLocalPath(strippedPath);
   }
 
   if (!RELATIVE_FILE_HINT_REGEX.test(strippedPath)) {
@@ -159,7 +218,7 @@ export const resolveLocalMarkdownLinkPath = (
     return null;
   }
 
-  return joinPath(basePath, strippedPath);
+  return resolveRelativeLocalPath(basePath, strippedPath);
 };
 
 export const resolveMarkdownLinkFallbackHref = (
