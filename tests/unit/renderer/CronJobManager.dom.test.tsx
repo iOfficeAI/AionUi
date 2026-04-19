@@ -228,7 +228,9 @@ describe('CronJobManager', () => {
   it('hides the manager when direct job lookup fails and cron skill is unavailable', async () => {
     mockGetJobInvoke.mockRejectedValue(new Error('lookup failed'));
 
-    const { container } = render(<CronJobManager conversationId='conv-1' cronJobId='job-missing' hasCronSkill={false} />);
+    const { container } = render(
+      <CronJobManager conversationId='conv-1' cronJobId='job-missing' hasCronSkill={false} />
+    );
 
     await waitFor(() => {
       expect(mockGetJobInvoke).toHaveBeenCalledWith({ jobId: 'job-missing' });
