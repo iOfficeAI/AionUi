@@ -8,10 +8,14 @@ import { describe, expect, it, vi } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import {
   buildGroupedHistory,
+  findWorkspaceConversationListToAutoExpand,
+  getHiddenWorkspaceConversationCount,
   getConversationPinnedAt,
+  getVisibleWorkspaceConversations,
   isCronJobConversation,
   isConversationPinned,
   groupConversationsByWorkspace,
+  WORKSPACE_CONVERSATION_PREVIEW_LIMIT,
 } from '@/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
 
 // Mock dependencies
@@ -362,6 +366,52 @@ describe('groupConversationsByWorkspace', () => {
     expect(result[0].items).toHaveLength(2);
     expect(result[0].items[0].type).toBe('conversation');
     expect(result[0].items[1].type).toBe('conversation');
+  });
+});
+
+describe('workspace conversation preview helpers', () => {
+  const workspaceConversations: TChatConversation[] = Array.from(
+    { length: WORKSPACE_CONVERSATION_PREVIEW_LIMIT + 2 },
+    (_value, index) => ({
+      id: `conv-${index + 1}`,
+      title: `Test ${index + 1}`,
+      name: `Test ${index + 1}`,
+      createdAt: index + 1,
+      updatedAt: index + 1,
+      userMsgCount: 0,
+      extra: { workspace: '/path/a', customWorkspace: true },
+    })
+  );
+
+  it('returns only the preview conversations when the workspace list is collapsed', () => {
+    const result = getVisibleWorkspaceConversations(workspaceConversations, false);
+
+    expect(result).toHaveLength(WORKSPACE_CONVERSATION_PREVIEW_LIMIT);
+    expect(result[0].id).toBe('conv-1');
+    expect(result.at(-1)?.id).toBe(`conv-${WORKSPACE_CONVERSATION_PREVIEW_LIMIT}`);
+  });
+
+  it('returns all conversations when the workspace list is expanded', () => {
+    const result = getVisibleWorkspaceConversations(workspaceConversations, true);
+
+    expect(result).toEqual(workspaceConversations);
+  });
+
+  it('counts hidden conversations only when the workspace list is collapsed', () => {
+    expect(getHiddenWorkspaceConversationCount(workspaceConversations, false)).toBe(2);
+    expect(getHiddenWorkspaceConversationCount(workspaceConversations, true)).toBe(0);
+  });
+
+  it('returns the workspace when the active conversation is outside the preview range', () => {
+    const timelineSections = groupConversationsByWorkspace(workspaceConversations, mockT);
+
+    expect(findWorkspaceConversationListToAutoExpand(timelineSections, 'conv-2')).toBe('/path/a');
+  });
+
+  it('does not auto-expand when the active conversation is already within the preview range', () => {
+    const timelineSections = groupConversationsByWorkspace(workspaceConversations, mockT);
+
+    expect(findWorkspaceConversationListToAutoExpand(timelineSections, 'conv-3')).toBeNull();
   });
 });
 

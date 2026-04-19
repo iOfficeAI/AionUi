@@ -12,6 +12,8 @@ import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHist
 import type { GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
 
+export const WORKSPACE_CONVERSATION_PREVIEW_LIMIT = 5;
+
 export const isConversationPinned = (conversation: TChatConversation): boolean => {
   const extra = conversation.extra as { pinned?: boolean } | undefined;
   return Boolean(extra?.pinned);
@@ -87,6 +89,55 @@ export const groupConversationsByWorkspace = (
       items,
     },
   ];
+};
+
+export const getVisibleWorkspaceConversations = (
+  conversations: TChatConversation[],
+  expanded: boolean,
+  limit = WORKSPACE_CONVERSATION_PREVIEW_LIMIT
+): TChatConversation[] => {
+  if (expanded) {
+    return conversations;
+  }
+
+  return conversations.slice(0, limit);
+};
+
+export const getHiddenWorkspaceConversationCount = (
+  conversations: TChatConversation[],
+  expanded: boolean,
+  limit = WORKSPACE_CONVERSATION_PREVIEW_LIMIT
+): number => {
+  if (expanded) {
+    return 0;
+  }
+
+  return Math.max(0, conversations.length - limit);
+};
+
+export const findWorkspaceConversationListToAutoExpand = (
+  timelineSections: TimelineSection[],
+  conversationId: string,
+  limit = WORKSPACE_CONVERSATION_PREVIEW_LIMIT
+): string | null => {
+  for (const section of timelineSections) {
+    for (const item of section.items) {
+      if (item.type !== 'workspace' || !item.workspaceGroup) {
+        continue;
+      }
+
+      const conversationIndex = item.workspaceGroup.conversations.findIndex(
+        (conversation) => conversation.id === conversationId
+      );
+      if (conversationIndex === -1) {
+        continue;
+      }
+
+      return conversationIndex >= limit ? item.workspaceGroup.workspace : null;
+    }
+  }
+
+  return null;
 };
 
 /** Check whether a conversation belongs to a team (should be hidden from sidebar). */

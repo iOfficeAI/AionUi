@@ -7,6 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useConversationHistoryContext } from '@/renderer/hooks/context/ConversationHistoryContext';
+import { findWorkspaceConversationListToAutoExpand } from '../utils/groupingHelpers';
 import {
   dispatchWorkspaceExpansionChange,
   readExpandedWorkspaces,
@@ -15,6 +16,7 @@ import {
 
 export const useConversations = () => {
   const [expandedWorkspaces, setExpandedWorkspaces] = useState<string[]>(() => readExpandedWorkspaces());
+  const [expandedWorkspaceConversationLists, setExpandedWorkspaceConversationLists] = useState<string[]>([]);
   const { id } = useParams();
   const {
     conversations,
@@ -28,6 +30,7 @@ export const useConversations = () => {
   // Track whether auto-expand has already been performed to avoid
   // re-expanding workspaces after a user manually collapses them (#1156)
   const hasAutoExpandedRef = useRef(false);
+  const lastAutoExpandedConversationListIdRef = useRef<string | null>(null);
 
   // Scroll active conversation into view.
   // Use double-RAF to wait for async sibling content (e.g. CronJobSiderSection)
@@ -108,7 +111,42 @@ export const useConversations = () => {
       const filtered = prev.filter((ws) => currentWorkspaces.has(ws));
       return filtered.length === prev.length ? prev : filtered;
     });
+    setExpandedWorkspaceConversationLists((prev) => {
+      const filtered = prev.filter((ws) => currentWorkspaces.has(ws));
+      return filtered.length === prev.length ? prev : filtered;
+    });
   }, [timelineSections]);
+
+  useEffect(() => {
+    if (!id || lastAutoExpandedConversationListIdRef.current === id) {
+      return;
+    }
+
+    const workspaceToExpand = findWorkspaceConversationListToAutoExpand(timelineSections, id);
+    if (workspaceToExpand) {
+      setExpandedWorkspaceConversationLists((prev) => {
+        if (prev.includes(workspaceToExpand)) {
+          return prev;
+        }
+
+        return [...prev, workspaceToExpand];
+      });
+    }
+
+    const hasActiveConversation = timelineSections.some((section) =>
+      section.items.some((item) => {
+        if (item.type === 'conversation') {
+          return item.conversation?.id === id;
+        }
+
+        return item.workspaceGroup?.conversations.some((conversation) => conversation.id === id) ?? false;
+      })
+    );
+
+    if (hasActiveConversation) {
+      lastAutoExpandedConversationListIdRef.current = id;
+    }
+  }, [id, timelineSections]);
 
   const handleToggleWorkspace = useCallback((workspace: string) => {
     setExpandedWorkspaces((prev) => {
@@ -119,13 +157,25 @@ export const useConversations = () => {
     });
   }, []);
 
+  const handleToggleWorkspaceConversationList = useCallback((workspace: string) => {
+    setExpandedWorkspaceConversationLists((prev) => {
+      if (prev.includes(workspace)) {
+        return prev.filter((item) => item !== workspace);
+      }
+
+      return [...prev, workspace];
+    });
+  }, []);
+
   return {
     conversations,
     isConversationGenerating,
     hasCompletionUnread,
     expandedWorkspaces,
+    expandedWorkspaceConversationLists,
     pinnedConversations,
     timelineSections,
     handleToggleWorkspace,
+    handleToggleWorkspaceConversationList,
   };
 };

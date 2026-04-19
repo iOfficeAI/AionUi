@@ -9,7 +9,7 @@ import DirectorySelectionModal from '@/renderer/components/settings/DirectorySel
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal } from '@arco-design/web-react';
+import { Button, Empty, Input, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import { Down, Right } from '@icon-park/react';
@@ -26,6 +26,11 @@ import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
+import {
+  getHiddenWorkspaceConversationCount,
+  getVisibleWorkspaceConversations,
+  WORKSPACE_CONVERSATION_PREVIEW_LIMIT,
+} from './utils/groupingHelpers';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
@@ -61,9 +66,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     isConversationGenerating,
     hasCompletionUnread,
     expandedWorkspaces,
+    expandedWorkspaceConversationLists,
     pinnedConversations,
     timelineSections,
     handleToggleWorkspace,
+    handleToggleWorkspaceConversationList,
   } = useConversations();
 
   const {
@@ -416,6 +423,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               section.items.map((item) => {
                 if (item.type === 'workspace' && item.workspaceGroup) {
                   const group = item.workspaceGroup;
+                  const workspaceConversationListExpanded = expandedWorkspaceConversationLists.includes(
+                    group.workspace
+                  );
+                  const visibleConversations = getVisibleWorkspaceConversations(
+                    group.conversations,
+                    workspaceConversationListExpanded
+                  );
+                  const hiddenConversationCount = getHiddenWorkspaceConversationCount(
+                    group.conversations,
+                    workspaceConversationListExpanded
+                  );
+                  const canToggleWorkspaceConversationList =
+                    group.conversations.length > WORKSPACE_CONVERSATION_PREVIEW_LIMIT;
+                  const workspaceConversationToggleLabel = workspaceConversationListExpanded
+                    ? t('common.collapse')
+                    : `${t('common.expandMore')} (${hiddenConversationCount})`;
+
                   return (
                     <div key={group.workspace} className='min-w-0'>
                       <WorkspaceCollapse
@@ -431,7 +455,29 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                         }
                       >
                         <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-2px': !collapsed })}>
-                          {group.conversations.map((conversation) => renderConversation(conversation))}
+                          {visibleConversations.map((conversation) => renderConversation(conversation))}
+                          {canToggleWorkspaceConversationList && (
+                            <Tooltip content={workspaceConversationToggleLabel} disabled={!collapsed} position='right'>
+                              <Button
+                                type='text'
+                                size='mini'
+                                className={classNames(
+                                  '!h-32px !min-w-0 !rounded-8px !text-12px',
+                                  collapsed ? '!w-full !justify-center !px-0' : '!w-full !justify-start !px-8px'
+                                )}
+                                onClick={() => handleToggleWorkspaceConversationList(group.workspace)}
+                              >
+                                <span className='flex items-center gap-6px min-w-0'>
+                                  {workspaceConversationListExpanded ? (
+                                    <Down theme='outline' size={12} />
+                                  ) : (
+                                    <Right theme='outline' size={12} />
+                                  )}
+                                  {!collapsed && <span className='truncate'>{workspaceConversationToggleLabel}</span>}
+                                </span>
+                              </Button>
+                            </Tooltip>
+                          )}
                         </div>
                       </WorkspaceCollapse>
                     </div>
