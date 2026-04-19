@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -207,5 +207,32 @@ describe('CronJobManager', () => {
     const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
 
     expect(container.innerHTML).toBe('');
+  });
+
+  it('fetches a direct cron job by id and navigates to its detail page', async () => {
+    const directJob = makeMockJob({ id: 'job-direct', name: 'Direct Job' });
+    mockGetJobInvoke.mockResolvedValue(directJob);
+
+    render(<CronJobManager conversationId='conv-1' cronJobId='job-direct' hasCronSkill={false} />);
+
+    await waitFor(() => {
+      expect(mockGetJobInvoke).toHaveBeenCalledWith({ jobId: 'job-direct' });
+      expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button'));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/scheduled/job-direct');
+  });
+
+  it('hides the manager when direct job lookup fails and cron skill is unavailable', async () => {
+    mockGetJobInvoke.mockRejectedValue(new Error('lookup failed'));
+
+    const { container } = render(<CronJobManager conversationId='conv-1' cronJobId='job-missing' hasCronSkill={false} />);
+
+    await waitFor(() => {
+      expect(mockGetJobInvoke).toHaveBeenCalledWith({ jobId: 'job-missing' });
+      expect(container.innerHTML).toBe('');
+    });
   });
 });
