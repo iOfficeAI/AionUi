@@ -909,8 +909,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             }
           }
         }
-        if (configOptions.length > 0) {
-          void this.cacheConfigOptions(configOptions);
+        const readyConfigOptions = this.agent.getConfigOptions();
+        if (readyConfigOptions.length > 0) {
+          // Warmup suppresses acp_model_info events, so persist the ready-state
+          // options here and let the renderer render from cache immediately.
+          void this.saveConfigOptions(readyConfigOptions);
+          void this.cacheConfigOptions(readyConfigOptions);
         }
         // Cache model list for Guid page pre-selection after agent starts
         const modelInfo = this.agent.getModelInfo();
@@ -918,6 +922,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           void this.cacheModelList(modelInfo);
         }
         this.bootstrapping = false;
+        if (modelInfo) {
+          // Re-emit once warmup completes so model/config selectors refresh
+          // without requiring the user to switch tabs or remount the view.
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'acp_model_info',
+            conversation_id: this.conversation_id,
+            msg_id: uuid(),
+            data: modelInfo,
+          });
+        }
         return this.agent;
       });
     })();

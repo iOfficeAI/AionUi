@@ -236,6 +236,43 @@ describe('AcpAgentManager turn completion fallback', () => {
     expect(acpAgentSetMode).not.toHaveBeenCalled();
   });
 
+  it('emits acp_model_info after warmup completes so selectors can refresh without remounting', async () => {
+    acpAgentGetModelInfo.mockReturnValue({
+      currentModelId: 'gpt-5',
+      currentModelLabel: 'GPT-5',
+      canSwitch: true,
+      availableModels: [{ id: 'gpt-5', label: 'GPT-5' }],
+      source: 'models',
+      sourceDetail: 'codex',
+    });
+    acpAgentGetConfigOptions.mockReturnValue([
+      {
+        id: 'reasoning_effort',
+        category: 'reasoning',
+        type: 'select',
+        currentValue: 'medium',
+        options: [
+          { value: 'low', name: 'Low' },
+          { value: 'medium', name: 'Medium' },
+        ],
+      },
+    ]);
+
+    const manager = await createManager({ backend: 'codex' });
+
+    await manager.initAgent();
+
+    expect(responseStreamEmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'acp_model_info',
+        conversation_id: 'session-1',
+        data: expect.objectContaining({
+          currentModelId: 'gpt-5',
+        }),
+      })
+    );
+  });
+
   it('keeps ACP runtime active when prompt dispatch resolves before finish arrives', async () => {
     const manager = await createManager();
     manager.persistCurrentTurnTokenUsage = vi.fn();
