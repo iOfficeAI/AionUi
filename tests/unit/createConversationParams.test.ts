@@ -306,6 +306,56 @@ describe('createConversationParams', () => {
     expect(params.extra.currentModelId).toBe('gpt-5-codex');
   });
 
+  it('hydrates cached ACP config options for new workspace conversations', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            preferredConfigOptions: {
+              reasoning_effort: 'high',
+            },
+          },
+        };
+      }
+      if (key === 'acp.cachedConfigOptions') {
+        return {
+          codex: [
+            {
+              id: 'reasoning_effort',
+              category: 'reasoning',
+              type: 'select',
+              currentValue: 'medium',
+              options: [
+                { value: 'medium', name: 'Medium' },
+                { value: 'high', name: 'High' },
+              ],
+            },
+          ],
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'codex',
+        name: 'Codex Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.configOptionValues).toEqual({
+      reasoning_effort: 'high',
+    });
+    expect(params.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'reasoning_effort',
+        currentValue: 'high',
+        selectedValue: 'high',
+      }),
+    ]);
+  });
+
   it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
     configGet.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
@@ -352,6 +402,55 @@ describe('createConversationParams', () => {
     expect(params.extra.backend).toBe('claude');
     expect(params.extra.sessionMode).toBe('acceptEdits');
     expect(params.extra.currentModelId).toBe('claude-sonnet-4-5');
+  });
+
+  it('hydrates cached ACP config options for ACP preset assistants', async () => {
+    loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          claude: {
+            preferredConfigOptions: {
+              output_style: 'concise',
+            },
+          },
+        };
+      }
+      if (key === 'acp.cachedConfigOptions') {
+        return {
+          claude: [
+            {
+              id: 'output_style',
+              category: 'reasoning',
+              type: 'select',
+              currentValue: 'default',
+              options: [
+                { value: 'default', name: 'Default' },
+                { value: 'concise', name: 'Concise' },
+              ],
+            },
+          ],
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildPresetAssistantParams(
+      { backend: 'custom', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
+      '/tmp',
+      'en'
+    );
+
+    expect(params.extra.configOptionValues).toEqual({
+      output_style: 'concise',
+    });
+    expect(params.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'output_style',
+        currentValue: 'concise',
+        selectedValue: 'concise',
+      }),
+    ]);
   });
 
   it('falls back to default codex model when no cached ACP model exists', async () => {

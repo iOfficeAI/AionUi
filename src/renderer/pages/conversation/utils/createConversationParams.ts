@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackend } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { resolveAvailableModel, resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
@@ -81,6 +81,36 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   }
 
   return undefined;
+}
+
+type AcpConfigSelection = {
+  cachedConfigOptions?: AcpSessionConfigOption[];
+  configOptionValues?: Record<string, string>;
+};
+
+async function resolvePreferredAcpConfigSelection(backend: string): Promise<AcpConfigSelection> {
+  const [acpConfig, cachedConfigOptions] = await Promise.all([
+    ConfigStorage.get('acp.config'),
+    ConfigStorage.get('acp.cachedConfigOptions'),
+  ]);
+  const preferredConfigOptions = acpConfig?.[backend as AcpBackend]?.preferredConfigOptions;
+  const cachedOptions = cachedConfigOptions?.[backend as AcpBackend];
+
+  const nextCachedConfigOptions =
+    Array.isArray(cachedOptions) && cachedOptions.length > 0
+      ? Object.keys(preferredConfigOptions || {}).length > 0
+        ? cachedOptions.map((option) => {
+            const nextValue = preferredConfigOptions?.[option.id];
+            return nextValue ? { ...option, currentValue: nextValue, selectedValue: nextValue } : option;
+          })
+        : cachedOptions
+      : undefined;
+
+  return {
+    cachedConfigOptions: nextCachedConfigOptions,
+    configOptionValues:
+      preferredConfigOptions && Object.keys(preferredConfigOptions).length > 0 ? preferredConfigOptions : undefined,
+  };
 }
 
 /**
@@ -194,6 +224,8 @@ export async function buildCliAgentParams(
   const type = getConversationTypeForBackend(agent.backend);
   const preferredMode = await resolvePreferredMode(agent.backend);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
+  const preferredAcpConfigSelection =
+    type === 'acp' ? await resolvePreferredAcpConfigSelection(agent.backend) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'gemini') {
@@ -215,6 +247,7 @@ export async function buildCliAgentParams(
     model,
     sessionMode: preferredMode,
     currentModelId: preferredAcpModelId,
+    extra: preferredAcpConfigSelection,
   });
 }
 
@@ -242,6 +275,8 @@ export async function buildPresetAssistantParams(
   const type = getConversationTypeForPreset(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
+  const preferredAcpConfigSelection =
+    type === 'acp' ? await resolvePreferredAcpConfigSelection(presetAgentType) : undefined;
   const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
@@ -259,5 +294,6 @@ export async function buildPresetAssistantParams(
     model,
     sessionMode: preferredMode,
     currentModelId: preferredAcpModelId,
+    extra: preferredAcpConfigSelection,
   });
 }
