@@ -269,6 +269,9 @@ export const useGeminiMessage = (
           if (finishedData?.usageMetadata) {
             const newTokenUsage: TokenUsageData = {
               totalTokens: finishedData.usageMetadata.totalTokenCount || 0,
+              inputTokens: finishedData.usageMetadata.promptTokenCount || 0,
+              outputTokens: finishedData.usageMetadata.candidatesTokenCount || 0,
+              cachedInputTokens: finishedData.usageMetadata.cachedContentTokenCount,
             };
             setTokenUsage(newTokenUsage);
             void ipcBridge.conversation.update.invoke({
