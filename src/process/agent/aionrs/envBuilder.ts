@@ -15,13 +15,19 @@ type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
  * AionUi PlatformType values: 'custom' | 'new-api' | 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'bedrock'
  */
 function mapProvider(model: TProviderWithModel): AionrsProvider {
+  // Special handling for new-api: respect per-model protocol setting
+  if (model.platform === 'new-api' && model.useModel && model.modelProtocols) {
+    const protocol = model.modelProtocols[model.useModel];
+    if (protocol === 'anthropic') return 'anthropic';
+  }
+
   const mapping: Record<string, AionrsProvider> = {
     anthropic: 'anthropic',
     bedrock: 'bedrock',
     'gemini-vertex-ai': 'vertex',
     // Gemini uses OpenAI-compatible endpoint
     gemini: 'openai',
-    // custom / new-api use OpenAI-compatible protocol
+    // custom / new-api default to OpenAI-compatible protocol
     custom: 'openai',
     'new-api': 'openai',
   };
