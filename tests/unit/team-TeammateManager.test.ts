@@ -769,6 +769,7 @@ describe('TeammateManager', () => {
         // Simulate a long stream of thought/tool events — each heartbeat reset
         // the watchdog. We emit one every 30s for 150s (> 2× original 60s budget).
         for (let elapsed = 0; elapsed < 150_000; elapsed += 30_000) {
+          // eslint-disable-next-line no-await-in-loop
           await vi.advanceTimersByTimeAsync(30_000);
           teamEventBus.emit('responseStream', {
             type: 'text',
@@ -1551,6 +1552,91 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
+    it('clears turnResponseBuffer when a member crashes (no leak across crash)', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+        conversationType: 'acp',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      // Pre-seed the capture buffer to simulate streamed text mid-turn
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'pre-crash-1',
+        data: 'partial output before crash',
+      });
+      const bufferBeforeCrash = (mgr as unknown as { turnResponseBuffer: Map<string, string> }).turnResponseBuffer;
+      expect(bufferBeforeCrash.has('conv-member')).toBe(true);
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'crash-buf-1',
+        data: { error: 'Process exited unexpectedly', agentCrash: true },
+      });
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(bufferBeforeCrash.has('conv-member')).toBe(false);
+      mgr.dispose();
+    });
+
+    it('clears turnResponseBuffer when a leader crashes', async () => {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Worker',
+      });
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      // Lead is excluded from capture (role check), but make sure we still
+      // delete its conversation entry on crash if any historic value existed.
+      const buffer = (mgr as unknown as { turnResponseBuffer: Map<string, string> }).turnResponseBuffer;
+      buffer.set('conv-lead', 'leftover from somewhere');
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-lead',
+        msg_id: 'crash-lead-buf',
+        data: { error: 'Leader crashed', agentCrash: true },
+      });
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(buffer.has('conv-lead')).toBe(false);
+      mgr.dispose();
+    });
+
+    it('clears turnResponseBuffer when a member crashes with NO leader present', async () => {
+      // No leader → handleAgentCrash takes the no-leader branch
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        agentName: 'Lonely',
+      });
+      const { mgr } = makeTeammateManager([member]);
+
+      const buffer = (mgr as unknown as { turnResponseBuffer: Map<string, string> }).turnResponseBuffer;
+      buffer.set('conv-member', 'pre-crash text');
+
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'lonely-crash',
+        data: { error: 'Process died', agentCrash: true },
+      });
+      await new Promise((r) => setTimeout(r, 100));
+
+      expect(buffer.has('conv-member')).toBe(false);
+      mgr.dispose();
+    });
+
     it('[case-6] member crash: leader is woken after testament is written', async () => {
       // This case passes regardless of whether removeAgent() is called — wake(leadSlotId) fires last.
       const leader = makeAgent({
@@ -1583,6 +1669,405 @@ describe('TeammateManager', () => {
 
       // Leader's wake was triggered — getOrBuildTask called with leader's conversationId
       expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
+
+      mgr.dispose();
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // Auto-captured fallback: response capture buffer + dedup + cap + cleanup
+  // (regression coverage for the "leader sees only 'Turn completed'" bug fix)
+  // ---------------------------------------------------------------------------
+  describe('auto-captured fallback', () => {
+    type WithBuffers = {
+      turnResponseBuffer: Map<string, string>;
+      explicitSendToLeadThisTurn: Set<string>;
+    };
+
+    function makeLeaderMember() {
+      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader' });
+      const member = makeAgent({
+        slotId: 'slot-member',
+        conversationId: 'conv-member',
+        role: 'teammate',
+        status: 'active',
+        agentName: 'Worker',
+      });
+      return { leader, member };
+    }
+
+    // -------------------------------------------------------------------------
+    // Capture: streamed content accumulates into per-conversation buffer
+    // -------------------------------------------------------------------------
+
+    it('accumulates streamed content events for non-lead teammates', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c1', data: 'hello ' });
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c2', data: 'world' });
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      expect(buf.get('conv-member')).toBe('hello world');
+      mgr.dispose();
+    });
+
+    it('does NOT capture content for the lead agent (lead role excluded)', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-lead', msg_id: 'l1', data: 'leader text' });
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      expect(buf.has('conv-lead')).toBe(false);
+      mgr.dispose();
+    });
+
+    it('ignores content events with non-string data (defensive against malformed events)', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'x1', data: { not: 'a string' } });
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'x2', data: '' });
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      expect(buf.has('conv-member')).toBe(false);
+      mgr.dispose();
+    });
+
+    // -------------------------------------------------------------------------
+    // Token explosion safeguard: tail-biased clip at 3000 chars
+    // -------------------------------------------------------------------------
+
+    it('caps the buffer at MAX_RESPONSE_CAPTURE_CHARS (3000) regardless of input size', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      // Push 100KB of content in 100 chunks of 1KB each
+      for (let i = 0; i < 100; i++) {
+        teamEventBus.emit('responseStream', {
+          type: 'content',
+          conversation_id: 'conv-member',
+          msg_id: `chunk-${i}`,
+          data: 'A'.repeat(1024),
+        });
+      }
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      const stored = buf.get('conv-member') ?? '';
+      expect(stored.length).toBeLessThanOrEqual(3000);
+      expect(stored.length).toBe(3000);
+      mgr.dispose();
+    });
+
+    it('preserves the TAIL of the stream (so closing summary survives, preamble drops)', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      // 4000 chars of preamble, then 'TAIL_MARKER' at the very end
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'pre',
+        data: 'P'.repeat(4000),
+      });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'tail',
+        data: 'TAIL_MARKER',
+      });
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      const stored = buf.get('conv-member') ?? '';
+      expect(stored.length).toBe(3000);
+      expect(stored.endsWith('TAIL_MARKER')).toBe(true);
+      mgr.dispose();
+    });
+
+    // -------------------------------------------------------------------------
+    // Fallback message format: marker prefix
+    // -------------------------------------------------------------------------
+
+    it('writes [auto-captured fallback ...] prefix when teammate produced text but did not call team_send_message', async () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c1', data: 'I did the thing' });
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f1', data: null });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(1);
+      const content = idleCalls[0][0].content as string;
+      expect(content).toContain('[auto-captured fallback');
+      expect(content).toContain('I did the thing');
+      mgr.dispose();
+    });
+
+    it('writes "(no response text produced)" fallback when teammate produced no text', async () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+
+      // No content event emitted, just finish
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f-empty', data: null });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(1);
+      const content = idleCalls[0][0].content as string;
+      expect(content).toContain('[auto-captured fallback]');
+      expect(content).toContain('no response text produced');
+      mgr.dispose();
+    });
+
+    it('treats whitespace-only captured response as empty (still emits the no-text fallback)', async () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'ws', data: '   \n\t   \n' });
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'fws', data: null });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(1);
+      expect(idleCalls[0][0].content).toContain('no response text produced');
+      mgr.dispose();
+    });
+
+    // -------------------------------------------------------------------------
+    // Dedup: explicit send to lead suppresses fallback
+    // -------------------------------------------------------------------------
+
+    it('skips the fallback when markExplicitSendToLead was called this turn', async () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+
+      // Teammate streams text AND calls explicit send (the normal "good" path)
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c1', data: 'curated report' });
+      mgr.markExplicitSendToLead('slot-member');
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f1', data: null });
+
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Only the leader-targeted idle_notification should be suppressed.
+      // The explicit message was already written by TeamMcpServer (not modeled here).
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(0);
+      mgr.dispose();
+    });
+
+    it('markExplicitSendToLead is per-turn (next turn re-arms the fallback)', async () => {
+      const { leader, member } = makeLeaderMember();
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({ sendMessage: mockSendMessage } as never);
+
+      // Turn 1: explicit send → no fallback
+      mgr.markExplicitSendToLead('slot-member');
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 't1', data: null });
+      await new Promise((r) => setTimeout(r, 50));
+
+      // Re-wake triggers a new turn; flag should be reset
+      vi.mocked(mailbox.write).mockClear();
+      await mgr.wake('slot-member');
+
+      // Turn 2: NO explicit send → fallback should fire
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c2', data: 'silent turn output' });
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 't2', data: null });
+      await new Promise((r) => setTimeout(r, 50));
+
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(1);
+      expect(idleCalls[0][0].content).toContain('silent turn output');
+      mgr.dispose();
+    });
+
+    it('markExplicitSendToLead is idempotent (multiple calls in same turn → still suppresses once)', async () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr, mailbox } = makeTeammateManager([leader, member]);
+
+      mgr.markExplicitSendToLead('slot-member');
+      mgr.markExplicitSendToLead('slot-member');
+      mgr.markExplicitSendToLead('slot-member');
+
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f', data: null });
+      await new Promise((r) => setTimeout(r, 50));
+
+      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
+        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
+      );
+      expect(idleCalls).toHaveLength(0);
+      mgr.dispose();
+    });
+
+    // -------------------------------------------------------------------------
+    // Cleanup paths (memory leak prevention)
+    // -------------------------------------------------------------------------
+
+    it('finalizeTurn clears the buffer entry (no growth across turns)', async () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c', data: 'turn output' });
+      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f', data: null });
+      await new Promise((r) => setTimeout(r, 50));
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      expect(buf.has('conv-member')).toBe(false);
+      mgr.dispose();
+    });
+
+    it('wake() resets the buffer entry defensively (in case prior turn dropped finish)', async () => {
+      const { leader, member } = makeLeaderMember();
+      const idleMember = { ...member, status: 'idle' as const };
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, workerTaskManager } = makeTeammateManager([leader, idleMember]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({ sendMessage: mockSendMessage } as never);
+
+      // Pre-seed leftover state from a hypothetically-lost prior turn
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      const flags = (mgr as unknown as WithBuffers).explicitSendToLeadThisTurn;
+      buf.set('conv-member', 'leftover from a turn whose finish event was dropped');
+      flags.add('slot-member');
+
+      await mgr.wake('slot-member');
+
+      expect(buf.has('conv-member')).toBe(false);
+      expect(flags.has('slot-member')).toBe(false);
+      mgr.dispose();
+    });
+
+    it('removeAgent clears both the buffer and the flag for the removed agent', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      const flags = (mgr as unknown as WithBuffers).explicitSendToLeadThisTurn;
+      buf.set('conv-member', 'mid-turn text');
+      flags.add('slot-member');
+
+      mgr.removeAgent('slot-member');
+
+      expect(buf.has('conv-member')).toBe(false);
+      expect(flags.has('slot-member')).toBe(false);
+      mgr.dispose();
+    });
+
+    it('dispose clears all buffer entries and flags', () => {
+      const { leader, member } = makeLeaderMember();
+      const second = makeAgent({ slotId: 'slot-2', conversationId: 'conv-2', role: 'teammate', agentName: 'Beta' });
+      const { mgr } = makeTeammateManager([leader, member, second]);
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      const flags = (mgr as unknown as WithBuffers).explicitSendToLeadThisTurn;
+      buf.set('conv-member', 'a');
+      buf.set('conv-2', 'b');
+      flags.add('slot-member');
+      flags.add('slot-2');
+
+      // Suppress the dispose-time leftover-state warning during the assertion
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mgr.dispose();
+      warnSpy.mockRestore();
+
+      expect(buf.size).toBe(0);
+      expect(flags.size).toBe(0);
+    });
+
+    it('dispose logs a warning when leftover per-turn state is present (leak detection)', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      buf.set('conv-member', 'leftover');
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mgr.dispose();
+      const warned = warnSpy.mock.calls.some((args) =>
+        typeof args[0] === 'string' && args[0].includes('leftover per-turn state')
+      );
+      warnSpy.mockRestore();
+
+      expect(warned).toBe(true);
+    });
+
+    it('dispose does NOT warn when state is clean', () => {
+      const { leader, member } = makeLeaderMember();
+      const { mgr } = makeTeammateManager([leader, member]);
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      mgr.dispose();
+      const warned = warnSpy.mock.calls.some((args) =>
+        typeof args[0] === 'string' && args[0].includes('leftover per-turn state')
+      );
+      warnSpy.mockRestore();
+
+      expect(warned).toBe(false);
+    });
+
+    // -------------------------------------------------------------------------
+    // Stress: many turns must not leak memory or grow the buffer
+    // -------------------------------------------------------------------------
+
+    it('STRESS: 200 turns × 50KB each → buffer is empty after each finalize and total size never grows beyond cap', async () => {
+      const { leader, member } = makeLeaderMember();
+      // Use a workerTaskManager whose getOrBuildTask resolves so the leader wake
+      // chain (triggered by maybeWakeLeaderWhenAllIdle) can complete cleanly.
+      const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+      const { mgr, workerTaskManager } = makeTeammateManager([leader, member]);
+      vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({ sendMessage: mockSendMessage } as never);
+
+      const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
+      const flags = (mgr as unknown as WithBuffers).explicitSendToLeadThisTurn;
+      const finalizedTurns = (mgr as unknown as { finalizedTurns: Set<string> }).finalizedTurns;
+      let maxObservedBufferSize = 0;
+
+      for (let turn = 0; turn < 200; turn++) {
+        // Stream ~50KB in 50 chunks
+        for (let i = 0; i < 50; i++) {
+          teamEventBus.emit('responseStream', {
+            type: 'content',
+            conversation_id: 'conv-member',
+            msg_id: `t${turn}-c${i}`,
+            data: 'X'.repeat(1024),
+          });
+          const cur = buf.get('conv-member')?.length ?? 0;
+          if (cur > maxObservedBufferSize) maxObservedBufferSize = cur;
+        }
+
+        // Finish — schedules async finalizeTurn (which awaits mailbox.write).
+        // Clear the dedup window first so each turn's finish is actually processed.
+        finalizedTurns.clear();
+        teamEventBus.emit('responseStream', {
+          type: 'finish',
+          conversation_id: 'conv-member',
+          msg_id: `t${turn}-fin`,
+          data: null,
+        });
+        // Real-time yield (≥1ms) so the awaited mailbox.write resolves and
+        // finalizeTurn runs to completion before we assert.
+        // eslint-disable-next-line no-await-in-loop
+        await new Promise((r) => setTimeout(r, 1));
+
+        expect(buf.has('conv-member'), `turn ${turn}: buffer should be drained after finalize`).toBe(false);
+        expect(flags.has('slot-member'), `turn ${turn}: explicit-send flag should be cleared`).toBe(false);
+      }
+
+      expect(maxObservedBufferSize, 'mid-stream size must never exceed the 3000-char cap').toBeLessThanOrEqual(3000);
 
       mgr.dispose();
     });
