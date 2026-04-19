@@ -186,6 +186,7 @@
     "dotenv": "^17.2.1",
     "electron": "^37.10.3",
     "electron-builder": "^26.6.0",
+    "electron-devtools-installer": "^4.0.0",
     "electron-vite": "^5.0.0",
     "esbuild": "^0.25.11",
     "husky": "^9.1.7",
