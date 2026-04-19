@@ -65,6 +65,8 @@ export interface AgentModeSelectorProps {
   onModeChanged?: (mode: string) => void;
   /** Dynamic modes from capabilities (overrides static list when non-empty) */
   dynamicModes?: AgentModeOption[];
+  /** Disable mode switching while keeping the current mode visible */
+  disabled?: boolean;
 }
 
 /**
@@ -92,6 +94,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   hideCompactLabelPrefixOnMobile = false,
   onModeChanged,
   dynamicModes,
+  disabled = false,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -159,7 +162,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
   const canSwitchMode = (supportsModeSwitch(backend) || modes.length > 0) && (conversationId || onModeSelect);
   // Mobile conversation header agent pill is display-only by design.
-  const canInteract = canSwitchMode && !(compact && compactLabelType === 'agent');
+  const canInteract = !disabled && canSwitchMode && !(compact && compactLabelType === 'agent');
 
   // When initialMode prop changes (e.g. agent switch on Guid page), update local state.
   // Validate against available modes to handle backends with non-standard default
@@ -196,6 +199,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       cancelled = true;
     };
   }, [conversationId, canSwitchMode]);
+
+  useEffect(() => {
+    if (!canInteract) {
+      setDropdownVisible(false);
+    }
+  }, [canInteract]);
 
   const handleModeChange = useCallback(
     async (mode: string) => {
@@ -326,7 +335,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   // Full mode: logo + name + optional mode label
   const content = (
     <div
-      className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${canSwitchMode ? 'cursor-pointer hover:bg-3' : ''}`}
+      className={`flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px] ${canInteract ? 'cursor-pointer hover:bg-3' : ''}`}
       style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}
     >
       {renderLogo()}
@@ -334,14 +343,14 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       {canSwitchMode && (
         <>
           {currentMode !== defaultMode && <span className='text-xs text-t-tertiary'>({getCurrentModeLabel()})</span>}
-          <Down size={12} className='text-t-tertiary' />
+          {canInteract && <Down size={12} className='text-t-tertiary' />}
         </>
       )}
     </div>
   );
 
-  // If mode switching is not supported, just render the content without dropdown
-  if (!canSwitchMode) {
+  // If mode switching is not supported or temporarily disabled, render read-only content.
+  if (!canInteract) {
     return <div className='ml-16px'>{content}</div>;
   }
 

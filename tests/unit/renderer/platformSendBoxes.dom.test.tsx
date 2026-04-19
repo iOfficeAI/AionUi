@@ -57,6 +57,12 @@ const mockArcoSuccess = vi.fn();
 const mockAssertBridgeSuccess = vi.fn();
 const mockSetSendBoxHandler = vi.fn();
 const mockClearFiles = vi.fn();
+const mockAgentModeSelector = vi.fn((props?: { disabled?: boolean }) =>
+  React.createElement('div', {
+    'data-testid': 'agent-mode-selector',
+    'data-disabled': String(Boolean(props?.disabled)),
+  })
+);
 const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
   files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
 );
@@ -117,16 +123,19 @@ vi.mock('@/renderer/components/chat/sendbox', () => ({
     loading,
     onSend,
     onStop,
+    tools,
   }: {
     disabled?: boolean;
     loading?: boolean;
     onSend: (message: string) => Promise<void> | void;
     onStop?: () => Promise<void> | void;
+    tools?: React.ReactNode;
   }) =>
     React.createElement(
       'div',
       { 'data-testid': 'sendbox' },
       React.createElement('div', { 'data-testid': 'sendbox-loading' }, String(Boolean(loading))),
+      React.createElement('div', { 'data-testid': 'sendbox-tools' }, tools),
       React.createElement(
         'button',
         {
@@ -179,7 +188,7 @@ vi.mock('@/renderer/components/media/FileAttachButton', () => ({
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
   __esModule: true,
-  default: () => React.createElement('div'),
+  default: (props: { disabled?: boolean }) => mockAgentModeSelector(props),
 }));
 
 vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
@@ -684,6 +693,42 @@ describe('platform send box queue integration', () => {
         input: 'queued command',
         files: [],
       });
+    });
+  });
+
+  it('disables aionrs mode switching while a turn is running', async () => {
+    mockAionrsRunning = true;
+
+    render(
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(mockAgentModeSelector).toHaveBeenCalled();
+      expect(screen.getByTestId('agent-mode-selector')).toHaveAttribute('data-disabled', 'true');
+    });
+  });
+
+  it('keeps aionrs mode switching enabled when the conversation is idle', async () => {
+    render(
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />
+    );
+
+    await waitFor(() => {
+      expect(mockAgentModeSelector).toHaveBeenCalled();
+      expect(screen.getByTestId('agent-mode-selector')).toHaveAttribute('data-disabled', 'false');
     });
   });
 
