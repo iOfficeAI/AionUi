@@ -9,7 +9,9 @@ import type {
 } from '@/common/chat/chatLib';
 import type { ToolCallContentItem, ToolCallLocationItem } from '@/common/types/acpTypes';
 import type {
+  AvailableCommandsUpdate,
   ContentChunk,
+  Plan,
   SessionNotification,
   SessionUpdate,
   ToolCall,
@@ -233,15 +235,12 @@ export class MessageTranslator {
     ];
   }
 
-  private handlePlan(update: SessionUpdate): IMessagePlan[] {
+  private handlePlan(plan: Plan): IMessagePlan[] {
     // Plan is a standalone UI block — clear text msg_id mappings
     // so surrounding text chunks don't merge across the plan.
     this.messageMap.clear();
 
     // SDK Plan type has entries at top level: { entries: PlanEntry[] }
-    const plan = update as unknown as {
-      entries?: Array<{ content: string; status: string; priority?: string }>;
-    };
     if (!plan.entries || plan.entries.length === 0) return [];
 
     // Use stable per-turn ID so the renderer merges plan updates within a turn
@@ -267,7 +266,7 @@ export class MessageTranslator {
     ];
   }
 
-  private handleAvailableCommands(update: SessionUpdate): IMessageAvailableCommands[] {
+  private handleAvailableCommands(update: AvailableCommandsUpdate): IMessageAvailableCommands[] {
     // SDK AvailableCommandsUpdate: { availableCommands: Array<{ name, description, input? }> }
     const data = update as unknown as {
       availableCommands?: Array<{ name: string; description: string; input?: { hint?: string } | null }>;
