@@ -102,13 +102,13 @@ export class TeamSession extends EventEmitter {
 
   /**
    * Send a user message to the team.
-   * Ensures MCP server is started, then writes to the lead agent's mailbox and wakes the lead.
+   * Ensures MCP server is started, then writes to the leader agent's mailbox and wakes the leader.
    */
   async sendMessage(content: string, files?: string[]): Promise<void> {
     // Ensure MCP server is running before waking agents
     await this.startMcpServer();
 
-    const leadSlotId = this.team.leadAgentId;
+    const leadSlotId = this.team.leaderAgentId;
     const leadAgent = this.teammateManager.getAgents().find((a) => a.slotId === leadSlotId);
 
     await this.mailbox.write({
@@ -119,7 +119,7 @@ export class TeamSession extends EventEmitter {
       files,
     });
 
-    // Persist user message in lead's conversation so it appears as a user bubble in the chat UI
+    // Persist user message in leader's conversation so it appears as a user bubble in the chat UI
     if (leadAgent?.conversationId) {
       const msgId = crypto.randomUUID();
       const userMessage: TMessage = {
@@ -144,7 +144,7 @@ export class TeamSession extends EventEmitter {
   }
 
   /**
-   * Send a user message directly to a specific agent (by slotId), bypassing the lead.
+   * Send a user message directly to a specific agent (by slotId), bypassing the leader.
    * Ensures MCP server is running, writes to agent's mailbox, persists user bubble, then wakes the agent.
    */
   async sendMessageToAgent(

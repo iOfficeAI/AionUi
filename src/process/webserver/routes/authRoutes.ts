@@ -298,7 +298,8 @@ export function registerAuthRoutes(app: Express): void {
   app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response) => {
     void (async () => {
       try {
-        const { token } = req.body;
+        const bodyToken = typeof req.body?.token === 'string' ? req.body.token : null;
+        const token = bodyToken ?? TokenUtils.extractFromRequest(req);
 
         if (!token) {
           res.status(400).json({
@@ -315,6 +316,13 @@ export function registerAuthRoutes(app: Express): void {
             error: 'Invalid or expired token',
           });
           return;
+        }
+
+        if (!bodyToken && typeof req.cookies?.[AUTH_CONFIG.COOKIE.NAME] === 'string') {
+          res.cookie(AUTH_CONFIG.COOKIE.NAME, newToken, {
+            ...getCookieOptions(),
+            maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+          });
         }
 
         res.json({

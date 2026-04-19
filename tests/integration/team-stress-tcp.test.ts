@@ -125,7 +125,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
     slotId: 'slot-lead',
     conversationId: 'conv-lead',
-    role: 'lead',
+    role: 'leader',
     agentType: 'claude',
     agentName: 'Leader',
     conversationType: 'acp',
@@ -271,7 +271,7 @@ describe('Stress — 20 parallel TCP tool calls', () => {
 
   beforeEach(async () => {
     const agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
       makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
     ];
     const built = buildServer(agents);

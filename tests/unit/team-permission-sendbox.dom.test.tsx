@@ -82,8 +82,8 @@ const PermissionInspector: React.FC = () => {
   return (
     <div>
       <div data-testid='is-team-mode'>{String(perm.isTeamMode)}</div>
-      <div data-testid='is-lead-agent'>{String(perm.isLeadAgent)}</div>
-      <div data-testid='lead-conv-id'>{perm.leadConversationId}</div>
+      <div data-testid='is-leader-agent'>{String(perm.isLeaderAgent)}</div>
+      <div data-testid='leader-conv-id'>{perm.leaderConversationId}</div>
       <div data-testid='all-conv-count'>{perm.allConversationIds.length}</div>
     </div>
   );
@@ -97,17 +97,17 @@ describe('REQ-1: permission mode selector visibility in team mode', () => {
   it('should show mode selector for leader when in team mode (current behavior)', () => {
     const leadId = 'conv-lead-1';
 
-    // Current implementation: showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId
+    // Current implementation: showModeSelector = !teamPermission || conversation_id === teamPermission.leaderConversationId
     const teamPermission = {
       isTeamMode: true as const,
-      isLeadAgent: true,
-      leadConversationId: leadId,
+      isLeaderAgent: true,
+      leaderConversationId: leadId,
       allConversationIds: [leadId, 'conv-member-1'],
       propagateMode: vi.fn(),
     };
 
-    // leader: conversation_id === leadConversationId → showModeSelector = true
-    const showModeSelector = !teamPermission || 'conv-lead-1' === teamPermission.leadConversationId;
+    // leader: conversation_id === leaderConversationId → showModeSelector = true
+    const showModeSelector = !teamPermission || 'conv-lead-1' === teamPermission.leaderConversationId;
     expect(showModeSelector).toBe(true);
   });
 
@@ -117,14 +117,14 @@ describe('REQ-1: permission mode selector visibility in team mode', () => {
 
     const teamPermission = {
       isTeamMode: true as const,
-      isLeadAgent: false,
-      leadConversationId: leadId,
+      isLeaderAgent: false,
+      leaderConversationId: leadId,
       allConversationIds: [leadId, memberId],
       propagateMode: vi.fn(),
     };
 
-    // Current: showModeSelector = !teamPermission || conversation_id === teamPermission.leadConversationId
-    const showModeSelector = !teamPermission || memberId === teamPermission.leadConversationId;
+    // Current: showModeSelector = !teamPermission || conversation_id === teamPermission.leaderConversationId
+    const showModeSelector = !teamPermission || memberId === teamPermission.leaderConversationId;
     // REQ-1 FAILS with current logic — member does NOT see selector
     expect(showModeSelector).toBe(false);
   });
@@ -142,17 +142,17 @@ describe('REQ-1: permission mode selector visibility in team mode', () => {
     expect(showModeSelector).toBe(true);
   });
 
-  it('GeminiSendBox: showModeSelector uses isLeadAgent check (current behavior)', () => {
-    // GeminiSendBox uses: showModeSelector = !teamPermission || teamPermission.isLeadAgent
+  it('GeminiSendBox: showModeSelector uses isLeaderAgent check (current behavior)', () => {
+    // GeminiSendBox uses: showModeSelector = !teamPermission || teamPermission.isLeaderAgent
     const teamPermission = {
       isTeamMode: true as const,
-      isLeadAgent: false, // member
-      leadConversationId: 'lead-1',
+      isLeaderAgent: false, // member
+      leaderConversationId: 'lead-1',
       allConversationIds: ['lead-1', 'member-1'],
       propagateMode: vi.fn(),
     };
 
-    const showModeSelector = !teamPermission || teamPermission.isLeadAgent;
+    const showModeSelector = !teamPermission || teamPermission.isLeaderAgent;
     // REQ-1 FAILS for member agent
     expect(showModeSelector).toBe(false);
   });
@@ -173,8 +173,8 @@ describe('TeamPermissionProvider — context values', () => {
     render(
       <TeamPermissionProvider
         teamId='team-1'
-        isLeadAgent={true}
-        leadConversationId='conv-lead'
+        isLeaderAgent={true}
+        leaderConversationId='conv-lead'
         allConversationIds={['conv-lead', 'conv-m1']}
       >
         <PermissionInspector />
@@ -183,40 +183,40 @@ describe('TeamPermissionProvider — context values', () => {
     expect(screen.getByTestId('is-team-mode').textContent).toBe('true');
   });
 
-  it('provides isLeadAgent=true when lead', () => {
+  it('provides isLeaderAgent=true when lead', () => {
     render(
       <TeamPermissionProvider
         teamId='team-1'
-        isLeadAgent={true}
-        leadConversationId='conv-lead'
+        isLeaderAgent={true}
+        leaderConversationId='conv-lead'
         allConversationIds={['conv-lead']}
       >
         <PermissionInspector />
       </TeamPermissionProvider>
     );
-    expect(screen.getByTestId('is-lead-agent').textContent).toBe('true');
+    expect(screen.getByTestId('is-leader-agent').textContent).toBe('true');
   });
 
-  it('provides isLeadAgent=false for member agent', () => {
+  it('provides isLeaderAgent=false for member agent', () => {
     render(
       <TeamPermissionProvider
         teamId='team-1'
-        isLeadAgent={false}
-        leadConversationId='conv-lead'
+        isLeaderAgent={false}
+        leaderConversationId='conv-lead'
         allConversationIds={['conv-lead', 'conv-m1']}
       >
         <PermissionInspector />
       </TeamPermissionProvider>
     );
-    expect(screen.getByTestId('is-lead-agent').textContent).toBe('false');
+    expect(screen.getByTestId('is-leader-agent').textContent).toBe('false');
   });
 
   it('provides correct allConversationIds count', () => {
     render(
       <TeamPermissionProvider
         teamId='team-2'
-        isLeadAgent={false}
-        leadConversationId='conv-lead'
+        isLeaderAgent={false}
+        leaderConversationId='conv-lead'
         allConversationIds={['conv-lead', 'conv-m1', 'conv-m2', 'conv-m3']}
       >
         <PermissionInspector />
@@ -234,15 +234,15 @@ describe('TeamPermissionProvider — context values', () => {
     render(
       <TeamPermissionProvider
         teamId='team-solo'
-        isLeadAgent={true}
-        leadConversationId='conv-lead'
+        isLeaderAgent={true}
+        leaderConversationId='conv-lead'
         allConversationIds={['conv-lead']}
       >
         <PermissionInspector />
       </TeamPermissionProvider>
     );
     expect(screen.getByTestId('all-conv-count').textContent).toBe('1');
-    expect(screen.getByTestId('is-lead-agent').textContent).toBe('true');
+    expect(screen.getByTestId('is-leader-agent').textContent).toBe('true');
   });
 });
 
@@ -263,8 +263,8 @@ describe('REQ-2: propagateMode callback wiring', () => {
     render(
       <TeamPermissionProvider
         teamId='team-3'
-        isLeadAgent={true}
-        leadConversationId='conv-lead'
+        isLeaderAgent={true}
+        leaderConversationId='conv-lead'
         allConversationIds={['conv-lead', 'conv-m1']}
       >
         <Capture />

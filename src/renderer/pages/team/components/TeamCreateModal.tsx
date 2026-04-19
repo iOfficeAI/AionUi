@@ -101,7 +101,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       agents.push({
         slotId: '',
         conversationId: '',
-        role: 'lead',
+        role: 'leader',
         status: 'pending',
         agentType: dispatchAgentType,
         agentName: 'Leader',

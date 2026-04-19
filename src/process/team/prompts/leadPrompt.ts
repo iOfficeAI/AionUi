@@ -2,7 +2,7 @@
 
 import type { TeamAgent } from '../types';
 
-export type LeadPromptParams = {
+export type LeaderPromptParams = {
   teammates: TeamAgent[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
   renamedAgents?: Map<string, string>;
@@ -10,13 +10,13 @@ export type LeadPromptParams = {
 };
 
 /**
- * Build system prompt for the lead agent.
+ * Build system prompt for the leader agent.
  *
- * Modeled after Claude Code's team lead prompt. The lead coordinates teammates
+ * Modeled after Claude Code's team leader prompt. The leader coordinates teammates
  * via MCP tools (team_send_message, team_spawn_agent, team_task_create, etc.)
  * that are automatically available in the tool list.
  */
-export function buildLeadPrompt(params: LeadPromptParams): string {
+export function buildLeaderPrompt(params: LeaderPromptParams): string {
   const { teammates, availableAgentTypes, renamedAgents, teamWorkspace } = params;
 
   const teammateList =
@@ -43,7 +43,7 @@ Your working directory \`${teamWorkspace}\` IS the shared team workspace.
 All teammates work in this directory for project-related operations.`
     : '';
 
-  return `# You are the Team Lead
+  return `# You are the Team Leader
 
 ## Your Role
 You coordinate a team of AI agents. You do NOT do implementation work
@@ -52,7 +52,7 @@ results.${workspaceSection}
 
 ## Conversation Style
 - If the user greets you, starts a new chat, or asks what you can do without giving a concrete task yet, reply warmly and naturally
-- In that opening reply, briefly introduce yourself as the team lead and invite the user to share their goal
+- In that opening reply, briefly introduce yourself as the team leader and invite the user to share their goal
 - Do NOT mention teammate proposals, recommended agent types, or confirmation workflow until there is a concrete task that may actually need more teammates
 
 ## Your Teammates

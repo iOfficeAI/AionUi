@@ -26,7 +26,7 @@ test.describe('Team Communication', () => {
           {
             slotId: 'slot-lead',
             conversationId: '',
-            role: 'lead',
+            role: 'leader',
             agentType: 'gemini',
             agentName: 'Leader',
             conversationType: 'gemini',

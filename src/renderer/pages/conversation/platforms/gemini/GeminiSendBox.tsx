@@ -95,7 +95,7 @@ const GeminiSendBox: React.FC<{
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
   const showModeSelector = true;
-  const isLeadInTeam = teamPermission?.isLeadAgent ?? false;
+  const isLeaderInTeam = teamPermission?.isLeaderAgent ?? false;
   const { checkAndUpdateTitle } = useAutoTitle();
 
   // Agent auto-detection state - only for new conversation + no auth scenario
@@ -464,7 +464,7 @@ const GeminiSendBox: React.FC<{
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.permission')}
                 hideCompactLabelPrefixOnMobile
-                onModeChanged={isLeadInTeam ? teamPermission?.propagateMode : undefined}
+                onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
               />
             )}
           </div>

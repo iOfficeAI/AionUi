@@ -1119,7 +1119,7 @@ const migration_v22: IMigration = {
 /**
  * Migration v22 -> v23: Add session_mode column to teams table
  * Persists the team-level session permission mode so newly spawned agents
- * inherit the correct mode without falling back to the lead agent's extra.
+ * inherit the correct mode without falling back to the leader agent's extra.
  */
 const migration_v23: IMigration = {
   version: 23,

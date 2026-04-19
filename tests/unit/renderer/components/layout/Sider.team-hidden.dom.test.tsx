@@ -93,7 +93,7 @@ describe('Sider team entry visibility', () => {
         name: 'Alpha Team',
         workspace: '',
         workspaceMode: 'shared',
-        leadAgentId: 'lead-1',
+        leaderAgentId: 'lead-1',
         agents: [],
         createdAt: 1,
         updatedAt: 1,

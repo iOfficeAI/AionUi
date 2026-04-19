@@ -14,6 +14,7 @@ import { AUTH_CONFIG } from '../../config/constants';
 interface TokenPayload {
   userId: string;
   username: string;
+  tokenId: string;
   iat?: number;
   exp?: number;
 }
@@ -236,6 +237,7 @@ export class AuthService {
     const payload: TokenPayload = {
       userId: user.id,
       username: user.username,
+      tokenId: crypto.randomUUID(),
     };
 
     return jwt.sign(payload, await this.getJwtSecret(), {
@@ -332,10 +334,32 @@ export class AuthService {
    * Refresh a session token without enforcing expiry check
    */
   public static async refreshToken(token: string): Promise<string | null> {
-    const decoded = await this.verifyToken(token);
-    if (!decoded) {
+    if (this.isTokenBlacklisted(token)) {
       return null;
     }
+
+    let decoded: RawTokenPayload;
+
+    try {
+      decoded = jwt.verify(token, await this.getJwtSecret(), {
+        issuer: 'aionui',
+        audience: 'aionui-webui',
+        ignoreExpiration: true,
+      }) as RawTokenPayload;
+    } catch (error) {
+      if (
+        error instanceof jwt.TokenExpiredError ||
+        error instanceof jwt.JsonWebTokenError ||
+        error instanceof jwt.NotBeforeError
+      ) {
+        return null;
+      }
+
+      console.error('Token refresh verification failed:', error);
+      return null;
+    }
+
+    this.blacklistToken(token);
 
     // 刷新时不重复检查有效期 / Skip expiry check when refreshing token
     return this.generateToken({

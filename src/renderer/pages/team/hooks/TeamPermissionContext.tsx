@@ -4,10 +4,10 @@ import React, { createContext, useCallback, useContext, useMemo } from 'react';
 type TeamPermissionContextValue = {
   /** Whether we are in team mode */
   isTeamMode: true;
-  /** Whether the current active agent is the team lead */
-  isLeadAgent: boolean;
-  /** Conversation ID of the lead agent (used to identify lead slot) */
-  leadConversationId: string;
+  /** Whether the current active agent is the team leader */
+  isLeaderAgent: boolean;
+  /** Conversation ID of the leader agent */
+  leaderConversationId: string;
   /** All agent conversation IDs in this team (for centralized confirmation listening) */
   allConversationIds: string[];
   /** Propagate a permission mode change from the leader to all member agents */
@@ -19,10 +19,10 @@ const TeamPermissionContext = createContext<TeamPermissionContextValue | null>(n
 export const TeamPermissionProvider: React.FC<{
   children: React.ReactNode;
   teamId: string;
-  isLeadAgent: boolean;
-  leadConversationId: string;
+  isLeaderAgent: boolean;
+  leaderConversationId: string;
   allConversationIds: string[];
-}> = ({ children, teamId, isLeadAgent, leadConversationId, allConversationIds }) => {
+}> = ({ children, teamId, isLeaderAgent, leaderConversationId, allConversationIds }) => {
   const propagateMode = useCallback(
     (mode: string) => {
       // Persist sessionMode on the team record so newly spawned agents inherit it
@@ -36,12 +36,12 @@ export const TeamPermissionProvider: React.FC<{
   const value = useMemo<TeamPermissionContextValue>(
     () => ({
       isTeamMode: true,
-      isLeadAgent,
-      leadConversationId,
+      isLeaderAgent,
+      leaderConversationId,
       allConversationIds,
       propagateMode,
     }),
-    [isLeadAgent, leadConversationId, allConversationIds, propagateMode]
+    [isLeaderAgent, leaderConversationId, allConversationIds, propagateMode]
   );
 
   return <TeamPermissionContext.Provider value={value}>{children}</TeamPermissionContext.Provider>;
