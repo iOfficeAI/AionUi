@@ -55,7 +55,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
           {
             slotId: 'slot-lead',
             conversationId: '',
-            role: 'lead',
+            role: 'leader',
             agentType: agentMeta.agentType,
             agentName: 'Leader',
             conversationType: agentMeta.conversationType,

@@ -117,7 +117,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
     slotId: 'slot-lead',
     conversationId: 'conv-lead',
-    role: 'lead',
+    role: 'leader',
     agentType: 'claude',
     agentName: 'Leader',
     conversationType: 'acp',
@@ -164,7 +164,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
   beforeEach(async () => {
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
       makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate', status: 'idle' }),
     ];
     mailbox = makeMockMailbox();
@@ -215,7 +215,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
       const resp = (await callTool(port, authToken, 'team_members')) as { result: string };
       expect(resp.result).toContain('## Team Members');
       expect(resp.result).toContain('Leader');
-      expect(resp.result).toContain('lead');
+      expect(resp.result).toContain('leader');
       expect(resp.result).toContain('Worker');
       expect(resp.result).toContain('teammate');
     });
@@ -329,7 +329,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
       const serverWithRemove = new TeamMcpServer({
         teamId: 'team-remove',
         getAgents: () => [
-          makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
+          makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
           makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
         ],
         mailbox: mailbox as unknown as Mailbox,
@@ -364,7 +364,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
     it('intercepts shutdown_rejected and forwards reason to lead without removing agent', async () => {
       const removeAgent = vi.fn();
       const localAgents = [
-        makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
+        makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
         makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
       ];
       const localMailbox = makeMockMailbox();
@@ -588,7 +588,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
         'slot-worker'
       )) as { error: string };
 
-      expect(resp.error).toContain('Only the team lead can spawn');
+      expect(resp.error).toContain('Only the team leader can spawn');
     });
 
     it('rejects unsupported agent types', async () => {
@@ -627,7 +627,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
     it('returns error when spawnAgent is not configured', async () => {
       const serverNoSpawn = new TeamMcpServer({
         teamId: 'team-nospawn',
-        getAgents: () => [makeAgent({ slotId: 'slot-lead', role: 'lead' })],
+        getAgents: () => [makeAgent({ slotId: 'slot-lead', role: 'leader' })],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
         wakeAgent: vi.fn().mockResolvedValue(undefined),
@@ -657,7 +657,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
       const serverRename = new TeamMcpServer({
         teamId: 'team-rename',
         getAgents: () => [
-          makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
+          makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
           makeAgent({ slotId: 'slot-bob', agentName: 'Bob', role: 'teammate' }),
         ],
         mailbox: mailbox as unknown as Mailbox,
@@ -772,12 +772,12 @@ describe('TeamMcpServer — TCP tool interface', () => {
       );
     });
 
-    it('returns error when trying to shut down the team lead', async () => {
+    it('returns error when trying to shut down the team leader', async () => {
       const resp = (await callTool(port, authToken, 'team_shutdown_agent', {
         agent: 'Leader',
       })) as { error: string };
 
-      expect(resp.error).toContain('Cannot shut down the team lead');
+      expect(resp.error).toContain('Cannot shut down the team leader');
     });
 
     it('returns error for non-existent agent', async () => {

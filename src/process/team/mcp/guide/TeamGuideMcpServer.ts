@@ -204,7 +204,7 @@ export class TeamGuideMcpServer {
         {
           slotId: '',
           conversationId: callerConversationId || '',
-          role: 'lead',
+          role: 'leader',
           agentType,
           agentName: 'Leader',
           conversationType: getConversationTypeForBackend(agentType),
@@ -213,7 +213,7 @@ export class TeamGuideMcpServer {
       ],
     });
 
-    const leadAgent = team.agents.find((a) => a.role === 'lead');
+    const leadAgent = team.agents.find((a) => a.role === 'leader');
     const route = `/team/${team.id}`;
 
     // Notify sidebar: the reused conversation now belongs to a team → filter it out.

@@ -89,7 +89,7 @@ createAionTool(
   'aion_create_team',
   getCreateTeamToolDescription(),
   {
-    summary: z.string().min(1).describe('Task summary or initial instruction to send to the team lead agent.'),
+    summary: z.string().min(1).describe('Task summary or initial instruction to send to the team leader agent.'),
     name: z.string().optional().describe('Optional team name. When omitted the first few words of summary are used.'),
     workspace: z
       .string()

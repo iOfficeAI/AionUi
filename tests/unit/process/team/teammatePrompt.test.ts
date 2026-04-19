@@ -19,7 +19,7 @@ describe('buildTeammatePrompt', () => {
   it('keeps greeting replies friendly and focused on role introduction', () => {
     const prompt = buildTeammatePrompt({
       agent: makeAgent(),
-      lead: makeAgent({ slotId: 'slot-lead', role: 'lead', agentName: 'Leader', agentType: 'claude' }),
+      leader: makeAgent({ slotId: 'slot-lead', role: 'leader', agentName: 'Leader', agentType: 'claude' }),
       teammates: [],
       assignedTasks: [],
       unreadMessages: [],

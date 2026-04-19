@@ -127,7 +127,7 @@ export class TeammateManager extends EventEmitter {
       // Write each mailbox message into agent's conversation as user bubble
       // so the UI shows what triggered this agent's response.
       // Skip for leader: messages are included in the prompt sent to the agent.
-      if (agent.conversationId && mailboxMessages.length > 0 && agent.role !== 'lead') {
+      if (agent.conversationId && mailboxMessages.length > 0 && agent.role !== 'leader') {
         for (const msg of mailboxMessages) {
           // Skip user messages — already written by TeamSession.sendMessage()
           if (msg.fromAgentId === 'user') continue;
@@ -161,9 +161,9 @@ export class TeammateManager extends EventEmitter {
       // Agents pull tasks and teammates on demand via team_task_list / team_members MCP tools.
       let message: string;
       if (needsFullPrompt) {
-        // Compute availableAgentTypes only for lead's first prompt
+        // Compute availableAgentTypes only for leader's first prompt
         let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
-        if (agent.role === 'lead') {
+        if (agent.role === 'leader') {
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
           availableAgentTypes = agentRegistry
             .getDetectedAgents()
@@ -305,7 +305,7 @@ export class TeammateManager extends EventEmitter {
    * (Re)arm the inactivity watchdog for an agent's current wake.
    * Fired from wake() after dispatching the prompt, and from handleResponseStream
    * whenever fresh streaming activity arrives. When it finally fires (agent silent
-   * for WAKE_TIMEOUT_MS), escalates to handleInactivityTimeout so the lead learns
+   * for WAKE_TIMEOUT_MS), escalates to handleInactivityTimeout so the leader learns
    * about the stall instead of the agent dropping silently to idle.
    */
   private resetWakeTimeout(slotId: string): void {
@@ -325,10 +325,10 @@ export class TeammateManager extends EventEmitter {
   /**
    * A teammate went silent for WAKE_TIMEOUT_MS with no streaming activity and no
    * finish event. Treat it as a soft failure: mark the agent 'failed' (not 'idle',
-   * which hides the problem), write an explanatory message into the lead's mailbox,
-   * and wake the lead so it can decide the next move (retry, replace, escalate).
+   * which hides the problem), write an explanatory message into the leader's mailbox,
+   * and wake the leader so it can decide the next move (retry, replace, escalate).
    *
-   * Previously the timeout just setStatus(slotId, 'idle'), which left the lead
+   * Previously the timeout just setStatus(slotId, 'idle'), which left the leader
    * unaware — it would eventually re-wake on some other signal and guess that
    * the teammate was "空转" (idle) with no concrete evidence.
    */
@@ -339,10 +339,10 @@ export class TeammateManager extends EventEmitter {
     console.warn(`[TeammateManager] ${agent.agentName} (${agent.slotId}) ${reason}`);
     this.setStatus(agent.slotId, 'failed', reason);
 
-    // Don't escalate to lead if the stuck agent IS the lead — nobody to notify.
-    if (agent.role === 'lead') return;
+    // Don't escalate to leader if the stuck agent IS the leader — nobody to notify.
+    if (agent.role === 'leader') return;
 
-    const leadAgent = this.agents.find((a) => a.role === 'lead');
+    const leadAgent = this.agents.find((a) => a.role === 'leader');
     if (!leadAgent) return;
 
     try {
@@ -358,7 +358,7 @@ export class TeammateManager extends EventEmitter {
       });
       await this.wake(leadAgent.slotId);
     } catch (err) {
-      console.error('[TeammateManager] Failed to notify lead of inactivity timeout:', err);
+      console.error('[TeammateManager] Failed to notify leader of inactivity timeout:', err);
     }
   }
 
@@ -393,8 +393,8 @@ export class TeammateManager extends EventEmitter {
 
     // Auto-send idle notification to leader.
     // Must run AFTER setStatus(idle) so maybeWakeLeaderWhenAllIdle sees the updated state.
-    if (agent.role !== 'lead') {
-      const leadAgent = this.agents.find((a) => a.role === 'lead');
+    if (agent.role !== 'leader') {
+      const leadAgent = this.agents.find((a) => a.role === 'leader');
       if (leadAgent && leadAgent.slotId !== agent.slotId) {
         await this.mailbox.write({
           teamId: this.teamId,
@@ -403,7 +403,7 @@ export class TeammateManager extends EventEmitter {
           content: 'Turn completed',
           type: 'idle_notification',
         });
-        // Only wake leader when ALL non-lead teammates are idle/completed/failed/pending.
+        // Only wake leader when ALL non-leader teammates are idle/completed/failed/pending.
         // This prevents death loops where each idle notification triggers a new leader turn.
         this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
       }
@@ -411,12 +411,12 @@ export class TeammateManager extends EventEmitter {
   }
 
   /**
-   * Wake the leader only when ALL non-lead teammates are settled (idle/completed/failed/pending).
+   * Wake the leader only when ALL non-leader teammates are settled (idle/completed/failed/pending).
    * Prevents death loops where each individual idle notification triggers a new leader turn
    * before other teammates have finished, causing the leader to re-dispatch work repeatedly.
    */
   private maybeWakeLeaderWhenAllIdle(leadSlotId: string): void {
-    const nonLeadAgents = this.agents.filter((a) => a.role !== 'lead');
+    const nonLeadAgents = this.agents.filter((a) => a.role !== 'leader');
     if (nonLeadAgents.length === 0) return;
     const allSettled = nonLeadAgents.every(
       (a) => a.status === 'idle' || a.status === 'completed' || a.status === 'failed' || a.status === 'pending'
@@ -438,7 +438,7 @@ export class TeammateManager extends EventEmitter {
    */
   private async handleAgentCrash(agent: TeamAgent, errorMessage: string): Promise<void> {
     // Leader crash: mark as failed so the frontend shows the error, but never auto-remove.
-    if (agent.role === 'lead') {
+    if (agent.role === 'leader') {
       console.warn(
         `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Marked as failed (not removed).`
       );
@@ -460,7 +460,7 @@ export class TeammateManager extends EventEmitter {
       return;
     }
 
-    const leadAgent = this.agents.find((a) => a.role === 'lead');
+    const leadAgent = this.agents.find((a) => a.role === 'leader');
     if (!leadAgent) {
       // No leader to notify — kill process and mark failed, keep the slot
       // 1. Kill the crashed process
@@ -526,7 +526,7 @@ export class TeammateManager extends EventEmitter {
     const agent = this.agents.find((a) => a.slotId === slotId);
     if (!agent) return;
 
-    if (agent.role === 'lead') {
+    if (agent.role === 'leader') {
       console.warn(`[TeammateManager] Attempted to remove leader ${slotId} — blocked.`);
       return;
     }
