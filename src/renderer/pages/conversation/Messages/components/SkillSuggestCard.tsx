@@ -18,6 +18,8 @@ interface SkillSuggestCardProps {
   cronJobId: string;
 }
 
+const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
+
 const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJobId }) => {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
@@ -73,9 +75,7 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJob
       </div>
       {expanded && (
         <div className='mb-12px p-8px rd-4px bg-bg-3 max-h-240px overflow-y-auto text-12px'>
-          <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>
-            {`\`\`\`markdown\n${suggestion.content}\n\`\`\``}
-          </MarkdownView>
+          <MarkdownView codeStyle={CODE_STYLE}>{`\`\`\`markdown\n${suggestion.content}\n\`\`\``}</MarkdownView>
         </div>
       )}
 

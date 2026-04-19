@@ -46,6 +46,8 @@ export const formatMessageTime = (timestamp: number): string => {
 import MessageCronBadge from './MessageCronBadge';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
+const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
+
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
   if (markerIndex === -1) {
@@ -211,13 +213,13 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
               <div data-testid='message-text-content'>
                 <MarkdownView
-                  codeStyle={{ marginTop: 4, marginBlock: 4 }}
+                  codeStyle={CODE_STYLE}
                 >{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
               </div>
             </CollapsibleContent>
           ) : (
             <div data-testid='message-text-content'>
-              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
+              <MarkdownView codeStyle={CODE_STYLE}>{data}</MarkdownView>
             </div>
           )}
         </div>
