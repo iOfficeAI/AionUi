@@ -87,7 +87,10 @@ jobs:
     name: Prepare Build Matrix
     runs-on: ubuntu-latest
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix_posix: ${{ steps.set-matrix.outputs.matrix_posix }}
+      matrix_windows: ${{ steps.set-matrix.outputs.matrix_windows }}
+      has_posix: ${{ steps.set-matrix.outputs.has_posix }}
+      has_windows: ${{ steps.set-matrix.outputs.has_windows }}
 
     steps:
       - name: Generate build matrix
@@ -103,24 +106,49 @@ jobs:
           LINUX='{"platform":"linux","os":"ubuntu-latest","command":"node .github/fork-build/build-with-builder.js auto --linux","artifact-name":"linux-build","arch":"x64-arm64"}'
 
           if [ "$PLATFORM" = "all" ]; then
-            MATRIX="{\"include\":[$MACOS_ARM64,$MACOS_X64,$WINDOWS_X64,$WINDOWS_ARM64,$LINUX]}"
+            MATRIX_POSIX="{\"include\":[$MACOS_ARM64,$MACOS_X64,$LINUX]}"
+            MATRIX_WINDOWS="{\"include\":[$WINDOWS_X64,$WINDOWS_ARM64]}"
+            HAS_POSIX="true"
+            HAS_WINDOWS="true"
           elif [ "$PLATFORM" = "macos-arm64" ]; then
-            MATRIX="{\"include\":[$MACOS_ARM64]}"
+            MATRIX_POSIX="{\"include\":[$MACOS_ARM64]}"
+            MATRIX_WINDOWS='{"include":[]}'
+            HAS_POSIX="true"
+            HAS_WINDOWS="false"
           elif [ "$PLATFORM" = "macos-x64" ]; then
-            MATRIX="{\"include\":[$MACOS_X64]}"
+            MATRIX_POSIX="{\"include\":[$MACOS_X64]}"
+            MATRIX_WINDOWS='{"include":[]}'
+            HAS_POSIX="true"
+            HAS_WINDOWS="false"
           elif [ "$PLATFORM" = "windows-x64" ]; then
-            MATRIX="{\"include\":[$WINDOWS_X64]}"
+            MATRIX_POSIX='{"include":[]}'
+            MATRIX_WINDOWS="{\"include\":[$WINDOWS_X64]}"
+            HAS_POSIX="false"
+            HAS_WINDOWS="true"
           elif [ "$PLATFORM" = "windows-arm64" ]; then
-            MATRIX="{\"include\":[$WINDOWS_ARM64]}"
+            MATRIX_POSIX='{"include":[]}'
+            MATRIX_WINDOWS="{\"include\":[$WINDOWS_ARM64]}"
+            HAS_POSIX="false"
+            HAS_WINDOWS="true"
           elif [ "$PLATFORM" = "linux" ]; then
-            MATRIX="{\"include\":[$LINUX]}"
+            MATRIX_POSIX="{\"include\":[$LINUX]}"
+            MATRIX_WINDOWS='{"include":[]}'
+            HAS_POSIX="true"
+            HAS_WINDOWS="false"
           else
             echo "Unsupported platform: $PLATFORM"
             exit 1
           fi
 
-          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
-          echo "$MATRIX" | python3 -m json.tool
+          echo "matrix_posix=$MATRIX_POSIX" >> "$GITHUB_OUTPUT"
+          echo "matrix_windows=$MATRIX_WINDOWS" >> "$GITHUB_OUTPUT"
+          echo "has_posix=$HAS_POSIX" >> "$GITHUB_OUTPUT"
+          echo "has_windows=$HAS_WINDOWS" >> "$GITHUB_OUTPUT"
+
+          echo "POSIX matrix:"
+          echo "$MATRIX_POSIX" | python3 -m json.tool
+          echo "Windows matrix:"
+          echo "$MATRIX_WINDOWS" | python3 -m json.tool
 
   code-quality:
     name: Build Pipeline / Code Quality
@@ -169,13 +197,13 @@ jobs:
     if: >-
       ${{
         always() &&
-        !startsWith(matrix.platform, 'windows') &&
+        needs.prepare-matrix.outputs.has_posix == 'true' &&
         (inputs.skip_code_quality || needs.code-quality.result == 'success')
       }}
 
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix_posix) }}
 
     steps:
       - name: Checkout code
@@ -462,13 +490,13 @@ jobs:
     if: >-
       ${{
         always() &&
-        startsWith(matrix.platform, 'windows') &&
+        needs.prepare-matrix.outputs.has_windows == 'true' &&
         (inputs.skip_code_quality || needs.code-quality.result == 'success')
       }}
 
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix) }}
+      matrix: ${{ fromJSON(needs.prepare-matrix.outputs.matrix_windows) }}
 
     steps:
       - name: Checkout code
