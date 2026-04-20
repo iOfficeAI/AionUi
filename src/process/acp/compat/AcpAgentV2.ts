@@ -591,6 +591,20 @@ export class AcpAgentV2 {
         }
       }
 
+      // Reject while session is still booting — caller should retry after
+      // the status transitions to active (onStatusChange fires agent_status).
+      if (this.lastStatus === 'starting' || this.lastStatus === 'resuming') {
+        return {
+          success: false,
+          error: {
+            type: AcpErrorType.CONNECTION_NOT_READY,
+            code: 'SESSION_NOT_READY',
+            message: `Session is ${this.lastStatus}, please retry shortly`,
+            retryable: true,
+          },
+        };
+      }
+
       // Emit start event via stream channel so AcpAgentManager.handleStreamEvent
       // can emit request_trace (which checks message.type === 'start')
       if (this.onStreamEvent) {
@@ -631,7 +645,10 @@ export class AcpAgentV2 {
         }
       }
 
-      await this.session!.sendMessage(content, data.files);
+      if (!this.session) {
+        throw new AcpSessionError('INVALID_STATE', 'Session not available after reconnect');
+      }
+      await this.session.sendMessage(content, data.files);
       return { success: true, data: null };
     } catch (err) {
       let errorType = err instanceof AcpSessionError ? mapAcpErrorCodeToType(err.code) : AcpErrorType.UNKNOWN;
