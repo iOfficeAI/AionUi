@@ -107,9 +107,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private activeTrackedTurnId: number | null = null;
   private activeTrackedTurnHasRuntimeActivity: boolean = false;
   private readonly completedTrackedTurnIds = new Set<number>();
-  private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
-  private missingFinishFallbackTurnId: number | null = null;
-  private readonly missingFinishFallbackDelayMs = 15000;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data, new IpcAgentEventEmitter(), false);
@@ -178,7 +175,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }
 
   private beginTrackedTurn(): number {
-    this.clearMissingFinishFallback();
     const turnId = this.nextTrackedTurnId + 1;
     this.nextTrackedTurnId = turnId;
     this.activeTrackedTurnId = turnId;
@@ -190,7 +186,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (this.activeTrackedTurnId === turnId) {
       this.activeTrackedTurnId = null;
       this.activeTrackedTurnHasRuntimeActivity = false;
-      this.clearMissingFinishFallback();
     }
     this.completedTrackedTurnIds.add(turnId);
   }
@@ -216,7 +211,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (this.activeTrackedTurnId === turnId) {
       this.activeTrackedTurnId = null;
       this.activeTrackedTurnHasRuntimeActivity = false;
-      this.clearMissingFinishFallback();
     }
     this.completedTrackedTurnIds.delete(turnId);
   }
@@ -229,60 +223,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
 
     this.activeTrackedTurnHasRuntimeActivity = true;
-    this.scheduleMissingFinishFallback();
-  }
-
-  private clearMissingFinishFallback(): void {
-    if (this.missingFinishFallbackTimer) {
-      clearTimeout(this.missingFinishFallbackTimer);
-      this.missingFinishFallbackTimer = null;
-    }
-    this.missingFinishFallbackTurnId = null;
-  }
-
-  private scheduleMissingFinishFallback(): void {
-    const turnId = this.activeTrackedTurnId;
-    if (turnId === null) {
-      return;
-    }
-
-    this.clearMissingFinishFallback();
-    this.missingFinishFallbackTurnId = turnId;
-    this.missingFinishFallbackTimer = setTimeout(() => {
-      void this.handleMissingFinishFallback(turnId);
-    }, this.missingFinishFallbackDelayMs);
-  }
-
-  private async handleMissingFinishFallback(turnId: number): Promise<void> {
-    if (this.missingFinishFallbackTurnId !== turnId) {
-      return;
-    }
-
-    this.clearMissingFinishFallback();
-    if (this.activeTrackedTurnId !== turnId || this.completedTrackedTurnIds.has(turnId)) {
-      return;
-    }
-
-    if (this.getConfirmations().length > 0) {
-      return;
-    }
-
-    this.markTrackedTurnFinished(turnId);
-    mainWarn(
-      '[AcpAgentManager]',
-      `ACP turn became idle without finish signal; synthesizing finish for ${this.conversation_id} (${this.options.backend})`
-    );
-
-    await this.handleFinishSignal(
-      {
-        type: 'finish',
-        conversation_id: this.conversation_id,
-        msg_id: uuid(),
-        data: null,
-      },
-      this.options.backend,
-      { trackActiveTurn: false }
-    );
   }
 
   private async handleFinishSignal(
@@ -293,7 +233,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     if (options.trackActiveTurn !== false) {
       this.markActiveTurnFinished();
     }
-    this.clearMissingFinishFallback();
     this.flushBufferedStreamTextMessages();
 
     cronBusyGuard.setProcessing(this.conversation_id, false);
