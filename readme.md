@@ -56,14 +56,14 @@
 
 **AionUi is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
 
-|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                          |
-| :------------------------------ | :-------------------------- | :------------------------------------------------------------------------------------------- |
-| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                               |
-| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                      |
-| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat / WeCom**                                      |
-| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                   |
+|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                                                           |
+| :------------------------------ | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
+| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                                |
+| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                       |
+| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat / WeCom**                                                                       |
+| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                                                    |
 | Multiple AI Agents at once      | No                          | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent and 16+ more — auto-detected, unified interface** |
-| Price                           | Free / Paid                 | **Free & Open Source**                                                                       |
+| Price                           | Free / Paid                 | **Free & Open Source**                                                                                                        |
 
 <p align="center">
   <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -186,14 +186,14 @@ Run multiple AI agents as an organized team: a **Leader** agent receives your in
 
 Other AI apps give you a chatbox with your API key. **AionUi gives you a full Cowork agent.**
 
-| Your API Key                            | What You Get                 |
-| :-------------------------------------- | :--------------------------- |
-| Gemini API Key (or Google login — free) | Gemini-powered Cowork Agent  |
-| OpenAI API Key                          | GPT-powered Cowork Agent     |
-| Anthropic API Key                       | Claude-powered Cowork Agent  |
+| Your API Key                            | What You Get                                |
+| :-------------------------------------- | :------------------------------------------ |
+| Gemini API Key (or Google login — free) | Gemini-powered Cowork Agent                 |
+| OpenAI API Key                          | GPT-powered Cowork Agent                    |
+| Anthropic API Key                       | Claude-powered Cowork Agent                 |
 | AWS Bedrock credentials                 | Bedrock-powered Agent via Aion CLI (aionrs) |
-| Ollama / LM Studio (local)              | Local model Cowork Agent     |
-| NewAPI Gateway                          | Unified access to 20+ models |
+| Ollama / LM Studio (local)              | Local model Cowork Agent                    |
+| NewAPI Gateway                          | Unified access to 20+ models                |
 
 Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AionUi supports **20+ AI platforms** including cloud services and local deployments.
 
@@ -283,9 +283,7 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
   - **WeCom (企业微信)** — Enterprise WeChat bot for team collaboration
   - **Slack** and more platforms coming soon
 
-
 > **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
-
 
 <p align="center">
   <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
@@ -305,7 +303,6 @@ _Set it up once, the AI agent runs automatically on schedule — truly 24/7 unat
 - **Three scheduling modes** — standard cron expression (with timezone), fixed interval (every N minutes/hours), or one-time trigger
 - **AI-created tasks** — agents can autonomously create scheduled tasks during a conversation
 - **Use Cases:** scheduled data aggregation, report generation, file organization, reminders
-
 
 <p align="center">
   <img src="./resources/alart-task.png" alt="Scheduled Tasks" width="800">
@@ -519,13 +516,13 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 AionUi is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude Cowork which only runs on macOS and is locked to Claude, AionUi is its full-model, cross-platform enhanced version.
 
-| Dimension     | Claude Cowork | AionUi                                           |
-| :------------ | :------------ | :----------------------------------------------- |
-| OS            | macOS Only    | macOS / Windows / Linux                          |
-| Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...    |
+| Dimension     | Claude Cowork | AionUi                                                            |
+| :------------ | :------------ | :---------------------------------------------------------------- |
+| OS            | macOS Only    | macOS / Windows / Linux                                           |
+| Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...                     |
 | Interaction   | Desktop GUI   | Desktop GUI + WebUI + Telegram / Lark / DingTalk / WeChat / WeCom |
-| Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended           |
-| Cost          | $100/month    | Free & Open Source                               |
+| Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended                            |
+| Cost          | $100/month    | Free & Open Source                                                |
 
 Deep AI Office Scenario Support:
 
