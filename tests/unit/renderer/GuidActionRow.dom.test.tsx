@@ -166,6 +166,24 @@ describe('GuidActionRow', () => {
     expect(onToggle).toHaveBeenCalledWith('web-search');
   });
 
+  it('renders standalone workspace button and calls onSelectWorkspace on click', async () => {
+    const { ipcBridge } = await import('@/common');
+    const onSelectWorkspace = vi.fn();
+    vi.mocked(ipcBridge.dialog.showOpen.invoke).mockResolvedValueOnce(['/chosen/path']);
+
+    render(<GuidActionRow {...defaultProps} onSelectWorkspace={onSelectWorkspace} />);
+
+    const workspaceBtn = screen.getByText('conversation.welcome.specifyWorkspace');
+    fireEvent.click(workspaceBtn);
+
+    await vi.waitFor(() => {
+      expect(ipcBridge.dialog.showOpen.invoke).toHaveBeenCalledWith({
+        properties: ['openDirectory', 'createDirectory'],
+      });
+      expect(onSelectWorkspace).toHaveBeenCalledWith('/chosen/path');
+    });
+  });
+
   it('shows generic error toast when file upload fails', async () => {
     mockIsElectronDesktop.mockReturnValueOnce(false); // WebUI mode so file input is rendered
     const { Message } = await import('@arco-design/web-react');

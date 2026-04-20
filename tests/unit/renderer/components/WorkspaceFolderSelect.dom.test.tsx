@@ -195,7 +195,7 @@ describe('WorkspaceFolderSelect - browse interactions', () => {
     );
     fireEvent.click(screen.getByTestId('ws-trigger'));
     await waitFor(() => expect(onChange).toHaveBeenCalledWith('/chosen/path'));
-    expect(mockShowOpen).toHaveBeenCalledWith({ properties: ['openDirectory'] });
+    expect(mockShowOpen).toHaveBeenCalledWith({ properties: ['openDirectory', 'createDirectory'] });
   });
 
   it('does not call onChange when the file picker is dismissed', async () => {

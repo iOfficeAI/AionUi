@@ -95,7 +95,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
-  const isMobile = Boolean(layout?.isMobile);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
   const showModeSwitch = supportsModeSwitch(modeBackend);
@@ -150,17 +149,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             });
         } else if (key === 'device') {
           fileInputRef.current?.click();
-        } else if (key === 'workspace') {
-          ipcBridge.dialog.showOpen
-            .invoke({ properties: ['openDirectory'] })
-            .then((dirs) => {
-              if (dirs && dirs[0]) {
-                onSelectWorkspace(dirs[0]);
-              }
-            })
-            .catch((error) => {
-              console.error('Failed to open directory dialog:', error);
-            });
         }
       }}
     >
@@ -187,12 +175,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           </div>
         </Menu.Item>
       )}
-      <Menu.Item key='workspace'>
-        <div className='flex items-center gap-8px'>
-          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-          <span>{t('conversation.welcome.specifyWorkspace')}</span>
-        </div>
-      </Menu.Item>
       {builtinAutoSkills.length > 0 && (
         <Menu.SubMenu
           key='skills'
@@ -261,6 +243,31 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             />
           )}
         </div>
+
+        {!isWebUI && (
+          <Button
+            className='sendbox-model-btn'
+            shape='round'
+            size='small'
+            onClick={() => {
+              ipcBridge.dialog.showOpen
+                .invoke({ properties: ['openDirectory', 'createDirectory'] })
+                .then((dirs) => {
+                  if (dirs && dirs[0]) {
+                    onSelectWorkspace(dirs[0]);
+                  }
+                })
+                .catch((error) => {
+                  console.error('Failed to open directory dialog:', error);
+                });
+            }}
+          >
+            <span className='flex items-center gap-6px leading-none'>
+              <FolderOpen theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0, flexShrink: 0 }} />
+              <span>{t('conversation.welcome.specifyWorkspace')}</span>
+            </span>
+          </Button>
+        )}
 
         <div
           className={`${styles.actionConfigGroup} ${configOptionCount > 1 ? styles.actionConfigGroupWithDivider : ''}`}
