@@ -8,7 +8,6 @@ describe('acpTypes — skillsDirs integration', () => {
       const expectedSkillsDirs: Record<string, string[]> = {
         claude: ['.claude/skills'],
         qwen: ['.qwen/skills'],
-        iflow: ['.iflow/skills'],
         codex: ['.codex/skills'],
         codebuddy: ['.codebuddy/skills'],
         goose: ['.goose/skills'],
@@ -49,7 +48,6 @@ describe('acpTypes — skillsDirs integration', () => {
         'codebuddy',
         'codex',
         'qwen',
-        'iflow',
         'goose',
         'droid',
         'kimi',

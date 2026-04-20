@@ -154,7 +154,6 @@ which <command>
 | ------------------ | ----------- | ------------------------------------ | -------------- |
 | `claude`           | `claude`    | `['--experimental-acp']`             | Claude Code    |
 | `qwen`             | `qwen`      | `['--acp']`                          | Qwen Code      |
-| `iflow`            | `iflow`     | `['--experimental-acp']`             | iFlow CLI      |
 | `codex`            | `codex`     | `[]`                                 | Codex          |
 | `codebuddy`        | `codebuddy` | `['--acp']`                          | CodeBuddy      |
 | `goose`            | `goose`     | `['acp']`                            | Goose          |
@@ -528,7 +527,7 @@ AcpConnection.disconnect()
 | **启动方式**      | npx bridge (`@zed-industries/claude-agent-acp`)     | 直接 spawn CLI (`goose acp`, `qwen --acp`) |
 | **Session 恢复**  | `_meta.claudeCode.options.resume`                   | `resumeSessionId` 参数                     |
 | **模型来源**      | 读取 `~/.claude/settings.json` 的 `ANTHROPIC_MODEL` | session/new 响应                           |
-| **YOLO 模式**     | `'bypassPermissions'`                               | `'yolo'` (Qwen/iFlow)                      |
+| **YOLO 模式**     | `'bypassPermissions'`                               | `'yolo'` (Qwen 等)                         |
 | **认证失败恢复**  | 执行 `claude /login` 刷新 token                     | 无特殊处理                                 |
 | **模型切换**      | 注入 `<system-reminder>` 通知 AI 模型已变更         | 无                                         |
 | **Node 版本要求** | >= 20.10                                            | >= 18.17 (generic)                         |

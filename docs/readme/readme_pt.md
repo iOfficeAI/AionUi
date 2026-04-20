@@ -103,7 +103,7 @@ _O AionUi inclui um assistente dedicado de Morph PPT. Ele não apenas cria slide
 
 Se você já usa Claude Code, Codex ou Qwen Code, AionUi os detecta automaticamente e permite fazer Cowork com todos eles — junto com o Agent integrado.
 
-**Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot e mais
+**Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot e mais
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">

@@ -233,7 +233,6 @@ export class AcpConnection {
         break;
 
       case 'qwen':
-      case 'iflow':
       case 'droid':
       case 'goose':
       case 'auggie':
@@ -892,7 +891,7 @@ export class AcpConnection {
       this.modes = modesField;
     }
 
-    // Check top-level models first, then fall back to _meta.models (used by iFlow)
+    // Check top-level models first, then fall back to _meta.models (some backends nest models under _meta)
     const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
     if (modelsSource && typeof modelsSource === 'object') {
       this.models = modelsSource as AcpSessionModels;

@@ -8,7 +8,7 @@
 
 ### 现状
 
-AionUI 设置页 > Agent > Local Agent 页，APP 启动时自动扫描本地已安装的 CLI backend（Claude Code、Opencode、iflow、Kimi 等），将检测到的 agent 展示在列表中供用户使用。
+AionUI 设置页 > Agent > Local Agent 页，APP 启动时自动扫描本地已安装的 CLI backend（Claude Code、Opencode、Kimi 等），将检测到的 agent 展示在列表中供用户使用。
 
 ### 痛点
 
@@ -207,9 +207,6 @@ extension 的唯一标识由 `name` 字段定义.
 │  ├────────────────────────────────────────────────┤ │
 │  │ [icon] Opencode                       [更新]   │ │
 │  │        Open source coding agent                │ │
-│  ├────────────────────────────────────────────────┤ │
-│  │ [icon] iflow                          [重试]   │ │
-│  │        iflow agent                             │ │
 │  └────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────┘
 ```

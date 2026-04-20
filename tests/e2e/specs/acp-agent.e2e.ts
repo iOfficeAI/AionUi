@@ -44,7 +44,7 @@ test.describe('ACP Agent', () => {
   test('can see agent backend names', async ({ page }) => {
     await goToGuid(page);
 
-    const knownBackends = new Set(['claude', 'gemini', 'qwen', 'opencode', 'codex', 'iflow']);
+    const knownBackends = new Set(['claude', 'gemini', 'qwen', 'opencode', 'codex']);
     const pills = page.locator(AGENT_PILL);
     await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 

@@ -68,10 +68,6 @@ describe('team guide MCP injection capability check', () => {
       expect(await shouldInjectTeamGuideMcp('opencode')).toBe(false);
     });
 
-    it('does not inject for iflow backend (no cached init result)', async () => {
-      expect(await shouldInjectTeamGuideMcp('iflow')).toBe(false);
-    });
-
     it('does not inject for cursor backend (no cached init result)', async () => {
       expect(await shouldInjectTeamGuideMcp('cursor')).toBe(false);
     });

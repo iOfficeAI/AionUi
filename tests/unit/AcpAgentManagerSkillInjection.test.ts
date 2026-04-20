@@ -122,19 +122,7 @@ vi.mock('@process/task/CronCommandDetector', () => ({
 // Mock hasNativeSkillSupport to use real logic for known backends
 vi.mock('@process/utils/initAgent', () => ({
   hasNativeSkillSupport: vi.fn((backend: string | undefined) => {
-    const supported = [
-      'gemini',
-      'claude',
-      'codebuddy',
-      'codex',
-      'qwen',
-      'iflow',
-      'goose',
-      'droid',
-      'kimi',
-      'vibe',
-      'cursor',
-    ];
+    const supported = ['gemini', 'claude', 'codebuddy', 'codex', 'qwen', 'goose', 'droid', 'kimi', 'vibe', 'cursor'];
     return !!backend && supported.includes(backend);
   }),
   setupAssistantWorkspace: vi.fn(),

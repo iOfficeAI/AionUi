@@ -142,7 +142,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 Якщо ви вже використовуєте Claude Code, Codex або Qwen Code, AionUi автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
 
-**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot та інші
+**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot та інші
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Мульти-агентний режим" width="800">

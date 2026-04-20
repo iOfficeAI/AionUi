@@ -104,8 +104,6 @@ out/
 **/.claude/settings.json
 .qwen/
 .qwen/*/
-.iflow/
-.iflow/*/
 .specify/scripts/
 .gemini/
 .gemini/*/

@@ -27,7 +27,6 @@ const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
   claude: 'bypassPermissions',
   codex: 'yolo',
   gemini: 'yolo',
-  iflow: 'yolo',
   qwen: 'yolo',
 };
 
