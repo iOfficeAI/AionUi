@@ -117,8 +117,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     ipcBridge.openclawConversation.responseStream.emit(msg);
     // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
     ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
+    // Forward content to team bus so TeammateManager can capture teammate replies;
+    // forward terminal events (finish/error) so TeammateManager can drive lifecycle.
+    if (msg.type === 'finish' || msg.type === 'error' || msg.type === 'content') {
       teamEventBus.emit('responseStream', msg);
     }
 
@@ -167,8 +168,9 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Emit signal events to frontend
     ipcBridge.openclawConversation.responseStream.emit(msg);
     ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
+    // Forward content to team bus so TeammateManager can capture teammate replies;
+    // forward terminal events (finish/error) so TeammateManager can drive lifecycle.
+    if (msg.type === 'finish' || msg.type === 'error' || msg.type === 'content') {
       teamEventBus.emit('responseStream', msg);
     }
 
