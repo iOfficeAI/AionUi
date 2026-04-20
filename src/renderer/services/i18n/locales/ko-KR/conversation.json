@@ -267,17 +267,7 @@
     "queueTooLarge": "대기열 데이터가 너무 커서 안전하게 저장할 수 없습니다. 일부 명령을 먼저 제거하세요."
   },
   "contextUsage": {
-    "contextUsed": "사용된 컨텍스트",
-    "title": "Context usage",
-    "contextWindow": "Window",
-    "totalTokens": "Total",
-    "inputTokens": "Input",
-    "outputTokens": "Output",
-    "reasoningTokens": "Reasoning",
-    "cachedInputTokens": "Cache read",
-    "cachedOutputTokens": "Cache write",
-    "highWarning": "Usage is above 80%. Consider starting a new conversation soon.",
-    "criticalWarning": "Usage is above 90%. Responses may degrade or truncate."
+    "contextUsed": "사용된 컨텍스트"
   },
   "skill_generator": {
     "title": "스킬/규칙 생성",

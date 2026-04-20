@@ -151,8 +151,6 @@ export const useAionrsMessage = (
             if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
               const newTokenUsage: TokenUsageData = {
                 totalTokens: (usageData.input_tokens || 0) + (usageData.output_tokens || 0),
-                inputTokens: usageData.input_tokens || 0,
-                outputTokens: usageData.output_tokens || 0,
               };
               setTokenUsage(newTokenUsage);
               void ipcBridge.conversation.update.invoke({

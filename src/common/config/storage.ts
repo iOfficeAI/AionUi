@@ -228,11 +228,6 @@ interface IChatConversation<T, Extra> {
 // Token 使用统计数据类型
 export interface TokenUsageData {
   totalTokens: number;
-  inputTokens?: number;
-  outputTokens?: number;
-  reasoningTokens?: number;
-  cachedInputTokens?: number;
-  cachedOutputTokens?: number;
 }
 
 export type TChatConversation =

@@ -32,11 +32,6 @@ vi.mock('@/renderer/utils/model/agentLogo', () => ({
   getAgentLogo: () => null,
 }));
 
-vi.mock('@/renderer/components/agent/ContextUsageIndicator', () => ({
-  default: ({ tokenUsage }: { tokenUsage: { totalTokens: number } | null }) =>
-    tokenUsage ? <span data-testid='context-usage-indicator'>{tokenUsage.totalTokens}</span> : null,
-}));
-
 vi.mock('@/renderer/utils/ui/siderTooltip', () => ({
   cleanupSiderTooltips: cleanupSiderTooltipsMock,
   getSiderTooltipProps: () => ({ disabled: true }),
@@ -149,22 +144,5 @@ describe('ConversationRow', () => {
     expect(props.onOpenMenu).not.toHaveBeenCalled();
     expect(props.onConversationClick).not.toHaveBeenCalled();
     expect(cleanupSiderTooltipsMock).toHaveBeenCalledTimes(1);
-  });
-
-  it('renders a context usage indicator when usage metadata exists', () => {
-    const props = makeProps({
-      conversation: makeConversation({
-        extra: {
-          workspace: '/workspace',
-          lastTokenUsage: {
-            totalTokens: 62000,
-          },
-        },
-      }),
-    });
-
-    render(<ConversationRow {...props} />);
-
-    expect(screen.getByTestId('context-usage-indicator')).toHaveTextContent('62000');
   });
 });

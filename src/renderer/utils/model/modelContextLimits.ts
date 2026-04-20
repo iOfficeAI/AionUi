@@ -85,31 +85,3 @@ export function getModelContextLimit(modelName: string | undefined | null): numb
 
   return bestLimit;
 }
-
-type ConversationContextMeta = Record<string, unknown> & {
-  currentModelId?: string;
-  lastContextLimit?: number;
-};
-
-type ConversationModelMeta = Record<string, unknown> & {
-  useModel?: string;
-};
-
-type ConversationContextInput = {
-  extra?: ConversationContextMeta;
-  model?: ConversationModelMeta;
-};
-
-/**
- * Resolve the most accurate context window size for a conversation.
- */
-export function getConversationContextLimit(conversation: ConversationContextInput): number {
-  const extra = conversation.extra;
-
-  if (typeof extra?.lastContextLimit === 'number' && extra.lastContextLimit > 0) {
-    return extra.lastContextLimit;
-  }
-
-  const modelName = extra?.currentModelId ?? conversation.model?.useModel;
-  return getModelContextLimit(modelName);
-}
