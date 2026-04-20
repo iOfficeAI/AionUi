@@ -157,10 +157,9 @@ export async function deleteConversation(page: Page, conversationId: string): Pr
   await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
   await confirmBtn.click();
 
-  await page.waitForFunction(
-    () => !window.location.hash.includes('/conversation/'),
-    { timeout: 10_000 }
-  ).catch(() => {});
+  await page
+    .waitForFunction(() => !window.location.hash.includes('/conversation/'), { timeout: 10_000 })
+    .catch(() => {});
 
   return true;
 }

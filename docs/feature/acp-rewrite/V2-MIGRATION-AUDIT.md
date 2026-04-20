@@ -6,12 +6,12 @@
 
 ## 修复进度
 
-| 级别          | 总数 | 已修复 | 状态                                    |
-| ------------- | ---- | ------ | --------------------------------------- |
-| P0 — 功能断裂 | 5    | 4      | 1 open (#20)                            |
-| P1 — 功能缺失 | 6    | 4      | 2 open (#21, #22)                       |
-| P2 — 行为差异 | 7    | 4      | 3 open (#23, #24, #25)                  |
-| P3 — 低优先级 | 8    | 6      | 1 deferred (#13), 1 open (#26)          |
+| 级别          | 总数 | 已修复 | 状态                           |
+| ------------- | ---- | ------ | ------------------------------ |
+| P0 — 功能断裂 | 5    | 4      | 1 open (#20)                   |
+| P1 — 功能缺失 | 6    | 4      | 2 open (#21, #22)              |
+| P2 — 行为差异 | 7    | 4      | 3 open (#23, #24, #25)         |
+| P3 — 低优先级 | 8    | 6      | 1 deferred (#13), 1 open (#26) |
 
 ---
 
@@ -632,6 +632,7 @@ return { success: false, error: { type: errorType, ... } };
 **影响分析：**
 
 `AcpAgentManager` 的 turn tracking 机制：
+
 - `sendMessage` 开始 → 设置 `activeTrackedTurnId`
 - 收到 stream/signal `finish` → `handleTurnComplete` → 重置 turn tracking
 - 缺少 finish → `missingFinishFallbackTimer`（15s delay）兜底
@@ -707,6 +708,7 @@ this.onSignalEvent({
 ```
 
 V1 还额外做了两件事：
+
 1. 将 `toolCall` 注册到 `adapter.activeToolCalls`（`index.ts:1347-1377`），
    确保后续 `tool_call_update` 能找到对应的初始 tool_call
 2. 拦截 navigation tools 发 `preview_open` 事件
@@ -735,15 +737,15 @@ this.onSignalEvent({
 
 **差异对比：**
 
-| 字段 | V1（AcpPermissionRequest） | V2（重构后） |
-|------|---------------------------|-------------|
-| `data.sessionId` | 有 | 无 |
-| `data.toolCall.toolCallId` | 有 | `data.toolCall.toolCallId` (via `data.callId`) |
-| `data.toolCall.status` | 有 | 无 |
-| `data.toolCall.content` | 有（tool call 内容块） | 无 |
-| `data.toolCall.locations` | 有（文件位置数组） | 无 |
-| `data.options[].optionId` | 有 | 有 |
-| `data.options[].name` | `option.name` | `option.label`（字段映射变化） |
+| 字段                       | V1（AcpPermissionRequest） | V2（重构后）                                   |
+| -------------------------- | -------------------------- | ---------------------------------------------- |
+| `data.sessionId`           | 有                         | 无                                             |
+| `data.toolCall.toolCallId` | 有                         | `data.toolCall.toolCallId` (via `data.callId`) |
+| `data.toolCall.status`     | 有                         | 无                                             |
+| `data.toolCall.content`    | 有（tool call 内容块）     | 无                                             |
+| `data.toolCall.locations`  | 有（文件位置数组）         | 无                                             |
+| `data.options[].optionId`  | 有                         | 有                                             |
+| `data.options[].name`      | `option.name`              | `option.label`（字段映射变化）                 |
 
 **影响：**
 
