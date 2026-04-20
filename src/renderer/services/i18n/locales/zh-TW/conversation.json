@@ -267,17 +267,7 @@
     "queueTooLarge": "佇列資料過大，無法安全快取，請先移除部分排隊指令。"
   },
   "contextUsage": {
-    "contextUsed": "上下文已使用",
-    "title": "上下文使用量",
-    "contextWindow": "窗口上限",
-    "totalTokens": "總量",
-    "inputTokens": "輸入",
-    "outputTokens": "輸出",
-    "reasoningTokens": "推理",
-    "cachedInputTokens": "快取讀取",
-    "cachedOutputTokens": "快取寫入",
-    "highWarning": "使用量已超過 80%，建議盡快開啟新對話。",
-    "criticalWarning": "使用量已超過 90%，回覆可能出現截斷或品質下降。"
+    "contextUsed": "上下文已使用"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",

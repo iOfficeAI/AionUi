@@ -266,17 +266,7 @@
     "queueTooLarge": "Дані черги занадто великі для безпечного збереження. Спочатку видаліть кілька команд."
   },
   "contextUsage": {
-    "contextUsed": "контексту використано",
-    "title": "Context usage",
-    "contextWindow": "Window",
-    "totalTokens": "Total",
-    "inputTokens": "Input",
-    "outputTokens": "Output",
-    "reasoningTokens": "Reasoning",
-    "cachedInputTokens": "Cache read",
-    "cachedOutputTokens": "Cache write",
-    "highWarning": "Usage is above 80%. Consider starting a new conversation soon.",
-    "criticalWarning": "Usage is above 90%. Responses may degrade or truncate."
+    "contextUsed": "контексту використано"
   },
   "skill_generator": {
     "title": "Створити Навичку/Правило",

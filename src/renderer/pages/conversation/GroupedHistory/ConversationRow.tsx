@@ -10,8 +10,6 @@ import siderStyles from '@/renderer/components/layout/Sider/Sider.module.css';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
-import { getConversationContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, EditOne, Export, MessageOne, Pushpin } from '@icon-park/react';
@@ -19,7 +17,6 @@ import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { TokenUsageData } from '@/common/config/storage';
 import type { ConversationRowProps } from './types';
 import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import { isConversationPinned } from './utils/groupingHelpers';
@@ -55,8 +52,6 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
-  const conversationExtra = conversation.extra as { lastTokenUsage?: TokenUsageData } | undefined;
-  const contextUsage = conversationExtra?.lastTokenUsage ?? null;
 
   const renderLeadingIcon = () => {
     if (cronStatus !== 'none') {
@@ -152,7 +147,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         </span>
         <FlexFullContainer
           className={classNames(
-            'h-24px min-w-0 flex-1 items-center gap-8px collapsed-hidden',
+            'h-24px min-w-0 flex-1 collapsed-hidden',
             isPinned && !isMobile ? siderStyles.pinnedTextSlot : 'pr-18px'
           )}
         >
@@ -167,21 +162,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
           >
             <div
               className={classNames(
-                'chat-history__item-name overflow-hidden text-ellipsis block flex-1 text-14px lh-24px whitespace-nowrap min-w-0 group-hover:text-1',
+                'chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 group-hover:text-1',
                 selected && !batchMode ? 'text-1 font-medium' : 'text-2'
               )}
             >
               <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
             </div>
           </Tooltip>
-          {contextUsage ? (
-            <ContextUsageIndicator
-              tokenUsage={contextUsage}
-              contextLimit={getConversationContextLimit(conversation)}
-              size={16}
-              className='shrink-0 opacity-75 group-hover:opacity-100'
-            />
-          ) : null}
         </FlexFullContainer>
 
         {renderCompletionUnreadDot()}

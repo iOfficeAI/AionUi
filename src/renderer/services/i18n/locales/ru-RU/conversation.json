@@ -267,17 +267,7 @@
     "queueTooLarge": "Данные очереди слишком большие для безопасного сохранения. Сначала удалите несколько команд."
   },
   "contextUsage": {
-    "contextUsed": "контекст использован",
-    "title": "Context usage",
-    "contextWindow": "Window",
-    "totalTokens": "Total",
-    "inputTokens": "Input",
-    "outputTokens": "Output",
-    "reasoningTokens": "Reasoning",
-    "cachedInputTokens": "Cache read",
-    "cachedOutputTokens": "Cache write",
-    "highWarning": "Usage is above 80%. Consider starting a new conversation soon.",
-    "criticalWarning": "Usage is above 90%. Responses may degrade or truncate."
+    "contextUsed": "контекст использован"
   },
   "skill_generator": {
     "title": "Создать навык/правило",

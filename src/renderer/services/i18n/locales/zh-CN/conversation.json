@@ -267,17 +267,7 @@
     "queueTooLarge": "队列数据过大，无法安全缓存，请先移除部分排队指令。"
   },
   "contextUsage": {
-    "contextUsed": "上下文已使用",
-    "title": "上下文使用量",
-    "contextWindow": "窗口上限",
-    "totalTokens": "总量",
-    "inputTokens": "输入",
-    "outputTokens": "输出",
-    "reasoningTokens": "推理",
-    "cachedInputTokens": "缓存读取",
-    "cachedOutputTokens": "缓存写入",
-    "highWarning": "使用量已超过 80%，建议尽快开启新对话。",
-    "criticalWarning": "使用量已超过 90%，回复可能出现截断或质量下降。"
+    "contextUsed": "上下文已使用"
   },
   "skill_generator": {
     "title": "生成 Skill/规则",
