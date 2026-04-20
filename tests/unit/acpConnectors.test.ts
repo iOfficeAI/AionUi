@@ -44,6 +44,7 @@ vi.mock('@process/utils/shellEnv', () => ({
     process.platform === 'win32' ? { shell: true, windowsHide: true } : {}
   ),
   loadFullShellEnvironment: vi.fn(async () => ({ PATH: '/usr/bin' })),
+  mergePaths: vi.fn((path1?: string, path2?: string) => [path1, path2].filter(Boolean).join(':')),
   normalizeNpxArgsForBundledBun: vi.fn((args: string[]) =>
     args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline')
   ),
@@ -672,5 +673,36 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
 
     expect(firstCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
     expect(secondCallArgs).toContain('@zed-industries/codex-acp-darwin-x64@0.11.1');
+  });
+
+  it('prepends the configured Codex CLI directory to PATH on Darwin', async () => {
+    const hooks = {
+      setup: vi.fn(async () => {}),
+      cleanup: vi.fn(async () => {}),
+    };
+
+    await connectCodex('/cwd', hooks, '/Users/test/.volta/bin/codex');
+
+    expect(mockExecFile).toHaveBeenNthCalledWith(
+      1,
+      'codex',
+      ['--version'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: '/Users/test/.volta/bin:/usr/bin',
+        }),
+      }),
+      expect.any(Function)
+    );
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/bundled/bun',
+      expect.arrayContaining(['x', '--bun', '@zed-industries/codex-acp@0.11.1']),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: '/Users/test/.volta/bin:/usr/bin',
+        }),
+      })
+    );
   });
 });

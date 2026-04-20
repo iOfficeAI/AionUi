@@ -172,6 +172,41 @@ describe('getEnhancedEnv', () => {
       expect(typeof v).toBe('string');
     }
   });
+
+  it('appends the Volta bin directory on POSIX when it exists and is missing from PATH', async () => {
+    if (process.platform === 'win32') return;
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn().mockImplementation(() => {
+        throw new Error('skip shell');
+      }),
+      execFile: vi.fn(),
+    }));
+
+    vi.doMock('os', () => ({
+      default: {
+        homedir: () => '/home/testuser',
+      },
+      homedir: () => '/home/testuser',
+    }));
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn((target: string) => target === '/home/testuser/.volta/bin'),
+      };
+    });
+
+    const originalPath = process.env.PATH;
+    process.env.PATH = '/usr/bin';
+
+    const { getEnhancedEnv } = await import('@process/utils/shellEnv');
+    const result = getEnhancedEnv();
+
+    expect(result.PATH).toContain('/home/testuser/.volta/bin');
+    process.env.PATH = originalPath;
+  });
 });
 
 // -------------------------------------------------------------------

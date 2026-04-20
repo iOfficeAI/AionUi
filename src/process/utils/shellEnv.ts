@@ -371,6 +371,8 @@ function getPosixExtraToolPaths(): string[] {
   const candidates = [
     // bun global packages
     getBunGlobalBinDir(),
+    // volta
+    path.join(homeDir, '.volta', 'bin'),
     // cargo (Rust)
     path.join(homeDir, '.cargo', 'bin'),
     // go

@@ -263,7 +263,7 @@ export class AcpConnection {
         break;
 
       case 'codex':
-        await connectCodex(workingDir, npxHooks);
+        await connectCodex(workingDir, npxHooks, cliPath);
         break;
 
       case 'gemini':

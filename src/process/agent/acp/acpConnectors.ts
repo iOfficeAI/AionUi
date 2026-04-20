@@ -29,6 +29,7 @@ import {
   getNpxCacheDir,
   getWindowsShellExecutionOptions,
   loadFullShellEnvironment,
+  mergePaths,
   normalizeNpxArgsForBundledBun,
   resolveNpxDirect,
   resolveNpxPath,
@@ -104,6 +105,49 @@ function resolvePreferredCodexAcpPlatformPackage(): string | null {
 
 function shouldPreferDirectCodexAcpPackage(): boolean {
   return process.platform === 'win32' || process.platform === 'linux';
+}
+
+function normalizeCliPathValue(cliPath?: string): string | null {
+  const trimmed = cliPath?.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  if ((trimmed.startsWith('"') && trimmed.endsWith('"')) || (trimmed.startsWith("'") && trimmed.endsWith("'"))) {
+    return trimmed.slice(1, -1);
+  }
+
+  return trimmed;
+}
+
+function prependCodexCliDirToPath(cleanEnv: Record<string, string | undefined>, cliPath?: string): void {
+  const normalizedCliPath = normalizeCliPathValue(cliPath);
+  if (!normalizedCliPath) {
+    return;
+  }
+
+  const looksLikePath =
+    path.isAbsolute(normalizedCliPath) ||
+    normalizedCliPath.startsWith('./') ||
+    normalizedCliPath.startsWith('../') ||
+    normalizedCliPath.includes('/') ||
+    normalizedCliPath.includes('\\');
+
+  if (!looksLikePath) {
+    return;
+  }
+
+  const cliName = path.basename(normalizedCliPath).toLowerCase();
+  if (cliName !== 'codex' && cliName !== 'codex.cmd' && cliName !== 'codex.exe') {
+    return;
+  }
+
+  const cliDir = path.dirname(normalizedCliPath);
+  if (!cliDir || cliDir === '.') {
+    return;
+  }
+
+  cleanEnv.PATH = mergePaths(cliDir, cleanEnv.PATH);
 }
 
 function extractCodexPlatformPackageFromError(errorMessage: string): string | null {
@@ -394,8 +438,12 @@ async function prepareClaude(): Promise<NpxPrepareResult> {
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
-async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
+async function prepareCodex(
+  codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE,
+  cliPath?: string
+): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
+  prependCodexCliDirToPath(cleanEnv, cliPath);
   ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
 
   const diagStart = Date.now();
@@ -641,7 +689,7 @@ export function connectClaude(workingDir: string, hooks: NpxConnectHooks): Promi
 }
 
 /** Connect to Codex ACP bridge via npx. */
-export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promise<void> {
+export function connectCodex(workingDir: string, hooks: NpxConnectHooks, cliPath?: string): Promise<void> {
   return (async () => {
     const cacheStart = Date.now();
     const cachedBinary = await resolveCachedCodexAcpBinary();
@@ -651,7 +699,7 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
     );
     if (cachedBinary) {
       try {
-        const { cleanEnv } = await prepareCodex();
+        const { cleanEnv } = await prepareCodex(CODEX_ACP_NPX_PACKAGE, cliPath);
         const config = createGenericSpawnConfig(
           cachedBinary.binaryPath,
           workingDir,
@@ -686,7 +734,7 @@ export function connectCodex(workingDir: string, hooks: NpxConnectHooks): Promis
         await connectNpxBackend({
           backend: 'codex',
           npxPackage,
-          prepareFn: () => prepareCodex(npxPackage),
+          prepareFn: () => prepareCodex(npxPackage, cliPath),
           workingDir,
           ...hooks,
         });
