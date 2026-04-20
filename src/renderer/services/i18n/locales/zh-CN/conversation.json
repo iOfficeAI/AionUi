@@ -9,7 +9,7 @@
     "selectModel": "选择模型",
     "useCliModel": "选择模型",
     "modelSwitchNotSupported": "首次连接后将显示可用模型列表。请先发送消息以连接并加载可用模型。",
-    "specifyWorkspace": "关联文件夹对话",
+    "specifyWorkspace": "关联文件夹",
     "currentWorkspace": "当前工作空间",
     "clearWorkspace": "移除已选文件夹",
     "openFolder": "打开文件夹",

@@ -125,7 +125,7 @@ export const useExport = ({
     try {
       const desktopPath = exportTargetPath || (await getDesktopPath());
       const folders = await ipcBridge.dialog.showOpen.invoke({
-        properties: ['openDirectory'],
+        properties: ['openDirectory', 'createDirectory'],
         defaultPath: desktopPath || undefined,
       });
       if (folders && folders.length > 0) {
