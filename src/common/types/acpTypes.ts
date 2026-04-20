@@ -55,14 +55,7 @@ export type AcpBackendAll =
   | 'custom'; // User-configured custom ACP agent (extension adapters)
 
 // Superset type covering all execution engine backends (ACP + non-ACP).
-export type AgentBackend =
-  | AcpBackendAll
-  | 'gemini'
-  | 'remote'
-  | 'aionrs'
-  | 'nanobot'
-  | 'openclaw-gateway'
-  | 'iflow';
+export type AgentBackend = AcpBackendAll | 'gemini' | 'remote' | 'aionrs' | 'nanobot' | 'openclaw-gateway' | 'iflow';
 
 /**
  * 潜在的 ACP CLI 工具列表
