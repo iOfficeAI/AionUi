@@ -61,6 +61,18 @@ vi.mock('@process/utils/initStorage', () => ({
   getBuiltinSkillsCopyDir: vi.fn(() => '/mock/builtin-skills'),
   getAutoSkillsDir: vi.fn(() => '/mock/auto-skills'),
   getSystemDir: vi.fn(() => ({ workDir: '/mock/system' })),
+  ProcessConfig: {
+    get: vi.fn(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            cliPath: '/Users/test/.nvm/versions/node/v22.22.0/bin/codex',
+          },
+        };
+      }
+      return null;
+    }),
+  },
 }));
 
 vi.mock('@process/utils/openclawUtils', () => ({
@@ -77,6 +89,7 @@ describe('initAgent — skill support', () => {
     workspace: string,
     options: { agentType?: string; backend?: string; enabledSkills?: string[] }
   ) => Promise<void>;
+  let createAcpAgent: typeof import('@process/utils/initAgent').createAcpAgent;
   let createAionrsAgent: typeof import('@process/utils/initAgent').createAionrsAgent;
 
   beforeEach(async () => {
@@ -86,6 +99,7 @@ describe('initAgent — skill support', () => {
     const mod = await import('@process/utils/initAgent');
     hasNativeSkillSupport = mod.hasNativeSkillSupport;
     setupAssistantWorkspace = mod.setupAssistantWorkspace;
+    createAcpAgent = mod.createAcpAgent;
     createAionrsAgent = mod.createAionrsAgent;
   });
 
@@ -323,6 +337,31 @@ describe('initAgent — skill support', () => {
       });
 
       expect(symlinkCalls).toHaveLength(3);
+    });
+  });
+
+  describe('createAcpAgent', () => {
+    it('should persist configured absolute cliPath for codex instead of bare builtin command', async () => {
+      const conversation = await createAcpAgent({
+        type: 'acp',
+        name: 'Codex',
+        model: {
+          id: 'openai',
+          name: 'OpenAI',
+          platform: 'openai',
+          useModel: 'gpt-5',
+          apiKey: '',
+        },
+        extra: {
+          workspace: '/tmp/workspace',
+          customWorkspace: true,
+          backend: 'codex',
+          cliPath: 'codex',
+          agentName: 'Codex',
+        },
+      });
+
+      expect(conversation.extra.cliPath).toBe('/Users/test/.nvm/versions/node/v22.22.0/bin/codex');
     });
   });
 

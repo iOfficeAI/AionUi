@@ -49,7 +49,7 @@ import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import type { AgentKillReason } from './IAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
-import { hasNativeSkillSupport } from '@process/utils/initAgent';
+import { hasNativeSkillSupport, resolveBuiltinCliPath } from '@process/utils/initAgent';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { stripThinkTags } from './ThinkTagDetector';
 
@@ -507,9 +507,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // Handle built-in backends: read from acp.config
         const config = await ProcessConfig.get('acp.config');
         const codexConfig = data.backend === 'codex' ? await ProcessConfig.get('codex.config') : undefined;
-        if (!cliPath && config?.[data.backend]?.cliPath) {
-          cliPath = config[data.backend].cliPath;
-        }
+        cliPath = await resolveBuiltinCliPath(data.backend, cliPath);
         // yoloMode priority: data.yoloMode (from CronService) > config setting
         // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
         const legacyYoloMode = data.yoloMode ?? config?.[data.backend]?.yoloMode;

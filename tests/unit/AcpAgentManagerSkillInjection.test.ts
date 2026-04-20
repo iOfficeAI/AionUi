@@ -50,6 +50,13 @@ vi.mock('@process/services/database', () => ({
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            cliPath: '/Users/test/.nvm/versions/node/v22.22.0/bin/codex',
+          },
+        };
+      }
       if (key === 'acp.cachedInitializeResult') {
         // Provide cached init results so shouldInjectTeamGuideMcp returns true for claude/gemini
         return {
@@ -141,6 +148,12 @@ vi.mock('@process/utils/initAgent', () => ({
     ];
     return !!backend && supported.includes(backend);
   }),
+  resolveBuiltinCliPath: vi.fn(async (backend: string | undefined, cliPath?: string) => {
+    if (backend === 'codex' && cliPath === 'codex') {
+      return '/Users/test/.nvm/versions/node/v22.22.0/bin/codex';
+    }
+    return cliPath;
+  }),
   setupAssistantWorkspace: vi.fn(),
 }));
 
@@ -151,14 +164,19 @@ vi.mock('@process/task/agentUtils', () => ({
 
 // Mock AcpAgent class
 vi.mock('@process/agent/acp', () => ({
-  AcpAgent: vi.fn().mockImplementation(() => ({
-    sendMessage: mockAgentSendMessage,
-    getModelInfo: vi.fn(() => null),
-    getSessionState: vi.fn(() => null),
-    stop: vi.fn(),
-    kill: vi.fn(),
-    on: vi.fn().mockReturnThis(),
-  })),
+  AcpAgent: vi.fn().mockImplementation(function () {
+    return {
+      start: vi.fn(async () => {}),
+      sendMessage: mockAgentSendMessage,
+      getModelInfo: vi.fn(() => null),
+      getConfigOptions: vi.fn(() => []),
+      setMode: vi.fn(async () => {}),
+      getSessionState: vi.fn(() => null),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      on: vi.fn().mockReturnThis(),
+    };
+  }),
 }));
 
 import AcpAgentManager from '@process/task/AcpAgentManager';
@@ -166,6 +184,7 @@ import AcpAgentManager from '@process/task/AcpAgentManager';
 function createManager(
   overrides: {
     backend?: string;
+    cliPath?: string;
     customWorkspace?: boolean;
     presetContext?: string;
     enabledSkills?: string[];
@@ -174,6 +193,7 @@ function createManager(
   const data = {
     conversation_id: 'test-conv',
     backend: overrides.backend ?? 'claude',
+    cliPath: overrides.cliPath,
     workspace: '/tmp/test-workspace',
     customWorkspace: overrides.customWorkspace,
     presetContext: overrides.presetContext,
@@ -292,5 +312,22 @@ describe('AcpAgentManager — first-message skill injection', () => {
     expect(sentContent).toContain('Team Mode');
     expect(sentContent).toContain('[User Request]');
     expect(sentContent).toContain('Test message');
+  });
+
+  it('prefers configured absolute cliPath over persisted builtin codex command on resume', async () => {
+    const manager = createManager({
+      backend: 'codex',
+      cliPath: 'codex',
+      customWorkspace: true,
+    });
+
+    await manager.initAgent();
+
+    const { AcpAgent } = await import('@process/agent/acp');
+    expect(vi.mocked(AcpAgent)).toHaveBeenCalledWith(
+      expect.objectContaining({
+        cliPath: '/Users/test/.nvm/versions/node/v22.22.0/bin/codex',
+      })
+    );
   });
 });

@@ -6,8 +6,8 @@
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import type { PresetAgentType } from '@/common/types/acpTypes';
-import { getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
+import type { AcpBackend, PresetAgentType } from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL, getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 
 // Re-export for backward compatibility (tests mock this path)
@@ -15,8 +15,28 @@ export { hasNativeSkillSupport };
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir } from './initStorage';
+import { ProcessConfig, getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir } from './initStorage';
 import { computeOpenClawIdentityHash } from './openclawUtils';
+
+export async function resolveBuiltinCliPath(
+  backend: string | undefined,
+  cliPath?: string
+): Promise<string | undefined> {
+  const normalizedCliPath = cliPath?.trim();
+  if (!backend || backend === 'custom') {
+    return normalizedCliPath;
+  }
+
+  const backendConfig = ACP_BACKENDS_ALL[backend as AcpBackend];
+  const configuredCliPath = (await ProcessConfig.get('acp.config'))?.[backend as AcpBackend]?.cliPath?.trim();
+  const defaultCliCommand = backendConfig?.cliCommand?.trim();
+
+  if (configuredCliPath && (!normalizedCliPath || normalizedCliPath === defaultCliCommand)) {
+    return configuredCliPath;
+  }
+
+  return normalizedCliPath;
+}
 
 /**
  * 为 assistant 设置原生 workspace 结构（skill symlinks）
@@ -223,6 +243,7 @@ export const createGeminiAgent = async (
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const persistedCliPath = await resolveBuiltinCliPath(extra.backend, extra.cliPath);
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
     `${extra.backend}-temp-${Date.now()}`,
     extra.workspace,
@@ -246,7 +267,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       workspace: workspace,
       customWorkspace,
       backend: extra.backend,
-      cliPath: extra.cliPath,
+      cliPath: persistedCliPath,
       agentName: extra.agentName,
       customAgentId: extra.customAgentId, // 同时用于标识预设助手 / Also used to identify preset assistant
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
