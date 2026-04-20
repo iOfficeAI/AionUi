@@ -27,6 +27,12 @@ export type AionrsAgentOptions = {
   maxTurns?: number;
   sessionId?: string;
   resume?: string;
+  teamMcpStdioConfig?: {
+    name: string;
+    command: string;
+    args: string[];
+    env: Array<{ name: string; value: string }>;
+  };
   onStreamEvent: StreamEventHandler;
 };
 
@@ -40,6 +46,8 @@ export class AionrsAgent {
   private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
   private configBackup: { path: string; content: string | null } | null = null;
+  private mcpReadyPromise: Promise<void>;
+  private mcpReadyResolve!: () => void;
   public sessionId?: string;
   public capabilities?: AionrsCapabilities;
 
@@ -49,6 +57,9 @@ export class AionrsAgent {
     this.readyPromise = new Promise((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
+    });
+    this.mcpReadyPromise = new Promise((resolve) => {
+      this.mcpReadyResolve = resolve;
     });
   }
 
@@ -127,6 +138,30 @@ export class AionrsAgent {
         return this.start();
       }
       throw err;
+    }
+
+    // Inject team MCP server if configured (must happen before first message)
+    if (this.options.teamMcpStdioConfig) {
+      const { name, command, args, env } = this.options.teamMcpStdioConfig;
+      const envRecord: Record<string, string> = {};
+      for (const { name: k, value: v } of env) {
+        envRecord[k] = v;
+      }
+      this.sendCommand({
+        type: 'add_mcp_server',
+        name,
+        transport: 'stdio',
+        command,
+        args,
+        env: envRecord,
+      });
+
+      await Promise.race([
+        this.mcpReadyPromise,
+        new Promise<void>((_resolve, reject) => setTimeout(() => reject(new Error('MCP ready timeout (30s)')), 30000)),
+      ]).catch((err) => {
+        console.warn('[AionrsAgent] Team MCP setup warning:', err);
+      });
     }
 
     // Inject preset rules as history context (skip on resume — rules were already injected)
@@ -258,6 +293,10 @@ export class AionrsAgent {
           msg_id: '',
         });
         break;
+
+      case 'mcp_ready':
+        this.mcpReadyResolve();
+        break;
     }
   }
 
@@ -305,12 +344,12 @@ export class AionrsAgent {
     this.childProcess.stdin.write(JSON.stringify(cmd) + '\n');
   }
 
-  async send(input: string, msgId: string, files?: string[]): Promise<void> {
+  async send(content: string, msgId: string, files?: string[]): Promise<void> {
     await this.readyPromise;
     this.sendCommand({
       type: 'message',
       msg_id: msgId,
-      input,
+      content,
       files,
     });
   }

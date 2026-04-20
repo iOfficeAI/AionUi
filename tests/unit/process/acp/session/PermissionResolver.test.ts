@@ -4,12 +4,18 @@ import { describe, it, expect, vi } from 'vitest';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
 import type { RequestPermissionRequest } from '@agentclientprotocol/sdk';
 
-function makeRequest(toolName = 'read_file', callId = 'call-1'): RequestPermissionRequest {
+function makeRequest(
+  toolName = 'read_file',
+  callId = 'call-1',
+  overrides?: { kind?: string; rawInput?: Record<string, unknown> }
+): RequestPermissionRequest {
   return {
     sessionId: 'sess-1',
     toolCall: {
       toolCallId: callId,
       title: toolName,
+      kind: overrides?.kind as RequestPermissionRequest['toolCall']['kind'],
+      rawInput: overrides?.rawInput,
     },
     options: [
       { optionId: 'allow', name: 'Allow', kind: 'allow_once' },
@@ -26,20 +32,66 @@ describe('PermissionResolver', () => {
     expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow' });
   });
 
-  it('returns cached approval on second call', async () => {
+  it('returns cached approval on second call with same key', async () => {
     const resolver = new PermissionResolver({ autoApproveAll: false });
     const uiCallback = vi.fn();
 
-    // First call: resolve manually
-    const p1 = resolver.evaluate(makeRequest('read_file', 'c1'), uiCallback);
-    resolver.resolve('c1', 'always');
+    // First call: resolve manually with "allow_always"
+    const p1 = resolver.evaluate(makeRequest('read_file', 'c1', { kind: 'read' }), uiCallback);
+    resolver.resolve('c1', 'allow_always');
     await p1;
 
-    // Second call: should hit cache
+    // Second call with same tool + kind: should hit cache
     const uiCallback2 = vi.fn();
-    const result = await resolver.evaluate(makeRequest('read_file', 'c2'), uiCallback2);
+    const result = await resolver.evaluate(makeRequest('read_file', 'c2', { kind: 'read' }), uiCallback2);
     expect(uiCallback2).not.toHaveBeenCalled();
-    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'always' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow_always' });
+  });
+
+  it('does NOT cache-hit when kind differs', async () => {
+    const resolver = new PermissionResolver({ autoApproveAll: false });
+
+    // Approve read_file with kind=read
+    const p1 = resolver.evaluate(makeRequest('read_file', 'c1', { kind: 'read' }), vi.fn());
+    resolver.resolve('c1', 'allow_always');
+    await p1;
+
+    // Same title but kind=edit — should NOT hit cache
+    const uiCallback = vi.fn();
+    resolver.evaluate(makeRequest('read_file', 'c2', { kind: 'edit' }), uiCallback);
+    expect(uiCallback).toHaveBeenCalledOnce();
+  });
+
+  it('does NOT cache-hit when rawInput.command differs', async () => {
+    const resolver = new PermissionResolver({ autoApproveAll: false });
+
+    // Approve execute with command=ls
+    const p1 = resolver.evaluate(makeRequest('bash', 'c1', { kind: 'execute', rawInput: { command: 'ls' } }), vi.fn());
+    resolver.resolve('c1', 'allow_always');
+    await p1;
+
+    // Same title+kind but different command — should NOT hit cache
+    const uiCallback = vi.fn();
+    resolver.evaluate(makeRequest('bash', 'c2', { kind: 'execute', rawInput: { command: 'rm -rf /' } }), uiCallback);
+    expect(uiCallback).toHaveBeenCalledOnce();
+  });
+
+  it('cache-hits when rawInput.command matches', async () => {
+    const resolver = new PermissionResolver({ autoApproveAll: false });
+
+    // Approve execute with command=ls
+    const p1 = resolver.evaluate(makeRequest('bash', 'c1', { kind: 'execute', rawInput: { command: 'ls' } }), vi.fn());
+    resolver.resolve('c1', 'allow_always');
+    await p1;
+
+    // Same title+kind+command — should hit cache
+    const uiCallback = vi.fn();
+    const result = await resolver.evaluate(
+      makeRequest('bash', 'c2', { kind: 'execute', rawInput: { command: 'ls' } }),
+      uiCallback
+    );
+    expect(uiCallback).not.toHaveBeenCalled();
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow_always' });
   });
 
   it('delegates to UI when no cache hit', async () => {
@@ -50,6 +102,29 @@ describe('PermissionResolver', () => {
     resolver.resolve('c1', 'allow');
     const result = await promise;
     expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow' });
+  });
+
+  it('passes kind, rawInput, and locations to UI callback', async () => {
+    const resolver = new PermissionResolver({ autoApproveAll: false });
+    const uiCallback = vi.fn();
+    const request: RequestPermissionRequest = {
+      sessionId: 'sess-1',
+      toolCall: {
+        toolCallId: 'c1',
+        title: 'Execute Command',
+        kind: 'execute',
+        rawInput: { command: 'ls -la' },
+        locations: [{ path: '/workspace/src' }],
+      },
+      options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' }],
+    };
+
+    resolver.evaluate(request, uiCallback);
+
+    const data = uiCallback.mock.calls[0][0];
+    expect(data.kind).toBe('execute');
+    expect(data.rawInput).toEqual({ command: 'ls -la' });
+    expect(data.locations).toEqual([{ path: '/workspace/src', range: undefined }]);
   });
 
   it('hasPending is true during unresolved request (INV-S-10)', () => {

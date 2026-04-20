@@ -75,7 +75,7 @@ export function useWorkspaceMigration({
     if (isElectronDesktop()) {
       // Electron: use native file dialog
       try {
-        const openFiles = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+        const openFiles = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
         if (openFiles && openFiles.length > 0) {
           setSelectedTargetPath(openFiles[0]);
         }

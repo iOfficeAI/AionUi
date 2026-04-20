@@ -29,6 +29,8 @@ export {
   AGENT_PILL,
   AGENT_PILL_SELECTED,
   agentPillByBackend,
+  MODE_SELECTOR,
+  modeMenuItemByValue,
   MODEL_SELECTOR_BTN,
   settingsSiderItemById,
   CHANNEL_IDS,

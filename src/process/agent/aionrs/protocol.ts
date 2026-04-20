@@ -76,14 +76,15 @@ export type AionrsEvent =
       error: { code: string; message: string; retryable: boolean };
     }
   | { type: 'info'; msg_id: string; message: string }
-  | { type: 'config_changed'; capabilities: AionrsCapabilities };
+  | { type: 'config_changed'; capabilities: AionrsCapabilities }
+  | { type: 'mcp_ready'; name: string; tools: string[] };
 
 // ============================================
 // Client -> Agent Commands (stdin)
 // ============================================
 
 export type AionrsCommand =
-  | { type: 'message'; msg_id: string; input: string; files?: string[] }
+  | { type: 'message'; msg_id: string; content: string; files?: string[] }
   | { type: 'stop' }
   | { type: 'tool_approve'; call_id: string; scope: 'once' | 'always' }
   | { type: 'tool_deny'; call_id: string; reason?: string }
@@ -95,4 +96,14 @@ export type AionrsCommand =
       thinking?: string;
       thinking_budget?: number;
       effort?: string;
+    }
+  | {
+      type: 'add_mcp_server';
+      name: string;
+      transport: string;
+      command?: string;
+      args?: string[];
+      env?: Record<string, string>;
+      url?: string;
+      headers?: Record<string, string>;
     };

@@ -73,12 +73,12 @@ function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
   return {
     id: 'team-1',
     name: 'Test Team',
-    leadAgentId: 'slot-lead',
+    leaderAgentId: 'slot-lead',
     agents: [
       {
         slotId: 'slot-lead',
         conversationId: 'conv-lead',
-        role: 'lead',
+        role: 'leader',
         agentType: 'acp',
         agentName: 'Leader',
         conversationType: 'acp',
@@ -153,7 +153,7 @@ describe('TeamSession', () => {
           {
             slotId: 'slot-lead',
             conversationId: 'conv-lead',
-            role: 'lead' as const,
+            role: 'leader' as const,
             agentType: 'acp',
             agentName: 'Leader',
             conversationType: 'acp',

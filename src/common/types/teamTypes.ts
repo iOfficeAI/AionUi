@@ -13,7 +13,7 @@ import type { AcpInitializeResult } from './acpTypes';
  * eagerly (e.g. at app startup or first backend detection) instead of lazily
  * after the first user conversation.
  */
-const KNOWN_TEAM_CAPABLE_BACKENDS = new Set(['gemini', 'claude', 'codex', 'snow']);
+const KNOWN_TEAM_CAPABLE_BACKENDS = new Set(['gemini', 'claude', 'codex', 'snow', 'aionrs']);
 
 /**
  * Check if an agent backend is team-capable.
@@ -42,7 +42,7 @@ export function getTeamCapableBackends(
 }
 
 /** Role of a teammate within a team */
-export type TeammateRole = 'lead' | 'teammate';
+export type TeammateRole = 'leader' | 'teammate';
 
 /** Lifecycle status of a teammate agent */
 export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
@@ -71,7 +71,7 @@ export type TTeam = {
   name: string;
   workspace: string;
   workspaceMode: WorkspaceMode;
-  leadAgentId: string;
+  leaderAgentId: string;
   agents: TeamAgent[];
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned agents inherit it. */
   sessionMode?: string;

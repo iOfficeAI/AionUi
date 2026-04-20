@@ -100,7 +100,7 @@ export class MessageTranslator {
       case 'plan':
         return this.handlePlan(update);
       case 'available_commands_update':
-        return this.handleAvailableCommands(update);
+        return []; // Handled by AcpSession.handleMessage → ConfigTracker
       case 'user_message_chunk':
         return [];
       default:
@@ -244,7 +244,8 @@ export class MessageTranslator {
     };
     if (!plan.entries || plan.entries.length === 0) return [];
 
-    const planMsgId = crypto.randomUUID();
+    // Use stable per-turn ID so the renderer merges plan updates within a turn
+    const planMsgId = this.resolveMsgId('plan');
 
     return [
       {

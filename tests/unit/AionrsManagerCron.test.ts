@@ -241,7 +241,7 @@ message: Generate daily report
       await vi.waitFor(() => {
         expect(sendSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            input: expect.stringContaining('[System Response]'),
+            content: expect.stringContaining('[System Response]'),
           })
         );
       });
@@ -255,9 +255,9 @@ message: Generate daily report
       simulateTurn(manager, ['[CRON_LIST]']);
       await vi.waitFor(() => {
         expect(sendSpy).toHaveBeenCalled();
-        const call = sendSpy.mock.calls[0][0] as { input: string };
-        expect(call.input).toContain('[System Response]');
-        expect(call.input).toContain('My Task');
+        const call = sendSpy.mock.calls[0][0] as { content: string };
+        expect(call.content).toContain('[System Response]');
+        expect(call.content).toContain('My Task');
       });
     });
 
@@ -320,7 +320,7 @@ message: Generate daily report
         expect(mockCronService.listJobsByConversation).toHaveBeenCalled();
         expect(sendSpy).toHaveBeenCalledWith(
           expect.objectContaining({
-            input: expect.stringContaining('[System Response]'),
+            content: expect.stringContaining('[System Response]'),
           })
         );
       });
@@ -398,9 +398,9 @@ message: Generate morning report
       simulateTurn(manager, ['[CRON_LIST]']);
       await vi.waitFor(() => {
         expect(sendSpy).toHaveBeenCalled();
-        const call = sendSpy.mock.calls[0][0] as { input: string };
-        expect(call.input).toContain('[System Response]');
-        expect(call.input).toContain('Service down');
+        const call = sendSpy.mock.calls[0][0] as { content: string };
+        expect(call.content).toContain('[System Response]');
+        expect(call.content).toContain('Service down');
       });
     });
   });

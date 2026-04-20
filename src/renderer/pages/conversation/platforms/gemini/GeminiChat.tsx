@@ -29,6 +29,7 @@ const GeminiChat: React.FC<{
   agentSlotId?: string;
   agentName?: string;
   agentType?: string;
+  sessionMode?: string;
 }> = ({
   conversation_id,
   workspace,
@@ -39,6 +40,7 @@ const GeminiChat: React.FC<{
   agentSlotId,
   agentName,
   agentType,
+  sessionMode,
 }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
@@ -74,6 +76,7 @@ const GeminiChat: React.FC<{
               modelSelection={modelSelection}
               teamId={teamId}
               agentSlotId={agentSlotId}
+              sessionMode={sessionMode}
             ></GeminiSendBox>
           </ConversationChatConfirm>
         )}

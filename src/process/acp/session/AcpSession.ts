@@ -14,7 +14,13 @@ import { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
 import { PromptExecutor } from '@process/acp/session/PromptExecutor';
 import { SessionLifecycle } from '@process/acp/session/SessionLifecycle';
-import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
+import type {
+  AgentConfig,
+  InitialDesiredConfig,
+  ProtocolHandlers,
+  SessionCallbacks,
+  SessionStatus,
+} from '@process/acp/types';
 import * as fs from 'node:fs';
 
 export type SessionOptions = {
@@ -23,6 +29,8 @@ export type SessionOptions = {
   maxResumeRetries?: number;
   metrics?: AcpMetrics;
   approvalCacheMaxSize?: number;
+  /** User selections made before session creation (e.g., from the Guid page). */
+  initialDesired?: InitialDesiredConfig;
 };
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
@@ -87,11 +95,11 @@ export class AcpSession {
     this.metrics = options?.metrics ?? noopMetrics;
     this.callbacks = wrapCallbacks(callbacks);
 
-    this.configTracker = new ConfigTracker();
+    this.configTracker = new ConfigTracker(options?.initialDesired);
     this.messageTranslator = new MessageTranslator(agentConfig.agentId);
     this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
     this.permissionResolver = new PermissionResolver({
-      autoApproveAll: agentConfig.autoApproveAll ?? false,
+      autoApproveAll: agentConfig.yoloMode ?? false,
       cacheMaxSize: options?.approvalCacheMaxSize,
     });
 
@@ -183,11 +191,11 @@ export class AcpSession {
     this.lifecycle.retryAuth(credentials);
   }
 
-  sendMessage(text: string, files?: string[]): void {
+  async sendMessage(text: string, files?: string[]): Promise<void> {
     const content = this.inputPreprocessor.process(text, files);
     switch (this._status) {
       case 'active':
-        void this.promptExecutor.execute(content);
+        await this.promptExecutor.execute(content);
         return;
       case 'suspended':
         this.promptExecutor.setPending(content);
@@ -199,6 +207,8 @@ export class AcpSession {
   }
 
   cancelPrompt(): void {
+    this.promptExecutor.stopTimer();
+    this.permissionResolver.rejectAll(new Error('Prompt cancelled'));
     this.promptExecutor.cancel();
   }
 
@@ -312,12 +322,27 @@ export class AcpSession {
         this.callbacks.onConfigUpdate(this.configTracker.configSnapshot());
         return;
 
+      case 'available_commands_update': {
+        const data = update as unknown as {
+          availableCommands?: Array<{ name: string; description?: string; input?: { hint?: string } | null }>;
+        };
+        const commands = (data.availableCommands ?? []).map((cmd) => ({
+          name: cmd.name,
+          description: cmd.description,
+          hint: cmd.input?.hint,
+        }));
+        this.configTracker.updateAvailableCommands(commands);
+        this.callbacks.onConfigUpdate(this.configTracker.configSnapshot());
+        return;
+      }
+
       case 'usage_update': {
         const u = update as UsageUpdate & { sessionUpdate: 'usage_update' };
         this.callbacks.onContextUsage({
           used: u.used ?? 0,
           total: u.size ?? 0,
           percentage: u.size > 0 ? Math.round((u.used / u.size) * 100) : 0,
+          cost: u.cost ? { amount: u.cost.amount, currency: u.cost.currency } : undefined,
         });
         return;
       }

@@ -87,7 +87,7 @@ function runBench(name: string, suite: string, fn: () => void, iterations = 100)
     times.push(performance.now() - start);
   }
 
-  const sorted = times.sort((a, b) => a - b);
+  const sorted = times.toSorted((a, b) => a - b);
   const mean = sorted.reduce((a, b) => a + b, 0) / sorted.length;
   const result: BenchResult = {
     name,

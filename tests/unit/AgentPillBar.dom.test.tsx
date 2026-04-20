@@ -170,6 +170,16 @@ describe('AgentPillBar', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/settings/agent?tab=local');
   });
 
+  it('suppresses the selected pill pop animation when requested', () => {
+    const agents: AvailableAgent[] = [makeAgent({ backend: 'claude', name: 'Claude' })];
+    render(
+      <AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='claude' suppressSelectionAnimation />
+    );
+
+    const pill = screen.getByText('Claude').closest('[data-agent-pill]') as HTMLElement;
+    expect(pill.style.animation).toBe('none');
+  });
+
   it('renders separator dividers between agents on desktop', () => {
     const agents: AvailableAgent[] = [
       makeAgent({ backend: 'claude', name: 'Claude' }),

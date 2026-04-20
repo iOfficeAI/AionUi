@@ -71,7 +71,7 @@ describe('typeBridge', () => {
       expect(result.env).toEqual({ DEBUG: 'true', API_KEY: 'secret' });
     });
 
-    it('should convert yoloMode to autoApproveAll', () => {
+    it('should convert yoloMode to yoloMode', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'yolo-agent',
         backend: 'claude',
@@ -85,7 +85,7 @@ describe('typeBridge', () => {
 
       const result = toAgentConfig(oldConfig);
 
-      expect(result.autoApproveAll).toBe(true);
+      expect(result.yoloMode).toBe(true);
     });
 
     it('should convert resumeSessionId from acpSessionId', () => {

@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
@@ -95,11 +95,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
-  const isMobile = Boolean(layout?.isMobile);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
-  const modeOptions = getAgentModes(modeBackend);
-  const currentModeOption = modeOptions.find((mode) => mode.value === selectedMode);
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 
@@ -131,8 +128,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const getModeDisplayLabel = (mode: AgentModeOption): string =>
     t(`agentMode.${mode.value}`, { defaultValue: mode.label });
 
-  const permissionLabel = currentModeOption ? getModeDisplayLabel(currentModeOption) : t('agentMode.permission');
-
   const isWebUI = !isElectronDesktop();
 
   const activeSkillCount = builtinAutoSkills.length - disabledBuiltinSkills.length;
@@ -154,17 +149,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             });
         } else if (key === 'device') {
           fileInputRef.current?.click();
-        } else if (key === 'workspace') {
-          ipcBridge.dialog.showOpen
-            .invoke({ properties: ['openDirectory'] })
-            .then((dirs) => {
-              if (dirs && dirs[0]) {
-                onSelectWorkspace(dirs[0]);
-              }
-            })
-            .catch((error) => {
-              console.error('Failed to open directory dialog:', error);
-            });
         }
       }}
     >
@@ -191,12 +175,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           </div>
         </Menu.Item>
       )}
-      <Menu.Item key='workspace'>
-        <div className='flex items-center gap-8px'>
-          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-          <span>{t('conversation.welcome.specifyWorkspace')}</span>
-        </div>
-      </Menu.Item>
       {builtinAutoSkills.length > 0 && (
         <Menu.SubMenu
           key='skills'
@@ -266,6 +244,31 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           )}
         </div>
 
+        {!isWebUI && (
+          <Button
+            className='sendbox-model-btn'
+            shape='round'
+            size='small'
+            onClick={() => {
+              ipcBridge.dialog.showOpen
+                .invoke({ properties: ['openDirectory', 'createDirectory'] })
+                .then((dirs) => {
+                  if (dirs && dirs[0]) {
+                    onSelectWorkspace(dirs[0]);
+                  }
+                })
+                .catch((error) => {
+                  console.error('Failed to open directory dialog:', error);
+                });
+            }}
+          >
+            <span className='flex items-center gap-6px leading-none'>
+              <FolderOpen theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0, flexShrink: 0 }} />
+              <span>{t('conversation.welcome.specifyWorkspace')}</span>
+            </span>
+          </Button>
+        )}
+
         <div
           className={`${styles.actionConfigGroup} ${configOptionCount > 1 ? styles.actionConfigGroupWithDivider : ''}`}
         >
@@ -277,9 +280,10 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               compact
               initialMode={selectedMode}
               onModeSelect={onModeSelect}
-              compactLabelOverride={permissionLabel}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={getModeDisplayLabel}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
             />
           )}
           <AcpConfigSelector

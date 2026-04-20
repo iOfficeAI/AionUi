@@ -180,7 +180,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
     slotId: 'slot-lead',
     conversationId: 'conv-lead',
-    role: 'lead',
+    role: 'leader',
     agentType: 'claude',
     agentName: 'Leader',
     conversationType: 'acp',
@@ -348,14 +348,14 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
   it('supports idle_notification type messages', async () => {
     const msg = await mailbox.write({
       teamId: 't',
-      toAgentId: 'lead',
+      toAgentId: 'leader',
       fromAgentId: 'member',
       content: 'Task done',
       type: 'idle_notification',
     });
 
     expect(msg.type).toBe('idle_notification');
-    const unread = await mailbox.readUnread('t', 'lead');
+    const unread = await mailbox.readUnread('t', 'leader');
     expect(unread[0].type).toBe('idle_notification');
   });
 });
@@ -478,7 +478,12 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
   let mockSendMessage: ReturnType<typeof vi.fn>;
   let mgr: TeammateManager;
 
-  const leadAgent = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead', agentName: 'Leader' });
+  const leadAgent = makeAgent({
+    slotId: 'slot-lead',
+    conversationId: 'conv-lead',
+    role: 'leader',
+    agentName: 'Leader',
+  });
   const memberAgent = makeAgent({
     slotId: 'slot-member',
     conversationId: 'conv-member',
@@ -517,9 +522,9 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
 
     await new Promise((r) => setTimeout(r, 80));
 
-    // Idle notification should be in lead's real Mailbox
-    const leadMessages = await mailbox.getHistory('team-1', 'slot-lead');
-    expect(leadMessages.some((m) => m.type === 'idle_notification' && m.fromAgentId === 'slot-member')).toBe(true);
+    // Idle notification should be in leader's real Mailbox
+    const leaderMessages = await mailbox.getHistory('team-1', 'slot-lead');
+    expect(leaderMessages.some((m) => m.type === 'idle_notification' && m.fromAgentId === 'slot-member')).toBe(true);
   });
 
   it('state transition: wake() changes agent status pending→idle→active via real events', async () => {
@@ -571,9 +576,9 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
 
     await new Promise((r) => setTimeout(r, 80));
 
-    // Only one idle_notification should be written to lead's Mailbox
-    const leadMsgs = await mailbox.getHistory('team-1', 'slot-lead');
-    const idleNotifs = leadMsgs.filter((m) => m.type === 'idle_notification' && m.fromAgentId === 'slot-member');
+    // Only one idle_notification should be written to leader's Mailbox
+    const leaderMsgs = await mailbox.getHistory('team-1', 'slot-lead');
+    const idleNotifs = leaderMsgs.filter((m) => m.type === 'idle_notification' && m.fromAgentId === 'slot-member');
     expect(idleNotifs).toHaveLength(1);
   });
 
@@ -594,7 +599,13 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     const mgr2 = new TeammateManager({
       teamId: 'team-2',
       agents: [
-        makeAgent({ slotId: 'lead2', conversationId: 'conv-lead2', role: 'lead', agentName: 'Lead2', status: 'idle' }),
+        makeAgent({
+          slotId: 'lead2',
+          conversationId: 'conv-lead2',
+          role: 'leader',
+          agentName: 'Lead2',
+          status: 'idle',
+        }),
         makeAgent({
           slotId: 'slot-m1',
           conversationId: 'conv-m1',
@@ -647,7 +658,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     mockWakeAgent = vi.fn().mockResolvedValue(undefined);
 
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead', conversationType: 'acp', status: 'idle' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader', conversationType: 'acp', status: 'idle' }),
       makeAgent({
         slotId: 'slot-worker',
         agentName: 'Worker',
@@ -791,15 +802,15 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     expect(response.error).toContain('flying');
   });
 
-  it('team_spawn_agent rejects non-lead callers', async () => {
+  it('team_spawn_agent rejects non-leader callers', async () => {
     const response = await tcpCall(port, {
       tool: 'team_spawn_agent',
       args: { name: 'NewAgent', agent_type: 'claude' },
-      from_slot_id: 'slot-worker', // worker, not lead
+      from_slot_id: 'slot-worker', // worker, not leader
       auth_token: authToken,
     });
 
-    expect(response.error).toContain('Only the team lead can spawn');
+    expect(response.error).toContain('Only the team leader can spawn');
   });
 
   it('team_rename_agent renames agent in real agents list', async () => {
@@ -862,13 +873,13 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     expect(messages[0].content).toContain('shut down');
   });
 
-  it('team_shutdown_agent refuses to shut down team lead', async () => {
+  it('team_shutdown_agent refuses to shut down team leader', async () => {
     const response = await tcpCall(port, {
       tool: 'team_shutdown_agent',
       args: { agent: 'Leader' },
       auth_token: authToken,
     });
-    expect(response.error).toContain('Cannot shut down the team lead');
+    expect(response.error).toContain('Cannot shut down the team leader');
   });
 
   it('unknown tool returns error', async () => {
@@ -896,8 +907,8 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     expect(workerMessages[0].content).toBe('All hands on deck!');
 
     // Lead should NOT receive their own broadcast
-    const leadMessages = await mailbox.readUnread('team-1', 'slot-lead');
-    const ownBroadcast = leadMessages.filter((m) => m.content === 'All hands on deck!');
+    const leaderMessages = await mailbox.readUnread('team-1', 'slot-lead');
+    const ownBroadcast = leaderMessages.filter((m) => m.content === 'All hands on deck!');
     expect(ownBroadcast).toHaveLength(0);
   });
 
@@ -929,10 +940,10 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
   let mockSendMessage: ReturnType<typeof vi.fn>;
   let mgr: TeammateManager;
 
-  const lead = makeAgent({
-    slotId: 'lead',
+  const leader = makeAgent({
+    slotId: 'leader',
     conversationId: 'conv-lead',
-    role: 'lead',
+    role: 'leader',
     agentName: 'Leader',
     status: 'idle',
   });
@@ -960,7 +971,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     workerTM = makeWorkerTaskManager(mockSendMessage);
     mgr = new TeammateManager({
       teamId: 'team-1',
-      agents: [lead, m1, m2],
+      agents: [leader, m1, m2],
       mailbox,
       taskManager,
       workerTaskManager: workerTM,
@@ -971,7 +982,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     mgr.dispose();
   });
 
-  it('full chain: m1 finish → idle_notification in lead Mailbox → lead woken when m2 also done', async () => {
+  it('full chain: m1 finish → idle_notification in leader Mailbox → leader woken when m2 also done', async () => {
     // m1 finishes first — m2 still active
     teamEventBus.emit('responseStream', {
       type: 'finish',
@@ -982,11 +993,11 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
 
     await new Promise((r) => setTimeout(r, 80));
 
-    // Lead NOT woken yet (m2 still active)
+    // Leader NOT woken yet (m2 still active)
     expect(vi.mocked(workerTM.getOrBuildTask)).not.toHaveBeenCalledWith('conv-lead');
 
     // m1's idle_notification is in lead's mailbox
-    const afterM1 = await mailbox.getHistory('team-1', 'lead');
+    const afterM1 = await mailbox.getHistory('team-1', 'leader');
     expect(afterM1.some((m) => m.type === 'idle_notification' && m.fromAgentId === 'm1')).toBe(true);
 
     // Now m2 finishes
@@ -1003,7 +1014,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     expect(vi.mocked(workerTM.getOrBuildTask)).toHaveBeenCalledWith('conv-lead');
 
     // Both idle_notifications in lead's mailbox
-    const finalMsgs = await mailbox.getHistory('team-1', 'lead');
+    const finalMsgs = await mailbox.getHistory('team-1', 'leader');
     const idleNotifs = finalMsgs.filter((m) => m.type === 'idle_notification');
     expect(idleNotifs.length).toBeGreaterThanOrEqual(2);
   });
@@ -1024,7 +1035,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     expect(postAgents).toEqual(preAgents);
 
     // No messages written to any agent in this team
-    const msgs = await mailbox.getHistory('team-1', 'lead');
+    const msgs = await mailbox.getHistory('team-1', 'leader');
     expect(msgs).toHaveLength(0);
   });
 
@@ -1042,8 +1053,8 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     await new Promise((r) => setTimeout(r, 80));
 
     // No idle_notification should have been written (listener was removed)
-    const leadMsgs = await mailbox.getHistory('team-1', 'lead');
-    const idleNotifs = leadMsgs.filter((m) => m.type === 'idle_notification');
+    const leaderMsgs = await mailbox.getHistory('team-1', 'leader');
+    const idleNotifs = leaderMsgs.filter((m) => m.type === 'idle_notification');
     expect(idleNotifs).toHaveLength(0);
   });
 });

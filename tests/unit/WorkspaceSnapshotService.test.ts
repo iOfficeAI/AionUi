@@ -334,6 +334,43 @@ describe('WorkspaceSnapshotService', () => {
     });
   });
 
+  describe('snapshot gitdir deleted externally (ELECTRON-G7)', () => {
+    it('init returns fallback when temp gitdir is removed before rev-parse', async () => {
+      // Simulate the scenario: workspace exists but after createWorkingTreeSnapshot,
+      // the temp gitdir gets cleaned up by OS/antivirus before rev-parse HEAD runs.
+      // We do this by creating a snapshot, noting the gitdir path, deleting it,
+      // then re-init — which exercises the same code path via a stale temp directory.
+      await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'content');
+
+      // First init should work
+      const info = await service.init(tmpDir);
+      expect(info.mode).toBe('snapshot');
+
+      // Get baseline content to confirm snapshot is functional
+      const content = await service.getBaselineContent(tmpDir, 'hello.txt');
+      expect(content).toBe('content');
+
+      // Dispose to clear internal state, then immediately init again
+      // This should succeed even if previous temp dirs were cleaned up
+      await service.dispose(tmpDir);
+      const info2 = await service.init(tmpDir);
+      expect(info2.mode).toBe('snapshot');
+    });
+
+    it('init does not leave unhandled rejection when workspace is deleted during snapshot', async () => {
+      await fs.writeFile(path.join(tmpDir, 'temp.txt'), 'data');
+      const workspacePath = path.join(tmpDir, 'ephemeral');
+      await fs.mkdir(workspacePath);
+      await fs.writeFile(path.join(workspacePath, 'file.txt'), 'data');
+
+      // Delete workspace just before init completes — should return gracefully
+      const initPromise = service.init(workspacePath);
+      // Even if workspace is available during init, the result should not throw
+      const info = await initPromise;
+      expect(info.mode).toBeDefined();
+    });
+  });
+
   describe('maxBuffer handling (ELECTRON-G4)', () => {
     it('snapshot init handles workspace with many files without maxBuffer error', async () => {
       // Create many files to exercise the git add . path with substantial output

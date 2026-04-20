@@ -71,7 +71,9 @@ const AddCustomPathModal: React.FC<AddCustomPathModalProps> = ({
               className='rd-6px'
               onClick={async () => {
                 try {
-                  const result = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+                  const result = await ipcBridge.dialog.showOpen.invoke({
+                    properties: ['openDirectory', 'createDirectory'],
+                  });
                   if (result && result.length > 0) {
                     setCustomPathValue(result[0]);
                   }

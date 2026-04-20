@@ -209,7 +209,7 @@ describe('TeamGuideMcpServer auth token', () => {
     mockCreateTeam.mockResolvedValue({
       id: 'team-oversize-check',
       name: 'oversize recovery check',
-      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' }],
+      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader' }],
     });
     mockGetOrStartSession.mockResolvedValue({
       sendMessageToAgent: mockSendMessageToAgent,
@@ -269,7 +269,7 @@ describe('aion_create_team handler', () => {
     mockCreateTeam.mockResolvedValue({
       id: 'team-abc-123',
       name: '电商网站全栈开发',
-      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' }],
+      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader' }],
     });
 
     mockGetOrStartSession.mockResolvedValue({
@@ -321,7 +321,7 @@ describe('aion_create_team handler', () => {
     expect(mockCreateTeam).toHaveBeenCalledWith(expect.objectContaining({ name: '测试团队' }));
   });
 
-  it('sends summary as first message to lead agent (async)', async () => {
+  it('sends summary as first message to leader agent (async)', async () => {
     await tcpRequest(getPort(service), {
       tool: 'aion_create_team',
       args: { summary: '构建电商网站', name: '电商' },

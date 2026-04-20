@@ -4,12 +4,13 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import {
   ACP_BACKENDS_ALL,
-  type AgentBackend,
+  AcpErrorType,
   type AcpModelInfo,
   type AcpSessionConfigOption,
+  type AgentBackend,
 } from '@/common/types/acpTypes';
 import type { McpServer } from '@agentclientprotocol/sdk';
-import type { AgentConfig, AgentSource, ConfigOption, ModelSnapshot } from '@process/acp/types';
+import type { AgentConfig, AgentSource, ConfigOption, InitialDesiredConfig, ModelSnapshot } from '@process/acp/types';
 import { getEnhancedEnv, loadFullShellEnvironment } from '@process/utils/shellEnv';
 /**
  * Old ACP agent config type from AcpAgent/AcpAgentManager
@@ -78,13 +79,14 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     };
   }
 
-  // Build resumeConfig from pendingConfigOptions
-  let resumeConfig: Record<string, unknown> | undefined;
+  // Build initialDesired from Guid page selections
+  const initialDesired: InitialDesiredConfig = {};
+  if (old.extra?.currentModelId) initialDesired.model = old.extra.currentModelId;
+  if (old.extra?.sessionMode) initialDesired.mode = old.extra.sessionMode;
   if (old.extra?.pendingConfigOptions && Object.keys(old.extra.pendingConfigOptions).length > 0) {
-    resumeConfig = { pendingConfigOptions: old.extra.pendingConfigOptions };
+    initialDesired.configOptions = old.extra.pendingConfigOptions;
   }
-
-  // Build resumeConfig from pendingConfigOptions (already done above)
+  const hasInitialDesired = Object.keys(initialDesired).length > 0;
 
   return {
     agentBackend: old.backend,
@@ -100,12 +102,11 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     cwd: old.workingDir,
 
     teamMcpConfig: teamMcpConfig,
-    // authCredentials populated async by AcpAgentV2.start() via loadAuthCredentials()
 
     resumeSessionId: old.extra?.acpSessionId,
-    resumeConfig: resumeConfig,
+    initialDesired: hasInitialDesired ? initialDesired : undefined,
 
-    autoApproveAll: old.extra?.yoloMode,
+    yoloMode: old.extra?.yoloMode,
   };
 }
 
@@ -291,4 +292,34 @@ export async function loadAuthCredentials(
   }
 
   return Object.keys(creds).length > 0 ? creds : undefined;
+}
+
+// ─── Error code mapping ─────────────────────────────────────────
+
+import type { AcpErrorCode } from '@process/acp/errors/AcpError';
+
+const ERROR_CODE_TO_TYPE: Record<AcpErrorCode, AcpErrorType> = {
+  CONNECTION_FAILED: AcpErrorType.NETWORK_ERROR,
+  AUTH_FAILED: AcpErrorType.AUTHENTICATION_FAILED,
+  AUTH_REQUIRED: AcpErrorType.AUTHENTICATION_FAILED,
+  SESSION_EXPIRED: AcpErrorType.SESSION_EXPIRED,
+  PROMPT_TIMEOUT: AcpErrorType.TIMEOUT,
+  PROCESS_CRASHED: AcpErrorType.NETWORK_ERROR,
+  INVALID_STATE: AcpErrorType.CONNECTION_NOT_READY,
+  INTERNAL_ERROR: AcpErrorType.INTERNAL_ERROR,
+  // Granular ACP protocol errors — pass through directly
+  ACP_PARSE_ERROR: AcpErrorType.ACP_PARSE_ERROR,
+  INVALID_ACP_REQUEST: AcpErrorType.INVALID_ACP_REQUEST,
+  ACP_METHOD_NOT_FOUND: AcpErrorType.ACP_METHOD_NOT_FOUND,
+  ACP_INVALID_PARAMS: AcpErrorType.ACP_INVALID_PARAMS,
+  AGENT_INTERNAL_ERROR: AcpErrorType.AGENT_INTERNAL_ERROR,
+  ACP_SESSION_NOT_FOUND: AcpErrorType.ACP_SESSION_NOT_FOUND,
+  AGENT_SESSION_NOT_FOUND: AcpErrorType.AGENT_SESSION_NOT_FOUND,
+  ACP_ELICITATION_REQUIRED: AcpErrorType.ACP_ELICITATION_REQUIRED,
+  ACP_REQ_CANCELLED: AcpErrorType.ACP_REQ_CANCELLED,
+  AGENT_ERROR: AcpErrorType.AGENT_ERROR,
+};
+
+export function mapAcpErrorCodeToType(code: AcpErrorCode): AcpErrorType {
+  return ERROR_CODE_TO_TYPE[code] ?? AcpErrorType.UNKNOWN;
 }

@@ -33,7 +33,7 @@ import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
@@ -341,12 +341,17 @@ const GuidPage: React.FC = () => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
 
-  // Reset UI state whenever the user navigates to /guid fresh
-  // (agent selection is preserved via saved preference in useGuidAgentSelection)
-  useEffect(() => {
+  // Reset guid-local UI state before paint so same-route navigations do not
+  // briefly show the previous draft or preset assistant layout.
+  useLayoutEffect(() => {
     guidInput.setInput('');
+    guidInput.setFiles([]);
+    guidInput.setLoading(false);
+    if (!(location.state as { workspace?: string } | null)?.workspace) {
+      guidInput.setDir('');
+    }
     setIsDescriptionExpanded(false);
-  }, [location.key]);
+  }, [guidInput.setDir, guidInput.setFiles, guidInput.setInput, guidInput.setLoading, location.key, location.state]);
 
   // Clear resetAssistant from location.state after the hook has consumed it,
   // so that re-renders don't re-trigger the reset logic.
@@ -687,6 +692,7 @@ const GuidPage: React.FC = () => {
               selectedAgentKey={agentSelection.selectedAgentKey}
               getAgentKey={agentSelection.getAgentKey}
               onSelectAgent={handleSelectAgentFromPillBar}
+              suppressSelectionAnimation={resetAssistantRequested}
             />
           ) : null}
 

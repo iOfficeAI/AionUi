@@ -85,8 +85,8 @@ type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCl
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
-  agent: AcpAgent;
-  private bootstrap: Promise<AcpAgent> | undefined;
+  agent: AcpAgentV2;
+  private bootstrap: Promise<AcpAgentV2> | undefined;
   private bootstrapping: boolean = false;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
@@ -915,7 +915,7 @@ ${collectedResponses.join('\n')}`;
         },
       };
 
-      this.agent = new AcpAgentV2(agentConfig) as unknown as AcpAgent;
+      this.agent = new AcpAgentV2(agentConfig);
       return this.agent.start().then(async () => {
         await this.restorePersistedState();
         this.bootstrapping = false;

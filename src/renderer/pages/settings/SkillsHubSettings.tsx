@@ -181,7 +181,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleManualImport = async () => {
     try {
       const result = await ipcBridge.dialog.showOpen.invoke({
-        properties: ['openDirectory'],
+        properties: ['openDirectory', 'createDirectory'],
       });
       if (result && result.length > 0) {
         await handleImport(result[0]);
@@ -740,7 +740,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 className='rd-6px'
                 onClick={async () => {
                   try {
-                    const result = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+                    const result = await ipcBridge.dialog.showOpen.invoke({
+                      properties: ['openDirectory', 'createDirectory'],
+                    });
                     if (result && result.length > 0) {
                       setCustomPathValue(result[0]);
                     }

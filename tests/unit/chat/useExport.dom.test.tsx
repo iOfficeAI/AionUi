@@ -124,7 +124,7 @@ describe('useExport', () => {
     });
 
     expect(mockShowOpen).toHaveBeenCalledWith({
-      properties: ['openDirectory'],
+      properties: ['openDirectory', 'createDirectory'],
       defaultPath: '/Desktop',
     });
     expect(result.current.exportTargetPath).toBe('/picked');

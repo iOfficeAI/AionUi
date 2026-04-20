@@ -62,25 +62,15 @@ upsertSession():
 
 ---
 
-## 清理 useAcpV2Enabled hook
+## ~~清理 useAcpV2Enabled hook~~
 
-**状态**: 待清理
-**标记**: `TODO`
-**文件**: `src/renderer/hooks/system/useAcpV2Enabled.ts:5`
+**状态**: 已完成
+**标记**: ~~`TODO`~~
 
-AcpV2 feature flag 已移除，`useAcpV2Enabled()` 现在始终返回 `true`。
-6 个 SendBox 组件仍在调用此 hook，涉及：
+已删除 `useAcpV2Enabled` hook 文件，6 个 SendBox 组件已内联 `enabled: true` / `allowSendWhileLoading`，
+移除所有死代码 busy 守卫（`if (!isAcpV2Enabled && isBusy)`）。
 
-- `enabled` 参数传给 `useConversationCommandQueue`
-- `allowSendWhileLoading` prop 传给 `SendBox`
-- busy 时的发送守卫判断（`if (!isAcpV2Enabled && isBusy)`）
-
-**清理方向**:
-
-1. 删除 `useAcpV2Enabled` hook 文件
-2. 在各 SendBox 中移除 `isAcpV2Enabled` 变量，将 `enabled: true` / `allowSendWhileLoading={true}` 内联
-3. 移除 busy 守卫中对 `isAcpV2Enabled` 的判断（队列已始终开启，不再需要 fallback 到阻止发送）
-4. 考虑进一步简化：如果 `enabled` 始终为 `true`，`useConversationCommandQueue` 的 `enabled` 参数可以去掉
+**后续**: 考虑将 `useConversationCommandQueue` 的 `enabled` 参数去掉（始终为 `true`）。
 
 ---
 
@@ -131,3 +121,74 @@ Agent 实际收到的是一堆乱码而非图片数据。
    - 支持 `file` ContentBlock → 直接发 file block
    - 不支持 → fallback 到当前的纯文本方式
 4. 涉及的发送链路需要梳理：renderer 侧文件收集 → IPC → AcpAgentManager.sendMessage → AcpSession.sendMessage
+
+---
+
+## 架构约束: session / infra 层禁止直接依赖 ProcessConfig
+
+**状态**: 已遵守（已审查）
+
+`src/process/acp/session/` 和 `src/process/acp/infra/` 是纯 session 逻辑层，不应直接
+import 或调用 `ProcessConfig`。所有持久化需求必须通过 callback 通知外层（compat / runtime）处理。
+
+**已审查结果**：session 和 infra 层当前没有直接调用 `ProcessConfig`（`McpConfig.ts`
+仅在注释中提及参数来源，不是实际调用）。
+
+**相关模式**：
+
+- `persistSessionCapabilities` — `onModelUpdate` / `onConfigUpdate` / `onModeUpdate` callback → `AcpAgentV2` 写 disk
+- `cacheInitializeResult` — `onInitialize` callback → `AcpAgentV2` 写 disk
+- `promptTimeout` — `AcpAgentV2.ensureSession()` 从 `ProcessConfig` 读取后传入 `SessionOptions.promptTimeoutMs`
+
+如果后续开发中需要在 session 层读写配置，必须通过 `SessionCallbacks` 或 `SessionOptions` 传递，
+不得在 session / infra 层直接引入 `ProcessConfig`。
+
+---
+
+## AcpRuntime: SessionPlugin 机制
+
+**状态**: 待设计
+**关联**: V2-MIGRATION-AUDIT.md P3-13 (pendingModelSwitchNotice)
+
+### 背景
+
+不同 backend 有 session 级别的特殊逻辑：
+
+- Claude: `setModel` 后需要在下次 prompt 注入 model identity notice（ACP `set_model` 是静默的，AI 不知道模型已切换）
+- Claude: `ccSwitchModelSource` 合并模型信息
+- 将来可能有其他 backend 特有的 pre/post-prompt 处理
+
+V2 用 compat 层硬编码（`pendingModelSwitchNotice`），AcpRuntime 需要可扩展的方案。
+
+### 推荐方案: SessionPlugin
+
+```typescript
+type SessionPlugin = {
+  onModelChange?: (modelId: string) => void;
+  beforePrompt?: (content: PromptContent) => PromptContent;
+  onModeChange?: (modeId: string) => void;
+  // 将来按需扩展更多 hook
+};
+```
+
+- **有状态**：plugin 实例天然持有状态（如 pendingNotice），比纯函数 middleware 自然
+- **多 hook 点**：`onModelChange` 设置状态 + `beforePrompt` 消费状态，middleware 只有一个点不够
+- **可组合**：`SessionOptions.plugins: SessionPlugin[]`，session 内部依次调用
+- **收敛**：一个 backend 的全部特殊逻辑收到一个 plugin 里
+
+### 备选方案
+
+| 方案                                              | 优点                 | 缺点                                       |
+| ------------------------------------------------- | -------------------- | ------------------------------------------ |
+| Middleware (`(content, ctx) => content`)          | 简单、纯函数、好测试 | 只有 prompt 一个 hook 点，有状态逻辑靠闭包 |
+| Event emitter (`session.on('beforePrompt', ...)`) | 最灵活、解耦         | 返回值处理难、顺序不可控、过度设计         |
+| 装饰器 (`withClaudeCompat(session)`)              | 不改 session 内部    | TS 装饰器生态不成熟，proxy 调试成本高      |
+
+### 实现步骤
+
+1. 在 `types.ts` 定义 `SessionPlugin` 类型
+2. `SessionOptions` 加 `plugins?: SessionPlugin[]`
+3. `AcpSession` 在 `setModel`/`setMode` 时调 `plugin.onModelChange`/`onModeChange`
+4. `PromptExecutor.execute` 在 `client.prompt` 前调 `plugin.beforePrompt`
+5. `AcpRuntime.createConversation` 根据 backend 注入对应 plugin
+6. 实现 `ClaudeSessionPlugin`（model switch notice + ccSwitchModelSource）

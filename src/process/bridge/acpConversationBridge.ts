@@ -6,14 +6,14 @@
 
 import { agentRegistry } from '@process/agent/AgentRegistry';
 import { isAgentKind } from '@/common/types/detectedAgent';
-import { AcpConnection } from '@process/agent/acp/AcpConnection';
-import type { AcpBackend } from '@/common/types/acpTypes';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { AionrsManager } from '@process/task/AionrsManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { ipcBridge } from '@/common';
+import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
+import { noopProtocolHandlers } from '@process/acp/types';
 import * as os from 'os';
 
 export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
@@ -107,15 +107,26 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const acpArgs = acpAgent?.acpArgs;
 
     // Step 2: For ACP-based agents (claude, codex, gemini, qwen, etc.)
-    const connection = new AcpConnection();
+    const factory = new LegacyConnectorFactory();
+    const client = factory.create(
+      {
+        agentBackend: backend,
+        agentSource: 'builtin',
+        agentId: `health-check-${backend}`,
+        cwd: tempDir,
+        command: cliPath,
+        args: acpArgs,
+      },
+      noopProtocolHandlers
+    );
 
     try {
-      await connection.connect(backend as AcpBackend, cliPath, tempDir, acpArgs);
-      await connection.newSession(tempDir);
-      await connection.sendPrompt('hi');
+      await client.start();
+      const session = await client.createSession({ cwd: tempDir });
+      await client.prompt(session.sessionId, [{ type: 'text', text: 'hi' }]);
 
       const latency = Date.now() - startTime;
-      await connection.disconnect();
+      await client.close();
 
       return {
         success: true,
@@ -123,9 +134,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       };
     } catch (error) {
       try {
-        await connection.disconnect();
+        await client.close();
       } catch {
-        // Ignore disconnect errors
+        // Ignore close errors
       }
 
       const errorMsg = error instanceof Error ? error.message : String(error);
