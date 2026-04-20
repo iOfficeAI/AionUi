@@ -381,7 +381,7 @@ export class AionrsAgent {
     this.sendCommand({
       type: 'message',
       msg_id: msgId,
-      input,
+      content: input,
       files,
     });
   }

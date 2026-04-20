@@ -67,7 +67,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
   const retryCountRef = useRef(0);
 
   // Cap retries to prevent infinite re-runs when a saved provider ID is stale
-  // (e.g. provider deleted, or agent switched to a non-gemini backend like iflow).
+  // (e.g. provider deleted, or agent switched to a non-gemini backend).
   // The Google Auth provider typically loads within 1-2 SWR cycles, so 5 is generous.
   const MAX_RESTORE_RETRIES = 5;
 

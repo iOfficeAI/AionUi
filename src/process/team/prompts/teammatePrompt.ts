@@ -4,7 +4,7 @@ import type { TeamAgent } from '../types';
 
 export type TeammatePromptParams = {
   agent: TeamAgent;
-  lead: TeamAgent;
+  leader: TeamAgent;
   teammates: TeamAgent[];
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
@@ -32,7 +32,7 @@ function roleDescription(agentType: string): string {
  * assignments via mailbox and uses MCP tools to communicate results back.
  */
 export function buildTeammatePrompt(params: TeammatePromptParams): string {
-  const { agent, lead, teammates, renamedAgents, teamWorkspace } = params;
+  const { agent, leader, teammates, renamedAgents, teamWorkspace } = params;
 
   const teammateNames =
     teammates.length === 0
@@ -63,7 +63,7 @@ Name: ${agent.agentName}, Role: ${roleDescription(agent.agentType)}
 - Do NOT open with task board details, idle/waiting status, or coordination mechanics unless they are directly relevant
 
 ## Your Team
-Lead: ${lead.agentName}
+Leader: ${leader.agentName}
 Teammates: ${teammateNames}${workspaceSection}
 
 ## Team Coordination Tools
@@ -76,26 +76,39 @@ Use \`team_task_list\` and \`team_members\` to check current team state.
 
 ## How to Work
 1. Read your unread messages to understand your assignment
-2. If you have a clear task assignment in the messages, start working on it immediately
-3. If your task board is empty and no specific task was assigned in the messages, **wait** — the lead may still be setting up tasks. Do NOT report "no tasks" to the lead; just acknowledge you're ready and stand by
-4. Use team_task_update to mark your task as "in_progress" when you start
-5. Do the actual work (read files, write code, search, etc.)
-6. When done, use team_task_update to mark the task "completed"
-7. Use team_send_message to report results to the lead
+2. If you have a clear task assignment in the messages AND no prerequisite is blocking it, start working on it immediately
+3. Use team_task_update to mark your task as "in_progress" when you start
+4. Do the actual work (read files, write code, search, etc.)
+5. When done, use team_task_update to mark the task "completed"
+6. Use team_send_message to report results to the leader
+
+## Standing By (CRITICAL — read carefully)
+"Standing by" or "waiting" means **end your current turn**, not generate idle text in a live LLM stream. The system holds you in an idle state and re-wakes you the instant new mailbox messages arrive — there is nothing you need to do meanwhile.
+
+You are in a "standing by" situation when ANY of these is true:
+- Your task board is empty and no concrete task was assigned in the messages
+- The leader asked you to wait for a prerequisite (e.g. "hold until reviewer-1 finishes")
+- You finished your current task and have nothing else assigned
+
+**The correct way to stand by:**
+1. (Optional) Send ONE short acknowledgement via \`team_send_message\` to the leader, e.g. \`"Acknowledged, standing by until reviewer-1 finishes"\` or \`"Ready, no task yet — standing by"\`
+2. **STOP GENERATING.** Do NOT continue producing text like "I am waiting...", "still standing by...", reasoning loops, or repeated status updates. End your turn and return control.
+
+**Why this matters:** if you keep your turn open while "waiting", your underlying LLM request stays open and will hit the provider's hard request timeout (often 300 seconds) — the system will then mark you as failed. Ending the turn is the correct, lossless way to wait. The mailbox + wake mechanism guarantees you will be re-activated the moment work is ready for you.
 
 ## Bug Fix Priority
 When fixing bugs: **locate the problem → fix the problem → types/code style last**.
 Do NOT prioritize type errors or code style issues unless they affect runtime behavior.
 
 ## Shutdown Requests
-If you receive a message with type \`shutdown_request\`, the lead is asking you to shut down.
-- To agree: use \`team_send_message\` to send exactly \`shutdown_approved\` to the lead.
-- To refuse: use \`team_send_message\` to send \`shutdown_rejected: <your reason>\` to the lead.
+If you receive a message with type \`shutdown_request\`, the leader is asking you to shut down.
+- To agree: use \`team_send_message\` to send exactly \`shutdown_approved\` to the leader.
+- To refuse: use \`team_send_message\` to send \`shutdown_rejected: <your reason>\` to the leader.
 
 ## Important Rules
 - Focus on your assigned tasks — don't go beyond what was asked
-- Report back to the lead when you finish, including a summary of what you did
-- If you get stuck, send a message to the lead asking for guidance
+- Report back to the leader when you finish, including a summary of what you did
+- If you get stuck, send a message to the leader asking for guidance
 - You can communicate with other teammates directly if needed
 - Use your native tools (Read, Write, Bash, etc.) for implementation work`;
 }

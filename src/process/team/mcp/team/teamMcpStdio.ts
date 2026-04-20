@@ -14,7 +14,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import * as net from 'node:net';
+import { sendTcpRequest } from '../tcpHelpers';
 import { TEAM_SPAWN_AGENT_DESCRIPTION } from '../../prompts/toolDescriptions';
 
 const TEAM_AGENT_SLOT_ID = process.env.TEAM_AGENT_SLOT_ID || undefined;
@@ -32,55 +32,6 @@ if (!TEAM_MCP_PORT) {
 if (!TEAM_MCP_TOKEN) {
   process.stderr.write('TEAM_MCP_TOKEN environment variable is required\n');
   process.exit(1);
-}
-
-// ── TCP helpers ──────────────────────────────────────────────────────────────
-
-function sendTcpRequest(port: number, data: unknown): Promise<{ result?: string; error?: string }> {
-  return new Promise((resolve, reject) => {
-    const socket = net.createConnection({ host: '127.0.0.1', port }, () => {
-      const json = JSON.stringify(data);
-      const body = Buffer.from(json, 'utf-8');
-      const header = Buffer.alloc(4);
-      header.writeUInt32BE(body.length, 0);
-      socket.write(Buffer.concat([header, body]));
-    });
-
-    let buffer = Buffer.alloc(0);
-
-    socket.on('data', (chunk: Buffer) => {
-      buffer = Buffer.concat([buffer, chunk]);
-    });
-
-    socket.on('end', () => {
-      if (buffer.length < 4) {
-        reject(new Error('Incomplete TCP response'));
-        return;
-      }
-      const bodyLen = buffer.readUInt32BE(0);
-      if (buffer.length < 4 + bodyLen) {
-        reject(new Error('Incomplete TCP response body'));
-        return;
-      }
-      const jsonStr = buffer.subarray(4, 4 + bodyLen).toString('utf-8');
-      try {
-        resolve(JSON.parse(jsonStr) as { result?: string; error?: string });
-      } catch (err) {
-        reject(new Error(`Failed to parse TCP response: ${(err as Error).message}`));
-      }
-    });
-
-    socket.on('error', (err: Error) => {
-      reject(new Error(`TCP connection error: ${err.message}`));
-    });
-
-    // Timeout after 5 minutes (team tool calls can take a while)
-    socket.setTimeout(300_000);
-    socket.on('timeout', () => {
-      socket.destroy();
-      reject(new Error('TCP request timeout'));
-    });
-  });
 }
 
 // ── Tool helper ──────────────────────────────────────────────────────────────
@@ -161,6 +112,13 @@ createTeamTool(
       .optional()
       .describe(
         'Agent type/backend to use for the new teammate. Must be one of the types listed in "Available Agent Types for Spawning". Defaults to the leader type when omitted.'
+      ),
+    model: z
+      .string()
+      .optional()
+      .describe(
+        'Model ID to use for this agent (e.g. "claude-sonnet-4", "gemini-2.5-pro"). ' +
+          "Defaults to the backend's preferred model when omitted."
       ),
   },
   TEAM_MCP_PORT,
@@ -264,6 +222,29 @@ The teammate will receive a shutdown request and respond with approval or reject
 You will be notified of the result either way.`,
   {
     agent: z.string().describe('Teammate name to request shutdown'),
+  },
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
+);
+
+// ---- team_list_models ----
+createTeamTool(
+  server,
+  'team_list_models',
+  `Query available models for team agent types. Returns the real-time model list that matches the frontend model selector.
+
+Use this to:
+- Check what models are available before spawning an agent with a specific model
+- See all available agent types and their models at once
+- Verify a model ID is valid for a given agent type
+
+Pass agent_type to query a specific backend, or omit it to see all.`,
+  {
+    agent_type: z
+      .string()
+      .optional()
+      .describe('Agent type/backend to query (e.g. "gemini", "claude", "codex"). Shows all when omitted.'),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

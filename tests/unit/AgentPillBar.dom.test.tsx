@@ -146,18 +146,18 @@ describe('AgentPillBar', () => {
     expect(screen.getByText('🤖')).toBeTruthy();
   });
 
-  it('filters out plain custom agents', () => {
+  it('filters out preset assistants', () => {
     const agents: AvailableAgent[] = [
       makeAgent({ backend: 'claude', name: 'Claude' }),
-      // plain custom — no customAgentId, not extension → filtered out
-      makeAgent({ backend: 'custom', name: 'Hidden Custom' }),
-      // custom with customAgentId and isPreset=false → shown
+      // preset assistant → filtered out
+      makeAgent({ backend: 'claude', name: 'Hidden Preset', customAgentId: 'preset-1', isPreset: true }),
+      // non-preset custom agent → shown
       makeAgent({ backend: 'custom', name: 'Visible Custom', customAgentId: 'my-agent', isPreset: false }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     expect(screen.getByText('Claude')).toBeTruthy();
     expect(screen.getByText('Visible Custom')).toBeTruthy();
-    expect(screen.queryByText('Hidden Custom')).toBeNull();
+    expect(screen.queryByText('Hidden Preset')).toBeNull();
   });
 
   it('navigates to /settings/agent?tab=local when + clicked', () => {
@@ -168,6 +168,16 @@ describe('AgentPillBar', () => {
     expect(plusDiv).toBeTruthy();
     fireEvent.click(plusDiv);
     expect(mockNavigate).toHaveBeenCalledWith('/settings/agent?tab=local');
+  });
+
+  it('suppresses the selected pill pop animation when requested', () => {
+    const agents: AvailableAgent[] = [makeAgent({ backend: 'claude', name: 'Claude' })];
+    render(
+      <AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='claude' suppressSelectionAnimation />
+    );
+
+    const pill = screen.getByText('Claude').closest('[data-agent-pill]') as HTMLElement;
+    expect(pill.style.animation).toBe('none');
   });
 
   it('renders separator dividers between agents on desktop', () => {

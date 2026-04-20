@@ -100,6 +100,68 @@ async function createOpenAIClient(config: ConstructorParameters<typeof OpenAI>[0
   });
 }
 
+/**
+ * Get all model providers with extension contributions merged in.
+ * Shared between IPC bridge (renderer) and process-layer callers.
+ */
+export async function getMergedModelProviders(): Promise<IProvider[]> {
+  try {
+    const data = await ProcessConfig.get('model.config');
+    const sourceList = Array.isArray(data) ? data : [];
+
+    const normalizedProviders = sourceList.map((value) => {
+      const provider = value as unknown as Record<string, unknown>;
+      if ('selectedModel' in provider && !('useModel' in provider)) {
+        return {
+          ...provider,
+          useModel: provider.selectedModel,
+          id: provider.id || uuid(),
+          capabilities: provider.capabilities || [],
+          contextLimit: provider.contextLimit,
+        } as unknown as IProvider;
+      }
+
+      return {
+        ...provider,
+        id: provider.id || uuid(),
+        useModel: provider.useModel || provider.selectedModel || '',
+      } as unknown as IProvider;
+    });
+
+    try {
+      const registry = ExtensionRegistry.getInstance();
+      const extensionProviders = registry.getModelProviders();
+      if (!extensionProviders || extensionProviders.length === 0) {
+        return normalizedProviders;
+      }
+
+      const extensionIds = new Set(extensionProviders.map((provider) => provider.id));
+      const userProviders = normalizedProviders.filter((provider) => !extensionIds.has(provider.id));
+
+      const mergedExtensionProviders: IProvider[] = extensionProviders.map((provider) => {
+        const existing = normalizedProviders.find((item) => item.id === provider.id);
+        return {
+          ...existing,
+          id: provider.id,
+          platform: provider.platform,
+          name: provider.name,
+          baseUrl: existing?.baseUrl || provider.baseUrl || '',
+          apiKey: existing?.apiKey || '',
+          model: Array.isArray(existing?.model) && existing.model.length > 0 ? existing.model : provider.models,
+          enabled: existing?.enabled ?? true,
+        } as IProvider;
+      });
+
+      return [...userProviders, ...mergedExtensionProviders];
+    } catch (error) {
+      console.warn('[ModelBridge] Failed to merge extension model providers:', error);
+      return normalizedProviders;
+    }
+  } catch {
+    return [];
+  }
+}
+
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({
     base_url,

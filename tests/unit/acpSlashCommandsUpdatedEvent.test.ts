@@ -112,13 +112,34 @@ vi.mock('@process/utils/initAgent', () => ({
 }));
 
 vi.mock('@process/task/agentUtils', () => ({
-  prepareFirstMessageWithSkillsIndex: vi.fn(async (c: string) => c),
+  prepareFirstMessageWithSkillsIndex: vi.fn(async (c: string) => ({ content: c, loadedSkills: [] })),
   buildSystemInstructions: vi.fn(async () => undefined),
 }));
 
-// Mock AcpAgent: capture callbacks and return a fully stubbed agent
+// Mock AcpAgent (type-only import in AcpAgentManager — still needs a stub)
 vi.mock('@process/agent/acp', () => {
   const MockAcpAgent = vi.fn(function (this: Record<string, unknown>, config: Record<string, unknown>) {
+    capturedCallbacks.onAvailableCommandsUpdate =
+      config.onAvailableCommandsUpdate as typeof capturedCallbacks.onAvailableCommandsUpdate;
+    this.sendMessage = vi.fn(async () => ({ success: true }));
+    this.getConfigOptions = vi.fn(() => []);
+    this.getModelInfo = vi.fn(() => null);
+    this.getSessionState = vi.fn(() => null);
+    this.setMode = vi.fn(async () => {});
+    this.setModel = vi.fn(async () => {});
+    this.setConfigOption = vi.fn(async () => ({ success: true }));
+    this.start = vi.fn(async () => {});
+    this.stop = vi.fn();
+    this.kill = vi.fn();
+    this.on = vi.fn().mockReturnThis();
+  });
+  return { AcpAgent: MockAcpAgent };
+});
+
+// Mock AcpAgentV2: capture callbacks and return a fully stubbed agent.
+// AcpAgentManager.initAgent() now always creates `new AcpAgentV2(agentConfig)`.
+vi.mock('@process/acp/compat', () => {
+  const MockAcpAgentV2 = vi.fn(function (this: Record<string, unknown>, config: Record<string, unknown>) {
     capturedCallbacks.onAvailableCommandsUpdate =
       config.onAvailableCommandsUpdate as typeof capturedCallbacks.onAvailableCommandsUpdate;
     this.sendMessage = vi.fn(async () => ({ success: true }));
@@ -130,7 +151,7 @@ vi.mock('@process/agent/acp', () => {
     this.kill = vi.fn();
     this.on = vi.fn().mockReturnThis();
   });
-  return { AcpAgent: MockAcpAgent };
+  return { AcpAgentV2: MockAcpAgentV2 };
 });
 
 import AcpAgentManager from '@process/task/AcpAgentManager';

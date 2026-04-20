@@ -44,7 +44,7 @@ test.describe('ACP Agent', () => {
   test('can see agent backend names', async ({ page }) => {
     await goToGuid(page);
 
-    const knownBackends = new Set(['claude', 'gemini', 'qwen', 'opencode', 'codex', 'iflow']);
+    const knownBackends = new Set(['claude', 'gemini', 'qwen', 'opencode', 'codex']);
     const pills = page.locator(AGENT_PILL);
     await expect(pills.first()).toBeVisible({ timeout: 8_000 });
 
@@ -87,9 +87,9 @@ test.describe('ACP Agent', () => {
   });
 
   test('MCP tools page has server management UI', async ({ page }) => {
-    await goToSettings(page, 'tools');
-    await expectUrlContains(page, 'tools');
-    await expect(page.locator(settingsSiderItemById('tools')).first()).toBeVisible({ timeout: 8_000 });
+    await goToSettings(page, 'capabilities');
+    await expectUrlContains(page, 'capabilities');
+    await expect(page.locator(settingsSiderItemById('capabilities')).first()).toBeVisible({ timeout: 8_000 });
     await expectBodyContainsAny(page, ['MCP', 'mcp', 'Server', 'server', '工具', '配置', '添加', 'Add']);
   });
 

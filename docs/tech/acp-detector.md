@@ -24,11 +24,9 @@ initialize()
 │
 ├── 合成 Gemini agent（始终存在，无需 CLI 检测）
 │
-├── 合并: [Gemini, ...Builtin, ...Extension, ...Custom]
+├── 合并: [Aionrs, Gemini, ...Builtin, ...Other, ...Remote, ...Extension]
 │
-├── deduplicate() — 按 cliPath 去重，先到先得
-│
-└── this.isDetected = true
+└── this.isInitialized = true
 ```
 
 ## 三个检测来源详解
@@ -61,7 +59,7 @@ initialize()
 
 ### Source 3: detectCustomAgents() (line 179)
 
-从 `ProcessConfig.get('acp.customAgents')` 读取用户自定义 agent 配置。
+从 `ProcessConfig.get('assistants')` 读取助手配置。
 
 过滤条件：
 
@@ -156,7 +154,6 @@ which <command>
 | ------------------ | ----------- | ------------------------------------ | -------------- |
 | `claude`           | `claude`    | `['--experimental-acp']`             | Claude Code    |
 | `qwen`             | `qwen`      | `['--acp']`                          | Qwen Code      |
-| `iflow`            | `iflow`     | `['--experimental-acp']`             | iFlow CLI      |
 | `codex`            | `codex`     | `[]`                                 | Codex          |
 | `codebuddy`        | `codebuddy` | `['--acp']`                          | CodeBuddy      |
 | `goose`            | `goose`     | `['acp']`                            | Goose          |
@@ -183,23 +180,20 @@ which <command>
 
 ## 合并与去重
 
-优先级顺序：**Gemini > Builtin > Extension > Custom**
+合并顺序：**Aionrs > Gemini > Builtin > Other > Remote > Extension**
 
-去重规则 (`deduplicate()`, line 216)：
-
-- 按 `cliPath` 去重，**先到先得**
-- 没有 `cliPath` 的 agent（Gemini、preset 类型）始终保留
+不做去重 — 同一 CLI 可以同时作为 builtin 和 extension 存在，由 UI 层区分展示。
 
 ## 刷新机制
 
-| 方法                       | 刷新范围             | 清除 env 缓存 | 绕过 isDetected |
-| -------------------------- | -------------------- | ------------- | --------------- |
-| `refreshBuiltinAgents()`   | 仅内置 CLI agents    | 是            | 是              |
-| `refreshExtensionAgents()` | 仅扩展贡献 agents    | 是            | 是              |
-| `refreshCustomAgents()`    | 仅用户自定义 agents  | 否            | 是              |
-| `refreshAll()`             | 全部三个来源重新检测 | 是            | 是              |
+| 方法                       | 刷新范围          | 清除 env 缓存 |
+| -------------------------- | ----------------- | ------------- |
+| `refreshBuiltinAgents()`   | 仅内置 CLI agents | 是            |
+| `refreshExtensionAgents()` | 仅扩展贡献 agents | 是            |
+| `refreshRemoteAgents()`    | 仅远程 agents     | 否            |
+| `refreshAll()`             | 全部来源重新检测  | 是            |
 
-所有 refresh 方法都会先移除对应类型的旧 agent，重新检测后追加，最后统一去重。
+所有 refresh 方法都会先移除对应类型的旧 agent，重新检测后追加。
 
 ## 初始化入口
 
@@ -533,7 +527,7 @@ AcpConnection.disconnect()
 | **启动方式**      | npx bridge (`@zed-industries/claude-agent-acp`)     | 直接 spawn CLI (`goose acp`, `qwen --acp`) |
 | **Session 恢复**  | `_meta.claudeCode.options.resume`                   | `resumeSessionId` 参数                     |
 | **模型来源**      | 读取 `~/.claude/settings.json` 的 `ANTHROPIC_MODEL` | session/new 响应                           |
-| **YOLO 模式**     | `'bypassPermissions'`                               | `'yolo'` (Qwen/iFlow)                      |
+| **YOLO 模式**     | `'bypassPermissions'`                               | `'yolo'` (Qwen 等)                         |
 | **认证失败恢复**  | 执行 `claude /login` 刷新 token                     | 无特殊处理                                 |
 | **模型切换**      | 注入 `<system-reminder>` 通知 AI 模型已变更         | 无                                         |
 | **Node 版本要求** | >= 20.10                                            | >= 18.17 (generic)                         |

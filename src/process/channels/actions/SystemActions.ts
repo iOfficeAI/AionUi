@@ -7,7 +7,7 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
@@ -813,7 +813,7 @@ function getAgentEmoji(backend: string): string {
  * Filters detected agents to only those supported by channels
  */
 function getAvailableChannelAgents(): AgentDisplayInfo[] {
-  const detectedAgents = acpDetector.getDetectedAgents();
+  const detectedAgents = agentRegistry.getDetectedAgents();
   const availableAgents: AgentDisplayInfo[] = [];
   const seenTypes = new Set<ChannelAgentType>();
 

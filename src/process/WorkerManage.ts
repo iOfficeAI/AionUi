@@ -158,6 +158,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
     case 'acp': {
       const task = new AcpAgentManager({
         ...conversation.extra,
+        backend: conversation.extra.backend as import('@/common/types/acpTypes').AcpBackendAll,
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
         yoloMode: options?.yoloMode,

@@ -1,72 +1,9 @@
 import { ipcBridge } from '@/common';
 import useSWR from 'swr';
 
-export interface GeminiModeOption {
-  label: string;
-  value: string;
-  description: string;
-  modelHint?: string;
-  /** Manual 模式的子模型列表 / Sub-models for Manual mode */
-  subModels?: Array<{ label: string; value: string }>;
-}
-
-type GeminiModeDescriptions = {
-  autoGemini3: string;
-  autoGemini25: string;
-  manual: string;
-};
-
-type GeminiModeListOptions = {
-  descriptions?: GeminiModeDescriptions;
-};
-
-const defaultGeminiModeDescriptions: GeminiModeDescriptions = {
-  autoGemini3: 'Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash',
-  autoGemini25: 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash',
-  manual: 'Manually select a model',
-};
-
-// Build Gemini model list matching terminal CLI
-// Values align with aioncli-core@0.30.0 model aliases:
-// - 'auto' → PREVIEW_GEMINI_MODEL_AUTO ('auto-gemini-3') → resolves to gemini-3.1-pro-preview
-// - 'auto-gemini-2.5' → DEFAULT_GEMINI_MODEL_AUTO (auto-routes gemini-2.5-pro/flash)
-export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOption[] => {
-  const descriptions = options?.descriptions || defaultGeminiModeDescriptions;
-
-  return [
-    {
-      label: 'Auto (Gemini 3)',
-      value: 'auto', // Maps to PREVIEW_GEMINI_MODEL_AUTO in config.ts
-      description: descriptions.autoGemini3,
-      modelHint: 'gemini-3.1-pro-preview, gemini-3-flash',
-    },
-    {
-      label: 'Auto (Gemini 2.5)',
-      value: 'auto-gemini-2.5', // Maps to DEFAULT_GEMINI_MODEL_AUTO in aioncli-core
-      description: descriptions.autoGemini25,
-      modelHint: 'gemini-2.5-pro, gemini-2.5-flash',
-    },
-    {
-      label: 'Manual',
-      value: 'manual', // 展开子菜单选择具体模型 / Expand submenu to select specific model
-      description: descriptions.manual,
-      // 与 aioncli-core@0.30.0/src/config/models.ts 中定义的模型名保持一致
-      // Match model names defined in aioncli-core/src/config/models.ts
-      // PREVIEW_GEMINI_3_1_MODEL = 'gemini-3.1-pro-preview'
-      // PREVIEW_GEMINI_FLASH_MODEL = 'gemini-3-flash-preview'
-      // DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
-      // DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash'
-      // DEFAULT_GEMINI_FLASH_LITE_MODEL = 'gemini-2.5-flash-lite'
-      subModels: [
-        { label: 'gemini-3.1-pro-preview', value: 'gemini-3.1-pro-preview' },
-        { label: 'gemini-3-flash-preview', value: 'gemini-3-flash-preview' },
-        { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro' },
-        { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash' },
-        { label: 'gemini-2.5-flash-lite', value: 'gemini-2.5-flash-lite' },
-      ],
-    },
-  ];
-};
+export type { GeminiModeOption } from '@/common/utils/geminiModes';
+export { getGeminiModeList } from '@/common/utils/geminiModes';
+import { getGeminiModeList } from '@/common/utils/geminiModes';
 
 export const geminiModeList = getGeminiModeList();
 

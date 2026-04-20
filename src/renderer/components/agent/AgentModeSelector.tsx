@@ -9,10 +9,9 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getSelectableAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { iconColors } from '@/renderer/styles/colors';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { AgentLogoIcon } from './AgentBadge';
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
-import { Down, Robot } from '@icon-park/react';
+import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
@@ -241,28 +240,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [conversationId, currentMode, onModeSelect]
   );
 
-  // Render logo based on source
-  const renderLogo = () => {
-    const logoContent = (() => {
-      if (agentLogo) {
-        if (agentLogoIsEmoji) {
-          return <span className='text-14px leading-none'>{agentLogo}</span>;
-        }
-        return (
-          <img src={agentLogo} alt={`${agentName || 'agent'} logo`} className='block w-16px h-16px object-contain' />
-        );
-      }
-      const logo = getAgentLogo(backend);
-      if (logo) {
-        return <img src={logo} alt={`${backend} logo`} className='block w-16px h-16px object-contain' />;
-      }
-      return <Robot theme='outline' size={16} fill={iconColors.primary} />;
-    })();
-
-    return (
-      <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none'>{logoContent}</span>
-    );
-  };
+  const renderLogo = () => (
+    <AgentLogoIcon backend={backend} agentName={agentName} agentLogo={agentLogo} agentLogoIsEmoji={agentLogoIsEmoji} />
+  );
 
   // Get display label for current mode
   const getCurrentModeLabel = () => {
@@ -276,7 +256,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <Menu.ItemGroup title={t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
         {modes.map((mode: AgentModeOption) => (
           <Menu.Item key={mode.value} className={currentMode === mode.value ? '!bg-2' : ''}>
-            <div className='flex items-center gap-8px'>
+            <div className='flex items-center gap-8px' data-mode-value={mode.value}>
               {currentMode === mode.value && <span className='text-primary'>✓</span>}
               <span className={currentMode !== mode.value ? 'ml-16px' : ''}>{getDisplayModeLabel(mode)}</span>
             </div>
@@ -307,24 +287,26 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     }
 
     const compactContent = (
-      <Button
-        className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
-        shape='round'
-        size='small'
-        onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}
-        style={{
-          opacity: isLoading ? 0.6 : 1,
-          transition: 'opacity 0.2s',
-          cursor: canInteract ? 'pointer' : 'default',
-        }}
-      >
-        <span className='flex items-center gap-6px min-w-0 leading-none'>
-          {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
-          {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
-          <MarqueePillLabel>{compactLabel}</MarqueePillLabel>
-          {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
-        </span>
-      </Button>
+      <span data-testid='mode-selector' data-current-mode={currentMode} className='inline-flex'>
+        <Button
+          className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
+          shape='round'
+          size='small'
+          onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}
+          style={{
+            opacity: isLoading ? 0.6 : 1,
+            transition: 'opacity 0.2s',
+            cursor: canInteract ? 'pointer' : 'default',
+          }}
+        >
+          <span className='flex items-center gap-6px min-w-0 leading-none'>
+            {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
+            {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
+            <MarqueePillLabel>{compactLabel}</MarqueePillLabel>
+            {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
+          </span>
+        </Button>
+      </span>
     );
 
     if (!canInteract) {

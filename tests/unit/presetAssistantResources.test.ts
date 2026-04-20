@@ -17,6 +17,7 @@ function createDeps(overrides: Partial<PresetAssistantResourceDeps> = {}): Prese
     readBuiltinRule: vi.fn(async () => ''),
     readBuiltinSkill: vi.fn(async () => ''),
     getEnabledSkills: vi.fn(async () => undefined),
+    getDisabledBuiltinSkills: vi.fn(async () => undefined),
     warn: vi.fn(),
     ...overrides,
   };
@@ -38,6 +39,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'fallback rules',
       skills: '',
       enabledSkills: undefined,
+      disabledBuiltinSkills: undefined,
     });
   });
 
@@ -61,6 +63,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'user rules',
       skills: 'user skills',
       enabledSkills: ['pptx', 'xlsx'],
+      disabledBuiltinSkills: undefined,
     });
   });
 
@@ -90,6 +93,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'builtin rules',
       skills: 'builtin skills',
       enabledSkills: ['moltbook'],
+      disabledBuiltinSkills: undefined,
     });
     expect(deps.readBuiltinRule).toHaveBeenCalledOnce();
     expect(deps.readBuiltinSkill).toHaveBeenCalledOnce();

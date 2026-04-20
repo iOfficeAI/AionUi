@@ -66,7 +66,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
     slotId: 'slot-1',
     conversationId: 'conv-1',
-    role: 'lead',
+    role: 'leader',
     agentType: 'acp',
     agentName: 'Claude',
     conversationType: 'acp',
@@ -147,7 +147,7 @@ describe('TeamMcpServer', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'lead' }),
+      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
       makeAgent({ slotId: 'slot-member', agentName: 'Alice', role: 'teammate' }),
     ];
     mailbox = makeMailbox();
@@ -250,7 +250,7 @@ describe('TeamMcpServer', () => {
       })) as Record<string, unknown>;
       expect(response.result).toContain('Leader');
       expect(response.result).toContain('Alice');
-      expect(response.result).toContain('lead');
+      expect(response.result).toContain('leader');
       expect(response.result).toContain('teammate');
     });
 
@@ -420,7 +420,7 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      // Should write to Alice (not to sender = lead)
+      // Should write to Alice (not to sender = leader)
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({ toAgentId: 'slot-member', content: 'Everyone hear this' })
       );
@@ -439,7 +439,7 @@ describe('TeamMcpServer', () => {
       expect(response.result).toContain('Shutdown confirmed');
     });
 
-    it('handles shutdown_rejected by notifying lead', async () => {
+    it('handles shutdown_rejected by notifying leader', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_send_message',
         args: { to: 'Leader', message: 'shutdown_rejected: I need to finish my task' },
@@ -462,7 +462,7 @@ describe('TeamMcpServer', () => {
   // -------------------------------------------------------------------------
 
   describe('team_spawn_agent', () => {
-    it('spawns a new agent when called by lead', async () => {
+    it('spawns a new agent when called by leader', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_spawn_agent',
         args: { name: 'NewBot', agent_type: 'claude' },
@@ -470,11 +470,11 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude');
+      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude', undefined);
       expect(response.result).toContain('NewBot');
     });
 
-    it('rejects spawn from non-lead agent', async () => {
+    it('rejects spawn from non-leader agent', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_spawn_agent',
         args: { name: 'NewBot', agent_type: 'claude' },
@@ -482,7 +482,7 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(response.error).toContain('Only the team lead');
+      expect(response.error).toContain('Only the team leader');
       expect(spawnAgent).not.toHaveBeenCalled();
     });
 
@@ -521,7 +521,7 @@ describe('TeamMcpServer', () => {
       expect(response.result).toContain('Alice');
     });
 
-    it('rejects shutdown of the lead', async () => {
+    it('rejects shutdown of the leader', async () => {
       const response = (await tcpRequest(server.getPort(), {
         tool: 'team_shutdown_agent',
         args: { agent: 'Leader' },
@@ -529,7 +529,7 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(response.error).toContain('Cannot shut down the team lead');
+      expect(response.error).toContain('Cannot shut down the team leader');
     });
 
     it('returns error when agent not found', async () => {

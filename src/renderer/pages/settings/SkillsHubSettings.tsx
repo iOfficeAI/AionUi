@@ -1,8 +1,9 @@
 import { ipcBridge } from '@/common';
 import { Button, Message, Modal, Typography, Input, Dropdown, Menu } from '@arco-design/web-react';
-import { Delete, FolderOpen, Info, Search, Plus, Refresh } from '@icon-park/react';
-import React, { useCallback, useEffect, useState, useMemo } from 'react';
+import { Delete, FolderOpen, Info, Lightning, Puzzle, Search, Plus, Refresh } from '@icon-park/react';
+import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 // Skill 信息类型 / Skill info type
@@ -11,6 +12,7 @@ interface SkillInfo {
   description: string;
   location: string;
   isCustom: boolean;
+  source?: 'builtin' | 'custom' | 'extension';
 }
 
 // 外部来源类型 / External source type
@@ -45,6 +47,10 @@ interface SkillsHubSettingsProps {
 
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const highlightName = searchParams.get('highlight');
+  const [highlightedSkill, setHighlightedSkill] = useState<string | null>(null);
+  const skillRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [loading, setLoading] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
   const [skillPaths, setSkillPaths] = useState<{ userSkillsDir: string; builtinSkillsDir: string } | null>(null);
@@ -56,15 +62,19 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [customPathName, setCustomPathName] = useState('');
   const [customPathValue, setCustomPathValue] = useState('');
   const [refreshing, setRefreshing] = useState(false);
+  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+
+  const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
+  const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
 
   const filteredSkills = useMemo(() => {
-    if (!searchQuery.trim()) return availableSkills;
+    if (!searchQuery.trim()) return mySkills;
     const lowerQuery = searchQuery.toLowerCase();
-    return availableSkills.filter(
+    return mySkills.filter(
       (s) =>
         s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
     );
-  }, [availableSkills, searchQuery]);
+  }, [mySkills, searchQuery]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -82,6 +92,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
       const paths = await ipcBridge.fs.getSkillPaths.invoke();
       setSkillPaths(paths);
+
+      const autoSkills = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
+      setBuiltinAutoSkills(autoSkills);
     } catch (error) {
       console.error('Failed to fetch skills:', error);
       Message.error(t('settings.skillsHub.fetchError', { defaultValue: 'Failed to fetch skills' }));
@@ -93,6 +106,24 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   useEffect(() => {
     void fetchData();
   }, [fetchData]);
+
+  // Scroll to and highlight a skill when navigated with ?highlight=skillName
+  useEffect(() => {
+    if (!highlightName || loading) return;
+    const el = skillRefs.current[highlightName];
+    if (el) {
+      // Small delay to ensure layout is settled
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setHighlightedSkill(highlightName);
+        // Clear highlight after animation
+        const timer = setTimeout(() => setHighlightedSkill(null), 2000);
+        // Clean up the search param so refreshing won't re-highlight
+        setSearchParams({}, { replace: true });
+        return () => clearTimeout(timer);
+      });
+    }
+  }, [highlightName, loading, availableSkills, setSearchParams]);
 
   const handleImport = async (skillPath: string) => {
     try {
@@ -150,7 +181,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleManualImport = async () => {
     try {
       const result = await ipcBridge.dialog.showOpen.invoke({
-        properties: ['openDirectory'],
+        properties: ['openDirectory', 'createDirectory'],
       });
       if (result && result.length > 0) {
         await handleImport(result[0]);
@@ -307,8 +338,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 <div className='max-h-[360px] overflow-y-auto custom-scrollbar flex flex-col gap-6px pr-4px'>
                   {filteredExternalSkills.map((skill) => (
                     <div
-                      key={skill.path}
-                      className='group flex flex-col sm:flex-row gap-16px p-16px bg-base border border-transparent hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 cursor-pointer'
+                      key={skill.name}
+                      ref={(el) => {
+                        skillRefs.current[skill.name] = el;
+                      }}
+                      className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 cursor-pointer ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                       onClick={() => void handleImport(skill.path)}
                     >
                       <div className='shrink-0 flex items-start sm:mt-2px'>
@@ -363,7 +397,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 {t('settings.skillsHub.mySkillsTitle', { defaultValue: 'My Skills' })}
               </span>
               <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
-                {availableSkills.length}
+                {mySkills.length}
               </span>
               <button
                 className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
@@ -413,12 +447,15 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           )}
 
-          {availableSkills.length > 0 ? (
+          {mySkills.length > 0 ? (
             <div className='w-full flex flex-col gap-6px relative z-10'>
               {filteredSkills.map((skill) => (
                 <div
                   key={skill.name}
-                  className='group flex flex-col sm:flex-row gap-16px p-16px bg-base border border-transparent hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200'
+                  ref={(el) => {
+                    skillRefs.current[skill.name] = el;
+                  }}
+                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                 >
                   <div className='shrink-0 flex items-start sm:mt-2px'>
                     <div
@@ -431,7 +468,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   <div className='flex-1 min-w-0 flex flex-col justify-center gap-6px'>
                     <div className='flex items-center gap-10px flex-wrap'>
                       <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
-                      {skill.isCustom ? (
+                      {skill.source === 'custom' ? (
                         <span className='bg-[rgba(var(--orange-6),0.08)] text-orange-6 border border-[rgba(var(--orange-6),0.2)] text-11px px-6px py-1px rd-4px font-medium'>
                           {t('settings.skillsHub.custom', { defaultValue: 'Custom' })}
                         </span>
@@ -520,7 +557,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                         </button>
                       </Dropdown>
                     )}
-                    {skill.isCustom && (
+                    {skill.source === 'custom' && (
                       <button
                         className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
                         onClick={() => {
@@ -553,6 +590,92 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
           )}
         </div>
+
+        {/* ======== Extension Skills ======== */}
+        {extensionSkills.length > 0 && (
+          <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+            <div className='flex items-center gap-10px mb-24px'>
+              <Puzzle theme='filled' size={20} fill='var(--color-primary-6)' />
+              <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
+                {t('settings.extensionSkills', { defaultValue: 'Extension Skills' })}
+              </span>
+              <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
+                {extensionSkills.length}
+              </span>
+            </div>
+            <div className='w-full flex flex-col gap-6px'>
+              {extensionSkills.map((skill) => (
+                <div
+                  key={skill.name}
+                  ref={(el) => {
+                    skillRefs.current[skill.name] = el;
+                  }}
+                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                >
+                  <div className='shrink-0 flex items-start sm:mt-2px'>
+                    <div className='w-40px h-40px rd-10px bg-[rgba(var(--primary-6),0.08)] flex items-center justify-center shadow-sm'>
+                      <Puzzle theme='filled' size={20} fill='rgb(var(--primary-6))' />
+                    </div>
+                  </div>
+                  <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
+                    <div className='flex items-center gap-10px'>
+                      <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                      <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 border border-[rgba(var(--primary-6),0.2)] text-10px px-6px py-1px rd-4px font-medium uppercase'>
+                        {t('settings.extensionSkillsBadge', { defaultValue: 'Extension' })}
+                      </span>
+                    </div>
+                    {skill.description && (
+                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>{skill.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ======== Builtin Auto-injected Skills ======== */}
+        {builtinAutoSkills.length > 0 && (
+          <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+            <div className='flex items-center gap-10px mb-24px'>
+              <Lightning theme='filled' size={20} fill='var(--color-primary-6)' />
+              <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
+                {t('settings.autoInjectedSkills')}
+              </span>
+              <span className='bg-[rgba(var(--success-6),0.08)] text-[rgb(var(--success-6))] text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
+                {builtinAutoSkills.length}
+              </span>
+            </div>
+            <div className='w-full flex flex-col gap-6px'>
+              {builtinAutoSkills.map((skill) => (
+                <div
+                  key={skill.name}
+                  ref={(el) => {
+                    skillRefs.current[skill.name] = el;
+                  }}
+                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                >
+                  <div className='shrink-0 flex items-start sm:mt-2px'>
+                    <div className='w-40px h-40px rd-10px bg-[rgba(var(--success-6),0.08)] flex items-center justify-center shadow-sm'>
+                      <Lightning theme='filled' size={20} fill='rgb(var(--success-6))' />
+                    </div>
+                  </div>
+                  <div className='flex-1 min-w-0 flex flex-col justify-center gap-4px'>
+                    <div className='flex items-center gap-10px'>
+                      <h3 className='text-14px font-semibold text-t-primary/90 truncate m-0'>{skill.name}</h3>
+                      <span className='bg-[rgba(var(--success-6),0.08)] text-[rgb(var(--success-6))] border border-[rgba(var(--success-6),0.2)] text-10px px-6px py-1px rd-4px font-medium uppercase'>
+                        {t('settings.autoInjectedSkillsBadge')}
+                      </span>
+                    </div>
+                    {skill.description && (
+                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>{skill.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* ======== Usage Tip ======== */}
         <div className='px-16px md:px-[24px] py-20px bg-base border border-b-base shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
@@ -617,7 +740,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 className='rd-6px'
                 onClick={async () => {
                   try {
-                    const result = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+                    const result = await ipcBridge.dialog.showOpen.invoke({
+                      properties: ['openDirectory', 'createDirectory'],
+                    });
                     if (result && result.length > 0) {
                       setCustomPathValue(result[0]);
                     }

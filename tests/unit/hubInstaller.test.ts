@@ -49,6 +49,7 @@ const mocks = vi.hoisted(() => ({
   detectedAgents: [] as Array<{
     backend: string;
     name: string;
+    kind?: string;
     isExtension?: boolean;
     customAgentId?: string;
   }>,
@@ -71,8 +72,8 @@ vi.mock('../../src/process/extensions/hub/HubStateManager', () => ({
   },
 }));
 
-vi.mock('@process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
     refreshExtensionAgents: vi.fn(async () => {}),
     refreshAll: vi.fn(async () => {}),
     getDetectedAgents: () => mocks.detectedAgents,
@@ -308,6 +309,7 @@ describe('HubInstaller', () => {
         {
           backend: 'custom',
           name: 'My Custom',
+          kind: 'acp',
           isExtension: true,
           customAgentId: 'ext:custom-acp-ext:my-custom-agent',
         },

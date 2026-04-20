@@ -312,5 +312,8 @@
   "thinking": {
     "complete": "Thought complete",
     "label": "Thinking..."
+  },
+  "skills": {
+    "loaded": "Loaded Skills"
   }
 }

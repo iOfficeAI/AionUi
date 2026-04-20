@@ -142,7 +142,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
           </div>
         )
       ) : (
-        <div className='shrink-0 flex flex-col gap-2px'>
+        <div className='shrink-0 flex flex-col gap-2px mb-8px'>
           <div className='flex items-center justify-between px-12px py-8px'>
             <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
             <div

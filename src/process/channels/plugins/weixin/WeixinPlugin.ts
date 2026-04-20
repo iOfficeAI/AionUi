@@ -146,6 +146,21 @@ export class WeixinPlugin extends BasePlugin {
       });
 
       const unified = toUnifiedIncomingMessage(request);
+
+      // Check for menu button commands (consistent with Lark)
+      if (unified.content.type === 'text' && unified.content.text) {
+        const buttonAction = this.getMenuButtonAction(unified.content.text);
+        if (buttonAction) {
+          // Transform into action message
+          unified.content.type = 'action';
+          unified.content.text = buttonAction.action;
+          unified.action = {
+            type: buttonAction.type as 'system' | 'platform' | 'chat',
+            name: buttonAction.action,
+          };
+        }
+      }
+
       this.emitMessage(unified)
         .then(() => {
           const pending = this.pendingResponses.get(conversationId);
@@ -164,6 +179,21 @@ export class WeixinPlugin extends BasePlugin {
           reject(error instanceof Error ? error : new Error(String(error)));
         });
     });
+  }
+
+  /**
+   * Map menu action strings to action info
+   * Consistent with Lark implementation
+   */
+  private getMenuButtonAction(text: string): { type: string; action: string } | null {
+    const menuActions: Record<string, { type: string; action: string }> = {
+      'session.new': { type: 'system', action: 'session.new' },
+      'session.status': { type: 'system', action: 'session.status' },
+      'help.show': { type: 'system', action: 'help.show' },
+      'agent.show': { type: 'system', action: 'agent.show' },
+      'pairing.check': { type: 'platform', action: 'pairing.check' },
+    };
+    return menuActions[text] || null;
   }
 
   // ==================== Static ====================

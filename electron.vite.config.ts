@@ -112,7 +112,7 @@ export default defineConfig(({ mode }) => {
       ],
       resolve: { alias: mainAliases, extensions: ['.ts', '.tsx', '.js', '.json'] },
       build: {
-        sourcemap: enableSentrySourceMaps ? 'hidden' : false,
+        sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
         reportCompressedSize: false,
         rollupOptions: {
           input: {

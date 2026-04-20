@@ -14,6 +14,7 @@ const {
   stopHandler,
   statusEmitMock,
   spawnMock,
+  execMock,
   execSyncMock,
   realpathSyncMock,
   statSyncMock,
@@ -24,6 +25,7 @@ const {
   stopHandler: { fn: undefined as ((...args: any[]) => any) | undefined },
   statusEmitMock: vi.fn(),
   spawnMock: vi.fn(),
+  execMock: vi.fn(),
   execSyncMock: vi.fn(),
   realpathSyncMock: vi.fn((p: string) => p),
   statSyncMock: vi.fn(),
@@ -57,6 +59,7 @@ vi.mock('../../src/common', () => ({
 
 vi.mock('node:child_process', () => ({
   spawn: (...args: any[]) => spawnMock(...args),
+  exec: (...args: any[]) => execMock(...args),
   execSync: (...args: any[]) => execSyncMock(...args),
 }));
 
@@ -378,47 +381,88 @@ describe('pptPreviewBridge', () => {
     });
   });
 
-  describe('checkForUpdate', () => {
+  describe('checkForUpdate (lazy, on first startWatch)', () => {
     it('skips check if marker file is recent (within 24h)', async () => {
-      vi.useFakeTimers();
       statSyncMock.mockReturnValue({ mtimeMs: Date.now() });
       initPptPreviewBridge();
 
-      await vi.advanceTimersByTimeAsync(6000);
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await emitWatchReady(child);
+      await promise;
 
-      expect(execSyncMock).not.toHaveBeenCalled();
-      vi.useRealTimers();
+      expect(execMock).not.toHaveBeenCalled();
     });
 
     it('triggers install if versions differ', async () => {
-      vi.useFakeTimers();
       statSyncMock.mockReturnValue({ mtimeMs: Date.now() - 25 * 60 * 60 * 1000 });
-      execSyncMock
-        .mockReturnValueOnce('1.0.17')
-        .mockReturnValueOnce('https://github.com/iOfficeAI/OfficeCli/releases/tag/v1.0.18')
-        .mockReturnValue('');
+      execMock.mockImplementation((_cmd: string, _opts: any, cb: (err: Error | null, stdout: string) => void) => {
+        if (_cmd === 'officecli --version') {
+          cb(null, '1.0.17');
+        } else {
+          cb(null, 'https://github.com/iOfficeAI/OfficeCli/releases/tag/v1.0.18');
+        }
+      });
+      execSyncMock.mockReturnValue('');
 
       initPptPreviewBridge();
-      await vi.advanceTimersByTimeAsync(6000);
 
-      expect(execSyncMock).toHaveBeenCalledWith('officecli --version', expect.any(Object));
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await emitWatchReady(child);
+      await promise;
+
+      expect(execMock).toHaveBeenCalledWith('officecli --version', expect.any(Object), expect.any(Function));
       expect(writeFileSyncMock).toHaveBeenCalled();
       expect(statusEmitMock).toHaveBeenCalledWith({ state: 'installing' });
-      vi.useRealTimers();
     });
 
     it('does not install if versions match', async () => {
-      vi.useFakeTimers();
       statSyncMock.mockReturnValue({ mtimeMs: Date.now() - 25 * 60 * 60 * 1000 });
-      execSyncMock
-        .mockReturnValueOnce('1.0.18')
-        .mockReturnValueOnce('https://github.com/iOfficeAI/OfficeCli/releases/tag/v1.0.18');
+      execMock.mockImplementation((_cmd: string, _opts: any, cb: (err: Error | null, stdout: string) => void) => {
+        if (_cmd === 'officecli --version') {
+          cb(null, '1.0.18');
+        } else {
+          cb(null, 'https://github.com/iOfficeAI/OfficeCli/releases/tag/v1.0.18');
+        }
+      });
 
       initPptPreviewBridge();
-      await vi.advanceTimersByTimeAsync(6000);
+
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      await emitWatchReady(child);
+      await promise;
 
       expect(statusEmitMock).not.toHaveBeenCalledWith({ state: 'installing' });
-      vi.useRealTimers();
+    });
+
+    it('only checks once per session across multiple startWatch calls', async () => {
+      statSyncMock.mockReturnValue({ mtimeMs: Date.now() - 25 * 60 * 60 * 1000 });
+      execMock.mockImplementation((_cmd: string, _opts: any, cb: (err: Error | null, stdout: string) => void) => {
+        cb(null, '1.0.18');
+      });
+
+      initPptPreviewBridge();
+
+      const child1 = createMockChildProcess();
+      spawnMock.mockReturnValue(child1);
+      const p1 = startHandler.fn!({ filePath: '/test/a.pptx' });
+      await emitWatchReady(child1);
+      await p1;
+
+      const callCount = execMock.mock.calls.length;
+
+      const child2 = createMockChildProcess();
+      spawnMock.mockReturnValue(child2);
+      const p2 = startHandler.fn!({ filePath: '/test/b.pptx' });
+      await emitWatchReady(child2);
+      await p2;
+
+      expect(execMock.mock.calls.length).toBe(callCount);
     });
   });
 

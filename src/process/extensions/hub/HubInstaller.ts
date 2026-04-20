@@ -1,6 +1,7 @@
 import { getPlatformServices } from '@/common/platform';
 import { getDataPath } from '@process/utils';
-import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { agentRegistry } from '@process/agent/AgentRegistry';
+import { isAgentKind } from '@/common/types/detectedAgent';
 import { exec } from 'child_process';
 import * as crypto from 'crypto';
 import * as fs from 'fs';
@@ -36,7 +37,7 @@ type VerifyResult = { ok: boolean; reason?: string };
  */
 const contributeVerifiers: Partial<Record<keyof HubContributes, (ids: string[]) => VerifyResult>> = {
   acpAdapters(ids: string[]): VerifyResult {
-    const agents = acpDetector.getDetectedAgents();
+    const agents = agentRegistry.getDetectedAgents();
 
     // Build a set of all identifiers that represent a detected adapter:
     // - backend ID for builtin agents (e.g. 'claude', 'qwen')
@@ -46,7 +47,7 @@ const contributeVerifiers: Partial<Record<keyof HubContributes, (ids: string[]) 
       if (a.backend !== 'custom') {
         detectedIds.add(a.backend);
       }
-      if (a.isExtension && a.customAgentId) {
+      if (isAgentKind(a, 'acp') && a.isExtension && a.customAgentId) {
         const adapterId = a.customAgentId.split(':').pop();
         if (adapterId) detectedIds.add(adapterId);
       }
@@ -166,7 +167,7 @@ export class HubInstallerImpl {
 
       // Re-detect all agents (builtin + extension + custom) since onInstall
       // may have installed new CLIs that weren't on PATH at startup.
-      await acpDetector.refreshAll();
+      await agentRegistry.refreshAll();
 
       // Step 6: Verify contributed capabilities are actually available
       const verification = verifyInstallation(extInfo);
@@ -204,7 +205,7 @@ export class HubInstallerImpl {
       // Reload registry — clear persisted state to force onInstall re-run
       await markExtensionForReinstall(name);
       await ExtensionRegistry.hotReload();
-      await acpDetector.refreshAll();
+      await agentRegistry.refreshAll();
 
       // Verify contributed capabilities
       const extInfo = hubIndexManager.getExtension(name);

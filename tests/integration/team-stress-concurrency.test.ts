@@ -191,7 +191,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
     slotId: 'slot-1',
     conversationId: 'conv-1',
-    role: 'lead',
+    role: 'leader',
     agentType: 'acp',
     agentName: 'Agent',
     conversationType: 'acp',
@@ -597,7 +597,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
    * the second turn's finish event is not silently deduped by the 5s window.
    */
   it('second wake after activeWakes cleared: second finalizeTurn processes correctly (regression for finalizedTurns dedup fix)', async () => {
-    const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1', status: 'idle', role: 'lead' });
+    const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1', status: 'idle', role: 'leader' });
     const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -644,7 +644,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
   });
 
   it('rapid idle→active→idle transitions: status ends at idle after finish', async () => {
-    const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-rapid', status: 'idle', role: 'lead' });
+    const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-rapid', status: 'idle', role: 'leader' });
     const { mgr, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -674,7 +674,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
   it('finalizedTurns 5s dedup window: second finish within window is ignored', async () => {
     vi.useFakeTimers();
     try {
-      const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-dedup', status: 'active', role: 'lead' });
+      const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-dedup', status: 'active', role: 'leader' });
       const { mgr, workerTaskManager } = makeRealStack([agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: vi.fn().mockResolvedValue(undefined),
@@ -753,9 +753,12 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
     expect(teamEventBus.listenerCount('responseStream')).toBe(initialListeners);
   });
 
-  it('wake timeout cleanup: 60s timeout fires and resets idle for stuck agents', async () => {
+  it('wake timeout cleanup: 60s inactivity watchdog escalates stuck agents to failed', async () => {
     vi.useFakeTimers();
     try {
+      // Sole agent = lead: the watchdog still fires, but there is nobody to notify.
+      // Behavior changed from dropping silently to 'idle' (hiding the stall) to
+      // marking the agent 'failed' so the team surface reflects the problem.
       const agent = makeAgent({ slotId: 'slot-timeout', status: 'idle', conversationId: 'conv-timeout' });
       const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -780,7 +783,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
       await vi.runAllTimersAsync();
 
       const statusAfterTimeout = mgr.getAgents().find((a) => a.slotId === 'slot-timeout')?.status;
-      expect(statusAfterTimeout).toBe('idle');
+      expect(statusAfterTimeout).toBe('failed');
       mgr.dispose();
     } finally {
       vi.useRealTimers();
@@ -841,8 +844,8 @@ describe('Stress — TeamEventBus saturation', () => {
     const conv1Events: string[] = [];
     const conv2Events: string[] = [];
 
-    const agent1 = makeAgent({ slotId: 'slot-bus-1', conversationId: 'conv-bus-1', role: 'lead' });
-    const agent2 = makeAgent({ slotId: 'slot-bus-2', conversationId: 'conv-bus-2', role: 'lead' });
+    const agent1 = makeAgent({ slotId: 'slot-bus-1', conversationId: 'conv-bus-1', role: 'leader' });
+    const agent2 = makeAgent({ slotId: 'slot-bus-2', conversationId: 'conv-bus-2', role: 'leader' });
 
     const { mgr: mgr1 } = makeRealStack([agent1]);
     const { mgr: mgr2 } = makeRealStack([agent2]);

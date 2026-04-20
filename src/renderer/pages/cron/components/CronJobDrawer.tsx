@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
-import type { AcpBackend, AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { ConfigStorage, type TChatConversation } from '@/common/config/storage';
 import {
   buildCliAgentParams,
@@ -604,7 +604,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
   );
 };
 
-function resolveCronAgentType(conversation: TChatConversation): AcpBackendAll {
+function resolveCronAgentType(conversation: TChatConversation): AgentBackend {
   if (conversation.type === 'gemini') {
     return 'gemini';
   }
@@ -626,7 +626,7 @@ function resolveCronAgentType(conversation: TChatConversation): AcpBackendAll {
 
 type ConversationCronExtra = {
   workspace?: string;
-  backend?: AcpBackendAll;
+  backend?: AgentBackend;
   presetAssistantId?: string;
   sessionMode?: string;
   configOptionValues?: Record<string, string>;
@@ -640,7 +640,7 @@ function getConversationWorkspace(conversation?: TChatConversation | null): stri
   return getConversationCronExtra(conversation)?.workspace;
 }
 
-function getConversationBackend(conversation?: TChatConversation | null): AcpBackendAll | undefined {
+function getConversationBackend(conversation?: TChatConversation | null): AgentBackend | undefined {
   return getConversationCronExtra(conversation)?.backend;
 }
 

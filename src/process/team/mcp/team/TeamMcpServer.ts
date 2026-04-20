@@ -16,11 +16,12 @@ import type { TaskManager } from '../../TaskManager.ts';
 import type { TeamAgent } from '../../types.ts';
 import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
-import { acpDetector } from '@process/agent/acp/AcpDetector.ts';
+import { agentRegistry } from '@process/agent/AgentRegistry';
+import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
 
-type SpawnAgentFn = (agentName: string, agentType?: string) => Promise<TeamAgent>;
+type SpawnAgentFn = (agentName: string, agentType?: string, model?: string) => Promise<TeamAgent>;
 
 type TeamMcpServerParams = {
   teamId: string;
@@ -147,55 +148,87 @@ export class TeamMcpServer {
     return byName?.slotId;
   }
 
+  /**
+   * Fire-and-forget wake that logs failures instead of swallowing them.
+   * wakeAgent() can legitimately reject (e.g. dead ACP process, mailbox DB error)
+   * but the MCP tool call must still return to the caller, so we can't await it.
+   * Without this guard the error vanishes silently and the would-be wake target
+   * never runs — which is one of the ways "codex 空转" used to present.
+   */
+  private safeWake(slotId: string, context: string): void {
+    this.params.wakeAgent(slotId).catch((err) => {
+      console.error(`[TeamMcpServer] wake(${slotId}) failed during ${context}:`, err);
+    });
+  }
+
   // ── TCP connection handler ──────────────────────────────────────────────────
 
   private handleTcpConnection(socket: net.Socket): void {
-    const reader = createTcpMessageReader(async (msg) => {
-      const request = msg as {
-        tool?: string;
-        type?: string;
-        args?: Record<string, unknown>;
-        from_slot_id?: string;
-        slot_id?: string;
-        auth_token?: string;
-      };
+    const reader = createTcpMessageReader(
+      async (msg) => {
+        const request = msg as {
+          tool?: string;
+          type?: string;
+          args?: Record<string, unknown>;
+          from_slot_id?: string;
+          slot_id?: string;
+          auth_token?: string;
+        };
 
-      // Reject requests that do not carry the correct auth token
-      if (request.auth_token !== this.authToken) {
-        writeTcpMessage(socket, { error: 'Unauthorized' });
-        socket.end();
-        return;
-      }
-
-      // Handle MCP readiness notification from stdio script (not a tool call)
-      if (request.type === 'mcp_ready' && !request.tool) {
-        const readySlotId = request.from_slot_id ?? request.slot_id;
-        if (readySlotId) {
-          console.log(`[TeamMcpServer] MCP ready from slot ${readySlotId}`);
-          notifyMcpReady(readySlotId);
+        // Reject requests that do not carry the correct auth token
+        if (request.auth_token !== this.authToken) {
+          writeTcpMessage(socket, { error: 'Unauthorized' });
+          socket.end();
+          return;
         }
-        writeTcpMessage(socket, { result: 'ok' });
+
+        // Handle MCP readiness notification from stdio script (not a tool call)
+        if (request.type === 'mcp_ready' && !request.tool) {
+          const readySlotId = request.from_slot_id ?? request.slot_id;
+          if (readySlotId) {
+            console.log(`[TeamMcpServer] MCP ready from slot ${readySlotId}`);
+            notifyMcpReady(readySlotId);
+          }
+          writeTcpMessage(socket, { result: 'ok' });
+          socket.end();
+          return;
+        }
+
+        const toolName = request.tool ?? '';
+        const args = request.args ?? {};
+        const fromSlotId = request.from_slot_id;
+
+        try {
+          const result = await this.handleToolCall(toolName, args, fromSlotId);
+          writeTcpMessage(socket, { result });
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          writeTcpMessage(socket, { error: errMsg });
+        }
         socket.end();
-        return;
+      },
+      {
+        // Drop the connection on framing corruption (e.g. an oversize length
+        // prefix), otherwise the reader would buffer indefinitely waiting for
+        // bytes that will never arrive.
+        onError: (err) => {
+          console.warn(`[TeamMcpServer] TCP framing error: ${err.message}`);
+          socket.destroy();
+        },
       }
-
-      const toolName = request.tool ?? '';
-      const args = request.args ?? {};
-      const fromSlotId = request.from_slot_id;
-
-      try {
-        const result = await this.handleToolCall(toolName, args, fromSlotId);
-        writeTcpMessage(socket, { result });
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        writeTcpMessage(socket, { error: errMsg });
-      }
-      socket.end();
-    });
+    );
 
     socket.on('data', reader);
     socket.on('error', () => {
       // Connection errors are expected (e.g., client disconnect)
+      socket.destroy();
+    });
+    // Hard idle deadline so a stuck handler cannot pin the socket (and the
+    // pending request payload it references) in memory forever.
+    socket.setTimeout(600_000);
+    socket.on('timeout', () => {
+      console.warn('[TeamMcpServer] TCP socket idle timeout, destroying');
+      socket.destroy();
     });
   }
 
@@ -208,9 +241,9 @@ export class TeamMcpServer {
       case 'team_spawn_agent': {
         const agents = this.params.getAgents();
         const caller = fromSlotId ? agents.find((a) => a.slotId === fromSlotId) : undefined;
-        if (caller && caller.role !== 'lead') {
+        if (caller && caller.role !== 'leader') {
           throw new Error(
-            'Only the team lead can spawn new agents. Send a message to the lead via team_send_message and ask them to create the agent you need.'
+            'Only the team leader can spawn new agents. Send a message to the leader via team_send_message and ask them to create the agent you need.'
           );
         }
         return this.handleSpawnAgent(args, fromSlotId);
@@ -227,6 +260,8 @@ export class TeamMcpServer {
         return this.handleRenameAgent(args);
       case 'team_shutdown_agent':
         return this.handleShutdownAgent(args, fromSlotId);
+      case 'team_list_models':
+        return handleListModels(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -235,16 +270,16 @@ export class TeamMcpServer {
   // ── Tool handlers (logic preserved from original registerTools) ─────────────
 
   private async handleSendMessage(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, wakeAgent } = this.params;
+    const { teamId, getAgents, mailbox } = this.params;
     const to = String(args.to ?? '');
     const message = String(args.message ?? '');
     const summary = args.summary ? String(args.summary) : undefined;
 
     const agents = getAgents();
-    // Use actual caller identity when available, fall back to lead
+    // Use actual caller identity when available, fall back to leader
     const fromAgent =
       (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
-      agents.find((a) => a.role === 'lead') ??
+      agents.find((a) => a.role === 'leader') ??
       agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
 
@@ -264,7 +299,7 @@ export class TeamMcpServer {
               })
               .then(() => {
                 recipients.push(agent.agentName);
-                void wakeAgent(agent.slotId);
+                this.safeWake(agent.slotId, 'broadcast message');
               })
           )
       );
@@ -284,7 +319,7 @@ export class TeamMcpServer {
     if (isShutdownApproved || isShutdownRejected) {
       const senderAgent = agents.find((a) => a.slotId === fromSlotId);
       const memberName = senderAgent?.agentName ?? fromSlotId;
-      const leadAgent = agents.find((a) => a.role === 'lead');
+      const leadAgent = agents.find((a) => a.role === 'leader');
       const leadSlotId = leadAgent?.slotId;
 
       if (isShutdownApproved && this.params.removeAgent) {
@@ -296,7 +331,7 @@ export class TeamMcpServer {
             fromAgentId: fromSlotId,
             content: `${memberName} has shut down and been removed from the team.`,
           });
-          void wakeAgent(leadSlotId);
+          this.safeWake(leadSlotId, 'shutdown_approved');
         }
         return 'Shutdown confirmed. You have been removed from the team.';
       } else if (isShutdownRejected) {
@@ -308,9 +343,9 @@ export class TeamMcpServer {
             fromAgentId: fromSlotId,
             content: `${memberName} refused to shut down. Reason: ${reason}`,
           });
-          void wakeAgent(leadSlotId);
+          this.safeWake(leadSlotId, 'shutdown_rejected');
         }
-        return 'Refusal sent to the lead.';
+        return 'Refusal sent to the leader.';
       }
     }
 
@@ -321,24 +356,36 @@ export class TeamMcpServer {
       content: message,
       summary,
     });
-    void wakeAgent(targetSlotId);
+    this.safeWake(targetSlotId, `send_message to ${to}`);
 
     return `Message sent to ${to}'s inbox. They will process it shortly.`;
   }
 
   private async handleSpawnAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, spawnAgent, wakeAgent } = this.params;
+    const { teamId, getAgents, mailbox, spawnAgent } = this.params;
     const name = String(args.name ?? '');
     const agentType = args.agent_type ? String(args.agent_type) : undefined;
+    const model = args.model ? String(args.model) : undefined;
     // Team mode validation: only backends with confirmed ACP MCP stdio support
     if (agentType) {
       const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
       if (!isTeamCapableBackend(agentType, cachedInitResults)) {
         const capable = getTeamCapableBackends(
-          acpDetector.getDetectedAgents().map((a) => a.backend),
+          agentRegistry.getDetectedAgents().map((a) => a.backend),
           cachedInitResults
         );
         throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
+      }
+    }
+
+    if (model && agentType) {
+      const cachedModels = await ProcessConfig.get('acp.cachedModels');
+      const available = cachedModels?.[agentType]?.availableModels;
+      if (available && available.length > 0 && !available.some((m: { id: string }) => m.id === model)) {
+        console.warn(
+          `[TeamMcpServer] handleSpawnAgent: model "${model}" not in available models for backend "${agentType}". ` +
+            `Backend will use default model as fallback.`
+        );
       }
     }
 
@@ -346,11 +393,11 @@ export class TeamMcpServer {
       throw new Error('Agent spawning is not available for this team.');
     }
 
-    const newAgent = await spawnAgent(name, agentType);
+    const newAgent = await spawnAgent(name, agentType, model);
     const agents = getAgents();
     const fromAgent =
       (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
-      agents.find((a) => a.role === 'lead') ??
+      agents.find((a) => a.role === 'leader') ??
       agents[0];
     const fromSlotId = fromAgent?.slotId ?? 'unknown';
     await mailbox.write({
@@ -359,7 +406,7 @@ export class TeamMcpServer {
       fromAgentId: fromSlotId,
       content: `You have been spawned as "${name}" and added to the team. Check the task board and await instructions.`,
     });
-    void wakeAgent(newAgent.slotId);
+    this.safeWake(newAgent.slotId, `spawn ${name}`);
     return `Teammate "${name}" (${newAgent.slotId}) has been created and joined the team. You can now assign tasks and send messages to them.`;
   }
 
@@ -412,12 +459,15 @@ export class TeamMcpServer {
     if (agents.length === 0) {
       return 'No team members yet.';
     }
-    const lines = agents.map((a) => `- ${a.agentName} (type: ${a.agentType}, role: ${a.role}, status: ${a.status})`);
+    const lines = agents.map((a) => {
+      const modelSuffix = a.model ? `, model: ${a.model}` : '';
+      return `- ${a.agentName} (type: ${a.agentType}, role: ${a.role}, status: ${a.status}${modelSuffix})`;
+    });
     return `## Team Members\n${lines.join('\n')}`;
   }
 
   private async handleShutdownAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, wakeAgent } = this.params;
+    const { teamId, getAgents, mailbox } = this.params;
     const agentRef = String(args.agent ?? '');
 
     const resolvedSlotId = this.resolveSlotId(agentRef);
@@ -427,11 +477,11 @@ export class TeamMcpServer {
     }
     const agents = getAgents();
     const agent = agents.find((a) => a.slotId === resolvedSlotId);
-    if (agent?.role === 'lead') {
-      throw new Error('Cannot shut down the team lead.');
+    if (agent?.role === 'leader') {
+      throw new Error('Cannot shut down the team leader.');
     }
 
-    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'lead')?.slotId ?? 'unknown';
+    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'leader')?.slotId ?? 'unknown';
 
     await mailbox.write({
       teamId,
@@ -439,9 +489,9 @@ export class TeamMcpServer {
       fromAgentId: fromSlotId,
       type: 'shutdown_request',
       content:
-        'The team lead has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
+        'The team leader has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',
     });
-    void wakeAgent(resolvedSlotId);
+    this.safeWake(resolvedSlotId, 'shutdown_request');
 
     return `Shutdown request sent to "${agent?.agentName ?? agentRef}". Waiting for their confirmation.`;
   }

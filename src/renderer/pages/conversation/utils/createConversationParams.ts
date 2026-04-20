@@ -15,7 +15,6 @@ import { loadPresetAssistantResources } from '@/common/utils/presetAssistantReso
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
-  getConversationTypeForPreset,
 } from '@/common/utils/buildAgentConversationParams';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
@@ -272,7 +271,7 @@ export async function buildPresetAssistantParams(
     localeKey,
   });
 
-  const type = getConversationTypeForPreset(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
   const preferredAcpConfigSelection =

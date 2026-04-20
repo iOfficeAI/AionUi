@@ -29,7 +29,7 @@ import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { clearHistoryStatePreservingUrl } from './utils/historyState';
 import { ConfigStorage } from '@/common/config/storage';
-import { ACP_BACKENDS_ALL, type PresetAgentType } from '@/common/types/acpTypes';
+import { ACP_BACKENDS_ALL, type AgentBackend, type PresetAgentType } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -122,8 +122,8 @@ const GuidPage: React.FC = () => {
     getEffectiveAgentType: agentSelection.getEffectiveAgentType,
     resolvePresetRulesAndSkills: agentSelection.resolvePresetRulesAndSkills,
     resolveEnabledSkills: agentSelection.resolveEnabledSkills,
-    isMainAgentAvailable: agentSelection.isMainAgentAvailable,
-    getAvailableFallbackAgent: agentSelection.getAvailableFallbackAgent,
+    resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
+    guidDisabledBuiltinSkills: undefined,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
 
@@ -422,7 +422,9 @@ const GuidPage: React.FC = () => {
         updated[idx] = { ...updated[idx], presetAgentType: nextType as PresetAgentType };
         await ConfigStorage.set('acp.customAgents', updated);
         await agentSelection.refreshCustomAgents();
-        const agentName = ACP_BACKENDS_ALL[nextType as PresetAgentType]?.name || nextType;
+        const agentName = Object.prototype.hasOwnProperty.call(ACP_BACKENDS_ALL, nextType)
+          ? ACP_BACKENDS_ALL[nextType as Exclude<PresetAgentType, 'gemini' | 'aionrs'>]?.name || nextType
+          : nextType;
         Message.success(t('guid.switchedToAgent', { agent: agentName }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);
@@ -478,7 +480,7 @@ const GuidPage: React.FC = () => {
   );
   const acpConfigSelectorNode = (
     <GuidAcpConfigSelector
-      backend={agentSelection.selectedAgent === 'custom' ? undefined : agentSelection.selectedAgent}
+      backend={agentSelection.selectedAgent === 'custom' ? undefined : (agentSelection.selectedAgent as AgentBackend)}
       configOptions={agentSelection.currentAcpCachedConfigOptions}
       selectedValues={agentSelection.selectedAcpConfigOptions}
       onSelectOption={agentSelection.setSelectedAcpConfigOption}

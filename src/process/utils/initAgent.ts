@@ -6,7 +6,7 @@
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackend, PresetAgentType } from '@/common/types/acpTypes';
+import type { AcpBackendAll, PresetAgentType } from '@/common/types/acpTypes';
 import { ACP_BACKENDS_ALL, getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
 
@@ -27,8 +27,12 @@ export async function resolveBuiltinCliPath(
     return normalizedCliPath;
   }
 
-  const backendConfig = ACP_BACKENDS_ALL[backend as AcpBackend];
-  const configuredCliPath = (await ProcessConfig.get('acp.config'))?.[backend as AcpBackend]?.cliPath?.trim();
+  const backendConfig = Object.prototype.hasOwnProperty.call(ACP_BACKENDS_ALL, backend)
+    ? ACP_BACKENDS_ALL[backend as AcpBackendAll]
+    : undefined;
+  const configuredCliPath = Object.prototype.hasOwnProperty.call(ACP_BACKENDS_ALL, backend)
+    ? (await ProcessConfig.get('acp.config'))?.[backend as AcpBackendAll]?.cliPath?.trim()
+    : undefined;
   const defaultCliCommand = backendConfig?.cliCommand?.trim();
 
   if (configuredCliPath && (!normalizedCliPath || normalizedCliPath === defaultCliCommand)) {

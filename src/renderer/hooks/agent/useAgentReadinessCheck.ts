@@ -6,10 +6,10 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 
 export type AgentCheckResult = {
-  backend: AcpBackendAll;
+  backend: AgentBackend;
   name: string;
   available: boolean;
   latency?: number;
@@ -32,12 +32,12 @@ export type AgentReadinessState = {
   // Check progress (0-100)
   progress: number;
   // Current agent being checked
-  currentAgent: AcpBackendAll | null;
+  currentAgent: AgentBackend | null;
 };
 
 type UseAgentReadinessCheckOptions = {
   // The backend type to check (for ACP conversations)
-  backend?: AcpBackendAll;
+  backend?: AgentBackend;
   // Conversation type ('gemini' or 'acp')
   conversationType: 'gemini' | 'acp' | 'codex';
   // Whether to auto-check on mount
@@ -46,14 +46,13 @@ type UseAgentReadinessCheckOptions = {
   onAgentReady?: (agent: AgentCheckResult) => void;
 };
 
-const AGENT_NAMES: Partial<Record<AcpBackendAll, string>> = {
+const AGENT_NAMES: Partial<Record<AgentBackend, string>> = {
   claude: 'Claude',
   codex: 'Codex',
   codebuddy: 'CodeBuddy',
   opencode: 'OpenCode',
   gemini: 'Gemini',
   qwen: 'Qwen Code',
-  iflow: 'iFlow',
   droid: 'Droid',
   goose: 'Goose',
   auggie: 'Auggie',
@@ -74,7 +73,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     availableAgents: [],
     bestAgent: null,
     progress: 0,
-    currentAgent: conversationType === 'gemini' ? 'gemini' : (backend as AcpBackendAll) || null,
+    currentAgent: conversationType === 'gemini' ? 'gemini' : (backend as AgentBackend) || null,
   });
 
   // Check the current agent's readiness
@@ -85,7 +84,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     setState((prev) => ({
       ...prev,
       isChecking: true,
-      currentAgent: agentToCheck as AcpBackendAll,
+      currentAgent: agentToCheck as AgentBackend,
     }));
 
     try {
@@ -145,10 +144,10 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
 
       // Filter out current agent and custom agents
       const agentsToCheck = result.data
-        .filter((agent) => agent.backend !== 'custom' && agent.backend !== currentAgentBackend)
+        .filter((agent) => !agent.isPreset && agent.backend !== 'remote' && agent.backend !== currentAgentBackend)
         .map((agent) => ({
-          backend: agent.backend as AcpBackendAll,
-          name: AGENT_NAMES[agent.backend as AcpBackendAll] || agent.name,
+          backend: agent.backend as AgentBackend,
+          name: AGENT_NAMES[agent.backend as AgentBackend] || agent.name,
           available: false,
           checking: true,
           cliPath: agent.cliPath,
@@ -268,7 +267,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
       availableAgents: [],
       bestAgent: null,
       progress: 0,
-      currentAgent: conversationType === 'gemini' ? 'gemini' : (backend as AcpBackendAll) || null,
+      currentAgent: conversationType === 'gemini' ? 'gemini' : (backend as AgentBackend) || null,
     });
   }, [backend, conversationType]);
 

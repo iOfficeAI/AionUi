@@ -91,6 +91,8 @@ const useSendBoxDraft = (conversation_id: string) => {
 type AionrsSendBoxBaseProps = {
   conversation_id: string;
   modelSelection: AionrsModelSelection;
+  teamId?: string;
+  agentSlotId?: string;
   sessionMode?: string;
   capabilities?: AionrsCapabilities | null;
   dynamicModes?: AgentModeOption[];
@@ -109,6 +111,8 @@ type AionrsSendBoxInnerProps = AionrsSendBoxBaseProps & {
 const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   conversation_id,
   modelSelection,
+  teamId,
+  agentSlotId,
   sessionMode,
   capabilities,
   messageState,
@@ -180,29 +184,52 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      addOrUpdateMessage(
-        {
-          id: msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: {
-            content: displayMessage,
+      if (!teamId) {
+        addOrUpdateMessage(
+          {
+            id: msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: {
+              content: displayMessage,
+            },
+            createdAt: Date.now(),
           },
-          createdAt: Date.now(),
-        },
-        true
-      );
+          true
+        );
+      }
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.conversation.sendMessage.invoke({
-          input: displayMessage,
-          msg_id,
-          conversation_id,
-          files,
-        });
-        assertBridgeSuccess(result, 'Failed to send message to Aion CLI');
+        if (teamId) {
+          if (agentSlotId) {
+            const result = await ipcBridge.team.sendMessageToAgent.invoke({
+              teamId,
+              slotId: agentSlotId,
+              content: displayMessage,
+              files,
+            });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to agent');
+            }
+          } else {
+            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
+            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
+            if (maybeError.__bridgeError) {
+              throw new Error(maybeError.message || 'Failed to send message to team');
+            }
+          }
+        } else {
+          const result = await ipcBridge.conversation.sendMessage.invoke({
+            input: displayMessage,
+            msg_id,
+            conversation_id,
+            files,
+          });
+          assertBridgeSuccess(result, 'Failed to send message to Aion CLI');
+        }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
@@ -220,6 +247,8 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
       removeMessageByMsgId,
       setActiveMsgId,
       setWaitingResponse,
+      teamId,
+      agentSlotId,
       t,
       workspacePath,
     ]
@@ -274,7 +303,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
   }, [conversation_id, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (!isCommandQueueEnabled && isBusy) {
+    if (!teamId && !isCommandQueueEnabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }

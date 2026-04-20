@@ -110,7 +110,7 @@ const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseG
   const isCommandQueueEnabled = useCommandQueueEnabled();
   // In team mode, all agents show the permission mode selector (members don't propagate)
   const showModeSelector = true;
-  const isLeadInTeam = teamPermission?.isLeadAgent ?? false;
+  const isLeadInTeam = teamPermission?.isLeaderAgent ?? false;
   const { checkAndUpdateTitle } = useAutoTitle();
 
   // Agent auto-detection state - only for new conversation + no auth scenario

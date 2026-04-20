@@ -132,7 +132,7 @@ const AcpSendBoxInner: React.FC<AcpSendBoxBaseProps & { messageState: UseAcpMess
   const isCommandQueueEnabled = useCommandQueueEnabled();
   // In team mode, all agents show the permission mode selector (members don't propagate)
   const showModeSelector = true;
-  const isLeadInTeam = teamPermission?.leadConversationId === conversation_id;
+  const isLeadInTeam = teamPermission?.leaderConversationId === conversation_id;
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);

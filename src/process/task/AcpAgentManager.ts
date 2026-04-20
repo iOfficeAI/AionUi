@@ -15,7 +15,7 @@ import type {
 } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import type {
-  AcpBackend,
+  AcpBackendAll,
   AcpModelInfo,
   AcpPermissionOption,
   AcpPermissionRequest,
@@ -55,7 +55,7 @@ import { stripThinkTags } from './ThinkTagDetector';
 
 interface AcpAgentManagerData {
   workspace?: string;
-  backend: AcpBackend;
+  backend: AcpBackendAll;
   cliPath?: string;
   customWorkspace?: boolean;
   conversation_id: string;
@@ -84,7 +84,7 @@ interface AcpAgentManagerData {
 
 type BufferedStreamTextMessage = {
   conversationId: string;
-  backend: AcpBackend;
+  backend: AcpBackendAll;
   message: Extract<TMessage, { type: 'text' }>;
   timer: ReturnType<typeof setTimeout>;
 };
@@ -165,7 +165,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return `${message.conversation_id}:${message.msg_id || message.id}`;
   }
 
-  private queueBufferedStreamTextMessage(message: Extract<TMessage, { type: 'text' }>, backend: AcpBackend): void {
+  private queueBufferedStreamTextMessage(message: Extract<TMessage, { type: 'text' }>, backend: AcpBackendAll): void {
     const key = this.makeStreamBufferKey(message);
     const existing = this.bufferedStreamTextMessages.get(key);
     if (existing) {
@@ -1027,12 +1027,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             }
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
-            contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
+            const prepared = await prepareFirstMessageWithSkillsIndex(contentToSend, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
               enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
             });
+            contentToSend = prepared.content;
           }
         }
 
@@ -1196,7 +1197,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
   private async handleFinishSignal(
     signal: IResponseMessage,
-    backend: AcpBackend,
+    backend: AcpBackendAll,
     options: { trackActiveTurn?: boolean } = {}
   ): Promise<boolean> {
     let shouldNotifyTurnCompleted = true;

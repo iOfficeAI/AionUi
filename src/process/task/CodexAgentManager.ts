@@ -292,10 +292,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
         // 注入智能助手的预设规则和 skills 索引（如果有）
         // Inject preset context and skills INDEX from smart assistant (if available)
-        processedContent = await prepareFirstMessageWithSkillsIndex(processedContent, {
+        const prepared = await prepareFirstMessageWithSkillsIndex(processedContent, {
           presetContext: this.options.presetContext,
           enabledSkills: this.options.enabledSkills,
         });
+        processedContent = prepared.content;
 
         const result = await this.agent.newSession(this.workspace, processedContent, this.selectedModel || undefined);
 

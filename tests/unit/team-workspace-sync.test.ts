@@ -40,7 +40,6 @@ vi.mock('@/common/utils/buildAgentConversationParams', () => ({
     extra: { teamId: p.extra?.teamId, workspace: p.workspace },
   })),
   getConversationTypeForBackend: vi.fn(() => 'claude'),
-  getConversationTypeForPreset: vi.fn(() => 'claude'),
 }));
 vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources: vi.fn().mockResolvedValue({ rules: '', enabledSkills: [] }),
@@ -146,7 +145,7 @@ function makeConversationService(autoWorkspace = '/auto/workspace/path'): IConve
 function makeLeadAgent(overrides: Partial<TeamAgent> = {}): Omit<TeamAgent, 'slotId'> {
   return {
     conversationId: '',
-    role: 'lead',
+    role: 'leader',
     agentType: 'claude',
     agentName: 'Leader',
     conversationType: 'acp',
@@ -315,7 +314,7 @@ describe('Case 2: addAgent — new member conversation gets leader workspace', (
 
     // 4. Verify the new conversation was created with the team workspace
     const createConversationCalls = (conversationService.createConversation as ReturnType<typeof vi.fn>).mock.calls;
-    // The last call is for the new member (first call was for the lead)
+    // The last call is for the new member (first call was for the leader)
     const lastCreateCall = createConversationCalls[createConversationCalls.length - 1][0] as {
       extra?: { workspace?: string };
     };
@@ -370,17 +369,17 @@ describe('Case 2: addAgent — new member conversation gets leader workspace', (
 });
 
 // ---------------------------------------------------------------------------
-// Case 3: buildRolePrompt — teamWorkspace is injected into the lead prompt
+// Case 3: buildRolePrompt — teamWorkspace is injected into the leader prompt
 // ---------------------------------------------------------------------------
 
 describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', () => {
-  it('lead prompt includes workspace path when teamWorkspace is provided', () => {
+  it('leader prompt includes workspace path when teamWorkspace is provided', () => {
     const WORKSPACE = '/projects/myproject';
     const result = buildRolePrompt({
       agent: {
         slotId: 'slot-lead',
         conversationId: 'conv-lead',
-        role: 'lead',
+        role: 'leader',
         agentType: 'claude',
         agentName: 'Leader',
         conversationType: 'acp',
@@ -396,12 +395,12 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
     expect(result).toContain('workspace');
   });
 
-  it('lead prompt does NOT contain workspace section when teamWorkspace is undefined', () => {
+  it('leader prompt does NOT contain workspace section when teamWorkspace is undefined', () => {
     const result = buildRolePrompt({
       agent: {
         slotId: 'slot-lead',
         conversationId: 'conv-lead',
-        role: 'lead',
+        role: 'leader',
         agentType: 'claude',
         agentName: 'Leader',
         conversationType: 'acp',
@@ -419,10 +418,10 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
 
   it('teammate prompt includes workspace path when teamWorkspace is provided', () => {
     const WORKSPACE = '/projects/myproject';
-    const lead: TeamAgent = {
+    const leader: TeamAgent = {
       slotId: 'slot-lead',
       conversationId: 'conv-lead',
-      role: 'lead',
+      role: 'leader',
       agentType: 'claude',
       agentName: 'Leader',
       conversationType: 'acp',
@@ -440,7 +439,7 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
       },
       mailboxMessages: [],
       tasks: [],
-      teammates: [lead],
+      teammates: [leader],
       teamWorkspace: WORKSPACE,
     });
 
@@ -456,12 +455,12 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
       name: 'WS Team',
       workspace: '/projects/shared',
       workspaceMode: 'shared',
-      leadAgentId: 'slot-lead',
+      leaderAgentId: 'slot-lead',
       agents: [
         {
           slotId: 'slot-lead',
           conversationId: 'conv-lead',
-          role: 'lead',
+          role: 'leader',
           agentType: 'claude',
           agentName: 'Leader',
           conversationType: 'acp',
@@ -485,12 +484,12 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
       name: 'Empty WS Team',
       workspace: '', // empty before back-fill
       workspaceMode: 'shared',
-      leadAgentId: 'slot-lead',
+      leaderAgentId: 'slot-lead',
       agents: [
         {
           slotId: 'slot-lead',
           conversationId: 'conv-lead',
-          role: 'lead',
+          role: 'leader',
           agentType: 'claude',
           agentName: 'Leader',
           conversationType: 'acp',

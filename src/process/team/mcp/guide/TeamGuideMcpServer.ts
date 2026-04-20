@@ -22,6 +22,7 @@ import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
+import { handleListModels } from '../modelListHandler';
 import { getDatabase } from '@process/services/database';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
 
@@ -92,39 +93,54 @@ export class TeamGuideMcpServer {
   // ── TCP connection handler ────────────────────────────────────────────────
 
   private handleTcpConnection(socket: net.Socket): void {
-    const reader = createTcpMessageReader(async (msg) => {
-      const request = msg as {
-        tool?: string;
-        args?: Record<string, unknown>;
-        auth_token?: string;
-        /** Backend type of the calling agent, injected by team-guide-mcp-stdio via AION_MCP_BACKEND env var */
-        backend?: string;
-        /** Conversation ID of the calling agent, used to reuse conversation as team leader */
-        conversation_id?: string;
-      };
+    const reader = createTcpMessageReader(
+      async (msg) => {
+        const request = msg as {
+          tool?: string;
+          args?: Record<string, unknown>;
+          auth_token?: string;
+          /** Backend type of the calling agent, injected by team-guide-mcp-stdio via AION_MCP_BACKEND env var */
+          backend?: string;
+          /** Conversation ID of the calling agent, used to reuse conversation as team leader */
+          conversation_id?: string;
+        };
 
-      if (request.auth_token !== this.authToken) {
-        writeTcpMessage(socket, { error: 'Unauthorized' });
+        if (request.auth_token !== this.authToken) {
+          writeTcpMessage(socket, { error: 'Unauthorized' });
+          socket.end();
+          return;
+        }
+
+        const toolName = request.tool ?? '';
+        const args = request.args ?? {};
+
+        try {
+          const result = await this.handleToolCall(toolName, args, request.backend, request.conversation_id);
+          writeTcpMessage(socket, { result });
+        } catch (err) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          writeTcpMessage(socket, { error: errMsg });
+        }
         socket.end();
-        return;
+      },
+      {
+        // Drop the connection on framing corruption — see TeamMcpServer.ts for rationale.
+        onError: (err) => {
+          console.warn(`[TeamGuideMcpServer] TCP framing error: ${err.message}`);
+          socket.destroy();
+        },
       }
-
-      const toolName = request.tool ?? '';
-      const args = request.args ?? {};
-
-      try {
-        const result = await this.handleToolCall(toolName, args, request.backend, request.conversation_id);
-        writeTcpMessage(socket, { result });
-      } catch (err) {
-        const errMsg = err instanceof Error ? err.message : String(err);
-        writeTcpMessage(socket, { error: errMsg });
-      }
-      socket.end();
-    });
+    );
 
     socket.on('data', reader);
     socket.on('error', () => {
       // Connection errors are expected (e.g., client disconnect)
+      socket.destroy();
+    });
+    socket.setTimeout(600_000);
+    socket.on('timeout', () => {
+      console.warn('[TeamGuideMcpServer] TCP socket idle timeout, destroying');
+      socket.destroy();
     });
   }
 
@@ -139,6 +155,8 @@ export class TeamGuideMcpServer {
     switch (toolName) {
       case 'aion_create_team':
         return this.handleCreateTeam(args, backend, callerConversationId);
+      case 'aion_list_models':
+        return handleListModels(args);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -186,7 +204,7 @@ export class TeamGuideMcpServer {
         {
           slotId: '',
           conversationId: callerConversationId || '',
-          role: 'lead',
+          role: 'leader',
           agentType,
           agentName: 'Leader',
           conversationType: getConversationTypeForBackend(agentType),
@@ -195,7 +213,7 @@ export class TeamGuideMcpServer {
       ],
     });
 
-    const leadAgent = team.agents.find((a) => a.role === 'lead');
+    const leadAgent = team.agents.find((a) => a.role === 'leader');
     const route = `/team/${team.id}`;
 
     // Notify sidebar: the reused conversation now belongs to a team → filter it out.

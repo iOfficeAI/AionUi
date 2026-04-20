@@ -103,7 +103,7 @@ vi.mock('@process/utils/initAgent', () => ({
   resolveBuiltinCliPath: vi.fn(async (_backend: string | undefined, cliPath?: string) => cliPath),
 }));
 vi.mock('@process/task/agentUtils', () => ({
-  prepareFirstMessageWithSkillsIndex: vi.fn((x: string) => Promise.resolve(x)),
+  prepareFirstMessageWithSkillsIndex: vi.fn((x: string) => Promise.resolve({ content: x, loadedSkills: [] })),
 }));
 vi.mock('@/common/utils', () => ({ parseError: vi.fn((e: unknown) => e), uuid: vi.fn(() => 'test-uuid') }));
 vi.mock('@/common/chat/chatLib', () => ({ transformMessage: vi.fn(), uuid: vi.fn(() => 'uuid') }));

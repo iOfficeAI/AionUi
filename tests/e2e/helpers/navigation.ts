@@ -15,7 +15,8 @@ export const ROUTES = {
     gemini: '#/settings/gemini',
     model: '#/settings/model',
     agent: '#/settings/agent',
-    tools: '#/settings/tools',
+    assistants: '#/settings/assistants',
+    capabilities: '#/settings/capabilities',
     display: '#/settings/display',
     webui: '#/settings/webui',
     system: '#/settings/system',
@@ -45,32 +46,78 @@ function isAlreadyAt(page: Page, hash: string): boolean {
   }
 }
 
-/** Navigate to a hash route and wait for the page to settle. */
+/**
+ * Navigate to a hash route via UI clicks.
+ *
+ * This app uses HashRouter with ProtectedLayout, so programmatic
+ * `window.location.assign` is unreliable when React Router hasn't
+ * initialised yet. Instead we click the Sider footer button and
+ * settings sider nav items — exactly like a user would.
+ */
 export async function navigateTo(page: Page, hash: string): Promise<void> {
-  // Guard against stale page references
   if (page.isClosed()) {
-    throw new Error('Cannot navigate: page is already closed. The page fixture should re-resolve the window.');
+    throw new Error('Cannot navigate: page is already closed.');
   }
 
-  // Skip navigation if already on the target route (big speed win)
   if (isAlreadyAt(page, hash)) {
     return;
   }
 
-  await page.evaluate((h) => window.location.assign(h), hash);
-  // Wait for the URL hash to actually reflect the target route before proceeding
-  try {
-    await page.waitForFunction((h) => window.location.hash === h, hash, { timeout: 10_000 });
-  } catch {
-    // Best-effort: continue if URL didn't update (e.g. auth redirect)
+  const currentHash = await page.evaluate(() => window.location.hash);
+  const isOnSettings = currentHash.includes('/settings/');
+  const targetIsSettings = hash.includes('/settings/');
+
+  if (!targetIsSettings) {
+    // Target is non-settings (guid, conversation, etc.)
+    if (isOnSettings) {
+      // Click the sider back button to leave settings
+      const siderBtn = page.locator('.sider-footer div').first();
+      await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
+      await siderBtn.click();
+      // Wait for hash to change away from settings
+      await page
+        .waitForFunction(() => !window.location.hash.includes('/settings/'), { timeout: 10_000 })
+        .catch(() => {});
+    }
+    // Programmatic navigation for non-settings targets.
+    // Always navigate when not already at the target (e.g. conversation → guid).
+    if (!isAlreadyAt(page, hash)) {
+      await page.evaluate((h) => window.location.assign(h), hash);
+      try {
+        await page.waitForFunction((h) => window.location.hash === h, hash, { timeout: 10_000 });
+      } catch {
+        /* best-effort */
+      }
+    }
+  } else {
+    // Target is a settings sub-page
+    if (!isOnSettings) {
+      // Click sider settings button to enter settings
+      const siderBtn = page.locator('.sider-footer div').first();
+      await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
+      await siderBtn.click();
+      await page
+        .waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 })
+        .catch(() => {});
+    }
+
+    // Extract the settings path segment (e.g. "assistants" from "#/settings/assistants")
+    const settingsPath = hash.replace(/^#\/settings\//, '');
+    if (!isAlreadyAt(page, hash)) {
+      const navItem = page.locator(`[data-settings-path="${settingsPath}"]`);
+      await navItem.waitFor({ state: 'visible', timeout: 10_000 });
+      await navItem.click();
+      await page
+        .waitForFunction((h) => window.location.hash.includes(h), `/settings/${settingsPath}`, { timeout: 10_000 })
+        .catch(() => {});
+    }
   }
-  // Give React a tick to begin re-rendering after hash change
-  await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))));
-  // Wait for body to have meaningful content (event-driven, no fixed sleep)
+
+  // Wait for body to have meaningful content
   try {
     await page.waitForFunction(() => (document.body.textContent?.length ?? 0) > 50, { timeout: 10_000 });
   } catch {
-    // Best-effort: if content doesn't appear, continue with the test
+    /* best-effort */
   }
 }
 
@@ -103,6 +150,11 @@ export async function goToGuid(page: Page): Promise<void> {
 /** Navigate to a settings tab. */
 export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> {
   await navigateWithRetry(page, ROUTES.settings[tab]);
+}
+
+/** Navigate to the assistant settings page. */
+export async function goToAssistantSettings(page: Page): Promise<void> {
+  await navigateWithRetry(page, ROUTES.settings.assistants);
 }
 
 /** Navigate to an extension-contributed settings tab by its ID. */

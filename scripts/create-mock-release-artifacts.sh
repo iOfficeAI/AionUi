@@ -9,7 +9,8 @@ mkdir -p "$ARTIFACTS_DIR/windows-build-x64"
 mkdir -p "$ARTIFACTS_DIR/windows-build-arm64"
 mkdir -p "$ARTIFACTS_DIR/macos-build-x64"
 mkdir -p "$ARTIFACTS_DIR/macos-build-arm64"
-mkdir -p "$ARTIFACTS_DIR/linux-build"
+mkdir -p "$ARTIFACTS_DIR/linux-build-x64"
+mkdir -p "$ARTIFACTS_DIR/linux-build-arm64"
 
 # Windows x64
 touch "$ARTIFACTS_DIR/windows-build-x64/AionUi-1.0.0-win-x64.exe"
@@ -59,17 +60,19 @@ files:
     size: 200000
 EOF
 
-# Linux
-touch "$ARTIFACTS_DIR/linux-build/AionUi-1.0.0.deb"
-touch "$ARTIFACTS_DIR/linux-build/AionUi-1.0.0-arm64.deb"
-cat > "$ARTIFACTS_DIR/linux-build/latest-linux.yml" <<'EOF'
+# Linux x64
+touch "$ARTIFACTS_DIR/linux-build-x64/AionUi-1.0.0.deb"
+cat > "$ARTIFACTS_DIR/linux-build-x64/latest-linux.yml" <<'EOF'
 version: 1.0.0
 files:
   - url: AionUi-1.0.0.deb
     sha512: fake-sha512-linux
     size: 300000
 EOF
-cat > "$ARTIFACTS_DIR/linux-build/latest-linux-arm64.yml" <<'EOF'
+
+# Linux arm64
+touch "$ARTIFACTS_DIR/linux-build-arm64/AionUi-1.0.0-arm64.deb"
+cat > "$ARTIFACTS_DIR/linux-build-arm64/latest-linux-arm64.yml" <<'EOF'
 version: 1.0.0
 files:
   - url: AionUi-1.0.0-arm64.deb

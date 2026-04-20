@@ -5,8 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
+import type { AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
@@ -52,6 +51,9 @@ export type GuidAgentSelectionResult = {
   ) => Promise<string | undefined>;
   resolvePresetAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string;
   resolveEnabledSkills: (
+    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+  ) => string[] | undefined;
+  resolveDisabledBuiltinSkills: (
     agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
   ) => string[] | undefined;
   isMainAgentAvailable: (agentType: string) => boolean;
@@ -146,7 +148,7 @@ export const useGuidAgentSelection = ({
       } else if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom') {
         void ConfigStorage.get('acp.config')
           .then((config) => {
-            const backendConfig = config?.[agentKey as AcpBackend] || {};
+            const backendConfig = config?.[agentKey as AgentBackend] || {};
             return ConfigStorage.set('acp.config', {
               ...config,
               [agentKey]: {
@@ -181,8 +183,13 @@ export const useGuidAgentSelection = ({
     availableCustomAgentIds,
   });
 
-  const { resolvePresetRulesAndSkills, resolvePresetContext, resolvePresetAgentType, resolveEnabledSkills } =
-    usePresetAssistantResolver({ customAgents, localeKey });
+  const {
+    resolvePresetRulesAndSkills,
+    resolvePresetContext,
+    resolvePresetAgentType,
+    resolveEnabledSkills,
+    resolveDisabledBuiltinSkills,
+  } = usePresetAssistantResolver({ customAgents, localeKey });
 
   const { isMainAgentAvailable, getAvailableFallbackAgent, getEffectiveAgentType } = useAgentAvailability({
     modelList,
@@ -256,10 +263,7 @@ export const useGuidAgentSelection = ({
     if (!currentConfigBackendKey) {
       return undefined;
     }
-    if (Object.prototype.hasOwnProperty.call(ACP_BACKENDS_ALL, currentConfigBackendKey)) {
-      return currentConfigBackendKey as AcpBackend;
-    }
-    return undefined;
+    return currentConfigBackendKey as AgentBackend;
   }, [currentConfigBackendKey]);
   const currentAcpCachedConfigOptions = useMemo(() => {
     if (!currentConfigBackendKey) {
@@ -462,7 +466,7 @@ export const useGuidAgentSelection = ({
     void ConfigStorage.get('acp.config')
       .then((config) => {
         if (cancelled) return;
-        const preferred = (config?.[backend as AcpBackend] as Record<string, unknown>)?.preferredModelId as
+        const preferred = (config?.[backend as AgentBackend] as Record<string, unknown>)?.preferredModelId as
           | string
           | undefined;
         if (preferred) {
@@ -495,7 +499,7 @@ export const useGuidAgentSelection = ({
       currentConfigBackendKey === 'aionrs'
         ? ConfigStorage.get('aionrs.config').then((config) => config?.preferredConfigOptions || {})
         : ConfigStorage.get('acp.config').then(
-            (config) => config?.[currentConfigBackendKey as AcpBackend]?.preferredConfigOptions || {}
+            (config) => config?.[currentConfigBackendKey as AgentBackend]?.preferredConfigOptions || {}
           );
 
     loadPreferredConfigOptions
@@ -546,7 +550,7 @@ export const useGuidAgentSelection = ({
           preferred = config?.preferredMode;
         } else {
           const config = await ConfigStorage.get('acp.config');
-          const backendConfig = config?.[configKey as AcpBackend] as Record<string, unknown> | undefined;
+          const backendConfig = config?.[configKey as AgentBackend] as Record<string, unknown> | undefined;
           preferred = backendConfig?.preferredMode as string | undefined;
           yoloMode = (backendConfig?.yoloMode as boolean) ?? false;
         }
@@ -652,6 +656,7 @@ export const useGuidAgentSelection = ({
     resolvePresetContext,
     resolvePresetAgentType,
     resolveEnabledSkills,
+    resolveDisabledBuiltinSkills,
     isMainAgentAvailable,
     getAvailableFallbackAgent,
     getEffectiveAgentType,

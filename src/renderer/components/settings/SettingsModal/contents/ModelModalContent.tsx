@@ -80,8 +80,9 @@ const getProviderState = (platform: IProvider): { checked: boolean; indeterminat
     return { checked: true, indeterminate: false };
   }
 
-  const enabledCount = platform.model.filter((model) => platform.modelEnabled?.[model] !== false).length;
-  const totalCount = platform.model.length;
+  const models = platform.model ?? [];
+  const enabledCount = models.filter((model) => platform.modelEnabled?.[model] !== false).length;
+  const totalCount = models.length;
 
   if (enabledCount === 0) {
     return { checked: false, indeterminate: false }; // 全不选
@@ -292,7 +293,7 @@ const ModelModalContent: React.FC = () => {
   };
 
   const removePlatform = (id: string) => {
-    const newData = data.filter((item: IProvider) => item.id !== id);
+    const newData = (data ?? []).filter((item: IProvider) => item.id !== id);
     saveModelConfig(newData);
   };
 
@@ -303,7 +304,7 @@ const ModelModalContent: React.FC = () => {
 
     // 批量更新所有模型状态
     const modelEnabled: Record<string, boolean> = {};
-    platform.model.forEach((model) => {
+    (platform.model ?? []).forEach((model) => {
       modelEnabled[model] = newState;
     });
 
@@ -838,7 +839,7 @@ const ModelModalContent: React.FC = () => {
                               className='cursor-pointer hover:text-t-primary transition-colors'
                               onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
                             >
-                              {t('settings.modelCount')}（{platform.model.length}）
+                              {t('settings.modelCount')}（{(platform.model ?? []).length}）
                             </span>
                             <span className='mx-6px'>|</span>
                             <span
@@ -849,7 +850,7 @@ const ModelModalContent: React.FC = () => {
                             </span>
                           </span>
                           <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {platform.model.length} / {getApiKeyCount(platform.apiKey)}
+                            {(platform.model ?? []).length} / {getApiKeyCount(platform.apiKey)}
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch
@@ -885,7 +886,7 @@ const ModelModalContent: React.FC = () => {
                       </div>
                     }
                   >
-                    {platform.model.map((model: string, index: number, arr: string[]) => {
+                    {(platform.model ?? []).map((model: string, index: number, arr: string[]) => {
                       const isNewApiProvider = isNewApiPlatform(platform.platform);
                       const modelProtocol = platform.modelProtocols?.[model] || 'openai';
                       const modelHealth = platform.modelHealth?.[model];

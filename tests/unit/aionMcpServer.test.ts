@@ -20,6 +20,19 @@ const { mockDeepLinkEmit, mockListChangedEmit } = vi.hoisted(() => ({
   mockListChangedEmit: vi.fn(),
 }));
 
+const makeCachedInitEntry = () => ({
+  protocolVersion: 1,
+  capabilities: {
+    loadSession: false,
+    promptCapabilities: { image: false, audio: false, embeddedContext: false },
+    mcpCapabilities: { stdio: true, http: false, sse: false },
+    sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+    _meta: {},
+  },
+  agentInfo: null,
+  authMethods: [],
+});
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     deepLink: {
@@ -40,19 +53,7 @@ vi.mock('../../src/process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
-        const makeEntry = () => ({
-          protocolVersion: 1,
-          capabilities: {
-            loadSession: false,
-            promptCapabilities: { image: false, audio: false, embeddedContext: false },
-            mcpCapabilities: { stdio: true, http: false, sse: false },
-            sessionCapabilities: { fork: null, resume: null, list: null, close: null },
-            _meta: {},
-          },
-          agentInfo: null,
-          authMethods: [],
-        });
-        return { claude: makeEntry(), codex: makeEntry() };
+        return { claude: makeCachedInitEntry(), codex: makeCachedInitEntry() };
       }
       return null;
     }),
@@ -79,6 +80,7 @@ function makeTeamSessionService() {
 // ------------------------------------------------------------------
 
 import { TeamGuideMcpServer } from '../../src/process/team/mcp/guide/TeamGuideMcpServer';
+import { MAX_MCP_MESSAGE_SIZE } from '../../src/process/team/mcp/tcpHelpers';
 
 // ------------------------------------------------------------------
 // Helpers
@@ -202,6 +204,54 @@ describe('TeamGuideMcpServer auth token', () => {
     })) as Record<string, unknown>;
     expect(response.error).toBe('Unauthorized');
   });
+
+  it('destroys oversize framed requests immediately and still accepts the next valid request', async () => {
+    mockCreateTeam.mockResolvedValue({
+      id: 'team-oversize-check',
+      name: 'oversize recovery check',
+      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader' }],
+    });
+    mockGetOrStartSession.mockResolvedValue({
+      sendMessageToAgent: mockSendMessageToAgent,
+    });
+    mockSendMessageToAgent.mockResolvedValue(undefined);
+
+    await new Promise<void>((resolve, reject) => {
+      let settled = false;
+      const socket = new net.Socket();
+
+      const finish = (error?: Error) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        if (error) reject(error);
+        else resolve();
+      };
+
+      const timer = setTimeout(() => finish(new Error('Oversize guide MCP frame was not closed promptly')), 500);
+
+      socket.connect(getPort(service), '127.0.0.1', () => {
+        const header = Buffer.alloc(4);
+        header.writeUInt32BE(MAX_MCP_MESSAGE_SIZE + 1, 0);
+        socket.write(header);
+      });
+
+      socket.once('data', (chunk) => {
+        finish(new Error(`Expected disconnect for oversize guide frame, got data: ${chunk.toString('hex')}`));
+      });
+      socket.once('close', () => finish());
+      socket.once('error', () => finish());
+    });
+
+    const response = (await tcpRequest(getPort(service), {
+      tool: 'aion_create_team',
+      args: { summary: 'oversize recovery check' },
+      auth_token: getAuthToken(service),
+    })) as Record<string, unknown>;
+
+    expect(response.error).toBeUndefined();
+    expect(String(response.result)).toContain('team_created');
+  });
 });
 
 // ------------------------------------------------------------------
@@ -219,7 +269,7 @@ describe('aion_create_team handler', () => {
     mockCreateTeam.mockResolvedValue({
       id: 'team-abc-123',
       name: '电商网站全栈开发',
-      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'lead' }],
+      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader' }],
     });
 
     mockGetOrStartSession.mockResolvedValue({
@@ -271,7 +321,7 @@ describe('aion_create_team handler', () => {
     expect(mockCreateTeam).toHaveBeenCalledWith(expect.objectContaining({ name: '测试团队' }));
   });
 
-  it('sends summary as first message to lead agent (async)', async () => {
+  it('sends summary as first message to leader agent (async)', async () => {
     await tcpRequest(getPort(service), {
       tool: 'aion_create_team',
       args: { summary: '构建电商网站', name: '电商' },

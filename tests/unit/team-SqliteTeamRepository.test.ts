@@ -25,12 +25,12 @@ function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
     name: 'Test Team',
     workspace: '/tmp/workspace',
     workspaceMode: 'shared',
-    leadAgentId: 'slot-1',
+    leaderAgentId: 'slot-1',
     agents: [
       {
         slotId: 'slot-1',
         conversationId: 'conv-1',
-        role: 'lead',
+        role: 'leader',
         agentType: 'acp',
         agentName: 'Claude',
         conversationType: 'acp',
@@ -72,7 +72,7 @@ describeOrSkip('SqliteTeamRepository', () => {
     expect(found).not.toBeNull();
     expect(found!.name).toBe('Test Team');
     expect(found!.agents).toHaveLength(1);
-    expect(found!.agents[0].role).toBe('lead');
+    expect(found!.agents[0].role).toBe('leader');
   });
 
   it('lists teams by userId', async () => {

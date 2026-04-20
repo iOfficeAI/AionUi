@@ -107,7 +107,7 @@ const PRESET_AGENT_ID = 'cowork';
 const AVAILABLE_AGENTS: AvailableAgent[] = [
   { backend: 'gemini', name: 'Gemini' },
   { backend: 'claude', name: 'Claude' },
-  { backend: 'custom', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
+  { backend: 'claude', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
 ];
 
 const CUSTOM_AGENTS: AcpBackendConfig[] = [
@@ -162,7 +162,7 @@ function setupMocks(overrides?: {
     switch (key) {
       case 'acp.cachedModels':
         return cachedModels;
-      case 'acp.customAgents':
+      case 'assistants':
         return CUSTOM_AGENTS;
       case 'guid.lastSelectedAgent':
         return null;
@@ -346,6 +346,43 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
       expect(savedConfig).toHaveProperty('claude');
       expect((savedConfig.claude as Record<string, unknown>).preferredMode).toBe('bypassPermissions');
     });
+  });
+
+  it('keeps the saved preset selection; reset is handled by GuidPage', async () => {
+    configStorageMock.get.mockImplementation(async (key: string) => {
+      switch (key) {
+        case 'acp.cachedModels':
+          return { claude: CLAUDE_CACHED_MODEL };
+        case 'acp.customAgents':
+          return CUSTOM_AGENTS;
+        case 'guid.lastSelectedAgent':
+          return `custom:${PRESET_AGENT_ID}`;
+        case 'acp.config':
+        case 'gemini.config':
+        case 'gemini.defaultModel':
+        case 'aionrs.config':
+        case 'aionrs.defaultModel':
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    const { result, rerender } = renderHook(
+      ({ resetAssistant, locationKey }: { resetAssistant?: boolean; locationKey?: string }) =>
+        useGuidAgentSelection({ ...hookOptions, resetAssistant, locationKey }),
+      { initialProps: { resetAssistant: false, locationKey: 'initial' } }
+    );
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+      expect(result.current.selectedAgentKey).toBe(`custom:${PRESET_AGENT_ID}`);
+    });
+
+    rerender({ resetAssistant: true, locationKey: 'new-chat' });
+
+    expect(result.current.selectedAgentKey).toBe(`custom:${PRESET_AGENT_ID}`);
+    expect(configStorageMock.set).not.toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
   });
 
   it('uses default codex models when codex has no cached list', async () => {

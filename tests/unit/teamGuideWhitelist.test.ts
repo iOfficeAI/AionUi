@@ -53,6 +53,10 @@ describe('team guide MCP injection capability check', () => {
     it('injects for gemini backend (known team-capable)', async () => {
       expect(await shouldInjectTeamGuideMcp('gemini')).toBe(true);
     });
+
+    it('injects for aionrs backend (known team-capable)', async () => {
+      expect(await shouldInjectTeamGuideMcp('aionrs')).toBe(true);
+    });
   });
 
   describe('blocked backends — should NOT inject team guide MCP', () => {
@@ -62,14 +66,6 @@ describe('team guide MCP injection capability check', () => {
 
     it('does not inject for opencode backend (no cached init result)', async () => {
       expect(await shouldInjectTeamGuideMcp('opencode')).toBe(false);
-    });
-
-    it('does not inject for iflow backend (no cached init result)', async () => {
-      expect(await shouldInjectTeamGuideMcp('iflow')).toBe(false);
-    });
-
-    it('does not inject for aionrs backend (no cached init result)', async () => {
-      expect(await shouldInjectTeamGuideMcp('aionrs')).toBe(false);
     });
 
     it('does not inject for cursor backend (no cached init result)', async () => {

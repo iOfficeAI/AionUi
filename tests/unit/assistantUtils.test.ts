@@ -38,7 +38,7 @@ vi.mock('@/renderer/utils/platform', () => ({
   },
 }));
 
-import type { AssistantListItem } from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
+import type { AssistantListItem } from '@/renderer/pages/settings/AssistantSettings/types';
 import {
   filterAssistants,
   getAssistantSource,
@@ -47,7 +47,7 @@ import {
   isExtensionAssistant,
   normalizeExtensionAssistants,
   sortAssistants,
-} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/assistantUtils';
+} from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 
 // Helper to create a minimal AssistantListItem
 function makeAssistant(overrides: Partial<AssistantListItem> & { id: string; name: string }): AssistantListItem {

@@ -7,9 +7,11 @@
  * 1. Verify CLI command exists (which/where)
  * 2. Spawn CLI and send ACP initialize request
  */
-import { execFileSync } from 'child_process';
-import { AcpConnection } from '@process/agent/acp/AcpConnection';
-import * as os from 'os';
+import { execFileSync } from 'node:child_process';
+import * as os from 'node:os';
+import { ProcessAcpClient } from '@process/acp/infra/ProcessAcpClient';
+import { spawnGenericBackend } from '@process/agent/acp/acpConnectors';
+import { noopProtocolHandlers } from '@process/acp/types';
 
 type TestResult = {
   success: boolean;
@@ -43,12 +45,15 @@ export async function testCustomAgentConnection(params: {
   }
 
   // Step 2: Spawn CLI and send ACP initialize
-  const connection = new AcpConnection();
   const tempDir = os.tmpdir();
+  const client = new ProcessAcpClient(
+    () => spawnGenericBackend('custom', command, tempDir, acpArgs, env).then((r) => r.child),
+    { backend: 'custom', handlers: noopProtocolHandlers }
+  );
 
   try {
-    await connection.connect('custom', command, tempDir, acpArgs, env);
-    await connection.disconnect();
+    await client.start();
+    await client.close();
     return {
       success: true,
       msg: 'Connection successful',
@@ -56,9 +61,9 @@ export async function testCustomAgentConnection(params: {
     };
   } catch (error) {
     try {
-      await connection.disconnect();
+      await client.close();
     } catch {
-      // Ignore disconnect errors
+      // Ignore close errors
     }
     const errorMsg = error instanceof Error ? error.message : String(error);
     return {

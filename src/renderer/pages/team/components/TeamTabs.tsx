@@ -15,7 +15,7 @@ type TeamTabViewProps = {
   agentType: string;
   isActive: boolean;
   status: TeammateStatus;
-  isLead: boolean;
+  isLeader: boolean;
   /** Number of pending permission confirmations for this agent */
   pendingCount?: number;
   onSwitch: (slotId: string) => void;
@@ -33,7 +33,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   agentType,
   isActive,
   status,
-  isLead,
+  isLeader,
   pendingCount = 0,
   onSwitch,
   onRename,
@@ -89,7 +89,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 
   return (
     <div
-      draggable={!isLead}
+      draggable={!isLeader}
       className={`relative group flex items-center gap-8px px-12px h-full max-w-240px cursor-pointer transition-all duration-200 shrink-0 border-r border-[color:var(--border-base)] ${
         isActive
           ? 'bg-[color:var(--color-primary-1)] text-[color:var(--color-text-1)] border-t-2 border-t-solid border-t-[color:var(--color-primary-6)]'
@@ -135,7 +135,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <TeamAgentIdentity
             agentName={agentName}
             agentType={agentType}
-            isLead={isLead}
+            isLeader={isLeader}
             className='min-w-0 flex-1'
             logoClassName={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
             nameClassName='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none'
@@ -151,7 +151,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <Edit theme='outline' size='12' fill='currentColor' />
         </span>
       )}
-      {!editing && !isLead && onRemove && (
+      {!editing && !isLeader && onRemove && (
         <span
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)]'
           onClick={(e) => {
@@ -167,7 +167,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 };
 
 type TeamTabsProps = {
-  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
+  onAddAgent: (data: { agentName: string; agentKey: string; model?: string }) => void;
   onTabClick?: (slotId: string) => void;
   /** Pending permission confirmation counts per slot ID */
   pendingCounts?: Map<string, number>;
@@ -251,7 +251,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent: _onAddAgent, onTabClick
                 agentType={agent.agentType}
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
-                isLead={agent.role === 'lead'}
+                isLeader={agent.role === 'leader'}
                 pendingCount={pendingCounts?.get(agent.slotId) ?? 0}
                 onSwitch={(slotId) => {
                   switchTab(slotId);

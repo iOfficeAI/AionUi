@@ -1078,6 +1078,7 @@ export function initFsBridge(): void {
         description: string;
         location: string;
         isCustom: boolean;
+        source: 'builtin' | 'custom' | 'extension';
       }> = [];
 
       // 辅助函数：从目录读取 skills
@@ -1109,6 +1110,7 @@ export function initFsBridge(): void {
                     description: descMatch ? descMatch[1].trim() : '',
                     location: skillMdPath,
                     isCustom: isCustomDir,
+                    source: isCustomDir ? 'custom' : 'builtin',
                   });
                 }
               }
@@ -1134,7 +1136,16 @@ export function initFsBridge(): void {
       const userCount = skills.length - userCountBefore;
 
       // Deduplicate: if a custom skill has the same name as a builtin, keep builtin
-      const skillMap = new Map<string, { name: string; description: string; location: string; isCustom: boolean }>();
+      const skillMap = new Map<
+        string,
+        {
+          name: string;
+          description: string;
+          location: string;
+          isCustom: boolean;
+          source: 'builtin' | 'custom' | 'extension';
+        }
+      >();
       for (const skill of skills) {
         const existing = skillMap.get(skill.name);
         if (!existing || !skill.isCustom) {

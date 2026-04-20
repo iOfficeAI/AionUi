@@ -63,14 +63,9 @@ test.describe('ACP Conversation Lifecycle', () => {
       // Verify status badge is visible
       await expect(page.locator(AGENT_STATUS_MESSAGE).first()).toBeVisible();
 
-      // Delete conversation (cleanup + verify IPC works)
+      // Delete conversation via UI (sidebar menu → confirm modal → auto-navigates away)
       const deleted = await deleteConversation(page, conversationId);
       expect(deleted).toBe(true);
-
-      // Should navigate away after deletion
-      await page.waitForFunction(() => !window.location.hash.includes('/conversation/'), {
-        timeout: 10_000,
-      });
     });
   }
 });

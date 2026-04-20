@@ -8,16 +8,16 @@
 
 ## 2. 现有架构关键点
 
-| 层次              | 文件                                                           | 职责                                                              |
-| ----------------- | -------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 类型定义          | `src/process/task/agentTypes.ts`                               | `AgentType` 联合类型（gemini/acp/codex/openclaw-gateway/nanobot） |
-| 管理接口          | `src/process/task/IAgentManager.ts`                            | `sendMessage`, `stop`, `confirm`, `kill`                          |
-| 基类              | `src/process/task/BaseAgentManager.ts`                         | 继承 `ForkTask`，管理确认流程和 yolo 模式                         |
-| 工厂              | `src/process/task/IAgentFactory.ts`                            | 按 `AgentType` 注册/创建 `IAgentManager`                          |
-| 会话存储          | `src/common/config/storage.ts`                                 | `TChatConversation` 联合类型，每种 Agent 有不同的 `extra` 字段    |
-| 自定义 Agent 存储 | `ConfigStorage['acp.customAgents']`                            | `AcpBackendConfig[]`，当前仅支持本地 CLI 自定义                   |
-| 数据库            | `src/process/services/database/schema.ts`                      | `conversations` 表，`type` 字段限定为 5 种                        |
-| UI 设置           | `src/renderer/pages/settings/AgentSettings/CustomAcpAgent.tsx` | 自定义 Agent 增删改查                                             |
+| 层次         | 文件                                                           | 职责                                                              |
+| ------------ | -------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 类型定义     | `src/process/task/agentTypes.ts`                               | `AgentType` 联合类型（gemini/acp/codex/openclaw-gateway/nanobot） |
+| 管理接口     | `src/process/task/IAgentManager.ts`                            | `sendMessage`, `stop`, `confirm`, `kill`                          |
+| 基类         | `src/process/task/BaseAgentManager.ts`                         | 继承 `ForkTask`，管理确认流程和 yolo 模式                         |
+| 工厂         | `src/process/task/IAgentFactory.ts`                            | 按 `AgentType` 注册/创建 `IAgentManager`                          |
+| 会话存储     | `src/common/config/storage.ts`                                 | `TChatConversation` 联合类型，每种 Agent 有不同的 `extra` 字段    |
+| 助手配置存储 | `ConfigStorage['assistants']`                                  | `AcpBackendConfig[]`，当前仅支持本地 CLI 自定义                   |
+| 数据库       | `src/process/services/database/schema.ts`                      | `conversations` 表，`type` 字段限定为 5 种                        |
+| UI 设置      | `src/renderer/pages/settings/AgentSettings/CustomAcpAgent.tsx` | 自定义 Agent 增删改查                                             |
 
 ## 3. 需求定义
 

@@ -5,7 +5,7 @@
  */
 
 import type { IProvider } from '@/common/config/storage';
-import type { AcpBackend, AvailableAgent, EffectiveAgentInfo, PresetAgentType } from '../types';
+import type { AcpBackend, AvailableAgent, EffectiveAgentInfo } from '../types';
 import { useCallback } from 'react';
 
 type UseAgentAvailabilityOptions = {
@@ -41,16 +41,6 @@ export const useAgentAvailability = ({
     [modelList, availableAgents, isGoogleAuth]
   );
 
-  const getAvailableFallbackAgent = useCallback((): string | null => {
-    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'qwen', 'codex', 'codebuddy', 'opencode'];
-    for (const agentType of fallbackOrder) {
-      if (isMainAgentAvailable(agentType)) {
-        return agentType;
-      }
-    }
-    return null;
-  }, [isMainAgentAvailable]);
-
   const getEffectiveAgentType = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): EffectiveAgentInfo => {
       const originalType = resolvePresetAgentType(agentInfo);
@@ -59,6 +49,14 @@ export const useAgentAvailability = ({
     },
     [resolvePresetAgentType, isMainAgentAvailable]
   );
+
+  const getAvailableFallbackAgent = useCallback((): string | null => {
+    if (isMainAgentAvailable('gemini')) {
+      return 'gemini';
+    }
+
+    return availableAgents?.find((agent) => isMainAgentAvailable(agent.backend))?.backend ?? null;
+  }, [availableAgents, isMainAgentAvailable]);
 
   return {
     isMainAgentAvailable,

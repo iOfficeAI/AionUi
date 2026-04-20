@@ -1,10 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { Message } from '@arco-design/web-react';
-import type {
-  ExternalSource,
-  PendingSkill,
-  SkillInfo,
-} from '@/renderer/pages/settings/AgentSettings/AssistantManagement/types';
+import type { ExternalSource, PendingSkill, SkillInfo } from '@/renderer/pages/settings/AssistantSettings/types';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 

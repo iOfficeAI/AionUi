@@ -20,6 +20,7 @@ type AgentPillBarProps = {
   selectedAgentKey: string;
   getAgentKey: (agent: { backend: AcpBackend; customAgentId?: string }) => string;
   onSelectAgent: (key: string) => void;
+  suppressSelectionAnimation?: boolean;
 };
 
 const AgentPillBar: React.FC<AgentPillBarProps> = ({
@@ -27,6 +28,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
   selectedAgentKey,
   getAgentKey,
   onSelectAgent,
+  suppressSelectionAnimation = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -54,9 +56,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
         }}
       >
         {availableAgents
-          .filter(
-            (agent) => agent.backend !== 'custom' || agent.isExtension || (agent.customAgentId && !agent.isPreset)
-          )
+          .filter((agent) => !agent.isPreset)
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
@@ -83,9 +83,10 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                   className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
                   style={
                     isSelected
-                      ? isMobile
-                        ? { animation: 'none', transition: 'opacity 0.2s ease, background-color 0.2s ease' }
-                        : undefined
+                      ? {
+                          ...(isMobile ? { transition: 'opacity 0.2s ease, background-color 0.2s ease' } : undefined),
+                          ...(isMobile || suppressSelectionAnimation ? { animation: 'none' } : undefined),
+                        }
                       : { transition: 'opacity 0.2s ease' }
                   }
                   onClick={() => onSelectAgent(getAgentKey(agent))}

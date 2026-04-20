@@ -34,7 +34,6 @@ export interface AgentModeOption {
  * - Qwen: ACP session/set_mode returns success but does not enforce plan mode behavior.
  *   Plan mode disabled until upstream fix. See https://github.com/QwenLM/qwen-code/issues/1806
  * - OpenCode: plan/build modes via ACP session/set_mode (no yolo support)
- * - iFlow: smart/yolo/default/plan modes via ACP session/set_mode (verified)
  * - Gemini: supports default/autoEdit/yolo (auto-approve at manager layer, not via ACP)
  * - Codex: default modes stay sandboxed; a dedicated unsafe full-auto mode disables the sandbox
  * - Goose: mode set at startup only, not during session
@@ -57,12 +56,6 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   opencode: [
     { value: 'build', label: 'Build' },
     { value: 'plan', label: 'Plan' },
-  ],
-  iflow: [
-    { value: 'default', label: 'Default' },
-    { value: 'smart', label: 'Smart' },
-    { value: 'plan', label: 'Plan' },
-    { value: 'yolo', label: 'YOLO' },
   ],
   gemini: [
     { value: 'default', label: 'Default' },
@@ -170,25 +163,6 @@ export function supportsModeSwitch(backend: string | undefined): boolean {
 
 /**
  * Full-auto mode value per backend.
- * Used by cron jobs to run without permission prompts.
+ * Re-exported from common for backward compatibility.
  */
-const FULL_AUTO_MODE: Record<string, string> = {
-  claude: 'bypassPermissions',
-  qwen: 'yolo',
-  opencode: 'build',
-  iflow: 'yolo',
-  gemini: 'yolo',
-  aionrs: 'yolo',
-  codex: CODEX_MODE_FULL_AUTO,
-  cursor: 'agent',
-  snow: 'yolo',
-};
-
-/**
- * Get the full-auto mode value for a given backend.
- * Falls back to 'yolo' for unknown backends.
- */
-export function getFullAutoMode(backend: string | undefined): string {
-  if (!backend) return 'yolo';
-  return FULL_AUTO_MODE[backend] || 'yolo';
-}
+export { getFullAutoMode } from '@/common/types/agentModes';

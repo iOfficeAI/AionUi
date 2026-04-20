@@ -12,6 +12,7 @@ import { useCronJobs } from '@/renderer/pages/cron/useCronJobs';
 import type { TFunction } from 'i18next';
 import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSWRConfig } from 'swr';
 import type { MessageApi } from '../types';
 import { collectFilePaths } from '../utils/treeHelpers';
 
@@ -21,6 +22,7 @@ type UseWorkspaceMigrationParams = {
   messageApi: MessageApi;
   t: TFunction;
   isTemporaryWorkspace: boolean;
+  teamId?: string;
 };
 
 /**
@@ -33,8 +35,10 @@ export function useWorkspaceMigration({
   messageApi,
   t,
   isTemporaryWorkspace,
+  teamId,
 }: UseWorkspaceMigrationParams) {
   const navigate = useNavigate();
+  const { mutate: globalMutate } = useSWRConfig();
 
   // Migration modal state
   const [showMigrationModal, setShowMigrationModal] = useState(false);
@@ -71,7 +75,7 @@ export function useWorkspaceMigration({
     if (isElectronDesktop()) {
       // Electron: use native file dialog
       try {
-        const openFiles = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
+        const openFiles = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
         if (openFiles && openFiles.length > 0) {
           setSelectedTargetPath(openFiles[0]);
         }
@@ -91,14 +95,6 @@ export function useWorkspaceMigration({
       setMigrationLoading(true);
 
       try {
-        // Get current conversation data
-        const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
-        const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
-
-        if (!currentConversation) {
-          throw new Error('Current conversation not found');
-        }
-
         // Get all files from the workspace
         const workspaceFiles = await ipcBridge.conversation.getWorkspace.invoke({
           conversation_id,
@@ -121,44 +117,69 @@ export function useWorkspaceMigration({
           }
         }
 
-        // Create new conversation with the new workspace
-        const newId = uuid();
-        const newConversation = {
-          ...currentConversation,
-          id: newId,
-          name: currentConversation.name,
-          createTime: Date.now(),
-          modifyTime: Date.now(),
-          extra: {
-            ...currentConversation.extra,
-            workspace: targetWorkspace,
-            customWorkspace: true,
-          },
-        } as typeof currentConversation;
+        if (teamId) {
+          // Team mode: update workspace in-place for team + all agent conversations
+          await ipcBridge.team.updateWorkspace.invoke({ teamId, workspace: targetWorkspace });
 
-        await ipcBridge.conversation.createWithConversation.invoke({
-          conversation: newConversation,
-          sourceConversationId: conversation_id,
-          migrateCron,
-        });
+          // Close modal and reset state
+          setShowMigrationModal(false);
+          setShowCronMigrationPrompt(false);
+          setSelectedTargetPath('');
+          setMigrationLoading(false);
 
-        // Close modal and reset state
-        setShowMigrationModal(false);
-        setShowCronMigrationPrompt(false);
-        setSelectedTargetPath('');
-        setMigrationLoading(false);
+          // Revalidate SWR caches so TeamPage re-renders with the new workspace
+          await globalMutate(`team/${teamId}`);
+          await globalMutate((key) => Array.isArray(key) && key[0] === 'team-conversation', undefined, {
+            revalidate: true,
+          });
+          messageApi.success(t('conversation.workspace.migration.success'));
+        } else {
+          // Single conversation mode: create new conversation + delete old one
+          const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
+          const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
 
-        // Navigate to new conversation
-        void navigate(`/conversation/${newId}`);
-        emitter.emit('chat.history.refresh');
-        messageApi.success(t('conversation.workspace.migration.success'));
+          if (!currentConversation) {
+            throw new Error('Current conversation not found');
+          }
+
+          const newId = uuid();
+          const newConversation = {
+            ...currentConversation,
+            id: newId,
+            name: currentConversation.name,
+            createTime: Date.now(),
+            modifyTime: Date.now(),
+            extra: {
+              ...currentConversation.extra,
+              workspace: targetWorkspace,
+              customWorkspace: true,
+            },
+          } as typeof currentConversation;
+
+          await ipcBridge.conversation.createWithConversation.invoke({
+            conversation: newConversation,
+            sourceConversationId: conversation_id,
+            migrateCron,
+          });
+
+          // Close modal and reset state
+          setShowMigrationModal(false);
+          setShowCronMigrationPrompt(false);
+          setSelectedTargetPath('');
+          setMigrationLoading(false);
+
+          // Navigate to new conversation
+          void navigate(`/conversation/${newId}`);
+          emitter.emit('chat.history.refresh');
+          messageApi.success(t('conversation.workspace.migration.success'));
+        }
       } catch (error) {
         console.error('Failed to migrate workspace:', error);
         messageApi.error(t('conversation.workspace.migration.error'));
         setMigrationLoading(false);
       }
     },
-    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate]
+    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate, teamId, globalMutate]
   );
 
   const handleMigrationConfirm = useCallback(async () => {
@@ -178,20 +199,21 @@ export function useWorkspaceMigration({
       return;
     }
 
-    // Check if jobs are still loading
-    if (cronLoading) {
-      messageApi.info(t('common.loading'));
-      return;
-    }
+    // In team mode, skip cron check — team conversations don't own cron jobs
+    if (!teamId) {
+      if (cronLoading) {
+        messageApi.info(t('common.loading'));
+        return;
+      }
 
-    // Check for cron jobs before migrating
-    if (jobs.length > 0) {
-      setShowCronMigrationPrompt(true);
-      return;
+      if (jobs.length > 0) {
+        setShowCronMigrationPrompt(true);
+        return;
+      }
     }
 
     await executeMigration(false);
-  }, [jobs, cronLoading, isTemporaryWorkspace, selectedTargetPath, workspace, t, messageApi, executeMigration]);
+  }, [jobs, cronLoading, isTemporaryWorkspace, selectedTargetPath, workspace, t, messageApi, executeMigration, teamId]);
 
   const handleCloseMigrationModal = useCallback(() => {
     if (!migrationLoading) {

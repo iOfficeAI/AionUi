@@ -5,7 +5,6 @@ import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
-  getConversationTypeForPreset,
 } from '@/common/utils/buildAgentConversationParams';
 import {
   loadPresetAssistantResources,
@@ -15,16 +14,16 @@ import type { ITeamRepository } from './repository/ITeamRepository';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
-import { ACP_ROUTED_PRESET_TYPES, type AcpBackendAll } from '@/common/types/acpTypes';
+import type { AgentBackend } from '@/common/types/acpTypes';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
-import os from 'os';
 import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
+import { hasGeminiOauthCreds } from './googleAuthCheck';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -46,17 +45,6 @@ export class TeamSessionService {
   private resolveWorkspace(workspace: string | undefined): string {
     if (workspace && workspace.trim().length > 0) return workspace;
     return '';
-  }
-
-  private async hasGeminiOauthCreds(): Promise<boolean> {
-    try {
-      const credsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
-      const content = await fs.readFile(credsPath, 'utf-8');
-      const creds = JSON.parse(content) as { access_token?: string; refresh_token?: string };
-      return Boolean(creds.access_token || creds.refresh_token);
-    } catch {
-      return false;
-    }
   }
 
   private createGoogleAuthGeminiModel(useModel: string): TProviderWithModel {
@@ -103,7 +91,7 @@ export class TeamSessionService {
       'id' in savedGeminiModel &&
       'useModel' in savedGeminiModel
     ) {
-      if (savedGeminiModel.id === GOOGLE_AUTH_PROVIDER_ID && (await this.hasGeminiOauthCreds())) {
+      if (savedGeminiModel.id === GOOGLE_AUTH_PROVIDER_ID && (await hasGeminiOauthCreds())) {
         return this.createGoogleAuthGeminiModel(savedGeminiModel.useModel);
       }
 
@@ -128,7 +116,7 @@ export class TeamSessionService {
       return buildProviderModel(geminiProvider, enabledModel || geminiProvider.model[0]);
     }
 
-    if (await this.hasGeminiOauthCreds()) {
+    if (await hasGeminiOauthCreds()) {
       const oauthModel =
         typeof savedGeminiModel === 'object' && 'useModel' in savedGeminiModel
           ? savedGeminiModel.useModel
@@ -169,9 +157,7 @@ export class TeamSessionService {
     presetAgentType?: string;
   }): Promise<TProviderWithModel> {
     const { backend, isPreset, presetAgentType } = params;
-    const type = isPreset
-      ? getConversationTypeForPreset(presetAgentType || backend)
-      : getConversationTypeForBackend(backend);
+    const type = getConversationTypeForBackend(isPreset ? presetAgentType || backend : backend);
 
     if (type === 'gemini') {
       try {
@@ -253,7 +239,9 @@ export class TeamSessionService {
     return '';
   }
 
-  private async loadPresetResources(customAgentId: string): Promise<{ rules?: string; enabledSkills?: string[] }> {
+  private async loadPresetResources(
+    customAgentId: string
+  ): Promise<{ rules?: string; enabledSkills?: string[]; excludeBuiltinSkills?: string[] }> {
     const language = await ProcessConfig.get('language');
     const localeKey = resolveLocaleKey(language || 'en-US');
     const deps: PresetAssistantResourceDeps = {
@@ -268,8 +256,12 @@ export class TeamSessionService {
         return fs.readFile(path.join(builtinDir, path.basename(fileName)), 'utf-8');
       },
       getEnabledSkills: async (assistantId) => {
-        const customAgents = await ProcessConfig.get('acp.customAgents');
+        const customAgents = await ProcessConfig.get('assistants');
         return customAgents?.find((agent) => agent.id === assistantId)?.enabledSkills;
+      },
+      getDisabledBuiltinSkills: async (assistantId) => {
+        const customAgents = await ProcessConfig.get('assistants');
+        return customAgents?.find((agent) => agent.id === assistantId)?.disabledBuiltinSkills;
       },
       warn: (message, error) => {
         console.warn(message, error);
@@ -280,6 +272,7 @@ export class TeamSessionService {
     return {
       rules: resources.rules,
       enabledSkills: resources.enabledSkills,
+      excludeBuiltinSkills: resources.disabledBuiltinSkills,
     };
   }
 
@@ -299,19 +292,27 @@ export class TeamSessionService {
     extra: Record<string, unknown>;
   }> {
     const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, isInheritedWorkspace } = params;
-    const backend = this.resolveBackend(agent.agentType, agents) as AcpBackendAll;
-    const isPreset = Boolean(
-      agent.customAgentId && (backend === 'gemini' || (ACP_ROUTED_PRESET_TYPES as readonly string[]).includes(backend))
-    );
+    const backend = this.resolveBackend(agent.agentType, agents) as AgentBackend;
+    // remote agents use customAgentId as remoteAgentId, not as a preset indicator
+    const isPreset = Boolean(agent.customAgentId) && backend !== 'remote';
     const preferredModelId =
-      getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined;
+      agent.model ||
+      (getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined);
     const presetResources =
       isPreset && agent.customAgentId ? await this.loadPresetResources(agent.customAgentId) : undefined;
-    const model = await this.resolveConversationModel({
+    let model = await this.resolveConversationModel({
       backend,
       isPreset,
       presetAgentType: isPreset ? backend : undefined,
     });
+
+    // Override useModel for Gemini/Aionrs when agent has an explicit model
+    if (agent.model) {
+      const type = getConversationTypeForBackend(backend);
+      if (type === 'gemini' || type === 'aionrs') {
+        model = { ...model, useModel: agent.model };
+      }
+    }
 
     return buildAgentConversationParams({
       backend,
@@ -395,22 +396,24 @@ export class TeamSessionService {
       presetAssistantId?: string;
       gateway?: { cliPath?: string };
       teamMcpStdioConfig?: { env?: Array<{ name?: string; value?: string }> };
+      currentModelId?: string;
     };
     const slotId = this.extractRecoveredSlotId(extra);
     const agentType = this.resolveRecoveredAgentType(conversation);
     if (!slotId || !agentType) return null;
 
-    const isLead = slotId === team.leadAgentId;
+    const isLeader = slotId === team.leaderAgentId;
     return {
       slotId,
       conversationId: conversation.id,
-      role: isLead ? 'lead' : 'teammate',
+      role: isLeader ? 'leader' : 'teammate',
       agentType,
-      agentName: this.resolveRecoveredAgentName(team, conversation, isLead),
+      agentName: this.resolveRecoveredAgentName(team, conversation, isLeader),
       conversationType: conversation.type,
       status: this.mapRecoveredStatus(conversation.status),
       cliPath: extra.cliPath || extra.gateway?.cliPath,
       customAgentId: extra.customAgentId || extra.presetAssistantId,
+      model: extra.currentModelId || (conversation as { model?: { useModel?: string } }).model?.useModel,
     };
   }
 
@@ -436,22 +439,22 @@ export class TeamSessionService {
     if (recoveredAgents.length === 0) return team;
 
     let repairedAgents = recoveredAgents;
-    if (!repairedAgents.some((agent) => agent.role === 'lead')) {
+    if (!repairedAgents.some((agent) => agent.role === 'leader')) {
       repairedAgents = repairedAgents.map((agent, index) => ({
         ...agent,
-        role: index === 0 ? 'lead' : 'teammate',
+        role: index === 0 ? 'leader' : 'teammate',
       }));
     }
 
     repairedAgents = repairedAgents.toSorted((left, right) => {
       if (left.role === right.role) return left.agentName.localeCompare(right.agentName);
-      return left.role === 'lead' ? -1 : 1;
+      return left.role === 'leader' ? -1 : 1;
     });
 
-    const repairedLead = repairedAgents.find((agent) => agent.role === 'lead') ?? repairedAgents[0];
+    const repairedLead = repairedAgents.find((agent) => agent.role === 'leader') ?? repairedAgents[0];
     const repairedTeam: TTeam = {
       ...team,
-      leadAgentId: repairedLead.slotId,
+      leaderAgentId: repairedLead.slotId,
       agents: repairedAgents,
       updatedAt: Date.now(),
     };
@@ -459,7 +462,7 @@ export class TeamSessionService {
     try {
       await this.repo.update(team.id, {
         agents: repairedTeam.agents,
-        leadAgentId: repairedTeam.leadAgentId,
+        leaderAgentId: repairedTeam.leaderAgentId,
         updatedAt: repairedTeam.updatedAt,
       });
     } catch (error) {
@@ -525,9 +528,9 @@ export class TeamSessionService {
       })
     );
 
-    const leadAgent = agentsWithConversations.find((a) => a.role === 'lead');
+    const leadAgent = agentsWithConversations.find((a) => a.role === 'leader');
 
-    // If workspace was not specified, back-fill from the lead agent's actual conversation workspace.
+    // If workspace was not specified, back-fill from the leader agent's actual conversation workspace.
     // The conversation factory may auto-assign a workspace (stored in extra.workspace), and we need
     // TTeam.workspace to reflect that so all subsequent addAgent calls share the same directory.
     if (!workspace && leadAgent?.conversationId) {
@@ -537,7 +540,7 @@ export class TeamSessionService {
         workspace = leadExtra.workspace;
       }
     }
-    if (!leadAgent) throw new Error('Team must have at least one lead agent');
+    if (!leadAgent) throw new Error('Team must have at least one leader agent');
 
     const team: TTeam = {
       id: teamId,
@@ -545,7 +548,7 @@ export class TeamSessionService {
       name: params.name,
       workspace,
       workspaceMode: params.workspaceMode,
-      leadAgentId: leadAgent.slotId,
+      leaderAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
       sessionMode: params.sessionMode,
       createdAt: now,
@@ -634,10 +637,10 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     const workspace = this.resolveWorkspace(team.workspace);
-    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to lead agent's conversation extra
+    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to leader agent's conversation extra
     let inheritedSessionMode: string | undefined = team.sessionMode;
     if (!inheritedSessionMode) {
-      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const leadAgent = team.agents.find((a) => a.role === 'leader');
       if (leadAgent?.conversationId) {
         const leadConv = await this.conversationService.getConversation(leadAgent.conversationId);
         const leadExtra = leadConv?.extra as Record<string, unknown> | undefined;
@@ -676,8 +679,8 @@ export class TeamSessionService {
 
   private resolveBackend(agentType: string, agents: TeamAgent[]): string {
     if (agentType !== 'acp') return agentType;
-    const lead = agents.find((a) => a.role === 'lead');
-    return lead && lead.agentType !== 'acp' ? lead.agentType : 'claude';
+    const leader = agents.find((a) => a.role === 'leader');
+    return leader && leader.agentType !== 'acp' ? leader.agentType : 'claude';
   }
 
   private resolveConversationType(agentType: string): AgentType {
@@ -714,6 +717,26 @@ export class TeamSessionService {
     await this.repo.update(teamId, { sessionMode, updatedAt: Date.now() });
   }
 
+  async updateWorkspace(teamId: string, newWorkspace: string): Promise<void> {
+    const team = await this.repo.findById(teamId);
+    if (!team) throw new Error(`Team "${teamId}" not found`);
+
+    const now = Date.now();
+    await this.repo.update(teamId, { workspace: newWorkspace, updatedAt: now });
+
+    for (const agent of team.agents) {
+      if (!agent.conversationId) continue;
+      await this.conversationService.updateConversation(
+        agent.conversationId,
+        {
+          extra: { workspace: newWorkspace, customWorkspace: true },
+          modifyTime: now,
+        } as Partial<TChatConversation>,
+        true
+      );
+    }
+  }
+
   async removeAgent(teamId: string, slotId: string): Promise<void> {
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
@@ -737,9 +760,9 @@ export class TeamSessionService {
     const team = await this.getTeam(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
-    const spawnAgent = async (agentName: string, agentType?: string) => {
+    const spawnAgent = async (agentName: string, agentType?: string, model?: string) => {
       // Default to the leader's agent type instead of hardcoding 'claude'
-      const leadAgent = team.agents.find((a) => a.role === 'lead');
+      const leadAgent = team.agents.find((a) => a.role === 'leader');
       const resolvedType = agentType || leadAgent?.agentType || 'claude';
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
@@ -748,6 +771,7 @@ export class TeamSessionService {
         agentName,
         status: 'pending',
         conversationType: this.resolveConversationType(resolvedType) as 'acp',
+        model,
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);

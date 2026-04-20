@@ -274,17 +274,25 @@ export class WorkspaceSnapshotService {
       return { mode: 'snapshot', branch: null };
     }
 
-    const { stdout: oidOut } = await execFileAsync(
-      'git',
-      [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`, 'rev-parse', 'HEAD'],
-      { cwd: workspacePath }
-    );
+    let baselineRef: string;
+    try {
+      const { stdout: oidOut } = await execFileAsync(
+        'git',
+        [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`, 'rev-parse', 'HEAD'],
+        { cwd: workspacePath }
+      );
+      baselineRef = oidOut.trim();
+    } catch {
+      // Temp gitdir may have been cleaned up by OS or anti-virus — bail gracefully
+      await fs.rm(gitdir, { recursive: true, force: true }).catch(() => {});
+      return { mode: 'snapshot', branch: null };
+    }
 
     this.snapshots.set(workspacePath, {
       mode: 'snapshot',
       workspacePath,
       gitdir,
-      baselineRef: oidOut.trim(),
+      baselineRef,
       branch: null,
     });
 

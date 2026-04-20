@@ -8,34 +8,33 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
-import SendBox from '@/renderer/components/chat/sendbox';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import SendBox from '@/renderer/components/chat/sendbox';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
+import FileAttachButton from '@/renderer/components/media/FileAttachButton';
+import FilePreview from '@/renderer/components/media/FilePreview';
+import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
+import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
-import { Message, Tag } from '@arco-design/web-react';
+import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
+import { Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
-import FilePreview from '@/renderer/components/media/FilePreview';
-import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
-import FileAttachButton from '@/renderer/components/media/FileAttachButton';
-import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
-import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
-import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 
 interface NanobotDraftData {
   _type: 'nanobot';
@@ -59,7 +58,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const slashCommands = useSlashCommands(conversation_id);
-  const isCommandQueueEnabled = useCommandQueueEnabled();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -286,18 +284,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     resetActiveExecution,
   } = useConversationCommandQueue({
     conversationId: conversation_id,
-    enabled: isCommandQueueEnabled,
+    enabled: true,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
     onExecute: executeCommand,
   });
 
   const onSendHandler = async (message: string) => {
-    if (!isCommandQueueEnabled && aiProcessing) {
-      Message.warning(t('messages.conversationInProgress'));
-      return;
-    }
-
     emitter.emit('nanobot.selected.file.clear');
     const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
@@ -305,7 +298,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
     if (
       shouldEnqueueConversationCommand({
-        enabled: isCommandQueueEnabled,
+        enabled: true,
         isBusy: aiProcessing,
         hasPendingCommands,
       })
@@ -484,7 +477,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onSend={onSendHandler}
         slashCommands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
-        allowSendWhileLoading={isCommandQueueEnabled}
+        allowSendWhileLoading
       ></SendBox>
     </div>
   );

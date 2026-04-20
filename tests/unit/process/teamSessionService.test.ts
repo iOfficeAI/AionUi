@@ -81,7 +81,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
     slotId: '',
     conversationId: '',
-    role: 'lead',
+    role: 'leader',
     agentType: 'gemini',
     agentName: 'Gemini',
     conversationType: 'gemini',
@@ -280,7 +280,7 @@ describe('TeamSessionService', () => {
           },
         ];
       }
-      if (key === 'acp.customAgents') {
+      if (key === 'assistants') {
         return [{ id: 'assistant-1', enabledSkills: ['skill-a'] }];
       }
       return undefined;
@@ -369,12 +369,12 @@ describe('TeamSessionService', () => {
       name: 'Preset Team',
       workspace: '/workspace',
       workspaceMode: 'shared',
-      leadAgentId: 'slot-lead',
+      leaderAgentId: 'slot-lead',
       agents: [
         {
           slotId: 'slot-lead',
           conversationId: 'conv-lead',
-          role: 'lead',
+          role: 'leader',
           agentType: 'qwen',
           agentName: 'Lead Qwen',
           conversationType: 'acp',
@@ -430,7 +430,7 @@ describe('TeamSessionService', () => {
       name: 'Legacy Team',
       workspace: '',
       workspaceMode: 'shared',
-      leadAgentId: 'slot-lead',
+      leaderAgentId: 'slot-lead',
       agents: [],
       createdAt: 1,
       updatedAt: 1,
@@ -465,12 +465,12 @@ describe('TeamSessionService', () => {
 
     expect(repairedTeam).toEqual(
       expect.objectContaining({
-        leadAgentId: 'slot-lead',
+        leaderAgentId: 'slot-lead',
         agents: [
           expect.objectContaining({
             slotId: 'slot-lead',
             conversationId: 'conv-legacy',
-            role: 'lead',
+            role: 'leader',
             agentType: 'codex',
             agentName: 'Leader',
             conversationType: 'acp',
@@ -482,7 +482,7 @@ describe('TeamSessionService', () => {
     expect(repo.update).toHaveBeenCalledWith(
       'team-legacy',
       expect.objectContaining({
-        leadAgentId: 'slot-lead',
+        leaderAgentId: 'slot-lead',
         agents: [
           expect.objectContaining({
             slotId: 'slot-lead',

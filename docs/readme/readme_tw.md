@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
 </p>
 
 <p align="center">
@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">官方網站</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">官方網站</a>
 </p>
 
 <p align="center">
@@ -42,7 +42,6 @@
 ## 📋 快速導覽
 
 <p align="center">
-
 [✨ Cowork 演示](#-cowork-演示) ·
 [🤔 為什麼選擇 AionUi？](#-為什麼選擇-aionui-而非-claude-cowork) ·
 [🚀 快速開始](#-快速開始) ·
@@ -56,17 +55,17 @@
 
 **AionUi 不只是個聊天工具。** 它是一個真正的 Cowork 平台，AI Agent 就像您的得力助手，在電腦上幫您處理各種任務——讀檔案、寫程式碼、查資料、自動化工作流。Agent 的一舉一動都在您的掌控之中，透明可見。
 
-|                       | 傳統 AI 聊天客戶端 | **AionUi (Cowork)**                                                        |
-| :-------------------- | :----------------- | :------------------------------------------------------------------------- |
-| AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                          |
-| AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                |
-| 從手機遠端存取        | 很少               | **WebUI + Telegram / Lark / DingTalk**                                     |
-| 定時自動化            | 否                 | **Cron — 24/7 無人值守**                                                   |
-| 同時執行多個 AI Agent | 否                 | **Claude Code、Codex、OpenClaw、Qwen Code 等 12+ 個 — 自動偵測，統一介面** |
-| 價格                  | 免費 / 付費        | **免費且開源**                                                             |
+|                       | 傳統 AI 聊天客戶端 | **AionUi (Cowork)**                                                                                          |
+| :-------------------- | :----------------- | :----------------------------------------------------------------------------------------------------------- |
+| AI 可以操作您的檔案   | 有限或不可用       | **是 — 內建 Agent，完全檔案存取**                                                                            |
+| AI 可以執行多步驟任務 | 有限               | **是 — 自主執行，需您批准**                                                                                  |
+| 從手機遠端存取        | 很少               | **WebUI + Telegram / Lark / DingTalk / WeChat / WeCom**                                                      |
+| 定時自動化            | 否                 | **Cron — 24/7 無人值守**                                                                                     |
+| 同時執行多個 AI Agent | 否                 | **Claude Code、Codex、Qwen Code、Kiro、Hermes Agent、Snow CLI、Cursor Agent 等 20+ 個 — 自動偵測，統一介面** |
+| 價格                  | 免費 / 付費        | **免費且開源**                                                                                               |
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
+  <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
 </p>
 
 ---
@@ -78,24 +77,64 @@ AionUi 自帶完整的 AI Agent 引擎。不像其他工具需要您手動安裝
 - **無需安裝 CLI 工具** — Agent 引擎已內建
 - **無需複雜配置** — 使用 Google 登入或貼上任意 API 金鑰
 - **完整的 Agent 能力** — 檔案讀寫、網路搜尋、圖像生成、MCP 工具
-- **現成的專業助手** — 內建 11+ 個專業助手（Cowork、PPTX 產生器、PDF 轉 PPT、3D 遊戲、UI/UX Pro Max 等），拿來就能用
+- **現成的專業助手** — 內建 20 個專業助手（Cowork、PPT 生成器、Word 生成器、Excel 生成器、Morph PPT 3D、Pitch Deck 生成器、儀表板生成器、學術論文寫作助手、財務模型生成器等），拿來就能用
 
 <p align="center">
-  <img src="./resources/build-in agents.png" alt="Built-in Agents" width="800">
+  <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
 </p>
 
-### **Morph PPT 動畫展示 — 一句話生成絲滑轉場**
+### **辦公助手（PPT / Word / Excel）**
 
-_AionUi 內建 Morph PPT 助手：不只是做靜態排版，而是把內容變成可講述的動態演示。輸入主題/大綱（或參考風格），即可生成連貫轉場的 Morph 簡報。底層由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#) 驅動。_
+想把文件/表格直接交給 Agent？AionUi 內建 **[OfficeCLI](https://github.com/iOfficeAI/OfficeCli)**，讓 PPT（Morph 轉場）、Word（`.docx`）與 Excel（`.xlsx/.xlsm/.csv`）從需求到可交付結果更高效、更穩定。
+三類助手對應各自的文件工作流：生成的成稿可直接編輯、可復用。
 
-- **不是一般 PPT 生成** — 聚焦 Morph 動畫敘事，強調頁面之間的連續變化
-- **內建完整工作流** — 規劃、生成、質檢、迭代一體化
-- **支援風格對齊** — 輸入參考圖/參考風格，快速貼近你的審美
-- **生成即預覽** — 直接查看 `.ppt` / `.pptx`，從創作到檢查無需切換應用
+#### **PPT 助手**
 
-<p align="center">
-  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
-</p>
+> **輸出：可編輯 Morph PPT（`.pptx`）**
+> 頁間轉場連貫、風格統一；底層由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驅動。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT — slide-to-slide transitions（由 OfficeCLI 實現）" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-ppt.gif" alt="PPT 助手 — 錄屏演示（與 OfficeCLI 聯動）" width="390">
+    </td>
+  </tr>
+</table>
+
+#### **Word 助手**
+
+> **輸出：可編輯 Word（`.docx`）**
+> 支援論文/寫作的結構、段落與格式組織；底層由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驅動。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-generate-academic-paper.gif" alt="生成學術論文演示（由 OfficeCLI 實現）" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-write-paper.gif" alt="寫論文助手演示（與 OfficeCLI 聯動）" width="390">
+    </td>
+  </tr>
+</table>
+
+#### **Excel 助手**
+
+> **輸出：可直接復算的 Excel（`.xlsx/.xlsm/.csv`）**
+> 用 `xlsx` 生成/更新表格，自動美化並完成數據分析；底層由 [OfficeCLI](https://github.com/iOfficeAI/OfficeCli) 驅動。
+
+<table>
+  <tr>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-generate-excel.gif" alt="Excel 生成演示（由 OfficeCLI 實現）" width="390">
+    </td>
+    <td align="center" width="50%">
+      <img src="../../resources/readme-demo-assistant-excel.gif" alt="Excel 助手演示（與 OfficeCLI 聯動）" width="390">
+    </td>
+  </tr>
+</table>
 
 ---
 
@@ -103,16 +142,42 @@ _AionUi 內建 Morph PPT 助手：不只是做靜態排版，而是把內容變�
 
 如果您已經在用 Claude Code、Codex 或 Qwen Code，AionUi 會自動發現它們，讓您同時和這些 Agent 一起 Cowork——當然，還有內建 Agent。
 
-**支援的 Agent：** 內建 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • iFlow CLI • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot 等
+**支援的 Agent：** 內建 Agent（零配置） • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI（aionrs，AionUi 自帶的 Rust 後端服務） • Snow CLI • Kiro • Hermes Agent • Cursor Agent 等
 
 <p align="center">
-  <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
+  <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
 </p>
 
 - **自動偵測** — 自動識別已安裝的 CLI 工具
 - **統一介面** — 一個 Cowork 平台管理所有 AI Agent
 - **並行會話** — 同時執行多個 Agent，各自獨立上下文
 - **MCP 統一管理** — 配置一次 MCP（模型上下文協定）工具，自動同步到所有 Agent — 無需為每個 Agent 單獨配置
+- **YOLO Mode**（自動批准所有 Agent 操作，無需手動確認）/ **全自動模式** — 一鍵跳過權限提示；所有 Agent 均支援全自動無人值守執行
+
+### Team Mode — 多 Agent 有序協作
+
+以團隊形式運行多個 AI Agent：**Leader** Agent 接收您的指令，將其分解為子任務，並透過內建 Team MCP Server 委派給 **Teammate** Agent。Teammate 並行執行，透過非同步郵箱共享結果，並將進度寫入共享任務看板。
+
+<p align="center">
+  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+</p>
+
+- **多 Agent 並行執行** — Leader 將任務分解為子任務並委派給並行運行的 Teammate Agent；每個 Teammate 透過 ACP（Agent Communication Protocol，AionUi 的多 Agent 協調層）、Gemini 或 Aionrs 使用獨立模型
+- **Leader 統籌編排** — Leader 分配、追蹤並彙總結果；支援的後端包括 Claude Code、Codex、Gemini、Snow CLI 和 Aion CLI
+- **團隊隔離工作空間** — 所有 Agent 共享同一資料夾；每個 Agent 有獨立的權限確認彈窗，側邊欄角標顯示待確認項
+
+<details>
+<summary><strong>🔍 查看 Team Mode 詳情 ▶️</strong></summary>
+
+<br>
+
+- **共享工作空間** — 所有 Agent 讀寫同一資料夾；檔案面板全程可見
+- **支援的後端** — Claude Code、Codex、Gemini、Snow CLI、Aion CLI（aionrs）；其他具備 `mcpCapabilities.stdio` 的 ACP 後端自動支援
+- **動態伸縮** — 可在團隊運行時新增或移除 Teammate；靜默 Agent 自動升級為失敗狀態，支援一鍵移除
+- **細粒度權限** — 每個 Agent 有獨立的權限確認彈窗；側邊欄角標顯示待確認項
+- **檔案共享** — Leader 可向 Teammate 傳遞檔案附件
+
+</details>
 
 ---
 
@@ -120,18 +185,19 @@ _AionUi 內建 Morph PPT 助手：不只是做靜態排版，而是把內容變�
 
 其他 AI 應用可能只給您個聊天視窗，**但 AionUi 給您的是完整的 Cowork Agent**。
 
-| 您的 API 金鑰                            | 您獲得的功能               |
-| :--------------------------------------- | :------------------------- |
-| Gemini API 金鑰（或 Google 登入 — 免費） | Gemini 驅動的 Cowork Agent |
-| OpenAI API 金鑰                          | GPT 驅動的 Cowork Agent    |
-| Anthropic API 金鑰                       | Claude 驅動的 Cowork Agent |
-| Ollama / LM Studio（本地）               | 本地模型 Cowork Agent      |
-| NewAPI 閘道                              | 統一存取 20+ 模型          |
+| 您的 API 金鑰                            | 您獲得的功能                                 |
+| :--------------------------------------- | :------------------------------------------- |
+| Gemini API 金鑰（或 Google 登入 — 免費） | Gemini 驅動的 Cowork Agent                   |
+| OpenAI API 金鑰                          | GPT 驅動的 Cowork Agent                      |
+| Anthropic API 金鑰                       | Claude 驅動的 Cowork Agent                   |
+| AWS Bedrock 憑證                         | 透過 Aion CLI（aionrs）的 Bedrock 驅動 Agent |
+| Ollama / LM Studio（本地）               | 本地模型 Cowork Agent                        |
+| NewAPI 閘道                              | 統一存取 20+ 模型                            |
 
 不管用哪個模型，Agent 的能力都一樣強大——檔案讀寫、網路搜尋、圖像生成、工具調用，一個不少。AionUi 支援 **20+ 個 AI 平台**，雲端本地都能用。
 
 <p align="center">
-  <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
+  <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 <details>
@@ -155,13 +221,14 @@ AionUi 還支援 [NewAPI](https://github.com/QuantumNous/new-api) 閘道服務 �
 
 ## 可擴展的助手與技能生態
 
-_靈活的助手系統，內建 12 個專業助手，還支援自訂技能。想怎麼用就怎麼用，完全由您掌控。_
+_靈活的助手系統，內建 20 個專業助手，支援三層技能體系，可自由建立和管理助手與技能。_
 
 - **打造專屬助手** — 按您的需求自訂助手，設定專屬規則和能力
-- **靈活管理技能** — 為任何助手新增、啟用或停用技能，讓 AI 更強大
+- **三層技能體系** — 內建技能（隨 AionUi 附帶）、自訂技能（您自己的）以及擴展技能（第三方擴展貢獻）；透過技能指示器按對話啟用/停用
+- **對話級控制** — 聊天標頭的技能指示器顯示當前對話的活躍技能；可隨時搜尋和排除技能
 
 <p align="center">
-  <img src="./resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
+  <img src="../../resources/assitants.png" alt="AI Assistants & Skills Ecosystem" width="800">
 </p>
 
 <details>
@@ -169,10 +236,17 @@ _靈活的助手系統，內建 12 個專業助手，還支援自訂技能。想
 
 <br>
 
-AionUi 內建 **12 個專業助手**，每個都有獨特能力，還能透過自訂技能繼續擴展：
+AionUi 內建 **20 個專業助手**，每個都有獨特能力，還能透過自訂技能繼續擴展：
 
 - **🤝 Cowork** — 自主任務執行（檔案操作、文件處理、工作流程規劃）
-- **📊 PPTX 產生器** — 產生 PPTX 簡報
+- **📊 PPT 生成器 / Morph PPT / Morph PPT 3D** — 生成並製作帶 Morph 轉場的 PPTX 簡報
+- **📐 Pitch Deck 生成器** — 投資人級 Pitch Deck 生成
+- **📊 儀表板生成器** — 資料儀表板生成
+- **📝 Word 生成器** — 生產就緒的 Word（`.docx`）文件生成
+- **📗 Excel 生成器** — 帶分析、圖表和自動格式化的表格生成
+- **🎓 學術論文寫作助手** — 結構化學術論文寫作
+- **💰 財務模型生成器** — 財務模型與預測
+- **⭐ Star Office 助手** — 辦公效率助手
 - **📄 PDF 轉 PPT** — 將 PDF 轉換為 PPT
 - **🎮 3D 遊戲** — 單檔案 3D 遊戲生成
 - **🎨 UI/UX Pro Max** — 專業 UI/UX 設計（57 種風格，95 個調色盤）
@@ -184,7 +258,7 @@ AionUi 內建 **12 個專業助手**，每個都有獨特能力，還能透過�
 - **🔧 OpenClaw 設定** — OpenClaw 整合的設定和配置助手
 - **📖 故事角色扮演** — 沉浸式故事角色扮演，支援角色卡和世界資訊（相容 SillyTavern）
 
-**自訂技能**：在 `skills/` 目錄下建立您的專屬技能，隨時為助手開啟或關閉，讓 AI 能力無限擴展。內建技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+**自訂技能**：在 `skills/` 目錄下建立您的專屬技能，隨時為助手開啟或關閉，讓 AI 能力無限擴展。技能來源分三層：內建（隨 AionUi 附帶）、自訂（您自己的）以及擴展（透過擴展 SDK 貢獻）。內建技能有 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
 
 > 💡 每個助手都用 markdown 檔案定義，想看看怎麼做的？去 `assistant/` 目錄找範例。
 
@@ -202,12 +276,14 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
   - **Telegram** — 直接在 Telegram 中與 AI Agent Cowork
   - **Lark (飛書)** — 透過飛書機器人進行企業 Cowork
   - **DingTalk** — AI Card 串流更新，自動回退
+  - **WeChat** — 微信個人號接入
+  - **WeCom（企業微信）** — 企業微信機器人，團隊協作
   - **Slack** 等更多平台即將推出
 
 > **設定：** AionUi 設定 → WebUI 設定 → Channel，配置 Bot Token。
 
 <p align="center">
-  <img src="./resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
+  <img src="../../resources/webui-remote.gif" alt="WebUI remote access demo" width="800">
 </p>
 
 <p align="center"><em>遠程監管你的 Agent — Claude、Gemini、Codex，瀏覽器或手機即可遠程控制與查看，如同 Claude Code remote。</em></p>
@@ -221,11 +297,12 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
 _一次設定，AI Agent 就會按您的計劃自動工作 — 真正的 24/7 無人值守。_
 
 - **像聊天一樣簡單** — 用自然語言告訴 Agent 要做什麼就行
-- **時間靈活安排** — 每天、每週、每月，或者用 cron 表達式自訂
+- **三種排程模式** — 標準 Cron 表達式（支援時區）、固定間隔（每 N 分鐘/小時）或一次性觸發
+- **AI 自建任務** — Agent 在對話中可自主建立定時任務
 - **適用場景：** 定時彙總資料、自動產生報告、整理檔案、發送提醒
 
 <p align="center">
-  <img src="./resources/alart-task.png" alt="Scheduled Tasks" width="800">
+  <img src="../../resources/alart-task.png" alt="Scheduled Tasks" width="800">
 </p>
 
 <details>
@@ -233,9 +310,24 @@ _一次設定，AI Agent 就會按您的計劃自動工作 — 真正的 24/7 �
 
 <br>
 
+**排程模式：**
+
+- `Cron 表達式` — 標準五欄位 Cron，支援時區（例如 `0 9 * * 1`，`Asia/Shanghai`）
+- `每 N 分鐘/小時` — 固定間隔，例如每 30 分鐘執行一次
+- `一次性` — 在指定日期時間觸發一次，之後自動停用
+
+**執行模式：**
+
+- `繼續既有對話` — 追加到綁定對話，AI 保留完整上下文歷史
+- `每次新建對話` — 每次觸發時開啟新會話，適合獨立的週期性報告
+
+**其他功能：**
+
 - **綁定會話** — 每個定時任務都綁定到特定會話，上下文和歷史記錄都會保留
 - **自動執行** — 到點就自動執行，結果直接發到對應會話
 - **管理方便** — 隨時建立、修改、開啟/關閉、刪除或查看定時任務
+- **防休眠** — AionUi 會自動阻止系統休眠，任務啟用期間偵測喚醒後的漏觸發
+- **進階設定** — 每個任務可單獨設定模型、工作目錄和推理力度
 
 **實際範例：**
 
@@ -258,7 +350,7 @@ _支援 10+ 種格式：PDF、Word、Excel、PPT、程式碼、Markdown、圖像
 - **版本回溯** — 隨時查看和恢復檔案的歷史版本（基於 Git）
 
 <p align="center">
-  <img src="./resources/preview.gif" alt="Preview Panel" width="800">
+  <img src="../../resources/preview.gif" alt="Preview Panel" width="800">
 </p>
 
 <details>
@@ -283,7 +375,7 @@ _支援 10+ 種格式：PDF、Word、Excel、PPT、程式碼、Markdown、圖像
 _批次重新命名、自動整理、智慧分類、檔案合併 — 這些繁瑣的事，交給 Cowork Agent 就行。_
 
 <p align="center">
-  <img src="./resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
+  <img src="../../resources/aionui sort file 2.gif" alt="Smart File Management" width="800">
 </p>
 
 <details>
@@ -311,7 +403,7 @@ _批次重新命名、自動整理、智慧分類、檔案合併 — 這些繁�
 _深度分析 Excel 資料，自動美化報告，產生洞察 — 這些複雜的資料工作，AI Agent 全包了。_
 
 <p align="center">
-  <img src="./resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
+  <img src="../../resources/readme-demo-generate-excel.gif" alt="Excel Processing" width="800">
 </p>
 
 <details>
@@ -340,8 +432,7 @@ _深度分析 Excel 資料，自動美化報告，產生洞察 — 這些複雜�
 _智慧圖像生成、編輯和識別，由 Gemini 驅動_
 
 <p align="center">
-
-  <img src="./resources/Image_Generation.gif" alt="AI Image Generation" width="800">
+  <img src="../../resources/Image_Generation.gif" alt="AI Image Generation" width="800">
 </p>
 
 <details>
@@ -365,7 +456,7 @@ _智慧圖像生成、編輯和識別，由 Gemini 驅動_
 _簡報、報告、文件 — 這些專業文件，AI Agent 都能自動產生。_
 
 <p align="center">
-  <img src="./resources/file_generation_preview.png" alt="Document Generation" width="800">
+  <img src="../../resources/file_generation_preview.png" alt="Document Generation" width="800">
 </p>
 
 <details>
@@ -392,7 +483,7 @@ _簡報、報告、文件 — 這些專業文件，AI Agent 都能自動產生�
 _想怎麼改就怎麼改，用 CSS 程式碼打造您的專屬介面_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Customization" width="800">
+  <img src="../../resources/css with skin.gif" alt="CSS Customization" width="800">
 </p>
 
 - ✅ **完全自由自訂** — 用 CSS 程式碼隨意調整顏色、樣式、佈局，打造獨一無二的介面
@@ -404,7 +495,7 @@ _想怎麼改就怎麼改，用 CSS 程式碼打造您的專屬介面_
 _同時開啟多個對話，任務不會亂，每個都有獨立記憶，效率直接翻倍_
 
 <p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
+  <img src="../../resources/multichat-side-by-side.gif" alt="Multi-Task Parallel" width="800">
 </p>
 
 - ✅ **獨立上下文** — 每個對話都有自己的上下文和歷史，互不干擾
@@ -422,13 +513,13 @@ _同時開啟多個對話，任務不會亂，每個都有獨立記憶，效率�
 
 AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能在 macOS 上用、還只能綁定 Claude 的 Claude Cowork，AionUi 支援全模型、跨平台，是它的全面升級版。
 
-| 維度     | Claude Cowork | AionUi                                        |
-| :------- | :------------ | :-------------------------------------------- |
-| OS       | 僅 macOS      | macOS / Windows / Linux                       |
-| 模型支援 | 僅 Claude     | Gemini、Claude、DeepSeek、OpenAI、Ollama 等   |
-| 互動     | 桌面 GUI      | 桌面 GUI + WebUI + Telegram / Lark / DingTalk |
-| 自動化   | 僅手動        | Cron 定時任務 — 24/7 無人值守                 |
-| 成本     | $100/月       | 免費且開源                                    |
+| 維度     | Claude Cowork | AionUi                                                         |
+| :------- | :------------ | :------------------------------------------------------------- |
+| OS       | 僅 macOS      | macOS / Windows / Linux                                        |
+| 模型支援 | 僅 Claude     | Gemini、Claude、DeepSeek、OpenAI、Ollama 等                    |
+| 互動     | 桌面 GUI      | 桌面 GUI + WebUI + Telegram / Lark / DingTalk / WeChat / WeCom |
+| 自動化   | 僅手動        | Cron 定時任務 — 24/7 無人值守                                  |
+| 成本     | $100/月       | 免費且開源                                                     |
 
 深度 AI 辦公場景支援：
 
@@ -508,8 +599,10 @@ AionUi 是一個**免費開源的 Multi-AI Agent 桌面應用**。相比只能�
   </a>
 </p>
 
+點擊上方按鈕前往 Releases 頁面，下載適合您平台的安裝包（macOS / Windows / Linux）。
+
 ```bash
-# macOS 透過 Homebrew
+# 或者，macOS 透過 Homebrew
 brew install aionui
 ```
 
@@ -556,7 +649,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://x.com/AionUi" target="_blank">
-    <img src="./resources/contactus-x.png" alt="Contact Us on X" width="600">
+    <img src="../../resources/contactus-x.png" alt="Contact Us on X" width="600">
   </a>
 </p>
 
@@ -568,11 +661,23 @@ brew install aionui
 
 ### 貢獻
 
+請在提交 PR 前閱讀 [CONTRIBUTING.md](../../CONTRIBUTING.md)。
+
 1. Fork 本專案
 2. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
 3. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 開啟 Pull Request
+
+### 開發環境設定
+
+技術棧：Electron · Vite · React · Bun
+
+```bash
+bun install        # 安裝相依套件
+bun run dev        # 啟動開發伺服器
+bun run test       # 執行單元測試
+```
 
 ---
 
@@ -582,7 +687,7 @@ brew install aionui
 <tr>
 <td width="170" align="center">
   <a href="https://linux.do/" target="_blank">
-    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+    <img src="../../resources/linuxdo.png" alt="LINUX DO" width="150">
   </a>
 </td>
 <td>
@@ -592,7 +697,7 @@ brew install aionui
 <tr>
 <td width="170" align="center">
   <a href="https://packycode.com" target="_blank">
-    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+    <img src="../../resources/packycode.png" alt="PackyCode" width="150">
   </a>
 </td>
 <td>
@@ -613,7 +718,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
   </a>
 </p>
 

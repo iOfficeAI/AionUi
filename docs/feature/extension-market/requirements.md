@@ -8,7 +8,7 @@
 
 ### 现状
 
-AionUI 设置页 > Agent > Local Agent 页，APP 启动时自动扫描本地已安装的 CLI backend（Claude Code、Opencode、iflow、Kimi 等），将检测到的 agent 展示在列表中供用户使用。
+AionUI 设置页 > Agent > Local Agent 页，APP 启动时自动扫描本地已安装的 CLI backend（Claude Code、Opencode、Kimi 等），将检测到的 agent 展示在列表中供用户使用。
 
 ### 痛点
 
@@ -207,9 +207,6 @@ extension 的唯一标识由 `name` 字段定义.
 │  ├────────────────────────────────────────────────┤ │
 │  │ [icon] Opencode                       [更新]   │ │
 │  │        Open source coding agent                │ │
-│  ├────────────────────────────────────────────────┤ │
-│  │ [icon] iflow                          [重试]   │ │
-│  │        iflow agent                             │ │
 │  └────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────┘
 ```
@@ -239,11 +236,11 @@ Hub 只改变了"agent 从哪来"，不改变"已安装 agent 长什么样"。
 
 Hub 弹窗和主页 Detected Agents 是两个独立视图，数据来源不同：
 
-| 视图                     | 数据来源                         | 职责         |
-| ------------------------ | -------------------------------- | ------------ |
-| **Hub 弹窗**             | Hub index (内置 + 远程)          | 发现 + 安装  |
-| **主页 Detected Agents** | AcpDetector 扫描本地 CLI         | 使用 + 配置  |
-| **主页 Custom Agents**   | ConfigStorage `acp.customAgents` | 保持现有不变 |
+| 视图                     | 数据来源                   | 职责         |
+| ------------------------ | -------------------------- | ------------ |
+| **Hub 弹窗**             | Hub index (内置 + 远程)    | 发现 + 安装  |
+| **主页 Detected Agents** | AcpDetector 扫描本地 CLI   | 使用 + 配置  |
+| **主页 Assistants**      | ConfigStorage `assistants` | 保持现有不变 |
 
 **状态联动**：Hub 弹窗中某 extension 的安装状态，通过 AcpDetector 检测结果推导。如果 extension 的 `contributes.acpAdapters[].cliCommand` 在本地 CLI 中已检测到，则标记为 `installed`。
 

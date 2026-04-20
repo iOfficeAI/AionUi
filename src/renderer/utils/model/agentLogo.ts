@@ -22,7 +22,6 @@ import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
 import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
 import HermesLogo from '@/renderer/assets/logos/brand/hermes.svg';
 import SnowLogo from '@/renderer/assets/logos/tools/coding/snow.png';
-import IflowLogo from '@/renderer/assets/logos/tools/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
 import MistralLogo from '@/renderer/assets/logos/ai-major/mistral.svg';
 import NanobotLogo from '@/renderer/assets/logos/tools/nanobot.svg';
@@ -44,7 +43,6 @@ const AGENT_LOGO_MAP = {
   claude: ClaudeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,
-  iflow: IflowLogo,
   codex: CodexLogo,
   codebuddy: CodeBuddyLogo,
   droid: DroidLogo,

@@ -23,6 +23,10 @@ const AionrsChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: AionrsModelSelection;
+  teamId?: string;
+  agentSlotId?: string;
+  agentName?: string;
+  agentType?: string;
   sessionMode?: string;
   capabilities?: AionrsCapabilities | null;
   dynamicModes?: AgentModeOption[];
@@ -32,6 +36,8 @@ const AionrsChat: React.FC<{
   conversation_id,
   workspace,
   modelSelection,
+  teamId,
+  agentSlotId,
   sessionMode,
   capabilities,
   dynamicModes,
@@ -77,6 +83,8 @@ const AionrsChat: React.FC<{
           <AionrsSendBox
             conversation_id={conversation_id}
             modelSelection={modelSelection}
+            teamId={teamId}
+            agentSlotId={agentSlotId}
             sessionMode={sessionMode}
             capabilities={capabilities}
             dynamicModes={dynamicModes}
