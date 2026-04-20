@@ -4,43 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-/**
- * ACP Backend 类型定义
- * ACP Backend Type Definitions
- *
- * 为了更好的扩展性，将所有支持的 ACP 后端定义在此处
- * 当需要支持新的后端时，只需要在这里添加即可
- * For better extensibility, all supported ACP backends are defined here.
- * When adding a new backend, simply add it here.
- */
-
-/**
- * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
- * The primary agent type for preset assistants, used to determine which conversation type to create.
- */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'codebuddy' | 'opencode' | 'qwen' | 'kiro' | 'aionrs';
-
-/**
- * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
- * Preset agent types that use ACP protocol (need to be routed through ACP backend)
- *
- * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
- * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
- */
-export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = [
-  'claude',
-  'codebuddy',
-  'opencode',
-  'codex',
-  'qwen',
-  'kiro',
-] as const;
-
 export const CODEX_ACP_BRIDGE_VERSION = '0.9.5';
 export const CODEX_ACP_NPX_PACKAGE = `@zed-industries/codex-acp@${CODEX_ACP_BRIDGE_VERSION}`;
 
-export const CLAUDE_ACP_BRIDGE_VERSION = '0.21.0';
-export const CLAUDE_ACP_NPX_PACKAGE = `@zed-industries/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
+export const CLAUDE_ACP_BRIDGE_VERSION = '0.29.2';
+export const CLAUDE_ACP_NPX_PACKAGE = `@agentclientprotocol/claude-agent-acp@${CLAUDE_ACP_BRIDGE_VERSION}`;
 
 export const CODEBUDDY_ACP_BRIDGE_VERSION = '2.73.0';
 export const CODEBUDDY_ACP_NPX_PACKAGE = `@tencent-ai/codebuddy-code@${CODEBUDDY_ACP_BRIDGE_VERSION}`;
