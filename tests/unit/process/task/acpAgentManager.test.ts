@@ -120,6 +120,7 @@ vi.mock('@process/utils/mainLogger', () => ({
 
 vi.mock('@process/utils/initAgent', () => ({
   hasNativeSkillSupport: vi.fn(() => false),
+  resolveBuiltinCliPath: vi.fn(async (_backend: string | undefined, cliPath?: string) => cliPath),
 }));
 
 vi.mock('../../../../src/process/task/agentUtils', () => ({

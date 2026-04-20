@@ -107,6 +107,7 @@ vi.mock('@process/task/CronCommandDetector', () => ({
 
 vi.mock('@process/utils/initAgent', () => ({
   hasNativeSkillSupport: vi.fn(() => true),
+  resolveBuiltinCliPath: vi.fn(async (_backend: string | undefined, cliPath?: string) => cliPath),
   setupAssistantWorkspace: vi.fn(),
 }));
 

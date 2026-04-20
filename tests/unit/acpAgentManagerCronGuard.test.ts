@@ -98,7 +98,10 @@ vi.mock('@process/task/MessageMiddleware', () => ({
   processCronInMessage: vi.fn((x: unknown) => x),
 }));
 vi.mock('@process/task/ThinkTagDetector', () => ({ stripThinkTags: vi.fn((x: unknown) => x) }));
-vi.mock('@process/utils/initAgent', () => ({ hasNativeSkillSupport: vi.fn(() => false) }));
+vi.mock('@process/utils/initAgent', () => ({
+  hasNativeSkillSupport: vi.fn(() => false),
+  resolveBuiltinCliPath: vi.fn(async (_backend: string | undefined, cliPath?: string) => cliPath),
+}));
 vi.mock('@process/task/agentUtils', () => ({
   prepareFirstMessageWithSkillsIndex: vi.fn((x: string) => Promise.resolve(x)),
 }));
