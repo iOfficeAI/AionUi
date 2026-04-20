@@ -1145,9 +1145,9 @@ describe('TeammateManager', () => {
       await new Promise((r) => setTimeout(r, 100));
 
       // Empty fallback IS still written to the leader's mailbox (for history) ...
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
       expect(idleCalls[0][0].content).toContain('no response text produced');
 
@@ -1673,7 +1673,12 @@ describe('TeammateManager', () => {
     });
 
     it('clears turnResponseBuffer when a leader crashes', async () => {
-      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader', agentName: 'Leader' });
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        agentName: 'Leader',
+      });
       const member = makeAgent({
         slotId: 'slot-member',
         conversationId: 'conv-member',
@@ -1772,7 +1777,12 @@ describe('TeammateManager', () => {
     };
 
     function makeLeaderMember() {
-      const leader = makeAgent({ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader', agentName: 'Leader' });
+      const leader = makeAgent({
+        slotId: 'slot-lead',
+        conversationId: 'conv-lead',
+        role: 'leader',
+        agentName: 'Leader',
+      });
       const member = makeAgent({
         slotId: 'slot-member',
         conversationId: 'conv-member',
@@ -1791,8 +1801,18 @@ describe('TeammateManager', () => {
       const { leader, member } = makeLeaderMember();
       const { mgr } = makeTeammateManager([leader, member]);
 
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c1', data: 'hello ' });
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c2', data: 'world' });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'c1',
+        data: 'hello ',
+      });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'c2',
+        data: 'world',
+      });
 
       const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
       expect(buf.get('conv-member')).toBe('hello world');
@@ -1803,7 +1823,12 @@ describe('TeammateManager', () => {
       const { leader, member } = makeLeaderMember();
       const { mgr } = makeTeammateManager([leader, member]);
 
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-lead', msg_id: 'l1', data: 'leader text' });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-lead',
+        msg_id: 'l1',
+        data: 'leader text',
+      });
 
       const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
       expect(buf.has('conv-lead')).toBe(false);
@@ -1814,7 +1839,12 @@ describe('TeammateManager', () => {
       const { leader, member } = makeLeaderMember();
       const { mgr } = makeTeammateManager([leader, member]);
 
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'x1', data: { not: 'a string' } });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'x1',
+        data: { not: 'a string' },
+      });
       teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'x2', data: '' });
 
       const buf = (mgr as unknown as WithBuffers).turnResponseBuffer;
@@ -1880,14 +1910,19 @@ describe('TeammateManager', () => {
       const { leader, member } = makeLeaderMember();
       const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c1', data: 'I did the thing' });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'c1',
+        data: 'I did the thing',
+      });
       teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f1', data: null });
 
       await new Promise((r) => setTimeout(r, 50));
 
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
       const content = idleCalls[0][0].content as string;
       expect(content).toContain('[auto-captured fallback');
@@ -1900,13 +1935,18 @@ describe('TeammateManager', () => {
       const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
       // No content event emitted, just finish
-      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f-empty', data: null });
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'f-empty',
+        data: null,
+      });
 
       await new Promise((r) => setTimeout(r, 50));
 
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
       const content = idleCalls[0][0].content as string;
       expect(content).toContain('[auto-captured fallback]');
@@ -1918,14 +1958,24 @@ describe('TeammateManager', () => {
       const { leader, member } = makeLeaderMember();
       const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'ws', data: '   \n\t   \n' });
-      teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'fws', data: null });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'ws',
+        data: '   \n\t   \n',
+      });
+      teamEventBus.emit('responseStream', {
+        type: 'finish',
+        conversation_id: 'conv-member',
+        msg_id: 'fws',
+        data: null,
+      });
 
       await new Promise((r) => setTimeout(r, 50));
 
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
       expect(idleCalls[0][0].content).toContain('no response text produced');
       mgr.dispose();
@@ -1940,7 +1990,12 @@ describe('TeammateManager', () => {
       const { mgr, mailbox } = makeTeammateManager([leader, member]);
 
       // Teammate streams text AND calls explicit send (the normal "good" path)
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c1', data: 'curated report' });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'c1',
+        data: 'curated report',
+      });
       mgr.markExplicitSendToLead('slot-member');
       teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f1', data: null });
 
@@ -1948,9 +2003,9 @@ describe('TeammateManager', () => {
 
       // Only the leader-targeted idle_notification should be suppressed.
       // The explicit message was already written by TeamMcpServer (not modeled here).
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(0);
       mgr.dispose();
     });
@@ -1971,13 +2026,18 @@ describe('TeammateManager', () => {
       await mgr.wake('slot-member');
 
       // Turn 2: NO explicit send → fallback should fire
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c2', data: 'silent turn output' });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'c2',
+        data: 'silent turn output',
+      });
       teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 't2', data: null });
       await new Promise((r) => setTimeout(r, 50));
 
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
       expect(idleCalls[0][0].content).toContain('silent turn output');
       mgr.dispose();
@@ -1994,9 +2054,9 @@ describe('TeammateManager', () => {
       teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f', data: null });
       await new Promise((r) => setTimeout(r, 50));
 
-      const idleCalls = vi.mocked(mailbox.write).mock.calls.filter(
-        (args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead'
-      );
+      const idleCalls = vi
+        .mocked(mailbox.write)
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
       expect(idleCalls).toHaveLength(0);
       mgr.dispose();
     });
@@ -2009,7 +2069,12 @@ describe('TeammateManager', () => {
       const { leader, member } = makeLeaderMember();
       const { mgr } = makeTeammateManager([leader, member]);
 
-      teamEventBus.emit('responseStream', { type: 'content', conversation_id: 'conv-member', msg_id: 'c', data: 'turn output' });
+      teamEventBus.emit('responseStream', {
+        type: 'content',
+        conversation_id: 'conv-member',
+        msg_id: 'c',
+        data: 'turn output',
+      });
       teamEventBus.emit('responseStream', { type: 'finish', conversation_id: 'conv-member', msg_id: 'f', data: null });
       await new Promise((r) => setTimeout(r, 50));
 
@@ -2084,8 +2149,8 @@ describe('TeammateManager', () => {
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       mgr.dispose();
-      const warned = warnSpy.mock.calls.some((args) =>
-        typeof args[0] === 'string' && args[0].includes('leftover per-turn state')
+      const warned = warnSpy.mock.calls.some(
+        (args) => typeof args[0] === 'string' && args[0].includes('leftover per-turn state')
       );
       warnSpy.mockRestore();
 
@@ -2098,8 +2163,8 @@ describe('TeammateManager', () => {
 
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       mgr.dispose();
-      const warned = warnSpy.mock.calls.some((args) =>
-        typeof args[0] === 'string' && args[0].includes('leftover per-turn state')
+      const warned = warnSpy.mock.calls.some(
+        (args) => typeof args[0] === 'string' && args[0].includes('leftover per-turn state')
       );
       warnSpy.mockRestore();
 
