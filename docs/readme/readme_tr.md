@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <strong>Türkçe</strong> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">Resmi Web Sitesi</a>
 </p>
 
 <p align="center">
@@ -42,7 +42,6 @@
 ## 📋 Hızlı Gezinme
 
 <p align="center">
-
 [✨ Cowork Eylemde](#-cowork-eylemde) ·
 [🤔 Neden AionUi'yi Seçmelisiniz?](#-neden-aionui-claude-cowork-yerine) ·
 [🚀 Hızlı Başlangıç](#-hızlı-başlangıç) ·
@@ -62,7 +61,7 @@
 | AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                         |
 | Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                              |
 | Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                          |
-| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, OpenClaw, Qwen Code ve 12+ daha fazla — otomatik algılanan, birleşik arayüz** |
+| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent ve 16+ daha fazla — otomatik algılanan, birleşik arayüz** |
 | Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                         |
 
 <p align="center">
@@ -78,23 +77,10 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 - **Kurulacak CLI araçları yok** — Agent motoru yerleşiktir
 - **Karmaşık kurulum yok** — Google ile giriş yapın veya herhangi bir API anahtarı yapıştırın
 - **Tam Agent yetenekleri** — dosya okuma/yazma, web arama, görüntü oluşturma, MCP araçları
-- **Kullanıma hazır asistanlar** — 11+ yerleşik profesyonel asistan (Cowork, PPTX Oluşturucu, PDF'den PPT'ye, 3D Oyun, UI/UX Pro Max ve daha fazlası) hemen kullanıma hazır
+- **Kullanıma hazır asistanlar** — 20 yerleşik profesyonel asistan (Cowork, PPT Creator, Word Creator, Excel Creator, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator ve daha fazlası) hemen kullanıma hazır
 
 <p align="center">
-  <img src="../../resources/build-in agents.png" alt="Built-in Agents" width="800">
-</p>
-
-### **Morph PPT Animasyon Demosu — Tek cümleyle akıcı geçişler**
-
-_AionUi, özel bir Morph PPT asistanını yerleşik olarak sunar. Sadece statik slayt düzenlemez; içeriğinizi anlatı odaklı, dinamik bir sunuma dönüştürür. Bir konu/taslak (veya stil referansı) verin, tutarlı geçişlere sahip Morph sunumu üretin. Altyapısı [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#) tarafından desteklenir._
-
-- **Sıradan bir PPT üretici değil** — Morph anlatımına ve slaytlar arası sürekliliğe odaklanır
-- **Uçtan uca yerleşik akış** — planlama, üretim, kalite kontrol ve iterasyon
-- **Stil hizalama desteği** — referans görsel/stil ile estetiği hızlıca yakalar
-- **Üret ve anında önizle** — `.ppt` / `.pptx` dosyalarını AionUi içinde doğrudan görüntüle
-
-<p align="center">
-  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
+  <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
 </p>
 
 ---
@@ -103,7 +89,7 @@ _AionUi, özel bir Morph PPT asistanını yerleşik olarak sunar. Sadece statik 
 
 Zaten Claude Code, Codex veya Qwen Code kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
 
-**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot ve daha fazlası
+**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, AionUi ile birlikte gelen Rust tabanlı arka uç servisi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent ve daha fazlası
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -113,6 +99,32 @@ Zaten Claude Code, Codex veya Qwen Code kullanıyorsanız, AionUi bunları otoma
 - **Birleşik Arayüz** — tüm AI Agent'larınız için tek bir Cowork platformu
 - **Paralel Oturumlar** — bağımsız bağlam ile birden fazla Agent'ı aynı anda çalıştırın
 - **MCP Birleşik Yönetimi** — MCP (Model Context Protocol) araçlarını bir kez yapılandırın, tüm Agent'lara otomatik olarak senkronize edilir — her Agent'ı ayrı ayrı yapılandırmanıza gerek yok
+- **YOLO Mode** (tüm Agent eylemlerini manuel onay olmadan otomatik onayla) / **Tam Otomatik Mod** — tek tıkla izin istemlerini atlayın; tüm Agent'lar gözetimsiz çalıştırma için tam otomatik modu destekler
+
+### Team Mode — Koordineli Çoklu Agent İşbirliği
+
+Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader** Agent talimatlarınızı alır, bunları alt görevlere böler ve yerleşik Team MCP Server aracılığıyla **Teammate** Agent'lara devreder. Teammate'ler paralel olarak çalışır, asenkron posta kutusu üzerinden sonuçları paylaşır ve paylaşılan görev panosuna yazar.
+
+<p align="center">
+  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+</p>
+
+- **Paralel çoklu agent çalıştırma** — Leader görevleri alt görevlere bölerek paralel çalışan Teammate Agent'lara devreder; her Teammate ACP (Agent Communication Protocol, AionUi'nin çoklu agent koordinasyon katmanı), Gemini veya Aionrs aracılığıyla kendi modelini kullanır
+- **Leader orkestrasyonu** — Leader atar, izler ve sonuçları toplar; desteklenen arka uçlar: Claude Code, Codex, Gemini, Snow CLI ve Aion CLI
+- **Ekip izole çalışma alanı** — tüm Agent'lar aynı klasörü paylaşır; her birinin bekleyen onaylar için kenar çubuğu rozeti ile kendi izin onay iletişim kutusu vardır
+
+<details>
+<summary><strong>🔍 Team Mode Detaylarını Görüntüle ▶️</strong></summary>
+
+<br>
+
+- **Paylaşılan çalışma alanı** — tüm Agent'lar aynı klasörü okur/yazar; dosya paneli süreç boyunca görünür kalır
+- **Desteklenen arka uçlar** — Claude Code, Codex, Gemini, Snow CLI, Aion CLI (aionrs); `mcpCapabilities.stdio` ile diğer ACP arka uçları otomatik desteklenir
+- **Dinamik ölçeklendirme** — ekip çalışırken Teammate ekleyip kaldırabilirsiniz; sessiz Agent'lar otomatik olarak başarısız durumuna yükseltilir ve tek tıkla kaldırılabilir
+- **Ayrıntılı izinler** — her Agent'ın kendi izin onay iletişim kutusu var; kenar çubuğu rozeti bekleyen onayları gösterir
+- **Dosya paylaşımı** — Leader, Teammate'lere dosya eklerini iletebilir
+
+</details>
 
 ---
 
@@ -155,13 +167,14 @@ AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizm
 
 ## Genişletilebilir Asistanlar ve Beceriler
 
-_12 yerleşik profesyonel asistan ve özel beceri desteği ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
+_20 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
 
 - **Özel Asistanlar Oluştur** — Özel kurallar ve yeteneklerle kendi asistanlarınızı tanımlayın
-- **Becerileri Yönet** — AI yeteneklerini genişletmek için herhangi bir asistan için beceriler oluşturun, etkinleştirin ve devre dışı bırakın
+- **Üç katmanlı Beceriler** — Yerleşik beceriler (AionUi ile birlikte gelen), özel beceriler (kendinizinkiler) ve Extension becerileri (üçüncü taraf uzantılar tarafından katkıda bulunulan); beceri göstergesi ile konuşma başına etkinleştirin/devre dışı bırakın
+- **Konuşma Başına Kontrol** — Sohbet başlığındaki beceri göstergesi aktif becerileri gösterir; ihtiyaç halinde becerileri arayın ve hariç tutun
 
 <p align="center">
-  <img src="../../resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
+  <img src="../../resources/assitants.png" alt="AI Assistants & Skills Ecosystem" width="800">
 </p>
 
 <details>
@@ -169,10 +182,17 @@ _12 yerleşik profesyonel asistan ve özel beceri desteği ile genişletilebilir
 
 <br>
 
-AionUi önceden tanımlanmış yeteneklere sahip **12 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
+AionUi önceden tanımlanmış yeteneklere sahip **20 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
 
 - **🤝 Cowork** — Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
-- **📊 PPTX Oluşturucu** — PPTX sunumları oluşturur
+- **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Morph geçişleri ile PPTX sunumları oluşturur ve canlandırır
+- **📐 Pitch Deck Creator** — Yatırımcıya hazır sunum destesi oluşturma
+- **📊 Dashboard Creator** — Veri panosu oluşturma
+- **📝 Word Creator** — Üretime hazır Word (`.docx`) belge oluşturma
+- **📗 Excel Creator** — Analiz, grafikler ve otomatik biçimlendirme ile elektronik tablo oluşturma
+- **🎓 Academic Paper Writer** — Yapılandırılmış akademik makale yazımı
+- **💰 Financial Model Creator** — Finansal modeller ve projeksiyonlar
+- **⭐ Star Office Helper** — Ofis üretkenlik asistanı
 - **📄 PDF'den PPT'ye** — PDF'yi PPT'ye dönüştürür
 - **🎮 3D Oyun** — Tek dosya 3D oyun oluşturma
 - **🎨 UI/UX Pro Max** — Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
@@ -184,7 +204,7 @@ AionUi önceden tanımlanmış yeteneklere sahip **12 profesyonel asistan** içe
 - **🔧 OpenClaw Kurulumu** — OpenClaw entegrasyonu için kurulum ve yapılandırma asistanı
 - **📖 Hikaye Rol Oynama** — Karakter kartları ve dünya bilgisi ile sürükleyici hikaye rol oynama (SillyTavern uyumlu)
 
-**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
+**Özel Beceriler**: `skills/` dizininde beceriler oluşturun, AI yeteneklerini genişletmek için asistanlar için becerileri etkinleştirin/devre dışı bırakın. Beceriler üç kaynaktan gelir: yerleşik (AionUi ile birlikte gelen), özel (kendinizinkiler) ve Extension (Extension SDK aracılığıyla katkıda bulunulan). Yerleşik beceriler `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` ve daha fazlasını içerir.
 
 > 💡 Her asistan bir markdown dosyası ile tanımlanır. Örnekler için `assistant/` dizinine bakın.
 
@@ -202,6 +222,8 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
   - **Telegram** — AI Agent'ınızla doğrudan Telegram'dan Cowork yapın
   - **Lark (Feishu)** — Kurumsal işbirliği için Feishu botları aracılığıyla Cowork
   - **DingTalk** — Otomatik geri dönüş ile AI Card akışı
+  - **WeChat** — Kişisel WeChat hesabı entegrasyonu
+  - **WeCom (企业微信)** — Ekip işbirliği için kurumsal WeChat botu
   - **Slack** ve yakında daha fazla platform
 
 > **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
@@ -221,7 +243,8 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
 _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — gerçek 7/24 gözetimsiz işlem._
 
 - **Doğal Dil** — Agent'a ne yapacağını söyleyin, sadece sohbet ediyormuş gibi
-- **Esnek Zamanlama** — günlük, haftalık, aylık veya özel cron ifadeleri
+- **Üç zamanlama modu** — standart cron ifadesi (saat dilimi desteğiyle), sabit aralık (her N dakika/saat) veya tek seferlik tetikleme
+- **AI tarafından oluşturulan görevler** — Agent'lar bir konuşma sırasında özerk olarak zamanlanmış görevler oluşturabilir
 - **Kullanım Senaryoları:** zamanlanmış veri toplama, rapor oluşturma, dosya organizasyonu, hatırlatıcılar
 
 <p align="center">
@@ -233,9 +256,24 @@ _Bir kez ayarlayın, AI Agent zamanlamaya göre otomatik olarak çalışır — 
 
 <br>
 
+**Zamanlama modları:**
+
+- `Cron ifadesi` — saat dilimi desteğiyle standart 5 alan cron (örn. `0 9 * * 1`, `Asia/Shanghai`)
+- `Her N dakika/saat` — sabit aralık, örn. her 30 dakikada bir çalıştır
+- `Tek seferlik` — belirtilen tarih/saatte bir kez tetikle, sonra otomatik olarak devre dışı bırak
+
+**Çalıştırma modları:**
+
+- `Mevcut konuşmada devam et` — bağlı konuşmaya ekler, AI tam bağlam geçmişini korur
+- `Her seferinde yeni konuşma oluştur` — her tetiklemede yeni bir oturum açar, bağımsız periyodik raporlar için idealdir
+
+**Diğer yetenekler:**
+
 - **Konuşmaya Bağlı** — Her zamanlanmış görev bir konuşmaya bağlıdır, bağlamı ve geçmişi korur
 - **Otomatik Yürütme** — Görevler zamanlanmış saatlerde otomatik olarak çalışır, konuşmaya mesaj gönderir
 - **Kolay Yönetim** — Zamanlanmış görevleri istediğiniz zaman oluşturun, değiştirin, etkinleştirin/devre dışı bırakın, silin ve görüntüleyin
+- **Uyanık kal** — AionUi görevler aktifken sistem uyku moduna geçmeyi otomatik olarak önler ve uyandıktan sonra kaçırılan tetikleyicileri algılar
+- **Gelişmiş yapılandırma** — her görevin kendi model, çalışma alanı dizini ve akıl yürütme eforu ayarları olabilir
 
 **Gerçek Dünya Örnekleri:**
 
@@ -340,7 +378,6 @@ _Excel verilerini derinlemesine analiz edin, raporları otomatik olarak güzelle
 _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve tanıma_
 
 <p align="center">
-
   <img src="../../resources/Image_Generation.gif" alt="AI Image Generation" width="800">
 </p>
 
@@ -508,8 +545,10 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
   </a>
 </p>
 
+Releases sayfasına gitmek ve platformunuz için yükleyiciyi indirmek için yukarıdaki butona tıklayın (macOS / Windows / Linux).
+
 ```bash
-# macOS via Homebrew
+# Alternatively, macOS via Homebrew
 brew install aionui
 ```
 
@@ -574,6 +613,16 @@ brew install aionui
 4. Dala push edin (`git push origin feature/AmazingFeature`)
 5. Bir Pull Request açın
 
+### Geliştirme Ortamı
+
+Teknoloji yığını: Electron · Vite · React · Bun
+
+```bash
+bun install        # bağımlılıkları yükle
+bun run dev        # geliştirme sunucusunu başlat
+bun run test       # birim testlerini çalıştır
+```
+
 ---
 
 ## Lisans
@@ -586,7 +635,7 @@ Bu proje [Apache-2.0](../../LICENSE) lisansı altında lisanslanmıştır.
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
   </a>
 </p>
 

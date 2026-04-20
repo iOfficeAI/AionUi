@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <strong>Português</strong> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">Site oficial</a>
+  <a href="../../readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <strong>Português</strong> | <a href="./readme_tr.md">Türkçe</a> | <a href="./readme_ru.md">Русский</a> | <a href="./readme_uk.md">Українська</a> | <a href="https://www.aionui.com" target="_blank">Site oficial</a>
 </p>
 
 <p align="center">
@@ -42,7 +42,6 @@
 ## 📋 Navegação rápida
 
 <p align="center">
-
 [✨ Cowork em ação](#-cowork-em-ação) ·
 [🤔 Por que escolher AionUi?](#-por-que-escolher-aionui-sobre-claude-cowork) ·
 [🚀 Início rápido](#-início-rápido) ·
@@ -62,7 +61,7 @@
 | AI pode executar tarefas de múltiplas etapas | Limitado                         | **Sim — autônomo com sua aprovação**                                                                     |
 | Acesso remoto do telefone                    | Raramente                        | **WebUI + Telegram / Lark / DingTalk**                                                                   |
 | Automação agendada                           | Não                              | **Cron — 24/7 sem supervisão**                                                                           |
-| Múltiplos AI Agents ao mesmo tempo           | Não                              | **Claude Code, Codex, OpenClaw, Qwen Code e 12+ mais — detectados automaticamente, interface unificada** |
+| Múltiplos AI Agents ao mesmo tempo           | Não                              | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent e 16+ mais — detectados automaticamente, interface unificada** |
 | Preço                                        | Grátis / Pago                    | **Gratuito e de código aberto**                                                                          |
 
 <p align="center">
@@ -78,23 +77,10 @@ AionUi vem com um motor de Agent AI completo. Diferente de ferramentas que exige
 - **Sem ferramentas CLI para instalar** — o motor Agent está integrado
 - **Sem configuração complexa** — faça login com Google ou cole qualquer chave API
 - **Capacidades completas do Agent** — leitura/escrita de arquivos, busca na web, geração de imagens, ferramentas MCP
-- **Assistentes prontos para usar** — 11+ assistentes profissionais integrados (Cowork, Gerador PPTX, PDF para PPT, Jogo 3D, UI/UX Pro Max e mais) prontos para usar imediatamente
+- **Assistentes prontos para usar** — 20 assistentes profissionais integrados (Cowork, PPT Creator, Word Creator, Excel Creator, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator e mais) prontos para usar imediatamente
 
 <p align="center">
-  <img src="../../resources/build-in agents.png" alt="Built-in Agents" width="800">
-</p>
-
-### **Demo de Morph PPT — Transições suaves com uma frase**
-
-_O AionUi inclui um assistente dedicado de Morph PPT. Ele não apenas cria slides estáticos: transforma seu conteúdo em apresentações dinâmicas e narrativas. Com um tema/roteiro (ou referência de estilo), você gera um deck Morph com transições coerentes. Ele é impulsionado pelo [OfficeCLI](https://github.com/iOfficeAI/OfficeCli#)._
-
-- **Não é um gerador de PPT comum** — foco em narrativa com Morph e continuidade entre slides
-- **Fluxo completo embutido** — planejamento, geração, checagem de qualidade e iteração
-- **Alinhamento de estilo** — use imagens/estilos de referência para chegar rápido ao visual desejado
-- **Gerou, já visualiza** — abra `.ppt` / `.pptx` no AionUi sem trocar de aplicativo
-
-<p align="center">
-  <img src="../../resources/morph-ppt-balanced.gif" alt="Morph PPT Demo" width="800">
+  <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
 </p>
 
 ---
@@ -103,7 +89,7 @@ _O AionUi inclui um assistente dedicado de Morph PPT. Ele não apenas cria slide
 
 Se você já usa Claude Code, Codex ou Qwen Code, AionUi os detecta automaticamente e permite fazer Cowork com todos eles — junto com o Agent integrado.
 
-**Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot e mais
+**Agents compatíveis:** Agent integrado (configuração zero) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, o serviço backend em Rust incluído com o AionUi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent e mais
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -113,6 +99,32 @@ Se você já usa Claude Code, Codex ou Qwen Code, AionUi os detecta automaticame
 - **Interface unificada** — uma plataforma Cowork para todos os seus AI Agents
 - **Sessões paralelas** — execute múltiplos Agents simultaneamente com contexto independente
 - **Gerenciamento unificado MCP** — configure as ferramentas MCP (Model Context Protocol) uma vez, sincronize automaticamente com todos os Agents — não precisa configurar cada Agent separadamente
+- **YOLO Mode** (aprovar automaticamente todas as ações do Agent sem confirmação manual) / **Modo totalmente automático** — um clique para ignorar os prompts de permissão; todos os Agents suportam modo totalmente automático para execução desatendida
+
+### Team Mode — Colaboração Multi-Agent Coordenada
+
+Execute múltiplos AI Agents como uma equipe organizada: um agente **Leader** recebe suas instruções, as divide em subtarefas e delega para agentes **Teammate** via um Team MCP Server integrado. Os Teammates executam em paralelo, compartilham resultados através de uma caixa de entrada assíncrona e escrevem em um quadro de tarefas compartilhado.
+
+<p align="center">
+  <img src="../../resources/AionUi_team.gif" alt="Team Mode overview" width="800">
+</p>
+
+- **Execução paralela multi-agent** — Leader divide as tarefas em subtarefas e delega para agentes Teammate que executam em paralelo; cada Teammate usa seu próprio modelo via ACP (Agent Communication Protocol, a camada de coordenação multi-agent do AionUi), Gemini ou Aionrs
+- **Orquestração do Leader** — Leader atribui, rastreia e agrega resultados; backends suportados: Claude Code, Codex, Gemini, Snow CLI e Aion CLI
+- **Workspace isolado por equipe** — todos os Agents compartilham a mesma pasta; cada um tem seu próprio diálogo de permissões com badge na barra lateral para aprovações pendentes
+
+<details>
+<summary><strong>🔍 Ver detalhes do Team Mode ▶️</strong></summary>
+
+<br>
+
+- **Workspace compartilhado** — todos os Agents leem/escrevem na mesma pasta; o painel de arquivos fica visível durante todo o processo
+- **Backends suportados** — Claude Code, Codex, Gemini, Snow CLI, Aion CLI (aionrs); outros backends ACP com `mcpCapabilities.stdio` são suportados automaticamente
+- **Escalabilidade dinâmica** — adicione ou remova Teammates enquanto a equipe estiver em execução; agentes silenciosos são automaticamente escalados para falha com remoção em um clique
+- **Permissões granulares** — cada Agent tem seu próprio diálogo de confirmação de permissões; badge na barra lateral mostra aprovações pendentes
+- **Compartilhamento de arquivos** — Leader pode passar anexos de arquivo para Teammates
+
+</details>
 
 ---
 
@@ -155,13 +167,14 @@ AionUi também suporta o serviço de gateway [NewAPI](https://github.com/Quantum
 
 ## Assistentes e habilidades extensíveis
 
-_Sistema de assistentes extensível com 12 assistentes profissionais integrados e suporte a habilidades personalizadas. Crie e gerencie seus próprios assistentes e habilidades._
+_Sistema de assistentes extensível com 20 assistentes profissionais integrados e um sistema de habilidades de três camadas. Crie e gerencie seus próprios assistentes e habilidades._
 
 - **Criar assistentes personalizados** — Defina seus próprios assistentes com regras e capacidades personalizadas
-- **Gerenciar habilidades** — Crie, habilite e desabilite habilidades para qualquer assistente para estender as capacidades AI
+- **Habilidades de três camadas** — Habilidades integradas (incluídas com o AionUi), habilidades personalizadas (suas próprias) e habilidades de Extension (contribuídas por extensões de terceiros); habilite/desabilite por conversa com o indicador de habilidades
+- **Controle por conversa** — Um indicador de habilidades no cabeçalho do chat mostra as habilidades ativas para a conversa atual; pesquise e exclua habilidades conforme necessário
 
 <p align="center">
-  <img src="../../resources/assistants_skills.png" alt="AI Assistants & Skills Ecosystem" width="800">
+  <img src="../../resources/assitants.png" alt="AI Assistants & Skills Ecosystem" width="800">
 </p>
 
 <details>
@@ -169,10 +182,17 @@ _Sistema de assistentes extensível com 12 assistentes profissionais integrados 
 
 <br>
 
-AionUi inclui **12 assistentes profissionais** com capacidades predefinidas, extensíveis através de habilidades personalizadas:
+AionUi inclui **20 assistentes profissionais** com capacidades predefinidas, extensíveis através de habilidades personalizadas:
 
 - **🤝 Cowork** — Execução autônoma de tarefas (operações de arquivos, processamento de documentos, planejamento de fluxo de trabalho)
-- **📊 Gerador PPTX** — Gera apresentações PPTX
+- **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Gera e anima apresentações PPTX com transições Morph
+- **📐 Pitch Deck Creator** — Geração de pitch decks prontos para investidores
+- **📊 Dashboard Creator** — Geração de painéis de dados
+- **📝 Word Creator** — Geração de documentos Word (`.docx`) prontos para produção
+- **📗 Excel Creator** — Geração de planilhas com análise, gráficos e formatação automática
+- **🎓 Academic Paper Writer** — Escrita estruturada de artigos acadêmicos
+- **💰 Financial Model Creator** — Modelos financeiros e projeções
+- **⭐ Star Office Helper** — Assistente de produtividade para escritório
 - **📄 PDF para PPT** — Converte PDF para PPT
 - **🎮 Jogo 3D** — Geração de jogos 3D de arquivo único
 - **🎨 UI/UX Pro Max** — Design UI/UX profissional (57 estilos, 95 paletas de cores)
@@ -184,7 +204,7 @@ AionUi inclui **12 assistentes profissionais** com capacidades predefinidas, ext
 - **🔧 Configuração OpenClaw** — Assistente de configuração e instalação para integração OpenClaw
 - **📖 Roleplay de história** — Roleplay de história imersivo com cartas de personagens e informações do mundo (compatível com SillyTavern)
 
-**Habilidades personalizadas**: Crie habilidades no diretório `skills/`, habilite/desabilite habilidades para assistentes para estender as capacidades AI. As habilidades integradas incluem `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` e mais.
+**Habilidades personalizadas**: Crie habilidades no diretório `skills/`, habilite/desabilite habilidades para assistentes para estender as capacidades AI. As habilidades vêm de três fontes: integradas (incluídas com o AionUi), personalizadas (suas próprias) e Extension (contribuídas através do SDK de Extension). As habilidades integradas incluem `pptx`, `docx`, `pdf`, `xlsx`, `mermaid` e mais.
 
 > 💡 Cada assistente é definido por um arquivo markdown. Verifique o diretório `assistant/` para exemplos.
 
@@ -202,6 +222,8 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
   - **Telegram** — Faça Cowork com seu AI Agent diretamente do Telegram
   - **Lark (Feishu)** — Cowork através de bots Feishu para colaboração empresarial
   - **DingTalk** — Streaming de AI Card com fallback automático
+  - **WeChat** — Integração com conta pessoal do WeChat
+  - **WeCom (企业微信)** — Bot empresarial do WeChat para colaboração em equipe
   - **Slack** e mais plataformas em breve
 
 > **Configuração:** AionUi Settings → WebUI Settings → Channel, configure o Bot Token.
@@ -221,7 +243,8 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
 _Configure uma vez, o AI Agent executa automaticamente conforme o cronograma — verdadeira operação 24/7 sem supervisão._
 
 - **Linguagem natural** — diga ao Agent o que fazer, como se estivesse conversando
-- **Agendamento flexível** — diário, semanal, mensal ou expressões cron personalizadas
+- **Três modos de agendamento** — expressão cron padrão (com fuso horário), intervalo fixo (a cada N minutos/horas) ou acionamento único
+- **Tarefas criadas por AI** — os agentes podem criar tarefas agendadas de forma autônoma durante uma conversa
 - **Casos de uso:** agregação de dados agendada, geração de relatórios, organização de arquivos, lembretes
 
 <p align="center">
@@ -233,9 +256,24 @@ _Configure uma vez, o AI Agent executa automaticamente conforme o cronograma —
 
 <br>
 
+**Modos de agendamento:**
+
+- `Expressão cron` — cron padrão de 5 campos com suporte a fuso horário (ex.: `0 9 * * 1`, `Asia/Shanghai`)
+- `A cada N minutos/horas` — intervalo fixo, ex.: executar a cada 30 minutos
+- `Uma vez` — acionar uma vez em uma data e hora específica, depois se desativa automaticamente
+
+**Modos de execução:**
+
+- `Continuar na conversa existente` — adiciona à conversa vinculada para que a AI mantenha o histórico de contexto completo
+- `Criar nova conversa a cada vez` — abre uma nova sessão a cada acionamento, ideal para relatórios periódicos independentes
+
+**Outras capacidades:**
+
 - **Vinculado à conversa** — Cada tarefa agendada está vinculada a uma conversa, mantendo contexto e histórico
 - **Execução automática** — As tarefas são executadas automaticamente nos horários agendados, enviando mensagens para a conversa
 - **Gerenciamento fácil** — Crie, modifique, habilite/desabilite, exclua e visualize tarefas agendadas a qualquer momento
+- **Evitar suspensão** — O AionUi previne automaticamente a suspensão do sistema enquanto as tarefas estão ativas e detecta acionamentos perdidos após o despertar
+- **Configuração avançada** — cada tarefa pode ter seu próprio modelo, diretório de workspace e configurações de esforço de raciocínio
 
 **Exemplos do mundo real:**
 
@@ -340,7 +378,6 @@ _Analise profundamente os dados do Excel, embeleze automaticamente os relatório
 _Geração, edição e reconhecimento inteligente de imagens, alimentado por Gemini_
 
 <p align="center">
-
   <img src="../../resources/Image_Generation.gif" alt="AI Image Generation" width="800">
 </p>
 
@@ -508,8 +545,10 @@ R: Todos os dados são armazenados localmente em um banco de dados SQLite. Nada 
   </a>
 </p>
 
+Clique no botão acima para ir à página de Releases e baixar o instalador para sua plataforma (macOS / Windows / Linux).
+
 ```bash
-# macOS via Homebrew
+# Ou, macOS via Homebrew
 brew install aionui
 ```
 
@@ -568,11 +607,23 @@ brew install aionui
 
 ### Contribuindo
 
+Por favor, leia [CONTRIBUTING.md](../../CONTRIBUTING.md) antes de abrir um PR.
+
 1. Faça fork deste projeto
 2. Crie um branch de recurso (`git checkout -b feature/AmazingFeature`)
 3. Faça commit de suas mudanças (`git commit -m 'Add some AmazingFeature'`)
 4. Envie para o branch (`git push origin feature/AmazingFeature`)
 5. Abra um Pull Request
+
+### Configuração de desenvolvimento
+
+Stack tecnológico: Electron · Vite · React · Bun
+
+```bash
+bun install        # instalar dependências
+bun run dev        # iniciar servidor de desenvolvimento
+bun run test       # executar testes unitários
+```
 
 ---
 
@@ -586,7 +637,7 @@ Este projeto está licenciado sob [Apache-2.0](../../LICENSE).
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=100" alt="Contributors" />
   </a>
 </p>
 
