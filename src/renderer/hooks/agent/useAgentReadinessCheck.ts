@@ -53,7 +53,6 @@ const AGENT_NAMES: Partial<Record<AgentBackend, string>> = {
   opencode: 'OpenCode',
   gemini: 'Gemini',
   qwen: 'Qwen Code',
-  iflow: 'iFlow',
   droid: 'Droid',
   goose: 'Goose',
   auggie: 'Auggie',

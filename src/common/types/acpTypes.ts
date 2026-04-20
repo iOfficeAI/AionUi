@@ -19,7 +19,6 @@ export type AcpBackendAll =
   | 'claude' // Claude ACP
   // | 'gemini' // Google Gemini — not an ACP agent, handled by AgentRegistry directly
   | 'qwen' // Qwen Code ACP
-  | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex ACP (via codex-acp bridge)
   | 'codebuddy' // Tencent CodeBuddy Code CLI
   | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
@@ -333,15 +332,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     supportsStreaming: true,
     acpArgs: ['--acp'], // Use --acp instead of deprecated --experimental-acp
     skillsDirs: ['.qwen/skills'],
-  },
-  iflow: {
-    id: 'iflow',
-    name: 'iFlow CLI',
-    cliCommand: 'iflow',
-    authRequired: true,
-    enabled: true,
-    supportsStreaming: false,
-    skillsDirs: ['.iflow/skills'],
   },
   codex: {
     id: 'codex',

@@ -26,7 +26,6 @@ import CodexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/tools/coding/opencode.svg';
 import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
 import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
-import IflowLogo from '@/renderer/assets/logos/tools/iflow.svg';
 import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
 import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
 import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
@@ -41,7 +40,6 @@ const AGENT_LOGOS: Partial<Record<AgentBackend, string>> = {
   opencode: OpenCodeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,
-  iflow: IflowLogo,
   droid: DroidLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,

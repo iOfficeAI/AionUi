@@ -430,7 +430,6 @@ export const useGuidAgentSelection = ({
             claude: 'bypassPermissions',
             gemini: 'yolo',
             codex: 'yolo',
-            iflow: 'yolo',
             qwen: 'yolo',
           };
           _setSelectedMode(yoloValues[configKey] || 'yolo');

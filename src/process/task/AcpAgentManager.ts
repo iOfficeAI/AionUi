@@ -520,7 +520,6 @@ ${collectedResponses.join('\n')}`;
       const yoloModeValues: Record<string, string> = {
         claude: 'bypassPermissions',
         qwen: 'yolo',
-        iflow: 'yolo',
         codex: 'yolo',
       };
       this.currentMode = yoloModeValues[data.backend] || 'yolo';

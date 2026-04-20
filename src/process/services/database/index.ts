@@ -576,7 +576,7 @@ export class AionUIDatabase {
    * Find the latest channel conversation by source, chat ID, type, and optionally backend.
    * Used for per-chat conversation isolation in channel platforms.
    *
-   * For ACP conversations, `backend` distinguishes between claude, iflow, codebuddy, etc.
+   * For ACP conversations, `backend` distinguishes between claude, codebuddy, etc.
    * (stored in `extra.backend` JSON field).
    */
   findChannelConversation(

@@ -14,7 +14,6 @@ const FULL_AUTO_MODE: Record<string, string> = {
   claude: 'bypassPermissions',
   qwen: 'yolo',
   opencode: 'build',
-  iflow: 'yolo',
   gemini: 'yolo',
   aionrs: 'yolo',
   codex: CODEX_MODE_FULL_AUTO,

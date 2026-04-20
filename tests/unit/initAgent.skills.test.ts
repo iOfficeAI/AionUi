@@ -95,7 +95,6 @@ describe('initAgent — skill support', () => {
         'codebuddy',
         'codex',
         'qwen',
-        'iflow',
         'goose',
         'droid',
         'kimi',

@@ -9,7 +9,6 @@ import type { IMcpServer } from '@/common/config/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { CodebuddyMcpAgent } from './agents/CodebuddyMcpAgent';
 import { QwenMcpAgent } from './agents/QwenMcpAgent';
-import { IflowMcpAgent } from './agents/IflowMcpAgent';
 import { GeminiMcpAgent } from './agents/GeminiMcpAgent';
 import { AionuiMcpAgent } from './agents/AionuiMcpAgent';
 import { CodexMcpAgent } from './agents/CodexMcpAgent';
@@ -22,7 +21,7 @@ import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncR
  * 新架构：只定义协议，具体实现由各个Agent类完成
  *
  * Agent 类型说明：
- * - AcpBackend ('claude', 'qwen', 'iflow', 'gemini', 'codex'等): 支持的 ACP 后端
+ * - AcpBackend ('claude', 'qwen', 'gemini', 'codex'等): 支持的 ACP 后端
  * - 'aionui': @office-ai/aioncli-core (AionUi 本地管理的 Gemini 实现)
  */
 export class McpService {
@@ -86,7 +85,6 @@ export class McpService {
       ['claude', new ClaudeMcpAgent()],
       ['codebuddy', new CodebuddyMcpAgent()],
       ['qwen', new QwenMcpAgent()],
-      ['iflow', new IflowMcpAgent()],
       ['gemini', new GeminiMcpAgent()],
       ['aionui', new AionuiMcpAgent()], // AionUi 本地 @office-ai/aioncli-core
       ['codex', new CodexMcpAgent()],

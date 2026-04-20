@@ -35,12 +35,7 @@ import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import {
-  CLAUDE_YOLO_SESSION_MODE,
-  CODEBUDDY_YOLO_SESSION_MODE,
-  IFLOW_YOLO_SESSION_MODE,
-  QWEN_YOLO_SESSION_MODE,
-} from './constants';
+import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModelSlot } from './utils';
@@ -344,7 +339,6 @@ export class AcpAgent {
           claude: CLAUDE_YOLO_SESSION_MODE,
           codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
-          iflow: IFLOW_YOLO_SESSION_MODE,
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
