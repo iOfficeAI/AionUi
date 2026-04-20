@@ -55,14 +55,14 @@
 
 **AionUi es más que un cliente de chat.** Es una plataforma Cowork donde los AI Agents trabajan contigo en tu computadora — leyendo archivos, escribiendo código, navegando por la web y automatizando tareas. Puedes ver todo lo que hace el Agent y siempre tienes el control.
 
-|                                             | Clientes de chat AI tradicionales | **AionUi (Cowork)**                                                                                    |
-| :------------------------------------------ | :-------------------------------- | :----------------------------------------------------------------------------------------------------- |
-| AI puede operar en tus archivos             | Limitado o No                     | **Sí — Agent integrado con acceso completo a archivos**                                                |
-| AI puede ejecutar tareas de múltiples pasos | Limitado                          | **Sí — autónomo con tu aprobación**                                                                    |
-| Acceso remoto desde el teléfono             | Raramente                         | **WebUI + Telegram / Lark / DingTalk**                                                                 |
-| Automatización programada                   | No                                | **Cron — 24/7 sin supervisión**                                                                        |
+|                                             | Clientes de chat AI tradicionales | **AionUi (Cowork)**                                                                                                                      |
+| :------------------------------------------ | :-------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| AI puede operar en tus archivos             | Limitado o No                     | **Sí — Agent integrado con acceso completo a archivos**                                                                                  |
+| AI puede ejecutar tareas de múltiples pasos | Limitado                          | **Sí — autónomo con tu aprobación**                                                                                                      |
+| Acceso remoto desde el teléfono             | Raramente                         | **WebUI + Telegram / Lark / DingTalk**                                                                                                   |
+| Automatización programada                   | No                                | **Cron — 24/7 sin supervisión**                                                                                                          |
 | Múltiples AI Agents a la vez                | No                                | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent y 16+ más — detectados automáticamente, interfaz unificada** |
-| Precio                                      | Gratis / Pago                     | **Gratis y de código abierto**                                                                         |
+| Precio                                      | Gratis / Pago                     | **Gratis y de código abierto**                                                                                                           |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">

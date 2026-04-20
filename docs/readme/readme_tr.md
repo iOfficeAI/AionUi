@@ -55,14 +55,14 @@
 
 **AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
-|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                 |
-| :------------------------------------- | :------------------------------- | :-------------------------------------------------------------------------------------------------- |
-| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                     |
-| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                         |
-| Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                              |
-| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                          |
+|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                                   |
+| :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
+| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                       |
+| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                           |
+| Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                                                                |
+| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                                                            |
 | Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent ve 16+ daha fazla — otomatik algılanan, birleşik arayüz** |
-| Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                         |
+| Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                                           |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
