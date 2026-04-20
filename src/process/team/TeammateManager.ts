@@ -363,12 +363,7 @@ export class TeammateManager extends EventEmitter {
     // Tail-biased: we append then clip to the LAST MAX_RESPONSE_CAPTURE_CHARS,
     // so summaries at the end of long responses survive while long preambles
     // are dropped. Memory per conversation is bounded by the cap.
-    if (
-      msg.type === 'content' &&
-      agent.role !== 'lead' &&
-      typeof msg.data === 'string' &&
-      msg.data.length > 0
-    ) {
+    if (msg.type === 'content' && agent.role !== 'lead' && typeof msg.data === 'string' && msg.data.length > 0) {
       const prev = this.turnResponseBuffer.get(msg.conversation_id) ?? '';
       const combined = prev + msg.data;
       const clipped =
