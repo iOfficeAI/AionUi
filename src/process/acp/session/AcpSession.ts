@@ -35,11 +35,11 @@ export type SessionOptions = {
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   idle: ['starting'],
-  starting: ['active', 'starting', 'error'],
+  starting: ['active', 'starting', 'error', 'idle'],
   active: ['prompting', 'suspended', 'idle'],
   prompting: ['active', 'resuming', 'error', 'idle'],
   suspended: ['resuming', 'idle'],
-  resuming: ['active', 'resuming', 'error'],
+  resuming: ['active', 'resuming', 'error', 'idle'],
   error: ['starting', 'idle'],
 };
 
