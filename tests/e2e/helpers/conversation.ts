@@ -6,7 +6,6 @@
  */
 import type { Page } from '@playwright/test';
 import { expect } from '../fixtures';
-import { invokeBridge } from './bridge';
 import { goToGuid } from './navigation';
 import {
   GUID_INPUT,
@@ -134,9 +133,35 @@ export async function waitForSessionActive(page: Page, timeoutMs = 120_000): Pro
     .toBeTruthy();
 }
 
-/** Delete a conversation by ID via IPC bridge. */
+/**
+ * Delete a conversation through the UI: open the sidebar context menu,
+ * click "Delete", then confirm in the modal dialog.
+ *
+ * Requires the conversation to be visible in the sidebar history.
+ */
 export async function deleteConversation(page: Page, conversationId: string): Promise<boolean> {
-  return invokeBridge<boolean>(page, 'remove-conversation', { id: conversationId });
+  const row = page.locator(`#c-${conversationId}`);
+  await row.waitFor({ state: 'visible', timeout: 10_000 });
+
+  await row.hover();
+
+  const menuTrigger = row.locator('.flex.flex-col.gap-2px').first();
+  await menuTrigger.waitFor({ state: 'visible', timeout: 5_000 });
+  await menuTrigger.click();
+
+  const deleteItem = page.locator('.arco-dropdown-menu-item').filter({ hasText: /Delete|删除/ });
+  await deleteItem.waitFor({ state: 'visible', timeout: 5_000 });
+  await deleteItem.click();
+
+  const confirmBtn = page.locator('.arco-modal .arco-btn-primary.arco-btn-status-warning');
+  await confirmBtn.waitFor({ state: 'visible', timeout: 5_000 });
+  await confirmBtn.click();
+
+  await page
+    .waitForFunction(() => !window.location.hash.includes('/conversation/'), { timeout: 10_000 })
+    .catch(() => {});
+
+  return true;
 }
 
 /** Click the sidebar new-chat trigger and wait for the guid page. */

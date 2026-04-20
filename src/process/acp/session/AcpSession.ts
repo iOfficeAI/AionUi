@@ -368,18 +368,35 @@ export class AcpSession {
 
   // ─── Internal helpers ─────────────────────────────────────────
 
-  private onDisconnect(_info?: DisconnectInfo): void {
-    if (this._status === 'idle' || this._status === 'suspended' || this._status === 'error') return;
+  private onDisconnect(info?: DisconnectInfo): void {
+    switch (this._status) {
+      case 'idle':
+      case 'suspended':
+      case 'error':
+        return;
 
-    this.lifecycle.clearClient();
+      case 'prompting': {
+        this.lifecycle.clearClient();
+        this.emitCrashSignalIfProcessDied(info);
+        this.promptExecutor.stopTimer();
+        this.permissionResolver.rejectAll(new Error('Process disconnected'));
+        this.lifecycle.resumeFromDisconnect();
+        return;
+      }
 
-    if (this._status === 'prompting') {
-      this.promptExecutor.stopTimer();
-      this.permissionResolver.rejectAll(new Error('Process disconnected'));
-      this.lifecycle.resumeFromDisconnect();
-    } else {
-      this.setStatus('suspended');
+      default: {
+        this.lifecycle.clearClient();
+        this.emitCrashSignalIfProcessDied(info);
+        this.setStatus('suspended');
+      }
     }
+  }
+
+  /** Emit error signal with exit info so TeammateManager can detect agent crash. */
+  private emitCrashSignalIfProcessDied(info?: DisconnectInfo): void {
+    if (info?.reason !== 'process_exit' && info?.reason !== 'process_close') return;
+    const msg = `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
+    this.callbacks.onSignal({ type: 'error', message: msg, recoverable: true });
   }
 
   enterError(message: string): void {

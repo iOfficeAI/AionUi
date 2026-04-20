@@ -123,6 +123,10 @@ export class AcpAgentV2 {
   private static cacheQueue: Promise<void> = Promise.resolve();
   // Claude: inject model identity notice into next prompt after setModel
   private pendingModelSwitchNotice: string | null = null;
+  // Persistent user model override — never cleared once set (mirrors V1).
+  // Used to re-assert model before every prompt in case CLI loses state
+  // (e.g. Claude internal compaction resets model to default).
+  private userModelOverride: string | null = null;
 
   constructor(config: OldAcpAgentConfig) {
     this.conversationId = config.id;
@@ -344,15 +348,20 @@ export class AcpAgentV2 {
             conversation_id: this.conversationId,
             msg_id: data.callId,
             data: {
+              sessionId: this.lastSessionId ?? '',
               toolCall: {
                 toolCallId: data.callId,
                 title: data.title,
                 kind: data.kind,
                 rawInput: data.rawInput,
+                status: 'pending',
+                content: [],
+                locations: data.locations ?? [],
               },
               options: data.options.map((opt) => ({
                 optionId: opt.optionId,
                 name: opt.label,
+                kind: opt.kind,
               })),
             },
           });
@@ -394,14 +403,34 @@ export class AcpAgentV2 {
             void this.handleAuthRequired();
             break;
 
-          case 'error':
+          case 'error': {
+            // Detect process crash from error message keywords to emit agentCrash
+            // flag that TeammateManager.handleResponseStream relies on (V1 parity).
+            const isCrash =
+              event.message.includes('process exited unexpectedly') ||
+              event.message.includes('PROCESS_CRASHED') ||
+              event.message.includes('Process disconnected');
+
             this.onSignalEvent({
               type: 'error',
               conversation_id: this.conversationId,
               msg_id: `signal_${Date.now()}`,
               data: event.message,
             });
+
+            if (isCrash) {
+              this.onSignalEvent({
+                type: 'finish',
+                conversation_id: this.conversationId,
+                msg_id: `finish_crash_${Date.now()}`,
+                data: {
+                  error: event.message,
+                  agentCrash: true,
+                },
+              });
+            }
             break;
+          }
         }
       },
     };
@@ -542,6 +571,40 @@ export class AcpAgentV2 {
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
+      // Auto-reconnect if session is in error/idle state (mirrors V1 behavior).
+      // V1 checks isConnected/hasActiveSession before every prompt and calls start().
+      if (this.lastStatus === 'error' || this.lastStatus === 'idle') {
+        try {
+          await this.kill();
+          await this.start();
+        } catch (reconnectError) {
+          const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
+          return {
+            success: false,
+            error: {
+              type: AcpErrorType.CONNECTION_NOT_READY,
+              code: 'CONNECTION_FAILED',
+              message: `Failed to reconnect: ${errorMsg}`,
+              retryable: true,
+            },
+          };
+        }
+      }
+
+      // Reject while session is still booting — caller should retry after
+      // the status transitions to active (onStatusChange fires agent_status).
+      if (this.lastStatus === 'starting' || this.lastStatus === 'resuming') {
+        return {
+          success: false,
+          error: {
+            type: AcpErrorType.CONNECTION_NOT_READY,
+            code: 'SESSION_NOT_READY',
+            message: `Session is ${this.lastStatus}, please retry shortly`,
+            retryable: true,
+          },
+        };
+      }
+
       // Emit start event via stream channel so AcpAgentManager.handleStreamEvent
       // can emit request_trace (which checks message.type === 'start')
       if (this.onStreamEvent) {
@@ -568,17 +631,57 @@ export class AcpAgentV2 {
         this.pendingModelSwitchNotice = null;
       }
 
-      await this.session!.sendMessage(content, data.files);
+      // Re-assert model override before every prompt (mirrors V1 behavior).
+      // V1's userModelOverride is never cleared — it re-checks on every prompt
+      // to recover from CLI-internal state loss (e.g. Claude compaction).
+      if (this.userModelOverride && this.session) {
+        const currentModel = this.cachedModelInfo?.currentModelId;
+        if (currentModel !== this.userModelOverride) {
+          try {
+            this.session.setModel(this.userModelOverride);
+          } catch {
+            // best effort — continue even if re-assert fails
+          }
+        }
+      }
+
+      if (!this.session) {
+        throw new AcpSessionError('INVALID_STATE', 'Session not available after reconnect');
+      }
+      await this.session.sendMessage(content, data.files);
       return { success: true, data: null };
     } catch (err) {
-      const errorType = err instanceof AcpSessionError ? mapAcpErrorCodeToType(err.code) : AcpErrorType.UNKNOWN;
+      let errorType = err instanceof AcpSessionError ? mapAcpErrorCodeToType(err.code) : AcpErrorType.UNKNOWN;
+      let errorMessage = err instanceof Error ? err.message : String(err);
       const retryable = err instanceof AcpSessionError ? err.retryable : false;
+
+      // Qwen backend: enhance "Internal error" with actionable troubleshooting steps
+      if (this.agentConfig.agentBackend === 'qwen' && errorMessage.includes('Internal error')) {
+        errorType = AcpErrorType.AUTHENTICATION_FAILED;
+        errorMessage =
+          'Qwen ACP Internal Error: This usually means authentication failed or ' +
+          'the Qwen CLI has compatibility issues. Please try: 1) Restart the application ' +
+          '2) Use the packaged bun launcher instead of a global qwen install ' +
+          '3) Check if you have valid Qwen credentials.';
+      }
+
+      // Emit finish signal to reset frontend loading state and Manager turn tracking.
+      // Without this the UI stays in loading state until the 15s
+      // missingFinishFallbackTimer fires. PromptExecutor.handlePromptError
+      // re-throws without emitting turn_finished, so no duplicate.
+      this.onSignalEvent?.({
+        type: 'finish',
+        conversation_id: this.conversationId,
+        msg_id: `finish_${Date.now()}`,
+        data: null,
+      });
+
       return {
         success: false,
         error: {
           type: errorType,
           code: err instanceof AcpSessionError ? err.code : 'UNKNOWN',
-          message: err instanceof Error ? err.message : String(err),
+          message: errorMessage,
           retryable,
         },
       };
@@ -630,6 +733,7 @@ export class AcpAgentV2 {
   }
 
   async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
+    this.userModelOverride = modelId;
     // Queue model switch notice for Claude (ACP set_model is silent, AI doesn't know)
     if (this.agentConfig.agentBackend === 'claude') {
       this.pendingModelSwitchNotice = modelId;
