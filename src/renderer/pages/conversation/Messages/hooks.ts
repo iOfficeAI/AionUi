@@ -286,10 +286,22 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
-  const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const frameRef = useRef<number | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelScheduledFlush = useCallback(() => {
+    if (typeof window !== 'undefined' && frameRef.current !== null) {
+      window.cancelAnimationFrame(frameRef.current);
+    }
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current);
+    }
+    frameRef.current = null;
+    timeoutRef.current = null;
+  }, []);
 
   const flush = useCallback(() => {
-    rafRef.current = null;
+    cancelScheduledFlush();
 
     const pending = pendingRef.current;
     if (!pending.length) return;
@@ -329,26 +341,40 @@ export const useAddOrUpdateMessage = () => {
       }
       return newList;
     });
+  }, [cancelScheduledFlush, update]);
 
-    rafRef.current = setTimeout(flush);
-  }, []);
+  const scheduleFlush = useCallback(() => {
+    if (frameRef.current !== null || timeoutRef.current !== null) {
+      return;
+    }
+
+    const onScheduledFlush = () => {
+      flush();
+      if (pendingRef.current.length > 0) {
+        scheduleFlush();
+      }
+    };
+
+    if (typeof window !== 'undefined' && typeof window.requestAnimationFrame === 'function') {
+      frameRef.current = window.requestAnimationFrame(onScheduledFlush);
+      return;
+    }
+
+    timeoutRef.current = setTimeout(onScheduledFlush, 16);
+  }, [flush]);
 
   useEffect(() => {
     return () => {
-      if (rafRef.current !== null) {
-        clearTimeout(rafRef.current);
-      }
+      cancelScheduledFlush();
     };
-  }, []);
+  }, [cancelScheduledFlush]);
 
   return useCallback(
     (message: TMessage, add = false) => {
       pendingRef.current.push({ message, add });
-      if (rafRef.current === null) {
-        rafRef.current = setTimeout(flush);
-      }
+      scheduleFlush();
     },
-    [flush]
+    [scheduleFlush]
   );
 };
 

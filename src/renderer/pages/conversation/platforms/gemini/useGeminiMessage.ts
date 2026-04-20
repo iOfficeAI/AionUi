@@ -1,52 +1,105 @@
 import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { transformMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-export const useGeminiMessage = (conversation_id: string, onError?: (message: IResponseMessage) => void) => {
+export type UseGeminiMessageReturn = {
+  thought: ThoughtData;
+  setThought: React.Dispatch<React.SetStateAction<ThoughtData>>;
+  running: boolean;
+  hasHydratedRunningState: boolean;
+  tokenUsage: TokenUsageData | null;
+  hasStreamingContent: boolean;
+  setActiveMsgId: (msgId: string | null) => void;
+  setWaitingResponse: React.Dispatch<React.SetStateAction<boolean>>;
+  resetState: () => void;
+  hasThinkingMessage: boolean;
+};
+
+export const useGeminiMessage = (
+  conversation_id: string,
+  onError?: (message: IResponseMessage) => void
+): UseGeminiMessageReturn => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
-  const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
-  const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
-  const [waitingResponse, setWaitingResponse] = useState(false); // 等待后端响应（发送消息后到收到 start 之前）
+  const [streamRunning, setStreamRunning] = useState(false);
+  const [hasActiveTools, setHasActiveTools] = useState(false);
+  const [waitingResponse, setWaitingResponse] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
   });
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
-  // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
-  const activeMsgIdRef = useRef<string | null>(null);
+  const [hasStreamingContent, setHasStreamingContent] = useState(false);
+  const hasStreamingContentRef = useRef(false);
 
-  // Use refs to avoid useEffect re-subscription when these states change
+  const activeMsgIdRef = useRef<string | null>(null);
   const hasActiveToolsRef = useRef(hasActiveTools);
   const streamRunningRef = useRef(streamRunning);
   const waitingResponseRef = useRef(waitingResponse);
-
-  // Track whether current turn has content output
-  // Only reset waitingResponse when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
-
-  // Track whether current turn has a thinking message in the conversation
   const hasThinkingMessageRef = useRef(false);
+  const waitingResponseClearFrameRef = useRef<number | null>(null);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
 
-  // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
     startTime: number;
     provider: string;
     modelId: string;
   } | null>(null);
+
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
   }, [hasActiveTools]);
+
   useEffect(() => {
     streamRunningRef.current = streamRunning;
   }, [streamRunning]);
 
-  // Throttle thought updates to reduce render frequency
+  const setStreamingContent = useCallback(
+    (nextValue: boolean) => {
+      if (hasStreamingContentRef.current === nextValue) {
+        return;
+      }
+      hasStreamingContentRef.current = nextValue;
+      setHasStreamingContent(nextValue);
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: nextValue,
+      });
+    },
+    [conversation_id]
+  );
+
+  const cancelWaitingResponseClear = useCallback(() => {
+    if (typeof window !== 'undefined' && waitingResponseClearFrameRef.current !== null) {
+      window.cancelAnimationFrame(waitingResponseClearFrameRef.current);
+    }
+    waitingResponseClearFrameRef.current = null;
+  }, []);
+
+  const clearWaitingResponseAfterPaint = useCallback(() => {
+    cancelWaitingResponseClear();
+
+    if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') {
+      setWaitingResponse(false);
+      waitingResponseRef.current = false;
+      return;
+    }
+
+    waitingResponseClearFrameRef.current = window.requestAnimationFrame(() => {
+      waitingResponseClearFrameRef.current = window.requestAnimationFrame(() => {
+        waitingResponseClearFrameRef.current = null;
+        setWaitingResponse(false);
+        waitingResponseRef.current = false;
+      });
+    });
+  }, [cancelWaitingResponseClear]);
+
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
     pending: ThoughtData | null;
@@ -54,7 +107,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   }>({ lastUpdate: 0, pending: null, timer: null });
 
   const throttledSetThought = useMemo(() => {
-    const THROTTLE_MS = 50; // 50ms throttle interval
+    const THROTTLE_MS = 50;
     return (data: ThoughtData) => {
       const now = Date.now();
       const ref = thoughtThrottleRef.current;
@@ -86,19 +139,17 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     };
   }, []);
 
-  // Cleanup throttle timer
   useEffect(() => {
     return () => {
       if (thoughtThrottleRef.current.timer) {
         clearTimeout(thoughtThrottleRef.current.timer);
       }
+      cancelWaitingResponseClear();
     };
-  }, []);
+  }, [cancelWaitingResponseClear]);
 
-  // Combined running state: waiting for response OR stream is running OR tools are active
   const running = waitingResponse || streamRunning || hasActiveTools;
 
-  // Set current active message ID
   const setActiveMsgId = useCallback((msgId: string | null) => {
     activeMsgIdRef.current = msgId;
   }, []);
@@ -109,8 +160,6 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
         return;
       }
 
-      // Filter out events not belonging to current active request (prevents aborted events from interfering)
-      // Note: only filter out thought and start messages, other messages must be rendered
       if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRef.current) {
         if (message.type === 'thought') {
           return;
@@ -119,7 +168,6 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
 
       switch (message.type) {
         case 'thought':
-          // Auto-recover streamRunning if thought arrives after finish
           if (!streamRunningRef.current) {
             setStreamRunning(true);
             streamRunningRef.current = true;
@@ -128,7 +176,6 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
           break;
         case 'thinking': {
           const thinkingData = message.data as { status?: string };
-          // Only set running for active thinking, not for done signal
           if (thinkingData?.status !== 'done' && !streamRunningRef.current) {
             setStreamRunning(true);
             streamRunningRef.current = true;
@@ -139,147 +186,133 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
           break;
         }
         case 'start':
+          cancelWaitingResponseClear();
+          hasContentInTurnRef.current = false;
+          setStreamingContent(false);
           setStreamRunning(true);
           streamRunningRef.current = true;
-          // Don't reset waitingResponse here - let tool completion flow handle it
           break;
-        case 'finish':
-          {
-            // Immediate state reset (notification is handled by centralized hook)
-            setStreamRunning(false);
-            streamRunningRef.current = false;
+        case 'finish': {
+          cancelWaitingResponseClear();
+          setStreamRunning(false);
+          streamRunningRef.current = false;
+          setWaitingResponse(false);
+          waitingResponseRef.current = false;
+          setThought({ subject: '', description: '' });
+          hasContentInTurnRef.current = false;
+          setStreamingContent(false);
+          hasThinkingMessageRef.current = false;
+          setHasThinkingMessage(false);
+          if (requestTraceRef.current) {
+            const duration = Date.now() - requestTraceRef.current.startTime;
+            console.log(
+              `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.provider} -> ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+              'color: #52c41a; font-weight: bold',
+              'color: inherit'
+            );
+            requestTraceRef.current = null;
+          }
+          break;
+        }
+        case 'tool_group': {
+          hasContentInTurnRef.current = true;
+
+          if (!streamRunningRef.current) {
+            setStreamRunning(true);
+            streamRunningRef.current = true;
+          }
+
+          const tools = message.data as Array<{ status: string; name?: string }>;
+          const activeStatuses = new Set(['Executing', 'Confirming', 'Pending']);
+          const hasActive = tools.some((tool) => activeStatuses.has(tool.status));
+          const wasActive = hasActiveToolsRef.current;
+
+          setHasActiveTools(hasActive);
+          hasActiveToolsRef.current = hasActive;
+
+          if (wasActive && !hasActive && tools.length > 0) {
+            setWaitingResponse(true);
+            waitingResponseRef.current = true;
+          }
+
+          const confirmingTool = tools.find((tool) => tool.status === 'Confirming');
+          if (confirmingTool) {
+            setThought({
+              subject: 'Awaiting Confirmation',
+              description: confirmingTool.name || 'Tool execution',
+            });
+          } else if (hasActive) {
+            const executingTool = tools.find((tool) => tool.status === 'Executing');
+            if (executingTool) {
+              setThought({
+                subject: 'Executing',
+                description: executingTool.name || 'Tool',
+              });
+            }
+          } else if (!streamRunningRef.current) {
+            setThought({ subject: '', description: '' });
+          }
+
+          addOrUpdateMessage(transformMessage(message));
+          break;
+        }
+        case 'finished': {
+          const finishedData = message.data as {
+            reason?: string;
+            usageMetadata?: {
+              promptTokenCount?: number;
+              candidatesTokenCount?: number;
+              totalTokenCount?: number;
+              cachedContentTokenCount?: number;
+            };
+          };
+          if (finishedData?.usageMetadata) {
+            const newTokenUsage: TokenUsageData = {
+              totalTokens: finishedData.usageMetadata.totalTokenCount || 0,
+              inputTokens: finishedData.usageMetadata.promptTokenCount || 0,
+              outputTokens: finishedData.usageMetadata.candidatesTokenCount || 0,
+              cachedInputTokens: finishedData.usageMetadata.cachedContentTokenCount,
+            };
+            setTokenUsage(newTokenUsage);
+            void ipcBridge.conversation.update.invoke({
+              id: conversation_id,
+              updates: {
+                extra: {
+                  lastTokenUsage: newTokenUsage,
+                } as TChatConversation['extra'],
+              },
+              mergeExtra: true,
+            });
+          }
+          break;
+        }
+        case 'request_trace': {
+          const trace = message.data as Record<string, unknown>;
+          requestTraceRef.current = {
+            startTime: Number(trace.timestamp) || Date.now(),
+            provider: String(trace.platform || trace.provider || 'unknown'),
+            modelId: String(trace.modelId || 'unknown'),
+          };
+          console.log(
+            `%c[RequestTrace]%c START | ${requestTraceRef.current.provider} -> ${trace.modelId} | ${new Date().toISOString()}`,
+            'color: #1890ff; font-weight: bold',
+            'color: inherit',
+            trace
+          );
+          break;
+        }
+        default: {
+          const transformedMessage = transformMessage(message);
+          if (message.type === 'error') {
+            cancelWaitingResponseClear();
             setWaitingResponse(false);
             waitingResponseRef.current = false;
-            setThought({ subject: '', description: '' });
-            hasContentInTurnRef.current = false;
-            hasThinkingMessageRef.current = false;
-            setHasThinkingMessage(false);
-            // Log request completion
-            if (requestTraceRef.current) {
-              const duration = Date.now() - requestTraceRef.current.startTime;
-              console.log(
-                `%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
-                'color: #52c41a; font-weight: bold',
-                'color: inherit'
-              );
-              requestTraceRef.current = null;
-            }
-          }
-          break;
-        case 'tool_group':
-          {
-            // Mark that current turn has content output
-            hasContentInTurnRef.current = true;
-
-            // Auto-recover streamRunning if tool_group arrives after finish
-            if (!streamRunningRef.current) {
-              setStreamRunning(true);
-              streamRunningRef.current = true;
-            }
-
-            // Check if any tools are executing or awaiting confirmation
-            const tools = message.data as Array<{ status: string; name?: string }>;
-            const activeStatuses = new Set(['Executing', 'Confirming', 'Pending']);
-            const hasActive = tools.some((tool) => activeStatuses.has(tool.status));
-            const wasActive = hasActiveToolsRef.current;
-
-            setHasActiveTools(hasActive);
-            hasActiveToolsRef.current = hasActive; // Sync update ref immediately
-
-            // When tools transition from active to inactive, set waitingResponse=true
-            // because backend needs to continue sending requests to model
-            if (wasActive && !hasActive && tools.length > 0) {
-              setWaitingResponse(true);
-              waitingResponseRef.current = true;
-            }
-
-            // If tools are awaiting confirmation, update thought hint
-            const confirmingTool = tools.find((tool) => tool.status === 'Confirming');
-            if (confirmingTool) {
-              setThought({
-                subject: 'Awaiting Confirmation',
-                description: confirmingTool.name || 'Tool execution',
-              });
-            } else if (hasActive) {
-              const executingTool = tools.find((tool) => tool.status === 'Executing');
-              if (executingTool) {
-                setThought({
-                  subject: 'Executing',
-                  description: executingTool.name || 'Tool',
-                });
-              }
-            } else if (!streamRunningRef.current) {
-              // All tools completed and stream stopped, clear thought
-              setThought({ subject: '', description: '' });
-            }
-
-            // Continue passing message to message list update
-            addOrUpdateMessage(transformMessage(message));
-          }
-          break;
-        case 'finished':
-          {
-            // Note: 'finished' event is for token usage stats only, NOT for stream end
-            // Stream end is signaled by 'finish' event
-            const finishedData = message.data as {
-              reason?: string;
-              usageMetadata?: {
-                promptTokenCount?: number;
-                candidatesTokenCount?: number;
-                totalTokenCount?: number;
-                cachedContentTokenCount?: number;
-              };
-            };
-            if (finishedData?.usageMetadata) {
-              const newTokenUsage: TokenUsageData = {
-                totalTokens: finishedData.usageMetadata.totalTokenCount || 0,
-                inputTokens: finishedData.usageMetadata.promptTokenCount || 0,
-                outputTokens: finishedData.usageMetadata.candidatesTokenCount || 0,
-                cachedInputTokens: finishedData.usageMetadata.cachedContentTokenCount,
-              };
-              setTokenUsage(newTokenUsage);
-              // Persist token usage stats to conversation's extra.lastTokenUsage field
-              // Uses mergeExtra option so backend auto-merges extra field
-              void ipcBridge.conversation.update.invoke({
-                id: conversation_id,
-                updates: {
-                  extra: {
-                    lastTokenUsage: newTokenUsage,
-                  } as TChatConversation['extra'],
-                },
-                mergeExtra: true,
-              });
-            }
-            // DO NOT reset streamRunning/waitingResponse here!
-            // For OpenAI-compatible APIs, 'finished' events are emitted per chunk
-            // Only 'finish' event should reset the stream state
-          }
-          break;
-        case 'request_trace':
-          {
-            const trace = message.data as Record<string, unknown>;
-            requestTraceRef.current = {
-              startTime: Number(trace.timestamp) || Date.now(),
-              provider: String(trace.platform || trace.provider || 'unknown'),
-              modelId: String(trace.modelId || 'unknown'),
-            };
-            console.log(
-              `%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.modelId} | ${new Date().toISOString()}`,
-              'color: #1890ff; font-weight: bold',
-              'color: inherit',
-              trace
-            );
-          }
-          break;
-        default: {
-          if (message.type === 'error') {
-            setWaitingResponse(false);
+            setStreamingContent(false);
             onError?.(message as IResponseMessage);
-            // Log request error
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
               console.log(
-                `%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                `%c[RequestTrace]%c ERROR | ${requestTraceRef.current.provider} -> ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #ff4d4f; font-weight: bold',
                 'color: inherit',
                 message.data
@@ -287,27 +320,33 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
               requestTraceRef.current = null;
             }
           } else {
-            // Mark that current turn has content output (exclude error type)
-            hasContentInTurnRef.current = true;
-            // Reset waitingResponse when actual content arrives
             if (message.type === 'content') {
-              setWaitingResponse(false);
-              waitingResponseRef.current = false;
+              const isFirstContentChunk = !hasContentInTurnRef.current;
+              hasContentInTurnRef.current = true;
+              setStreamingContent(true);
+              if (isFirstContentChunk) {
+                clearWaitingResponseAfterPaint();
+              }
             }
-            // Auto-recover streamRunning if content arrives after finish
             if (!streamRunningRef.current) {
               setStreamRunning(true);
               streamRunningRef.current = true;
             }
           }
-          // Backend handles persistence, Frontend only updates UI
-          addOrUpdateMessage(transformMessage(message));
+          addOrUpdateMessage(transformedMessage);
           break;
         }
       }
     });
-    // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, addOrUpdateMessage, onError]);
+  }, [
+    addOrUpdateMessage,
+    cancelWaitingResponseClear,
+    clearWaitingResponseAfterPaint,
+    conversation_id,
+    onError,
+    setStreamingContent,
+    throttledSetThought,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -315,12 +354,12 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
+    setStreamingContent(false);
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
+    cancelWaitingResponseClear();
 
-    // Check actual conversation status from backend before resetting all running states
-    // to avoid flicker when switching to a running conversation
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (cancelled) {
         return;
@@ -333,18 +372,20 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
         hasActiveToolsRef.current = false;
         setWaitingResponse(false);
         waitingResponseRef.current = false;
+        setStreamingContent(false);
         setHasHydratedRunningState(true);
         return;
       }
+
       const isRunning = res.status === 'running';
       setStreamRunning(isRunning);
       streamRunningRef.current = isRunning;
-      // Reset tool states - they will be restored by incoming messages if still active
       setHasActiveTools(false);
       hasActiveToolsRef.current = false;
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
-      // Load persisted token usage stats
+      setStreamingContent(false);
+
       if (res.type === 'gemini' && res.extra?.lastTokenUsage) {
         const { lastTokenUsage } = res.extra;
         if (lastTokenUsage.totalTokens > 0) {
@@ -356,8 +397,12 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
 
     return () => {
       cancelled = true;
+      emitter.emit('conversation.streaming', {
+        conversationId: conversation_id,
+        isStreaming: false,
+      });
     };
-  }, [conversation_id]);
+  }, [conversation_id, setStreamingContent]);
 
   const resetState = useCallback(() => {
     setWaitingResponse(false);
@@ -368,11 +413,12 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    setStreamingContent(false);
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
-    // Clear active message ID to prevent filtering events from new messages after stop
     activeMsgIdRef.current = null;
-  }, []);
+    cancelWaitingResponseClear();
+  }, [cancelWaitingResponseClear, setStreamingContent]);
 
   return {
     thought,
@@ -380,6 +426,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
     running,
     hasHydratedRunningState,
     tokenUsage,
+    hasStreamingContent,
     setActiveMsgId,
     setWaitingResponse,
     resetState,

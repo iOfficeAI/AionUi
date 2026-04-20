@@ -10,12 +10,13 @@ import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import GeminiSendBox from './GeminiSendBox';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
 import TeamChatEmptyState from '@renderer/pages/team/components/TeamChatEmptyState';
+import { useAddEventListener } from '@/renderer/utils/emitter';
 
 // GeminiChat 接收共享的模型选择状态，避免组件内重复管理
 // GeminiChat consumes shared model selection state to avoid duplicate logic
@@ -44,12 +45,27 @@ const GeminiChat: React.FC<{
 }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
+  const [isStreamingContent, setIsStreamingContent] = useState(false);
+
+  useEffect(() => {
+    setIsStreamingContent(false);
+  }, [conversation_id]);
+  useAddEventListener(
+    'conversation.streaming',
+    ({ conversationId, isStreaming }) => {
+      if (conversationId === conversation_id) {
+        setIsStreamingContent(isStreaming);
+      }
+    },
+    [conversation_id]
+  );
+
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversationId: conversation_id, workspace, type: 'gemini', cronJobId, hideSendBox };
-  }, [conversation_id, workspace, cronJobId, hideSendBox]);
+    return { conversationId: conversation_id, workspace, type: 'gemini', cronJobId, hideSendBox, isStreamingContent };
+  }, [conversation_id, workspace, cronJobId, hideSendBox, isStreamingContent]);
 
   return (
     <ConversationProvider value={conversationValue}>

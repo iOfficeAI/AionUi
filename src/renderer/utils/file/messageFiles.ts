@@ -1,4 +1,4 @@
-import { AIONUI_FILES_MARKER, AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
+import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string | FileOrFolderItem>): string[] => {
@@ -10,26 +10,28 @@ export const buildDisplayMessage = (input: string, files: string[], workspacePat
   if (!files.length) return input;
   const normalizedWorkspace = workspacePath?.replace(/[\\/]+$/, '');
   const displayPaths = files.map((filePath) => {
-    const sanitizedPath = filePath.replace(AIONUI_TIMESTAMP_REGEX, '$1');
     if (!normalizedWorkspace) {
-      return sanitizedPath;
+      return filePath;
     }
 
     const isAbsolute = filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath);
     if (isAbsolute) {
-      // If file is inside workspace, preserve relative path (including subdirectories like uploads/)
+      // Preserve the exact relative path for workspace uploads so duplicate filenames
+      // still resolve to the actual saved file instead of the pre-conflict name.
       const normalizedFile = filePath.replace(/\\/g, '/');
       const normalizedWorkspaceWithForwardSlash = normalizedWorkspace.replace(/\\/g, '/');
       if (normalizedFile.startsWith(normalizedWorkspaceWithForwardSlash + '/')) {
         const relativePath = normalizedFile.slice(normalizedWorkspaceWithForwardSlash.length + 1);
-        return `${normalizedWorkspace}/${relativePath.replace(AIONUI_TIMESTAMP_REGEX, '$1')}`;
+        return relativePath;
       }
-      // External file outside workspace: use basename only so the marker stays tied to this workspace
-      const parts = sanitizedPath.split(/[\\/]/);
-      const fileName = parts[parts.length - 1] || sanitizedPath;
-      return `${normalizedWorkspace}/${fileName}`;
+
+      // External file outside workspace: use basename only so the marker stays workspace-relative
+      const parts = filePath.split(/[\\/]/);
+      const fileName = parts[parts.length - 1] || filePath;
+      return fileName;
     }
-    return `${normalizedWorkspace}/${sanitizedPath}`;
+
+    return filePath;
   });
   return `${input}\n\n${AIONUI_FILES_MARKER}\n${displayPaths.join('\n')}`;
 };

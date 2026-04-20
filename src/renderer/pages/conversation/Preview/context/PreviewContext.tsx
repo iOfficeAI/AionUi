@@ -711,3 +711,7 @@ export const usePreviewContext = () => {
   }
   return context;
 };
+
+export const usePreviewContextSafe = (): PreviewContextValue | null => {
+  return useContext(PreviewContext);
+};

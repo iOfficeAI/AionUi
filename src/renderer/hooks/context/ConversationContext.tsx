@@ -38,6 +38,11 @@ export interface ConversationContextValue {
    * When true, platform chat components should hide the SendBox (e.g. sub-agents in team mode)
    */
   hideSendBox?: boolean;
+
+  /**
+   * Whether the current assistant turn has visible streaming content.
+   */
+  isStreamingContent?: boolean;
 }
 
 /**

@@ -6,11 +6,14 @@
 
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 
 const markdownViewMock = vi.hoisted(() =>
   vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid='markdown-view'>{children}</div>)
+);
+const streamingMarkdownViewMock = vi.hoisted(() =>
+  vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid='streaming-markdown-view'>{children}</div>)
 );
 
 vi.mock('react-i18next', () => ({
@@ -47,6 +50,10 @@ vi.mock('@renderer/components/Markdown', () => ({
   default: markdownViewMock,
 }));
 
+vi.mock('@renderer/components/Markdown/StreamingMarkdownView', () => ({
+  default: streamingMarkdownViewMock,
+}));
+
 vi.mock('@/renderer/utils/ui/clipboard', () => ({
   copyText: vi.fn().mockResolvedValue(undefined),
 }));
@@ -74,6 +81,10 @@ const createMessage = (overrides?: Partial<IMessageText>): IMessageText => ({
 });
 
 describe('MessageText', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders user-authored markdown-looking text as plain text instead of using MarkdownView', () => {
     render(
       <MessageText
@@ -105,5 +116,23 @@ describe('MessageText', () => {
 
     expect(screen.getByTestId('markdown-view')).toBeInTheDocument();
     expect(markdownViewMock).toHaveBeenCalledOnce();
+  });
+
+  it('uses streaming markdown rendering for assistant messages while streaming', () => {
+    render(
+      <MessageText
+        isStreaming
+        message={createMessage({
+          position: 'left',
+          content: {
+            content: '~tilde~ **bold** `code`',
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByTestId('streaming-markdown-view')).toBeInTheDocument();
+    expect(streamingMarkdownViewMock).toHaveBeenCalledOnce();
+    expect(markdownViewMock).not.toHaveBeenCalled();
   });
 });

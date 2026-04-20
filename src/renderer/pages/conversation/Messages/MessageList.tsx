@@ -86,10 +86,40 @@ const highlightStyle: React.CSSProperties = {
 
 const getUnhandledMessageType = (_message: never): string => 'unknown';
 
+const isStreamingAssistantTextMessage = (message: TMessage): boolean => {
+  if (message.hidden || message.type !== 'text' || message.position !== 'left') {
+    return false;
+  }
+
+  if (message.content.teammateMessage) {
+    return false;
+  }
+
+  return typeof message.content.content === 'string' && message.content.content.trim().length > 0;
+};
+
+const getStreamingAssistantTextMessageId = (
+  messages: TMessage[],
+  isStreamingContent: boolean | undefined
+): string | undefined => {
+  if (!isStreamingContent) {
+    return undefined;
+  }
+
+  for (let index = messages.length - 1; index >= 0; index--) {
+    const message = messages[index];
+    if (isStreamingAssistantTextMessage(message)) {
+      return message.id;
+    }
+  }
+
+  return undefined;
+};
+
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = React.memo(
+const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStreaming?: boolean }> = React.memo(
   HOC((props) => {
     const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
     return (
@@ -112,11 +142,11 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         {props.children}
       </div>
     );
-  })(({ message }) => {
+  })(({ message, isStreaming }) => {
     const { t } = useTranslation();
     switch (message.type) {
       case 'text':
-        return <MessageText message={message}></MessageText>;
+        return <MessageText message={message} isStreaming={isStreaming}></MessageText>;
       case 'tips':
         return <MessageTips message={message}></MessageTips>;
       case 'tool_call':
@@ -153,7 +183,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.message.content === next.message.content &&
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
-    prev.highlighted === next.highlighted
+    prev.highlighted === next.highlighted &&
+    prev.isStreaming === next.isStreaming
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -166,6 +197,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const targetMessageId = locationState.targetMessageId;
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
   const handledTargetKeyRef = useRef<string>('');
+  const streamingMessageId = useMemo(
+    () => getStreamingAssistantTextMessageId(list, conversationContext?.isStreamingContent),
+    [conversationContext?.isStreamingContent, list]
+  );
 
   // Pre-process message list to group Codex turn_diff messages
   const processedList = useMemo(() => {
@@ -353,7 +388,14 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         </div>
       );
     }
-    return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
+    return (
+      <MessageItem
+        message={item as TMessage}
+        key={(item as TMessage).id}
+        highlighted={highlighted}
+        isStreaming={(item as TMessage).id === streamingMessageId}
+      ></MessageItem>
+    );
   };
 
   if (processedList.length === 0 && emptySlot) {
