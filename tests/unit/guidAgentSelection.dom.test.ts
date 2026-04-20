@@ -348,6 +348,43 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
   });
 
+  it('resets back to the default agent immediately on new-chat navigation', async () => {
+    configStorageMock.get.mockImplementation(async (key: string) => {
+      switch (key) {
+        case 'acp.cachedModels':
+          return { claude: CLAUDE_CACHED_MODEL };
+        case 'acp.customAgents':
+          return CUSTOM_AGENTS;
+        case 'guid.lastSelectedAgent':
+          return `custom:${PRESET_AGENT_ID}`;
+        case 'acp.config':
+        case 'gemini.config':
+        case 'gemini.defaultModel':
+        case 'aionrs.config':
+        case 'aionrs.defaultModel':
+          return null;
+        default:
+          return null;
+      }
+    });
+
+    const { result, rerender } = renderHook(
+      ({ resetAssistant, locationKey }: { resetAssistant?: boolean; locationKey?: string }) =>
+        useGuidAgentSelection({ ...hookOptions, resetAssistant, locationKey }),
+      { initialProps: { resetAssistant: false, locationKey: 'initial' } }
+    );
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+      expect(result.current.selectedAgentKey).toBe(`custom:${PRESET_AGENT_ID}`);
+    });
+
+    rerender({ resetAssistant: true, locationKey: 'new-chat' });
+
+    expect(result.current.selectedAgentKey).toBe('gemini');
+    expect(configStorageMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
+  });
+
   it('uses default codex models when codex has no cached list', async () => {
     defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' }, { id: 'gpt-5-mini', label: 'GPT-5 Mini' });
     setupMocks({ cachedModels: {}, acpConfig: {} });
