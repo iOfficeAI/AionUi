@@ -472,21 +472,11 @@ const GuidPage: React.FC = () => {
     />
   );
 
-  // AionCLI does not support Google Auth — filter it out
-  const isAionrs = effectiveAgentType === 'aionrs';
-  const filteredModelList = useMemo(
-    () =>
-      isAionrs
-        ? modelSelection.modelList.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth'))
-        : modelSelection.modelList,
-    [isAionrs, modelSelection.modelList]
-  );
-
   // Build the model selector node
   const modelSelectorNode = (
     <GuidModelSelector
       isGeminiMode={isGeminiMode}
-      modelList={filteredModelList}
+      modelList={modelSelection.modelList}
       currentModel={modelSelection.currentModel}
       setCurrentModel={modelSelection.setCurrentModel}
       geminiModeLookup={modelSelection.geminiModeLookup}

@@ -134,6 +134,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // Gemini path
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
+      // The placeholder only makes sense while Google Auth is active — otherwise
+      // it fabricates a logged-out auth type and the chat page fails to load.
+      if (!currentModel && !isGoogleAuth) {
+        Message.warning(t('conversation.noModelConfigured'));
+        return;
+      }
       const placeholderModel = currentModel || {
         id: 'gemini-placeholder',
         name: 'Gemini',
@@ -314,11 +320,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // Aionrs path (direct selection or preset assistant with aionrs as main agent)
     if (selectedAgent === 'aionrs' || (isPreset && finalEffectiveAgentType === 'aionrs')) {
+      if (!currentModel) {
+        Message.warning(t('conversation.noModelConfigured'));
+        return;
+      }
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'aionrs',
           name: input,
-          model: currentModel!,
+          model: currentModel,
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
