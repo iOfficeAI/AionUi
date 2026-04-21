@@ -65,6 +65,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
 });
 
+// Receive the aionui-backend port from the main process and expose it globally
+// so the renderer can construct API / WebSocket URLs.
+ipcRenderer.on('backend-port', (_event, port: number) => {
+  (window as any).__backendPort = port;
+});
+
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events
 const trayEvents = [
