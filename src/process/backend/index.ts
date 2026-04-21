@@ -1,0 +1,1 @@
+export { resolveBinaryPath } from './binaryResolver'
