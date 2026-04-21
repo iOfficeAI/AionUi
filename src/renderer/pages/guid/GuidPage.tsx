@@ -355,10 +355,16 @@ const GuidPage: React.FC = () => {
 
   // Clear resetAssistant from location.state after the hook has consumed it,
   // so that re-renders don't re-trigger the reset logic.
+  //
+  // Must go through React Router's navigate — raw window.history.replaceState
+  // with `location.pathname` would write the HashRouter virtual path (e.g.
+  // '/guid') into the browser's real URL and strip the leading '#'. On the
+  // next hard reload, the browser would then request '/guid' directly from
+  // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
     if (!resetAssistantRequested) return;
-    window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
-  }, [resetAssistantRequested, location.pathname, location.search, location.hash]);
+    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
+  }, [resetAssistantRequested, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;
