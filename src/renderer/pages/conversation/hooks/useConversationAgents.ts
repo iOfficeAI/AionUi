@@ -6,6 +6,11 @@
 
 import { useMemo } from 'react';
 import useSWR from 'swr';
+import {
+  AGENT_VISIBILITY_CONFIG_KEY,
+  isAgentVisible,
+  type AgentVisibilityConfig,
+} from '@/common/config/agentVisibility';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
@@ -52,22 +57,35 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
     mutate,
   } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
+  const {
+    data: agentVisibility,
+    isLoading: isLoadingVisibility,
+    mutate: mutateVisibility,
+  } = useSWR<AgentVisibilityConfig>(AGENT_VISIBILITY_CONFIG_KEY, async () => {
+    return ((await ConfigStorage.get(AGENT_VISIBILITY_CONFIG_KEY)) || {}) as AgentVisibilityConfig;
+  });
+
   // Preset assistants from config layer
   const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
     const agents: AcpBackendConfig[] = (await ConfigStorage.get('assistants')) || [];
     return agents.filter((a) => a.isPreset && a.enabled !== false);
   });
 
+  const visibleCliAgents = useMemo(
+    () => (cliAgents || []).filter((agent) => isAgentVisible(agent.backend, agentVisibility)),
+    [agentVisibility, cliAgents]
+  );
+
   const presetAssistants = useMemo(() => (presetConfigs || []).map(configToAvailableAgent), [presetConfigs]);
 
   const refresh = async () => {
-    await mutate();
+    await Promise.all([mutate(), mutateVisibility()]);
   };
 
   return {
-    cliAgents: cliAgents || [],
+    cliAgents: visibleCliAgents,
     presetAssistants,
-    isLoading: isLoadingAgents || isLoadingPresets,
+    isLoading: isLoadingAgents || isLoadingPresets || isLoadingVisibility,
     refresh,
   };
 };

@@ -108,11 +108,14 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
 // Helpers
 // ---------------------------------------------------------------------------
 
-function setupMocks(presetConfigs: AcpBackendConfig[] = []) {
+function setupMocks(presetConfigs: AcpBackendConfig[] = [], visibilityConfig: Record<string, boolean> = {}) {
   ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: CLI_AGENTS });
   configStorageMock.get.mockImplementation(async (key: string) => {
     if (key === 'assistants') {
       return presetConfigs;
+    }
+    if (key === 'agent.visibility') {
+      return visibilityConfig;
     }
     return null;
   });
@@ -242,6 +245,18 @@ describe('useConversationAgents', () => {
       });
 
       expect(result.current.cliAgents).toEqual(CLI_AGENTS);
+    });
+
+    it('filters out CLI agents disabled in visibility config', async () => {
+      setupMocks([], { claude: false });
+
+      const { result } = renderHook(() => useConversationAgents());
+
+      await waitFor(() => {
+        expect(result.current.cliAgents.length).toBe(1);
+      });
+
+      expect(result.current.cliAgents).toEqual([{ backend: 'gemini', name: 'Gemini' }]);
     });
 
     it('returns presetAssistants derived from ConfigStorage("assistants")', async () => {

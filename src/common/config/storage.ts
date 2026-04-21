@@ -65,6 +65,8 @@ export interface IConfigStorageRefer {
   'acp.customAgents'?: AcpBackendConfig[];
   /** Assistant configurations (preset + user-created) */
   assistants?: AcpBackendConfig[];
+  /** Persisted visibility toggles for detected execution engines shown in selector UIs */
+  'agent.visibility'?: Record<string, boolean>;
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
   // Cached model lists per ACP backend for Guid page pre-selection

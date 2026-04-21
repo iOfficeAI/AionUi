@@ -5,6 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
+import {
+  AGENT_VISIBILITY_CONFIG_KEY,
+  isAgentVisible,
+  type AgentVisibilityConfig,
+} from '@/common/config/agentVisibility';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import AionModal from '@/renderer/components/base/AionModal';
@@ -31,6 +36,13 @@ const LocalAgents: React.FC = () => {
     }
     return [];
   });
+
+  const { data: agentVisibility, mutate: mutateAgentVisibility } = useSWR<AgentVisibilityConfig>(
+    AGENT_VISIBILITY_CONFIG_KEY,
+    async () => {
+      return ((await ConfigStorage.get(AGENT_VISIBILITY_CONFIG_KEY)) || {}) as AgentVisibilityConfig;
+    }
+  );
 
   // Custom agents
   const { data: customAgents, mutate: mutateCustomAgents } = useSWR('assistants.settings', async () => {
@@ -71,7 +83,7 @@ const LocalAgents: React.FC = () => {
     async (agentId: string, enabled: boolean) => {
       const current = (await ConfigStorage.get('assistants')) || [];
       const updatedAgents = (current as AcpBackendConfig[]).map((a) =>
-        a.id === agentId && !a.isPreset ? { ...a, enabled } : a
+        a.id === agentId && !a.isPreset ? Object.assign({}, a, { enabled }) : a
       );
       if (updatedAgents.some((a) => a.id === agentId && !a.isPreset)) {
         await ConfigStorage.set('assistants', updatedAgents);
@@ -79,6 +91,18 @@ const LocalAgents: React.FC = () => {
       }
     },
     [mutateCustomAgents]
+  );
+
+  const handleToggleDetectedAgent = useCallback(
+    async (backend: string, enabled: boolean) => {
+      const currentVisibility = ((await ConfigStorage.get(AGENT_VISIBILITY_CONFIG_KEY)) || {}) as AgentVisibilityConfig;
+      await ConfigStorage.set(AGENT_VISIBILITY_CONFIG_KEY, {
+        ...currentVisibility,
+        [backend]: enabled,
+      });
+      await mutateAgentVisibility();
+    },
+    [mutateAgentVisibility]
   );
 
   // Aion CLI and Gemini CLI first among detected agents
@@ -146,6 +170,8 @@ const LocalAgents: React.FC = () => {
           <AgentCard
             type='detected'
             agent={aionrsAgent}
+            enabled={isAgentVisible(aionrsAgent.backend, agentVisibility)}
+            onToggle={(enabled) => void handleToggleDetectedAgent(aionrsAgent.backend, enabled)}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/aionrs')}
             variant='grid'
@@ -155,13 +181,22 @@ const LocalAgents: React.FC = () => {
           <AgentCard
             type='detected'
             agent={geminiAgent}
+            enabled={isAgentVisible(geminiAgent.backend, agentVisibility)}
+            onToggle={(enabled) => void handleToggleDetectedAgent(geminiAgent.backend, enabled)}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/gemini')}
             variant='grid'
           />
         )}
         {otherDetected.map((agent) => (
-          <AgentCard key={agent.backend} type='detected' agent={agent} variant='grid' />
+          <AgentCard
+            key={agent.backend}
+            type='detected'
+            agent={agent}
+            enabled={isAgentVisible(agent.backend, agentVisibility)}
+            onToggle={(enabled) => void handleToggleDetectedAgent(agent.backend, enabled)}
+            variant='grid'
+          />
         ))}
       </div>
       {(!detectedAgents || detectedAgents.length === 0) && (

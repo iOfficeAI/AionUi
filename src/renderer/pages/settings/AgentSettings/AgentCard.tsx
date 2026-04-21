@@ -24,7 +24,9 @@ type AgentCardProps =
   | {
       type: 'detected';
       agent: DetectedAgent;
+      enabled?: boolean;
       onSettings?: () => void;
+      onToggle?: (enabled: boolean) => void;
       settingsDisabled?: boolean;
       variant?: 'row' | 'grid';
     }
@@ -40,7 +42,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
 
   if (props.type === 'detected') {
-    const { agent, onSettings, settingsDisabled = true, variant = 'row' } = props;
+    const { agent, enabled = true, onSettings, onToggle, settingsDisabled = true, variant = 'row' } = props;
     const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
     const gridSettingsButtonClassName = '!w-full !justify-center !rounded-10px !text-12px';
     const logo =
@@ -50,6 +52,8 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         customAgentId: agent.customAgentId,
         isExtension: agent.isExtension,
       });
+
+    const toggle = <Switch size='small' checked={enabled} onChange={onToggle} disabled={!onToggle} />;
 
     if (variant === 'grid') {
       const settingsButton = (
@@ -83,10 +87,29 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             </Typography.Text>
           </div>
 
-          {settingsButton}
+          <div className='mt-auto flex items-center gap-8px'>
+            <div className='flex h-32px min-w-52px items-center justify-center rounded-10px border border-solid border-[var(--color-border-2)] bg-[var(--color-fill-1)]'>
+              {toggle}
+            </div>
+            <div className='min-w-0 flex-1'>{settingsButton}</div>
+          </div>
         </div>
       );
     }
+
+    const settingsButton = settingsDisabled ? (
+      <Tooltip content={t('settings.agentManagement.settingsDisabledHint')}>
+        <Button
+          size='small'
+          type='text'
+          icon={<Setting theme='outline' size='14' />}
+          disabled
+          style={{ color: 'var(--color-text-4)' }}
+        />
+      </Tooltip>
+    ) : (
+      <Button size='small' type='text' icon={<Setting theme='outline' size='14' />} onClick={onSettings} />
+    );
 
     return (
       <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -96,19 +119,10 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           </Avatar>
           <Typography.Text className='font-medium text-14px'>{agent.name}</Typography.Text>
         </div>
-        {settingsDisabled ? (
-          <Tooltip content={t('settings.agentManagement.settingsDisabledHint')}>
-            <Button
-              size='small'
-              type='text'
-              icon={<Setting theme='outline' size='14' />}
-              disabled
-              style={{ color: 'var(--color-text-4)' }}
-            />
-          </Tooltip>
-        ) : (
-          <Button size='small' type='text' icon={<Setting theme='outline' size='14' />} onClick={onSettings} />
-        )}
+        <div className='flex items-center gap-8px'>
+          {toggle}
+          {settingsButton}
+        </div>
       </div>
     );
   }

@@ -25,6 +25,16 @@ Object.defineProperty(window, 'matchMedia', {
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockGetAvailableAgents = vi.hoisted(() => vi.fn());
 const mockSwrMutate = vi.hoisted(() => vi.fn().mockResolvedValue(undefined));
+const configStorageMock = vi.hoisted(() => ({
+  get: vi.fn().mockResolvedValue([]),
+  set: vi.fn().mockResolvedValue(undefined),
+}));
+const swrData = vi.hoisted(() => ({
+  values: new Map<string, unknown>(),
+  reset() {
+    this.values.clear();
+  },
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key, i18n: { language: 'en-US' } }),
@@ -43,7 +53,7 @@ vi.mock('../../src/common', () => ({
 }));
 
 vi.mock('swr', () => ({
-  default: vi.fn(() => ({ data: undefined, mutate: mockSwrMutate, isLoading: false })),
+  default: vi.fn((key: string) => ({ data: swrData.values.get(key), mutate: mockSwrMutate, isLoading: false })),
   mutate: mockSwrMutate,
 }));
 
@@ -85,7 +95,7 @@ vi.mock('@/renderer/components/base/AionModal', () => ({
 }));
 
 vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: { get: vi.fn().mockResolvedValue([]), set: vi.fn().mockResolvedValue(undefined) },
+  ConfigStorage: configStorageMock,
 }));
 
 vi.mock('@icon-park/react', () => ({
@@ -131,7 +141,7 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () 
 // ---------------------------------------------------------------------------
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, act, fireEvent } from '@testing-library/react';
+import { render, screen, act, fireEvent, waitFor } from '@testing-library/react';
 import React from 'react';
 import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAgents';
 
@@ -142,8 +152,14 @@ import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAg
 describe('LocalAgents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    swrData.reset();
+    swrData.values.set('acp.agents.available.settings', []);
+    swrData.values.set('assistants.settings', []);
+    swrData.values.set('agent.visibility', {});
     mockGetAvailableAgents.mockResolvedValue({ success: true, data: [] });
     mockSwrMutate.mockResolvedValue(undefined);
+    configStorageMock.get.mockResolvedValue([]);
+    configStorageMock.set.mockResolvedValue(undefined);
   });
 
   it('renders description and detect custom agent link', async () => {
@@ -206,5 +222,26 @@ describe('LocalAgents', () => {
 
     expect(screen.getByTestId('aion-modal')).toHaveAttribute('data-background', 'var(--dialog-fill-0)');
     expect(screen.getByTestId('inline-agent-editor')).toBeTruthy();
+  });
+
+  it('persists detected agent visibility when toggled', async () => {
+    swrData.values.set('acp.agents.available.settings', [{ backend: 'claude', name: 'Claude Code' }]);
+    configStorageMock.get.mockImplementation(async (key: string) => {
+      if (key === 'agent.visibility') {
+        return {};
+      }
+      return [];
+    });
+
+    await act(async () => {
+      render(<LocalAgents />);
+    });
+
+    fireEvent.click(screen.getByRole('switch'));
+
+    await waitFor(() => {
+      expect(configStorageMock.set).toHaveBeenCalledWith('agent.visibility', { claude: false });
+    });
+    expect(mockSwrMutate).toHaveBeenCalled();
   });
 });

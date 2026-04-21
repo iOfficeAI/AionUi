@@ -110,6 +110,16 @@ describe('AgentCard – detected variant', () => {
     fireEvent.click(button!);
     expect(onSettings).toHaveBeenCalledTimes(1);
   });
+
+  it('calls onToggle when the detected agent switch changes', () => {
+    const onToggle = vi.fn();
+    render(<AgentCard type='detected' agent={{ backend: 'gemini', name: 'Gemini' }} onToggle={onToggle} />);
+
+    fireEvent.click(screen.getByRole('switch'));
+
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    expect(onToggle.mock.calls[0][0]).toBe(false);
+  });
 });
 
 describe('AgentCard – custom variant', () => {
