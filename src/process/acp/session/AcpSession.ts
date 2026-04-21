@@ -72,6 +72,11 @@ function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
   return wrapped as SessionCallbacks;
 }
 
+export function buildCrashMessage(info?: DisconnectInfo): string | null {
+  if (!info) return null;
+  return `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
+}
+
 export class AcpSession {
   private _status: SessionStatus = 'idle';
 
@@ -394,8 +399,8 @@ export class AcpSession {
 
   /** Emit error signal with exit info so TeammateManager can detect agent crash. */
   private emitCrashSignalIfProcessDied(info?: DisconnectInfo): void {
-    if (info?.reason !== 'process_exit' && info?.reason !== 'process_close') return;
-    const msg = `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
+    const msg = buildCrashMessage(info);
+    if (!msg) return;
     this.callbacks.onSignal({ type: 'error', message: msg, recoverable: true });
   }
 
