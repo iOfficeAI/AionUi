@@ -326,6 +326,8 @@ function getWindowsExtraToolPaths(): string[] {
     process.env.SCOOP ? path.join(process.env.SCOOP, 'shims') : path.join(homeDir, 'scoop', 'shims'),
     // pnpm global store shims
     path.join(localAppData, 'pnpm'),
+    // OfficeCli — install.ps1 puts officecli.exe here
+    path.join(localAppData, 'OfficeCli'),
     // Chocolatey
     path.join(process.env.ChocolateyInstall || 'C:\\ProgramData\\chocolatey', 'bin'),
     // Git for Windows — provides cygpath, git, and POSIX utilities.
