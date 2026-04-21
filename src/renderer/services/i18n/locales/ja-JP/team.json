@@ -17,14 +17,6 @@
     "renameSuccess": "チーム名を変更しました",
     "deleteSuccess": "チームを削除しました"
   },
-  "addAgent": {
-    "title": "Add Agent",
-    "name": "Agent Name",
-    "namePlaceholder": "Enter agent name",
-    "type": "Agent Type",
-    "typePlaceholder": "Select agent type",
-    "confirm": "Add"
-  },
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "エージェントはまだ設定されていません。",

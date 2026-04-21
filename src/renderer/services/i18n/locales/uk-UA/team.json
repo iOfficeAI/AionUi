@@ -17,14 +17,6 @@
     "renameSuccess": "Команду перейменовано",
     "deleteSuccess": "Команду видалено"
   },
-  "addAgent": {
-    "title": "Додати агента",
-    "name": "Ім'я агента",
-    "namePlaceholder": "Введіть ім'я агента",
-    "type": "Тип агента",
-    "typePlaceholder": "Виберіть тип агента",
-    "confirm": "Додати"
-  },
   "newAgent": "Новий агент",
   "noMessages": "Повідомлень ще немає.",
   "agentNotConfigured": "Агента ще не налаштовано.",

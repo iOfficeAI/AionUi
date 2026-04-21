@@ -1,12 +1,19 @@
 import React from 'react';
+import useSWR from 'swr';
+import { ipcBridge } from '@/common';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 
 type Props = {
   agentName: string;
   agentType: string;
+  /** When provided, enables preset-aware avatar (emoji / custom svg) via the agent's conversation extras. */
+  conversationId?: string;
   isLeader?: boolean;
   className?: string;
   logoClassName?: string;
+  /** Used for emoji presets (text-based avatar) and the first-letter fallback circle. */
+  avatarClassName?: string;
   nameClassName?: string;
   crownClassName?: string;
 };
@@ -14,13 +21,39 @@ type Props = {
 const TeamAgentIdentity: React.FC<Props> = ({
   agentName,
   agentType,
+  conversationId,
   isLeader = false,
   className,
   logoClassName,
+  avatarClassName,
   nameClassName,
   crownClassName,
 }) => {
-  const logo = getAgentLogo(agentType);
+  // Share the SWR key with AgentChatSlot / TeamChatEmptyState so this hits cache instead of firing a fetch
+  const { data: conversation } = useSWR(conversationId ? ['team-conversation', conversationId] : null, () =>
+    ipcBridge.conversation.get.invoke({ id: conversationId! })
+  );
+  const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
+  const backendLogo = getAgentLogo(agentType);
+
+  const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
+  const resolvedLogoClassName = logoClassName ?? defaultLogoClassName;
+  const defaultAvatarClassName =
+    'w-16px h-16px rounded-2px flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0';
+  const resolvedAvatarClassName = avatarClassName ?? defaultAvatarClassName;
+
+  const renderAvatar = () => {
+    if (presetInfo) {
+      if (presetInfo.isEmoji) {
+        return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
+      }
+      return <img src={presetInfo.logo} alt={presetInfo.name} className={resolvedLogoClassName} />;
+    }
+    if (backendLogo) {
+      return <img src={backendLogo} alt={agentType} className={resolvedLogoClassName} />;
+    }
+    return <span className={resolvedAvatarClassName}>{agentName.charAt(0).toUpperCase() || '🤖'}</span>;
+  };
 
   const crownIcon = (
     <svg
@@ -44,13 +77,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
 
   return (
     <div className={['flex items-center gap-8px', className].filter(Boolean).join(' ')}>
-      {logo && (
-        <img
-          src={logo}
-          alt={agentType}
-          className={logoClassName ?? 'w-16px h-16px object-contain rounded-2px opacity-80'}
-        />
-      )}
+      {renderAvatar()}
       <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{agentName}</span>
       {isLeader && (
         <span

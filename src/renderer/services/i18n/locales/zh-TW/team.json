@@ -17,14 +17,6 @@
     "renameSuccess": "團隊已重新命名",
     "deleteSuccess": "團隊已刪除"
   },
-  "addAgent": {
-    "title": "新增 Agent",
-    "name": "Agent 名稱",
-    "namePlaceholder": "輸入 Agent 名稱",
-    "type": "Agent 類型",
-    "typePlaceholder": "選擇 Agent 類型",
-    "confirm": "新增"
-  },
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Agent 尚未設定。",

@@ -7,6 +7,9 @@ vi.mock('electron', () => ({
 }));
 
 // Mock ProcessConfig for dynamic team capability checks
+const mockAssistants = vi.hoisted(() => ({
+  value: null as Array<Record<string, unknown>> | null,
+}));
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
@@ -37,6 +40,9 @@ vi.mock('@process/utils/initStorage', () => ({
             authMethods: [],
           },
         };
+      }
+      if (key === 'assistants') {
+        return mockAssistants.value;
       }
       return null;
     }),
@@ -146,6 +152,7 @@ describe('TeamMcpServer', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockAssistants.value = null;
     agents = [
       makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
       makeAgent({ slotId: 'slot-member', agentName: 'Alice', role: 'teammate' }),
@@ -470,7 +477,7 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude', undefined);
+      expect(spawnAgent).toHaveBeenCalledWith('NewBot', 'claude', undefined, undefined);
       expect(response.result).toContain('NewBot');
     });
 
@@ -495,6 +502,64 @@ describe('TeamMcpServer', () => {
       })) as Record<string, unknown>;
 
       expect(response.error).toContain('not supported in team mode');
+    });
+
+    it('spawns a preset teammate using custom_agent_id and derives backend from the preset', async () => {
+      mockAssistants.value = [
+        {
+          id: 'builtin-word-creator',
+          name: 'Word Creator',
+          isPreset: true,
+          enabled: true,
+          presetAgentType: 'claude',
+        },
+      ];
+
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_spawn_agent',
+        args: { name: 'WordBot', custom_agent_id: 'builtin-word-creator' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(response.error).toBeUndefined();
+      expect(spawnAgent).toHaveBeenCalledWith('WordBot', 'claude', undefined, 'builtin-word-creator');
+    });
+
+    it('rejects spawn when custom_agent_id does not match any preset', async () => {
+      mockAssistants.value = [];
+
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_spawn_agent',
+        args: { name: 'GhostBot', custom_agent_id: 'builtin-missing' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(response.error).toContain('Preset assistant "builtin-missing" not found');
+      expect(spawnAgent).not.toHaveBeenCalled();
+    });
+
+    it('rejects spawn when custom_agent_id is disabled', async () => {
+      mockAssistants.value = [
+        {
+          id: 'builtin-cowork',
+          name: 'Cowork',
+          isPreset: true,
+          enabled: false,
+          presetAgentType: 'claude',
+        },
+      ];
+
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_spawn_agent',
+        args: { name: 'CoworkBot', custom_agent_id: 'builtin-cowork' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(response.error).toContain('disabled');
+      expect(spawnAgent).not.toHaveBeenCalled();
     });
   });
 

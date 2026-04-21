@@ -52,6 +52,8 @@ interface AcpAgentManagerData {
   customWorkspace?: boolean;
   conversation_id: string;
   customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
+  /** Preset assistant id (builtin or custom) shown in the conversation header / 预设助手 ID */
+  presetAssistantId?: string;
   /** Display name for the agent (from extension or custom config) / Agent 显示名称（来自扩展或自定义配置） */
   agentName?: string;
   presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
@@ -1005,8 +1007,14 @@ ${collectedResponses.join('\n')}`;
             const parts: string[] = [];
             if (this.options.presetContext) parts.push(this.options.presetContext);
             if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
-              const { getTeamGuidePrompt } = await import('@process/team/prompts/teamGuidePrompt.ts');
-              parts.push(getTeamGuidePrompt(this.options.backend));
+              const [{ getTeamGuidePrompt }, { resolveLeaderAssistantLabel }] = await Promise.all([
+                import('@process/team/prompts/teamGuidePrompt.ts'),
+                import('@process/team/prompts/teamGuideAssistant.ts'),
+              ]);
+              const leaderLabel = await resolveLeaderAssistantLabel(
+                this.options.presetAssistantId || this.options.customAgentId
+              );
+              parts.push(getTeamGuidePrompt({ backend: this.options.backend, leaderLabel }));
             }
             if (parts.length > 0) {
               contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join(
@@ -1021,6 +1029,7 @@ ${collectedResponses.join('\n')}`;
               excludeBuiltinSkills: this.options.excludeBuiltinSkills,
               enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
+              presetAssistantId: this.options.presetAssistantId || this.options.customAgentId,
             });
             contentToSend = injectedContent;
           }

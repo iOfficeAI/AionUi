@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
+import type { TChatConversation } from '@/common/config/storage';
 
 const mockUpdateLocalImage = vi.fn();
 
@@ -56,9 +57,27 @@ vi.mock('@renderer/utils/model/agentLogo', () => ({
   getAgentLogo: () => null,
 }));
 
+const mockPresetInfo = vi.hoisted(() => ({ value: null as { name: string; logo: string; isEmoji: boolean } | null }));
+vi.mock('@renderer/hooks/agent/usePresetAssistantInfo', () => ({
+  usePresetAssistantInfo: () => ({ info: mockPresetInfo.value, isLoading: false }),
+}));
+
+const mockConversationStore = vi.hoisted(() => new Map<string, TChatConversation | null>());
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      get: {
+        invoke: vi.fn(async ({ id }: { id: string }) => mockConversationStore.get(id) ?? null),
+      },
+    },
+  },
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
+    i18n: { language: 'en-US' },
   }),
 }));
 
@@ -102,44 +121,99 @@ const modelSelection: GeminiModelSelection = {
   handleSelectModel: vi.fn(),
 };
 
+const seedGeminiTeamConversation = (id: string, agentName = 'bob', extra: Record<string, unknown> = {}) => {
+  mockConversationStore.set(id, {
+    createTime: 0,
+    modifyTime: 0,
+    id,
+    type: 'gemini',
+    name: `demo-team - ${agentName}`,
+    extra: { workspace: '/tmp/workspace', teamId: 'team-1', ...extra },
+    model: { id: 'p', platform: 'gemini', useModel: 'gemini-pro' } as unknown as TChatConversation['model'],
+  } as TChatConversation);
+};
+
+const findInMessageList = async (text: string) => {
+  // Team empty state renders via SWR — wait for the re-render
+  return await screen.findByText(text);
+};
+
 describe('team empty state', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockConversationStore.clear();
+    mockPresetInfo.value = null;
   });
 
-  it('renders the team greeting UI for Gemini team chats', () => {
+  it('renders the team greeting UI for Gemini team chats', async () => {
+    seedGeminiTeamConversation('conv-gemini-empty', 'bob');
+
     render(
       <GeminiChat
         conversation_id='conv-gemini-empty'
         workspace='/tmp/workspace'
         modelSelection={modelSelection}
         teamId='team-1'
-        agentName='bob'
-        agentType='gemini'
+        emptySlot={<TeamChatEmptyState conversationId='conv-gemini-empty' />}
       />
     );
 
-    expect(screen.getByText('bob')).toBeTruthy();
+    expect(await findInMessageList('bob')).toBeTruthy();
     expect(screen.getByText("Describe your goal and I'll get the team working on it")).toBeTruthy();
     expect(mockUpdateLocalImage).toHaveBeenCalledWith({ root: '/tmp/workspace' });
   });
 
-  it('writes suggestion text into the Gemini draft store instead of the ACP draft store', () => {
+  it('renders nothing when the conversation has no teamId', async () => {
+    mockConversationStore.set('conv-solo', {
+      createTime: 0,
+      modifyTime: 0,
+      id: 'conv-solo',
+      type: 'gemini',
+      name: 'solo',
+      extra: { workspace: '/tmp/workspace' },
+      model: { id: 'p', platform: 'gemini', useModel: 'gemini-pro' } as unknown as TChatConversation['model'],
+    } as TChatConversation);
+
+    const { container } = render(<TeamChatEmptyState conversationId='conv-solo' />);
+
+    // Even after the SWR fetch resolves, the component renders null.
+    await Promise.resolve();
+    expect(container.textContent).toBe('');
+  });
+
+  it('writes suggestion text into the Gemini draft store instead of the ACP draft store', async () => {
+    seedGeminiTeamConversation('conv-gemini-draft', 'alice');
+
     render(
       <>
-        <TeamChatEmptyState
-          conversationId='conv-gemini-draft'
-          agentName='alice'
-          agentType='gemini'
-          draftType='gemini'
-        />
+        <TeamChatEmptyState conversationId='conv-gemini-draft' />
         <DraftProbe conversationId='conv-gemini-draft' />
       </>
     );
 
-    fireEvent.click(screen.getByText('Organize a debate with agents taking different sides'));
+    fireEvent.click(await findInMessageList('Organize a debate with agents taking different sides'));
 
     expect(screen.getByTestId('gemini-draft').textContent).toBe('Organize a debate with agents taking different sides');
     expect(screen.getByTestId('acp-draft').textContent).toBe('');
+  });
+
+  it('renders preset emoji avatar when leader is a preset assistant', async () => {
+    mockPresetInfo.value = { name: 'Word Creator', logo: '📝', isEmoji: true };
+    seedGeminiTeamConversation('conv-preset-emoji', 'Word Creator');
+
+    render(<TeamChatEmptyState conversationId='conv-preset-emoji' />);
+
+    expect(await findInMessageList('📝')).toBeTruthy();
+    expect(screen.getByText('Word Creator')).toBeTruthy();
+  });
+
+  it('renders preset image avatar when preset info provides an svg url', async () => {
+    mockPresetInfo.value = { name: 'Cowork', logo: '/assets/cowork.svg', isEmoji: false };
+    seedGeminiTeamConversation('conv-preset-svg', 'Cowork');
+
+    render(<TeamChatEmptyState conversationId='conv-preset-svg' />);
+
+    const avatar = (await screen.findByAltText('Cowork')) as HTMLImageElement;
+    expect(avatar.src).toContain('/assets/cowork.svg');
   });
 });

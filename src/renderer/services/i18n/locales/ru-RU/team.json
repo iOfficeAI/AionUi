@@ -17,14 +17,6 @@
     "renameSuccess": "Команда переименована",
     "deleteSuccess": "Команда удалена"
   },
-  "addAgent": {
-    "title": "Добавить агента",
-    "name": "Имя агента",
-    "namePlaceholder": "Введите имя агента",
-    "type": "Тип агента",
-    "typePlaceholder": "Выберите тип агента",
-    "confirm": "Добавить"
-  },
   "newAgent": "Новый агент",
   "noMessages": "Пока нет сообщений.",
   "agentNotConfigured": "Агент ещё не настроен.",

@@ -5,6 +5,13 @@ import type { TeamAgent } from '../types';
 export type LeaderPromptParams = {
   teammates: TeamAgent[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
+  availableAssistants?: Array<{
+    customAgentId: string;
+    name: string;
+    backend: string;
+    description?: string;
+    skills?: string[];
+  }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };
@@ -17,7 +24,7 @@ export type LeaderPromptParams = {
  * that are automatically available in the tool list.
  */
 export function buildLeaderPrompt(params: LeaderPromptParams): string {
-  const { teammates, availableAgentTypes, renamedAgents, teamWorkspace } = params;
+  const { teammates, availableAgentTypes, availableAssistants, renamedAgents, teamWorkspace } = params;
 
   const teammateList =
     teammates.length === 0
@@ -37,11 +44,46 @@ export function buildLeaderPrompt(params: LeaderPromptParams): string {
           .join('\n')}\n\nUse \`team_list_models\` to query available models for each agent type before spawning.`
       : '';
 
+  const availableAssistantsSection =
+    availableAssistants && availableAssistants.length > 0
+      ? `\n\n## Available Preset Assistants for Spawning
+These are user-configured assistants with pre-loaded rules and skills for specific domains (writing, research, PPT building, etc.). When a task matches a preset's specialty, prefer spawning the preset over a generic CLI agent — you get its domain expertise automatically.
+
+${availableAssistants
+  .map((a) => {
+    const desc = a.description ? ` — ${a.description}` : '';
+    const skills = a.skills && a.skills.length > 0 ? `\n   skills: ${a.skills.join(', ')}` : '';
+    return `- \`${a.customAgentId}\` (${a.name}, backend: ${a.backend})${desc}${skills}`;
+  })
+  .join('\n')}
+
+### How to pick a preset
+1. Scan the one-line descriptions and skills above. If one clearly matches the user's domain (e.g. "quarterly Word report" → \`word-creator\`), spawn it directly with \`team_spawn_agent\`.
+2. If two or more presets seem relevant, call \`team_describe_assistant\` on each candidate to see its full description, skills, and example tasks, then choose the best fit.
+3. If no preset matches the task, fall back to a generic CLI agent from the "Available Agent Types" section.
+
+Pass the preset's ID as \`custom_agent_id\` to \`team_spawn_agent\`. The \`agent_type\` is derived from the preset's backend and does not need to be specified.`
+      : '';
+
   const workspaceSection = teamWorkspace
     ? `\n\n## Team Workspace
 Your working directory \`${teamWorkspace}\` IS the shared team workspace.
 All teammates work in this directory for project-related operations.`
     : '';
+
+  const hasPresetAssistants = Boolean(availableAssistants && availableAssistants.length > 0);
+
+  const presetFormattingStepRule = hasPresetAssistants
+    ? `
+   - Agent Type cell formatting rules (STRICT — follow exactly):
+     - For a PRESET-ASSISTANT teammate (chosen from "Available Preset Assistants for Spawning"): write \`<display-name> (<backend>)\`. The \`<display-name>\` is the first value in parentheses on that preset's list entry (NOT the \`builtin-*\` id in the leading backticks). The \`<backend>\` is the \`backend:\` field on the same entry.
+       Example: given a list entry that reads \`builtin-story-roleplay\` (Story Roleplay, backend: gemini) — ..., the Agent Type cell MUST be \`Story Roleplay (gemini)\` — NOT \`builtin-story-roleplay\`, NOT \`Story Roleplay\` alone, NOT \`gemini\` alone.
+     - For a PLAIN CLI AGENT teammate (chosen from "Available Agent Types for Spawning"): write just the backend name, e.g. \`gemini\`, \`claude\`.`
+    : '';
+
+  const presetFormattingImportantRule = hasPresetAssistants
+    ? `Present each proposed lineup as a table that includes teammate name, responsibility, and recommended agent type/backend. For preset-assistant teammates, format the Agent Type cell as \`<display-name> (<backend>)\` where display-name is the human name inside parentheses on the preset's list entry (e.g. "Story Roleplay", NOT "builtin-story-roleplay"); for plain CLI agents, use just the backend name.`
+    : `Present each proposed lineup as a table that includes teammate name, responsibility, and recommended agent type/backend.`;
 
   return `# You are the Team Leader
 
@@ -56,7 +98,7 @@ results.${workspaceSection}
 - Do NOT mention teammate proposals, recommended agent types, or confirmation workflow until there is a concrete task that may actually need more teammates
 
 ## Your Teammates
-${teammateList}${availableTypesSection}
+${teammateList}${availableTypesSection}${availableAssistantsSection}
 
 ## Team Coordination Tools
 You MUST use the \`team_*\` MCP tools for ALL team coordination.
@@ -72,7 +114,7 @@ Use \`team_members\` and \`team_task_list\` to check current team state.
 3. If additional teammates would help, FIRST call \`team_list_models\` to check available models for each agent type you plan to use
 4. Then reply in text with a staffing proposal
 5. Start that proposal with one short sentence explaining why more teammates would help
-6. Present the proposed lineup as a table with: teammate name, responsibility, recommended agent type/backend, and recommended model (from team_list_models results)
+6. Present the proposed lineup as a table with: teammate name, responsibility, recommended agent type/backend, and recommended model (from team_list_models results).${presetFormattingStepRule}
 7. Ask whether the user wants to create those teammates as proposed or change any names, responsibilities, or agent types
 8. In that same approval question, tell the user they can also come back later during the project and ask you to replace or adjust any teammate if the lineup is not working well
 9. End your turn after the proposal. Do NOT call team_spawn_agent in that same turn
@@ -126,7 +168,7 @@ When the user explicitly asks to dismiss/fire/shut down teammates:
 - ALWAYS use the team_* tools for coordination, not plain text instructions
 - Do NOT call team_spawn_agent immediately just because the task sounds broad, hard, or multi-step
 - When you think new teammates are needed, first explain why in one short sentence, then recommend the teammate lineup
-- Present each proposed lineup as a table that includes teammate name, responsibility, and recommended agent type/backend
+- ${presetFormattingImportantRule}
 - Ask whether the user wants to create the proposed teammates as-is or change any names, responsibilities, or agent types
 - In that approval question, also remind the user that they can later ask you to replace, remove, or retune any teammate if the lineup is not working for them
 - End your turn after the proposal and wait for the user's reply

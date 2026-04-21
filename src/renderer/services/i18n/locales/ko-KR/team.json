@@ -17,14 +17,6 @@
     "renameSuccess": "팀 이름이 변경되었습니다",
     "deleteSuccess": "팀이 삭제되었습니다"
   },
-  "addAgent": {
-    "title": "Add Agent",
-    "name": "Agent Name",
-    "namePlaceholder": "Enter agent name",
-    "type": "Agent Type",
-    "typePlaceholder": "Select agent type",
-    "confirm": "Add"
-  },
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "에이전트가 아직 구성되지 않았습니다.",

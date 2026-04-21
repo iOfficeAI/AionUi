@@ -17,14 +17,6 @@
     "renameSuccess": "Takım yeniden adlandırıldı",
     "deleteSuccess": "Takım silindi"
   },
-  "addAgent": {
-    "title": "Add Agent",
-    "name": "Agent Name",
-    "namePlaceholder": "Enter agent name",
-    "type": "Agent Type",
-    "typePlaceholder": "Select agent type",
-    "confirm": "Add"
-  },
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Ajan henüz yapılandırılmadı.",

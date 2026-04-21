@@ -1,18 +1,16 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Form, Input, Message } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Close, Robot, Check } from '@icon-park/react';
+import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
-import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
-import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import AionModal from '@renderer/components/base/AionModal';
+import AionSelect from '@renderer/components/base/AionSelect';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import {
   agentKey,
@@ -20,9 +18,11 @@ import {
   resolveConversationType,
   resolveTeamAgentType,
   filterTeamSupportedAgents,
+  AgentOptionLabel,
 } from './agentSelectUtils';
 
 const FormItem = Form.Item;
+const { Option, OptGroup } = AionSelect;
 
 type Props = {
   visible: boolean;
@@ -30,22 +30,10 @@ type Props = {
   onCreated: (team: TTeam) => void;
 };
 
-const AgentCardIcon: React.FC<{ agent: AvailableAgent }> = ({ agent }) => {
-  const logo = getAgentLogo(agent.backend);
-  const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-  const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
-
-  if (avatarImage)
-    return <img src={avatarImage} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
-  if (isEmoji) return <span style={{ fontSize: 24, lineHeight: '32px' }}>{agent.avatar}</span>;
-  if (logo) return <img src={logo} alt={agent.name} style={{ width: 32, height: 32, objectFit: 'contain' }} />;
-  return <Robot size='32' />;
-};
-
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { cliAgents } = useConversationAgents();
+  const { cliAgents, presetAssistants } = useConversationAgents();
   const [name, setName] = useState('');
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
@@ -66,7 +54,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     };
   }, [visible]);
 
-  const allAgents = filterTeamSupportedAgents([...cliAgents], cachedInitResults);
+  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants], cachedInitResults);
+
+  const { supportedCliAgents, supportedPresetAssistants } = useMemo(() => {
+    const supportedKeys = new Set(allAgents.map(agentKey));
+    return {
+      supportedCliAgents: cliAgents.filter((a) => supportedKeys.has(agentKey(a))),
+      supportedPresetAssistants: presetAssistants.filter((a) => supportedKeys.has(agentKey(a))),
+    };
+  }, [allAgents, cliAgents, presetAssistants]);
 
   useEffect(() => {
     if (visible) {
@@ -206,37 +202,55 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                   {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
                 </div>
               ) : (
-                <div className='grid gap-8px' style={{ gridTemplateColumns: 'repeat(5, 1fr)' }}>
-                  {allAgents.map((agent) => {
-                    const key = agentKey(agent);
-                    const isSelected = dispatchAgentKey === key;
-                    return (
-                      <div
-                        key={key}
-                        data-testid={`team-create-agent-card-${key}`}
-                        onClick={() => setDispatchAgentKey(isSelected ? undefined : key)}
-                        className={`flex flex-col items-center gap-6px px-8px py-10px rd-10px cursor-pointer transition-all border shadow-sm ${
-                          isSelected
-                            ? 'relative border-2 border-primary-5 bg-fill-2'
-                            : 'border-border-2 bg-fill-1 hover:border-border-1 hover:bg-fill-2'
-                        }`}
-                      >
-                        {isSelected && (
-                          <span
-                            data-testid={`team-create-agent-selected-badge-${key}`}
-                            className='absolute right-6px top-6px flex h-16px w-16px items-center justify-center rounded-full bg-primary-6 text-white shadow-sm'
-                          >
-                            <Check size='10' fill='currentColor' className='shrink-0' />
-                          </span>
-                        )}
-                        <AgentCardIcon agent={agent} />
-                        <span className='w-full truncate text-center text-12px leading-16px text-t-primary'>
-                          {agent.name}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </div>
+                <AionSelect
+                  data-testid='team-create-leader-select'
+                  showSearch
+                  allowClear
+                  placeholder={t('team.create.dispatchAgentPlaceholder', { defaultValue: 'Select team leader' })}
+                  value={dispatchAgentKey}
+                  onChange={(value) => setDispatchAgentKey(value as string | undefined)}
+                  filterOption={(inputValue, option) => {
+                    const optionValue = (option as React.ReactElement<{ value?: string }>)?.props?.value;
+                    if (!optionValue) return false;
+                    const agent = agentFromKey(optionValue, allAgents);
+                    if (!agent) return false;
+                    return agent.name.toLowerCase().includes(inputValue.toLowerCase());
+                  }}
+                  renderFormat={(_option, value) => {
+                    const strVal = value as unknown as string;
+                    if (!strVal) return '';
+                    const agent = agentFromKey(strVal, allAgents);
+                    if (!agent) return strVal;
+                    return <AgentOptionLabel agent={agent} />;
+                  }}
+                >
+                  {supportedCliAgents.length > 0 && (
+                    <OptGroup label={t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}>
+                      {supportedCliAgents.map((agent) => {
+                        const key = agentKey(agent);
+                        return (
+                          <Option key={key} value={key} data-testid={`team-create-agent-option-${key}`}>
+                            <AgentOptionLabel agent={agent} />
+                          </Option>
+                        );
+                      })}
+                    </OptGroup>
+                  )}
+                  {supportedPresetAssistants.length > 0 && (
+                    <OptGroup
+                      label={t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
+                    >
+                      {supportedPresetAssistants.map((agent) => {
+                        const key = agentKey(agent);
+                        return (
+                          <Option key={key} value={key} data-testid={`team-create-agent-option-${key}`}>
+                            <AgentOptionLabel agent={agent} />
+                          </Option>
+                        );
+                      })}
+                    </OptGroup>
+                  )}
+                </AionSelect>
               )}
             </div>
           </FormItem>

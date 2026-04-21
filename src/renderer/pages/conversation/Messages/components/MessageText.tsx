@@ -45,6 +45,7 @@ export const formatMessageTime = (timestamp: number): string => {
 };
 import MessageCronBadge from './MessageCronBadge';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import TeammateMessageAvatar from './TeammateMessageAvatar';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
@@ -157,7 +158,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const cronMeta = message.content.cronMeta;
   const senderName = message.content.senderName;
   const senderAgentType = message.content.senderAgentType;
-  const agentLogo = senderAgentType ? getAgentLogo(senderAgentType) : null;
+  const senderConversationId = message.content.senderConversationId;
+  const fallbackBackendLogo = senderAgentType ? getAgentLogo(senderAgentType) : null;
 
   return (
     <>
@@ -165,13 +167,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
         {isTeammateMessage && senderName && (
           <div className='flex items-center gap-6px mb-4px'>
-            {agentLogo ? (
-              <img src={agentLogo} alt={senderName} className='w-20px h-20px rounded-full object-contain' />
-            ) : (
-              <div className='w-20px h-20px rounded-full bg-fill-3 flex items-center justify-center text-10px text-t-secondary font-medium'>
-                {senderName.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <TeammateMessageAvatar
+              senderName={senderName}
+              senderConversationId={senderConversationId}
+              backendLogo={fallbackBackendLogo}
+            />
             <span className='text-12px text-t-secondary'>{senderName}</span>
           </div>
         )}

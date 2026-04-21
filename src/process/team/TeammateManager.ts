@@ -142,7 +142,13 @@ export class TeammateManager extends EventEmitter {
             type: 'text' as const,
             position: 'left' as const,
             conversation_id: agent.conversationId,
-            content: { content: displayContent, teammateMessage: true, senderName, senderAgentType: sender?.agentType },
+            content: {
+              content: displayContent,
+              teammateMessage: true,
+              senderName,
+              senderAgentType: sender?.agentType,
+              senderConversationId: sender?.conversationId,
+            },
             createdAt: Date.now(),
           };
           addMessage(agent.conversationId, teammateMsg);
@@ -161,8 +167,11 @@ export class TeammateManager extends EventEmitter {
       // Agents pull tasks and teammates on demand via team_task_list / team_members MCP tools.
       let message: string;
       if (needsFullPrompt) {
-        // Compute availableAgentTypes only for leader's first prompt
+        // Compute availableAgentTypes + availableAssistants only for leader's first prompt
         let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
+        let availableAssistants:
+          | Array<{ customAgentId: string; name: string; backend: string; description?: string; skills?: string[] }>
+          | undefined;
         if (agent.role === 'leader') {
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
           availableAgentTypes = agentRegistry
@@ -172,12 +181,25 @@ export class TeammateManager extends EventEmitter {
               type: a.backend,
               name: a.name,
             }));
+
+          const assistants = (await ProcessConfig.get('assistants')) ?? [];
+          availableAssistants = assistants
+            .filter((a) => a.isPreset && a.enabled !== false)
+            .map((a) => ({
+              customAgentId: a.id,
+              name: a.name,
+              backend: a.presetAgentType || 'gemini',
+              description: a.description,
+              skills: a.enabledSkills,
+            }))
+            .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
         }
 
         const staticPrompt = buildRolePrompt({
           agent,
           teammates,
           availableAgentTypes,
+          availableAssistants,
           renamedAgents: this.renamedAgents,
           teamWorkspace: this.teamWorkspace,
         });
