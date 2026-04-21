@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/common/types/acpTypes';
 import type { AcpDetectedAgent } from '@/common/types/detectedAgent';
 import { ExtensionRegistry } from '@process/extensions';
 import { safeExec, safeExecFile } from '@process/utils/safeExec';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 /**
@@ -19,6 +21,9 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
  * **Extension agents** — Contributed by installed extensions via
  * `contributes.acpAdapters` in the extension manifest. Discovered from
  * ExtensionRegistry at runtime. Verified via CLI availability before inclusion.
+ *
+ * **Custom agents** — User-defined ACP CLIs from ConfigStorage 'assistants'.
+ * No CLI availability check — the user is responsible for the path they provide.
  *
  * This class is a pure detection module — it does NOT own state or coordinate
  * multiple detectors. State management and orchestration live in AgentRegistry.
@@ -205,6 +210,36 @@ class AcpDetector {
       return candidates.map((c) => c.agent);
     } catch (error) {
       console.warn('[AcpDetector] Failed to load extension ACP adapters:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Detect user-defined custom ACP agents from ConfigStorage 'acp.customAgents'.
+   * No CLI availability check — user is responsible for the path they provide.
+   */
+  async detectCustomAgents(): Promise<AcpDetectedAgent[]> {
+    try {
+      const customAgents = (await ProcessConfig.get('acp.customAgents')) as AcpBackendConfig[] | undefined;
+      if (!customAgents?.length) return [];
+
+      return customAgents
+        .filter((a) => a.enabled !== false && !a.isPreset && a.defaultCliPath)
+        .map((a) => ({
+          id: `custom:${a.id}`,
+          name: a.name || 'Custom Agent',
+          kind: 'acp' as const,
+          available: true,
+          backend: 'custom',
+          cliPath: a.defaultCliPath,
+          acpArgs: a.acpArgs,
+          customAgentId: a.id,
+        }));
+    } catch (error) {
+      if (error instanceof Error && (error.message.includes('ENOENT') || error.message.includes('not found'))) {
+        return [];
+      }
+      console.warn('[AcpDetector] Unexpected error loading custom agents:', error);
       return [];
     }
   }

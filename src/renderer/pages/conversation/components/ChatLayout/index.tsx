@@ -89,8 +89,8 @@ const ChatLayout: React.FC<{
 
   // Fetch custom agents config as fallback when agentName is not provided
   const needCustomFallback = backend === 'custom' && !presetAssistant && !agentName;
-  const { data: customAgents } = useSWR(needCustomFallback ? 'assistants' : null, () =>
-    ConfigStorage.get('assistants')
+  const { data: customAgents } = useSWR(needCustomFallback ? 'acp.customAgents' : null, () =>
+    ConfigStorage.get('acp.customAgents')
   );
 
   // Compute display name with fallback chain

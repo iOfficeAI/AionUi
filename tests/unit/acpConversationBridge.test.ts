@@ -33,7 +33,10 @@ vi.mock('../../src/common', () => ({
 }));
 
 vi.mock('../../src/process/agent/AgentRegistry', () => ({
-  agentRegistry: { getDetectedAgents: vi.fn(() => []) },
+  agentRegistry: {
+    getDetectedAgents: vi.fn(() => []),
+    refreshCustomAgents: vi.fn(async () => {}),
+  },
 }));
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
@@ -113,14 +116,19 @@ describe('acpConversationBridge', () => {
 
   // --- refreshCustomAgents ---
 
-  it('refreshCustomAgents returns success (no-op)', async () => {
+  it('refreshCustomAgents delegates to agentRegistry and returns success', async () => {
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     const result = await handlers['refreshCustomAgents']();
     expect(result).toEqual({ success: true });
+    expect(agentRegistry.refreshCustomAgents).toHaveBeenCalledTimes(1);
   });
 
-  it('refreshCustomAgents returns success even when called multiple times (no-op)', async () => {
+  it('refreshCustomAgents can be called multiple times', async () => {
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
+    await handlers['refreshCustomAgents']();
     const result = await handlers['refreshCustomAgents']();
     expect(result).toEqual({ success: true });
+    expect(agentRegistry.refreshCustomAgents).toHaveBeenCalledTimes(2);
   });
 
   // --- getAvailableAgents ---

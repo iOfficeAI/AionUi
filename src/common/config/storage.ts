@@ -61,9 +61,9 @@ export interface IConfigStorageRefer {
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
-  /** @deprecated Use 'assistants' instead — kept for migration compatibility */
+  /** User-defined custom ACP agents (isPreset !== true, require defaultCliPath). */
   'acp.customAgents'?: AcpBackendConfig[];
-  /** Assistant configurations (preset + user-created) */
+  /** Preset assistant configurations (isPreset === true, prompt-only, no CLI). */
   assistants?: AcpBackendConfig[];
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
@@ -116,6 +116,8 @@ export interface IConfigStorageRefer {
   'migration.builtinDefaultSkillsAdded_v2'?: boolean;
   // 迁移标记：为所有内置助手添加 promptsI18n / Migration flag: add promptsI18n for all builtin assistants
   'migration.promptsI18nAdded'?: boolean;
+  /** Migration flag: split 'assistants' into presets-only + 'acp.customAgents' (user-defined customs). */
+  'migration.assistantsSplitCustom'?: boolean;
   /** Migration flag: Electron desktop config has been imported to server config */
   'migration.electronConfigImported'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window

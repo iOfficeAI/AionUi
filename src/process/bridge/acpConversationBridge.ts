@@ -72,9 +72,9 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  // Refresh custom agents detection — no-op, assistants are config-layer managed
-  // Kept for backward compatibility with renderer callers that haven't been updated yet
+  // Refresh custom ACP agents after the user adds/edits/deletes one in Settings.
   ipcBridge.acpConversation.refreshCustomAgents.provider(async () => {
+    await agentRegistry.refreshCustomAgents();
     return { success: true };
   });
 

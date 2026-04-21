@@ -36,14 +36,15 @@ export const useCustomAgentsLoader = ({
 
   const loadCustomAgents = useCallback(async () => {
     try {
-      const [agents, extAssistants] = await Promise.all([
+      const [presetAssistants, userCustomAgents, extAssistants] = await Promise.all([
         ConfigStorage.get('assistants'),
+        ConfigStorage.get('acp.customAgents'),
         ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]),
       ]);
-      const list = (agents || []).filter((agent: AcpBackendConfig) => {
-        if (agent.isPreset) return true;
-        return availableCustomAgentIds.has(agent.id);
-      });
+      const list: AcpBackendConfig[] = [
+        ...((presetAssistants || []) as AcpBackendConfig[]).filter((a) => a.isPreset),
+        ...((userCustomAgents || []) as AcpBackendConfig[]).filter((a) => availableCustomAgentIds.has(a.id)),
+      ];
       for (const ext of extAssistants) {
         const id = typeof ext.id === 'string' ? ext.id : '';
         if (!id || list.some((a) => a.id === id)) continue;
