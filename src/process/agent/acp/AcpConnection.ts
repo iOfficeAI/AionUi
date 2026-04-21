@@ -602,7 +602,11 @@ export class AcpConnection {
           // Check for end_turn message and extract usage data
           if (message.result && typeof message.result === 'object') {
             const promptResult = message.result as Record<string, unknown>;
-            if (promptResult.stopReason === 'end_turn') {
+            // Per ACP spec, session/prompt resolves with a PromptResponse whose
+            // stopReason signals the turn has ended. All non-null stopReasons
+            // (end_turn, max_tokens, max_turn_requests, refusal, cancelled) are
+            // terminal — treat any of them as the authoritative turn-end signal.
+            if (promptResult.stopReason != null) {
               this.onEndTurn();
             }
             // Extract PromptResponse.usage (per-turn token data from codex-acp / PR #167)
