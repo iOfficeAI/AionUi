@@ -215,15 +215,15 @@ class AcpDetector {
   }
 
   /**
-   * Detect user-defined custom ACP agents from ConfigStorage 'assistants'.
+   * Detect user-defined custom ACP agents from ConfigStorage 'acp.customAgents'.
    * No CLI availability check — user is responsible for the path they provide.
    */
   async detectCustomAgents(): Promise<AcpDetectedAgent[]> {
     try {
-      const assistants = (await ProcessConfig.get('assistants')) as AcpBackendConfig[] | undefined;
-      if (!assistants?.length) return [];
+      const customAgents = (await ProcessConfig.get('acp.customAgents')) as AcpBackendConfig[] | undefined;
+      if (!customAgents?.length) return [];
 
-      return assistants
+      return customAgents
         .filter((a) => a.enabled !== false && !a.isPreset && a.defaultCliPath)
         .map((a) => ({
           id: `custom:${a.id}`,

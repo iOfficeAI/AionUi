@@ -431,7 +431,7 @@ const GuidPage: React.FC = () => {
       const customAgentId = agentSelection.selectedAgentInfo?.customAgentId;
       if (!customAgentId || nextType === currentPresetAgentType) return;
       try {
-        const agents = ((await ConfigStorage.get('assistants')) || []) as AcpBackendConfig[];
+        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
         const idx = agents.findIndex((a) => a.id === customAgentId);
         if (idx < 0) {
           Message.warning(t('common.failed', { defaultValue: 'Failed' }));
@@ -439,7 +439,7 @@ const GuidPage: React.FC = () => {
         }
         const updated = [...agents];
         updated[idx] = { ...updated[idx], presetAgentType: nextType };
-        await ConfigStorage.set('assistants', updated);
+        await ConfigStorage.set('acp.customAgents', updated);
         await agentSelection.refreshCustomAgents();
         const agentName = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agentName }));
