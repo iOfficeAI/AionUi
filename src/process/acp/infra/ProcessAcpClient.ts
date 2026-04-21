@@ -383,9 +383,7 @@ export class ProcessAcpClient implements AcpClient {
           ` [reason: ${reason}]`
       );
     } else if (exitCode !== null && exitCode !== 0) {
-      console.warn(
-        `[ACP ${this.options.backend}] Process exited with code ${exitCode} [reason: ${reason}]`
-      );
+      console.warn(`[ACP ${this.options.backend}] Process exited with code ${exitCode} [reason: ${reason}]`);
     }
 
     this._lastExit = {
