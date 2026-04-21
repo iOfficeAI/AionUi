@@ -5,6 +5,7 @@
  */
 
 import express from 'express';
+import net from 'net';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { execSync } from 'child_process';
@@ -16,7 +17,7 @@ import { initWebAdapter } from './adapter';
 import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
-import { registerStaticRoutes } from './routes/staticRoutes';
+import { registerStaticRoutes, resolveRendererPath, VITE_DEV_PORT } from './routes/staticRoutes';
 import { generateQRLoginUrlDirect } from '@process/bridge/webuiQR';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
@@ -67,13 +68,13 @@ function getLanIP(): string | null {
     const netInfo = nets[name];
     if (!netInfo) continue;
 
-    for (const net of netInfo) {
+    for (const iface of netInfo) {
       // 跳过内部地址（127.0.0.1）和 IPv6
       // Skip internal addresses (127.0.0.1) and IPv6
-      const isIPv4 = net.family === 'IPv4';
-      const isNotInternal = !net.internal;
+      const isIPv4 = iface.family === 'IPv4';
+      const isNotInternal = !iface.internal;
       if (isIPv4 && isNotInternal) {
-        return net.address;
+        return iface.address;
       }
     }
   }
@@ -250,7 +251,54 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
   // 创建 Express 应用和服务器 / Create Express app and server
   const app = express();
   const server = createServer(app);
-  const wss = new WebSocketServer({ server });
+  // Use noServer mode so we can route WebSocket upgrades manually.
+  // This lets us forward Vite HMR upgrades to the Vite dev server during
+  // development, while keeping the app's own WebSocket traffic on the
+  // WebSocketManager. Attaching WSS directly to `server` would make it
+  // swallow every upgrade (including Vite HMR), causing the renderer to
+  // enter an infinite reconnect loop and never finish loading.
+  const wss = new WebSocketServer({ noServer: true });
+  const isDevMode = resolveRendererPath() === null;
+  server.on('upgrade', (req, socket, head) => {
+    const protocolHeader = req.headers['sec-websocket-protocol'];
+    const protocols = (Array.isArray(protocolHeader) ? protocolHeader.join(',') : protocolHeader || '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+    const isViteHmr = protocols.some((p) => p === 'vite-hmr' || p === 'vite-ping');
+
+    if (isViteHmr && isDevMode) {
+      // Tunnel the HMR upgrade to the Vite dev server so the renderer's
+      // @vite/client can maintain its live-reload socket.
+      const vite = net.connect(VITE_DEV_PORT, 'localhost', () => {
+        const headerLines = [
+          `${req.method} ${req.url} HTTP/${req.httpVersion}`,
+          ...Object.entries(req.headers).flatMap(([key, value]) => {
+            if (value === undefined) return [];
+            if (Array.isArray(value)) return value.map((v) => `${key}: ${v}`);
+            return [`${key}: ${value}`];
+          }),
+          '',
+          '',
+        ];
+        vite.write(headerLines.join('\r\n'));
+        if (head.length > 0) vite.write(head);
+        socket.pipe(vite);
+        vite.pipe(socket);
+      });
+      const destroyBoth = () => {
+        socket.destroy();
+        vite.destroy();
+      };
+      vite.on('error', destroyBoth);
+      socket.on('error', destroyBoth);
+      return;
+    }
+
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  });
 
   // 初始化默认管理员账户 / Initialize default admin account
   const initialCredentials = await initializeDefaultAdmin();
