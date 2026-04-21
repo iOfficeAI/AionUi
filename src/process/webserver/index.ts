@@ -68,13 +68,13 @@ function getLanIP(): string | null {
     const netInfo = nets[name];
     if (!netInfo) continue;
 
-    for (const net of netInfo) {
+    for (const iface of netInfo) {
       // 跳过内部地址（127.0.0.1）和 IPv6
       // Skip internal addresses (127.0.0.1) and IPv6
-      const isIPv4 = net.family === 'IPv4';
-      const isNotInternal = !net.internal;
+      const isIPv4 = iface.family === 'IPv4';
+      const isNotInternal = !iface.internal;
       if (isIPv4 && isNotInternal) {
-        return net.address;
+        return iface.address;
       }
     }
   }
