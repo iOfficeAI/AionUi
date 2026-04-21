@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { Request } from 'express';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 
 // CSRF token cookie/header identifiers (shared by server & WebUI)
@@ -132,36 +133,83 @@ export const SERVER_CONFIG = {
 } as const;
 
 /**
- * 获取动态 Cookie 选项（根据 HTTPS 配置决定 secure 标志）
- * Get dynamic cookie options (secure flag based on HTTPS configuration)
+ * 判断请求是否通过 HTTPS 到达（包含反向代理场景）
+ * Determine whether the request arrived over HTTPS (reverse-proxy aware)
  *
- * 安全说明：只有在 HTTPS 环境下才启用 secure 标志
- * Security: Only enable secure flag when HTTPS is configured
+ * 信号来源（按优先级）：
+ * 1. AIONUI_HTTPS=true 或 NODE_ENV=production + HTTPS=true（显式开关）
+ * 2. SERVER_BASE_URL 以 https:// 开头（显式配置公网入口为 HTTPS，例如 nginx TLS 终止）
+ * 3. req.secure === true（Express 通过 app.set('trust proxy', ...) 启用后生效）
  *
- * 注意：远程模式下如果使用 HTTP，cookie 仍然可以工作（secure=false）
- * Note: In remote mode with HTTP, cookies still work (secure=false)
- * 建议生产环境配置 HTTPS 并设置 AIONUI_HTTPS=true
- * Recommend configuring HTTPS in production and setting AIONUI_HTTPS=true
+ * 注意：故意不读 X-Forwarded-Proto 头，因为在未配置 trust proxy 的情况下该头可被
+ * 客户端伪造。若需要识别反代的 HTTPS 来源，请改为显式设置 SERVER_BASE_URL
+ * 或在 Express 层配置 trust proxy 让 req.secure 正确反映。
+ *
+ * Signals (by priority):
+ * 1. AIONUI_HTTPS=true / NODE_ENV=production + HTTPS=true (explicit opt-in)
+ * 2. SERVER_BASE_URL starts with https:// (explicit public entrypoint, e.g. nginx TLS)
+ * 3. req.secure === true (only meaningful once Express trust proxy is configured)
+ *
+ * X-Forwarded-Proto is intentionally NOT read directly: without trust proxy it
+ * would be spoofable. Use SERVER_BASE_URL or trust proxy + req.secure instead.
  */
-export function getCookieOptions(): {
+function detectHttps(req?: Request): boolean {
+  if (process.env.AIONUI_HTTPS === 'true' || (process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true')) {
+    return true;
+  }
+
+  if (process.env.SERVER_BASE_URL?.startsWith('https://')) {
+    return true;
+  }
+
+  if (req?.secure) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * 获取动态 Cookie 选项（根据 HTTPS 配置与请求协议决定 secure/sameSite）
+ * Get dynamic cookie options (secure/sameSite driven by HTTPS config + request protocol)
+ *
+ * 传入 req 时，会同时检查 X-Forwarded-Proto 头与 Express req.secure，以便在
+ * nginx TLS 终止 + 后端 HTTP 的反代部署下也能正确下发 Secure cookie。
+ * When req is provided, X-Forwarded-Proto and req.secure are honoured so that
+ * deployments with TLS-terminating reverse proxies (nginx) issue Secure cookies.
+ *
+ * 不传 req 时退回到环境变量判断，保持与旧调用点（无请求上下文的地方）兼容。
+ * When req is omitted, falls back to env-var detection for callers without a request context.
+ */
+export function getCookieOptions(req?: Request): {
   httpOnly: boolean;
   secure: boolean;
   sameSite: 'strict' | 'lax' | 'none';
   maxAge?: number;
 } {
-  // 只有当明确配置 HTTPS 时才启用 secure 标志
-  // Only enable secure flag when HTTPS is explicitly configured
-  const isHttps =
-    process.env.AIONUI_HTTPS === 'true' || (process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true');
+  const isHttps = detectHttps(req);
+
+  // HTTPS 场景下使用 SameSite=None 以支持跨域反向代理（需要同时设置 Secure=true）
+  // HTTP 远程模式使用 lax，允许从其它 IP 访问同一后端
+  // 本地 HTTP 保持 strict，最大程度限制第三方站点
+  // HTTPS deployments use SameSite=None to support cross-origin reverse proxies (requires Secure=true)
+  // Remote HTTP mode uses 'lax' to allow access from other IPs
+  // Local HTTP stays on 'strict' to minimize third-party exposure
+  let sameSite: 'strict' | 'lax' | 'none';
+  if (isHttps) {
+    sameSite = 'none';
+  } else if (SERVER_CONFIG.isRemoteMode) {
+    sameSite = 'lax';
+  } else {
+    sameSite = AUTH_CONFIG.COOKIE.OPTIONS.sameSite;
+  }
 
   return {
     httpOnly: AUTH_CONFIG.COOKIE.OPTIONS.httpOnly,
     // HTTP 环境下 secure=false，允许 cookie 在非 HTTPS 连接中工作
     // In HTTP environment secure=false, allows cookies to work over non-HTTPS connections
     secure: isHttps,
-    // 远程 HTTP 模式需要 lax 以支持跨站请求（从不同 IP 访问）
-    // Remote HTTP mode needs 'lax' to support cross-site requests (access from different IPs)
-    sameSite: SERVER_CONFIG.isRemoteMode && !isHttps ? 'lax' : AUTH_CONFIG.COOKIE.OPTIONS.sameSite,
+    sameSite,
   };
 }
 

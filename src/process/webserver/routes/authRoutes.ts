@@ -132,7 +132,7 @@ export function registerAuthRoutes(app: Express): void {
       // Set secure cookie（远程模式下启用 secure 标志）
       // Set secure cookie (enable secure flag in remote mode)
       res.cookie(AUTH_CONFIG.COOKIE.NAME, token, {
-        ...getCookieOptions(),
+        ...getCookieOptions(req),
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 
@@ -320,7 +320,7 @@ export function registerAuthRoutes(app: Express): void {
 
         if (!bodyToken && typeof req.cookies?.[AUTH_CONFIG.COOKIE.NAME] === 'string') {
           res.cookie(AUTH_CONFIG.COOKIE.NAME, newToken, {
-            ...getCookieOptions(),
+            ...getCookieOptions(req),
             maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
           });
         }
@@ -411,7 +411,7 @@ export function registerAuthRoutes(app: Express): void {
       // 设置 session cookie（远程模式下启用 secure 标志）
       // Set session cookie (enable secure flag in remote mode)
       res.cookie(AUTH_CONFIG.COOKIE.NAME, result.data.sessionToken, {
-        ...getCookieOptions(),
+        ...getCookieOptions(req),
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 
