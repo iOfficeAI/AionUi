@@ -274,13 +274,15 @@ export class AcpAgentV2 {
         }
 
         // Emit old-style agent_status event
-        const oldStatusName = this.mapStatusToOldName(status);
-        this.onStreamEvent({
-          type: 'agent_status',
-          conversation_id: this.conversationId,
-          msg_id: `status_${Date.now()}`,
-          data: { status: oldStatusName, backend: this.agentConfig.agentBackend },
-        });
+        if (['active', 'suspended', 'error'].includes(status)) {
+          const oldStatusName = this.mapStatusToOldName(status);
+          this.onStreamEvent({
+            type: 'agent_status',
+            conversation_id: this.conversationId,
+            msg_id: `status_${Date.now()}`,
+            data: { status: oldStatusName, backend: this.agentConfig.agentBackend },
+          });
+        }
       },
 
       onModelUpdate: (model: ModelSnapshot) => {
@@ -526,6 +528,7 @@ export class AcpAgentV2 {
       case 'error':
         return 'error';
       default:
+        console.warn(`[AcpAgentV2] Unrecognized status: ${status}`);
         return 'disconnected';
     }
   }
