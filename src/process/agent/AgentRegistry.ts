@@ -31,10 +31,11 @@ import type { RemoteAgentConfig } from '@process/agent/remote/types';
  *   - Aionrs       — always present (Rust binary, availability resolved at runtime)
  *   - OpenClaw GW  — detected via `openclaw` CLI on PATH
  *   - Nanobot      — detected via `nanobot` CLI on PATH
+ *   - Custom ACP   — user-defined ACP CLIs from ConfigStorage 'assistants'
  *
- * Assistants (user-configured presets with skills/prompts/context) are NOT
- * execution engines — they live in the configuration layer (ConfigStorage 'assistants')
- * and reference execution engines by backend type.
+ * Preset assistants (prompt-only presets with no CLI binary) are NOT
+ * execution engines — they live in the configuration layer and reference
+ * execution engines by backend type.
  */
 class AgentRegistry {
   private detectedAgents: DetectedAgent[] = [];
@@ -46,6 +47,7 @@ class AgentRegistry {
   private extensionAgents: AcpDetectedAgent[] = [];
   private remoteAgents: RemoteDetectedAgent[] = [];
   private otherAgents: DetectedAgent[] = [];
+  private customAgents: AcpDetectedAgent[] = [];
 
   private createGeminiAgent(): GeminiDetectedAgent {
     return {
@@ -124,19 +126,18 @@ class AgentRegistry {
 
   /**
    * Deduplicate agents by backend ID. First occurrence wins — merge order
-   * determines priority: Aionrs > Gemini > Builtin > Other > Remote > Extension.
+   * determines priority: Aionrs > Gemini > Builtin > Other > Remote > Extension > Custom.
    * When an extension contributes the same backend as a builtin, the builtin wins.
    *
-   * Remote agents share `backend: 'remote'` but are individually addressable
-   * via their unique `id` (`remote:<uuid>`), so they skip backend dedup.
+   * Remote and custom agents share their `backend` string but are individually
+   * addressable via their unique `id`, so they skip backend dedup.
    */
   private deduplicate(agents: DetectedAgent[]): DetectedAgent[] {
     const seen = new Set<string>();
     const result: DetectedAgent[] = [];
 
     for (const agent of agents) {
-      // Remote agents all share backend 'remote' — dedup by id instead
-      const key = agent.kind === 'remote' ? agent.id : agent.backend;
+      const key = agent.kind === 'remote' || agent.backend === 'custom' ? agent.id : agent.backend;
       if (seen.has(key)) continue;
       seen.add(key);
       result.push(agent);
@@ -154,6 +155,7 @@ class AgentRegistry {
       ...this.otherAgents,
       ...this.remoteAgents,
       ...this.extensionAgents,
+      ...this.customAgents,
     ]);
   }
 
@@ -181,15 +183,17 @@ class AgentRegistry {
   private async detectAll(): Promise<void> {
     acpDetector.clearEnvCache();
 
-    const [builtinAgents, extensionAgents, remoteAgents] = await Promise.all([
+    const [builtinAgents, extensionAgents, remoteAgents, customAgents] = await Promise.all([
       acpDetector.detectBuiltinAgents(),
       acpDetector.detectExtensionAgents(),
       this.loadRemoteAgents(),
+      acpDetector.detectCustomAgents(),
     ]);
 
     this.builtinAgents = builtinAgents;
     this.extensionAgents = extensionAgents;
     this.remoteAgents = remoteAgents;
+    this.customAgents = customAgents;
     this.otherAgents = this.detectOtherCliAgents();
     this.merge();
   }
@@ -269,6 +273,17 @@ class AgentRegistry {
   async refreshRemoteAgents(): Promise<void> {
     await this.runExclusiveMutation(async () => {
       this.remoteAgents = await this.loadRemoteAgents();
+      this.merge();
+    });
+  }
+
+  /**
+   * Refresh custom ACP agents from ConfigStorage 'assistants'.
+   * Called after the user adds/edits/deletes a custom agent in Settings.
+   */
+  async refreshCustomAgents(): Promise<void> {
+    await this.runExclusiveMutation(async () => {
+      this.customAgents = await acpDetector.detectCustomAgents();
       this.merge();
     });
   }
