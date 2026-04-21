@@ -108,6 +108,53 @@ describe('prepareBundledBun', () => {
     expect(manifest.cacheMeta?.sourceType).toBe('download');
   });
 
+  it('seeds bundled bun from the installed host bun when cache is missing', () => {
+    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-bun-test-'));
+
+    targetExisted = fs.existsSync(targetDir);
+    if (targetExisted) {
+      targetBackupDir = path.join(tempRoot, 'target-backup');
+      fs.cpSync(targetDir, targetBackupDir, { recursive: true });
+    }
+
+    const cacheRoot = path.join(tempRoot, 'cache-root');
+    const version = 'latest';
+    const cacheRuntimeDir = path.join(cacheRoot, version, runtimeKey);
+
+    process.env.AIONUI_BUN_CACHE_DIR = cacheRoot;
+    process.env.AIONUI_BUN_VERSION = version;
+
+    const result = prepareBundledBun();
+
+    expect(result.prepared).toBe(true);
+    expect(result.sourceType).toBe('cache');
+
+    const runtimeFileName = getRequiredRuntimeFileName();
+    const targetRuntimePath = path.join(targetDir, runtimeFileName);
+    const manifestPath = path.join(targetDir, 'manifest.json');
+
+    expect(fs.existsSync(targetRuntimePath)).toBe(true);
+    expect(fs.existsSync(manifestPath)).toBe(true);
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+      sourceType: string;
+      skipped?: boolean;
+      files: string[];
+      cacheDir: string;
+      cacheMeta?: {
+        sourceType: string;
+        source?: { url?: string };
+      };
+    };
+
+    expect(manifest.sourceType).toBe('cache');
+    expect(manifest.skipped).not.toBe(true);
+    expect(manifest.files).toContain(runtimeFileName);
+    expect(manifest.cacheDir).toBe(cacheRuntimeDir);
+    expect(manifest.cacheMeta?.sourceType).toBe('download');
+    expect(manifest.cacheMeta?.source?.url).toBe('local://installed-bun');
+  });
+
   it('removes stale runtime directories before preparing the current runtime', () => {
     tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-bun-test-'));
 

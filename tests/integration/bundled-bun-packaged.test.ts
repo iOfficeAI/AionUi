@@ -2,27 +2,28 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { describe, expect, it } from 'vitest';
 
-function listDirsRecursive(dir: string): string[] {
+function listFilesRecursive(dir: string): string[] {
   const results: string[] = [];
   const entries = fs.readdirSync(dir, { withFileTypes: true });
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
     if (entry.isDirectory()) {
+      results.push(...listFilesRecursive(fullPath));
+    } else {
       results.push(fullPath);
-      results.push(...listDirsRecursive(fullPath));
     }
   }
 
   return results;
 }
 
-function findLatestResourcesDirUnderOut(): string | null {
+function findLatestAppAsarUnderOut(): string | null {
   const outDir = path.resolve(__dirname, '../../out');
   if (!fs.existsSync(outDir)) return null;
 
-  const allDirs = listDirsRecursive(outDir);
-  const candidates = allDirs.filter((dir) => path.basename(dir) === 'resources');
+  const files = listFilesRecursive(outDir);
+  const candidates = files.filter((file) => path.basename(file) === 'app.asar');
   if (candidates.length === 0) return null;
 
   candidates.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
@@ -48,7 +49,8 @@ function resolveResourcesDir(): string | null {
     return path.dirname(resolvedAsar);
   }
 
-  return findLatestResourcesDirUnderOut();
+  const appAsarPath = findLatestAppAsarUnderOut();
+  return appAsarPath ? path.dirname(appAsarPath) : null;
 }
 
 type BundledBunManifest = {
@@ -98,7 +100,11 @@ describe('Packaged bundled bun resources integrity', () => {
       expect(manifest.version).toBeTruthy();
       expect(manifest.cacheDir).toBeTruthy();
       expect(Array.isArray(manifest.files)).toBe(true);
-      expect(manifest.skipped).not.toBe(true);
+      if (manifest.skipped === true) {
+        throw new Error(
+          `Bundled bun manifest was skipped for ${path.basename(platformDir)}: ${manifest.reason ?? 'unknown reason'}`
+        );
+      }
       expect(['cache', 'download']).toContain(manifest.sourceType);
 
       if (manifest.sourceType === 'cache') {

@@ -43,6 +43,13 @@ function getRuntimeVersion() {
   return configured && configured.trim() ? configured.trim() : 'latest';
 }
 
+function normalizeVersion(version) {
+  if (!version) return null;
+  const trimmed = String(version).trim();
+  if (!trimmed) return null;
+  return trimmed.startsWith('bun-v') ? trimmed.slice(5) : trimmed.startsWith('v') ? trimmed.slice(1) : trimmed;
+}
+
 function getCacheRootDir() {
   const custom = process.env.AIONUI_BUN_CACHE_DIR;
   if (custom && custom.trim()) {
@@ -226,6 +233,92 @@ function removeStaleRuntimeDirectories(rootDir, currentRuntimeKey) {
   }
 }
 
+function resolveInstalledBunBinary(runtimeKey, runtimeVersion) {
+  const hostRuntimeKey = `${process.platform}-${process.arch}`;
+  if (runtimeKey !== hostRuntimeKey) {
+    return null;
+  }
+
+  try {
+    const locator = process.platform === 'win32' ? 'where' : 'which';
+    const located = execFileSync(locator, ['bun'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    })
+      .trim()
+      .split(/\r?\n/)
+      .find(Boolean);
+
+    if (!located) {
+      return null;
+    }
+
+    const bunPath = fs.realpathSync(located);
+    const bunVersion = execFileSync(bunPath, ['--version'], {
+      encoding: 'utf-8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: 5000,
+    }).trim();
+
+    const normalizedInstalledVersion = normalizeVersion(bunVersion);
+    const normalizedRequestedVersion = normalizeVersion(runtimeVersion);
+    if (
+      normalizedInstalledVersion &&
+      normalizedRequestedVersion &&
+      normalizedRequestedVersion !== 'latest' &&
+      normalizedInstalledVersion !== normalizedRequestedVersion
+    ) {
+      return null;
+    }
+
+    return {
+      bunPath,
+      bunVersion: normalizedInstalledVersion || bunVersion,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function seedCacheFromInstalledBun(cacheRuntimeDir, platform, arch, version, runtimeKey) {
+  const installedBun = resolveInstalledBunBinary(runtimeKey, version);
+  if (!installedBun) {
+    return null;
+  }
+
+  removeDirectorySafe(cacheRuntimeDir);
+  ensureDirectory(cacheRuntimeDir);
+
+  const binaryName = getRequiredRuntimeFiles(platform)[0];
+  copyFileSafe(installedBun.bunPath, path.join(cacheRuntimeDir, binaryName));
+  ensureExecutableMode(path.join(cacheRuntimeDir, binaryName));
+
+  const cacheMeta = {
+    platform,
+    arch,
+    version,
+    sourceType: 'download',
+    source: {
+      url: 'local://installed-bun',
+      asset: path.basename(installedBun.bunPath),
+      bunVersion: installedBun.bunVersion,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+  writeCacheMeta(cacheRuntimeDir, cacheMeta);
+
+  return {
+    sourceType: 'cache',
+    source: {
+      dir: cacheRuntimeDir,
+      origin: cacheMeta.source,
+    },
+    files: getRequiredRuntimeFiles(platform),
+    cacheMeta,
+  };
+}
+
 function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
   const assetName = getPlatformAsset(platform, arch);
   if (!assetName) {
@@ -312,15 +405,25 @@ function prepareBundledBun() {
         files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
       };
     } else {
-      // Strict policy: packaging should only read from cache.
-      // If cache is missing/invalid, refresh cache via network download first.
-      const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
-      cacheMeta = downloadResult.cacheMeta;
-      prepareResult = {
-        sourceType: downloadResult.sourceType,
-        source: downloadResult.source,
-        files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
-      };
+      const localSeedResult = seedCacheFromInstalledBun(cacheRuntimeDir, platform, arch, runtimeVersion, runtimeKey);
+      if (localSeedResult) {
+        cacheMeta = localSeedResult.cacheMeta;
+        prepareResult = {
+          sourceType: localSeedResult.sourceType,
+          source: localSeedResult.source,
+          files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+        };
+      } else {
+        // Strict policy: packaging should only read from cache.
+        // If cache is missing/invalid, refresh cache via network download first.
+        const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
+        cacheMeta = downloadResult.cacheMeta;
+        prepareResult = {
+          sourceType: downloadResult.sourceType,
+          source: downloadResult.source,
+          files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+        };
+      }
     }
 
     const manifest = {

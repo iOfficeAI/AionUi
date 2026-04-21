@@ -546,7 +546,12 @@ try {
 
   // 5. Prepare bundled bun/bunx binaries (for packaged runtime usage)
   // This only affects packaging assets; runtime integration will be added in a future PR.
-  prepareBundledBun();
+  const bundledBunResult = prepareBundledBun();
+  if (!bundledBunResult?.prepared) {
+    throw new Error(
+      `Failed to prepare bundled bun runtime${bundledBunResult?.reason ? `: ${bundledBunResult.reason}` : ''}`
+    );
+  }
 
   // 5b. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
