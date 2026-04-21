@@ -112,6 +112,9 @@ extraResources:
   # aionrs binary (pre-compiled per platform/arch)
   - from: resources/bundled-aionrs
     to: bundled-aionrs
+  # aionui-backend binary (pre-compiled per platform/arch)
+  - from: resources/bundled-aionui-backend
+    to: bundled-aionui-backend
   - from: resources/hub
     to: hub
 win:
