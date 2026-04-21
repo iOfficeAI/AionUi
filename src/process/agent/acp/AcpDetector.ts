@@ -72,10 +72,10 @@ class AcpDetector {
     const results = await Promise.allSettled(
       safe.map(async (cmd): Promise<string | null> => {
         try {
-          await safeExecFile('where', [cmd], { timeout: 1000, env: this.enhancedEnv });
+          await safeExecFile('where', [cmd], { timeout: 3000, env: this.enhancedEnv });
           return cmd;
-        } catch {
-          /* where failed, try PowerShell */
+        } catch (err) {
+          console.warn(`[AcpDetector] 'where ${cmd}' failed, trying PowerShell:`, (err as Error).message);
         }
         try {
           await safeExecFile(
@@ -86,10 +86,11 @@ class AcpDetector {
               '-Command',
               `Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null`,
             ],
-            { timeout: 1000, env: this.enhancedEnv }
+            { timeout: 5000, env: this.enhancedEnv }
           );
           return cmd;
-        } catch {
+        } catch (err) {
+          console.warn(`[AcpDetector] PowerShell Get-Command '${cmd}' also failed:`, (err as Error).message);
           return null;
         }
       })
@@ -121,20 +122,21 @@ class AcpDetector {
 
     for (const cmd of safe) {
       try {
-        execSync(`${whichCommand} ${cmd}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv });
+        execSync(`${whichCommand} ${cmd}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 3000, env: this.enhancedEnv });
         found.add(cmd);
         continue;
-      } catch {
+      } catch (err) {
         if (!isWindows) continue;
+        console.warn(`[AcpDetector] sync 'where ${cmd}' failed:`, (err as Error).message);
       }
       try {
         execSync(
           `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null"`,
-          { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv }
+          { encoding: 'utf-8', stdio: 'pipe', timeout: 5000, env: this.enhancedEnv }
         );
         found.add(cmd);
-      } catch {
-        /* not found */
+      } catch (err) {
+        console.warn(`[AcpDetector] sync PowerShell '${cmd}' failed:`, (err as Error).message);
       }
     }
     return found;
