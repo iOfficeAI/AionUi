@@ -90,7 +90,7 @@ function resolveCodexAcpPlatformPackage(): string | null {
 }
 
 function resolveCodexAcpPlatformPackageSpecifier(packageName: string): string {
-  return process.platform === 'win32' ? `${packageName}@${CODEX_ACP_BRIDGE_VERSION}` : packageName;
+  return `${packageName}@${CODEX_ACP_BRIDGE_VERSION}`;
 }
 
 function resolvePreferredCodexAcpPlatformPackage(): string | null {
