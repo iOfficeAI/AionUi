@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { isBunxCacheCorruption, clearBunxCache } from '../../src/process/agent/acp/acpConnectors';
+import { isBunxCacheCorruption, clearBunxCache, isBunCacheMoveFailed } from '../../src/process/agent/acp/acpConnectors';
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();
@@ -106,5 +106,38 @@ describe('clearBunxCache', () => {
 
     expect(result).toBeNull();
     expect(rmSyncMock).toHaveBeenCalledOnce();
+  });
+});
+
+describe('isBunCacheMoveFailed', () => {
+  it('detects EPERM moving to cache dir error', () => {
+    const stderr =
+      'error: moving "@zed-industries/codex-acp-win32-x64" to cache dir failed\n' +
+      'EPERM: Operation not permitted (NtSetInformationFile())\n' +
+      '  From: .bdbfbff4faf5dd89-00000013\n';
+    expect(isBunCacheMoveFailed(stderr)).toBe(true);
+  });
+
+  it('detects EPERM with different package names', () => {
+    const stderr =
+      'error: moving "@zed-industries/codex-acp" to cache dir failed\nEPERM: Operation not permitted (NtSetInformationFile())';
+    expect(isBunCacheMoveFailed(stderr)).toBe(true);
+  });
+
+  it('returns false for unrelated EPERM errors', () => {
+    expect(isBunCacheMoveFailed('EPERM: operation not permitted, unlink /some/file')).toBe(false);
+  });
+
+  it('returns false for non-EPERM cache errors', () => {
+    expect(isBunCacheMoveFailed('error: moving package to cache dir failed\nENOENT: no such file')).toBe(false);
+  });
+
+  it('returns false for empty string', () => {
+    expect(isBunCacheMoveFailed('')).toBe(false);
+  });
+
+  it('returns false for unrelated errors', () => {
+    expect(isBunCacheMoveFailed('Cannot find package zod')).toBe(false);
+    expect(isBunCacheMoveFailed('command not found')).toBe(false);
   });
 });
