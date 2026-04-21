@@ -7,6 +7,8 @@ type BuildRolePromptParams = {
   teammates: TeamAgent[];
   /** Only needed for leader prompts */
   availableAgentTypes?: Array<{ type: string; name: string }>;
+  /** Only needed for leader prompts — preset assistants spawnable via custom_agent_id */
+  availableAssistants?: Array<{ customAgentId: string; name: string; backend: string; description?: string }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };
@@ -17,12 +19,13 @@ type BuildRolePromptParams = {
  * Agents pull dynamic state on demand via team_* MCP tools.
  */
 export function buildRolePrompt(params: BuildRolePromptParams): string {
-  const { agent, teammates, availableAgentTypes, renamedAgents, teamWorkspace } = params;
+  const { agent, teammates, availableAgentTypes, availableAssistants, renamedAgents, teamWorkspace } = params;
 
   if (agent.role === 'leader') {
     return buildLeaderPrompt({
       teammates,
       availableAgentTypes,
+      availableAssistants,
       renamedAgents,
       teamWorkspace,
     });

@@ -6,7 +6,7 @@
 
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 
 const markdownViewMock = vi.hoisted(() =>
@@ -52,11 +52,28 @@ vi.mock('@/renderer/utils/ui/clipboard', () => ({
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
-  getAgentLogo: vi.fn(() => null),
+  getAgentLogo: vi.fn((type?: string) => (type ? '/backend-logo.svg' : null)),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageCronBadge', () => ({
   default: () => <div data-testid='message-cron-badge' />,
+}));
+
+const mockPresetInfo = vi.hoisted(() => ({ value: null as { name: string; logo: string; isEmoji: boolean } | null }));
+vi.mock('@renderer/hooks/agent/usePresetAssistantInfo', () => ({
+  usePresetAssistantInfo: () => ({ info: mockPresetInfo.value, isLoading: false }),
+}));
+
+vi.mock('swr', () => ({
+  default: () => ({ data: undefined, error: undefined, isLoading: false, mutate: vi.fn() }),
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      get: { invoke: vi.fn(async () => null) },
+    },
+  },
 }));
 
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
@@ -74,6 +91,10 @@ const createMessage = (overrides?: Partial<IMessageText>): IMessageText => ({
 });
 
 describe('MessageText', () => {
+  beforeEach(() => {
+    mockPresetInfo.value = null;
+  });
+
   it('renders user-authored markdown-looking text as plain text instead of using MarkdownView', () => {
     render(
       <MessageText
@@ -105,5 +126,50 @@ describe('MessageText', () => {
 
     expect(screen.getByTestId('markdown-view')).toBeInTheDocument();
     expect(markdownViewMock).toHaveBeenCalledOnce();
+  });
+
+  it('shows the preset emoji instead of the backend logo for teammate messages from preset senders', () => {
+    mockPresetInfo.value = { name: 'Word Creator', logo: '📝', isEmoji: true };
+
+    render(
+      <MessageText
+        message={createMessage({
+          position: 'left',
+          content: {
+            content: 'hello from preset',
+            teammateMessage: true,
+            senderName: 'Writer',
+            senderAgentType: 'gemini',
+            senderConversationId: 'conv-preset',
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByText('📝')).toBeInTheDocument();
+    // Backend logo must not render when a preset avatar is available
+    expect(screen.queryByAltText('Writer')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the backend logo for teammate messages from non-preset senders', () => {
+    mockPresetInfo.value = null;
+
+    render(
+      <MessageText
+        message={createMessage({
+          position: 'left',
+          content: {
+            content: 'hello from cli agent',
+            teammateMessage: true,
+            senderName: 'Coder',
+            senderAgentType: 'claude',
+            senderConversationId: 'conv-cli',
+          },
+        })}
+      />
+    );
+
+    const logo = screen.getByAltText('Coder') as HTMLImageElement;
+    expect(logo.src).toContain('/backend-logo.svg');
   });
 });

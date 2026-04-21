@@ -11,7 +11,12 @@ import { TaskManager } from './TaskManager';
 import { TeammateManager } from './TeammateManager';
 import { TeamMcpServer, type StdioMcpConfig } from './mcp/team/TeamMcpServer';
 
-type SpawnAgentFn = (agentName: string, agentType?: string, model?: string) => Promise<TeamAgent>;
+type SpawnAgentFn = (
+  agentName: string,
+  agentType?: string,
+  model?: string,
+  customAgentId?: string
+) => Promise<TeamAgent>;
 
 /**
  * Thin coordinator that owns Mailbox, TaskManager, TeammateManager, and MCP server.

@@ -23,12 +23,30 @@ const SOLO_DEFAULT_RULE = `Handle the task yourself in the current chat by defau
 
 // ── Exported prompt builders ────────────────────────────────────────────────
 
+export interface TeamGuidePromptOptions {
+  /** Agent backend type, e.g. 'claude', 'gemini', 'codex' */
+  backend?: string;
+  /**
+   * Display label for the Leader row in the example team configuration table.
+   * When the current conversation is backed by a preset assistant, pass the
+   * assistant's human-readable name (e.g. "Word Creator") so the leader can
+   * describe itself accurately instead of just the backend key. Prompts are
+   * shown to the agent so a natural language label is clearer than an id.
+   */
+  leaderLabel?: string;
+}
+
 /**
  * Full system prompt fragment injected on the first message for solo agents.
  * Guides the agent to keep normal work solo and only discuss Team mode when truly needed.
  */
-export function getTeamGuidePrompt(backend?: string): string {
-  const agentType = backend || 'claude';
+export function getTeamGuidePrompt(input?: string | TeamGuidePromptOptions): string {
+  const opts: TeamGuidePromptOptions = typeof input === 'string' ? { backend: input } : (input ?? {});
+  const agentType = opts.backend || 'claude';
+  const rawLabel = opts.leaderLabel?.trim();
+  // When an assistant label is present, keep the backend in parentheses so the
+  // agent still knows which CLI/runtime is in use; fall back to plain backend.
+  const leaderCell = rawLabel ? `${rawLabel} (${agentType})` : agentType;
   return `## Team Mode
 
 You can create a multi-agent Team for the user.
@@ -52,7 +70,7 @@ If case 2 applies, ask at most once whether the user wants to bring in a Team. K
 2. Explain in one sentence why the Team setup helps this task.
 3. Present a team configuration table: role name, responsibility, agent type, and recommended model (from aion_list_models results) for each member. Example format:
    | Role | Responsibility | Type | Model |
-   | Leader | Coordinate and review | ${agentType} | (default) |
+   | Leader | Coordinate and review | ${leaderCell} | (default) |
    | Developer | Implement features | ${agentType} | (model from list) |
    | Tester | Write and run tests | ${agentType} | (model from list) |
 4. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.

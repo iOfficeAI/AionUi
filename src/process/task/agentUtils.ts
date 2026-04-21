@@ -7,6 +7,7 @@
 import { getSkillsDir, getBuiltinSkillsCopyDir, loadSkillsContent } from '@process/utils/initStorage';
 import { AcpSkillManager, buildSkillsIndexText, type SkillIndex } from './AcpSkillManager';
 import { getTeamGuidePrompt } from '@process/team/prompts/teamGuidePrompt.ts';
+import { resolveLeaderAssistantLabel } from '@process/team/prompts/teamGuideAssistant.ts';
 
 /**
  * 首次消息处理配置
@@ -23,6 +24,12 @@ export interface FirstMessageConfig {
   enableTeamGuide?: boolean;
   /** Agent backend type (e.g. 'claude', 'codex') — used to populate team guide prompt */
   backend?: string;
+  /**
+   * Preset assistant id backing this conversation (e.g. 'builtin-word-creator').
+   * When set, the team guide prompt shows the assistant's display name on the
+   * Leader row instead of the raw backend key.
+   */
+  presetAssistantId?: string;
 }
 
 /**
@@ -50,7 +57,8 @@ export async function buildSystemInstructions(config: FirstMessageConfig): Promi
 
   // Inject Team Guide prompt when agent has team guide capability
   if (config.enableTeamGuide) {
-    instructions.push(getTeamGuidePrompt(config.backend));
+    const leaderLabel = await resolveLeaderAssistantLabel(config.presetAssistantId);
+    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
   }
 
   if (instructions.length === 0) {
@@ -153,7 +161,8 @@ For example:
 
   // 3. Inject Team Guide prompt when agent has team guide capability
   if (config.enableTeamGuide) {
-    instructions.push(getTeamGuidePrompt(config.backend));
+    const leaderLabel = await resolveLeaderAssistantLabel(config.presetAssistantId);
+    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
   }
 
   if (instructions.length === 0) {
@@ -206,7 +215,8 @@ export async function buildSystemInstructionsWithSkillsIndex(config: FirstMessag
 
   // Inject Team Guide prompt when agent has team guide capability
   if (config.enableTeamGuide) {
-    instructions.push(getTeamGuidePrompt(config.backend));
+    const leaderLabel = await resolveLeaderAssistantLabel(config.presetAssistantId);
+    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
   }
 
   if (instructions.length === 0) {

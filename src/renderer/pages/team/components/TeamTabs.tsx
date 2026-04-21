@@ -13,6 +13,7 @@ type TeamTabViewProps = {
   slotId: string;
   agentName: string;
   agentType: string;
+  conversationId?: string;
   isActive: boolean;
   status: TeammateStatus;
   isLeader: boolean;
@@ -31,6 +32,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   slotId,
   agentName,
   agentType,
+  conversationId,
   isActive,
   status,
   isLeader,
@@ -135,9 +137,11 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <TeamAgentIdentity
             agentName={agentName}
             agentType={agentType}
+            conversationId={conversationId}
             isLeader={isLeader}
             className='min-w-0 flex-1'
             logoClassName={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
+            avatarClassName={`w-14px h-14px rounded-2px flex items-center justify-center text-11px leading-none bg-fill-2 shrink-0 ${isActive ? 'opacity-100' : 'opacity-80'}`}
             nameClassName='text-15px whitespace-nowrap overflow-hidden text-ellipsis select-none'
           />
         </div>
@@ -167,7 +171,6 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 };
 
 type TeamTabsProps = {
-  onAddAgent: (data: { agentName: string; agentKey: string; model?: string }) => void;
   onTabClick?: (slotId: string) => void;
   /** Pending permission confirmation counts per slot ID */
   pendingCounts?: Map<string, number>;
@@ -177,7 +180,7 @@ type TeamTabsProps = {
  * Tab bar for team mode showing agent tabs with status badges.
  * Supports scroll overflow with fade indicators and add-agent dropdown.
  */
-const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent: _onAddAgent, onTabClick, pendingCounts }) => {
+const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
   const { agents, activeSlotId, statusMap, switchTab, renameAgent, removeAgent, reorderAgents } = useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
@@ -249,6 +252,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onAddAgent: _onAddAgent, onTabClick
                 slotId={agent.slotId}
                 agentName={agent.agentName}
                 agentType={agent.agentType}
+                conversationId={agent.conversationId}
                 isActive={agent.slotId === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLeader={agent.role === 'leader'}
