@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   loggerConfig: vi.fn(),
-  detectorInitialize: vi.fn(async () => {}),
+  agentRegistryInitialize: vi.fn(async () => {}),
   sqlChannelRepoCtor: vi.fn(),
   sqlConversationRepoCtor: vi.fn(),
   conversationServiceCtor: vi.fn(),
@@ -42,9 +42,9 @@ vi.mock('@office-ai/platform', () => ({
   },
 }));
 
-vi.mock('@process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
-    initialize: (...args: unknown[]) => mocks.detectorInitialize(...args),
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
+    initialize: (...args: unknown[]) => mocks.agentRegistryInitialize(...args),
   },
 }));
 
@@ -165,6 +165,6 @@ describe('initBridgeStandalone', () => {
     expect(mocks.hubBridge).toHaveBeenCalledTimes(1);
     expect(mocks.remoteAgentBridge).toHaveBeenCalledTimes(1);
     expect(mocks.acpConversationBridge).toHaveBeenCalledWith(mocks.workerTaskManager);
-    expect(mocks.detectorInitialize).toHaveBeenCalledTimes(1);
+    expect(mocks.agentRegistryInitialize).toHaveBeenCalledTimes(1);
   });
 });

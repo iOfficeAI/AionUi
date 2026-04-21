@@ -66,6 +66,11 @@ vi.mock('@process/services/ccSwitchModelSource', () => ccSwitchMock);
 import { execFile as execFileCb, spawn } from 'child_process';
 import { execFileSync } from 'child_process';
 import {
+  CLAUDE_ACP_NPX_PACKAGE,
+  CODEX_ACP_BRIDGE_VERSION,
+  CODEX_ACP_NPX_PACKAGE,
+} from '../../src/common/types/acpTypes';
+import {
   connectClaude,
   connectCodex,
   createGenericSpawnConfig,
@@ -77,6 +82,33 @@ const mockExecFile = vi.mocked(execFileCb);
 const mockExecFileSync = vi.mocked(execFileSync);
 const mockFsPromises = vi.mocked(fsPromisesMock);
 const mockSpawn = vi.mocked(spawn);
+
+const CODEX_WINDOWS_X64_PACKAGE = `@zed-industries/codex-acp-win32-x64@${CODEX_ACP_BRIDGE_VERSION}`;
+const CODEX_LINUX_X64_PACKAGE = `@zed-industries/codex-acp-linux-x64@${CODEX_ACP_BRIDGE_VERSION}`;
+const CODEX_DARWIN_X64_PACKAGE = `@zed-industries/codex-acp-darwin-x64@${CODEX_ACP_BRIDGE_VERSION}`;
+
+function buildExpectedPreparedEnv(
+  extraEnv: Record<string, unknown> = {},
+  options: {
+    includeWindowsTempVars?: boolean;
+    pathValue?: string;
+  } = {}
+) {
+  const { includeWindowsTempVars = false, pathValue = '/usr/bin' } = options;
+
+  return {
+    PATH: pathValue,
+    BUN_INSTALL_CACHE_DIR: expect.any(String),
+    BUN_TMPDIR: expect.any(String),
+    ...(includeWindowsTempVars
+      ? {
+          TMP: expect.any(String),
+          TEMP: expect.any(String),
+        }
+      : {}),
+    ...extraEnv,
+  };
+}
 
 describe('spawnNpxBackend - Windows UTF-8 fix', () => {
   const mockChild = { unref: vi.fn() };
@@ -277,7 +309,7 @@ describe('connectCodex - Windows diagnostics', () => {
       'codex.cmd',
       ['--version'],
       expect.objectContaining({
-        env: { PATH: '/usr/bin' },
+        env: expect.objectContaining(buildExpectedPreparedEnv({}, { includeWindowsTempVars: true })),
         shell: true,
         timeout: 5000,
         windowsHide: true,
@@ -289,7 +321,7 @@ describe('connectCodex - Windows diagnostics', () => {
       'codex.cmd',
       ['login', 'status'],
       expect.objectContaining({
-        env: { PATH: '/usr/bin' },
+        env: expect.objectContaining(buildExpectedPreparedEnv({}, { includeWindowsTempVars: true })),
         shell: true,
         timeout: 5000,
         windowsHide: true,
@@ -308,6 +340,7 @@ describe('connectClaude - detached process group', () => {
   beforeEach(() => {
     originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
     mockSpawn.mockReturnValue(mockChild as unknown as ReturnType<typeof spawn>);
+    ccSwitchMock.readClaudeProviderEnvFromCcSwitch.mockReturnValue({});
   });
 
   afterEach(() => {
@@ -327,11 +360,13 @@ describe('connectClaude - detached process group', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       '/bundled/bun',
-      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.23.1']),
+      expect.arrayContaining(['x', '--bun', CLAUDE_ACP_NPX_PACKAGE]),
       expect.objectContaining({
         cwd: '/cwd',
         detached: true,
+        env: expect.objectContaining(buildExpectedPreparedEnv()),
         shell: false,
+        stdio: ['pipe', 'pipe', 'pipe'],
       })
     );
     expect(mockChild.unref).toHaveBeenCalledTimes(1);
@@ -351,12 +386,12 @@ describe('connectClaude - detached process group', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       '/bundled/bun',
-      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.23.1']),
+      expect.arrayContaining(['x', '--bun', CLAUDE_ACP_NPX_PACKAGE]),
       expect.objectContaining({
         env: expect.objectContaining({
-          PATH: '/usr/bin',
           ANTHROPIC_BASE_URL: 'http://localhost:4000',
           ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+          ...buildExpectedPreparedEnv(),
         }),
       })
     );
@@ -372,11 +407,13 @@ describe('connectClaude - detached process group', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       expect.stringContaining('chcp 65001 >nul &&'),
-      expect.arrayContaining(['x', '--bun', '@zed-industries/claude-agent-acp@0.23.1']),
+      expect.arrayContaining(['x', '--bun', CLAUDE_ACP_NPX_PACKAGE]),
       expect.objectContaining({
         cwd: 'C:\\cwd',
         detached: false,
+        env: expect.objectContaining(buildExpectedPreparedEnv({}, { includeWindowsTempVars: true })),
         shell: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
       })
     );
     expect(mockChild.unref).not.toHaveBeenCalled();
@@ -475,7 +512,7 @@ describe('connectCodex - Windows package selection', () => {
     expect(command).toContain('chcp 65001 >nul &&');
     expect(args).toContain('x');
     expect(args).toContain('--bun');
-    expect(args).toContain('@zed-industries/codex-acp-win32-x64@0.11.1');
+    expect(args).toContain(CODEX_WINDOWS_X64_PACKAGE);
   });
 
   it('uses the direct Windows platform package first when startup succeeds', async () => {
@@ -487,8 +524,8 @@ describe('connectCodex - Windows package selection', () => {
     await connectCodex('C:\\cwd', hooks);
 
     const [, args] = mockSpawn.mock.calls[0];
-    expect(args).toContain('@zed-industries/codex-acp-win32-x64@0.11.1');
-    expect(args).not.toContain('@zed-industries/codex-acp@0.11.1');
+    expect(args).toContain(CODEX_WINDOWS_X64_PACKAGE);
+    expect(args).not.toContain(CODEX_ACP_NPX_PACKAGE);
     expect(mockChild.unref).not.toHaveBeenCalled();
   });
 
@@ -496,7 +533,7 @@ describe('connectCodex - Windows package selection', () => {
     const hooks = {
       setup: vi.fn(async () => {
         const [, args] = mockSpawn.mock.calls.at(-1) ?? [];
-        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp-win32-x64@0.11.1')) {
+        if (Array.isArray(args) && args.includes(CODEX_WINDOWS_X64_PACKAGE)) {
           throw new Error('Request initialize timed out after 60 seconds');
         }
       }),
@@ -508,8 +545,8 @@ describe('connectCodex - Windows package selection', () => {
     const firstCallArgs = mockSpawn.mock.calls[0]?.[1];
     const secondCallArgs = mockSpawn.mock.calls[1]?.[1];
 
-    expect(firstCallArgs).toContain('@zed-industries/codex-acp-win32-x64@0.11.1');
-    expect(secondCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
+    expect(firstCallArgs).toContain(CODEX_WINDOWS_X64_PACKAGE);
+    expect(secondCallArgs).toContain(CODEX_ACP_NPX_PACKAGE);
   });
 });
 
@@ -552,7 +589,7 @@ describe('connectCodex - Linux package selection', () => {
     expect(command).toBe('/bundled/bun');
     expect(args).toContain('x');
     expect(args).toContain('--bun');
-    expect(args).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
+    expect(args).toContain(CODEX_LINUX_X64_PACKAGE);
   });
 
   it('uses the direct Linux platform package first when startup succeeds', async () => {
@@ -564,8 +601,8 @@ describe('connectCodex - Linux package selection', () => {
     await connectCodex('/cwd', hooks);
 
     const [, args] = mockSpawn.mock.calls[0];
-    expect(args).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
-    expect(args).not.toContain('@zed-industries/codex-acp@0.11.1');
+    expect(args).toContain(CODEX_LINUX_X64_PACKAGE);
+    expect(args).not.toContain(CODEX_ACP_NPX_PACKAGE);
     expect(mockChild.unref).not.toHaveBeenCalled();
   });
 
@@ -573,7 +610,7 @@ describe('connectCodex - Linux package selection', () => {
     const hooks = {
       setup: vi.fn(async () => {
         const [, args] = mockSpawn.mock.calls.at(-1) ?? [];
-        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp-linux-x64@0.11.1')) {
+        if (Array.isArray(args) && args.includes(CODEX_LINUX_X64_PACKAGE)) {
           throw new Error('Request initialize timed out after 60 seconds');
         }
       }),
@@ -585,8 +622,8 @@ describe('connectCodex - Linux package selection', () => {
     const firstCallArgs = mockSpawn.mock.calls[0]?.[1];
     const secondCallArgs = mockSpawn.mock.calls[1]?.[1];
 
-    expect(firstCallArgs).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
-    expect(secondCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
+    expect(firstCallArgs).toContain(CODEX_LINUX_X64_PACKAGE);
+    expect(secondCallArgs).toContain(CODEX_ACP_NPX_PACKAGE);
   });
 
   it('ignores cached Linux platform binaries older than the supported bridge version', async () => {
@@ -620,7 +657,7 @@ describe('connectCodex - Linux package selection', () => {
 
     const [command, args] = mockSpawn.mock.calls[0] ?? [];
     expect(command).toBe('/bundled/bun');
-    expect(args).toContain('@zed-industries/codex-acp-linux-x64@0.11.1');
+    expect(args).toContain(CODEX_LINUX_X64_PACKAGE);
     expect(command).not.toBe(
       '/mock-npm-cache/_npx/old-cache/node_modules/@zed-industries/codex-acp-linux-x64/bin/codex-acp'
     );
@@ -656,7 +693,7 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
     const hooks = {
       setup: vi.fn(async () => {
         const [, args] = mockSpawn.mock.calls.at(-1) ?? [];
-        if (Array.isArray(args) && args.includes('@zed-industries/codex-acp@0.11.1')) {
+        if (Array.isArray(args) && args.includes(CODEX_ACP_NPX_PACKAGE)) {
           throw new Error(
             "Error resolving package: Error [ERR_MODULE_NOT_FOUND]: Cannot find package '@zed-industries/codex-acp-darwin-x64' imported from /tmp/codex-acp.js\n" +
               'Failed to locate @zed-industries/codex-acp-darwin-x64 binary. This usually means the optional dependency was not installed.'
@@ -671,8 +708,8 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
     const firstCallArgs = mockSpawn.mock.calls[0]?.[1];
     const secondCallArgs = mockSpawn.mock.calls[1]?.[1];
 
-    expect(firstCallArgs).toContain('@zed-industries/codex-acp@0.11.1');
-    expect(secondCallArgs).toContain('@zed-industries/codex-acp-darwin-x64@0.11.1');
+    expect(firstCallArgs).toContain(CODEX_ACP_NPX_PACKAGE);
+    expect(secondCallArgs).toContain(CODEX_DARWIN_X64_PACKAGE);
   });
 
   it('prepends the configured Codex CLI directory to PATH on Darwin', async () => {
@@ -689,7 +726,7 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
       ['--version'],
       expect.objectContaining({
         env: expect.objectContaining({
-          PATH: '/Users/test/.volta/bin:/usr/bin',
+          ...buildExpectedPreparedEnv({}, { pathValue: '/Users/test/.volta/bin:/usr/bin' }),
         }),
       }),
       expect.any(Function)
@@ -697,10 +734,10 @@ describe('connectCodex - Darwin optional dependency fallback', () => {
 
     expect(mockSpawn).toHaveBeenCalledWith(
       '/bundled/bun',
-      expect.arrayContaining(['x', '--bun', '@zed-industries/codex-acp@0.11.1']),
+      expect.arrayContaining(['x', '--bun', CODEX_ACP_NPX_PACKAGE]),
       expect.objectContaining({
         env: expect.objectContaining({
-          PATH: '/Users/test/.volta/bin:/usr/bin',
+          ...buildExpectedPreparedEnv({}, { pathValue: '/Users/test/.volta/bin:/usr/bin' }),
         }),
       })
     );

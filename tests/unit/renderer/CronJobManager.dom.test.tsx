@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -122,6 +122,7 @@ const makeMockJob = (overrides?: Partial<ICronJob>): ICronJob => ({
 describe('CronJobManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockNavigate.mockReset();
     mockUseCronJobs.mockReturnValue({
       jobs: [],
       loading: false,
@@ -130,30 +131,24 @@ describe('CronJobManager', () => {
     mockGetJobStatusFlags.mockReturnValue({ hasError: false, isPaused: false });
   });
 
-  it('returns null when hasCronSkill=false and no jobs', () => {
-    const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
-
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('shows unconfigured state when hasCronSkill=true (default) and no jobs', () => {
+  it('shows the cron entry panel when no jobs exist and loading is complete', () => {
     render(<CronJobManager conversationId='conv-1' />);
 
-    // Should render the Popover with create button
     expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
-    expect(screen.getByText('cron.status.createNow')).toBeInTheDocument();
-    expect(screen.getByText('cron.status.unconfiguredHint')).toBeInTheDocument();
+    expect(screen.getByText('cron.panel.entryHint')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'cron.panel.openPanelButton' })).toBeInTheDocument();
     expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
   });
 
-  it('shows unconfigured state when hasCronSkill is explicitly true and no jobs', () => {
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={true} />);
+  it('opens the scheduled tasks panel from the entry action button', () => {
+    render(<CronJobManager conversationId='conv-1' />);
 
-    expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
-    expect(screen.getByText('cron.status.createNow')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'cron.panel.openPanelButton' }));
+
+    expect(mockNavigate).toHaveBeenCalledWith('/scheduled');
   });
 
-  it('shows job status when jobs exist regardless of hasCronSkill', () => {
+  it('shows job status when jobs exist', () => {
     const job = makeMockJob();
     mockUseCronJobs.mockReturnValue({
       jobs: [job],
@@ -161,27 +156,27 @@ describe('CronJobManager', () => {
       hasJobs: true,
     });
 
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
+    render(<CronJobManager conversationId='conv-1' />);
 
-    // Should show Tooltip with job name, not Popover
     expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
     expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
-    // Should not show the unconfigured popover
     expect(screen.queryByTestId('arco-popover')).not.toBeInTheDocument();
+    expect(screen.getByTestId('arco-tooltip')).toHaveAttribute('data-tooltip-content', 'Test Job');
   });
 
-  it('shows job status when jobs exist with hasCronSkill=true', () => {
+  it('shows the paused tooltip state when the cron job is paused', () => {
     const job = makeMockJob();
     mockUseCronJobs.mockReturnValue({
       jobs: [job],
       loading: false,
       hasJobs: true,
     });
+    mockGetJobStatusFlags.mockReturnValue({ hasError: false, isPaused: true });
 
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={true} />);
+    render(<CronJobManager conversationId='conv-1' />);
 
     expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
-    expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
+    expect(screen.getByTestId('arco-tooltip')).toHaveAttribute('data-tooltip-content', 'cron.status.paused');
   });
 
   it('returns null during loading with no job', () => {
@@ -192,19 +187,6 @@ describe('CronJobManager', () => {
     });
 
     const { container } = render(<CronJobManager conversationId='conv-1' />);
-
-    // loading=true and no job -> the component hits `if (loading || !job) return null`
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('returns null when hasCronSkill=false, no jobs, and not loading', () => {
-    mockUseCronJobs.mockReturnValue({
-      jobs: [],
-      loading: false,
-      hasJobs: false,
-    });
-
-    const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
 
     expect(container.innerHTML).toBe('');
   });

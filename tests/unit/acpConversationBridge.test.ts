@@ -28,11 +28,9 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
+vi.mock('../../src/process/agent/AgentRegistry', () => ({
+  agentRegistry: {
     getDetectedAgents: vi.fn(() => []),
-    ensureBuiltinAgentsFresh: vi.fn(async () => {}),
-    refreshCustomAgents: vi.fn(async () => {}),
   },
 }));
 
@@ -89,8 +87,8 @@ describe('acpConversationBridge', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     taskManager = makeTaskManager();
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([]);
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
+    vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([]);
     initAcpConversationBridge(taskManager);
   });
 
@@ -161,28 +159,25 @@ describe('acpConversationBridge', () => {
 
   // --- refreshCustomAgents ---
 
-  it('refreshCustomAgents returns success when detector succeeds', async () => {
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.refreshCustomAgents).mockResolvedValue(undefined as any);
-
+  it('refreshCustomAgents remains a backward-compatible no-op', async () => {
     const result = await handlers['refreshCustomAgents']();
     expect(result).toEqual({ success: true });
   });
 
-  it('refreshCustomAgents returns error when detector throws', async () => {
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.refreshCustomAgents).mockRejectedValue(new Error('refresh failed'));
-
-    const result = await handlers['refreshCustomAgents']();
-    expect(result).toEqual({ success: false, msg: 'refresh failed' });
-  });
-
   // --- getAvailableAgents ---
 
-  it('getAvailableAgents returns enriched agent list', async () => {
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([
-      { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
+  it('getAvailableAgents returns enriched agent list from the registry', async () => {
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
+    vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([
+      {
+        id: 'claude',
+        name: 'Claude',
+        kind: 'acp',
+        available: true,
+        backend: 'claude',
+        cliPath: '/usr/bin/claude',
+        acpArgs: ['--experimental-acp'],
+      },
     ] as any);
 
     const { mcpService } = await import('../../src/process/services/mcpServices/McpService');
@@ -192,34 +187,17 @@ describe('acpConversationBridge', () => {
     expect(result.success).toBe(true);
     expect(result.data).toHaveLength(1);
     expect(result.data[0].supportedTransports).toEqual(['stdio']);
-    expect(acpDetector.ensureBuiltinAgentsFresh).not.toHaveBeenCalled();
   });
 
-  it('getAvailableAgents waits for detection when cached agents are empty', async () => {
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.getDetectedAgents)
-      .mockReturnValueOnce([] as any)
-      .mockReturnValueOnce([{ backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' }] as any);
-    vi.mocked(acpDetector.ensureBuiltinAgentsFresh).mockResolvedValue(undefined as any);
-
+  it('getAvailableAgents returns an empty list when nothing is registered', async () => {
     const result = await handlers['getAvailableAgents']();
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
-    expect(acpDetector.ensureBuiltinAgentsFresh).toHaveBeenCalledTimes(1);
+    expect(result.data).toEqual([]);
   });
 
-  it('getAvailableAgents returns error when initial detection throws', async () => {
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.getDetectedAgents).mockReturnValue([] as any);
-    vi.mocked(acpDetector.ensureBuiltinAgentsFresh).mockRejectedValue(new Error('detection failed'));
-
-    const result = await handlers['getAvailableAgents']();
-    expect(result).toEqual({ success: false, msg: 'detection failed' });
-  });
-
-  it('getAvailableAgents returns error when agent read throws', async () => {
-    const { acpDetector } = await import('../../src/process/agent/acp/AcpDetector');
-    vi.mocked(acpDetector.getDetectedAgents).mockImplementation(() => {
+  it('getAvailableAgents returns error when the registry throws', async () => {
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
+    vi.mocked(agentRegistry.getDetectedAgents).mockImplementation(() => {
       throw new Error('detection failed');
     });
 

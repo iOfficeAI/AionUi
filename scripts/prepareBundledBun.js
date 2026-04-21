@@ -211,6 +211,21 @@ function copyRuntimeFromDirectory(sourceDir, targetDir, platform) {
   return copied;
 }
 
+function removeStaleRuntimeDirectories(rootDir, currentRuntimeKey) {
+  if (!fs.existsSync(rootDir)) {
+    return;
+  }
+
+  const entries = fs.readdirSync(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === currentRuntimeKey) {
+      continue;
+    }
+
+    removeDirectorySafe(path.join(rootDir, entry.name));
+  }
+}
+
 function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
   const assetName = getPlatformAsset(platform, arch);
   if (!assetName) {
@@ -271,10 +286,13 @@ function prepareBundledBun() {
 
   console.log(`Preparing bundled bun for ${runtimeKey} (version: ${runtimeVersion})`);
 
-  const targetDir = path.join(projectRoot, 'resources', 'bundled-bun', runtimeKey);
+  const bundledRootDir = path.join(projectRoot, 'resources', 'bundled-bun');
+  const targetDir = path.join(bundledRootDir, runtimeKey);
   const cacheRootDir = getCacheRootDir();
   const cacheRuntimeDir = path.join(cacheRootDir, runtimeVersion, runtimeKey);
 
+  ensureDirectory(bundledRootDir);
+  removeStaleRuntimeDirectories(bundledRootDir, runtimeKey);
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
   ensureDirectory(cacheRuntimeDir);

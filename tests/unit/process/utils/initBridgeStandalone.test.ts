@@ -28,7 +28,7 @@ const mocks = vi.hoisted(() => ({
   initSpeechToTextBridge: vi.fn(),
   initHubBridge: vi.fn(),
   initRemoteAgentBridge: vi.fn(),
-  initializeDetector: vi.fn(async () => {}),
+  initializeAgentRegistry: vi.fn(async () => {}),
   loggerConfig: vi.fn(),
   bridgeBuildProvider: vi.fn(() => ({ provider: vi.fn(), invoke: vi.fn() })),
   bridgeBuildEmitter: vi.fn(() => ({ on: vi.fn(), emit: vi.fn() })),
@@ -44,9 +44,9 @@ vi.mock('@office-ai/platform', () => ({
   },
 }));
 
-vi.mock('@process/agent/acp/AcpDetector', () => ({
-  acpDetector: {
-    initialize: (...args: unknown[]) => mocks.initializeDetector(...args),
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
+    initialize: (...args: unknown[]) => mocks.initializeAgentRegistry(...args),
   },
 }));
 
@@ -160,6 +160,6 @@ describe('initBridgeStandalone', () => {
 
     expect(mocks.initHubBridge).toHaveBeenCalledTimes(1);
     expect(mocks.initRemoteAgentBridge).toHaveBeenCalledTimes(1);
-    expect(mocks.initializeDetector).toHaveBeenCalledTimes(1);
+    expect(mocks.initializeAgentRegistry).toHaveBeenCalledTimes(1);
   });
 });

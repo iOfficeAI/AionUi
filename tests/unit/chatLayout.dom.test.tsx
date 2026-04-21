@@ -7,6 +7,7 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
 import ChatLayout from '../../src/renderer/pages/conversation/components/ChatLayout';
 
 const chatLayoutMocks = vi.hoisted(() => ({
@@ -153,15 +154,17 @@ describe('ChatLayout', () => {
     chatLayoutMocks.openTabs = [{ id: 'conv-1', name: 'Test Conversation', workspace: 'E:/workspace', type: 'gemini' }];
 
     render(
-      <ChatLayout
-        title='Test Conversation'
-        sider={<div>workspace</div>}
-        siderTitle='Workspace'
-        backend='gemini'
-        conversationId='conv-1'
-      >
-        <div>chat body</div>
-      </ChatLayout>
+      <MemoryRouter initialEntries={['/conversation/conv-1']}>
+        <ChatLayout
+          title='Test Conversation'
+          sider={<div>workspace</div>}
+          siderTitle='Workspace'
+          backend='gemini'
+          conversationId='conv-1'
+        >
+          <div>chat body</div>
+        </ChatLayout>
+      </MemoryRouter>
     );
 
     expect(screen.getAllByLabelText('Search conversation')).toHaveLength(2);
