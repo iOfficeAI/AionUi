@@ -26,6 +26,7 @@ import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import { BackendLifecycleManager } from '@process/backend';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
@@ -201,6 +202,7 @@ let isExplicitQuit = false;
 let appReadyDone = false;
 
 let mainWindow: BrowserWindow;
+const backendManager = new BackendLifecycleManager();
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
@@ -285,6 +287,13 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   initMainAdapterWithWindow(mainWindow);
   bindMainWindowReferences(mainWindow);
+
+  // Inject backend port into renderer so httpBridge.ts can connect
+  if (backendManager.status === 'running') {
+    mainWindow.webContents.once('did-finish-load', () => {
+      mainWindow.webContents.send('backend-port', backendManager.port);
+    });
+  }
   setupApplicationMenu();
 
   setupZoomForWindow(mainWindow);
@@ -452,6 +461,15 @@ const handleAppReady = async (): Promise<void> => {
     console.error('Failed to initialize process:', error);
     app.exit(1);
     return;
+  }
+
+  // Start aionui-backend subprocess and wait for health check
+  try {
+    const { getDataPath } = await import('./process/utils/utils');
+    const backendPort = await backendManager.start(getDataPath());
+    mark(`backendManager.start (port=${backendPort})`);
+  } catch (error) {
+    console.error('[AionUi] Failed to start aionui-backend:', error);
   }
 
   try {
@@ -712,6 +730,9 @@ app.on('before-quit', async () => {
   destroyTray();
 
   const cleanup = async () => {
+    // Stop aionui-backend subprocess
+    await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
+
     // Kill all agent worker processes
     await workerTaskManager.clear();
 
