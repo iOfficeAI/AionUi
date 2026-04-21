@@ -18,7 +18,7 @@ import { createRateLimiter } from '../middleware/security';
  * Vite dev server port — read from ELECTRON_RENDERER_URL when available
  * (electron-vite sets it to the actual port), fallback to 5173.
  */
-const VITE_DEV_PORT = (() => {
+export const VITE_DEV_PORT = (() => {
   const url = process.env['ELECTRON_RENDERER_URL'];
   if (url) {
     try {
@@ -33,7 +33,7 @@ const VITE_DEV_PORT = (() => {
 /**
  * Try to resolve built renderer assets path, return null if not found
  */
-const resolveRendererPath = (): {
+export const resolveRendererPath = (): {
   staticRoot: string;
   indexHtml: string;
 } | null => {
