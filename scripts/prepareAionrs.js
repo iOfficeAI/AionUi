@@ -108,6 +108,23 @@ function getAssetName(platform, arch, tag) {
   return `aionrs-${tag}-${normalizedArch}-${normalizedPlatform}${ext}`;
 }
 
+function resolveTargetArch(platform) {
+  const candidates = [
+    process.env.AIONRS_ARCH,
+    process.env.ELECTRON_BUILDER_ARCH,
+    process.env.npm_config_target_arch,
+    process.arch,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && getAssetName(platform, candidate, 'v0.0.0')) {
+      return candidate;
+    }
+  }
+
+  return process.arch;
+}
+
 function getDownloadUrl(assetName, tag) {
   return `https://github.com/${GITHUB_OWNER}/${GITHUB_REPO}/releases/download/${tag}/${assetName}`;
 }
@@ -187,8 +204,8 @@ function downloadAndExtract(platform, arch, tag) {
 function prepareAionrs() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
-  // Support cross-compilation: AIONRS_ARCH > npm_config_target_arch > process.arch
-  const arch = process.env.AIONRS_ARCH || process.env.npm_config_target_arch || process.arch;
+  // Support cross-compilation: AIONRS_ARCH > ELECTRON_BUILDER_ARCH > npm_config_target_arch > process.arch
+  const arch = resolveTargetArch(platform);
   const runtimeKey = `${platform}-${arch}`;
   const version = getVersion();
 

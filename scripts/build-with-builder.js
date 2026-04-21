@@ -396,6 +396,21 @@ const skipNative = args.includes('--skip-native');
 const packOnly = args.includes('--pack-only');
 const forceBuild = args.includes('--force');
 
+function applyResolvedArchEnv(targetArch) {
+  if (!archList.includes(targetArch)) {
+    return;
+  }
+
+  const previousTargetArch = process.env.npm_config_target_arch;
+  if (previousTargetArch && previousTargetArch !== targetArch) {
+    console.log(`Normalizing target arch env for packaging hooks: ${previousTargetArch} -> ${targetArch}`);
+  }
+
+  process.env.ELECTRON_BUILDER_ARCH = targetArch;
+  process.env.npm_config_arch = targetArch;
+  process.env.npm_config_target_arch = targetArch;
+}
+
 const builderArgs = args
   .filter((arg) => {
     // Filter out 'auto', architecture flags, and special flags
@@ -462,9 +477,11 @@ if (archArgs.length > 1) {
 
   const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
   targetArch = configArch || buildMachineArch;
+  applyResolvedArchEnv(targetArch);
 } else {
   // Explicit architecture or default to build machine
   targetArch = archArgs[0] || buildMachineArch;
+  applyResolvedArchEnv(targetArch);
 }
 
 console.log(`🔨 Building for architecture: ${targetArch}`);

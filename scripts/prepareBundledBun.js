@@ -88,6 +88,18 @@ function getPlatformAsset(platform, arch) {
   return `bun-${normalizedPlatform}-${normalizedArch}.zip`;
 }
 
+function resolveTargetArch(platform) {
+  const candidates = [process.env.ELECTRON_BUILDER_ARCH, process.env.npm_config_target_arch, process.arch];
+
+  for (const candidate of candidates) {
+    if (candidate && getPlatformAsset(platform, candidate)) {
+      return candidate;
+    }
+  }
+
+  return process.arch;
+}
+
 function getDownloadUrl(assetName, version) {
   if (version === 'latest') {
     return `https://github.com/oven-sh/bun/releases/latest/download/${assetName}`;
@@ -372,8 +384,8 @@ function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
 function prepareBundledBun() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
-  // Support cross-compilation: npm_config_target_arch > process.arch
-  const arch = process.env.npm_config_target_arch || process.arch;
+  // Support cross-compilation: ELECTRON_BUILDER_ARCH > npm_config_target_arch > process.arch
+  const arch = resolveTargetArch(platform);
   const runtimeKey = `${platform}-${arch}`;
   const runtimeVersion = getRuntimeVersion();
 
