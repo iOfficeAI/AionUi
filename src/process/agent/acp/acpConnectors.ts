@@ -372,6 +372,17 @@ export function clearBunxCache(stderr: string): string | null {
   }
 }
 
+/**
+ * Detect bun "moving to cache dir" EPERM failures.
+ * On Windows, antivirus (Windows Defender) locks files during scanning,
+ * causing NtSetInformationFile EPERM when bun tries to rename packages
+ * into the cache directory. A short delay and retry usually succeeds
+ * once the scanner releases the file handle.
+ */
+export function isBunCacheMoveFailed(stderr: string): boolean {
+  return /moving\s+"[^"]+"\s+to cache dir failed[\s\S]*EPERM/i.test(stderr);
+}
+
 // ── Backend-specific connectors ─────────────────────────────────────
 
 /**
