@@ -109,6 +109,27 @@ Coordinator has been messaged with the outcome and awaits routing decision.
    10-file scope is correct but E3/E4 don't need e2e coverage here.
    Flagging for coordinator decision.
 
+## Recommended follow-up
+
+Condensed, in priority order — expanded detail in "Next steps for a successor" below.
+
+1. **Update `tests/e2e/helpers/skillsHub.ts` (and any sibling helpers) to
+   replace `invokeBridge('subscribe-<old-key>')` calls with the corresponding
+   `httpBridge` / direct HTTP calls that match the HTTP routes now in use by
+   the renderer.** Specific keys to migrate: `list-available-skills`,
+   `list-builtin-auto-skills`, `get-skill-paths`, `detect-and-count-external-skills`,
+   `import-skill-with-symlink`, `delete-skill`, `add-custom-external-path`,
+   `remove-custom-external-path`, `get-custom-external-paths`. Each maps to
+   an existing `/api/skills/*` route (see `src/common/adapter/ipcBridge.ts:268–360`
+   and `crates/aionui-extension/src/skill_routes.rs:51–99`).
+2. **After helpers are updated, verify whether `goToSkillsHub`'s
+   `[data-testid="my-skills-section"]` visibility issue resolves on its own**
+   (the legacy-key bridge timeouts in background code could plausibly be
+   delaying first paint), **or whether it needs separate investigation**
+   (rendering-layer bug, too-short boot window, or error-boundary fallback).
+   Re-run ONE test first with Playwright artifacts retained (see step 1 of
+   "Next steps for a successor") to ground that decision on trace evidence.
+
 ## Next steps for a successor
 
 If another e2e-tester continues on this branch:
