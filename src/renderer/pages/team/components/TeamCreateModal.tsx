@@ -165,6 +165,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             type='primary'
             onClick={handleCreate}
             loading={loading}
+            disabled={!name.trim() || !dispatchAgentKey}
             className='min-w-88px'
             style={{ borderRadius: 8 }}
           >

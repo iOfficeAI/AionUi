@@ -7,6 +7,37 @@
 import { test, expect } from '../../fixtures';
 import { invokeBridge, navigateTo, createTeam, cleanupTeamsByName } from '../../helpers';
 
+async function deleteTeamBySiderMenu(page: Parameters<typeof createTeam>[0], teamName: string) {
+  // Scope to the sidebar team row: a `.group` ancestor that contains the three-dot trigger AND
+  // the exact team-name text. Exactness avoids "E2E Delete Team" matching "E2E Delete Sidebar Team".
+  const teamRow = page
+    .locator('div.group')
+    .filter({ has: page.locator('[data-testid="sider-item-menu-trigger"]') })
+    .filter({ has: page.getByText(teamName, { exact: true }) })
+    .first();
+  await teamRow.waitFor({ state: 'visible', timeout: 10_000 });
+  await teamRow.hover();
+
+  const menuTrigger = teamRow.locator('[data-testid="sider-item-menu-trigger"]');
+
+  await menuTrigger.waitFor({ state: 'visible', timeout: 5_000 });
+  await menuTrigger.click();
+
+  const deleteMenuItem = page
+    .locator('.arco-dropdown-menu-item, [role="menuitem"]')
+    .filter({ hasText: /删除|Delete/i })
+    .first();
+  await deleteMenuItem.waitFor({ state: 'visible', timeout: 5_000 });
+  await deleteMenuItem.click();
+
+  const confirmOkBtn = page
+    .locator('.arco-modal .arco-btn-primary')
+    .filter({ hasText: /确定|OK|Delete|删除/i })
+    .first();
+  await confirmOkBtn.waitFor({ state: 'visible', timeout: 5_000 });
+  await confirmOkBtn.click();
+}
+
 test.describe('Team Delete', () => {
   test('delete team via sider menu navigates away from team page', async ({ page }) => {
     const teamName = 'E2E Delete Team';
@@ -28,43 +59,7 @@ test.describe('Team Delete', () => {
 
     await page.screenshot({ path: 'tests/e2e/results/team-delete-01-before.png' });
 
-    // [action] Hover the team sidebar item to reveal the three-dot menu trigger
-    const teamItem = page.locator('text=' + teamName).first();
-    await teamItem.waitFor({ state: 'visible', timeout: 10_000 });
-    await teamItem.hover();
-
-    // Three-dot trigger: prefer data-testid, fall back to group-ancestor span
-    const menuTrigger = page
-      .locator('[data-testid="sider-item-menu-trigger"]')
-      .or(
-        teamItem
-          .locator('xpath=ancestor::div[contains(@class,"group")]')
-          .locator('span.rd-4px.cursor-pointer')
-          .last()
-      );
-
-    await menuTrigger.waitFor({ state: 'visible', timeout: 5_000 });
-    await menuTrigger.click();
-
-    await page.screenshot({ path: 'tests/e2e/results/team-delete-02-dropdown.png' });
-
-    // [action] Click the Delete menu item
-    const deleteMenuItem = page
-      .locator('.arco-dropdown-menu-item, [role="menuitem"]')
-      .filter({ hasText: /删除|Delete/i })
-      .first();
-    await deleteMenuItem.waitFor({ state: 'visible', timeout: 5_000 });
-    await deleteMenuItem.click();
-
-    await page.screenshot({ path: 'tests/e2e/results/team-delete-03-confirm-modal.png' });
-
-    // [confirm] Click the primary confirm button in the arco Modal.confirm dialog
-    const confirmOkBtn = page
-      .locator('.arco-modal .arco-btn-primary')
-      .filter({ hasText: /确定|OK|Delete|删除/i })
-      .first();
-    await confirmOkBtn.waitFor({ state: 'visible', timeout: 5_000 });
-    await confirmOkBtn.click();
+    await deleteTeamBySiderMenu(page, teamName);
 
     // [assert-ui] URL should no longer contain the deleted teamId
     await page.waitForFunction(
@@ -101,44 +96,19 @@ test.describe('Team Delete', () => {
     await page.waitForURL(/\/team\//, { timeout: 10_000 });
 
     // [assert] Sidebar shows the team before deletion
-    const sidebarEntry = page.locator('text=' + teamName).first();
+    const sidebarEntry = page.getByText(teamName, { exact: true }).first();
     await expect(sidebarEntry).toBeVisible({ timeout: 10_000 });
 
-    // [action] Hover to reveal trigger
-    await sidebarEntry.hover();
+    await deleteTeamBySiderMenu(page, teamName);
 
-    const menuTrigger = page
-      .locator('[data-testid="sider-item-menu-trigger"]')
-      .or(
-        sidebarEntry
-          .locator('xpath=ancestor::div[contains(@class,"group")]')
-          .locator('span.rd-4px.cursor-pointer')
-          .last()
-      );
-
-    await menuTrigger.waitFor({ state: 'visible', timeout: 5_000 });
-    await menuTrigger.click();
-
-    const deleteMenuItem = page
-      .locator('.arco-dropdown-menu-item, [role="menuitem"]')
-      .filter({ hasText: /删除|Delete/i })
-      .first();
-    await deleteMenuItem.waitFor({ state: 'visible', timeout: 5_000 });
-    await deleteMenuItem.click();
-
-    const confirmOkBtn = page
-      .locator('.arco-modal .arco-btn-primary')
-      .filter({ hasText: /确定|OK|Delete|删除/i })
-      .first();
-    await confirmOkBtn.waitFor({ state: 'visible', timeout: 5_000 });
-    await confirmOkBtn.click();
-
-    // Wait for modal to close
-    await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 8_000 });
+    // Wait for the confirm dialog to close. Scope to `.arco-modal-simple` because
+    // Modal.confirm renders with the `simple` modifier — this avoids matching a lingering
+    // TeamCreateModal DOM node (still in the tree with `zoomModal-exit-done` class).
+    await expect(page.locator('.arco-modal-simple')).toBeHidden({ timeout: 8_000 });
 
     await page.screenshot({ path: 'tests/e2e/results/team-delete-05-sidebar-after.png' });
 
     // [assert] Sidebar no longer shows the deleted team name
-    await expect(page.locator('text=' + teamName)).toHaveCount(0, { timeout: 10_000 });
+    await expect(page.getByText(teamName, { exact: true })).toHaveCount(0, { timeout: 10_000 });
   });
 });

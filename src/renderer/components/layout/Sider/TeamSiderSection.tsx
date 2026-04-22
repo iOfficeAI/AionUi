@@ -200,10 +200,11 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                           cancelText: t('team.sider.deleteCancel'),
                           okButtonProps: { status: 'warning' },
                           onOk: async () => {
-                            await removeTeam(team.id);
+                            const teamIdToDelete = team.id;
+                            await removeTeam(teamIdToDelete);
                             Message.success(t('team.sider.deleteSuccess'));
-                            if (pathname.startsWith(`/team/${team.id}`)) {
-                              Promise.resolve(navigate('/')).catch(() => {});
+                            if (window.location.hash.includes(`/team/${teamIdToDelete}`)) {
+                              navigate('/');
                             }
                           },
                           style: { borderRadius: '12px' },
