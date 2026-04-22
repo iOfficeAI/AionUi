@@ -19,7 +19,7 @@ declare global {
 function getBaseUrl(): string {
   const port =
     typeof window !== 'undefined'
-      ? (window as Window).__backendPort ?? 13400
+      ? (window as Window).__backendPort || 13400
       : 13400;
   return `http://127.0.0.1:${port}`;
 }
@@ -27,7 +27,7 @@ function getBaseUrl(): string {
 function getWsUrl(): string {
   const port =
     typeof window !== 'undefined'
-      ? (window as Window).__backendPort ?? 13400
+      ? (window as Window).__backendPort || 13400
       : 13400;
   return `ws://127.0.0.1:${port}/ws`;
 }

@@ -64,16 +64,35 @@ export class BackendLifecycleManager {
     this._lastDbPath = dbPath
 
     const args = buildSpawnArgs({ port: this._port, dbPath, local: true })
+    console.log(
+      `[aionui-backend] starting: ${binaryPath} ${args.join(' ')}`,
+    )
+
     this.childProcess = spawn(binaryPath, args, {
-      stdio: ['ignore', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     })
 
+    this.childProcess.stdin?.end()
+
+    const pid = this.childProcess.pid
+    const killOnExit = () => {
+      if (pid) {
+        try { process.kill(pid, 'SIGKILL') } catch { /* already gone */ }
+      }
+    }
+    process.on('exit', killOnExit)
+
     this.childProcess.on('exit', (code) => {
+      process.removeListener('exit', killOnExit)
       if (this._status === 'running') this.handleCrash(code)
     })
 
+    this.childProcess.stdout?.on('data', (data: Buffer) => {
+      console.log(`[aionui-backend] ${data.toString().trimEnd()}`)
+    })
+
     this.childProcess.stderr?.on('data', (data: Buffer) => {
-      console.error(`[aionui-backend] ${data.toString()}`)
+      console.error(`[aionui-backend] ${data.toString().trimEnd()}`)
     })
 
     const ready = await this.waitForHealth(this._port)
@@ -86,6 +105,9 @@ export class BackendLifecycleManager {
 
     this._status = 'running'
     this.restartCount = 0
+    console.log(
+      `[aionui-backend] listening on port ${this._port}, data-dir: ${dbPath}`,
+    )
     return this._port
   }
 

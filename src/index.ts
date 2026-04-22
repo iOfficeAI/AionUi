@@ -14,7 +14,7 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -204,6 +204,10 @@ let appReadyDone = false;
 let mainWindow: BrowserWindow;
 const backendManager = new BackendLifecycleManager();
 
+ipcMain.on('get-backend-port', (event) => {
+  event.returnValue = backendManager.port;
+});
+
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
   // Get primary display size
@@ -288,12 +292,6 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   initMainAdapterWithWindow(mainWindow);
   bindMainWindowReferences(mainWindow);
 
-  // Inject backend port into renderer so httpBridge.ts can connect
-  if (backendManager.status === 'running') {
-    mainWindow.webContents.once('did-finish-load', () => {
-      mainWindow.webContents.send('backend-port', backendManager.port);
-    });
-  }
   setupApplicationMenu();
 
   setupZoomForWindow(mainWindow);
