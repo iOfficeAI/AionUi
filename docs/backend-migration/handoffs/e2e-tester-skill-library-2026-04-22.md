@@ -294,3 +294,41 @@ NOT written an incident file and have NOT routed to frontend-dev or
 backend-dev, because the failure spans both streams (renderer migration +
 e2e-coverage) and the routing decision belongs to the coordinator. Task 4
 status remains `in_progress` in TaskList.
+
+---
+
+## Closure (post-Phase-D, 2026-04-23)
+
+Coordinator approved closure recommendation (b) at the end of the
+time-boxed Phase D. Task 4 is complete at **22 PASS / 7 FAIL**, with the
+transport/migration layer validated **CLEAN** (class D = 0). The remaining
+failures are categorized and logged as separate followups — none of them
+is a regression from the pilot's own migration work.
+
+**Final artifacts pushed on `feat/backend-migration-e2e-skill-library`:**
+
+- **Module record (final pilot outcome):**
+  `docs/backend-migration/modules/skill-library.md` —
+  appended "Final pilot outcome (post-Phase-D)" section with full failure
+  classification, commit SHAs by role (backend E1–E5 + `source` field fix,
+  frontend helper migration, e2e-tester reports), and links to all four
+  role handoffs.
+- **Post-pilot followup ticket list:**
+  `docs/backend-migration/post-pilot/2026-04-23-skill-library-followups.md`
+  — P0 (duplicate-path rejection + data-dir sandbox), P1 (five
+  test-authoring items), P2 (TC-S-25 bulk-import scale investigation).
+  Each ticket includes filepath-level repro/fix guidance.
+- **E2E report (all phases):**
+  `docs/backend-migration/e2e-reports/2026-04-22-skill-library.md` —
+  0/29 first run → 17/12 helper-fix rerun → 22/7 Phase B → Phase D
+  trace findings → closure rationale.
+
+**What the next teammate should read first:** the module record's
+"Final pilot outcome" section for the one-page summary, then the
+post-pilot followup list for concrete next-ticket work. The full e2e
+report is available when deeper diagnosis is needed.
+
+**Shutdown:** Task 4 complete from e2e-tester side. `TaskUpdate` to
+`completed` lands concurrent with this commit's push; final SendMessage
+to coordinator follows. Awaiting coordinator's `shutdown_request` as
+the last act of Task 5.
