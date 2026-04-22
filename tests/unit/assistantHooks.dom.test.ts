@@ -11,10 +11,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAssistantsInvoke = vi.fn().mockResolvedValue([]);
 const getAcpAdaptersInvoke = vi.fn().mockResolvedValue([]);
-const getAvailableAgentsInvoke = vi.fn().mockResolvedValue({ success: true, data: [] });
+const getAvailableAgentsInvoke = vi.fn().mockResolvedValue([]);
 const refreshCustomAgentsInvoke = vi.fn().mockResolvedValue({});
-const detectAndCountExternalSkillsInvoke = vi.fn().mockResolvedValue({ success: true, data: [] });
-const addCustomExternalPathInvoke = vi.fn().mockResolvedValue({ success: true });
+const detectAndCountExternalSkillsInvoke = vi.fn().mockResolvedValue([]);
+const addCustomExternalPathInvoke = vi.fn().mockResolvedValue(undefined);
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
@@ -236,7 +236,7 @@ describe('useAssistantList', () => {
 describe('useDetectedAgents', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    getAvailableAgentsInvoke.mockResolvedValue({ success: true, data: [] });
+    getAvailableAgentsInvoke.mockResolvedValue([]);
   });
 
   it('initializes with empty availableBackends before SWR resolves', () => {
@@ -268,16 +268,13 @@ describe('useDetectedAgents', () => {
   });
 
   it('SWR fetcher returns raw agents and hook filters into availableBackends', async () => {
-    getAvailableAgentsInvoke.mockResolvedValue({
-      success: true,
-      data: [
-        { backend: 'gemini', name: 'Gemini' },
-        { backend: 'claude', name: 'Claude' },
-        { backend: 'auggie', name: 'Auggie', isExtension: true },
-        { backend: 'custom', name: 'Custom' },
-        { backend: 'remote', name: 'Remote' },
-      ],
-    });
+    getAvailableAgentsInvoke.mockResolvedValue([
+      { backend: 'gemini', name: 'Gemini' },
+      { backend: 'claude', name: 'Claude' },
+      { backend: 'auggie', name: 'Auggie', isExtension: true },
+      { backend: 'custom', name: 'Custom' },
+      { backend: 'remote', name: 'Remote' },
+    ]);
 
     renderHook(() => useDetectedAgents());
 
@@ -326,7 +323,7 @@ describe('useAssistantSkills', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    detectAndCountExternalSkillsInvoke.mockResolvedValue({ success: true, data: [] });
+    detectAndCountExternalSkillsInvoke.mockResolvedValue([]);
   });
 
   it('initializes with empty external sources and no active tab', () => {
@@ -348,7 +345,7 @@ describe('useAssistantSkills', () => {
         skills: [{ name: 'web-search', description: 'Search the web', path: '/skills/web-search' }],
       },
     ];
-    detectAndCountExternalSkillsInvoke.mockResolvedValue({ success: true, data: sources });
+    detectAndCountExternalSkillsInvoke.mockResolvedValue(sources);
 
     const { result } = renderHook(() => useAssistantSkills(defaultParams));
 
@@ -362,7 +359,7 @@ describe('useAssistantSkills', () => {
   });
 
   it('triggers handleRefreshExternal when skillsModalVisible becomes true', async () => {
-    detectAndCountExternalSkillsInvoke.mockResolvedValue({ success: true, data: [] });
+    detectAndCountExternalSkillsInvoke.mockResolvedValue([]);
 
     const { rerender } = renderHook(
       (props: { visible: boolean }) => useAssistantSkills({ ...defaultParams, skillsModalVisible: props.visible }),
@@ -390,7 +387,7 @@ describe('useAssistantSkills', () => {
         ],
       },
     ];
-    detectAndCountExternalSkillsInvoke.mockResolvedValue({ success: true, data: sources });
+    detectAndCountExternalSkillsInvoke.mockResolvedValue(sources);
 
     const { result } = renderHook(() => useAssistantSkills(defaultParams));
 
@@ -424,7 +421,7 @@ describe('useAssistantSkills', () => {
         ],
       },
     ];
-    detectAndCountExternalSkillsInvoke.mockResolvedValue({ success: true, data: sources });
+    detectAndCountExternalSkillsInvoke.mockResolvedValue(sources);
 
     const { result } = renderHook(() => useAssistantSkills(defaultParams));
 
