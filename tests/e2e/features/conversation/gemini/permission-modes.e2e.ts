@@ -10,9 +10,10 @@ import {
   goToGuid,
   selectGeminiAgent,
   selectGeminiMode,
-  sendGeminiMessage,
   waitForGeminiReply,
   getGeminiConversationDB,
+  readConvModelName,
+  readConvExtra,
   cleanupE2EGeminiConversations,
   checkGeminiAuth,
 } from '../../../helpers';
@@ -96,11 +97,13 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     const conv = await getGeminiConversationDB(page, conversationId);
     expect(conv).toBeDefined();
     expect(conv.type).toBe('gemini');
-    expect(conv.model).toBe('auto'); // Default model
+    const modelName = readConvModelName(conv);
+    // Default model: either literal 'auto' or whatever gemini provider resolved to
+    expect(modelName).toMatch(/^(auto|gemini[-\w.]*)$/i);
     expect(conv.status).toBe('finished');
 
     // Verify extra.sessionMode is 'autoEdit'
-    const extra = typeof conv.extra === 'string' ? JSON.parse(conv.extra) : conv.extra;
+    const extra = readConvExtra(conv);
     expect(extra.sessionMode).toBe('autoEdit');
 
     // Verify workspace not set
@@ -109,7 +112,7 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     console.log(`[TC-G-06] Conversation verified:`, {
       id: conversationId,
       type: conv.type,
-      model: conv.model,
+      model: modelName,
       sessionMode: extra.sessionMode,
       status: conv.status,
     });

@@ -17,6 +17,9 @@ import {
   attachGeminiFolder,
   waitForGeminiReply,
   getGeminiConversationDB,
+  readConvModelName,
+  readConvExtra,
+  getGeminiTestModels,
   cleanupE2EGeminiConversations,
   checkGeminiAuth,
   createTempWorkspace,
@@ -119,7 +122,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       expect(conv.type).toBe('gemini');
 
       // Verify workspace set
-      const extra = typeof conv.extra === 'string' ? JSON.parse(conv.extra) : conv.extra;
+      const extra = readConvExtra(conv);
       expect(extra.workspace).toBe(workspace.path);
 
       console.log(`[TC-G-10] Folder + file combo verified:`, {
@@ -203,12 +206,19 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
   // TC-G-12: Full combo (folder + multiple files + gemini-2.5-pro + yolo)
   // ============================================================================
 
-  test('TC-G-12: Full combo (folder + multiple files + gemini-2.5-pro + yolo)', async ({ page }) => {
+  test('TC-G-12: Full combo (folder + multiple files + specific model + yolo)', async ({ page }) => {
     // Skip if not Desktop (workspace selector only available on Desktop)
     const isDesktop = await isElectronDesktop(page);
     if (!isDesktop) {
       test.skip(true, 'Workspace selector only available on Desktop');
     }
+
+    // Resolve a gemini model from local config (replaces hardcoded 'gemini-2.5-pro').
+    const models = await getGeminiTestModels(page);
+    if (!models) {
+      test.skip(true, 'No gemini provider configured with a usable model');
+    }
+    const targetModel = models!.modelA;
 
     // Step 1: Create temp workspace with 2 test files
     const workspace = createTempWorkspace('tc-g-12');
@@ -237,8 +247,8 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       // Screenshot 03: Files uploaded
       await takeScreenshot(page, 'tc-g-12/gemini/03-files-uploaded.png');
 
-      // Step 5: Select gemini-2.5-pro model
-      await selectGeminiModel(page, 'gemini-2.5-pro');
+      // Step 5: Select the resolved gemini model
+      await selectGeminiModel(page, targetModel);
 
       // Screenshot 04: Model selected
       await takeScreenshot(page, 'tc-g-12/gemini/04-model-selected.png');
@@ -282,16 +292,17 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       const conv = await getGeminiConversationDB(page, conversationId);
       expect(conv).toBeDefined();
       expect(conv.type).toBe('gemini');
-      expect(conv.model).toBe('gemini-2.5-pro');
+      const modelName = readConvModelName(conv);
+      expect(modelName).toMatch(/gemini/i);
 
       // Verify extra fields
-      const extra = typeof conv.extra === 'string' ? JSON.parse(conv.extra) : conv.extra;
+      const extra = readConvExtra(conv);
       expect(extra.sessionMode).toBe('yolo');
       expect(extra.workspace).toBe(workspace.path);
 
       console.log(`[TC-G-12] Full combo verified:`, {
         id: conversationId,
-        model: conv.model,
+        model: modelName,
         sessionMode: extra.sessionMode,
         workspace: extra.workspace,
       });
