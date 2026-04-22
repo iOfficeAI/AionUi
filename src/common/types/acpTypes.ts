@@ -679,6 +679,11 @@ export type AcpInitializeResult = {
   capabilities: AcpAgentCapabilities;
   agentInfo: AcpAgentInfo | null;
   authMethods: AcpAuthMethod[];
+  /**
+   * Top-level modes advertised at initialize time (e.g. qwen-code returns
+   * availableModes here rather than on session/new).
+   */
+  modes: AcpSessionModes | null;
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -740,6 +745,27 @@ function parseAuthMethods(raw: unknown): AcpAuthMethod[] {
   );
 }
 
+function parseSessionModes(raw: unknown): AcpSessionModes | null {
+  if (!isRecord(raw)) return null;
+  const availableRaw = raw.availableModes;
+  if (!Array.isArray(availableRaw)) return null;
+  const availableModes: AcpAvailableMode[] = availableRaw.flatMap((item) => {
+    if (!isRecord(item) || typeof item.id !== 'string') return [];
+    return [
+      {
+        id: item.id,
+        ...(typeof item.name === 'string' && { name: item.name }),
+        ...(typeof item.description === 'string' && { description: item.description }),
+      },
+    ];
+  });
+  if (availableModes.length === 0) return null;
+  return {
+    ...(typeof raw.currentModeId === 'string' && { currentModeId: raw.currentModeId }),
+    availableModes,
+  };
+}
+
 /**
  * Parse the raw initialize result (unwrapped from JSON-RPC `result` field)
  * into a fully structured AcpInitializeResult.
@@ -754,6 +780,7 @@ export function parseInitializeResult(raw: unknown): AcpInitializeResult {
     capabilities: parseAgentCapabilitiesObject(result?.agentCapabilities),
     agentInfo: parseAgentInfo(result?.agentInfo),
     authMethods: parseAuthMethods(result?.authMethods),
+    modes: parseSessionModes(result?.modes),
   };
 }
 

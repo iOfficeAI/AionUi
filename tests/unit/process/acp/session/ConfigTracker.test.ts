@@ -68,4 +68,44 @@ describe('ConfigTracker', () => {
     expect(pending.mode).toBeNull();
     expect(pending.configOptions).toEqual([]);
   });
+
+  it('syncFromInitializeResult seeds modes advertised at initialize time', () => {
+    const ct = new ConfigTracker();
+    ct.syncFromInitializeResult({
+      currentModeId: 'default',
+      availableModes: [
+        { id: 'plan', name: 'Plan' },
+        { id: 'default', name: 'Default' },
+        { id: 'auto-edit', name: 'Auto Edit' },
+        { id: 'yolo', name: 'YOLO' },
+      ],
+    });
+    const snapshot = ct.modeSnapshot();
+    expect(snapshot.currentModeId).toBe('default');
+    expect(snapshot.availableModes.map((m) => m.id)).toEqual(['plan', 'default', 'auto-edit', 'yolo']);
+  });
+
+  it('syncFromInitializeResult is a no-op for null / empty modes', () => {
+    const ct = new ConfigTracker();
+    ct.syncFromInitializeResult(null);
+    expect(ct.modeSnapshot().availableModes).toEqual([]);
+    ct.syncFromInitializeResult({ availableModes: [] });
+    expect(ct.modeSnapshot().availableModes).toEqual([]);
+  });
+
+  it('syncFromSessionResult overrides modes seeded by syncFromInitializeResult', () => {
+    const ct = new ConfigTracker();
+    ct.syncFromInitializeResult({
+      availableModes: [
+        { id: 'plan', name: 'Plan' },
+        { id: 'default', name: 'Default' },
+      ],
+    });
+    ct.syncFromSessionResult({
+      availableModes: [{ id: 'code', name: 'Code' }],
+      currentModeId: 'code',
+      cwd: '/tmp',
+    });
+    expect(ct.modeSnapshot().availableModes.map((m) => m.id)).toEqual(['code']);
+  });
 });

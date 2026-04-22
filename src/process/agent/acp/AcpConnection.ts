@@ -744,6 +744,13 @@ export class AcpConnection {
     const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
     this.initializeResult = parseInitializeResult(response);
+    // Some agents (e.g. qwen-code) advertise top-level modes in the initialize
+    // response rather than in session/new. Seed this.modes here so consumers
+    // (caching, UI selectors) don't have to wait for a second update.
+    const initModes = (response as unknown as Record<string, unknown>).modes as AcpSessionModes | undefined;
+    if (initModes?.availableModes && initModes.availableModes.length > 0) {
+      this.modes = initModes;
+    }
     return response;
   }
 
