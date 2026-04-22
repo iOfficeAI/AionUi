@@ -97,6 +97,7 @@ export class SessionLifecycle {
       const sessionResult = await this.establishSession();
       if (!sessionResult) return; // auth-required, already handled
       this.applySessionResult(sessionResult);
+      await this.reassertConfig();
       this.host.flushPendingPrompt();
     } catch (err) {
       this.handleStartError(err);

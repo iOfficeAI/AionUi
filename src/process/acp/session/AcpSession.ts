@@ -222,10 +222,8 @@ export class AcpSession {
   }
 
   setModel(modelId: string): void {
-    if (this._status === 'idle' || this._status === 'error') {
-      throw new AcpError('INVALID_STATE', `Cannot set model in ${this._status}`);
-    }
     this.configTracker.setDesiredModel(modelId);
+    if (this._status === 'idle' || this._status === 'error') return;
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
       client
@@ -237,10 +235,8 @@ export class AcpSession {
   }
 
   setMode(modeId: string): void {
-    if (this._status === 'idle' || this._status === 'error') {
-      throw new AcpError('INVALID_STATE', `Cannot set mode in ${this._status}`);
-    }
     this.configTracker.setDesiredMode(modeId);
+    if (this._status === 'idle' || this._status === 'error') return;
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
       client
