@@ -246,7 +246,12 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           </Menu>
         }
       >
-        <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
+        <Button
+          className={'sendbox-model-btn guid-config-btn'}
+          shape='round'
+          size='small'
+          data-testid='guid-model-selector'
+        >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{geminiButtonLabel}</span>

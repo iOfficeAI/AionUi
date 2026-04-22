@@ -101,3 +101,33 @@ export {
   SKILLS_INDICATOR_COUNT,
   AGENT_BADGE,
 } from './selectors';
+export {
+  resolveAionrsBinary,
+  getFirstAvailableAionrsProvider,
+  resolveAionrsPreconditions,
+  createAionrsConversationViaBridge,
+  sendAionrsMessage,
+  waitForAionrsReply,
+  getAionrsConversationDB,
+  getAionrsMessages,
+  cleanupE2EAionrsConversations,
+  createTempWorkspace,
+  selectAionrsAgent,
+  selectAionrsModel,
+  selectAionrsMode,
+  attachAionrsFolder,
+  uploadAionrsFiles,
+  type TProviderWithModel,
+} from './chatAionrs';
+export {
+  checkGeminiAuth,
+  createGeminiConversationViaBridge,
+  sendGeminiMessage,
+  waitForGeminiReply,
+  getGeminiConversationDB,
+  cleanupE2EGeminiConversations,
+  createTempGeminiWorkspace,
+  selectGeminiAgent,
+  selectGeminiModel,
+  selectGeminiMode,
+} from './chatGemini';
