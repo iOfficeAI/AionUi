@@ -123,3 +123,101 @@ pilot scope.
 - Spec: `docs/backend-migration/specs/2026-04-22-backend-migration-team-pilot-design.md`.
 - Backend handoff: `aionui-backend/docs/backend-migration/handoffs/backend-dev-skill-library-2026-04-22.md`.
 - Backend API spec: `aionui-backend/docs/api-spec/13-extension.md` (`## Skill Library` section).
+
+---
+
+## Final pilot outcome (post-Phase-D)
+
+**Status:** pilot closed successfully. Transport/migration layer CLEAN.
+**Final e2e result:** 22 PASS / 7 FAIL / 0 skip (29 total in
+`tests/e2e/features/settings/skills/`).
+
+### Failure classification
+
+| Class | Count | Tests                                             | Category                                  |
+| :---: | :---: | ------------------------------------------------- | ----------------------------------------- |
+|   D   |   0   | (5 cleared: TC-S-10, 14, 16, 09, 12)              | Transport/migration ✓ **CLEAN**           |
+|   A   |   1   | TC-S-25 (bulk import at N=20)                     | Test-infra state-interaction / pollution |
+|   F   |   1   | TC-S-17 (duplicate-path modal)                    | Pre-existing TS contract gap (inherited) |
+|   B   |   2   | TC-S-27, TC-S-28 (conditional sections)           | Test-authoring — fixture assumptions     |
+|   C   |   1   | TC-S-06 (no builtin skills in sandbox)            | Test-authoring — fixture assumptions     |
+|   E   |   2   | TC-S-08, TC-S-15 (matcher collision + state leak) | Test-authoring — exact-match + cleanup   |
+
+**Transport/migration verdict: CLEAN.** All pilot-scope endpoints
+(E1–E5) pass end-to-end; the backend `source` field fix on
+`ExternalSkillSourceResponse` (commit `3a86d58`) closed the last
+transport-layer gap. None of the 7 remaining failures is a regression
+from the pilot's own work — they are either pre-existing TS baseline
+gaps that migration inherited (F), test-infra state confounds that the
+pilot surfaced but doesn't own (A), or test-authoring items that depend
+on fixture state the sandbox doesn't guarantee (B/C/E).
+
+### Commit SHAs by role
+
+**Backend (aionui-backend@feat/extension-skill-library):**
+
+| Role        | Commit    | Subject                                                                 |
+| ----------- | --------- | ----------------------------------------------------------------------- |
+| Spec        | `b2e3c9f` | docs(extension): draft Skill Library API spec for pilot migration       |
+| E1          | `75ab3f1` | feat(extension/skills): add source field to GET /api/skills             |
+| E2          | `95ab84c` | feat(extension/skills): implement GET /api/skills/builtin-auto          |
+| E3 tests    | `5da1b87` | test(extension/skills): HTTP tests for POST /api/skills/builtin-rule    |
+| E4 tests    | `358c364` | test(extension/skills): HTTP tests for POST /api/skills/builtin-skill   |
+| E5 tests    | `ac1d2dc` | test(extension/skills): HTTP tests for POST /api/skills/info            |
+| Spec align  | `686e855` | docs(extension): align Skill Library spec with implementation           |
+| Handoff     | `38a216e` | docs(backend-migration): backend-dev handoff for skill-library pilot    |
+| Handoff +   | `229b6e0` | docs(backend-migration): add scope breakdown to backend-dev handoff     |
+| Phase B fix | `3a86d58` | feat(extension/skills): add source field to ExternalSkillSourceResponse |
+| Phase B doc | `274f8ab` | docs(backend-migration): append source-field fix to backend-dev handoff |
+
+**Frontend (AionUi@feat/backend-migration-fe-skill-library):**
+
+| Role       | Commit      | Subject                                                                         |
+| ---------- | ----------- | ------------------------------------------------------------------------------- |
+| Test fix 1 | `9d27f3a7a` | test(skills-hub): unwrap detectAndCountExternalSkills mock for HTTP bridge      |
+| Test fix 2 | `ab06d3a3b` | test(assistant-hooks): unwrap ipcBridge mocks for HTTP bridge auto-unwrap       |
+| Test cull  | `2289b1e41` | test(skills): remove stale fsBridge.skills.test.ts covering deleted TS handlers |
+| Module rec | `5c92dbf58` | docs(backend-migration): record skill-library module migration                  |
+| Handoff    | `316f63beb` | docs(backend-migration): frontend-dev handoff for skill-library pilot           |
+
+**Frontend E2E helper fix (AionUi@feat/backend-migration-e2e-skill-library):**
+
+| Role       | Commit      | Subject                                                                  |
+| ---------- | ----------- | ------------------------------------------------------------------------ |
+| Trace gate | `cfdec9655` | chore(e2e): gate trace retention behind E2E_TRACE env var                |
+| Helpers    | `000676801` | test(e2e/helpers): migrate skills helpers from legacy IPC to HTTP bridge |
+| PATH doc   | `aa8042fa3` | docs(e2e): note aionui-backend must be on PATH for tests                 |
+| Handoff    | `21cf93c6b` | docs(backend-migration): frontend-dev handoff for e2e helper fix         |
+
+**E2E-tester (AionUi@feat/backend-migration-e2e-skill-library):**
+
+| Role        | Commit      | Subject                                                                          |
+| ----------- | ----------- | -------------------------------------------------------------------------------- |
+| Report v1   | `028a560ca` | docs(backend-migration): e2e report for skill-library pilot                      |
+| Handoff v1  | `1e0c0b3b6` | docs(backend-migration): e2e-tester handoff for skill-library pilot              |
+| Handoff v1a | `ee42e50d3` | docs(backend-migration): add recommended follow-up section to e2e-tester handoff |
+| Rerun       | `09036a925` | docs(backend-migration): append rerun results to skill-library e2e report        |
+| Rerun h/o   | `497999516` | docs(backend-migration): update e2e-tester handoff with rerun outcome            |
+| Phase B     | `ffa8852e0` | docs(backend-migration): append Phase B rerun results to e2e report and handoff  |
+| Phase D     | `76294e7fd` | docs(backend-migration): Phase D trace findings and closure recommendation       |
+
+### Handoff files
+
+All teammate handoffs are on the corresponding branches; paths relative
+to each repo root:
+
+- **backend-dev:** `aionui-backend/docs/backend-migration/handoffs/backend-dev-skill-library-2026-04-22.md`
+- **frontend-dev (Task 3):** `docs/backend-migration/handoffs/frontend-dev-skill-library-2026-04-22.md`
+- **frontend-dev (Task 4-fix e2e helpers):** `docs/backend-migration/handoffs/frontend-dev-e2e-helper-fix-2026-04-22.md`
+- **e2e-tester:** `docs/backend-migration/handoffs/e2e-tester-skill-library-2026-04-22.md`
+- **coordinator (Task 5):** to be written at closure; path will be
+  `docs/backend-migration/handoffs/coordinator-skill-library-2026-04-22.md`.
+
+### E2E reports + post-pilot followups
+
+- **E2E report (all phases):** `docs/backend-migration/e2e-reports/2026-04-22-skill-library.md`.
+  Contains the first-run 0/29 FAIL diagnosis, helper-fix rerun 17/12,
+  Phase B clean-state 22/7, and Phase D trace findings + closure
+  recommendation.
+- **Post-pilot followup ticket list:** `docs/backend-migration/post-pilot/2026-04-23-skill-library-followups.md`.
+  Concrete P0/P1/P2 items for module-2 prerequisites and deferred work.
