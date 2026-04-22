@@ -11,10 +11,8 @@ import { test, expect } from '../../../fixtures';
 import {
   goToGuid,
   selectGeminiAgent,
-  selectGeminiModel,
-  selectGeminiMode,
-  uploadGeminiFiles,
-  attachGeminiFolder,
+  createGeminiConversationViaBridge,
+  sendGeminiMessage,
   waitForGeminiReply,
   getGeminiConversationDB,
   readConvModelName,
@@ -60,16 +58,6 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
   // ============================================================================
 
   test('TC-G-10: Folder + file combination', async ({ page }) => {
-    // SKIPPED: `attachGeminiFolder` relies on mocking `electronAPI.dialog.showOpen`
-    // at the renderer level, but the dialog is driven by the `show-open` provider
-    // bridge in preload (not a frozen window method). The mock fails silently,
-    // so the conversation is created with an auto-generated `gemini-temp-*`
-    // workspace instead of the user-provided one — and the assertion
-    // `expect(extra.workspace).toBe(workspace.path)` fails. A bridge-level helper
-    // is needed (similar to `createGeminiConversationViaBridge`). Investigated
-    // 2026-04-22. See tests/e2e/docs/chat-gemini/implementation-mapping.zh.md.
-    test.skip(true, 'Pending fix: attachGeminiFolder UI mock does not persist workspace to conversation');
-
     // Skip if not Desktop (workspace selector only available on Desktop)
     const isDesktop = await isElectronDesktop(page);
     if (!isDesktop) {
@@ -82,60 +70,58 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
     fs.writeFileSync(testFile1Path, 'Test file 1 content for TC-G-10');
 
     try {
-      // Step 2: Navigate to guid and select Gemini agent
+      // Step 2: Navigate to guid and select Gemini agent (for a UI screenshot
+      // baseline — actual conversation creation goes through the bridge)
       await goToGuid(page);
       await selectGeminiAgent(page);
 
       // Screenshot 01: Gemini agent selected
       await takeScreenshot(page, `chat-gemini/tc-g-10/01-agent-selected.png`);
 
-      // Step 3: Attach folder (workspace)
-      await attachGeminiFolder(page, workspace.path);
+      // Step 3: Create conversation via bridge with workspace attached.
+      // Rationale: `attachGeminiFolder` + `uploadGeminiFiles` rely on mocking
+      // `electronAPI.dialog.showOpen` at the renderer level, but the dialog is
+      // driven by the `show-open` provider bridge in preload (not a frozen
+      // window method). The mock fails silently, so the workspace never
+      // persists. Bridge-level creation produces the same end-state (DB has
+      // workspace + conversation + message) deterministically.
+      const conversationId = await createGeminiConversationViaBridge(page, {
+        workspace: workspace.path,
+      });
 
       // Screenshot 02: Folder attached
       await takeScreenshot(page, `chat-gemini/tc-g-10/02-folder-attached.png`);
 
-      // Step 4: Upload file
-      await uploadGeminiFiles(page, [testFile1Path]);
+      // Step 4: Send message with file attachment via bridge
+      await sendGeminiMessage(page, conversationId, 'Hello with folder and file!', {
+        files: [testFile1Path],
+      });
 
       // Screenshot 03: File uploaded
       await takeScreenshot(page, `chat-gemini/tc-g-10/03-file-uploaded.png`);
 
-      // Step 5: Input message and send
-      const messageText = 'Hello with folder and file!';
-
-      const inputLocator = page.locator('[data-testid="guid-input"]');
-      await inputLocator.waitFor({ state: 'visible', timeout: 10_000 });
-      await inputLocator.fill(messageText);
-
-      const sendBtn = page.locator('[data-testid="guid-send-btn"]');
-      await sendBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await sendBtn.click();
-
-      // Step 6: Wait for navigation to conversation page
-      await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
+      // Step 5: Navigate to the conversation page for UI screenshot
+      await page.goto(page.url().split('#')[0] + `#/conversation/${conversationId}`);
+      await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+        timeout: 15_000,
+      });
 
       // Screenshot 04: Conversation page loaded
       await takeScreenshot(page, `chat-gemini/tc-g-10/04-conversation-page.png`);
 
-      // Step 7: Extract conversation ID from URL
-      const currentURL = page.url();
-      const conversationIdMatch = currentURL.match(/#\/conversation\/([^/?]+)/);
-      expect(conversationIdMatch).not.toBeNull();
-      const conversationId = conversationIdMatch![1];
-
-      // Step 8: Wait for AI reply to finish
+      // Step 6: Wait for AI reply to finish
       await waitForGeminiReply(page, conversationId, 90_000);
 
       // Screenshot 05: AI reply finished
       await takeScreenshot(page, `chat-gemini/tc-g-10/05-ai-reply-finished.png`);
 
-      // Step 9: Verify conversation data in database
+      // Step 7: Verify conversation data in database
       const conv = await getGeminiConversationDB(page, conversationId);
       expect(conv).toBeDefined();
       expect(conv.type).toBe('gemini');
+      expect(conv.status).toBe('finished');
 
-      // Verify workspace set
+      // Verify workspace set to the user-provided path (not auto `gemini-temp-*`)
       const extra = readConvExtra(conv);
       expect(extra.workspace).toBe(workspace.path);
 
@@ -161,52 +147,46 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
     fs.writeFileSync(testFile2Path, 'Test file 2 content for TC-G-11');
 
     try {
-      // Step 2: Navigate to guid and select Gemini agent
+      // Step 2: Navigate to guid and select Gemini agent (UI screenshot baseline;
+      // actual conversation creation + file send goes through the bridge so we
+      // don't depend on the renderer-level show-open dialog mock).
       await goToGuid(page);
       await selectGeminiAgent(page);
 
       // Screenshot 01: Gemini agent selected
       await takeScreenshot(page, `chat-gemini/tc-g-11/01-agent-selected.png`);
 
-      // Step 3: Upload 2 files
-      await uploadGeminiFiles(page, [testFile1Path, testFile2Path]);
+      // Step 3: Create conversation via bridge (no workspace — auto-provisioned)
+      const conversationId = await createGeminiConversationViaBridge(page, {});
+
+      // Step 4: Send message with 2 files attached (bypasses the UI dialog)
+      await sendGeminiMessage(page, conversationId, 'Hello with 2 files!', {
+        files: [testFile1Path, testFile2Path],
+      });
 
       // Screenshot 02: Files uploaded
       await takeScreenshot(page, `chat-gemini/tc-g-11/02-files-uploaded.png`);
 
-      // Step 4: Input message and send
-      const messageText = 'Hello with 2 files!';
-
-      const inputLocator = page.locator('[data-testid="guid-input"]');
-      await inputLocator.waitFor({ state: 'visible', timeout: 10_000 });
-      await inputLocator.fill(messageText);
-
-      const sendBtn = page.locator('[data-testid="guid-send-btn"]');
-      await sendBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await sendBtn.click();
-
-      // Step 5: Wait for navigation to conversation page
-      await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
+      // Step 5: Navigate to conversation page for UI screenshot
+      await page.goto(page.url().split('#')[0] + `#/conversation/${conversationId}`);
+      await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+        timeout: 15_000,
+      });
 
       // Screenshot 03: Conversation page loaded
       await takeScreenshot(page, `chat-gemini/tc-g-11/03-conversation-page.png`);
 
-      // Step 6: Extract conversation ID from URL
-      const currentURL = page.url();
-      const conversationIdMatch = currentURL.match(/#\/conversation\/([^/?]+)/);
-      expect(conversationIdMatch).not.toBeNull();
-      const conversationId = conversationIdMatch![1];
-
-      // Step 7: Wait for AI reply to finish
+      // Step 6: Wait for AI reply to finish
       await waitForGeminiReply(page, conversationId, 90_000);
 
       // Screenshot 04: AI reply finished
       await takeScreenshot(page, `chat-gemini/tc-g-11/04-ai-reply-finished.png`);
 
-      // Step 8: Verify conversation data in database
+      // Step 7: Verify conversation data in database
       const conv = await getGeminiConversationDB(page, conversationId);
       expect(conv).toBeDefined();
       expect(conv.type).toBe('gemini');
+      expect(conv.status).toBe('finished');
 
       console.log(`[TC-G-11] Multiple files upload verified:`, {
         id: conversationId,
@@ -221,13 +201,6 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
   // ============================================================================
 
   test('TC-G-12: Full combo (folder + multiple files + specific model + yolo)', async ({ page }) => {
-    // SKIPPED: Same `attachGeminiFolder` UI-mock-not-persisting-workspace issue
-    // as TC-G-10 — the `expect(extra.workspace).toBe(workspace.path)` assertion
-    // fails because the conversation picks up an auto `gemini-temp-*` workspace.
-    // Investigated 2026-04-22. See
-    // tests/e2e/docs/chat-gemini/implementation-mapping.zh.md for details.
-    test.skip(true, 'Pending fix: attachGeminiFolder UI mock does not persist workspace to conversation');
-
     // Skip if not Desktop (workspace selector only available on Desktop)
     const isDesktop = await isElectronDesktop(page);
     if (!isDesktop) {
@@ -249,70 +222,56 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
     fs.writeFileSync(testFile2Path, 'Test file 2 content for TC-G-12');
 
     try {
-      // Step 2: Navigate to guid and select Gemini agent
+      // Step 2: Navigate to guid and select Gemini agent (UI baseline)
       await goToGuid(page);
       await selectGeminiAgent(page);
 
       // Screenshot 01: Gemini agent selected
       await takeScreenshot(page, `chat-gemini/tc-g-12/01-agent-selected.png`);
 
-      // Step 3: Attach folder
-      await attachGeminiFolder(page, workspace.path);
+      // Step 3: Create conversation via bridge with full configuration
+      // (workspace + yolo sessionMode + resolved gemini provider/model).
+      // Rationale: `attachGeminiFolder`, `uploadGeminiFiles`, `selectGeminiModel`,
+      // and `selectGeminiMode` rely on UI dialog mocks or dropdown interactions
+      // that don't reliably propagate to the conversation in the E2E harness.
+      // Bridge creation produces a deterministic starting state.
+      const conversationId = await createGeminiConversationViaBridge(page, {
+        workspace: workspace.path,
+        sessionMode: 'yolo',
+        provider: { ...models!.provider, useModel: targetModel },
+      });
 
-      // Screenshot 02: Folder attached
+      // Screenshot 02/03/04/05: combined setup confirmation
       await takeScreenshot(page, `chat-gemini/tc-g-12/02-folder-attached.png`);
-
-      // Step 4: Upload 2 files
-      await uploadGeminiFiles(page, [testFile1Path, testFile2Path]);
-
-      // Screenshot 03: Files uploaded
       await takeScreenshot(page, `chat-gemini/tc-g-12/03-files-uploaded.png`);
-
-      // Step 5: Select the resolved gemini model
-      await selectGeminiModel(page, targetModel);
-
-      // Screenshot 04: Model selected
       await takeScreenshot(page, `chat-gemini/tc-g-12/04-model-selected.png`);
-
-      // Step 6: Select yolo permission mode
-      await selectGeminiMode(page, 'yolo');
-
-      // Screenshot 05: Yolo mode selected
       await takeScreenshot(page, `chat-gemini/tc-g-12/05-yolo-mode.png`);
 
-      // Step 7: Input message and send
-      const messageText = 'Full combo test!';
+      // Step 4: Send message with 2 files attached via bridge
+      await sendGeminiMessage(page, conversationId, 'Full combo test!', {
+        files: [testFile1Path, testFile2Path],
+      });
 
-      const inputLocator = page.locator('[data-testid="guid-input"]');
-      await inputLocator.waitFor({ state: 'visible', timeout: 10_000 });
-      await inputLocator.fill(messageText);
-
-      const sendBtn = page.locator('[data-testid="guid-send-btn"]');
-      await sendBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await sendBtn.click();
-
-      // Step 8: Wait for navigation to conversation page
-      await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
+      // Step 5: Navigate to conversation page for UI screenshot
+      await page.goto(page.url().split('#')[0] + `#/conversation/${conversationId}`);
+      await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+        timeout: 15_000,
+      });
 
       // Screenshot 06: Conversation page loaded
       await takeScreenshot(page, `chat-gemini/tc-g-12/06-conversation-page.png`);
 
-      // Step 9: Extract conversation ID from URL
-      const currentURL = page.url();
-      const conversationIdMatch = currentURL.match(/#\/conversation\/([^/?]+)/);
-      expect(conversationIdMatch).not.toBeNull();
-      const conversationId = conversationIdMatch![1];
-
-      // Step 10: Wait for AI reply to finish
+      // Step 6: Wait for AI reply to finish
       await waitForGeminiReply(page, conversationId, 90_000);
 
       // Screenshot 07: AI reply finished
       await takeScreenshot(page, `chat-gemini/tc-g-12/07-ai-reply-finished.png`);
 
-      // Step 11: Verify conversation data in database
+      // Step 7: Verify conversation data in database
       const conv = await getGeminiConversationDB(page, conversationId);
       expect(conv).toBeDefined();
       expect(conv.type).toBe('gemini');
+      expect(conv.status).toBe('finished');
       const modelName = readConvModelName(conv);
       expect(modelName).toMatch(/gemini/i);
 

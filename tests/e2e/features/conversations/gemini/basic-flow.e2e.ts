@@ -233,11 +233,9 @@ test.describe('Gemini Basic Flow (P0)', () => {
 
     // 4. Navigate to conversation page for UI verification + screenshot
     await page.goto(page.url().split('#')[0] + `#/conversation/${conversationId}`);
-    await page.waitForFunction(
-      (cid) => window.location.hash.includes(`/conversation/${cid}`),
-      conversationId,
-      { timeout: 15_000 }
-    );
+    await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+      timeout: 15_000,
+    });
     await takeScreenshot(page, `chat-gemini/tc-g-02/03-conversation-page.png`);
 
     // 5. Wait for AI reply
@@ -289,13 +287,6 @@ test.describe('Gemini Basic Flow (P0)', () => {
   });
 
   test('TC-G-03: Upload single file', async ({ page }) => {
-    // SKIPPED: Same bridge-driven reply-timeout issue as TC-G-02 — when the
-    // conversation is created via `createGeminiConversationViaBridge` and files
-    // are sent through `chat.send.message`, `waitForGeminiReply` times out
-    // after 90s. Investigated 2026-04-22. See
-    // tests/e2e/docs/chat-gemini/implementation-mapping.zh.md for details.
-    test.skip(true, 'Pending investigation: bridge-driven gemini file send times out on reply');
-
     // 1. Create test file in temp workspace
     const testFilePath = path.join(tempWorkspace, 'test.txt');
     fs.writeFileSync(testFilePath, 'This is a test file for E2E');
@@ -320,11 +311,9 @@ test.describe('Gemini Basic Flow (P0)', () => {
 
     // 5. Navigate to conversation page for UI screenshot
     await page.goto(page.url().split('#')[0] + `#/conversation/${conversationId}`);
-    await page.waitForFunction(
-      (cid) => window.location.hash.includes(`/conversation/${cid}`),
-      conversationId,
-      { timeout: 15_000 }
-    );
+    await page.waitForFunction((cid) => window.location.hash.includes(`/conversation/${cid}`), conversationId, {
+      timeout: 15_000,
+    });
     await takeScreenshot(page, `chat-gemini/tc-g-03/03-conversation-page.png`);
 
     // 6. Wait for AI reply
@@ -336,7 +325,10 @@ test.describe('Gemini Basic Flow (P0)', () => {
     const conv = await getGeminiConversationDB(page, conversationId);
     expect(conv.type).toBe('gemini');
     const extra = readConvExtra(conv);
-    expect(extra.workspace).toBeUndefined();
+    // Gemini agent always provisions a workspace. Since we didn't pass one explicitly,
+    // the agent auto-creates a `gemini-temp-<timestamp>` directory (see createGeminiAgent
+    // in src/process/utils/initAgent.ts).
+    expect(String(extra.workspace ?? '')).toMatch(/gemini-temp-\d+/);
 
     const messages = await invokeBridge<
       Array<{
@@ -362,9 +354,15 @@ test.describe('Gemini Basic Flow (P0)', () => {
       return (c as Record<string, unknown>) || {};
     };
 
+    // Verify the user message carries the prompt text. Note: Gemini's
+    // GeminiAgentManager.sendMessage persists only `content.content`, not the files
+    // array (files are copied into the workspace by `copyFilesToDirectory` and passed
+    // through to the worker, not stored on the DB row). Successful AI reply below is
+    // the real signal that the uploaded file reached the agent.
     const userMsg = messages.find((m) => m.position === 'right');
+    expect(userMsg).toBeDefined();
     const userContent = parseContent(userMsg!.content);
-    expect(String(userContent.content ?? '')).toContain('test.txt');
+    expect(String(userContent.content ?? '')).toContain('Read the uploaded file');
 
     const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
     expect(aiMsg).toBeDefined();
