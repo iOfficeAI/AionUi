@@ -119,20 +119,17 @@ describe('SkillsHubSettings Component', () => {
       { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false, source: 'builtin' },
     ]);
 
-    mockDetectAndCountExternalSkills.mockResolvedValue({
-      success: true,
-      data: [
-        {
-          name: 'Gemini CLI',
-          source: 'gemini',
-          path: '/home/gemini',
-          skills: [
-            { name: 'ExtSkill1', description: 'extdesc1', path: '/home/gemini/ext1' },
-            { name: 'ExtSkill2', description: 'extdesc2', path: '/home/gemini/ext2' },
-          ],
-        },
-      ],
-    });
+    mockDetectAndCountExternalSkills.mockResolvedValue([
+      {
+        name: 'Gemini CLI',
+        source: 'gemini',
+        path: '/home/gemini',
+        skills: [
+          { name: 'ExtSkill1', description: 'extdesc1', path: '/home/gemini/ext1' },
+          { name: 'ExtSkill2', description: 'extdesc2', path: '/home/gemini/ext2' },
+        ],
+      },
+    ]);
 
     mockGetSkillPaths.mockResolvedValue({
       userSkillsDir: '/user/skills',
