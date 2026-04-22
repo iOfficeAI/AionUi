@@ -173,19 +173,19 @@ test.describe('Aionrs Chat - Combo Scenarios (P1)', () => {
       await page.waitForLoadState('networkidle');
 
       // Step 4: Switch to second model
+      if (!preconditions.models!.modelB) {
+        test.skip(true, 'Need 2nd aionrs-compatible model for combo test');
+      }
+
       const modelSelector = page.locator('[data-testid="aionrs-model-selector"]');
       await expect(modelSelector).toBeVisible({ timeout: 10000 });
       await modelSelector.click();
       await page.waitForTimeout(500);
 
-      const modelOptions = page.locator('[data-testid^="aionrs-model-option-"]');
-      const modelCount = await modelOptions.count();
-
-      if (modelCount < 2) {
-        test.skip(true, 'Need at least 2 models for this test');
-      }
-
-      const secondModel = modelOptions.nth(1);
+      const secondModel = page.locator(
+        `[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`
+      );
+      await secondModel.waitFor({ state: 'visible', timeout: 5000 });
       await secondModel.click();
       await page.waitForTimeout(1000);
 
