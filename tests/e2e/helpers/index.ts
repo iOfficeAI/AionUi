@@ -103,7 +103,7 @@ export {
 } from './selectors';
 export {
   resolveAionrsBinary,
-  getFirstAvailableAionrsProvider,
+  getAionrsTestModels,
   resolveAionrsPreconditions,
   createAionrsConversationViaBridge,
   sendAionrsMessage,
@@ -118,6 +118,7 @@ export {
   attachAionrsFolder,
   uploadAionrsFiles,
   type TProviderWithModel,
+  type AionrsTestModels,
 } from './chatAionrs';
 export {
   checkGeminiAuth,
@@ -125,9 +126,16 @@ export {
   sendGeminiMessage,
   waitForGeminiReply,
   getGeminiConversationDB,
+  readConvModelName,
+  readConvExtra,
   cleanupE2EGeminiConversations,
   createTempGeminiWorkspace,
   selectGeminiAgent,
   selectGeminiModel,
   selectGeminiMode,
+  isElectronDesktop,
+  attachGeminiFolder,
+  uploadGeminiFiles,
+  getGeminiTestModels,
+  type GeminiTestModels,
 } from './chatGemini';
