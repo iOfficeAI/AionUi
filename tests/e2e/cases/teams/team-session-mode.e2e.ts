@@ -67,7 +67,7 @@ test.describe('Team Session Mode Propagation', () => {
             agentType: leaderBackend,
             agentName: 'Leader',
             conversationType,
-            status: 'idle',
+            status: 'pending',
           },
         ],
       }).catch(() => null);

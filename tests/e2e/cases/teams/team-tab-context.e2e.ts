@@ -57,7 +57,7 @@ test.describe('Team Tab Context Persistence', () => {
             agentType: agentMeta.agentType,
             agentName: 'Leader',
             conversationType: agentMeta.conversationType,
-            status: 'idle',
+            status: 'pending',
           },
         ],
       }).catch(() => null);

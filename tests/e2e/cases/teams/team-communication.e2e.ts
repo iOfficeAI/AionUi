@@ -31,7 +31,7 @@ test.describe('Team Communication', () => {
             agent_type: 'gemini',
             agent_name: 'Leader',
             conversation_type: 'gemini',
-            status: 'idle',
+            status: 'pending',
           },
         ],
       });

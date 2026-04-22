@@ -49,7 +49,7 @@ export async function createTeam(page: Page, name: string, backend?: string): Pr
         agentType,
         agentName: 'Leader',
         conversationType,
-        status: 'idle',
+        status: 'pending',
       },
     ],
   });
