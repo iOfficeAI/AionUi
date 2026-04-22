@@ -1266,6 +1266,7 @@ const SendBox: React.FC<{
       onClick={() => {
         sendMessageHandler();
       }}
+      data-testid='sendbox-send-btn'
     />
   );
 
@@ -1526,6 +1527,7 @@ const SendBox: React.FC<{
               value={input}
               placeholder={placeholder}
               className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              data-testid='sendbox-input'
               style={{
                 width: isSingleLine ? 'auto' : '100%',
                 flex: isSingleLine ? 1 : 'none',

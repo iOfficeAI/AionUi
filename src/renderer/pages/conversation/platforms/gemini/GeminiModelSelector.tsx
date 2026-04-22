@@ -101,6 +101,7 @@ const GeminiModelSelector: React.FC<{
         )}
         shape='round'
         size='small'
+        data-testid='chat-model-selector'
       >
         <span className='flex items-center gap-6px min-w-0'>
           {currentModelHealth.status !== 'unknown' && (

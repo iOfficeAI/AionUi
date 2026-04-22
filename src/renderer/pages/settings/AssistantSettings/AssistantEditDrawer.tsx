@@ -348,7 +348,12 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               <Typography.Text bold className='flex-shrink-0'>
                 {t('settings.assistantRules', { defaultValue: 'Rules' })}
               </Typography.Text>
-              <Button type='text' size='mini' onClick={() => setRulesExpanded((prev) => !prev)}>
+              <Button
+                type='text'
+                size='mini'
+                data-testid='btn-expand-rules'
+                onClick={() => setRulesExpanded((prev) => !prev)}
+              >
                 {rulesExpanded
                   ? t('common.collapse', { defaultValue: 'Collapse' })
                   : t('common.expand', { defaultValue: 'Expand' })}

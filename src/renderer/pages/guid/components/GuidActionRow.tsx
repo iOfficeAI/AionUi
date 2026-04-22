@@ -222,6 +222,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
                 loading={uploading}
                 disabled={uploading}
+                data-testid='file-upload-btn'
               ></Button>
               {files.length > 0 && (
                 <Tooltip
@@ -249,6 +250,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             className='sendbox-model-btn'
             shape='round'
             size='small'
+            data-testid='workspace-selector-btn'
             onClick={() => {
               ipcBridge.dialog.showOpen
                 .invoke({ properties: ['openDirectory', 'createDirectory'] })
@@ -323,6 +325,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           }}
           icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
           onClick={onSend}
+          data-testid='guid-send-btn'
         />
       </div>
     </div>
