@@ -108,7 +108,7 @@ export async function sendGeminiMessage(
     'chat.send.message',
     {
       conversation_id: conversationId,
-      content: text,
+      input: text,
       msg_id: msgId,
       files: opts?.files || [],
     },
