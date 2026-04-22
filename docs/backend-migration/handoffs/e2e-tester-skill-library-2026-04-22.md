@@ -111,24 +111,54 @@ Coordinator has been messaged with the outcome and awaits routing decision.
 
 ## Recommended follow-up
 
-Condensed, in priority order — expanded detail in "Next steps for a successor" below.
+> **Status of the original two items** (asked for in the first commit of this
+> handoff; both are now answered by the 2026-04-22 evening rerun):
+>
+> 1. ~~Update `tests/e2e/helpers/skillsHub.ts` to replace
+>    `invokeBridge('subscribe-<old-key>')` calls with HTTP.~~ **DONE by
+>    frontend-dev** in commit `000676801`. Verified at rerun — 17/29 now pass;
+>    the 12 remaining failures are no longer helper-layer issues.
+> 2. ~~Verify whether the `my-skills-section` visibility issue resolves on its
+>    own or needs separate investigation.~~ **RESOLVED ON ITS OWN.** Rerun
+>    confirms `my-skills-section` is visible for every test that reaches it;
+>    the first run's blanket timeout was a cascade from a stale `out/renderer`
+>    bundle + `aionui-backend` not on PATH (both called out in fe-dev's
+>    rerun prep instructions), not a rendering-layer regression.
 
-1. **Update `tests/e2e/helpers/skillsHub.ts` (and any sibling helpers) to
-   replace `invokeBridge('subscribe-<old-key>')` calls with the corresponding
-   `httpBridge` / direct HTTP calls that match the HTTP routes now in use by
-   the renderer.** Specific keys to migrate: `list-available-skills`,
-   `list-builtin-auto-skills`, `get-skill-paths`, `detect-and-count-external-skills`,
-   `import-skill-with-symlink`, `delete-skill`, `add-custom-external-path`,
-   `remove-custom-external-path`, `get-custom-external-paths`. Each maps to
-   an existing `/api/skills/*` route (see `src/common/adapter/ipcBridge.ts:268–360`
-   and `crates/aionui-extension/src/skill_routes.rs:51–99`).
-2. **After helpers are updated, verify whether `goToSkillsHub`'s
-   `[data-testid="my-skills-section"]` visibility issue resolves on its own**
-   (the legacy-key bridge timeouts in background code could plausibly be
-   delaying first paint), **or whether it needs separate investigation**
-   (rendering-layer bug, too-short boot window, or error-boundary fallback).
-   Re-run ONE test first with Playwright artifacts retained (see step 1 of
-   "Next steps for a successor") to ground that decision on trace evidence.
+### Post-rerun follow-up (2026-04-22 evening)
+
+The rerun results (17 PASS / 12 FAIL — see the e2e report's "Rerun after
+helpers fix" section for the per-failure breakdown) split across three owners:
+
+1. **Backend fix (blocks class (D) failures — 5 tests).** Add a `source:
+   String` field to `ExternalSkillSourceResponse` in
+   `aionui-backend/crates/aionui-api-types/src/skill.rs:116` and populate it
+   in `skill_routes.rs:260–277`. The renderer uses `source.source` at
+   `SkillsHubSettings.tsx:289` as both the React `key` and the
+   `data-testid="external-source-tab-${source}"` suffix, and initialises
+   `activeSourceTab` from `external[0].source`. With the field omitted,
+   every external source collides on key `undefined`, the active tab never
+   resolves, and selected-tab-gated card DOM never renders. Evidence:
+   Playwright strict-mode diff on TC-S-08 shows two buttons both with
+   `data-testid="external-source-tab-undefined"`. Fix scope: ~8 lines of
+   Rust + one unit-test update on the backend; no renderer change needed.
+
+2. **Test-authoring fixes (classes (B), (C), (E) — 4 tests).** Reseed
+   builtin / extension / auto-skill directories before the affected tests,
+   or assert-presence-only-when-data-exists. Also tighten
+   `button:has-text(...)` matchers to exact-match to avoid TC-S-11 state
+   leakage. Not a migration regression.
+
+3. **Cross-stack investigation (classes (A), (F) — 3 tests).** Bulk-import
+   completion race (TC-S-11, TC-S-25) and modal lifecycle on duplicate-path
+   error (TC-S-17). These need single-test reruns with `E2E_TRACE=1` to
+   capture a visual trace before any fix is attempted.
+
+4. **Do NOT mark Task 4 complete.** Plan §4.6 rubric remains ANY FAIL = yes.
+   Coordinator routing needed for items 1–3 above; Task 4 stays
+   `in_progress` until the backend fix lands and either the test-body
+   issues are fixed, OR the coordinator accepts a partial-pass as pilot
+   success criterion.
 
 ## Next steps for a successor
 
