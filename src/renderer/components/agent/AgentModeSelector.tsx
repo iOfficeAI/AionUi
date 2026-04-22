@@ -254,7 +254,11 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <Menu.ItemGroup title={t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
         {modes.map((mode: AgentModeOption) => (
           <Menu.Item key={mode.value} className={currentMode === mode.value ? '!bg-2' : ''}>
-            <div className='flex items-center gap-8px' data-mode-value={mode.value}>
+            <div
+              className='flex items-center gap-8px'
+              data-mode-value={mode.value}
+              data-testid={`aionrs-mode-option-${mode.value}`}
+            >
               {currentMode === mode.value && <span className='text-primary'>✓</span>}
               <span className={currentMode !== mode.value ? 'ml-16px' : ''}>{getDisplayModeLabel(mode)}</span>
             </div>
@@ -287,6 +291,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     const compactContent = (
       <span data-testid='mode-selector' data-current-mode={currentMode} className='inline-flex'>
         <Button
+          data-testid={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
           className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
           shape='round'
           size='small'

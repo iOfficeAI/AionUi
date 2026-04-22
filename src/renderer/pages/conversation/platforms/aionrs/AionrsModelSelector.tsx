@@ -93,6 +93,7 @@ const AionrsModelSelector: React.FC<{
                   return (
                     <Menu.Item
                       key={`${provider.id}-${modelName}`}
+                      data-testid={`aionrs-model-option-${modelName}`}
                       className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
                       onClick={() => void handleSelectModel(provider, modelName)}
                     >
@@ -112,6 +113,7 @@ const AionrsModelSelector: React.FC<{
       }
     >
       <Button
+        data-testid='aionrs-model-selector'
         className={classNames(
           'sendbox-model-btn header-model-btn',
           compact && '!max-w-[120px]',
