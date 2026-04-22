@@ -91,7 +91,7 @@ test.describe('Gemini Chat - Edge Cases (P2)', () => {
       await selectGeminiAgent(page);
 
       // Screenshot 01: Before upload
-      await takeScreenshot(page, 'tc-g-14/gemini/01-before-upload.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-14/01-before-upload.png`);
 
       // Step 3: Attempt to upload large file
       // Expected: Error message should appear (Message.error or upload rejected)
@@ -105,7 +105,7 @@ test.describe('Gemini Chat - Edge Cases (P2)', () => {
       await page.waitForTimeout(2000);
 
       // Screenshot 02: After upload attempt (error message)
-      await takeScreenshot(page, 'tc-g-14/gemini/02-upload-error.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-14/02-upload-error.png`);
 
       // Expected: No file preview tags visible (upload failed)
       // Note: data-testid for file tags may not exist yet, use generic locator
@@ -145,7 +145,7 @@ test.describe('Gemini Chat - Edge Cases (P2)', () => {
       await attachGeminiFolder(page, workspace.path);
 
       // Screenshot 01: After folder attached
-      await takeScreenshot(page, 'tc-g-15/gemini/01-folder-attached.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-15/01-folder-attached.png`);
 
       // Step 4: Delete the folder
       workspace.cleanup();
@@ -165,7 +165,7 @@ test.describe('Gemini Chat - Edge Cases (P2)', () => {
       await page.waitForTimeout(2000);
 
       // Screenshot 02: After send attempt (error message expected)
-      await takeScreenshot(page, 'tc-g-15/gemini/02-send-error.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-15/02-send-error.png`);
 
       // Expected: Error message should appear
       // Note: Exact error behavior depends on validation timing

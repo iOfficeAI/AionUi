@@ -87,7 +87,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // 1. Navigate to guid page and select Gemini agent
     await goToGuid(page);
     await selectGeminiAgent(page);
-    await takeScreenshot(page, 'tc-g-01', 'gemini', '01-agent-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-01/01-agent-selected.png`);
 
     // 2. Confirm default configuration (auto model + default mode)
     const modelSelector = page.locator('[data-testid="guid-model-selector"]');
@@ -100,7 +100,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // a different mode (e.g., yolo/autoEdit) via ConfigStorage.preferredMode.
     await selectGeminiMode(page, 'default');
 
-    await takeScreenshot(page, 'tc-g-01', 'gemini', '02-default-config');
+    await takeScreenshot(page, `chat-gemini/tc-g-01/02-default-config.png`);
 
     // 3. Enter test message
     const guidInput = page.locator('[data-testid="guid-input"]');
@@ -115,12 +115,12 @@ test.describe('Gemini Basic Flow (P0)', () => {
     const conversationId = page.url().split('/conversation/')[1];
     expect(conversationId).toBeTruthy();
 
-    await takeScreenshot(page, 'tc-g-01', 'gemini', '03-conversation-page');
+    await takeScreenshot(page, `chat-gemini/tc-g-01/03-conversation-page.png`);
 
     // 6. Wait for AI reply to complete (poll conversation.status + content stability)
     await waitForGeminiReply(page, conversationId, 90_000);
 
-    await takeScreenshot(page, 'tc-g-01', 'gemini', '04-reply-completed');
+    await takeScreenshot(page, `chat-gemini/tc-g-01/04-reply-completed.png`);
 
     // 7. DB assertions
     const conv = await getGeminiConversationDB(page, conversationId);
@@ -191,7 +191,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // Verify message order
     expect(messages.length).toBeGreaterThanOrEqual(2);
 
-    await takeScreenshot(page, 'tc-g-01', 'gemini', '05-db-assertions-passed');
+    await takeScreenshot(page, `chat-gemini/tc-g-01/05-db-assertions-passed.png`);
   });
 
   test('TC-G-02: Associate single folder', async ({ page }) => {
@@ -216,7 +216,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // 1. Navigate and select agent (screenshot the UI before bridge-driven creation)
     await goToGuid(page);
     await selectGeminiAgent(page);
-    await takeScreenshot(page, 'tc-g-02', 'gemini', '01-agent-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-02/01-agent-selected.png`);
 
     // 2. Create conversation directly via bridge with workspace attached.
     // Reason: patching `electronAPI.dialog.showOpen` on the renderer window has no
@@ -226,7 +226,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     const conversationId = await createGeminiConversationViaBridge(page, {
       workspace: tempWorkspace,
     });
-    await takeScreenshot(page, 'tc-g-02', 'gemini', '02-folder-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-02/02-folder-selected.png`);
 
     // 3. Send the user message through the bridge.
     await sendGeminiMessage(page, conversationId, 'List files in the workspace.');
@@ -238,12 +238,12 @@ test.describe('Gemini Basic Flow (P0)', () => {
       conversationId,
       { timeout: 15_000 }
     );
-    await takeScreenshot(page, 'tc-g-02', 'gemini', '03-conversation-page');
+    await takeScreenshot(page, `chat-gemini/tc-g-02/03-conversation-page.png`);
 
     // 5. Wait for AI reply
     await waitForGeminiReply(page, conversationId, 90_000);
 
-    await takeScreenshot(page, 'tc-g-02', 'gemini', '04-reply-completed');
+    await takeScreenshot(page, `chat-gemini/tc-g-02/04-reply-completed.png`);
 
     // 9. DB assertions
     const conv = await getGeminiConversationDB(page, conversationId);
@@ -285,7 +285,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     expect(aiMsg!.type).toBe('text');
     expect(conv.status).toBe('finished');
 
-    await takeScreenshot(page, 'tc-g-02', 'gemini', '05-db-assertions-passed');
+    await takeScreenshot(page, `chat-gemini/tc-g-02/05-db-assertions-passed.png`);
   });
 
   test('TC-G-03: Upload single file', async ({ page }) => {
@@ -303,7 +303,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // 2. Navigate and select agent (screenshot UI state first)
     await goToGuid(page);
     await selectGeminiAgent(page);
-    await takeScreenshot(page, 'tc-g-03', 'gemini', '01-agent-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-03/01-agent-selected.png`);
 
     // 3. Create conversation via bridge, then send message with the file path.
     // Reason: patching `electronAPI.dialog.showOpen` on the renderer window has no
@@ -311,7 +311,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // (not a frozen window method). Bridge-level send lets us attach files without
     // invoking the native file picker.
     const conversationId = await createGeminiConversationViaBridge(page, {});
-    await takeScreenshot(page, 'tc-g-03', 'gemini', '02-file-uploaded');
+    await takeScreenshot(page, `chat-gemini/tc-g-03/02-file-uploaded.png`);
 
     // 4. Send message with file attachment via bridge (bypassing the UI dialog).
     await sendGeminiMessage(page, conversationId, 'Read the uploaded file and summarize its content.', {
@@ -325,12 +325,12 @@ test.describe('Gemini Basic Flow (P0)', () => {
       conversationId,
       { timeout: 15_000 }
     );
-    await takeScreenshot(page, 'tc-g-03', 'gemini', '03-conversation-page');
+    await takeScreenshot(page, `chat-gemini/tc-g-03/03-conversation-page.png`);
 
     // 6. Wait for AI reply
     await waitForGeminiReply(page, conversationId, 90_000);
 
-    await takeScreenshot(page, 'tc-g-03', 'gemini', '04-reply-completed');
+    await takeScreenshot(page, `chat-gemini/tc-g-03/04-reply-completed.png`);
 
     // 10. DB assertions
     const conv = await getGeminiConversationDB(page, conversationId);
@@ -371,7 +371,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     expect(aiMsg!.type).toBe('text');
     expect(conv.status).toBe('finished');
 
-    await takeScreenshot(page, 'tc-g-03', 'gemini', '05-db-assertions-passed');
+    await takeScreenshot(page, `chat-gemini/tc-g-03/05-db-assertions-passed.png`);
   });
 
   test('TC-G-04: Use a specific gemini model (resolved from local env)', async ({ page }) => {
@@ -385,11 +385,11 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // 2. Navigate and select agent
     await goToGuid(page);
     await selectGeminiAgent(page);
-    await takeScreenshot(page, 'tc-g-04', 'gemini', '01-agent-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-04/01-agent-selected.png`);
 
     // 3. Select the resolved model (Manual submenu)
     await selectGeminiModel(page, targetModel);
-    await takeScreenshot(page, 'tc-g-04', 'gemini', '02-model-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-04/02-model-selected.png`);
 
     // 4. Verify model selector text reflects the chosen model
     const modelSelector = page.locator('[data-testid="guid-model-selector"]');
@@ -407,12 +407,12 @@ test.describe('Gemini Basic Flow (P0)', () => {
     await page.waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 15_000 });
     const conversationId = page.url().split('/conversation/')[1];
 
-    await takeScreenshot(page, 'tc-g-04', 'gemini', '03-conversation-page');
+    await takeScreenshot(page, `chat-gemini/tc-g-04/03-conversation-page.png`);
 
     // 7. Wait for AI reply
     await waitForGeminiReply(page, conversationId, 90_000);
 
-    await takeScreenshot(page, 'tc-g-04', 'gemini', '04-reply-completed');
+    await takeScreenshot(page, `chat-gemini/tc-g-04/04-reply-completed.png`);
 
     // 8. DB assertions
     const conv = await getGeminiConversationDB(page, conversationId);
@@ -439,18 +439,18 @@ test.describe('Gemini Basic Flow (P0)', () => {
     expect(aiMsg!.type).toBe('text');
     expect(conv.status).toBe('finished');
 
-    await takeScreenshot(page, 'tc-g-04', 'gemini', '05-db-assertions-passed');
+    await takeScreenshot(page, `chat-gemini/tc-g-04/05-db-assertions-passed.png`);
   });
 
   test('TC-G-05: Use yolo permission mode', async ({ page }) => {
     // 1. Navigate and select agent
     await goToGuid(page);
     await selectGeminiAgent(page);
-    await takeScreenshot(page, 'tc-g-05', 'gemini', '01-agent-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-05/01-agent-selected.png`);
 
     // 2. Select yolo mode
     await selectGeminiMode(page, 'yolo');
-    await takeScreenshot(page, 'tc-g-05', 'gemini', '02-yolo-mode-selected');
+    await takeScreenshot(page, `chat-gemini/tc-g-05/02-yolo-mode-selected.png`);
 
     // 3. Enter message (trigger Google Search tool if possible)
     const guidInput = page.locator('[data-testid="guid-input"]');
@@ -464,7 +464,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     await page.waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 15_000 });
     const conversationId = page.url().split('/conversation/')[1];
 
-    await takeScreenshot(page, 'tc-g-05', 'gemini', '03-conversation-page');
+    await takeScreenshot(page, `chat-gemini/tc-g-05/03-conversation-page.png`);
 
     // 6. Verify no confirmation dialog appears (monitor for confirmation modals)
     const confirmModal = page.locator('.arco-modal').filter({ hasText: /confirm|allow|approve/i });
@@ -474,7 +474,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // 7. Wait for tool execution or AI reply to complete
     await waitForGeminiReply(page, conversationId, 90_000);
 
-    await takeScreenshot(page, 'tc-g-05', 'gemini', '04-reply-completed');
+    await takeScreenshot(page, `chat-gemini/tc-g-05/04-reply-completed.png`);
 
     // 8. DB assertions
     const conv = await getGeminiConversationDB(page, conversationId);
@@ -513,6 +513,6 @@ test.describe('Gemini Basic Flow (P0)', () => {
     expect(aiMsg!.type).toBe('text');
     expect(conv.status).toBe('finished');
 
-    await takeScreenshot(page, 'tc-g-05', 'gemini', '05-db-assertions-passed');
+    await takeScreenshot(page, `chat-gemini/tc-g-05/05-db-assertions-passed.png`);
   });
 });

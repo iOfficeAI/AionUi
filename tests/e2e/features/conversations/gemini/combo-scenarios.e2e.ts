@@ -87,19 +87,19 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await selectGeminiAgent(page);
 
       // Screenshot 01: Gemini agent selected
-      await takeScreenshot(page, 'tc-g-10/gemini/01-agent-selected.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-10/01-agent-selected.png`);
 
       // Step 3: Attach folder (workspace)
       await attachGeminiFolder(page, workspace.path);
 
       // Screenshot 02: Folder attached
-      await takeScreenshot(page, 'tc-g-10/gemini/02-folder-attached.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-10/02-folder-attached.png`);
 
       // Step 4: Upload file
       await uploadGeminiFiles(page, [testFile1Path]);
 
       // Screenshot 03: File uploaded
-      await takeScreenshot(page, 'tc-g-10/gemini/03-file-uploaded.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-10/03-file-uploaded.png`);
 
       // Step 5: Input message and send
       const messageText = 'Hello with folder and file!';
@@ -116,7 +116,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
 
       // Screenshot 04: Conversation page loaded
-      await takeScreenshot(page, 'tc-g-10/gemini/04-conversation-page.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-10/04-conversation-page.png`);
 
       // Step 7: Extract conversation ID from URL
       const currentURL = page.url();
@@ -128,7 +128,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await waitForGeminiReply(page, conversationId, 90_000);
 
       // Screenshot 05: AI reply finished
-      await takeScreenshot(page, 'tc-g-10/gemini/05-ai-reply-finished.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-10/05-ai-reply-finished.png`);
 
       // Step 9: Verify conversation data in database
       const conv = await getGeminiConversationDB(page, conversationId);
@@ -166,13 +166,13 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await selectGeminiAgent(page);
 
       // Screenshot 01: Gemini agent selected
-      await takeScreenshot(page, 'tc-g-11/gemini/01-agent-selected.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-11/01-agent-selected.png`);
 
       // Step 3: Upload 2 files
       await uploadGeminiFiles(page, [testFile1Path, testFile2Path]);
 
       // Screenshot 02: Files uploaded
-      await takeScreenshot(page, 'tc-g-11/gemini/02-files-uploaded.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-11/02-files-uploaded.png`);
 
       // Step 4: Input message and send
       const messageText = 'Hello with 2 files!';
@@ -189,7 +189,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
 
       // Screenshot 03: Conversation page loaded
-      await takeScreenshot(page, 'tc-g-11/gemini/03-conversation-page.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-11/03-conversation-page.png`);
 
       // Step 6: Extract conversation ID from URL
       const currentURL = page.url();
@@ -201,7 +201,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await waitForGeminiReply(page, conversationId, 90_000);
 
       // Screenshot 04: AI reply finished
-      await takeScreenshot(page, 'tc-g-11/gemini/04-ai-reply-finished.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-11/04-ai-reply-finished.png`);
 
       // Step 8: Verify conversation data in database
       const conv = await getGeminiConversationDB(page, conversationId);
@@ -254,31 +254,31 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await selectGeminiAgent(page);
 
       // Screenshot 01: Gemini agent selected
-      await takeScreenshot(page, 'tc-g-12/gemini/01-agent-selected.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/01-agent-selected.png`);
 
       // Step 3: Attach folder
       await attachGeminiFolder(page, workspace.path);
 
       // Screenshot 02: Folder attached
-      await takeScreenshot(page, 'tc-g-12/gemini/02-folder-attached.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/02-folder-attached.png`);
 
       // Step 4: Upload 2 files
       await uploadGeminiFiles(page, [testFile1Path, testFile2Path]);
 
       // Screenshot 03: Files uploaded
-      await takeScreenshot(page, 'tc-g-12/gemini/03-files-uploaded.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/03-files-uploaded.png`);
 
       // Step 5: Select the resolved gemini model
       await selectGeminiModel(page, targetModel);
 
       // Screenshot 04: Model selected
-      await takeScreenshot(page, 'tc-g-12/gemini/04-model-selected.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/04-model-selected.png`);
 
       // Step 6: Select yolo permission mode
       await selectGeminiMode(page, 'yolo');
 
       // Screenshot 05: Yolo mode selected
-      await takeScreenshot(page, 'tc-g-12/gemini/05-yolo-mode.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/05-yolo-mode.png`);
 
       // Step 7: Input message and send
       const messageText = 'Full combo test!';
@@ -295,7 +295,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
 
       // Screenshot 06: Conversation page loaded
-      await takeScreenshot(page, 'tc-g-12/gemini/06-conversation-page.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/06-conversation-page.png`);
 
       // Step 9: Extract conversation ID from URL
       const currentURL = page.url();
@@ -307,7 +307,7 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
       await waitForGeminiReply(page, conversationId, 90_000);
 
       // Screenshot 07: AI reply finished
-      await takeScreenshot(page, 'tc-g-12/gemini/07-ai-reply-finished.png');
+      await takeScreenshot(page, `chat-gemini/tc-g-12/07-ai-reply-finished.png`);
 
       // Step 11: Verify conversation data in database
       const conv = await getGeminiConversationDB(page, conversationId);
