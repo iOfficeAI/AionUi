@@ -96,12 +96,13 @@ cannot have both `feat/backend-migration` and
 | --------------------------------------------- | ---------------- | --------------------------------- | ------------- |
 | `feat/backend-migration-coordinator`          | AionUi           | `origin/feat/backend-migration`   | coordinator   |
 | `feat/backend-migration-fe-skill-library`     | AionUi           | `origin/feat/backend-migration`   | frontend-dev  |
-| `feat/extension-skill-library`                | aionui-backend   | `origin/main`                     | backend-dev   |
+| `feat/extension-skill-library`                | aionui-backend   | `origin/feat/backend-migration`   | backend-dev   |
 | `feat/backend-migration-e2e-skill-library`    | AionUi           | `feat/backend-migration-fe-skill-library` (then merge `origin/kaizhou-lab/test/e2e-coverage`) | e2e-tester |
 
-**Rule:** `feat/backend-migration` and `aionui-backend/main` are integration
-bases — **nobody commits to them directly during the pilot**. Integration of
-pilot work back into the base branches is scheduled as a separate,
+**Rule:** `feat/backend-migration` in BOTH repos (AionUi and aionui-backend)
+is the integration base — **nobody commits to it directly during the pilot**.
+`main` is not used as a base in either repo for this work. Integration of
+pilot work back into `feat/backend-migration` is scheduled as a separate,
 user-approved step after the pilot closes; it is not part of this pilot.
 
 ### 4.3 Coordinator-driven branch switching
@@ -110,8 +111,8 @@ No periodic sync loop. Instead, per repo:
 
 **aionui-backend (backend-dev — runs in parallel with AionUi work):**
 - Coordinator checks out `feat/extension-skill-library` once, at the start of
-  backend-dev's task, after fetching `origin/main` and merging it in if
-  needed.
+  backend-dev's task, after fetching `origin/feat/backend-migration` and
+  merging it in if needed.
 - Backend-dev stays on that branch until done. Coordinator does not touch
   this repo while backend-dev is active.
 
@@ -268,14 +269,15 @@ covers.
 
 ## 9. Decision log (from brainstorm)
 
-- **Q1 Workspace:** Frontend dev branches off `feat/backend-migration`. Backend
-  dev branches off aionui-backend `main`. E2E merges
-  `kaizhou-lab/test/e2e-coverage` into the frontend dev branch. Coordinator
-  stays on a dedicated coordinator branch in AionUi. Integration back into
-  base branches is a separate post-pilot step. **No worktrees.** aionui-backend
-  and AionUi are separate repos that run in parallel; within AionUi the
-  coordinator / frontend-dev / e2e-tester are serialized on a single working
-  directory.
+- **Q1 Workspace:** Frontend dev branches off `AionUi/feat/backend-migration`.
+  Backend dev branches off `aionui-backend/feat/backend-migration` (BOTH
+  repos use the same branch name as integration base; `main` is not used).
+  E2E merges `kaizhou-lab/test/e2e-coverage` into the frontend dev branch.
+  Coordinator stays on a dedicated coordinator branch in AionUi. Integration
+  back into base branches is a separate post-pilot step. **No worktrees.**
+  aionui-backend and AionUi are separate repos that run in parallel; within
+  AionUi the coordinator / frontend-dev / e2e-tester are serialized on a
+  single working directory.
 - **Q2 Backend scope:** B — spec is a starting point, backend dev owns keeping
   it current. TS implementation is the behavior baseline.
 - **Q3 Decomposition:** B — 6 capability-area modules.

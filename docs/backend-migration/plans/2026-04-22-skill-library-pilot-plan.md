@@ -36,12 +36,13 @@ production code.
 
 ## Branches (created in Task 0)
 
-**Rule:** `feat/backend-migration` and `aionui-backend/main` are **integration
-bases — nobody commits to them directly during the pilot**. Every role works
-on a dedicated sibling branch based on the integration base. Integration of
-pilot work back into the base branches is deferred until after the pilot
-closes; it is scheduled as a separate, user-approved step, not part of this
-plan.
+**Rule:** `feat/backend-migration` in BOTH repos (AionUi and aionui-backend)
+is the integration base — **nobody commits to it directly during the pilot**.
+`main` in either repo is not used as a base. Every role works on a dedicated
+sibling branch based on `origin/feat/backend-migration` in its own repo.
+Integration of pilot work back into `feat/backend-migration` is deferred
+until after the pilot closes; it is scheduled as a separate, user-approved
+step, not part of this plan.
 
 Names are flat (no `/` inside the branch suffix) because nested refs like
 `feat/backend-migration/<child>` collide with the existing
@@ -51,7 +52,7 @@ Names are flat (no `/` inside the branch suffix) because nested refs like
 | --------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ | ------------- |
 | `feat/backend-migration-coordinator`          | AionUi           | `origin/feat/backend-migration`                                                                        | coordinator   |
 | `feat/backend-migration-fe-skill-library`     | AionUi           | `origin/feat/backend-migration`                                                                        | frontend-dev  |
-| `feat/extension-skill-library`                | aionui-backend   | `origin/main`                                                                                          | backend-dev   |
+| `feat/extension-skill-library`                | aionui-backend   | `origin/feat/backend-migration`                                                                        | backend-dev   |
 | `feat/backend-migration-e2e-skill-library`    | AionUi           | `feat/backend-migration-fe-skill-library` + merge `origin/kaizhou-lab/test/e2e-coverage` | e2e-tester    |
 
 ## Endpoints in scope
@@ -185,7 +186,7 @@ immediately.
 ```bash
 cd /Users/zhoukai/Documents/github/aionui-backend
 git fetch origin
-git checkout -b feat/extension-skill-library origin/main
+git checkout -b feat/extension-skill-library origin/feat/backend-migration
 git push -u origin feat/extension-skill-library
 ```
 
@@ -881,9 +882,10 @@ skill-library pilot`. Each role's task description points at this template.
 - [ ] **Step 5.2: Coordinator closes the pilot (no base-branch merge)**
 
 Coordinator does **NOT** merge `feat/backend-migration-fe-skill-library` into
-`feat/backend-migration` or `feat/extension-skill-library` into `main`.
-Integration of pilot work back into the base branches is explicitly deferred
-as a separate, user-approved step after the pilot.
+AionUi's `feat/backend-migration`, nor `feat/extension-skill-library` into
+aionui-backend's `feat/backend-migration`. Integration of pilot work back
+into `feat/backend-migration` in either repo is explicitly deferred as a
+separate, user-approved step after the pilot.
 
 Coordinator switches AionUi back to `feat/backend-migration-coordinator`:
 
