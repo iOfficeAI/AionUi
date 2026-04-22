@@ -23,6 +23,11 @@ interface ExternalSource {
   skills: Array<{ name: string; description: string; path: string }>;
 }
 
+// Normalize skill name for data-testid usage
+const normalizeTestId = (name: string): string => {
+  return name.replace(/[:\/\s<>"'|?*]/g, '-');
+};
+
 const getAvatarColorClass = (name: string) => {
   if (!name) return 'bg-[#165DFF] text-white';
   const colors = [
@@ -235,7 +240,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       <div className='space-y-16px pb-24px'>
         {/* ======== 发现外部技能 / Discovered External Skills ======== */}
         {totalExternal > 0 && (
-          <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px mb-16px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+          <div data-testid='external-skills-section' className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px mb-16px shadow-sm border border-b-base relative overflow-hidden transition-all'>
             {/* Section Header with Search Bar */}
             <div className='flex flex-col lg:flex-row lg:items-start justify-between gap-16px mb-24px relative z-10 w-full'>
               <div className='flex flex-col'>
@@ -247,6 +252,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     {totalExternal}
                   </span>
                   <button
+                    data-testid='btn-refresh-external'
                     className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
                     onClick={() => void handleRefreshExternal()}
                     title={t('common.refresh', { defaultValue: 'Refresh' })}
@@ -267,6 +273,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   <Search size={15} />
                 </div>
                 <input
+                  data-testid="input-search-external"
                   type='text'
                   className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
                   placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
@@ -283,6 +290,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 return (
                   <button
                     key={source.source}
+                    data-testid={`external-source-tab-${source.source}`}
                     type='button'
                     className={`outline-none cursor-pointer px-16px py-6px text-13px rd-[100px] transition-all duration-300 flex items-center gap-6px border ${isActive ? 'bg-primary-6 border-primary-6 text-white shadow-md font-medium' : 'bg-base border-border-1 text-t-secondary hover:bg-fill-1 hover:text-t-primary'}`}
                     onClick={() => setActiveSourceTab(source.source)}
@@ -297,6 +305,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 );
               })}
               <button
+                data-testid='btn-add-custom-path'
                 type='button'
                 className='outline-none border border-dashed border-border-1 hover:border-primary-4 cursor-pointer w-28px h-28px ml-4px text-t-tertiary hover:text-primary-6 hover:bg-primary-1 rd-full transition-all duration-300 flex items-center justify-center bg-transparent shrink-0'
                 onClick={() => setShowAddPathModal(true)}
@@ -316,6 +325,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     </span>
                   </div>
                   <button
+                    data-testid='btn-import-all'
                     className='flex items-center gap-6px text-13px font-medium text-primary-6 hover:text-primary-5 transition-colors bg-transparent border-none outline-none cursor-pointer whitespace-nowrap'
                     onClick={() => void handleImportAll(activeSource.skills)}
                   >
@@ -327,6 +337,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   {filteredExternalSkills.map((skill) => (
                     <div
                       key={skill.name}
+                      data-testid={`external-skill-card-${normalizeTestId(skill.name)}`}
                       ref={(el) => {
                         skillRefs.current[skill.name] = el;
                       }}
@@ -377,7 +388,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         )}
 
         {/* ======== 我的技能 / My Skills ======== */}
-        <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+        <div data-testid='my-skills-section' className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
           {/* Toolbar for My Skills */}
           <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-16px mb-24px relative z-10'>
             <div className='flex items-center gap-10px shrink-0'>
@@ -388,6 +399,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 {mySkills.length}
               </span>
               <button
+                data-testid='btn-refresh-my-skills'
                 className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
                 onClick={async () => {
                   await fetchData();
@@ -405,6 +417,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   <Search size={15} />
                 </div>
                 <input
+                  data-testid="input-search-my-skills"
                   type='text'
                   className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
                   placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
@@ -414,6 +427,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               </div>
 
               <button
+                data-testid='btn-manual-import'
                 className='flex items-center justify-center gap-6px px-16px py-6px bg-base border border-border-1 hover:border-border-2 hover:bg-fill-1 text-t-primary rd-8px shadow-sm transition-all focus:outline-none shrink-0 cursor-pointer whitespace-nowrap'
                 onClick={handleManualImport}
               >
@@ -440,6 +454,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               {filteredSkills.map((skill) => (
                 <div
                   key={skill.name}
+                  data-testid={`my-skill-card-${normalizeTestId(skill.name)}`}
                   ref={(el) => {
                     skillRefs.current[skill.name] = el;
                   }}
@@ -527,6 +542,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                         }
                       >
                         <button
+                          data-testid={`btn-export-${normalizeTestId(skill.name)}`}
                           className='p-8px hover:bg-fill-2 text-t-tertiary hover:text-t-secondary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
                           title={t('settings.skillsHub.exportTo', { defaultValue: 'Export To...' })}
                         >
@@ -538,6 +554,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     )}
                     {skill.source === 'custom' && (
                       <button
+                        data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
                         className='p-8px hover:bg-danger-1 hover:text-danger-6 text-t-tertiary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
                         onClick={() => {
                           Modal.confirm({
@@ -547,7 +564,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                               defaultValue: `Are you sure you want to delete "${skill.name}"?`,
                             }),
                             okButtonProps: { status: 'danger' },
+                            okText: t('common.delete', { defaultValue: 'Delete' }),
                             onOk: () => void handleDelete(skill.name),
+                            wrapClassName: 'modal-delete-skill',
                           });
                         }}
                         title={t('common.delete', { defaultValue: 'Delete' })}
@@ -572,7 +591,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
         {/* ======== Extension Skills ======== */}
         {extensionSkills.length > 0 && (
-          <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+          <div data-testid='extension-skills-section' className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
             <div className='flex items-center gap-10px mb-24px'>
               <Puzzle theme='filled' size={20} fill='var(--color-primary-6)' />
               <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
@@ -615,7 +634,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
         {/* ======== Builtin Auto-injected Skills ======== */}
         {builtinAutoSkills.length > 0 && (
-          <div className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
+          <div data-testid='auto-skills-section' className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'>
             <div className='flex items-center gap-10px mb-24px'>
               <Lightning theme='filled' size={20} fill='var(--color-primary-6)' />
               <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
@@ -676,6 +695,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
       {/* Add Custom External Path Modal */}
       <Modal
+        data-testid='modal-add-custom-path'
         title={t('settings.skillsHub.addCustomPath', { defaultValue: 'Add Custom Skill Path' })}
         visible={showAddPathModal}
         onCancel={() => {
@@ -689,6 +709,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
         autoFocus={false}
         focusLock
+        wrapClassName='modal-name-custom-path'
       >
         <div className='flex flex-col gap-16px'>
           <div>
@@ -696,6 +717,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               {t('common.name', { defaultValue: 'Name' })}
             </div>
             <Input
+              data-testid='input-source-name'
               placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: 'e.g. My Custom Skills' })}
               value={customPathName}
               onChange={(v) => setCustomPathName(v)}
@@ -708,6 +730,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
             </div>
             <div className='flex gap-8px'>
               <Input
+                data-testid='input-source-path'
                 placeholder={t('settings.skillsHub.customPathPlaceholder', {
                   defaultValue: 'e.g. C:\\Users\\me\\.mytools\\skills',
                 })}
