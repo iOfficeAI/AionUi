@@ -15,7 +15,7 @@
  * - Mode options: data-testid="aionrs-mode-option-{mode}"
  */
 
-import { test, expect } from '../../fixtures';
+import { test, expect } from '../../../fixtures';
 import {
   resolveAionrsPreconditions,
   cleanupE2EAionrsConversations,
@@ -27,8 +27,8 @@ import {
   createTempWorkspace,
   selectAionrsAgent,
   type AionrsTestModels,
-} from '../../helpers';
-import { takeScreenshot } from '../../helpers/screenshots';
+} from '../../../helpers';
+import { takeScreenshot } from '../../../helpers/screenshots';
 
 test.describe('Aionrs Chat - Permission Modes (P0 + P1)', () => {
   test.setTimeout(120000); // 2 minutes

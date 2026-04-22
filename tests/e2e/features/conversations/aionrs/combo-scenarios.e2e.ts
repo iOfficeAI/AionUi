@@ -16,7 +16,7 @@
  * - AgentModeSelector: data-testid="agent-mode-selector-aionrs"
  */
 
-import { test, expect } from '../../fixtures';
+import { test, expect } from '../../../fixtures';
 import {
   resolveAionrsPreconditions,
   cleanupE2EAionrsConversations,
@@ -27,8 +27,8 @@ import {
   getAionrsMessages,
   createTempWorkspace,
   type AionrsTestModels,
-} from '../../helpers';
-import { takeScreenshot } from '../../helpers/screenshots';
+} from '../../../helpers';
+import { takeScreenshot } from '../../../helpers/screenshots';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 

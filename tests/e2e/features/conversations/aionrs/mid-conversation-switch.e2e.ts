@@ -15,7 +15,7 @@
  * - AgentModeSelector: data-testid="agent-mode-selector-aionrs"
  */
 
-import { test, expect } from '../../fixtures';
+import { test, expect } from '../../../fixtures';
 import {
   resolveAionrsPreconditions,
   cleanupE2EAionrsConversations,
@@ -26,8 +26,8 @@ import {
   getAionrsMessages,
   createTempWorkspace,
   type AionrsTestModels,
-} from '../../helpers';
-import { takeScreenshot } from '../../helpers/screenshots';
+} from '../../../helpers';
+import { takeScreenshot } from '../../../helpers/screenshots';
 
 test.describe('Aionrs Chat - Mid-Conversation Switch (P1)', () => {
   test.setTimeout(180000); // 3 minutes (longer for multi-round tests)

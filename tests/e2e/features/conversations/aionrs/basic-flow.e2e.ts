@@ -18,7 +18,7 @@
  * - FileAttachButton: data-testid="aionrs-attach-folder-btn"
  */
 
-import { test, expect } from '../../fixtures';
+import { test, expect } from '../../../fixtures';
 import {
   resolveAionrsPreconditions,
   cleanupE2EAionrsConversations,
@@ -29,8 +29,8 @@ import {
   getAionrsConversationDB,
   createTempWorkspace,
   type AionrsTestModels,
-} from '../../helpers';
-import { takeScreenshot } from '../../helpers/screenshots';
+} from '../../../helpers';
+import { takeScreenshot } from '../../../helpers/screenshots';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 
