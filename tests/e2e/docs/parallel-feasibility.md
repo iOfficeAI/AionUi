@@ -40,12 +40,14 @@ let mainPage: Page | null = null;
 ```
 
 **Design**: One Electron app instance shared across ALL test files in the worker. The app:
+
 - Launches once at worker startup
 - Persists across all `test.describe()` blocks
 - Closes only when worker exits
 - Reuses same `BrowserWindow` and renderer process
 
 **Rationale** (from `tests/e2e/README.md:48-50`):
+
 > One Electron instance shared across all tests. Restarting costs ~25-30 seconds, so tests reuse the same app process.
 
 ### 3. Shared Resources
@@ -53,16 +55,19 @@ let mainPage: Page | null = null;
 #### 3.1 Database
 
 **Path resolution** (`src/process/services/database/index.ts:1689`):
+
 ```typescript
 return path.join(getDataPath(), 'aionui.db');
 ```
 
 **userData directory** (`src/process/utils/configureChromium.ts:18-26`):
+
 - Dev mode: `~/Library/Application Support/AionUi-Dev/` (macOS)
 - Database: `{userData}/config/aionui.db`
 - Shared by all E2E tests
 
 **Conflict scenario**: If Assistant tests and Skills tests run in parallel workers:
+
 1. Both access same `aionui.db` file
 2. SQLite allows multiple readers, but writes lock the entire database
 3. Test data pollution: Assistant test creates custom assistant → Skills test sees it
@@ -70,14 +75,16 @@ return path.join(getDataPath(), 'aionui.db');
 #### 3.2 Extension State File
 
 **File**: `tests/e2e/fixtures.ts:29-30`
+
 ```typescript
 const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-state-'));
 const e2eStateFile = path.join(e2eStateSandboxDir, 'extension-states.json');
 ```
 
 **Environment variable** (L113):
+
 ```typescript
-AIONUI_EXTENSION_STATES_FILE: process.env.AIONUI_EXTENSION_STATES_FILE || e2eStateFile
+AIONUI_EXTENSION_STATES_FILE: process.env.AIONUI_EXTENSION_STATES_FILE || e2eStateFile;
 ```
 
 **Current isolation**: Each worker creates unique temp directory → **no conflict** (✅ parallel-safe for this resource)
@@ -85,8 +92,9 @@ AIONUI_EXTENSION_STATES_FILE: process.env.AIONUI_EXTENSION_STATES_FILE || e2eSta
 #### 3.3 Network Ports
 
 **CDP disabled** (`tests/e2e/fixtures.ts:117`):
+
 ```typescript
-AIONUI_CDP_PORT: '0'
+AIONUI_CDP_PORT: '0';
 ```
 
 **Result**: No port binding conflicts → **parallel-safe** (✅)
@@ -95,12 +103,12 @@ AIONUI_CDP_PORT: '0'
 
 ## Why Parallel Execution Fails
 
-| Resource              | Isolation Level     | Conflict Type            | Impact                                  |
-|-----------------------|---------------------|--------------------------|-----------------------------------------|
-| Electron app instance | Worker-scoped       | Single instance          | 2 workers → 2 apps compete for userData |
+| Resource              | Isolation Level     | Conflict Type              | Impact                                  |
+| --------------------- | ------------------- | -------------------------- | --------------------------------------- |
+| Electron app instance | Worker-scoped       | Single instance            | 2 workers → 2 apps compete for userData |
 | SQLite database       | Global (userData)   | File lock + data pollution | Write contention + test interference    |
-| Extension state file  | Worker temp dir     | ✅ No conflict           | -                                       |
-| Network ports         | None (CDP disabled) | ✅ No conflict           | -                                       |
+| Extension state file  | Worker temp dir     | ✅ No conflict             | -                                       |
+| Network ports         | None (CDP disabled) | ✅ No conflict             | -                                       |
 
 **Critical bottleneck**: `workers: 1` enforced + shared `aionui.db` → parallel execution impossible without refactoring.
 
@@ -113,9 +121,10 @@ AIONUI_CDP_PORT: '0'
 **Approach**: Isolate userData per worker using environment variables
 
 **Implementation**:
+
 1. Extend `AIONUI_E2E_TEST` to include worker ID:
    ```typescript
-   AIONUI_E2E_TEST_WORKER_ID: process.env.PLAYWRIGHT_WORKER_INDEX || '0'
+   AIONUI_E2E_TEST_WORKER_ID: process.env.PLAYWRIGHT_WORKER_INDEX || '0';
    ```
 2. Modify `getDevAppName()` to return worker-specific name:
    ```typescript
@@ -138,6 +147,7 @@ AIONUI_CDP_PORT: '0'
 **Approach**: Run Assistant and Skills tests in separate Playwright invocations
 
 **Implementation**:
+
 ```bash
 # Sequential npm scripts
 bun run test:e2e:assistants  # Matches tests/e2e/specs/assistant-*.e2e.ts
@@ -160,11 +170,13 @@ bun run test:e2e:skills      # Matches tests/e2e/specs/skills-*.e2e.ts
 ## Recommendation for Gate 3 Implementation
 
 **Keep sequential execution**:
+
 1. Assistant tests and Skills tests run in same worker (current `workers: 1`)
 2. Total runtime = sum of both modules (~2-5 minutes typical)
 3. No risk of test interference
 
 **If parallel needed later**:
+
 - Implement **Option 1** (Multi-Instance Mode) as part of separate infrastructure task
 - Requires changes to:
   - `src/common/platform/index.ts` (`getDevAppName`)
