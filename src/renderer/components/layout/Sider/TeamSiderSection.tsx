@@ -146,6 +146,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
           <div className='flex items-center justify-between px-12px py-8px'>
             <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
             <div
+              data-testid="team-create-btn"
               className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
               onClick={() => setCreateTeamVisible(true)}
             >

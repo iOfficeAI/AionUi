@@ -7,8 +7,8 @@
  * - agentSelectUtils.tsx (TEAM_SUPPORTED_BACKENDS)
  * - TeamMcpServer.ts (spawn whitelist)
  */
-import { test, expect } from '../fixtures';
-import { TEAM_SUPPORTED_BACKENDS } from '../helpers';
+import { test, expect } from '../../../fixtures';
+import { TEAM_SUPPORTED_BACKENDS } from '../../../helpers';
 
 test.describe('Team Agent Whitelist', () => {
   test('UI only shows whitelisted agents in create modal dropdown', async ({ page }) => {
@@ -22,10 +22,10 @@ test.describe('Team Agent Whitelist', () => {
       await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
     }
 
-    await expect(page.locator('.h-20px.w-20px.rd-4px').first()).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('[data-testid="team-create-btn"]').first()).toBeVisible({ timeout: 10000 });
 
     // Open Create Team modal
-    const createBtn = page.locator('.h-20px.w-20px.rd-4px').first();
+    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
     await createBtn.click();
 
     // Open agent dropdown

@@ -3,8 +3,8 @@
  *
  * Flow: sidebar "+" button -> Create Team modal -> fill form -> create -> verify navigation
  */
-import { test, expect } from '../fixtures';
-import { TEAM_SUPPORTED_BACKENDS } from '../helpers';
+import { test, expect } from '../../../fixtures';
+import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName } from '../../../helpers';
 
 /**
  * UI label patterns for each backend. Used to match the agent option in the
@@ -26,13 +26,13 @@ test.describe('Team Create', () => {
     await page.screenshot({ path: 'tests/e2e/results/team-01-initial.png' });
 
     // Verify the "+" create button exists next to the Teams title
-    const createBtn = page.locator('.h-20px.w-20px.rd-4px').first();
+    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
     await expect(createBtn).toBeVisible();
   });
 
   test('clicking + opens create team modal', async ({ page }) => {
     // Wait for create button to be ready before clicking
-    const createBtn = page.locator('.h-20px.w-20px.rd-4px').first();
+    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
     await expect(createBtn).toBeVisible({ timeout: 10000 });
     await createBtn.click();
 
@@ -44,7 +44,8 @@ test.describe('Team Create', () => {
     await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
     // Verify Team name input exists
-    const nameInput = page.locator('.arco-modal input').first();
+    const modal = page.locator('.arco-modal');
+    const nameInput = modal.getByRole('textbox').first();
     await expect(nameInput).toBeVisible();
 
     // Verify Dispatch Agent select exists
@@ -63,7 +64,7 @@ test.describe('Team Create', () => {
 
   test('can fill form and create team', async ({ page }) => {
     // Wait for create button to be ready before clicking
-    const createBtn = page.locator('.h-20px.w-20px.rd-4px').first();
+    const createBtn = page.locator('[data-testid="team-create-btn"]').first();
     await expect(createBtn).toBeVisible({ timeout: 10000 });
     await createBtn.click();
 
@@ -72,7 +73,8 @@ test.describe('Team Create', () => {
     await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
     // Fill team name
-    const nameInput = page.locator('.arco-modal input').first();
+    const modal = page.locator('.arco-modal');
+    const nameInput = modal.getByRole('textbox').first();
     await nameInput.fill('E2E Test Team');
 
     // Open Agent select dropdown and wait for options to appear
@@ -106,6 +108,9 @@ test.describe('Team Create', () => {
       // Verify team name appears in sidebar
       const teamName = page.locator('text=E2E Test Team');
       await expect(teamName.first()).toBeVisible({ timeout: 10000 });
+
+      // cleanup: remove the team we just created to avoid polluting later tests
+      await cleanupTeamsByName(page, 'E2E Test Team');
     } else {
       // No supported agents installed — screenshot and skip
       await page.screenshot({ path: 'tests/e2e/results/team-03-no-agents.png' });
@@ -127,7 +132,7 @@ async function createTeamWithAgent(
   screenshotPrefix: string
 ): Promise<void> {
   // Wait for create button to be ready (sidebar may still be loading after previous test)
-  const createBtn = page.locator('.h-20px.w-20px.rd-4px').first();
+  const createBtn = page.locator('[data-testid="team-create-btn"]').first();
   await expect(createBtn).toBeVisible({ timeout: 10000 });
   await createBtn.click();
 
@@ -136,7 +141,8 @@ async function createTeamWithAgent(
   await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
   // Fill team name
-  const nameInput = page.locator('.arco-modal input').first();
+  const modal = page.locator('.arco-modal');
+  const nameInput = modal.getByRole('textbox').first();
   await nameInput.fill(teamName);
 
   // Open agent select dropdown and wait for options
@@ -181,6 +187,9 @@ async function createTeamWithAgent(
   // Verify team name appears in sidebar
   const teamNameLocator = page.locator(`text=${teamName}`);
   await expect(teamNameLocator.first()).toBeVisible({ timeout: 10000 });
+
+  // cleanup: remove the team we just created to avoid polluting later tests
+  await cleanupTeamsByName(page, teamName);
 }
 
 test.describe('Team Create - whitelisted leader types', () => {

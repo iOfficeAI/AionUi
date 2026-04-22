@@ -60,6 +60,7 @@ export {
   runConversationCycle,
 } from './conversation';
 export { TEAM_SUPPORTED_BACKENDS } from './teamConfig';
+export { createTeam, ensureTeam, deleteTeam, cleanupTeamsByName } from './teamHelpers';
 export {
   goToAssistantSettings,
   openAssistantDrawer,
