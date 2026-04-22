@@ -152,14 +152,17 @@ test.describe('Gemini Basic Flow (P0)', () => {
     const userMsg = messages.find((m) => m.position === 'right');
     expect(userMsg).toBeDefined();
     expect(userMsg!.type).toBe('text');
-    expect(userMsg!.status).toBe('finish');
+    // Conversation finalization (conv.status === 'finished') is the real signal of
+    // completion; AI/user text messages in Gemini do NOT carry DB status='finish'
+    // (status is a Gemini stream event type, not a persisted DB status for text msgs).
+    expect(conv.status).toBe('finished');
     const userContent = asObj(userMsg!.content);
     expect(String(userContent.content ?? '')).toContain('Hello, Gemini!');
 
     // Verify AI reply
     const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
     expect(aiMsg).toBeDefined();
-    expect(aiMsg!.status).toBe('finish');
+    expect(aiMsg!.type).toBe('text');
     expect(aiMsg!.created_at).toBeGreaterThan(userMsg!.created_at);
     const aiContent = asObj(aiMsg!.content);
     expect(String(aiContent.content ?? '')).not.toBe('');
@@ -248,7 +251,8 @@ test.describe('Gemini Basic Flow (P0)', () => {
 
     const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
     expect(aiMsg).toBeDefined();
-    expect(aiMsg!.status).toBe('finish');
+    expect(aiMsg!.type).toBe('text');
+    expect(conv.status).toBe('finished');
 
     await takeScreenshot(page, 'tc-g-02', 'gemini', '05-db-assertions-passed');
   });
@@ -326,7 +330,8 @@ test.describe('Gemini Basic Flow (P0)', () => {
 
     const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
     expect(aiMsg).toBeDefined();
-    expect(aiMsg!.status).toBe('finish');
+    expect(aiMsg!.type).toBe('text');
+    expect(conv.status).toBe('finished');
 
     await takeScreenshot(page, 'tc-g-03', 'gemini', '05-db-assertions-passed');
   });
@@ -393,7 +398,8 @@ test.describe('Gemini Basic Flow (P0)', () => {
     expect(messages.length).toBeGreaterThanOrEqual(2);
     const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
     expect(aiMsg).toBeDefined();
-    expect(aiMsg!.status).toBe('finish');
+    expect(aiMsg!.type).toBe('text');
+    expect(conv.status).toBe('finished');
 
     await takeScreenshot(page, 'tc-g-04', 'gemini', '05-db-assertions-passed');
   });
@@ -466,7 +472,8 @@ test.describe('Gemini Basic Flow (P0)', () => {
     // Verify AI reply exists
     const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
     expect(aiMsg).toBeDefined();
-    expect(aiMsg!.status).toBe('finish');
+    expect(aiMsg!.type).toBe('text');
+    expect(conv.status).toBe('finished');
 
     await takeScreenshot(page, 'tc-g-05', 'gemini', '05-db-assertions-passed');
   });
