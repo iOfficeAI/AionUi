@@ -3,8 +3,8 @@
  *
  * Flow: sidebar "+" button -> Create Team modal -> fill form -> create -> verify navigation
  */
-import { test, expect } from '../../../fixtures';
-import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { TEAM_SUPPORTED_BACKENDS, cleanupTeamsByName } from '../../helpers';
 
 /**
  * UI label patterns for each backend. Used to match the agent option in the

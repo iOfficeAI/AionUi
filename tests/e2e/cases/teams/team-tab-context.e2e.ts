@@ -5,8 +5,8 @@
  * member tab, and switching back, the leader's conversation history is still
  * visible and has not been cleared.
  */
-import { test, expect } from '../../../fixtures';
-import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 
 const AGENT_TYPE_MAP: Record<string, { agentType: string; conversationType: string }> = {
   gemini: { agentType: 'gemini', conversationType: 'gemini' },

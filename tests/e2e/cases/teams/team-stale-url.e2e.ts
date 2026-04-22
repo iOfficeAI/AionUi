@@ -5,8 +5,8 @@
  * does not crash the app. The router must either redirect to a safe
  * route or render a fallback UI; the sidebar must remain interactive.
  */
-import { test, expect } from '../../../fixtures';
-import { navigateTo, createTeam, deleteTeam, invokeBridge } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { navigateTo, createTeam, deleteTeam, invokeBridge } from '../../helpers';
 
 type TeamListResult = Array<{ id: string; name: string }>;
 

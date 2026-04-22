@@ -13,8 +13,8 @@
  * predict it, so we let addAgent return it and rely on the fact that
  * FailedMember is the only non-leader slot.
  */
-import { test, expect } from '../../../fixtures';
-import { invokeBridge, navigateTo, createTeam, deleteTeam } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, navigateTo, createTeam, deleteTeam } from '../../helpers';
 
 type AgentPayload = {
   role: string;

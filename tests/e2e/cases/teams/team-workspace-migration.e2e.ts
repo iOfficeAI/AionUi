@@ -13,8 +13,8 @@
  *   6. Send another task to leader → verify member gets re-assigned
  *   7. Cleanup: delete team + temp directory
  */
-import { test, expect } from '../../../fixtures';
-import { invokeBridge, TEAM_SUPPORTED_BACKENDS } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';

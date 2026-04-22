@@ -3,8 +3,8 @@
  *
  * Scenario 4: Leader communication — user types in UI input and sends via UI button
  */
-import { test, expect } from '../../../fixtures';
-import { invokeBridge, navigateTo } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, navigateTo } from '../../helpers';
 
 test.describe('Team Communication', () => {
   test('scenario 4: send message to leader via UI input', async ({ page }) => {

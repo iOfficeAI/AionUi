@@ -4,8 +4,8 @@
  * Flow: hover team sidebar item -> click three-dot trigger -> click Delete ->
  *       confirm modal -> assert navigation away + IPC confirms removal.
  */
-import { test, expect } from '../../../fixtures';
-import { invokeBridge, navigateTo, createTeam, cleanupTeamsByName } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, navigateTo, createTeam, cleanupTeamsByName } from '../../helpers';
 
 test.describe('Team Delete', () => {
   test('delete team via sider menu navigates away from team page', async ({ page }) => {

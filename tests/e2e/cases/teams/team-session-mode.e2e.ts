@@ -8,8 +8,8 @@
  * Only ACP-type backends (claude, codex) show the mode selector in team mode.
  * The test skips when no qualifying backend is available.
  */
-import { test, expect } from '../../../fixtures';
-import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS, MODE_SELECTOR } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS, MODE_SELECTOR } from '../../helpers';
 
 const TEAM_NAME = 'E2E Session Mode Team';
 

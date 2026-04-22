@@ -11,8 +11,8 @@
  *   7. Assert message text is visible in the DOM.
  *   8. Assert the member tab shows an active badge (member started processing).
  */
-import { test, expect } from '../../../fixtures';
-import { navigateTo, ensureTeam, TEAM_SUPPORTED_BACKENDS } from '../../../helpers';
+import { test, expect } from '../../fixtures';
+import { navigateTo, ensureTeam, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 
 test.describe('Team Member Messaging', () => {
   test('send message directly to member via member tab', async ({ page }) => {

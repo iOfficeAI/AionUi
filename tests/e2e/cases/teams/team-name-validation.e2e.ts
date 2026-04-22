@@ -4,7 +4,7 @@
  * Verifies that empty, whitespace-only, and very long names are handled
  * correctly without crashing the app or submitting invalid data.
  */
-import { test, expect } from '../../../fixtures';
+import { test, expect } from '../../fixtures';
 
 type ModalHandles = {
   modal: import('@playwright/test').Locator;
