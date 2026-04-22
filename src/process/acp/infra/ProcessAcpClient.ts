@@ -384,6 +384,18 @@ export class ProcessAcpClient implements AcpClient {
       );
     } else if (exitCode !== null && exitCode !== 0) {
       console.warn(`[ACP ${this.options.backend}] Process exited with code ${exitCode} [reason: ${reason}]`);
+    } else if (exitCode === null && !this.closing) {
+      // Pipe or RPC closed before a proper exit event landed, so exitCode and
+      // signal are both null. Without this branch the chat only shows
+      // "code: unknown, signal: none" with zero context. Surface whatever we
+      // do have: the disconnect reason, whether a prompt was in flight, and
+      // the tail of stderr the agent wrote before dying.
+      const tail = this.stderrBuffer.slice(-1024).trim();
+      console.warn(
+        `[ACP ${this.options.backend}] Disconnected without exit info` +
+          ` [reason: ${reason}, activePrompt: ${this.hasActivePrompt}]` +
+          (tail ? `\n  stderr tail: ${tail}` : '')
+      );
     }
 
     this._lastExit = {
