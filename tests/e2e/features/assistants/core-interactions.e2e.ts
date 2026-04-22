@@ -260,7 +260,7 @@ test.describe('Assistant Settings Core Interactions (P0)', () => {
 
     // 3. Try to find and use search input if it exists
     const searchInput = modal.locator('input').first();
-    const searchExists = await searchInput.count() > 0;
+    const searchExists = (await searchInput.count()) > 0;
 
     if (searchExists) {
       await searchInput.fill('zzz_nonexistent_skill_12345');
@@ -268,7 +268,8 @@ test.describe('Assistant Settings Core Interactions (P0)', () => {
       await takeScreenshot(page, 'assistants/p0-5/03-search-with-query.png');
 
       // Verify empty state or no results
-      const hasEmptyMsg = modalContent && /No skills found|未找到技能|No external skill sources|未发现外部技能源/.test(modalContent);
+      const hasEmptyMsg =
+        modalContent && /No skills found|未找到技能|No external skill sources|未发现外部技能源/.test(modalContent);
       await takeScreenshot(page, 'assistants/p0-5/04-final-state.png');
     } else {
       // No search input - just verify modal has skills or empty state message

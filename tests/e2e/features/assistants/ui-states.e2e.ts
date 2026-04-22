@@ -284,7 +284,10 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.waitForSelector('[data-testid="btn-expand-rules"]', { timeout: 5000 });
 
     // Locate rules container (has textarea)
-    const rulesContainer = drawer.locator('.border').filter({ has: page.locator('textarea') }).first();
+    const rulesContainer = drawer
+      .locator('.border')
+      .filter({ has: page.locator('textarea') })
+      .first();
     const initialHeight = await rulesContainer.evaluate((el) => window.getComputedStyle(el).height);
     await takeScreenshot(page, 'assistants/p1-9/02-initial-height.png');
 
@@ -321,7 +324,10 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await expect(drawer).toBeVisible({ timeout: 5_000 });
 
     // Verify initial Edit mode
-    const editTab = drawer.locator('div').filter({ hasText: /^(Edit|编辑)$/i }).first();
+    const editTab = drawer
+      .locator('div')
+      .filter({ hasText: /^(Edit|编辑)$/i })
+      .first();
     const editTabClass = await editTab.getAttribute('class');
     expect(editTabClass).toContain('text-primary');
     await takeScreenshot(page, 'assistants/p1-10/01-edit-active.png');
@@ -331,7 +337,10 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await expect(textarea).toBeVisible();
 
     // Switch to Preview mode
-    const previewTab = drawer.locator('div').filter({ hasText: /^(Preview|预览)$/i }).first();
+    const previewTab = drawer
+      .locator('div')
+      .filter({ hasText: /^(Preview|预览)$/i })
+      .first();
     await previewTab.click();
     await page.waitForTimeout(200);
     await takeScreenshot(page, 'assistants/p1-10/02-preview-clicked.png');
@@ -367,7 +376,10 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await takeScreenshot(page, 'assistants/p1-11/01-drawer-opened.png');
 
     // Switch to Preview mode
-    const previewTab = drawer.locator('div').filter({ hasText: /^(Preview|预览)$/i }).first();
+    const previewTab = drawer
+      .locator('div')
+      .filter({ hasText: /^(Preview|预览)$/i })
+      .first();
     await previewTab.click();
     await page.waitForTimeout(200);
     await takeScreenshot(page, 'assistants/p1-11/02-preview-mode.png');
@@ -431,7 +443,9 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await expect(skillsCollapse).toBeVisible();
 
     // Find Builtin Skills header
-    const builtinHeader = skillsCollapse.locator('.arco-collapse-item-header').filter({ hasText: /Builtin Skills|内置技能/i });
+    const builtinHeader = skillsCollapse
+      .locator('.arco-collapse-item-header')
+      .filter({ hasText: /Builtin Skills|内置技能/i });
     await expect(builtinHeader).toBeVisible();
     await takeScreenshot(page, 'assistants/p1-13/02-skills-section.png');
 
@@ -505,12 +519,17 @@ test.describe('Assistant Settings UI States (P1)', () => {
 
     // Locate Custom Skills section within skills-collapse
     const skillsCollapse = drawer.locator('[data-testid="skills-collapse"]');
-    const customSection = skillsCollapse.locator('.arco-collapse-item').filter({ hasText: /Imported Skills|导入技能/i });
+    const customSection = skillsCollapse
+      .locator('.arco-collapse-item')
+      .filter({ hasText: /Imported Skills|导入技能/i });
 
     if (await customSection.isVisible().catch(() => false)) {
       // Expand section if collapsed
       const customHeader = customSection.locator('.arco-collapse-item-header');
-      const isExpanded = await customSection.locator('.arco-collapse-item-content').isVisible().catch(() => false);
+      const isExpanded = await customSection
+        .locator('.arco-collapse-item-content')
+        .isVisible()
+        .catch(() => false);
 
       if (!isExpanded) {
         await customHeader.click();
@@ -754,9 +773,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await takeScreenshot(page, 'assistants/p1-18/02-builtin-assistant-drawer.png');
 
     // Verify Auto-injected Skills section exists
-    const autoSection = drawer
-      .locator('.arco-collapse-item')
-      .filter({ hasText: /Auto-injected Skills|自动注入技能/i });
+    const autoSection = drawer.locator('.arco-collapse-item').filter({ hasText: /Auto-injected Skills|自动注入技能/i });
     await expect(autoSection).toBeVisible();
 
     // Verify header contains count format (N/M)
