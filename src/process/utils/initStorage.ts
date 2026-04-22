@@ -19,7 +19,7 @@ import type {
   TChatConversation,
   TProviderWithModel,
 } from '@/common/config/storage';
-import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '@/common/config/storage';
+import { ConfigStorage, EnvStorage } from '@/common/config/storage';
 import {
   copyDirectoryRecursively,
   ensureDirectory,
@@ -854,8 +854,6 @@ const initStorage = async () => {
 
   // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);
-  ChatStorage.interceptor(chatFile);
-  ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
   mark('3. storage interceptors');
 

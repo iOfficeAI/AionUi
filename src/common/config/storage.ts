@@ -8,14 +8,6 @@ import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/common/types
 import type { SpeechToTextConfig } from '@/common/types/speech';
 import { storage } from '@office-ai/platform';
 
-/**
- * @description 聊天相关的存储
- */
-export const ChatStorage = storage.buildStorage<IChatConversationRefer>('agent.chat');
-
-// 聊天消息存储
-export const ChatMessageStorage = storage.buildStorage('agent.chat.message');
-
 // 系统配置存储
 export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.config');
 
