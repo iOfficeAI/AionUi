@@ -55,6 +55,7 @@
     "debug:mcp:validate": "bunx tsx scripts/debug-mcp.ts validate",
     "debug:custom-agent": "bunx tsx scripts/debug-custom-agent.ts",
     "test:e2e": "playwright test --config playwright.config.ts",
+    "test:e2e:conv:acp": "playwright test --config playwright.config.ts tests/e2e/features/conversations/acp --reporter=list",
     "test:e2e:team": "playwright test --config playwright.config.ts tests/e2e/specs/team-*.e2e.ts --reporter=list",
     "test:e2e:team:create": "playwright test --config playwright.config.ts tests/e2e/specs/team-create.e2e.ts --reporter=list",
     "test:e2e:team:lifecycle": "playwright test --config playwright.config.ts tests/e2e/specs/team-agent-lifecycle.e2e.ts --reporter=list",
