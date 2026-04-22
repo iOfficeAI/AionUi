@@ -19,8 +19,8 @@ export async function migrateConversationToDatabase(conversation: TChatConversat
     // Check if already in database
     const existing = db.getConversation(conversation.id);
     if (existing.success && existing.data) {
-      // Already migrated, just update modifyTime
-      db.updateConversation(conversation.id, { modifyTime: Date.now() });
+      // Already migrated, just update modifiedAt
+      db.updateConversation(conversation.id, { modifiedAt: Date.now() });
       return;
     }
 

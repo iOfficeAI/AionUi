@@ -248,13 +248,13 @@ export class CronService {
     await this.repo.insert(job);
 
     // Tag the conversation with cronJobId so it appears under the scheduled tasks tab
-    // and update modifyTime so it appears at the top of the list (skip for new_conversation mode)
+    // and update modifiedAt so it appears at the top of the list (skip for new_conversation mode)
     if (params.executionMode !== 'new_conversation' && params.conversationId) {
       try {
         const conv = await this.conversationRepo.getConversation(params.conversationId);
         const existingExtra = (conv?.extra ?? {}) as Record<string, unknown>;
         await this.conversationRepo.updateConversation(params.conversationId, {
-          modifyTime: now,
+          modifiedAt: now,
           extra: { ...existingExtra, cronJobId: jobId } as TChatConversation['extra'],
         });
       } catch (err) {
@@ -607,14 +607,14 @@ export class CronService {
       lastStatus = 'ok';
       lastError = undefined;
 
-      // Update conversation modifyTime so it appears at the top of the list
+      // Update conversation modifiedAt so it appears at the top of the list
       const activeConversationId = newConversationId || conversationId;
       try {
         await this.conversationRepo.updateConversation(activeConversationId, {
-          modifyTime: Date.now(),
+          modifiedAt: Date.now(),
         });
       } catch (err) {
-        console.warn('[CronService] Failed to update conversation modifyTime after execution:', err);
+        console.warn('[CronService] Failed to update conversation modifiedAt after execution:', err);
       }
     } catch (error) {
       // Error

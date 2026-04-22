@@ -59,8 +59,8 @@ export class ConversationServiceImpl implements IConversationService {
     const { conversation, sourceConversationId, migrateCron } = params;
     const conv: TChatConversation = {
       ...conversation,
-      createTime: conversation.createTime ?? Date.now(),
-      modifyTime: conversation.modifyTime ?? Date.now(),
+      createdAt: conversation.createdAt ?? Date.now(),
+      modifiedAt: conversation.modifiedAt ?? Date.now(),
     };
     await this.repo.createConversation(conv);
 

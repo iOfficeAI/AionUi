@@ -29,7 +29,7 @@ export const diffDay = (time1: number, time2: number): number => {
  * 获取会话的活动时间（最近的时间）
  */
 export const getActivityTime = (conversation: TChatConversation): number => {
-  return conversation.modifyTime || conversation.createTime || 0;
+  return conversation.modifiedAt || conversation.createdAt || 0;
 };
 
 /**

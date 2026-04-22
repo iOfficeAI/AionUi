@@ -124,8 +124,8 @@ export function conversationToRow(conversation: TChatConversation, userId: strin
     status: conversation.status,
     source: conversation.source,
     channel_chat_id: conversation.channelChatId,
-    created_at: conversation.createTime,
-    updated_at: conversation.modifyTime,
+    created_at: conversation.createdAt,
+    updated_at: conversation.modifiedAt,
   };
 }
 
@@ -137,8 +137,8 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     id: row.id,
     name: row.name,
     desc: undefined as string | undefined,
-    createTime: row.created_at,
-    modifyTime: row.updated_at,
+    createdAt: row.created_at,
+    modifiedAt: row.updated_at,
     status: row.status,
     source: row.source,
     channelChatId: row.channel_chat_id,

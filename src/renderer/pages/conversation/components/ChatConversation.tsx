@@ -112,8 +112,8 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
               conversation: {
                 ...source,
                 id,
-                createTime: Date.now(),
-                modifyTime: Date.now(),
+                createdAt: Date.now(),
+                modifiedAt: Date.now(),
                 // Clear ACP session fields to prevent new conversation from inheriting old session context
                 extra:
                   source.type === 'acp'

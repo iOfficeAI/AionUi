@@ -148,8 +148,8 @@ export function useWorkspaceMigration({
             ...currentConversation,
             id: newId,
             name: currentConversation.name,
-            createTime: Date.now(),
-            modifyTime: Date.now(),
+            createdAt: Date.now(),
+            modifiedAt: Date.now(),
             extra: {
               ...currentConversation.extra,
               workspace: targetWorkspace,

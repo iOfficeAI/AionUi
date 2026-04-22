@@ -423,7 +423,7 @@ export class TeamSessionService {
     const conversations = await this.conversationService.listAllConversations();
     const linkedConversations = conversations
       .filter((conversation) => (conversation.extra as { teamId?: string } | undefined)?.teamId === team.id)
-      .toSorted((left, right) => (right.modifyTime ?? 0) - (left.modifyTime ?? 0));
+      .toSorted((left, right) => (right.modifiedAt ?? 0) - (left.modifiedAt ?? 0));
 
     if (linkedConversations.length === 0) return team;
 
@@ -730,7 +730,7 @@ export class TeamSessionService {
         agent.conversationId,
         {
           extra: { workspace: newWorkspace, customWorkspace: true },
-          modifyTime: now,
+          modifiedAt: now,
         } as Partial<TChatConversation>,
         true
       );

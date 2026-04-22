@@ -754,7 +754,7 @@ export class AionUIDatabase {
       const updated = {
         ...existing.data,
         ...updates,
-        modifyTime: Date.now(),
+        modifiedAt: Date.now(),
       } as TChatConversation;
       const row = conversationToRow(updated, this.defaultUserId);
 

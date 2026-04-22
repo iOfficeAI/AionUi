@@ -204,8 +204,8 @@ export interface IEnvStorageRefer {
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
 
 interface IChatConversation<T, Extra> {
-  createTime: number;
-  modifyTime: number;
+  createdAt: number;
+  modifiedAt: number;
   name: string;
   desc?: string;
   id: string;

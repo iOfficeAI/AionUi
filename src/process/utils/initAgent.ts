@@ -214,8 +214,8 @@ export const createGeminiAgent = async (
       isHealthCheck,
     },
     desc: finalCustomWorkspace ? newWorkspace : '',
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
     name: newWorkspace,
     id: uuid(),
   };
@@ -266,8 +266,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       // Team ownership — used by sidebar filter to hide team-owned conversations
       ...(extra.teamId ? { teamId: extra.teamId } : {}),
     },
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
     name: workspace,
     id: uuid(),
   };
@@ -300,8 +300,8 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
     },
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
     name: workspace,
     id: uuid(),
   };
@@ -333,8 +333,8 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
     },
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
     name: workspace,
     id: uuid(),
   };
@@ -371,8 +371,8 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
       sessionMode: extra.sessionMode,
     },
     desc: customWorkspace ? workspace : '',
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
     name: workspace,
     id: uuid(),
   };
@@ -422,8 +422,8 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
       // Preset assistant ID for displaying name and avatar in conversation panel
       presetAssistantId: extra.presetAssistantId,
     },
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    createdAt: Date.now(),
+    modifiedAt: Date.now(),
     name: workspace,
     id: uuid(),
   };
