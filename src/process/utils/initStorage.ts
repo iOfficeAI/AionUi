@@ -31,7 +31,6 @@ import {
 } from './utils';
 import { getDatabase } from '../services/database/export';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
-import { migrateFromElectronConfig, importConfigFromFile } from './configMigration';
 import {
   BUILTIN_IMAGE_GEN_ID,
   BUILTIN_IMAGE_GEN_LEGACY_NAMES,
@@ -859,24 +858,6 @@ const initStorage = async () => {
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
   mark('3. storage interceptors');
-
-  // 3.1 Config migration only makes sense in standalone server mode (not inside Electron itself)
-  if (!hasElectronAppPath()) {
-    // Migrate config from Electron desktop app (once, after storage is ready)
-    await migrateFromElectronConfig(configFile as unknown as Parameters<typeof migrateFromElectronConfig>[0]);
-
-    // Manual import from specified path (if env var present)
-    const importFrom = process.env.IMPORT_CONFIG_FROM;
-    if (importFrom) {
-      const overwrite = process.env.IMPORT_CONFIG_OVERWRITE === 'true';
-      await importConfigFromFile(
-        importFrom,
-        overwrite,
-        configFile as unknown as Parameters<typeof importConfigFromFile>[2]
-      );
-    }
-    mark('3.1 configMigration');
-  }
 
   // 4. 初始化 MCP 配置（为所有用户提供默认配置）
   try {
