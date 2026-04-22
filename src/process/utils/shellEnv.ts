@@ -344,6 +344,10 @@ function getWindowsExtraToolPaths(): string[] {
     'C:\\cygwin\\bin',
     // bun global packages
     getBunGlobalBinDir(),
+    // Claude Code native installer and other XDG-style user-local tools.
+    // The new Claude Code Windows installer (≥ 2.1.112) places claude.exe at
+    // %USERPROFILE%\.local\bin rather than the old %APPDATA%\npm location.
+    path.join(homeDir, '.local', 'bin'),
   ];
 
   return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));

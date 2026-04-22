@@ -15,6 +15,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import os from 'os';
 import path from 'path';
 
 const mocks = vi.hoisted(() => ({
@@ -371,6 +372,38 @@ describe('getEnhancedEnv Windows extra paths (cross-platform mock)', () => {
     // Should appear exactly once (from process.env.PATH), not duplicated
     const occurrences = result.PATH.split(';').filter((p) => p === GIT_USR_BIN).length;
     expect(occurrences).toBe(1);
+  });
+
+  it('appends ~/.local/bin when it exists (Claude Code native installer path)', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    process.env.PATH = 'C:\\Windows\\System32';
+    process.env.APPDATA = 'C:\\Users\\test\\AppData\\Roaming';
+    process.env.LOCALAPPDATA = 'C:\\Users\\test\\AppData\\Local';
+    process.env.ProgramFiles = 'C:\\Program Files';
+
+    const LOCAL_BIN = path.join(os.homedir(), '.local', 'bin');
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn((p: string) => p === LOCAL_BIN),
+        readdirSync: actual.readdirSync,
+        accessSync: actual.accessSync,
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn().mockImplementation(() => {
+        throw new Error('skip shell');
+      }),
+      execFile: vi.fn(),
+    }));
+
+    const { getEnhancedEnv } = await import('@process/utils/shellEnv');
+    const result = getEnhancedEnv();
+
+    expect(result.PATH).toContain(LOCAL_BIN);
   });
 
   it('skips shell env loading on Windows and relies on extra tool paths', async () => {
