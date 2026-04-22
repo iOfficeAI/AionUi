@@ -122,7 +122,12 @@ class AcpDetector {
 
     const { execSync } = require('child_process') as typeof import('child_process');
     const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
+    // Use where.exe explicitly on Windows so the lookup works regardless of
+    // whether the current shell is cmd.exe or PowerShell. In PowerShell,
+    // `where` is an alias for Where-Object (object filtering) and will not
+    // locate executables. `where.exe` always invokes the correct Windows
+    // system binary (C:\Windows\System32\where.exe).
+    const whichCommand = isWindows ? 'where.exe' : 'which';
     const found = new Set<string>();
 
     for (const cmd of safe) {
