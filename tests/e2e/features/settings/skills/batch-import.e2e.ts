@@ -15,7 +15,7 @@ import {
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
-  normalizeTestId
+  normalizeTestId,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -58,7 +58,7 @@ test.describe('Skills Hub - Batch Import (P1)', () => {
 
       // Verify 1 skill already in My Skills
       let mySkills = await getMySkills(page);
-      let testSkills = mySkills.filter(s => s.name.includes(`-${timestamp}`));
+      let testSkills = mySkills.filter((s) => s.name.includes(`-${timestamp}`));
       expect(testSkills.length).toBe(1);
       expect(testSkills[0].name).toBe(skill2);
 
@@ -87,7 +87,7 @@ test.describe('Skills Hub - Batch Import (P1)', () => {
 
       // Verify via Bridge: 3 skills total now (skill1, skill2, skill3)
       mySkills = await getMySkills(page);
-      testSkills = mySkills.filter(s => s.name.includes(`-${timestamp}`));
+      testSkills = mySkills.filter((s) => s.name.includes(`-${timestamp}`));
       expect(testSkills.length).toBe(3);
 
       // Screenshot 04: My Skills after batch import
@@ -95,12 +95,8 @@ test.describe('Skills Hub - Batch Import (P1)', () => {
 
       // Verify new skill cards visible in My Skills section
       await refreshSkillsHub(page);
-      const card1 = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skill1)}"]`
-      );
-      const card3 = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skill3)}"]`
-      );
+      const card1 = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skill1)}"]`);
+      const card3 = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skill3)}"]`);
       await expect(card1).toBeVisible();
       await expect(card3).toBeVisible();
 

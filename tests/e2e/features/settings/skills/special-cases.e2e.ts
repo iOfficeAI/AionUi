@@ -13,7 +13,7 @@ import {
   importSkillViaBridge,
   createTempExternalSource,
   createTestSkill,
-  cleanupTestSkills
+  cleanupTestSkills,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -54,7 +54,10 @@ test.describe('Skills Hub - Special Cases (P2)', () => {
       }
 
       // Verify all imports succeeded or failed gracefully
-      console.log(`[TC-S-24] Import results:`, results.map(r => r.success));
+      console.log(
+        `[TC-S-24] Import results:`,
+        results.map((r) => r.success)
+      );
 
       await goToSkillsHub(page);
       await page.waitForTimeout(500);

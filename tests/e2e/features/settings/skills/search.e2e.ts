@@ -20,7 +20,7 @@ import {
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
-  normalizeTestId
+  normalizeTestId,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -67,7 +67,7 @@ test.describe('Skills Hub - Search (P1)', () => {
 
       // Verify 3 skills exist via Bridge before UI search
       const mySkills = await getMySkills(page);
-      const testSkills = mySkills.filter(s => s.name.includes(`-${timestamp}`));
+      const testSkills = mySkills.filter((s) => s.name.includes(`-${timestamp}`));
       expect(testSkills.length).toBe(3);
 
       // Screenshot 01: Initial state with 3 skills
@@ -83,18 +83,12 @@ test.describe('Skills Hub - Search (P1)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-02/02-search-results.png');
 
       // Expected: Only skill with "Search" in name visible
-      const targetCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skill1)}"]`
-      );
+      const targetCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skill1)}"]`);
       await expect(targetCard).toBeVisible();
 
       // Expected: Other cards not visible
-      const alphaCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skill2)}"]`
-      );
-      const betaCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skill3)}"]`
-      );
+      const alphaCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skill2)}"]`);
+      const betaCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skill3)}"]`);
       await expect(alphaCard).not.toBeVisible();
       await expect(betaCard).not.toBeVisible();
 
@@ -129,9 +123,7 @@ test.describe('Skills Hub - Search (P1)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-03/02-no-results.png');
 
       // Expected: Skill card not visible
-      const skillCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Skill')}"]`
-      );
+      const skillCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Skill')}"]`);
       await expect(skillCard).not.toBeVisible();
 
       // Expected: Empty state message visible (note: don't match i18n text)
@@ -186,9 +178,7 @@ test.describe('Skills Hub - Search (P1)', () => {
       const alphaCard = page.locator(
         `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-External-Alpha')}"]`
       );
-      const betaCard = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-External-Beta')}"]`
-      );
+      const betaCard = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-External-Beta')}"]`);
       await expect(alphaCard).not.toBeVisible();
       await expect(betaCard).not.toBeVisible();
 
