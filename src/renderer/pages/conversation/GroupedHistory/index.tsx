@@ -137,7 +137,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       batchMode,
       checked: selectedConversationIds.has(conversation.id),
       selected: id === conversation.id,
-      menuVisible: dropdownVisibleId === conversation.id,
+      menuVisible: dropdownVisibleId !== null && dropdownVisibleId === conversation.id,
       onToggleChecked: toggleSelectedConversation,
       onConversationClick: handleConversationClick,
       onOpenMenu: handleOpenMenu,
