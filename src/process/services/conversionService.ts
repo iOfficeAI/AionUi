@@ -555,7 +555,7 @@ class ConversionService {
     if (!BrowserWindowCtor) {
       return {
         success: false,
-        error: 'PDF export is not available in standalone mode',
+        error: 'PDF export requires Electron (BrowserWindow not available)',
       };
     }
     let win: BrowserWindow | null = null;

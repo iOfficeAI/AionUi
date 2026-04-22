@@ -1,6 +1,6 @@
 /**
  * Shared WebSocket broadcaster registry and bridge emitter reference.
- * No Electron imports — safe to use in both Electron main process and standalone mode.
+ * No Electron imports — safe to use in both Electron main process and WebUI mode.
  */
 
 type WebSocketBroadcastFn = (name: string, data: unknown) => void;

@@ -6,7 +6,7 @@
 
 /**
  * Platform-agnostic application bridge handlers.
- * Safe to use in both Electron and standalone server mode.
+ * Safe to use in both Electron and WebUI server mode.
  * Electron-only handlers (restart, devtools, zoom, CDP) remain in applicationBridge.ts.
  */
 import os from 'os';

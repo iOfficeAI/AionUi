@@ -38,7 +38,7 @@ const getNotificationIcon = (): string | undefined => {
 /**
  * Show a system notification.
  * Can be called directly from main process or via IPC from renderer.
- * In standalone mode this is a no-op (NodePlatformServices.notification.send is a no-op).
+ * In non-Electron mode this is a no-op (NodePlatformServices.notification.send is a no-op).
  */
 export async function showNotification({
   title,

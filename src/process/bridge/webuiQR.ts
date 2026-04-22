@@ -1,6 +1,6 @@
 /**
  * QR login helpers — no Electron imports.
- * Shared between webuiBridge.ts (Electron mode) and webserver/index.ts (standalone mode).
+ * Shared between webuiBridge.ts (Electron mode) and webserver/index.ts (WebUI mode).
  *
  * @license
  * Copyright 2025 AionUi (aionui.com)

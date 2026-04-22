@@ -13,22 +13,22 @@ export interface IPlatformPaths {
   getHomeDir(): string;
   /**
    * Application log directory.
-   * In standalone mode respects LOGS_DIR env var, falls back to <tmpdir>/aionui-logs.
+   * In non-Electron mode respects LOGS_DIR env var, falls back to <tmpdir>/aionui-logs.
    */
   getLogsDir(): string;
   /**
    * Root path of the application bundle.
-   * Returns null in standalone mode (no bundle concept).
+   * Returns null in non-Electron mode (no bundle concept).
    */
   getAppPath(): string | null;
   /**
    * True when running from a packaged Electron build.
-   * In standalone mode controlled by IS_PACKAGED env var (default false).
+   * In non-Electron mode controlled by IS_PACKAGED env var (default false).
    */
   isPackaged(): boolean;
   /**
    * Well-known system paths (desktop, home, downloads).
-   * Returns null in standalone mode.
+   * Returns null in non-Electron mode.
    */
   getSystemPath(name: 'desktop' | 'home' | 'downloads'): string | null;
   /** Application name used for MCP client identification. */
@@ -38,7 +38,7 @@ export interface IPlatformPaths {
   /**
    * Whether CLI-safe symlinks should be created in the home directory.
    * True only for Electron on macOS, where userData lives under "Application Support" (contains spaces).
-   * False for standalone server mode, where data dir has no spaces.
+   * False for non-Electron mode, where data dir has no spaces.
    */
   needsCliSafeSymlinks(): boolean;
 }
@@ -72,9 +72,9 @@ export interface IWorkerProcessFactory {
  *   if (id !== null) power.allowSleep(id)
  */
 export interface IPowerManager {
-  /** Returns a handle ID, or null if not supported (standalone mode). */
+  /** Returns a handle ID, or null if not supported (non-Electron mode). */
   preventSleep(): number | null;
-  /** id may be null (returned by standalone preventSleep); safe no-op in that case. */
+  /** id may be null (returned by non-Electron preventSleep); safe no-op in that case. */
   allowSleep(id: number | null): void;
   /**
    * Prevent the display (and system) from sleeping.
@@ -87,7 +87,7 @@ export interface IPowerManager {
 /**
  * System notification. Replaces Electron Notification class.
  *
- * In standalone mode: silent no-op (intentional degradation).
+ * In non-Electron mode: silent no-op (intentional degradation).
  * Notification lifecycle events (click, failed, close) are Electron-only
  * and are NOT modelled here.
  */
@@ -99,7 +99,7 @@ export interface INotificationService {
  * Network primitives that vary by runtime.
  *
  * Electron should use `net.fetch()` to preserve Chromium networking behavior.
- * Standalone server mode should use the runtime's global `fetch()`.
+ * Non-Electron mode should use the runtime's global `fetch()`.
  */
 export interface INetworkService {
   fetch(input: string | URL | Request, init?: RequestInit): Promise<Response>;

@@ -782,7 +782,7 @@ export async function resolveToolInfo(name: string): Promise<{ toolPath: string 
  * the startup path.  The entire body is wrapped in try/catch — diagnostics
  * must never crash the app.
  *
- * Works in both Electron desktop and standalone server modes; Electron-only
+ * Works in both Electron desktop and WebUI server mode; Electron-only
  * fields (Electron/Chromium version, userData, logFile) are included only
  * when `process.versions.electron` is present.
  *
@@ -796,7 +796,7 @@ export async function logEnvironmentDiagnostics(): Promise<void> {
 
     // Electron-specific values — only available in desktop mode
     let appVersion = '(unknown)';
-    let mode = 'standalone';
+    let mode = 'server';
     let userDataPath: string | undefined;
     let logFilePath: string | undefined;
     if (isElectron) {

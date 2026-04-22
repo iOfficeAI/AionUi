@@ -1163,7 +1163,7 @@ export class AcpAgent {
       }
 
       // In team mode, wait indefinitely for leader to approve (like Claude).
-      // In standalone mode, allow up to 30 minutes to respond to permission prompts.
+      // In non-team mode, allow up to 30 minutes to respond to permission prompts.
       if (!this.extra.teamMcpStdioConfig) {
         setTimeout(() => {
           if (this.pendingPermissions.has(requestId)) {

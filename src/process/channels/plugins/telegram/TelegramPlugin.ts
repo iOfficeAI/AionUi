@@ -49,7 +49,7 @@ export class TelegramPlugin extends BasePlugin {
 
     // Create bot instance
     // Pass globalThis.fetch to avoid node-fetch@2 vs abort-controller AbortSignal
-    // instanceof mismatch when running in bundled standalone server mode.
+    // instanceof mismatch when running in bundled server mode.
     // In Electron, globalThis.fetch is Chromium's fetch; in Node.js 22+, it is undici.
     // Both accept AbortSignal from the abort-controller polyfill via duck-typing.
     const nativeFetch = typeof globalThis.fetch === 'function' ? globalThis.fetch.bind(globalThis) : undefined;

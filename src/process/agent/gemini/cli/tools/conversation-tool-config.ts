@@ -110,7 +110,7 @@ export class ConversationToolConfig {
       sessionId: 'gemini-websearch-' + Date.now(),
       // Keep Gemini tool sessions out of the repository tree so Bun does not
       // scan source and node_modules. Use the platform data directory so the
-      // runtime location is stable across Electron and standalone server modes.
+      // runtime location is stable across Electron and WebUI server mode.
       targetDir: runtimeDir,
       cwd: runtimeDir,
       debugMode: false,

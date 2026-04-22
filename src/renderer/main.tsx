@@ -6,7 +6,7 @@
 
 // Sentry must be initialized first
 // Use electron-specific renderer package only inside Electron; fall back to the
-// browser SDK when running as a standalone web server (no window.electronAPI).
+// browser SDK when running as a web server (no window.electronAPI).
 if ((window as { electronAPI?: unknown }).electronAPI) {
   // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
   import('@sentry/electron/renderer').then((Sentry) => Sentry.init()).catch(() => {});
