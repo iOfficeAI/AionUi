@@ -23,6 +23,7 @@ import {
 import { takeScreenshot } from '../../../helpers/screenshots';
 
 test.describe('Gemini Chat - Mid-Conversation Switch (P1)', () => {
+  test.setTimeout(300_000); // 5 minutes — multi-round AI replies
   test.beforeEach(async ({ page }) => {
     const hasAuth = await checkGeminiAuth(page);
     if (!hasAuth) {

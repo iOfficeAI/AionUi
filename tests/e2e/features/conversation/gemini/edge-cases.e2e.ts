@@ -24,6 +24,7 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 
 test.describe('Gemini Chat - Edge Cases (P2)', () => {
+  test.setTimeout(240_000); // 4 minutes for edge case tests
   test.afterEach(async ({ page }) => {
     // Cleanup UI state (ESC × 5)
     for (let i = 0; i < 5; i++) {

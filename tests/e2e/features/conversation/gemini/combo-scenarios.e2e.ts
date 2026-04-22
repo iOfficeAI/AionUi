@@ -27,6 +27,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
+  test.setTimeout(240_000); // 4 minutes for combo scenarios
   test.beforeEach(async ({ page }) => {
     const hasAuth = await checkGeminiAuth(page);
     if (!hasAuth) {

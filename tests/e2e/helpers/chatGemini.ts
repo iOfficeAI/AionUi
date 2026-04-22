@@ -10,11 +10,16 @@ import os from 'os';
 
 /**
  * Check if Gemini OAuth credentials or API key are configured.
+ * Gemini is a native conversation type (not ACP), so auth goes through two paths:
+ *   1. Google OAuth: ~/.gemini/oauth_creds.json with access_token or refresh_token
+ *   2. API Key: a configured provider with platform 'gemini' / 'gemini-vertex-ai' /
+ *      'gemini-with-google-auth' that has apiKey (or uses OAuth for google-auth variant)
+ *      and at least one model entry.
  * @param page Playwright page
  * @returns True if Gemini auth is available
  */
 export async function checkGeminiAuth(page: Page): Promise<boolean> {
-  // Check OAuth credentials file
+  // Path 1: OAuth credentials file
   const oauthCredsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
   if (fs.existsSync(oauthCredsPath)) {
     try {
@@ -24,27 +29,32 @@ export async function checkGeminiAuth(page: Page): Promise<boolean> {
         return true;
       }
     } catch {
-      // Ignore parse errors
+      // Ignore parse errors, fall through to API key check
     }
   }
 
-  // Check if Gemini providers are available via bridge
+  // Path 2: Check configured Gemini providers via bridge
   try {
-    const result = await invokeBridge<{ success: boolean; data?: { backend: string }[] }>(
-      page,
-      'acpConversation.getAvailableAgents',
-      {},
-      10_000
-    );
-    if (result.success && result.data) {
-      const hasGemini = result.data.some((agent) => agent.backend === 'gemini');
-      return hasGemini;
-    }
+    const providers = await invokeBridge<any[]>(page, 'mode.get-model-config', {}, 10_000);
+    if (!Array.isArray(providers)) return false;
+
+    const hasGeminiProvider = providers.some((p) => {
+      const platform = String(p?.platform || '');
+      const isGeminiPlatform =
+        platform === 'gemini' || platform === 'gemini-vertex-ai' || platform === 'gemini-with-google-auth';
+      if (!isGeminiPlatform) return false;
+      if (p.enabled === false) return false;
+      if (!Array.isArray(p.model) || p.model.length === 0) return false;
+      // gemini-with-google-auth uses OAuth instead of apiKey
+      if (platform === 'gemini-with-google-auth') return true;
+      return typeof p.apiKey === 'string' && p.apiKey.length > 0;
+    });
+
+    return hasGeminiProvider;
   } catch {
     // Bridge call failed
+    return false;
   }
-
-  return false;
 }
 
 /**
@@ -118,31 +128,82 @@ export async function sendGeminiMessage(
 
 /**
  * Wait for Gemini AI reply to complete.
- * Polls messages table until an AI message (position='left') with status='finish' appears.
+ * Polls the conversation.status field (written to conversations table by GeminiAgentManager)
+ * and the latest AI text message. Completion is signalled by:
+ *   1. conversation.status === 'finished', AND
+ *   2. The latest AI text message content has been stable for >= 2s between polls.
+ *
+ * Note: `status: 'finish'` on messages is a Gemini stream event type, not a DB status —
+ * AI text messages do NOT have status='finish' in the DB. Use conversation.status instead.
  * @param page Playwright page
  * @param conversationId Conversation ID
  * @param timeoutMs Timeout in milliseconds (default 90s, Gemini API is slower than binary)
  */
 export async function waitForGeminiReply(page: Page, conversationId: string, timeoutMs = 90_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
+  let lastAiMessageLength = 0;
+  let stableSince = 0;
+
   while (Date.now() < deadline) {
     const messages = await invokeBridge<
-      Array<{ id: string; position: string; status: string; content: string; type: string }>
-    >(page, 'database.getConversationMessages', {
+      Array<{ id: string; position: string; status: string; content: unknown; type: string }>
+    >(page, 'database.get-conversation-messages', {
       conversation_id: conversationId,
       page: 0,
       pageSize: 100,
-    });
+    }).catch(() => [] as Array<{ id: string; position: string; status: string; content: unknown; type: string }>);
 
-    const aiMessage = messages.find((m) => m.position === 'left' && m.type === 'text');
-    if (aiMessage && aiMessage.status === 'finish') {
-      return;
+    const aiTextMsgs = messages.filter((m) => m.position === 'left' && m.type === 'text');
+
+    if (aiTextMsgs.length > 0) {
+      const last = aiTextMsgs[aiTextMsgs.length - 1];
+      // Gemini message.content can be either a string or an object { content: string }
+      const currentText =
+        typeof last.content === 'object' && last.content !== null
+          ? (last.content as { content?: string }).content ?? ''
+          : String(last.content ?? '');
+
+      const conv = await getGeminiConversationDB(page, conversationId).catch(() => null);
+      if (conv?.status === 'finished') {
+        if (currentText.length === lastAiMessageLength && stableSince > 0 && Date.now() - stableSince >= 2000) {
+          return;
+        }
+        if (currentText.length !== lastAiMessageLength) {
+          lastAiMessageLength = currentText.length;
+          stableSince = Date.now();
+        } else if (stableSince === 0) {
+          stableSince = Date.now();
+        }
+      } else {
+        lastAiMessageLength = currentText.length;
+        stableSince = 0; // reset while still running
+      }
     }
 
-    // Wait 1s before next poll
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(500);
   }
 
+  // Dump final DB state to help diagnose timeout cause
+  const finalConv = await getGeminiConversationDB(page, conversationId).catch(() => null);
+  const finalMsgs = await invokeBridge<
+    Array<{ id: string; position: string; status: string; content: unknown; type: string }>
+  >(page, 'database.get-conversation-messages', {
+    conversation_id: conversationId,
+    page: 0,
+    pageSize: 100,
+  }).catch(() => [] as Array<{ id: string; position: string; status: string; content: unknown; type: string }>);
+
+  console.error(`[waitForGeminiReply TIMEOUT] conv.status=${finalConv?.status}, msg count=${finalMsgs.length}`);
+  for (const m of finalMsgs) {
+    const c =
+      typeof m.content === 'object' && m.content !== null
+        ? (m.content as { content?: string }).content
+        : String(m.content ?? '');
+    const preview = typeof c === 'string' ? c.slice(0, 120) : JSON.stringify(m.content).slice(0, 120);
+    console.error(
+      `[waitForGeminiReply TIMEOUT]   - pos=${m.position} type=${m.type} status=${m.status} preview="${preview}"`
+    );
+  }
   throw new Error(`Gemini AI reply did not complete within ${timeoutMs}ms for conversation ${conversationId}`);
 }
 
@@ -174,7 +235,7 @@ export async function getGeminiConversationDB(
     status: string;
     created_at: number;
     updated_at: number;
-  }>(page, 'conversation.get', { id: conversationId }, 10_000);
+  }>(page, 'get-conversation', { id: conversationId }, 10_000);
 
   if (!conv) {
     throw new Error(`Conversation ${conversationId} not found in database`);
@@ -192,8 +253,8 @@ export async function cleanupE2EGeminiConversations(page: Page): Promise<void> {
   // List all conversations for the default user
   const allConvs = await invokeBridge<Array<{ id: string; name: string; type: string }>>(
     page,
-    'database.listConversations',
-    { userId: 'system_default_user' },
+    'database.get-user-conversations',
+    { page: 0, pageSize: 1000 },
     10_000
   ).catch(() => [] as Array<{ id: string; name: string; type: string }>);
 
@@ -204,11 +265,11 @@ export async function cleanupE2EGeminiConversations(page: Page): Promise<void> {
     return;
   }
 
-  // Delete each conversation (conversation.remove triggers task cleanup + FK CASCADE)
+  // Delete each conversation (remove-conversation triggers task cleanup + FK CASCADE)
   const errors: string[] = [];
   for (const conv of e2eConvs) {
     try {
-      await invokeBridge(page, 'conversation.remove', { id: conv.id }, 10_000);
+      await invokeBridge(page, 'remove-conversation', { id: conv.id }, 10_000);
     } catch (error) {
       const msg = error instanceof Error ? error.message : String(error);
       errors.push(`Failed to delete conversation ${conv.id}: ${msg}`);
@@ -222,8 +283,8 @@ export async function cleanupE2EGeminiConversations(page: Page): Promise<void> {
   // Verify cleanup completed (all E2E conversations should be gone)
   const remaining = await invokeBridge<Array<{ id: string; name: string; type: string }>>(
     page,
-    'database.listConversations',
-    { userId: 'system_default_user' },
+    'database.get-user-conversations',
+    { page: 0, pageSize: 1000 },
     10_000
   ).catch(() => [] as Array<{ id: string; name: string; type: string }>);
 

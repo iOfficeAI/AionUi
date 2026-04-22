@@ -19,6 +19,7 @@ import {
 import { takeScreenshot } from '../../../helpers/screenshots';
 
 test.describe('Gemini Chat - Permission Modes (P1)', () => {
+  test.setTimeout(240_000); // 4 minutes for permission mode tests
   test.beforeEach(async ({ page }) => {
     const hasAuth = await checkGeminiAuth(page);
     if (!hasAuth) {

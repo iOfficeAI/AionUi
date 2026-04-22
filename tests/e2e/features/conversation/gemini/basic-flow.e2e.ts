@@ -15,11 +15,13 @@ import {
   invokeBridge,
   takeScreenshot,
   goToGuid,
+  waitForGeminiReply,
 } from '../../../helpers';
 import fs from 'fs';
 import path from 'path';
 
 test.describe('Gemini Basic Flow (P0)', () => {
+  test.setTimeout(240_000); // 4 minutes — allow 90s AI reply poll + setup/cleanup buffer
   let tempWorkspace: string;
 
   test.beforeEach(async ({ page }) => {
@@ -98,34 +100,8 @@ test.describe('Gemini Basic Flow (P0)', () => {
 
     await takeScreenshot(page, 'tc-g-01', 'gemini', '03-conversation-page');
 
-    // 6. Wait for AI reply to complete (poll DB messages table)
-    await expect
-      .poll(
-        async () => {
-          const messages = await invokeBridge<
-            Array<{
-              id: string;
-              position: string;
-              status: string;
-              type: string;
-              content: string;
-              created_at: number;
-            }>
-          >(page, 'database.getConversationMessages', {
-            conversation_id: conversationId,
-            page: 0,
-            pageSize: 100,
-          });
-
-          const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
-          return aiMsg && aiMsg.status === 'finish';
-        },
-        {
-          timeout: 90_000,
-          message: 'Waiting for AI reply to complete',
-        }
-      )
-      .toBeTruthy();
+    // 6. Wait for AI reply to complete (poll conversation.status + content stability)
+    await waitForGeminiReply(page, conversationId, 90_000);
 
     await takeScreenshot(page, 'tc-g-01', 'gemini', '04-reply-completed');
 
@@ -145,7 +121,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
         content: string;
         created_at: number;
       }>
-    >(page, 'database.getConversationMessages', {
+    >(page, 'database.get-conversation-messages', {
       conversation_id: conversationId,
       page: 0,
       pageSize: 100,
@@ -217,27 +193,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     await takeScreenshot(page, 'tc-g-02', 'gemini', '03-conversation-page');
 
     // 8. Wait for AI reply
-    await expect
-      .poll(
-        async () => {
-          const messages = await invokeBridge<
-            Array<{
-              id: string;
-              position: string;
-              status: string;
-              type: string;
-            }>
-          >(page, 'database.getConversationMessages', {
-            conversation_id: conversationId,
-            page: 0,
-            pageSize: 100,
-          });
-          const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
-          return aiMsg && aiMsg.status === 'finish';
-        },
-        { timeout: 90_000 }
-      )
-      .toBeTruthy();
+    await waitForGeminiReply(page, conversationId, 90_000);
 
     await takeScreenshot(page, 'tc-g-02', 'gemini', '04-reply-completed');
 
@@ -254,7 +210,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
         status: string;
         content: string;
       }>
-    >(page, 'database.getConversationMessages', {
+    >(page, 'database.get-conversation-messages', {
       conversation_id: conversationId,
       page: 0,
       pageSize: 100,
@@ -311,26 +267,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     await takeScreenshot(page, 'tc-g-03', 'gemini', '03-conversation-page');
 
     // 9. Wait for AI reply
-    await expect
-      .poll(
-        async () => {
-          const messages = await invokeBridge<
-            Array<{
-              position: string;
-              status: string;
-              type: string;
-            }>
-          >(page, 'database.getConversationMessages', {
-            conversation_id: conversationId,
-            page: 0,
-            pageSize: 100,
-          });
-          const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
-          return aiMsg && aiMsg.status === 'finish';
-        },
-        { timeout: 90_000 }
-      )
-      .toBeTruthy();
+    await waitForGeminiReply(page, conversationId, 90_000);
 
     await takeScreenshot(page, 'tc-g-03', 'gemini', '04-reply-completed');
 
@@ -346,7 +283,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
         type: string;
         status: string;
       }>
-    >(page, 'database.getConversationMessages', {
+    >(page, 'database.get-conversation-messages', {
       conversation_id: conversationId,
       page: 0,
       pageSize: 100,
@@ -393,26 +330,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     await takeScreenshot(page, 'tc-g-04', 'gemini', '03-conversation-page');
 
     // 7. Wait for AI reply
-    await expect
-      .poll(
-        async () => {
-          const messages = await invokeBridge<
-            Array<{
-              position: string;
-              status: string;
-              type: string;
-            }>
-          >(page, 'database.getConversationMessages', {
-            conversation_id: conversationId,
-            page: 0,
-            pageSize: 100,
-          });
-          const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
-          return aiMsg && aiMsg.status === 'finish';
-        },
-        { timeout: 90_000 }
-      )
-      .toBeTruthy();
+    await waitForGeminiReply(page, conversationId, 90_000);
 
     await takeScreenshot(page, 'tc-g-04', 'gemini', '04-reply-completed');
 
@@ -427,7 +345,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
         type: string;
         status: string;
       }>
-    >(page, 'database.getConversationMessages', {
+    >(page, 'database.get-conversation-messages', {
       conversation_id: conversationId,
       page: 0,
       pageSize: 100,
@@ -471,26 +389,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
     expect(modalVisible).toBe(false); // No confirmation dialog should appear
 
     // 7. Wait for tool execution or AI reply to complete
-    await expect
-      .poll(
-        async () => {
-          const messages = await invokeBridge<
-            Array<{
-              position: string;
-              status: string;
-              type: string;
-            }>
-          >(page, 'database.getConversationMessages', {
-            conversation_id: conversationId,
-            page: 0,
-            pageSize: 100,
-          });
-          const aiMsg = messages.find((m) => m.position === 'left' && m.type === 'text');
-          return aiMsg && aiMsg.status === 'finish';
-        },
-        { timeout: 90_000 }
-      )
-      .toBeTruthy();
+    await waitForGeminiReply(page, conversationId, 90_000);
 
     await takeScreenshot(page, 'tc-g-05', 'gemini', '04-reply-completed');
 
@@ -506,7 +405,7 @@ test.describe('Gemini Basic Flow (P0)', () => {
         position: string;
         status: string;
       }>
-    >(page, 'database.getConversationMessages', {
+    >(page, 'database.get-conversation-messages', {
       conversation_id: conversationId,
       page: 0,
       pageSize: 100,
