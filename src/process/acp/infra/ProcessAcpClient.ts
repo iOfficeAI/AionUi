@@ -360,7 +360,14 @@ export class ProcessAcpClient implements AcpClient {
       this.recordAgentExit('process_close', code, signal);
     });
     child.stdout?.once('close', () => {
-      this.recordAgentExit('pipe_close', child.exitCode ?? null, child.signalCode ?? null);
+      // On Windows, stdout 'close' frequently fires before 'exit' even on
+      // graceful shutdowns (stdin.end() → child exits code 0). If pipe_close
+      // wins the first-write race, we lock in exitCode=null and the UI shows
+      // "code: unknown" for what was actually a clean exit. Delay briefly so
+      // a pending 'exit' event can land and populate child.exitCode first.
+      setTimeout(() => {
+        this.recordAgentExit('pipe_close', child.exitCode ?? null, child.signalCode ?? null);
+      }, 200);
     });
     // connection_close is attached after ClientSideConnection is created (in start())
   }
@@ -400,13 +407,17 @@ export class ProcessAcpClient implements AcpClient {
     });
     this.rejectPendingRequests(error);
 
-    // Notify disconnect handler
+    // Notify disconnect handler with full context so the UI/session layer can
+    // distinguish intentional teardown from genuine crashes and surface the
+    // reason + stderr tail to the user.
     if (this.disconnectHandler) {
       this.disconnectHandler({
         reason,
         exitCode,
         signal: signal ? String(signal) : null,
         stderr: this.stderrBuffer,
+        activePrompt: this.hasActivePrompt,
+        intentional: this.closing,
       });
     }
   }

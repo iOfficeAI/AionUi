@@ -96,6 +96,20 @@ export type DisconnectInfo = {
   exitCode: number | null;
   signal: string | null;
   stderr: string;
+  /**
+   * True if the agent process died while a prompt was still in flight
+   * (`session/prompt` request outstanding). Distinguishes a genuine mid-turn
+   * crash from a process that quietly died while idle after completing its
+   * last turn — the two cases often need different UX and recovery.
+   */
+  activePrompt: boolean;
+  /**
+   * True if the client had initiated a graceful `close()` when the exit
+   * fired. Used by the UI to suppress the crash banner on intentional
+   * teardown (suspend, user-kill) — otherwise these innocuous exits look
+   * identical to genuine crashes.
+   */
+  intentional: boolean;
 };
 
 // ─── Client Factory ─────────────────────────────────────────────
