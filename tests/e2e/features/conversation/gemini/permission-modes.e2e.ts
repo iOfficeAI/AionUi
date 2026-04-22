@@ -111,8 +111,11 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     const extra = readConvExtra(conv);
     expect(extra.sessionMode).toBe('autoEdit');
 
-    // Verify workspace not set
-    expect(extra.workspace).toBeUndefined();
+    // Gemini always provisions a workspace — either user-attached or auto-created
+    // `gemini-temp-<timestamp>`. In this test we didn't attach a folder, so the
+    // agent created a temp workspace (see src/process/utils/initAgent.ts).
+    const ws = String(extra.workspace ?? '');
+    expect(ws).toMatch(/gemini-temp-\d+/);
 
     console.log(`[TC-G-06] Conversation verified:`, {
       id: conversationId,
