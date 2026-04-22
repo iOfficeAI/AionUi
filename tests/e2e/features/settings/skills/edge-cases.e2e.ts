@@ -14,11 +14,11 @@ import {
   importSkillViaBridge,
   getCustomExternalPaths,
   removeCustomExternalPath,
+  addCustomExternalPath,
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
   normalizeTestId,
-  invokeBridge
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -37,11 +37,8 @@ test.describe('Skills Hub - Edge Cases (P2)', () => {
     // Restore any custom paths that were removed during test
     const currentPaths = await getCustomExternalPaths(page);
     for (const saved of savedPaths) {
-      if (!currentPaths.find(p => p.path === saved.path)) {
-        await invokeBridge(page, 'add-external-skill-source', {
-          name: saved.name,
-          path: saved.path
-        });
+      if (!currentPaths.find((p) => p.path === saved.path)) {
+        await addCustomExternalPath(page, saved.name, saved.path);
       }
     }
     // Wait for restoration to complete

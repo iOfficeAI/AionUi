@@ -1,17 +1,22 @@
 import type { Page } from '@playwright/test';
 import { invokeBridge } from './bridge';
+import { httpGet, httpPost, httpDelete } from './httpBridge';
 import { navigateTo } from './navigation';
 import * as path from 'path';
 import * as fs from 'fs';
 import * as os from 'os';
 import { mkdtemp, writeFile, mkdir, rm } from 'fs/promises';
 
+// Re-export for tests that import invokeBridge via this module.
+export { invokeBridge };
+
 /**
  * Skills Hub E2E Test Helpers
  *
- * Data-testid additions required (authorization granted by team-lead):
- * - All testid additions will be documented here as they're added to source files
- * - Source files modified: (to be populated during implementation)
+ * All skills-related helpers drive the backend over HTTP (see `./httpBridge.ts`),
+ * matching the renderer's post-migration call pattern (`ipcBridge.fs.*.invoke()` →
+ * `fetch('/api/skills/*')`). Routes are defined in `src/common/adapter/ipcBridge.ts`
+ * (lines ~317-363) and backed by `crates/aionui-extension/src/skill_routes.rs`.
  */
 
 // ============================================================================
@@ -51,15 +56,19 @@ export async function goToSkillsHub(page: Page): Promise<void> {
   await page.waitForTimeout(500);
 
   // Try to click Skills tab if it exists and isn't already active
-  const skillsTab = page.locator('.arco-tabs-header-title, .arco-tabs-nav-tab').filter({ hasText: /Skills|技能/i }).first();
+  const skillsTab = page
+    .locator('.arco-tabs-header-title, .arco-tabs-nav-tab')
+    .filter({ hasText: /Skills|技能/i })
+    .first();
   const isVisible = await skillsTab.isVisible().catch(() => false);
 
   if (isVisible) {
     // Check if tab is already active by looking at aria-selected or active class
-    const isActive = await skillsTab.evaluate(el => {
-      return el.classList.contains('arco-tabs-nav-tab-active') ||
-             el.getAttribute('aria-selected') === 'true';
-    }).catch(() => false);
+    const isActive = await skillsTab
+      .evaluate((el) => {
+        return el.classList.contains('arco-tabs-nav-tab-active') || el.getAttribute('aria-selected') === 'true';
+      })
+      .catch(() => false);
 
     if (!isActive) {
       await skillsTab.click();
@@ -67,16 +76,18 @@ export async function goToSkillsHub(page: Page): Promise<void> {
     }
   }
 
-  // Wait for tab content to load
+  // Wait for tab content to load. Dev-mode cold boot needs ~6-15s after
+  // navigation before SkillsHub's unconditional `my-skills-section` div
+  // finishes layout (Vite dev + Arco Tabs + initial skill list render).
   const section = page.locator('[data-testid="my-skills-section"]');
-  await section.waitFor({ state: 'visible', timeout: 5_000 });
+  await section.waitFor({ state: 'visible', timeout: 15_000 });
 
-  // Wait for Bridge initialization (fs.* providers take longer to initialize)
-  // Use a simple Bridge call as health check
+  // Wait for backend skills API to respond. A 200 on /api/skills/paths
+  // confirms the backend is up and the renderer can reach it.
   let bridgeReady = false;
   for (let attempt = 0; attempt < 5; attempt++) {
     try {
-      await invokeBridge(page, 'get-skill-paths', undefined, 3000);
+      await httpGet(page, '/api/skills/paths');
       bridgeReady = true;
       break;
     } catch {
@@ -85,7 +96,7 @@ export async function goToSkillsHub(page: Page): Promise<void> {
   }
 
   if (!bridgeReady) {
-    console.warn('[goToSkillsHub] Bridge fs.* providers not ready after 5 attempts');
+    console.warn('[goToSkillsHub] Backend skills API not ready after 5 attempts');
   }
 }
 
@@ -105,41 +116,38 @@ export async function refreshSkillsHub(page: Page): Promise<void> {
 // ============================================================================
 
 /**
- * Get all skills in "My Skills" section
+ * Get all skills in "My Skills" section (GET /api/skills).
  */
 export async function getMySkills(page: Page): Promise<Skill[]> {
-  return invokeBridge<Skill[]>(page, 'list-available-skills');
+  const skills = await httpGet<Skill[]>(page, '/api/skills');
+  return skills ?? [];
 }
 
 /**
- * Get all external skill sources
- * Note: Bridge returns { success, data: ExternalSource[] }
+ * Get all external skill sources (GET /api/skills/detect-external).
+ * HTTP bridge unwraps the `data` envelope, so the array is returned directly.
  */
 export async function getExternalSources(page: Page): Promise<ExternalSource[]> {
-  const result = await invokeBridge<{ success: boolean; data: ExternalSource[] }>(
-    page,
-    'detect-and-count-external-skills'
-  );
-  return result.data || [];
+  const sources = await httpGet<ExternalSource[]>(page, '/api/skills/detect-external');
+  return sources ?? [];
 }
 
 /**
- * Get auto-injected skills
+ * Get auto-injected builtin skills (GET /api/skills/builtin-auto).
  */
 export async function getAutoSkills(page: Page): Promise<Skill[]> {
-  return invokeBridge<Skill[]>(page, 'list-builtin-auto-skills');
+  const skills = await httpGet<Skill[]>(page, '/api/skills/builtin-auto');
+  return skills ?? [];
 }
 
 /**
- * Get custom external paths configuration
+ * Get custom external paths configuration (GET /api/skills/external-paths).
  */
 export async function getCustomExternalPaths(page: Page): Promise<Array<{ name: string; path: string }>> {
-  // Note: This bridge key needs verification - may not exist
-  // Will verify during implementation and update test-strategy if needed
   try {
-    return invokeBridge<Array<{ name: string; path: string }>>(page, 'get-custom-external-paths');
+    const paths = await httpGet<Array<{ name: string; path: string }>>(page, '/api/skills/external-paths');
+    return paths ?? [];
   } catch {
-    // Fallback: return empty array if bridge key doesn't exist
     return [];
   }
 }
@@ -178,49 +186,64 @@ export async function createTempExternalSourceDir(): Promise<{ path: string; cle
     path: tempDir,
     cleanup: async () => {
       await rm(tempDir, { recursive: true, force: true });
-    }
+    },
   };
 }
 
 /**
- * Import a skill via Bridge (for test setup)
+ * Import a skill via HTTP bridge (POST /api/skills/import-symlink) for test setup.
  */
-export async function importSkillViaBridge(
-  page: Page,
-  skillPath: string
-): Promise<{ success: boolean; msg?: string }> {
-  return invokeBridge(page, 'import-skill-with-symlink', { skillPath });
+export async function importSkillViaBridge(page: Page, skillPath: string): Promise<{ success: boolean; msg?: string }> {
+  try {
+    await httpPost(page, '/api/skills/import-symlink', { skillPath });
+    return { success: true };
+  } catch (err) {
+    return { success: false, msg: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /**
- * Delete a skill via Bridge (for test cleanup)
+ * Delete a skill via HTTP bridge (DELETE /api/skills/{skillName}) for test cleanup.
  */
-export async function deleteSkillViaBridge(
-  page: Page,
-  skillName: string
-): Promise<{ success: boolean; msg?: string }> {
-  return invokeBridge(page, 'delete-skill', { skillName });
+export async function deleteSkillViaBridge(page: Page, skillName: string): Promise<{ success: boolean; msg?: string }> {
+  try {
+    await httpDelete(page, `/api/skills/${encodeURIComponent(skillName)}`);
+    return { success: true };
+  } catch (err) {
+    return { success: false, msg: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /**
- * Add a custom external path via Bridge
+ * Add a custom external path via HTTP bridge (POST /api/skills/external-paths).
  */
 export async function addCustomExternalPath(
   page: Page,
   name: string,
   pathValue: string
 ): Promise<{ success: boolean; msg?: string }> {
-  return invokeBridge(page, 'add-custom-external-path', { name, path: pathValue });
+  try {
+    await httpPost(page, '/api/skills/external-paths', { name, path: pathValue });
+    return { success: true };
+  } catch (err) {
+    return { success: false, msg: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 /**
- * Remove a custom external path via Bridge
+ * Remove a custom external path via HTTP bridge
+ * (DELETE /api/skills/external-paths?path=...).
  */
 export async function removeCustomExternalPath(
   page: Page,
   pathValue: string
 ): Promise<{ success: boolean; msg?: string }> {
-  return invokeBridge(page, 'remove-custom-external-path', { path: pathValue });
+  try {
+    await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(pathValue)}`);
+    return { success: true };
+  } catch (err) {
+    return { success: false, msg: err instanceof Error ? err.message : String(err) };
+  }
 }
 
 // ============================================================================
@@ -263,10 +286,7 @@ export async function refreshExternalSkills(page: Page): Promise<void> {
  * Import a skill via UI (single skill from external sources)
  * Note: The entire card is clickable, not just the button
  */
-export async function importSkillViaUI(
-  page: Page,
-  skillName: string
-): Promise<void> {
+export async function importSkillViaUI(page: Page, skillName: string): Promise<void> {
   const normalizedName = normalizeTestId(skillName);
   // Click the card itself (the entire card triggers import)
   await page.click(`[data-testid="external-skill-card-${normalizedName}"]`);
@@ -277,10 +297,7 @@ export async function importSkillViaUI(
 /**
  * Delete a skill via UI
  */
-export async function deleteSkillViaUI(
-  page: Page,
-  skillName: string
-): Promise<void> {
+export async function deleteSkillViaUI(page: Page, skillName: string): Promise<void> {
   const normalizedName = normalizeTestId(skillName);
 
   // Click delete button
@@ -298,11 +315,7 @@ export async function deleteSkillViaUI(
 /**
  * Export a skill to an external source via UI
  */
-export async function exportSkillViaUI(
-  page: Page,
-  skillName: string,
-  targetSource: string
-): Promise<void> {
+export async function exportSkillViaUI(page: Page, skillName: string, targetSource: string): Promise<void> {
   const normalizedName = normalizeTestId(skillName);
 
   // Click export button (opens dropdown)
@@ -328,11 +341,7 @@ export async function importAllSkills(page: Page): Promise<void> {
 /**
  * Add custom external path via UI
  */
-export async function addCustomPathViaUI(
-  page: Page,
-  name: string,
-  pathValue: string
-): Promise<void> {
+export async function addCustomPathViaUI(page: Page, name: string, pathValue: string): Promise<void> {
   // Click add button
   await page.click('[data-testid="btn-add-custom-source"]');
 
@@ -349,7 +358,7 @@ export async function addCustomPathViaUI(
   // Wait for modal close
   await page.waitForSelector('[data-testid="modal-add-custom-path"]', {
     state: 'hidden',
-    timeout: 2000
+    timeout: 2000,
   });
 }
 
@@ -362,7 +371,7 @@ export async function addCustomPathViaUI(
  * Converts special characters to hyphens
  */
 export function normalizeTestId(name: string): string {
-  return name.replace(/[:\/\s<>"'|?*]/g, '-');
+  return name.replace(/[:/\s<>"'|?*]/g, '-');
 }
 
 /**
@@ -388,11 +397,7 @@ export function createTempExternalSource(sourceName: string): {
 /**
  * Create a test skill in a directory
  */
-export function createTestSkill(
-  dir: string,
-  skillName: string,
-  description = 'Test skill for E2E'
-): void {
+export function createTestSkill(dir: string, skillName: string, description = 'Test skill for E2E'): void {
   const skillDir = path.join(dir, skillName);
   fs.mkdirSync(skillDir, { recursive: true });
 
