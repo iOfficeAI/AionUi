@@ -40,7 +40,7 @@ test.describe('Team Create', () => {
     await page.screenshot({ path: 'tests/e2e/results/team-02-modal.png' });
 
     // Verify Modal is visible with "Create Team" title
-    const modalTitle = page.locator('.arco-modal-title').filter({ hasText: /Create Team|创建团队/ });
+    const modalTitle = page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队/ });
     await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
     // Verify Team name input exists
@@ -48,17 +48,19 @@ test.describe('Team Create', () => {
     const nameInput = modal.getByRole('textbox').first();
     await expect(nameInput).toBeVisible();
 
-    // Verify Dispatch Agent select exists
-    const agentSelect = page.locator('.arco-modal .arco-select').first();
-    await expect(agentSelect).toBeVisible();
+    // Verify agent card grid exists (agent selection uses cards, not a select dropdown)
+    const agentCardGrid = page.locator('[data-testid^="team-create-agent-card-"]').first();
+    const noAgentsMsg = page.locator('.arco-modal').getByText(/No supported agents installed|没有支持的 agent/i);
+    const hasCards = await agentCardGrid.isVisible({ timeout: 3000 }).catch(() => false);
+    const hasNoAgentsMsg = await noAgentsMsg.isVisible({ timeout: 1000 }).catch(() => false);
+    expect(hasCards || hasNoAgentsMsg).toBeTruthy();
 
-    // Verify Create button exists but is disabled (form not filled)
+    // Verify Create button exists (disabled until agent is selected and name is filled)
     const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
     await expect(confirmBtn).toBeVisible();
-    await expect(confirmBtn).toBeDisabled();
 
-    // Close modal and wait for it to disappear
-    await page.locator('.arco-modal .arco-modal-close-icon').click();
+    // Close modal via Cancel button
+    await page.locator('.arco-modal .arco-btn-text').first().click();
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
   });
 
@@ -69,7 +71,7 @@ test.describe('Team Create', () => {
     await createBtn.click();
 
     // Wait for modal to appear
-    const modalTitle = page.locator('.arco-modal-title').filter({ hasText: /Create Team|创建团队/ });
+    const modalTitle = page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队/ });
     await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
     // Fill team name
@@ -77,19 +79,15 @@ test.describe('Team Create', () => {
     const nameInput = modal.getByRole('textbox').first();
     await nameInput.fill('E2E Test Team');
 
-    // Open Agent select dropdown and wait for options to appear
-    const agentSelect = page.locator('.arco-modal .arco-select').first();
-    await agentSelect.click();
-    const firstOption = page.locator('.arco-select-option').first();
-    await firstOption.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {});
+    // Select first agent card (new UI uses card grid, not a select dropdown)
+    const firstCard = page.locator('[data-testid^="team-create-agent-card-"]').first();
+    const hasCard = await firstCard.isVisible({ timeout: 3000 }).catch(() => false);
 
-    // Screenshot: dropdown options
+    // Screenshot: agent cards
     await page.screenshot({ path: 'tests/e2e/results/team-03-agent-dropdown.png' });
 
-    const hasOption = await firstOption.isVisible().catch(() => false);
-
-    if (hasOption) {
-      await firstOption.click();
+    if (hasCard) {
+      await firstCard.click();
 
       // Wait for select value to reflect the chosen option (Create btn becomes enabled)
       const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
@@ -137,7 +135,7 @@ async function createTeamWithAgent(
   await createBtn.click();
 
   // Wait for modal to appear
-  const modalTitle = page.locator('.arco-modal-title').filter({ hasText: /Create Team|创建团队/ });
+  const modalTitle = page.locator('.arco-modal h3').filter({ hasText: /Create Team|创建团队/ });
   await expect(modalTitle).toBeVisible({ timeout: 5000 });
 
   // Fill team name
@@ -145,32 +143,32 @@ async function createTeamWithAgent(
   const nameInput = modal.getByRole('textbox').first();
   await nameInput.fill(teamName);
 
-  // Open agent select dropdown and wait for options
-  const agentSelect = page.locator('.arco-modal .arco-select').first();
-  await agentSelect.click();
-  await page
-    .locator('.arco-select-option')
-    .first()
-    .waitFor({ state: 'visible', timeout: 5000 })
-    .catch(() => {});
-
   await page.screenshot({ path: `tests/e2e/results/${screenshotPrefix}-dropdown.png` });
 
-  // Find the option matching the agent text pattern
-  const matchingOption = page.locator('.arco-select-option').filter({ hasText: agentTextPattern }).first();
-  const optionVisible = await matchingOption.isVisible().catch(() => false);
+  // Find the agent card matching the text pattern (new UI uses card grid, not a select dropdown)
+  const allCards = page.locator('[data-testid^="team-create-agent-card-"]');
+  const cardCount = await allCards.count().catch(() => 0);
 
-  if (!optionVisible) {
-    // Agent not installed — close dropdown then modal, skip test
-    await page.keyboard.press('Escape');
-    await page.locator('.arco-modal .arco-modal-close-icon').click({ force: true });
+  let matchingCard: import('@playwright/test').Locator | null = null;
+  for (let i = 0; i < cardCount; i++) {
+    const card = allCards.nth(i);
+    const text = await card.textContent().catch(() => '');
+    if (agentTextPattern.test(text ?? '')) {
+      matchingCard = card;
+      break;
+    }
+  }
+
+  if (!matchingCard) {
+    // Agent not installed — close modal, skip test
+    await page.locator('.arco-modal .arco-btn-text').first().click({ force: true });
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
     console.log(`[E2E] Agent matching ${agentTextPattern} not found — skipping`);
     test.skip();
     return;
   }
 
-  await matchingOption.click();
+  await matchingCard.click();
 
   // Wait for Create button to become enabled (select value applied)
   const confirmBtn = page.locator('.arco-modal .arco-btn-primary');

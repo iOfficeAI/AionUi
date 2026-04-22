@@ -145,6 +145,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
         <div className='shrink-0 flex flex-col gap-2px mb-8px'>
           <div className='flex items-center justify-between px-12px py-8px'>
             <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
+            {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试的入口 selector，不得删除或重命名。
+                如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
             <div
               data-testid="team-create-btn"
               className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'

@@ -21,6 +21,9 @@ import {
   AgentOptionLabel,
 } from './agentSelectUtils';
 
+// [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
+// 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts 和 team-whitelist.e2e.ts 中的 selector，
+// 并立即向上汇报改动情况。
 const FormItem = Form.Item;
 const { Option, OptGroup } = AionSelect;
 

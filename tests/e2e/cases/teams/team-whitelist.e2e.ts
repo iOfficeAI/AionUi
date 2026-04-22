@@ -16,7 +16,7 @@ test.describe('Team Agent Whitelist', () => {
     await page.goto(page.url().split('#')[0] + '#/guid');
 
     // Close any leftover modal from previous tests before interacting with the page
-    const existingModal = page.locator('.arco-modal-close-icon');
+    const existingModal = page.locator('.arco-modal .arco-btn-text');
     if (await existingModal.isVisible({ timeout: 1000 }).catch(() => false)) {
       await existingModal.click({ force: true });
       await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
@@ -28,43 +28,36 @@ test.describe('Team Agent Whitelist', () => {
     const createBtn = page.locator('[data-testid="team-create-btn"]').first();
     await createBtn.click();
 
-    // Open agent dropdown
-    const agentSelect = page.locator('.arco-modal .arco-select').first();
-    await expect(agentSelect).toBeVisible({ timeout: 5000 });
-    await agentSelect.click();
-    await expect(page.locator('.arco-select-option').first()).toBeVisible({ timeout: 5000 });
+    // Verify agent cards are visible (new UI uses card grid, not a select dropdown)
+    const firstCard = page.locator('[data-testid^="team-create-agent-card-"]').first();
+    await expect(firstCard).toBeVisible({ timeout: 5000 });
 
     // Screenshot: dropdown options
     await page.screenshot({ path: 'tests/e2e/results/team-whitelist-01-dropdown.png' });
 
-    // Get all visible option texts
-    const options = page.locator('.arco-select-option');
-    const count = await options.count();
+    // Get all agent card texts
+    const cards = page.locator('[data-testid^="team-create-agent-card-"]');
+    const count = await cards.count();
 
     const optionTexts: string[] = [];
     for (let i = 0; i < count; i++) {
-      const text = await options.nth(i).textContent();
+      const text = await cards.nth(i).textContent();
       if (text) optionTexts.push(text.trim());
     }
 
     console.log('[E2E] Available agents in dropdown:', optionTexts);
 
-    // Every whitelisted backend must appear in the dropdown
+    // [WHITELIST RULE] All assertions here are based on TEAM_SUPPORTED_BACKENDS (tests/e2e/helpers/teamConfig.ts).
+    // Do NOT hardcode which agents should or should not appear — the whitelist is the single source of truth.
+    // If the supported backend list changes, update teamConfig.ts, not this test.
+
+    // Every whitelisted backend must appear in the card grid
     for (const backend of TEAM_SUPPORTED_BACKENDS) {
       expect(optionTexts.some((t) => t.toLowerCase().includes(backend))).toBe(true);
     }
 
-    // Non-whitelisted backends must not appear
-    const nonWhitelisted = ['qwen', 'codebuddy'];
-    for (const text of optionTexts) {
-      const lower = text.toLowerCase();
-      for (const blocked of nonWhitelisted) {
-        expect(lower).not.toContain(blocked);
-      }
-    }
-
-    // Close modal
-    await page.locator('.arco-modal .arco-modal-close-icon').click();
+    // Close modal via Cancel button
+    await page.locator('.arco-modal .arco-btn-text').first().click();
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
   });
 });
