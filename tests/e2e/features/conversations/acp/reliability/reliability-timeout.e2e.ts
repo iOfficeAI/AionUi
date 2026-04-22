@@ -2,7 +2,6 @@ import { test, expect } from '../../../../fixtures';
 import {
   invokeBridge,
   goToGuid,
-  goToNewChat,
   selectAgent,
   sendMessageFromGuid,
   waitForAiReply,
@@ -79,7 +78,7 @@ test.describe('F-RELIABILITY-02 AI 回复超时自动处理', () => {
 
   test.beforeAll(async ({ page }) => {
     test.setTimeout(240_000);
-    await goToNewChat(page);
+    await goToGuid(page);
     await selectAgent(page, 'claude');
     timeoutConvId = await sendMessageFromGuid(
       page,
@@ -99,7 +98,7 @@ test.describe('F-RELIABILITY-02 AI 回复超时自动处理', () => {
   });
 
   test('停止 AI 回复后用户可重新发送消息', async ({ page }) => {
-    await goToNewChat(page);
+    await goToGuid(page);
     await selectAgent(page, 'claude');
     const stopConvId = await sendMessageFromGuid(
       page,
