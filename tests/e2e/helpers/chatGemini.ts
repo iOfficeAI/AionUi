@@ -58,6 +58,42 @@ export async function checkGeminiAuth(page: Page): Promise<boolean> {
 }
 
 /**
+ * Placeholder provider used when no configured Gemini API-key provider is available.
+ * Matches the shape the UI constructs at `useGuidSend.ts:143-150` for Google Auth users,
+ * so `GeminiAgentManager.createBootstrap()` can resolve `AuthType.LOGIN_WITH_GOOGLE` from
+ * the platform field and load OAuth credentials from `~/.gemini/oauth_creds.json`.
+ */
+const GEMINI_GOOGLE_AUTH_PLACEHOLDER = {
+  id: 'gemini-placeholder',
+  name: 'Gemini',
+  useModel: 'default',
+  platform: 'gemini-with-google-auth' as const,
+  baseUrl: '',
+  apiKey: '',
+  model: ['default'],
+} as const;
+
+/**
+ * Resolve a proper Gemini provider model object for bridge-level conversation creation.
+ * Returns the first enabled Gemini API-key provider, or the Google Auth placeholder
+ * (which requires valid `~/.gemini/oauth_creds.json` to work).
+ *
+ * Why this matters: `ipcBridge.conversation.create({ type: 'gemini', model })` hands
+ * `model` to `GeminiAgentManager`, whose `createBootstrap()` reads `model.platform` to
+ * pick an `AuthType`. Passing a bare string (e.g. `'auto'`) makes `platform` undefined,
+ * bootstrap silently falls back to `USE_OPENAI`, and the worker never completes the
+ * first `send.message` — exactly the hang that caused `waitForGeminiReply` to time out.
+ */
+async function resolveGeminiProviderForBridge(page: Page): Promise<Record<string, unknown>> {
+  const models = await getGeminiTestModels(page);
+  if (models) {
+    // Hydrate a full provider object with `useModel` set to the first configured model.
+    return { ...models.provider, useModel: models.modelA };
+  }
+  return { ...GEMINI_GOOGLE_AUTH_PLACEHOLDER };
+}
+
+/**
  * Create a Gemini conversation via IPC bridge.
  * @param page Playwright page
  * @param opts Conversation options
@@ -68,7 +104,13 @@ export async function createGeminiConversationViaBridge(
   opts: {
     name?: string;
     workspace?: string;
-    model?: string;
+    /**
+     * Optional explicit provider object. When omitted, the helper resolves a real
+     * provider from local config (preferred) or falls back to the Google Auth
+     * placeholder. Passing a plain string here is intentionally NOT supported —
+     * `GeminiAgentManager` needs a `TProviderWithModel` shape to resolve auth type.
+     */
+    provider?: Record<string, unknown>;
     sessionMode?: string;
   }
 ): Promise<string> {
@@ -81,9 +123,8 @@ export async function createGeminiConversationViaBridge(
   if (opts.workspace) {
     extra.workspace = opts.workspace;
   }
-  if (opts.model) {
-    extra.model = opts.model;
-  }
+
+  const model = opts.provider ?? (await resolveGeminiProviderForBridge(page));
 
   const result = await invokeBridge<{ id: string }>(
     page,
@@ -92,7 +133,7 @@ export async function createGeminiConversationViaBridge(
       type: 'gemini',
       name,
       extra,
-      model: opts.model || 'auto',
+      model,
     },
     15_000
   );
@@ -101,6 +142,15 @@ export async function createGeminiConversationViaBridge(
 
 /**
  * Send a message in a Gemini conversation via IPC bridge.
+ *
+ * Two things this helper does that the raw bridge call does NOT:
+ *   1. Calls `conversation.warmup` first to mirror the sendbox's on-mount warmup —
+ *      without this, the worker fork + bootstrap can still be in-flight when the
+ *      first `chat.send.message` arrives, which on some gemini configs leaves the
+ *      stream stuck pre-reply (observed as `waitForGeminiReply` timing out after 90s).
+ *   2. Uses a 120s invoke timeout because the bridge handler resolves only after
+ *      the worker has ACKed the message, and gemini cold starts can take >10s.
+ *
  * @param page Playwright page
  * @param conversationId Conversation ID
  * @param text Message text
@@ -112,6 +162,11 @@ export async function sendGeminiMessage(
   text: string,
   opts?: { files?: string[] }
 ): Promise<void> {
+  // Warmup mirrors `sendbox.tsx:996` — it kicks `workerTaskManager.getOrBuildTask`
+  // and (for ACP) `initAgent` before the real send. For Gemini it's best-effort;
+  // we swallow errors because the downstream send will surface any real failure.
+  await invokeBridge(page, 'conversation.warmup', { conversation_id: conversationId }, 30_000).catch(() => {});
+
   const msgId = `e2e-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
   await invokeBridge(
     page,
@@ -160,7 +215,7 @@ export async function waitForGeminiReply(page: Page, conversationId: string, tim
       // Gemini message.content can be either a string or an object { content: string }
       const currentText =
         typeof last.content === 'object' && last.content !== null
-          ? (last.content as { content?: string }).content ?? ''
+          ? ((last.content as { content?: string }).content ?? '')
           : String(last.content ?? '');
 
       const conv = await getGeminiConversationDB(page, conversationId).catch(() => null);
@@ -455,7 +510,14 @@ export async function isElectronDesktop(page: Page): Promise<boolean> {
  */
 async function mockShowOpenReturn(page: Page, paths: string[]): Promise<void> {
   await page.evaluate((returnPaths) => {
-    const api = (window as unknown as { electronAPI?: { emit?: (name: string, data: unknown) => Promise<unknown>; on?: (cb: (p: { event: unknown; value: unknown }) => void) => () => void } }).electronAPI;
+    const api = (
+      window as unknown as {
+        electronAPI?: {
+          emit?: (name: string, data: unknown) => Promise<unknown>;
+          on?: (cb: (p: { event: unknown; value: unknown }) => void) => () => void;
+        };
+      }
+    ).electronAPI;
     if (!api || !api.emit) return;
     // Save original emit only once.
     const win = window as unknown as {
@@ -482,7 +544,8 @@ async function mockShowOpenReturn(page: Page, paths: string[]): Promise<void> {
           // so send a synthetic callback via the real transport if possible.
           // Fallback: stash the response on window for poll-based checks.
           (window as unknown as { __lastShowOpenId?: string; __lastShowOpenPaths?: string[] }).__lastShowOpenId = id;
-          (window as unknown as { __lastShowOpenId?: string; __lastShowOpenPaths?: string[] }).__lastShowOpenPaths = resolvedPaths;
+          (window as unknown as { __lastShowOpenId?: string; __lastShowOpenPaths?: string[] }).__lastShowOpenPaths =
+            resolvedPaths;
           // Best-effort: try to locate electronAPI listener registry and fire
           const apiAny = api as unknown as { _listeners?: Set<(p: { event: unknown; value: unknown }) => void> };
           const listeners = apiAny._listeners;
@@ -548,7 +611,10 @@ export async function uploadGeminiFiles(page: Page, filePaths: string[]): Promis
   await uploadBtn.hover();
   await page.waitForTimeout(300);
   // Click the "file" menu item from the dropdown
-  const fileItem = page.locator('.arco-dropdown-menu-item').filter({ hasText: /file|host/i }).first();
+  const fileItem = page
+    .locator('.arco-dropdown-menu-item')
+    .filter({ hasText: /file|host/i })
+    .first();
   const visible = await fileItem.isVisible().catch(() => false);
   if (visible) {
     await fileItem.click();
