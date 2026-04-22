@@ -14,10 +14,10 @@ export const useMultiAgentDetection = () => {
   useEffect(() => {
     const checkMultiAgentMode = async () => {
       try {
-        const response = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-        if (response && response.success && response.data) {
+        const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+        if (Array.isArray(agents)) {
           // 检测是否有多个ACP智能体（不包括内置的Gemini）
-          const acpAgents = response.data.filter(
+          const acpAgents = agents.filter(
             (agent: { backend: string; name: string; cliPath?: string }) => agent.backend !== 'gemini'
           );
           if (acpAgents.length > 1) {

@@ -33,13 +33,13 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       // 初始化时检测可用的agents
       const loadAgents = async () => {
         try {
-          const response = await acpConversation.getAvailableAgents.invoke();
-          if (response.success && response.data) {
-            const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
-            setDetectedAgents(agents);
+          const result = await acpConversation.getAvailableAgents.invoke();
+          if (Array.isArray(result)) {
+            const agentList = result.map((agent) => ({ backend: agent.backend, name: agent.name }));
+            setDetectedAgents(agentList);
             // 设置第一个agent为默认值
-            if (agents.length > 1) {
-              setSelectedAgent(agents[0].backend);
+            if (agentList.length > 1) {
+              setSelectedAgent(agentList[0].backend);
             }
           }
         } catch (error) {
@@ -75,18 +75,18 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
     setLoadingImport(true);
     try {
       // 获取所有可用的agents
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
-      if (!agentsResponse.success || !agentsResponse.data) {
+      const agents = await acpConversation.getAvailableAgents.invoke();
+      if (!Array.isArray(agents) || agents.length === 0) {
         throw new Error('Failed to get available agents');
       }
 
       // 通过IPC调用后端服务获取MCP配置
-      const mcpResponse = await mcpService.getAgentMcpConfigs.invoke(agentsResponse.data);
-      if (mcpResponse.success && mcpResponse.data) {
+      const mcpResponse = await mcpService.getAgentMcpConfigs.invoke(agents);
+      if (mcpResponse) {
         const allServers: IMcpServer[] = [];
 
         // 过滤选中的agent的服务器
-        mcpResponse.data.forEach((agentConfig) => {
+        mcpResponse.forEach((agentConfig) => {
           if (agentConfig.source === selectedAgent) {
             allServers.push(...agentConfig.servers);
           }
@@ -94,7 +94,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
 
         setImportableServers(allServers);
       } else {
-        throw new Error(mcpResponse.msg || 'Failed to get MCP configs');
+        throw new Error('Failed to get MCP configs');
       }
     } catch (error) {
       console.error('Failed to import from CLI:', error);

@@ -83,10 +83,10 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       setAvailableSkills(skills);
 
       const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      if (external.success && external.data) {
-        setExternalSources(external.data);
-        if (external.data.length > 0 && !activeSourceTab) {
-          setActiveSourceTab(external.data[0].source);
+      if (external) {
+        setExternalSources(external);
+        if (external.length > 0 && !activeSourceTab) {
+          setActiveSourceTab(external[0].source);
         }
       }
 
@@ -127,15 +127,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const handleImport = async (skillPath: string) => {
     try {
-      const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath });
-      if (result.success) {
-        Message.success(
-          result.msg || t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' })
-        );
-        void fetchData();
-      } else {
-        Message.error(result.msg || t('settings.skillsHub.importFailed', { defaultValue: 'Failed to import skill' }));
-      }
+      await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath });
+      Message.success(
+        t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' })
+      );
+      void fetchData();
     } catch (error) {
       console.error('Failed to import skill:', error);
       Message.error(t('settings.skillsHub.importError', { defaultValue: 'Error importing skill' }));
@@ -146,8 +142,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     let successCount = 0;
     for (const skill of skills) {
       try {
-        const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: skill.path });
-        if (result.success) successCount++;
+        await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: skill.path });
+        successCount++;
       } catch {
         // continue
       }
@@ -165,13 +161,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const handleDelete = async (skillName: string) => {
     try {
-      const result = await ipcBridge.fs.deleteSkill.invoke({ skillName });
-      if (result.success) {
-        Message.success(result.msg || t('settings.skillsHub.deleteSuccess', { defaultValue: 'Skill deleted' }));
-        void fetchData();
-      } else {
-        Message.error(result.msg || t('settings.skillsHub.deleteFailed', { defaultValue: 'Failed to delete skill' }));
-      }
+      await ipcBridge.fs.deleteSkill.invoke({ skillName });
+      Message.success(t('settings.skillsHub.deleteSuccess', { defaultValue: 'Skill deleted' }));
+      void fetchData();
     } catch (error) {
       console.error('Failed to delete skill:', error);
       Message.error(t('settings.skillsHub.deleteError', { defaultValue: 'Error deleting skill' }));
@@ -195,10 +187,10 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     setRefreshing(true);
     try {
       const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      if (external.success && external.data) {
-        setExternalSources(external.data);
-        if (external.data.length > 0 && !external.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(external.data[0].source);
+      if (external) {
+        setExternalSources(external);
+        if (external.length > 0 && !external.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(external[0].source);
         }
       }
       Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
@@ -212,18 +204,14 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleAddCustomPath = useCallback(async () => {
     if (!customPathName.trim() || !customPathValue.trim()) return;
     try {
-      const result = await ipcBridge.fs.addCustomExternalPath.invoke({
+      await ipcBridge.fs.addCustomExternalPath.invoke({
         name: customPathName.trim(),
         path: customPathValue.trim(),
       });
-      if (result.success) {
-        setShowAddPathModal(false);
-        setCustomPathName('');
-        setCustomPathValue('');
-        void handleRefreshExternal();
-      } else {
-        Message.error(result.msg || 'Failed to add path');
-      }
+      setShowAddPathModal(false);
+      setCustomPathName('');
+      setCustomPathValue('');
+      void handleRefreshExternal();
     } catch (error) {
       Message.error('Failed to add custom path');
     }
@@ -508,31 +496,22 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                                   try {
                                     const skillPath = skill.location.replace(/[\\/]SKILL\.md$/, '');
 
-                                    const result = await Promise.race([
+                                    await Promise.race([
                                       ipcBridge.fs.exportSkillWithSymlink.invoke({
                                         skillPath,
                                         targetDir: source.path,
                                       }),
-                                      new Promise<{ success: boolean; msg: string }>((_, reject) =>
+                                      new Promise<void>((_, reject) =>
                                         setTimeout(() => reject(new Error('Export timed out.')), 8000)
                                       ),
                                     ]);
 
                                     hide();
-                                    if (result.success) {
-                                      Message.success(
-                                        t('settings.skillsHub.exportSuccess', {
-                                          defaultValue: 'Skill exported successfully',
-                                        })
-                                      );
-                                    } else {
-                                      Message.error(
-                                        result.msg ||
-                                          t('settings.skillsHub.exportFailed', {
-                                            defaultValue: 'Failed to export skill',
-                                          })
-                                      );
-                                    }
+                                    Message.success(
+                                      t('settings.skillsHub.exportSuccess', {
+                                        defaultValue: 'Skill exported successfully',
+                                      })
+                                    );
                                   } catch (error) {
                                     hide();
                                     console.error('[SkillsHub] Export error:', error);

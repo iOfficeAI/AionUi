@@ -49,8 +49,8 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
       try {
         const result = await webui.getStatus.invoke();
         if (!alive) return;
-        if (result?.success && result.data) {
-          const quickStatus: WebuiQuickStatus = result.data.running ? 'running' : 'stopped';
+        if (result) {
+          const quickStatus: WebuiQuickStatus = result.running ? 'running' : 'stopped';
           setWebuiQuickStatus(quickStatus);
           webuiStatusCache = { quickStatus, at: Date.now() };
           return;

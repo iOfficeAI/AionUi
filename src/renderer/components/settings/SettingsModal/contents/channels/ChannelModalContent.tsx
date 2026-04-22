@@ -210,14 +210,15 @@ const ChannelModalContent: React.FC = () => {
   // Load plugin status
   const loadPluginStatus = useCallback(async () => {
     try {
-      const result = await channel.getPluginStatus.invoke();
-      if (result.success && result.data) {
-        const telegramPlugin = result.data.find((p) => p.type === 'telegram');
-        const larkPlugin = result.data.find((p) => p.type === 'lark');
-        const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
-        const weixinPlugin = result.data.find((p) => p.type === 'weixin');
-        const wecomPlugin = result.data.find((p) => p.type === 'wecom');
-        const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
+      // getPluginStatus returns IChannelPluginStatus[] directly
+      const plugins = await channel.getPluginStatus.invoke();
+      if (plugins) {
+        const telegramPlugin = plugins.find((p) => p.type === 'telegram');
+        const larkPlugin = plugins.find((p) => p.type === 'lark');
+        const dingtalkPlugin = plugins.find((p) => p.type === 'dingtalk');
+        const weixinPlugin = plugins.find((p) => p.type === 'weixin');
+        const wecomPlugin = plugins.find((p) => p.type === 'wecom');
+        const extensionPlugins = plugins.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
 
         setPluginStatus(telegramPlugin || null);
         setLarkPluginStatus(larkPlugin || null);
@@ -264,9 +265,10 @@ const ChannelModalContent: React.FC = () => {
   useEffect(() => {
     const loadWebuiStatus = async () => {
       try {
-        const result = await webui.getStatus.invoke();
-        if (result?.success && result.data) {
-          setWebuiStatus(result.data);
+        // getStatus returns IWebUIStatus directly
+        const status = await webui.getStatus.invoke();
+        if (status) {
+          setWebuiStatus(status);
         }
       } catch {
         // Best-effort only: channel settings should not fail if webui status is unavailable.
@@ -323,31 +325,25 @@ const ChannelModalContent: React.FC = () => {
           return;
         }
 
-        const result = await channel.enablePlugin.invoke({
+        // enablePlugin returns void; success if no throw
+        await channel.enablePlugin.invoke({
           pluginId: 'telegram_default',
           config: pendingToken ? { token: pendingToken } : {},
         });
 
-        if (result.success) {
-          Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.assistant.enableFailed', 'Failed to enable plugin'));
-        }
+        Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
+        await loadPluginStatus();
       } else {
-        const result = await channel.disablePlugin.invoke({
+        // disablePlugin returns void; success if no throw
+        await channel.disablePlugin.invoke({
           pluginId: 'telegram_default',
         });
 
-        if (result.success) {
-          Message.success(t('settings.assistant.pluginDisabled', 'Telegram bot disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.assistant.disableFailed', 'Failed to disable plugin'));
-        }
+        Message.success(t('settings.assistant.pluginDisabled', 'Telegram bot disabled'));
+        await loadPluginStatus();
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     } finally {
       setEnableLoading(false);
     }
@@ -358,38 +354,29 @@ const ChannelModalContent: React.FC = () => {
     setLarkEnableLoading(true);
     try {
       if (enabled) {
-        // Check if we have credentials - already saved in database
         if (!larkPluginStatus?.hasToken) {
           Message.warning(t('settings.lark.credentialsRequired', 'Please configure Lark credentials first'));
           setLarkEnableLoading(false);
           return;
         }
 
-        const result = await channel.enablePlugin.invoke({
+        await channel.enablePlugin.invoke({
           pluginId: 'lark_default',
           config: {},
         });
 
-        if (result.success) {
-          Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.lark.enableFailed', 'Failed to enable Lark plugin'));
-        }
+        Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
+        await loadPluginStatus();
       } else {
-        const result = await channel.disablePlugin.invoke({
+        await channel.disablePlugin.invoke({
           pluginId: 'lark_default',
         });
 
-        if (result.success) {
-          Message.success(t('settings.lark.pluginDisabled', 'Lark bot disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.assistant.disableFailed', 'Failed to disable plugin'));
-        }
+        Message.success(t('settings.lark.pluginDisabled', 'Lark bot disabled'));
+        await loadPluginStatus();
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     } finally {
       setLarkEnableLoading(false);
     }
@@ -406,31 +393,23 @@ const ChannelModalContent: React.FC = () => {
           return;
         }
 
-        const result = await channel.enablePlugin.invoke({
+        await channel.enablePlugin.invoke({
           pluginId: 'dingtalk_default',
           config: {},
         });
 
-        if (result.success) {
-          Message.success(t('settings.dingtalk.pluginEnabled', 'DingTalk bot enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin'));
-        }
+        Message.success(t('settings.dingtalk.pluginEnabled', 'DingTalk bot enabled'));
+        await loadPluginStatus();
       } else {
-        const result = await channel.disablePlugin.invoke({
+        await channel.disablePlugin.invoke({
           pluginId: 'dingtalk_default',
         });
 
-        if (result.success) {
-          Message.success(t('settings.dingtalk.pluginDisabled', 'DingTalk bot disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.dingtalk.disableFailed', 'Failed to disable DingTalk plugin'));
-        }
+        Message.success(t('settings.dingtalk.pluginDisabled', 'DingTalk bot disabled'));
+        await loadPluginStatus();
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     } finally {
       setDingtalkEnableLoading(false);
     }
@@ -446,29 +425,21 @@ const ChannelModalContent: React.FC = () => {
           setWeixinEnableLoading(false);
           return;
         }
-        const result = await channel.enablePlugin.invoke({
+        await channel.enablePlugin.invoke({
           pluginId: 'weixin_default',
           config: {},
         });
-        if (result.success) {
-          Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.weixin.enableFailed', 'Failed to enable WeChat plugin'));
-        }
+        Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
+        await loadPluginStatus();
       } else {
-        const result = await channel.disablePlugin.invoke({
+        await channel.disablePlugin.invoke({
           pluginId: 'weixin_default',
         });
-        if (result.success) {
-          Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.weixin.disableFailed', 'Failed to disable WeChat plugin'));
-        }
+        Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
+        await loadPluginStatus();
       }
-    } catch (error: any) {
-      Message.error(error.message);
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     } finally {
       setWeixinEnableLoading(false);
     }
@@ -483,26 +454,18 @@ const ChannelModalContent: React.FC = () => {
           setWecomEnableLoading(false);
           return;
         }
-        const result = await channel.enablePlugin.invoke({
+        await channel.enablePlugin.invoke({
           pluginId: 'wecom_default',
           config: {},
         });
-        if (result.success) {
-          Message.success(t('settings.wecom.pluginEnabled', 'WeCom channel enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.wecom.enableFailed', 'Failed to enable WeCom channel'));
-        }
+        Message.success(t('settings.wecom.pluginEnabled', 'WeCom channel enabled'));
+        await loadPluginStatus();
       } else {
-        const result = await channel.disablePlugin.invoke({
+        await channel.disablePlugin.invoke({
           pluginId: 'wecom_default',
         });
-        if (result.success) {
-          Message.success(t('settings.wecom.pluginDisabled', 'WeCom channel disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.wecom.disableFailed', 'Failed to disable WeCom channel'));
-        }
+        Message.success(t('settings.wecom.pluginDisabled', 'WeCom channel disabled'));
+        await loadPluginStatus();
       }
     } catch (error: unknown) {
       Message.error(error instanceof Error ? error.message : String(error));
@@ -548,48 +511,30 @@ const ChannelModalContent: React.FC = () => {
             return;
           }
 
-          const result = await channel.enablePlugin.invoke({
+          await channel.enablePlugin.invoke({
             pluginId: status.id || pluginType,
             config: fieldValues,
           });
 
-          if (result.success) {
-            Message.success(
-              t('settings.channels.extension.enabled', {
-                defaultValue: 'Channel enabled',
-              })
-            );
-            await loadPluginStatus();
-          } else {
-            Message.error(
-              result.msg ||
-                t('settings.channels.extension.enableFailed', {
-                  defaultValue: 'Failed to enable channel',
-                })
-            );
-          }
+          Message.success(
+            t('settings.channels.extension.enabled', {
+              defaultValue: 'Channel enabled',
+            })
+          );
+          await loadPluginStatus();
         } else {
-          const result = await channel.disablePlugin.invoke({
+          await channel.disablePlugin.invoke({
             pluginId: status.id || pluginType,
           });
-          if (result.success) {
-            Message.success(
-              t('settings.channels.extension.disabled', {
-                defaultValue: 'Channel disabled',
-              })
-            );
-            await loadPluginStatus();
-          } else {
-            Message.error(
-              result.msg ||
-                t('settings.channels.extension.disableFailed', {
-                  defaultValue: 'Failed to disable channel',
-                })
-            );
-          }
+          Message.success(
+            t('settings.channels.extension.disabled', {
+              defaultValue: 'Channel disabled',
+            })
+          );
+          await loadPluginStatus();
         }
-      } catch (error: any) {
-        Message.error(error.message || String(error));
+      } catch (error: unknown) {
+        Message.error(error instanceof Error ? error.message : String(error));
       } finally {
         setExtensionLoadingMap((prev) => ({ ...prev, [pluginType]: false }));
       }

@@ -74,16 +74,16 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
 
     void ipcBridge.conversation.getSlashCommands
       .invoke({ conversation_id: conversationId })
-      .then((response) => {
+      .then((result) => {
         if (isCancelled || requestId !== requestIdRef.current) {
           return;
         }
-        if (!response.success || !response.data?.commands) {
+        if (!result?.commands) {
           setCommands([]);
           return;
         }
-        setCachedCommands(conversationId, response.data.commands);
-        setCommands(response.data.commands);
+        setCachedCommands(conversationId, result.commands);
+        setCommands(result.commands);
       })
       .catch((error) => {
         if (isCancelled || requestId !== requestIdRef.current) {

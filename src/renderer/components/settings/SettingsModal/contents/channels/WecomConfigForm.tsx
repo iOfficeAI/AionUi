@@ -89,9 +89,9 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   const loadPendingPairings = useCallback(async () => {
     setPairingLoading(true);
     try {
-      const result = await channel.getPendingPairings.invoke();
-      if (result.success && result.data) {
-        setPendingPairings(result.data.filter((p) => p.platformType === 'wecom'));
+      const pairings = await channel.getPendingPairings.invoke();
+      if (pairings) {
+        setPendingPairings(pairings.filter((p) => p.platformType === 'wecom'));
       }
     } catch (error) {
       console.error('[WecomConfig] Failed to load pending pairings:', error);
@@ -104,9 +104,9 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   const loadAuthorizedUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const result = await channel.getAuthorizedUsers.invoke();
-      if (result.success && result.data) {
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'wecom'));
+      const users = await channel.getAuthorizedUsers.invoke();
+      if (users) {
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'wecom'));
       }
     } catch (error) {
       console.error('[WecomConfig] Failed to load authorized users:', error);
@@ -130,8 +130,8 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           ConfigStorage.get('assistant.wecom.agent'),
         ]);
 
-        if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data
+        if (Array.isArray(agentsResp)) {
+          const list = agentsResp
             .filter((a) => !a.isPreset)
             .map((a) => ({
               backend: a.backend,
@@ -211,7 +211,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
     setSaveLoading(true);
     try {
-      const result = await channel.enablePlugin.invoke({
+      await channel.enablePlugin.invoke({
         pluginId: 'wecom_default',
         config: {
           botId: id,
@@ -219,16 +219,11 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
         },
       });
 
-      if (result.success) {
-        Message.success(t('settings.wecom.pluginEnabled', 'WeCom channel enabled'));
-        const statusResult = await channel.getPluginStatus.invoke();
-        if (statusResult.success && statusResult.data) {
-          const wecomPlugin = statusResult.data.find((p) => p.type === 'wecom');
-          onStatusChange(wecomPlugin || null);
-        }
-      } else {
-        console.error('[WecomConfig] enablePlugin failed:', result.msg);
-        Message.error(result.msg || t('settings.wecom.enableFailed', 'Failed to enable WeCom channel'));
+      Message.success(t('settings.wecom.pluginEnabled', 'WeCom channel enabled'));
+      const plugins = await channel.getPluginStatus.invoke();
+      if (plugins) {
+        const wecomPlugin = plugins.find((p) => p.type === 'wecom');
+        onStatusChange(wecomPlugin || null);
       }
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
@@ -246,46 +241,34 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   // Approve pairing
   const handleApprovePairing = async (code: string) => {
     try {
-      const result = await channel.approvePairing.invoke({ code });
-      if (result.success) {
-        Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
-        await loadPendingPairings();
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.approveFailed', 'Failed to approve pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.approvePairing.invoke({ code });
+      Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
+      await loadPendingPairings();
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Reject pairing
   const handleRejectPairing = async (code: string) => {
     try {
-      const result = await channel.rejectPairing.invoke({ code });
-      if (result.success) {
-        Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
-        await loadPendingPairings();
-      } else {
-        Message.error(result.msg || t('settings.assistant.rejectFailed', 'Failed to reject pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.rejectPairing.invoke({ code });
+      Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
+      await loadPendingPairings();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Revoke user
   const handleRevokeUser = async (userId: string) => {
     try {
-      const result = await channel.revokeUser.invoke({ userId });
-      if (result.success) {
-        Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.revokeFailed', 'Failed to revoke user'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.revokeUser.invoke({ userId });
+      Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 

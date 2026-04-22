@@ -109,9 +109,9 @@ export const useMcpAgentStatus = () => {
 
       try {
         // 先获取agents信息，然后基于结果获取MCP配置（无法真正并行，因为第二个依赖第一个的结果）
-        const agentsResponse = await acpConversation.getAvailableAgents.invoke();
+        const agents = await acpConversation.getAvailableAgents.invoke();
 
-        if (!agentsResponse.success || !agentsResponse.data) {
+        if (!Array.isArray(agents) || agents.length === 0) {
           // 如果没有检测到agent，只在初次加载时清空状态
           if (Object.keys(agentInstallStatus).length === 0) {
             saveAgentInstallStatus({});
@@ -119,19 +119,19 @@ export const useMcpAgentStatus = () => {
           return;
         }
 
-        const mcpConfigsResponse = await mcpService.getAgentMcpConfigs.invoke(agentsResponse.data);
+        const mcpConfigs = await mcpService.getAgentMcpConfigs.invoke(agents);
 
-        if (!mcpConfigsResponse.success || !mcpConfigsResponse.data) {
+        if (!mcpConfigs) {
           // 如果MCP配置获取失败，保持当前状态，避免闪烁
           return;
         }
 
         // 更新缓存
-        agentConfigsCacheRef.current = mcpConfigsResponse.data;
+        agentConfigsCacheRef.current = mcpConfigs;
         lastCheckTimeRef.current = now;
 
         // 处理配置数据
-        processAgentConfigs(servers, mcpConfigsResponse.data, targetServerName);
+        processAgentConfigs(servers, mcpConfigs, targetServerName);
       } catch (error) {
         // 出错时保持当前状态，避免闪烁
       } finally {
@@ -169,20 +169,20 @@ export const useMcpAgentStatus = () => {
 
     try {
       // 获取可用的agents
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
-      if (!agentsResponse.success || !agentsResponse.data) {
+      const agents = await acpConversation.getAvailableAgents.invoke();
+      if (!Array.isArray(agents) || agents.length === 0) {
         return;
       }
 
       // 获取所有agents的MCP配置
-      const mcpConfigsResponse = await mcpService.getAgentMcpConfigs.invoke(agentsResponse.data);
-      if (!mcpConfigsResponse.success || !mcpConfigsResponse.data) {
+      const mcpConfigs = await mcpService.getAgentMcpConfigs.invoke(agents);
+      if (!mcpConfigs) {
         return;
       }
 
       // 只检查指定服务器的安装状态
       const installedAgents: string[] = [];
-      mcpConfigsResponse.data.forEach((agentConfig) => {
+      mcpConfigs.forEach((agentConfig) => {
         const hasServer = agentConfig.servers.some((server) => server.name === serverName);
         if (hasServer) {
           installedAgents.push(agentConfig.source);

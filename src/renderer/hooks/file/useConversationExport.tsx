@@ -122,7 +122,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
         conversation_id: conversationId,
         page: 0,
         pageSize: 10000,
-      }));
+      })).items;
     messagesRef.current = messages;
     const transcript = buildConversationExportText(conversation, messages, transcriptLabels);
     transcriptRef.current = transcript;
@@ -155,13 +155,13 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       }
 
       baseDirectoryRef.current = resolveExportBaseDirectory(workspace, desktopPath);
-      const messages = await ipcBridge.database.getConversationMessages.invoke({
+      const messagesResult = await ipcBridge.database.getConversationMessages.invoke({
         conversation_id: conversationId,
         page: 0,
         pageSize: 10000,
       });
-      messagesRef.current = messages;
-      setFilename(buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messages)));
+      messagesRef.current = messagesResult.items;
+      setFilename(buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messagesResult.items)));
       setActiveIndex(0);
       setStep('menu');
     } catch (error) {

@@ -113,29 +113,32 @@ const WebuiModalContent: React.FC = () => {
       setWebuiEnabled(savedEnabled === true);
       setAllowRemotePreference(savedAllowRemote === true);
 
-      let result: { success: boolean; data?: IWebUIStatus } | null = null;
+      let statusData: IWebUIStatus | null = null;
 
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
       if (window.electronAPI?.webuiGetStatus) {
-        result = await window.electronAPI.webuiGetStatus();
+        const ipcResult = await window.electronAPI.webuiGetStatus();
+        if (ipcResult?.success && ipcResult.data) {
+          statusData = ipcResult.data;
+        }
       } else {
-        // 后备方案：使用 bridge（减少超时）/ Fallback: use bridge (reduced timeout)
+        // 后备方案：使用 bridge（减少超时）/ Fallback: use bridge (returns IWebUIStatus directly)
         const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
-        result = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
+        statusData = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
       }
 
-      if (result && result.success && result.data) {
-        setStatus(result.data);
-        if (result.data.lanIP) {
-          setCachedIP(result.data.lanIP);
-        } else if (result.data.networkUrl) {
-          const match = result.data.networkUrl.match(/http:\/\/([^:]+):/);
+      if (statusData) {
+        setStatus(statusData);
+        if (statusData.lanIP) {
+          setCachedIP(statusData.lanIP);
+        } else if (statusData.networkUrl) {
+          const match = statusData.networkUrl.match(/http:\/\/([^:]+):/);
           if (match) {
             setCachedIP(match[1]);
           }
         }
-        if (result.data.initialPassword) {
-          setCachedPassword(result.data.initialPassword);
+        if (statusData.initialPassword) {
+          setCachedPassword(statusData.initialPassword);
           // 有初始密码说明可以显示明文 / Having initial password means can show plaintext
           setCanShowPlainPassword(true);
         }
@@ -255,14 +258,15 @@ const WebuiModalContent: React.FC = () => {
         const localUrl = `http://localhost:${port}`;
 
         // 减少启动超时到3秒（服务器启动很快）/ Reduce start timeout to 3s (server starts quickly)
+        // webui.start returns { port, localUrl, networkUrl?, lanIP?, initialPassword? } directly
         const startResult = await Promise.race([
           webui.start.invoke({ port, allowRemote: allowRemotePreference }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
         ]);
 
-        if (startResult && startResult.success && startResult.data) {
-          const responseIP = startResult.data.lanIP || currentIP;
-          const responsePassword = startResult.data.initialPassword;
+        if (startResult) {
+          const responseIP = startResult.lanIP || currentIP;
+          const responsePassword = startResult.initialPassword;
 
           if (responseIP) setCachedIP(responseIP);
           if (responsePassword) {
@@ -335,14 +339,15 @@ const WebuiModalContent: React.FC = () => {
         }
 
         // 2. 立即重新启动（服务器停止很快）/ Restart immediately (server stops quickly)
+        // webui.start returns { port, localUrl, networkUrl?, lanIP?, initialPassword? } directly
         const startResult = await Promise.race([
           webui.start.invoke({ port, allowRemote: checked }),
           new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000)),
         ]);
 
-        if (startResult && startResult.success && startResult.data) {
-          const responseIP = startResult.data.lanIP;
-          const responsePassword = startResult.data.initialPassword;
+        if (startResult) {
+          const responseIP = startResult.lanIP;
+          const responsePassword = startResult.initialPassword;
 
           if (responseIP) setCachedIP(responseIP);
           if (responsePassword) setCachedPassword(responsePassword);
@@ -364,22 +369,25 @@ const WebuiModalContent: React.FC = () => {
         } else {
           // 响应为空或失败，但服务器可能已启动，检查状态
           // Response is null or failed, but server might have started, check status
-          let statusResult: { success: boolean; data?: IWebUIStatus } | null = null;
+          let statusData: IWebUIStatus | null = null;
           if (window.electronAPI?.webuiGetStatus) {
-            statusResult = await window.electronAPI.webuiGetStatus();
+            const ipcResult = await window.electronAPI.webuiGetStatus();
+            if (ipcResult?.success && ipcResult.data) {
+              statusData = ipcResult.data;
+            }
           } else {
-            statusResult = await Promise.race([
+            statusData = await Promise.race([
               webui.getStatus.invoke(),
               new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
             ]);
           }
 
-          if (statusResult?.success && statusResult?.data?.running) {
+          if (statusData?.running) {
             // 服务器实际上已启动 / Server actually started
-            const responseIP = statusResult.data.lanIP;
+            const responseIP = statusData.lanIP;
             if (responseIP) setCachedIP(responseIP);
 
-            setStatus(statusResult.data);
+            setStatus(statusData);
             // 成功后再持久化 / Persist only after success
             await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
             Message.success(t('settings.webui.restartSuccess'));
@@ -407,9 +415,9 @@ const WebuiModalContent: React.FC = () => {
         let newIP: string | undefined;
         try {
           if (window.electronAPI?.webuiGetStatus) {
-            const result = await window.electronAPI.webuiGetStatus();
-            if (result?.success && result?.data?.lanIP) {
-              newIP = result.data.lanIP;
+            const ipcResult = await window.electronAPI.webuiGetStatus();
+            if (ipcResult?.success && ipcResult?.data?.lanIP) {
+              newIP = ipcResult.data.lanIP;
               setCachedIP(newIP);
             }
           }
@@ -462,19 +470,34 @@ const WebuiModalContent: React.FC = () => {
       const values = await form.validate();
       setPasswordLoading(true);
 
-      let result: { success: boolean; msg?: string };
-
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
       if (window.electronAPI?.webuiChangePassword) {
-        result = await window.electronAPI.webuiChangePassword(values.newPassword);
+        const result = await window.electronAPI.webuiChangePassword(values.newPassword);
+        if (result.success) {
+          Message.success(t('settings.webui.passwordChanged'));
+          setSetPasswordModalVisible(false);
+          form.resetFields();
+          setCachedPassword(values.newPassword);
+          setCanShowPlainPassword(false);
+          setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
+        } else {
+          const errorCodeMap: Record<string, string> = {
+            PASSWORD_TOO_SHORT: t('settings.webui.passwordTooShort'),
+            PASSWORD_TOO_LONG: t('settings.webui.passwordTooLong'),
+            PASSWORD_TOO_COMMON: t('settings.webui.passwordTooCommon'),
+          };
+          const rawMsg = result.msg || '';
+          const codes = rawMsg.split('; ');
+          const translated = codes.map((code) => errorCodeMap[code]).filter(Boolean);
+          Message.error(
+            translated.length > 0 ? translated.join('; ') : rawMsg || t('settings.webui.passwordChangeFailed')
+          );
+        }
       } else {
-        // 后备方案：使用 bridge / Fallback: use bridge
-        result = await webui.changePassword.invoke({
+        // 后备方案：使用 bridge / Fallback: use bridge (changePassword returns void)
+        await webui.changePassword.invoke({
           newPassword: values.newPassword,
         });
-      }
-
-      if (result.success) {
         Message.success(t('settings.webui.passwordChanged'));
         setSetPasswordModalVisible(false);
         form.resetFields();
@@ -482,20 +505,6 @@ const WebuiModalContent: React.FC = () => {
         setCachedPassword(values.newPassword);
         setCanShowPlainPassword(false);
         setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
-      } else {
-        // Translate backend error codes to localized messages
-        // Backend may join multiple codes with '; ' (e.g. "PASSWORD_TOO_SHORT; PASSWORD_TOO_COMMON")
-        const errorCodeMap: Record<string, string> = {
-          PASSWORD_TOO_SHORT: t('settings.webui.passwordTooShort'),
-          PASSWORD_TOO_LONG: t('settings.webui.passwordTooLong'),
-          PASSWORD_TOO_COMMON: t('settings.webui.passwordTooCommon'),
-        };
-        const rawMsg = result.msg || '';
-        const codes = rawMsg.split('; ');
-        const translated = codes.map((code) => errorCodeMap[code]).filter(Boolean);
-        Message.error(
-          translated.length > 0 ? translated.join('; ') : rawMsg || t('settings.webui.passwordChangeFailed')
-        );
       }
     } catch (error) {
       console.error('Set new password error:', error);
@@ -510,24 +519,28 @@ const WebuiModalContent: React.FC = () => {
       const values = await usernameForm.validate();
       setUsernameLoading(true);
 
-      let result: { success: boolean; msg?: string; data?: { username: string } };
-
       if (window.electronAPI?.webuiChangeUsername) {
-        result = await window.electronAPI.webuiChangeUsername(values.newUsername);
+        const result: { success: boolean; msg?: string; data?: { username: string } } =
+          await window.electronAPI.webuiChangeUsername(values.newUsername);
+        const nextUsername = result.data?.username ?? values.newUsername.trim();
+        if (result.success) {
+          Message.success(t('settings.webui.usernameChanged'));
+          setSetUsernameModalVisible(false);
+          usernameForm.resetFields();
+          setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
+        } else {
+          Message.error(result.msg || t('settings.webui.usernameChangeFailed'));
+        }
       } else {
-        result = await webui.changeUsername.invoke({
+        // HTTP bridge: changeUsername returns { username: string } directly
+        const result = await webui.changeUsername.invoke({
           newUsername: values.newUsername,
         });
-      }
-
-      const nextUsername = result.data?.username ?? values.newUsername.trim();
-      if (result.success) {
+        const nextUsername = result?.username ?? values.newUsername.trim();
         Message.success(t('settings.webui.usernameChanged'));
         setSetUsernameModalVisible(false);
         usernameForm.resetFields();
         setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
-      } else {
-        Message.error(result.msg || t('settings.webui.usernameChangeFailed'));
       }
     } catch (error) {
       console.error('Set new username error:', error);
@@ -544,22 +557,21 @@ const WebuiModalContent: React.FC = () => {
     setQrLoading(true);
     try {
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
-      let result: {
-        success: boolean;
-        data?: { token: string; expiresAt: number; qrUrl: string };
-        msg?: string;
-      } | null = null;
+      let qrData: { token: string; expiresAt: number; qrUrl: string } | null = null;
 
       if (window.electronAPI?.webuiGenerateQRToken) {
-        result = await window.electronAPI.webuiGenerateQRToken();
+        const ipcResult = await window.electronAPI.webuiGenerateQRToken();
+        if (ipcResult?.success && ipcResult.data) {
+          qrData = ipcResult.data;
+        }
       } else {
-        // 后备方案：使用 bridge / Fallback: use bridge
-        result = await webui.generateQRToken.invoke();
+        // 后备方案：使用 bridge / Fallback: use bridge (returns { token, expiresAt, qrUrl } directly)
+        qrData = await webui.generateQRToken.invoke();
       }
 
-      if (result && result.success && result.data) {
-        setQrUrl(result.data.qrUrl);
-        setQrExpiresAt(result.data.expiresAt);
+      if (qrData) {
+        setQrUrl(qrData.qrUrl);
+        setQrExpiresAt(qrData.expiresAt);
 
         // 设置自动刷新定时器（4分钟后自动刷新，因为 token 5分钟过期）
         // Set auto-refresh timer (refresh after 4 minutes, as token expires in 5 minutes)
@@ -573,7 +585,7 @@ const WebuiModalContent: React.FC = () => {
           4 * 60 * 1000
         );
       } else {
-        console.error('Generate QR code failed:', result?.msg);
+        console.error('Generate QR code failed: no data returned');
         Message.error(t('settings.webui.qrGenerateFailed'));
       }
     } catch (error) {

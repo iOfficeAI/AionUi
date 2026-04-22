@@ -177,12 +177,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     ipcBridge.acpConversation.getMode
       .invoke({ conversationId })
       .then((result) => {
-        if (!cancelled && result.success && result.data) {
+        if (!cancelled && result) {
           // Only sync from backend when manager is initialized;
           // before first message, getMode returns { mode: 'default', initialized: false }
           // which would overwrite the correct initialMode (e.g. opencode has no 'default').
-          if (result.data.initialized !== false) {
-            setCurrentMode(result.data.mode);
+          if (result.initialized !== false) {
+            setCurrentMode(result.mode);
           }
         }
       })
@@ -214,20 +214,15 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
       setIsLoading(true);
       try {
-        const result = await ipcBridge.acpConversation.setMode.invoke({
+        // setMode returns void; success if no throw
+        await ipcBridge.acpConversation.setMode.invoke({
           conversationId,
           mode,
         });
 
-        if (result.success) {
-          setCurrentMode(result.data?.mode ?? mode);
-          onModeChanged?.(result.data?.mode ?? mode);
-          Message.success('Mode switched');
-        } else {
-          const errorMsg = result.msg || 'Switch failed';
-          console.warn('[AgentModeSelector] Mode switch failed:', errorMsg);
-          Message.warning(errorMsg);
-        }
+        setCurrentMode(mode);
+        onModeChanged?.(mode);
+        Message.success('Mode switched');
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
         Message.error('Switch failed');

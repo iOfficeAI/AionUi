@@ -21,7 +21,6 @@ import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -58,13 +57,13 @@ const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw-gateway', {
  */
 const validateRuntimeMismatch = async (conversationId: string): Promise<boolean> => {
   const runtimeResult = await ipcBridge.openclawConversation.getRuntime.invoke({ conversation_id: conversationId });
-  if (!runtimeResult?.success || !runtimeResult.data) {
+  if (!runtimeResult) {
     Message.error('Failed to validate agent runtime');
     return false;
   }
 
-  const runtime = runtimeResult.data.runtime || {};
-  const expected = runtimeResult.data.expected || {};
+  const runtime = runtimeResult.runtime || {};
+  const expected = runtimeResult.expected || {};
   const mismatches: string[] = [];
 
   const eqPath = (a?: string | null, b?: string | null) =>
@@ -250,7 +249,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     void ipcBridge.openclawConversation.getRuntime
       .invoke({ conversation_id })
       .then((res) => {
-        if (res?.success && res.data?.runtime?.hasActiveSession) {
+        if (res?.runtime?.hasActiveSession) {
           setOpenClawStatus('session_active');
         }
       })
@@ -375,8 +374,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       void checkAndUpdateTitle(conversation_id, text);
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
-        .then((result) => {
-          assertBridgeSuccess(result, 'Failed to send Star Office install command');
+        .then(() => {
           emitter.emit('chat.history.refresh');
         })
         .catch(() => {
@@ -435,13 +433,12 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = true;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
+        await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send message to OpenClaw');
         emitter.emit('chat.history.refresh');
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -562,14 +559,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         addOrUpdateMessage(userMessage, true);
 
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.openclawConversation.sendMessage.invoke({
+        await ipcBridge.openclawConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
           loading_id,
         });
-        assertBridgeSuccess(result, 'Failed to send initial message to OpenClaw');
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {

@@ -90,10 +90,11 @@ const getConversationListSyncSnapshot = (): ConversationListSyncSnapshot => snap
 
 const refreshConversations = () => {
   void ipcBridge.database.getUserConversations
-    .invoke({ page: 0, pageSize: 10000 })
-    .then((data) => {
-      if (data && Array.isArray(data)) {
-        const filteredData = data.filter((conv) => {
+    .invoke({ limit: 10000 })
+    .then((result) => {
+      const items = result?.items;
+      if (items && Array.isArray(items)) {
+        const filteredData = items.filter((conv) => {
           const extra = conv.extra as { isHealthCheck?: boolean; teamId?: string } | undefined;
           return extra?.isHealthCheck !== true && !extra?.teamId;
         });
@@ -101,7 +102,7 @@ const refreshConversations = () => {
         // Use ALL conversation IDs (including team/healthCheck) so the
         // responseStream listener recognises them as known and doesn't
         // trigger an infinite refreshConversations loop.
-        conversationIdsState = new Set(data.map((conversation) => conversation.id));
+        conversationIdsState = new Set(items.map((conversation) => conversation.id));
         emitStoreChange();
         return;
       }

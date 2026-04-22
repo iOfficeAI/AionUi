@@ -88,10 +88,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const loadPendingPairings = useCallback(async () => {
     setPairingLoading(true);
     try {
-      const result = await channel.getPendingPairings.invoke();
-      if (result.success && result.data) {
+      const pairings = await channel.getPendingPairings.invoke();
+      if (pairings) {
         // Filter for Lark platform only
-        setPendingPairings(result.data.filter((p) => p.platformType === 'lark'));
+        setPendingPairings(pairings.filter((p) => p.platformType === 'lark'));
       }
     } catch (error) {
       console.error('[LarkConfig] Failed to load pending pairings:', error);
@@ -104,10 +104,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const loadAuthorizedUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const result = await channel.getAuthorizedUsers.invoke();
-      if (result.success && result.data) {
+      const users = await channel.getAuthorizedUsers.invoke();
+      if (users) {
         // Filter for Lark platform only
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'lark'));
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'lark'));
       }
     } catch (error) {
       console.error('[LarkConfig] Failed to load authorized users:', error);
@@ -131,8 +131,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           ConfigStorage.get('assistant.lark.agent'),
         ]);
 
-        if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data
+        if (Array.isArray(agentsResp)) {
+          const list = agentsResp
             .filter((a) => !a.isPreset)
             .map((a) => ({
               backend: a.backend,
@@ -214,6 +214,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     setTestLoading(true);
     setCredentialsTested(false);
     try {
+      // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
         pluginId: 'lark_default',
         token: '', // Not used for Lark
@@ -223,7 +224,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         },
       });
 
-      if (result.success && result.data?.success) {
+      if (result.success) {
         setCredentialsTested(true);
         Message.success(t('settings.lark.connectionSuccess', 'Connected to Lark API!'));
 
@@ -231,7 +232,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         await handleAutoEnable();
       } else {
         setCredentialsTested(false);
-        Message.error(result.data?.error || t('settings.lark.connectionFailed', 'Connection failed'));
+        Message.error(result.error || t('settings.lark.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
       setCredentialsTested(false);
@@ -244,7 +245,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Auto-enable plugin after successful test
   const handleAutoEnable = async () => {
     try {
-      const result = await channel.enablePlugin.invoke({
+      await channel.enablePlugin.invoke({
         pluginId: 'lark_default',
         config: {
           appId: appId.trim(),
@@ -254,21 +255,18 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         },
       });
 
-      if (result.success) {
-        Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
-        const statusResult = await channel.getPluginStatus.invoke();
-        if (statusResult.success && statusResult.data) {
-          const larkPlugin = statusResult.data.find((p) => p.type === 'lark');
-          onStatusChange(larkPlugin || null);
-        }
-      } else {
-        // Show error to user when enable fails
-        console.error('[LarkConfig] enablePlugin failed:', result.msg);
-        Message.error(result.msg || t('settings.lark.enableFailed', 'Failed to enable Lark plugin'));
+      Message.success(t('settings.lark.pluginEnabled', 'Lark bot enabled'));
+      const plugins = await channel.getPluginStatus.invoke();
+      if (plugins) {
+        const larkPlugin = plugins.find((p) => p.type === 'lark');
+        onStatusChange(larkPlugin || null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[LarkConfig] Auto-enable failed:', error);
-      Message.error(error.message || t('settings.lark.enableFailed', 'Failed to enable Lark plugin'));
+      Message.error(
+        (error instanceof Error ? error.message : String(error)) ||
+          t('settings.lark.enableFailed', 'Failed to enable Lark plugin')
+      );
     }
   };
 
@@ -280,46 +278,34 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   // Approve pairing
   const handleApprovePairing = async (code: string) => {
     try {
-      const result = await channel.approvePairing.invoke({ code });
-      if (result.success) {
-        Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
-        await loadPendingPairings();
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.approveFailed', 'Failed to approve pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.approvePairing.invoke({ code });
+      Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
+      await loadPendingPairings();
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Reject pairing
   const handleRejectPairing = async (code: string) => {
     try {
-      const result = await channel.rejectPairing.invoke({ code });
-      if (result.success) {
-        Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
-        await loadPendingPairings();
-      } else {
-        Message.error(result.msg || t('settings.assistant.rejectFailed', 'Failed to reject pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.rejectPairing.invoke({ code });
+      Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
+      await loadPendingPairings();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Revoke user
   const handleRevokeUser = async (userId: string) => {
     try {
-      const result = await channel.revokeUser.invoke({ userId });
-      if (result.success) {
-        Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.revokeFailed', 'Failed to revoke user'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.revokeUser.invoke({ userId });
+      Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 

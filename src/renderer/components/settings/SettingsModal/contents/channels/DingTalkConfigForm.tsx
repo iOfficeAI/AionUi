@@ -85,9 +85,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   const loadPendingPairings = useCallback(async () => {
     setPairingLoading(true);
     try {
-      const result = await channel.getPendingPairings.invoke();
-      if (result.success && result.data) {
-        setPendingPairings(result.data.filter((p) => p.platformType === 'dingtalk'));
+      const pairings = await channel.getPendingPairings.invoke();
+      if (pairings) {
+        setPendingPairings(pairings.filter((p) => p.platformType === 'dingtalk'));
       }
     } catch (error) {
       console.error('[DingTalkConfig] Failed to load pending pairings:', error);
@@ -100,9 +100,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   const loadAuthorizedUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const result = await channel.getAuthorizedUsers.invoke();
-      if (result.success && result.data) {
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'dingtalk'));
+      const users = await channel.getAuthorizedUsers.invoke();
+      if (users) {
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'dingtalk'));
       }
     } catch (error) {
       console.error('[DingTalkConfig] Failed to load authorized users:', error);
@@ -126,8 +126,8 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
           ConfigStorage.get('assistant.dingtalk.agent'),
         ]);
 
-        if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data
+        if (Array.isArray(agentsResp)) {
+          const list = agentsResp
             .filter((a) => !a.isPreset)
             .map((a) => ({
               backend: a.backend,
@@ -208,6 +208,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
     setTestLoading(true);
     setCredentialsTested(false);
     try {
+      // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
         pluginId: 'dingtalk_default',
         token: '',
@@ -217,13 +218,13 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         },
       });
 
-      if (result.success && result.data?.success) {
+      if (result.success) {
         setCredentialsTested(true);
         Message.success(t('settings.dingtalk.connectionSuccess', 'Connected to DingTalk API!'));
         await handleAutoEnable();
       } else {
         setCredentialsTested(false);
-        Message.error(result.data?.error || t('settings.dingtalk.connectionFailed', 'Connection failed'));
+        Message.error(result.error || t('settings.dingtalk.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
       setCredentialsTested(false);
@@ -236,7 +237,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   // Auto-enable plugin after successful test
   const handleAutoEnable = async () => {
     try {
-      const result = await channel.enablePlugin.invoke({
+      await channel.enablePlugin.invoke({
         pluginId: 'dingtalk_default',
         config: {
           clientId: clientId.trim(),
@@ -244,20 +245,18 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         },
       });
 
-      if (result.success) {
-        Message.success(t('settings.dingtalk.pluginEnabled', 'DingTalk bot enabled'));
-        const statusResult = await channel.getPluginStatus.invoke();
-        if (statusResult.success && statusResult.data) {
-          const dingtalkPlugin = statusResult.data.find((p) => p.type === 'dingtalk');
-          onStatusChange(dingtalkPlugin || null);
-        }
-      } else {
-        console.error('[DingTalkConfig] enablePlugin failed:', result.msg);
-        Message.error(result.msg || t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin'));
+      Message.success(t('settings.dingtalk.pluginEnabled', 'DingTalk bot enabled'));
+      const plugins = await channel.getPluginStatus.invoke();
+      if (plugins) {
+        const dingtalkPlugin = plugins.find((p) => p.type === 'dingtalk');
+        onStatusChange(dingtalkPlugin || null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[DingTalkConfig] Auto-enable failed:', error);
-      Message.error(error.message || t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin'));
+      Message.error(
+        (error instanceof Error ? error.message : String(error)) ||
+          t('settings.dingtalk.enableFailed', 'Failed to enable DingTalk plugin')
+      );
     }
   };
 
@@ -269,46 +268,34 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   // Approve pairing
   const handleApprovePairing = async (code: string) => {
     try {
-      const result = await channel.approvePairing.invoke({ code });
-      if (result.success) {
-        Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
-        await loadPendingPairings();
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.approveFailed', 'Failed to approve pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.approvePairing.invoke({ code });
+      Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
+      await loadPendingPairings();
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Reject pairing
   const handleRejectPairing = async (code: string) => {
     try {
-      const result = await channel.rejectPairing.invoke({ code });
-      if (result.success) {
-        Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
-        await loadPendingPairings();
-      } else {
-        Message.error(result.msg || t('settings.assistant.rejectFailed', 'Failed to reject pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.rejectPairing.invoke({ code });
+      Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
+      await loadPendingPairings();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Revoke user
   const handleRevokeUser = async (userId: string) => {
     try {
-      const result = await channel.revokeUser.invoke({ userId });
-      if (result.success) {
-        Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.revokeFailed', 'Failed to revoke user'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.revokeUser.invoke({ userId });
+      Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 

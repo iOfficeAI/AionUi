@@ -34,29 +34,17 @@ export const useMcpOAuth = () => {
     }));
 
     try {
-      const response = await mcpService.checkOAuthStatus.invoke(server);
+      const result = await mcpService.checkOAuthStatus.invoke(server);
 
-      if (response.success && response.data) {
-        setOAuthStatus((prev) => ({
-          ...prev,
-          [server.id]: {
-            isAuthenticated: response.data.isAuthenticated,
-            needsLogin: response.data.needsLogin,
-            isChecking: false,
-            error: response.data.error,
-          },
-        }));
-      } else {
-        setOAuthStatus((prev) => ({
-          ...prev,
-          [server.id]: {
-            isAuthenticated: false,
-            needsLogin: false,
-            isChecking: false,
-            error: response.msg,
-          },
-        }));
-      }
+      setOAuthStatus((prev) => ({
+        ...prev,
+        [server.id]: {
+          isAuthenticated: result.isAuthenticated,
+          needsLogin: result.needsLogin,
+          isChecking: false,
+          error: result.error,
+        },
+      }));
     } catch (error) {
       console.error('Failed to check OAuth status:', error);
       setOAuthStatus((prev) => ({
@@ -76,12 +64,12 @@ export const useMcpOAuth = () => {
     setLoggingIn((prev) => ({ ...prev, [server.id]: true }));
 
     try {
-      const response = await mcpService.loginMcpOAuth.invoke({
+      const result = await mcpService.loginMcpOAuth.invoke({
         server,
         config: undefined, // 使用自动发现
       });
 
-      if (response.success && response.data?.success) {
+      if (result.success) {
         // 登录成功，更新状态
         setOAuthStatus((prev) => ({
           ...prev,
@@ -95,7 +83,7 @@ export const useMcpOAuth = () => {
       } else {
         return {
           success: false,
-          error: response.data?.error || response.msg || 'Login failed',
+          error: result.error || 'Login failed',
         };
       }
     } catch (error) {
@@ -112,25 +100,18 @@ export const useMcpOAuth = () => {
   const logout = useCallback(
     async (serverName: string, serverId: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        const response = await mcpService.logoutMcpOAuth.invoke(serverName);
+        await mcpService.logoutMcpOAuth.invoke(serverName);
 
-        if (response.success) {
-          // 登出成功，更新状态
-          setOAuthStatus((prev) => ({
-            ...prev,
-            [serverId]: {
-              isAuthenticated: false,
-              needsLogin: true,
-              isChecking: false,
-            },
-          }));
-          return { success: true };
-        } else {
-          return {
-            success: false,
-            error: response.msg || 'Logout failed',
-          };
-        }
+        // 登出成功，更新状态
+        setOAuthStatus((prev) => ({
+          ...prev,
+          [serverId]: {
+            isAuthenticated: false,
+            needsLogin: true,
+            isChecking: false,
+          },
+        }));
+        return { success: true };
       } catch (error) {
         return {
           success: false,

@@ -342,10 +342,10 @@ const ModalMcpManagementSection: React.FC<{
   useEffect(() => {
     const loadAgents = async () => {
       try {
-        const response = await acpConversation.getAvailableAgents.invoke();
-        if (response.success && response.data) {
+        const agents = await acpConversation.getAvailableAgents.invoke();
+        if (Array.isArray(agents)) {
           setDetectedAgents(
-            response.data.map((agent) => ({
+            agents.map((agent) => ({
               backend: agent.backend,
               name: agent.name,
             }))

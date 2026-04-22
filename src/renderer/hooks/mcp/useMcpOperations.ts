@@ -25,10 +25,7 @@ interface McpOperationResult {
 
 interface McpOperationResponse {
   success: boolean;
-  data?: {
-    results: McpOperationResult[];
-  };
-  msg?: string;
+  results: McpOperationResult[];
 }
 
 /**
@@ -49,8 +46,8 @@ export const useMcpOperations = (
       successMessage?: string,
       skipRecheck = false
     ) => {
-      if (response.success && response.data) {
-        const { results } = response.data;
+      if (response.success) {
+        const { results } = response;
         const failedAgents = results.filter((r: McpOperationResult) => !r.success);
 
         // 立即显示操作开始的消息，然后触发状态更新
@@ -89,7 +86,7 @@ export const useMcpOperations = (
         }
       } else {
         const failedKey = operation === 'sync' ? 'mcpSyncFailed' : 'mcpRemoveFailed';
-        const errorMsg = truncateErrorMessage(response.msg || t('settings.unknownError'));
+        const errorMsg = truncateErrorMessage(t('settings.unknownError'));
         await globalMessageQueue.add(() => {
           message.error({ content: t(`settings.${failedKey}`, { error: errorMsg }), duration: 6000 });
         });
@@ -101,12 +98,12 @@ export const useMcpOperations = (
   // 从agents中删除MCP配置
   const removeMcpFromAgents = useCallback(
     async (serverName: string, successMessage?: string, transportType?: string) => {
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
-      if (agentsResponse.success && agentsResponse.data) {
+      const agents = await acpConversation.getAvailableAgents.invoke();
+      if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support if transport type is known
         const compatibleCount = transportType
-          ? agentsResponse.data.filter((a) => a.supportedTransports?.includes(transportType)).length
-          : agentsResponse.data.length;
+          ? agents.filter((a) => a.supportedTransports?.includes(transportType)).length
+          : agents.length;
 
         // 显示开始移除的消息（通过队列）
         await globalMessageQueue.add(() => {
@@ -115,7 +112,7 @@ export const useMcpOperations = (
 
         const removeResponse = await mcpService.removeMcpFromAgents.invoke({
           mcpServerName: serverName,
-          agents: agentsResponse.data,
+          agents,
         });
         await handleMcpOperationResult(removeResponse, 'remove', successMessage, true); // 跳过重新检测
       }
@@ -126,10 +123,10 @@ export const useMcpOperations = (
   // 向agents同步MCP配置
   const syncMcpToAgents = useCallback(
     async (server: IMcpServer, skipRecheck = false) => {
-      const agentsResponse = await acpConversation.getAvailableAgents.invoke();
-      if (agentsResponse.success && agentsResponse.data) {
+      const agents = await acpConversation.getAvailableAgents.invoke();
+      if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support to show accurate count
-        const compatibleCount = agentsResponse.data.filter((a) =>
+        const compatibleCount = agents.filter((a) =>
           a.supportedTransports?.includes(server.transport.type)
         ).length;
 
@@ -140,14 +137,12 @@ export const useMcpOperations = (
 
         const syncResponse = await mcpService.syncMcpToAgents.invoke({
           mcpServers: [server],
-          agents: agentsResponse.data,
+          agents,
         });
 
         await handleMcpOperationResult(syncResponse, 'sync', undefined, skipRecheck);
       } else {
-        // 修复: 处理没有可用 agents 的情况，显示友好的错误提示
         // Fix: Handle case when no agents are available, show user-friendly error message
-        console.error('[useMcpOperations] Failed to get available agents:', agentsResponse.msg);
         await globalMessageQueue.add(() => {
           message.error(t('settings.mcpSyncFailedNoAgents'));
         });

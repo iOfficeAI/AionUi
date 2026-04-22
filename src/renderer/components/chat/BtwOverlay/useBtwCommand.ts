@@ -74,7 +74,7 @@ export function useBtwCommand(conversationId?: string, enabled = true) {
           return;
         }
 
-        if (!response.success || !response.data) {
+        if (!response) {
           Message.error(t('conversation.sideQuestion.error'));
           setState({
             answer: t('conversation.sideQuestion.error'),
@@ -93,13 +93,13 @@ export function useBtwCommand(conversationId?: string, enabled = true) {
           invalid: { toast: Message.warning, key: 'emptyQuestion' },
         };
 
-        const entry = statusMap[response.data.status];
+        const entry = statusMap[response.status];
         if (entry) {
           const text =
-            response.data.status === 'ok'
-              ? response.data.answer
+            response.status === 'ok' && 'answer' in response
+              ? response.answer
               : t(`conversation.sideQuestion.${entry.key}` as Parameters<typeof t>[0]);
-          entry.toast(response.data.status === 'ok' ? t('conversation.sideQuestion.answered') : text);
+          entry.toast(response.status === 'ok' ? t('conversation.sideQuestion.answered') : text);
           setState({ answer: text, isLoading: false, isOpen: true, question });
           return;
         }

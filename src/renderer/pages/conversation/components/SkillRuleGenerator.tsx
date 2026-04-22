@@ -190,7 +190,7 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId,
         pageSize: pageSize,
       });
 
-      if (!messages || messages.length === 0) {
+      if (!messages || messages.items.length === 0) {
         Message.warning(
           t('conversation.skill_generator.no_history', { defaultValue: 'No conversation history found' })
         );
@@ -198,7 +198,7 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId,
         return;
       }
 
-      let historyText = messages
+      let historyText = messages.items
         .map((msg: TMessage) => {
           if (msg.type === 'text') {
             const role = msg.position === 'right' ? 'User' : 'Assistant';

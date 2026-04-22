@@ -21,7 +21,6 @@ import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -203,13 +202,12 @@ const AionrsSendBox: React.FC<{
             }
           }
         } else {
-          const result = await ipcBridge.conversation.sendMessage.invoke({
+          await ipcBridge.conversation.sendMessage.invoke({
             input: displayMessage,
             msg_id,
             conversation_id,
             files,
           });
-          assertBridgeSuccess(result, 'Failed to send message to Aion CLI');
         }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {

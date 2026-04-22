@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation } from '@/common/config/storage';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Message } from '@arco-design/web-react';
@@ -137,9 +138,9 @@ export const useExport = ({
     }
   }, [exportModalLoading, exportTargetPath, getDesktopPath, t]);
 
-  const fetchConversationMessages = useCallback(async (conversationId: string) => {
+  const fetchConversationMessages = useCallback(async (conversationId: string): Promise<TMessage[]> => {
     try {
-      return await withTimeout(
+      const result = await withTimeout(
         ipcBridge.database.getConversationMessages.invoke({
           conversation_id: conversationId,
           page: 0,
@@ -148,6 +149,7 @@ export const useExport = ({
         EXPORT_IO_TIMEOUT_MS,
         `getConversationMessages:${conversationId}`
       );
+      return result.items;
     } catch (error) {
       console.warn('[WorkspaceGroupedHistory] Export message fetch timeout/failure:', conversationId, error);
       return [];

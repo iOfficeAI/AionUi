@@ -13,13 +13,11 @@ export function useHubAgents() {
     setLoading(true);
     setError(undefined);
     try {
-      const response = await ipcBridge.hub.getExtensionList.invoke();
-      if (response.success && response.data) {
+      const extensionList = await ipcBridge.hub.getExtensionList.invoke();
+      if (extensionList) {
         // Filter agents
-        const agentExtensions = response.data.filter((ext: IHubAgentItem) => ext.hubs?.includes('acpAdapters'));
+        const agentExtensions = extensionList.filter((ext: IHubAgentItem) => ext.hubs?.includes('acpAdapters'));
         setAgents(agentExtensions);
-      } else {
-        setError(response.msg || 'Failed to fetch hub extensions');
       }
     } catch (err) {
       setError(String(err));
@@ -60,10 +58,7 @@ export function useHubAgents() {
 
   const install = async (name: string) => {
     try {
-      const res = await ipcBridge.hub.install.invoke({ name });
-      if (!res.success) {
-        throw new Error(res.msg || 'Installation failed');
-      }
+      await ipcBridge.hub.install.invoke({ name });
     } catch (err) {
       console.error('Install failed:', err);
       // Wait for IPC status update to catch the error and reflect it in UI
@@ -72,10 +67,7 @@ export function useHubAgents() {
 
   const retryInstall = async (name: string) => {
     try {
-      const res = await ipcBridge.hub.retryInstall.invoke({ name });
-      if (!res.success) {
-        throw new Error(res.msg || 'Retry installation failed');
-      }
+      await ipcBridge.hub.retryInstall.invoke({ name });
     } catch (err) {
       console.error('Retry failed:', err);
     }
@@ -83,10 +75,7 @@ export function useHubAgents() {
 
   const update = async (name: string) => {
     try {
-      const res = await ipcBridge.hub.update.invoke({ name });
-      if (!res.success) {
-        throw new Error(res.msg || 'Update failed');
-      }
+      await ipcBridge.hub.update.invoke({ name });
     } catch (err) {
       console.error('Update failed:', err);
     }

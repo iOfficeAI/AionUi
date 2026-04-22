@@ -17,7 +17,6 @@ import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -174,7 +173,7 @@ const GeminiSendBox: React.FC<{
     void ipcBridge.database.getConversationMessages
       .invoke({ conversation_id, page: 0, pageSize: 1 })
       .then((messages) => {
-        const hasMessages = messages && messages.length > 0;
+        const hasMessages = messages && messages.items.length > 0;
         setIsNewConversation(!hasMessages);
       });
   }, [conversation_id, resetAgentCheck]);
@@ -279,13 +278,12 @@ const GeminiSendBox: React.FC<{
             }
           }
         } else {
-          const result = await ipcBridge.geminiConversation.sendMessage.invoke({
+          await ipcBridge.geminiConversation.sendMessage.invoke({
             input: displayMessage,
             msg_id,
             conversation_id,
             files,
           });
-          assertBridgeSuccess(result, 'Failed to send message to Gemini');
         }
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {

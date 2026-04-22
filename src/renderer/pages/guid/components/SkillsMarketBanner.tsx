@@ -44,16 +44,13 @@ const SkillsMarketBanner: React.FC = () => {
       if (loading) return;
       setLoading(true);
       try {
-        const result = checked
-          ? await ipcBridge.fs.enableSkillsMarket.invoke()
-          : await ipcBridge.fs.disableSkillsMarket.invoke();
-
-        if (result?.success) {
-          setEnabled(checked);
-          await ConfigStorage.set('skillsMarket.enabled', checked);
+        if (checked) {
+          await ipcBridge.fs.enableSkillsMarket.invoke();
         } else {
-          Message.error(result?.msg || 'Operation failed');
+          await ipcBridge.fs.disableSkillsMarket.invoke();
         }
+        setEnabled(checked);
+        await ConfigStorage.set('skillsMarket.enabled', checked);
       } catch (error) {
         console.error('Failed to toggle Skills Market:', error);
         Message.error('Operation failed');

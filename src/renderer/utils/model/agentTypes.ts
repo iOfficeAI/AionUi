@@ -31,9 +31,9 @@ export type AvailableAgent = {
 /** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
 export async function fetchDetectedAgents(): Promise<AvailableAgent[]> {
   try {
-    const resp = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    if (resp.success && resp.data) {
-      return resp.data as AvailableAgent[];
+    const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    if (Array.isArray(agents)) {
+      return agents as AvailableAgent[];
     }
   } catch {
     // fallback to empty

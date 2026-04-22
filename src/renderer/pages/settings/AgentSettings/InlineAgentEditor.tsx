@@ -191,9 +191,9 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
         env: Object.keys(envObj).length > 0 ? envObj : undefined,
       });
-      if (result.success) {
+      if (!result.error) {
         setTestStatus('success');
-      } else if (result.data?.step === 'cli_check') {
+      } else if (result.step === 'cli_check') {
         setTestStatus('fail_cli');
       } else {
         setTestStatus('fail_acp');

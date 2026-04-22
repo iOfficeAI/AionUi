@@ -63,14 +63,8 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
         callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
       };
 
-      const result = await conversation.confirmMessage.invoke(invokeData);
-
-      if (result.success) {
-        setHasResponded(true);
-      } else {
-        // Handle failure case - could add error display here
-        console.error('Failed to confirm permission:', result);
-      }
+      await conversation.confirmMessage.invoke(invokeData);
+      setHasResponded(true);
     } catch (error) {
       // Handle error case - could add error logging here
       console.error('Error confirming permission:', error);

@@ -76,12 +76,7 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
             force: options?.force,
             timeoutMs,
           });
-          if (mainDetectResult.success) {
-            found = mainDetectResult.data?.url || null;
-          } else if (mainDetectResult.msg) {
-            hasDetectError = true;
-            message = mainDetectResult.msg;
-          }
+          found = mainDetectResult.url || null;
           return { found, hasDetectError, message };
         };
 

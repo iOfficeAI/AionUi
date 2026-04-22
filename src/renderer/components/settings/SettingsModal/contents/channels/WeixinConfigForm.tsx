@@ -101,9 +101,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   const loadPendingPairings = useCallback(async () => {
     setPairingLoading(true);
     try {
-      const result = await channel.getPendingPairings.invoke();
-      if (result.success && result.data) {
-        setPendingPairings(result.data.filter((p) => p.platformType === 'weixin'));
+      const pairings = await channel.getPendingPairings.invoke();
+      if (pairings) {
+        setPendingPairings(pairings.filter((p) => p.platformType === 'weixin'));
       }
     } catch (error) {
       console.error('[WeixinConfig] Failed to load pending pairings:', error);
@@ -115,9 +115,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   const loadAuthorizedUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const result = await channel.getAuthorizedUsers.invoke();
-      if (result.success && result.data) {
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'weixin'));
+      const users = await channel.getAuthorizedUsers.invoke();
+      if (users) {
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'weixin'));
       }
     } catch (error) {
       console.error('[WeixinConfig] Failed to load authorized users:', error);
@@ -160,14 +160,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const handleApprovePairing = async (code: string) => {
     try {
-      const result = await channel.approvePairing.invoke({ code });
-      if (result.success) {
-        Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
-        await loadPendingPairings();
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.approveFailed', 'Failed to approve pairing'));
-      }
+      await channel.approvePairing.invoke({ code });
+      Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
+      await loadPendingPairings();
+      await loadAuthorizedUsers();
     } catch (error) {
       Message.error(error instanceof Error ? error.message : String(error));
     }
@@ -175,13 +171,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const handleRejectPairing = async (code: string) => {
     try {
-      const result = await channel.rejectPairing.invoke({ code });
-      if (result.success) {
-        Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
-        await loadPendingPairings();
-      } else {
-        Message.error(result.msg || t('settings.assistant.rejectFailed', 'Failed to reject pairing'));
-      }
+      await channel.rejectPairing.invoke({ code });
+      Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
+      await loadPendingPairings();
     } catch (error) {
       Message.error(error instanceof Error ? error.message : String(error));
     }
@@ -189,13 +181,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const handleRevokeUser = async (userId: string) => {
     try {
-      const result = await channel.revokeUser.invoke({ userId });
-      if (result.success) {
-        Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.revokeFailed', 'Failed to revoke user'));
-      }
+      await channel.revokeUser.invoke({ userId });
+      Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
+      await loadAuthorizedUsers();
     } catch (error) {
       Message.error(error instanceof Error ? error.message : String(error));
     }
@@ -214,9 +202,9 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           acpConversation.getAvailableAgents.invoke(),
           ConfigStorage.get('assistant.weixin.agent'),
         ]);
-        if (agentsResp.success && agentsResp.data) {
+        if (Array.isArray(agentsResp)) {
           setAvailableAgents(
-            agentsResp.data
+            agentsResp
               .filter((a) => !a.isPreset)
               .map((a) => ({
                 backend: a.backend,
@@ -259,22 +247,18 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   };
 
   const enableWeixinPlugin = async (accountId: string, botToken: string) => {
-    const enableResult = await channel.enablePlugin.invoke({
+    // enablePlugin returns void; success if no throw
+    await channel.enablePlugin.invoke({
       pluginId: 'weixin_default',
       config: { accountId, botToken },
     });
-    if (enableResult.success) {
-      Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
-      const statusResult = await channel.getPluginStatus.invoke();
-      if (statusResult.success && statusResult.data) {
-        const weixinPlugin = statusResult.data.find((p) => p.type === 'weixin');
-        onStatusChange(weixinPlugin || null);
-      }
-      setLoginState('connected');
-    } else {
-      Message.error(enableResult.msg || t('settings.weixin.enableFailed', 'Failed to enable WeChat plugin'));
-      setLoginState('idle');
+    Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
+    const plugins = await channel.getPluginStatus.invoke();
+    if (plugins) {
+      const weixinPlugin = plugins.find((p) => p.type === 'weixin');
+      onStatusChange(weixinPlugin || null);
     }
+    setLoginState('connected');
   };
 
   const handleLoginWebUI = () => {
@@ -380,16 +364,12 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const handleDisconnect = async () => {
     try {
-      const result = await channel.disablePlugin.invoke({ pluginId: 'weixin_default' });
-      if (result.success) {
-        Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
-        onStatusChange(null);
-        setLoginState('idle');
-        setQrcodeDataUrl(null);
-      } else {
-        Message.error(result.msg || t('settings.weixin.disableFailed', 'Failed to disconnect'));
-      }
-    } catch (error) {
+      await channel.disablePlugin.invoke({ pluginId: 'weixin_default' });
+      Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
+      onStatusChange(null);
+      setLoginState('idle');
+      setQrcodeDataUrl(null);
+    } catch (error: unknown) {
       Message.error(error instanceof Error ? error.message : String(error));
     }
   };

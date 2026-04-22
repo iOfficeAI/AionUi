@@ -118,7 +118,7 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
         page: 0,
         pageSize: 10000,
       });
-      setItems(buildTurnPreview(messages || []));
+      setItems(buildTurnPreview(messages?.items || []));
     } catch (error) {
       console.error('[ConversationTitleMinimap] Failed to load conversation messages:', error);
       setItems([]);

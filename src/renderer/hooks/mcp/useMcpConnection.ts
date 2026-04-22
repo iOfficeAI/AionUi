@@ -49,58 +49,45 @@ export const useMcpConnection = (
       await updateServerStatus('testing');
 
       try {
-        const response = await mcpService.testMcpConnection.invoke(server);
+        const result = await mcpService.testMcpConnection.invoke(server);
 
-        if (response.success && response.data) {
-          const result = response.data;
+        // 检查是否需要认证
+        if (result.needsAuth) {
+          await updateServerStatus('disconnected');
+          await globalMessageQueue.add(() => {
+            message.warning(`${server.name}: ${t('settings.mcpAuthRequired') || 'Authentication required'}`);
+          });
 
-          // 检查是否需要认证
-          if (result.needsAuth) {
-            await updateServerStatus('disconnected');
-            await globalMessageQueue.add(() => {
-              message.warning(`${server.name}: ${t('settings.mcpAuthRequired') || 'Authentication required'}`);
-            });
-
-            // 触发认证回调
-            if (onAuthRequired) {
-              onAuthRequired(server);
-            }
-            return;
+          // 触发认证回调
+          if (onAuthRequired) {
+            onAuthRequired(server);
           }
+          return;
+        }
 
-          if (result.success) {
-            // 更新服务器状态为已连接，并保存获取到的工具信息
-            // 连接成功时不修改 enabled 字段，让用户决定是否安装
-            await updateServerStatus('connected', {
-              tools: result.tools?.map((tool) => ({
-                name: tool.name,
-                description: tool.description,
-                ...(tool._meta ? { _meta: tool._meta } : {}),
-              })),
-              lastConnected: Date.now(),
-            });
-            await globalMessageQueue.add(() => {
-              message.success(`${server.name}: ${t('settings.mcpTestConnectionSuccess')}`);
-            });
+        if (result.success) {
+          // 更新服务器状态为已连接，并保存获取到的工具信息
+          // 连接成功时不修改 enabled 字段，让用户决定是否安装
+          await updateServerStatus('connected', {
+            tools: result.tools?.map((tool) => ({
+              name: tool.name,
+              description: tool.description,
+              ...(tool._meta ? { _meta: tool._meta } : {}),
+            })),
+            lastConnected: Date.now(),
+          });
+          await globalMessageQueue.add(() => {
+            message.success(`${server.name}: ${t('settings.mcpTestConnectionSuccess')}`);
+          });
 
-            // 连接测试成功，不执行额外操作
-          } else {
-            // 更新服务器状态为错误，并禁用安装
-            // 连接失败时自动设置 enabled=false，避免安装失败的服务
-            await updateServerStatus('error', {
-              enabled: false,
-            });
-            const errorMsg = truncateErrorMessage(result.error || t('settings.mcpError'));
-            await globalMessageQueue.add(() => {
-              message.error({ content: `${server.name}: ${errorMsg}`, duration: 5000 });
-            });
-          }
+          // 连接测试成功，不执行额外操作
         } else {
-          // IPC调用失败，禁用安装
+          // 更新服务器状态为错误，并禁用安装
+          // 连接失败时自动设置 enabled=false，避免安装失败的服务
           await updateServerStatus('error', {
             enabled: false,
           });
-          const errorMsg = truncateErrorMessage(response.msg || t('settings.mcpError'));
+          const errorMsg = truncateErrorMessage(result.error || t('settings.mcpError'));
           await globalMessageQueue.add(() => {
             message.error({ content: `${server.name}: ${errorMsg}`, duration: 5000 });
           });

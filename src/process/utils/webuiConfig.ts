@@ -7,7 +7,6 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { setWebServerInstance } from '../bridge/webuiBridge';
 import { ProcessConfig } from './initStorage';
 import { startWebServerWithInstance } from '../webserver';
 import { SERVER_CONFIG } from '../webserver/config/constants';
@@ -99,7 +98,6 @@ export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
     const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : SERVER_CONFIG.DEFAULT_PORT;
 
     const instance = await startWebServerWithInstance(preferredPort, allowRemote);
-    setWebServerInstance(instance);
     console.log(`[WebUI] Auto-restored from desktop preferences (port=${instance.port}, allowRemote=${allowRemote})`);
   } catch (error) {
     console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);

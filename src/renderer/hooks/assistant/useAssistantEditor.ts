@@ -250,11 +250,7 @@ export const useAssistantEditor = ({
         if (skillsToImport.length > 0) {
           for (const pendingSkill of skillsToImport) {
             try {
-              const response = await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: pendingSkill.path });
-              if (!response.success) {
-                message.error(`Failed to import skill "${pendingSkill.name}": ${response.msg}`);
-                return;
-              }
+              await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: pendingSkill.path });
             } catch (error) {
               console.error(`Failed to import skill "${pendingSkill.name}":`, error);
               message.error(`Failed to import skill "${pendingSkill.name}"`);

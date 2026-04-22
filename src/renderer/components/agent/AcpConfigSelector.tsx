@@ -54,8 +54,8 @@ const AcpConfigSelector: React.FC<{
       .invoke({ conversationId })
       .then((result) => {
         if (cancelled) return;
-        if (result.success && result.data?.configOptions?.length > 0) {
-          setConfigOptions(result.data.configOptions);
+        if (result?.configOptions?.length > 0) {
+          setConfigOptions(result.configOptions);
         }
       })
       .catch(() => {});
@@ -74,8 +74,8 @@ const AcpConfigSelector: React.FC<{
         ipcBridge.acpConversation.getConfigOptions
           .invoke({ conversationId })
           .then((result) => {
-            if (result.success && result.data?.configOptions?.length > 0) {
-              setConfigOptions(result.data.configOptions);
+            if (result?.configOptions?.length > 0) {
+              setConfigOptions(result.configOptions);
             }
           })
           .catch(() => {});
@@ -104,13 +104,19 @@ const AcpConfigSelector: React.FC<{
         return;
       }
 
-      // Conversation mode: send to ACP backend
+      // Conversation mode: send to ACP backend (setConfigOption returns void)
       ipcBridge.acpConversation.setConfigOption
         .invoke({ conversationId, configId, value })
-        .then((result) => {
-          if (result.success && result.data?.configOptions?.length > 0) {
-            setConfigOptions(result.data.configOptions);
-          }
+        .then(() => {
+          // Re-fetch config options after successful set
+          ipcBridge.acpConversation.getConfigOptions
+            .invoke({ conversationId })
+            .then((result) => {
+              if (result?.configOptions?.length > 0) {
+                setConfigOptions(result.configOptions);
+              }
+            })
+            .catch(() => {});
         })
         .catch((error) => {
           console.error('[AcpConfigSelector] Failed to set config option:', error);
@@ -118,8 +124,8 @@ const AcpConfigSelector: React.FC<{
           ipcBridge.acpConversation.getConfigOptions
             .invoke({ conversationId })
             .then((result) => {
-              if (result.success && result.data?.configOptions) {
-                setConfigOptions(result.data.configOptions);
+              if (result?.configOptions) {
+                setConfigOptions(result.configOptions);
               }
             })
             .catch(() => {});

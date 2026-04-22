@@ -65,8 +65,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       }
 
       const result = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths: selectedFiles, workspace });
-      const copiedFiles = result.data?.copiedFiles ?? [];
-      const failedFiles = result.data?.failedFiles ?? [];
+      const copiedFiles = result.copiedFiles ?? [];
+      const failedFiles = result.failedFiles ?? [];
 
       if (copiedFiles.length > 0) {
         setTimeout(() => {
@@ -74,9 +74,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         }, 300);
       }
 
-      if (!result.success || failedFiles.length > 0) {
-        const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
-        messageApi.warning(fallback || t('common.unknownError') || 'Copy failed');
+      if (failedFiles.length > 0) {
+        messageApi.warning('Some files failed to copy');
       }
     },
     [workspace, refreshWorkspace, messageApi, t]
@@ -174,18 +173,17 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         try {
           const filePaths = filesMeta.map((f) => f.path);
           const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
-          const copiedFiles = res.data?.copiedFiles ?? [];
-          const failedFiles = res.data?.failedFiles ?? [];
+          const copiedFiles = res.copiedFiles ?? [];
+          const failedFiles = res.failedFiles ?? [];
 
           if (copiedFiles.length > 0) {
             messageApi.success(t('common.fileAttach.uploadSuccess') || 'Pasted');
             setTimeout(() => refreshWorkspace(), 300);
           }
 
-          if (!res.success || failedFiles.length > 0) {
+          if (failedFiles.length > 0) {
             // 如果有文件粘贴失败则通知用户 / Notify user when any paste fails
-            const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
-            messageApi.warning(fallback || t('common.unknownError') || 'Paste failed');
+            messageApi.warning('Some files failed to copy');
           }
         } catch (error) {
           messageApi.error(t('common.unknownError') || 'Paste failed');
@@ -228,17 +226,16 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
 
       const filePaths = pasteConfirm.filesToPaste.map((f) => f.path);
       const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
-      const copiedFiles = res.data?.copiedFiles ?? [];
-      const failedFiles = res.data?.failedFiles ?? [];
+      const copiedFiles = res.copiedFiles ?? [];
+      const failedFiles = res.failedFiles ?? [];
 
       if (copiedFiles.length > 0) {
         messageApi.success(t('common.fileAttach.uploadSuccess') || 'Pasted');
         setTimeout(() => refreshWorkspace(), 300);
       }
 
-      if (!res.success || failedFiles.length > 0) {
-        const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
-        messageApi.warning(fallback || t('common.unknownError') || 'Paste failed');
+      if (failedFiles.length > 0) {
+        messageApi.warning('Some files failed to copy');
       }
 
       closePasteConfirm();

@@ -54,37 +54,31 @@ export const useAcpInitialMessage = ({
 
         // Send the message
         void checkAndUpdateTitle(conversationId, input);
-        const result = await ipcBridge.acpConversation.sendMessage.invoke({
+        await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id: conversationId,
           files,
         });
 
-        if (result && result.success === true) {
-          // Initial message sent successfully
-          emitter.emit('chat.history.refresh');
-        } else {
-          // Handle send failure
-          console.error('[ACP-FRONTEND] Failed to send initial message:', result);
-          // Create error message in UI
-          const errorMessage: TMessage = {
-            id: uuid(),
-            msg_id: uuid(),
-            conversation_id: conversationId,
-            type: 'tips',
-            position: 'center',
-            content: {
-              content: 'Failed to send message. Please try again.',
-              type: 'error',
-            },
-            createdAt: Date.now() + 2,
-          };
-          addOrUpdateMessage(errorMessage, true);
-          setAiProcessing(false); // Stop loading state on failure
-        }
+        // Initial message sent successfully
+        emitter.emit('chat.history.refresh');
       } catch (error) {
         console.error('Error sending initial message:', error);
+        // Create error message in UI
+        const errorMessage: TMessage = {
+          id: uuid(),
+          msg_id: uuid(),
+          conversation_id: conversationId,
+          type: 'tips',
+          position: 'center',
+          content: {
+            content: 'Failed to send message. Please try again.',
+            type: 'error',
+          },
+          createdAt: Date.now() + 2,
+        };
+        addOrUpdateMessage(errorMessage, true);
         setAiProcessing(false); // Stop loading state on error
       }
     };

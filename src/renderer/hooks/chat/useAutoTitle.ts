@@ -18,12 +18,12 @@ export const useAutoTitle = () => {
           return;
         }
 
-        const messages = await ipcBridge.database.getConversationMessages.invoke({
+        const messagesResult = await ipcBridge.database.getConversationMessages.invoke({
           conversation_id: conversationId,
           page: 0,
           pageSize: 1000,
         });
-        const newTitle = deriveAutoTitleFromMessages(messages, fallbackContent);
+        const newTitle = deriveAutoTitleFromMessages(messagesResult.items, fallbackContent);
         if (!newTitle) {
           return;
         }

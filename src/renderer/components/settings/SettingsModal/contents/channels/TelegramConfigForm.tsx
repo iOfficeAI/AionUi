@@ -81,9 +81,9 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   const loadPendingPairings = useCallback(async () => {
     setPairingLoading(true);
     try {
-      const result = await channel.getPendingPairings.invoke();
-      if (result.success && result.data) {
-        setPendingPairings(result.data.filter((p) => p.platformType === 'telegram'));
+      const pairings = await channel.getPendingPairings.invoke();
+      if (pairings) {
+        setPendingPairings(pairings.filter((p) => p.platformType === 'telegram'));
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load pending pairings:', error);
@@ -96,9 +96,9 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   const loadAuthorizedUsers = useCallback(async () => {
     setUsersLoading(true);
     try {
-      const result = await channel.getAuthorizedUsers.invoke();
-      if (result.success && result.data) {
-        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'telegram'));
+      const users = await channel.getAuthorizedUsers.invoke();
+      if (users) {
+        setAuthorizedUsers(users.filter((u) => u.platformType === 'telegram'));
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load authorized users:', error);
@@ -122,8 +122,8 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           ConfigStorage.get('assistant.telegram.agent'),
         ]);
 
-        if (agentsResp.success && agentsResp.data) {
-          const list = agentsResp.data
+        if (Array.isArray(agentsResp)) {
+          const list = agentsResp
             .filter((a) => !a.isPreset)
             .map((a) => ({
               backend: a.backend,
@@ -202,23 +202,24 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     setTokenTested(false);
     setTestedBotUsername(null);
     try {
+      // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
         pluginId: 'telegram_default',
         token: telegramToken.trim(),
       });
 
-      if (result.success && result.data?.success) {
+      if (result.success) {
         setTokenTested(true);
-        setTestedBotUsername(result.data.botUsername || null);
+        setTestedBotUsername(result.botUsername || null);
         Message.success(
-          t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.data.botUsername || 'unknown'}`)
+          t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.botUsername || 'unknown'}`)
         );
 
         // Auto-enable bot after successful test
         await handleAutoEnable();
       } else {
         setTokenTested(false);
-        Message.error(result.data?.error || t('settings.assistant.connectionFailed', 'Connection failed'));
+        Message.error(result.error || t('settings.assistant.connectionFailed', 'Connection failed'));
       }
     } catch (error: any) {
       setTokenTested(false);
@@ -231,20 +232,19 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   // Auto-enable plugin after successful test
   const handleAutoEnable = async () => {
     try {
-      const result = await channel.enablePlugin.invoke({
+      // enablePlugin returns void; success if no throw
+      await channel.enablePlugin.invoke({
         pluginId: 'telegram_default',
         config: { token: telegramToken.trim() },
       });
 
-      if (result.success) {
-        Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
-        const statusResult = await channel.getPluginStatus.invoke();
-        if (statusResult.success && statusResult.data) {
-          const telegramPlugin = statusResult.data.find((p) => p.type === 'telegram');
-          onStatusChange(telegramPlugin || null);
-        }
+      Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
+      const plugins = await channel.getPluginStatus.invoke();
+      if (plugins) {
+        const telegramPlugin = plugins.find((p) => p.type === 'telegram');
+        onStatusChange(telegramPlugin || null);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[ChannelSettings] Auto-enable failed:', error);
     }
   };
@@ -260,46 +260,34 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   // Approve pairing
   const handleApprovePairing = async (code: string) => {
     try {
-      const result = await channel.approvePairing.invoke({ code });
-      if (result.success) {
-        Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
-        await loadPendingPairings();
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.approveFailed', 'Failed to approve pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.approvePairing.invoke({ code });
+      Message.success(t('settings.assistant.pairingApproved', 'Pairing approved'));
+      await loadPendingPairings();
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Reject pairing
   const handleRejectPairing = async (code: string) => {
     try {
-      const result = await channel.rejectPairing.invoke({ code });
-      if (result.success) {
-        Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
-        await loadPendingPairings();
-      } else {
-        Message.error(result.msg || t('settings.assistant.rejectFailed', 'Failed to reject pairing'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.rejectPairing.invoke({ code });
+      Message.info(t('settings.assistant.pairingRejected', 'Pairing rejected'));
+      await loadPendingPairings();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 
   // Revoke user
   const handleRevokeUser = async (userId: string) => {
     try {
-      const result = await channel.revokeUser.invoke({ userId });
-      if (result.success) {
-        Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
-        await loadAuthorizedUsers();
-      } else {
-        Message.error(result.msg || t('settings.assistant.revokeFailed', 'Failed to revoke user'));
-      }
-    } catch (error: any) {
-      Message.error(error.message);
+      await channel.revokeUser.invoke({ userId });
+      Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
+      await loadAuthorizedUsers();
+    } catch (error: unknown) {
+      Message.error(error instanceof Error ? error.message : String(error));
     }
   };
 

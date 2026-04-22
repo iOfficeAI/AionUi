@@ -172,9 +172,9 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   React.useEffect(() => {
     const loadAgents = async () => {
       try {
-        const response = await acpConversation.getAvailableAgents.invoke();
-        if (response.success && response.data) {
-          setDetectedAgents(response.data.map((agent) => ({ backend: agent.backend, name: agent.name })));
+        const agents = await acpConversation.getAvailableAgents.invoke();
+        if (Array.isArray(agents)) {
+          setDetectedAgents(agents.map((agent) => ({ backend: agent.backend, name: agent.name })));
         }
       } catch (error) {
         console.error('Failed to load agents:', error);

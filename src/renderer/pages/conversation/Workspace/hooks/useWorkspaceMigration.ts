@@ -112,8 +112,9 @@ export function useWorkspaceMigration({
             workspace: targetWorkspace,
             sourceRoot: workspace,
           });
-          if (!copyResult?.success) {
-            throw new Error(copyResult?.msg || 'Failed to copy workspace files');
+          if (copyResult?.failedFiles && copyResult.failedFiles.length > 0) {
+            const failedPaths = copyResult.failedFiles.map((f) => f.path).join(', ');
+            throw new Error(`Failed to copy workspace files: ${failedPaths}`);
           }
         }
 
@@ -135,8 +136,8 @@ export function useWorkspaceMigration({
           messageApi.success(t('conversation.workspace.migration.success'));
         } else {
           // Single conversation mode: create new conversation + delete old one
-          const conversations = await ipcBridge.database.getUserConversations.invoke({ page: 0, pageSize: 10000 });
-          const currentConversation = conversations?.find((conv) => conv.id === conversation_id);
+          const result = await ipcBridge.database.getUserConversations.invoke({ limit: 10000 });
+          const currentConversation = result?.items?.find((conv) => conv.id === conversation_id);
 
           if (!currentConversation) {
             throw new Error('Current conversation not found');

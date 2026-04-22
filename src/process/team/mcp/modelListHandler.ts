@@ -11,10 +11,24 @@
 
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { getTeamAvailableModels } from '@/common/utils/teamModelUtils';
+import type { IProvider } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
-import { getMergedModelProviders } from '@process/bridge/modelBridge';
 import { hasGeminiOauthCreds } from '../googleAuthCheck';
 import { agentRegistry } from '@process/agent/AgentRegistry';
+import { v4 as uuid } from 'uuid';
+
+async function getMergedModelProviders(): Promise<IProvider[]> {
+  try {
+    const data = await ProcessConfig.get('model.config');
+    const sourceList = Array.isArray(data) ? data : [];
+    return sourceList.map((v) => ({
+      ...v,
+      id: v.id || uuid(),
+    }));
+  } catch {
+    return [];
+  }
+}
 
 export async function handleListModels(args: Record<string, unknown>): Promise<string> {
   const agentType = args.agent_type ? String(args.agent_type) : undefined;

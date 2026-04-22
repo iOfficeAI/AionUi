@@ -347,20 +347,16 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                         api_key: '',
                         bedrockConfig,
                       });
-                      if (res.success) {
-                        const models =
-                          res.data?.mode.map((v: any) => {
-                            if (typeof v === 'string') {
-                              return { label: v, value: v };
-                            } else {
-                              return { label: v.name, value: v.id };
-                            }
-                          }) || [];
-                        // Update the model list state manually
-                        void modelListState.mutate({ models }, false);
-                      } else {
-                        message.error(res.msg || 'Failed to fetch models');
-                      }
+                      const models =
+                        res.mode.map((v) => {
+                          if (typeof v === 'string') {
+                            return { label: v, value: v };
+                          } else {
+                            return { label: v.name, value: v.id };
+                          }
+                        }) || [];
+                      // Update the model list state manually
+                      void modelListState.mutate({ models }, false);
                     } catch (error: any) {
                       message.error(error.message || 'Failed to fetch models');
                     }

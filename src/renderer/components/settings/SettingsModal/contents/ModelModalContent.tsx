@@ -117,19 +117,11 @@ const ModelModalContent: React.FC = () => {
 
     ipcBridge.mode.saveModelConfig
       .invoke(newData)
-      .then((data) => {
-        if (data.success) {
-          // 保存成功后重新验证数据
-          void mutate();
-          success?.();
-        } else {
-          // 保存失败，回滚到服务器数据
-          void mutate();
-          message.error(data.msg);
-        }
+      .then(() => {
+        void mutate();
+        success?.();
       })
       .catch((error) => {
-        // 保存失败，回滚到服务器数据
         void mutate();
         console.error('Failed to save model config:', error);
         message.error(t('settings.saveModelConfigFailed'));
@@ -338,25 +330,17 @@ const ModelModalContent: React.FC = () => {
           return item;
         });
 
-        const saveResult = await ipcBridge.mode.saveModelConfig.invoke(newData);
-        if (saveResult.success) {
-          // 保存成功后重新验证数据
-          await mutate();
-          if (result.success) {
-            Message.success({
-              content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
-              duration: 3000,
-            });
-          } else {
-            Message.error({
-              content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${result.error}`,
-              duration: 5000,
-            });
-          }
+        await ipcBridge.mode.saveModelConfig.invoke(newData);
+        await mutate();
+        if (result.success) {
+          Message.success({
+            content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
+            duration: 3000,
+          });
         } else {
           Message.error({
-            content: saveResult.msg || t('settings.saveModelConfigFailed'),
-            duration: 3000,
+            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${result.error}`,
+            duration: 5000,
           });
         }
       } catch (saveError) {
@@ -392,10 +376,8 @@ const ModelModalContent: React.FC = () => {
           return item;
         });
 
-        const saveResult = await ipcBridge.mode.saveModelConfig.invoke(newData);
-        if (saveResult.success) {
-          await mutate();
-        }
+        await ipcBridge.mode.saveModelConfig.invoke(newData);
+        await mutate();
       } catch (saveError) {
         console.error('Failed to save health check result:', saveError);
       }

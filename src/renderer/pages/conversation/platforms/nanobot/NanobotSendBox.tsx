@@ -21,7 +21,6 @@ import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
-import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -251,13 +250,12 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       setAiProcessing(true);
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.conversation.sendMessage.invoke({
+        await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send message to Nanobot');
         emitter.emit('chat.history.refresh');
       } catch (error) {
         removeMessageByMsgId(msg_id);
@@ -367,13 +365,12 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         addOrUpdateMessage(userMessage, true);
 
         void checkAndUpdateTitle(conversation_id, input);
-        const result = await ipcBridge.conversation.sendMessage.invoke({
+        await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
           msg_id,
           conversation_id,
           files,
         });
-        assertBridgeSuccess(result, 'Failed to send initial message to Nanobot');
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {

@@ -29,13 +29,13 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
       // 初始化时检测可用的agents
       const loadAgents = async () => {
         try {
-          const response = await acpConversation.getAvailableAgents.invoke();
+          const result = await acpConversation.getAvailableAgents.invoke();
 
-          if (response.success && response.data) {
-            const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
+          if (Array.isArray(result) && result.length > 0) {
+            const agentList = result.map((agent) => ({ backend: agent.backend, name: agent.name }));
 
             // 根据检测到的agents数量和importMode决定显示哪个模态框
-            if (agents.length === 0) {
+            if (agentList.length === 0) {
               setShowJsonModal(true);
             } else if (importMode === 'json') {
               setShowJsonModal(true);

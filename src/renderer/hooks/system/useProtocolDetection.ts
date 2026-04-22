@@ -93,7 +93,7 @@ export function useProtocolDetection(
       setError(null);
 
       try {
-        const response = await ipcBridge.mode.detectProtocol.invoke({
+        const detectionResult = await ipcBridge.mode.detectProtocol.invoke({
           baseUrl: url,
           apiKey: key,
           timeout,
@@ -105,13 +105,8 @@ export function useProtocolDetection(
           return;
         }
 
-        if (response.success && response.data) {
-          setResult(response.data);
-          setError(null);
-        } else {
-          setResult(response.data || null);
-          setError(response.msg || 'Detection failed');
-        }
+        setResult(detectionResult);
+        setError(null);
       } catch (e: any) {
         // 检查是否是最新的请求
         if (currentVersion !== requestVersionRef.current) {

@@ -61,6 +61,6 @@ export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
   return {
     geminiModeOptions,
     isGoogleAuth: Boolean(isGoogleAuth),
-    subscriptionStatus: subscriptionResponse?.data,
+    subscriptionStatus: subscriptionResponse ?? undefined,
   };
 };

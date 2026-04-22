@@ -300,14 +300,9 @@ const SystemModalContent: React.FC = () => {
       setError(null);
       try {
         await saveDirConfigValidate({ cacheDir, workDir });
-        const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
-        if (result.success) {
-          await ipcBridge.application.restart.invoke();
-        } else {
-          setError(result.msg || 'Failed to update system info');
-          form.setFieldValue('cacheDir', systemInfo.cacheDir);
-          form.setFieldValue('workDir', systemInfo.workDir);
-        }
+        // updateSystemInfo returns void; success if no throw
+        await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
+        await ipcBridge.application.restart.invoke();
       } catch (caughtError: unknown) {
         form.setFieldValue('cacheDir', systemInfo.cacheDir);
         form.setFieldValue('workDir', systemInfo.workDir);

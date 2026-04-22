@@ -620,20 +620,16 @@ const AddPlatformModal = ModalHOC<{
                           api_key: '',
                           bedrockConfig,
                         });
-                        if (res.success) {
-                          const models =
-                            res.data?.mode.map((v: any) => {
-                              if (typeof v === 'string') {
-                                return { label: v, value: v };
-                              } else {
-                                return { label: v.name, value: v.id };
-                              }
-                            }) || [];
-                          // Update the model list state manually
-                          void modelListState.mutate({ models }, false);
-                        } else {
-                          message.error(res.msg || 'Failed to fetch models');
-                        }
+                        const models =
+                          res.mode.map((v) => {
+                            if (typeof v === 'string') {
+                              return { label: v, value: v };
+                            } else {
+                              return { label: v.name, value: v.id };
+                            }
+                          }) || [];
+                        // Update the model list state manually
+                        void modelListState.mutate({ models }, false);
                       } catch (error: any) {
                         message.error(error.message || 'Failed to fetch models');
                       }
@@ -683,8 +679,7 @@ const AddPlatformModal = ModalHOC<{
               api_key: key,
               platform: selectedPlatform?.platform ?? 'custom',
             });
-            // 严格检查：success 为 true 且返回了模型列表
-            return res.success === true && Array.isArray(res.data?.mode) && res.data.mode.length > 0;
+            return Array.isArray(res?.mode) && res.mode.length > 0;
           } catch {
             return false;
           }

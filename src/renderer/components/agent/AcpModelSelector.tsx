@@ -99,8 +99,8 @@ const AcpModelSelector: React.FC<{
     async (options?: { preserveInitialModel?: boolean }) => {
       const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId });
 
-      if (result.success && result.data?.modelInfo) {
-        const info = result.data.modelInfo;
+      if (result?.modelInfo) {
+        const info = result.modelInfo;
         if (backend === 'codex') {
           console.log('[AcpModelSelector][codex] Initial model info:', info);
         }
@@ -230,10 +230,16 @@ const AcpModelSelector: React.FC<{
       });
       ipcBridge.acpConversation.setModel
         .invoke({ conversationId, modelId })
-        .then((result) => {
-          if (result.success && result.data?.modelInfo) {
-            updateModelInfo(result.data.modelInfo);
-          }
+        .then(() => {
+          // setModel returns void; re-fetch model info after successful set
+          ipcBridge.acpConversation.getModelInfo
+            .invoke({ conversationId })
+            .then((result) => {
+              if (result?.modelInfo) {
+                updateModelInfo(result.modelInfo);
+              }
+            })
+            .catch(() => {});
         })
         .catch((error) => {
           console.error('[AcpModelSelector] Failed to set model:', error);

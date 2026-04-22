@@ -204,7 +204,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         });
 
         setItems((prev) => (append ? [...prev, ...result.items] : result.items));
-        setPage(result.page);
+        setPage(pageToLoad);
         setHasMore(result.hasMore);
       } catch (error) {
         console.error('[ConversationSearchPopover] Search failed:', error);

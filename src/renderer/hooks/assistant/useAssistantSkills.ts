@@ -49,11 +49,11 @@ export const useAssistantSkills = ({
     setExternalSkillsLoading(true);
     setRefreshing(true);
     try {
-      const response = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      if (response.success && response.data) {
-        setExternalSources(response.data);
-        if (response.data.length > 0 && !response.data.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(response.data[0].source);
+      const externalSkillsResult = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
+      if (externalSkillsResult) {
+        setExternalSources(externalSkillsResult);
+        if (externalSkillsResult.length > 0 && !externalSkillsResult.find((s) => s.source === activeSourceTab)) {
+          setActiveSourceTab(externalSkillsResult[0].source);
         }
       }
     } catch (error) {
@@ -75,19 +75,15 @@ export const useAssistantSkills = ({
   const handleAddCustomPath = useCallback(async () => {
     if (!customPathName.trim() || !customPathValue.trim()) return;
     try {
-      const result = await ipcBridge.fs.addCustomExternalPath.invoke({
+      await ipcBridge.fs.addCustomExternalPath.invoke({
         name: customPathName.trim(),
         path: customPathValue.trim(),
       });
-      if (result.success) {
-        setShowAddPathModal(false);
-        setCustomPathName('');
-        setCustomPathValue('');
-        message.success(t('common.success', { defaultValue: 'Successfully added path' }));
-        void handleRefreshExternal();
-      } else {
-        message.error(result.msg || 'Failed to add path');
-      }
+      setShowAddPathModal(false);
+      setCustomPathName('');
+      setCustomPathValue('');
+      message.success(t('common.success', { defaultValue: 'Successfully added path' }));
+      void handleRefreshExternal();
     } catch (_error) {
       message.error('Failed to add custom path');
     }

@@ -132,13 +132,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     if (!deleteModal.target) return;
     try {
       setDeleteModal((prev) => ({ ...prev, loading: true }));
-      const res = await removeWorkspaceEntry(deleteModal.target.fullPath);
-      if (!res?.success) {
-        const errorMsg = res?.msg || t('conversation.workspace.contextMenu.deleteFailed');
-        messageApi.error(errorMsg);
-        setDeleteModal((prev) => ({ ...prev, loading: false }));
-        return;
-      }
+      await removeWorkspaceEntry(deleteModal.target.fullPath);
 
       messageApi.success(t('conversation.workspace.contextMenu.deleteSuccess'));
       setSelected([]);
@@ -221,12 +215,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
 
     try {
       setRenameLoading(true);
-      const response = await waitWithTimeout(renameWorkspaceEntry(target.fullPath, trimmedName));
-      if (!response?.success) {
-        const errorMsg = response?.msg || t('conversation.workspace.contextMenu.renameFailed');
-        messageApi.error(errorMsg);
-        return;
-      }
+      await waitWithTimeout(renameWorkspaceEntry(target.fullPath, trimmedName));
 
       closeRenameModal();
 

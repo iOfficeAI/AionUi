@@ -92,7 +92,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
         backend: agentToCheck,
       });
 
-      if (result.success && result.data?.available) {
+      if (result.available) {
         setState((prev) => ({
           ...prev,
           isReady: true,
@@ -105,7 +105,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
           ...prev,
           isReady: false,
           isChecking: false,
-          error: result.msg || result.data?.error || 'Agent not available',
+          error: result.error || 'Agent not available',
         }));
         return false;
       }
@@ -133,8 +133,8 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     }));
 
     try {
-      const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-      if (!result.success || !result.data) {
+      const agentsList = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+      if (!Array.isArray(agentsList) || agentsList.length === 0) {
         setState((prev) => ({
           ...prev,
           isChecking: false,
@@ -143,7 +143,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
       }
 
       // Filter out current agent and custom agents
-      const agentsToCheck = result.data
+      const agentsToCheck = agentsList
         .filter((agent) => !agent.isPreset && agent.backend !== 'remote' && agent.backend !== currentAgentBackend)
         .map((agent) => ({
           backend: agent.backend as AgentBackend,
@@ -185,9 +185,9 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
 
           const checkedAgent: AgentCheckResult = {
             ...agent,
-            available: healthResult.success === true,
-            latency: healthResult.success ? latency : undefined,
-            error: healthResult.success ? undefined : healthResult.msg,
+            available: healthResult.available === true,
+            latency: healthResult.available ? latency : undefined,
+            error: healthResult.available ? undefined : healthResult.error,
             checking: false,
           };
 

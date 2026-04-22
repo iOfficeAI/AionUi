@@ -753,20 +753,7 @@ app.on('before-quit', async () => {
       console.error('[App] Failed to shutdown ChannelManager:', error);
     }
 
-    // Stop Web Server (Express + WebSocket)
-    try {
-      const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
-      const { cleanupWebAdapter } = await import('@process/webserver/adapter');
-      const instance = getWebServerInstance();
-      if (instance) {
-        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
-        await new Promise<void>((resolve) => instance.server.close(() => resolve()));
-        cleanupWebAdapter();
-        setWebServerInstance(null);
-      }
-    } catch {
-      /* server not started */
-    }
+    // Web Server lifecycle is managed by aionui-backend subprocess
 
     // Stop Office Watch processes (Word / Excel / PPT preview)
     try {

@@ -82,25 +82,25 @@ export const conversation = {
     (p) => ({ gemini: p.gemini }),
   ),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
-  stop: httpPost<IBridgeResponse<{}>, { conversation_id: string }>(
+  stop: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/stop`,
   ),
-  sendMessage: httpPost<IBridgeResponse<{}>, ISendMessageParams>(
+  sendMessage: httpPost<void, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
     (p) => ({ input: p.input, msg_id: p.msg_id, files: p.files, loading_id: p.loading_id, injectSkills: p.injectSkills }),
   ),
   getSlashCommands: httpGet<
-    IBridgeResponse<{ commands: SlashCommandItem[] }>,
+    { commands: SlashCommandItem[] },
     { conversation_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/slash-commands`),
   askSideQuestion: httpPost<
-    IBridgeResponse<ConversationSideQuestionResult>,
+    ConversationSideQuestionResult,
     { conversation_id: string; question: string }
   >(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
     (p) => ({ question: p.question }),
   ),
-  confirmMessage: httpPost<IBridgeResponse, IConfirmMessageParams>(
+  confirmMessage: httpPost<void, IConfirmMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.callId}/confirm`,
     (p) => ({ confirmKey: p.confirmKey, msg_id: p.msg_id }),
   ),
@@ -115,11 +115,11 @@ export const conversation = {
     'responseSearchWorkSpace',
     undefined as unknown as void,
   ),
-  reloadContext: httpPost<IBridgeResponse, { conversation_id: string }>(
+  reloadContext: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/reload-context`,
   ),
   setConfig: httpPost<
-    IBridgeResponse,
+    void,
     {
       conversation_id: string;
       config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string };
@@ -132,7 +132,7 @@ export const conversation = {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
     confirm: httpPost<
-      IBridgeResponse,
+      void,
       { conversation_id: string; msg_id: string; data: unknown; callId: string }
     >(
       (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.callId}/confirm`,
@@ -200,7 +200,7 @@ export const application = {
     void
   >('/api/system/info'),
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
-  updateSystemInfo: httpPost<IBridgeResponse, { cacheDir: string; workDir: string }>(
+  updateSystemInfo: httpPost<void, { cacheDir: string; workDir: string }>(
     '/api/system/info',
     (p) => p,
   ),
@@ -247,7 +247,7 @@ export const autoUpdate = {
 
 export const starOffice = {
   detectUrl: httpPost<
-    IBridgeResponse<{ url: string | null }>,
+    { url: string | null },
     { preferredUrl?: string; force?: boolean; timeoutMs?: number }
   >('/api/star-office/detect'),
 };
@@ -293,11 +293,11 @@ export const fs = {
   cancelZip: httpPost<boolean, { requestId: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string }>('/api/fs/metadata'),
   copyFilesToWorkspace: httpPost<
-    IBridgeResponse<{ copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> }>,
+    { copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> },
     { filePaths: string[]; workspace: string; sourceRoot?: string }
   >('/api/fs/copy'),
-  removeEntry: httpPost<IBridgeResponse, { path: string }>('/api/fs/remove'),
-  renameEntry: httpPost<IBridgeResponse<{ newPath: string }>, { path: string; newName: string }>('/api/fs/rename'),
+  removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
+  renameEntry: httpPost<{ newPath: string }, { path: string; newName: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { fileName: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { fileName: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistantId: string; locale?: string }>('/api/skills/assistant-rule/read'),
@@ -325,43 +325,41 @@ export const fs = {
     void
   >('/api/skills'),
   listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string }>, void>('/api/skills/builtin-auto'),
-  readSkillInfo: httpPost<IBridgeResponse<{ name: string; description: string }>, { skillPath: string }>(
+  readSkillInfo: httpPost<{ name: string; description: string }, { skillPath: string }>(
     '/api/skills/info',
   ),
-  importSkill: httpPost<IBridgeResponse<{ skillName: string }>, { skillPath: string }>('/api/skills/import'),
+  importSkill: httpPost<{ skillName: string }, { skillPath: string }>('/api/skills/import'),
   scanForSkills: httpPost<
-    IBridgeResponse<Array<{ name: string; description: string; path: string }>>,
+    Array<{ name: string; description: string; path: string }>,
     { folderPath: string }
   >('/api/skills/scan'),
-  detectCommonSkillPaths: httpGet<IBridgeResponse<Array<{ name: string; path: string }>>, void>(
+  detectCommonSkillPaths: httpGet<Array<{ name: string; path: string }>, void>(
     '/api/skills/detect-paths',
   ),
   detectAndCountExternalSkills: httpGet<
-    IBridgeResponse<
-      Array<{
-        name: string;
-        path: string;
-        source: string;
-        skills: Array<{ name: string; description: string; path: string }>;
-      }>
-    >,
+    Array<{
+      name: string;
+      path: string;
+      source: string;
+      skills: Array<{ name: string; description: string; path: string }>;
+    }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<IBridgeResponse<{ skillName: string }>, { skillPath: string }>(
+  importSkillWithSymlink: httpPost<{ skillName: string }, { skillPath: string }>(
     '/api/skills/import-symlink',
   ),
-  deleteSkill: httpDelete<IBridgeResponse, { skillName: string }>((p) => `/api/skills/${p.skillName}`),
+  deleteSkill: httpDelete<void, { skillName: string }>((p) => `/api/skills/${p.skillName}`),
   getSkillPaths: httpGet<{ userSkillsDir: string; builtinSkillsDir: string }, void>('/api/skills/paths'),
-  exportSkillWithSymlink: httpPost<IBridgeResponse, { skillPath: string; targetDir: string }>(
+  exportSkillWithSymlink: httpPost<void, { skillPath: string; targetDir: string }>(
     '/api/skills/export-symlink',
   ),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
-  addCustomExternalPath: httpPost<IBridgeResponse, { name: string; path: string }>('/api/skills/external-paths'),
-  removeCustomExternalPath: httpDelete<IBridgeResponse, { path: string }>(
+  addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),
+  removeCustomExternalPath: httpDelete<void, { path: string }>(
     (p) => `/api/skills/external-paths?path=${encodeURIComponent(p.path)}`,
   ),
-  enableSkillsMarket: httpPost<IBridgeResponse, void>('/api/skills/market/enable'),
-  disableSkillsMarket: httpPost<IBridgeResponse, void>('/api/skills/market/disable'),
+  enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
+  disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
 };
 
 // ---------------------------------------------------------------------------
@@ -377,9 +375,9 @@ export const speechToText = {
 // ---------------------------------------------------------------------------
 
 export const fileWatch = {
-  startWatch: httpPost<IBridgeResponse, { filePath: string }>('/api/fs/watch/start'),
-  stopWatch: httpPost<IBridgeResponse, { filePath: string }>('/api/fs/watch/stop'),
-  stopAllWatches: httpPost<IBridgeResponse, void>('/api/fs/watch/stop-all'),
+  startWatch: httpPost<void, { filePath: string }>('/api/fs/watch/start'),
+  stopWatch: httpPost<void, { filePath: string }>('/api/fs/watch/stop'),
+  stopAllWatches: httpPost<void, void>('/api/fs/watch/stop-all'),
   fileChanged: wsEmitter<{ filePath: string; eventType: string }>('fileWatch.fileChanged'),
 };
 
@@ -451,7 +449,7 @@ export const googleAuth = {
 
 export const gemini = {
   subscriptionStatus: httpGet<
-    IBridgeResponse<{ isSubscriber: boolean; tier?: string; lastChecked: number; message?: string }>,
+    { isSubscriber: boolean; tier?: string; lastChecked: number; message?: string },
     { proxy?: string }
   >('/api/gemini/subscription-status'),
 };
@@ -462,7 +460,7 @@ export const gemini = {
 
 export const bedrock = {
   testConnection: httpPost<
-    IBridgeResponse<{ msg?: string }>,
+    { msg?: string },
     {
       bedrockConfig: {
         authMethod: 'accessKey' | 'profile';
@@ -481,7 +479,7 @@ export const bedrock = {
 
 export const mode = {
   fetchModelList: httpPost<
-    IBridgeResponse<{ mode: Array<string | { id: string; name: string }>; fix_base_url?: string }>,
+    { mode: Array<string | { id: string; name: string }>; fix_base_url?: string },
     {
       base_url?: string;
       api_key: string;
@@ -496,9 +494,9 @@ export const mode = {
       };
     }
   >('/api/providers/fetch-models'),
-  saveModelConfig: httpPost<IBridgeResponse, IProvider[]>('/api/providers/batch'),
+  saveModelConfig: httpPost<void, IProvider[]>('/api/providers/batch'),
   getModelConfig: httpGet<IProvider[], void>('/api/providers'),
-  detectProtocol: httpPost<IBridgeResponse<ProtocolDetectionResponse>, ProtocolDetectionRequest>(
+  detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>(
     '/api/providers/detect-protocol',
   ),
 };
@@ -510,56 +508,54 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  detectCliPath: httpPost<IBridgeResponse<{ path?: string }>, { backend: string }>('/api/acp/detect-cli'),
+  detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   getAvailableAgents: httpGet<
-    IBridgeResponse<
-      Array<{
-        backend: string;
-        name: string;
-        kind?: string;
-        cliPath?: string;
-        supportedTransports?: string[];
-        isExtension?: boolean;
-        extensionName?: string;
-        isPreset?: boolean;
-        customAgentId?: string;
-      }>
-    >,
+    Array<{
+      backend: string;
+      name: string;
+      kind?: string;
+      cliPath?: string;
+      supportedTransports?: string[];
+      isExtension?: boolean;
+      extensionName?: string;
+      isPreset?: boolean;
+      customAgentId?: string;
+    }>,
     void
   >('/api/acp/agents'),
   checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
-  refreshCustomAgents: httpPost<IBridgeResponse, void>('/api/acp/agents/refresh'),
+  refreshCustomAgents: httpPost<void, void>('/api/acp/agents/refresh'),
   testCustomAgent: httpPost<
-    IBridgeResponse<{ step: 'cli_check' | 'acp_initialize'; error?: string }>,
+    { step: 'cli_check' | 'acp_initialize'; error?: string },
     { command: string; acpArgs?: string[]; env?: Record<string, string> }
   >('/api/acp/agents/test'),
   checkAgentHealth: httpPost<
-    IBridgeResponse<{ available: boolean; latency?: number; error?: string }>,
+    { available: boolean; latency?: number; error?: string },
     { backend: AgentBackend }
   >('/api/acp/health-check'),
-  setMode: httpPut<IBridgeResponse<{ mode: string }>, { conversationId: string; mode: string }>(
+  setMode: httpPut<void, { conversationId: string; mode: string }>(
     (p) => `/api/conversations/${p.conversationId}/acp/mode`,
     (p) => ({ mode: p.mode }),
   ),
-  getMode: httpGet<IBridgeResponse<{ mode: string; initialized: boolean }>, { conversationId: string }>(
+  getMode: httpGet<{ mode: string; initialized: boolean }, { conversationId: string }>(
     (p) => `/api/conversations/${p.conversationId}/acp/mode`,
   ),
-  getModelInfo: httpGet<IBridgeResponse<{ modelInfo: AcpModelInfo | null }>, { conversationId: string }>(
+  getModelInfo: httpGet<{ modelInfo: AcpModelInfo | null }, { conversationId: string }>(
     (p) => `/api/conversations/${p.conversationId}/acp/model`,
   ),
   setModel: httpPut<
-    IBridgeResponse<{ modelInfo: AcpModelInfo | null }>,
+    void,
     { conversationId: string; modelId: string }
   >(
     (p) => `/api/conversations/${p.conversationId}/acp/model`,
     (p) => ({ modelId: p.modelId }),
   ),
   getConfigOptions: httpGet<
-    IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>,
+    { configOptions: import('../types/acpTypes').AcpSessionConfigOption[] },
     { conversationId: string }
   >((p) => `/api/conversations/${p.conversationId}/acp/config`),
   setConfigOption: httpPut<
-    IBridgeResponse<{ configOptions: import('../types/acpTypes').AcpSessionConfigOption[] }>,
+    void,
     { conversationId: string; configId: string; value: string }
   >(
     (p) => `/api/conversations/${p.conversationId}/acp/config/${p.configId}`,
@@ -573,38 +569,38 @@ export const acpConversation = {
 
 export const mcpService = {
   getAgentMcpConfigs: httpGet<
-    IBridgeResponse<Array<{ source: McpSource; servers: IMcpServer[] }>>,
+    Array<{ source: McpSource; servers: IMcpServer[] }>,
     Array<{ backend: string; name: string; cliPath?: string }>
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
-    IBridgeResponse<{
+    {
       success: boolean;
       tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
       error?: string;
       needsAuth?: boolean;
       authMethod?: 'oauth' | 'basic';
       wwwAuthenticate?: string;
-    }>,
+    },
     IMcpServer
   >('/api/mcp/test-connection'),
   syncMcpToAgents: httpPost<
-    IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>,
+    { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
     { mcpServers: IMcpServer[]; agents: Array<{ backend: string; name: string; cliPath?: string }> }
   >('/api/mcp/sync-to-agents'),
   removeMcpFromAgents: httpPost<
-    IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>,
+    { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
     { mcpServerName: string; agents: Array<{ backend: string; name: string; cliPath?: string }> }
   >('/api/mcp/remove-from-agents'),
   checkOAuthStatus: httpPost<
-    IBridgeResponse<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }>,
+    { isAuthenticated: boolean; needsLogin: boolean; error?: string },
     IMcpServer
   >('/api/mcp/oauth/check-status'),
   loginMcpOAuth: httpPost<
-    IBridgeResponse<{ success: boolean; error?: string }>,
+    { success: boolean; error?: string },
     { server: IMcpServer; config?: unknown }
   >('/api/mcp/oauth/login'),
-  logoutMcpOAuth: httpPost<IBridgeResponse, string>('/api/mcp/oauth/logout', (serverName) => ({ serverName })),
-  getAuthenticatedServers: httpGet<IBridgeResponse<string[]>, void>('/api/mcp/oauth/authenticated'),
+  logoutMcpOAuth: httpPost<void, string>('/api/mcp/oauth/logout', (serverName) => ({ serverName })),
+  getAuthenticatedServers: httpGet<string[], void>('/api/mcp/oauth/authenticated'),
 };
 
 // ---------------------------------------------------------------------------
@@ -620,7 +616,7 @@ export const openclawConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
   getRuntime: httpGet<
-    IBridgeResponse<{
+    {
       conversationId: string;
       runtime: {
         workspace?: string;
@@ -642,7 +638,7 @@ export const openclawConversation = {
         expectedIdentityHash?: string | null;
         switchedAt?: number;
       };
-    }>,
+    },
     { conversation_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/openclaw/runtime`),
 };
@@ -681,21 +677,33 @@ export const remoteAgent = {
 // Database — routed to conversation/message endpoints
 // ---------------------------------------------------------------------------
 
+export type PaginatedResult<T> = {
+  items: T[];
+  total: number;
+  hasMore: boolean;
+};
+
 export const database = {
   getConversationMessages: httpGet<
-    import('@/common/chat/chatLib').TMessage[],
+    PaginatedResult<import('@/common/chat/chatLib').TMessage>,
     { conversation_id: string; page?: number; pageSize?: number }
   >(
     (p) => `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}`,
   ),
   getUserConversations: httpGet<
-    import('@/common/config/storage').TChatConversation[],
-    { page?: number; pageSize?: number }
+    PaginatedResult<import('@/common/config/storage').TChatConversation>,
+    { cursor?: string; limit?: number }
   >(
-    (p) => `/api/conversations?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}`,
+    (p) => {
+      const params = new URLSearchParams();
+      if (p.cursor) params.set('cursor', p.cursor);
+      if (p.limit) params.set('limit', String(p.limit));
+      const qs = params.toString();
+      return `/api/conversations${qs ? `?${qs}` : ''}`;
+    },
   ),
   searchConversationMessages: httpGet<
-    import('../types/database').IMessageSearchResponse,
+    PaginatedResult<import('../types/database').IMessageSearchItem>,
     { keyword: string; page?: number; pageSize?: number }
   >(
     (p) => `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}`,
@@ -901,21 +909,21 @@ export interface IWebUIStatus {
 }
 
 export const webui = {
-  getStatus: httpGet<IBridgeResponse<IWebUIStatus>, void>('/api/webui/status'),
+  getStatus: httpGet<IWebUIStatus, void>('/api/webui/status'),
   start: httpPost<
-    IBridgeResponse<{ port: number; localUrl: string; networkUrl?: string; lanIP?: string; initialPassword?: string }>,
+    { port: number; localUrl: string; networkUrl?: string; lanIP?: string; initialPassword?: string },
     { port?: number; allowRemote?: boolean }
   >('/api/webui/start'),
-  stop: httpPost<IBridgeResponse, void>('/api/webui/stop'),
-  changePassword: httpPost<IBridgeResponse, { newPassword: string }>('/api/webui/change-password'),
-  changeUsername: httpPost<IBridgeResponse<{ username: string }>, { newUsername: string }>(
+  stop: httpPost<void, void>('/api/webui/stop'),
+  changePassword: httpPost<void, { newPassword: string }>('/api/webui/change-password'),
+  changeUsername: httpPost<{ username: string }, { newUsername: string }>(
     '/api/webui/change-username',
   ),
-  resetPassword: httpPost<IBridgeResponse<{ newPassword: string }>, void>('/api/webui/reset-password'),
-  generateQRToken: httpPost<IBridgeResponse<{ token: string; expiresAt: number; qrUrl: string }>, void>(
+  resetPassword: httpPost<{ newPassword: string }, void>('/api/webui/reset-password'),
+  generateQRToken: httpPost<{ token: string; expiresAt: number; qrUrl: string }, void>(
     '/api/webui/generate-qr-token',
   ),
-  verifyQRToken: httpPost<IBridgeResponse<{ sessionToken: string; username: string }>, { qrToken: string }>(
+  verifyQRToken: httpPost<{ sessionToken: string; username: string }, { qrToken: string }>(
     '/api/webui/verify-qr-token',
   ),
   statusChanged: wsEmitter<{ running: boolean; port?: number; localUrl?: string; networkUrl?: string }>(
@@ -1260,8 +1268,8 @@ export const extensions = {
   getWebuiContributions: httpGet<IExtensionWebuiContribution[], void>('/api/extensions/webui'),
   getAgentActivitySnapshot: httpGet<IExtensionAgentActivitySnapshot, void>('/api/extensions/agent-activity'),
   getExtI18nForLocale: httpPost<Record<string, unknown>, { locale: string }>('/api/extensions/i18n'),
-  enableExtension: httpPost<IBridgeResponse, { name: string }>('/api/extensions/enable'),
-  disableExtension: httpPost<IBridgeResponse, { name: string; reason?: string }>('/api/extensions/disable'),
+  enableExtension: httpPost<void, { name: string }>('/api/extensions/enable'),
+  disableExtension: httpPost<void, { name: string; reason?: string }>('/api/extensions/disable'),
   getPermissions: httpPost<IExtensionPermissionSummary[], { name: string }>('/api/extensions/permissions'),
   getRiskLevel: httpPost<string, { name: string }>('/api/extensions/risk-level'),
   stateChanged: wsEmitter<{ name: string; enabled: boolean; reason?: string }>('extensions.state-changed'),
@@ -1279,23 +1287,23 @@ import type {
 } from '@process/channels/types';
 
 export const channel = {
-  getPluginStatus: httpGet<IBridgeResponse<IChannelPluginStatus[]>, void>('/api/channel/plugins'),
-  enablePlugin: httpPost<IBridgeResponse, { pluginId: string; config: Record<string, unknown> }>(
+  getPluginStatus: httpGet<IChannelPluginStatus[], void>('/api/channel/plugins'),
+  enablePlugin: httpPost<void, { pluginId: string; config: Record<string, unknown> }>(
     '/api/channel/plugins/enable',
   ),
-  disablePlugin: httpPost<IBridgeResponse, { pluginId: string }>('/api/channel/plugins/disable'),
+  disablePlugin: httpPost<void, { pluginId: string }>('/api/channel/plugins/disable'),
   testPlugin: httpPost<
-    IBridgeResponse<{ success: boolean; botUsername?: string; error?: string }>,
+    { success: boolean; botUsername?: string; error?: string },
     { pluginId: string; token: string; extraConfig?: { appId?: string; appSecret?: string } }
   >('/api/channel/plugins/test'),
-  getPendingPairings: httpGet<IBridgeResponse<IChannelPairingRequest[]>, void>('/api/channel/pairings'),
-  approvePairing: httpPost<IBridgeResponse, { code: string }>('/api/channel/pairings/approve'),
-  rejectPairing: httpPost<IBridgeResponse, { code: string }>('/api/channel/pairings/reject'),
-  getAuthorizedUsers: httpGet<IBridgeResponse<IChannelUser[]>, void>('/api/channel/users'),
-  revokeUser: httpPost<IBridgeResponse, { userId: string }>('/api/channel/users/revoke'),
-  getActiveSessions: httpGet<IBridgeResponse<IChannelSession[]>, void>('/api/channel/sessions'),
+  getPendingPairings: httpGet<IChannelPairingRequest[], void>('/api/channel/pairings'),
+  approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
+  rejectPairing: httpPost<void, { code: string }>('/api/channel/pairings/reject'),
+  getAuthorizedUsers: httpGet<IChannelUser[], void>('/api/channel/users'),
+  revokeUser: httpPost<void, { userId: string }>('/api/channel/users/revoke'),
+  getActiveSessions: httpGet<IChannelSession[], void>('/api/channel/sessions'),
   syncChannelSettings: httpPost<
-    IBridgeResponse,
+    void,
     {
       platform: string;
       agent: { backend: string; customAgentId?: string; name?: string };
@@ -1316,12 +1324,12 @@ export const channel = {
 import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
 
 export const hub = {
-  getExtensionList: httpGet<IBridgeResponse<IHubAgentItem[]>, void>('/api/hub/extensions'),
-  install: httpPost<IBridgeResponse, { name: string }>('/api/hub/install'),
-  uninstall: httpPost<IBridgeResponse, { name: string }>('/api/hub/uninstall'),
-  retryInstall: httpPost<IBridgeResponse, { name: string }>('/api/hub/retry-install'),
-  checkUpdates: httpPost<IBridgeResponse<{ name: string }[]>, void>('/api/hub/check-updates'),
-  update: httpPost<IBridgeResponse, { name: string }>('/api/hub/update'),
+  getExtensionList: httpGet<IHubAgentItem[], void>('/api/hub/extensions'),
+  install: httpPost<void, { name: string }>('/api/hub/install'),
+  uninstall: httpPost<void, { name: string }>('/api/hub/uninstall'),
+  retryInstall: httpPost<void, { name: string }>('/api/hub/retry-install'),
+  checkUpdates: httpPost<{ name: string }[], void>('/api/hub/check-updates'),
+  update: httpPost<void, { name: string }>('/api/hub/update'),
   onStateChanged: wsEmitter<{ name: string; status: HubExtensionStatus; error?: string }>(
     'hub.state-changed',
   ),
