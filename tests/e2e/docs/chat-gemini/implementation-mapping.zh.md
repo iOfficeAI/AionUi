@@ -3,7 +3,7 @@
 本文档记录 `test-cases.zh.md` 中定义的 15 个测试用例与实际 E2E 实现文件的对应关系。
 
 **生成时间**：2026-04-22  
-**实现目录**：`tests/e2e/features/conversation/gemini/`  
+**实现目录**：`tests/e2e/features/conversations/gemini/`  
 **文档版本**：test-cases.zh.md v1.0
 
 ---
@@ -26,11 +26,11 @@
 
 | 用例 ID | 用例标题 | 实现文件 | 行号 | 测试函数名 | 截图数 |
 |---------|---------|----------|------|-----------|--------|
-| TC-G-01 | 最小可行路径 | tests/e2e/features/conversation/gemini/basic-flow.e2e.ts | 71 | `test('TC-G-01: Minimal viable path (no attachments, auto model, default mode)')` | 5 |
-| TC-G-02 | 关联单个文件夹 | tests/e2e/features/conversation/gemini/basic-flow.e2e.ts | 167 | `test('TC-G-02: Associate single folder')` | 5 |
-| TC-G-03 | 上传单个文件 | tests/e2e/features/conversation/gemini/basic-flow.e2e.ts | 256 | `test('TC-G-03: Upload single file')` | 5 |
-| TC-G-04 | gemini-2.5-pro 模型 | tests/e2e/features/conversation/gemini/basic-flow.e2e.ts | 340 | `test('TC-G-04: Use gemini-2.5-pro model')` | 5 |
-| TC-G-05 | yolo 权限 | tests/e2e/features/conversation/gemini/basic-flow.e2e.ts | 408 | `test('TC-G-05: Use yolo permission mode')` | 6 |
+| TC-G-01 | 最小可行路径 | tests/e2e/features/conversations/gemini/basic-flow.e2e.ts | 71 | `test('TC-G-01: Minimal viable path (no attachments, auto model, default mode)')` | 5 |
+| TC-G-02 | 关联单个文件夹 | tests/e2e/features/conversations/gemini/basic-flow.e2e.ts | 167 | `test('TC-G-02: Associate single folder')` | 5 |
+| TC-G-03 | 上传单个文件 | tests/e2e/features/conversations/gemini/basic-flow.e2e.ts | 256 | `test('TC-G-03: Upload single file')` | 5 |
+| TC-G-04 | gemini-2.5-pro 模型 | tests/e2e/features/conversations/gemini/basic-flow.e2e.ts | 340 | `test('TC-G-04: Use gemini-2.5-pro model')` | 5 |
+| TC-G-05 | yolo 权限 | tests/e2e/features/conversations/gemini/basic-flow.e2e.ts | 408 | `test('TC-G-05: Use yolo permission mode')` | 6 |
 
 **小计**：5 个测试，26 张截图
 
@@ -40,13 +40,13 @@
 
 | 用例 ID | 用例标题 | 实现文件 | 行号 | 测试函数名 | 截图数 |
 |---------|---------|----------|------|-----------|--------|
-| TC-G-06 | autoEdit 权限 | tests/e2e/features/conversation/gemini/permission-modes.e2e.ts | 46 | `test('TC-G-06: AutoEdit permission mode (auto-approve file edits, commands need approval)')` | 6 |
-| TC-G-07 | 切换模型 | tests/e2e/features/conversation/gemini/mid-conversation-switch.e2e.ts | 50 | `test('TC-G-07: Switch model during conversation (auto → gemini-2.5-pro)')` | 5 |
-| TC-G-08 | 切换权限（default→autoEdit） | tests/e2e/features/conversation/gemini/mid-conversation-switch.e2e.ts | 127 | `test('TC-G-08: Switch permission during conversation (default → autoEdit)')` | 5 |
-| TC-G-09 | 切换权限（autoEdit→yolo） | tests/e2e/features/conversation/gemini/mid-conversation-switch.e2e.ts | 207 | `test('TC-G-09: Switch permission during conversation (autoEdit → yolo)')` | 7 |
-| TC-G-10 | 文件夹 + 文件组合 | tests/e2e/features/conversation/gemini/combo-scenarios.e2e.ts | 54 | `test('TC-G-10: Folder + file combination')` | 5 |
-| TC-G-11 | 多文件上传 | tests/e2e/features/conversation/gemini/combo-scenarios.e2e.ts | 137 | `test('TC-G-11: Multiple files upload (2 files)')` | 4 |
-| TC-G-12 | 完整组合 | tests/e2e/features/conversation/gemini/combo-scenarios.e2e.ts | 205 | `test('TC-G-12: Full combo (folder + multiple files + gemini-2.5-pro + yolo)')` | 8 |
+| TC-G-06 | autoEdit 权限 | tests/e2e/features/conversations/gemini/permission-modes.e2e.ts | 46 | `test('TC-G-06: AutoEdit permission mode (auto-approve file edits, commands need approval)')` | 6 |
+| TC-G-07 | 切换模型 | tests/e2e/features/conversations/gemini/mid-conversation-switch.e2e.ts | 50 | `test('TC-G-07: Switch model during conversation (auto → gemini-2.5-pro)')` | 5 |
+| TC-G-08 | 切换权限（default→autoEdit） | tests/e2e/features/conversations/gemini/mid-conversation-switch.e2e.ts | 127 | `test('TC-G-08: Switch permission during conversation (default → autoEdit)')` | 5 |
+| TC-G-09 | 切换权限（autoEdit→yolo） | tests/e2e/features/conversations/gemini/mid-conversation-switch.e2e.ts | 207 | `test('TC-G-09: Switch permission during conversation (autoEdit → yolo)')` | 7 |
+| TC-G-10 | 文件夹 + 文件组合 | tests/e2e/features/conversations/gemini/combo-scenarios.e2e.ts | 54 | `test('TC-G-10: Folder + file combination')` | 5 |
+| TC-G-11 | 多文件上传 | tests/e2e/features/conversations/gemini/combo-scenarios.e2e.ts | 137 | `test('TC-G-11: Multiple files upload (2 files)')` | 4 |
+| TC-G-12 | 完整组合 | tests/e2e/features/conversations/gemini/combo-scenarios.e2e.ts | 205 | `test('TC-G-12: Full combo (folder + multiple files + gemini-2.5-pro + yolo)')` | 8 |
 
 **小计**：7 个测试，40 张截图
 
@@ -56,9 +56,9 @@
 
 | 用例 ID | 用例标题 | 实现文件 | 行号 | 测试函数名 | 截图数 |
 |---------|---------|----------|------|-----------|--------|
-| TC-G-13 | OAuth 未配置跳过 | tests/e2e/features/conversation/gemini/edge-cases.e2e.ts | 44 | `test('TC-G-13: OAuth not configured skip verification')` | 0 |
-| TC-G-14 | 超大文件错误 | tests/e2e/features/conversation/gemini/edge-cases.e2e.ts | 64 | `test('TC-G-14: Large file upload error')` | 2 |
-| TC-G-15 | 不存在文件夹路径 | tests/e2e/features/conversation/gemini/edge-cases.e2e.ts | 115 | `test('TC-G-15: Deleted folder path error')` | 2 |
+| TC-G-13 | OAuth 未配置跳过 | tests/e2e/features/conversations/gemini/edge-cases.e2e.ts | 44 | `test('TC-G-13: OAuth not configured skip verification')` | 0 |
+| TC-G-14 | 超大文件错误 | tests/e2e/features/conversations/gemini/edge-cases.e2e.ts | 64 | `test('TC-G-14: Large file upload error')` | 2 |
+| TC-G-15 | 不存在文件夹路径 | tests/e2e/features/conversations/gemini/edge-cases.e2e.ts | 115 | `test('TC-G-15: Deleted folder path error')` | 2 |
 
 **小计**：3 个测试，4 张截图（TC-G-13 无截图，按设计预期）
 
@@ -191,7 +191,7 @@ expect(extra.workspace).toBe(workspacePath); // 或 undefined（无文件夹）
 ### 更新流程
 1. 运行命令重新统计截图数：
    ```bash
-   grep -c "takeScreenshot" tests/e2e/features/conversation/gemini/*.e2e.ts
+   grep -c "takeScreenshot" tests/e2e/features/conversations/gemini/*.e2e.ts
    ```
 2. 更新统计概览中的数字
 3. 更新对应的映射表行
