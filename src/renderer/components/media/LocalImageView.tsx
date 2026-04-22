@@ -4,6 +4,7 @@ import { LoadingTwo } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 import { iconColors } from '@/renderer/styles/colors';
+import { IMAGE_RETRY_DELAY_MS, MAX_IMAGE_RETRIES, isImageNotFoundPlaceholder } from './imagePlaceholder';
 
 const [useLocalImage, LocalImageProvider, useUpdateLocalImage] = createContext({ root: '' });
 
@@ -36,19 +37,41 @@ const LocalImageView: React.FC<{
 
   useEffect(() => {
     setLoading(true);
-    ipcBridge.fs.getImageBase64
-      .invoke({ path: absolutePath })
-      .then((base64) => {
-        setUrl(base64);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('[LocalImageView] Failed to load image:', {
-          path: absolutePath,
-          error,
+    // Retry when the file is not found yet (race condition: chat message rendered
+    // before the backend finishes writing the pasted/uploaded image to disk).
+    let cancelled = false;
+    let retryCount = 0;
+    let retryTimer: ReturnType<typeof setTimeout>;
+
+    const loadImage = () => {
+      ipcBridge.fs.getImageBase64
+        .invoke({ path: absolutePath })
+        .then((base64) => {
+          if (cancelled) return;
+          if (isImageNotFoundPlaceholder(base64) && retryCount < MAX_IMAGE_RETRIES) {
+            retryCount++;
+            retryTimer = setTimeout(loadImage, IMAGE_RETRY_DELAY_MS);
+            return;
+          }
+          setUrl(base64);
+          setLoading(false);
+        })
+        .catch((error) => {
+          if (cancelled) return;
+          console.error('[LocalImageView] Failed to load image:', {
+            path: absolutePath,
+            error,
+          });
+          setLoading(false);
         });
-        setLoading(false);
-      });
+    };
+
+    loadImage();
+
+    return () => {
+      cancelled = true;
+      clearTimeout(retryTimer);
+    };
   }, [absolutePath]);
   if (loading)
     return (
