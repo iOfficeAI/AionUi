@@ -188,6 +188,7 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId,
       const messages = await ipcBridge.database.getConversationMessages.invoke({
         conversation_id: conversationId,
         pageSize: pageSize,
+        order: 'DESC',
       });
 
       if (!messages || messages.items.length === 0) {

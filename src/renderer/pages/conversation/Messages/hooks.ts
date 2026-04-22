@@ -371,21 +371,13 @@ export const useMessageLstCache = (key: string) => {
       .invoke({
         conversation_id: key,
         page: 0,
-        pageSize: 10000, // Load all messages (up to 10k per conversation)
+        pageSize: 10000,
       })
-      .then((messages) => {
+      .then((result) => {
+        const messages = result?.items;
         if (messages && Array.isArray(messages)) {
-          // Merge DB messages with any real-time streaming messages already in the list.
-          // This prevents a race condition where streaming messages (added via IPC before
-          // the DB load completes) could cause DB-only messages (e.g. cron user messages
-          // whose IPC event was emitted before the component mounted) to be lost.
-          // Use both msg_id and id for deduplication since DB messages and streaming
-          // messages share the same msg_id but may have different id values
-          // (streaming messages get new UUIDs from transformMessage).
           update((currentList) => {
             if (!currentList.length) return messages;
-            // Only keep streaming messages that belong to the current conversation
-            // to prevent messages from a previous conversation leaking into the new one
             const sameConversation = currentList.filter((m) => m.conversation_id === key);
             if (!sameConversation.length) return messages;
             const dbIds = new Set(messages.map((m) => m.id));

@@ -686,9 +686,9 @@ export type PaginatedResult<T> = {
 export const database = {
   getConversationMessages: httpGet<
     PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; pageSize?: number }
+    { conversation_id: string; page?: number; pageSize?: number; order?: string }
   >(
-    (p) => `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}`,
+    (p) => `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}${p.order ? `&order=${p.order}` : ''}`,
   ),
   getUserConversations: httpGet<
     PaginatedResult<import('@/common/config/storage').TChatConversation>,
