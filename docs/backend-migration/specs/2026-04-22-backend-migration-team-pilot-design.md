@@ -132,6 +132,28 @@ Conflict policy unchanged:
 
 ## 5. Workflow & Discipline
 
+### 5.0 Project-specific rules (MUST read)
+
+- **`aionui-backend/AGENTS.md`** is authoritative for backend code structure.
+  Backend dev must read it (Architecture Rules section) before writing code.
+  Key rules: per-domain-crate `lib.rs`/`routes.rs`/`service.rs`/`state.rs`
+  layout; `aionui-api-types` must not depend on axum/tower; repo traits
+  prefixed `I`, SQLite impls prefixed `Sqlite`; `AppServices` is the sole DI
+  construction center; failing tests must not be weakened to pass.
+- **`AionUi/AGENTS.md`** is authoritative for renderer code (directory size
+  ≤10 children, Arco components only, UnoCSS semantic tokens, Vitest 4,
+  i18n keys, etc.). Frontend dev must follow it.
+- **Backend build & install flow** (any time backend code changes):
+  ```bash
+  cd aionui-backend
+  cargo build --release
+  cargo install --path crates/aionui-app
+  ```
+  AionUi's dev env picks up `aionui-backend` from cargo's bin dir on PATH,
+  same convention as `aionrs`.
+- **Database safety**: before manual testing that exercises endpoints,
+  back up `~/.aionui-dev/aionui.db*`.
+
 ### 5.1 Commit & push rules
 
 - One atomic change (1 endpoint / 1 hook / 1 spec section / 1 test case) = one
