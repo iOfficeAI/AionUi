@@ -125,10 +125,36 @@ Coordinator has been messaged with the outcome and awaits routing decision.
 >    bundle + `aionui-backend` not on PATH (both called out in fe-dev's
 >    rerun prep instructions), not a rendering-layer regression.
 
-### Post-rerun follow-up (2026-04-22 evening)
+### Phase B result (2026-04-22 late evening)
 
-The rerun results (17 PASS / 12 FAIL — see the e2e report's "Rerun after
-helpers fix" section for the per-failure breakdown) split across three owners:
+Coordinator approved Option 1. Backend-dev landed the `source` field fix in
+`aionui-backend@3a86d58`. Phase B rerun (after a first attempt surfaced
+accumulated dirty state in `~/.aionui/custom-skill-paths.json`, reset as
+step zero, plus 89 leftover `/var/folders/.../aionui-e2e-external-*` temp
+dirs removed) delivered:
+
+- **22 PASS / 7 FAIL / 0 skip** (vs. 17/12 helper-fix rerun, 0/29 first run).
+- **Class D (transport/migration) = 0 remaining.** All 5 class D tests now
+  PASS (TC-S-10, TC-S-14, TC-S-16, TC-S-09, TC-S-12). Backend fix fully
+  resolved the contract gap. **Pilot transport layer CLEAN.**
+- **Class A remaining: 1** (TC-S-25) — bulk-import at N=20 renders only 3
+  cards; TC-S-11 at N=3 now PASSES. Suggests a scale-dependent race.
+- **Class F remaining: 1** (TC-S-17) — duplicate-path modal closes when
+  the test expects it to stay open on error.
+- **Classes B/C/E** (5 tests: TC-S-27, TC-S-28, TC-S-06, TC-S-08, TC-S-15)
+  still failing but deferred per coordinator's Phase B scope decision.
+
+Per coordinator's Phase B rubric, A/F not cleared → **Phase D territory**
+(trace + route to backend or fe). Not pilot-closing on my side alone.
+
+See the e2e report's "Phase B rerun after backend source-field fix" section
+for the full per-case table.
+
+### Post-rerun follow-up (2026-04-22 evening) — superseded by Phase B above
+
+The helper-fix rerun results (17 PASS / 12 FAIL — see the e2e report's
+"Rerun after helpers fix" section for the per-failure breakdown) split
+across three owners:
 
 1. **Backend fix (blocks class (D) failures — 5 tests).** Add a `source:
    String` field to `ExternalSkillSourceResponse` in

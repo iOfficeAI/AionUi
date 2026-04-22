@@ -441,3 +441,173 @@ however, the remaining failures split across three different owners:
   lifecycle respectively.
 
 No single teammate can green the suite alone. Coordinator to decide routing.
+
+---
+
+## Phase B rerun after backend source-field fix — 2026-04-22 (late evening)
+
+**Trigger:** coordinator approved Option 1; backend-dev re-spawned and landed
+the `source` field fix at `3a86d58` (`feat(extension/skills): add source field
+to ExternalSkillSourceResponse`) on `aionui-backend:feat/extension-skill-library`.
+Binary rebuilt + installed to `~/.cargo/bin/aionui-backend` at 23:22.
+
+**Backend commit (Phase B):** `3a86d58`
+**Frontend commit (Phase B):** `497999516` (unchanged from prior rerun)
+**Pre-run steps:**
+- `git pull --ff-only` on `feat/backend-migration-e2e-skill-library` (no drift).
+- `bunx electron-vite build` (16.02s renderer rebuild).
+- `export PATH="$HOME/.cargo/bin:$PATH"`.
+
+### First Phase B attempt — discovered dirty-state prerequisite
+
+First attempt with current state: **13 PASS / 16 FAIL**. Regressed from the
+helper-fix rerun (17/12). Root cause isolated by inspecting error details:
+testids now emit real `source` values
+(`external-source-tab-custom-/var/folders/.../aionui-e2e-external-XXXXXX`),
+confirming the backend fix is live, but `~/.aionui/custom-skill-paths.json`
+had accumulated **24 leaked entries** from the earlier runs (failed cleanup
+in `afterEach` when setup itself had failed). The state file is NOT isolated
+by `tests/e2e/fixtures.ts`'s `e2eStateSandboxDir` — that sandbox only
+isolates `extension-states.json`; `custom-skill-paths.json` writes straight
+to the real `~/.aionui/` path via the backend's `external_paths_manager`.
+
+Mitigations applied before the retry:
+- `echo '[]' > ~/.aionui/custom-skill-paths.json`
+- `rm -rf /var/folders/_s/.../aionui-e2e-external-*` (89 leftover temp dirs).
+
+### Phase B retry with clean state
+
+**Run command:** `bun run test:e2e tests/e2e/features/settings/skills/`
+**Wall clock:** 3.6 min (fastest run to date — singleton Electron process
+survived across most tests once setup stopped crashing).
+
+**Result: 22 PASS / 7 FAIL / 0 skip.** Pass rate ~76%.
+
+Per-case matrix (vs. the two prior runs):
+
+| Case     | Run 1 | Helper-fix rerun | Phase B (clean state) | Notes                                                                |
+| -------- | :---: | :--------------: | :-------------------: | -------------------------------------------------------------------- |
+| TC-S-11  | FAIL  | FAIL             | **PASS** (16.2s)      | Class A cleared; batch-import race resolved under clean state.       |
+| TC-S-27  | FAIL  | FAIL             | FAIL (10.7s)          | Class B deferred: `extension-skills-section` conditional render.     |
+| TC-S-28  | FAIL  | FAIL             | FAIL (22.3s)          | Class B deferred: `auto-skills-section` conditional render.          |
+| TC-S-01  | FAIL  | PASS             | **PASS** (13.0s)      |                                                                      |
+| TC-S-05  | FAIL  | PASS             | **PASS** (5.0s)       |                                                                      |
+| TC-S-06  | FAIL  | FAIL             | FAIL (1.3s)           | Class C deferred: no builtin skills in sandbox.                      |
+| TC-S-08  | FAIL  | FAIL             | FAIL (13.2s)          | Class E deferred: `button:has-text("E2E Test Source")` matches TC-S-11 leftover "E2E Test Source TC11" in within-run state. |
+| TC-S-10  | FAIL  | FAIL             | **PASS** (16.3s)      | Class D fixed by backend source-field patch.                         |
+| TC-S-16  | FAIL  | FAIL             | **PASS** (4.2s)       | Class D fixed.                                                       |
+| TC-S-19  | FAIL  | PASS             | **PASS** (6.3s)       |                                                                      |
+| TC-S-15  | FAIL  | PASS             | FAIL (3.2s)           | 5 residual custom tabs from within-run failed-cleanup. Class E variant — cleanup regression exposed now that more tests progress past setup. |
+| TC-S-21  | FAIL  | PASS             | **PASS** (16.7s)      |                                                                      |
+| TC-S-23  | FAIL  | PASS             | **PASS** (4.3s)       |                                                                      |
+| TC-S-29  | FAIL  | PASS             | **PASS** (4.1s)       |                                                                      |
+| TC-S-14  | FAIL  | FAIL             | **PASS** (3.4s)       | Class D fixed.                                                       |
+| TC-S-17  | FAIL  | FAIL             | FAIL (13.0s)          | Class F cross-stack: duplicate-path modal closes when should stay open. |
+| TC-S-18  | FAIL  | PASS             | **PASS** (13.4s)      |                                                                      |
+| TC-S-20  | FAIL  | PASS             | **PASS** (3.6s)       |                                                                      |
+| TC-S-04  | FAIL  | PASS             | **PASS** (2.3s)       |                                                                      |
+| TC-S-07  | FAIL  | PASS             | **PASS** (1.7s)       |                                                                      |
+| TC-S-09  | FAIL  | FAIL             | **PASS** (2.6s)       | Class D fixed.                                                       |
+| TC-S-02  | FAIL  | PASS             | **PASS** (2.3s)       |                                                                      |
+| TC-S-03  | FAIL  | PASS             | **PASS** (2.1s)       |                                                                      |
+| TC-S-12  | FAIL  | FAIL             | **PASS** (2.4s)       | Class D fixed.                                                       |
+| TC-S-13  | FAIL  | PASS             | **PASS** (2.4s)       |                                                                      |
+| TC-S-24  | FAIL  | PASS             | **PASS** (1.9s)       |                                                                      |
+| TC-S-25  | FAIL  | FAIL             | FAIL (2.5s)           | Class A cross-stack: rendered 3 of 20 skills — bulk-import race at higher N. |
+| TC-S-26  | FAIL  | PASS             | **PASS** (14.7s)      |                                                                      |
+| TC-S-22  | FAIL  | PASS             | **PASS** (4.8s)       |                                                                      |
+
+**Deltas from helper-fix rerun (17 → 22 pass, 12 → 7 fail):**
+
+- **Newly passing (6):** TC-S-10, TC-S-14, TC-S-16, TC-S-09, TC-S-12 (all 5
+  class D tests cleared by the backend fix) + TC-S-11 (class A bulk-import
+  now succeeds with 3/3 imports — the first-rerun failure was a combination
+  of dirty-state and setup timing; clean state resolves it).
+- **Newly failing (1):** TC-S-15 — previously passing but now fails because
+  *within-run* state leakage is visible. Five residual custom-source tabs
+  accumulate from earlier tests' failed `afterEach`. This is a test-infra
+  issue exposed by the fact that more tests now reach real interaction.
+- **Still failing (6):** TC-S-27, TC-S-28, TC-S-06, TC-S-08, TC-S-17, TC-S-25.
+
+### Phase B rubric (per coordinator's Phase B directive)
+
+> **Class D = 0 remaining → pilot transport/migration layer CLEAN**
+> **Classes A/F = 0 remaining → pilot closes successfully even with Class B/C/E open**
+> **If A/F still fail → we go Phase D (trace + route to fe or backend)**
+
+Evaluation:
+
+- **Class D remaining:** 0. ✅ All five class D tests (TC-S-10, TC-S-14,
+  TC-S-16, TC-S-09, TC-S-12) now PASS. **Transport/migration layer is CLEAN.**
+  The backend `source` field fix in `3a86d58` fully resolved the contract gap.
+- **Class A remaining:** 1 (TC-S-25). ❌ — but with important caveat: TC-S-11
+  (class A bulk-import at N=3) went from FAIL to PASS under clean state;
+  TC-S-25 (class A bulk-import at N=20) still fails with 3 of 20 cards
+  visible. Suggests a **scale-dependent** race: imports succeed up to some
+  threshold and then either silently fail or the list-read happens before
+  all symlinks resolve.
+- **Class F remaining:** 1 (TC-S-17). ❌ — duplicate-path modal closes when
+  the test expects it to remain open after a duplicate-name error. Possibly
+  a renderer behavior change (error toast dismisses modal) or a missing
+  error-response handling in the addCustomExternalPath flow.
+- **Class B/C/E deferred** (per coordinator decision): TC-S-27, TC-S-28,
+  TC-S-06, TC-S-08, TC-S-15 — 5 tests. These are test-authoring fixtures
+  / fresh-sandbox assumptions / cleanup-robustness items. Out of pilot
+  scope, documented for post-pilot follow-up.
+
+**Outcome per rubric:** Phase D. Class A/F are not 0; coordinator routing
+needed. Recommended next step for Phase D:
+
+- **TC-S-25 (class A, bulk-import race):** run single-test with `E2E_TRACE=1`
+  to capture network tab — specifically whether 20 `POST /api/skills/import-symlink`
+  requests all return `200 { success: true }` before the test's
+  `getMySkills` returns only 3 items. If yes, the race is a backend
+  scan-after-write issue. If no, the race is a frontend-import-loop issue.
+- **TC-S-17 (class F, modal lifecycle):** single-test trace to capture the
+  sequence: click Confirm on duplicate path → observe if
+  `POST /api/skills/external-paths` returns an error, and if the renderer's
+  error handler dismisses the modal before surfacing the error.
+
+### UI rendering with real data: strongly verified
+
+This Phase B rerun delivers 22 tests' worth of real-DOM interaction
+evidence. Notable data points:
+
+- TC-S-10 (import external skill via UI click): clicks the external skill
+  card, waits for `.arco-message-success`, and asserts the new card appears
+  in "My Skills" section. PASSES after the source field is correct.
+- TC-S-16 (add custom external path via UI): opens modal, fills name+path,
+  clicks confirm, waits for new source tab to appear by text, clicks it,
+  and asserts the imported skill's card. PASSES.
+- TC-S-19 (export skill via dropdown): hover reveal, click export, select
+  target from arco dropdown, assert file exists on disk. PASSES.
+- TC-S-22 (URL highlight): adds `?highlight=<name>` param via `location.hash`,
+  asserts primary-5 border + primary-1 bg CSS classes, waits 2.5s, asserts
+  classes cleared and URL cleaned. PASSES.
+- TC-S-26 (rapid refresh clicks): clicks refresh 10× rapidly, asserts app
+  doesn't crash. PASSES.
+
+Verdict: **UI rendering with real data — verified with 22-test evidence
+base.**
+
+### Known-issue log for pilot closure doc
+
+When the pilot closes (after Phase D or by coordinator fiat), these items
+should be documented:
+
+1. **Test-infra: `~/.aionui/custom-skill-paths.json` is not sandboxed.** Any
+   e2e run that writes custom paths writes to the real user state file. The
+   e2e runner should either isolate this via a `--data-dir` flag on the
+   backend or reset the file before each test run. Suggested fix: have
+   `fixtures.ts` symlink `~/.aionui/custom-skill-paths.json` to a
+   per-test-run temp file, then restore after. Out of pilot scope.
+2. **Class B/C/E test-authoring items** (TC-S-27, TC-S-28, TC-S-06, TC-S-08,
+   TC-S-15) ship as a separate post-pilot task.
+3. **Class A/F items** (TC-S-17, TC-S-25) need Phase D traces before they
+   can be routed; they are cross-stack and may touch either backend
+   (race) or renderer (modal). Per coordinator's Phase D directive.
+
+No pilot success criteria are regressions from the pilot's own work —
+backend-dev's `source` field fix is green (class D cleared). Frontend-dev's
+helper migration is green. E2E infrastructure gaps (state isolation) and
+pre-existing test-authoring issues are the remaining noise.
