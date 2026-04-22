@@ -25,6 +25,13 @@ import { execSync } from 'child_process';
 
 test.describe('Gemini Chat - Edge Cases (P2)', () => {
   test.setTimeout(240_000); // 4 minutes for edge case tests
+  test.beforeEach(async ({ page }) => {
+    // Clear volatile UI state to avoid cross-test contamination.
+    await page.evaluate(() => {
+      sessionStorage.clear();
+    });
+  });
+
   test.afterEach(async ({ page }) => {
     // Cleanup UI state (ESC × 5)
     for (let i = 0; i < 5; i++) {

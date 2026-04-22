@@ -36,6 +36,14 @@ test.describe('Gemini Basic Flow (P0)', () => {
       test.skip(true, 'Skipped: Gemini OAuth or API key not configured');
     }
 
+    // Clear volatile UI state to avoid cross-test leakage (e.g., draft messages,
+    // initial-message keys). Persisted mode is reset per-test via explicit
+    // selectGeminiMode('default') after selecting the agent, rather than here,
+    // because the guid page isn't loaded yet.
+    await page.evaluate(() => {
+      sessionStorage.clear();
+    });
+
     // Create temp workspace for tests that need it
     const timestamp = Date.now();
     tempWorkspace = `/tmp/e2e-chat-gemini-${timestamp}`;
@@ -87,6 +95,10 @@ test.describe('Gemini Basic Flow (P0)', () => {
 
     const modeSelector = page.locator('[data-testid="mode-selector"]');
     await expect(modeSelector).toBeVisible({ timeout: 10_000 });
+
+    // Explicitly reset to 'default' mode — previous tests may have persisted
+    // a different mode (e.g., yolo/autoEdit) via ConfigStorage.preferredMode.
+    await selectGeminiMode(page, 'default');
 
     await takeScreenshot(page, 'tc-g-01', 'gemini', '02-default-config');
 

@@ -36,6 +36,10 @@ test.describe('Gemini Chat - Combo Scenarios (P1)', () => {
     if (!hasAuth) {
       test.skip(true, 'Gemini OAuth or API key not configured');
     }
+    // Clear volatile UI state to avoid cross-test contamination.
+    await page.evaluate(() => {
+      sessionStorage.clear();
+    });
   });
 
   test.afterEach(async ({ page }) => {

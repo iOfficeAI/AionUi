@@ -32,6 +32,11 @@ test.describe('Gemini Chat - Mid-Conversation Switch (P1)', () => {
     if (!hasAuth) {
       test.skip(true, 'Gemini OAuth or API key not configured');
     }
+    // Clear volatile UI state; tests that need a specific start mode call
+    // selectGeminiMode explicitly (e.g., TC-G-09 starts in autoEdit).
+    await page.evaluate(() => {
+      sessionStorage.clear();
+    });
   });
 
   test.afterEach(async ({ page }) => {
@@ -147,8 +152,9 @@ test.describe('Gemini Chat - Mid-Conversation Switch (P1)', () => {
     // Screenshot 01: Gemini agent selected
     await takeScreenshot(page, 'tc-g-08/gemini/01-agent-selected.png');
 
-    // Step 2: Use default permission mode (default)
-    // No need to select explicitly, default is default
+    // Step 2: Explicitly reset to default mode — previous tests (TC-G-07/09) may
+    // have persisted a non-default mode in ConfigStorage.preferredMode.
+    await selectGeminiMode(page, 'default');
 
     // Step 3: Input message and send
     const messageText1 = 'First message with default permission';

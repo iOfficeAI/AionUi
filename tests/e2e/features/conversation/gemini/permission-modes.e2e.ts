@@ -26,6 +26,11 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     if (!hasAuth) {
       test.skip(true, 'Gemini OAuth or API key not configured');
     }
+    // Clear volatile UI state (persisted mode handled by explicit selectGeminiMode
+    // calls inside each test — this suite always selects autoEdit explicitly).
+    await page.evaluate(() => {
+      sessionStorage.clear();
+    });
   });
 
   test.afterEach(async ({ page }) => {
