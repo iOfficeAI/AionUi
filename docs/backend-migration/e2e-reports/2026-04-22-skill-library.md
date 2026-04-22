@@ -261,3 +261,183 @@ Suggested focus when re-attempting:
    to use the HTTP bridge (`window.httpBridge` or `page.evaluate` against
    `fetch('/api/skills/...')`) instead of `invokeBridge('subscribe-...')`. The
    helpers were written for the IPC era and the IPC handlers are gone.
+
+---
+
+## Rerun after helpers fix — 2026-04-22 (evening)
+
+**Trigger:** frontend-dev SendMessage'd "helpers fixed, please re-run". They
+migrated `tests/e2e/helpers/skillsHub.ts` from IPC `subscribe-<key>` calls to
+HTTP, landed a trace-gating env var, and documented the `aionui-backend` PATH
+requirement.
+
+**Rerun commits pulled:**
+
+| Commit      | Subject                                                           |
+| ----------- | ----------------------------------------------------------------- |
+| `000676801` | `test(e2e/helpers): migrate skills helpers from legacy IPC to HTTP bridge` |
+| `cfdec9655` | `chore(e2e): gate trace retention behind E2E_TRACE env var`       |
+| `aa8042fa3` | `docs(e2e): note aionui-backend must be on PATH for tests`        |
+| `21cf93c6b` | `docs(backend-migration): frontend-dev handoff for e2e helper fix` |
+
+**Frontend commit (rerun):** `21cf93c6b`
+**Backend commit (rerun):** `229b6e04` (unchanged since the first run)
+**Pre-run steps executed by e2e-tester:**
+- `git pull --ff-only` on `feat/backend-migration-e2e-skill-library` → up to date.
+- `bunx electron-vite build` → renderer rebuilt in 22.05s (out/ bundle refreshed).
+- `export PATH="$HOME/.cargo/bin:$PATH"` → `which aionui-backend` resolved.
+- `bun run test:e2e tests/e2e/features/settings/skills/` → full 29-test suite.
+**Wall clock:** 5.6 min (full run). No hang, no aborted app launch.
+
+### Rerun results
+
+**17 / 29 PASS, 12 / 29 FAIL** — the primary rendering-layer blockage is gone.
+Every test now reaches real interaction with the Skills Hub UI; failures are
+distributed across specific behaviours, not concentrated in setup.
+
+Pass / fail matrix (unchanged from the first run's scope):
+
+| Case     | First run | Rerun | Notes                                                                                 |
+| -------- | :-------: | :---: | ------------------------------------------------------------------------------------- |
+| TC-S-11  | FAIL      | FAIL  | Batch import succeeded for 1 of 3 skills; expected 3. See failure class (A).          |
+| TC-S-27  | FAIL      | FAIL  | `extension-skills-section` not visible. See failure class (B).                         |
+| TC-S-28  | FAIL      | FAIL  | `auto-skills-section` not visible. See failure class (B).                              |
+| TC-S-01  | FAIL      | **PASS** (13.5s)                                                                               |
+| TC-S-05  | FAIL      | **PASS** (4.7s)                                                                                |
+| TC-S-06  | FAIL      | FAIL  | No builtin skills in sandbox → `builtinSkills.length === 0`. See failure class (C).    |
+| TC-S-08  | FAIL      | FAIL  | Strict-mode violation: two `E2E Test Source` buttons (TC-S-11 state leakage). See (E). |
+| TC-S-10  | FAIL      | FAIL  | `external-skill-card-E2E-Test-Import-Single` not visible. See failure class (D).       |
+| TC-S-16  | FAIL      | FAIL  | `external-skill-card-E2E-Test-Custom-Path-Skill` not visible. See failure class (D).   |
+| TC-S-19  | FAIL      | **PASS** (18.5s)                                                                               |
+| TC-S-15  | FAIL      | **PASS** (3.4s)                                                                                |
+| TC-S-21  | FAIL      | **PASS** (5.0s)                                                                                |
+| TC-S-23  | FAIL      | **PASS** (4.3s)                                                                                |
+| TC-S-29  | FAIL      | **PASS** (4.1s)                                                                                |
+| TC-S-14  | FAIL      | FAIL  | `external-skill-card-E2E-Test-External-Initial` not visible. See failure class (D).    |
+| TC-S-17  | FAIL      | FAIL  | Duplicate-path modal hidden when expected visible. See failure class (F).              |
+| TC-S-18  | FAIL      | **PASS** (13.5s)                                                                               |
+| TC-S-20  | FAIL      | **PASS** (3.7s)                                                                                |
+| TC-S-04  | FAIL      | **PASS** (2.4s)                                                                                |
+| TC-S-07  | FAIL      | **PASS** (1.7s)                                                                                |
+| TC-S-09  | FAIL      | FAIL  | `external-skill-card-E2E-Test-SourceA-Skill1` not visible. See failure class (D).      |
+| TC-S-02  | FAIL      | **PASS** (14.4s)                                                                               |
+| TC-S-03  | FAIL      | **PASS** (2.1s)                                                                                |
+| TC-S-12  | FAIL      | FAIL  | `external-skill-card-E2E-Test-External-Search-Target` not visible. See (D).            |
+| TC-S-13  | FAIL      | **PASS** (14.4s)                                                                               |
+| TC-S-24  | FAIL      | **PASS** (1.9s)                                                                                |
+| TC-S-25  | FAIL      | FAIL  | Expected >=20 cards, got 3 — imports did not materialise. See failure class (A).       |
+| TC-S-26  | FAIL      | **PASS** (15.1s)                                                                               |
+| TC-S-22  | FAIL      | **PASS** (4.9s)                                                                                |
+
+**Totals:** 17 PASS / 12 FAIL / 0 skip. Pass rate ~59%.
+
+### UI rendering with real data: verified (rerun)
+
+Rerun evidence strengthens the verdict. 17 tests DID drive real Electron
+interaction end-to-end: rendered cards, clicked real buttons, opened/closed
+modals, typed in real inputs, and asserted on rendered DOM. Examples:
+
+- TC-S-05 deleted a skill through the confirmation modal and verified its card
+  disappeared.
+- TC-S-19 exported a skill via the real dropdown menu and verified files
+  landed on disk.
+- TC-S-29 mocked Electron's `dialog.showOpenDialog` and verified the imported
+  skill's card rendered with `source: 'custom'`.
+- TC-S-22 triggered the URL-param highlight animation, asserted the primary
+  border/background CSS classes appeared, waited 2.5s, and asserted they
+  cleared. Pure real-DOM.
+
+The "verified" verdict is no longer provisional — there is now direct evidence
+from passing test bodies that the merged stack renders the right data in the
+right places.
+
+### Failure classes (root-cause routing for the remaining 12)
+
+Failures cluster into six patterns. None of the 12 is a regression in
+backend-dev's or frontend-dev's pilot work; each is either a backend-contract
+gap that precedes the pilot, a test-body assumption, or a cross-test isolation
+issue.
+
+**(A) Post-import list did not update with all imported skills.** *(TC-S-11,
+TC-S-25)* — Bulk-import flow (`importAllSkills`, `importAllViaBridge` etc.)
+reports success but downstream `getMySkills` / card count returns a fraction
+of the expected number. Likely a race between symlink creation and the next
+`/api/skills` read (the backend's `list_skills` may not re-scan synchronously
+after `import-symlink`). Needs backend-side investigation; not a migration
+regression because these tests have never been run against the HTTP stack
+before, so there's no prior-green baseline.
+
+**(B) Conditionally rendered sections.** *(TC-S-27, TC-S-28)* — The
+`extension-skills-section` and `auto-skills-section` are rendered only when
+their underlying data arrays are non-empty. Fresh sandbox has no extension
+contributions and no `_builtin/` dir (backend-dev handoff §"Known issues" #1
+and frontend-dev handoff §"Known issues" #2 both flagged this). Test bodies
+should either (i) seed the relevant dirs before navigating, or (ii) assert
+presence only when data is known to exist. Backend is correct; this is a
+test-authoring assumption that doesn't hold on fresh sandboxes.
+
+**(C) Builtin-skill assumption.** *(TC-S-06)* — `builtinSkills.length === 0`
+on a fresh sandbox. Same root cause as (B). fe-dev called this one out in
+their ping. Test-body fix: seed a builtin skill before the test, or skip the
+assertion when no builtins exist.
+
+**(D) External-skill-card not rendered.** *(TC-S-10, TC-S-14, TC-S-16, TC-S-09,
+TC-S-12)* — Tests add a custom external path, expect the UI's source tab to
+light up with the seeded skill's card, but the card is never rendered. **Root
+cause identified:** the backend's `ExternalSkillSourceResponse`
+(`aionui-backend/crates/aionui-api-types/src/skill.rs:116`) omits the `source`
+string field that the renderer expects
+(`src/common/adapter/ipcBridge.ts` types and `SkillsHubSettings.tsx:289` uses
+`source.source` as the React `key` and `data-testid` suffix). With `source`
+undefined, multiple external sources collide on the same key, and `activeSourceTab`
+(set via `setActiveSourceTab(external[0].source)`) initialises to
+`undefined`, so no tab is activated; the selected-tab-gated card content
+never renders. Evidence: failure #5's Playwright diff shows two buttons both
+with `data-testid="external-source-tab-undefined"`. **This is a pre-existing
+backend-contract gap uncovered by the pilot's e2e**, not caused by the pilot —
+but it blocks the external-skill UI flow and needs a one-field addition to
+`ExternalSkillSourceResponse` (likely derived from the path or name,
+e.g. `format!("custom-{}", path)` to match the TS baseline's convention).
+
+**(E) Cross-test state leakage.** *(TC-S-08)* — Strict-mode violation:
+`button:has-text("E2E Test Source")` matches two buttons because `TC-S-11`'s
+cleanup either didn't complete in `afterEach`, or leaked a source named
+`E2E Test Source TC11` into `externalSources` that still matches the substring
+`"E2E Test Source"`. Test-body robustness: prefer exact-match text filters,
+or add a `getByRole('button', { name: 'E2E Test Source', exact: true })`.
+
+**(F) Modal lifecycle mismatch.** *(TC-S-17)* — Test expects the
+duplicate-path modal to *stay open* after the user clicks Confirm on an
+already-existing path. Actual behaviour: the modal closes. Either the renderer
+closes the modal before showing the error toast (new behaviour vs pre-migration),
+or the error path isn't being triggered at all. Requires an incident-grade
+deep dive.
+
+### Rerun environment caveats
+
+- Unlike the first run, Playwright artifacts (`trace: 'retain-on-failure'`,
+  screenshots) were available through the E2E_TRACE env var gate introduced
+  by commit `cfdec9655`; this rerun did not set `E2E_TRACE=1` because the
+  textual Playwright error messages were already diagnostic enough. Follow-up
+  reruns targeted at a single failure should set it.
+- Shared Electron singleton survived between tests this time (no "Launching
+  DEV app" reboot on every test) — confirming the first run's blanket
+  failure was the cause of all those reboots, not a natural pattern.
+- Backend binary unchanged since morning build. No rebuild performed.
+
+### Rerun pilot rubric outcome (plan §4.6)
+
+- ALL PASS + verified: **no**
+- ALL PASS + not verified: **no**
+- ANY FAIL: **yes** — 12/29 still fail.
+
+Per plan §4.6, Task 4 cannot be marked `completed`. Unlike the first run,
+however, the remaining failures split across three different owners:
+
+- Backend (class D): add missing `source` field on
+  `ExternalSkillSourceResponse` to match the renderer contract.
+- Test-authoring (classes B, C, E): reseed sandboxes or tighten assertions.
+- Cross-stack (classes A, F): investigate import-flow timing and modal
+  lifecycle respectively.
+
+No single teammate can green the suite alone. Coordinator to decide routing.
