@@ -9,6 +9,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
+import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
 import type { AionrsEvent, AionrsCommand, AionrsCapabilities } from './protocol';
@@ -103,7 +104,7 @@ export class AionrsAgent {
     }
 
     this.childProcess = spawn(binaryPath, args, {
-      env: { ...process.env, ...env },
+      env: getEnhancedEnv(env),
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: this.options.workspace,
     });
