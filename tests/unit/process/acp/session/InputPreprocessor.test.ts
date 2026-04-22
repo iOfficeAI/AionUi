@@ -73,4 +73,64 @@ describe('InputPreprocessor', () => {
     expect(readFile).toHaveBeenCalledTimes(2); // /a.ts once + /b.ts once
     expect(result).toHaveLength(3); // text + 2 files
   });
+
+  it('emits image ContentBlock for .png files when binary reader is provided', () => {
+    const pngBytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+    const readFile = vi.fn();
+    const readBinary = vi.fn(() => pngBytes);
+    const pp = new InputPreprocessor(readFile, readBinary);
+    const result = pp.process('look at this', ['/tmp/snap.png']);
+    expect(readBinary).toHaveBeenCalledWith('/tmp/snap.png');
+    expect(readFile).not.toHaveBeenCalled();
+    expect(result).toHaveLength(2);
+    expect(result[1]).toEqual({
+      type: 'image',
+      data: pngBytes.toString('base64'),
+      mimeType: 'image/png',
+    });
+  });
+
+  it('maps common image extensions to the correct mimeType', () => {
+    const cases: Array<[string, string]> = [
+      ['/tmp/a.jpg', 'image/jpeg'],
+      ['/tmp/a.JPEG', 'image/jpeg'],
+      ['/tmp/a.gif', 'image/gif'],
+      ['/tmp/a.webp', 'image/webp'],
+      ['/tmp/a.bmp', 'image/bmp'],
+    ];
+    for (const [filePath, expectedMime] of cases) {
+      const readBinary = vi.fn(() => Buffer.from('x'));
+      const pp = new InputPreprocessor(vi.fn(), readBinary);
+      const result = pp.process('x', [filePath]);
+      expect(result[1]).toMatchObject({ type: 'image', mimeType: expectedMime });
+    }
+  });
+
+  it('falls back to text read when no binary reader is provided', () => {
+    const readFile = vi.fn(() => 'binary-as-text');
+    const pp = new InputPreprocessor(readFile);
+    const result = pp.process('x', ['/tmp/snap.png']);
+    expect(readFile).toHaveBeenCalledWith('/tmp/snap.png');
+    expect(result[1]).toMatchObject({ type: 'text' });
+  });
+
+  it('skips image file when binary read fails', () => {
+    const readBinary = vi.fn(() => {
+      throw new Error('ENOENT');
+    });
+    const pp = new InputPreprocessor(vi.fn(), readBinary);
+    const result = pp.process('x', ['/tmp/missing.png']);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ type: 'text', text: 'x' });
+  });
+
+  it('reads non-image files via text reader even when binary reader is available', () => {
+    const readFile = vi.fn((path: string) => `content of ${path}`);
+    const readBinary = vi.fn();
+    const pp = new InputPreprocessor(readFile, readBinary);
+    const result = pp.process('x', ['/tmp/notes.md']);
+    expect(readFile).toHaveBeenCalledWith('/tmp/notes.md');
+    expect(readBinary).not.toHaveBeenCalled();
+    expect(result[1]).toMatchObject({ type: 'text' });
+  });
 });
