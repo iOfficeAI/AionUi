@@ -22,11 +22,31 @@ describe('buildDisplayMessage', () => {
     expect(result).toContain(`${workspace}/uploads/subdir/doc.pdf`);
   });
 
-  it('stores absolute paths outside workspace using workspace basename prefix', () => {
+  it('preserves absolute paths outside workspace so preview/metadata lookups hit the real location', () => {
     const files = ['/other/path/external.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
-    expect(result).toContain(`${workspace}/external.txt`);
-    expect(result).not.toContain('/other/path');
+    expect(result).toContain('/other/path/external.txt');
+    expect(result).not.toContain(`${workspace}/external.txt`);
+  });
+
+  it('preserves Windows-style absolute paths outside workspace without mixing separators', () => {
+    const winWorkspace = 'C:\\Users\\alice\\AppData\\aionui\\claude-temp-123';
+    const files = ['C:\\Users\\alice\\AppData\\aionui\\.aionui-config\\temp\\image.png'];
+    const result = buildDisplayMessage('hello', files, winWorkspace);
+    expect(result).toContain('C:\\Users\\alice\\AppData\\aionui\\.aionui-config\\temp\\image.png');
+    expect(result).not.toContain('claude-temp-123/image.png');
+  });
+
+  it('preserves timestamp suffix on external absolute paths so preview lookups hit the real file', () => {
+    // Regression: duplicate-name pastes get `_aionui_<13 digits>` appended by createUploadFile;
+    // stripping that suffix on the external branch would point FilePreview at a non-existent file.
+    const winWorkspace = 'C:\\Users\\alice\\AppData\\aionui\\claude-temp-123';
+    const files = ['C:\\Users\\alice\\AppData\\aionui\\.aionui-config\\temp\\image_aionui_1776838887890.png'];
+    const result = buildDisplayMessage('hello', files, winWorkspace);
+    expect(result).toContain('image_aionui_1776838887890.png');
+    // Make sure the stripped filename (what the renderer would end up looking up) is absent.
+    expect(result).not.toMatch(/(?<!aionui_\d{13})\.png$/);
+    expect(result).not.toMatch(/temp[\\/]image\.png/);
   });
 
   it('converts relative paths into workspace-prefixed paths', () => {
