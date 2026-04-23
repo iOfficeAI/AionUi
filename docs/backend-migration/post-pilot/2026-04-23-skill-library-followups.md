@@ -279,6 +279,8 @@ Branch `feat/backend-migration-e2e-helper-fix` pending user review; not merged i
 
 **Unblocks:** Assistant e2e is now expected at 36/37 (was 35/37 after P1-A1) — remaining P1-18 is env-fixture (builtin-auto skills), gated behind P0-2.
 
+**Confirmed 2026-04-23 12:32 by full-suite rerun:** 36 PASS / 1 FAIL (P1-18, auto-injected section) in 1.9 min. Transport/migration layer is clean; the single remaining failure is test-fixture gated behind P0-2 (sandbox `~/.aionui/skills/builtin-auto/`).
+
 **Aside:** if the renderer ever wants to expose ALL assistants (not just extension-contributed) via HTTP, that's a separate API extension task — not required to unblock this test.
 
 **P1-A1 (original issue — now scoped to remaining callers): `tests/e2e/helpers/bridge.ts` has no-op `provider()` and no WebSocket `subscribe-*` handler after HTTP migration.**
