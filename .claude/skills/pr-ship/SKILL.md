@@ -18,10 +18,10 @@ End-to-end PR lifecycle shepherd: create PR → wait for CI → review → fix �
 /pr-ship [pr_number] [--no-auto-merge]
 ```
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `pr_number` | none | Resume from an existing PR (skip creation) |
-| `--no-auto-merge` | off | Require user confirmation before merge instead of auto-merge |
+| Parameter         | Default | Description                                                  |
+| ----------------- | ------- | ------------------------------------------------------------ |
+| `pr_number`       | none    | Resume from an existing PR (skip creation)                   |
+| `--no-auto-merge` | off     | Require user confirmation before merge instead of auto-merge |
 
 ## Session State
 
@@ -74,6 +74,7 @@ gh pr view $PR_NUMBER --json statusCheckRollup \
 ```
 
 **Required jobs** (same list as pr-review):
+
 - `Code Quality`
 - `Unit Tests (ubuntu-latest)`
 - `Unit Tests (macos-14)`
@@ -85,12 +86,12 @@ gh pr view $PR_NUMBER --json statusCheckRollup \
 
 ### Decision Matrix
 
-| CI Status | Action |
-|-----------|--------|
-| All required jobs SUCCESS, no non-informational failures | → Phase 2 |
-| Any required job QUEUED or IN_PROGRESS | ScheduleWakeup 270s, re-check |
-| `statusCheckRollup` empty (CI never triggered) | Approve workflow (see below), ScheduleWakeup 270s |
-| Any non-informational job FAILURE or CANCELLED | → CI Failure Handler |
+| CI Status                                                | Action                                            |
+| -------------------------------------------------------- | ------------------------------------------------- |
+| All required jobs SUCCESS, no non-informational failures | → Phase 2                                         |
+| Any required job QUEUED or IN_PROGRESS                   | ScheduleWakeup 270s, re-check                     |
+| `statusCheckRollup` empty (CI never triggered)           | Approve workflow (see below), ScheduleWakeup 270s |
+| Any non-informational job FAILURE or CANCELLED           | → CI Failure Handler                              |
 
 ### Workflow Approval (CI not triggered)
 
@@ -212,11 +213,11 @@ Invoke pr-review in interactive mode, passing the PR number explicitly:
 
 ### Decision based on review conclusion
 
-| Review Conclusion | Action |
-|-------------------|--------|
-| ✅ APPROVED (including LOW-only) | → Phase 4 |
-| ⚠️ CONDITIONAL | → Phase 3 |
-| ❌ REJECTED | → Phase 3 (pr-fix triage decides if auto-fixable) |
+| Review Conclusion                | Action                                            |
+| -------------------------------- | ------------------------------------------------- |
+| ✅ APPROVED (including LOW-only) | → Phase 4                                         |
+| ⚠️ CONDITIONAL                   | → Phase 3                                         |
+| ❌ REJECTED                      | → Phase 3 (pr-fix triage decides if auto-fixable) |
 
 ---
 
@@ -305,12 +306,14 @@ ScheduleWakeup(
 **Interval:** 270s uniformly (under 5-min prompt cache TTL).
 
 **When to call ScheduleWakeup:**
+
 - CI is still running (QUEUED/IN_PROGRESS)
 - Just approved a workflow run
 - Just pushed a CI fix
 - Just pushed a pr-fix commit
 
 **When NOT to call ScheduleWakeup:**
+
 - CI has completed (pass or fail with actionable errors)
 - During review (Phase 2) or fix (Phase 3) execution
 - After merge (Phase 4)
