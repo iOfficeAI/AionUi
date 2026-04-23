@@ -55,7 +55,7 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
           _meta: {},
         };
       }
-      async resumeSession(sessionId: string, cwd: string, options?: any) {
+      async resumeSession(session_id: string, cwd: string, options?: any) {
         // Simulate the real resumeSession logic using agentCapabilities
         const caps = this.getAgentCapabilities();
         const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
@@ -64,7 +64,7 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
 
         if (shouldTryLoadSession) {
           try {
-            return await this.loadSession(sessionId, cwd, options?.mcpServers);
+            return await this.loadSession(sessionId, cwd, options?.mcp_servers);
           } catch (loadError) {
             console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
           }
@@ -73,7 +73,7 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
         return await this.newSession(cwd, {
           resumeSessionId: sessionId,
           forkSession: options?.forkSession,
-          mcpServers: options?.mcpServers,
+          mcp_servers: options?.mcp_servers,
         });
       }
       on = mockOn;
@@ -104,11 +104,11 @@ describe('AcpAgent - session ownership validation', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockNewSession.mockResolvedValue({ sessionId: 'new-session-123' });
-    mockLoadSession.mockResolvedValue({ sessionId: 'old-session-abc' });
+    mockNewSession.mockResolvedValue({ session_id: 'new-session-123' });
+    mockLoadSession.mockResolvedValue({ session_id: 'old-session-abc' });
   });
 
-  function createAgent(conversationId: string, extra: Record<string, unknown> = {}) {
+  function createAgent(conversation_id: string, extra: Record<string, unknown> = {}) {
     return new AcpAgent({
       id: conversationId,
       backend: 'codex',
@@ -125,8 +125,8 @@ describe('AcpAgent - session ownership validation', () => {
 
   it('should skip resume when session belongs to a different conversation', async () => {
     const agent = createAgent('conversation-B', {
-      acpSessionId: 'old-session-abc',
-      acpSessionConversationId: 'conversation-A',
+      acp_session_id: 'old-session-abc',
+      acp_session_conversation_id: 'conversation-A',
     });
 
     // Trigger createOrResumeSession via the internal flow
@@ -142,8 +142,8 @@ describe('AcpAgent - session ownership validation', () => {
 
   it('should resume when session belongs to the same conversation', async () => {
     const agent = createAgent('conversation-A', {
-      acpSessionId: 'old-session-abc',
-      acpSessionConversationId: 'conversation-A',
+      acp_session_id: 'old-session-abc',
+      acp_session_conversation_id: 'conversation-A',
     });
 
     const createOrResume = (agent as any).createOrResumeSession.bind(agent);
@@ -157,7 +157,7 @@ describe('AcpAgent - session ownership validation', () => {
 
   it('should resume when no conversationId is stored (legacy data)', async () => {
     const agent = createAgent('conversation-A', {
-      acpSessionId: 'old-session-abc',
+      acp_session_id: 'old-session-abc',
       // No acpSessionConversationId - legacy data without ownership info
     });
 
@@ -184,8 +184,8 @@ describe('AcpAgent - session ownership validation', () => {
     mockLoadSession.mockRejectedValue(new Error('session expired'));
 
     const agent = createAgent('conversation-A', {
-      acpSessionId: 'old-session-abc',
-      acpSessionConversationId: 'conversation-A',
+      acp_session_id: 'old-session-abc',
+      acp_session_conversation_id: 'conversation-A',
     });
 
     const createOrResume = (agent as any).createOrResumeSession.bind(agent);

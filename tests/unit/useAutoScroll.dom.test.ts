@@ -72,7 +72,7 @@ describe('useAutoScroll - scroll to bottom on message send (#977)', () => {
     position,
     conversation_id: 'test-conv',
     content: { content: 'test message' },
-    createdAt: Date.now(),
+    created_at: Date.now(),
   });
 
   it('should scroll to bottom when user sends a message (position=right)', async () => {
@@ -240,7 +240,7 @@ describe('useAutoScroll - streaming guard refresh (#2017)', () => {
     position,
     conversation_id: 'test-conv',
     content: { content: 'test message' },
-    createdAt: Date.now(),
+    created_at: Date.now(),
   });
 
   /**

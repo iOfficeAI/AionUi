@@ -62,7 +62,7 @@ vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection', () => ({
   useGeminiModelSelection: ({ initialModel }: { initialModel: unknown }) => ({
-    currentModel: initialModel,
+    current_model: initialModel,
     providers: mockProviders,
     geminiModeLookup: new Map(),
     formatModelLabel: () => '',
@@ -124,7 +124,7 @@ describe('useChannelModelSelection restore retry limit', () => {
 
   it('should stop retrying ConfigStorage.get after MAX_RESTORE_RETRIES when provider is stale', async () => {
     // Simulate a stale saved model referencing a provider that no longer exists
-    mockConfigStorageGet.mockResolvedValue({ id: 'deleted-provider', useModel: 'some-model' });
+    mockConfigStorageGet.mockResolvedValue({ id: 'deleted-provider', use_model: 'some-model' });
 
     // Providers are loaded but don't include the saved provider
     mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
@@ -162,7 +162,7 @@ describe('useChannelModelSelection restore retry limit', () => {
   });
 
   it('should restore successfully when provider exists', async () => {
-    mockConfigStorageGet.mockResolvedValue({ id: 'provider-1', useModel: 'model-a' });
+    mockConfigStorageGet.mockResolvedValue({ id: 'provider-1', use_model: 'model-a' });
 
     mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
 

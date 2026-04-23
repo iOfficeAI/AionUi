@@ -21,7 +21,7 @@ type MockServer = {
   name: string;
   builtin: boolean;
   enabled: boolean;
-  updatedAt: number;
+  updated_at: number;
   transport: {
     type: 'stdio';
     command: string;
@@ -45,7 +45,7 @@ const testState = vi.hoisted(() => ({
     name: 'aionui-image-generation',
     builtin: true,
     enabled: false,
-    updatedAt: 1,
+    updated_at: 1,
     transport: {
       type: 'stdio',
       command: 'node',
@@ -203,9 +203,9 @@ vi.mock('@/renderer/hooks/agent/useConfigModelListWithImage', () => ({
       {
         id: 'provider-1',
         name: 'Image Provider',
-        apiKey: 'key',
+        api_key: 'key',
         platform: 'new-api',
-        baseUrl: 'https://example.com',
+        base_url: 'https://example.com',
         model: ['grok-imagine-1.0'],
       },
     ],
@@ -301,10 +301,10 @@ describe('ToolsModalContent image generation status refresh', () => {
         return Promise.resolve({
           id: 'provider-1',
           name: 'Image Provider',
-          apiKey: 'key',
+          api_key: 'key',
           platform: 'new-api',
-          baseUrl: 'https://example.com',
-          useModel: 'grok-imagine-1.0',
+          base_url: 'https://example.com',
+          use_model: 'grok-imagine-1.0',
           model: ['grok-imagine-1.0'],
         });
       }
@@ -368,7 +368,7 @@ describe('ToolsModalContent image generation status refresh', () => {
         expect.objectContaining({
           provider: 'deepgram',
           deepgram: expect.objectContaining({
-            apiKey: 'deepgram-secret',
+            api_key: 'deepgram-secret',
           }),
         })
       );

@@ -40,7 +40,7 @@ const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
       type: 'text' as const,
       content: { content: question },
       position: 'right' as const,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     },
     {
       id: `a${i}`,
@@ -49,7 +49,7 @@ const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
       type: 'text' as const,
       content: { content: answer },
       position: 'left' as const,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     },
   ]);
 
@@ -236,7 +236,7 @@ describe('useMinimapPanel', () => {
     });
 
     expect(mocks.dispatchChatMessageJump).toHaveBeenCalledWith({
-      conversationId: 'conv-1',
+      conversation_id: 'conv-1',
       messageId: 'msg-1',
       msgId: 'msg-id-1',
       align: 'start',

@@ -75,7 +75,7 @@ describe('initAgent — skill support', () => {
   let hasNativeSkillSupport: (agentTypeOrBackend: string | undefined) => boolean;
   let setupAssistantWorkspace: (
     workspace: string,
-    options: { agentType?: string; backend?: string; enabledSkills?: string[] }
+    options: { agentType?: string; backend?: string; enabled_skills?: string[] }
   ) => Promise<void>;
 
   beforeEach(async () => {
@@ -128,16 +128,16 @@ describe('initAgent — skill support', () => {
   });
 
   describe('setupAssistantWorkspace', () => {
-    it('should create skills dir even when enabledSkills is empty', async () => {
+    it('should create skills dir even when enabled_skills is empty', async () => {
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: [],
+        enabled_skills: [],
       });
       expect(mkdirCalls).toContain('/tmp/workspace/.claude/skills');
       expect(symlinkCalls).toHaveLength(0); // no builtin skills in mock readdir
     });
 
-    it('should create skills dir even when enabledSkills is undefined', async () => {
+    it('should create skills dir even when enabled_skills is undefined', async () => {
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
       });
@@ -148,7 +148,7 @@ describe('initAgent — skill support', () => {
     it('should create skills dir for opencode backend', async () => {
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'opencode',
-        enabledSkills: ['pptx'],
+        enabled_skills: ['pptx'],
       });
       expect(mkdirCalls).toContain('/tmp/workspace/.opencode/skills');
       expect(symlinkCalls).toHaveLength(0); // no builtin skills in mock readdir, pptx not found
@@ -160,7 +160,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['pptx'],
+        enabled_skills: ['pptx'],
       });
 
       expect(mkdirCalls).toContain('/tmp/workspace/.claude/skills');
@@ -177,7 +177,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'codex',
-        enabledSkills: ['pdf'],
+        enabled_skills: ['pdf'],
       });
 
       expect(mkdirCalls).toContain('/tmp/workspace/.codex/skills');
@@ -188,8 +188,8 @@ describe('initAgent — skill support', () => {
       statResults['/mock/user/skills/morph-ppt'] = true;
 
       await setupAssistantWorkspace('/tmp/workspace', {
-        agentType: 'codebuddy',
-        enabledSkills: ['morph-ppt'],
+        agent_type: 'codebuddy',
+        enabled_skills: ['morph-ppt'],
       });
 
       expect(symlinkCalls[0].target).toBe('/tmp/workspace/.codebuddy/skills/morph-ppt');
@@ -199,8 +199,8 @@ describe('initAgent — skill support', () => {
       statResults['/mock/user/skills/officecli-docx'] = true;
 
       await setupAssistantWorkspace('/tmp/workspace', {
-        agentType: 'aionrs',
-        enabledSkills: ['officecli-docx'],
+        agent_type: 'aionrs',
+        enabled_skills: ['officecli-docx'],
       });
 
       // aionrs is a non-ACP agent but still supports native skill discovery
@@ -214,7 +214,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'droid',
-        enabledSkills: ['deploy'],
+        enabled_skills: ['deploy'],
       });
 
       expect(symlinkCalls[0].target).toBe('/tmp/workspace/.factory/skills/deploy');
@@ -225,7 +225,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['test-skill'],
+        enabled_skills: ['test-skill'],
       });
 
       expect(symlinkCalls[0].type).toBe('junction');
@@ -237,7 +237,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['pptx'],
+        enabled_skills: ['pptx'],
       });
 
       expect(symlinkCalls[0].source).toBe('/mock/builtin-skills/pptx');
@@ -249,13 +249,13 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['custom-skill'],
+        enabled_skills: ['custom-skill'],
       });
 
       expect(symlinkCalls[0].source).toBe('/mock/user/skills/custom-skill');
     });
 
-    it('should inject builtin skills from autoSkillsDir and deduplicate from enabledSkills', async () => {
+    it('should inject builtin skills from autoSkillsDir and deduplicate from enabled_skills', async () => {
       readdirResults['/mock/auto-skills'] = ['cron', 'office-cli'];
       statResults['/mock/auto-skills/cron'] = true;
       statResults['/mock/auto-skills/office-cli'] = true;
@@ -263,7 +263,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['cron', 'pptx'], // cron is in autoSkillNames — should not duplicate
+        enabled_skills: ['cron', 'pptx'], // cron is in autoSkillNames — should not duplicate
       });
 
       // cron (builtin) + office-cli (builtin) + pptx (user), cron not duplicated
@@ -281,7 +281,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['pptx'],
+        enabled_skills: ['pptx'],
       });
 
       expect(symlinkCalls).toHaveLength(0);
@@ -292,7 +292,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['nonexistent-skill'],
+        enabled_skills: ['nonexistent-skill'],
       });
 
       expect(symlinkCalls).toHaveLength(0);
@@ -304,9 +304,9 @@ describe('initAgent — skill support', () => {
       statResults['/mock/user/skills/test-skill'] = true;
 
       await setupAssistantWorkspace('/tmp/workspace', {
-        agentType: 'gemini',
+        agent_type: 'gemini',
         backend: 'codex',
-        enabledSkills: ['test-skill'],
+        enabled_skills: ['test-skill'],
       });
 
       // backend 'codex' takes priority -> .codex/skills
@@ -320,7 +320,7 @@ describe('initAgent — skill support', () => {
 
       await setupAssistantWorkspace('/tmp/workspace', {
         backend: 'claude',
-        enabledSkills: ['pptx', 'pdf', 'docx'],
+        enabled_skills: ['pptx', 'pdf', 'docx'],
       });
 
       expect(symlinkCalls).toHaveLength(3);

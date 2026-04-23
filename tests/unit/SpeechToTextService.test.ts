@@ -27,7 +27,7 @@ const { SpeechToTextService } = await import('@/process/bridge/services/SpeechTo
 const baseConfig = {
   enabled: true,
   provider: 'openai' as const,
-  openai: { apiKey: 'sk-test' },
+  openai: { api_key: 'sk-test' },
 };
 
 const baseRequest = {

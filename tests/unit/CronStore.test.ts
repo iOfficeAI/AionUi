@@ -54,16 +54,16 @@ describe('CronStore', () => {
           executionMode: 'existing',
         },
         metadata: {
-          conversationId: 'conv-1',
+          conversation_id: 'conv-1',
           conversationTitle: 'Test Conversation',
-          agentType: 'gemini',
+          agent_type: 'gemini',
           createdBy: 'user',
-          createdAt: 1000,
-          updatedAt: 2000,
+          created_at: 1000,
+          updated_at: 2000,
           agentConfig: {
             backend: 'gemini',
             name: 'Test Agent',
-            isPreset: true,
+            is_preset: true,
           },
         },
         state: {
@@ -125,10 +125,10 @@ describe('CronStore', () => {
         schedule_description: 'Every minute',
         payload_message: 'Hello',
         execution_mode: 'existing',
-        agent_config: JSON.stringify({
+        agentConfig: JSON.stringify({
           backend: 'gemini',
           name: 'Test Agent',
-          isPreset: true,
+          is_preset: true,
         }),
         conversation_id: 'conv-1',
         conversation_title: 'Test Conversation',
@@ -161,7 +161,7 @@ describe('CronStore', () => {
       expect(retrieved!.metadata.agentConfig).toEqual({
         backend: 'gemini',
         name: 'Test Agent',
-        isPreset: true,
+        is_preset: true,
       });
       expect(retrieved!.state.lastStatus).toBe('ok');
     });
@@ -183,11 +183,11 @@ describe('CronStore', () => {
           executionMode: 'new_conversation',
         },
         metadata: {
-          conversationId: 'conv-2',
-          agentType: 'claude',
+          conversation_id: 'conv-2',
+          agent_type: 'claude',
           createdBy: 'agent',
-          createdAt: 5000,
-          updatedAt: 6000,
+          created_at: 5000,
+          updated_at: 6000,
         },
         state: {
           runCount: 0,
@@ -220,7 +220,7 @@ describe('CronStore', () => {
         schedule_description: 'Daily at midnight EST',
         payload_message: 'Daily report',
         execution_mode: 'new_conversation',
-        agent_config: null,
+        agentConfig: null,
         conversation_id: 'conv-2',
         conversation_title: null,
         agent_type: 'claude',
@@ -267,11 +267,11 @@ describe('CronStore', () => {
           payload: { kind: 'message', text: 'New year message' },
         },
         metadata: {
-          conversationId: 'conv-3',
-          agentType: 'gemini',
+          conversation_id: 'conv-3',
+          agent_type: 'gemini',
           createdBy: 'user',
-          createdAt: 7000,
-          updatedAt: 8000,
+          created_at: 7000,
+          updated_at: 8000,
         },
         state: {
           runCount: 0,
@@ -302,7 +302,7 @@ describe('CronStore', () => {
         schedule_description: 'Once on Jan 1, 2025',
         payload_message: 'New year message',
         execution_mode: 'existing',
-        agent_config: null,
+        agentConfig: null,
         conversation_id: 'conv-3',
         conversation_title: null,
         agent_type: 'gemini',
@@ -341,7 +341,7 @@ describe('CronStore', () => {
         schedule_description: 'Test',
         payload_message: 'Test',
         execution_mode: 'existing',
-        agent_config: null,
+        agentConfig: null,
         conversation_id: 'conv-1',
         conversation_title: null,
         agent_type: 'gemini',
@@ -384,10 +384,10 @@ describe('CronStore', () => {
         schedule_description: 'Test',
         payload_message: 'Test',
         execution_mode: 'existing',
-        agent_config: JSON.stringify({
+        agentConfig: JSON.stringify({
           backend: 'claude',
           name: 'Custom Agent',
-          cliPath: '/path/to/cli',
+          cli_path: '/path/to/cli',
         }),
         conversation_id: 'conv-1',
         conversation_title: null,
@@ -408,14 +408,14 @@ describe('CronStore', () => {
       expect(withConfig!.metadata.agentConfig).toEqual({
         backend: 'claude',
         name: 'Custom Agent',
-        cliPath: '/path/to/cli',
+        cli_path: '/path/to/cli',
       });
 
       // Test with null
       mockPrepareInstance.get.mockReturnValue({
         ...mockPrepareInstance.get.mock.results[0].value,
         id: 'job-without-config',
-        agent_config: null,
+        agentConfig: null,
       });
 
       const withoutConfig = await cronStore.getById('job-without-config');
@@ -433,11 +433,11 @@ describe('CronStore', () => {
         schedule: { kind: 'every', everyMs: 5000, description: 'Every 5s' },
         target: { payload: { kind: 'message', text: 'Test' } },
         metadata: {
-          conversationId: 'conv-1',
-          agentType: 'gemini',
+          conversation_id: 'conv-1',
+          agent_type: 'gemini',
           createdBy: 'user',
-          createdAt: 1000,
-          updatedAt: 1000,
+          created_at: 1000,
+          updated_at: 1000,
         },
         state: { runCount: 0, retryCount: 0, maxRetries: 3 },
       };
@@ -464,7 +464,7 @@ describe('CronStore', () => {
         schedule_description: 'Test',
         payload_message: 'Test',
         execution_mode: 'existing',
-        agent_config: null,
+        agentConfig: null,
         conversation_id: 'conv-1',
         conversation_title: null,
         agent_type: 'gemini',
@@ -509,7 +509,7 @@ describe('CronStore', () => {
         schedule_description: 'Old desc',
         payload_message: 'Old message',
         execution_mode: 'existing',
-        agent_config: null,
+        agentConfig: null,
         conversation_id: 'conv-1',
         conversation_title: null,
         agent_type: 'gemini',
@@ -563,7 +563,7 @@ describe('CronStore', () => {
         schedule_description: 'Old',
         payload_message: 'Test',
         execution_mode: 'existing',
-        agent_config: null,
+        agentConfig: null,
         conversation_id: 'conv-1',
         conversation_title: null,
         agent_type: 'gemini',
@@ -619,7 +619,7 @@ describe('CronStore', () => {
           schedule_description: 'Test 1',
           payload_message: 'Test',
           execution_mode: 'existing',
-          agent_config: null,
+          agentConfig: null,
           conversation_id: 'conv-1',
           conversation_title: null,
           agent_type: 'gemini',
@@ -645,7 +645,7 @@ describe('CronStore', () => {
           schedule_description: 'Test 2',
           payload_message: 'Test',
           execution_mode: 'existing',
-          agent_config: null,
+          agentConfig: null,
           conversation_id: 'conv-2',
           conversation_title: null,
           agent_type: 'claude',
@@ -683,7 +683,7 @@ describe('CronStore', () => {
           schedule_description: 'Test',
           payload_message: 'Test',
           execution_mode: 'existing',
-          agent_config: null,
+          agentConfig: null,
           conversation_id: 'target-conv',
           conversation_title: null,
           agent_type: 'gemini',
@@ -707,7 +707,7 @@ describe('CronStore', () => {
       );
       expect(mockPrepareInstance.all).toHaveBeenCalledWith('target-conv');
       expect(jobs).toHaveLength(1);
-      expect(jobs[0].metadata.conversationId).toBe('target-conv');
+      expect(jobs[0].metadata.conversation_id).toBe('target-conv');
     });
 
     it('listEnabled returns only enabled jobs ordered by next run', async () => {
@@ -723,7 +723,7 @@ describe('CronStore', () => {
           schedule_description: 'Test',
           payload_message: 'Test',
           execution_mode: 'existing',
-          agent_config: null,
+          agentConfig: null,
           conversation_id: 'conv-1',
           conversation_title: null,
           agent_type: 'gemini',

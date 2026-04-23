@@ -15,10 +15,10 @@ import { test, expect } from '../fixtures';
 import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../helpers';
 
 /** Map leader type to agentType + conversationType values used in team.create */
-const AGENT_TYPE_MAP: Record<string, { agentType: string; conversationType: string }> = {
-  gemini: { agentType: 'gemini', conversationType: 'gemini' },
-  claude: { agentType: 'claude', conversationType: 'acp' },
-  codex: { agentType: 'codex', conversationType: 'acp' },
+const AGENT_TYPE_MAP: Record<string, { agent_type: string; conversation_type: string }> = {
+  gemini: { agent_type: 'gemini', conversation_type: 'gemini' },
+  claude: { agent_type: 'claude', conversation_type: 'acp' },
+  codex: { agent_type: 'codex', conversation_type: 'acp' },
 };
 
 const LEADER_CONFIGS = [...TEAM_SUPPORTED_BACKENDS].map((leaderType) => ({
@@ -53,12 +53,12 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
         workspaceMode: 'shared',
         agents: [
           {
-            slotId: 'slot-lead',
-            conversationId: '',
+            slot_id: 'slot-lead',
+            conversation_id: '',
             role: 'leader',
-            agentType: agentMeta.agentType,
-            agentName: 'Leader',
-            conversationType: agentMeta.conversationType,
+            agent_type: agentMeta.agent_type,
+            agent_name: 'Leader',
+            conversation_type: agentMeta.conversation_type,
             status: 'idle',
           },
         ],

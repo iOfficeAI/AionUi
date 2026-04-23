@@ -22,16 +22,16 @@ const mockCreateTeam = vi.hoisted(() => vi.fn());
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
 
 const cliAgents: AvailableAgent[] = [
-  { backend: 'gemini', name: 'Gemini CLI', cliPath: '/usr/bin/gemini' },
-  { backend: 'claude', name: 'Claude Code', cliPath: '/usr/bin/claude' },
+  { backend: 'gemini', name: 'Gemini CLI', cli_path: '/usr/bin/gemini' },
+  { backend: 'claude', name: 'Claude Code', cli_path: '/usr/bin/claude' },
 ];
 
-const presetAssistants: AvailableAgent[] = [
+const preset_assistants: AvailableAgent[] = [
   {
     backend: 'gemini',
     name: 'Writing Buddy',
-    customAgentId: 'builtin-writing-buddy',
-    isPreset: true,
+    custom_agent_id: 'builtin-writing-buddy',
+    is_preset: true,
     presetAgentType: 'gemini',
   },
 ];
@@ -205,9 +205,9 @@ describe('TeamCreateModal', () => {
     expect(payload.agents).toHaveLength(1);
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
-      agentType: 'gemini',
-      conversationType: 'gemini',
-      customAgentId: 'builtin-writing-buddy',
+      agent_type: 'gemini',
+      conversation_type: 'gemini',
+      custom_agent_id: 'builtin-writing-buddy',
     });
     expect(onCreated).toHaveBeenCalledWith({ id: 'team-created' });
   });

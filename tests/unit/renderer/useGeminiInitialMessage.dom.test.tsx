@@ -78,8 +78,8 @@ describe('useGeminiInitialMessage', () => {
 
     renderHook(() =>
       useGeminiInitialMessage({
-        conversationId: 'conv-no-auth',
-        currentModelId: undefined,
+        conversation_id: 'conv-no-auth',
+        current_model_id: undefined,
         hasNoAuth: true,
         setContent,
         setActiveMsgId: vi.fn(),
@@ -116,8 +116,8 @@ describe('useGeminiInitialMessage', () => {
 
     renderHook(() =>
       useGeminiInitialMessage({
-        conversationId: 'conv-ready',
-        currentModelId: 'gemini-2.5',
+        conversation_id: 'conv-ready',
+        current_model_id: 'gemini-2.5',
         hasNoAuth: false,
         setContent: vi.fn(),
         setActiveMsgId,
@@ -164,7 +164,7 @@ describe('useGeminiInitialMessage', () => {
     const { rerender } = renderHook(
       ({ hasNoAuth, currentModelId }) =>
         useGeminiInitialMessage({
-          conversationId: 'conv-transition',
+          conversation_id: 'conv-transition',
           currentModelId,
           hasNoAuth,
           setContent,
@@ -174,7 +174,7 @@ describe('useGeminiInitialMessage', () => {
           setShowSetupCard,
           performFullCheck,
         }),
-      { initialProps: { hasNoAuth: true, currentModelId: undefined as string | undefined } }
+      { initialProps: { hasNoAuth: true, current_model_id: undefined as string | undefined } }
     );
 
     await waitFor(() => {
@@ -184,7 +184,7 @@ describe('useGeminiInitialMessage', () => {
     expect(sessionStorage.getItem('gemini_initial_message_conv-transition')).not.toBeNull();
 
     // Phase 2: auth loads — effect re-runs and sends the message
-    rerender({ hasNoAuth: false, currentModelId: 'gemini-2.5' });
+    rerender({ hasNoAuth: false, current_model_id: 'gemini-2.5' });
 
     await waitFor(() => {
       expect(mockGeminiSendInvoke).toHaveBeenCalledTimes(1);

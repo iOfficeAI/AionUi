@@ -65,7 +65,7 @@ const createQueueItem = (overrides: Partial<ConversationCommandQueueItem> = {}):
   id: overrides.id ?? `command-${Math.random().toString(36).slice(2)}`,
   input: overrides.input ?? 'echo hello',
   files: overrides.files ?? [],
-  createdAt: overrides.createdAt ?? Date.now(),
+  created_at: overrides.created_at ?? Date.now(),
 });
 
 describe('useConversationCommandQueue', () => {
@@ -142,7 +142,7 @@ describe('useConversationCommandQueue', () => {
             id: 'queued-1',
             input: 'stale queued command',
             files: [],
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
         ],
       })
@@ -179,7 +179,7 @@ describe('useConversationCommandQueue', () => {
             id: 'queued-1',
             input: 'restored queued command',
             files: [],
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
         ],
       })
@@ -803,19 +803,19 @@ describe('useConversationCommandQueue', () => {
             id: 'valid',
             input: 'safe command',
             files: ['a.txt', 'a.txt'],
-            createdAt: 1,
+            created_at: 1,
           },
           {
             id: 'oversized-input',
             input: 'x'.repeat(MAX_QUEUED_COMMAND_INPUT_LENGTH + 1),
             files: [],
-            createdAt: 2,
+            created_at: 2,
           },
           {
             id: 'too-many-files',
             input: 'unsafe',
             files: Array.from({ length: MAX_QUEUED_COMMAND_FILES + 1 }, (_, index) => `${index}.txt`),
-            createdAt: 3,
+            created_at: 3,
           },
         ],
         isPaused: false,

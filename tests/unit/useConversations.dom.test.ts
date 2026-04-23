@@ -82,7 +82,7 @@ const makeWorkspaceSection = (workspaces: string[]): TimelineSection[] => [
       time: Date.now(),
       workspaceGroup: {
         workspace: ws,
-        displayName: ws.split('/').pop()!,
+        display_name: ws.split('/').pop()!,
         conversations: [],
       },
     })),

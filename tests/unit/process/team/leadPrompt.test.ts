@@ -44,12 +44,12 @@ describe('buildLeaderPrompt', () => {
       teammates: [],
       availableAssistants: [
         {
-          customAgentId: 'builtin-word-creator',
+          custom_agent_id: 'builtin-word-creator',
           name: 'Word Creator',
           backend: 'gemini',
           description: 'Create, edit, and analyze professional Word documents',
         },
-        { customAgentId: 'builtin-cowork', name: 'Cowork', backend: 'gemini' },
+        { custom_agent_id: 'builtin-cowork', name: 'Cowork', backend: 'gemini' },
       ],
     });
 
@@ -65,7 +65,7 @@ describe('buildLeaderPrompt', () => {
       teammates: [],
       availableAssistants: [
         {
-          customAgentId: 'builtin-word-creator',
+          custom_agent_id: 'builtin-word-creator',
           name: 'Word Creator',
           backend: 'gemini',
           description: 'Create, edit, and analyze professional Word documents',
@@ -81,8 +81,8 @@ describe('buildLeaderPrompt', () => {
     const prompt = buildLeaderPrompt({
       teammates: [],
       availableAssistants: [
-        { customAgentId: 'builtin-word-creator', name: 'Word Creator', backend: 'gemini' },
-        { customAgentId: 'builtin-cowork', name: 'Cowork', backend: 'gemini' },
+        { custom_agent_id: 'builtin-word-creator', name: 'Word Creator', backend: 'gemini' },
+        { custom_agent_id: 'builtin-cowork', name: 'Cowork', backend: 'gemini' },
       ],
     });
 

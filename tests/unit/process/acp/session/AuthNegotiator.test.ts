@@ -38,7 +38,7 @@ describe('AuthNegotiator', () => {
     const neg = new AuthNegotiator('claude');
     const methods = [envVarMethod()];
     const data = neg.buildAuthRequiredData(methods);
-    expect(data.agentBackend).toBe('claude');
+    expect(data.agent_backend).toBe('claude');
     expect(data.methods).toHaveLength(1);
     expect(data.methods[0]).toBe(methods[0]);
   });
@@ -53,7 +53,7 @@ describe('AuthNegotiator', () => {
   it('buildAuthRequiredData returns correct structure (INV-S-15)', () => {
     const neg = new AuthNegotiator('claude');
     const data = neg.buildAuthRequiredData([envVarMethod()]);
-    expect(data.agentBackend).toBe('claude');
+    expect(data.agent_backend).toBe('claude');
     expect(data.methods).toHaveLength(1);
   });
 

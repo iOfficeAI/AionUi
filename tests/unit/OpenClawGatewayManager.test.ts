@@ -85,7 +85,7 @@ describe('OpenClawGatewayManager', () => {
         throw new Error('ENOENT');
       });
 
-      const manager = new OpenClawGatewayManager({ cliPath: 'openclaw' });
+      const manager = new OpenClawGatewayManager({ cli_path: 'openclaw' });
       const promise = manager.start();
 
       await expect(promise).rejects.toThrow('CLI not found: "openclaw"');
@@ -97,7 +97,7 @@ describe('OpenClawGatewayManager', () => {
         throw new Error('ENOENT');
       });
 
-      const manager = new OpenClawGatewayManager({ cliPath: '/opt/bin/openclaw' });
+      const manager = new OpenClawGatewayManager({ cli_path: '/opt/bin/openclaw' });
       const promise = manager.start();
 
       await expect(promise).rejects.toThrow('CLI not found: "/opt/bin/openclaw"');
@@ -116,7 +116,7 @@ describe('OpenClawGatewayManager', () => {
       const proc = createMockProcess();
       mockSpawn.mockReturnValue(proc);
 
-      const manager = new OpenClawGatewayManager({ cliPath: 'openclaw' });
+      const manager = new OpenClawGatewayManager({ cli_path: 'openclaw' });
       const promise = manager.start();
 
       // Emit ready signal

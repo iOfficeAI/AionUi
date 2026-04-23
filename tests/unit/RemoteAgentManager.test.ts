@@ -33,8 +33,8 @@ const mockDb = vi.hoisted(() => ({
     url: 'wss://example.com',
     authType: 'bearer',
     authToken: 'tok',
-    createdAt: 0,
-    updatedAt: 0,
+    created_at: 0,
+    updated_at: 0,
   })),
   updateRemoteAgent: vi.fn(),
   getConversation: vi.fn(() => ({
@@ -86,7 +86,7 @@ vi.mock('../../src/common/chat/chatLib', () => ({
         position: 'left',
         conversation_id: msg.conversation_id,
         content: { content: msg.data },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
     }
     if (msg.type === 'error') {
@@ -97,7 +97,7 @@ vi.mock('../../src/common/chat/chatLib', () => ({
         position: 'center',
         conversation_id: msg.conversation_id,
         content: { content: msg.data, type: 'error' },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
     }
     return null;
@@ -264,9 +264,9 @@ describe('RemoteAgentManager', () => {
         conversation_id: 'conv-1',
         msg_id: 'msg-p',
         data: {
-          sessionId: 'conv-1',
-          toolCall: { toolCallId: 'tc-1', title: 'Bash' },
-          options: [{ optionId: 'allow_once', name: 'Allow', kind: 'allow_once' }],
+          session_id: 'conv-1',
+          toolCall: { tool_call_id: 'tc-1', title: 'Bash' },
+          options: [{ option_id: 'allow_once', name: 'Allow', kind: 'allow_once' }],
         },
       });
 
@@ -380,8 +380,8 @@ describe('RemoteAgentManager', () => {
       await mgr.confirm('conf-1', 'call-1', 'allow_once');
 
       expect(mockCore.confirmMessage).toHaveBeenCalledWith({
-        confirmKey: 'allow_once',
-        callId: 'call-1',
+        confirm_key: 'allow_once',
+        call_id: 'call-1',
       });
     });
   });

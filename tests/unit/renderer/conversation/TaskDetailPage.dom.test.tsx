@@ -177,13 +177,13 @@ describe('TaskDetailPage', () => {
       },
     },
     metadata: {
-      conversationId: 'conv-123',
-      createdAt: now,
-      updatedAt: now,
+      conversation_id: 'conv-123',
+      created_at: now,
+      updated_at: now,
       agentConfig: {
         backend: 'claude',
         name: 'Claude 3.5 Sonnet',
-        modelId: 'claude-3-5-sonnet',
+        model_id: 'claude-3-5-sonnet',
       },
     },
     state: {
@@ -216,11 +216,11 @@ describe('TaskDetailPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockUseParams.mockReturnValue({ jobId: 'job-123' });
+    mockUseParams.mockReturnValue({ job_id: 'job-123' });
     mockListJobs.mockResolvedValue([mockJob]);
     mockGetJob.mockResolvedValue(mockJob);
     mockUpdateJob.mockResolvedValue({ ...mockJob, enabled: false });
-    mockRunNow.mockResolvedValue({ conversationId: 'new-conv-id' });
+    mockRunNow.mockResolvedValue({ conversation_id: 'new-conv-id' });
     mockRemoveJob.mockResolvedValue(undefined);
     mockOnJobUpdated.mockReturnValue(() => {});
     mockOnJobExecuted.mockReturnValue(() => {});
@@ -374,7 +374,7 @@ describe('TaskDetailPage', () => {
 
     await waitFor(() => {
       expect(mockUpdateJob).toHaveBeenCalledWith({
-        jobId: 'job-123',
+        job_id: 'job-123',
         updates: { enabled: false },
       });
     });
@@ -411,7 +411,7 @@ describe('TaskDetailPage', () => {
     fireEvent.click(runNowButton);
 
     await waitFor(() => {
-      expect(mockRunNow).toHaveBeenCalledWith({ jobId: 'job-123' });
+      expect(mockRunNow).toHaveBeenCalledWith({ job_id: 'job-123' });
     });
 
     await waitFor(() => {
@@ -488,7 +488,7 @@ describe('TaskDetailPage', () => {
     fireEvent.click(deleteButton);
 
     await waitFor(() => {
-      expect(mockRemoveJob).toHaveBeenCalledWith({ jobId: 'job-123' });
+      expect(mockRemoveJob).toHaveBeenCalledWith({ job_id: 'job-123' });
     });
 
     expect(mockNavigate).toHaveBeenCalledWith('/scheduled');
@@ -496,7 +496,7 @@ describe('TaskDetailPage', () => {
   });
 
   it('handles missing jobId gracefully', async () => {
-    mockUseParams.mockReturnValue({ jobId: undefined });
+    mockUseParams.mockReturnValue({ job_id: undefined });
 
     render(<TaskDetailPage />);
 
@@ -507,7 +507,7 @@ describe('TaskDetailPage', () => {
   });
 
   it('handles invalid jobId and shows empty state', async () => {
-    mockUseParams.mockReturnValue({ jobId: 'invalid-job-id' });
+    mockUseParams.mockReturnValue({ job_id: 'invalid-job-id' });
     mockGetJob.mockResolvedValue(null); // Job not found
 
     render(<TaskDetailPage />);
@@ -656,7 +656,7 @@ describe('TaskDetailPage', () => {
   });
 
   it('subscribes to job execution events and refreshes job state', async () => {
-    let executedHandler: ((data: { jobId: string }) => void) | null = null;
+    let executedHandler: ((data: { job_id: string }) => void) | null = null;
     mockOnJobExecuted.mockImplementation((handler) => {
       executedHandler = handler;
       return () => {};
@@ -674,7 +674,7 @@ describe('TaskDetailPage', () => {
     // Verify the handler can be called without errors
     expect(() => {
       if (executedHandler) {
-        executedHandler({ jobId: 'job-123' });
+        executedHandler({ job_id: 'job-123' });
       }
     }).not.toThrow();
   });

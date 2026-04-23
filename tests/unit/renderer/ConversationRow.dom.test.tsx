@@ -80,9 +80,9 @@ const makeConversation = (overrides: Partial<TChatConversation> = {}): TChatConv
       id: 'model-1',
       platform: 'gemini',
       name: 'Gemini',
-      baseUrl: 'https://example.com',
-      apiKey: 'test-key',
-      useModel: 'gemini-2.5-pro',
+      base_url: 'https://example.com',
+      api_key: 'test-key',
+      use_model: 'gemini-2.5-pro',
     },
     ...overrides,
   }) as TChatConversation;

@@ -56,7 +56,7 @@ describe('agentLogo', () => {
     it('should extract adapter ID from customAgentId for extension agents', () => {
       const logo = resolveAgentLogo({
         backend: 'custom',
-        customAgentId: 'ext:aionext-claude:claude',
+        custom_agent_id: 'ext:aionext-claude:claude',
         isExtension: true,
       });
       expect(logo).toBe('claude.svg');
@@ -79,7 +79,7 @@ describe('agentLogo', () => {
       // Extension agent with custom backend but recognizable adapter ID
       const logo = resolveAgentLogo({
         backend: 'custom',
-        customAgentId: 'ext:aionext-auggie:auggie',
+        custom_agent_id: 'ext:aionext-auggie:auggie',
         isExtension: true,
       });
       expect(logo).toBe('auggie.svg');
@@ -88,7 +88,7 @@ describe('agentLogo', () => {
     it('should fall back to backend when adapter ID is unrecognized', () => {
       const logo = resolveAgentLogo({
         backend: 'custom',
-        customAgentId: 'ext:my-ext:unknown-adapter',
+        custom_agent_id: 'ext:my-ext:unknown-adapter',
         isExtension: true,
       });
       // 'unknown-adapter' not in logo map, 'custom' not in logo map → null

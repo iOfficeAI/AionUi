@@ -116,7 +116,7 @@ describe('JsonImportModal', () => {
 
       const textarea = screen.getByTestId('json-input');
       const validJson = JSON.stringify({
-        mcpServers: {
+        mcp_servers: {
           weather: { command: 'uv', args: ['run', 'weather.py'] },
         },
       });

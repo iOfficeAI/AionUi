@@ -124,7 +124,7 @@ describe('composeMessage tool_group immutability', () => {
       type: 'tool_group',
       content: [
         {
-          callId: callA,
+          call_id: callA,
           name: 'ToolA',
           description: 'Tool A',
           renderOutputAsMarkdown: false,
@@ -140,7 +140,7 @@ describe('composeMessage tool_group immutability', () => {
       type: 'tool_group',
       content: [
         {
-          callId: callB,
+          call_id: callB,
           name: 'ToolB',
           description: 'Tool B',
           renderOutputAsMarkdown: false,
@@ -158,15 +158,15 @@ describe('composeMessage tool_group immutability', () => {
       type: 'tool_group',
       content: [
         {
-          callId: callA,
+          call_id: callA,
           name: 'ToolA',
           description: 'Tool A',
           renderOutputAsMarkdown: false,
           status: 'Success',
-          resultDisplay: 'ok',
+          result_display: 'ok',
         },
         {
-          callId: callB,
+          call_id: callB,
           name: 'ToolB',
           description: 'Tool B',
           renderOutputAsMarkdown: false,
@@ -179,7 +179,7 @@ describe('composeMessage tool_group immutability', () => {
           },
         },
         {
-          callId: callC,
+          call_id: callC,
           name: 'ToolC',
           description: 'Tool C',
           renderOutputAsMarkdown: false,
@@ -208,7 +208,7 @@ describe('composeMessage tool_group immutability', () => {
     const inserted = mergedList.find((m) => m.id === 'msg-tool-update');
     if (!inserted || !isToolGroupMessage(inserted)) throw new Error('Expected inserted tool_group message');
     expect(inserted.content).toHaveLength(1);
-    expect(inserted.content[0].callId).toBe(callC);
+    expect(inserted.content[0].call_id).toBe(callC);
     expect(inserted.content[0].status).toBe('Pending');
   });
 
@@ -224,7 +224,7 @@ describe('composeMessage tool_group immutability', () => {
       type: 'tool_group',
       content: [
         {
-          callId: existingCall,
+          call_id: existingCall,
           name: 'ToolExisting',
           description: 'Existing tool',
           renderOutputAsMarkdown: false,
@@ -240,7 +240,7 @@ describe('composeMessage tool_group immutability', () => {
       type: 'tool_group',
       content: [
         {
-          callId: newCall,
+          call_id: newCall,
           name: 'ToolNew',
           description: 'New tool',
           renderOutputAsMarkdown: false,
@@ -261,7 +261,7 @@ describe('composeMessage tool_group immutability', () => {
     const inserted = mergedList[1];
     if (!isToolGroupMessage(inserted)) throw new Error('Expected inserted tool_group message');
     expect(inserted.content).toHaveLength(1);
-    expect(inserted.content[0].callId).toBe(newCall);
+    expect(inserted.content[0].call_id).toBe(newCall);
     expect(inserted.content[0].status).toBe('Pending');
   });
 });

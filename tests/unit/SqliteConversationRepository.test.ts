@@ -61,12 +61,12 @@ describe('SqliteConversationRepository', () => {
   });
 
   it('getMessages maps to PaginatedResult shape', async () => {
-    mockDb.getConversationMessages.mockReturnValue({ data: [{ id: 'm1' }], total: 1, hasMore: false });
+    mockDb.getConversationMessages.mockReturnValue({ data: [{ id: 'm1' }], total: 1, has_more: false });
     const repo = new SqliteConversationRepository();
     const result = await repo.getMessages('c1', 0, 100);
     expect(result.total).toBe(1);
     expect(result.data).toHaveLength(1);
-    expect(result.hasMore).toBe(false);
+    expect(result.has_more).toBe(false);
     expect(mockDb.getConversationMessages).toHaveBeenCalledWith('c1', 0, 100, undefined);
   });
 
@@ -79,16 +79,16 @@ describe('SqliteConversationRepository', () => {
   });
 
   it('getUserConversations maps to PaginatedResult shape', async () => {
-    mockDb.getUserConversations.mockReturnValue({ data: [{ id: 'c1' }], total: 1, hasMore: false });
+    mockDb.getUserConversations.mockReturnValue({ data: [{ id: 'c1' }], total: 1, has_more: false });
     const repo = new SqliteConversationRepository();
     const result = await repo.getUserConversations();
     expect(result.total).toBe(1);
     expect(result.data).toHaveLength(1);
-    expect(result.hasMore).toBe(false);
+    expect(result.has_more).toBe(false);
   });
 
   it('getUserConversations passes page and pageSize when offset/limit provided', async () => {
-    mockDb.getUserConversations.mockReturnValue({ data: [], total: 0, hasMore: false });
+    mockDb.getUserConversations.mockReturnValue({ data: [], total: 0, has_more: false });
     const repo = new SqliteConversationRepository();
     await repo.getUserConversations(undefined, 2, 20);
     // offset=2, limit=20 → page = Math.floor(2/20) = 0, pageSize = 20

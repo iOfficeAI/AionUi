@@ -41,28 +41,28 @@ describe('channelConversation real functions', () => {
   });
 
   describe('buildChannelConversationExtra', () => {
-    it('returns enabledSkills only for gemini backend with weixin platform', () => {
+    it('returns enabled_skills only for gemini backend with weixin platform', () => {
       const result = buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'gemini',
       });
-      expect(result).toEqual({ enabledSkills: ['weixin-file-send'] });
+      expect(result).toEqual({ enabled_skills: ['weixin-file-send'] });
     });
 
-    it('returns enabledSkills only for codex backend with weixin platform', () => {
+    it('returns enabled_skills only for codex backend with weixin platform', () => {
       const result = buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'codex',
       });
-      expect(result).toEqual({ enabledSkills: ['weixin-file-send'] });
+      expect(result).toEqual({ enabled_skills: ['weixin-file-send'] });
     });
 
-    it('returns enabledSkills only for openclaw-gateway backend with weixin platform', () => {
+    it('returns enabled_skills only for openclaw-gateway backend with weixin platform', () => {
       const result = buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'openclaw-gateway',
       });
-      expect(result).toEqual({ enabledSkills: ['weixin-file-send'] });
+      expect(result).toEqual({ enabled_skills: ['weixin-file-send'] });
     });
 
     it('returns empty object for gemini backend with non-weixin platform', () => {
@@ -77,14 +77,14 @@ describe('channelConversation real functions', () => {
       const result = buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'claude',
-        customAgentId: 'agent-123',
-        agentName: 'Claude Assistant',
+        custom_agent_id: 'agent-123',
+        agent_name: 'Claude Assistant',
       });
       expect(result).toEqual({
         backend: 'claude',
-        customAgentId: 'agent-123',
-        agentName: 'Claude Assistant',
-        enabledSkills: ['weixin-file-send'],
+        custom_agent_id: 'agent-123',
+        agent_name: 'Claude Assistant',
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -95,8 +95,8 @@ describe('channelConversation real functions', () => {
       });
       expect(result).toEqual({
         backend: 'claude',
-        customAgentId: undefined,
-        agentName: undefined,
+        custom_agent_id: undefined,
+        agent_name: undefined,
       });
     });
 
@@ -104,14 +104,14 @@ describe('channelConversation real functions', () => {
       const result = buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'unknown-backend',
-        customAgentId: 'custom-1',
-        agentName: 'Custom Agent',
+        custom_agent_id: 'custom-1',
+        agent_name: 'Custom Agent',
       });
       expect(result).toEqual({
         backend: 'unknown-backend',
-        customAgentId: 'custom-1',
-        agentName: 'Custom Agent',
-        enabledSkills: ['weixin-file-send'],
+        custom_agent_id: 'custom-1',
+        agent_name: 'Custom Agent',
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -138,9 +138,9 @@ describe('channelConversation real functions', () => {
       });
       expect(result).toEqual({
         backend: 'claude',
-        customAgentId: undefined,
-        agentName: undefined,
-        enabledSkills: ['weixin-file-send'],
+        custom_agent_id: undefined,
+        agent_name: undefined,
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -148,14 +148,14 @@ describe('channelConversation real functions', () => {
       const result = buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'claude',
-        customAgentId: '',
-        agentName: '',
+        custom_agent_id: '',
+        agent_name: '',
       });
       expect(result).toEqual({
         backend: 'claude',
-        customAgentId: '',
-        agentName: '',
-        enabledSkills: ['weixin-file-send'],
+        custom_agent_id: '',
+        agent_name: '',
+        enabled_skills: ['weixin-file-send'],
       });
     });
   });

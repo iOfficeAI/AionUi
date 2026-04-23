@@ -131,7 +131,7 @@ const FALLBACK_DELAY_MS = 15_000;
 function createManager(conversationId = 'conv-fb-1'): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversationId,
   };
   return new AionrsManager(data as any, data.model as any);
@@ -297,7 +297,7 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
       (manager as any).confirmations = [
         {
           id: 'confirm-1',
-          callId: 'call-1',
+          call_id: 'call-1',
           title: 'Test',
           action: 'exec',
           description: '',
@@ -318,7 +318,7 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
 
       // Add pending confirmation
       (manager as any).confirmations = [
-        { id: 'c1', callId: 'call-1', title: 'T', action: 'exec', description: '', options: [] },
+        { id: 'c1', call_id: 'call-1', title: 'T', action: 'exec', description: '', options: [] },
       ];
 
       vi.advanceTimersByTime(FALLBACK_DELAY_MS);
@@ -430,7 +430,7 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, {
         type: 'tool_group',
-        data: [{ name: 'tool1', status: 'Running', callId: 'c1' }],
+        data: [{ name: 'tool1', status: 'Running', call_id: 'c1' }],
         msg_id: 'msg-1',
       });
 

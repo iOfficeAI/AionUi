@@ -23,7 +23,7 @@ describe('WeixinLoginHandler', () => {
     const handler = new WeixinLoginHandler(() => win as never);
 
     mockStartLoginFn = vi.fn(({ onDone }: { onDone: (r: unknown) => void }) => {
-      setTimeout(() => onDone({ accountId: 'u1', botToken: 'tok', baseUrl: 'https://x' }), 0);
+      setTimeout(() => onDone({ accountId: 'u1', botToken: 'tok', base_url: 'https://x' }), 0);
       return { abort: vi.fn() };
     });
 
@@ -63,7 +63,7 @@ describe('WeixinLoginHandler', () => {
       qrcodeUrl: FAKE_DATA_URL,
     });
 
-    capturedOnDone?.({ accountId: 'u1', botToken: 'tok', baseUrl: 'https://x' });
+    capturedOnDone?.({ accountId: 'u1', botToken: 'tok', base_url: 'https://x' });
     await loginPromise;
   });
 
@@ -90,7 +90,7 @@ describe('WeixinLoginHandler', () => {
     mockStartLoginFn = vi.fn(({ onDone }: { onDone: (r: unknown) => void }) => {
       callCount++;
       if (callCount === 2) {
-        setTimeout(() => onDone({ accountId: 'u2', botToken: 'tok2', baseUrl: 'https://x' }), 0);
+        setTimeout(() => onDone({ accountId: 'u2', botToken: 'tok2', base_url: 'https://x' }), 0);
       }
       return { abort: firstAbort };
     });

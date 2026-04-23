@@ -34,7 +34,7 @@ describe('MessageToolGroupSummary', () => {
       content: {
         update: {
           sessionUpdate: 'tool_call',
-          toolCallId: 'tool-1',
+          tool_call_id: 'tool-1',
           status: 'failed',
           title: 'Read',
           kind: 'read',

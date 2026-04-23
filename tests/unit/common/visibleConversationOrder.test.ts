@@ -17,21 +17,21 @@ const createConversation = (id: string): TChatConversation => ({
   type: 'gemini',
   extra: {
     workspace: `/workspace/${id}`,
-    customWorkspace: true,
+    custom_workspace: true,
   },
   model: {
     id: 'model-1',
     name: 'Gemini',
-    useModel: 'gemini-2.0-flash',
+    use_model: 'gemini-2.0-flash',
     platform: 'gemini',
-    baseUrl: '',
-    apiKey: '',
+    base_url: '',
+    api_key: '',
   } as TChatConversation['model'],
 });
 
 const createWorkspaceGroup = (workspace: string, conversationIds: string[]): WorkspaceGroup => ({
   workspace,
-  displayName: workspace,
+  display_name: workspace,
   conversations: conversationIds.map((conversationId) => createConversation(conversationId)),
 });
 

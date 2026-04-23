@@ -63,11 +63,11 @@ describe('useAgentAvailability', () => {
   ];
 
   const defaultModelList: IProvider[] = [
-    { id: '1', platform: 'openai', name: 'gpt-4', baseUrl: '', apiKey: 'k' } as IProvider,
+    { id: '1', platform: 'openai', name: 'gpt-4', base_url: '', api_key: 'k' } as IProvider,
   ];
 
   const stubResolvePresetAgentType = (info: { backend: string; customAgentId?: string } | undefined) =>
-    info?.customAgentId ? 'gemini' : (info?.backend ?? 'gemini');
+    info?.custom_agent_id ? 'gemini' : (info?.backend ?? 'gemini');
 
   // -- isMainAgentAvailable ---------------------------------------------------
 
@@ -150,7 +150,7 @@ describe('useAgentAvailability', () => {
     );
 
     const info = result.current.getEffectiveAgentType({ backend: 'claude' });
-    expect(info.agentType).toBe('claude');
+    expect(info.agent_type).toBe('claude');
     expect(info.originalType).toBe('claude');
     expect(info.isAvailable).toBe(true);
     expect(info.isFallback).toBe(false);
@@ -167,7 +167,7 @@ describe('useAgentAvailability', () => {
     );
 
     const info = result.current.getEffectiveAgentType({ backend: 'codex' });
-    expect(info.agentType).toBe('codex');
+    expect(info.agent_type).toBe('codex');
     expect(info.isAvailable).toBe(false);
   });
 });
@@ -181,15 +181,15 @@ describe('usePresetAssistantResolver', () => {
     {
       id: 'agent-alpha',
       name: 'Alpha',
-      isPreset: false,
+      is_preset: false,
       enabled: true,
       presetAgentType: 'claude',
-      enabledSkills: ['code-review', 'testing'],
+      enabled_skills: ['code-review', 'testing'],
     } as AcpBackendConfig,
     {
       id: 'agent-beta',
       name: 'Beta',
-      isPreset: true,
+      is_preset: true,
       enabled: true,
       presetAgentType: 'qwen',
     } as AcpBackendConfig,
@@ -214,15 +214,15 @@ describe('usePresetAssistantResolver', () => {
   it('resolvePresetAgentType resolves preset agent to its presetAgentType', () => {
     const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(result.current.resolvePresetAgentType({ backend: 'claude', customAgentId: 'agent-alpha' })).toBe('claude');
+    expect(result.current.resolvePresetAgentType({ backend: 'claude', custom_agent_id: 'agent-alpha' })).toBe('claude');
 
-    expect(result.current.resolvePresetAgentType({ backend: 'qwen', customAgentId: 'agent-beta' })).toBe('qwen');
+    expect(result.current.resolvePresetAgentType({ backend: 'qwen', custom_agent_id: 'agent-beta' })).toBe('qwen');
   });
 
   it('resolvePresetAgentType defaults to gemini for unknown preset agent', () => {
     const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(result.current.resolvePresetAgentType({ backend: 'claude', customAgentId: 'unknown-id' })).toBe('gemini');
+    expect(result.current.resolvePresetAgentType({ backend: 'claude', custom_agent_id: 'unknown-id' })).toBe('gemini');
   });
 
   it('resolvePresetAgentType returns gemini when agentInfo is undefined', () => {
@@ -236,7 +236,7 @@ describe('usePresetAssistantResolver', () => {
   it('resolveEnabledSkills returns skills list for custom agent', () => {
     const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    expect(result.current.resolveEnabledSkills({ backend: 'claude', customAgentId: 'agent-alpha' })).toEqual([
+    expect(result.current.resolveEnabledSkills({ backend: 'claude', custom_agent_id: 'agent-alpha' })).toEqual([
       'code-review',
       'testing',
     ]);
@@ -257,8 +257,8 @@ describe('usePresetAssistantResolver', () => {
   it('resolveEnabledSkills returns undefined for custom agent without skills', () => {
     const { result } = renderHook(() => usePresetAssistantResolver({ customAgents, localeKey: 'en-US' }));
 
-    // agent-beta has no enabledSkills defined
-    expect(result.current.resolveEnabledSkills({ backend: 'qwen', customAgentId: 'agent-beta' })).toBeUndefined();
+    // agent-beta has no enabled_skills defined
+    expect(result.current.resolveEnabledSkills({ backend: 'qwen', custom_agent_id: 'agent-beta' })).toBeUndefined();
   });
 
   // -- resolvePresetRulesAndSkills --------------------------------------------
@@ -283,7 +283,7 @@ describe('usePresetAssistantResolver', () => {
 
     const resolved = await result.current.resolvePresetRulesAndSkills({
       backend: 'claude',
-      customAgentId: 'agent-alpha',
+      custom_agent_id: 'agent-alpha',
       context: 'fallback context',
     });
 

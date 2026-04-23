@@ -87,11 +87,11 @@ function makeConversationRepo(overrides?: Partial<IConversationRepository>): ICo
     createConversation: vi.fn(),
     updateConversation: vi.fn(),
     deleteConversation: vi.fn(),
-    getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    getMessages: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     insertMessage: vi.fn(),
-    getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    getUserConversations: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     listAllConversations: vi.fn(() => []),
-    searchMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    searchMessages: vi.fn(async () => ({ data: [], total: 0, has_more: false })),
     getConversationsByCronJob: vi.fn(async () => []),
     ...overrides,
   };
@@ -105,11 +105,11 @@ function makeJob(overrides?: Partial<CronJob>): CronJob {
     schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
     target: { payload: { kind: 'message', text: 'hello' } },
     metadata: {
-      conversationId: 'conv-1',
-      agentType: 'gemini',
+      conversation_id: 'conv-1',
+      agent_type: 'gemini',
       createdBy: 'user',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
     },
     state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     ...overrides,
@@ -186,8 +186,8 @@ describe('CronService', () => {
       description: 'my description',
       schedule: { kind: 'every', everyMs: 10000, description: 'test' },
       prompt: 'hello',
-      conversationId: 'conv-1',
-      agentType: 'gemini',
+      conversation_id: 'conv-1',
+      agent_type: 'gemini',
       createdBy: 'user',
     });
 
@@ -215,8 +215,8 @@ describe('CronService', () => {
       description: 'my description',
       schedule: { kind: 'every', everyMs: 10000, description: 'test' },
       prompt: 'hello',
-      conversationId: 'conv-1',
-      agentType: 'gemini',
+      conversation_id: 'conv-1',
+      agent_type: 'gemini',
       createdBy: 'user',
     });
 
@@ -235,8 +235,8 @@ describe('CronService', () => {
       name: 'new-conv-job',
       schedule: { kind: 'every', everyMs: 10000, description: 'test' },
       prompt: 'hello',
-      conversationId: 'conv-1',
-      agentType: 'gemini',
+      conversation_id: 'conv-1',
+      agent_type: 'gemini',
       createdBy: 'user',
       executionMode: 'new_conversation',
     });
@@ -269,8 +269,8 @@ describe('CronService', () => {
         name: 'new-job',
         schedule: { kind: 'every', everyMs: 10000, description: 'test' },
         prompt: 'hello',
-        conversationId: 'conv-1',
-        agentType: 'gemini',
+        conversation_id: 'conv-1',
+        agent_type: 'gemini',
         createdBy: 'user',
       })
     ).rejects.toThrow();

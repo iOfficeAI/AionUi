@@ -33,7 +33,7 @@ vi.mock('@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled', () => ({
 }));
 
 let responseHandler: ((message: { conversation_id: string; type: string }) => void) | null = null;
-let turnCompletedHandler: ((event: { sessionId: string; status: string }) => void) | null = null;
+let turnCompletedHandler: ((event: { session_id: string; status: string }) => void) | null = null;
 const mockScanInvoke = vi.fn().mockResolvedValue([]);
 const mockResponseStreamUnsub = vi.fn();
 const mockTurnCompletedUnsub = vi.fn();
@@ -48,7 +48,7 @@ vi.mock('@/common', () => ({
         },
       },
       turnCompleted: {
-        on: (handler: (event: { sessionId: string; status: string }) => void) => {
+        on: (handler: (event: { session_id: string; status: string }) => void) => {
           turnCompletedHandler = handler;
           return mockTurnCompletedUnsub;
         },
@@ -87,7 +87,7 @@ describe('useAutoPreviewOfficeFiles', () => {
 
   it('captures an initial Office-file baseline on mount and unsubscribes on unmount', async () => {
     const { unmount } = renderHook(() =>
-      useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' })
+      useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace' })
     );
 
     await flushEffects();
@@ -101,7 +101,7 @@ describe('useAutoPreviewOfficeFiles', () => {
   });
 
   it('does nothing when workspace is missing', () => {
-    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: undefined }));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: undefined }));
 
     expect(mockScanInvoke).not.toHaveBeenCalled();
   });
@@ -109,7 +109,7 @@ describe('useAutoPreviewOfficeFiles', () => {
   it('opens preview when a tool message causes a scan with a new Office file', async () => {
     mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/slides.pptx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' }));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace' }));
 
     await flushEffects();
 
@@ -144,7 +144,7 @@ describe('useAutoPreviewOfficeFiles', () => {
   it('ignores non-matching conversations and non-trigger messages', async () => {
     mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValue(['/workspace-A/slides.pptx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace-A' }));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace-A' }));
 
     await flushEffects();
 
@@ -164,7 +164,7 @@ describe('useAutoPreviewOfficeFiles', () => {
     mockFindPreviewTab.mockReturnValue({ id: 'existing-tab' });
     mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/report.docx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' }));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace' }));
 
     await flushEffects();
 
@@ -187,7 +187,7 @@ describe('useAutoPreviewOfficeFiles', () => {
 
   it('rescans the new workspace when the workspace changes', async () => {
     const { rerender } = renderHook(
-      ({ ws }: { ws: string }) => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: ws }),
+      ({ ws }: { ws: string }) => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: ws }),
       {
         initialProps: { ws: '/workspace-A' },
       }
@@ -208,14 +208,14 @@ describe('useAutoPreviewOfficeFiles', () => {
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'word' });
     mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/ws/report.docx']);
 
-    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/ws' }));
+    renderHook(() => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/ws' }));
 
     await flushEffects();
 
     expect(mockScanInvoke).toHaveBeenCalledTimes(1);
 
     await act(async () => {
-      turnCompletedHandler?.({ sessionId: 'conv-1', status: 'finished' });
+      turnCompletedHandler?.({ session_id: 'conv-1', status: 'finished' });
       await vi.advanceTimersByTimeAsync(1500);
     });
 
@@ -236,7 +236,7 @@ describe('useAutoPreviewOfficeFiles', () => {
     mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/slides.pptx']);
 
     const { unmount } = renderHook(() =>
-      useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' })
+      useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace' })
     );
 
     await flushEffects();

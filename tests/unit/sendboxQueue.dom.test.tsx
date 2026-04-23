@@ -20,7 +20,7 @@ const mockRemoveDomSnippet = vi.fn();
 const mockClearDomSnippets = vi.fn();
 
 let layoutState = { isMobile: false };
-let conversationState: { conversationId?: string } = { conversationId: 'conversation-1' };
+let conversationState: { conversationId?: string } = { conversation_id: 'conversation-1' };
 let previewState: {
   domSnippets: Array<{ id: string; tag: string; html: string }>;
   setSendBoxHandler: typeof mockSetSendBoxHandler;
@@ -307,7 +307,7 @@ describe('SendBox queue and interaction behaviors', () => {
     vi.useRealTimers();
 
     layoutState = { isMobile: false };
-    conversationState = { conversationId: 'conversation-1' };
+    conversationState = { conversation_id: 'conversation-1' };
     previewState = {
       domSnippets: [],
       setSendBoxHandler: mockSetSendBoxHandler,

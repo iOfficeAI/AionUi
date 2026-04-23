@@ -73,7 +73,7 @@ import type { AvailableAgent } from '../../src/renderer/pages/guid/types';
 // ---------------------------------------------------------------------------
 
 const getAgentKey = (agent: { backend: string; customAgentId?: string }) =>
-  agent.customAgentId ? `${agent.backend}:${agent.customAgentId}` : agent.backend;
+  agent.custom_agent_id ? `${agent.backend}:${agent.custom_agent_id}` : agent.backend;
 
 const makeAgent = (overrides: Partial<AvailableAgent> & { backend: AvailableAgent['backend'] }): AvailableAgent => ({
   name: overrides.backend,
@@ -150,9 +150,9 @@ describe('AgentPillBar', () => {
     const agents: AvailableAgent[] = [
       makeAgent({ backend: 'claude', name: 'Claude' }),
       // preset assistant → filtered out
-      makeAgent({ backend: 'claude', name: 'Hidden Preset', customAgentId: 'preset-1', isPreset: true }),
+      makeAgent({ backend: 'claude', name: 'Hidden Preset', custom_agent_id: 'preset-1', is_preset: true }),
       // non-preset custom agent → shown
-      makeAgent({ backend: 'custom', name: 'Visible Custom', customAgentId: 'my-agent', isPreset: false }),
+      makeAgent({ backend: 'custom', name: 'Visible Custom', custom_agent_id: 'my-agent', is_preset: false }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     expect(screen.getByText('Claude')).toBeTruthy();

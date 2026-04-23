@@ -13,7 +13,7 @@ describe('applyDefaultConversationName', () => {
       {
         type: 'acp' as const,
         name: 'Claude Code',
-        extra: { workspace: '/tmp/workspace', customWorkspace: true },
+        extra: { workspace: '/tmp/workspace', custom_workspace: true },
       },
       '新会话'
     );
@@ -25,7 +25,7 @@ describe('applyDefaultConversationName', () => {
     const params = applyDefaultConversationName(
       {
         type: 'gemini' as const,
-        extra: { workspace: '/tmp/workspace', customWorkspace: true },
+        extra: { workspace: '/tmp/workspace', custom_workspace: true },
       },
       'New Chat'
     );

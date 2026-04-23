@@ -163,7 +163,7 @@ const FALLBACK_DELAY_MS = 15_000;
 function createManager(conversationId = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversationId,
   };
   return new AionrsManager(data as any, data.model as any);
@@ -227,7 +227,7 @@ describe('GAP-9: AionrsManager Turn Completion Service', () => {
           workspace: '/test/workspace',
           backend: 'aionrs',
           pendingConfirmations: 0,
-          modelId: 'test-model',
+          model_id: 'test-model',
         })
       );
     });

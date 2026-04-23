@@ -61,9 +61,9 @@ function makeConversation(overrides: Partial<TChatConversation> = {}): TChatConv
       id: 'provider-1',
       platform: 'gemini',
       name: 'Gemini',
-      baseUrl: 'https://example.com',
-      apiKey: 'secret',
-      useModel: 'gemini-2.5-flash',
+      base_url: 'https://example.com',
+      api_key: 'secret',
+      use_model: 'gemini-2.5-flash',
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -86,7 +86,7 @@ function makeClaudeConversation(): TChatConversation {
   return makeConversation({
     type: 'acp',
     extra: {
-      acpSessionId: 'parent-session-1',
+      acp_session_id: 'parent-session-1',
       backend: 'claude',
       workspace: '/tmp/ws',
     },
@@ -95,7 +95,7 @@ function makeClaudeConversation(): TChatConversation {
 
 function createTextChunkNotification(text: string): SessionNotification {
   return {
-    sessionId: 'fork-1',
+    session_id: 'fork-1',
     update: {
       sessionUpdate: 'agent_message_chunk',
       content: { type: 'text', text },
@@ -105,24 +105,24 @@ function createTextChunkNotification(text: string): SessionNotification {
 
 function createToolCallNotification(): SessionNotification {
   return {
-    sessionId: 'fork-1',
+    session_id: 'fork-1',
     update: {
       sessionUpdate: 'tool_call',
       kind: 'execute',
       status: 'pending',
       title: 'Bash',
-      toolCallId: 'tool-1',
+      tool_call_id: 'tool-1',
     },
   } as SessionNotification;
 }
 
 function createPermissionRequest(): RequestPermissionRequest {
   return {
-    sessionId: 'fork-1',
-    options: [{ kind: 'reject_once', name: 'Reject', optionId: 'reject_once' }],
+    session_id: 'fork-1',
+    options: [{ kind: 'reject_once', name: 'Reject', option_id: 'reject_once' }],
     toolCall: {
       title: 'Bash',
-      toolCallId: 'tool-1',
+      tool_call_id: 'tool-1',
     },
   } as RequestPermissionRequest;
 }
@@ -132,7 +132,7 @@ describe('ConversationSideQuestionService', () => {
     vi.clearAllMocks();
     handlersRef.current = null;
     mockStart.mockResolvedValue({});
-    mockForkSession.mockResolvedValue({ sessionId: 'fork-1' });
+    mockForkSession.mockResolvedValue({ session_id: 'fork-1' });
     mockPrompt.mockImplementation(async () => {
       handlersRef.current!.onSessionUpdate(createTextChunkNotification('The file was `config/aion.json`.'));
       // prompt resolves = turn finished
@@ -143,7 +143,7 @@ describe('ConversationSideQuestionService', () => {
     mockOnDisconnect.mockImplementation(() => {});
     mockProcessConfigGet.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
-        return { claude: { cliPath: 'claude' } };
+        return { claude: { cli_path: 'claude' } };
       }
       return undefined;
     });
@@ -178,7 +178,7 @@ describe('ConversationSideQuestionService', () => {
     const conversation = makeConversation({
       type: 'acp',
       extra: {
-        acpSessionId: 'parent-session-1',
+        acp_session_id: 'parent-session-1',
         backend: 'opencode',
         workspace: '/tmp/ws',
       },
@@ -201,9 +201,9 @@ describe('ConversationSideQuestionService', () => {
 
     expect(mockStart).toHaveBeenCalled();
     expect(mockForkSession).toHaveBeenCalledWith({
-      sessionId: 'parent-session-1',
+      session_id: 'parent-session-1',
       cwd: '/tmp/ws',
-      mcpServers: [],
+      mcp_servers: [],
     });
   });
 
@@ -249,7 +249,7 @@ describe('ConversationSideQuestionService', () => {
     mockPrompt.mockImplementationOnce(async () => {
       const result: RequestPermissionResponse =
         await handlersRef.current!.onRequestPermission(createPermissionRequest());
-      expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'reject_once' });
+      expect(result.outcome).toEqual({ outcome: 'selected', option_id: 'reject_once' });
       return {};
     });
 

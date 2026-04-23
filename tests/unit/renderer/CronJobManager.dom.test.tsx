@@ -105,11 +105,11 @@ const makeMockJob = (overrides?: Partial<ICronJob>): ICronJob => ({
     executionMode: 'existing',
   },
   metadata: {
-    conversationId: 'conv-1',
-    agentType: 'claude',
+    conversation_id: 'conv-1',
+    agent_type: 'claude',
     createdBy: 'user',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    created_at: Date.now(),
+    updated_at: Date.now(),
   },
   state: {
     runCount: 0,

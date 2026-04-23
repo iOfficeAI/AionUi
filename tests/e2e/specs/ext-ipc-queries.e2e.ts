@@ -45,7 +45,7 @@ test.describe('Extension IPC: ACP Adapters', () => {
 test.describe('Extension IPC: MCP Servers', () => {
   test('returns servers from multiple extensions', async ({ page }) => {
     const snapshot = await getExtensionSnapshot(page);
-    const names = snapshot.mcpServers.map((s) => s.name);
+    const names = snapshot.mcp_servers.map((s) => s.name);
 
     expect(names).toContain('e2e-echo-server');
     expect(names).toContain('hello-echo-mcp');
@@ -53,7 +53,7 @@ test.describe('Extension IPC: MCP Servers', () => {
 
   test('each server has a name', async ({ page }) => {
     const snapshot = await getExtensionSnapshot(page);
-    for (const server of snapshot.mcpServers) {
+    for (const server of snapshot.mcp_servers) {
       expect(server.name).toBeTruthy();
     }
   });

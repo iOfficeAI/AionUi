@@ -24,7 +24,7 @@ const LEADER_BACKEND = [...TEAM_SUPPORTED_BACKENDS][0] ?? 'claude';
 
 test.describe('Team Workspace Migration', () => {
   let targetWorkspace: string;
-  let teamId: string | undefined;
+  let team_id: string | undefined;
 
   test.beforeAll(async () => {
     targetWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-target-'));
@@ -202,7 +202,7 @@ test.describe('Team Workspace Migration', () => {
     // 5d. Backend: team workspace updated
     const teamState = await invokeBridge<{
       workspace: string;
-      agents: Array<{ slotId: string; conversationId: string; agentName: string }>;
+      agents: Array<{ slot_id: string; conversation_id: string; agent_name: string }>;
     }>(page, 'team.get', { id: teamId });
     expect(teamState.workspace).toBe(targetWorkspace);
 
@@ -210,11 +210,11 @@ test.describe('Team Workspace Migration', () => {
     const allConversations = await invokeBridge<Array<{ id: string; extra: { workspace?: string } }>>(
       page,
       'database.get-user-conversations',
-      { page: 0, pageSize: 10000 }
+      { page: 0, page_size: 10000 }
     );
     for (const agent of teamState.agents) {
-      if (!agent.conversationId) continue;
-      const conv = allConversations.find((c) => c.id === agent.conversationId);
+      if (!agent.conversation_id) continue;
+      const conv = allConversations.find((c) => c.id === agent.conversation_id);
       expect(conv).toBeTruthy();
       expect(conv!.extra.workspace).toBe(targetWorkspace);
     }

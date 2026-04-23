@@ -101,7 +101,7 @@ describe('acpConversationBridge', () => {
   it('returns { initialized: false } when no task exists for the conversation', async () => {
     vi.mocked(taskManager.getTask).mockReturnValue(undefined);
 
-    const result = await handlers['getMode']({ conversationId: 'missing' });
+    const result = await handlers['getMode']({ conversation_id: 'missing' });
 
     expect(result).toEqual({ success: true, data: { mode: 'default', initialized: false } });
   });
@@ -109,7 +109,7 @@ describe('acpConversationBridge', () => {
   it('uses injected taskManager to look up task by conversation id', async () => {
     vi.mocked(taskManager.getTask).mockReturnValue(undefined);
 
-    await handlers['getMode']({ conversationId: 'c1' });
+    await handlers['getMode']({ conversation_id: 'c1' });
 
     expect(taskManager.getTask).toHaveBeenCalledWith('c1');
   });
@@ -136,7 +136,7 @@ describe('acpConversationBridge', () => {
   it('getAvailableAgents returns enriched agent list', async () => {
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([
-      { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
+      { backend: 'claude', name: 'Claude', cli_path: '/usr/bin/claude' },
     ] as any);
 
     const { mcpService } = await import('../../src/process/services/mcpServices/McpService');

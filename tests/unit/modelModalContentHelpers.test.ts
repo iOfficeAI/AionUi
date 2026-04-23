@@ -13,12 +13,12 @@ type IProviderLike = {
 };
 
 const getProviderState = (platform: IProviderLike): { checked: boolean; indeterminate: boolean } => {
-  if (!platform.modelEnabled) {
+  if (!platform.model_enabled) {
     return { checked: true, indeterminate: false };
   }
 
   const models = platform.model ?? [];
-  const enabledCount = models.filter((model) => platform.modelEnabled?.[model] !== false).length;
+  const enabledCount = models.filter((model) => platform.model_enabled?.[model] !== false).length;
   const totalCount = models.length;
 
   if (enabledCount === 0) {
@@ -31,13 +31,13 @@ const getProviderState = (platform: IProviderLike): { checked: boolean; indeterm
 };
 
 const isModelEnabled = (platform: IProviderLike, model: string): boolean => {
-  if (!platform.modelEnabled) return true;
-  return platform.modelEnabled[model] !== false;
+  if (!platform.model_enabled) return true;
+  return platform.model_enabled[model] !== false;
 };
 
 describe('ModelModalContent helpers — undefined model guard (ELECTRON-T9)', () => {
   it('getProviderState handles undefined model array', () => {
-    const platform: IProviderLike = { modelEnabled: { foo: true } };
+    const platform: IProviderLike = { model_enabled: { foo: true } };
     const result = getProviderState(platform);
     expect(result).toEqual({ checked: false, indeterminate: false });
   });
@@ -50,7 +50,7 @@ describe('ModelModalContent helpers — undefined model guard (ELECTRON-T9)', ()
   it('getProviderState returns correct state for normal data', () => {
     const platform: IProviderLike = {
       model: ['a', 'b', 'c'],
-      modelEnabled: { a: true, b: false, c: true },
+      model_enabled: { a: true, b: false, c: true },
     };
     expect(getProviderState(platform)).toEqual({ checked: true, indeterminate: true });
   });
@@ -58,7 +58,7 @@ describe('ModelModalContent helpers — undefined model guard (ELECTRON-T9)', ()
   it('getProviderState returns all-unchecked when every model is disabled', () => {
     const platform: IProviderLike = {
       model: ['a', 'b'],
-      modelEnabled: { a: false, b: false },
+      model_enabled: { a: false, b: false },
     };
     expect(getProviderState(platform)).toEqual({ checked: false, indeterminate: false });
   });
@@ -68,11 +68,11 @@ describe('ModelModalContent helpers — undefined model guard (ELECTRON-T9)', ()
   });
 
   it('isModelEnabled returns false for explicitly disabled model', () => {
-    expect(isModelEnabled({ modelEnabled: { 'gpt-4o': false } }, 'gpt-4o')).toBe(false);
+    expect(isModelEnabled({ model_enabled: { 'gpt-4o': false } }, 'gpt-4o')).toBe(false);
   });
 
   it('isModelEnabled returns true for enabled model', () => {
-    expect(isModelEnabled({ modelEnabled: { 'gpt-4o': true } }, 'gpt-4o')).toBe(true);
+    expect(isModelEnabled({ model_enabled: { 'gpt-4o': true } }, 'gpt-4o')).toBe(true);
   });
 
   it('model.length guard returns 0 for undefined model', () => {

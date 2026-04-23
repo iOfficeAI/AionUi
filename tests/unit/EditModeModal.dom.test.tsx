@@ -156,10 +156,10 @@ describe('EditModeModal', () => {
     id: 'test-id',
     platform: 'custom',
     name: 'Test Provider',
-    baseUrl: 'https://api.example.com/v1',
-    apiKey: 'test-key',
+    base_url: 'https://api.example.com/v1',
+    api_key: 'test-key',
     model: ['gpt-4'],
-    useModel: 'gpt-4',
+    use_model: 'gpt-4',
   };
 
   beforeEach(() => {
@@ -171,7 +171,7 @@ describe('EditModeModal', () => {
   it('does not produce unhandled rejection when form validation fails', async () => {
     // Simulate Arco Form validation failure
     mockValidate.mockRejectedValueOnce({
-      errors: { apiKey: { message: 'API Key is required', type: 'string' } },
+      errors: { api_key: { message: 'API Key is required', type: 'string' } },
     });
 
     const onChange = vi.fn();
@@ -193,8 +193,8 @@ describe('EditModeModal', () => {
   it('calls onChange and closes modal when form validation succeeds', async () => {
     mockValidate.mockResolvedValueOnce({
       name: 'Test Provider',
-      baseUrl: 'https://api.example.com/v1',
-      apiKey: 'new-key',
+      base_url: 'https://api.example.com/v1',
+      api_key: 'new-key',
       model: 'gpt-4',
     });
 
@@ -210,7 +210,7 @@ describe('EditModeModal', () => {
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({
         id: 'test-id',
-        apiKey: 'new-key',
+        api_key: 'new-key',
         model: ['gpt-4'],
       })
     );

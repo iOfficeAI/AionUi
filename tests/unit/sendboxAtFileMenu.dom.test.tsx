@@ -237,7 +237,7 @@ const SendBoxHarness: React.FC<{
   const [selectedWorkspaceItems, setSelectedWorkspaceItems] = useState<SelectionItem[]>(initialSelectedWorkspaceItems);
 
   return (
-    <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+    <ConversationProvider value={{ conversation_id: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
       <div>
         <div data-testid='selected-workspace-count'>{selectedWorkspaceItems.length}</div>
         <SendBox

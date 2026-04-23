@@ -35,7 +35,7 @@ describe('MessageToolGroupSummary', () => {
         type: 'tool_group' as const,
         content: [
           {
-            callId: 'call-1',
+            call_id: 'call-1',
             name: 'Read',
             description: 'Reading file.ts',
             renderOutputAsMarkdown: false,
@@ -73,7 +73,7 @@ describe('MessageToolGroupSummary', () => {
         content: {
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId: 'tc-1',
+            tool_call_id: 'tc-1',
             status: 'completed' as const,
             title: 'Read',
             kind: 'read' as const,
@@ -97,7 +97,7 @@ describe('MessageToolGroupSummary', () => {
         content: {
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId: 'tc-2',
+            tool_call_id: 'tc-2',
             status: 'completed' as const,
             title: 'Read',
             kind: 'read' as const,

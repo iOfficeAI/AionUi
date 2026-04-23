@@ -47,8 +47,8 @@ describe('workerTaskManagerSingleton', () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-extra-model',
       type: 'acp',
-      model: { useModel: 'gemini-2.0-flash' },
-      extra: { backend: 'gemini', currentModelId: 'gemini-2.5-pro' },
+      model: { use_model: 'gemini-2.0-flash' },
+      extra: { backend: 'gemini', current_model_id: 'gemini-2.5-pro' },
     });
 
     await workerTaskManager.getOrBuildTask('conv-extra-model');
@@ -56,16 +56,16 @@ describe('workerTaskManagerSingleton', () => {
     expect(mockAcpManager).toHaveBeenCalledWith(
       expect.objectContaining({
         conversation_id: 'conv-extra-model',
-        currentModelId: 'gemini-2.5-pro',
+        current_model_id: 'gemini-2.5-pro',
       })
     );
   });
 
-  it('falls back to conversation.model.useModel when no persisted currentModelId exists', async () => {
+  it('falls back to conversation.model.use_model when no persisted currentModelId exists', async () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-model-fallback',
       type: 'acp',
-      model: { useModel: 'gemini-2.0-flash' },
+      model: { use_model: 'gemini-2.0-flash' },
       extra: { backend: 'gemini' },
     });
 
@@ -74,7 +74,7 @@ describe('workerTaskManagerSingleton', () => {
     expect(mockAcpManager).toHaveBeenCalledWith(
       expect.objectContaining({
         conversation_id: 'conv-model-fallback',
-        currentModelId: 'gemini-2.0-flash',
+        current_model_id: 'gemini-2.0-flash',
       })
     );
   });
@@ -83,7 +83,7 @@ describe('workerTaskManagerSingleton', () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-qwen-default',
       type: 'acp',
-      model: { useModel: 'gemini-2.0-flash' },
+      model: { use_model: 'gemini-2.0-flash' },
       extra: { backend: 'qwen' },
     });
 
@@ -92,7 +92,7 @@ describe('workerTaskManagerSingleton', () => {
     expect(mockAcpManager).toHaveBeenCalledWith(
       expect.objectContaining({
         conversation_id: 'conv-qwen-default',
-        currentModelId: undefined,
+        current_model_id: undefined,
       })
     );
   });

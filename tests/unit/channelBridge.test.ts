@@ -94,8 +94,8 @@ function makePlugin(type = 'telegram'): IChannelPluginConfig {
     name: type,
     enabled: true,
     status: 'running',
-    createdAt: 1000,
-    updatedAt: 1000,
+    created_at: 1000,
+    updated_at: 1000,
   };
 }
 
@@ -240,8 +240,8 @@ describe('channelBridge', () => {
       const session: IChannelSession = {
         id: 's1',
         userId: 'u1',
-        agentType: 'gemini',
-        createdAt: 1000,
+        agent_type: 'gemini',
+        created_at: 1000,
         lastActivity: 2000,
       };
       vi.mocked(repo.getChannelSessions).mockReturnValue([session]);

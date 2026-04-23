@@ -7,7 +7,7 @@ describe('MessageTranslator', () => {
   it('translates agent_message_chunk to TMessage', () => {
     const translator = new MessageTranslator();
     const notification: SessionNotification = {
-      sessionId: 'sess-1',
+      session_id: 'sess-1',
       update: {
         sessionUpdate: 'agent_message_chunk',
         messageId: 'msg-1',
@@ -22,7 +22,7 @@ describe('MessageTranslator', () => {
   it('accumulates chunks for same messageId', () => {
     const translator = new MessageTranslator();
     translator.translate({
-      sessionId: 's1',
+      session_id: 's1',
       update: {
         sessionUpdate: 'agent_message_chunk',
         messageId: 'm1',
@@ -30,7 +30,7 @@ describe('MessageTranslator', () => {
       },
     });
     const msgs = translator.translate({
-      sessionId: 's1',
+      session_id: 's1',
       update: {
         sessionUpdate: 'agent_message_chunk',
         messageId: 'm1',
@@ -43,10 +43,10 @@ describe('MessageTranslator', () => {
   it('translates tool_call to TMessage', () => {
     const translator = new MessageTranslator();
     const messages = translator.translate({
-      sessionId: 's1',
+      session_id: 's1',
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'tc-1',
+        tool_call_id: 'tc-1',
         title: 'read_file',
         rawInput: { path: '/foo' },
       },
@@ -57,7 +57,7 @@ describe('MessageTranslator', () => {
   it('onTurnEnd clears completed entries (INV-S-12)', () => {
     const translator = new MessageTranslator();
     translator.translate({
-      sessionId: 's1',
+      session_id: 's1',
       update: {
         sessionUpdate: 'agent_message_chunk',
         messageId: 'm1',
@@ -72,7 +72,7 @@ describe('MessageTranslator', () => {
   it('reset clears all state', () => {
     const translator = new MessageTranslator();
     translator.translate({
-      sessionId: 's1',
+      session_id: 's1',
       update: {
         sessionUpdate: 'agent_message_chunk',
         messageId: 'm1',
@@ -86,8 +86,8 @@ describe('MessageTranslator', () => {
   it('returns empty array for config-type updates (handled by AcpSession directly)', () => {
     const translator = new MessageTranslator();
     const msgs = translator.translate({
-      sessionId: 's1',
-      update: { sessionUpdate: 'current_mode_update', currentModeId: 'code' },
+      session_id: 's1',
+      update: { sessionUpdate: 'current_mode_update', current_mode_id: 'code' },
     });
     expect(msgs).toEqual([]);
   });

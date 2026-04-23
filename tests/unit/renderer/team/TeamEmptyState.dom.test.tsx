@@ -99,7 +99,7 @@ const useAcpDraft = getSendBoxDraftHook('acp', {
   uploadFile: [],
 });
 
-const DraftProbe: React.FC<{ conversationId: string }> = ({ conversationId }) => {
+const DraftProbe: React.FC<{ conversation_id: string }> = ({ conversationId }) => {
   const geminiDraft = useGeminiDraft(conversationId).data;
   const acpDraft = useAcpDraft(conversationId).data;
 
@@ -112,7 +112,7 @@ const DraftProbe: React.FC<{ conversationId: string }> = ({ conversationId }) =>
 };
 
 const modelSelection: GeminiModelSelection = {
-  currentModel: undefined,
+  current_model: undefined,
   providers: [],
   geminiModeLookup: new Map(),
   formatModelLabel: (provider, modelName) => provider?.platform ?? modelName ?? '',
@@ -128,8 +128,8 @@ const seedGeminiTeamConversation = (id: string, agentName = 'bob', extra: Record
     id,
     type: 'gemini',
     name: `demo-team - ${agentName}`,
-    extra: { workspace: '/tmp/workspace', teamId: 'team-1', ...extra },
-    model: { id: 'p', platform: 'gemini', useModel: 'gemini-pro' } as unknown as TChatConversation['model'],
+    extra: { workspace: '/tmp/workspace', team_id: 'team-1', ...extra },
+    model: { id: 'p', platform: 'gemini', use_model: 'gemini-pro' } as unknown as TChatConversation['model'],
   } as TChatConversation);
 };
 
@@ -171,7 +171,7 @@ describe('team empty state', () => {
       type: 'gemini',
       name: 'solo',
       extra: { workspace: '/tmp/workspace' },
-      model: { id: 'p', platform: 'gemini', useModel: 'gemini-pro' } as unknown as TChatConversation['model'],
+      model: { id: 'p', platform: 'gemini', use_model: 'gemini-pro' } as unknown as TChatConversation['model'],
     } as TChatConversation);
 
     const { container } = render(<TeamChatEmptyState conversationId='conv-solo' />);

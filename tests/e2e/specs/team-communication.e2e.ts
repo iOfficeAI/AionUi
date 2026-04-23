@@ -12,7 +12,7 @@ test.describe('Team Communication', () => {
     const allTeams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
       userId: 'system_default_user',
     });
-    let teamId: string;
+    let team_id: string;
     const existing = allTeams.find((t) => t.name === 'E2E Test Team');
     if (existing) {
       teamId = existing.id;
@@ -24,12 +24,12 @@ test.describe('Team Communication', () => {
         workspaceMode: 'shared',
         agents: [
           {
-            slotId: 'slot-lead',
-            conversationId: '',
+            slot_id: 'slot-lead',
+            conversation_id: '',
             role: 'leader',
-            agentType: 'gemini',
-            agentName: 'Leader',
-            conversationType: 'gemini',
+            agent_type: 'gemini',
+            agent_name: 'Leader',
+            conversation_type: 'gemini',
             status: 'idle',
           },
         ],
@@ -61,7 +61,7 @@ test.describe('Team Communication', () => {
     await page.screenshot({ path: 'tests/e2e/results/team-comm-03-sent.png' });
 
     // Verify team is still functional
-    const teamState = await invokeBridge<{ id: string; agents: Array<{ slotId: string }> }>(page, 'team.get', {
+    const teamState = await invokeBridge<{ id: string; agents: Array<{ slot_id: string }> }>(page, 'team.get', {
       id: teamId,
     });
     expect(teamState).toBeTruthy();

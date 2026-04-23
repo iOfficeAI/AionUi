@@ -53,7 +53,7 @@ function makeAcpAgent(opts: {
     kind: 'acp',
     available: true,
     backend: opts.backend,
-    cliPath: opts.cliPath ?? opts.id,
+    cli_path: opts.cli_path ?? opts.id,
     acpArgs: ['--acp'],
     isExtension: opts.isExtension,
     extensionName: opts.extensionName,
@@ -92,14 +92,14 @@ describe('AgentRegistry.deduplicate', () => {
 
   it('keeps the first agent when two agents share the same backend', async () => {
     mockDetectBuiltinAgents.mockResolvedValue([
-      makeAcpAgent({ id: 'qwen-v1', name: 'Qwen v1', backend: 'qwen', cliPath: '/usr/bin/qwen' }),
+      makeAcpAgent({ id: 'qwen-v1', name: 'Qwen v1', backend: 'qwen', cli_path: '/usr/bin/qwen' }),
     ]);
     mockDetectExtensionAgents.mockResolvedValue([
       makeAcpAgent({
         id: 'qwen-v2',
         name: 'Qwen v2',
         backend: 'qwen',
-        cliPath: '/ext/qwen',
+        cli_path: '/ext/qwen',
         isExtension: true,
         extensionName: 'ext-qwen',
       }),
@@ -148,14 +148,14 @@ describe('AgentRegistry.deduplicate', () => {
 
   it('builtin wins over extension with same backend (merge order priority)', async () => {
     mockDetectBuiltinAgents.mockResolvedValue([
-      makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cli_path: 'claude' }),
     ]);
     mockDetectExtensionAgents.mockResolvedValue([
       makeAcpAgent({
         id: 'claude-ext',
         name: 'Claude Ext',
         backend: 'claude',
-        cliPath: 'bunx @claude/claude',
+        cli_path: 'bunx @claude/claude',
         isExtension: true,
         extensionName: 'ext-claude',
       }),
@@ -184,7 +184,7 @@ describe('AgentRegistry.deduplicate', () => {
 
   it('returns a single agent unchanged (no false dedup)', async () => {
     mockDetectBuiltinAgents.mockResolvedValue([
-      makeAcpAgent({ id: 'codex', name: 'Codex', backend: 'codex', cliPath: 'codex' }),
+      makeAcpAgent({ id: 'codex', name: 'Codex', backend: 'codex', cli_path: 'codex' }),
     ]);
 
     const registry = await createFreshRegistry();
@@ -198,7 +198,7 @@ describe('AgentRegistry.deduplicate', () => {
 
   it('keeps multiple remote agents alongside a single non-remote backend', async () => {
     mockDetectBuiltinAgents.mockResolvedValue([
-      makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cli_path: 'claude' }),
     ]);
     mockGetRemoteAgents.mockReturnValue([
       makeRemoteAgentConfig({ id: 'r1', name: 'Remote 1' }),

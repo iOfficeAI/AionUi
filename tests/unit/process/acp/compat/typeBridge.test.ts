@@ -26,7 +26,7 @@ describe('typeBridge', () => {
       const result = toAgentConfig(oldConfig);
 
       expect(result).toMatchObject({
-        agentBackend: 'claude',
+        agent_backend: 'claude',
         agentSource: 'extension',
         agentId: 'test-agent-1',
         cwd: '/workspace/test',
@@ -37,12 +37,12 @@ describe('typeBridge', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'custom-agent',
         backend: 'custom',
-        cliPath: '/custom/path/agent',
+        cli_path: '/custom/path/agent',
         workingDir: '/workspace/custom',
         onStreamEvent: () => {},
         extra: {
           backend: 'custom',
-          cliPath: '/custom/path/agent',
+          cli_path: '/custom/path/agent',
         },
       };
 
@@ -96,7 +96,7 @@ describe('typeBridge', () => {
         onStreamEvent: () => {},
         extra: {
           backend: 'claude',
-          acpSessionId: 'session-123',
+          acp_session_id: 'session-123',
         },
       };
 
@@ -142,14 +142,14 @@ describe('typeBridge', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'test-agent',
         backend: 'claude',
-        cliPath: '/root/path',
+        cli_path: '/root/path',
         workingDir: '/workspace',
         customArgs: ['--root'],
         customEnv: { ROOT: 'true' },
         onStreamEvent: () => {},
         extra: {
           backend: 'claude',
-          cliPath: '/extra/path',
+          cli_path: '/extra/path',
           customArgs: ['--extra'],
           customEnv: { EXTRA: 'true' },
         },
@@ -179,18 +179,18 @@ describe('typeBridge', () => {
   describe('toAcpModelInfo', () => {
     it('should convert ModelSnapshot with current model', () => {
       const snapshot: ModelSnapshot = {
-        currentModelId: 'gpt-4',
-        availableModels: [
-          { modelId: 'gpt-4', name: 'GPT-4' },
-          { modelId: 'gpt-3.5', name: 'GPT-3.5' },
+        current_model_id: 'gpt-4',
+        available_models: [
+          { model_id: 'gpt-4', name: 'GPT-4' },
+          { model_id: 'gpt-3.5', name: 'GPT-3.5' },
         ],
       };
 
       const result = toAcpModelInfo(snapshot);
 
-      expect(result.currentModelId).toBe('gpt-4');
-      expect(result.currentModelLabel).toBe('GPT-4');
-      expect(result.availableModels).toEqual([
+      expect(result.current_model_id).toBe('gpt-4');
+      expect(result.current_modelLabel).toBe('GPT-4');
+      expect(result.available_models).toEqual([
         { id: 'gpt-4', label: 'GPT-4' },
         { id: 'gpt-3.5', label: 'GPT-3.5' },
       ]);
@@ -200,25 +200,25 @@ describe('typeBridge', () => {
 
     it('should handle null current model', () => {
       const snapshot: ModelSnapshot = {
-        currentModelId: null,
-        availableModels: [{ modelId: 'gpt-4', name: 'GPT-4' }],
+        current_model_id: null,
+        available_models: [{ model_id: 'gpt-4', name: 'GPT-4' }],
       };
 
       const result = toAcpModelInfo(snapshot);
 
-      expect(result.currentModelId).toBeNull();
-      expect(result.currentModelLabel).toBeNull();
+      expect(result.current_model_id).toBeNull();
+      expect(result.current_modelLabel).toBeNull();
     });
 
     it('should handle empty available models', () => {
       const snapshot: ModelSnapshot = {
-        currentModelId: 'gpt-4',
-        availableModels: [],
+        current_model_id: 'gpt-4',
+        available_models: [],
       };
 
       const result = toAcpModelInfo(snapshot);
 
-      expect(result.availableModels).toEqual([]);
+      expect(result.available_models).toEqual([]);
       expect(result.canSwitch).toBe(false);
     });
   });
@@ -352,10 +352,10 @@ describe('typeBridge', () => {
         type: 'acp_tool_call',
         position: 'left',
         content: {
-          sessionId: 'session-1',
+          session_id: 'session-1',
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId: 'tool-1',
+            tool_call_id: 'tool-1',
             status: 'pending',
             title: 'Read File',
             kind: 'read',
@@ -377,7 +377,7 @@ describe('typeBridge', () => {
         type: 'plan',
         position: 'left',
         content: {
-          sessionId: 'session-1',
+          session_id: 'session-1',
           entries: [
             { content: 'Step 1', status: 'completed' },
             { content: 'Step 2', status: 'pending' },

@@ -65,9 +65,9 @@ describe('sortAssistants', () => {
   it('sorts preset assistants according to ASSISTANT_PRESETS order', () => {
     // Provide them in reverse order
     const input: AssistantListItem[] = [
-      makeAssistant({ id: 'builtin-gamma', name: 'Gamma', isPreset: true }),
-      makeAssistant({ id: 'builtin-alpha', name: 'Alpha', isPreset: true }),
-      makeAssistant({ id: 'builtin-beta', name: 'Beta', isPreset: true }),
+      makeAssistant({ id: 'builtin-gamma', name: 'Gamma', is_preset: true }),
+      makeAssistant({ id: 'builtin-alpha', name: 'Alpha', is_preset: true }),
+      makeAssistant({ id: 'builtin-beta', name: 'Beta', is_preset: true }),
     ];
 
     const result = sortAssistants(input);
@@ -76,9 +76,9 @@ describe('sortAssistants', () => {
 
   it('places custom assistants at the end (filtered out since isPreset is false)', () => {
     const input: AssistantListItem[] = [
-      makeAssistant({ id: 'custom-1', name: 'Custom One', isPreset: false }),
-      makeAssistant({ id: 'builtin-beta', name: 'Beta', isPreset: true }),
-      makeAssistant({ id: 'builtin-alpha', name: 'Alpha', isPreset: true }),
+      makeAssistant({ id: 'custom-1', name: 'Custom One', is_preset: false }),
+      makeAssistant({ id: 'builtin-beta', name: 'Beta', is_preset: true }),
+      makeAssistant({ id: 'builtin-alpha', name: 'Alpha', is_preset: true }),
     ];
 
     const result = sortAssistants(input);
@@ -88,8 +88,8 @@ describe('sortAssistants', () => {
 
   it('returns an empty array when all assistants are custom (non-preset)', () => {
     const input: AssistantListItem[] = [
-      makeAssistant({ id: 'custom-1', name: 'Custom One', isPreset: false }),
-      makeAssistant({ id: 'custom-2', name: 'Custom Two', isPreset: false }),
+      makeAssistant({ id: 'custom-1', name: 'Custom One', is_preset: false }),
+      makeAssistant({ id: 'custom-2', name: 'Custom Two', is_preset: false }),
     ];
 
     const result = sortAssistants(input);
@@ -118,7 +118,7 @@ describe('normalizeExtensionAssistants', () => {
         context: 'System prompt here',
         contextI18n: { 'en-US': 'System prompt here' },
         models: ['model-a', 'model-b'],
-        enabledSkills: ['skill-1'],
+        enabled_skills: ['skill-1'],
         prompts: ['Hello', 'World'],
         promptsI18n: { 'en-US': ['Hello', 'World'] },
         _extensionName: 'my-ext',
@@ -137,9 +137,9 @@ describe('normalizeExtensionAssistants', () => {
     expect(item.presetAgentType).toBe('gemini');
     expect(item.context).toBe('System prompt here');
     expect(item.models).toEqual(['model-a', 'model-b']);
-    expect(item.enabledSkills).toEqual(['skill-1']);
+    expect(item.enabled_skills).toEqual(['skill-1']);
     expect(item.prompts).toEqual(['Hello', 'World']);
-    expect(item.isPreset).toBe(true);
+    expect(item.is_preset).toBe(true);
     expect(item.isBuiltin).toBe(false);
     expect(item.enabled).toBe(true);
     expect(item._source).toBe('extension');
@@ -159,8 +159,8 @@ describe('normalizeExtensionAssistants', () => {
     expect(item.description).toBeUndefined();
     expect(item.avatar).toBeUndefined();
     expect(item.models).toBeUndefined();
-    expect(item.enabledSkills).toBeUndefined();
-    expect(item.isPreset).toBe(true);
+    expect(item.enabled_skills).toBeUndefined();
+    expect(item.is_preset).toBe(true);
     expect(item._source).toBe('extension');
   });
 
@@ -206,7 +206,7 @@ describe('isExtensionAssistant', () => {
   });
 
   it('returns false for a regular assistant without extension markers', () => {
-    const assistant = makeAssistant({ id: 'builtin-alpha', name: 'Alpha', isPreset: true });
+    const assistant = makeAssistant({ id: 'builtin-alpha', name: 'Alpha', is_preset: true });
     expect(isExtensionAssistant(assistant)).toBe(false);
   });
 

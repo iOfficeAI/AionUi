@@ -39,7 +39,7 @@ vi.mock('@/renderer/styles/colors', () => ({
 }));
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
-  useConversationContextSafe: () => ({ conversationId: 'conv-1' }),
+  useConversationContextSafe: () => ({ conversation_id: 'conv-1' }),
 }));
 
 vi.mock('@/renderer/services/FileService', () => ({
@@ -92,7 +92,7 @@ describe('useDragUpload — upload error path', () => {
 
     const { useDragUpload } = await import('@renderer/hooks/file/useDragUpload');
     const { result } = renderHook(() =>
-      useDragUpload({ supportedExts: ['.txt'], onFilesAdded: vi.fn(), conversationId: 'conv-1' })
+      useDragUpload({ supportedExts: ['.txt'], onFilesAdded: vi.fn(), conversation_id: 'conv-1' })
     );
 
     const file = new File(['data'], 'test.txt', { type: 'text/plain' });

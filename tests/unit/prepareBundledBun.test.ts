@@ -74,7 +74,7 @@ describe('prepareBundledBun', () => {
         url: 'https://example.com/bun.zip',
         asset: 'bun-test.zip',
       },
-      updatedAt: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     };
     fs.writeFileSync(path.join(cacheRuntimeDir, 'runtime-meta.json'), JSON.stringify(cacheMeta, null, 2), 'utf8');
 

@@ -7,13 +7,13 @@ import type { MailboxMessage } from '@process/team/types';
 function makeMessage(overrides: Partial<MailboxMessage> = {}): MailboxMessage {
   return {
     id: 'msg-1',
-    teamId: 'team-1',
+    team_id: 'team-1',
     toAgentId: 'slot-2',
     fromAgentId: 'slot-1',
     type: 'message',
     content: 'Hello teammate',
     read: false,
-    createdAt: 1000,
+    created_at: 1000,
     ...overrides,
   };
 }
@@ -59,7 +59,7 @@ describe('Mailbox', () => {
       vi.mocked(repo.writeMessage).mockResolvedValue(persisted);
 
       const result = await mailbox.write({
-        teamId: 'team-1',
+        team_id: 'team-1',
         toAgentId: 'slot-2',
         fromAgentId: 'slot-1',
         content: 'Hello teammate',
@@ -69,7 +69,7 @@ describe('Mailbox', () => {
       const arg = vi.mocked(repo.writeMessage).mock.calls[0][0];
       expect(arg.type).toBe('message');
       expect(arg.read).toBe(false);
-      expect(arg.teamId).toBe('team-1');
+      expect(arg.team_id).toBe('team-1');
       expect(arg.toAgentId).toBe('slot-2');
       expect(arg.fromAgentId).toBe('slot-1');
       expect(arg.content).toBe('Hello teammate');
@@ -83,7 +83,7 @@ describe('Mailbox', () => {
       vi.mocked(repo.writeMessage).mockResolvedValue(persisted);
 
       await mailbox.write({
-        teamId: 'team-1',
+        team_id: 'team-1',
         toAgentId: 'slot-2',
         fromAgentId: 'slot-1',
         content: 'Done',
@@ -99,7 +99,7 @@ describe('Mailbox', () => {
       vi.mocked(repo.writeMessage).mockResolvedValue(persisted);
 
       await mailbox.write({
-        teamId: 'team-1',
+        team_id: 'team-1',
         toAgentId: 'slot-2',
         fromAgentId: 'slot-1',
         content: 'Work done',
@@ -115,7 +115,7 @@ describe('Mailbox', () => {
       vi.mocked(repo.writeMessage).mockResolvedValue(persisted);
 
       await mailbox.write({
-        teamId: 'team-1',
+        team_id: 'team-1',
         toAgentId: 'slot-2',
         fromAgentId: 'slot-1',
         content: 'With files',
@@ -130,7 +130,7 @@ describe('Mailbox', () => {
       vi.mocked(repo.writeMessage).mockResolvedValue(makeMessage());
 
       await mailbox.write({
-        teamId: 'team-1',
+        team_id: 'team-1',
         toAgentId: 'slot-2',
         fromAgentId: 'slot-1',
         content: 'No files',
@@ -147,8 +147,8 @@ describe('Mailbox', () => {
         return msg;
       });
 
-      await mailbox.write({ teamId: 'team-1', toAgentId: 'a', fromAgentId: 'b', content: 'msg1' });
-      await mailbox.write({ teamId: 'team-1', toAgentId: 'a', fromAgentId: 'b', content: 'msg2' });
+      await mailbox.write({ team_id: 'team-1', toAgentId: 'a', fromAgentId: 'b', content: 'msg1' });
+      await mailbox.write({ team_id: 'team-1', toAgentId: 'a', fromAgentId: 'b', content: 'msg2' });
 
       expect(ids[0]).not.toBe(ids[1]);
     });

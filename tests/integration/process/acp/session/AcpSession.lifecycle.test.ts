@@ -25,15 +25,15 @@ function createMockClient() {
       capabilities: {},
     }),
     createSession: vi.fn().mockResolvedValue({
-      sessionId: 'sess-123',
-      currentModelId: 'claude-3',
-      availableModels: [],
-      currentModeId: 'code',
-      availableModes: [],
-      configOptions: [],
+      session_id: 'sess-123',
+      current_model_id: 'claude-3',
+      available_models: [],
+      current_mode_id: 'code',
+      available_modes: [],
+      config_options: [],
     }),
     loadSession: vi.fn().mockResolvedValue({
-      sessionId: 'sess-123',
+      session_id: 'sess-123',
     }),
     prompt: vi.fn().mockResolvedValue({ stopReason: 'end_turn' }),
     cancel: vi.fn().mockResolvedValue(undefined),
@@ -57,7 +57,7 @@ function createMockClientFactory(client: AcpClient): ClientFactory {
 }
 
 const baseConfig: AgentConfig = {
-  agentBackend: 'test',
+  agent_backend: 'test',
   agentSource: 'builtin',
   agentId: 'builtin:test',
   cwd: '/tmp',
@@ -108,7 +108,7 @@ describe('AcpSession lifecycle', () => {
     await vi.waitFor(() => expect(session.status).toBe('active'));
 
     expect(callbacks.onSessionId).toHaveBeenCalledWith('sess-123');
-    expect(session.sessionId).toBe('sess-123');
+    expect(session.session_id).toBe('sess-123');
   });
 
   it('stop() transitions any state → idle (T7, T15, T17, T22)', async () => {

@@ -102,7 +102,7 @@ describe('SystemActions weixin platform handling', () => {
   it('getChannelDefaultModel reads assistant.weixin.defaultModel for weixin platform', async () => {
     mockGet.mockImplementation((key: string) => {
       if (key === 'assistant.weixin.defaultModel') {
-        return Promise.resolve({ id: 'p1', useModel: 'gemini-2.0-flash' });
+        return Promise.resolve({ id: 'p1', use_model: 'gemini-2.0-flash' });
       }
       return Promise.resolve(undefined);
     });
@@ -129,7 +129,7 @@ describe('SystemActions weixin platform handling', () => {
   it('getChannelDefaultModel reads assistant.wecom.defaultModel for wecom platform', async () => {
     mockGet.mockImplementation((key: string) => {
       if (key === 'assistant.wecom.defaultModel') {
-        return Promise.resolve({ id: 'p1', useModel: 'gemini-2.0-flash' });
+        return Promise.resolve({ id: 'p1', use_model: 'gemini-2.0-flash' });
       }
       return Promise.resolve(undefined);
     });
@@ -144,7 +144,7 @@ describe('SystemActions weixin platform handling', () => {
     mockGet.mockImplementation((key: string) => {
       if (key === 'model.config') return Promise.resolve([]);
       if (key === 'assistant.weixin.defaultModel') {
-        return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, useModel: 'gemini-2.5-pro' });
+        return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, use_model: 'gemini-2.5-pro' });
       }
       return Promise.resolve(undefined);
     });
@@ -155,7 +155,7 @@ describe('SystemActions weixin platform handling', () => {
 
     expect(result.id).toBe(GOOGLE_AUTH_PROVIDER_ID);
     expect(result.platform).toBe('gemini-with-google-auth');
-    expect(result.useModel).toBe('gemini-2.5-pro');
+    expect(result.use_model).toBe('gemini-2.5-pro');
     expect(fs.promises.readFile).toHaveBeenCalledWith(
       path.join('/tmp/test-home', '.gemini', 'oauth_creds.json'),
       'utf-8'
@@ -169,13 +169,13 @@ describe('SystemActions weixin platform handling', () => {
           {
             id: 'gemini-api',
             platform: 'gemini',
-            apiKey: 'sk-test',
+            api_key: 'sk-test',
             model: ['gemini-2.0-flash', 'gemini-2.5-pro'],
           },
         ]);
       }
       if (key === 'assistant.weixin.defaultModel') {
-        return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, useModel: 'gemini-2.5-pro' });
+        return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, use_model: 'gemini-2.5-pro' });
       }
       return Promise.resolve(undefined);
     });
@@ -186,7 +186,7 @@ describe('SystemActions weixin platform handling', () => {
 
     expect(result.id).toBe('gemini-api');
     expect(result.platform).toBe('gemini');
-    expect(result.useModel).toBe('gemini-2.5-pro');
+    expect(result.use_model).toBe('gemini-2.5-pro');
   });
 
   it('falls back to Google Auth credentials when no API-key provider exists', async () => {
@@ -201,7 +201,7 @@ describe('SystemActions weixin platform handling', () => {
 
     expect(result.id).toBe(GOOGLE_AUTH_PROVIDER_ID);
     expect(result.platform).toBe('gemini-with-google-auth');
-    expect(result.useModel).toBe('gemini-2.0-flash');
+    expect(result.use_model).toBe('gemini-2.0-flash');
   });
 
   it('enables weixin-file-send only for weixin channel conversations', () => {
@@ -209,23 +209,23 @@ describe('SystemActions weixin platform handling', () => {
     expect(getChannelEnabledSkills('telegram')).toBeUndefined();
   });
 
-  it('builds channel conversation extra with enabledSkills for weixin across backends', () => {
+  it('builds channel conversation extra with enabled_skills for weixin across backends', () => {
     expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'gemini' })).toEqual({
-      enabledSkills: ['weixin-file-send'],
+      enabled_skills: ['weixin-file-send'],
     });
 
     expect(
       buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'claude',
-        customAgentId: 'agent-1',
-        agentName: 'Claude',
+        custom_agent_id: 'agent-1',
+        agent_name: 'Claude',
       })
     ).toEqual({
       backend: 'claude',
-      customAgentId: 'agent-1',
-      agentName: 'Claude',
-      enabledSkills: ['weixin-file-send'],
+      custom_agent_id: 'agent-1',
+      agent_name: 'Claude',
+      enabled_skills: ['weixin-file-send'],
     });
   });
 });

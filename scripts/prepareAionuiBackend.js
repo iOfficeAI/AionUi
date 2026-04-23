@@ -69,10 +69,10 @@ function resolveLatestTag() {
 
   // 1. Try gh CLI (honours GH_TOKEN automatically)
   try {
-    const out = execSync(
-      `gh api repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest --jq .tag_name`,
-      { encoding: 'utf-8', timeout: 15000 },
-    ).trim();
+    const out = execSync(`gh api repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest --jq .tag_name`, {
+      encoding: 'utf-8',
+      timeout: 15000,
+    }).trim();
     if (out) return out;
   } catch {
     // gh CLI not available or no token — fall back to curl
@@ -81,11 +81,7 @@ function resolveLatestTag() {
   // 2. Curl with optional token to avoid rate-limit 403
   try {
     const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
-    const args = [
-      '-fsSL',
-      ...authArgs,
-      `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`,
-    ];
+    const args = ['-fsSL', ...authArgs, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`];
     const out = execFileSync('curl', args, { encoding: 'utf-8', timeout: 15000 });
     const tag = JSON.parse(out).tag_name;
     if (tag) return tag;
@@ -130,11 +126,7 @@ function downloadFile(url, outputPath) {
     return;
   }
   try {
-    execFileSync(
-      'curl',
-      ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, url],
-      { timeout: 120000 },
-    );
+    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, url], { timeout: 120000 });
   } catch {
     execFileSync('wget', ['-q', '-O', outputPath, url], { timeout: 120000 });
   }
@@ -201,8 +193,7 @@ function prepareAionuiBackend() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
   // Support cross-compilation: AIONUI_BACKEND_ARCH > npm_config_target_arch > process.arch
-  const arch =
-    process.env.AIONUI_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
+  const arch = process.env.AIONUI_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
   const runtimeKey = `${platform}-${arch}`;
   const version = getVersion();
 
@@ -274,7 +265,7 @@ function prepareAionuiBackend() {
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
     console.log(
-      `  Bundled aionui-backend prepared: resources/bundled-aionui-backend/${runtimeKey}/${binaryName} [source=${sourceType}]`,
+      `  Bundled aionui-backend prepared: resources/bundled-aionui-backend/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
 
     if (tempDir) removeDirectorySafe(tempDir);
@@ -295,9 +286,7 @@ function prepareAionuiBackend() {
   };
 
   writeJson(path.join(targetDir, 'manifest.json'), manifest);
-  console.warn(
-    `  aionui-backend not found — skipping bundle (backend will not be available in packaged app)`,
-  );
+  console.warn(`  aionui-backend not found — skipping bundle (backend will not be available in packaged app)`);
   return { prepared: false, reason: 'not_found' };
 }
 

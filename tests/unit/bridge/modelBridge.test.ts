@@ -53,7 +53,7 @@ vi.mock('openai', () => ({
   default: class MockOpenAI {
     constructor(config: { apiKey?: string }) {
       // Simulate real OpenAI SDK behavior: throw when apiKey is undefined or whitespace-only
-      const key = config.apiKey;
+      const key = config.api_key;
       if (key === undefined || key.trim() === '') {
         throw new Error(
           'Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.'

@@ -62,8 +62,8 @@ describe('BaseAgentManager.stop() clears confirmations', () => {
     agent.mockPostMessage();
 
     // Add some confirmations
-    agent.testAdd({ id: 'c1', callId: 'k1', options: [] });
-    agent.testAdd({ id: 'c2', callId: 'k2', options: [] });
+    agent.testAdd({ id: 'c1', call_id: 'k1', options: [] });
+    agent.testAdd({ id: 'c2', call_id: 'k2', options: [] });
     expect(agent.getConfirmations()).toHaveLength(2);
 
     await agent.stop();

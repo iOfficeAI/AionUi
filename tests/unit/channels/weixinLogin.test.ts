@@ -64,7 +64,7 @@ describe('startLogin', () => {
     expect(onDone).toHaveBeenCalledWith({
       accountId: 'user_123',
       botToken: 'tok_test',
-      baseUrl: 'https://base.url',
+      base_url: 'https://base.url',
     });
     handle.abort();
   });

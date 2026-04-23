@@ -45,10 +45,10 @@ describe('ConversationToolConfig', () => {
     const toolConfig = new ConversationToolConfig({ proxy: '' });
     const result = (
       toolConfig as unknown as {
-        createDedicatedGeminiConfig: (model: { useModel: string }) => { options: Record<string, unknown> };
+        createDedicatedGeminiConfig: (model: { use_model: string }) => { options: Record<string, unknown> };
       }
     ).createDedicatedGeminiConfig({
-      useModel: 'gemini-2.5-flash',
+      use_model: 'gemini-2.5-flash',
     });
 
     const expectedDir = path.join('/tmp/aionui-data', 'runtime', 'gemini-websearch');

@@ -23,8 +23,8 @@ describe('ClaudeMcpAgent helpers', () => {
           AIONUI_IMG_MODEL: 'gpt-image-1',
         },
       },
-      createdAt: 1,
-      updatedAt: 1,
+      created_at: 1,
+      updated_at: 1,
       originalJson: '{}',
     };
 

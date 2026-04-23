@@ -88,7 +88,7 @@ const onSlashBuiltinCommand = vi.fn();
 const SendBoxHarness: React.FC<{ initialValue?: string }> = ({ initialValue = '/export' }) => {
   const [value, setValue] = useState(initialValue);
   return (
-    <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+    <ConversationProvider value={{ conversation_id: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
       <SendBox value={value} onChange={setValue} onSend={onSend} onSlashBuiltinCommand={onSlashBuiltinCommand} />
     </ConversationProvider>
   );

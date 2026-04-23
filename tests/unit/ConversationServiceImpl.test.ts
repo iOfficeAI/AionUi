@@ -36,11 +36,11 @@ function makeRepo(overrides: Partial<IConversationRepository> = {}): IConversati
     createConversation: vi.fn(),
     updateConversation: vi.fn(),
     deleteConversation: vi.fn(),
-    getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    getMessages: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     insertMessage: vi.fn(),
-    getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    getUserConversations: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     listAllConversations: vi.fn(() => []),
-    searchMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    searchMessages: vi.fn(async () => ({ data: [], total: 0, has_more: false })),
     getConversationsByCronJob: vi.fn(async () => []),
     ...overrides,
   };
@@ -58,11 +58,11 @@ function makeCronJob(overrides?: Partial<CronJob>): CronJob {
     schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
     target: { payload: { kind: 'message', text: 'hello' } },
     metadata: {
-      conversationId: 'conv-1',
-      agentType: 'gemini',
+      conversation_id: 'conv-1',
+      agent_type: 'gemini',
       createdBy: 'user',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
     },
     state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     ...overrides,
@@ -144,7 +144,7 @@ describe('ConversationServiceImpl.createWithMigration', () => {
 
   it('creates conversation in repo', async () => {
     const repo = makeRepo({
-      getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+      getMessages: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     });
     const svc = new ConversationServiceImpl(repo);
     const conv = { id: 'new', name: 'test' } as any;
@@ -157,8 +157,8 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockReturnValueOnce({ data: [msg], total: 1, hasMore: false }) // source first page
-        .mockReturnValue({ data: [], total: 1, hasMore: false }), // integrity check calls
+        .mockReturnValueOnce({ data: [msg], total: 1, has_more: false }) // source first page
+        .mockReturnValue({ data: [], total: 1, has_more: false }), // integrity check calls
     });
     const svc = new ConversationServiceImpl(repo);
     await svc.createWithMigration({ conversation: { id: 'new' } as any, sourceConversationId: 'src' });
@@ -169,19 +169,19 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
     const job1 = makeCronJob({
       id: 'job-1',
-      metadata: { conversationId: 'source-conv', conversationTitle: 'Source' } as any,
+      metadata: { conversation_id: 'source-conv', conversationTitle: 'Source' } as any,
     });
     const job2 = makeCronJob({
       id: 'job-2',
-      metadata: { conversationId: 'source-conv', conversationTitle: 'Source' } as any,
+      metadata: { conversation_id: 'source-conv', conversationTitle: 'Source' } as any,
     });
 
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([job1, job2]);
 
@@ -196,14 +196,14 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     expect(mockCronService.updateJob).toHaveBeenCalledWith('job-1', {
       metadata: {
         ...job1.metadata,
-        conversationId: 'target-conv',
+        conversation_id: 'target-conv',
         conversationTitle: 'Target',
       },
     });
     expect(mockCronService.updateJob).toHaveBeenCalledWith('job-2', {
       metadata: {
         ...job2.metadata,
-        conversationId: 'target-conv',
+        conversation_id: 'target-conv',
         conversationTitle: 'Target',
       },
     });
@@ -212,15 +212,15 @@ describe('ConversationServiceImpl.createWithMigration', () => {
 
   it('deletes cron jobs when migrateCron is false', async () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
-    const job1 = makeCronJob({ id: 'job-1', metadata: { conversationId: 'source-conv' } as any });
-    const job2 = makeCronJob({ id: 'job-2', metadata: { conversationId: 'source-conv' } as any });
+    const job1 = makeCronJob({ id: 'job-1', metadata: { conversation_id: 'source-conv' } as any });
+    const job2 = makeCronJob({ id: 'job-2', metadata: { conversation_id: 'source-conv' } as any });
 
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([job1, job2]);
 
@@ -242,9 +242,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockRejectedValue(new Error('Cron error'));
 
@@ -266,9 +266,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([]);
 
@@ -287,9 +287,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 3, hasMore: false }), // Target integrity check (mismatch)
+        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 3, has_more: false }), // Target integrity check (mismatch)
     });
     mockCronService.listJobsByConversation.mockResolvedValue([]);
 
@@ -322,10 +322,10 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: page1Messages, total: 150, hasMore: true }) // Page 0
-        .mockResolvedValueOnce({ data: page2Messages, total: 150, hasMore: false }) // Page 1
-        .mockResolvedValueOnce({ data: [], total: 150, hasMore: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 150, hasMore: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: page1Messages, total: 150, has_more: true }) // Page 0
+        .mockResolvedValueOnce({ data: page2Messages, total: 150, has_more: false }) // Page 1
+        .mockResolvedValueOnce({ data: [], total: 150, has_more: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 150, has_more: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([]);
 
@@ -445,7 +445,7 @@ describe('ConversationServiceImpl.createConversation', () => {
       createTime: 1000,
       modifyTime: 1000,
       source: 'create' as const,
-      extra: { workspace: '/factory-workspace', enabledSkills: ['skill1'] },
+      extra: { workspace: '/factory-workspace', enabled_skills: ['skill1'] },
     } as any);
 
     const repo = makeRepo();
@@ -464,7 +464,7 @@ describe('ConversationServiceImpl.createConversation', () => {
       expect.objectContaining({
         extra: expect.objectContaining({
           workspace: '/factory-workspace', // Factory value preserved
-          enabledSkills: ['skill1'], // Factory value preserved
+          enabled_skills: ['skill1'], // Factory value preserved
           cronJobId: 'job-123', // Params value added
         }),
       })

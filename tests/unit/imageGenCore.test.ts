@@ -200,7 +200,7 @@ describe('executeImageGeneration — aborted signal', () => {
 
     const result = await executeImageGeneration(
       { prompt: 'generate a cat' },
-      { id: 'test', name: 'test', platform: 'openai', baseUrl: '', apiKey: 'k', useModel: 'model' },
+      { id: 'test', name: 'test', platform: 'openai', base_url: '', api_key: 'k', use_model: 'model' },
       '/workspace',
       undefined,
       controller.signal
@@ -248,7 +248,7 @@ describe('executeImageGeneration — inline base64 cleanup', () => {
 
     const result = await executeImageGeneration(
       { prompt: 'generate a cat' },
-      { id: 'test', name: 'test', platform: 'openai', baseUrl: '', apiKey: 'k', useModel: 'model' },
+      { id: 'test', name: 'test', platform: 'openai', base_url: '', api_key: 'k', use_model: 'model' },
       '/workspace'
     );
 

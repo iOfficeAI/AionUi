@@ -20,9 +20,9 @@ import type { IProvider } from '../../src/common/config/storage';
 
 function makeAcpModelInfo(overrides: Partial<AcpModelInfo> = {}): AcpModelInfo {
   return {
-    currentModelId: null,
+    current_model_id: null,
     currentModelLabel: null,
-    availableModels: [],
+    available_models: [],
     canSwitch: true,
     source: 'models',
     ...overrides,
@@ -33,8 +33,8 @@ function makeProvider(overrides: Partial<IProvider> & { platform: string; model:
   return {
     id: 'test-provider',
     name: 'Test',
-    baseUrl: '',
-    apiKey: '',
+    base_url: '',
+    api_key: '',
     enabled: true,
     ...overrides,
   };
@@ -50,7 +50,7 @@ describe('getTeamAvailableModels', () => {
   it('UT-1: ACP backend with cachedModels returns standardized model list', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       claude: makeAcpModelInfo({
-        availableModels: [
+        available_models: [
           { id: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
           { id: 'claude-haiku-3.5', label: 'Claude Haiku 3.5' },
         ],
@@ -66,7 +66,7 @@ describe('getTeamAvailableModels', () => {
   it('UT-2: ACP backend with empty label falls back to id', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       codex: makeAcpModelInfo({
-        availableModels: [{ id: 'codex-mini', label: '' }],
+        available_models: [{ id: 'codex-mini', label: '' }],
       }),
     };
     const result = getTeamAvailableModels('codex', cachedModels, []);
@@ -75,7 +75,7 @@ describe('getTeamAvailableModels', () => {
 
   it('UT-3: ACP backend with empty availableModels returns empty array', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
-      claude: makeAcpModelInfo({ availableModels: [] }),
+      claude: makeAcpModelInfo({ available_models: [] }),
     };
     const result = getTeamAvailableModels('claude', cachedModels, []);
     expect(result).toEqual([]);
@@ -98,7 +98,7 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         platform: 'gemini',
         model: ['gemini-2.5-pro', 'gemini-2.0-flash'],
-        modelEnabled: { 'gemini-2.5-pro': true, 'gemini-2.0-flash': true },
+        model_enabled: { 'gemini-2.5-pro': true, 'gemini-2.0-flash': true },
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, true);
@@ -154,7 +154,7 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         platform: 'gemini',
         model: ['gemini-2.5-pro', 'gemini-2.0-flash'],
-        modelEnabled: { 'gemini-2.5-pro': true, 'gemini-2.0-flash': false },
+        model_enabled: { 'gemini-2.5-pro': true, 'gemini-2.0-flash': false },
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, false);
@@ -269,7 +269,7 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         platform: 'openai-compatible',
         model: ['gpt-4o', 'gpt-4o-mini'],
-        modelEnabled: { 'gpt-4o': true, 'gpt-4o-mini': false },
+        model_enabled: { 'gpt-4o': true, 'gpt-4o-mini': false },
       }),
     ];
     const result = getTeamAvailableModels('aionrs', {}, providers);
@@ -400,7 +400,7 @@ describe('getTeamAvailableModels', () => {
   it('BC-6: ACP backend uses cachedModels, ignores providers', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       claude: makeAcpModelInfo({
-        availableModels: [{ id: 'claude-sonnet-4', label: 'Claude Sonnet 4' }],
+        available_models: [{ id: 'claude-sonnet-4', label: 'Claude Sonnet 4' }],
       }),
     };
     const providers: IProvider[] = [
@@ -422,7 +422,7 @@ describe('getTeamDefaultModelId', () => {
   it('UT-16: returns preferredModelId when present', () => {
     const acpConfig = { claude: { preferredModelId: 'claude-sonnet-4' } };
     const cachedModels: Record<string, AcpModelInfo> = {
-      claude: makeAcpModelInfo({ currentModelId: 'claude-haiku-3.5' }),
+      claude: makeAcpModelInfo({ current_model_id: 'claude-haiku-3.5' }),
     };
     const result = getTeamDefaultModelId('claude', cachedModels, acpConfig);
     expect(result).toBe('claude-sonnet-4');
@@ -431,7 +431,7 @@ describe('getTeamDefaultModelId', () => {
   it('UT-17: falls back to currentModelId when preferredModelId is absent', () => {
     const acpConfig = { claude: {} };
     const cachedModels: Record<string, AcpModelInfo> = {
-      claude: makeAcpModelInfo({ currentModelId: 'claude-haiku-3.5' }),
+      claude: makeAcpModelInfo({ current_model_id: 'claude-haiku-3.5' }),
     };
     const result = getTeamDefaultModelId('claude', cachedModels, acpConfig);
     expect(result).toBe('claude-haiku-3.5');
@@ -440,7 +440,7 @@ describe('getTeamDefaultModelId', () => {
   it('UT-18: returns undefined when both are absent', () => {
     const acpConfig = { claude: {} };
     const cachedModels: Record<string, AcpModelInfo> = {
-      claude: makeAcpModelInfo({ currentModelId: null }),
+      claude: makeAcpModelInfo({ current_model_id: null }),
     };
     const result = getTeamDefaultModelId('claude', cachedModels, acpConfig);
     expect(result).toBeUndefined();
@@ -454,7 +454,7 @@ describe('getTeamDefaultModelId', () => {
   it('UT-20: returns undefined for a backend not in config', () => {
     const acpConfig = { claude: { preferredModelId: 'claude-sonnet-4' } };
     const cachedModels: Record<string, AcpModelInfo> = {
-      claude: makeAcpModelInfo({ currentModelId: 'claude-haiku-3.5' }),
+      claude: makeAcpModelInfo({ current_model_id: 'claude-haiku-3.5' }),
     };
     const result = getTeamDefaultModelId('unknown-backend', cachedModels, acpConfig);
     expect(result).toBeUndefined();
@@ -469,7 +469,7 @@ describe('resolveTeamModelLabel', () => {
   it('UT-21: returns label from ACP cached models when match found', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       claude: makeAcpModelInfo({
-        availableModels: [
+        available_models: [
           { id: 'claude-sonnet-4', label: 'Claude Sonnet 4' },
           { id: 'claude-opus-4', label: 'Claude Opus 4' },
         ],
@@ -493,7 +493,7 @@ describe('resolveTeamModelLabel', () => {
   it('UT-25: returns raw ID when backend has models but none match', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       claude: makeAcpModelInfo({
-        availableModels: [{ id: 'claude-opus-4', label: 'Claude Opus 4' }],
+        available_models: [{ id: 'claude-opus-4', label: 'Claude Opus 4' }],
       }),
     };
     expect(resolveTeamModelLabel('claude-sonnet-4', 'claude', cachedModels)).toBe('claude-sonnet-4');
@@ -502,7 +502,7 @@ describe('resolveTeamModelLabel', () => {
   it('UT-26: returns raw ID when matched model has empty label', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       claude: makeAcpModelInfo({
-        availableModels: [{ id: 'claude-sonnet-4', label: '' }],
+        available_models: [{ id: 'claude-sonnet-4', label: '' }],
       }),
     };
     expect(resolveTeamModelLabel('claude-sonnet-4', 'claude', cachedModels)).toBe('claude-sonnet-4');
@@ -511,7 +511,7 @@ describe('resolveTeamModelLabel', () => {
   it('UT-27: returns "(default)" when cachedModels is provided but modelId is undefined', () => {
     const cachedModels: Record<string, AcpModelInfo> = {
       claude: makeAcpModelInfo({
-        availableModels: [{ id: 'claude-sonnet-4', label: 'Claude Sonnet 4' }],
+        available_models: [{ id: 'claude-sonnet-4', label: 'Claude Sonnet 4' }],
       }),
     };
     expect(resolveTeamModelLabel(undefined, 'claude', cachedModels)).toBe('(default)');

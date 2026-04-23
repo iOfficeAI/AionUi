@@ -68,8 +68,8 @@ function makeConversation(overrides: Partial<TChatConversation> = {}): TChatConv
     extra: {},
     model: '',
     status: 'finished',
-    createdAt: 0,
-    updatedAt: 0,
+    created_at: 0,
+    updated_at: 0,
     user_id: 'u1',
     ...overrides,
   } as TChatConversation;

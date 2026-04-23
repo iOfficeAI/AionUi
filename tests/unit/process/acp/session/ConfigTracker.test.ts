@@ -6,8 +6,8 @@ import { ConfigTracker } from '@process/acp/session/ConfigTracker';
 describe('ConfigTracker', () => {
   it('starts with null current values', () => {
     const ct = new ConfigTracker();
-    expect(ct.modelSnapshot().currentModelId).toBeNull();
-    expect(ct.modeSnapshot().currentModeId).toBeNull();
+    expect(ct.modelSnapshot().current_model_id).toBeNull();
+    expect(ct.modeSnapshot().current_mode_id).toBeNull();
   });
 
   it('setDesiredModel caches intent', () => {
@@ -21,22 +21,22 @@ describe('ConfigTracker', () => {
     ct.setDesiredModel('gpt-4');
     ct.setCurrentModel('gpt-4');
     expect(ct.getPendingChanges().model).toBeNull();
-    expect(ct.modelSnapshot().currentModelId).toBe('gpt-4');
+    expect(ct.modelSnapshot().current_model_id).toBe('gpt-4');
   });
 
   it('syncFromSessionResult populates available options', () => {
     const ct = new ConfigTracker();
     ct.syncFromSessionResult({
-      currentModelId: 'claude-3',
-      availableModels: [{ modelId: 'claude-3', name: 'Claude 3' }],
-      currentModeId: 'code',
-      availableModes: [{ id: 'code', name: 'Code' }],
-      configOptions: [{ id: 'think', name: 'Think', type: 'boolean' as const, currentValue: true }],
+      current_model_id: 'claude-3',
+      available_models: [{ model_id: 'claude-3', name: 'Claude 3' }],
+      current_mode_id: 'code',
+      available_modes: [{ id: 'code', name: 'Code' }],
+      config_options: [{ id: 'think', name: 'Think', type: 'boolean' as const, currentValue: true }],
       cwd: '/tmp',
     });
-    expect(ct.modelSnapshot().currentModelId).toBe('claude-3');
-    expect(ct.modeSnapshot().currentModeId).toBe('code');
-    expect(ct.configSnapshot().configOptions).toHaveLength(1);
+    expect(ct.modelSnapshot().current_model_id).toBe('claude-3');
+    expect(ct.modeSnapshot().current_mode_id).toBe('code');
+    expect(ct.configSnapshot().config_options).toHaveLength(1);
   });
 
   it('desired overrides current when both set', () => {
@@ -55,7 +55,7 @@ describe('ConfigTracker', () => {
   it('setDesiredConfigOption caches intent', () => {
     const ct = new ConfigTracker();
     ct.setDesiredConfigOption('think', true);
-    expect(ct.getPendingChanges().configOptions).toEqual([{ id: 'think', value: true }]);
+    expect(ct.getPendingChanges().config_options).toEqual([{ id: 'think', value: true }]);
   });
 
   it('clearPending removes all desired values', () => {
@@ -66,6 +66,6 @@ describe('ConfigTracker', () => {
     const pending = ct.getPendingChanges();
     expect(pending.model).toBeNull();
     expect(pending.mode).toBeNull();
-    expect(pending.configOptions).toEqual([]);
+    expect(pending.config_options).toEqual([]);
   });
 });

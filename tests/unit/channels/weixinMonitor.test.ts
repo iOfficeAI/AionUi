@@ -17,7 +17,7 @@ const TEST_DIR = path.join(os.tmpdir(), `aionui-weixin-monitor-${process.pid}`);
 function makeOpts(overrides: Partial<MonitorOptions> = {}): MonitorOptions {
   const controller = new AbortController();
   return {
-    baseUrl: 'https://test.example.com',
+    base_url: 'https://test.example.com',
     token: 'tok_test',
     accountId: 'acc_test',
     dataDir: TEST_DIR,
@@ -88,7 +88,7 @@ describe('WeixinMonitor — text message delivery', () => {
     await new Promise((r) => setTimeout(r, 60));
 
     expect(agentChat).toHaveBeenCalledOnce();
-    expect(agentChat).toHaveBeenCalledWith({ conversationId: 'user_123', text: 'Hi there' });
+    expect(agentChat).toHaveBeenCalledWith({ conversation_id: 'user_123', text: 'Hi there' });
 
     expect(sentBody).toBeDefined();
     const body = sentBody as {
@@ -119,7 +119,7 @@ describe('WeixinMonitor — text message delivery', () => {
 
     expect(agentChat).toHaveBeenCalledOnce();
     expect(agentChat).toHaveBeenCalledWith({
-      conversationId: 'user_voice',
+      conversation_id: 'user_voice',
       text: '先看这个\n\n这是语音转文字',
     });
   });
@@ -209,7 +209,7 @@ describe('WeixinMonitor — text message delivery', () => {
     await new Promise((r) => setTimeout(r, 80));
 
     expect(agentChat).toHaveBeenCalledWith({
-      conversationId: 'user_media_send',
+      conversation_id: 'user_media_send',
       text: 'send it',
       attachments: undefined,
     });
@@ -351,11 +351,11 @@ describe('WeixinMonitor — text message delivery', () => {
 
     expect(agentChat).toHaveBeenCalledOnce();
     const call = agentChat.mock.calls[0]?.[0] as {
-      conversationId: string;
+      conversation_id: string;
       text: string;
       attachments?: Array<{ path: string; kind: string; name: string }>;
     };
-    expect(call.conversationId).toBe('user_media');
+    expect(call.conversation_id).toBe('user_media');
     expect(call.text).toBe('Please inspect');
     expect(call.attachments).toHaveLength(2);
     expect(call.attachments?.map((att) => ({ kind: att.kind, name: att.name }))).toEqual([

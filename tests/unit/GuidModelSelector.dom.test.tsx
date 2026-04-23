@@ -51,9 +51,9 @@ describe('GuidModelSelector', () => {
         setCurrentModel={vi.fn(async () => {})}
         geminiModeLookup={new Map()}
         currentAcpCachedModelInfo={{
-          currentModelId: 'claude-opus-4-6',
+          current_model_id: 'claude-opus-4-6',
           currentModelLabel: 'Claude Opus 4.6',
-          availableModels: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
+          available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
           canSwitch: false,
           source: 'models',
           sourceDetail: 'cc-switch',
@@ -75,9 +75,9 @@ describe('GuidModelSelector', () => {
         setCurrentModel={vi.fn(async () => {})}
         geminiModeLookup={new Map()}
         currentAcpCachedModelInfo={{
-          currentModelId: 'claude-opus-4-6',
+          current_model_id: 'claude-opus-4-6',
           currentModelLabel: 'Claude Opus 4.6',
-          availableModels: [
+          available_models: [
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
           ],

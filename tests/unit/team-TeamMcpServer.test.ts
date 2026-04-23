@@ -70,12 +70,12 @@ import type { TeamAgent } from '@process/team/types';
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: 'slot-1',
-    conversationId: 'conv-1',
+    slot_id: 'slot-1',
+    conversation_id: 'conv-1',
     role: 'leader',
-    agentType: 'acp',
-    agentName: 'Claude',
-    conversationType: 'acp',
+    agent_type: 'acp',
+    agent_name: 'Claude',
+    conversation_type: 'acp',
     status: 'idle',
     ...overrides,
   };
@@ -83,7 +83,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
 
 function makeMailbox(): Mailbox {
   return {
-    write: vi.fn().mockResolvedValue({ id: 'msg-1', type: 'message', read: false, createdAt: 1000 }),
+    write: vi.fn().mockResolvedValue({ id: 'msg-1', type: 'message', read: false, created_at: 1000 }),
     readUnread: vi.fn().mockResolvedValue([]),
     getHistory: vi.fn().mockResolvedValue([]),
   } as unknown as Mailbox;
@@ -154,18 +154,18 @@ describe('TeamMcpServer', () => {
     vi.clearAllMocks();
     mockAssistants.value = null;
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
-      makeAgent({ slotId: 'slot-member', agentName: 'Alice', role: 'teammate' }),
+      makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader' }),
+      makeAgent({ slot_id: 'slot-member', agent_name: 'Alice', role: 'teammate' }),
     ];
     mailbox = makeMailbox();
     taskManager = makeTaskManager();
     wakeAgent = vi.fn().mockResolvedValue(undefined);
-    spawnAgent = vi.fn().mockResolvedValue(makeAgent({ slotId: 'slot-new', agentName: 'NewBot' }));
+    spawnAgent = vi.fn().mockResolvedValue(makeAgent({ slot_id: 'slot-new', agent_name: 'NewBot' }));
     renameAgent = vi.fn();
     removeAgent = vi.fn();
 
     server = new TeamMcpServer({
-      teamId: 'team-1',
+      team_id: 'team-1',
       getAgents: () => agents,
       mailbox,
       taskManager,
@@ -293,15 +293,15 @@ describe('TeamMcpServer', () => {
       vi.mocked(taskManager.list).mockResolvedValue([
         {
           id: 'aaaaaaaa-0000-0000-0000-000000000000',
-          teamId: 'team-1',
+          team_id: 'team-1',
           subject: 'Write code',
           status: 'in_progress',
           owner: 'slot-lead',
-          blockedBy: [],
+          blocked_by: [],
           blocks: [],
           metadata: {},
-          createdAt: 1000,
-          updatedAt: 1000,
+          created_at: 1000,
+          updated_at: 1000,
         },
       ]);
 
@@ -324,14 +324,14 @@ describe('TeamMcpServer', () => {
     it('creates a task and returns confirmation', async () => {
       vi.mocked(taskManager.create).mockResolvedValue({
         id: 'task-new-00000000',
-        teamId: 'team-1',
+        team_id: 'team-1',
         subject: 'New Feature',
         status: 'pending',
-        blockedBy: [],
+        blocked_by: [],
         blocks: [],
         metadata: {},
-        createdAt: 1000,
-        updatedAt: 1000,
+        created_at: 1000,
+        updated_at: 1000,
       });
 
       const response = (await tcpRequest(server.getPort(), {
@@ -509,7 +509,7 @@ describe('TeamMcpServer', () => {
         {
           id: 'builtin-word-creator',
           name: 'Word Creator',
-          isPreset: true,
+          is_preset: true,
           enabled: true,
           presetAgentType: 'claude',
         },
@@ -545,7 +545,7 @@ describe('TeamMcpServer', () => {
         {
           id: 'builtin-cowork',
           name: 'Cowork',
-          isPreset: true,
+          is_preset: true,
           enabled: false,
           presetAgentType: 'claude',
         },
@@ -637,7 +637,7 @@ describe('TeamMcpServer', () => {
 
     it('returns error when renameAgent is not available', async () => {
       const serverWithoutRename = new TeamMcpServer({
-        teamId: 'team-x',
+        team_id: 'team-x',
         getAgents: () => agents,
         mailbox,
         taskManager,

@@ -102,7 +102,7 @@ describe('AbstractMcpAgent', () => {
 
       expect(result.success).toBe(false);
       expect(result.needsAuth).toBe(true);
-      expect(result.authMethod).toBe('oauth');
+      expect(result.auth_method).toBe('oauth');
       expect(result.wwwAuthenticate).toBe('Bearer realm="mcp"');
 
       vi.unstubAllGlobals();

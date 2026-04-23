@@ -68,8 +68,8 @@ describe('geminiConversationBridge', () => {
     const result = await handlers['confirmMessage']({
       conversation_id: 'c1',
       msg_id: 'msg-1',
-      confirmKey: 'allow',
-      callId: 'call-1',
+      confirm_key: 'allow',
+      call_id: 'call-1',
     });
 
     expect(taskManager.getTask).toHaveBeenCalledWith('c1');
@@ -83,8 +83,8 @@ describe('geminiConversationBridge', () => {
     const result = await handlers['confirmMessage']({
       conversation_id: 'missing',
       msg_id: 'msg-1',
-      confirmKey: 'allow',
-      callId: 'call-1',
+      confirm_key: 'allow',
+      call_id: 'call-1',
     });
 
     expect(result).toEqual({ success: false, msg: 'conversation not found' });
@@ -97,8 +97,8 @@ describe('geminiConversationBridge', () => {
     const result = await handlers['confirmMessage']({
       conversation_id: 'c1',
       msg_id: 'msg-1',
-      confirmKey: 'allow',
-      callId: 'call-1',
+      confirm_key: 'allow',
+      call_id: 'call-1',
     });
 
     expect(result).toEqual({ success: false, msg: 'only supported for gemini' });

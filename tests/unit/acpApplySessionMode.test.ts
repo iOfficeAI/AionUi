@@ -114,7 +114,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'acceptEdits',
+        session_mode: 'acceptEdits',
       },
     });
 
@@ -129,7 +129,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'auto',
+        session_mode: 'auto',
       },
     });
 
@@ -144,7 +144,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'dontAsk',
+        session_mode: 'dontAsk',
       },
     });
 
@@ -159,7 +159,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'plan',
+        session_mode: 'plan',
       },
     });
 
@@ -174,7 +174,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'default',
+        session_mode: 'default',
       },
     });
 
@@ -203,7 +203,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'acceptEdits',
+        session_mode: 'acceptEdits',
       },
     });
 
@@ -217,7 +217,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
       extra: {
         backend: 'claude',
         yoloMode: true,
-        sessionMode: 'acceptEdits',
+        session_mode: 'acceptEdits',
       },
     });
 

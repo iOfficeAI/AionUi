@@ -6,7 +6,7 @@ type QueueItem = {
   commandId: string;
   input: string;
   files: string[];
-  createdAt: number;
+  created_at: number;
 };
 
 const queueSpies = {
@@ -57,7 +57,7 @@ const mockArcoSuccess = vi.fn();
 const mockAssertBridgeSuccess = vi.fn();
 const mockSetSendBoxHandler = vi.fn();
 const mockClearFiles = vi.fn();
-const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
+const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspace_path: string) =>
   files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
 );
 
@@ -436,8 +436,8 @@ describe('platform send box queue integration', () => {
         runtime: {
           workspace: 'C:/workspace',
           backend: 'openclaw',
-          agentName: 'OpenClaw',
-          cliPath: 'C:/cli/openclaw',
+          agent_name: 'OpenClaw',
+          cli_path: 'C:/cli/openclaw',
           model: 'model-a',
           identityHash: 'identity-1',
           hasActiveSession: true,
@@ -469,8 +469,8 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          currentModel: { useModel: 'gemini-2.5' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'gemini-2.5' },
+          getDisplayModelName: (model_id: string) => modelId,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -483,8 +483,8 @@ describe('platform send box queue integration', () => {
       <AionrsSendBox
         conversation_id='conv-aionrs'
         modelSelection={{
-          currentModel: { useModel: 'aionrs-1' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'aionrs-1' },
+          getDisplayModelName: (model_id: string) => modelId,
         }}
       />,
     ],
@@ -498,7 +498,7 @@ describe('platform send box queue integration', () => {
           commandId: 'queue-1',
           input: 'queued command',
           files: [],
-          createdAt: Date.now(),
+          created_at: Date.now(),
         },
       ],
       isPaused: false,
@@ -532,8 +532,8 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          currentModel: { useModel: 'gemini-2.5' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'gemini-2.5' },
+          getDisplayModelName: (model_id: string) => modelId,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -551,8 +551,8 @@ describe('platform send box queue integration', () => {
       <AionrsSendBox
         conversation_id='conv-aionrs'
         modelSelection={{
-          currentModel: { useModel: 'aionrs-1' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'aionrs-1' },
+          getDisplayModelName: (model_id: string) => modelId,
         }}
       />,
       mockConversationSendInvoke,
@@ -617,7 +617,7 @@ describe('platform send box queue integration', () => {
 
     await waitFor(() => {
       expect(mockTeamSendInvoke).toHaveBeenCalledWith({
-        teamId: 'team-1',
+        team_id: 'team-1',
         content: 'queued command',
         files: [],
       });
@@ -651,8 +651,8 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          currentModel: { useModel: 'gemini-2.5' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'gemini-2.5' },
+          getDisplayModelName: (model_id: string) => modelId,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -665,8 +665,8 @@ describe('platform send box queue integration', () => {
       <AionrsSendBox
         conversation_id='conv-aionrs'
         modelSelection={{
-          currentModel: { useModel: 'aionrs-1' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'aionrs-1' },
+          getDisplayModelName: (model_id: string) => modelId,
         }}
       />,
     ],
@@ -694,8 +694,8 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          currentModel: { useModel: 'gemini-2.5' },
-          getDisplayModelName: (modelId: string) => modelId,
+          current_model: { use_model: 'gemini-2.5' },
+          getDisplayModelName: (model_id: string) => modelId,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -748,8 +748,8 @@ describe('platform send box queue integration', () => {
         runtime: {
           workspace: 'C:/another-workspace',
           backend: 'openclaw',
-          agentName: 'OpenClaw',
-          cliPath: 'C:/cli/openclaw',
+          agent_name: 'OpenClaw',
+          cli_path: 'C:/cli/openclaw',
           model: 'model-a',
           identityHash: 'identity-1',
           hasActiveSession: true,

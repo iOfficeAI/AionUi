@@ -15,9 +15,9 @@ const MOCK_CACHED_INIT = {
   },
 };
 
-const MOCK_CACHED_MODELS: Record<string, { availableModels: Array<{ id: string }> }> = {
+const MOCK_CACHED_MODELS: Record<string, { available_models: Array<{ id: string }> }> = {
   claude: {
-    availableModels: [{ id: 'claude-sonnet-4-20250514' }, { id: 'claude-opus-4-20250514' }],
+    available_models: [{ id: 'claude-sonnet-4-20250514' }, { id: 'claude-opus-4-20250514' }],
   },
 };
 

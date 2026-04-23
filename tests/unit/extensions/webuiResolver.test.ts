@@ -29,7 +29,7 @@ function createTempExtension(
     directory: root,
     manifest: {
       name,
-      displayName: name,
+      display_name: name,
       version: '1.0.0',
       contributes: { webui },
     } as LoadedExtension['manifest'],

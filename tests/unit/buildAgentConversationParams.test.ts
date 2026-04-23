@@ -12,14 +12,14 @@ describe('buildAgentConversationParams', () => {
     const params = buildAgentConversationParams({
       backend: 'qwen',
       name: 'Conversation Name',
-      agentName: 'Qwen Code',
+      agent_name: 'Qwen Code',
       workspace: '/workspace',
       model: {} as any,
-      cliPath: '/usr/local/bin/qwen',
-      currentModelId: 'qwen3-coder-plus',
-      sessionMode: 'yolo',
+      cli_path: '/usr/local/bin/qwen',
+      current_model_id: 'qwen3-coder-plus',
+      session_mode: 'yolo',
       extra: {
-        teamId: 'team-1',
+        team_id: 'team-1',
       },
     });
 
@@ -29,13 +29,13 @@ describe('buildAgentConversationParams', () => {
       model: {},
       extra: expect.objectContaining({
         workspace: '/workspace',
-        customWorkspace: true,
+        custom_workspace: true,
         backend: 'qwen',
-        agentName: 'Qwen Code',
-        cliPath: '/usr/local/bin/qwen',
-        currentModelId: 'qwen3-coder-plus',
-        sessionMode: 'yolo',
-        teamId: 'team-1',
+        agent_name: 'Qwen Code',
+        cli_path: '/usr/local/bin/qwen',
+        current_model_id: 'qwen3-coder-plus',
+        session_mode: 'yolo',
+        team_id: 'team-1',
       }),
     });
   });
@@ -44,28 +44,28 @@ describe('buildAgentConversationParams', () => {
     const params = buildAgentConversationParams({
       backend: 'gemini',
       name: 'Preset Gemini',
-      agentName: 'Preset Gemini',
+      agent_name: 'Preset Gemini',
       workspace: '/workspace',
-      model: { id: 'provider-1', useModel: 'gemini-2.0-flash' } as any,
-      customAgentId: 'assistant-1',
-      isPreset: true,
+      model: { id: 'provider-1', use_model: 'gemini-2.0-flash' } as any,
+      custom_agent_id: 'assistant-1',
+      is_preset: true,
       presetAgentType: 'gemini',
       presetResources: {
         rules: 'PRESET RULES',
-        enabledSkills: ['skill-a'],
+        enabled_skills: ['skill-a'],
       },
     });
 
     expect(params).toEqual({
       type: 'gemini',
       name: 'Preset Gemini',
-      model: { id: 'provider-1', useModel: 'gemini-2.0-flash' },
+      model: { id: 'provider-1', use_model: 'gemini-2.0-flash' },
       extra: expect.objectContaining({
         workspace: '/workspace',
-        customWorkspace: true,
-        presetAssistantId: 'assistant-1',
-        presetRules: 'PRESET RULES',
-        enabledSkills: ['skill-a'],
+        custom_workspace: true,
+        preset_assistant_id: 'assistant-1',
+        preset_rules: 'PRESET RULES',
+        enabled_skills: ['skill-a'],
       }),
     });
   });
@@ -76,7 +76,7 @@ describe('buildAgentConversationParams', () => {
       name: 'Remote Conversation',
       workspace: '/workspace',
       model: {} as any,
-      customAgentId: 'remote-agent-id',
+      custom_agent_id: 'remote-agent-id',
     });
 
     expect(params).toEqual({
@@ -85,7 +85,7 @@ describe('buildAgentConversationParams', () => {
       model: {},
       extra: expect.objectContaining({
         workspace: '/workspace',
-        customWorkspace: true,
+        custom_workspace: true,
         remoteAgentId: 'remote-agent-id',
       }),
     });

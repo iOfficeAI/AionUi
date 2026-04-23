@@ -91,7 +91,7 @@ describe('ActionExecutor pure functions', () => {
         case 'exec':
           return `⚡ <b>Execute Command Confirmation</b>\nCommand: <code>${escapeHtml(details.command || 'Unknown command')}</code>\n\nAllow executing this command?`;
         case 'mcp':
-          return `🔧 <b>MCP Tool Confirmation</b>\nTool: <code>${escapeHtml(details.toolDisplayName || details.toolName || 'Unknown tool')}</code>\nServer: <code>${escapeHtml(details.serverName || 'Unknown server')}</code>\n\nAllow calling this tool?`;
+          return `🔧 <b>MCP Tool Confirmation</b>\nTool: <code>${escapeHtml(details.toolDisplayName || details.tool_name || 'Unknown tool')}</code>\nServer: <code>${escapeHtml(details.server_name || 'Unknown server')}</code>\n\nAllow calling this tool?`;
         case 'info':
           return `ℹ️ <b>Information Confirmation</b>\n${escapeHtml(details.prompt || '')}\n\nContinue?`;
         default:
@@ -126,9 +126,9 @@ describe('ActionExecutor pure functions', () => {
     it('returns MCP tool confirmation prompt', () => {
       const prompt = getConfirmationPrompt({
         type: 'mcp',
-        toolName: 'read_file',
+        tool_name: 'read_file',
         toolDisplayName: 'Read File',
-        serverName: 'filesystem',
+        server_name: 'filesystem',
       });
       expect(prompt).toContain('MCP Tool Confirmation');
       expect(prompt).toContain('Read File');
@@ -138,8 +138,8 @@ describe('ActionExecutor pure functions', () => {
     it('uses toolName when toolDisplayName is not provided', () => {
       const prompt = getConfirmationPrompt({
         type: 'mcp',
-        toolName: 'write_file',
-        serverName: 'default',
+        tool_name: 'write_file',
+        server_name: 'default',
       });
       expect(prompt).toContain('write_file');
     });

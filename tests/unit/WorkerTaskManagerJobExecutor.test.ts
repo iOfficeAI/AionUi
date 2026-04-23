@@ -20,7 +20,7 @@ vi.mock('@/process/services/cron/cronSkillFile', () => ({
   readCronSkillContent: vi.fn(async () => null),
   parseCronSkillContent: vi.fn(() => null),
   hasCronSkillFile: vi.fn(async () => false),
-  getCronSkillDir: vi.fn((jobId: string) => `/mock/cronSkills/${jobId}`),
+  getCronSkillDir: vi.fn((job_id: string) => `/mock/cronSkills/${jobId}`),
 }));
 vi.mock('@/process/services/cron/SkillSuggestWatcher', () => ({
   skillSuggestWatcher: {
@@ -58,10 +58,10 @@ function makeJob(conversationId = 'conv-1'): CronJob {
     target: { payload: { kind: 'message', text: 'hello' } },
     metadata: {
       conversationId,
-      agentType: 'acp',
+      agent_type: 'acp',
       createdBy: 'user',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
     },
     state: { runCount: 0, retryCount: 0, maxRetries: 3 },
   };
@@ -231,7 +231,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       expect(sentArg.cronMeta).toBeDefined();
       expect(sentArg.cronMeta.source).toBe('cron');
       expect(sentArg.cronMeta.cronJobId).toBe('job-1');
-      expect(sentArg.cronMeta.cronJobName).toBe('Test Job');
+      expect(sentArg.cronMeta.cron_job_name).toBe('Test Job');
       expect(sentArg.cronMeta.triggeredAt).toBeGreaterThanOrEqual(before);
       expect(sentArg.cronMeta.triggeredAt).toBeLessThanOrEqual(Date.now());
     });
@@ -268,7 +268,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
         expect.objectContaining({
           source: 'cron',
           cronJobId: 'job-1',
-          cronJobName: 'Test Job',
+          cron_job_name: 'Test Job',
         })
       );
     });

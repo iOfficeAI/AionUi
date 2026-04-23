@@ -107,14 +107,14 @@ const PRESET_AGENT_ID = 'cowork';
 const AVAILABLE_AGENTS: AvailableAgent[] = [
   { backend: 'gemini', name: 'Gemini' },
   { backend: 'claude', name: 'Claude' },
-  { backend: 'claude', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
+  { backend: 'claude', name: 'Cowork Assistant', custom_agent_id: PRESET_AGENT_ID, is_preset: true },
 ];
 
 const CUSTOM_AGENTS: AcpBackendConfig[] = [
   {
     id: PRESET_AGENT_ID,
     name: 'Cowork Assistant',
-    isPreset: true,
+    is_preset: true,
     enabled: true,
     presetAgentType: 'claude',
   } as AcpBackendConfig,
@@ -122,9 +122,9 @@ const CUSTOM_AGENTS: AcpBackendConfig[] = [
 
 const CLAUDE_CACHED_MODEL: AcpModelInfo = {
   source: 'models',
-  currentModelId: 'claude-sonnet-4-5-20250514',
+  current_model_id: 'claude-sonnet-4-5-20250514',
   currentModelLabel: 'Claude Sonnet 4.5',
-  availableModels: [
+  available_models: [
     { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
     { id: 'claude-opus-4-5-20250514', label: 'Claude Opus 4.5' },
   ],
@@ -136,8 +136,8 @@ const MODEL_LIST: IProvider[] = [
     id: 'p1',
     name: 'Test Provider',
     platform: 'openai',
-    baseUrl: '',
-    apiKey: 'k',
+    base_url: '',
+    api_key: 'k',
     model: ['gpt-4'],
   } as IProvider,
 ];
@@ -215,14 +215,14 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     // Verify effective agent type resolves to 'claude' (via presetAgentType)
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
-      expect(result.current.currentEffectiveAgentInfo.agentType).toBe('claude');
+      expect(result.current.is_presetAgent).toBe(true);
+      expect(result.current.currentEffectiveAgentInfo.agent_type).toBe('claude');
     });
 
     // Key assertion: cached model info should look up 'claude' key, not 'custom'
     expect(result.current.currentAcpCachedModelInfo).not.toBeNull();
-    expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-sonnet-4-5-20250514');
-    expect(result.current.currentAcpCachedModelInfo?.availableModels).toHaveLength(2);
+    expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('claude-sonnet-4-5-20250514');
+    expect(result.current.currentAcpCachedModelInfo?.available_models).toHaveLength(2);
   });
 
   it('currentAcpCachedModelInfo returns null when cached models have no entry for effective backend', async () => {
@@ -239,7 +239,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
+      expect(result.current.is_presetAgent).toBe(true);
     });
 
     // Preset maps to 'claude', but cache only has 'codex'
@@ -284,7 +284,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     // Wait a tick for mode loading effect
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
+      expect(result.current.is_presetAgent).toBe(true);
     });
 
     expect(result.current.selectedMode).toBe('default');
@@ -303,13 +303,13 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(false);
-      expect(result.current.selectedAgent).toBe('claude');
+      expect(result.current.is_presetAgent).toBe(false);
+      expect(result.current.selected_agent).toBe('claude');
     });
 
     // Should look up acpCachedModels['claude']
     expect(result.current.currentAcpCachedModelInfo).not.toBeNull();
-    expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-sonnet-4-5-20250514');
+    expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('claude-sonnet-4-5-20250514');
   });
 
   it('setSelectedMode saves mode under effective backend for preset agent', async () => {
@@ -324,7 +324,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
+      expect(result.current.is_presetAgent).toBe(true);
     });
 
     // Clear mocks to only capture the mode save call
@@ -376,12 +376,12 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     await waitFor(() => {
       expect(result.current.availableAgents).toBeDefined();
-      expect(result.current.selectedAgentKey).toBe(`custom:${PRESET_AGENT_ID}`);
+      expect(result.current.selected_agentKey).toBe(`custom:${PRESET_AGENT_ID}`);
     });
 
     rerender({ resetAssistant: true, locationKey: 'new-chat' });
 
-    expect(result.current.selectedAgentKey).toBe('gemini');
+    expect(result.current.selected_agentKey).toBe('gemini');
     expect(configStorageMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
   });
 
@@ -400,10 +400,10 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('gpt-5');
+      expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('gpt-5');
     });
 
-    expect(result.current.currentAcpCachedModelInfo?.availableModels).toEqual([
+    expect(result.current.currentAcpCachedModelInfo?.available_models).toEqual([
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);

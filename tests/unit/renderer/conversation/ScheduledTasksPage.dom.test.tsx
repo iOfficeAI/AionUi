@@ -204,12 +204,12 @@ const createMockJob = (overrides: Partial<ICronJob> = {}): ICronJob => ({
     executionMode: 'new_conversation',
   },
   metadata: {
-    conversationId: 'conv-1',
+    conversation_id: 'conv-1',
     conversationTitle: 'Test Conversation',
-    agentType: 'claude',
+    agent_type: 'claude',
     createdBy: 'user',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    created_at: Date.now(),
+    updated_at: Date.now(),
     agentConfig: {
       backend: 'claude',
       name: 'Claude Code',
@@ -283,7 +283,7 @@ describe('ScheduledTasksPage', () => {
             backend: 'gemini',
             name: 'Gemini CLI',
           },
-          agentType: 'gemini',
+          agent_type: 'gemini',
         },
       }),
     ];
@@ -406,7 +406,7 @@ describe('ScheduledTasksPage', () => {
 
     await waitFor(() => {
       expect(mockUpdateJob).toHaveBeenCalledWith({
-        jobId: 'job-1',
+        job_id: 'job-1',
         updates: { enabled: false },
       });
       expect(mockMessageSuccess).toHaveBeenCalledWith('Task paused successfully');
@@ -431,7 +431,7 @@ describe('ScheduledTasksPage', () => {
 
     await waitFor(() => {
       expect(mockUpdateJob).toHaveBeenCalledWith({
-        jobId: 'job-1',
+        job_id: 'job-1',
         updates: { enabled: true },
       });
       expect(mockMessageSuccess).toHaveBeenCalledWith('Task resumed successfully');

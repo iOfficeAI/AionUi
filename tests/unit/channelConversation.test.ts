@@ -26,19 +26,19 @@ describe('channelConversation pure functions', () => {
     backend?: string;
     customAgentId?: string;
     agentName?: string;
-    enabledSkills?: string[];
+    enabled_skills?: string[];
   } {
-    const enabledSkills = getChannelEnabledSkills(args.platform);
+    const enabled_skills = getChannelEnabledSkills(args.platform);
 
     if (args.backend === 'gemini' || args.backend === 'codex' || args.backend === 'openclaw-gateway') {
-      return enabledSkills ? { enabledSkills } : {};
+      return enabled_skills ? { enabled_skills } : {};
     }
 
     return {
       backend: args.backend,
-      customAgentId: args.customAgentId,
-      agentName: args.agentName,
-      ...(enabledSkills ? { enabledSkills } : {}),
+      custom_agent_id: args.custom_agent_id,
+      agent_name: args.agent_name,
+      ...(enabled_skills ? { enabled_skills } : {}),
     };
   }
 
@@ -61,21 +61,21 @@ describe('channelConversation pure functions', () => {
   });
 
   describe('buildChannelConversationExtra', () => {
-    it('returns enabledSkills only for gemini backend with weixin platform', () => {
+    it('returns enabled_skills only for gemini backend with weixin platform', () => {
       expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'gemini' })).toEqual({
-        enabledSkills: ['weixin-file-send'],
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
-    it('returns enabledSkills only for codex backend with weixin platform', () => {
+    it('returns enabled_skills only for codex backend with weixin platform', () => {
       expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'codex' })).toEqual({
-        enabledSkills: ['weixin-file-send'],
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
-    it('returns enabledSkills only for openclaw-gateway backend with weixin platform', () => {
+    it('returns enabled_skills only for openclaw-gateway backend with weixin platform', () => {
       expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'openclaw-gateway' })).toEqual({
-        enabledSkills: ['weixin-file-send'],
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -88,22 +88,22 @@ describe('channelConversation pure functions', () => {
         buildChannelConversationExtra({
           platform: 'weixin',
           backend: 'claude',
-          customAgentId: 'agent-123',
-          agentName: 'Claude Assistant',
+          custom_agent_id: 'agent-123',
+          agent_name: 'Claude Assistant',
         })
       ).toEqual({
         backend: 'claude',
-        customAgentId: 'agent-123',
-        agentName: 'Claude Assistant',
-        enabledSkills: ['weixin-file-send'],
+        custom_agent_id: 'agent-123',
+        agent_name: 'Claude Assistant',
+        enabled_skills: ['weixin-file-send'],
       });
     });
 
     it('returns full extra for ACP backend without customAgentId', () => {
       expect(buildChannelConversationExtra({ platform: 'telegram', backend: 'claude' })).toEqual({
         backend: 'claude',
-        customAgentId: undefined,
-        agentName: undefined,
+        custom_agent_id: undefined,
+        agent_name: undefined,
       });
     });
 
@@ -112,14 +112,14 @@ describe('channelConversation pure functions', () => {
         buildChannelConversationExtra({
           platform: 'weixin',
           backend: 'unknown-backend',
-          customAgentId: 'custom-1',
-          agentName: 'Custom Agent',
+          custom_agent_id: 'custom-1',
+          agent_name: 'Custom Agent',
         })
       ).toEqual({
         backend: 'unknown-backend',
-        customAgentId: 'custom-1',
-        agentName: 'Custom Agent',
-        enabledSkills: ['weixin-file-send'],
+        custom_agent_id: 'custom-1',
+        agent_name: 'Custom Agent',
+        enabled_skills: ['weixin-file-send'],
       });
     });
 

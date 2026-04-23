@@ -24,14 +24,14 @@ function createMockClient(): AcpClient {
   return {
     start: vi.fn().mockResolvedValue({ protocolVersion: '0.1', capabilities: {} }),
     createSession: vi.fn().mockResolvedValue({
-      sessionId: 'sess-1',
-      currentModelId: 'claude-3',
-      availableModels: [],
-      currentModeId: 'code',
-      availableModes: [],
-      configOptions: [],
+      session_id: 'sess-1',
+      current_model_id: 'claude-3',
+      available_models: [],
+      current_mode_id: 'code',
+      available_modes: [],
+      config_options: [],
     }),
-    loadSession: vi.fn().mockResolvedValue({ sessionId: 'sess-1' }),
+    loadSession: vi.fn().mockResolvedValue({ session_id: 'sess-1' }),
     prompt: vi.fn().mockResolvedValue({ stopReason: 'end_turn' }),
     cancel: vi.fn().mockResolvedValue(undefined),
     setModel: vi.fn().mockResolvedValue(undefined),
@@ -47,7 +47,7 @@ function createMockClient(): AcpClient {
 }
 
 const baseConfig: AgentConfig = {
-  agentBackend: 'test',
+  agent_backend: 'test',
   agentSource: 'builtin',
   agentId: 'builtin:test',
   cwd: '/tmp',

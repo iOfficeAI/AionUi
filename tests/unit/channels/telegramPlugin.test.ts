@@ -33,8 +33,8 @@ function createConfig() {
     enabled: true,
     credentials: { token: 'test-token' },
     status: 'created' as const,
-    createdAt: now,
-    updatedAt: now,
+    created_at: now,
+    updated_at: now,
   };
 }
 

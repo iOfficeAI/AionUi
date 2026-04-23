@@ -41,7 +41,7 @@ type PrivateServer = {
 
 const buildServer = (): PrivateServer =>
   new TeamMcpServer({
-    teamId: 'team-test',
+    team_id: 'team-test',
     getAgents: () => [],
     mailbox: { write: vi.fn(), readUnread: vi.fn() } as never,
     taskManager: {} as never,
@@ -60,10 +60,10 @@ describe('handleDescribeAssistant', () => {
       {
         id: 'builtin-word-creator',
         name: 'Word Creator',
-        isPreset: true,
+        is_preset: true,
         enabled: true,
         presetAgentType: 'gemini',
-        enabledSkills: ['officecli-docx'],
+        enabled_skills: ['officecli-docx'],
       },
     ];
 
@@ -87,8 +87,8 @@ describe('handleDescribeAssistant', () => {
 
   it('throws with a helpful list of available ids when the preset is not found', async () => {
     configAssistants = [
-      { id: 'builtin-word-creator', name: 'Word Creator', isPreset: true, enabled: true },
-      { id: 'builtin-cowork', name: 'Cowork', isPreset: true, enabled: true },
+      { id: 'builtin-word-creator', name: 'Word Creator', is_preset: true, enabled: true },
+      { id: 'builtin-cowork', name: 'Cowork', is_preset: true, enabled: true },
     ];
 
     const server = buildServer();
@@ -98,7 +98,7 @@ describe('handleDescribeAssistant', () => {
   });
 
   it('rejects disabled presets', async () => {
-    configAssistants = [{ id: 'builtin-word-creator', name: 'Word Creator', isPreset: true, enabled: false }];
+    configAssistants = [{ id: 'builtin-word-creator', name: 'Word Creator', is_preset: true, enabled: false }];
 
     const server = buildServer();
     await expect(server.handleDescribeAssistant({ custom_agent_id: 'builtin-word-creator' })).rejects.toThrow(
@@ -112,7 +112,7 @@ describe('handleDescribeAssistant', () => {
       {
         id: 'builtin-word-creator',
         name: 'Word Creator',
-        isPreset: true,
+        is_preset: true,
         enabled: true,
         presetAgentType: 'gemini',
       },
@@ -133,10 +133,10 @@ describe('handleDescribeAssistant', () => {
         id: 'my-custom',
         name: 'My Custom Writer',
         description: 'Writes novels',
-        isPreset: true,
+        is_preset: true,
         enabled: true,
         presetAgentType: 'gemini',
-        enabledSkills: [],
+        enabled_skills: [],
       },
     ];
 

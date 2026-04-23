@@ -22,20 +22,20 @@ function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRe
     createConversation: vi.fn(),
     updateConversation: vi.fn(),
     deleteConversation: vi.fn(),
-    getMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    getMessages: vi.fn(async () => ({ data: [], total: 0, has_more: false })),
     insertMessage: vi.fn(),
     getUserConversations: vi.fn(async () => ({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     })),
     listAllConversations: vi.fn(async () => []),
     searchMessages: vi.fn(async () => ({
       items: [],
       total: 0,
       page: 0,
-      pageSize: 20,
-      hasMore: false,
+      page_size: 20,
+      has_more: false,
     })),
     ...overrides,
   };
@@ -79,12 +79,12 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,
       total: 2,
-      hasMore: false,
+      has_more: false,
     });
     vi.mocked(repo.getMessages).mockResolvedValue({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     });
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
@@ -100,12 +100,12 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,
       total: 2,
-      hasMore: false,
+      has_more: false,
     });
     vi.mocked(repo.getMessages).mockResolvedValue({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     });
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
@@ -118,12 +118,12 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,
       total: 1,
-      hasMore: false,
+      has_more: false,
     });
     vi.mocked(repo.getMessages).mockResolvedValue({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     });
     vi.mocked(taskManager.getTask).mockReturnValue({
       status: 'running',
@@ -139,12 +139,12 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,
       total: 1,
-      hasMore: false,
+      has_more: false,
     });
     vi.mocked(repo.getMessages).mockResolvedValue({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     });
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
@@ -161,12 +161,12 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,
       total: 3,
-      hasMore: false,
+      has_more: false,
     });
     vi.mocked(repo.getMessages).mockResolvedValue({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     });
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
@@ -181,18 +181,18 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,
       total: 1,
-      hasMore: false,
+      has_more: false,
     });
     const errorMessage: Partial<TMessage> = {
       id: 'm1',
       type: 'agent_status',
       content: { status: 'error' } as any,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     };
     vi.mocked(repo.getMessages).mockResolvedValue({
       data: [errorMessage as TMessage],
       total: 1,
-      hasMore: false,
+      has_more: false,
     });
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();
@@ -205,7 +205,7 @@ describe('ActivitySnapshotBuilder', () => {
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: [],
       total: 0,
-      hasMore: false,
+      has_more: false,
     });
 
     const snapshot = await new ActivitySnapshotBuilder(repo, taskManager).build();

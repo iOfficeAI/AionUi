@@ -8,7 +8,7 @@ const createUserMessage = (content: string): TMessage => ({
   type: 'text',
   position: 'right',
   content: { content },
-  createdAt: Date.now(),
+  created_at: Date.now(),
 });
 
 describe('autoTitle', () => {

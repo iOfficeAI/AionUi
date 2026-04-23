@@ -120,8 +120,8 @@ describe('useAssistantList', () => {
 
   it('loadAssistants fetches from ConfigStorage and populates the list', async () => {
     const storedAgents = [
-      { id: 'builtin-coder', name: 'Coder', isPreset: true, isBuiltin: true, enabled: true },
-      { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
+      { id: 'builtin-coder', name: 'Coder', is_preset: true, isBuiltin: true, enabled: true },
+      { id: 'builtin-default', name: 'Default', is_preset: true, isBuiltin: true, enabled: true },
     ];
     configStorageGetMock.mockResolvedValue(storedAgents);
 
@@ -141,8 +141,8 @@ describe('useAssistantList', () => {
 
   it('activeAssistant is derived from activeAssistantId', async () => {
     const storedAgents = [
-      { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
-      { id: 'custom-1', name: 'My Agent', isPreset: true, isBuiltin: false, enabled: true },
+      { id: 'builtin-default', name: 'Default', is_preset: true, isBuiltin: true, enabled: true },
+      { id: 'custom-1', name: 'My Agent', is_preset: true, isBuiltin: false, enabled: true },
     ];
     configStorageGetMock.mockResolvedValue(storedAgents);
 
@@ -163,8 +163,8 @@ describe('useAssistantList', () => {
 
   it('preserves activeAssistantId across reloads if it still exists', async () => {
     const storedAgents = [
-      { id: 'builtin-default', name: 'Default', isPreset: true, isBuiltin: true, enabled: true },
-      { id: 'custom-1', name: 'My Agent', isPreset: true, isBuiltin: false, enabled: true },
+      { id: 'builtin-default', name: 'Default', is_preset: true, isBuiltin: true, enabled: true },
+      { id: 'custom-1', name: 'My Agent', is_preset: true, isBuiltin: false, enabled: true },
     ];
     configStorageGetMock.mockResolvedValue(storedAgents);
 
@@ -190,8 +190,8 @@ describe('useAssistantList', () => {
   it('isExtensionAssistant detects extension-sourced assistants', async () => {
     const { result } = renderHook(() => useAssistantList());
 
-    const extAssistant = { id: 'ext-buddy', name: 'Buddy', _source: 'extension', isPreset: true, enabled: true };
-    const normalAssistant = { id: 'custom-1', name: 'Custom', isPreset: true, enabled: true };
+    const extAssistant = { id: 'ext-buddy', name: 'Buddy', _source: 'extension', is_preset: true, enabled: true };
+    const normalAssistant = { id: 'custom-1', name: 'Custom', is_preset: true, enabled: true };
 
     expect(result.current.isExtensionAssistant(extAssistant)).toBe(true);
     expect(result.current.isExtensionAssistant(normalAssistant)).toBe(false);
@@ -200,7 +200,7 @@ describe('useAssistantList', () => {
 
   it('extension assistant is editable (not readonly)', async () => {
     const storedAgents = [
-      { id: 'ext-buddy', name: 'Buddy', _source: 'extension', isPreset: true, isBuiltin: false, enabled: true },
+      { id: 'ext-buddy', name: 'Buddy', _source: 'extension', is_preset: true, isBuiltin: false, enabled: true },
     ];
     configStorageGetMock.mockResolvedValue(storedAgents);
 

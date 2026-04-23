@@ -33,7 +33,7 @@ type TestMessage = {
   createdAt?: number;
 };
 
-const CacheProbe = ({ conversationId }: { conversationId: string }) => {
+const CacheProbe = ({ conversationId }: { conversation_id: string }) => {
   useMessageLstCache(conversationId);
   const messages = useMessageList();
   return <pre data-testid='messages'>{JSON.stringify(messages)}</pre>;

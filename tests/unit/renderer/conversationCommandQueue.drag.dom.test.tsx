@@ -136,7 +136,7 @@ const baseItems: ConversationCommandQueueItem[] = [
     id: '1',
     input: 'first command',
     files: [],
-    createdAt: 1,
+    created_at: 1,
   },
 ];
 

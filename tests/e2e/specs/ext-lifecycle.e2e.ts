@@ -104,7 +104,7 @@ test.describe('Extension: Lifecycle – Loaded Extensions List', () => {
 
     for (const ext of snapshot.loadedExtensions) {
       expect(ext.name).toBeTruthy();
-      expect(ext.displayName).toBeTruthy();
+      expect(ext.display_name).toBeTruthy();
       expect(ext.version).toBeTruthy();
     }
   });

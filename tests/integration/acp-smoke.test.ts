@@ -120,16 +120,16 @@ describe('L3 ACP Smoke Test', () => {
       jsonrpc: JSONRPC_VERSION,
       id: 2,
       method: 'session/new',
-      params: { cwd: '.', mcpServers: [] },
+      params: { cwd: '.', mcp_servers: [] },
     });
 
     const sessionResponse = await waitForResponse(child, (msg) => msg.id === 2);
     expect(sessionResponse.result).toBeDefined();
     const sessionResult = sessionResponse.result as Record<string, unknown>;
-    expect(sessionResult.sessionId).toBeDefined();
-    expect(typeof sessionResult.sessionId).toBe('string');
+    expect(sessionResult.session_id).toBeDefined();
+    expect(typeof sessionResult.session_id).toBe('string');
 
-    const sessionId = sessionResult.sessionId as string;
+    const sessionId = sessionResult.session_id as string;
 
     // Step 3: Send prompt
     writeMessage(child, {

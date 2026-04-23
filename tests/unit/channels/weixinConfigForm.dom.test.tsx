@@ -80,7 +80,7 @@ import WeixinConfigForm from '@/renderer/components/settings/SettingsModal/conte
 import { ConfigStorage } from '@/common/config/storage';
 
 const noopModelSelection = {
-  currentModel: undefined,
+  current_model: undefined,
   isLoading: false,
   onSelectModel: vi.fn(),
 } as any;

@@ -132,15 +132,15 @@ test.describe('Team Create - preset assistant leader', () => {
 
       const leader = team!.agents[0];
       expect(leader.role).toBe('leader');
-      expect(leader.customAgentId).toBe(chosenCustomAgentId);
+      expect(leader.custom_agent_id).toBe(chosenCustomAgentId);
 
       // cowork (and all currently enabled presets) use presetAgentType = 'gemini'.
       // If we picked the preferred cowork option, assert the exact type; otherwise
       // just assert agentType is non-empty (we don't know the fallback preset's type).
       if (preferredVisible && chosenCustomAgentId === PREFERRED_PRESET_CUSTOM_AGENT_ID) {
-        expect(leader.agentType).toBe(PREFERRED_PRESET_AGENT_TYPE);
+        expect(leader.agent_type).toBe(PREFERRED_PRESET_AGENT_TYPE);
       } else {
-        expect(leader.agentType).toBeTruthy();
+        expect(leader.agent_type).toBeTruthy();
       }
 
       await page.screenshot({ path: 'tests/e2e/results/team-preset-06-backend-verified.png' });

@@ -79,12 +79,12 @@ function makeWorkerTaskManager() {
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: '',
-    conversationId: '',
+    slot_id: '',
+    conversation_id: '',
     role: 'leader',
-    agentType: 'gemini',
-    agentName: 'Gemini',
-    conversationType: 'gemini',
+    agent_type: 'gemini',
+    agent_name: 'Gemini',
+    conversation_type: 'gemini',
     status: 'pending',
     ...overrides,
   };
@@ -122,7 +122,7 @@ describe('TeamSessionService', () => {
     );
     // Must have a concrete useModel, not the bare 'default' placeholder
     const callArgs = (conversationService.createConversation as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(callArgs.model.useModel).not.toBe('default');
+    expect(callArgs.model.use_model).not.toBe('default');
   });
 
   it('uses configured gemini provider model when available', async () => {
@@ -133,8 +133,8 @@ describe('TeamSessionService', () => {
             id: 'provider-gemini',
             platform: 'gemini',
             name: 'Gemini API',
-            apiKey: 'test-key',
-            baseUrl: 'https://generativelanguage.googleapis.com',
+            api_key: 'test-key',
+            base_url: 'https://generativelanguage.googleapis.com',
             model: ['gemini-2.5-pro'],
             enabled: true,
           },
@@ -164,8 +164,8 @@ describe('TeamSessionService', () => {
         model: expect.objectContaining({
           id: 'provider-gemini',
           platform: 'gemini',
-          apiKey: 'test-key',
-          useModel: 'gemini-2.5-pro',
+          api_key: 'test-key',
+          use_model: 'gemini-2.5-pro',
         }),
       })
     );
@@ -182,8 +182,8 @@ describe('TeamSessionService', () => {
             id: 'provider-1',
             platform: 'gemini',
             name: 'Gemini API',
-            apiKey: 'key',
-            baseUrl: 'https://example.com',
+            api_key: 'key',
+            base_url: 'https://example.com',
             model: ['gemini-2.0-flash'],
             enabled: true,
           },
@@ -213,7 +213,7 @@ describe('TeamSessionService', () => {
       name: 'Team Qwen',
       workspace: '/workspace',
       workspaceMode: 'shared',
-      agents: [makeAgent({ agentType: 'qwen', agentName: 'Qwen', conversationType: 'acp' })],
+      agents: [makeAgent({ agent_type: 'qwen', agent_name: 'Qwen', conversation_type: 'acp' })],
     });
 
     expect(conversationService.createConversation).toHaveBeenCalledWith(
@@ -221,7 +221,7 @@ describe('TeamSessionService', () => {
         type: 'acp',
         extra: expect.objectContaining({
           backend: 'qwen',
-          currentModelId: 'qwen3-coder-plus',
+          current_model_id: 'qwen3-coder-plus',
         }),
       })
     );
@@ -243,10 +243,10 @@ describe('TeamSessionService', () => {
       workspaceMode: 'shared',
       agents: [
         makeAgent({
-          agentType: 'remote',
-          agentName: 'Remote Agent',
-          conversationType: 'remote',
-          customAgentId: 'remote-agent-id',
+          agent_type: 'remote',
+          agent_name: 'Remote Agent',
+          conversation_type: 'remote',
+          custom_agent_id: 'remote-agent-id',
         }),
       ],
     });
@@ -256,7 +256,7 @@ describe('TeamSessionService', () => {
         type: 'remote',
         extra: expect.objectContaining({
           remoteAgentId: 'remote-agent-id',
-          teamId: expect.any(String),
+          team_id: expect.any(String),
         }),
       })
     );
@@ -273,15 +273,15 @@ describe('TeamSessionService', () => {
             id: 'provider-1',
             platform: 'gemini',
             name: 'Gemini API',
-            apiKey: 'key',
-            baseUrl: 'https://example.com',
+            api_key: 'key',
+            base_url: 'https://example.com',
             model: ['gemini-2.0-flash'],
             enabled: true,
           },
         ];
       }
       if (key === 'assistants') {
-        return [{ id: 'assistant-1', enabledSkills: ['skill-a'] }];
+        return [{ id: 'assistant-1', enabled_skills: ['skill-a'] }];
       }
       return undefined;
     });
@@ -308,10 +308,10 @@ describe('TeamSessionService', () => {
       workspaceMode: 'shared',
       agents: [
         makeAgent({
-          agentType: 'gemini',
-          agentName: 'Preset Gemini',
-          conversationType: 'gemini',
-          customAgentId: 'assistant-1',
+          agent_type: 'gemini',
+          agent_name: 'Preset Gemini',
+          conversation_type: 'gemini',
+          custom_agent_id: 'assistant-1',
         }),
       ],
     });
@@ -321,12 +321,12 @@ describe('TeamSessionService', () => {
         type: 'gemini',
         model: expect.objectContaining({
           id: 'provider-1',
-          useModel: 'gemini-2.0-flash',
+          use_model: 'gemini-2.0-flash',
         }),
         extra: expect.objectContaining({
-          presetAssistantId: 'assistant-1',
-          presetRules: 'PRESET RULES',
-          enabledSkills: ['skill-a'],
+          preset_assistant_id: 'assistant-1',
+          preset_rules: 'PRESET RULES',
+          enabled_skills: ['skill-a'],
         }),
       })
     );
@@ -343,8 +343,8 @@ describe('TeamSessionService', () => {
             id: 'provider-1',
             platform: 'gemini',
             name: 'Gemini API',
-            apiKey: 'key',
-            baseUrl: 'https://example.com',
+            api_key: 'key',
+            base_url: 'https://example.com',
             model: ['gemini-2.0-flash'],
             enabled: true,
           },
@@ -372,17 +372,17 @@ describe('TeamSessionService', () => {
       leaderAgentId: 'slot-lead',
       agents: [
         {
-          slotId: 'slot-lead',
-          conversationId: 'conv-lead',
+          slot_id: 'slot-lead',
+          conversation_id: 'conv-lead',
           role: 'leader',
-          agentType: 'qwen',
-          agentName: 'Lead Qwen',
-          conversationType: 'acp',
+          agent_type: 'qwen',
+          agent_name: 'Lead Qwen',
+          conversation_type: 'acp',
           status: 'idle',
         },
       ],
-      createdAt: 1,
-      updatedAt: 1,
+      created_at: 1,
+      updated_at: 1,
     };
     const repo = makeRepo({
       findById: vi.fn().mockResolvedValue(team),
@@ -394,30 +394,30 @@ describe('TeamSessionService', () => {
         id: 'conv-lead',
         extra: {
           backend: 'qwen',
-          sessionMode: 'yolo',
-          currentModelId: 'qwen3-coder-pro',
+          session_mode: 'yolo',
+          current_model_id: 'qwen3-coder-pro',
         },
       }),
     });
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
     await service.addAgent('team-1', {
-      conversationId: '',
+      conversation_id: '',
       role: 'teammate',
-      agentType: 'qwen',
-      agentName: 'Preset Qwen',
-      conversationType: 'acp',
+      agent_type: 'qwen',
+      agent_name: 'Preset Qwen',
+      conversation_type: 'acp',
       status: 'pending',
-      customAgentId: 'builtin-preset-qwen',
+      custom_agent_id: 'builtin-preset-qwen',
     });
 
     expect(conversationService.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         extra: expect.objectContaining({
           backend: 'qwen',
-          presetAssistantId: 'builtin-preset-qwen',
-          sessionMode: 'yolo',
-          currentModelId: 'qwen3-coder-next',
+          preset_assistant_id: 'builtin-preset-qwen',
+          session_mode: 'yolo',
+          current_model_id: 'qwen3-coder-next',
         }),
       })
     );
@@ -432,8 +432,8 @@ describe('TeamSessionService', () => {
       workspaceMode: 'shared',
       leaderAgentId: 'slot-lead',
       agents: [],
-      createdAt: 1,
-      updatedAt: 1,
+      created_at: 1,
+      updated_at: 1,
     };
     const legacyConversation: TChatConversation = {
       id: 'conv-legacy',
@@ -444,9 +444,9 @@ describe('TeamSessionService', () => {
       modifyTime: 2,
       extra: {
         backend: 'codex',
-        cliPath: 'codex',
-        agentName: 'Leader',
-        teamId: 'team-legacy',
+        cli_path: 'codex',
+        agent_name: 'Leader',
+        team_id: 'team-legacy',
         teamMcpStdioConfig: {
           env: [{ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-lead' }],
         },
@@ -468,13 +468,13 @@ describe('TeamSessionService', () => {
         leaderAgentId: 'slot-lead',
         agents: [
           expect.objectContaining({
-            slotId: 'slot-lead',
-            conversationId: 'conv-legacy',
+            slot_id: 'slot-lead',
+            conversation_id: 'conv-legacy',
             role: 'leader',
-            agentType: 'codex',
-            agentName: 'Leader',
-            conversationType: 'acp',
-            cliPath: 'codex',
+            agent_type: 'codex',
+            agent_name: 'Leader',
+            conversation_type: 'acp',
+            cli_path: 'codex',
           }),
         ],
       })
@@ -485,11 +485,11 @@ describe('TeamSessionService', () => {
         leaderAgentId: 'slot-lead',
         agents: [
           expect.objectContaining({
-            slotId: 'slot-lead',
-            conversationId: 'conv-legacy',
+            slot_id: 'slot-lead',
+            conversation_id: 'conv-legacy',
           }),
         ],
-        updatedAt: expect.any(Number),
+        updated_at: expect.any(Number),
       })
     );
   });

@@ -18,10 +18,10 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
 
   it('should create tool call message with initial empty rawInput', () => {
     const toolCallUpdate: ToolCallUpdate = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'tool-123',
+        tool_call_id: 'tool-123',
         status: 'pending',
         title: 'Test Tool',
         kind: 'execute',
@@ -39,10 +39,10 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
   it('should merge rawInput from tool_call_update into existing tool call', () => {
     // First, create the initial tool call with empty rawInput
     const initialToolCall: ToolCallUpdate = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'tool-123',
+        tool_call_id: 'tool-123',
         status: 'pending',
         title: 'Test Tool',
         kind: 'execute',
@@ -54,10 +54,10 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
 
     // Then, send tool_call_update with complete rawInput
     const toolCallUpdateStatus: ToolCallUpdateStatus = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call_update',
-        toolCallId: 'tool-123',
+        tool_call_id: 'tool-123',
         status: 'completed',
         rawInput: {
           include_dms: true,
@@ -92,10 +92,10 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
   it('should preserve existing rawInput if update has no rawInput', () => {
     // Create tool call with initial rawInput
     const initialToolCall: ToolCallUpdate = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'tool-456',
+        tool_call_id: 'tool-456',
         status: 'in_progress',
         title: 'Another Tool',
         kind: 'read',
@@ -107,10 +107,10 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
 
     // Send update without rawInput
     const toolCallUpdateStatus: ToolCallUpdateStatus = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call_update',
-        toolCallId: 'tool-456',
+        tool_call_id: 'tool-456',
         status: 'completed',
         // No rawInput in this update
       },
@@ -126,10 +126,10 @@ describe('AcpAdapter - rawInput merging (#1113)', () => {
 
   it('should return null for tool_call_update without existing tool call', () => {
     const toolCallUpdateStatus: ToolCallUpdateStatus = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call_update',
-        toolCallId: 'non-existent-tool',
+        tool_call_id: 'non-existent-tool',
         status: 'completed',
         rawInput: { some: 'data' },
       },
@@ -146,10 +146,10 @@ describe('AcpAdapter - ToolCallUpdateStatus type (#1113)', () => {
   it('should accept rawInput field in ToolCallUpdateStatus', () => {
     // This test verifies the TypeScript type includes rawInput
     const update: ToolCallUpdateStatus = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call_update',
-        toolCallId: 'tool-789',
+        tool_call_id: 'tool-789',
         status: 'completed',
         rawInput: {
           command: 'ls -la',
@@ -174,7 +174,7 @@ describe('AcpAdapter - streaming message grouping', () => {
 
   it('assigns new msg_id after tool updates are interleaved into a streamed reply', () => {
     const firstChunk = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'text', text: '- `bunx tsc --no' },
@@ -182,10 +182,10 @@ describe('AcpAdapter - streaming message grouping', () => {
     } as any);
 
     const initialToolCall = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call',
-        toolCallId: 'tool-123',
+        tool_call_id: 'tool-123',
         status: 'pending',
         title: 'Run bunx tsc --noEmit',
         kind: 'execute',
@@ -194,16 +194,16 @@ describe('AcpAdapter - streaming message grouping', () => {
     } as ToolCallUpdate);
 
     const updatedToolCall = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'tool_call_update',
-        toolCallId: 'tool-123',
+        tool_call_id: 'tool-123',
         status: 'completed',
       },
     } as ToolCallUpdateStatus);
 
     const secondChunk = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'text', text: 'Emit`：通过' },
@@ -222,7 +222,7 @@ describe('AcpAdapter - streaming message grouping', () => {
 
   it('assigns new msg_id after available command updates arrive mid-stream', () => {
     const firstChunk = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'text', text: 'First paragraph.\n\n' },
@@ -230,7 +230,7 @@ describe('AcpAdapter - streaming message grouping', () => {
     } as any);
 
     const availableCommands = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'available_commands_update',
         availableCommands: [{ name: 'resume', description: 'Resume the session' }],
@@ -238,7 +238,7 @@ describe('AcpAdapter - streaming message grouping', () => {
     } as AvailableCommandsUpdate);
 
     const secondChunk = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'text', text: '- Second paragraph item' },
@@ -270,7 +270,7 @@ describe('AcpAdapter - agent_message_chunk extraction', () => {
 
   it('keeps empty text chunks instead of dropping them', () => {
     const messages = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'text', text: '' },
@@ -285,7 +285,7 @@ describe('AcpAdapter - agent_message_chunk extraction', () => {
 
   it('drops non-text chunks and emits diagnostics', () => {
     const messages = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'image', uri: 'file://test.png' },
@@ -298,7 +298,7 @@ describe('AcpAdapter - agent_message_chunk extraction', () => {
 
   it('drops malformed text chunk and emits diagnostics', () => {
     const messages = adapter.convertSessionUpdate({
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'agent_message_chunk',
         content: { type: 'text' },

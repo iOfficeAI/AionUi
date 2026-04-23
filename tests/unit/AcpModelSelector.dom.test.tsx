@@ -68,9 +68,9 @@ describe('AcpModelSelector', () => {
       success: true,
       data: {
         modelInfo: {
-          currentModelId: 'claude-opus-4-6',
+          current_model_id: 'claude-opus-4-6',
           currentModelLabel: 'Claude Opus 4.6',
-          availableModels: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
+          available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
           canSwitch: false,
           source: 'models',
           sourceDetail: 'cc-switch',
@@ -110,9 +110,9 @@ describe('AcpModelSelector', () => {
         success: true,
         data: {
           modelInfo: {
-            currentModelId: 'claude-opus-4-6',
+            current_model_id: 'claude-opus-4-6',
             currentModelLabel: 'Claude Opus 4.6',
-            availableModels: [
+            available_models: [
               { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
               { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
             ],
@@ -126,9 +126,9 @@ describe('AcpModelSelector', () => {
         success: true,
         data: {
           modelInfo: {
-            currentModelId: 'claude-sonnet-4-5',
+            current_model_id: 'claude-sonnet-4-5',
             currentModelLabel: 'Claude Sonnet 4.5',
-            availableModels: [
+            available_models: [
               { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
               { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             ],
@@ -159,9 +159,9 @@ describe('AcpModelSelector', () => {
       success: true,
       data: {
         modelInfo: {
-          currentModelId: 'claude-opus-4-6',
+          current_model_id: 'claude-opus-4-6',
           currentModelLabel: 'Claude Opus 4.6',
-          availableModels: [
+          available_models: [
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'glm-5.1x', label: 'GLM 5.1x' },
           ],
@@ -175,9 +175,9 @@ describe('AcpModelSelector', () => {
       success: true,
       data: {
         modelInfo: {
-          currentModelId: 'glm-5.1x',
+          current_model_id: 'glm-5.1x',
           currentModelLabel: 'GLM 5.1x',
-          availableModels: [
+          available_models: [
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'glm-5.1x', label: 'GLM 5.1x' },
           ],

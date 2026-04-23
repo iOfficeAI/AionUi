@@ -209,7 +209,7 @@ describe('TeamGuideMcpServer auth token', () => {
     mockCreateTeam.mockResolvedValue({
       id: 'team-oversize-check',
       name: 'oversize recovery check',
-      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader' }],
+      agents: [{ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' }],
     });
     mockGetOrStartSession.mockResolvedValue({
       sendMessageToAgent: mockSendMessageToAgent,
@@ -269,7 +269,7 @@ describe('aion_create_team handler', () => {
     mockCreateTeam.mockResolvedValue({
       id: 'team-abc-123',
       name: '电商网站全栈开发',
-      agents: [{ slotId: 'slot-lead', conversationId: 'conv-lead', role: 'leader' }],
+      agents: [{ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' }],
     });
 
     mockGetOrStartSession.mockResolvedValue({
@@ -292,7 +292,7 @@ describe('aion_create_team handler', () => {
 
     const data = JSON.parse(response.result as string) as Record<string, unknown>;
     expect(data).toMatchObject({
-      teamId: 'team-abc-123',
+      team_id: 'team-abc-123',
       name: '电商网站全栈开发',
       route: '/team/team-abc-123',
       status: 'team_created',
@@ -307,7 +307,7 @@ describe('aion_create_team handler', () => {
     })) as Record<string, unknown>;
 
     const data = JSON.parse(response.result as string) as Record<string, unknown>;
-    expect(data.teamId).toBe('team-abc-123');
+    expect(data.team_id).toBe('team-abc-123');
     expect(data.route).toBe('/team/team-abc-123');
   });
 
@@ -367,7 +367,7 @@ describe('aion_create_team handler', () => {
 
     expect(mockCreateTeam).toHaveBeenCalledWith(
       expect.objectContaining({
-        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'codex' })]),
+        agents: expect.arrayContaining([expect.objectContaining({ agent_type: 'codex' })]),
       })
     );
   });
@@ -382,7 +382,7 @@ describe('aion_create_team handler', () => {
 
     expect(mockCreateTeam).toHaveBeenCalledWith(
       expect.objectContaining({
-        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'claude' })]),
+        agents: expect.arrayContaining([expect.objectContaining({ agent_type: 'claude' })]),
       })
     );
   });
@@ -396,7 +396,7 @@ describe('aion_create_team handler', () => {
 
     expect(mockCreateTeam).toHaveBeenCalledWith(
       expect.objectContaining({
-        agents: expect.arrayContaining([expect.objectContaining({ agentType: 'claude' })]),
+        agents: expect.arrayContaining([expect.objectContaining({ agent_type: 'claude' })]),
       })
     );
   });

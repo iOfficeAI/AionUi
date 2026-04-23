@@ -29,7 +29,7 @@ const { default: MessageCronTrigger } = await vi.importActual<Mod>(
   '@/renderer/pages/conversation/Messages/components/MessageCronTrigger'
 );
 
-function buildMessage(cronJobId: string, cronJobName: string) {
+function buildMessage(cronJobId: string, cron_job_name: string) {
   return {
     content: { cronJobId, cronJobName },
   } as Parameters<typeof MessageCronTrigger>[0]['message'];

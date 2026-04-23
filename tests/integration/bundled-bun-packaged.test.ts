@@ -64,7 +64,7 @@ type BundledBunManifest = {
     version: string;
     sourceType: 'download';
     source: Record<string, string>;
-    updatedAt: string;
+    updated_at: string;
   };
   source: Record<string, unknown>;
   files: string[];

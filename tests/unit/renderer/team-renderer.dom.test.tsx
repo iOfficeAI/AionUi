@@ -110,7 +110,7 @@ vi.mock('@/renderer/pages/team/components/AgentStatusBadge', () => ({
 }));
 
 vi.mock('@/renderer/pages/team/components/TeamAgentIdentity', () => ({
-  default: ({ agentName }: { agentName: string }) =>
+  default: ({ agentName }: { agent_name: string }) =>
     React.createElement('span', { 'data-testid': 'agent-identity' }, agentName),
 }));
 
@@ -120,7 +120,7 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({ cliAgents: [], presetAssistants: [] }),
+  useConversationAgents: () => ({ cliAgents: [], preset_assistants: [] }),
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
@@ -172,7 +172,7 @@ vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
 
 // Mock useTeamSession to return controllable statusMap and removeAgent
 const mockUseTeamSessionReturn = {
-  statusMap: new Map<string, { slotId: string; status: string }>(),
+  statusMap: new Map<string, { slot_id: string; status: string }>(),
   addAgent: vi.fn().mockResolvedValue(undefined),
   renameAgent: vi.fn().mockResolvedValue(undefined),
   removeAgent: vi.fn().mockResolvedValue(undefined),
@@ -197,21 +197,21 @@ import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 function makeAgents(): TeamAgent[] {
   return [
     {
-      slotId: 'slot-lead',
-      conversationId: 'conv-lead',
+      slot_id: 'slot-lead',
+      conversation_id: 'conv-lead',
       role: 'leader',
-      agentType: 'acp',
-      agentName: 'Leader',
-      conversationType: 'acp',
+      agent_type: 'acp',
+      agent_name: 'Leader',
+      conversation_type: 'acp',
       status: 'idle',
     },
     {
-      slotId: 'slot-member',
-      conversationId: 'conv-member',
+      slot_id: 'slot-member',
+      conversation_id: 'conv-member',
       role: 'teammate',
-      agentType: 'acp',
-      agentName: 'Worker',
-      conversationType: 'acp',
+      agent_type: 'acp',
+      agent_name: 'Worker',
+      conversation_type: 'acp',
       status: 'idle',
     },
   ];
@@ -223,8 +223,8 @@ function makeTeam(): TTeam {
     name: 'Test Team',
     leaderAgentId: 'slot-lead',
     agents: makeAgents(),
-    createdAt: 1,
-    updatedAt: 1,
+    created_at: 1,
+    updated_at: 1,
   } as TTeam;
 }
 
@@ -258,7 +258,7 @@ describe('TeamTabsContext', () => {
           agents: makeAgents(),
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
           removeAgent: mockRemove,
         },
         React.createElement(Consumer)
@@ -284,7 +284,7 @@ describe('TeamTabsContext', () => {
           agents: makeAgents(),
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
         },
         React.createElement(Consumer)
       )
@@ -300,12 +300,12 @@ describe('TeamTabsContext', () => {
     const agents: TeamAgent[] = [
       ...makeAgents(),
       {
-        slotId: 'slot-member-2',
-        conversationId: 'conv-member-2',
+        slot_id: 'slot-member-2',
+        conversation_id: 'conv-member-2',
         role: 'teammate',
-        agentType: 'acp',
-        agentName: 'Worker 2',
-        conversationType: 'acp',
+        agent_type: 'acp',
+        agent_name: 'Worker 2',
+        conversation_type: 'acp',
         status: 'idle',
       },
     ];
@@ -319,7 +319,7 @@ describe('TeamTabsContext', () => {
           agents,
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
         },
         React.createElement(TeamTabs, {})
       )
@@ -347,18 +347,18 @@ describe('TeamTabsContext', () => {
           agents: [
             ...makeAgents(),
             {
-              slotId: 'slot-member-2',
-              conversationId: 'conv-member-2',
+              slot_id: 'slot-member-2',
+              conversation_id: 'conv-member-2',
               role: 'teammate',
-              agentType: 'acp',
-              agentName: 'Worker 2',
-              conversationType: 'acp',
+              agent_type: 'acp',
+              agent_name: 'Worker 2',
+              conversation_type: 'acp',
               status: 'idle',
             },
           ],
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
         },
         React.createElement(Consumer)
       )
@@ -400,7 +400,7 @@ describe('TeamTabs close button', () => {
           agents: makeAgents(),
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
           removeAgent: mockRemove,
         },
         React.createElement(TeamTabs, {})
@@ -422,7 +422,7 @@ describe('TeamTabs close button', () => {
           agents: makeAgents(),
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
           removeAgent: mockRemove,
         },
         React.createElement(TeamTabs, {})
@@ -447,7 +447,7 @@ describe('TeamTabs close button', () => {
           agents: makeAgents(),
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
           removeAgent: mockRemove,
         },
         React.createElement(TeamTabs, {})
@@ -472,7 +472,7 @@ describe('TeamTabs close button', () => {
           agents: makeAgents(),
           statusMap: new Map(),
           defaultActiveSlotId: 'slot-lead',
-          teamId: 'team-1',
+          team_id: 'team-1',
         },
         React.createElement(TeamTabs, {})
       )
@@ -521,14 +521,14 @@ describe('TeamPage remove agent', () => {
 
     await waitFor(() => {
       expect(mockRemoveAgentInvoke).toHaveBeenCalledWith({
-        teamId: 'team-1',
-        slotId: 'slot-member',
+        team_id: 'team-1',
+        slot_id: 'slot-member',
       });
     });
   });
 
   it('shows confirm modal when removing an active agent', async () => {
-    mockUseTeamSessionReturn.statusMap = new Map([['slot-member', { slotId: 'slot-member', status: 'active' }]]);
+    mockUseTeamSessionReturn.statusMap = new Map([['slot-member', { slot_id: 'slot-member', status: 'active' }]]);
 
     const TeamPage = (await import('@renderer/pages/team/TeamPage')).default;
     const { Modal } = await import('@arco-design/web-react');

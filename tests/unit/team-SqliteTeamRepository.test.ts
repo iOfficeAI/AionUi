@@ -28,17 +28,17 @@ function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
     leaderAgentId: 'slot-1',
     agents: [
       {
-        slotId: 'slot-1',
-        conversationId: 'conv-1',
+        slot_id: 'slot-1',
+        conversation_id: 'conv-1',
         role: 'leader',
-        agentType: 'acp',
-        agentName: 'Claude',
-        conversationType: 'acp',
+        agent_type: 'acp',
+        agent_name: 'Claude',
+        conversation_type: 'acp',
         status: 'idle',
       },
     ],
-    createdAt: 1000,
-    updatedAt: 1000,
+    created_at: 1000,
+    updated_at: 1000,
     ...overrides,
   };
 }
@@ -84,7 +84,7 @@ describeOrSkip('SqliteTeamRepository', () => {
 
   it('updates a team', async () => {
     await repo.create(makeTeam());
-    const updated = await repo.update('team-1', { name: 'Renamed', updatedAt: 2000 });
+    const updated = await repo.update('team-1', { name: 'Renamed', updated_at: 2000 });
     expect(updated.name).toBe('Renamed');
     const found = await repo.findById('team-1');
     expect(found!.name).toBe('Renamed');
@@ -109,13 +109,13 @@ describeOrSkip('SqliteTeamRepository', () => {
   describe('readUnreadAndMark', () => {
     const msg = (id: string, read = false): MailboxMessage => ({
       id,
-      teamId: 'team-1',
+      team_id: 'team-1',
       toAgentId: 'agent-a',
       fromAgentId: 'agent-b',
       type: 'chat',
       content: `msg-${id}`,
       read,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     });
 
     beforeEach(async () => {
@@ -175,14 +175,14 @@ describeOrSkip('SqliteTeamRepository', () => {
   describe('appendToBlocks', () => {
     const makeTask = (id: string, overrides: Partial<TeamTask> = {}): TeamTask => ({
       id,
-      teamId: 'team-1',
+      team_id: 'team-1',
       subject: `Task ${id}`,
       status: 'open',
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
       metadata: {},
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
       ...overrides,
     });
 
@@ -218,14 +218,14 @@ describeOrSkip('SqliteTeamRepository', () => {
   describe('removeFromBlockedBy', () => {
     const makeTask = (id: string, overrides: Partial<TeamTask> = {}): TeamTask => ({
       id,
-      teamId: 'team-1',
+      team_id: 'team-1',
       subject: `Task ${id}`,
       status: 'open',
-      blockedBy: [],
+      blocked_by: [],
       blocks: [],
       metadata: {},
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
       ...overrides,
     });
 
@@ -234,17 +234,17 @@ describeOrSkip('SqliteTeamRepository', () => {
     });
 
     it('removes a blocker id from blockedBy array', async () => {
-      await repo.createTask(makeTask('t1', { blockedBy: ['t0', 't2'] }));
+      await repo.createTask(makeTask('t1', { blocked_by: ['t0', 't2'] }));
       const updated = await repo.removeFromBlockedBy('t1', 't0');
 
-      expect(updated.blockedBy).toEqual(['t2']);
+      expect(updated.blocked_by).toEqual(['t2']);
     });
 
     it('returns task unchanged when blocker id is not present', async () => {
-      await repo.createTask(makeTask('t1', { blockedBy: ['t0'] }));
+      await repo.createTask(makeTask('t1', { blocked_by: ['t0'] }));
       const updated = await repo.removeFromBlockedBy('t1', 'nonexistent');
 
-      expect(updated.blockedBy).toEqual(['t0']);
+      expect(updated.blocked_by).toEqual(['t0']);
     });
 
     it('throws for nonexistent task', async () => {

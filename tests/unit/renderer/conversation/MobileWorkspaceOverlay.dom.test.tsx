@@ -49,7 +49,7 @@ describe('MobileWorkspaceOverlay', () => {
 
     expect(screen.getByTestId('workspace-panel-header')).toHaveTextContent('/workspace/project');
     expect(mockWorkspacePanelHeader).toHaveBeenCalledWith(
-      expect.objectContaining({ workspacePath: '/workspace/project', children: 'Workspace' })
+      expect.objectContaining({ workspace_path: '/workspace/project', children: 'Workspace' })
     );
   });
 

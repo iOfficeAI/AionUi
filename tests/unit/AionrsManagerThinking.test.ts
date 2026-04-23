@@ -125,7 +125,7 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 function createManager(): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: 'conv-think-1',
   };
   const model = data.model as any;

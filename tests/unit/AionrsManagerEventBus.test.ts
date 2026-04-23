@@ -146,7 +146,7 @@ const FALLBACK_DELAY_MS = 15_000;
 function createManager(conversationId = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversationId,
   };
   return new AionrsManager(data as any, data.model as any);
@@ -214,7 +214,7 @@ describe('GAP-8: AionrsManager Multi EventBus Emission', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, {
         type: 'tool_group',
-        data: [{ name: 'tool1', status: 'Running', callId: 'c1' }],
+        data: [{ name: 'tool1', status: 'Running', call_id: 'c1' }],
         msg_id: 'msg-1',
       });
 
@@ -261,7 +261,7 @@ describe('GAP-8: AionrsManager Multi EventBus Emission', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, {
         type: 'tool_group',
-        data: [{ name: 'tool1', status: 'Running', callId: 'c1' }],
+        data: [{ name: 'tool1', status: 'Running', call_id: 'c1' }],
         msg_id: 'msg-1',
       });
 

@@ -76,26 +76,26 @@ function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
     leaderAgentId: 'slot-lead',
     agents: [
       {
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
+        slot_id: 'slot-lead',
+        conversation_id: 'conv-lead',
         role: 'leader',
-        agentType: 'acp',
-        agentName: 'Leader',
-        conversationType: 'acp',
+        agent_type: 'acp',
+        agent_name: 'Leader',
+        conversation_type: 'acp',
         status: 'idle',
       },
       {
-        slotId: 'slot-member',
-        conversationId: 'conv-member',
+        slot_id: 'slot-member',
+        conversation_id: 'conv-member',
         role: 'teammate',
-        agentType: 'acp',
-        agentName: 'Worker',
-        conversationType: 'acp',
+        agent_type: 'acp',
+        agent_name: 'Worker',
+        conversation_type: 'acp',
         status: 'idle',
       },
     ],
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
+    created_at: Date.now(),
+    updated_at: Date.now(),
     ...overrides,
   } as TTeam;
 }
@@ -151,21 +151,21 @@ describe('TeamSession', () => {
       const team = makeTeam({
         agents: [
           {
-            slotId: 'slot-lead',
-            conversationId: 'conv-lead',
+            slot_id: 'slot-lead',
+            conversation_id: 'conv-lead',
             role: 'leader' as const,
-            agentType: 'acp',
-            agentName: 'Leader',
-            conversationType: 'acp',
+            agent_type: 'acp',
+            agent_name: 'Leader',
+            conversation_type: 'acp',
             status: 'idle' as const,
           },
           {
-            slotId: 'slot-pending',
-            conversationId: '',
+            slot_id: 'slot-pending',
+            conversation_id: '',
             role: 'teammate' as const,
-            agentType: 'acp',
-            agentName: 'Pending',
-            conversationType: 'acp',
+            agent_type: 'acp',
+            agent_name: 'Pending',
+            conversation_type: 'acp',
             status: 'pending' as const,
           },
         ],
@@ -188,7 +188,7 @@ describe('TeamSession', () => {
 
       const wakeSpy = vi
         .spyOn(
-          (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
+          (session as unknown as { teammateManager: { wake: (slot_id: string) => Promise<void> } }).teammateManager,
           'wake'
         )
         .mockRejectedValue(new Error('Task unavailable'));
@@ -211,7 +211,7 @@ describe('TeamSession', () => {
 
       const wakeSpy = vi
         .spyOn(
-          (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
+          (session as unknown as { teammateManager: { wake: (slot_id: string) => Promise<void> } }).teammateManager,
           'wake'
         )
         .mockRejectedValue(new Error('Task unavailable'));

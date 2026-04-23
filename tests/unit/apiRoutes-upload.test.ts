@@ -15,7 +15,7 @@ import os from 'os';
 describe('apiRoutes upload saveToWorkspace logic', () => {
   // Simulate the upload logic from apiRoutes.ts
   function resolveUploadPath(
-    conversationId: string | undefined,
+    conversation_id: string | undefined,
     requestedWorkspace: string | undefined,
     saveToWorkspace: boolean | undefined
   ): { useWorkspace: boolean; path: string } {

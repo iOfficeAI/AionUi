@@ -564,7 +564,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     it('should delegate to session.confirmPermission', async () => {
       const { agent } = await createStartedAgentWithSignalCapture();
 
-      const result = await agent.confirmMessage({ confirmKey: 'allow_once', callId: 'call123' });
+      const result = await agent.confirmMessage({ confirm_key: 'allow_once', call_id: 'call123' });
 
       expect(result.success).toBe(true);
       expect(result.data).toBe(null);
@@ -574,7 +574,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
     it('should return success result', async () => {
       const { agent } = await createStartedAgentWithSignalCapture();
 
-      const result = await agent.confirmMessage({ confirmKey: 'reject_once', callId: 'call456' });
+      const result = await agent.confirmMessage({ confirm_key: 'reject_once', call_id: 'call456' });
 
       expect(result).toEqual({ success: true, data: null });
     });
@@ -586,7 +586,7 @@ describe('AcpAgentV2 - Messaging + Permission Methods', () => {
         throw testError;
       });
 
-      const result = await agent.confirmMessage({ confirmKey: 'allow_once', callId: 'call123' });
+      const result = await agent.confirmMessage({ confirm_key: 'allow_once', call_id: 'call123' });
 
       expect(result.success).toBe(false);
       if (!result.success) {
@@ -651,18 +651,18 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const agent = await createStartedAgent();
 
       capturedCallbacks.onModelUpdate({
-        currentModelId: 'claude-4',
-        availableModels: [
-          { modelId: 'claude-4', name: 'Claude 4', tier: 'premium' },
-          { modelId: 'claude-3', name: 'Claude 3', tier: 'standard' },
+        current_model_id: 'claude-4',
+        available_models: [
+          { model_id: 'claude-4', name: 'Claude 4', tier: 'premium' },
+          { model_id: 'claude-3', name: 'Claude 3', tier: 'standard' },
         ],
       });
 
       const info = agent.getModelInfo();
       expect(info).toEqual({
-        currentModelId: 'claude-4',
+        current_model_id: 'claude-4',
         currentModelLabel: 'Claude 4',
-        availableModels: [
+        available_models: [
           { id: 'claude-4', label: 'Claude 4' },
           { id: 'claude-3', label: 'Claude 3' },
         ],
@@ -675,18 +675,18 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const agent = await createStartedAgent();
 
       capturedCallbacks.onModelUpdate({
-        currentModelId: 'claude-3',
-        availableModels: [{ modelId: 'claude-3', name: 'Claude 3', tier: 'standard' }],
+        current_model_id: 'claude-3',
+        available_models: [{ model_id: 'claude-3', name: 'Claude 3', tier: 'standard' }],
       });
 
-      expect(agent.getModelInfo()?.currentModelId).toBe('claude-3');
+      expect(agent.getModelInfo()?.current_model_id).toBe('claude-3');
 
       capturedCallbacks.onModelUpdate({
-        currentModelId: 'claude-4',
-        availableModels: [{ modelId: 'claude-4', name: 'Claude 4', tier: 'premium' }],
+        current_model_id: 'claude-4',
+        available_models: [{ model_id: 'claude-4', name: 'Claude 4', tier: 'premium' }],
       });
 
-      expect(agent.getModelInfo()?.currentModelId).toBe('claude-4');
+      expect(agent.getModelInfo()?.current_model_id).toBe('claude-4');
     });
   });
 
@@ -701,7 +701,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const agent = await createStartedAgent();
 
       capturedCallbacks.onConfigUpdate({
-        configOptions: [
+        config_options: [
           {
             id: 'opt1',
             name: 'Option 1',
@@ -758,8 +758,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       mockSessionMethods.setModel.mockImplementation(() => {
         setTimeout(() => {
           capturedCallbacks.onModelUpdate({
-            currentModelId: 'claude-4',
-            availableModels: [{ modelId: 'claude-4', name: 'Claude 4', tier: 'premium' }],
+            current_model_id: 'claude-4',
+            available_models: [{ model_id: 'claude-4', name: 'Claude 4', tier: 'premium' }],
           });
         }, 0);
       });
@@ -767,9 +767,9 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const promise = agent.setModelByConfigOption('claude-4');
 
       await expect(promise).resolves.toEqual({
-        currentModelId: 'claude-4',
+        current_model_id: 'claude-4',
         currentModelLabel: 'Claude 4',
-        availableModels: [{ id: 'claude-4', label: 'Claude 4' }],
+        available_models: [{ id: 'claude-4', label: 'Claude 4' }],
         canSwitch: true,
         source: 'models',
       });
@@ -782,8 +782,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       // Set initial cached value
       capturedCallbacks.onModelUpdate({
-        currentModelId: 'claude-3',
-        availableModels: [{ modelId: 'claude-3', name: 'Claude 3', tier: 'standard' }],
+        current_model_id: 'claude-3',
+        available_models: [{ model_id: 'claude-3', name: 'Claude 3', tier: 'standard' }],
       });
 
       // Mock setModel that never triggers callback
@@ -798,9 +798,9 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       const result = await promise;
       expect(result).toEqual({
-        currentModelId: 'claude-3',
+        current_model_id: 'claude-3',
         currentModelLabel: 'Claude 3',
-        availableModels: [{ id: 'claude-3', label: 'Claude 3' }],
+        available_models: [{ id: 'claude-3', label: 'Claude 3' }],
         canSwitch: true,
         source: 'models',
       });
@@ -816,8 +816,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       mockSessionMethods.setModel.mockImplementation(() => {
         setTimeout(() => {
           capturedCallbacks.onModelUpdate({
-            currentModelId: 'claude-4',
-            availableModels: [{ modelId: 'claude-4', name: 'Claude 4', tier: 'premium' }],
+            current_model_id: 'claude-4',
+            available_models: [{ model_id: 'claude-4', name: 'Claude 4', tier: 'premium' }],
           });
         }, 100);
       });
@@ -827,9 +827,9 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       await vi.advanceTimersByTimeAsync(100);
 
       await expect(promise).resolves.toEqual({
-        currentModelId: 'claude-4',
+        current_model_id: 'claude-4',
         currentModelLabel: 'Claude 4',
-        availableModels: [{ id: 'claude-4', label: 'Claude 4' }],
+        available_models: [{ id: 'claude-4', label: 'Claude 4' }],
         canSwitch: true,
         source: 'models',
       });
@@ -848,7 +848,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       // Mock setMode to trigger onModeUpdate after a tick
       mockSessionMethods.setMode.mockImplementation(() => {
         setTimeout(() => {
-          capturedCallbacks.onModeUpdate({ currentMode: 'bypassPermissions' });
+          capturedCallbacks.onModeUpdate({ current_mode: 'bypassPermissions' });
         }, 0);
       });
 
@@ -885,7 +885,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       mockSessionMethods.setMode.mockImplementation(() => {
         setTimeout(() => {
-          capturedCallbacks.onModeUpdate({ currentMode: 'standard' });
+          capturedCallbacks.onModeUpdate({ current_mode: 'standard' });
         }, 100);
       });
 
@@ -910,7 +910,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       mockSessionMethods.setConfigOption.mockImplementation(() => {
         setTimeout(() => {
           capturedCallbacks.onConfigUpdate({
-            configOptions: [
+            config_options: [
               {
                 id: 'opt1',
                 name: 'Option 1',
@@ -949,7 +949,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       // Set initial cached value
       capturedCallbacks.onConfigUpdate({
-        configOptions: [
+        config_options: [
           {
             id: 'opt1',
             name: 'Option 1',
@@ -998,7 +998,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       mockSessionMethods.setConfigOption.mockImplementation(() => {
         setTimeout(() => {
           capturedCallbacks.onConfigUpdate({
-            configOptions: [
+            config_options: [
               {
                 id: 'opt1',
                 name: 'Option 1',
@@ -1045,7 +1045,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       // Mock setMode to trigger onModeUpdate after a tick
       mockSessionMethods.setMode.mockImplementation(() => {
         setTimeout(() => {
-          capturedCallbacks.onModeUpdate({ currentMode: 'bypassPermissions' });
+          capturedCallbacks.onModeUpdate({ current_mode: 'bypassPermissions' });
         }, 0);
       });
 
@@ -1059,7 +1059,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       mockSessionMethods.setMode.mockImplementation(() => {
         setTimeout(() => {
-          capturedCallbacks.onModeUpdate({ currentMode: 'bypassPermissions' });
+          capturedCallbacks.onModeUpdate({ current_mode: 'bypassPermissions' });
         }, 0);
       });
 

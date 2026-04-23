@@ -115,12 +115,12 @@ async function callTool(
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: 'slot-lead',
-    conversationId: 'conv-lead',
+    slot_id: 'slot-lead',
+    conversation_id: 'conv-lead',
     role: 'leader',
-    agentType: 'claude',
-    agentName: 'Leader',
-    conversationType: 'acp',
+    agent_type: 'claude',
+    agent_name: 'Leader',
+    conversation_type: 'acp',
     status: 'idle',
     ...overrides,
   };
@@ -164,18 +164,18 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
   beforeEach(async () => {
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
-      makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate', status: 'idle' }),
+      makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader' }),
+      makeAgent({ slot_id: 'slot-worker', agent_name: 'Worker', role: 'teammate', status: 'idle' }),
     ];
     mailbox = makeMockMailbox();
     taskManager = makeMockTaskManager();
 
     server = new TeamMcpServer({
-      teamId: 'team-test',
+      team_id: 'team-test',
       getAgents: () => agents,
       mailbox: mailbox as unknown as Mailbox,
       taskManager: taskManager as unknown as TaskManager,
-      spawnAgent: vi.fn().mockResolvedValue(makeAgent({ slotId: 'slot-new', agentName: 'NewAgent' })),
+      spawnAgent: vi.fn().mockResolvedValue(makeAgent({ slot_id: 'slot-new', agent_name: 'NewAgent' })),
       renameAgent: vi.fn(),
       removeAgent: vi.fn(),
       wakeAgent: vi.fn().mockResolvedValue(undefined),
@@ -327,10 +327,10 @@ describe('TeamMcpServer — TCP tool interface', () => {
     it('intercepts shutdown_approved and removes agent', async () => {
       const removeAgent = vi.fn();
       const serverWithRemove = new TeamMcpServer({
-        teamId: 'team-remove',
+        team_id: 'team-remove',
         getAgents: () => [
-          makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
-          makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
+          makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader' }),
+          makeAgent({ slot_id: 'slot-worker', agent_name: 'Worker', role: 'teammate' }),
         ],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
@@ -364,12 +364,12 @@ describe('TeamMcpServer — TCP tool interface', () => {
     it('intercepts shutdown_rejected and forwards reason to lead without removing agent', async () => {
       const removeAgent = vi.fn();
       const localAgents = [
-        makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
-        makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
+        makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader' }),
+        makeAgent({ slot_id: 'slot-worker', agent_name: 'Worker', role: 'teammate' }),
       ];
       const localMailbox = makeMockMailbox();
       const serverReject = new TeamMcpServer({
-        teamId: 'team-reject',
+        team_id: 'team-reject',
         getAgents: () => localAgents,
         mailbox: localMailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
@@ -626,8 +626,8 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
     it('returns error when spawnAgent is not configured', async () => {
       const serverNoSpawn = new TeamMcpServer({
-        teamId: 'team-nospawn',
-        getAgents: () => [makeAgent({ slotId: 'slot-lead', role: 'leader' })],
+        team_id: 'team-nospawn',
+        getAgents: () => [makeAgent({ slot_id: 'slot-lead', role: 'leader' })],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
         wakeAgent: vi.fn().mockResolvedValue(undefined),
@@ -655,10 +655,10 @@ describe('TeamMcpServer — TCP tool interface', () => {
     it('renames an agent by name', async () => {
       const renameAgentFn = vi.fn();
       const serverRename = new TeamMcpServer({
-        teamId: 'team-rename',
+        team_id: 'team-rename',
         getAgents: () => [
-          makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
-          makeAgent({ slotId: 'slot-bob', agentName: 'Bob', role: 'teammate' }),
+          makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader' }),
+          makeAgent({ slot_id: 'slot-bob', agent_name: 'Bob', role: 'teammate' }),
         ],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
@@ -687,8 +687,8 @@ describe('TeamMcpServer — TCP tool interface', () => {
     it('renames an agent by slotId', async () => {
       const renameAgentFn = vi.fn();
       const serverRename = new TeamMcpServer({
-        teamId: 'team-rename2',
-        getAgents: () => [makeAgent({ slotId: 'slot-x', agentName: 'Xbot', role: 'teammate' })],
+        team_id: 'team-rename2',
+        getAgents: () => [makeAgent({ slot_id: 'slot-x', agent_name: 'Xbot', role: 'teammate' })],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
         renameAgent: renameAgentFn,
@@ -724,8 +724,8 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
     it('returns error when renameAgent is not configured', async () => {
       const serverNoRename = new TeamMcpServer({
-        teamId: 'team-norename',
-        getAgents: () => [makeAgent({ slotId: 'slot-a', agentName: 'AgentA', role: 'teammate' })],
+        team_id: 'team-norename',
+        getAgents: () => [makeAgent({ slot_id: 'slot-a', agent_name: 'AgentA', role: 'teammate' })],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
         wakeAgent: vi.fn().mockResolvedValue(undefined),
@@ -828,7 +828,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
   describe('server lifecycle', () => {
     it('getPort returns 0 after stop', async () => {
       const localServer = new TeamMcpServer({
-        teamId: 'team-lifecycle',
+        team_id: 'team-lifecycle',
         getAgents: () => [],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,
@@ -842,7 +842,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
     it('stop is idempotent when called twice', async () => {
       const localServer = new TeamMcpServer({
-        teamId: 'team-idempotent',
+        team_id: 'team-idempotent',
         getAgents: () => [],
         mailbox: mailbox as unknown as Mailbox,
         taskManager: taskManager as unknown as TaskManager,

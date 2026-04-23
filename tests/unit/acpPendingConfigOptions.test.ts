@@ -43,7 +43,7 @@ describe('AcpAgent.start — pending config options from Guid page', () => {
 
   beforeEach(() => {
     agent = makeAgent('codex', {
-      pendingConfigOptions: { thought_level: 'high', reasoning: 'detailed' },
+      pending_config_options: { thought_level: 'high', reasoning: 'detailed' },
     });
     conn = (agent as any).connection;
     // Stub out connection, auth, session creation, and other start() steps
@@ -66,7 +66,7 @@ describe('AcpAgent.start — pending config options from Guid page', () => {
   });
 
   it('continues applying remaining options when one fails', async () => {
-    const setConfigOption = vi.spyOn(conn, 'setConfigOption').mockImplementation(async (configId: string) => {
+    const setConfigOption = vi.spyOn(conn, 'setConfigOption').mockImplementation(async (config_id: string) => {
       if (configId === 'thought_level') throw new Error('option not supported');
       return {} as any;
     });
@@ -97,7 +97,7 @@ describe('AcpAgent.start — pending config options from Guid page', () => {
   });
 
   it('skips setConfigOption when pendingConfigOptions is empty object', async () => {
-    const agentEmpty = makeAgent('codex', { pendingConfigOptions: {} });
+    const agentEmpty = makeAgent('codex', { pending_config_options: {} });
     const connEmpty = (agentEmpty as any).connection;
     vi.spyOn(connEmpty, 'connect').mockResolvedValue(undefined);
     vi.spyOn(agentEmpty as any, 'performAuthentication').mockResolvedValue(undefined);

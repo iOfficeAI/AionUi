@@ -164,7 +164,7 @@ const FALLBACK_DELAY_MS = 15_000;
 function createManager(conversationId = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversationId,
   };
   return new AionrsManager(data as any, data.model as any);
@@ -252,7 +252,7 @@ describe('GAP-7: AionrsManager Buffered Stream DB Writes', () => {
       // tool_group should flush the pending text buffer
       emitEvent(manager, {
         type: 'tool_group',
-        data: [{ name: 'tool1', status: 'Running', callId: 'c1' }],
+        data: [{ name: 'tool1', status: 'Running', call_id: 'c1' }],
         msg_id: 'msg-1',
       });
 

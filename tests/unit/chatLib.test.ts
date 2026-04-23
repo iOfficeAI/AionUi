@@ -112,7 +112,7 @@ describe('transformMessage - cron_trigger', () => {
       msg_id: 'msg-012',
       data: {
         cronJobId: 'cron-002',
-        cronJobName: 'Daily Report',
+        cron_job_name: 'Daily Report',
         triggeredAt,
       },
     };
@@ -125,7 +125,7 @@ describe('transformMessage - cron_trigger', () => {
     expect(result.msg_id).toBe('msg-012');
     expect(result.position).toBe('center');
     expect(result.content.cronJobId).toBe('cron-002');
-    expect(result.content.cronJobName).toBe('Daily Report');
+    expect(result.content.cron_job_name).toBe('Daily Report');
     expect(result.content.triggeredAt).toBe(triggeredAt);
     expect(result.id).toBeDefined(); // uuid generated
   });
@@ -141,7 +141,7 @@ describe('transformMessage - content with cronMeta', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: 'cron-003',
-      cronJobName: 'Backup Job',
+      cron_job_name: 'Backup Job',
       triggeredAt,
     };
 
@@ -185,7 +185,7 @@ describe('transformMessage - content with cronMeta', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: 'cron-004',
-      cronJobName: 'User Cron',
+      cron_job_name: 'User Cron',
       triggeredAt,
     };
 
@@ -271,7 +271,7 @@ describe('composeMessage - cronMeta preservation', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: 'cron-005',
-      cronJobName: 'Compose Test',
+      cron_job_name: 'Compose Test',
       triggeredAt,
     };
 
@@ -312,7 +312,7 @@ describe('composeMessage - cronMeta preservation', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: 'cron-005',
-      cronJobName: 'Compose Test',
+      cron_job_name: 'Compose Test',
       triggeredAt,
     };
 
@@ -352,7 +352,7 @@ describe('composeMessage - cronMeta preservation', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: 'cron-006',
-      cronJobName: 'New Message',
+      cron_job_name: 'New Message',
       triggeredAt: Date.now(),
     };
 
@@ -392,7 +392,7 @@ describe('composeMessage - cronMeta preservation', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
       cronJobId: 'cron-007',
-      cronJobName: 'First Message',
+      cron_job_name: 'First Message',
       triggeredAt: Date.now(),
     };
 
@@ -457,7 +457,7 @@ describe('composeMessage - cron_trigger', () => {
       position: 'center',
       content: {
         cronJobId: 'cron-009',
-        cronJobName: 'Trigger Job',
+        cron_job_name: 'Trigger Job',
         triggeredAt: Date.now(),
       },
     };

@@ -178,8 +178,8 @@ describe('OpencodeMcpAgent', () => {
           args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp/workspace'],
           env: { DEBUG: '1' },
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
       {
@@ -191,8 +191,8 @@ describe('OpencodeMcpAgent', () => {
           url: 'https://jira.example.com/mcp',
           headers: { Authorization: 'Bearer token' },
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
     ];

@@ -17,7 +17,7 @@ describe('AcpAdapter - user_message_chunk handling', () => {
 
   it('should silently ignore user_message_chunk without producing messages', () => {
     const update: AcpSessionUpdate = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'user_message_chunk',
         content: {
@@ -36,7 +36,7 @@ describe('AcpAdapter - user_message_chunk handling', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const update = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'user_message_chunk',
         content: { type: 'text', text: 'echo' },
@@ -54,7 +54,7 @@ describe('AcpAdapter - user_message_chunk handling', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const update = {
-      sessionId: 'test-session',
+      session_id: 'test-session',
       update: {
         sessionUpdate: 'completely_unknown_type',
       },

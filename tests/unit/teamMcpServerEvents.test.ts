@@ -108,7 +108,7 @@ import { TeamMcpServer } from '../../src/process/team/mcp/team/TeamMcpServer';
 
 function makeMockDeps() {
   return {
-    teamId: 'test-team-42',
+    team_id: 'test-team-42',
     getAgents: vi.fn().mockReturnValue([]),
     mailbox: { send: vi.fn(), subscribe: vi.fn(), write: vi.fn().mockResolvedValue(undefined) } as any,
     taskManager: { createTask: vi.fn(), getTasks: vi.fn().mockReturnValue([]) } as any,
@@ -133,7 +133,7 @@ describe('Task #4: TeamMcpServer IPC events', () => {
     const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'tcp_ready');
     expect(readyCalls.length).toBeGreaterThan(0);
     const payload = readyCalls[0][0];
-    expect(payload.teamId).toBe('test-team-42');
+    expect(payload.team_id).toBe('test-team-42');
     expect(typeof payload.port).toBe('number');
     expect(payload.port).toBeGreaterThan(0);
 
@@ -166,7 +166,7 @@ describe('Task #4: TeamMcpServer IPC events', () => {
     const errorCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'tcp_error');
     expect(errorCalls.length).toBeGreaterThan(0);
     const payload = errorCalls[0][0];
-    expect(payload.teamId).toBe('test-team-42');
+    expect(payload.team_id).toBe('test-team-42');
     expect(typeof payload.error).toBe('string');
     expect(payload.error!.length).toBeGreaterThan(0);
 
@@ -181,7 +181,7 @@ describe('Task #4: TeamMcpServer IPC events', () => {
 
 describe('TeamMcpServer agent type capability check', () => {
   it('allows gemini agents via handleSpawnAgent (gemini is always team-capable)', async () => {
-    const spawnAgent = vi.fn().mockResolvedValue({ slotId: 'new-slot', conversationId: 'c1' });
+    const spawnAgent = vi.fn().mockResolvedValue({ slot_id: 'new-slot', conversation_id: 'c1' });
     const deps = { ...makeMockDeps(), spawnAgent };
     const server = new TeamMcpServer(deps);
 

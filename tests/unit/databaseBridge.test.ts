@@ -49,11 +49,11 @@ function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRe
     createConversation: vi.fn(),
     updateConversation: vi.fn(),
     deleteConversation: vi.fn(),
-    getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    getMessages: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     insertMessage: vi.fn(),
-    getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    getUserConversations: vi.fn(() => ({ data: [], total: 0, has_more: false })),
     listAllConversations: vi.fn(() => []),
-    searchMessages: vi.fn(() => ({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false })),
+    searchMessages: vi.fn(() => ({ items: [], total: 0, page: 0, page_size: 20, has_more: false })),
     ...overrides,
   };
 }
@@ -72,7 +72,7 @@ describe('databaseBridge', () => {
   describe('getConversationMessages', () => {
     it('returns messages from repo', async () => {
       const msgs: Partial<TMessage>[] = [{ id: 'm1', type: 'text' as any }];
-      vi.mocked(repo.getMessages).mockReturnValue({ data: msgs as TMessage[], total: 1, hasMore: false });
+      vi.mocked(repo.getMessages).mockReturnValue({ data: msgs as TMessage[], total: 1, has_more: false });
 
       const result = await handlers['getConversationMessages']({ conversation_id: 'c1' });
 
@@ -91,7 +91,7 @@ describe('databaseBridge', () => {
     });
 
     it('does not throw when called with undefined params', async () => {
-      vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, hasMore: false });
+      vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, has_more: false });
 
       const result = await handlers['getConversationMessages'](undefined);
 
@@ -99,9 +99,9 @@ describe('databaseBridge', () => {
     });
 
     it('uses provided page and pageSize', async () => {
-      vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, hasMore: false });
+      vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, has_more: false });
 
-      await handlers['getConversationMessages']({ conversation_id: 'c1', page: 2, pageSize: 50 });
+      await handlers['getConversationMessages']({ conversation_id: 'c1', page: 2, page_size: 50 });
 
       expect(repo.getMessages).toHaveBeenCalledWith('c1', 2, 50);
     });
@@ -115,7 +115,7 @@ describe('databaseBridge', () => {
       vi.mocked(repo.getUserConversations).mockReturnValue({
         data: [dbConv as TChatConversation],
         total: 1,
-        hasMore: false,
+        has_more: false,
       });
 
       const result = await handlers['getUserConversations']({});
@@ -127,7 +127,7 @@ describe('databaseBridge', () => {
       const { ProcessChat } = await import('../../src/process/utils/initStorage');
       const fileConv: Partial<TChatConversation> = { id: 'file-c1', modifyTime: 1000 };
       vi.mocked(ProcessChat.get).mockResolvedValue([fileConv] as any);
-      vi.mocked(repo.getUserConversations).mockReturnValue({ data: [], total: 0, hasMore: false });
+      vi.mocked(repo.getUserConversations).mockReturnValue({ data: [], total: 0, has_more: false });
 
       const result = await handlers['getUserConversations']({});
 
@@ -141,7 +141,7 @@ describe('databaseBridge', () => {
       vi.mocked(repo.getUserConversations).mockReturnValue({
         data: [conv as TChatConversation],
         total: 1,
-        hasMore: false,
+        has_more: false,
       });
 
       const result = await handlers['getUserConversations']({});
@@ -161,7 +161,7 @@ describe('databaseBridge', () => {
     });
 
     it('does not throw when called with undefined params (ELECTRON-FN)', async () => {
-      vi.mocked(repo.getUserConversations).mockReturnValue({ data: [], total: 0, hasMore: false });
+      vi.mocked(repo.getUserConversations).mockReturnValue({ data: [], total: 0, has_more: false });
 
       const result = await handlers['getUserConversations'](undefined);
 
@@ -174,7 +174,7 @@ describe('databaseBridge', () => {
 
   describe('searchConversationMessages', () => {
     it('returns search results from repo', async () => {
-      const searchResult = { items: [{ id: 'r1' }], total: 1, page: 0, pageSize: 20, hasMore: false };
+      const searchResult = { items: [{ id: 'r1' }], total: 1, page: 0, page_size: 20, has_more: false };
       vi.mocked(repo.searchMessages).mockReturnValue(searchResult as any);
 
       const result = await handlers['searchConversationMessages']({ keyword: 'hello' });
@@ -188,17 +188,17 @@ describe('databaseBridge', () => {
         throw new Error('search error');
       });
 
-      const result = await handlers['searchConversationMessages']({ keyword: 'hello', page: 1, pageSize: 10 });
+      const result = await handlers['searchConversationMessages']({ keyword: 'hello', page: 1, page_size: 10 });
 
-      expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 10, hasMore: false });
+      expect(result).toEqual({ items: [], total: 0, page: 1, page_size: 10, has_more: false });
     });
 
     it('does not throw when called with undefined params', async () => {
-      vi.mocked(repo.searchMessages).mockReturnValue({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
+      vi.mocked(repo.searchMessages).mockReturnValue({ items: [], total: 0, page: 0, page_size: 20, has_more: false });
 
       const result = await handlers['searchConversationMessages'](undefined);
 
-      expect(result).toEqual({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
+      expect(result).toEqual({ items: [], total: 0, page: 0, page_size: 20, has_more: false });
     });
   });
 });
