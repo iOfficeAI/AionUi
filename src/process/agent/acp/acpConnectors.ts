@@ -433,14 +433,12 @@ export function spawnNpxBackend(
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
-  ensureMinNodeVersion(cleanEnv, 20, 10, 'Claude ACP bridge');
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
 async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
-  ensureMinNodeVersion(cleanEnv, 20, 10, 'Codex ACP bridge');
 
   const diagStart = Date.now();
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
@@ -491,7 +489,6 @@ async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Pr
 /** Prepare clean env + resolve npx + load MCP config for CodeBuddy. */
 async function prepareCodebuddy(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
-  ensureMinNodeVersion(cleanEnv, 20, 10, 'CodeBuddy ACP');
 
   // Load user's MCP config if available (~/.codebuddy/mcp.json)
   // CodeBuddy CLI in --acp mode does not auto-load mcp.json, so we pass it explicitly
