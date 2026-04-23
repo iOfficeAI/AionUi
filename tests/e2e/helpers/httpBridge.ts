@@ -28,15 +28,17 @@ export async function httpInvoke<T = unknown>(
     async ({ method: m, path: p, body: b }) => {
       const port = (window as unknown as { __backendPort?: number }).__backendPort ?? 13400;
       const url = `http://127.0.0.1:${port}${p}`;
-      // Always set Content-Type: some backend routes (e.g. DELETE
-      // /api/skills/external-paths) reject requests without it even when
-      // the body is empty. Setting it unconditionally is safe.
-      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      // DELETE routes require Content-Type: application/json AND a JSON-parseable
+      // body even when the operation takes no body (e.g. DELETE /api/skills/external-paths
+      // where the path is in the query string). Send `{}` as default body for DELETE.
+      const effectiveBody = b !== undefined ? b : m === 'DELETE' ? {} : undefined;
+      const headers: Record<string, string> = {};
+      if (effectiveBody !== undefined) headers['Content-Type'] = 'application/json';
 
       const res = await fetch(url, {
         method: m,
         headers,
-        body: b !== undefined ? JSON.stringify(b) : undefined,
+        body: effectiveBody !== undefined ? JSON.stringify(effectiveBody) : undefined,
       });
 
       if (!res.ok) {

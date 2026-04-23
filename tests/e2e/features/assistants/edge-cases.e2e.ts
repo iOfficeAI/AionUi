@@ -4,7 +4,7 @@
  * Edge case and boundary validations for the Assistant Settings page.
  */
 import { test, expect } from '../../fixtures';
-import { goToAssistantSettings, takeScreenshot, clickCreateAssistant, closeDrawer, httpPost, httpDelete } from '../../helpers';
+import { goToAssistantSettings, takeScreenshot, clickCreateAssistant, closeDrawer, httpPost, httpInvoke } from '../../helpers';
 
 test.describe('Assistant Settings Edge Cases (P2)', () => {
   test.setTimeout(90_000);
@@ -154,7 +154,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       // No skill cards with delete buttons found
       await takeScreenshot(page, 'assistants/p2-3/04-no-delete-buttons.png');
       await closeDrawer(page);
-      await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
+      await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       const { rmSync } = await import('fs');
       rmSync(tempSkillPath, { recursive: true, force: true });
       return;
@@ -171,7 +171,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     if (deleteCount === 0) {
       await takeScreenshot(page, 'assistants/p2-3/05-no-delete-button.png');
       await closeDrawer(page);
-      await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
+      await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       const { rmSync } = await import('fs');
       rmSync(tempSkillPath, { recursive: true, force: true });
       return;
@@ -186,7 +186,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
 
     // Clean up
     await closeDrawer(page);
-    await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+    await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
 
     // Remove temp directory in test process
     const { rmSync } = await import('fs');

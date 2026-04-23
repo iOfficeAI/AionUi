@@ -20,7 +20,7 @@ import {
   takeScreenshot,
   httpGet,
   httpPost,
-  httpDelete,
+  httpInvoke,
 } from '../../helpers';
 
 test.describe('Assistant Settings UI States (P1)', () => {
@@ -1023,7 +1023,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
       await page.keyboard.press('Escape');
       await closeDrawer(page);
       // Clean up
-      await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
+      await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       return;
     }
 
@@ -1055,7 +1055,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.keyboard.press('Escape');
     await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     await closeDrawer(page);
-    await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
+    await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
   });
 
   test('P1-21: skills modal shows added skills as disabled', async ({ page }) => {
@@ -1087,7 +1087,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
       await takeScreenshot(page, 'assistants/p1-21/04-no-added-skills.png');
       await page.keyboard.press('Escape');
       await closeDrawer(page);
-      await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
+      await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       return;
     }
 
@@ -1101,6 +1101,6 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.keyboard.press('Escape');
     await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     await closeDrawer(page);
-    await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
+    await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
   });
 });
