@@ -7,13 +7,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock ipcBridge BEFORE importing the module under test so the static import
-// picks up the mock. `migrateAssistants.ts` only touches
-// `ipcBridge.assistants.import`, but we mock the whole surface to keep the
-// factory self-contained.
+// picks up the mock. `migrateAssistants.ts` touches `.import` (phase 1, user
+// imports) and `.setState` (phase 2, builtin disabled-state overrides).
 vi.mock('@/common', () => ({
   ipcBridge: {
     assistants: {
       import: { invoke: vi.fn() },
+      setState: { invoke: vi.fn() },
     },
   },
 }));
@@ -42,6 +42,7 @@ function makeConfigFile(initial: Record<string, unknown>) {
 }
 
 const importInvokeMock = ipcBridge.assistants.import.invoke as unknown as ReturnType<typeof vi.fn>;
+const setStateInvokeMock = ipcBridge.assistants.setState.invoke as unknown as ReturnType<typeof vi.fn>;
 
 describe('migrateAssistantsToBackend', () => {
   beforeEach(() => {
@@ -197,5 +198,69 @@ describe('migrateAssistantsToBackend', () => {
     const [call] = importInvokeMock.mock.calls[0];
     expect(call.assistants[0].name).toBe('Untitled');
     expect(call.assistants[0].presetAgentType).toBe('gemini');
+  });
+
+  // H3: preserve user-set enabled=false state on legacy built-ins by replaying
+  // it against the backend's assistant_overrides table.
+  describe('builtin disabled-state override (H3)', () => {
+    it('replays enabled=false for legacy builtins via setState with stripped id', async () => {
+      const cf = makeConfigFile({
+        'migration.electronConfigImported': false,
+        assistants: [
+          { id: 'builtin-word-creator', isBuiltin: true, enabled: false },
+          { id: 'builtin-openclaw-setup', isBuiltin: true, enabled: false },
+          { id: 'builtin-cowork', isBuiltin: true, enabled: true },
+          { id: 'custom-123', name: 'Mine' },
+        ],
+      });
+      importInvokeMock.mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+      setStateInvokeMock.mockResolvedValue(undefined);
+
+      await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+
+      // setState called only for disabled builtins; id stripped of "builtin-" prefix.
+      expect(setStateInvokeMock).toHaveBeenCalledTimes(2);
+      expect(setStateInvokeMock).toHaveBeenCalledWith({ id: 'word-creator', enabled: false });
+      expect(setStateInvokeMock).toHaveBeenCalledWith({ id: 'openclaw-setup', enabled: false });
+      // Cowork was enabled — must not appear.
+      expect(setStateInvokeMock).not.toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'cowork' }),
+      );
+      // Flag flips true after both phases succeed.
+      expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
+    });
+
+    it('keeps the flag false when any setState call throws', async () => {
+      const cf = makeConfigFile({
+        'migration.electronConfigImported': false,
+        assistants: [{ id: 'builtin-word-creator', isBuiltin: true, enabled: false }],
+      });
+      setStateInvokeMock.mockRejectedValue(new Error('backend offline'));
+
+      await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+
+      // No user rows → phase 1 skipped; phase 2 failed → flag must stay false
+      // so the next launch retries.
+      expect(importInvokeMock).not.toHaveBeenCalled();
+      expect(setStateInvokeMock).toHaveBeenCalledOnce();
+      expect(cf.set).not.toHaveBeenCalledWith('migration.electronConfigImported', true);
+    });
+
+    it('sets the flag immediately when there are no user imports and no overrides', async () => {
+      const cf = makeConfigFile({
+        'migration.electronConfigImported': false,
+        assistants: [
+          // All built-ins, all enabled — nothing to import, nothing to override.
+          { id: 'builtin-word-creator', isBuiltin: true, enabled: true },
+          { id: 'builtin-cowork', isBuiltin: true }, // enabled defaulted to truthy
+        ],
+      });
+
+      await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+
+      expect(importInvokeMock).not.toHaveBeenCalled();
+      expect(setStateInvokeMock).not.toHaveBeenCalled();
+      expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
+    });
   });
 });

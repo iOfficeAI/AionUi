@@ -12,21 +12,36 @@ const BUILTIN_ID_PREFIX = 'builtin-';
 
 /**
  * Frozen snapshot of built-in assistant ids. Must stay in sync with the
- * backend manifest at `crates/aionui-app/assets/builtin-assistants/assistants.json`
- * (and the `preset-id-whitelist.json` fixture shipped alongside it).
- *
- * Drift here means a user-authored assistant whose id accidentally matches a
- * built-in slug will be imported into the user table and then silently
- * overwritten the next time the backend ships a matching built-in. The legacy
- * `builtin-` prefix check below catches the vast majority of cases; this
- * whitelist is the belt-and-suspenders guard for unprefixed ids.
- *
- * TODO(T3b.3): Populate from the final assistants.json manifest once T1b
- * (backend-dev) lands. Tracked in coordinator follow-up; safe to land empty
- * because every legacy built-in id in the frontend catalog used the
- * `builtin-` prefix.
+ * backend manifest at
+ * `aionui-backend/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
+ * — add/remove ids in the same PR. Drift means a user-authored assistant
+ * whose id accidentally matches a built-in slug will be imported into the
+ * user table and then silently overwritten the next time the backend ships
+ * a matching built-in. The legacy `builtin-` prefix check handles the common
+ * case; this whitelist is the guard for unprefixed ids.
  */
-const PRESET_ID_WHITELIST = new Set<string>([]);
+const PRESET_ID_WHITELIST = new Set<string>([
+  'word-creator',
+  'ppt-creator',
+  'excel-creator',
+  'morph-ppt',
+  'morph-ppt-3d',
+  'pitch-deck-creator',
+  'dashboard-creator',
+  'academic-paper',
+  'financial-model-creator',
+  'star-office-helper',
+  'openclaw-setup',
+  'cowork',
+  'game-3d',
+  'ui-ux-pro-max',
+  'planning-with-files',
+  'human-3-coach',
+  'social-job-publisher',
+  'moltbook',
+  'beautiful-mermaid',
+  'story-roleplay',
+]);
 
 function isLegacyBuiltin(a: Record<string, unknown>): boolean {
   const id = typeof a.id === 'string' ? a.id : '';
@@ -103,12 +118,74 @@ function toBackendShape(legacy: Record<string, unknown>): CreateAssistantRequest
 
 type ConfigFile = typeof ProcessConfigType;
 
+type BuiltinOverride = { id: string; enabled: false };
+
+/**
+ * Collect user-set `enabled=false` overrides on legacy built-in rows so we can
+ * replay them against the backend's `assistant_overrides` table post-import.
+ *
+ * Legacy frontend ids carry a `builtin-` prefix (e.g. `builtin-word-creator`)
+ * but the backend manifest uses bare slugs (`word-creator`). Strip the prefix
+ * before emitting; leave unprefixed whitelist hits as-is.
+ */
+function collectBuiltinOverrides(legacy: Record<string, unknown>[]): BuiltinOverride[] {
+  const overrides: BuiltinOverride[] = [];
+  for (const row of legacy) {
+    const id = typeof row.id === 'string' ? row.id : '';
+    if (!id) continue;
+    const isBuiltin = id.startsWith(BUILTIN_ID_PREFIX) || PRESET_ID_WHITELIST.has(id);
+    if (!isBuiltin) continue;
+    if (row.enabled !== false) continue;
+    const backendId = id.startsWith(BUILTIN_ID_PREFIX) ? id.slice(BUILTIN_ID_PREFIX.length) : id;
+    overrides.push({ id: backendId, enabled: false });
+  }
+  return overrides;
+}
+
+/**
+ * Replay disabled-state overrides onto the backend's `assistant_overrides`
+ * table via PATCH /api/assistants/{id}/state. Returns the count of failures
+ * so the caller can keep the migration flag false and retry on next launch.
+ * Runs in parallel because each upsert is independent and the set is small
+ * (single-digit count in practice).
+ */
+async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<number> {
+  if (overrides.length === 0) return 0;
+  const results = await Promise.allSettled(
+    overrides.map((ov) =>
+      ipcBridge.assistants.setState.invoke({ id: ov.id, enabled: ov.enabled }),
+    ),
+  );
+  let failed = 0;
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') {
+      failed += 1;
+      console.error(`[AionUi] Failed to apply builtin override for ${overrides[i].id}:`, r.reason);
+    }
+  });
+  if (failed === 0) {
+    console.log(`[AionUi] Applied ${overrides.length} builtin disabled-state override(s)`);
+  } else {
+    console.error(
+      `[AionUi] Builtin override partial: ${failed}/${overrides.length} failed`,
+    );
+  }
+  return failed;
+}
+
 /**
  * One-shot import of legacy `ConfigStorage.get('assistants')` into the backend
- * after the backend is healthy. Idempotent: the backend's import endpoint is
- * insert-only (skips on conflict), so retries never clobber post-migration
- * edits. Flag `migration.electronConfigImported` is only set when the run
- * fully succeeds.
+ * after the backend is healthy. Two phases:
+ *
+ *   1. POST /api/assistants/import for user-authored rows (insert-only, so
+ *      retries are idempotent).
+ *   2. PATCH /api/assistants/{id}/state for each legacy built-in that the
+ *      user had disabled, so the `enabled=false` preference survives the
+ *      migration to the backend's `assistant_overrides` table.
+ *
+ * Flag `migration.electronConfigImported` only flips true when BOTH phases
+ * complete cleanly (or when there is nothing to do). Any failure keeps the
+ * flag false so the next launch retries.
  *
  * Honors `AIONUI_SKIP_ELECTRON_MIGRATION=1` so E2E fixtures can seed via
  * `POST /api/assistants/import` directly.
@@ -132,29 +209,45 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
 
   const userAssistants = legacy.filter((a) => !isLegacyBuiltin(a));
-  if (userAssistants.length === 0) {
+  const builtinOverrides = collectBuiltinOverrides(legacy);
+
+  // Nothing to do at all — flag flips true immediately.
+  if (userAssistants.length === 0 && builtinOverrides.length === 0) {
     await configFile.set('migration.electronConfigImported', true);
     return;
   }
 
-  try {
-    const result = await ipcBridge.assistants.import.invoke({
-      assistants: userAssistants.map(toBackendShape),
-    });
-    if (result.failed === 0) {
-      await configFile.set('migration.electronConfigImported', true);
+  // Phase 1: import user-authored assistants (if any).
+  if (userAssistants.length > 0) {
+    try {
+      const result = await ipcBridge.assistants.import.invoke({
+        assistants: userAssistants.map(toBackendShape),
+      });
+      if (result.failed !== 0) {
+        console.error(
+          `[AionUi] Assistant migration partial: ${result.failed} failed`,
+          result.errors,
+        );
+        // Keep flag false; next launch retries. Insert-only on backend so
+        // already-imported rows will skip rather than clobber.
+        return;
+      }
       console.log(
         `[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`,
       );
-    } else {
-      console.error(
-        `[AionUi] Assistant migration partial: ${result.failed} failed`,
-        result.errors,
-      );
-      // Flag stays false so the next launch retries. Imports are insert-only
-      // on the backend, so already-imported rows skip rather than clobber.
+    } catch (error) {
+      console.error('[AionUi] Assistant migration failed:', error);
+      return;
     }
-  } catch (error) {
-    console.error('[AionUi] Assistant migration failed:', error);
   }
+
+  // Phase 2: replay disabled-state overrides for built-ins.
+  const overrideFailures = await applyBuiltinOverrides(builtinOverrides);
+  if (overrideFailures > 0) {
+    // Partial override failure — retry on next launch. setState is an upsert
+    // on the backend side, so replaying is safe.
+    return;
+  }
+
+  await configFile.set('migration.electronConfigImported', true);
 }
