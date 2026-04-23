@@ -10,7 +10,7 @@
  * 6. Delete task from detail page, verify conversation still accessible
  */
 import { test, expect } from '../fixtures';
-import { invokeBridge } from '../helpers/bridge';
+import { httpGet, httpInvoke } from '../helpers/httpBridge';
 import { goToGuid } from '../helpers/navigation';
 import { selectAgent, sendMessageFromGuid, waitForSessionActive, waitForAiReply, deleteConversation } from '../helpers';
 import { agentPillByBackend } from '../helpers/selectors';
@@ -28,15 +28,20 @@ interface CronJob {
 // ── Bridge helpers ──────────────────────────────────────────────────────────
 
 async function listCronJobs(page: import('@playwright/test').Page): Promise<CronJob[]> {
-  return invokeBridge<CronJob[]>(page, 'cron.list-jobs', undefined, 10_000);
+  const result = await httpGet<unknown>(page, '/api/cron/jobs');
+  return Array.isArray(result) ? (result as CronJob[]) : [];
 }
 
 async function getCronJob(page: import('@playwright/test').Page, jobId: string): Promise<CronJob | null> {
-  return invokeBridge<CronJob | null>(page, 'cron.get-job', { jobId }, 10_000);
+  try {
+    return await httpGet<CronJob>(page, `/api/cron/jobs/${encodeURIComponent(jobId)}`);
+  } catch {
+    return null;
+  }
 }
 
 async function removeCronJob(page: import('@playwright/test').Page, jobId: string): Promise<void> {
-  return invokeBridge<void>(page, 'cron.remove-job', { jobId }, 10_000);
+  await httpInvoke(page, 'DELETE', `/api/cron/jobs/${encodeURIComponent(jobId)}`);
 }
 
 // ── Confirmation auto-approve ──────────────────────────────────────────────
