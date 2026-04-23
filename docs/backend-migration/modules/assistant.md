@@ -11,8 +11,10 @@ during the Skill-Library pilot. This log records what was re-validated.
 
 ## Endpoints verified
 
-All 7 endpoints exercised against `~/.cargo/bin/aionui-backend --local` on
-port 25810 with an ephemeral data dir at `/tmp/aionui-verify/data`.
+All 7 endpoints exercised against `~/.cargo/bin/aionui-backend --local`
+on port 25811 with an ephemeral data dir at `/tmp/aionui-verify-2/data`
+(revised-A.3 run). See the "A.3 — Headless endpoint verification"
+section below for the full probe transcript with exact commands.
 
 | #   | Method | Path                                        | Status | Notes                                                                      |
 | --- | ------ | ------------------------------------------- | ------ | -------------------------------------------------------------------------- |
@@ -81,32 +83,116 @@ blocks) to return raw arrays. Commit `af5477360` —
 
 Re-run: **50 passed / 0 failed / 3 files**.
 
-## UI spot-check
+## A.3 — Headless endpoint verification (revised spec)
 
-Manual Electron spot-check (A.3 per the plan) requires an interactive
-session; the agent runtime here is non-interactive, so the 7 UI flows
-(list load, drawer open, rule read, rule edit+save+persist, delete,
-auto-skills picker populated) were not visually driven. The equivalent
-guarantees were obtained via direct HTTP probes of the same endpoints the
-UI uses, so the behavioural contract is confirmed even if the widget
-rendering is not.
+A.3 was redefined by team-lead (`option 1 approved`) as a pure HTTP-probe
+sequence. UI rendering verification is explicitly out of scope for
+frontend-dev and is covered by Task B (e2e-tester Playwright suite
+against real Electron).
 
-Deferred to the e2e suite / human spot-check:
+> A.3 UI rendering was covered via Task B (e2e-tester Playwright suite
+> against real Electron), not via manual frontend-dev spot-check. This
+> matches the Skill-Library pilot pattern documented in
+> `docs/backend-migration/handoffs/coordinator-skill-library-2026-04-23.md`
+> §Lessons learned.
 
-- `tests/e2e/features/assistants/core-interactions.e2e.ts`
-- `tests/e2e/features/assistants/edge-cases.e2e.ts`
-- `tests/e2e/features/assistants/ui-states.e2e.ts`
-- `tests/e2e/specs/assistant-settings-{crud,skills,permissions}.e2e.ts`
+Backend launch (same pattern as Phase D trace from e2e-tester-2):
 
-These remain the authoritative UI-side verification — see handoff for
-Task B (`e2e-tester`).
+```
+~/.cargo/bin/aionui-backend --local --port 25811 --data-dir /tmp/aionui-verify-2/data
+```
+
+### Probe transcript
+
+All 11 sub-probes returned HTTP 200. No 4xx/5xx encountered — no blocker.
+
+**Probe 1 — list assistants (fresh data-dir)**
+
+```
+curl -s http://127.0.0.1:25811/api/extensions/assistants
+→ {"success":true,"data":[]}   HTTP 200
+```
+
+**Probe 2 — read rule for `builtin-office` on fresh data-dir**
+
+```
+curl -s -X POST http://127.0.0.1:25811/api/skills/assistant-rule/read \
+  -H 'Content-Type: application/json' \
+  -d '{"assistantId":"builtin-office","locale":"en"}'
+→ {"success":true,"data":""}   HTTP 200
+```
+
+**Probe 3 — write rule for `test-verify`**
+
+```
+curl -s -X POST http://127.0.0.1:25811/api/skills/assistant-rule/write \
+  -H 'Content-Type: application/json' \
+  -d '{"assistantId":"test-verify","content":"# test","locale":"en"}'
+→ {"success":true,"data":true}   HTTP 200
+```
+
+**Probe 4 — read `test-verify` back (persistence check)**
+
+```
+curl -s -X POST http://127.0.0.1:25811/api/skills/assistant-rule/read \
+  -H 'Content-Type: application/json' \
+  -d '{"assistantId":"test-verify","locale":"en"}'
+→ {"success":true,"data":"# test"}   HTTP 200   ✅ content persisted
+```
+
+**Probe 5 — delete `test-verify` rule (path-param)**
+
+```
+curl -s -X DELETE http://127.0.0.1:25811/api/skills/assistant-rule/test-verify
+→ {"success":true,"data":true}   HTTP 200
+```
+
+**Probe 5b — verify delete (post-delete read returns empty)**
+
+```
+curl -s -X POST http://127.0.0.1:25811/api/skills/assistant-rule/read \
+  -H 'Content-Type: application/json' \
+  -d '{"assistantId":"test-verify","locale":"en"}'
+→ {"success":true,"data":""}   HTTP 200   ✅ delete persisted
+```
+
+**Probes 6a–6e — same sequence on `/api/skills/assistant-skill`**
+
+```
+6a read fresh     → {"success":true,"data":""}           HTTP 200
+6b write '# skill' → {"success":true,"data":true}         HTTP 200
+6c read back      → {"success":true,"data":"# skill"}    HTTP 200   ✅
+6d DELETE path    → {"success":true,"data":true}         HTTP 200
+6e read after del → {"success":true,"data":""}           HTTP 200   ✅
+```
+
+### Verification checklist (per revised-A.3 spec)
+
+| Item                                               | Required | Actual               | Result |
+| -------------------------------------------------- | -------- | -------------------- | ------ |
+| (1) `GET /api/extensions/assistants` → 200 + array | yes      | `data:[]`            | ✅     |
+| (2) rule/read fresh → 200, empty string            | yes      | `data:""`            | ✅     |
+| (3) rule/write → 200, `{success:true,data:true}`   | yes      | exact match          | ✅     |
+| (4) rule/read same id → 200, content matches       | yes      | `data:"# test"`      | ✅     |
+| (5) rule DELETE → 200, `{success:true,data:true}`  | yes      | exact match          | ✅     |
+| (6) skill/read+write+DELETE pattern                | yes      | all 5 sub-probes 200 | ✅     |
+
+### Earlier-run finding — DELETE URL shape
+
+An earlier exploratory probe sent DELETE with `assistantId` in the JSON
+body; the server returned 404 `Skill not found: assistant-rule`. Correct
+shape is path-param: `/api/skills/assistant-rule/{assistantId}` (matches
+`src/common/adapter/ipcBridge.ts:307-316`). Revised-spec probes 5 and 6d
+used the correct shape and both passed.
 
 ## Artifacts
 
-- Backend probe raw output: `/tmp/aionui-verify/probe.txt` (ephemeral).
-- Backend log: `/tmp/aionui-verify/backend.log` (ephemeral).
+- Revised-A.3 probe log: `/tmp/aionui-verify-2/probe-log.txt` (ephemeral).
+- Revised-A.3 backend log: `/tmp/aionui-verify-2/backend.log` (ephemeral).
+- Exploratory probe (older run): `/tmp/aionui-verify/probe.txt` (ephemeral).
 - Backend binary timestamp: same as Skill pilot (Apr 22 23:22).
 - Test fix commit: `af5477360`.
+- Docs commit: `cf7d29a36`.
 
 ## Risks / follow-ups
 

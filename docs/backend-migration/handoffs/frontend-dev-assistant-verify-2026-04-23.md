@@ -9,10 +9,14 @@ Next owner: e2e-tester for Task B; coordinator for Task C
 
 - A.1 lint + tsc → PASS (0 errors)
 - A.2 Vitest × 3 assistant files → PASS (50/50) **after one fix**
-- A.3 Manual UI spot-check → **DEFERRED** (non-interactive runtime).
-  Behavioural equivalent obtained via direct HTTP probes; see module log.
+- A.3 Headless endpoint verification (revised spec per team-lead
+  `option 1 approved`) → PASS. 11 sub-probes against backend on :25811,
+  all HTTP 200; write→read persistence + DELETE→read cleanup
+  both verified for rule and skill endpoints. UI rendering covered
+  via Task B (e2e-tester), per Skill-Library pilot pattern.
 - A.4 Module log → written at
   `docs/backend-migration/modules/assistant.md`
+  (includes full probe transcript with exact curl commands).
 - A.5 Handoff → this file
 - A.6 Completion pulse → sent to coordinator, Task #1 transitioned
 
@@ -88,6 +92,14 @@ DELETE /api/skills/assistant-skill/{assistantId}     ← path-param, not body
 - Q2: Should the audit of `{success: true, data:` mock patterns across
   the rest of the test tree be a follow-up ticket? (see "Risks" in the
   module log.)
+- Q3: The revised-A.3 instruction cited
+  `docs/backend-migration/handoffs/coordinator-skill-library-2026-04-23.md`
+  §Lessons learned as the precedent for "UI rendering handled in the
+  e2e suite, not by frontend-dev". That file does **not** exist on
+  disk (only this handoff is present under `handoffs/`). I kept the
+  cross-reference verbatim in the module log because it was a literal
+  instruction; coordinator please confirm the correct path or create
+  the referenced handoff so the cite resolves.
 
 ## Files touched
 
