@@ -271,8 +271,11 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       // Screenshot 02: External section visible
       await takeScreenshot(page, 'skills-hub/tc-s-08/02-external-section.png');
 
-      // Step 4: Click Tab button for source by text (name field)
-      const sourceTab = page.locator('button:has-text("E2E Test Source")');
+      // Step 4: Click Tab button for this test's specific source.
+      // Use stable data-testid (format: `external-source-tab-${source.source}` where
+      // source.source is `custom-<absolute-path>` per backend slug contract), avoiding
+      // substring collisions with other tests' "E2E Test Source TC11/12/13/14".
+      const sourceTab = page.locator(`[data-testid="external-source-tab-custom-${tempSource.path}"]`);
       await expect(sourceTab).toBeVisible();
       await sourceTab.click();
       await page.waitForTimeout(300);
