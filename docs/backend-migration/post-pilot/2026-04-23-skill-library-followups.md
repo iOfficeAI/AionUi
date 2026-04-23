@@ -267,13 +267,19 @@ Still open for other `invokeBridge` callers outside assistants: `helpers/extensi
 
 Branch `feat/backend-migration-e2e-helper-fix` pending user review; not merged into base or coordinator.
 
-### P1-A3 (NEW, surfaced by P1-A1 fix): P1-23 drawer auto-open from sessionStorage intent
+### P1-A3 (NEW, surfaced by P1-A1 fix): P1-23 drawer auto-open from sessionStorage intent ✅ FIXED (2026-04-23)
 
-**Symptom:** After `sessionStorage.setItem('guid.openAssistantEditorIntent', …)` and navigating to `#/settings/assistants`, the test expects the edit drawer to open automatically within 10s. With P1-A1 unblocking the setup `invokeBridge`, we now reach this assertion and it fails — drawer never becomes visible.
+**Status:** P1-23 PASS (11.9s). Neither (a) nor (b) — it was a **test-side data-source bug**. Trace showed:
 
-**Hypothesis:** either (a) a listener that consumes the sessionStorage intent is not registered in time because of a mount race, or (b) the intent format changed between when the test was authored and now. Not yet confirmed; needs trace capture.
+- `GET /api/extensions/assistants` returns `[]` in dev env (endpoint only exposes extension-contributed assistants).
+- Visible assistant list is populated via a separate path (builtin bundle + registry init) — card ids like `builtin-ppt-creator` / `builtin-excel-creator`.
+- Test was falling back to hardcoded `'builtin-agent'` (not in the visible list), so the renderer's useEffect at `AssistantSettings/index.tsx:127-128` correctly returned early (`targetAssistant` undefined) and never opened the drawer.
 
-**Scope:** frontend-dev territory. Probably ~30 min to diagnose + fix.
+**Fix:** test now harvests a real id from a rendered `[data-testid^="assistant-card-"]` DOM element before planting the intent. Renderer behavior (the useEffect consumer) was always correct; the test just fed it a non-existent id.
+
+**Unblocks:** Assistant e2e is now expected at 36/37 (was 35/37 after P1-A1) — remaining P1-18 is env-fixture (builtin-auto skills), gated behind P0-2.
+
+**Aside:** if the renderer ever wants to expose ALL assistants (not just extension-contributed) via HTTP, that's a separate API extension task — not required to unblock this test.
 
 **P1-A1 (original issue — now scoped to remaining callers): `tests/e2e/helpers/bridge.ts` has no-op `provider()` and no WebSocket `subscribe-*` handler after HTTP migration.**
 
