@@ -107,7 +107,14 @@ TS file. Worth doing carefully before module-2 starts.
 
 ## P1 — test-authoring debt (non-blocking)
 
-### P1-1: TC-S-06 — "should not show delete button for builtin skills"
+### P1-1: TC-S-06 — "should not show delete button for builtin skills" ✅ FIXED (2026-04-23)
+
+**Status:** Picked option (b) — use `test.skip` when no builtin skills detected.
+Smoke-tested: skips cleanly in dev env. Test will resume running (and asserting
+no-delete-button UI) as soon as any builtin skill exists in the target env
+(packaged build, or after P0-2 fixture seeding lands).
+
+(Original diagnosis kept below for reference.)
 
 **Diagnosis:** test queries `skills.filter(s => s.source === 'builtin')`
 and asserts `builtinSkills.length > 0`. On a fresh sandbox, no builtin
