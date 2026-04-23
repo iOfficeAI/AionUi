@@ -120,7 +120,13 @@ a new helper that copies a minimal `SKILL.md` to `builtin_skills_dir`,
 or (b) use `test.skip` with a clear reason if no builtin skills are
 detected, matching other fixture-gated tests.
 
-### P1-2: TC-S-08 — external source tab matcher collision
+### P1-2: TC-S-08 — external source tab matcher collision ✅ FIXED (2026-04-23)
+
+**Status:** Smoke-tested PASS (6.7s). Replaced fragile substring match with
+stable `[data-testid="external-source-tab-custom-${tempSource.path}"]`.
+Matches backend slug contract (custom paths → `custom-<absolute-path>`).
+
+(Original diagnosis kept below for reference.)
 
 **Diagnosis:** test locator `button:has-text("E2E Test Source")` is a
 loose substring match. TC-S-11 earlier in the run adds
