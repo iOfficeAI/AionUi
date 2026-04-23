@@ -1,0 +1,137 @@
+# Team Operations Playbook
+
+Practical lessons for running team-mode migrations in this codebase.
+Append new lessons as they happen; newest on top.
+
+## 2026-04-23 — Zombie teammate detection and replacement
+
+**Symptom:** Teammate sends idle notification then goes silent. Messages sent
+by coordinator land in inbox with `read=True` but no TaskUpdate, no git
+changes, no follow-up messages. Idle notifications may stop entirely.
+
+**Diagnosis threshold:** 10 minutes of zero activity after a message was
+marked read. Do not wait longer.
+
+**Immediate replacement protocol (< 30 seconds):**
+
+1. Edit `~/.claude/teams/{team}/config.json` — remove the dead member from
+   the `members` array. Use `python3 -c` with json.load/dump for safety.
+2. `rm ~/.claude/teams/{team}/inboxes/{name}.json` — clear stale messages.
+3. Re-spawn via Agent tool with the same name + a SHORT prompt.
+4. Do NOT SendMessage a shutdown_request first — dead agents don't respond,
+   it just wastes minutes.
+
+**Spawn prompt discipline (to avoid repeat zombies):**
+- One task per spawn. Do not combine "fix clippy + start T1b" — that was a
+  trigger in this incident.
+- Include "If stuck 5+ minutes, SendMessage team-lead immediately" as an
+  explicit pulse rule.
+- **Mandatory progress reporting every ~10 min**, even during
+  investigation. Silence is not acceptable. Wording in the prompt:
+  "SendMessage team-lead a progress update every 10 minutes until you
+  push — even if you're still reading code. Say what you've read, your
+  current hypothesis, and the next thing you'll check."
+- Keep prompt under ~40 lines. Let the agent `TaskGet` + read plan file for
+  full detail rather than duplicating in the prompt.
+
+## 2026-04-23 — Coordinator message backlog incident
+
+**Symptom:** Coordinator lost visibility for ~1 hour. T1b and T4 both
+completed successfully during this window but coordinator failed to
+acknowledge, unblock downstream tasks (T2), or react to backend-dev's
+important proactive finding (cargo install vs symlink workflow conflict).
+
+**Root cause:** Coordinator assumed "no message in my inbox since last
+scan" meant "nothing happened." Teammate completion messages had
+already been delivered, so subsequent idle-notification noise masked
+real completions. Between user prompts, no proactive scan of inbox,
+`TaskList`, or git.
+
+**Fix (applies to coordinator behavior from now on):**
+
+1. **Every time coordinator is addressed by the user, run a full scan
+   before responding** — `TaskList`, `git log -3` on both repos, and
+   read the last 10 entries of `team-lead.json` inbox. This is cheap
+   and catches drift.
+2. **Never assume "no new message" equals "no change"** — teammates
+   publish via git commits and TaskUpdate, not just inbox messages.
+3. **Every teammate completion message must be confirmed within one
+   user turn** — even if just an ACK. If the coordinator cannot
+   respond immediately (long work in progress), SendMessage
+   acknowledging the completion so the teammate knows it was seen.
+4. **Spot check every 10 min when actively waiting** — coordinator must
+   proactively run TaskList + inbox tail + git status on both repos at
+   this cadence without needing a user prompt. User prompts "status?"
+   also force a fresh scan; coordinator must never push back.
+
+## 2026-04-23 — Zombie replacement is autonomous
+
+When a teammate meets the zombie diagnosis threshold (playbook top),
+coordinator replaces them **without asking the user for confirmation**.
+The replacement protocol (delete from config.json, rm inbox, spawn
+fresh) is deterministic and safe — asking for approval each time just
+slows recovery. User can always override after the fact.
+
+**This extends to adjacent diagnostic questions.** Do not ask the user
+"was that rebase you?", "did you change X?", or similar. Figure it out
+from git/fs state directly. If the new agent spawn needs resilience
+against unknown state (e.g. remote history was rewritten), just bake
+`git fetch && git reset --hard origin/<branch>` into the replacement
+prompt — the new agent self-heals without coordinator needing to know
+the root cause. Asking the user interrupts their flow; it is exactly
+the behavior the "autonomous" rule was meant to eliminate.
+
+## General principles
+
+- **Silence ≠ unresponsive only for long Bash tasks** — cargo build can be
+  10-20 minutes (lesson from Skill-Library pilot). But silence with NO git
+  changes and NO new messages for 10+ minutes is dead, not busy.
+- **Diagnose before messaging** — `TaskList()` + `git status` + inbox read
+  state before sending another message. Multiple "please execute" messages
+  to a dead agent compound confusion without effect.
+
+## 2026-04-23 — Migration work needs real-user-data dry-run
+
+**Lesson:** The plan's test matrix (frontend unit, backend integration, E2E)
+all passed green but two user-impacting bugs only surfaced when the user
+tested against their own production `aionui-config.txt`:
+
+- **Bug A**: migration silently fails for 11 custom assistants (root cause
+  TBD pending Electron main-process logs)
+- **Bug B**: 9 built-ins the user had disabled lost their `enabled=false`
+  state because spec never required migrating per-builtin overrides
+
+**Why tests missed it:**
+
+- **Frontend unit** (T4) mocks `ipcBridge.assistants.import.invoke` so the
+  test never touches a real backend. It validates "the hook calls import
+  with the right shape" not "real user data survives the round-trip."
+- **Backend integration** (T2) validates each HTTP endpoint in isolation. It
+  doesn't exercise the frontend-to-backend coupling under production-like
+  input.
+- **E2E** (T5) uses clean fixture files designed by the plan author
+  (e.g. "seed 3 user + 2 builtin rows"). Real users have 33-row files with
+  historical field quirks, legacy flags, emoji avatars, etc. The fixture
+  designer can't predict the shape of "broken input from v1.9.17."
+
+**Fix going forward (add to every migration-class plan from now on):**
+
+1. **spec-level:** enumerate every legacy state that could carry user
+   intent (not just "user data" — *per-item state that user set
+   intentionally*, like `enabled=false` on built-ins, sort_order, last_used_at
+   per-item). For each, decide: preserve, drop explicitly, or document.
+2. **plan-level:** Add a Task that requires a **real legacy file dry-run**
+   before T5 E2E. Pipeline:
+   - Take one real user's `aionui-config.txt` (anonymize if needed)
+   - Apply migration in a sandboxed Electron
+   - Diff what was preserved vs what was dropped
+   - Any unexplained drop = spec/code gap, fix before E2E
+3. **test-level:** at least one Vitest + one Playwright scenario must
+   consume a real-world fixture (copy of actual aionui-config.txt), not a
+   hand-crafted minimal one.
+
+**Action on current pilot:**
+- H3 task created for Bug B
+- Bug A pending main-process log diagnosis
+- Mention this lesson in coordinator handoff (T6) with the explicit
+  recommendation above.

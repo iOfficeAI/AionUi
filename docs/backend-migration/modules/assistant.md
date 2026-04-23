@@ -208,3 +208,70 @@ used the correct shape and both passed.
 3. **List shape** — `GET /api/extensions/assistants` returned `data: []`
    on the fresh DB. Exercising with actual preset/extension assistants
    requires a populated data dir; left for the e2e run.
+
+---
+
+## User Data Migration — 2026-04-23
+
+Scope: migrate user-authored assistants from Electron `ConfigStorage.get('assistants')` to backend SQLite. Adds `GET /api/assistants`, CRUD, state, import, avatar endpoints. Establishes single-source-of-truth invariant for the `assistants` key.
+
+**Feature branches (no PRs raised per user instruction):**
+
+| Branch | Repo | Final SHA |
+|--------|------|-----------|
+| `feat/backend-migration-assistant-user-data` | AionUi | `f3207451e` |
+| `feat/assistant-user-data` | aionui-backend | `0a970ee` |
+
+### Endpoints added
+
+| Method | Path | Behavior |
+|--------|------|----------|
+| GET    | `/api/assistants` | Merged catalog: builtin (embedded) + user (SQLite) + extension |
+| POST   | `/api/assistants` | Create user-authored |
+| PUT    | `/api/assistants/{id}` | Update user (403 on builtin/extension) |
+| DELETE | `/api/assistants/{id}` | Delete user + cascade fs (rule md, skill md, avatar) |
+| PATCH  | `/api/assistants/{id}/state` | Upsert `enabled` / `sort_order` / `last_used_at` into `assistant_overrides` |
+| POST   | `/api/assistants/import` | **Insert-only** bulk import (Electron migration entry) |
+| GET    | `/api/assistants/{id}/avatar` | Serve avatar bytes for builtin + user |
+
+### Endpoints modified (rule-md + skill-md source dispatch)
+
+- `POST /api/skills/assistant-rule/{read,write,delete}` — now dispatches via `AssistantClassifier`; built-in/extension writes return 400; user path unchanged
+- `POST /api/skills/assistant-skill/{read,write,delete}` — same dispatch pattern
+
+### Migration flag
+
+`migration.electronConfigImported` in `aionui-config.txt`:
+- Defaults `undefined` (legacy userData)
+- Set to `true` only when the whole migration (user-row import + disabled-builtin overrides) succeeds
+- Insert-only backend import makes retries idempotent
+- `AIONUI_SKIP_ELECTRON_MIGRATION=1` bypasses for E2E
+
+### Invariant established
+
+After migration, `grep -rn "ConfigStorage.*'assistants'" src/ --exclude __tests__` must return zero matches. Any future code reintroducing `ConfigStorage.get('assistants')` or `ConfigStorage.set('assistants', ...)` should be rejected in review.
+
+### Built-in assistants
+
+- Shipped with backend binary via `include_dir` crate (700KB source → +2.8MB binary size)
+- Location at compile time: `aionui-backend/crates/aionui-app/assets/builtin-assistants/`
+- 20 built-ins ship with this pilot (see `preset-id-whitelist.json`)
+- Editing a built-in = edit the md file in source + rebuild backend. No DB seed, no version migration.
+
+### Tests
+
+| Suite | Count | Location |
+|-------|-------|----------|
+| Rust inline unit (aionui-assistant) | 33 | `crates/aionui-assistant/src/**/*.rs` |
+| Rust HTTP integration | 44 | `crates/aionui-app/tests/assistants_e2e.rs` |
+| Rust dispatch (aionui-extension) | 10 | `crates/aionui-extension/tests/assistant_dispatch_test.rs` |
+| Frontend Vitest (new)              | 37 | `tests/unit/assistants*.test.ts` + `tests/unit/migrateAssistants.test.ts` |
+| Playwright E2E                     | 10 | `tests/e2e/features/assistants-user-data/` |
+
+### Lessons (brief)
+
+Full accounts in `docs/backend-migration/notes/team-operations-playbook.md`. Highlights:
+
+- Migration plans must include a real-user-data dry-run task before E2E — plan fixtures missed two user-facing bugs (main-process port resolution H4, disabled-builtin state loss H3).
+- When embedded assets replace sibling-file assumptions, packaging-pipeline drift risk goes away entirely. Prefer `include_dir` over "binary + sibling assets/" for product data.
+- Name collisions between new concept and legacy concept (here `assistants` vs `acp.customAgents`) need an explicit rename pass at contract-boundary touch-up time (H5).

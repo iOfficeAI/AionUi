@@ -1620,7 +1620,9 @@ independently testable).
   cd /Users/zhoukai/Documents/github/AionUi
   git pull --ff-only
   which aionui-backend
-  stat -f "%Sm" ~/.cargo/bin/aionui-backend  # T1b's install
+  # ~/.cargo/bin/aionui-backend is a symlink per workflow doc §2; -L follows it
+  stat -Lf "%Sm" ~/.cargo/bin/aionui-backend  # must reflect fresh debug build
+  readlink ~/.cargo/bin/aionui-backend  # must resolve to target/debug/aionui-backend
   bunx electron-vite build
   stat -f "%Sm" out/renderer/index.html      # fresh today
   ```
@@ -1711,20 +1713,12 @@ Use the Skill-Library pilot rubric:
   git push
   ```
 
-### Step 6.2 — Cross-repo PR draft
+### Step 6.2 — SKIPPED (PRs not to be raised)
 
-- [ ] Draft AionUi PR: `feat/backend-migration-assistant-user-data` →
-  `feat/backend-migration`. Body includes:
-  - Summary (§1 of frontend spec)
-  - Files changed counts
-  - Tests added
-  - Migration note (the hard invariant)
-  - Link to both specs
-
-- [ ] Draft aionui-backend PR: `feat/assistant-user-data` → `main`. Same
-  pattern; add migration number, mention `build.rs` behavior.
-
-- [ ] Do NOT merge either until user approves.
+Per user instruction during pilot execution: **do NOT raise cross-repo PRs
+in T6**. Branches stay pushed on both origins for the user to inspect; PR
+creation (if any) is a manual step the user will do later outside this
+pilot.
 
 ### Step 6.3 — Write closure hand-off
 
@@ -1742,7 +1736,7 @@ Use the Skill-Library pilot rubric:
   - Section "User Data Migration — 2026-04-23"
   - Final endpoint list (new /api/assistants/* + rule/skill dispatch)
   - Migration flag status
-  - Reference to both PRs
+  - Reference to the feature branches on both remotes (no PR links)
 
 ### Step 6.5 — Shutdown
 
@@ -1750,7 +1744,7 @@ Use the Skill-Library pilot rubric:
 
 - [ ] TaskUpdate T6 status=completed.
 
-- [ ] Final SendMessage to user with PR links + summary.
+- [ ] Final SendMessage to user with branch tips (both repos), pushed SHAs, and summary.
 
 ---
 
