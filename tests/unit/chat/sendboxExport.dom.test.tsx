@@ -102,15 +102,17 @@ describe('SendBox export flow', () => {
       name: 'Current chat',
       type: 'gemini',
     });
-    mockMessagesGet.mockResolvedValue([
-      {
-        id: 'msg-1',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'right',
-        content: { content: 'hello export' },
-      },
-    ]);
+    mockMessagesGet.mockResolvedValue({
+      items: [
+        {
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          type: 'text',
+          position: 'right',
+          content: { content: 'hello export' },
+        },
+      ],
+    });
     mockDesktopPathGet.mockResolvedValue('/Desktop');
     mockWriteFile.mockResolvedValue(true);
     mockCopyText.mockResolvedValue(undefined);
@@ -153,7 +155,7 @@ describe('SendBox export flow', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    const filenameInput = await screen.findByPlaceholderText('messages.export.fileNamePlaceholder');
+    const filenameInput = await screen.findByPlaceholderText('messages.export.file_namePlaceholder');
     fireEvent.keyDown(filenameInput, { key: 'Enter' });
 
     await waitFor(() => {
@@ -175,7 +177,7 @@ describe('SendBox export flow', () => {
     fireEvent.keyDown(input, { key: 'ArrowDown' });
     fireEvent.keyDown(input, { key: 'Enter' });
 
-    const filenameInput = await screen.findByPlaceholderText('messages.export.fileNamePlaceholder');
+    const filenameInput = await screen.findByPlaceholderText('messages.export.file_namePlaceholder');
     fireEvent.keyDown(filenameInput, { key: 'Escape' });
 
     expect(await screen.findByText('messages.export.copyLabel')).toBeInTheDocument();
@@ -193,7 +195,7 @@ describe('SendBox export flow', () => {
     fireEvent.click(screen.getAllByRole('option')[0]);
     fireEvent.click(await screen.findByText('messages.export.saveLabel'));
 
-    expect(await screen.findByText('messages.export.fileNameLabel')).toBeInTheDocument();
+    expect(await screen.findByText('messages.export.file_nameLabel')).toBeInTheDocument();
     expect(screen.getByText(/\/workspace\//)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'common.save' }));

@@ -316,7 +316,7 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
       { backend: 'claude', name: 'Claude', cli_path: '/usr/bin/claude' },
       { backend: 'openai', name: 'OpenAI', cli_path: '/usr/bin/openai' },
     ],
-    preset_assistants: [
+    presetAssistants: [
       {
         custom_agent_id: 'assistant-1',
         name: 'Assistant 1',
@@ -365,12 +365,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Hourly Task',
       schedule: { kind: 'cron', expr: '0 * * * *', description: 'Every hour' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Hourly check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -381,8 +380,8 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -410,12 +409,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Daily Task',
       schedule: { kind: 'cron', expr: '30 9 * * *', description: 'Daily at 09:30' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Daily check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -426,8 +424,8 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -446,12 +444,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Weekday Task',
       schedule: { kind: 'cron', expr: '0 14 * * MON-FRI', description: 'Weekdays at 14:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Weekday check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -462,8 +459,8 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -482,12 +479,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Weekly Task',
       schedule: { kind: 'cron', expr: '0 10 * * WED', description: 'Weekly on Wednesday at 10:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Weekly check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -498,8 +494,8 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -518,12 +514,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Invalid Task',
       schedule: { kind: 'cron', expr: '', description: 'Manual' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -534,8 +529,8 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -554,12 +549,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Every 4 Hours Task',
       schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Every 4 hours check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -570,8 +564,8 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -592,12 +586,11 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Test' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -608,8 +601,8 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -629,12 +622,11 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Test' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -647,8 +639,8 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
           presetAgentType: 'custom',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -667,19 +659,18 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Test' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
         updated_at: Date.now(),
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
@@ -704,12 +695,11 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Existing Mode Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Keep following up' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -720,8 +710,8 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -757,12 +747,11 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Hourly Task',
       schedule: { kind: 'cron', expr: '0 * * * *', description: 'Every hour' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Hourly check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -773,8 +762,8 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
@@ -801,12 +790,11 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Daily Task',
       schedule: { kind: 'cron', expr: '30 9 * * *', description: 'Daily at 09:30' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Daily check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -817,8 +805,8 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
@@ -844,12 +832,11 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Weekdays Task',
       schedule: { kind: 'cron', expr: '0 14 * * MON-FRI', description: 'Weekdays at 14:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Weekday check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -860,8 +847,8 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
@@ -887,12 +874,11 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Weekly Task',
       schedule: { kind: 'cron', expr: '0 10 * * WED', description: 'Weekly on Wednesday at 10:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Weekly check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -903,8 +889,8 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
@@ -930,12 +916,11 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Every 4 Hours Task',
       schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Every 4 hours check' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -946,8 +931,8 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
@@ -978,12 +963,11 @@ describe('CreateTaskDialog - advanced settings workspace picker', () => {
       name: 'Workspace Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Test prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -995,8 +979,8 @@ describe('CreateTaskDialog - advanced settings workspace picker', () => {
           workspace: '/tmp/scheduled-workspace',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -1022,12 +1006,11 @@ describe('CreateTaskDialog - custom schedule hint', () => {
       name: 'Custom Task',
       schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Test prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1038,8 +1021,8 @@ describe('CreateTaskDialog - custom schedule hint', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -1075,12 +1058,11 @@ describe('CreateTaskDialog - component behavior', () => {
       description: 'Stored description',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1091,8 +1073,8 @@ describe('CreateTaskDialog - component behavior', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -1107,12 +1089,11 @@ describe('CreateTaskDialog - component behavior', () => {
       description: 'Stored description',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1123,8 +1104,8 @@ describe('CreateTaskDialog - component behavior', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -1146,12 +1127,11 @@ describe('CreateTaskDialog - component behavior', () => {
       description: undefined,
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1162,8 +1142,8 @@ describe('CreateTaskDialog - component behavior', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -1218,12 +1198,11 @@ describe('CreateTaskDialog - component behavior', () => {
       name: 'Existing Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1234,8 +1213,8 @@ describe('CreateTaskDialog - component behavior', () => {
           cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible={true} onClose={onClose} editJob={editJob} conversation_id='conv-1' />);
@@ -1285,12 +1264,11 @@ describe('CreateTaskDialog - advanced settings panel', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'prompt' },
         executionMode: 'existing',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1302,8 +1280,8 @@ describe('CreateTaskDialog - advanced settings panel', () => {
           workspace: '/tmp/ws',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
@@ -1327,12 +1305,11 @@ describe('CreateTaskDialog - advanced settings panel', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversation_id: 'conv-1',
         payload: { kind: 'message', text: 'prompt' },
         executionMode: 'new_conversation',
       },
       metadata: {
+        conversation_id: 'conv-1',
         agent_type: 'claude',
         createdBy: 'user',
         created_at: Date.now(),
@@ -1344,8 +1321,8 @@ describe('CreateTaskDialog - advanced settings panel', () => {
           workspace: '/projects/my-app',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
