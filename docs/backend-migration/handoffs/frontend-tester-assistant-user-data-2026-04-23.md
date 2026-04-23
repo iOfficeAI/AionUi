@@ -11,7 +11,7 @@ All T4 gates satisfied.
 
 | Gate | Result |
 | - | - |
-| Scoped Vitest (plan §4.3) | **69 / 69 passed** |
+| Scoped Vitest (plan §4.3) | **70 / 70 passed** |
 | Full Vitest (plan §4.4) | 4309 / 4479 — 103 pre-existing failures across 37 files; zero new, two fixed |
 | `bunx tsc --noEmit` | **clean** |
 | `bun run lint --quiet` | **1800 warnings + 1 error** — identical to T3a baseline; zero new |
@@ -28,11 +28,11 @@ bun run test --run \
 
 | File | Tests | Owner |
 | - | - | - |
-| `tests/unit/assistantsBridge.test.ts` | **14 new** | frontend-tester (this task) |
+| `tests/unit/assistantsBridge.test.ts` | **15 new** | frontend-tester (this task) |
 | `tests/unit/assistantUtils.test.ts` | **23** (rewritten) | frontend-tester (this task) |
 | `tests/unit/assistantHooks.dom.test.ts` | **23** (rewritten) | frontend-tester (this task) |
 | `tests/unit/migrateAssistants.test.ts` | **9** (landed with T3b @ `26cccd2b9`) | frontend-dev |
-| **Total** | **69** | |
+| **Total** | **70** | |
 
 ## New file: `tests/unit/assistantsBridge.test.ts`
 
@@ -50,6 +50,14 @@ error-propagation assertion (4xx/5xx → thrown `Error` with the
 - `delete` — DELETE `/api/assistants/:id`, no body, 409 → throw
 - `setState` — PATCH `/api/assistants/:id/state`, `id` stripped from body by adapter mapper, 400 → throw
 - `import` — POST `/api/assistants/import`, typed `ImportAssistantsResult` returned, per-row errors surfaced, 500 → throw
+- **Transport decoupling**: URL assertions capture only the `/api/...`
+  path (not host:port), and one dedicated case verifies that
+  `window.__backendPort` injected by preload overrides the
+  `httpBridge.ts` fallback. Per
+  `docs/development-workflow.md` §"仓库关系", the backend listens on a
+  random port selected by `findAvailablePort`, so binding tests to the
+  fallback `13400` would break in any environment where preload has
+  done its job.
 
 ## Updated file: `tests/unit/assistantHooks.dom.test.ts`
 
@@ -165,10 +173,16 @@ etc.). Not in T4 scope.
 ## Commits pushed by this agent
 
 - `test(assistant): unit coverage for bridge + hooks + migration`
-  - New `tests/unit/assistantsBridge.test.ts` (14)
-  - Updated `tests/unit/assistantHooks.dom.test.ts` (23)
-  - Updated `tests/unit/assistantUtils.test.ts` (23)
+  (`b0658d79e`)
+  - New `tests/unit/assistantsBridge.test.ts`
+  - Updated `tests/unit/assistantHooks.dom.test.ts`
+  - Updated `tests/unit/assistantUtils.test.ts`
   - This handoff document.
+- `test(assistant): decouple bridge tests from fallback port`
+  - Re-read `docs/development-workflow.md` after T4 was committed.
+  - Replaced `13400`-bound URL assertions with `/api/...` path
+    assertions, and added one `window.__backendPort` override case
+    against the real `httpBridge.getBaseUrl()` contract (+1 test).
 
 ## Recommendation
 

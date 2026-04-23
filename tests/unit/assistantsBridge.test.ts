@@ -21,6 +21,7 @@ import type {
 
 type FetchCall = {
   url: string;
+  path: string;
   method: string;
   body?: unknown;
   headers: Record<string, string>;
@@ -29,12 +30,25 @@ type FetchCall = {
 let fetchCalls: FetchCall[];
 let fetchImpl: (url: string, init?: RequestInit) => Promise<Response>;
 
+// Extract the `/api/...` path from the request URL so assertions don't hardcode
+// the httpBridge fallback host/port. `httpBridge.getBaseUrl()` currently
+// defaults to `http://127.0.0.1:13400` when `window.__backendPort` is absent,
+// but the contract under test is the *path shape*, not the transport origin.
+function extractPath(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).pathname;
+  } catch {
+    return rawUrl;
+  }
+}
+
 function installFetch(impl: (url: string, init?: RequestInit) => Promise<Response>) {
   fetchImpl = impl;
   globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     const url = typeof input === 'string' ? input : input.toString();
     fetchCalls.push({
       url,
+      path: extractPath(url),
       method: (init?.method ?? 'GET').toUpperCase(),
       body: init?.body ? JSON.parse(init.body as string) : undefined,
       headers: (init?.headers as Record<string, string>) ?? {},
@@ -106,7 +120,7 @@ describe('ipcBridge.assistants.list', () => {
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].method).toBe('GET');
-    expect(fetchCalls[0].url).toBe('http://127.0.0.1:13400/api/assistants');
+    expect(fetchCalls[0].path).toBe('/api/assistants');
     expect(fetchCalls[0].body).toBeUndefined();
     expect(result).toEqual(list);
   });
@@ -129,6 +143,24 @@ describe('ipcBridge.assistants.list', () => {
 
     await expect(assistants.list.invoke()).rejects.toThrow(/GET \/api\/assistants failed \(500\)/);
   });
+
+  it('targets window.__backendPort when preload has injected it', async () => {
+    // docs/development-workflow.md §"仓库关系": preload injects the spawned
+    // backend port into window.__backendPort so renderer can reach it on a
+    // random port. Bridge must honor that over the hard-coded fallback.
+    // This suite runs in the node environment, so shim a minimal window.
+    const g = globalThis as typeof globalThis & { window?: { __backendPort?: number } };
+    const hadWindow = 'window' in g;
+    g.window = { __backendPort: 55123 };
+    try {
+      installFetch(async () => jsonResponse([]));
+      await assistants.list.invoke();
+      expect(new URL(fetchCalls[0].url).port).toBe('55123');
+    } finally {
+      if (hadWindow) delete g.window!.__backendPort;
+      else delete g.window;
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -150,7 +182,7 @@ describe('ipcBridge.assistants.create', () => {
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].method).toBe('POST');
-    expect(fetchCalls[0].url).toBe('http://127.0.0.1:13400/api/assistants');
+    expect(fetchCalls[0].path).toBe('/api/assistants');
     expect(fetchCalls[0].body).toEqual(request);
     expect(fetchCalls[0].headers['Content-Type']).toBe('application/json');
     expect(result).toEqual(created);
@@ -183,7 +215,7 @@ describe('ipcBridge.assistants.update', () => {
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].method).toBe('PUT');
-    expect(fetchCalls[0].url).toBe('http://127.0.0.1:13400/api/assistants/custom-1');
+    expect(fetchCalls[0].path).toBe('/api/assistants/custom-1');
     // The current adapter passes the full params object (including id) as the body.
     expect(fetchCalls[0].body).toEqual(request);
     expect(result).toEqual(updated);
@@ -210,7 +242,7 @@ describe('ipcBridge.assistants.delete', () => {
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].method).toBe('DELETE');
-    expect(fetchCalls[0].url).toBe('http://127.0.0.1:13400/api/assistants/custom-1');
+    expect(fetchCalls[0].path).toBe('/api/assistants/custom-1');
     expect(fetchCalls[0].body).toBeUndefined();
   });
 
@@ -241,7 +273,7 @@ describe('ipcBridge.assistants.setState', () => {
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].method).toBe('PATCH');
-    expect(fetchCalls[0].url).toBe('http://127.0.0.1:13400/api/assistants/custom-1/state');
+    expect(fetchCalls[0].path).toBe('/api/assistants/custom-1/state');
     // Adapter pulls `id` out of the body; the path carries the id instead.
     expect(fetchCalls[0].body).toEqual({ enabled: false, sortOrder: 3 });
     expect(result).toEqual(updated);
@@ -280,7 +312,7 @@ describe('ipcBridge.assistants.import', () => {
 
     expect(fetchCalls).toHaveLength(1);
     expect(fetchCalls[0].method).toBe('POST');
-    expect(fetchCalls[0].url).toBe('http://127.0.0.1:13400/api/assistants/import');
+    expect(fetchCalls[0].path).toBe('/api/assistants/import');
     expect(fetchCalls[0].body).toEqual(request);
     expect(result).toEqual(response);
   });
