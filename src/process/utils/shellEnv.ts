@@ -344,6 +344,14 @@ function getWindowsExtraToolPaths(): string[] {
     'C:\\cygwin\\bin',
     // bun global packages
     getBunGlobalBinDir(),
+    // cargo (Rust)
+    path.join(homeDir, '.cargo', 'bin'),
+    // go
+    path.join(homeDir, 'go', 'bin'),
+    // deno
+    path.join(homeDir, '.deno', 'bin'),
+    // local bin (uv, pipx, etc.)
+    path.join(homeDir, '.local', 'bin'),
   ];
 
   return candidates.filter((p) => existsSync(p) && !currentPath.includes(p));

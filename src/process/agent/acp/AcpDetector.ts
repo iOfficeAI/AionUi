@@ -151,7 +151,17 @@ class AcpDetector {
    * Detect built-in ACP CLI agents via async batch CLI availability check.
    */
   async detectBuiltinAgents(): Promise<AcpDetectedAgent[]> {
-    const available = await this.batchCheckCliAvailability(POTENTIAL_ACP_CLIS.map((cli) => cli.cmd));
+    const allCmds = POTENTIAL_ACP_CLIS.map((cli) => cli.cmd);
+    const available = await this.batchCheckCliAvailability(allCmds);
+    const missing = allCmds.filter((cmd) => !available.has(cmd));
+
+    if (missing.length > 0) {
+      const envPath = this.enhancedEnv?.PATH ?? process.env.PATH ?? '(empty)';
+      console.info(
+        `[AcpDetector] CLI not found: [${missing.join(', ')}]. ` +
+          `PATH(${envPath.length} chars): ${envPath.substring(0, 500)}`
+      );
+    }
 
     return POTENTIAL_ACP_CLIS.filter((cli) => available.has(cli.cmd)).map((cli) => ({
       id: cli.backendId,
