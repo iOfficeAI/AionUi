@@ -462,12 +462,28 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Start aionui-backend subprocess and wait for health check
+  let backendStartedOk = false;
   try {
     const { getDataPath } = await import('./process/utils/utils');
     const backendPort = await backendManager.start(getDataPath());
     mark(`backendManager.start (port=${backendPort})`);
+    backendStartedOk = true;
   } catch (error) {
     console.error('[AionUi] Failed to start aionui-backend:', error);
+  }
+
+  // One-shot migration: import legacy `ConfigStorage.get('assistants')` into
+  // the backend. Only runs when backend is healthy; the migration flag
+  // remains false on failure so the next launch retries. Insert-only on the
+  // backend side, so retries are idempotent.
+  if (backendStartedOk) {
+    try {
+      const { migrateAssistantsToBackend } = await import('./process/utils/migrateAssistants');
+      await migrateAssistantsToBackend(ProcessConfig);
+      mark('migrateAssistantsToBackend');
+    } catch (error) {
+      console.error('[AionUi] Assistant migration hook threw:', error);
+    }
   }
 
   try {
