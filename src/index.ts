@@ -467,6 +467,11 @@ const handleAppReady = async (): Promise<void> => {
     const { getDataPath } = await import('./process/utils/utils');
     const backendPort = await backendManager.start(getDataPath());
     mark(`backendManager.start (port=${backendPort})`);
+    // Expose the backend port to main-process callers of httpBridge (e.g. the
+    // one-shot assistant migration hook below). Must land BEFORE any
+    // ipcBridge.* invoke from the main process — the renderer side reads
+    // window.__backendPort via preload, but main has no `window`.
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
     backendStartedOk = true;
   } catch (error) {
     console.error('[AionUi] Failed to start aionui-backend:', error);

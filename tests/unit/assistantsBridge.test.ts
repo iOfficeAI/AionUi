@@ -161,6 +161,30 @@ describe('ipcBridge.assistants.list', () => {
       else delete g.window;
     }
   });
+
+  // H4 regression: when the bridge runs in the Electron main process (no
+  // `window` global), the assistant-migration hook invokes ipcBridge.* from
+  // src/index.ts before any window exists. src/index.ts writes the spawned
+  // backend port to globalThis.__backendPort; getBackendPort must honor that
+  // instead of falling back to the hardcoded 13400.
+  it('targets globalThis.__backendPort when window is absent (main-process path)', async () => {
+    const g = globalThis as typeof globalThis & {
+      window?: unknown;
+      __backendPort?: number;
+    };
+    const hadWindow = 'window' in g;
+    const savedWindow = g.window;
+    delete g.window;
+    g.__backendPort = 64518;
+    try {
+      installFetch(async () => jsonResponse([]));
+      await assistants.list.invoke();
+      expect(new URL(fetchCalls[0].url).port).toBe('64518');
+    } finally {
+      delete g.__backendPort;
+      if (hadWindow) g.window = savedWindow;
+    }
+  });
 });
 
 // ---------------------------------------------------------------------------
