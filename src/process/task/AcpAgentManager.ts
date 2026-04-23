@@ -7,7 +7,7 @@ import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
-import type { IConfigStorageRefer } from '@/common/config/storage';
+import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
@@ -1437,7 +1437,7 @@ ${collectedResponses.join('\n')}`;
         await ProcessConfig.set('acp.config', {
           ...config,
           [this.options.backend]: { ...backendConfig, yoloMode: false },
-        } as IConfigStorageRefer['acp.config']);
+        } as ConfigKeyMap['acp.config']);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
