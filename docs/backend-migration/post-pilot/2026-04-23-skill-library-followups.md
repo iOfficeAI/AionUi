@@ -234,3 +234,75 @@ helper migration are both clean and validated. These followups address
 pre-existing TS contract gaps, test-authoring assumptions, and e2e
 infrastructure that the pilot was the first opportunity to observe
 end-to-end.
+
+---
+
+## Addendum — discovered during Assistant verification (2026-04-23)
+
+### P1 — test-authoring / infra
+
+**P1-A1: `tests/e2e/helpers/bridge.ts` has no-op `provider()` and no WebSocket `subscribe-*` handler after HTTP migration.**
+
+- Symptom: 4 Assistant tests (P2-3, P1-20, P1-21, P1-23) time out in
+  `beforeEach` because the helper tries to seed fixtures via `invokeBridge`.
+  UI path works — only test-helper fixture-seeding broken.
+- Skill-Library pilot fixed this for `tests/e2e/helpers/skillsHub.ts` only
+  (commit `000676801`, new `tests/e2e/helpers/httpBridge.ts`). The underlying
+  fallback in `bridge.ts` was not touched.
+- Fix: migrate `bridge.ts` to route migrated keys through HTTP (reusing
+  `httpBridge.ts`), keeping a legacy-IPC path only for keys not yet migrated.
+  Or: delete the legacy path and hard-error on any non-migrated key so the
+  breakage is loud instead of a silent timeout.
+- Scope estimate: ~50 lines of helper + one pass through all
+  `tests/e2e/features/**` for any remaining `invokeBridge` calls.
+
+**P1-A2: P1-18 (Assistant "Auto-injected Skills" section) — asserts visible but sandbox returns `[]` from `GET /api/skills/builtin-auto`.**
+
+- Symptom: test expects non-empty builtin auto-skills list; unsandboxed user
+  FS returns empty.
+- Same root cause family as Skill P1-6/27/28 fixture assumptions. Fix lands
+  alongside P0-2 sandboxing or as a suite-level fixture seeding pass.
+
+### P2 — API contract docs
+
+**P2-A1: Pin DELETE-with-path-param convention in `docs/api-spec/13-extension.md`.**
+
+- Symptom: during Assistant verification, frontend-dev's first curl probe
+  against `DELETE /api/skills/assistant-rule/:id` used a JSON body carrying
+  `{assistantId}` and got 404. Path-param form worked. The body-vs-path
+  convention is not currently documented.
+- Fix: add a short convention note to the spec + link from each `DELETE`
+  endpoint in the Skill Library section. ~10 lines.
+
+**P2-A2: `DELETE /api/skills/external-paths` rejects requests without `Content-Type: application/json` header even with no body.**
+
+- Symptom: e2e-tester noticed this as a minor backend quirk during Assistant
+  e2e run (the endpoint accepts the `path` as a query param, but still
+  requires the header).
+- Fix: relax the axum extractor or document the requirement. Low priority
+  — renderer sends the header anyway.
+
+### P3 — plan-authoring improvements (for future modules)
+
+- **P3-1: Remove "manual GUI spot-check" from frontend-dev plan templates.**
+  Frontend-dev is a non-interactive agent and cannot drive Electron windows.
+  Replace with "headless curl probe" and delegate real-UI verification
+  exclusively to e2e-tester's Playwright suite. The Assistant verify plan
+  (`2026-04-23-assistant-module-verification-plan.md`) hit this mid-run and
+  had to redefine A.3 on the fly.
+
+- **P3-2: Check "is it already migrated?" BEFORE writing a migration plan.**
+  Assistant endpoints were 100% implemented during Skill-Library pilot as a
+  side effect; a full migration track was unnecessary. First pass for any
+  module-N plan: grep `skill_routes.rs`, `routes.rs` in aionui-extension for
+  the target endpoint paths. If all hits exist, scope the track as
+  verification, not migration. Saves ~7 hours of wall clock.
+
+- **P3-3: Branch-baseline drift between coordinator branch and teammate
+  branches.** frontend-dev-2 couldn't see the Assistant verification plan
+  because its branch was based on `origin/feat/backend-migration` and the
+  plan was committed to the coordinator branch after. Either (a) commit plan
+  to both branches up front, or (b) tell teammates to read the plan via an
+  absolute path that exists on the coordinator branch checked out in a
+  separate shell. Option (b) is simpler and what this track actually did
+  for the module log.
