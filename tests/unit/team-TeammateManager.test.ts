@@ -516,7 +516,7 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('marks a silent leader as failed after the 60s inactivity watchdog fires', async () => {
+    it('marks a silent leader as failed after the inactivity watchdog fires', async () => {
       vi.useFakeTimers();
       try {
         // Lead is the only agent — timeout escalates to 'failed' but has nobody to notify.
@@ -530,7 +530,8 @@ describe('TeammateManager', () => {
         await mgr.wake('slot-1');
         expect(mgr.getAgents().find((a) => a.slotId === 'slot-1')?.status).toBe('active');
 
-        await vi.advanceTimersByTimeAsync(61_000);
+        // Push past the 5-minute watchdog deadline (+1 s slack).
+        await vi.advanceTimersByTimeAsync(301_000);
 
         // Previously the watchdog dropped the agent to 'idle' (hiding the stall).
         // It now marks the agent 'failed' so the team surface reflects the problem.
@@ -687,7 +688,7 @@ describe('TeammateManager', () => {
   // -------------------------------------------------------------------------
 
   describe('wake inactivity watchdog', () => {
-    it('notifies the leader when a teammate goes silent past the 60s watchdog', async () => {
+    it('notifies the leader when a teammate goes silent past the watchdog deadline', async () => {
       vi.useFakeTimers();
       try {
         const leadAgent = makeAgent({
@@ -714,8 +715,8 @@ describe('TeammateManager', () => {
         await mgr.wake('slot-member');
         expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('active');
 
-        // No stream activity arrives — push past the watchdog deadline.
-        await vi.advanceTimersByTimeAsync(61_000);
+        // No stream activity arrives — push past the watchdog deadline (5 min + 1s).
+        await vi.advanceTimersByTimeAsync(301_000);
 
         // Teammate is escalated to 'failed' (not silently dropped to 'idle').
         expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('failed');
@@ -766,10 +767,11 @@ describe('TeammateManager', () => {
 
         await mgr.wake('slot-member');
 
-        // Simulate a long stream of thought/tool events — each heartbeat reset
-        // the watchdog. We emit one every 30s for 150s (> 2× original 60s budget).
-        for (let elapsed = 0; elapsed < 150_000; elapsed += 30_000) {
-          await vi.advanceTimersByTimeAsync(30_000);
+        // Simulate a long stream of thought/tool events — each heartbeat resets
+        // the watchdog. Emit one every 2 minutes for 10 minutes (> 2× the 5-min
+        // budget) to prove the stream is what keeps the timer alive, not luck.
+        for (let elapsed = 0; elapsed < 600_000; elapsed += 120_000) {
+          await vi.advanceTimersByTimeAsync(120_000);
           teamEventBus.emit('responseStream', {
             type: 'text',
             conversation_id: 'conv-member',
@@ -778,7 +780,69 @@ describe('TeammateManager', () => {
           });
         }
 
-        // Still within 60s of the last heartbeat — watchdog must NOT have fired.
+        // Still within the watchdog window of the last heartbeat — no stall.
+        expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('active');
+        expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'idle_notification' }));
+
+        mgr.dispose();
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('resets the watchdog on streaming heartbeat even when slot status is not yet "active"', async () => {
+      // Regression: handleResponseStream used to gate heartbeat reset on
+      // status === 'active'. If a stream event arrived while the slot was
+      // briefly 'pending' (fresh wake) or 'idle' (between back-to-back wakes),
+      // the reset was skipped — the original timer kept counting and fired
+      // after its full WAKE_TIMEOUT_MS, killing an agent that had actually
+      // been streaming the whole time. The fix: any armed timer resets on a
+      // non-terminal stream event regardless of slot status.
+      vi.useFakeTimers();
+      try {
+        const leadAgent = makeAgent({
+          slotId: 'slot-lead',
+          conversationId: 'conv-lead',
+          role: 'leader',
+          status: 'idle',
+        });
+        const teammate = makeAgent({
+          slotId: 'slot-member',
+          conversationId: 'conv-member',
+          role: 'teammate',
+          status: 'idle',
+          agentName: 'Claude Code',
+        });
+        const mockSendMessage = vi.fn().mockResolvedValue(undefined);
+        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, teammate]);
+        vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
+          sendMessage: mockSendMessage,
+        } as never);
+
+        await mgr.wake('slot-member');
+        expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('active');
+
+        // Simulate a transient status flip during which a heartbeat arrives —
+        // e.g. the ACP compat layer briefly emits 'idle' between a finish
+        // synth and the next streamed token. Under the old gate this drops
+        // the reset.
+        await vi.advanceTimersByTimeAsync(290_000);
+        mgr.setStatus('slot-member', 'idle');
+        teamEventBus.emit('responseStream', {
+          type: 'text',
+          conversation_id: 'conv-member',
+          msg_id: 'beat-during-idle',
+          data: { text: 'thinking deeply...' },
+        });
+        mgr.setStatus('slot-member', 'active');
+
+        // Push past the original timer's t=300 s deadline. Under the fixed
+        // code the heartbeat at t=290 s rescheduled the timer to t=590 s, so
+        // nothing fires here. Under the old gate the original t=300 s timer
+        // still fires with status='active' → handleInactivityTimeout marks
+        // the slot 'failed' and writes an idle_notification to the leader.
+        await vi.advanceTimersByTimeAsync(30_000);
+
         expect(mgr.getAgents().find((a) => a.slotId === 'slot-member')?.status).toBe('active');
         expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'idle_notification' }));
 
