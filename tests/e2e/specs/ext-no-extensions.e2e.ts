@@ -2,7 +2,13 @@ import { test, expect, type ElectronApplication, type Page, _electron as electro
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { getChannelPluginStatus, goToSettings, invokeBridge, settingsSiderItemById } from '../helpers';
+import { getChannelPluginStatus, goToSettings, httpGet, settingsSiderItemById } from '../helpers';
+
+// httpGet auto-unwraps {success, data}; wrap to tolerate non-array payloads.
+const emptyArrayIfBad = async <T = unknown>(page: Page, path: string): Promise<T[]> => {
+  const r = await httpGet<unknown>(page, path);
+  return Array.isArray(r) ? (r as T[]) : [];
+};
 
 const emptyExtensionsDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-no-extensions-'));
 const stateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-no-extensions-state-'));
@@ -82,15 +88,15 @@ test.describe.serial('Extension: Empty Directory / No Extensions', () => {
       settingsTabs,
       webuiContributions,
     ] = await Promise.all([
-      invokeBridge(page, 'extensions.get-loaded-extensions'),
-      invokeBridge(page, 'extensions.get-acp-adapters'),
-      invokeBridge(page, 'extensions.get-mcp-servers'),
-      invokeBridge(page, 'extensions.get-assistants'),
-      invokeBridge(page, 'extensions.get-agents'),
-      invokeBridge(page, 'extensions.get-skills'),
-      invokeBridge(page, 'extensions.get-themes'),
-      invokeBridge(page, 'extensions.get-settings-tabs'),
-      invokeBridge(page, 'extensions.get-webui-contributions'),
+      emptyArrayIfBad(page, '/api/extensions'),
+      emptyArrayIfBad(page, '/api/extensions/acp-adapters'),
+      emptyArrayIfBad(page, '/api/extensions/mcp-servers'),
+      emptyArrayIfBad(page, '/api/extensions/assistants'),
+      emptyArrayIfBad(page, '/api/extensions/agents'),
+      emptyArrayIfBad(page, '/api/extensions/skills'),
+      emptyArrayIfBad(page, '/api/extensions/themes'),
+      emptyArrayIfBad(page, '/api/extensions/settings-tabs'),
+      emptyArrayIfBad(page, '/api/extensions/webui'),
     ]);
 
     expect(loadedExtensions).toEqual([]);

@@ -1,5 +1,5 @@
 import type { Page } from '@playwright/test';
-import { invokeBridge } from './bridge';
+import { httpGet } from './httpBridge';
 
 export type ExtensionSnapshot = {
   loadedExtensions: Array<{ name: string; displayName: string; version: string }>;
@@ -34,17 +34,10 @@ export type ChannelPluginStatus = {
   };
 };
 
-export async function getExtensionSnapshot(page: Page): Promise<ExtensionSnapshot> {
-  const unwrapArray = <T>(value: unknown): T[] => {
-    if (Array.isArray(value)) return value as T[];
-    if (value && typeof value === 'object' && 'success' in value && 'data' in value) {
-      const payload = value as { success?: boolean; data?: unknown };
-      if (!payload.success) return [];
-      return Array.isArray(payload.data) ? (payload.data as T[]) : [];
-    }
-    return [];
-  };
+// httpGet auto-unwraps {success, data}; helper guards against non-array payloads.
+const arrayOrEmpty = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
 
+export async function getExtensionSnapshot(page: Page): Promise<ExtensionSnapshot> {
   const [
     loadedExtensions,
     acpAdapters,
@@ -56,39 +49,31 @@ export async function getExtensionSnapshot(page: Page): Promise<ExtensionSnapsho
     settingsTabs,
     webuiContributions,
   ] = await Promise.all([
-    invokeBridge(page, 'extensions.get-loaded-extensions'),
-    invokeBridge(page, 'extensions.get-acp-adapters'),
-    invokeBridge(page, 'extensions.get-mcp-servers'),
-    invokeBridge(page, 'extensions.get-assistants'),
-    invokeBridge(page, 'extensions.get-agents'),
-    invokeBridge(page, 'extensions.get-skills'),
-    invokeBridge(page, 'extensions.get-themes'),
-    invokeBridge(page, 'extensions.get-settings-tabs'),
-    invokeBridge(page, 'extensions.get-webui-contributions'),
+    httpGet<unknown>(page, '/api/extensions'),
+    httpGet<unknown>(page, '/api/extensions/acp-adapters'),
+    httpGet<unknown>(page, '/api/extensions/mcp-servers'),
+    httpGet<unknown>(page, '/api/extensions/assistants'),
+    httpGet<unknown>(page, '/api/extensions/agents'),
+    httpGet<unknown>(page, '/api/extensions/skills'),
+    httpGet<unknown>(page, '/api/extensions/themes'),
+    httpGet<unknown>(page, '/api/extensions/settings-tabs'),
+    httpGet<unknown>(page, '/api/extensions/webui'),
   ]);
 
   return {
-    loadedExtensions: unwrapArray(loadedExtensions),
-    acpAdapters: unwrapArray(acpAdapters),
-    mcpServers: unwrapArray(mcpServers),
-    assistants: unwrapArray(assistants),
-    agents: unwrapArray(agents),
-    skills: unwrapArray(skills),
-    themes: unwrapArray(themes),
-    settingsTabs: unwrapArray(settingsTabs),
-    webuiContributions: unwrapArray(webuiContributions),
+    loadedExtensions: arrayOrEmpty(loadedExtensions),
+    acpAdapters: arrayOrEmpty(acpAdapters),
+    mcpServers: arrayOrEmpty(mcpServers),
+    assistants: arrayOrEmpty(assistants),
+    agents: arrayOrEmpty(agents),
+    skills: arrayOrEmpty(skills),
+    themes: arrayOrEmpty(themes),
+    settingsTabs: arrayOrEmpty(settingsTabs),
+    webuiContributions: arrayOrEmpty(webuiContributions),
   } as ExtensionSnapshot;
 }
 
 export async function getChannelPluginStatus(page: Page): Promise<ChannelPluginStatus[]> {
-  const result = (await invokeBridge(page, 'channel.get-plugin-status')) as {
-    success?: boolean;
-    data?: ChannelPluginStatus[];
-  };
-
-  if (!result?.success || !Array.isArray(result.data)) {
-    return [];
-  }
-
-  return result.data;
+  const result = await httpGet<unknown>(page, '/api/channel/plugins');
+  return Array.isArray(result) ? (result as ChannelPluginStatus[]) : [];
 }
