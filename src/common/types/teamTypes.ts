@@ -52,71 +52,71 @@ export type WorkspaceMode = 'shared' | 'isolated';
 
 /** Persisted agent configuration within a team */
 export type TeamAgent = {
-  slotId: string;
-  conversationId: string;
+  slot_id: string;
+  conversation_id: string;
   role: TeammateRole;
-  agentType: string;
-  agentName: string;
-  conversationType: string;
+  agent_type: string;
+  agent_name: string;
+  conversation_type: string;
   status: TeammateStatus;
-  cliPath?: string;
-  customAgentId?: string;
+  cli_path?: string;
+  custom_agent_id?: string;
   model?: string;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
 export type TTeam = {
   id: string;
-  userId: string;
+  user_id: string;
   name: string;
   workspace: string;
-  workspaceMode: WorkspaceMode;
-  leaderAgentId: string;
+  workspace_mode: WorkspaceMode;
+  leader_agent_id: string;
   agents: TeamAgent[];
   /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned agents inherit it. */
-  sessionMode?: string;
-  createdAt: number;
-  updatedAt: number;
+  session_mode?: string;
+  created_at: number;
+  updated_at: number;
 };
 
 /** IPC event pushed to renderer when agent status changes */
 export type ITeamAgentStatusEvent = {
-  teamId: string;
-  slotId: string;
+  team_id: string;
+  slot_id: string;
   status: TeammateStatus;
-  lastMessage?: string;
+  last_message?: string;
 };
 
 /** IPC event pushed to renderer when a new agent is spawned at runtime */
 export type ITeamAgentSpawnedEvent = {
-  teamId: string;
+  team_id: string;
   agent: TeamAgent;
 };
 
 /** IPC event pushed to renderer when an agent is removed from the team */
 export type ITeamAgentRemovedEvent = {
-  teamId: string;
-  slotId: string;
+  team_id: string;
+  slot_id: string;
 };
 
 /** IPC event pushed to renderer when an agent is renamed */
 export type ITeamAgentRenamedEvent = {
-  teamId: string;
-  slotId: string;
-  oldName: string;
-  newName: string;
+  team_id: string;
+  slot_id: string;
+  old_name: string;
+  new_name: string;
 };
 
 /** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
 export type ITeamListChangedEvent = {
-  teamId: string;
+  team_id: string;
   action: 'created' | 'removed' | 'agent_added' | 'agent_removed';
 };
 
 /** IPC event for streaming agent messages to renderer */
 export type ITeamMessageEvent = {
-  teamId: string;
-  slotId: string;
+  team_id: string;
+  slot_id: string;
   type: string;
   data: unknown;
   msg_id: string;
@@ -138,10 +138,10 @@ export type TeamMcpPhase =
 
 /** IPC event for MCP injection pipeline status */
 export type ITeamMcpStatusEvent = {
-  teamId: string;
-  slotId?: string;
+  team_id: string;
+  slot_id?: string;
   phase: TeamMcpPhase;
-  serverCount?: number;
+  server_count?: number;
   port?: number;
   error?: string;
 };

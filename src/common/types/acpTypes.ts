@@ -768,7 +768,7 @@ export function parseAgentCapabilities(raw: unknown): AcpAgentCapabilities {
 
 // 所有会话更新的基础接口 / Base interface for all session updates
 export interface BaseSessionUpdate {
-  sessionId: string;
+  session_id: string;
 }
 
 // Agent 消息块更新 / Agent message chunk update
@@ -806,8 +806,8 @@ export interface ToolCallContentItem {
     text: string;
   };
   path?: string;
-  oldText?: string | null;
-  newText?: string;
+  old_text?: string | null;
+  new_text?: string;
 }
 
 /** Tool call 位置项类型 / Tool call location item type */
@@ -819,7 +819,7 @@ export interface ToolCallLocationItem {
 export interface ToolCallUpdate extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'tool_call';
-    toolCallId: string;
+    tool_call_id: string;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
     title: string;
     kind: 'read' | 'edit' | 'execute';
@@ -833,7 +833,7 @@ export interface ToolCallUpdate extends BaseSessionUpdate {
 export interface ToolCallUpdateStatus extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'tool_call_update';
-    toolCallId: string;
+    tool_call_id: string;
     status: 'completed' | 'failed';
     // rawInput may arrive in tool_call_update with complete data (after streaming completes)
     // This happens when input_json_delta finishes and the full input is available
@@ -905,8 +905,8 @@ export interface AcpSessionConfigOption {
   description?: string;
   category?: string;
   type: 'select' | 'boolean' | 'string';
-  currentValue?: string;
-  selectedValue?: string; // Some agents may use selectedValue instead of currentValue
+  current_value?: string;
+  selected_value?: string; // Some agents may use selected_value instead of current_value
   options?: AcpConfigSelectOption[];
 }
 
@@ -914,7 +914,7 @@ export interface AcpSessionConfigOption {
 export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'config_option_update';
-    configOptions: AcpSessionConfigOption[];
+    config_options: AcpSessionConfigOption[];
   };
 }
 
@@ -941,7 +941,7 @@ export interface AcpPromptResponseUsage {
   /** Total output tokens for this turn */
   outputTokens: number;
   /** Sum of all token types */
-  totalTokens: number;
+  total_tokens: number;
   /** Tokens read from cache */
   cachedReadTokens?: number | null;
   /** Tokens written to cache */
@@ -955,14 +955,14 @@ export interface AcpPromptResponseUsage {
 /** An available model returned by session/new (unstable API) */
 export interface AcpAvailableModel {
   id?: string;
-  modelId?: string; // OpenCode uses modelId instead of id
+  model_id?: string; // OpenCode uses model_id instead of id
   name?: string;
 }
 
 /** Models info returned by session/new (unstable API) */
 export interface AcpSessionModels {
-  currentModelId?: string;
-  availableModels?: AcpAvailableModel[];
+  current_model_id?: string;
+  available_models?: AcpAvailableModel[];
 }
 
 /** Mode entry in the top-level `modes` object of session/new response */
@@ -974,8 +974,8 @@ export interface AcpAvailableMode {
 
 /** Modes info returned by session/new (used by qoder, opencode, etc.) */
 export interface AcpSessionModes {
-  currentModeId?: string;
-  availableModes?: AcpAvailableMode[];
+  current_mode_id?: string;
+  available_modes?: AcpAvailableMode[];
 }
 
 // ===== Unified model info for UI =====
@@ -990,19 +990,19 @@ export type AcpModelInfoSourceDetail =
 
 export interface AcpModelInfo {
   /** Currently active model ID */
-  currentModelId: string | null;
+  current_model_id: string | null;
   /** Display label for the current model */
-  currentModelLabel: string | null;
+  current_model_label: string | null;
   /** Available models for switching */
-  availableModels: Array<{ id: string; label: string }>;
+  available_models: Array<{ id: string; label: string }>;
   /** Whether the user can switch models */
-  canSwitch: boolean;
+  can_switch: boolean;
   /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
   source: 'configOption' | 'models';
   /** More specific source detail for UI diagnostics */
-  sourceDetail?: AcpModelInfoSourceDetail;
+  source_detail?: AcpModelInfoSourceDetail;
   /** Config option ID (only when source is 'configOption') */
-  configOptionId?: string;
+  config_option_id?: string;
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
@@ -1019,15 +1019,15 @@ export type AcpSessionUpdate =
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
-  optionId: string;
+  option_id: string;
   name: string;
   kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
 }
 export interface AcpPermissionRequest {
-  sessionId: string;
+  session_id: string;
   options: Array<AcpPermissionOption>;
   toolCall: {
-    toolCallId: string;
+    tool_call_id: string;
     rawInput?: {
       command?: string;
       description?: string;
@@ -1045,14 +1045,14 @@ export interface AcpPermissionRequest {
 export interface LegacyAcpPermissionData extends Record<string, unknown> {
   // 可能的旧版本字段 / Possible old version fields
   options?: Array<{
-    optionId?: string;
+    option_id?: string;
     name?: string;
     kind?: string;
     // 兼容可能的其他字段 / Compatible with other possible fields
     [key: string]: unknown;
   }>;
   toolCall?: {
-    toolCallId?: string;
+    tool_call_id?: string;
     rawInput?: unknown;
     title?: string;
     kind?: string;
@@ -1070,7 +1070,7 @@ export type AcpMessage = AcpRequest | AcpNotification | AcpResponse | AcpSession
 export interface AcpFileWriteRequest extends AcpRequest {
   method: 'fs/write_text_file';
   params: {
-    sessionId: string;
+    session_id: string;
     path: string;
     content: string;
   };
@@ -1079,7 +1079,7 @@ export interface AcpFileWriteRequest extends AcpRequest {
 export interface AcpFileReadRequest extends AcpRequest {
   method: 'fs/read_text_file';
   params: {
-    sessionId: string;
+    session_id: string;
     path: string;
   };
 }
@@ -1126,7 +1126,7 @@ export interface AcpFileReadMessage {
   method: typeof ACP_METHODS.READ_TEXT_FILE;
   params: {
     path: string;
-    sessionId?: string;
+    session_id?: string;
   };
 }
 
@@ -1138,7 +1138,7 @@ export interface AcpFileWriteMessage {
   params: {
     path: string;
     content: string;
-    sessionId?: string;
+    session_id?: string;
   };
 }
 
