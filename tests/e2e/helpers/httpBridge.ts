@@ -28,8 +28,10 @@ export async function httpInvoke<T = unknown>(
     async ({ method: m, path: p, body: b }) => {
       const port = (window as unknown as { __backendPort?: number }).__backendPort ?? 13400;
       const url = `http://127.0.0.1:${port}${p}`;
-      const headers: Record<string, string> = {};
-      if (b !== undefined) headers['Content-Type'] = 'application/json';
+      // Always set Content-Type: some backend routes (e.g. DELETE
+      // /api/skills/external-paths) reject requests without it even when
+      // the body is empty. Setting it unconditionally is safe.
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
 
       const res = await fetch(url, {
         method: m,

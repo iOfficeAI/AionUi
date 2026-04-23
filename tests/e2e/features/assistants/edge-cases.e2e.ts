@@ -4,7 +4,7 @@
  * Edge case and boundary validations for the Assistant Settings page.
  */
 import { test, expect } from '../../fixtures';
-import { goToAssistantSettings, takeScreenshot, clickCreateAssistant, closeDrawer, invokeBridge } from '../../helpers';
+import { goToAssistantSettings, takeScreenshot, clickCreateAssistant, closeDrawer, httpPost, httpDelete } from '../../helpers';
 
 test.describe('Assistant Settings Edge Cases (P2)', () => {
   test.setTimeout(90_000);
@@ -111,7 +111,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       `---\nname: test-skill-p2-3\ndescription: Test skill for P2-3\n---\n\nTest skill content.`
     );
 
-    await invokeBridge(page, 'add-custom-external-path', { name: 'E2E Test Source P2-3', path: tempSkillPath });
+    await httpPost(page, '/api/skills/external-paths', { name: 'E2E Test Source P2-3', path: tempSkillPath });
     await page.waitForTimeout(1500); // Wait for skills to be detected
 
     await goToAssistantSettings(page);
@@ -154,7 +154,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       // No skill cards with delete buttons found
       await takeScreenshot(page, 'assistants/p2-3/04-no-delete-buttons.png');
       await closeDrawer(page);
-      await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+      await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
       const { rmSync } = await import('fs');
       rmSync(tempSkillPath, { recursive: true, force: true });
       return;
@@ -171,7 +171,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     if (deleteCount === 0) {
       await takeScreenshot(page, 'assistants/p2-3/05-no-delete-button.png');
       await closeDrawer(page);
-      await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+      await httpDelete(page, `/api/skills/external-paths?path=${encodeURIComponent(tempSkillPath)}`);
       const { rmSync } = await import('fs');
       rmSync(tempSkillPath, { recursive: true, force: true });
       return;
