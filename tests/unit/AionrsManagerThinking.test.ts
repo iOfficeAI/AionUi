@@ -76,6 +76,7 @@ const mockAddOrUpdateMessage = vi.hoisted(() => vi.fn());
 vi.mock('@process/utils/message', () => ({
   addMessage: vi.fn(),
   addOrUpdateMessage: mockAddOrUpdateMessage,
+  flushConversationMessages: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@/common/utils', () => {

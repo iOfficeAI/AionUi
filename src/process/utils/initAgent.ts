@@ -9,6 +9,7 @@ import type { TChatConversation, TProviderWithModel } from '@/common/config/stor
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 import { getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
+import { normalizePresetAssistantExtra } from '@/common/utils/presetAssistantExtra';
 
 // Re-export for backward compatibility (tests mock this path)
 export { hasNativeSkillSupport };
@@ -341,7 +342,12 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
 };
 
 export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
-  const { extra } = options;
+  const extra = normalizePresetAssistantExtra(options.extra, {
+    type: 'aionrs',
+    isPreset: Boolean(options.extra.presetAssistantId),
+    failClosed: true,
+    model: options.model,
+  });
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
     `aionrs-temp-${Date.now()}`,
     extra.workspace,
@@ -366,7 +372,13 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
       workspace,
       customWorkspace,
       presetRules: extra.presetRules,
+      presetContext: extra.presetContext,
+      presetRulesHash: extra.presetRulesHash,
+      skillPackHash: extra.skillPackHash,
+      runtimeContracts: extra.runtimeContracts,
+      contextProvenance: extra.contextProvenance,
       enabledSkills: extra.enabledSkills,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
       presetAssistantId: extra.presetAssistantId,
       sessionMode: extra.sessionMode,
     },

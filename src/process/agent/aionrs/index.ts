@@ -9,6 +9,7 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
+import type { PresetContextProvenance } from '@/common/utils/presetAssistantExtra';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
@@ -39,6 +40,7 @@ export type AionrsAgentOptions = {
   proxy?: string;
   yoloMode?: boolean;
   presetRules?: string;
+  contextProvenance?: PresetContextProvenance;
   maxTokens?: number;
   maxTurns?: number;
   sessionId?: string;
@@ -201,6 +203,13 @@ export class AionrsAgent {
       this.sendCommand({
         type: 'init_history',
         text: `[Assistant System Rules]\n${this.options.presetRules}`,
+      });
+    }
+
+    if (this.options.contextProvenance && !this.options.resume) {
+      this.sendCommand({
+        type: 'init_history',
+        text: `[AionUi Context Provenance]\n${JSON.stringify(this.options.contextProvenance, null, 2)}`,
       });
     }
   }

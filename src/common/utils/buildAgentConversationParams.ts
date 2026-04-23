@@ -7,6 +7,7 @@
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
+import { normalizePresetAssistantExtra } from './presetAssistantExtra';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
@@ -85,6 +86,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     if (type === 'gemini') {
       extra.presetRules = presetResources?.rules;
     } else {
+      extra.presetRules = presetResources?.rules;
       extra.presetContext = presetResources?.rules;
       if (type === 'acp') {
         extra.backend = effectivePresetType as AcpBackend;
@@ -104,10 +106,17 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   if (sessionMode) extra.sessionMode = sessionMode;
   if (currentModelId) extra.currentModelId = currentModelId;
 
+  const normalizedExtra = normalizePresetAssistantExtra(extra, {
+    type,
+    isPreset,
+    failClosed: type === 'aionrs',
+    model,
+  });
+
   return {
     type,
     model,
     name,
-    extra,
+    extra: normalizedExtra,
   };
 }

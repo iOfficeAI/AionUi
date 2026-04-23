@@ -325,21 +325,31 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         return;
       }
       try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'aionrs',
+        const aionrsConversationParams = buildAgentConversationParams({
+          backend: 'aionrs',
           name: input,
+          agentName: agentInfo?.name,
+          presetAssistantId,
+          workspace: finalWorkspace,
           model: currentModel,
+          customAgentId: agentInfo?.customAgentId,
+          customWorkspace: isCustomWorkspace,
+          isPreset,
+          presetAgentType: finalEffectiveAgentType,
+          presetResources: isPreset
+            ? {
+                rules: presetRules,
+                enabledSkills,
+                excludeBuiltinSkills,
+              }
+            : undefined,
+          sessionMode: selectedMode,
           extra: {
             defaultFiles: files,
-            workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            presetRules: isPreset ? presetRules : undefined,
-            enabledSkills: isPreset ? enabledSkills : undefined,
             excludeBuiltinSkills,
-            presetAssistantId,
-            sessionMode: selectedMode,
           },
         });
+        const conversation = await ipcBridge.conversation.create.invoke(aionrsConversationParams);
 
         if (!conversation || !conversation.id) {
           alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');

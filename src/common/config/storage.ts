@@ -61,6 +61,11 @@ export interface IConfigStorageRefer {
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
+  /** Runtime response-contract global feature flag and debug switch. */
+  'runtimeContracts.config'?: {
+    enabled?: boolean;
+    debug?: boolean;
+  };
   /** User-defined custom ACP agents (isPreset !== true, require defaultCliPath). */
   'acp.customAgents'?: AcpBackendConfig[];
   /** Preset assistant configurations (isPreset === true, prompt-only, no CLI). */
@@ -449,8 +454,49 @@ export type TChatConversation =
         proxy?: string;
         /** System rules injected at initialization */
         presetRules?: string;
+        /** Backward-compatible alias for preset rules from older creation paths */
+        presetContext?: string;
+        /** Stable hash of normalized preset rules */
+        presetRulesHash?: string;
+        /** Stable hash of enabled skill IDs and builtin exclusions */
+        skillPackHash?: string;
+        /** Runtime response-contract feature controls */
+        runtimeContracts?: {
+          enabled?: boolean;
+          debug?: boolean;
+          contracts?: string[];
+        };
+        /** Runtime instruction provenance snapshot */
+        contextProvenance?: {
+          assistant?: {
+            id?: string;
+            rulesHash?: string;
+          };
+          skills?: {
+            enabled?: string[];
+            excludedBuiltin?: string[];
+            skillPackHash?: string;
+          };
+          model?: {
+            provider?: string;
+            platform?: string;
+            useModel?: string;
+          };
+          instructionSources?: string[];
+        };
+        /** Last response-contract validation status */
+        runtimeContractState?: {
+          schemaVersion: number;
+          active: boolean;
+          status: 'passed' | 'repaired' | 'blocked' | 'inactive';
+          reason?: string;
+          errors?: string[];
+          finalizedAt?: number;
+        };
         /** Enabled skills list */
         enabledSkills?: string[];
+        /** Builtin skill names excluded from auto-injection */
+        excludeBuiltinSkills?: string[];
         /** Snapshot of actually loaded skills */
         loadedSkills?: Array<{ name: string; description: string }>;
         /** Preset assistant ID */
