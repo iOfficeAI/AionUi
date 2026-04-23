@@ -109,7 +109,7 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
 // ---------------------------------------------------------------------------
 
 function setupMocks(presetConfigs: AcpBackendConfig[] = []) {
-  ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: CLI_AGENTS });
+  ipcMock.getAvailableAgents.mockResolvedValue(CLI_AGENTS);
   configStorageMock.get.mockImplementation(async (key: string) => {
     if (key === 'assistants') {
       return presetConfigs;
@@ -137,10 +137,10 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(1);
+        expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      expect(result.current.preset_assistants[0].backend).toBe('claude');
+      expect(result.current.presetAssistants[0].backend).toBe('claude');
     });
 
     it('defaults backend to "gemini" when presetAgentType is undefined', async () => {
@@ -149,10 +149,10 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(1);
+        expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      expect(result.current.preset_assistants[0].backend).toBe('gemini');
+      expect(result.current.presetAssistants[0].backend).toBe('gemini');
     });
 
     it('defaults backend to "gemini" when presetAgentType is empty string', async () => {
@@ -161,11 +161,11 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(1);
+        expect(result.current.presetAssistants.length).toBe(1);
       });
 
       // Empty string is falsy, so fallback to 'gemini'
-      expect(result.current.preset_assistants[0].backend).toBe('gemini');
+      expect(result.current.presetAssistants[0].backend).toBe('gemini');
     });
 
     it('sets is_preset to true for all preset assistants', async () => {
@@ -177,10 +177,10 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(2);
+        expect(result.current.presetAssistants.length).toBe(2);
       });
 
-      for (const agent of result.current.preset_assistants) {
+      for (const agent of result.current.presetAssistants) {
         expect(agent.is_preset).toBe(true);
       }
     });
@@ -199,10 +199,10 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(1);
+        expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      const agent = result.current.preset_assistants[0];
+      const agent = result.current.presetAssistants[0];
       expect(agent.custom_agent_id).toBe('custom-1');
       expect(agent.name).toBe('Writer Bot');
       expect(agent.avatar).toBe('🖊️');
@@ -220,12 +220,12 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(3);
+        expect(result.current.presetAssistants.length).toBe(3);
       });
 
-      expect(result.current.preset_assistants[0].backend).toBe('codex');
-      expect(result.current.preset_assistants[1].backend).toBe('codebuddy');
-      expect(result.current.preset_assistants[2].backend).toBe('aionrs');
+      expect(result.current.presetAssistants[0].backend).toBe('codex');
+      expect(result.current.presetAssistants[1].backend).toBe('codebuddy');
+      expect(result.current.presetAssistants[2].backend).toBe('aionrs');
     });
   });
 
@@ -244,7 +244,7 @@ describe('useConversationAgents', () => {
       expect(result.current.cliAgents).toEqual(CLI_AGENTS);
     });
 
-    it('returns preset_assistants derived from ConfigStorage("assistants")', async () => {
+    it('returns presetAssistants derived from ConfigStorage("assistants")', async () => {
       const presets = [
         makePresetConfig({ id: 'p1', name: 'Assistant A', presetAgentType: 'claude' }),
         makePresetConfig({ id: 'p2', name: 'Assistant B', presetAgentType: 'gemini' }),
@@ -254,11 +254,11 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(2);
+        expect(result.current.presetAssistants.length).toBe(2);
       });
 
-      expect(result.current.preset_assistants[0].name).toBe('Assistant A');
-      expect(result.current.preset_assistants[1].name).toBe('Assistant B');
+      expect(result.current.presetAssistants[0].name).toBe('Assistant A');
+      expect(result.current.presetAssistants[1].name).toBe('Assistant B');
     });
 
     it('filters out disabled presets (enabled === false)', async () => {
@@ -270,10 +270,10 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(1);
+        expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      expect(result.current.preset_assistants[0].name).toBe('Enabled');
+      expect(result.current.presetAssistants[0].name).toBe('Enabled');
     });
 
     it('filters out non-preset configs (is_preset !== true)', async () => {
@@ -286,10 +286,10 @@ describe('useConversationAgents', () => {
       const { result } = renderHook(() => useConversationAgents());
 
       await waitFor(() => {
-        expect(result.current.preset_assistants.length).toBe(1);
+        expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      expect(result.current.preset_assistants[0].custom_agent_id).toBe('preset');
+      expect(result.current.presetAssistants[0].custom_agent_id).toBe('preset');
     });
 
     it('returns empty arrays when ConfigStorage returns null', async () => {
@@ -303,7 +303,7 @@ describe('useConversationAgents', () => {
       });
 
       expect(result.current.cliAgents).toEqual([]);
-      expect(result.current.preset_assistants).toEqual([]);
+      expect(result.current.presetAssistants).toEqual([]);
     });
   });
 });
