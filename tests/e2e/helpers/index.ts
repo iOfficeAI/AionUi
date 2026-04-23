@@ -48,6 +48,7 @@ export {
   type ChannelPluginStatus,
 } from './extensions';
 export { invokeBridge } from './bridge';
+export { httpInvoke, httpGet, httpPost, httpDelete } from './httpBridge';
 export {
   selectAgent,
   selectModel,

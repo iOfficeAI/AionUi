@@ -18,7 +18,9 @@ import {
   clearSearch,
   closeDrawer,
   takeScreenshot,
-  invokeBridge,
+  httpGet,
+  httpPost,
+  httpInvoke,
 } from '../../helpers';
 
 test.describe('Assistant Settings UI States (P1)', () => {
@@ -906,8 +908,8 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.waitForTimeout(300);
     await takeScreenshot(page, 'assistants/p1-23/01-home-page.png');
 
-    // 2. Get assistants list via invokeBridge to ensure we have valid ID
-    const assistants = await invokeBridge(page, 'extensions.get-assistants', {});
+    // 2. Get assistants list via HTTP to ensure we have valid ID
+    const assistants = await httpGet<Array<{ id: string }>>(page, '/api/extensions/assistants');
     const targetId = assistants[0]?.id || 'builtin-agent';
 
     // 3. Set sessionStorage intent BEFORE navigating to assistants page
@@ -996,7 +998,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
 
     // Create temporary external skill source
     const tempSkillPath = '/tmp/e2e-test-skills-p1-20';
-    await invokeBridge(page, 'add-custom-external-path', { name: 'E2E Test Source', path: tempSkillPath });
+    await httpPost(page, '/api/skills/external-paths', { name: 'E2E Test Source', path: tempSkillPath });
     await page.waitForTimeout(500);
 
     // Open AddSkillsModal
@@ -1021,7 +1023,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
       await page.keyboard.press('Escape');
       await closeDrawer(page);
       // Clean up
-      await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+      await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       return;
     }
 
@@ -1053,7 +1055,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.keyboard.press('Escape');
     await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     await closeDrawer(page);
-    await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+    await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
   });
 
   test('P1-21: skills modal shows added skills as disabled', async ({ page }) => {
@@ -1062,7 +1064,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
 
     // Create temporary external skill source with a skill
     const tempSkillPath = '/tmp/e2e-test-skills-p1-21';
-    await invokeBridge(page, 'add-custom-external-path', { name: 'E2E Test Source', path: tempSkillPath });
+    await httpPost(page, '/api/skills/external-paths', { name: 'E2E Test Source', path: tempSkillPath });
     await page.waitForTimeout(500);
 
     // Open drawer and add a skill first
@@ -1085,7 +1087,7 @@ test.describe('Assistant Settings UI States (P1)', () => {
       await takeScreenshot(page, 'assistants/p1-21/04-no-added-skills.png');
       await page.keyboard.press('Escape');
       await closeDrawer(page);
-      await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+      await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
       return;
     }
 
@@ -1099,6 +1101,6 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.keyboard.press('Escape');
     await modal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {});
     await closeDrawer(page);
-    await invokeBridge(page, 'remove-custom-external-path', { path: tempSkillPath });
+    await httpInvoke(page, 'DELETE', '/api/skills/external-paths', { path: tempSkillPath });
   });
 });

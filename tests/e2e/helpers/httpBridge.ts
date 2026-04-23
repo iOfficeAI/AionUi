@@ -28,13 +28,17 @@ export async function httpInvoke<T = unknown>(
     async ({ method: m, path: p, body: b }) => {
       const port = (window as unknown as { __backendPort?: number }).__backendPort ?? 13400;
       const url = `http://127.0.0.1:${port}${p}`;
+      // DELETE routes require Content-Type: application/json AND a JSON-parseable
+      // body even when the operation takes no body (e.g. DELETE /api/skills/external-paths
+      // where the path is in the query string). Send `{}` as default body for DELETE.
+      const effectiveBody = b !== undefined ? b : m === 'DELETE' ? {} : undefined;
       const headers: Record<string, string> = {};
-      if (b !== undefined) headers['Content-Type'] = 'application/json';
+      if (effectiveBody !== undefined) headers['Content-Type'] = 'application/json';
 
       const res = await fetch(url, {
         method: m,
         headers,
-        body: b !== undefined ? JSON.stringify(b) : undefined,
+        body: effectiveBody !== undefined ? JSON.stringify(effectiveBody) : undefined,
       });
 
       if (!res.ok) {
