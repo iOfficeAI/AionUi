@@ -241,7 +241,9 @@ end-to-end.
 
 ### P1 — test-authoring / infra
 
-**P1-A1: `tests/e2e/helpers/bridge.ts` has no-op `provider()` and no WebSocket `subscribe-*` handler after HTTP migration.**
+**P1-A1 — STATUS: PARTIAL FIX LANDED** on `feat/backend-migration-e2e-helper-fix` at commit `d96d189aa`. Migrated the 7 assistant-spec `invokeBridge` call sites (3× `add-custom-external-path` POST, 3× `remove-custom-external-path` DELETE, 1× `extensions.get-assistants` GET) to the existing `tests/e2e/helpers/httpBridge.ts`. Also unconditionally sets `Content-Type: application/json` in httpBridge (closes P2-A2). **Unblocks the 4 Assistant Class E failures** (P2-3, P1-20, P1-21, P1-23). Still open: other `invokeBridge` callers (`helpers/extensions.ts`, `helpers/chatAionrs.ts`, cron/team/ext specs) — those targets may still have IPC handlers; audit per-key before migrating. Branch pending user review; not merged into base or coordinator branch.
+
+**P1-A1 (original issue — now scoped to remaining callers): `tests/e2e/helpers/bridge.ts` has no-op `provider()` and no WebSocket `subscribe-*` handler after HTTP migration.**
 
 - Symptom: 4 Assistant tests (P2-3, P1-20, P1-21, P1-23) time out in
   `beforeEach` because the helper tries to seed fixtures via `invokeBridge`.
