@@ -93,7 +93,7 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     agentSource: agentSource,
     // TODO(ACP Discovery): old.id is conversation_id, not a real agent identifier.
     // Should be old.extra?.customAgentId ?? old.backend (or an agent registry ID).
-    // See docs/feature/acp-rewrite/TODO.md.
+    // See docs/specs/acp-rewrite/TODO.md.
     agentId: old.id,
 
     command: old.extra?.cliPath ?? old.cliPath,

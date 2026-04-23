@@ -13,7 +13,7 @@
  *   - NdjsonTransport
  *   - Graceful 3-phase shutdown
  *
- * See docs/feature/acp-rewrite/02-reference-implementation.md §6.1-6.2
+ * See docs/specs/acp-rewrite/02-reference-implementation.md §6.1-6.2
  */
 
 import type {

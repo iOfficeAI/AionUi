@@ -9,7 +9,7 @@
  *   - Lifecycle observation (disconnect callback with full context)
  *
  * Inspired by acpx's AcpClient and Zed's AcpConnection.
- * See docs/feature/acp-rewrite/02-reference-implementation.md §8.
+ * See docs/specs/acp-rewrite/02-reference-implementation.md §8.
  */
 
 import type {

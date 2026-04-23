@@ -7,16 +7,18 @@ Rules for organizing files and directories across the entire Electron project.
 ### Root Directory Rules
 
 - **README translations** belong in `docs/readme/`, not at root. Only the main `readme.md` stays at root (GitHub convention)
-- **Guide documents** (`*_GUIDE.md`, `CODE_STYLE.md`, etc.) belong in `docs/`
+- **Guide documents** (deployment, testing, WebUI, CDP, etc.) belong in `docs/guides/`
+- **Contributor documentation** (dev setup, code style, file structure, PR workflow) belongs in `docs/contributing/`
+- **Architecture documentation** belongs in `docs/architecture/` (research notes under `docs/architecture/research/`)
+- **Feature specs / PRDs / design drafts** belong in `docs/specs/` (or `docs/prds/` for formal PRDs maintained by the product team)
 - **Config files** (`tsconfig.json`, `package.json`, etc.) stay at root — Node.js/Electron ecosystem convention
-- **New documentation** should be created in `docs/`, not at project root
+- **New documentation** should be placed under the appropriate `docs/` subdirectory, not at project root
 
 ### Current Root Cleanup Targets
 
-| Action                                     | Files                                                       |
-| ------------------------------------------ | ----------------------------------------------------------- |
-| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md`                          |
-| Move guides to `docs/`                     | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` |
+| Action                                     | Files                              |
+| ------------------------------------------ | ---------------------------------- |
+| Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md` |
 
 ## Project Layout (`src/`)
 

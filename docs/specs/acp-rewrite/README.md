@@ -39,7 +39,7 @@ bun run start
 - `src/process/agent/acp/` — 旧模块（未修改，仍为默认路径）
 - `src/process/acp/` — 新模块（仅 flag 开启时使用）
 
-**详细计划：** `docs/superpowers/plans/2026-04-15-acp-integration-phases.md`
+**详细计划：** `docs/specs/acp-integration-phases.md`
 
 ## 快速入口
 

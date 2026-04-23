@@ -36,7 +36,7 @@ type SignalEventHandler = (convId: string, event: SignalEvent) => void;
  *   2. The table is not consumed by any reader yet.
  *
  * Re-enable together with ACP Discovery which will fix agent_id semantics.
- * See docs/feature/acp-rewrite/TODO.md for details.
+ * See docs/specs/acp-rewrite/TODO.md for details.
  */
 export class AcpRuntime {
   private readonly sessions = new Map<string, SessionEntry>();

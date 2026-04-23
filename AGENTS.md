@@ -8,7 +8,7 @@ All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) b
 
 - **Directory size limit**: A single directory must not exceed **10** direct children (files + subdirectories). Split by responsibility when approaching this limit.
 
-See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for complete rules on directory naming, page module layout, and shared vs private code placement. Agents working in this repository must also read and follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files, modules, or making structure decisions.
+See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for complete rules on directory naming, page module layout, and shared vs private code placement. Agents working in this repository must also read and follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files, modules, or making structure decisions.
 
 ### Naming
 
@@ -32,7 +32,7 @@ See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for
 - Arco overrides go in the component's CSS Module via `:global()` — no global override files
 - Global styles only in `src/renderer/styles/`
 
-See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for full CSS and UI library rules.
+See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for full CSS and UI library rules.
 
 ### TypeScript
 
@@ -50,7 +50,7 @@ Three process types — never mix their APIs:
 - `src/process/worker/` — fork workers, no Electron APIs
 
 Cross-process communication must go through the IPC bridge (`src/preload.ts`).
-See [docs/tech/architecture.md](docs/tech/architecture.md) for details.
+See [docs/architecture/overview.md](docs/architecture/overview.md) for details.
 
 ## Testing
 
@@ -127,7 +127,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 
 - **运行方式**：`scripts/pr-automation.sh` 作为 daemon 持续运行，每轮间隔 30 秒；日志默认写入 `~/Library/Logs/AionUi/`，可通过 `LOG_DIR=...` 覆盖
 - **状态追踪**：通过 `bot:*` label（`bot:reviewing`、`bot:fixing`、`bot:ready-to-fix`、`bot:ci-waiting`、`bot:needs-human-review`、`bot:ready-to-merge`、`bot:done`）
-- **详细说明**：[docs/conventions/pr-automation.md](docs/conventions/pr-automation.md)
+- **详细说明**：[docs/contributing/pr-automation.md](docs/contributing/pr-automation.md)
 
 ## Internationalization
 
