@@ -135,7 +135,7 @@ describe('useAutoPreviewOfficeFiles', () => {
       'ppt',
       expect.objectContaining({
         filePath: '/workspace/slides.pptx',
-        fileName: 'slides.pptx',
+        file_name: 'slides.pptx',
         workspace: '/workspace',
       })
     );
@@ -228,7 +228,7 @@ describe('useAutoPreviewOfficeFiles', () => {
     expect(mockOpenPreview).toHaveBeenCalledWith(
       '',
       'word',
-      expect.objectContaining({ filePath: '/ws/report.docx', fileName: 'report.docx', workspace: '/ws' })
+      expect.objectContaining({ filePath: '/ws/report.docx', file_name: 'report.docx', workspace: '/ws' })
     );
   });
 

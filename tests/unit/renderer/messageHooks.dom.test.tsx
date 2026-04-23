@@ -30,11 +30,11 @@ type TestMessage = {
   content: {
     content: string;
   };
-  createdAt?: number;
+  created_at?: number;
 };
 
-const CacheProbe = ({ conversationId }: { conversation_id: string }) => {
-  useMessageLstCache(conversationId);
+const CacheProbe = ({ conversation_id }: { conversation_id: string }) => {
+  useMessageLstCache(conversation_id);
   const messages = useMessageList();
   return <pre data-testid='messages'>{JSON.stringify(messages)}</pre>;
 };
@@ -109,7 +109,7 @@ describe('message hooks cache merge', () => {
 
     render(
       <MessageListProvider value={initialMessages}>
-        <CacheProbe conversationId='conv-1' />
+        <CacheProbe conversation_id='conv-1' />
       </MessageListProvider>
     );
 

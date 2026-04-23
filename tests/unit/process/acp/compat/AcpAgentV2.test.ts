@@ -39,7 +39,7 @@ vi.mock('@process/acp/session/AcpSession', () => ({
       return 'idle';
     }
 
-    get sessionId() {
+    get session_id() {
       return null;
     }
   },
@@ -265,11 +265,11 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
     });
   });
 
-  describe('isConnected getter', () => {
+  describe('is_connected getter', () => {
     it('should return false initially', () => {
       const agent = createAgent();
 
-      expect(agent.isConnected).toBe(false);
+      expect(agent.is_connected).toBe(false);
     });
 
     it('should return true after status becomes starting', async () => {
@@ -277,7 +277,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('starting');
 
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
     });
 
     it('should return true when status is active', async () => {
@@ -285,7 +285,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('active');
 
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
     });
 
     it('should return true when status is prompting', async () => {
@@ -293,7 +293,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('prompting');
 
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
     });
 
     it('should return true when status is suspended', async () => {
@@ -301,7 +301,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('suspended');
 
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
     });
 
     it('should return true when status is resuming', async () => {
@@ -309,7 +309,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('resuming');
 
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
     });
 
     it('should return false when status is error', async () => {
@@ -317,17 +317,17 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('error');
 
-      expect(agent.isConnected).toBe(false);
+      expect(agent.is_connected).toBe(false);
     });
 
     it('should return false when status returns to idle', async () => {
       const agent = await createStartedAgent();
 
       capturedCallbacks.onStatusChange('active');
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
 
       capturedCallbacks.onStatusChange('idle');
-      expect(agent.isConnected).toBe(false);
+      expect(agent.is_connected).toBe(false);
     });
   });
 
@@ -405,7 +405,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       });
 
       await agent.start();
-      expect(agent.isConnected).toBe(true);
+      expect(agent.is_connected).toBe(true);
       expect(agent.hasActiveSession).toBe(true);
 
       // Kill
@@ -421,7 +421,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
       });
 
       await expect(agent.start()).rejects.toThrow('Session failed to start');
-      expect(agent.isConnected).toBe(false);
+      expect(agent.is_connected).toBe(false);
       expect(agent.hasActiveSession).toBe(false);
     });
 
@@ -661,7 +661,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const info = agent.getModelInfo();
       expect(info).toEqual({
         current_model_id: 'claude-4',
-        currentModelLabel: 'Claude 4',
+        current_model_label: 'Claude 4',
         available_models: [
           { id: 'claude-4', label: 'Claude 4' },
           { id: 'claude-3', label: 'Claude 3' },
@@ -768,7 +768,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       await expect(promise).resolves.toEqual({
         current_model_id: 'claude-4',
-        currentModelLabel: 'Claude 4',
+        current_model_label: 'Claude 4',
         available_models: [{ id: 'claude-4', label: 'Claude 4' }],
         canSwitch: true,
         source: 'models',
@@ -799,7 +799,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
       const result = await promise;
       expect(result).toEqual({
         current_model_id: 'claude-3',
-        currentModelLabel: 'Claude 3',
+        current_model_label: 'Claude 3',
         available_models: [{ id: 'claude-3', label: 'Claude 3' }],
         canSwitch: true,
         source: 'models',
@@ -828,7 +828,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       await expect(promise).resolves.toEqual({
         current_model_id: 'claude-4',
-        currentModelLabel: 'Claude 4',
+        current_model_label: 'Claude 4',
         available_models: [{ id: 'claude-4', label: 'Claude 4' }],
         canSwitch: true,
         source: 'models',

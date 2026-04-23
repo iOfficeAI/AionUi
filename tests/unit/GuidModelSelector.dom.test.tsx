@@ -52,7 +52,7 @@ describe('GuidModelSelector', () => {
         geminiModeLookup={new Map()}
         currentAcpCachedModelInfo={{
           current_model_id: 'claude-opus-4-6',
-          currentModelLabel: 'Claude Opus 4.6',
+          current_model_label: 'Claude Opus 4.6',
           available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
           canSwitch: false,
           source: 'models',
@@ -76,7 +76,7 @@ describe('GuidModelSelector', () => {
         geminiModeLookup={new Map()}
         currentAcpCachedModelInfo={{
           current_model_id: 'claude-opus-4-6',
-          currentModelLabel: 'Claude Opus 4.6',
+          current_model_label: 'Claude Opus 4.6',
           available_models: [
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },

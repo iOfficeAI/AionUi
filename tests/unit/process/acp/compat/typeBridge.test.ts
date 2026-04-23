@@ -301,13 +301,13 @@ describe('typeBridge', () => {
   });
 
   describe('toResponseMessage', () => {
-    const conversationId = 'conv-123';
+    const conversation_id = 'conv-123';
 
     it('should convert text message', () => {
       const message: TMessage = {
         id: 'msg-1',
         msg_id: 'msg-1',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         position: 'left',
         content: {
@@ -315,18 +315,18 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('content');
       expect(result.data).toBe('Hello world');
-      expect(result.conversation_id).toBe(conversationId);
+      expect(result.conversation_id).toBe(conversation_id);
     });
 
     it('should convert thinking message', () => {
       const message: TMessage = {
         id: 'msg-2',
         msg_id: 'msg-2',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'thinking',
         position: 'left',
         content: {
@@ -335,7 +335,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('thought');
       expect(result.data).toEqual({
@@ -348,7 +348,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-3',
         msg_id: 'msg-3',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'acp_tool_call',
         position: 'left',
         content: {
@@ -363,7 +363,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('acp_tool_call');
       expect(result.data).toEqual(message.content);
@@ -373,7 +373,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-4',
         msg_id: 'msg-4',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'plan',
         position: 'left',
         content: {
@@ -385,7 +385,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('plan');
       expect(result.data).toEqual(message.content);
@@ -395,7 +395,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-5',
         msg_id: 'msg-5',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'tips',
         position: 'center',
         content: {
@@ -404,7 +404,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('thought');
       expect(result.data).toEqual({
@@ -417,7 +417,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-6',
         msg_id: 'msg-6',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'tips',
         position: 'center',
         content: {
@@ -426,7 +426,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('error');
       expect(result.data).toBe('An error occurred');
@@ -436,14 +436,14 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-7',
         msg_id: 'msg-7',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'available_commands',
         content: {
           commands: [{ name: '/help', description: 'Show help' }],
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('');
       expect(result.data).toBeNull();
@@ -453,14 +453,14 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-8',
         msg_id: 'msg-8',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         content: {
           content: 'Unknown format',
         },
       } as TMessage;
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('content');
       expect(typeof result.data).toBe('string');
@@ -470,7 +470,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-9',
         msg_id: 'msg-9',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         position: 'left',
         content: {
@@ -479,7 +479,7 @@ describe('typeBridge', () => {
         hidden: true,
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.hidden).toBe(true);
     });
@@ -488,7 +488,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'internal-id',
         msg_id: 'external-id',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         position: 'left',
         content: {
@@ -496,7 +496,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.msg_id).toBe('external-id');
     });

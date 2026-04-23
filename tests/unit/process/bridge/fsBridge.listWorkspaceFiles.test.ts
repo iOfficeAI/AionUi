@@ -140,7 +140,7 @@ describe('fsBridge listWorkspaceFiles', () => {
   it('returns nested files recursively as a flat list', async () => {
     const handler = providerCallbacks.listWorkspaceFiles as (args: {
       root: string;
-    }) => Promise<Array<{ name: string; fullPath: string; relativePath: string }>>;
+    }) => Promise<Array<{ name: string; fullPath: string; relative_path: string }>>;
 
     mockStat.mockResolvedValue({ isDirectory: () => true });
     mockReaddir.mockImplementation(async (dirPath: string) => {
@@ -159,12 +159,12 @@ describe('fsBridge listWorkspaceFiles', () => {
       {
         name: 'README.md',
         fullPath: path.join(workspaceRoot, 'README.md'),
-        relativePath: 'README.md',
+        relative_path: 'README.md',
       },
       {
         name: 'prompt-keywords.md',
         fullPath: path.join(workspaceRoot, 'references', 'prompt-keywords.md'),
-        relativePath: 'references/prompt-keywords.md',
+        relative_path: 'references/prompt-keywords.md',
       },
     ]);
   });
@@ -172,7 +172,7 @@ describe('fsBridge listWorkspaceFiles', () => {
   it('reuses the cached file list for repeated requests in the same workspace', async () => {
     const handler = providerCallbacks.listWorkspaceFiles as (args: {
       root: string;
-    }) => Promise<Array<{ name: string; fullPath: string; relativePath: string }>>;
+    }) => Promise<Array<{ name: string; fullPath: string; relative_path: string }>>;
 
     mockStat.mockResolvedValue({ isDirectory: () => true });
     mockReaddir.mockResolvedValue([dirent('README.md', 'file')]);
@@ -187,7 +187,7 @@ describe('fsBridge listWorkspaceFiles', () => {
   it('invalidates the cached file list after a workspace file write', async () => {
     const listHandler = providerCallbacks.listWorkspaceFiles as (args: {
       root: string;
-    }) => Promise<Array<{ name: string; fullPath: string; relativePath: string }>>;
+    }) => Promise<Array<{ name: string; fullPath: string; relative_path: string }>>;
     const writeHandler = providerCallbacks.writeFile as (args: { path: string; data: string }) => Promise<boolean>;
 
     mockStat.mockResolvedValue({ isDirectory: () => true });
@@ -199,7 +199,7 @@ describe('fsBridge listWorkspaceFiles', () => {
       {
         name: 'README.md',
         fullPath: path.join(workspaceRoot, 'README.md'),
-        relativePath: 'README.md',
+        relative_path: 'README.md',
       },
     ]);
     expect(mockReaddir).toHaveBeenCalledTimes(1);
@@ -213,12 +213,12 @@ describe('fsBridge listWorkspaceFiles', () => {
       {
         name: 'NEW_GUIDE.md',
         fullPath: path.join(workspaceRoot, 'NEW_GUIDE.md'),
-        relativePath: 'NEW_GUIDE.md',
+        relative_path: 'NEW_GUIDE.md',
       },
       {
         name: 'README.md',
         fullPath: path.join(workspaceRoot, 'README.md'),
-        relativePath: 'README.md',
+        relative_path: 'README.md',
       },
     ]);
     expect(mockReaddir).toHaveBeenCalledTimes(2);

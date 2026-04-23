@@ -20,7 +20,7 @@ const mockRemoveDomSnippet = vi.fn();
 const mockClearDomSnippets = vi.fn();
 
 let layoutState = { isMobile: false };
-let conversationState: { conversationId?: string } = { conversation_id: 'conversation-1' };
+let conversationState: { conversation_id?: string } = { conversation_id: 'conversation-1' };
 let previewState: {
   domSnippets: Array<{ id: string; tag: string; html: string }>;
   setSendBoxHandler: typeof mockSetSendBoxHandler;
@@ -53,7 +53,7 @@ let slashControllerState = {
 };
 let pasteServiceArgs: {
   onTextPaste?: (text: string) => void;
-  conversationId?: string;
+  conversation_id?: string;
 } | null = null;
 
 vi.mock('@/common', () => ({

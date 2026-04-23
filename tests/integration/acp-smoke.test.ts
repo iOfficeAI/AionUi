@@ -129,7 +129,7 @@ describe('L3 ACP Smoke Test', () => {
     expect(sessionResult.session_id).toBeDefined();
     expect(typeof sessionResult.session_id).toBe('string');
 
-    const sessionId = sessionResult.session_id as string;
+    const session_id = sessionResult.session_id as string;
 
     // Step 3: Send prompt
     writeMessage(child, {
@@ -137,7 +137,7 @@ describe('L3 ACP Smoke Test', () => {
       id: 3,
       method: 'session/prompt',
       params: {
-        sessionId,
+        session_id,
         prompt: [{ type: 'text', text: 'Say hello' }],
       },
     });

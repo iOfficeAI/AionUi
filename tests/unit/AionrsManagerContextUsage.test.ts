@@ -157,11 +157,11 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 
 const CONV_ID = 'conv-cu-1';
 
-function createManager(conversationId = CONV_ID): AionrsManager {
+function createManager(conversation_id = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
     model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
-    conversation_id: conversationId,
+    conversation_id: conversation_id,
   };
   return new AionrsManager(data as any, data.model as any);
 }
@@ -194,7 +194,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
   // ── AC-1: Valid usage data is persisted ───────────────────────────
 
   describe('AC-1: Valid TokenUsage is persisted to DB', () => {
-    it('saves lastTokenUsage on finish with valid usage data', async () => {
+    it('saves last_token_usage on finish with valid usage data', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'hello', msg_id: 'msg-1' });
       emitEvent(manager, {
@@ -280,7 +280,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
       await vi.advanceTimersByTimeAsync(200);
 
       // updateConversation may be called for other reasons (e.g. sendMessage),
-      // but not with lastTokenUsage
+      // but not with last_token_usage
       const usageCalls = mockDb.updateConversation.mock.calls.filter(
         ([, updates]: [string, any]) => updates?.extra?.last_token_usage
       );

@@ -89,7 +89,7 @@ describe('TaskManager', () => {
       expect(arg.owner).toBe('slot-1');
     });
 
-    it('creates task without blockedBy when not provided', async () => {
+    it('creates task without blocked_by when not provided', async () => {
       const createdTask = makeTask();
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
 
@@ -99,7 +99,7 @@ describe('TaskManager', () => {
       expect(arg.blocked_by).toEqual([]);
     });
 
-    it('atomically appends to upstream blocks when blockedBy is provided', async () => {
+    it('atomically appends to upstream blocks when blocked_by is provided', async () => {
       const createdTask = makeTask({ id: 'task-new', blocked_by: ['task-upstream'] });
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
       vi.mocked(repo.appendToBlocks).mockResolvedValue(undefined);
@@ -113,7 +113,7 @@ describe('TaskManager', () => {
       expect(repo.appendToBlocks).toHaveBeenCalledWith('task-upstream', 'task-new');
     });
 
-    it('handles multiple blockedBy dependencies with atomic appends', async () => {
+    it('handles multiple blocked_by dependencies with atomic appends', async () => {
       const createdTask = makeTask({ id: 'task-new', blocked_by: ['task-a', 'task-b'] });
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
       vi.mocked(repo.appendToBlocks).mockResolvedValue(undefined);
@@ -206,7 +206,7 @@ describe('TaskManager', () => {
       expect(repo.updateTask).not.toHaveBeenCalled();
     });
 
-    it('atomically removes completed taskId from dependents and returns fully unblocked tasks', async () => {
+    it('atomically removes completed task_id from dependents and returns fully unblocked tasks', async () => {
       const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
       const dependent = makeTask({ id: 'task-2', blocked_by: ['task-1'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
@@ -223,7 +223,7 @@ describe('TaskManager', () => {
       expect(repo.updateTask).toHaveBeenCalledWith('task-1', expect.objectContaining({ blocks: [] }));
     });
 
-    it('returns only tasks whose blockedBy is now empty (still blocked tasks not returned)', async () => {
+    it('returns only tasks whose blocked_by is now empty (still blocked tasks not returned)', async () => {
       const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
       const fullyUnblocked = makeTask({ id: 'task-2', blocked_by: ['task-1'] });
       const stillBlocked = makeTask({ id: 'task-3', blocked_by: ['task-1', 'task-other'] });

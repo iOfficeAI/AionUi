@@ -162,10 +162,10 @@ describe('useGeminiInitialMessage', () => {
 
     // Phase 1: no auth — message placed in input box, kept in sessionStorage
     const { rerender } = renderHook(
-      ({ hasNoAuth, currentModelId }) =>
+      ({ hasNoAuth, current_model_id }) =>
         useGeminiInitialMessage({
           conversation_id: 'conv-transition',
-          currentModelId,
+          current_model_id,
           hasNoAuth,
           setContent,
           setActiveMsgId,

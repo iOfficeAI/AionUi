@@ -38,19 +38,19 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/utils/sortOrderHelpers', (
 const mockT = (key: string) => key;
 
 describe('isCronJobConversation', () => {
-  it('returns true when extra.cronJobId exists', () => {
+  it('returns true when extra.cron_job_id exists', () => {
     const conversation: TChatConversation = {
       id: 'conv-1',
       title: 'Test',
       created_at: 1000,
       updated_at: 1000,
-      extra: { cronJobId: 'job-123' },
+      extra: { cron_job_id: 'job-123' },
       userMsgCount: 0,
     };
     expect(isCronJobConversation(conversation)).toBe(true);
   });
 
-  it('returns false when extra.cronJobId is undefined', () => {
+  it('returns false when extra.cron_job_id is undefined', () => {
     const conversation: TChatConversation = {
       id: 'conv-2',
       title: 'Test',
@@ -73,13 +73,13 @@ describe('isCronJobConversation', () => {
     expect(isCronJobConversation(conversation)).toBe(false);
   });
 
-  it('returns false when extra.cronJobId is empty string', () => {
+  it('returns false when extra.cron_job_id is empty string', () => {
     const conversation: TChatConversation = {
       id: 'conv-4',
       title: 'Test',
       created_at: 1000,
       updated_at: 1000,
-      extra: { cronJobId: '' },
+      extra: { cron_job_id: '' },
       userMsgCount: 0,
     };
     expect(isCronJobConversation(conversation)).toBe(false);
@@ -409,7 +409,7 @@ describe('buildGroupedHistory', () => {
         title: 'Cron Job',
         created_at: 2000,
         updated_at: 2000,
-        extra: { cronJobId: 'job-123' },
+        extra: { cron_job_id: 'job-123' },
         userMsgCount: 0,
       },
     ];
@@ -499,7 +499,7 @@ describe('buildGroupedHistory', () => {
         title: 'Cron',
         created_at: 2000,
         updated_at: 2000,
-        extra: { cronJobId: 'job-123' },
+        extra: { cron_job_id: 'job-123' },
         userMsgCount: 0,
       },
       {
@@ -571,7 +571,7 @@ describe('buildGroupedHistory', () => {
         title: 'Cron 1',
         created_at: 1000,
         updated_at: 1000,
-        extra: { cronJobId: 'job-1' },
+        extra: { cron_job_id: 'job-1' },
         userMsgCount: 0,
       },
       {
@@ -579,7 +579,7 @@ describe('buildGroupedHistory', () => {
         title: 'Cron 2',
         created_at: 2000,
         updated_at: 2000,
-        extra: { cronJobId: 'job-2' },
+        extra: { cron_job_id: 'job-2' },
         userMsgCount: 0,
       },
     ];

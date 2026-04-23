@@ -15,7 +15,7 @@ import type { RemoteAgentCoreConfig } from '../../src/process/agent/remote/Remot
 const mockConnection = vi.hoisted(() => ({
   start: vi.fn(),
   stop: vi.fn(),
-  isConnected: false,
+  is_connected: false,
   sessionKey: null as string | null,
   chatSend: vi.fn().mockResolvedValue(undefined),
   chatHistory: vi.fn().mockResolvedValue({ messages: [] }),
@@ -111,7 +111,7 @@ function createConnectedCore(config?: ReturnType<typeof makeConfig>) {
   const cfg = config ?? makeConfig();
   const core = new RemoteAgentCore(cfg);
   // Simulate connected state
-  mockConnection.isConnected = true;
+  mockConnection.is_connected = true;
   mockConnection.sessionKey = 'session-1';
   return { core, config: cfg };
 }
@@ -123,7 +123,7 @@ function createConnectedCore(config?: ReturnType<typeof makeConfig>) {
 describe('RemoteAgentCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockConnection.isConnected = false;
+    mockConnection.is_connected = false;
     mockConnection.sessionKey = null;
     capturedCallbacks.onEvent = null;
     capturedCallbacks.onHelloOk = null;
@@ -480,8 +480,8 @@ describe('RemoteAgentCore', () => {
     it('returns error result on connection failure', async () => {
       const core = new RemoteAgentCore(makeConfig());
       // connection is null, start will fail
-      mockConnection.isConnected = false;
-      core['connection'] = { ...mockConnection, isConnected: false } as never;
+      mockConnection.is_connected = false;
+      core['connection'] = { ...mockConnection, is_connected: false } as never;
 
       // Force start to throw
       mockConnection.start.mockImplementationOnce(() => {
@@ -519,7 +519,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig({ sessionKey: 'old-key' });
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
 
       await core['resolveSession']();
 
@@ -531,7 +531,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig({ sessionKey: 'old-key' });
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
       mockConnection.sessionsResolve.mockRejectedValueOnce(new Error('expired'));
 
       await core['resolveSession']();
@@ -544,7 +544,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig();
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
 
       await core['resolveSession']();
 
@@ -558,15 +558,15 @@ describe('RemoteAgentCore', () => {
   });
 
   describe('getters', () => {
-    it('isConnected returns false when no connection', () => {
+    it('is_connected returns false when no connection', () => {
       const core = new RemoteAgentCore(makeConfig());
-      expect(core.isConnected).toBe(false);
+      expect(core.is_connected).toBe(false);
     });
 
-    it('isConnected returns connection state', () => {
+    it('is_connected returns connection state', () => {
       const { core } = createConnectedCore();
       core['connection'] = mockConnection as never;
-      expect(core.isConnected).toBe(true);
+      expect(core.is_connected).toBe(true);
     });
 
     it('hasActiveSession returns false without session key', () => {
@@ -1245,7 +1245,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig();
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
       // No resumeKey → goes to reset path
       mockConnection.sessionsReset.mockRejectedValueOnce(new Error('reset failed'));
       mockConnection.sessionsResolve.mockResolvedValueOnce({ key: 'fallback-resolve-key' });
@@ -1259,7 +1259,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig();
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
       mockConnection.sessionsReset.mockRejectedValueOnce(new Error('reset failed'));
       mockConnection.sessionsResolve.mockRejectedValueOnce(new Error('resolve failed'));
 

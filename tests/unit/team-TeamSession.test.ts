@@ -73,7 +73,7 @@ function makeTeam(overrides: Partial<TTeam> = {}): TTeam {
   return {
     id: 'team-1',
     name: 'Test Team',
-    leaderAgentId: 'slot-lead',
+    leader_agent_id: 'slot-lead',
     agents: [
       {
         slot_id: 'slot-lead',
@@ -146,7 +146,7 @@ describe('TeamSession', () => {
       removeListenersSpy.mockRestore();
     });
 
-    it('skips kill for agents without conversationId', async () => {
+    it('skips kill for agents without conversation_id', async () => {
       const workerTaskManager = makeWorkerTaskManager();
       const team = makeTeam({
         agents: [
@@ -174,7 +174,7 @@ describe('TeamSession', () => {
 
       await session.dispose();
 
-      // Only the agent with conversationId should be killed
+      // Only the agent with conversation_id should be killed
       expect(workerTaskManager.kill).toHaveBeenCalledWith('conv-lead');
       expect(workerTaskManager.kill).toHaveBeenCalledTimes(1);
     });

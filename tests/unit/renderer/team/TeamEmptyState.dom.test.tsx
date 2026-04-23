@@ -99,9 +99,9 @@ const useAcpDraft = getSendBoxDraftHook('acp', {
   uploadFile: [],
 });
 
-const DraftProbe: React.FC<{ conversation_id: string }> = ({ conversationId }) => {
-  const geminiDraft = useGeminiDraft(conversationId).data;
-  const acpDraft = useAcpDraft(conversationId).data;
+const DraftProbe: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+  const geminiDraft = useGeminiDraft(conversation_id).data;
+  const acpDraft = useAcpDraft(conversation_id).data;
 
   return (
     <>
@@ -121,13 +121,13 @@ const modelSelection: GeminiModelSelection = {
   handleSelectModel: vi.fn(),
 };
 
-const seedGeminiTeamConversation = (id: string, agentName = 'bob', extra: Record<string, unknown> = {}) => {
+const seedGeminiTeamConversation = (id: string, agent_name = 'bob', extra: Record<string, unknown> = {}) => {
   mockConversationStore.set(id, {
     createTime: 0,
     modifyTime: 0,
     id,
     type: 'gemini',
-    name: `demo-team - ${agentName}`,
+    name: `demo-team - ${agent_name}`,
     extra: { workspace: '/tmp/workspace', team_id: 'team-1', ...extra },
     model: { id: 'p', platform: 'gemini', use_model: 'gemini-pro' } as unknown as TChatConversation['model'],
   } as TChatConversation);
@@ -153,8 +153,8 @@ describe('team empty state', () => {
         conversation_id='conv-gemini-empty'
         workspace='/tmp/workspace'
         modelSelection={modelSelection}
-        teamId='team-1'
-        emptySlot={<TeamChatEmptyState conversationId='conv-gemini-empty' />}
+        team_id='team-1'
+        emptySlot={<TeamChatEmptyState conversation_id='conv-gemini-empty' />}
       />
     );
 
@@ -163,7 +163,7 @@ describe('team empty state', () => {
     expect(mockUpdateLocalImage).toHaveBeenCalledWith({ root: '/tmp/workspace' });
   });
 
-  it('renders nothing when the conversation has no teamId', async () => {
+  it('renders nothing when the conversation has no team_id', async () => {
     mockConversationStore.set('conv-solo', {
       createTime: 0,
       modifyTime: 0,
@@ -174,7 +174,7 @@ describe('team empty state', () => {
       model: { id: 'p', platform: 'gemini', use_model: 'gemini-pro' } as unknown as TChatConversation['model'],
     } as TChatConversation);
 
-    const { container } = render(<TeamChatEmptyState conversationId='conv-solo' />);
+    const { container } = render(<TeamChatEmptyState conversation_id='conv-solo' />);
 
     // Even after the SWR fetch resolves, the component renders null.
     await Promise.resolve();
@@ -186,8 +186,8 @@ describe('team empty state', () => {
 
     render(
       <>
-        <TeamChatEmptyState conversationId='conv-gemini-draft' />
-        <DraftProbe conversationId='conv-gemini-draft' />
+        <TeamChatEmptyState conversation_id='conv-gemini-draft' />
+        <DraftProbe conversation_id='conv-gemini-draft' />
       </>
     );
 
@@ -201,7 +201,7 @@ describe('team empty state', () => {
     mockPresetInfo.value = { name: 'Word Creator', logo: '📝', isEmoji: true };
     seedGeminiTeamConversation('conv-preset-emoji', 'Word Creator');
 
-    render(<TeamChatEmptyState conversationId='conv-preset-emoji' />);
+    render(<TeamChatEmptyState conversation_id='conv-preset-emoji' />);
 
     expect(await findInMessageList('📝')).toBeTruthy();
     expect(screen.getByText('Word Creator')).toBeTruthy();
@@ -211,7 +211,7 @@ describe('team empty state', () => {
     mockPresetInfo.value = { name: 'Cowork', logo: '/assets/cowork.svg', isEmoji: false };
     seedGeminiTeamConversation('conv-preset-svg', 'Cowork');
 
-    render(<TeamChatEmptyState conversationId='conv-preset-svg' />);
+    render(<TeamChatEmptyState conversation_id='conv-preset-svg' />);
 
     const avatar = (await screen.findByAltText('Cowork')) as HTMLImageElement;
     expect(avatar.src).toContain('/assets/cowork.svg');

@@ -33,8 +33,8 @@ vi.mock('fs', () => ({
 // Mock AcpConnection
 const mockLoadSession = vi.fn();
 const mockNewSession = vi.fn();
-const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: { capabilities: { loadSession: true } } });
-const mockGetInitializeResponse = vi.fn().mockReturnValue({ agentInfo: { capabilities: { loadSession: true } } });
+const mockInitialize = vi.fn().mockResolvedValue({ agent_info: { capabilities: { loadSession: true } } });
+const mockGetInitializeResponse = vi.fn().mockReturnValue({ agent_info: { capabilities: { loadSession: true } } });
 const mockOn = vi.fn();
 const mockDestroy = vi.fn();
 
@@ -64,21 +64,21 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
 
         if (shouldTryLoadSession) {
           try {
-            return await this.loadSession(sessionId, cwd, options?.mcp_servers);
+            return await this.loadSession(session_id, cwd, options?.mcp_servers);
           } catch (loadError) {
             console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
           }
         }
 
         return await this.newSession(cwd, {
-          resumeSessionId: sessionId,
+          resumeSessionId: session_id,
           forkSession: options?.forkSession,
           mcp_servers: options?.mcp_servers,
         });
       }
       on = mockOn;
       destroy = mockDestroy;
-      sessionId = null;
+      session_id = null;
     },
   };
 });
@@ -110,7 +110,7 @@ describe('AcpAgent - session ownership validation', () => {
 
   function createAgent(conversation_id: string, extra: Record<string, unknown> = {}) {
     return new AcpAgent({
-      id: conversationId,
+      id: conversation_id,
       backend: 'codex',
       workingDir: '/tmp',
       extra: {
@@ -155,7 +155,7 @@ describe('AcpAgent - session ownership validation', () => {
     expect(mockNewSession).not.toHaveBeenCalled();
   });
 
-  it('should resume when no conversationId is stored (legacy data)', async () => {
+  it('should resume when no conversation_id is stored (legacy data)', async () => {
     const agent = createAgent('conversation-A', {
       acp_session_id: 'old-session-abc',
       // No acpSessionConversationId - legacy data without ownership info

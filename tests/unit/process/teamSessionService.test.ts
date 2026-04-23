@@ -120,7 +120,7 @@ describe('TeamSessionService', () => {
         }),
       })
     );
-    // Must have a concrete useModel, not the bare 'default' placeholder
+    // Must have a concrete use_model, not the bare 'default' placeholder
     const callArgs = (conversationService.createConversation as ReturnType<typeof vi.fn>).mock.calls[0][0];
     expect(callArgs.model.use_model).not.toBe('default');
   });
@@ -369,7 +369,7 @@ describe('TeamSessionService', () => {
       name: 'Preset Team',
       workspace: '/workspace',
       workspaceMode: 'shared',
-      leaderAgentId: 'slot-lead',
+      leader_agent_id: 'slot-lead',
       agents: [
         {
           slot_id: 'slot-lead',
@@ -430,7 +430,7 @@ describe('TeamSessionService', () => {
       name: 'Legacy Team',
       workspace: '',
       workspaceMode: 'shared',
-      leaderAgentId: 'slot-lead',
+      leader_agent_id: 'slot-lead',
       agents: [],
       created_at: 1,
       updated_at: 1,
@@ -465,7 +465,7 @@ describe('TeamSessionService', () => {
 
     expect(repairedTeam).toEqual(
       expect.objectContaining({
-        leaderAgentId: 'slot-lead',
+        leader_agent_id: 'slot-lead',
         agents: [
           expect.objectContaining({
             slot_id: 'slot-lead',
@@ -482,7 +482,7 @@ describe('TeamSessionService', () => {
     expect(repo.update).toHaveBeenCalledWith(
       'team-legacy',
       expect.objectContaining({
-        leaderAgentId: 'slot-lead',
+        leader_agent_id: 'slot-lead',
         agents: [
           expect.objectContaining({
             slot_id: 'slot-lead',

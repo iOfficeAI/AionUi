@@ -60,8 +60,8 @@ beforeEach(() => {
 describe('fetchModelList', () => {
   const fetchModelList = (args: any) => handlers.fetchModelList(args);
 
-  describe('apiKey validation (Fixes ELECTRON-6X, ELECTRON-5, ELECTRON-1A)', () => {
-    it('should return error when apiKey is empty string', async () => {
+  describe('api_key validation (Fixes ELECTRON-6X, ELECTRON-5, ELECTRON-1A)', () => {
+    it('should return error when api_key is empty string', async () => {
       const result = await fetchModelList({
         base_url: 'https://api.openai.com/v1',
         api_key: '',
@@ -72,7 +72,7 @@ describe('fetchModelList', () => {
       expect(result.msg).toContain('API key is required');
     });
 
-    it('should return error when apiKey is undefined', async () => {
+    it('should return error when api_key is undefined', async () => {
       const result = await fetchModelList({
         base_url: 'https://api.openai.com/v1',
         api_key: undefined,
@@ -83,7 +83,7 @@ describe('fetchModelList', () => {
       expect(result.msg).toContain('API key is required');
     });
 
-    it('should proceed when apiKey is provided', async () => {
+    it('should proceed when api_key is provided', async () => {
       mockModelsList.mockResolvedValueOnce({ data: [{ id: 'gpt-4' }] });
 
       const result = await fetchModelList({

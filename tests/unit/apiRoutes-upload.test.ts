@@ -22,10 +22,10 @@ describe('apiRoutes upload saveToWorkspace logic', () => {
     // Default to cache directory (false) to avoid cluttering workspace
     const shouldSaveToWorkspace = saveToWorkspace ?? false;
 
-    if (conversationId && shouldSaveToWorkspace) {
+    if (conversation_id && shouldSaveToWorkspace) {
       return {
         useWorkspace: true,
-        path: requestedWorkspace || `/workspace/${conversationId}`,
+        path: requestedWorkspace || `/workspace/${conversation_id}`,
       };
     }
 
@@ -45,7 +45,7 @@ describe('apiRoutes upload saveToWorkspace logic', () => {
       expect(result.path).toBe('/tmp/cache');
     });
 
-    it('uses workspace when saveToWorkspace is true and conversationId exists', () => {
+    it('uses workspace when saveToWorkspace is true and conversation_id exists', () => {
       const result = resolveUploadPath('conv-123', '/my/workspace', true);
       expect(result.useWorkspace).toBe(true);
       expect(result.path).toBe('/my/workspace');
@@ -57,13 +57,13 @@ describe('apiRoutes upload saveToWorkspace logic', () => {
       expect(result.path).toBe('/workspace/conv-456');
     });
 
-    it('falls back to cache when conversationId is missing even if saveToWorkspace is true', () => {
+    it('falls back to cache when conversation_id is missing even if saveToWorkspace is true', () => {
       const result = resolveUploadPath(undefined, '/my/workspace', true);
       expect(result.useWorkspace).toBe(false);
       expect(result.path).toBe('/tmp/cache');
     });
 
-    it('uses cache directory for empty conversationId', () => {
+    it('uses cache directory for empty conversation_id', () => {
       const result = resolveUploadPath('', '/my/workspace', true);
       expect(result.useWorkspace).toBe(false);
       expect(result.path).toBe('/tmp/cache');

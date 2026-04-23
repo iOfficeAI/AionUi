@@ -102,7 +102,7 @@ describe('AcpSession lifecycle', () => {
     expect(client.createSession).toHaveBeenCalledOnce();
   });
 
-  it('start() notifies sessionId via callback', async () => {
+  it('start() notifies session_id via callback', async () => {
     const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));

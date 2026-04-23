@@ -11,7 +11,7 @@ const TEST_CONFIG_ROOT = path.join(TEST_DIR, 'config-root');
 function buildChannelSendProtocol(action: {
   type: 'image' | 'file';
   path: string;
-  fileName?: string;
+  file_name?: string;
   caption?: string;
 }): string {
   return `[AIONUI_CHANNEL_SEND]
@@ -106,7 +106,7 @@ describe('channelSendProtocol', () => {
       buildChannelSendProtocol({
         type: 'file',
         path: '../claude-temp-200/uploads/report.pdf',
-        fileName: 'report.pdf',
+        file_name: 'report.pdf',
       }),
       'conv-sibling-temp'
     );
@@ -115,7 +115,7 @@ describe('channelSendProtocol', () => {
       {
         type: 'file',
         path: canonicalSharedFile,
-        fileName: 'report.pdf',
+        file_name: 'report.pdf',
       },
     ]);
     expect(parsed.rejectedActions).toEqual([]);
@@ -158,7 +158,7 @@ describe('channelSendProtocol', () => {
       buildChannelSendProtocol({
         type: 'file',
         path: '../aionui.db',
-        fileName: 'aionui.db',
+        file_name: 'aionui.db',
       }),
       'conv-reject-data-root-file'
     );
@@ -168,7 +168,7 @@ describe('channelSendProtocol', () => {
       {
         type: 'file',
         path: '../aionui.db',
-        fileName: 'aionui.db',
+        file_name: 'aionui.db',
         reason: 'outside_allowed',
       },
     ]);

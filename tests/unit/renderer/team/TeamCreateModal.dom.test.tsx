@@ -62,7 +62,7 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 }));
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({ cliAgents, presetAssistants }),
+  useConversationAgents: () => ({ cliAgents, preset_assistants }),
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({
@@ -87,7 +87,7 @@ vi.mock('@/common/config/storage', () => ({
               sessionCapabilities: { fork: null, resume: null, list: null, close: null },
               _meta: {},
             },
-            agentInfo: null,
+            agent_info: null,
             authMethods: [],
           },
         };
@@ -177,7 +177,7 @@ describe('TeamCreateModal', () => {
     expect(labels.some((label) => label?.includes('Gemini CLI'))).toBe(false);
   });
 
-  it('creates a team with the preset customAgentId and presetAgentType-derived backend', async () => {
+  it('creates a team with the preset custom_agent_id and presetAgentType-derived backend', async () => {
     mockCreateTeam.mockResolvedValue({ id: 'team-created' });
     const onCreated = vi.fn();
 

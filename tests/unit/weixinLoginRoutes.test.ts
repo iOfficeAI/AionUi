@@ -62,7 +62,7 @@ describe('registerWeixinLoginRoutes', () => {
     expect(writes).toContain('event: qr\ndata: {"qrcodeData":"ticket_raw"}\n\n');
     expect(writes).toContain('event: scanned\ndata: {}\n\n');
     expect(writes).toContain(
-      'event: done\ndata: {"accountId":"acc1","botToken":"bot1","baseUrl":"https://base.url"}\n\n'
+      'event: done\ndata: {"accountId":"acc1","botToken":"bot1","base_url":"https://base.url"}\n\n'
     );
     expect(res.end).toHaveBeenCalled();
     expect(mockAbort).toHaveBeenCalled();

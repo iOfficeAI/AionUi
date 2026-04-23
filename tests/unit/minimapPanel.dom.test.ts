@@ -247,7 +247,7 @@ describe('useMinimapPanel', () => {
 
   // -- Conversation switch resets state -----------------------------------------
 
-  it('should reset state when conversationId changes', async () => {
+  it('should reset state when conversation_id changes', async () => {
     const messages = makeFakeMessages([{ question: 'Hello', answer: 'World' }]);
     mocks.getConversationMessages.mockResolvedValue(messages);
 

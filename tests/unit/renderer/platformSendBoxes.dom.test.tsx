@@ -58,7 +58,7 @@ const mockAssertBridgeSuccess = vi.fn();
 const mockSetSendBoxHandler = vi.fn();
 const mockClearFiles = vi.fn();
 const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspace_path: string) =>
-  files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
+  files.length > 0 ? `${input}|${files.join(',')}|${workspace_path}` : input
 );
 
 const mockDraftData: {
@@ -470,7 +470,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-gemini'
         modelSelection={{
           current_model: { use_model: 'gemini-2.5' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -484,7 +484,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-aionrs'
         modelSelection={{
           current_model: { use_model: 'aionrs-1' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
         }}
       />,
     ],
@@ -533,7 +533,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-gemini'
         modelSelection={{
           current_model: { use_model: 'gemini-2.5' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -552,7 +552,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-aionrs'
         modelSelection={{
           current_model: { use_model: 'aionrs-1' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
         }}
       />,
       mockConversationSendInvoke,
@@ -611,7 +611,7 @@ describe('platform send box queue integration', () => {
   it('does not misclassify successful team sends that resolve to void as queue execution failures', async () => {
     mockTeamSendInvoke.mockResolvedValue(undefined);
 
-    render(<AcpSendBox conversation_id='conv-acp' backend='claude' teamId='team-1' />);
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' team_id='team-1' />);
 
     fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
 
@@ -635,7 +635,7 @@ describe('platform send box queue integration', () => {
       message: 'team failed',
     });
 
-    render(<AcpSendBox conversation_id='conv-acp' backend='claude' teamId='team-1' />);
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' team_id='team-1' />);
 
     fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
 
@@ -652,7 +652,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-gemini'
         modelSelection={{
           current_model: { use_model: 'gemini-2.5' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -666,7 +666,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-aionrs'
         modelSelection={{
           current_model: { use_model: 'aionrs-1' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
         }}
       />,
     ],
@@ -695,7 +695,7 @@ describe('platform send box queue integration', () => {
         conversation_id='conv-gemini'
         modelSelection={{
           current_model: { use_model: 'gemini-2.5' },
-          getDisplayModelName: (model_id: string) => modelId,
+          getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
           getAvailableModels: () => [],
@@ -720,7 +720,7 @@ describe('platform send box queue integration', () => {
   it('uses display message for ACP attachments so chat history can retain uploaded images', async () => {
     mockDraftData.uploadFile = ['C:/workspace/uploads/photo.png'];
 
-    render(<AcpSendBox conversation_id='conv-acp' backend='claude' workspacePath='C:/workspace' />);
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' workspace_path='C:/workspace' />);
 
     fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
 

@@ -142,15 +142,15 @@ function createManager(session_mode: string): AionrsManager {
     workspace: '/test',
     model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: 'conv-1',
-    sessionMode,
+    session_mode,
   };
   const model = data.model as any;
   return new AionrsManager(data as any, model);
 }
 
-function makeContent(type: 'edit' | 'info' | 'exec', callId = 'call-1') {
+function makeContent(type: 'edit' | 'info' | 'exec', call_id = 'call-1') {
   return {
-    callId,
+    call_id,
     status: 'Confirming' as const,
     confirmationDetails: { type, title: `${type} action` },
   };

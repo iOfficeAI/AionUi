@@ -203,7 +203,7 @@ describe('CronService', () => {
     expect(job.description).toBe('my description');
   });
 
-  it('addJob tags conversation with cronJobId', async () => {
+  it('addJob tags conversation with cron_job_id', async () => {
     vi.mocked(repo.listByConversation).mockReturnValue([]);
     vi.mocked(conversationRepo.getConversation).mockReturnValue({
       id: 'conv-1',
@@ -223,7 +223,7 @@ describe('CronService', () => {
     expect(conversationRepo.updateConversation).toHaveBeenCalledWith(
       'conv-1',
       expect.objectContaining({
-        extra: expect.objectContaining({ cronJobId: expect.any(String) }),
+        extra: expect.objectContaining({ cron_job_id: expect.any(String) }),
       })
     );
   });

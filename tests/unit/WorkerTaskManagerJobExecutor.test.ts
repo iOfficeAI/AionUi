@@ -49,7 +49,7 @@ function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskMa
   };
 }
 
-function makeJob(conversationId = 'conv-1'): CronJob {
+function makeJob(conversation_id = 'conv-1'): CronJob {
   return {
     id: 'job-1',
     name: 'Test Job',
@@ -57,7 +57,7 @@ function makeJob(conversationId = 'conv-1'): CronJob {
     schedule: { kind: 'every', everyMs: 60000, description: 'every minute' },
     target: { payload: { kind: 'message', text: 'hello' } },
     metadata: {
-      conversationId,
+      conversation_id,
       agent_type: 'acp',
       createdBy: 'user',
       created_at: Date.now(),
@@ -138,7 +138,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       expect.objectContaining({
         content: expect.stringContaining('hello'),
         hidden: true,
-        cronMeta: expect.objectContaining({ cronJobId: 'job-1' }),
+        cronMeta: expect.objectContaining({ cron_job_id: 'job-1' }),
       })
     );
   });
@@ -217,7 +217,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
   });
 
   describe('cronMeta attachment', () => {
-    it('includes cronMeta with source, cronJobId, cronJobName, and triggeredAt', async () => {
+    it('includes cronMeta with source, cron_job_id, cron_job_name, and triggeredAt', async () => {
       const task = makeTask('acp');
       const taskManager = makeTaskManager({
         getTask: vi.fn(() => task as any),
@@ -230,7 +230,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       const sentArg = task.sendMessage.mock.calls[0][0];
       expect(sentArg.cronMeta).toBeDefined();
       expect(sentArg.cronMeta.source).toBe('cron');
-      expect(sentArg.cronMeta.cronJobId).toBe('job-1');
+      expect(sentArg.cronMeta.cron_job_id).toBe('job-1');
       expect(sentArg.cronMeta.cron_job_name).toBe('Test Job');
       expect(sentArg.cronMeta.triggeredAt).toBeGreaterThanOrEqual(before);
       expect(sentArg.cronMeta.triggeredAt).toBeLessThanOrEqual(Date.now());
@@ -267,7 +267,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       expect(sentArg.cronMeta).toEqual(
         expect.objectContaining({
           source: 'cron',
-          cronJobId: 'job-1',
+          cron_job_id: 'job-1',
           cron_job_name: 'Test Job',
         })
       );

@@ -536,7 +536,7 @@ describe('TaskDetailPage', () => {
     render(<TaskDetailPage />);
 
     await waitFor(() => {
-      expect(mockListByCronJob).toHaveBeenCalledWith({ cronJobId: 'job-123' });
+      expect(mockListByCronJob).toHaveBeenCalledWith({ cron_job_id: 'job-123' });
     });
 
     await waitFor(() => {

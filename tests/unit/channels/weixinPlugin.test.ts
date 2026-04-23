@@ -146,7 +146,7 @@ describe('WeixinPlugin — Promise bridge', () => {
       await plugin.editMessage(msg.chat_id, msgId, {
         type: 'text',
         text: '',
-        mediaActions: [{ type: 'file', path: '/tmp/report.pdf', fileName: 'report.pdf' }],
+        mediaActions: [{ type: 'file', path: '/tmp/report.pdf', file_name: 'report.pdf' }],
         replyMarkup: {},
       });
     });
@@ -156,7 +156,7 @@ describe('WeixinPlugin — Promise bridge', () => {
     const response = await agent.chat({ conversation_id: 'user_abc', text: 'hi' });
 
     expect(response.text).toBeUndefined();
-    expect(response.mediaActions).toEqual([{ type: 'file', path: '/tmp/report.pdf', fileName: 'report.pdf' }]);
+    expect(response.mediaActions).toEqual([{ type: 'file', path: '/tmp/report.pdf', file_name: 'report.pdf' }]);
   });
 
   it('rejects superseded Promise when second chat arrives before first resolves', async () => {

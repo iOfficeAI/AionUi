@@ -6,13 +6,13 @@ import type { RequestPermissionRequest } from '@agentclientprotocol/sdk';
 
 function makeRequest(
   toolName = 'read_file',
-  callId = 'call-1',
+  call_id = 'call-1',
   overrides?: { kind?: string; rawInput?: Record<string, unknown> }
 ): RequestPermissionRequest {
   return {
     session_id: 'sess-1',
     toolCall: {
-      tool_call_id: callId,
+      tool_call_id: call_id,
       title: toolName,
       kind: overrides?.kind as RequestPermissionRequest['toolCall']['kind'],
       rawInput: overrides?.rawInput,

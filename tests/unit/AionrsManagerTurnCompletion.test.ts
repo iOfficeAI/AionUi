@@ -160,11 +160,11 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 const CONV_ID = 'conv-tc-1';
 const FALLBACK_DELAY_MS = 15_000;
 
-function createManager(conversationId = CONV_ID): AionrsManager {
+function createManager(conversation_id = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
     model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
-    conversation_id: conversationId,
+    conversation_id: conversation_id,
   };
   return new AionrsManager(data as any, data.model as any);
 }
@@ -204,7 +204,7 @@ describe('GAP-9: AionrsManager Turn Completion Service', () => {
       expect(mockNotifyPotentialCompletion).toHaveBeenCalledTimes(1);
     });
 
-    it('passes correct conversationId', async () => {
+    it('passes correct conversation_id', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'finish', data: '', msg_id: 'msg-1' });
 
@@ -213,7 +213,7 @@ describe('GAP-9: AionrsManager Turn Completion Service', () => {
       expect(mockNotifyPotentialCompletion).toHaveBeenCalledWith(CONV_ID, expect.any(Object));
     });
 
-    it('passes correct context fields (status, workspace, backend, pendingConfirmations, modelId)', async () => {
+    it('passes correct context fields (status, workspace, backend, pendingConfirmations, model_id)', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'response text', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'finish', data: '', msg_id: 'msg-1' });
@@ -303,7 +303,7 @@ describe('GAP-9: AionrsManager Turn Completion Service', () => {
   // ── AC-5: Different conversation IDs propagated correctly ────────
 
   describe('AC-5: Different conversation IDs work correctly', () => {
-    it('uses the correct conversationId for each manager instance', async () => {
+    it('uses the correct conversation_id for each manager instance', async () => {
       const manager2 = createManager('conv-tc-2');
       vi.spyOn(manager2 as any, 'postMessagePromise').mockResolvedValue(undefined);
 

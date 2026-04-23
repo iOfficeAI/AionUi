@@ -70,7 +70,7 @@ vi.mock('../../src/common/adapter/ipcBridge', () => ({
 
 const mockLoadSession = vi.fn();
 const mockNewSession = vi.fn();
-const mockInitialize = vi.fn().mockResolvedValue({ agentInfo: {} });
+const mockInitialize = vi.fn().mockResolvedValue({ agent_info: {} });
 const mockGetAgentCapabilities = vi.fn().mockReturnValue(null);
 const mockOn = vi.fn();
 const mockDestroy = vi.fn();
@@ -85,7 +85,7 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     getInitializeResponse = vi.fn().mockReturnValue(null);
     on = mockOn;
     destroy = mockDestroy;
-    sessionId = null;
+    session_id = null;
 
     async connect(backend: string) {
       this.backend = backend;
@@ -100,14 +100,14 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
 
       if (shouldTryLoadSession) {
         try {
-          return await this.loadSession(sessionId, cwd, options?.mcp_servers);
+          return await this.loadSession(session_id, cwd, options?.mcp_servers);
         } catch (loadError) {
           console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
         }
       }
 
       return await this.newSession(cwd, {
-        resumeSessionId: sessionId,
+        resumeSessionId: session_id,
         forkSession: options?.forkSession,
         mcp_servers: options?.mcp_servers,
       });
@@ -335,7 +335,7 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
     expect(opts.mcp_servers[0]).toMatchObject({ name: 'aionui-team-abc' });
   });
 
-  it('fresh session (no prior sessionId) calls newSession with mcpServers', async () => {
+  it('fresh session (no prior session_id) calls newSession with mcpServers', async () => {
     const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
     await callCreateOrResume(agent);
     expect(mockLoadSession).not.toHaveBeenCalled();
@@ -366,7 +366,7 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step 7b: PROOF-OF-FIX — Codex loadSession receives mcpServers (Task #1)
 //
-// FAIL on unfixed code: loadSession called with 2 args only (sessionId, cwd)
+// FAIL on unfixed code: loadSession called with 2 args only (session_id, cwd)
 // PASS after fix: loadSession called with 3rd arg { mcpServers }
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -489,7 +489,7 @@ describe('Step 8: Task #3 IPC mcpStatus events', () => {
   });
 
   it('emits degraded when team config is missing but mcpServers ends up empty', async () => {
-    // Agent has teamId name pattern but somehow mcpServers is [] (e.g., command was empty)
+    // Agent has team_id name pattern but somehow mcpServers is [] (e.g., command was empty)
     const agent = createCodexAgent({
       teamMcpStdioConfig: { name: 'aionui-team-abc', command: '', args: [], env: [] },
     });
@@ -499,18 +499,18 @@ describe('Step 8: Task #3 IPC mcpStatus events', () => {
     expect(phases).toContain('degraded');
   });
 
-  it('event payload includes teamId derived from server name', async () => {
+  it('event payload includes team_id derived from server name', async () => {
     const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
     await callCreateOrResume(agent);
 
     const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_ready');
     expect(readyCalls.length).toBeGreaterThan(0);
     const payload = readyCalls[0][0];
-    // teamId extracted from 'aionui-team-abc' → 'abc'
+    // team_id extracted from 'aionui-team-abc' → 'abc'
     expect(payload.team_id).toBe('abc');
   });
 
-  it('event payload includes slotId (conversationId) for routing to agent bubble', async () => {
+  it('event payload includes slot_id (conversation_id) for routing to agent bubble', async () => {
     const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
     await callCreateOrResume(agent);
 
@@ -539,9 +539,9 @@ describe('Step 8: Task #3 IPC mcpStatus events', () => {
 //   2. Send first message to the team
 //   3. Open DevTools → search IPC event 'team.mcp.status'
 //      Expected sequence per agent:
-//        tcp_ready  { teamId, port }
-//        session_injecting  { teamId, slotId, serverCount: 1 }
-//        session_ready      { teamId, slotId, serverCount: 1 }
+//        tcp_ready  { team_id, port }
+//        session_injecting  { team_id, slot_id, serverCount: 1 }
+//        session_ready      { team_id, slot_id, serverCount: 1 }
 //   4. Frontend team agent bubble should show MCP status indicator = ready
 //
 // FAILURE INJECTION (prove falsifiability):

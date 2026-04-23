@@ -6,7 +6,7 @@ const mockAcpSendInvoke = vi.fn();
 const mockAddOrUpdateMessage = vi.fn();
 const mockEmitterEmit = vi.fn();
 const mockBuildDisplayMessage = vi.fn(
-  (input: string, files: string[], workspace_path: string) => `${input}|${files.join(',')}|${workspacePath}`
+  (input: string, files: string[], workspace_path: string) => `${input}|${files.join(',')}|${workspace_path}`
 );
 
 let uuidCounter = 0;

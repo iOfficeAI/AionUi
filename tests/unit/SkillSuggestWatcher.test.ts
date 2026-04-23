@@ -106,7 +106,7 @@ describe('SkillSuggestWatcher', () => {
       type: 'skill_suggest',
       conversation_id: 'conv-1',
       data: {
-        cronJobId: 'job-1',
+        cron_job_id: 'job-1',
         name: 'Test',
         description: 'Desc',
         skillContent: validContent,

@@ -123,7 +123,7 @@ const CUSTOM_AGENTS: AcpBackendConfig[] = [
 const CLAUDE_CACHED_MODEL: AcpModelInfo = {
   source: 'models',
   current_model_id: 'claude-sonnet-4-5-20250514',
-  currentModelLabel: 'Claude Sonnet 4.5',
+  current_model_label: 'Claude Sonnet 4.5',
   available_models: [
     { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
     { id: 'claude-opus-4-5-20250514', label: 'Claude Opus 4.5' },

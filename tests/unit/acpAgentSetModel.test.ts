@@ -16,7 +16,7 @@ const { mockConnect, mockSetModel, mockDisconnect, mockGetInitializeResponse } =
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
     hasActiveSession = true;
-    isConnected = true;
+    is_connected = true;
     connect = mockConnect;
     setModel = mockSetModel;
     disconnect = mockDisconnect;
@@ -171,7 +171,7 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
   it('uses the cc-switch slot id when Claude model info is available', async () => {
     mockReadClaudeModelInfoFromCcSwitch.mockReturnValue({
       current_model_id: 'haiku',
-      currentModelLabel: 'GLM 5.1x',
+      current_model_label: 'GLM 5.1x',
       available_models: [
         { id: 'default', label: 'Gemini 3.1 Pro' },
         { id: 'opus', label: 'Claude Opus 4.6 CC' },
@@ -198,7 +198,7 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
   it('keeps the user-selected Claude slot in model info after switching', async () => {
     mockReadClaudeModelInfoFromCcSwitch.mockReturnValue({
       current_model_id: 'haiku',
-      currentModelLabel: 'GLM 5.1x',
+      current_model_label: 'GLM 5.1x',
       available_models: [
         { id: 'default', label: 'Gemini 3.1 Pro' },
         { id: 'opus', label: 'Claude Opus 4.6 CC' },

@@ -14,14 +14,14 @@ describe('toUnifiedIncomingMessage', () => {
     text: 'Hello world',
   };
 
-  it('maps conversationId to id, chatId, and user.id', () => {
+  it('maps conversation_id to id, chatId, and user.id', () => {
     const msg = toUnifiedIncomingMessage(baseRequest);
     expect(msg.id).toBe('user_abc123');
     expect(msg.chat_id).toBe('user_abc123');
     expect(msg.user.id).toBe('user_abc123');
   });
 
-  it('uses last 6 chars of conversationId as displayName fallback', () => {
+  it('uses last 6 chars of conversation_id as display_name fallback', () => {
     const msg = toUnifiedIncomingMessage(baseRequest);
     expect(msg.user.display_name).toBe('user_abc123'.slice(-6));
   });

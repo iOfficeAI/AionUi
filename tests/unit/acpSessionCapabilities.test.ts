@@ -60,7 +60,7 @@ describe('AcpConnection.loadSession', () => {
     conn = makeConnection('codex');
   });
 
-  it('sets sessionId from response when present', async () => {
+  it('sets session_id from response when present', async () => {
     vi.spyOn(conn as any, 'sendRequest').mockResolvedValue({ session_id: 'new-session-456' });
 
     await conn.loadSession('original-123', '/tmp');
@@ -68,7 +68,7 @@ describe('AcpConnection.loadSession', () => {
     expect(conn.currentSessionId).toBe('new-session-456');
   });
 
-  it('falls back to the passed sessionId when response omits it', async () => {
+  it('falls back to the passed session_id when response omits it', async () => {
     vi.spyOn(conn as any, 'sendRequest').mockResolvedValue({});
 
     await conn.loadSession('original-123', '/tmp');
@@ -103,7 +103,7 @@ describe('AcpConnection.parseSessionCapabilities (via loadSession)', () => {
     conn = makeConnection('codex');
   });
 
-  it('parses configOptions from response', async () => {
+  it('parses config_options from response', async () => {
     vi.spyOn(conn as any, 'sendRequest').mockResolvedValue({ config_options: CONFIG_OPTIONS });
 
     await conn.loadSession('s1', '/tmp');
@@ -127,7 +127,7 @@ describe('AcpConnection.parseSessionCapabilities (via loadSession)', () => {
     expect((conn as any).models).toEqual(MODELS);
   });
 
-  it('ignores configOptions when response value is not an array', async () => {
+  it('ignores config_options when response value is not an array', async () => {
     vi.spyOn(conn as any, 'sendRequest').mockResolvedValue({ config_options: 'bad-value' });
 
     await conn.loadSession('s1', '/tmp');

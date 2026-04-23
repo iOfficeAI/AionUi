@@ -386,11 +386,11 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
     // Trigger the useEffect by setting visible=true
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Since we cannot directly test parseCronExpr (not exported), we verify the component behavior
     // The component should detect hourly frequency from "0 * * * *"
@@ -431,10 +431,10 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should show time picker for daily frequency
     expect(screen.queryByTestId('mock-time-picker')).toBeInTheDocument();
@@ -467,10 +467,10 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should show time picker but not weekday picker for weekdays frequency
     expect(screen.queryByTestId('mock-time-picker')).toBeInTheDocument();
@@ -503,10 +503,10 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should show both time picker and weekday picker for weekly frequency
     expect(screen.queryByTestId('mock-time-picker')).toBeInTheDocument();
@@ -539,10 +539,10 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should default to manual frequency
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -575,10 +575,10 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should render without errors and recognize it as a custom schedule
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -613,10 +613,10 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // getAgentKeyFromJob should return "cli:claude"
     // We verify indirectly by checking that the agent field is populated
@@ -652,10 +652,10 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // getAgentKeyFromJob should return "preset:assistant-1"
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -683,10 +683,10 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should render without errors even when agentConfig is missing
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -724,7 +724,7 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     expect(
       screen.getByText('Each run continues in the same conversation, so earlier context and results stay available.')
@@ -735,7 +735,7 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     const onClose = vi.fn();
     mockAddJob.mockResolvedValue(undefined);
 
-    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
 
     // The default frequency should be 'manual'
     // Click OK to submit
@@ -780,9 +780,9 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Submit to verify the schedule is preserved
     fireEvent.click(screen.getByTestId('modal-ok'));
@@ -824,9 +824,9 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -867,9 +867,9 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -910,9 +910,9 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -953,9 +953,9 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -999,7 +999,7 @@ describe('CreateTaskDialog - advanced settings workspace picker', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     const workspaceTrigger = screen.getByTestId('cron-workspace-trigger');
     expect(workspaceTrigger.className).toContain('bg-fill-1');
@@ -1042,7 +1042,7 @@ describe('CreateTaskDialog - custom schedule hint', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     const hint = screen.getByText(
       "This task has a custom schedule that can't be edited here. Changing the frequency will replace it."
@@ -1062,7 +1062,7 @@ describe('CreateTaskDialog - component behavior', () => {
   });
 
   it('renders in create mode when no editJob is provided', () => {
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversation_id='conv-1' />);
 
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('mock-form')).toBeInTheDocument();
@@ -1095,7 +1095,7 @@ describe('CreateTaskDialog - component behavior', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
   });
@@ -1127,7 +1127,7 @@ describe('CreateTaskDialog - component behavior', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     await waitFor(() => {
       expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
@@ -1166,7 +1166,7 @@ describe('CreateTaskDialog - component behavior', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     await waitFor(() => {
       expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
@@ -1179,14 +1179,14 @@ describe('CreateTaskDialog - component behavior', () => {
   });
 
   it('does not render when visible is false', () => {
-    render(<CreateTaskDialog visible={false} onClose={vi.fn()} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={false} onClose={vi.fn()} conversation_id='conv-1' />);
 
     expect(screen.queryByTestId('modal-wrapper')).not.toBeInTheDocument();
   });
 
   it('calls onClose when cancel button is clicked', () => {
     const onClose = vi.fn();
-    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-cancel'));
 
@@ -1197,7 +1197,7 @@ describe('CreateTaskDialog - component behavior', () => {
     const onClose = vi.fn();
     mockAddJob.mockResolvedValue(undefined);
 
-    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -1238,7 +1238,7 @@ describe('CreateTaskDialog - component behavior', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible={true} onClose={onClose} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -1263,7 +1263,7 @@ describe('CreateTaskDialog - advanced settings panel', () => {
   });
 
   it('toggles the advanced settings panel open and closed', () => {
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversation_id='conv-1' />);
 
     // Workspace picker is hidden initially
     expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
@@ -1306,7 +1306,7 @@ describe('CreateTaskDialog - advanced settings panel', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Advanced open because workspace was set in agentConfig
     const workspaceTrigger = screen.getByTestId('cron-workspace-trigger');
@@ -1348,7 +1348,7 @@ describe('CreateTaskDialog - advanced settings panel', () => {
       lastExecutionTime: Date.now(),
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
   });

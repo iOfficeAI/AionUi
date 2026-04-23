@@ -13,7 +13,7 @@ describe('buildAcpModelInfo', () => {
   it('prefers externally provided model info before ACP data', () => {
     const preferredModelInfo: AcpModelInfo = {
       current_model_id: 'claude-opus-4-6',
-      currentModelLabel: 'Claude Opus 4.6',
+      current_model_label: 'Claude Opus 4.6',
       available_models: [
         { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
         { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
@@ -39,12 +39,12 @@ describe('buildAcpModelInfo', () => {
       available_models: [{ model_id: 'gpt-5.4/high', name: 'gpt-5.4 (high)' }],
     };
 
-    const result = buildAcpModelInfo(configOptions, models, preferredModelInfo);
+    const result = buildAcpModelInfo(config_options, models, preferredModelInfo);
 
     expect(result).toEqual(preferredModelInfo);
   });
 
-  it('prefers stable configOptions model data when available', () => {
+  it('prefers stable config_options model data when available', () => {
     const config_options: AcpSessionConfigOption[] = [
       {
         id: 'model',
@@ -64,9 +64,9 @@ describe('buildAcpModelInfo', () => {
       available_models: [{ model_id: 'gpt-5.4/xhigh', name: 'gpt-5.4 (xhigh)' }],
     };
 
-    const result = buildAcpModelInfo(configOptions, models, {
+    const result = buildAcpModelInfo(config_options, models, {
       current_model_id: null,
-      currentModelLabel: null,
+      current_model_label: null,
       available_models: [],
       canSwitch: false,
       source: 'models',
@@ -74,7 +74,7 @@ describe('buildAcpModelInfo', () => {
 
     expect(result).toEqual({
       current_model_id: 'gpt-5.4',
-      currentModelLabel: 'gpt-5.4',
+      current_model_label: 'gpt-5.4',
       available_models: [
         { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
         { id: 'gpt-5.4', label: 'gpt-5.4' },
@@ -86,7 +86,7 @@ describe('buildAcpModelInfo', () => {
     });
   });
 
-  it('falls back to unstable models data and supports modelId fields', () => {
+  it('falls back to unstable models data and supports model_id fields', () => {
     const models: AcpSessionModels = {
       current_model_id: 'gpt-5.3-codex/high',
       available_models: [
@@ -99,7 +99,7 @@ describe('buildAcpModelInfo', () => {
 
     expect(result).toEqual({
       current_model_id: 'gpt-5.3-codex/high',
-      currentModelLabel: 'gpt-5.3-codex (high)',
+      current_model_label: 'gpt-5.3-codex (high)',
       available_models: [
         { id: 'gpt-5.3-codex/high', label: 'gpt-5.3-codex (high)' },
         { id: 'gpt-5.4/high', label: 'gpt-5.4 (high)' },
@@ -113,7 +113,7 @@ describe('buildAcpModelInfo', () => {
   it('summarizes model info for diagnostics', () => {
     const summary = summarizeAcpModelInfo({
       current_model_id: 'gpt-5.4',
-      currentModelLabel: 'gpt-5.4',
+      current_model_label: 'gpt-5.4',
       available_models: [
         { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
         { id: 'gpt-5.4', label: 'gpt-5.4' },
@@ -128,7 +128,7 @@ describe('buildAcpModelInfo', () => {
       source: 'configOption',
       sourceDetail: 'acp-config-option',
       current_model_id: 'gpt-5.4',
-      currentModelLabel: 'gpt-5.4',
+      current_model_label: 'gpt-5.4',
       availableModelCount: 2,
       canSwitch: true,
       sampleModelIds: ['gpt-5.3-codex', 'gpt-5.4'],

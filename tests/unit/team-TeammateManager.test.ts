@@ -239,7 +239,7 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('does nothing for unknown slotId (no error thrown)', () => {
+    it('does nothing for unknown slot_id (no error thrown)', () => {
       const { mgr } = makeTeammateManager([makeAgent({ slot_id: 'slot-1' })]);
       expect(() => mgr.setStatus('unknown-slot', 'active')).not.toThrow();
       mgr.dispose();
@@ -286,7 +286,7 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('does nothing for unknown slotId', () => {
+    it('does nothing for unknown slot_id', () => {
       const { mgr } = makeTeammateManager([makeAgent({ slot_id: 'slot-1' })]);
 
       expect(() => mgr.removeAgent('nonexistent')).not.toThrow();
@@ -395,7 +395,7 @@ describe('TeammateManager', () => {
   // -------------------------------------------------------------------------
 
   describe('wake', () => {
-    it('skips if slotId not found', async () => {
+    it('skips if slot_id not found', async () => {
       const { mgr, workerTaskManager } = makeTeammateManager([]);
       await mgr.wake('nonexistent');
       expect(workerTaskManager.getOrBuildTask).not.toHaveBeenCalled();
@@ -456,7 +456,7 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('calls workerTaskManager.getOrBuildTask with the agent conversationId', async () => {
+    it('calls workerTaskManager.getOrBuildTask with the agent conversation_id', async () => {
       const agent = makeAgent({ slot_id: 'slot-1', conversation_id: 'conv-xyz', status: 'idle' });
       const mockSendMessage = vi.fn().mockResolvedValue(undefined);
       const { mgr, workerTaskManager } = makeTeammateManager([agent]);
@@ -690,7 +690,7 @@ describe('TeammateManager', () => {
     it('notifies the leader when a teammate goes silent past the 60s watchdog', async () => {
       vi.useFakeTimers();
       try {
-        const leadAgent = makeAgent({
+        const lead_agent = makeAgent({
           slot_id: 'slot-lead',
           conversation_id: 'conv-lead',
           role: 'leader',
@@ -706,7 +706,7 @@ describe('TeammateManager', () => {
           agent_type: 'codex',
         });
         const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, teammate]);
+        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([lead_agent, teammate]);
         vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
           sendMessage: mockSendMessage,
         } as never);
@@ -752,14 +752,14 @@ describe('TeammateManager', () => {
           status: 'idle',
           agent_name: 'Codex',
         });
-        const leadAgent = makeAgent({
+        const lead_agent = makeAgent({
           slot_id: 'slot-lead',
           conversation_id: 'conv-lead',
           role: 'leader',
           status: 'idle',
         });
         const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([leadAgent, teammate]);
+        const { mgr, mailbox, workerTaskManager } = makeTeammateManager([lead_agent, teammate]);
         vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
           sendMessage: mockSendMessage,
         } as never);
@@ -820,7 +820,7 @@ describe('TeammateManager', () => {
     it('processes a second finish event after the agent is re-woken (dedup window must not block it)', async () => {
       vi.useFakeTimers();
       try {
-        const leadAgent = makeAgent({
+        const lead_agent = makeAgent({
           slot_id: 'slot-lead',
           conversation_id: 'conv-lead',
           role: 'leader',
@@ -835,7 +835,7 @@ describe('TeammateManager', () => {
           agent_name: 'Member',
         });
         const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-        const { mgr, workerTaskManager } = makeTeammateManager([leadAgent, member]);
+        const { mgr, workerTaskManager } = makeTeammateManager([lead_agent, member]);
         vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
           sendMessage: mockSendMessage,
         } as never);
@@ -881,7 +881,7 @@ describe('TeammateManager', () => {
     it('REGRESSION (runAllTimersAsync variant): second finish within 5s dedup window is not silently dropped', async () => {
       vi.useFakeTimers();
       try {
-        const leadAgent = makeAgent({
+        const lead_agent = makeAgent({
           slot_id: 'slot-lead',
           conversation_id: 'conv-lead',
           role: 'leader',
@@ -896,7 +896,7 @@ describe('TeammateManager', () => {
           agent_name: 'Member',
         });
         const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-        const { mgr, workerTaskManager } = makeTeammateManager([leadAgent, member]);
+        const { mgr, workerTaskManager } = makeTeammateManager([lead_agent, member]);
         vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
           sendMessage: mockSendMessage,
         } as never);
@@ -943,7 +943,7 @@ describe('TeammateManager', () => {
 
   describe('finalizeTurn', () => {
     it('sets agent to idle after finish event with empty response', async () => {
-      const leadAgent = makeAgent({
+      const lead_agent = makeAgent({
         slot_id: 'slot-lead',
         conversation_id: 'conv-lead',
         role: 'leader',
@@ -957,7 +957,7 @@ describe('TeammateManager', () => {
         agent_name: 'Member',
         status: 'active',
       });
-      const { mgr, mailbox: mbox } = makeTeammateManager([leadAgent, memberAgent]);
+      const { mgr, mailbox: mbox } = makeTeammateManager([lead_agent, memberAgent]);
 
       // Simulate a finish event arriving for the member
       teamEventBus.emit('responseStream', {
@@ -982,7 +982,7 @@ describe('TeammateManager', () => {
     });
 
     it('deduplicates concurrent finish events — mailbox.write called exactly once', async () => {
-      const leadAgent = makeAgent({
+      const lead_agent = makeAgent({
         slot_id: 'slot-lead',
         conversation_id: 'conv-lead',
         role: 'leader',
@@ -995,7 +995,7 @@ describe('TeammateManager', () => {
         status: 'active',
         agent_name: 'Member',
       });
-      const { mgr, mailbox: mbox } = makeTeammateManager([leadAgent, memberAgent]);
+      const { mgr, mailbox: mbox } = makeTeammateManager([lead_agent, memberAgent]);
 
       // Emit finish twice rapidly for the same conversation
       teamEventBus.emit('responseStream', {
@@ -1029,7 +1029,7 @@ describe('TeammateManager', () => {
 
   describe('maybeWakeLeaderWhenAllIdle', () => {
     it('does not wake leader when a second non-leader agent is still active', async () => {
-      const leadAgent = makeAgent({
+      const lead_agent = makeAgent({
         slot_id: 'slot-lead',
         conversation_id: 'conv-lead',
         role: 'leader',
@@ -1050,7 +1050,7 @@ describe('TeammateManager', () => {
         status: 'active',
         agent_name: 'Member2',
       });
-      const { mgr, workerTaskManager } = makeTeammateManager([leadAgent, member1, member2]);
+      const { mgr, workerTaskManager } = makeTeammateManager([lead_agent, member1, member2]);
 
       // Only member1 finishes — member2 remains active
       teamEventBus.emit('responseStream', {
@@ -1068,7 +1068,7 @@ describe('TeammateManager', () => {
     });
 
     it('wakes leader when all non-leader agents are settled', async () => {
-      const leadAgent = makeAgent({
+      const lead_agent = makeAgent({
         slot_id: 'slot-lead',
         conversation_id: 'conv-lead',
         role: 'leader',
@@ -1089,7 +1089,7 @@ describe('TeammateManager', () => {
         agent_name: 'Member2',
       });
       const mockSendMessage = vi.fn().mockResolvedValue(undefined);
-      const { mgr, workerTaskManager } = makeTeammateManager([leadAgent, member1, member2]);
+      const { mgr, workerTaskManager } = makeTeammateManager([lead_agent, member1, member2]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: mockSendMessage,
       } as never);
@@ -1399,7 +1399,7 @@ describe('TeammateManager', () => {
 
     it('[case-1] member crash: agent NOT removed from getAgents() list', async () => {
       // EXPECTED FAIL — source still calls removeAgent() for members.
-      // After fix: agents list length stays at 2; crashed member slotId still present.
+      // After fix: agents list length stays at 2; crashed member slot_id still present.
       const leader = makeAgent({ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' });
       const member = makeAgent({
         slot_id: 'slot-member',
@@ -1457,9 +1457,9 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('[case-3] member crash: workerTaskManager.kill called with crashed member conversationId', async () => {
+    it('[case-3] member crash: workerTaskManager.kill called with crashed member conversation_id', async () => {
       // EXPECTED FAIL — currently kill() is called inside removeAgent(), which is being removed.
-      // After fix: kill(conversationId) must be called directly in handleAgentCrash().
+      // After fix: kill(conversation_id) must be called directly in handleAgentCrash().
       const leader = makeAgent({ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' });
       const member = makeAgent({
         slot_id: 'slot-member',
@@ -1487,7 +1487,7 @@ describe('TeammateManager', () => {
     it('[case-4] member crash: activeWake lock cleared so re-wake is not skipped', async () => {
       // EXPECTED FAIL — handleAgentCrash does not yet clear activeWakes before the fix.
       // Setup: manually inject a wake lock, fire crash, then call wake() again.
-      // After fix: activeWakes.delete(slotId) in handleAgentCrash → wake() proceeds.
+      // After fix: activeWakes.delete(slot_id) in handleAgentCrash → wake() proceeds.
       const leader = makeAgent({ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' });
       const member = makeAgent({
         slot_id: 'slot-member',
@@ -1524,7 +1524,7 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
-    it('[case-5] member crash: testament written to leader mailbox (toAgentId = leader slotId)', async () => {
+    it('[case-5] member crash: testament written to leader mailbox (toAgentId = leader slot_id)', async () => {
       // This case passes regardless of whether removeAgent() is called — testament is written first.
       const leader = makeAgent({ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' });
       const member = makeAgent({
@@ -1586,7 +1586,7 @@ describe('TeammateManager', () => {
 
       await new Promise((r) => setTimeout(r, 100));
 
-      // Leader's wake was triggered — getOrBuildTask called with leader's conversationId
+      // Leader's wake was triggered — getOrBuildTask called with leader's conversation_id
       expect(workerTaskManager.getOrBuildTask).toHaveBeenCalledWith('conv-lead');
 
       mgr.dispose();

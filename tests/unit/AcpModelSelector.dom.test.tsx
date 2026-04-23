@@ -69,7 +69,7 @@ describe('AcpModelSelector', () => {
       data: {
         modelInfo: {
           current_model_id: 'claude-opus-4-6',
-          currentModelLabel: 'Claude Opus 4.6',
+          current_model_label: 'Claude Opus 4.6',
           available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
           canSwitch: false,
           source: 'models',
@@ -78,7 +78,7 @@ describe('AcpModelSelector', () => {
       },
     });
 
-    render(<AcpModelSelector conversationId='conv-1' backend='claude' />);
+    render(<AcpModelSelector conversation_id='conv-1' backend='claude' />);
 
     await waitFor(() => {
       expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);
@@ -91,7 +91,7 @@ describe('AcpModelSelector', () => {
       data: { modelInfo: null },
     });
 
-    render(<AcpModelSelector conversationId='conv-1' backend='codex' />);
+    render(<AcpModelSelector conversation_id='conv-1' backend='codex' />);
 
     responseHandler?.({
       conversation_id: 'conv-1',
@@ -111,7 +111,7 @@ describe('AcpModelSelector', () => {
         data: {
           modelInfo: {
             current_model_id: 'claude-opus-4-6',
-            currentModelLabel: 'Claude Opus 4.6',
+            current_model_label: 'Claude Opus 4.6',
             available_models: [
               { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
               { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
@@ -127,7 +127,7 @@ describe('AcpModelSelector', () => {
         data: {
           modelInfo: {
             current_model_id: 'claude-sonnet-4-5',
-            currentModelLabel: 'Claude Sonnet 4.5',
+            current_model_label: 'Claude Sonnet 4.5',
             available_models: [
               { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
               { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
@@ -139,7 +139,7 @@ describe('AcpModelSelector', () => {
         },
       });
 
-    render(<AcpModelSelector conversationId='conv-1' backend='claude' />);
+    render(<AcpModelSelector conversation_id='conv-1' backend='claude' />);
 
     await waitFor(() => {
       expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);
@@ -160,7 +160,7 @@ describe('AcpModelSelector', () => {
       data: {
         modelInfo: {
           current_model_id: 'claude-opus-4-6',
-          currentModelLabel: 'Claude Opus 4.6',
+          current_model_label: 'Claude Opus 4.6',
           available_models: [
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'glm-5.1x', label: 'GLM 5.1x' },
@@ -176,7 +176,7 @@ describe('AcpModelSelector', () => {
       data: {
         modelInfo: {
           current_model_id: 'glm-5.1x',
-          currentModelLabel: 'GLM 5.1x',
+          current_model_label: 'GLM 5.1x',
           available_models: [
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'glm-5.1x', label: 'GLM 5.1x' },
@@ -188,7 +188,7 @@ describe('AcpModelSelector', () => {
       },
     });
 
-    render(<AcpModelSelector conversationId='conv-1' backend='claude' />);
+    render(<AcpModelSelector conversation_id='conv-1' backend='claude' />);
 
     await waitFor(() => {
       expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);

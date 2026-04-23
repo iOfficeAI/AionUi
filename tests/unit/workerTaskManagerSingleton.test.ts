@@ -43,7 +43,7 @@ describe('workerTaskManagerSingleton', () => {
     workerTaskManager.clear();
   });
 
-  it('prefers persisted currentModelId from conversation.extra for acp tasks', async () => {
+  it('prefers persisted current_model_id from conversation.extra for acp tasks', async () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-extra-model',
       type: 'acp',
@@ -61,7 +61,7 @@ describe('workerTaskManagerSingleton', () => {
     );
   });
 
-  it('falls back to conversation.model.use_model when no persisted currentModelId exists', async () => {
+  it('falls back to conversation.model.use_model when no persisted current_model_id exists', async () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-model-fallback',
       type: 'acp',

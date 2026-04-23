@@ -10,12 +10,12 @@ vi.mock('@/renderer/utils/workspace/workspaceEvents', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout/WorkspacePanelHeader', () => ({
-  default: ({ children, workspacePath }: { children?: React.ReactNode; workspacePath?: string }) => {
-    mockWorkspacePanelHeader({ workspacePath, children });
+  default: ({ children, workspace_path }: { children?: React.ReactNode; workspace_path?: string }) => {
+    mockWorkspacePanelHeader({ workspace_path, children });
     return (
       <div data-testid='workspace-panel-header'>
         <span>{children}</span>
-        <span>{workspacePath}</span>
+        <span>{workspace_path}</span>
       </div>
     );
   },
@@ -43,7 +43,7 @@ describe('MobileWorkspaceOverlay', () => {
         mobileWorkspaceHandleRight={48}
         siderTitle='Workspace'
         sider={<div>Body</div>}
-        workspacePath='/workspace/project'
+        workspace_path='/workspace/project'
       />
     );
 

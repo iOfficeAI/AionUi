@@ -85,7 +85,7 @@ describe('createConversationParams', () => {
     expect(params.model.use_model).toBe('gpt-4.1');
   });
 
-  it('maps acp preset assistants to presetContext and backend', async () => {
+  it('maps acp preset assistants to preset_context and backend', async () => {
     loadPresetAssistantResources.mockResolvedValue({
       rules: 'acp preset rules',
       skills: '',
@@ -344,7 +344,7 @@ describe('createConversationParams', () => {
     expect(params.model.use_model).toBe('m1');
   });
 
-  it('handles missing cliPath for acp backend', async () => {
+  it('handles missing cli_path for acp backend', async () => {
     const params = await buildCliAgentParams({ backend: 'claude', name: 'A' }, '/tmp');
     expect(params.extra.cli_path).toBeUndefined();
   });

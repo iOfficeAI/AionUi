@@ -411,7 +411,7 @@ describe('ConversationServiceImpl.createConversation', () => {
     );
   });
 
-  it('allows cronJobId in extra field', async () => {
+  it('allows cron_job_id in extra field', async () => {
     const repo = makeRepo();
     const svc = new ConversationServiceImpl(repo);
     const result = await svc.createConversation({
@@ -419,19 +419,19 @@ describe('ConversationServiceImpl.createConversation', () => {
       model: { provider: 'gemini', model: 'gemini-2.0-flash' } as any,
       extra: {
         workspace: '/workspace',
-        cronJobId: 'job-123',
+        cron_job_id: 'job-123',
       },
     });
 
     expect(repo.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         extra: expect.objectContaining({
-          cronJobId: 'job-123',
+          cron_job_id: 'job-123',
         }),
       })
     );
     expect(result.extra).toMatchObject({
-      cronJobId: 'job-123',
+      cron_job_id: 'job-123',
     });
   });
 
@@ -456,7 +456,7 @@ describe('ConversationServiceImpl.createConversation', () => {
       model: { provider: 'gemini', model: 'gemini-2.0-flash' } as any,
       extra: {
         workspace: '/params-workspace', // Should be ignored (factory takes precedence)
-        cronJobId: 'job-123', // Should be added (not in factory)
+        cron_job_id: 'job-123', // Should be added (not in factory)
       },
     });
 
@@ -465,7 +465,7 @@ describe('ConversationServiceImpl.createConversation', () => {
         extra: expect.objectContaining({
           workspace: '/factory-workspace', // Factory value preserved
           enabled_skills: ['skill1'], // Factory value preserved
-          cronJobId: 'job-123', // Params value added
+          cron_job_id: 'job-123', // Params value added
         }),
       })
     );

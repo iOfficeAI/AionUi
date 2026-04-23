@@ -75,10 +75,10 @@ describe('fsBridge skills functionality', () => {
             const entries = [];
             for (const key of Object.keys(mockFsStore)) {
               if (key !== dp && key.startsWith(dp + path.sep)) {
-                const relativePath = key.substring(dp.length + 1);
-                if (!relativePath.includes(path.sep)) {
+                const relative_path = key.substring(dp.length + 1);
+                if (!relative_path.includes(path.sep)) {
                   entries.push({
-                    name: relativePath,
+                    name: relative_path,
                     isDirectory: () => !!mockFsStore[key].isDirectory && !mockFsStore[key].isSymlink,
                     isFile: () => !mockFsStore[key].isDirectory && !mockFsStore[key].isSymlink,
                     isSymbolicLink: () => !!mockFsStore[key].isSymlink,
@@ -565,7 +565,7 @@ describe('fsBridge skills functionality', () => {
   describe('readBuiltinRule ENOENT handling (Fixes ELECTRON-68)', () => {
     it('returns empty string when builtin rule file does not exist instead of throwing', async () => {
       const handler = await getProvider('readBuiltinRule');
-      const result = await handler({ fileName: 'nonexistent-rule.md' });
+      const result = await handler({ file_name: 'nonexistent-rule.md' });
       expect(result).toBe('');
     });
   });
@@ -573,7 +573,7 @@ describe('fsBridge skills functionality', () => {
   describe('readBuiltinSkill ENOENT handling', () => {
     it('returns empty string when builtin skill file does not exist instead of throwing', async () => {
       const handler = await getProvider('readBuiltinSkill');
-      const result = await handler({ fileName: 'nonexistent-skill.md' });
+      const result = await handler({ file_name: 'nonexistent-skill.md' });
       expect(result).toBe('');
     });
   });

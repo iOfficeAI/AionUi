@@ -51,12 +51,12 @@ vi.mock('@/common', () => ({
 
 vi.mock('openai', () => ({
   default: class MockOpenAI {
-    constructor(config: { apiKey?: string }) {
-      // Simulate real OpenAI SDK behavior: throw when apiKey is undefined or whitespace-only
+    constructor(config: { api_key?: string }) {
+      // Simulate real OpenAI SDK behavior: throw when api_key is undefined or whitespace-only
       const key = config.api_key;
       if (key === undefined || key.trim() === '') {
         throw new Error(
-          'Missing credentials. Please pass an `apiKey`, or set the `OPENAI_API_KEY` environment variable.'
+          'Missing credentials. Please pass an `api_key`, or set the `OPENAI_API_KEY` environment variable.'
         );
       }
     }
@@ -119,7 +119,7 @@ describe('modelBridge fetchModelList', () => {
     expect(mockModelsList).not.toHaveBeenCalled();
   });
 
-  it('returns error when apiKey is empty for new-api platform (Fixes ELECTRON-6X)', async () => {
+  it('returns error when api_key is empty for new-api platform (Fixes ELECTRON-6X)', async () => {
     const fetchModelList = getFetchModelListHandler();
 
     const result = await fetchModelList({
@@ -133,7 +133,7 @@ describe('modelBridge fetchModelList', () => {
     expect(mockModelsList).not.toHaveBeenCalled();
   });
 
-  it('returns error when apiKey is undefined for new-api platform (Fixes ELECTRON-6X)', async () => {
+  it('returns error when api_key is undefined for new-api platform (Fixes ELECTRON-6X)', async () => {
     const fetchModelList = getFetchModelListHandler();
 
     const result = await fetchModelList({
@@ -147,7 +147,7 @@ describe('modelBridge fetchModelList', () => {
     expect(mockModelsList).not.toHaveBeenCalled();
   });
 
-  it('returns error when apiKey is whitespace-only for new-api platform (Fixes ELECTRON-6X)', async () => {
+  it('returns error when api_key is whitespace-only for new-api platform (Fixes ELECTRON-6X)', async () => {
     const fetchModelList = getFetchModelListHandler();
 
     const result = await fetchModelList({
@@ -161,7 +161,7 @@ describe('modelBridge fetchModelList', () => {
     expect(mockModelsList).not.toHaveBeenCalled();
   });
 
-  it('returns error when apiKey is whitespace-only for default OpenAI path (Fixes ELECTRON-6X)', async () => {
+  it('returns error when api_key is whitespace-only for default OpenAI path (Fixes ELECTRON-6X)', async () => {
     const fetchModelList = getFetchModelListHandler();
 
     const result = await fetchModelList({
@@ -178,7 +178,7 @@ describe('modelBridge fetchModelList', () => {
   it('catches OpenAI constructor errors instead of unhandled rejection (Fixes ELECTRON-6X)', async () => {
     const fetchModelList = getFetchModelListHandler();
 
-    // Even if apiKey somehow passes the guard, the constructor error should be caught
+    // Even if api_key somehow passes the guard, the constructor error should be caught
     const result = await fetchModelList({
       base_url: 'https://api.openai.com/v1',
       api_key: undefined as unknown as string,

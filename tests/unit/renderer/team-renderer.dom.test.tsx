@@ -110,8 +110,8 @@ vi.mock('@/renderer/pages/team/components/AgentStatusBadge', () => ({
 }));
 
 vi.mock('@/renderer/pages/team/components/TeamAgentIdentity', () => ({
-  default: ({ agentName }: { agent_name: string }) =>
-    React.createElement('span', { 'data-testid': 'agent-identity' }, agentName),
+  default: ({ agent_name }: { agent_name: string }) =>
+    React.createElement('span', { 'data-testid': 'agent-identity' }, agent_name),
 }));
 
 // TeamPage-specific heavy mocks
@@ -221,7 +221,7 @@ function makeTeam(): TTeam {
   return {
     id: 'team-1',
     name: 'Test Team',
-    leaderAgentId: 'slot-lead',
+    leader_agent_id: 'slot-lead',
     agents: makeAgents(),
     created_at: 1,
     updated_at: 1,

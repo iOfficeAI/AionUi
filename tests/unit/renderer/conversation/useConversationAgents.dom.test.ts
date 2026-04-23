@@ -168,7 +168,7 @@ describe('useConversationAgents', () => {
       expect(result.current.preset_assistants[0].backend).toBe('gemini');
     });
 
-    it('sets isPreset to true for all preset assistants', async () => {
+    it('sets is_preset to true for all preset assistants', async () => {
       setupMocks([
         makePresetConfig({ id: 'a1', name: 'A1', presetAgentType: 'claude' }),
         makePresetConfig({ id: 'a2', name: 'A2', presetAgentType: 'codex' }),
@@ -185,7 +185,7 @@ describe('useConversationAgents', () => {
       }
     });
 
-    it('passes through customAgentId, name, avatar, and context', async () => {
+    it('passes through custom_agent_id, name, avatar, and context', async () => {
       setupMocks([
         makePresetConfig({
           id: 'custom-1',
@@ -244,7 +244,7 @@ describe('useConversationAgents', () => {
       expect(result.current.cliAgents).toEqual(CLI_AGENTS);
     });
 
-    it('returns presetAssistants derived from ConfigStorage("assistants")', async () => {
+    it('returns preset_assistants derived from ConfigStorage("assistants")', async () => {
       const presets = [
         makePresetConfig({ id: 'p1', name: 'Assistant A', presetAgentType: 'claude' }),
         makePresetConfig({ id: 'p2', name: 'Assistant B', presetAgentType: 'gemini' }),
@@ -276,7 +276,7 @@ describe('useConversationAgents', () => {
       expect(result.current.preset_assistants[0].name).toBe('Enabled');
     });
 
-    it('filters out non-preset configs (isPreset !== true)', async () => {
+    it('filters out non-preset configs (is_preset !== true)', async () => {
       const agents: AcpBackendConfig[] = [
         makePresetConfig({ id: 'preset', name: 'Preset One' }),
         { id: 'cli-agent', name: 'CLI Agent', enabled: true } as AcpBackendConfig,

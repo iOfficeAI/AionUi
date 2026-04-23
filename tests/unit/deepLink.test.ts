@@ -29,7 +29,7 @@ describe('deepLink module', () => {
   describe('parseDeepLinkUrl', () => {
     it('should parse simple deep link URL', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
-      const result = parseDeepLinkUrl('aionui://add-provider?baseUrl=http://localhost&apiKey=sk-123');
+      const result = parseDeepLinkUrl('aionui://add-provider?base_url=http://localhost&api_key=sk-123');
 
       expect(result).toEqual({
         action: 'add-provider',

@@ -29,9 +29,9 @@ const { default: MessageCronTrigger } = await vi.importActual<Mod>(
   '@/renderer/pages/conversation/Messages/components/MessageCronTrigger'
 );
 
-function buildMessage(cronJobId: string, cron_job_name: string) {
+function buildMessage(cron_job_id: string, cron_job_name: string) {
   return {
-    content: { cronJobId, cronJobName },
+    content: { cron_job_id, cron_job_name },
   } as Parameters<typeof MessageCronTrigger>[0]['message'];
 }
 
@@ -49,7 +49,7 @@ describe('MessageCronTrigger', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/scheduled/job-42');
   });
 
-  it('renders the correct navigation path with cronJobId', () => {
+  it('renders the correct navigation path with cron_job_id', () => {
     render(<MessageCronTrigger message={buildMessage('abc-123', 'Weekly Report')} />);
 
     fireEvent.click(screen.getByText('cron.trigger.runScheduledTask:Weekly Report'));

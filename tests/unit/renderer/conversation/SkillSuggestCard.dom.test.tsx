@@ -82,7 +82,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('renders skill suggestion name and description', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -96,7 +96,7 @@ describe('SkillSuggestCard', () => {
   it('does not render when skill already exists', async () => {
     mockHasSkill.mockResolvedValue(true);
 
-    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -108,7 +108,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('saves skill when save button is clicked', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -138,7 +138,7 @@ describe('SkillSuggestCard', () => {
     });
     mockSaveSkill.mockReturnValue(savePromise);
 
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -159,7 +159,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('hides card after successful save', async () => {
-    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -181,7 +181,7 @@ describe('SkillSuggestCard', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockSaveSkill.mockRejectedValue(new Error('Save failed'));
 
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -209,7 +209,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('hides card when dismiss button is clicked', async () => {
-    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -229,7 +229,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('expands and collapses preview content when toggle is clicked', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -260,7 +260,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('renders preview content in markdown format when expanded', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -281,7 +281,7 @@ describe('SkillSuggestCard', () => {
   it('handles hasSkill check failure gracefully', async () => {
     mockHasSkill.mockRejectedValue(new Error('Network error'));
 
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -294,7 +294,7 @@ describe('SkillSuggestCard', () => {
   });
 
   it('renders correct button types and sizes', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cronJobId='test-job-123' />);
+    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });

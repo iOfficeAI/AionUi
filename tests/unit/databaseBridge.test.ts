@@ -98,7 +98,7 @@ describe('databaseBridge', () => {
       expect(result).toEqual([]);
     });
 
-    it('uses provided page and pageSize', async () => {
+    it('uses provided page and page_size', async () => {
       vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, has_more: false });
 
       await handlers['getConversationMessages']({ conversation_id: 'c1', page: 2, page_size: 50 });

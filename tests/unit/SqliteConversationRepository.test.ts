@@ -87,11 +87,11 @@ describe('SqliteConversationRepository', () => {
     expect(result.has_more).toBe(false);
   });
 
-  it('getUserConversations passes page and pageSize when offset/limit provided', async () => {
+  it('getUserConversations passes page and page_size when offset/limit provided', async () => {
     mockDb.getUserConversations.mockReturnValue({ data: [], total: 0, has_more: false });
     const repo = new SqliteConversationRepository();
     await repo.getUserConversations(undefined, 2, 20);
-    // offset=2, limit=20 → page = Math.floor(2/20) = 0, pageSize = 20
+    // offset=2, limit=20 → page = Math.floor(2/20) = 0, page_size = 20
     expect(mockDb.getUserConversations).toHaveBeenCalledWith(undefined, 0, 20);
   });
 });
