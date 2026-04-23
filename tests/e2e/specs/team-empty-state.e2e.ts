@@ -12,10 +12,10 @@
 import { test, expect } from '../fixtures';
 import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../helpers';
 
-const AGENT_TYPE_MAP: Record<string, { agent_type: string; conversation_type: string }> = {
-  gemini: { agent_type: 'gemini', conversation_type: 'gemini' },
-  claude: { agent_type: 'claude', conversation_type: 'acp' },
-  codex: { agent_type: 'codex', conversation_type: 'acp' },
+const AGENT_TYPE_MAP: Record<string, { backend: string; model: string }> = {
+  gemini: { backend: 'gemini', model: 'gemini' },
+  claude: { backend: 'acp', model: 'claude' },
+  codex: { backend: 'acp', model: 'codex' },
 };
 
 const SUGGESTION_KEYS = ['debate', 'interview', 'expert_review'] as const;
@@ -37,26 +37,20 @@ for (const leaderType of TEAM_SUPPORTED_BACKENDS) {
     // run can leave the leader conversation stuck on the loading spinner, which
     // prevents the empty state from ever mounting. Remove any same-named team first.
     const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      userId: 'system_default_user',
+      user_id: 'system_default_user',
     });
     for (const stale of teams.filter((t) => t.name === teamName)) {
       await invokeBridge(page, 'team.remove', { id: stale.id }).catch(() => {});
     }
 
     const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-      userId: 'system_default_user',
       name: teamName,
-      workspace: '',
-      workspaceMode: 'shared',
       agents: [
         {
-          slot_id: 'slot-lead',
-          conversation_id: '',
-          role: 'leader',
-          agent_type: meta.agent_type,
-          agent_name: 'Leader',
-          conversation_type: meta.conversation_type,
-          status: 'pending',
+          name: 'Leader',
+          role: 'lead',
+          backend: meta.backend,
+          model: meta.model,
         },
       ],
     });

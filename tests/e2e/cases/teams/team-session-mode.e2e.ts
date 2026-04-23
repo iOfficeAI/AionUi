@@ -3,7 +3,7 @@
  *
  * Verifies that switching the permission mode on the leader's AgentModeSelector
  * is reflected both in the UI (data-current-mode attribute) and in the persisted
- * team record (team.get → sessionMode field).
+ * team record (team.get → session_mode field).
  *
  * Only ACP-type backends (claude, codex) show the mode selector in team mode.
  * The test skips when no qualifying backend is available.
@@ -19,14 +19,14 @@ const ACP_BACKENDS = ['claude', 'codex'] as const;
 type TeamRecord = {
   id: string;
   name: string;
-  sessionMode?: string;
+  session_mode?: string;
   agents: Array<{
-    slotId: string;
-    conversationId: string;
+    slot_id: string;
+    name: string;
     role: string;
-    agentType: string;
-    agentName: string;
-    conversationType: string;
+    conversation_id: string;
+    backend: string;
+    model: string;
     status: string;
   }>;
 };
@@ -42,11 +42,9 @@ test.describe('Team Session Mode Propagation', () => {
       return;
     }
 
-    const conversationType = 'acp';
-
     // [setup] Find or create the E2E team.
     const teams = await invokeBridge<TeamRecord[]>(page, 'team.list', {
-      userId: 'system_default_user',
+      user_id: 'system_default_user',
     });
     const existing = teams.find((t) => t.name === TEAM_NAME);
     let teamId: string;
@@ -55,19 +53,13 @@ test.describe('Team Session Mode Propagation', () => {
       teamId = existing.id;
     } else {
       const created = await invokeBridge<TeamRecord | null>(page, 'team.create', {
-        userId: 'system_default_user',
         name: TEAM_NAME,
-        workspace: '',
-        workspaceMode: 'shared',
         agents: [
           {
-            slotId: 'slot-lead',
-            conversationId: '',
-            role: 'leader',
-            agentType: leaderBackend,
-            agentName: 'Leader',
-            conversationType,
-            status: 'pending',
+            name: 'Leader',
+            role: 'lead',
+            backend: 'acp',
+            model: leaderBackend,
           },
         ],
       }).catch(() => null);
@@ -148,19 +140,19 @@ test.describe('Team Session Mode Propagation', () => {
 
     await page.screenshot({ path: 'tests/e2e/results/team-session-mode-03.png' });
 
-    // [assert-optional] Backend: team record sessionMode matches the selected mode.
+    // [assert-optional] Backend: team record session_mode matches the selected mode.
     // propagateMode calls team.set-session-mode (best-effort fire-and-forget), so we
     // poll briefly rather than requiring an instant match.
     await expect
       .poll(
         async () => {
           const team = await invokeBridge<TeamRecord | null>(page, 'team.get', { id: teamId }).catch(() => null);
-          return team?.sessionMode;
+          return team?.session_mode;
         },
         {
           timeout: 8_000,
           intervals: [300, 500, 1000],
-          message: `team.get sessionMode should be "${targetMode}" within 8 s of mode switch`,
+          message: `team.get session_mode should be "${targetMode}" within 8 s of mode switch`,
         }
       )
       .toBe(targetMode);

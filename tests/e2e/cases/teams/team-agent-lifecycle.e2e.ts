@@ -14,11 +14,11 @@
 import { test, expect } from '../../fixtures';
 import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 
-/** Map leader type to agentType + conversationType values used in team.create */
-const AGENT_TYPE_MAP: Record<string, { agent_type: string; conversation_type: string }> = {
-  gemini: { agent_type: 'gemini', conversation_type: 'gemini' },
-  claude: { agent_type: 'claude', conversation_type: 'acp' },
-  codex: { agent_type: 'codex', conversation_type: 'acp' },
+/** Map leader type to backend + model values used in team.create */
+const AGENT_TYPE_MAP: Record<string, { backend: string; model: string }> = {
+  gemini: { backend: 'gemini', model: 'gemini' },
+  claude: { backend: 'acp', model: 'claude' },
+  codex: { backend: 'acp', model: 'codex' },
 };
 
 const LEADER_CONFIGS = [...TEAM_SUPPORTED_BACKENDS].map((leaderType) => ({
@@ -38,7 +38,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     }
 
     const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      userId: 'system_default_user',
+      user_id: 'system_default_user',
     });
     const existing = teams.find((t) => t.name === teamName);
     let resolvedTeamId: string;
@@ -47,19 +47,13 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
       resolvedTeamId = existing.id;
     } else {
       const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        userId: 'system_default_user',
         name: teamName,
-        workspace: '',
-        workspaceMode: 'shared',
         agents: [
           {
-            slot_id: 'slot-lead',
-            conversation_id: '',
-            role: 'leader',
-            agent_type: agentMeta.agent_type,
-            agent_name: 'Leader',
-            conversation_type: agentMeta.conversation_type,
-            status: 'idle',
+            name: 'Leader',
+            role: 'lead',
+            backend: agentMeta.backend,
+            model: agentMeta.model,
           },
         ],
       }).catch(() => null);

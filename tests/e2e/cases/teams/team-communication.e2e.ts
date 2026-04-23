@@ -11,27 +11,21 @@ test.describe('Team Communication', () => {
     test.setTimeout(120_000);
     // [setup] Find or create "E2E Test Team" — self-contained, no dependency on team-create.e2e.ts
     const allTeams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      userId: 'system_default_user',
+      user_id: 'system_default_user',
     });
-    let team_id: string;
+    let teamId: string;
     const existing = allTeams.find((t) => t.name === 'E2E Test Team');
     if (existing) {
       teamId = existing.id;
     } else {
       const created = await invokeBridge<{ id: string }>(page, 'team.create', {
-        userId: 'system_default_user',
         name: 'E2E Test Team',
-        workspace: '',
-        workspaceMode: 'shared',
         agents: [
           {
-            slot_id: 'slot-lead',
-            conversation_id: '',
-            role: 'leader',
-            agent_type: 'gemini',
-            agent_name: 'Leader',
-            conversation_type: 'gemini',
-            status: 'pending',
+            name: 'Leader',
+            role: 'lead',
+            backend: 'gemini',
+            model: 'gemini',
           },
         ],
       });

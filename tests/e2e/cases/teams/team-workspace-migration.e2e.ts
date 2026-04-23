@@ -202,7 +202,7 @@ test.describe('Team Workspace Migration', () => {
     // 5d. Backend: team workspace updated
     const teamState = await invokeBridge<{
       workspace: string;
-      agents: Array<{ slot_id: string; conversation_id: string; agent_name: string }>;
+      agents: Array<{ slot_id: string; conversation_id: string; name: string }>;
     }>(page, 'team.get', { id: teamId });
     expect(teamState.workspace).toBe(targetWorkspace);
 

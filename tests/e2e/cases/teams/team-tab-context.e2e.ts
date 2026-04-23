@@ -8,10 +8,10 @@
 import { test, expect } from '../../fixtures';
 import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 
-const AGENT_TYPE_MAP: Record<string, { agentType: string; conversationType: string }> = {
-  gemini: { agentType: 'gemini', conversationType: 'gemini' },
-  claude: { agentType: 'claude', conversationType: 'acp' },
-  codex: { agentType: 'codex', conversationType: 'acp' },
+const AGENT_TYPE_MAP: Record<string, { backend: string; model: string }> = {
+  gemini: { backend: 'gemini', model: 'gemini' },
+  claude: { backend: 'acp', model: 'claude' },
+  codex: { backend: 'acp', model: 'codex' },
 };
 
 test.describe('Team Tab Context Persistence', () => {
@@ -36,7 +36,7 @@ test.describe('Team Tab Context Persistence', () => {
 
     // [setup] Find or create the team
     const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      userId: 'system_default_user',
+      user_id: 'system_default_user',
     });
     const existing = teams.find((t) => t.name === teamName);
     let teamId: string;
@@ -45,19 +45,13 @@ test.describe('Team Tab Context Persistence', () => {
       teamId = existing.id;
     } else {
       const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        userId: 'system_default_user',
         name: teamName,
-        workspace: '',
-        workspaceMode: 'shared',
         agents: [
           {
-            slotId: 'slot-lead',
-            conversationId: '',
-            role: 'leader',
-            agentType: agentMeta.agentType,
-            agentName: 'Leader',
-            conversationType: agentMeta.conversationType,
-            status: 'pending',
+            name: 'Leader',
+            role: 'lead',
+            backend: agentMeta.backend,
+            model: agentMeta.model,
           },
         ],
       }).catch(() => null);
@@ -133,11 +127,11 @@ test.describe('Team Tab Context Persistence', () => {
 
     // [assert] Leader history is intact. Prefer IPC-level assertion so the test
     // does not depend on virtualization/viewport state. Falls back to DOM check
-    // if the leader's conversationId cannot be resolved.
+    // if the leader's conversation_id cannot be resolved.
     const leaderConvId = await invokeBridge<
-      Array<{ id: string; name: string; agents: Array<{ role: string; conversationId: string }> }>
-    >(page, 'team.list', { userId: 'system_default_user' })
-      .then((list) => list.find((t) => t.id === teamId)?.agents.find((a) => a.role === 'leader')?.conversationId || '')
+      Array<{ id: string; name: string; agents: Array<{ role: string; conversation_id: string }> }>
+    >(page, 'team.list', { user_id: 'system_default_user' })
+      .then((list) => list.find((t) => t.id === teamId)?.agents.find((a) => a.role === 'lead')?.conversation_id || '')
       .catch(() => '');
 
     if (leaderConvId) {

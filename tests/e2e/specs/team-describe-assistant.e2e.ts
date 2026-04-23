@@ -33,12 +33,28 @@
 import * as net from 'node:net';
 import { test, expect } from '../fixtures';
 import { invokeBridge } from '../helpers';
-import type { TTeam } from '@/common/types/teamTypes';
 
 type TcpReply = { result?: string; error?: string };
 type StdioEnvEntry = { name?: string; value?: string };
 type StdioConfig = { env?: StdioEnvEntry[] };
 type LeaderConversation = { id?: string; extra?: { teamMcpStdioConfig?: StdioConfig } } | null;
+
+/** Backend /api/teams/:id GET response shape — aligns with aionui-backend schema. */
+type TTeamBackendAgent = {
+  slot_id: string;
+  conversation_id: string;
+  role: string;
+  name: string;
+  backend: string;
+  model: string;
+  status: string;
+  custom_agent_id?: string;
+};
+type TTeam = {
+  id: string;
+  name: string;
+  agents: TTeamBackendAgent[];
+};
 
 // Preferred presets to probe (in priority order). The test resolves to
 // whichever one is currently enabled in this environment by asking the MCP
@@ -110,19 +126,13 @@ test.describe('Team MCP - team_describe_assistant', () => {
     try {
       // ── 1. Create team (gemini leader; any backend works, we only need MCP) ──
       const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        userId: 'system_default_user',
         name: `E2E Describe Assistant ${Date.now()}`,
-        workspace: '',
-        workspaceMode: 'shared',
         agents: [
           {
-            slot_id: 'slot-lead',
-            conversation_id: '',
-            role: 'leader',
-            agent_type: 'gemini',
-            agent_name: 'Leader',
-            conversation_type: 'gemini',
-            status: 'idle',
+            name: 'Leader',
+            role: 'lead',
+            backend: 'gemini',
+            model: 'gemini',
           },
         ],
       }).catch(() => null);
@@ -140,7 +150,7 @@ test.describe('Team MCP - team_describe_assistant', () => {
       // ── 2. Read the port + auth token from the leader conversation ───────
       const team = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId });
       expect(team, 'team.get should return the freshly-created team').toBeTruthy();
-      const leader = team!.agents.find((a) => a.role === 'leader');
+      const leader = team!.agents.find((a) => a.role === 'lead');
       expect(leader?.conversation_id, 'leader must have a conversation id').toBeTruthy();
 
       const leaderConv = await invokeBridge<LeaderConversation>(page, 'get-conversation', {
@@ -219,10 +229,10 @@ test.describe('Team MCP - team_describe_assistant', () => {
       // carries the expected preset metadata.
       const teamAfterSpawn = await invokeBridge<TTeam | null>(page, 'team.get', { id: createdTeamId });
       expect(teamAfterSpawn?.agents.length).toBe(2);
-      const spawned = teamAfterSpawn!.agents.find((a) => a.agent_name === teammateName);
+      const spawned = teamAfterSpawn!.agents.find((a) => a.name === teammateName);
       expect(spawned, 'spawned teammate must be present').toBeTruthy();
       expect(spawned!.custom_agent_id).toBe(presetId);
-      expect(spawned!.agent_type).toBe('gemini'); // preset backend wins
+      expect(spawned!.backend).toBe('gemini'); // preset backend wins
     } finally {
       if (createdTeamId) {
         await invokeBridge(page, 'team.remove', { id: createdTeamId }).catch(() => {});
