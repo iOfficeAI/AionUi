@@ -20,7 +20,6 @@ import {
   loadSkillsFromDir,
 } from '@office-ai/aioncli-core';
 import process from 'node:process';
-import path from 'node:path';
 import type { Settings } from './settings';
 import { annotateActiveExtensions } from './extension';
 import { getCurrentGeminiAgent } from '../index';
@@ -112,35 +111,21 @@ export async function loadCliConfig({
 
   const _ideModeFeature = (argv.ideModeFeature ?? settings.ideModeFeature ?? false) && !process.env.SANDBOX;
 
-  // 加载内置 skills 并创建虚拟 extension
-  // Load builtin skills and create a virtual extension
-  // 仅在指定 enabledSkills 时加载，非 preset agent 不加载任何可选 skills
-  // Only load when enabledSkills is specified; non-preset agents get no optional skills
+  // Load opt-in skills from the per-agent materialized dir (skillsDir).
+  // Backend has flattened auto-inject + opt-in into `{skillsDir}/{name}/SKILL.md`
+  // already, so one scan is enough.
   let builtinSkills: SkillDefinition[] = [];
   if (skillsDir && enabledSkills && enabledSkills.length > 0) {
     try {
-      // Load skills from both top-level and _builtin/ subdirectory
-      // loadSkillsFromDir only scans direct children, so _builtin/cron is not found by default
       const topLevelSkills = await loadSkillsFromDir(skillsDir);
-      const builtinDir = path.join(skillsDir, '_builtin');
-      let builtinDirSkills: SkillDefinition[] = [];
-      try {
-        builtinDirSkills = await loadSkillsFromDir(builtinDir);
-      } catch (e) {
-        // Only ignore "not found" errors; warn on unexpected failures
-        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') {
-          console.warn(`[Config] Failed to load skills from ${builtinDir}:`, e);
-        }
-      }
-      const allSkills = [...topLevelSkills, ...builtinDirSkills];
       const enabledSet = new Set(enabledSkills);
-      const originalCount = allSkills.length;
-      builtinSkills = allSkills.filter((skill) => enabledSet.has(skill.name));
+      const originalCount = topLevelSkills.length;
+      builtinSkills = topLevelSkills.filter((skill) => enabledSet.has(skill.name));
       console.log(
         `[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`
       );
     } catch (error) {
-      console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
+      console.warn(`[Config] Failed to load skills from ${skillsDir}:`, error);
     }
   }
 

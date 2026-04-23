@@ -293,10 +293,10 @@ export interface AcpBackendConfig {
 
   /**
    * 禁用的内置自动注入 skills 列表（仅 isPreset=true 时生效）
-   * 内置 skills（_builtin/ 目录下）默认自动注入所有对话，此列表中的 skills 将被排除
+   * 内置 skills（auto-inject/ 目录下）默认自动注入所有对话，此列表中的 skills 将被排除
    *
    * Disabled builtin auto-injected skills (only applies when isPreset=true).
-   * Builtin skills (in _builtin/ directory) are auto-injected by default; skills in this list will be excluded.
+   * Builtin skills (in auto-inject/ directory) are auto-injected by default; skills in this list will be excluded.
    */
   disabledBuiltinSkills?: string[];
 }

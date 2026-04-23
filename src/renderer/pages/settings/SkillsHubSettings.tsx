@@ -11,6 +11,12 @@ interface SkillInfo {
   name: string;
   description: string;
   location: string;
+  /**
+   * Relative location under the builtin-skills corpus (e.g.
+   * `auto-inject/cron/SKILL.md`). Present only for `source=builtin`; the
+   * export-to-external-source flow still uses absolute `location` paths.
+   */
+  relativeLocation?: string;
   isCustom: boolean;
   source?: 'builtin' | 'custom' | 'extension';
 }

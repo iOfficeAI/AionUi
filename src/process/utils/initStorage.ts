@@ -47,9 +47,12 @@ const STORAGE_PATH = {
   env: '.aionui-env',
   assistants: 'assistants',
   skills: 'skills',
-  builtinSkills: 'builtin-skills',
   cronSkills: 'cron-skills',
 };
+
+/** Legacy builtin-skills cache directory, cleaned up at startup after the
+ * backend took ownership of the corpus. */
+const LEGACY_BUILTIN_SKILLS_DIR = 'builtin-skills';
 
 const getHomePage = getConfigPath;
 
@@ -339,22 +342,6 @@ const getSkillsDir = () => {
 };
 
 /**
- * Get the directory where bundled skills are copied to (config/builtin-skills/).
- * This directory is fully managed by the app — synced on every startup.
- */
-const getBuiltinSkillsCopyDir = () => {
-  return path.join(cacheDir, STORAGE_PATH.builtinSkills);
-};
-
-/**
- * Get the auto-enabled builtin skills directory (_builtin subdirectory).
- * Skills in this directory are automatically injected for ALL agents and scenarios.
- */
-const getAutoSkillsDir = () => {
-  return path.join(getBuiltinSkillsCopyDir(), '_builtin');
-};
-
-/**
  * Get the directory for per-cron-job SKILL.md files.
  * Each cron job gets its own subdirectory: {cronSkillsDir}/{jobId}/SKILL.md
  */
@@ -363,63 +350,30 @@ const getCronSkillsDir = () => {
 };
 
 /**
+ * Best-effort cleanup of the legacy `{cacheDir}/builtin-skills/` directory
+ * left behind by versions prior to the backend taking ownership of the skill
+ * corpus. Failures are swallowed — at worst a stale copy lingers on disk.
+ */
+const cleanupLegacyBuiltinSkillsDir = () => {
+  const legacyDir = path.join(cacheDir, LEGACY_BUILTIN_SKILLS_DIR);
+  if (!existsSync(legacyDir)) return;
+  fs.rm(legacyDir, { recursive: true, force: true })
+    .then(() => console.log('[AionUi] Cleaned up legacy builtin-skills cache'))
+    .catch(() => {
+      /* swallow — cleanup is not critical */
+    });
+};
+
+/**
  * Ensure user-facing config directories exist. Built-in assistant rules and
  * skill files are now owned by the backend (see
- * `crates/aionui-app/assets/builtin-assistants/` and the
- * `assistant-rule/skill` dispatch routes), so they are no longer synced from
- * the renderer's frozen ASSISTANT_PRESETS catalog. User-authored rule md files
- * continue to live under `{cacheDir}/assistants/` until the one-shot backend
- * migration in T3b hands them over.
+ * `crates/aionui-app/assets/builtin-assistants/` and
+ * `crates/aionui-app/assets/builtin-skills/`) — neither is synced from
+ * renderer resources anymore.
  */
 const ensureAssistantDirs = async (): Promise<void> => {
   const assistantsDir = getAssistantsDir();
-  const builtinSkillsCopyDir = getBuiltinSkillsCopyDir();
   const userSkillsDir = getSkillsDir();
-
-  const resolveBuiltinDir = (dirPath: string): string => {
-    const platform = getPlatformServices().paths;
-    const appPath = platform.getAppPath()!;
-    let candidates: string[];
-    if (platform.isPackaged()) {
-      const RESOURCES_PREFIX = 'src/process/resources/';
-      const prodPath = dirPath.startsWith(RESOURCES_PREFIX) ? dirPath.slice(RESOURCES_PREFIX.length) : dirPath;
-      candidates = [path.join(appPath, prodPath)];
-    } else {
-      candidates = [path.join(appPath, dirPath)];
-    }
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) return candidate;
-    }
-    console.warn(`[AionUi] Could not find builtin ${dirPath} directory, tried:`, candidates);
-    return candidates[0];
-  };
-
-  const builtinSkillsDir = resolveBuiltinDir('src/process/resources/skills');
-
-  // Sync builtin skills to a dedicated directory (config/builtin-skills/).
-  // This directory is fully managed by the app: overwrite existing, remove stale.
-  // User-custom skills live in config/skills/ and are never touched.
-  if (existsSync(builtinSkillsDir)) {
-    try {
-      if (!existsSync(builtinSkillsCopyDir)) {
-        mkdirSync(builtinSkillsCopyDir);
-      }
-      await copyDirectoryRecursively(builtinSkillsDir, builtinSkillsCopyDir, { overwrite: true });
-      const srcNames = new Set(
-        readdirSync(builtinSkillsDir, { withFileTypes: true })
-          .filter((e) => e.isDirectory())
-          .map((e) => e.name)
-      );
-      for (const entry of readdirSync(builtinSkillsCopyDir, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        if (!srcNames.has(entry.name)) {
-          await fs.rm(path.join(builtinSkillsCopyDir, entry.name), { recursive: true, force: true });
-        }
-      }
-    } catch (error) {
-      console.warn(`[AionUi] Failed to sync builtin skills directory:`, error);
-    }
-  }
 
   if (!existsSync(userSkillsDir)) mkdirSync(userSkillsDir);
 
@@ -700,6 +654,11 @@ const initStorage = async () => {
     console.error('[AionUi] Failed to ensure assistant dirs:', error);
   }
 
+  // 5b. Best-effort cleanup of the legacy builtin-skills cache left behind
+  //     before the backend took ownership of the corpus.
+  cleanupLegacyBuiltinSkillsDir();
+  mark('5b. legacyBuiltinSkillsCleanup');
+
   // 6. 初始化数据库（better-sqlite3）
   try {
     await getDatabase();
@@ -747,88 +706,9 @@ export const getSystemDir = () => {
 export {
   getAssistantsDir,
   getSkillsDir,
-  getBuiltinSkillsCopyDir,
-  getAutoSkillsDir,
   getCronSkillsDir,
   BUILTIN_IMAGE_GEN_ID,
   getBuiltinMcpScriptPath,
-};
-
-/**
- * Skills 内容缓存，避免重复从文件系统读取
- * Skills content cache to avoid repeated file system reads
- */
-const skillsContentCache = new Map<string, string>();
-
-/**
- * 加载指定 skills 的内容（带缓存）
- * Load content of specified skills (with caching)
- * @param enabledSkills - skill 名称列表 / list of skill names
- * @returns 合并后的 skills 内容 / merged skills content
- */
-export const loadSkillsContent = async (enabledSkills: string[]): Promise<string> => {
-  if (!enabledSkills || enabledSkills.length === 0) {
-    return '';
-  }
-
-  // 使用排序后的 skill 名称作为缓存 key，确保相同组合命中缓存
-  // Use sorted skill names as cache key to ensure same combinations hit cache
-  const cacheKey = [...enabledSkills].toSorted().join(',');
-  const cached = skillsContentCache.get(cacheKey);
-  if (cached !== undefined) {
-    return cached;
-  }
-
-  const skillsDir = getSkillsDir();
-  const builtinSkillsDir = getAutoSkillsDir();
-  const skillContents: string[] = [];
-
-  for (const skillName of enabledSkills) {
-    // 1. Auto-enabled builtin: builtin-skills/_builtin/{skillName}/SKILL.md
-    const builtinSkillFile = path.join(builtinSkillsDir, skillName, 'SKILL.md');
-    // 2. Bundled skill: builtin-skills/{skillName}/SKILL.md
-    const bundledSkillFile = path.join(getBuiltinSkillsCopyDir(), skillName, 'SKILL.md');
-    // 3. User custom: skills/{skillName}/SKILL.md
-    const skillDirFile = path.join(skillsDir, skillName, 'SKILL.md');
-    // 向后兼容：扁平结构 {skillName}.md
-    // Backward compatible: flat structure {skillName}.md
-    const skillFlatFile = path.join(skillsDir, `${skillName}.md`);
-
-    try {
-      let content: string | null = null;
-
-      if (existsSync(builtinSkillFile)) {
-        content = await fs.readFile(builtinSkillFile, 'utf-8');
-      } else if (existsSync(bundledSkillFile)) {
-        content = await fs.readFile(bundledSkillFile, 'utf-8');
-      } else if (existsSync(skillDirFile)) {
-        content = await fs.readFile(skillDirFile, 'utf-8');
-      } else if (existsSync(skillFlatFile)) {
-        content = await fs.readFile(skillFlatFile, 'utf-8');
-      }
-
-      if (content && content.trim()) {
-        skillContents.push(`## Skill: ${skillName}\n${content}`);
-      }
-    } catch (error) {
-      console.warn(`[AionUi] Failed to load skill ${skillName}:`, error);
-    }
-  }
-
-  const result = skillContents.length === 0 ? '' : `[Available Skills]\n${skillContents.join('\n\n')}`;
-
-  // 缓存结果 / Cache result
-  skillsContentCache.set(cacheKey, result);
-
-  return result;
-};
-
-/**
- * 清除 skills 缓存（在 skills 文件更新后调用）
- * Clear skills cache (call after skills files are updated)
- */
-export const clearSkillsCache = (): void => {
-  skillsContentCache.clear();
 };
 
 export default initStorage;

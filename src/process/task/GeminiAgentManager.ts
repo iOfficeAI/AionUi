@@ -107,6 +107,23 @@ export class GeminiAgentManager extends BaseAgentManager<
     await this.injectHistoryFromDatabase();
   }
 
+  /**
+   * Tear down the worker and ask the backend to remove this conversation's
+   * materialized skills directory. The cleanup call is fire-and-forget:
+   * the backend reconciles orphans on its next startup, so a failure here
+   * does not warrant blocking kill().
+   */
+  kill() {
+    if (this.conversation_id) {
+      ipcBridge.fs.cleanupSkillsForAgent
+        .invoke({ conversationId: this.conversation_id })
+        .catch((err: unknown) => {
+          mainWarn('[GeminiAgentManager]', `Failed to cleanup skills for ${this.conversation_id}:`, err);
+        });
+    }
+    super.kill();
+  }
+
   /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
   private forceYoloMode?: boolean;
 

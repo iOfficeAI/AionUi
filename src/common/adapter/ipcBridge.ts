@@ -346,12 +346,23 @@ export const fs = {
       name: string;
       description: string;
       location: string;
+      relativeLocation?: string;
       isCustom: boolean;
       source: 'builtin' | 'custom' | 'extension';
     }>,
     void
   >('/api/skills'),
-  listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string }>, void>('/api/skills/builtin-auto'),
+  listBuiltinAutoSkills: httpGet<
+    Array<{ name: string; description: string; location: string }>,
+    void
+  >('/api/skills/builtin-auto'),
+  materializeSkillsForAgent: httpPost<
+    { dirPath: string },
+    { conversationId: string; enabledSkills: string[] }
+  >('/api/skills/materialize-for-agent'),
+  cleanupSkillsForAgent: httpDelete<void, { conversationId: string }>(
+    (p) => `/api/skills/materialize-for-agent/${encodeURIComponent(p.conversationId)}`,
+  ),
   readSkillInfo: httpPost<{ name: string; description: string }, { skillPath: string }>(
     '/api/skills/info',
   ),

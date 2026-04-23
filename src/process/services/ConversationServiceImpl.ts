@@ -7,6 +7,7 @@
 import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
+import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { cronService } from './cron/cronServiceSingleton';
 import {
@@ -39,6 +40,12 @@ export class ConversationServiceImpl implements IConversationService {
 
   async deleteConversation(id: string): Promise<void> {
     await this.repo.deleteConversation(id);
+    // Clean up the per-conversation materialized skills directory on the
+    // backend. Fire-and-forget: repo deletion is the source of truth, and
+    // the backend reconciles orphans on its next startup anyway.
+    ipcBridge.fs.cleanupSkillsForAgent.invoke({ conversationId: id }).catch((err: unknown) => {
+      console.warn(`[ConversationServiceImpl] Failed to cleanup skills for ${id}:`, err);
+    });
   }
 
   async updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void> {
