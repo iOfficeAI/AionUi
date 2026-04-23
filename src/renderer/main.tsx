@@ -20,7 +20,7 @@ import '@/common/adapter/browser';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Context providers
@@ -49,6 +49,10 @@ import './styles/themes/index.css';
 // i18n
 import './services/i18n';
 import { registerPwa } from './services/registerPwa';
+
+// Config service
+import { migrateConfigStorage } from '@/common/config/configMigration';
+import { configService } from '@/common/config/configService';
 
 // Components and utilities
 import Layout from './components/layout/Layout';
@@ -108,8 +112,21 @@ const Config: React.FC<PropsWithChildren> = ({ children }) => {
 
 const Main = () => {
   const { ready } = useAuth();
+  const [configReady, setConfigReady] = useState(false);
 
-  if (!ready) {
+  useEffect(() => {
+    if (!ready) return;
+    configService
+      .initialize()
+      .then(() => migrateConfigStorage())
+      .then(() => setConfigReady(true))
+      .catch((err) => {
+        console.error('Failed to initialize config:', err);
+        setConfigReady(true);
+      });
+  }, [ready]);
+
+  if (!ready || !configReady) {
     return null;
   }
 
