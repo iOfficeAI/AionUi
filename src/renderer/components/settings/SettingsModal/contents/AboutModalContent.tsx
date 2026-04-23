@@ -103,9 +103,14 @@ const AboutModalContent: React.FC = () => {
               {t('settings.appDescription')}
             </Typography.Text>
             <div className='flex items-center justify-center gap-8px mb-16px'>
-              <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
-                v{packageJson.version}
-              </span>
+              <div className='flex items-center gap-4px px-10px py-4px rd-6px bg-fill-2'>
+                <span className='text-13px text-t-primary font-500'>v{packageJson.version}</span>
+                {process.env.GIT_COMMIT_HASH && process.env.GIT_COMMIT_HASH !== 'unknown' && (
+                  <span className='text-11px text-t-tertiary font-400 font-mono opacity-80 border-l border-fill-3 pl-4px'>
+                    {process.env.GIT_COMMIT_HASH}
+                  </span>
+                )}
+              </div>
               <div
                 className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'
                 onClick={() =>

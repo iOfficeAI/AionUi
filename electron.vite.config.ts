@@ -58,6 +58,13 @@ export default defineConfig(({ mode }) => {
   const isDevelopment = mode === 'development';
   const enableSentrySourceMaps = !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
 
+  let gitHash = 'unknown';
+  try {
+    gitHash = execSync('git rev-parse --short HEAD').toString().trim();
+  } catch (e) {
+    console.warn('Failed to get git commit hash:', e);
+  }
+
   const sentryPluginOptions = {
     org: process.env.SENTRY_ORG,
     project: process.env.SENTRY_PROJECT,
@@ -252,6 +259,7 @@ export default defineConfig(({ mode }) => {
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.GIT_COMMIT_HASH': JSON.stringify(gitHash),
         global: 'globalThis',
       },
       optimizeDeps: {

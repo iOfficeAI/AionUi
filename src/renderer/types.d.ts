@@ -19,3 +19,9 @@ declare module '*?raw' {
 }
 
 declare module 'unocss';
+
+declare namespace NodeJS {
+  interface ProcessEnv {
+    GIT_COMMIT_HASH?: string;
+  }
+}
