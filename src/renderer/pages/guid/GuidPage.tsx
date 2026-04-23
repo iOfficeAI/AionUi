@@ -27,7 +27,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
@@ -431,7 +431,7 @@ const GuidPage: React.FC = () => {
       const custom_agent_id = agentSelection.selectedAgentInfo?.custom_agent_id;
       if (!custom_agent_id || nextType === currentPresetAgentType) return;
       try {
-        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
+        const agents = ((configService.get('acp.customAgents')) || []) as AcpBackendConfig[];
         const idx = agents.findIndex((a) => a.id === custom_agent_id);
         if (idx < 0) {
           Message.warning(t('common.failed', { defaultValue: 'Failed' }));
@@ -439,7 +439,7 @@ const GuidPage: React.FC = () => {
         }
         const updated = [...agents];
         updated[idx] = { ...updated[idx], presetAgentType: nextType };
-        await ConfigStorage.set('acp.customAgents', updated);
+        await configService.set('acp.customAgents', updated);
         await agentSelection.refreshCustomAgents();
         const agent_name = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agent_name }));

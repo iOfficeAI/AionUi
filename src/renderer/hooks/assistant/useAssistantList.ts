@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { resolveLocaleKey } from '@/common/utils';
 import {
   isExtensionAssistant as isExtensionAssistantUtil,
@@ -41,7 +41,7 @@ export const useAssistantList = () => {
   const loadAssistants = useCallback(async () => {
     try {
       // Read stored assistants from config (includes builtin and user-defined)
-      const localAgents: AssistantListItem[] = (await ConfigStorage.get('assistants')) || [];
+      const localAgents: AssistantListItem[] = (configService.get('assistants')) || [];
 
       const mergedAgents = [...localAgents];
       for (const extAssistant of normalizedExtAssistants) {

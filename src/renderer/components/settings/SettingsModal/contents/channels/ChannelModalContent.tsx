@@ -7,7 +7,7 @@
 import type { IChannelPluginStatus } from '@process/channels/types';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -76,7 +76,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
 
     const restore = async () => {
       try {
-        const saved = (await ConfigStorage.get(configKey)) as { id: string; useModel: string } | undefined;
+        const saved = (configService.get(configKey)) as { id: string; useModel: string } | undefined;
         if (!saved?.id || !saved?.useModel) {
           // Nothing saved — mark restored so we don't keep retrying
           setRestored(true);
@@ -120,7 +120,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
     async (provider: IProvider, modelName: string) => {
       try {
         const modelRef = { id: provider.id, useModel: modelName };
-        await ConfigStorage.set(configKey, modelRef);
+        await configService.set(configKey, modelRef);
 
         // Derive platform from configKey and sync to channel system
         const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
@@ -130,7 +130,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
           | 'weixin'
           | 'wecom';
         const agentKey = `assistant.${platform}.agent` as const;
-        const currentAgent = await ConfigStorage.get(agentKey);
+        const currentAgent = configService.get(agentKey);
         await channel.syncChannelSettings
           .invoke({
             platform,

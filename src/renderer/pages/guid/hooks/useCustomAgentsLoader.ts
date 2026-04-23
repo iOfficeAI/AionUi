@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendConfig } from '../types';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -37,8 +37,8 @@ export const useCustomAgentsLoader = ({
   const loadCustomAgents = useCallback(async () => {
     try {
       const [presetAssistants, userCustomAgents, extAssistants] = await Promise.all([
-        ConfigStorage.get('assistants'),
-        ConfigStorage.get('acp.customAgents'),
+        configService.get('assistants'),
+        configService.get('acp.customAgents'),
         ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]),
       ]);
       const list: AcpBackendConfig[] = [

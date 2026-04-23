@@ -6,7 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -123,7 +123,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
       try {
         const [agentsResp, saved] = await Promise.all([
           acpConversation.getAvailableAgents.invoke(),
-          ConfigStorage.get('assistant.dingtalk.agent'),
+          configService.get('assistant.dingtalk.agent'),
         ]);
 
         if (Array.isArray(agentsResp)) {
@@ -158,7 +158,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.dingtalk.agent', agent);
+      await configService.set('assistant.dingtalk.agent', agent);
       await channel.syncChannelSettings
         .invoke({ platform: 'dingtalk', agent })
         .catch((err) => console.warn('[DingTalkConfig] syncChannelSettings failed:', err));

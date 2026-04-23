@@ -6,7 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -127,7 +127,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       try {
         const [agentsResp, saved] = await Promise.all([
           acpConversation.getAvailableAgents.invoke(),
-          ConfigStorage.get('assistant.wecom.agent'),
+          configService.get('assistant.wecom.agent'),
         ]);
 
         if (Array.isArray(agentsResp)) {
@@ -162,7 +162,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
   const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.wecom.agent', agent);
+      await configService.set('assistant.wecom.agent', agent);
       await channel.syncChannelSettings
         .invoke({ platform: 'wecom', agent })
         .catch((err) => console.warn('[WecomConfig] syncChannelSettings failed:', err));

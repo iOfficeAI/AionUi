@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import type { IMcpServer } from '@/common/config/storage';
 
@@ -16,20 +16,15 @@ export const useMcpAgentStatus = () => {
 
   // 加载已保存的agent安装状态
   useEffect(() => {
-    void ConfigStorage.get('mcp.agentInstallStatus')
-      .then((status) => {
-        if (status && typeof status === 'object') {
-          setAgentInstallStatus(status as Record<string, string[]>);
-        }
-      })
-      .catch(() => {
-        // Handle loading error silently
-      });
+    const status = configService.get('mcp.agentInstallStatus');
+    if (status && typeof status === 'object') {
+      setAgentInstallStatus(status as Record<string, string[]>);
+    }
   }, []);
 
   // 保存agent安装状态到存储
   const saveAgentInstallStatus = useCallback((status: Record<string, string[]>) => {
-    void ConfigStorage.set('mcp.agentInstallStatus', status).catch(() => {
+    void configService.set('mcp.agentInstallStatus', status).catch(() => {
       // Handle storage error silently
     });
     setAgentInstallStatus(status);
@@ -199,7 +194,7 @@ export const useMcpAgentStatus = () => {
         }
 
         // 同时更新本地存储
-        void ConfigStorage.set('mcp.agentInstallStatus', updated).catch(() => {
+        void configService.set('mcp.agentInstallStatus', updated).catch(() => {
           // Handle storage error silently
         });
 

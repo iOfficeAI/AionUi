@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import type { TChatConversation } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -301,10 +301,10 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   // Fetch both preset assistants and user-defined custom ACP agents.
   // `presetId` may reference either, so we merge both sources before lookup.
   const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants', () =>
-    ConfigStorage.get('assistants')
+    configService.get('assistants')
   );
   const { data: userCustomAgentsList, isLoading: isLoadingUserCustomAgents } = useSWR('acp.customAgents', () =>
-    ConfigStorage.get('acp.customAgents')
+    configService.get('acp.customAgents')
   );
   const customAgents = useMemo(
     () => [

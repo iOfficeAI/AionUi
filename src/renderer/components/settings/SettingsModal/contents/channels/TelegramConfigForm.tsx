@@ -6,7 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -119,7 +119,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
       try {
         const [agentsResp, saved] = await Promise.all([
           acpConversation.getAvailableAgents.invoke(),
-          ConfigStorage.get('assistant.telegram.agent'),
+          configService.get('assistant.telegram.agent'),
         ]);
 
         if (Array.isArray(agentsResp)) {
@@ -154,7 +154,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
   const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.telegram.agent', agent);
+      await configService.set('assistant.telegram.agent', agent);
       await channel.syncChannelSettings
         .invoke({ platform: 'telegram', agent })
         .catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));

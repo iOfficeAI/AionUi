@@ -6,7 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -128,7 +128,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       try {
         const [agentsResp, saved] = await Promise.all([
           acpConversation.getAvailableAgents.invoke(),
-          ConfigStorage.get('assistant.lark.agent'),
+          configService.get('assistant.lark.agent'),
         ]);
 
         if (Array.isArray(agentsResp)) {
@@ -163,7 +163,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
     try {
-      await ConfigStorage.set('assistant.lark.agent', agent);
+      await configService.set('assistant.lark.agent', agent);
       await channel.syncChannelSettings
         .invoke({ platform: 'lark', agent })
         .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));

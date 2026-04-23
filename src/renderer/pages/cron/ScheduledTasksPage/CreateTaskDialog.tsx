@@ -18,7 +18,7 @@ import dayjs from 'dayjs';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
@@ -225,19 +225,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       return;
     }
 
-    ConfigStorage.get('acp.cached_config_options')
-      .then((cached) => {
-        if (cached && cached[resolvedBackend]) {
-          // Filter out model/mode categories — those are handled by dedicated selectors
-          const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
-            (opt) => opt.category !== 'model' && opt.category !== 'mode'
-          );
-          setCachedConfigOptions(filtered as unknown[]);
-        } else {
-          setCachedConfigOptions(undefined);
-        }
-      })
-      .catch(() => setCachedConfigOptions(undefined));
+    const cached = configService.get('acp.cached_config_options');
+    if (cached && cached[resolvedBackend]) {
+      const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
+        (opt) => opt.category !== 'model' && opt.category !== 'mode'
+      );
+      setCachedConfigOptions(filtered as unknown[]);
+    } else {
+      setCachedConfigOptions(undefined);
+    }
   }, [resolvedBackend]);
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
@@ -282,30 +278,21 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setAcpCachedModelInfo(null);
       return;
     }
-    ConfigStorage.get('acp.cachedModels')
-      .then((cached) => {
-        const info = cached?.[resolvedBackend];
-        setAcpCachedModelInfo(info?.available_models?.length ? info : null);
-      })
-      .catch(() => setAcpCachedModelInfo(null));
+    const cached = configService.get('acp.cachedModels');
+    const info = cached?.[resolvedBackend];
+    setAcpCachedModelInfo(info?.available_models?.length ? info : null);
   }, [resolvedBackend]);
 
   // Set default model_id from user preferences when backend changes
   useEffect(() => {
     if (!resolvedBackend || model_id) return;
     if (resolvedBackend === 'gemini') {
-      ConfigStorage.get('gemini.defaultModel')
-        .then((saved) => {
-          const preferred = typeof saved === 'string' ? saved : saved?.useModel;
-          if (preferred) setModelId(preferred);
-        })
-        .catch(() => {});
+      const saved = configService.get('gemini.defaultModel');
+      const preferred = typeof saved === 'string' ? saved : saved?.useModel;
+      if (preferred) setModelId(preferred);
     } else if (resolvedBackend === 'aionrs') {
-      ConfigStorage.get('aionrs.defaultModel')
-        .then((saved) => {
-          if (saved?.useModel) setModelId(saved.useModel);
-        })
-        .catch(() => {});
+      const saved = configService.get('aionrs.defaultModel');
+      if (saved?.useModel) setModelId(saved.useModel);
     }
   }, [resolvedBackend, model_id]);
 

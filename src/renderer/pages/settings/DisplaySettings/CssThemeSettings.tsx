@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage, type ICssTheme } from '@/common/config/storage.ts';
+import { configService } from '@/common/config/configService';
+import type { ICssTheme } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
@@ -260,12 +261,12 @@ const CssThemeSettings: React.FC = () => {
   useEffect(() => {
     const loadThemes = async () => {
       try {
-        const savedThemes = (await ConfigStorage.get('css.themes')) || [];
+        const savedThemes = (configService.get('css.themes')) || [];
         const { normalized, updated } = normalizeUserThemes(savedThemes);
-        const activeId = await ConfigStorage.get('css.activeThemeId');
+        const activeId = configService.get('css.activeThemeId');
 
         if (updated) {
-          await ConfigStorage.set(
+          await configService.set(
             'css.themes',
             normalized.filter((t) => !t.is_preset)
           );
@@ -308,7 +309,7 @@ const CssThemeSettings: React.FC = () => {
         if (!activeTheme && resolvedActiveId !== DEFAULT_THEME_ID) {
           effectiveActiveId = DEFAULT_THEME_ID;
           // Persist the fallback so we don't repeat this on every mount
-          await ConfigStorage.set('css.activeThemeId', effectiveActiveId);
+          await configService.set('css.activeThemeId', effectiveActiveId);
         }
 
         const expectedCss = resolveCssByActiveTheme(
@@ -320,9 +321,9 @@ const CssThemeSettings: React.FC = () => {
         setActiveThemeId(effectiveActiveId);
 
         // Self-heal potential split-brain state (activeThemeId != customCss) caused by partial IPC write failures.
-        const savedCustomCss = (await ConfigStorage.get('customCss')) || '';
+        const savedCustomCss = (configService.get('customCss')) || '';
         if (savedCustomCss !== expectedCss) {
-          await ConfigStorage.set('customCss', expectedCss);
+          await configService.set('customCss', expectedCss);
           // Only dispatch when CSS actually changed to avoid redundant re-renders
           dispatchCustomCssUpdated(expectedCss);
         }
@@ -344,7 +345,7 @@ const CssThemeSettings: React.FC = () => {
       try {
         // Queued Concurrent Writes: Not strictly atomic, but eliminates client-side async interleaving.
         // True atomicity would require a single RPC/key batch in the main process.
-        await Promise.all([ConfigStorage.set('customCss', css), ConfigStorage.set('css.activeThemeId', themeId)]);
+        await Promise.all([configService.set('customCss', css), configService.set('css.activeThemeId', themeId)]);
 
         // Pessimistic UI update to avoid transient flash to previous theme.
         setActiveThemeId(themeId);
@@ -354,8 +355,8 @@ const CssThemeSettings: React.FC = () => {
 
         // Recover state unconditionally from what is actually in storage
         try {
-          const realId = (await ConfigStorage.get('css.activeThemeId')) || DEFAULT_THEME_ID;
-          const realCss = (await ConfigStorage.get('customCss')) || '';
+          const realId = (configService.get('css.activeThemeId')) || DEFAULT_THEME_ID;
+          const realCss = (configService.get('customCss')) || '';
 
           // Unconditionally align UI state with the real storage state
           setActiveThemeId(realId);
@@ -437,7 +438,7 @@ const CssThemeSettings: React.FC = () => {
 
         // 只保存用户主题 / Only save user themes
         const userThemes = updatedThemes.filter((t) => !t.is_preset);
-        await ConfigStorage.set('css.themes', userThemes);
+        await configService.set('css.themes', userThemes);
 
         setThemes(updatedThemes);
         setModalVisible(false);
@@ -464,7 +465,7 @@ const CssThemeSettings: React.FC = () => {
           try {
             const updatedThemes = themes.filter((t) => t.id !== themeId);
             const userThemes = updatedThemes.filter((t) => !t.is_preset);
-            await ConfigStorage.set('css.themes', userThemes);
+            await configService.set('css.themes', userThemes);
 
             // 如果删除的是当前激活主题，清除激活状态 / If deleting active theme, clear active state
             if (activeThemeId === themeId) {

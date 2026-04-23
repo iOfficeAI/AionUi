@@ -1,5 +1,5 @@
 // hooks/useTheme.ts
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
@@ -10,7 +10,7 @@ const THEME_CACHE_KEY = '__aionui_theme';
 // Initialize theme immediately when module loads
 const initTheme = async () => {
   try {
-    const theme = (await ConfigStorage.get('theme')) as Theme;
+    const theme = (configService.get('theme')) as Theme;
     const initialTheme = theme || DEFAULT_THEME;
     document.documentElement.setAttribute('data-theme', initialTheme);
     document.body.setAttribute('arco-theme', initialTheme);
@@ -54,7 +54,7 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
       try {
         setThemeState(newTheme);
         applyTheme(newTheme);
-        await ConfigStorage.set('theme', newTheme);
+        await configService.set('theme', newTheme);
       } catch (error) {
         console.error('Failed to save theme:', error);
         // Revert on error

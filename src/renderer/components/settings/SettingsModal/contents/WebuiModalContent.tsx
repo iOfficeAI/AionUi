@@ -6,7 +6,7 @@
 
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import { shell, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
@@ -106,10 +106,8 @@ const WebuiModalContent: React.FC = () => {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const [savedEnabled, savedAllowRemote] = await Promise.all([
-        ConfigStorage.get(DESKTOP_WEBUI_ENABLED_KEY).catch(() => false),
-        ConfigStorage.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY).catch(() => false),
-      ]);
+      const savedEnabled = configService.get(DESKTOP_WEBUI_ENABLED_KEY) ?? false;
+      const savedAllowRemote = configService.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY) ?? false;
       setWebuiEnabled(savedEnabled === true);
       setAllowRemotePreference(savedAllowRemote === true);
 
@@ -298,12 +296,12 @@ const WebuiModalContent: React.FC = () => {
         }
 
         // 启动成功后再持久化 / Persist only after successful start
-        await ConfigStorage.set(DESKTOP_WEBUI_ENABLED_KEY, true);
+        await configService.set(DESKTOP_WEBUI_ENABLED_KEY, true);
         Message.success(t('settings.webui.startSuccess'));
       } else {
         // 立即更新UI，异步停止服务器 / Update UI immediately, stop server async
         setStatus((prev) => (prev ? { ...prev, running: false } : null));
-        await ConfigStorage.set(DESKTOP_WEBUI_ENABLED_KEY, false);
+        await configService.set(DESKTOP_WEBUI_ENABLED_KEY, false);
         Message.success(t('settings.webui.stopSuccess'));
         webui.stop.invoke().catch((err) => console.error('WebUI stop error:', err));
       }
@@ -364,7 +362,7 @@ const WebuiModalContent: React.FC = () => {
           }));
 
           // 成功后再持久化 / Persist only after success
-          await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
+          await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
           Message.success(t('settings.webui.restartSuccess'));
         } else {
           // 响应为空或失败，但服务器可能已启动，检查状态
@@ -389,7 +387,7 @@ const WebuiModalContent: React.FC = () => {
 
             setStatus(statusData);
             // 成功后再持久化 / Persist only after success
-            await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
+            await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
             Message.success(t('settings.webui.restartSuccess'));
           } else {
             // 真的启动失败，回滚 / Really failed to start, rollback
@@ -409,7 +407,7 @@ const WebuiModalContent: React.FC = () => {
     } else {
       // 服务器未运行，直接持久化 / Server not running, persist directly
       try {
-        await ConfigStorage.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
+        await configService.set(DESKTOP_WEBUI_ALLOW_REMOTE_KEY, checked);
 
         // 获取 IP 用于显示 / Get IP for display
         let newIP: string | undefined;

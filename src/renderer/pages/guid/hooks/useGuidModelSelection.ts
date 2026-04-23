@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { uuid } from '@/common/utils';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/agent/useGeminiGoogleAuthModels';
 import { hasAvailableModels } from '../utils/modelUtils';
@@ -117,7 +117,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
   const setCurrentModel = useCallback(
     async (model_info: TProviderWithModel) => {
       selectedModelKeyRef.current = buildModelKey(model_info.id, model_info.useModel);
-      await ConfigStorage.set(storageKey, { id: model_info.id, useModel: model_info.useModel }).catch((error) => {
+      await configService.set(storageKey, { id: model_info.id, useModel: model_info.useModel }).catch((error) => {
         console.error('Failed to save default model:', error);
       });
       _setCurrentModel(model_info);
@@ -145,7 +145,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         }
         return;
       }
-      const savedModel = await ConfigStorage.get(storageKey);
+      const savedModel = configService.get(storageKey);
 
       const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
 

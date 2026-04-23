@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AcpBackend } from '../types';
 
@@ -12,15 +12,15 @@ import type { AcpBackend } from '../types';
 export async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
   try {
     if (agentKey === 'gemini') {
-      const config = await ConfigStorage.get('gemini.config');
-      await ConfigStorage.set('gemini.config', { ...config, preferredMode: mode });
+      const config = configService.get('gemini.config');
+      await configService.set('gemini.config', { ...config, preferredMode: mode });
     } else if (agentKey === 'aionrs') {
-      const config = await ConfigStorage.get('aionrs.config');
-      await ConfigStorage.set('aionrs.config', { ...config, preferredMode: mode });
+      const config = configService.get('aionrs.config');
+      await configService.set('aionrs.config', { ...config, preferredMode: mode });
     } else if (agentKey !== 'custom') {
-      const config = await ConfigStorage.get('acp.config');
+      const config = configService.get('acp.config');
       const backendConfig = config?.[agentKey as AcpBackendAll] || {};
-      await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
+      await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
     }
   } catch {
     /* silent */
@@ -30,9 +30,9 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 /** Save preferred model ID to the agent's acp.config key */
 export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
   try {
-    const config = await ConfigStorage.get('acp.config');
+    const config = configService.get('acp.config');
     const backendConfig = config?.[agentKey as AcpBackendAll] || {};
-    await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
+    await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
   } catch {
     /* silent */
   }

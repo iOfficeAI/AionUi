@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
 
@@ -74,15 +74,10 @@ export const useMcpOperations = (
 
         // 然后更新UI状态
         if (!skipRecheck) {
-          void ConfigStorage.get('mcp.config')
-            .then((latestServers) => {
-              if (latestServers) {
-                // 这里可以触发状态检查，但需要在使用的地方提供回调
-              }
-            })
-            .catch(() => {
-              // Handle loading error silently
-            });
+          const latestServers = configService.get('mcp.config');
+          if (latestServers) {
+            // Can trigger status check here, but needs callback from the caller
+          }
         }
       } else {
         const failedKey = operation === 'sync' ? 'mcpSyncFailed' : 'mcpRemoveFailed';

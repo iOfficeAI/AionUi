@@ -5,7 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
+import type { ConfigKeyMap } from '@/common/config/configKeys';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { Button, Divider, Form, Input, Message } from '@arco-design/web-react';
@@ -14,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
-type GeminiConfig = Parameters<typeof ConfigStorage.set<'gemini.config'>>[1];
+type GeminiConfig = ConfigKeyMap['gemini.config'];
 
 const toGeminiConfig = (config: Record<string, unknown>, accountProjects?: Record<string, string>): GeminiConfig => ({
   authType: typeof config.authType === 'string' ? config.authType : '',
@@ -48,7 +49,7 @@ const GeminiModalContent: React.FC = () => {
     // Clean up old global config (don't auto-migrate, it might belong to another account)
     if (geminiConfig?.GOOGLE_CLOUD_PROJECT) {
       const { GOOGLE_CLOUD_PROJECT: _, ...restConfig } = geminiConfig;
-      await ConfigStorage.set('gemini.config', toGeminiConfig(restConfig, accountProjects));
+      await configService.set('gemini.config', toGeminiConfig(restConfig, accountProjects));
     }
 
     form.setFieldValue('GOOGLE_CLOUD_PROJECT', projectId || '');
@@ -98,7 +99,7 @@ const GeminiModalContent: React.FC = () => {
       const values = form.getFieldsValue();
       const { googleAccount: _googleAccount, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
 
-      const existingConfig = ((await ConfigStorage.get('gemini.config')) || {}) as Record<string, unknown>;
+      const existingConfig = ((configService.get('gemini.config')) || {}) as Record<string, unknown>;
       const accountProjects = (existingConfig.accountProjects as Record<string, string>) || {};
 
       if (currentAccountEmail && GOOGLE_CLOUD_PROJECT) {
@@ -109,7 +110,7 @@ const GeminiModalContent: React.FC = () => {
 
       const geminiConfig = toGeminiConfig(restConfig, accountProjects);
 
-      await ConfigStorage.set('gemini.config', geminiConfig);
+      await configService.set('gemini.config', geminiConfig);
     } catch (error: unknown) {
       console.error('[GeminiSettings] Auto-save failed:', error);
     }
@@ -134,21 +135,15 @@ const GeminiModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    ConfigStorage.get('gemini.config')
-      .then((geminiConfig) => {
-        const formData = {
-          ...geminiConfig,
-          // 先不设置 GOOGLE_CLOUD_PROJECT，等账号加载完再设置
-          // Don't set GOOGLE_CLOUD_PROJECT yet, wait for account to load
-          GOOGLE_CLOUD_PROJECT: '',
-        };
-        form.setFieldsValue(formData);
-        readyRef.current = true;
-        loadGoogleAuthStatus(geminiConfig?.proxy, geminiConfig);
-      })
-      .catch((error) => {
-        console.error('Failed to load configuration:', error);
-      });
+    const geminiConfig = configService.get('gemini.config');
+    const formData = {
+      ...geminiConfig,
+      // Don't set GOOGLE_CLOUD_PROJECT yet, wait for account to load
+      GOOGLE_CLOUD_PROJECT: '',
+    };
+    form.setFieldsValue(formData);
+    readyRef.current = true;
+    loadGoogleAuthStatus(geminiConfig?.proxy, geminiConfig);
   }, []);
 
   return (

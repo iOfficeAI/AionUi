@@ -4,7 +4,7 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
@@ -43,15 +43,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
   useEffect(() => {
     if (!visible) return;
-    let active = true;
-    ConfigStorage.get('acp.cachedInitializeResult')
-      .then((data) => {
-        if (active) setCachedInitResults(data ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
+    const data = configService.get('acp.cachedInitializeResult');
+    setCachedInitResults(data ?? null);
   }, [visible]);
 
   const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants], cachedInitResults);

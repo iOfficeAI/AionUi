@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -102,39 +102,27 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   // then fall back to `acp.cached_config_options` category=mode (codex)
   useEffect(() => {
     if (!backend) return;
-    let cancelled = false;
 
-    // Try top-level modes cache first
-    ConfigStorage.get('acp.cachedModes')
-      .then((cachedModes) => {
-        if (cancelled) return;
-        const session_modes = cachedModes?.[backend];
-        if (session_modes?.available_modes && session_modes.available_modes.length > 0) {
-          setCachedModes(
-            session_modes.available_modes.map((m) => ({
-              value: m.id,
-              label: m.name ?? m.id,
-            }))
-          );
-          return;
-        }
-        // Fall back to config_options with category === 'mode'
-        return ConfigStorage.get('acp.cached_config_options').then((cached) => {
-          if (cancelled) return;
-          const options = cached?.[backend];
-          if (Array.isArray(options)) {
-            const modes = extractModesFromConfigOptions(options as AcpSessionConfigOption[]);
-            if (modes.length > 0) {
-              setCachedModes(modes);
-            }
-          }
-        });
-      })
-      .catch(() => {});
+    const cachedModes = configService.get('acp.cachedModes');
+    const session_modes = cachedModes?.[backend];
+    if (session_modes?.available_modes && session_modes.available_modes.length > 0) {
+      setCachedModes(
+        session_modes.available_modes.map((m) => ({
+          value: m.id,
+          label: m.name ?? m.id,
+        }))
+      );
+      return;
+    }
 
-    return () => {
-      cancelled = true;
-    };
+    const cached = configService.get('acp.cached_config_options');
+    const options = cached?.[backend];
+    if (Array.isArray(options)) {
+      const modes = extractModesFromConfigOptions(options as AcpSessionConfigOption[]);
+      if (modes.length > 0) {
+        setCachedModes(modes);
+      }
+    }
   }, [backend]);
 
   // Priority: dynamicModes (runtime) > cachedModes (from cache) > getAgentModes (static fallback)

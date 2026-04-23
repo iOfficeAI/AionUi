@@ -2,7 +2,7 @@ import type React from 'react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 
 /**
@@ -163,7 +163,7 @@ export const useMcpServerCRUD = (
         const updated = { ...prev };
         delete updated[targetServer.name];
         // 同时更新本地存储
-        void ConfigStorage.set('mcp.agentInstallStatus', updated).catch(() => {
+        void configService.set('mcp.agentInstallStatus', updated).catch(() => {
           // Handle storage error silently
         });
         return updated;
@@ -223,7 +223,7 @@ export const useMcpServerCRUD = (
             const updated = { ...prev };
             delete updated[targetServer.name];
             // 同时更新本地存储
-            void ConfigStorage.set('mcp.agentInstallStatus', updated).catch(() => {
+            void configService.set('mcp.agentInstallStatus', updated).catch(() => {
               // Handle storage error silently
             });
             return updated;

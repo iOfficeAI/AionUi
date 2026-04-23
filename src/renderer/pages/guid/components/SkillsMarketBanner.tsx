@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import { Message, Switch, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -25,18 +25,10 @@ const SkillsMarketBanner: React.FC = () => {
       setInitialized(true);
     }, 2000);
 
-    void ConfigStorage.get('skillsMarket.enabled')
-      .then((val) => {
-        setEnabled(!!val);
-      })
-      .catch((error) => {
-        console.warn('Failed to read skills market setting, fallback to disabled:', error);
-        setEnabled(false);
-      })
-      .finally(() => {
-        clearTimeout(timeout);
-        setInitialized(true);
-      });
+    const val = configService.get('skillsMarket.enabled');
+    setEnabled(!!val);
+    clearTimeout(timeout);
+    setInitialized(true);
   }, []);
 
   const handleToggle = useCallback(
@@ -50,7 +42,7 @@ const SkillsMarketBanner: React.FC = () => {
           await ipcBridge.fs.disableSkillsMarket.invoke();
         }
         setEnabled(checked);
-        await ConfigStorage.set('skillsMarket.enabled', checked);
+        await configService.set('skillsMarket.enabled', checked);
       } catch (error) {
         console.error('Failed to toggle Skills Market:', error);
         Message.error('Operation failed');

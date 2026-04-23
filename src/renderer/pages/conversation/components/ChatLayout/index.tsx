@@ -1,4 +1,4 @@
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AgentBadge from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
@@ -90,7 +90,7 @@ const ChatLayout: React.FC<{
   // Fetch custom agents config as fallback when agent_name is not provided
   const needCustomFallback = backend === 'custom' && !presetAssistant && !agent_name;
   const { data: customAgents } = useSWR(needCustomFallback ? 'acp.customAgents' : null, () =>
-    ConfigStorage.get('acp.customAgents')
+    configService.get('acp.customAgents')
   );
 
   // Compute display name with fallback chain

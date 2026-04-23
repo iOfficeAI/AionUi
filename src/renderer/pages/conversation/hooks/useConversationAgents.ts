@@ -6,7 +6,7 @@
 
 import { useMemo } from 'react';
 import useSWR from 'swr';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
@@ -54,7 +54,7 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
 
   // Preset assistants from config layer
   const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
-    const agents: AcpBackendConfig[] = (await ConfigStorage.get('assistants')) || [];
+    const agents: AcpBackendConfig[] = (configService.get('assistants')) || [];
     return agents.filter((a) => a.is_preset && a.enabled !== false);
   });
 

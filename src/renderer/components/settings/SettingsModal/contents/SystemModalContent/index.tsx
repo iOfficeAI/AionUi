@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
@@ -89,19 +89,13 @@ const SystemModalContent: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    ConfigStorage.get('acp.promptTimeout')
-      .then((val) => {
-        if (val && val > 0) setPromptTimeout(val);
-      })
-      .catch(() => {});
+    const val = configService.get('acp.promptTimeout');
+    if (val && val > 0) setPromptTimeout(val);
   }, []);
 
   useEffect(() => {
-    ConfigStorage.get('acp.agentIdleTimeout')
-      .then((val) => {
-        if (val && val > 0) setAgentIdleTimeout(val);
-      })
-      .catch(() => {});
+    const val = configService.get('acp.agentIdleTimeout');
+    if (val && val > 0) setAgentIdleTimeout(val);
   }, []);
 
   useEffect(() => {
@@ -170,7 +164,7 @@ const SystemModalContent: React.FC = () => {
   const handlePromptTimeoutBlur = useCallback(() => {
     const clamped = Math.max(30, Math.min(3600, promptTimeout || 300));
     setPromptTimeout(clamped);
-    ConfigStorage.set('acp.promptTimeout', clamped).catch(() => {});
+    configService.set('acp.promptTimeout', clamped).catch(() => {});
   }, [promptTimeout]);
 
   const handleAgentIdleTimeoutChange = useCallback((val: number | undefined) => {
@@ -180,7 +174,7 @@ const SystemModalContent: React.FC = () => {
   const handleAgentIdleTimeoutBlur = useCallback(() => {
     const clamped = Math.max(1, Math.min(60, agentIdleTimeout || 5));
     setAgentIdleTimeout(clamped);
-    ConfigStorage.set('acp.agentIdleTimeout', clamped).catch(() => {});
+    configService.set('acp.agentIdleTimeout', clamped).catch(() => {});
   }, [agentIdleTimeout]);
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {

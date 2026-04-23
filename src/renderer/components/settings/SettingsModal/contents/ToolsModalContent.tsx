@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  ConfigStorage,
-  type IConfigStorageRefer,
-  type IMcpServer,
-  BUILTIN_IMAGE_GEN_ID,
-} from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
+import type { ConfigKeyMap } from '@/common/config/configKeys';
+import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
@@ -514,7 +511,7 @@ const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<
-    IConfigStorageRefer['tools.imageGenerationModel'] | undefined
+    ConfigKeyMap['tools.imageGenerationModel'] | undefined
   >();
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
@@ -550,8 +547,8 @@ const ToolsModalContent: React.FC = () => {
   useEffect(() => {
     const loadConfigs = async () => {
       try {
-        const storedModel = await ConfigStorage.get('tools.imageGenerationModel');
-        const storedSpeechToTextConfig = await ConfigStorage.get('tools.speechToText');
+        const storedModel = configService.get('tools.imageGenerationModel');
+        const storedSpeechToTextConfig = configService.get('tools.speechToText');
         if (storedModel) {
           setImageGenerationModel(storedModel);
         }
@@ -567,7 +564,7 @@ const ToolsModalContent: React.FC = () => {
   const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setSpeechToTextConfig((current) => {
       const next = normalizeSpeechToTextConfig(updater(current));
-      ConfigStorage.set('tools.speechToText', next).catch((error) => {
+      configService.set('tools.speechToText', next).catch((error) => {
         console.error('Failed to save speech-to-text config:', error);
       });
       if (typeof window !== 'undefined') {
@@ -591,7 +588,7 @@ const ToolsModalContent: React.FC = () => {
       const updated = { ...agentInstallStatus };
       delete updated[server_name];
       setAgentInstallStatus(updated);
-      void ConfigStorage.set('mcp.agentInstallStatus', updated).catch((error) => {
+      void configService.set('mcp.agentInstallStatus', updated).catch((error) => {
         console.error('Failed to clear image generation agent install status:', error);
       });
     },
@@ -600,7 +597,7 @@ const ToolsModalContent: React.FC = () => {
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
-    async (model: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+    async (model: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
@@ -654,13 +651,13 @@ const ToolsModalContent: React.FC = () => {
       };
 
       setImageGenerationModel(updatedModel);
-      ConfigStorage.set('tools.imageGenerationModel', updatedModel).catch((error) => {
+      configService.set('tools.imageGenerationModel', updatedModel).catch((error) => {
         console.error('Failed to save image generation model config:', error);
       });
       void syncMcpServerEnv(updatedModel);
     } else if (!currentProvider) {
       setImageGenerationModel(undefined);
-      ConfigStorage.remove('tools.imageGenerationModel').catch((error) => {
+      configService.remove('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
       void syncMcpServerEnv({});
@@ -668,10 +665,10 @@ const ToolsModalContent: React.FC = () => {
   }, [data, imageGenerationModel?.id, imageGenerationModel?.api_key, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
-    (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+    (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
       setImageGenerationModel((prev) => {
         const newImageGenerationModel = { ...prev, ...value };
-        ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });
         // Sync env vars to the built-in MCP server
@@ -702,7 +699,7 @@ const ToolsModalContent: React.FC = () => {
         setImageGenerationModel((prev) => {
           if (!prev) return prev;
           const next = { ...prev, switch: checked };
-          ConfigStorage.set('tools.imageGenerationModel', next).catch((error) => {
+          configService.set('tools.imageGenerationModel', next).catch((error) => {
             console.error('Failed to sync image generation switch state:', error);
           });
           return next;
