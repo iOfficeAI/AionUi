@@ -3,9 +3,9 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import ShadowView from '@/renderer/components/Markdown/ShadowView';
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: vi.fn().mockResolvedValue(''),
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: vi.fn().mockReturnValue(''),
   },
 }));
 

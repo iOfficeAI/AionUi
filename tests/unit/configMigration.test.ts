@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockGet = vi.fn();
+const mockLegacyGet = vi.fn();
 const mockSetBatch = vi.fn();
 const mockServiceGet = vi.fn();
 
@@ -13,7 +13,7 @@ vi.mock('@/common/config/configService', () => ({
 
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
-    get: mockGet,
+    get: mockLegacyGet,
   },
 }));
 
@@ -28,19 +28,19 @@ describe('migrateConfigStorage', () => {
     mockServiceGet.mockReturnValue(true);
     await migrateConfigStorage();
     expect(mockSetBatch).not.toHaveBeenCalled();
-    expect(mockGet).not.toHaveBeenCalled();
+    expect(mockLegacyGet).not.toHaveBeenCalled();
   });
 
   it('should read all legacy keys from ConfigStorage', async () => {
     mockServiceGet.mockReturnValue(undefined);
-    mockGet.mockResolvedValue(undefined);
+    mockLegacyGet.mockResolvedValue(undefined);
     await migrateConfigStorage();
-    expect(mockGet.mock.calls.length).toBeGreaterThan(40);
+    expect(mockLegacyGet.mock.calls.length).toBeGreaterThan(40);
   });
 
   it('should migrate found values and set flag', async () => {
     mockServiceGet.mockReturnValue(undefined);
-    mockGet.mockImplementation(async (key: string) => {
+    mockLegacyGet.mockImplementation(async (key: string) => {
       if (key === 'theme') return 'dark';
       if (key === 'language') return 'zh-CN';
       return undefined;
@@ -55,7 +55,7 @@ describe('migrateConfigStorage', () => {
 
   it('should skip null values', async () => {
     mockServiceGet.mockReturnValue(undefined);
-    mockGet.mockImplementation(async (key: string) => {
+    mockLegacyGet.mockImplementation(async (key: string) => {
       if (key === 'theme') return null;
       return undefined;
     });
@@ -67,7 +67,7 @@ describe('migrateConfigStorage', () => {
 
   it('should handle ConfigStorage.get errors gracefully', async () => {
     mockServiceGet.mockReturnValue(undefined);
-    mockGet.mockRejectedValue(new Error('storage error'));
+    mockLegacyGet.mockRejectedValue(new Error('storage error'));
     await migrateConfigStorage();
     expect(mockSetBatch).toHaveBeenCalledTimes(1);
     const batchArg = mockSetBatch.mock.calls[0][0];

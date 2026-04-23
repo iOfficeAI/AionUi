@@ -73,8 +73,8 @@ vi.mock('@renderer/utils/platform', () => ({
   isElectronDesktop: mockIsElectronDesktop,
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
+vi.mock('@/common/config/configService', () => ({
+  configService: {
     get: vi.fn(async (key: string) => {
       if (key === 'acp.cachedInitializeResult') {
         return {

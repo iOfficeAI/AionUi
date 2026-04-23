@@ -30,9 +30,9 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: vi.fn().mockResolvedValue(null),
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: vi.fn().mockReturnValue(null),
   },
 }));
 

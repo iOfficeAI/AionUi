@@ -26,8 +26,8 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/storage', () => ({
-  ConfigStorage: {
+vi.mock('../../src/common/config/configService', () => ({
+  configService: {
     get: vi.fn(),
     set: vi.fn(),
   },

@@ -287,10 +287,10 @@ vi.mock('@renderer/utils/model/agentModes', () => ({
   getFullAutoMode: () => 'full-auto',
 }));
 
-// Mock ConfigStorage
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: vi.fn().mockResolvedValue({}),
+// Mock configService
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: vi.fn().mockReturnValue({}),
   },
 }));
 

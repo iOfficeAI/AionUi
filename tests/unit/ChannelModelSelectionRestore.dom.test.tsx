@@ -37,14 +37,14 @@ vi.mock('@icon-park/react', () => ({
   CheckOne: () => <span data-testid='check-icon' />,
 }));
 
-// Track ConfigStorage.get call count to verify retry behavior
-const mockConfigStorageGet = vi.fn();
-const mockConfigStorageSet = vi.fn();
+// Track configService.get call count to verify retry behavior
+const mockConfigServiceGet = vi.fn();
+const mockConfigServiceSet = vi.fn();
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: (...args: unknown[]) => mockConfigStorageGet(...args),
-    set: (...args: unknown[]) => mockConfigStorageSet(...args),
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: (...args: unknown[]) => mockConfigServiceGet(...args),
+    set: (...args: unknown[]) => mockConfigServiceSet(...args),
   },
 }));
 
@@ -122,9 +122,9 @@ describe('useChannelModelSelection restore retry limit', () => {
     mockProviders = [];
   });
 
-  it('should stop retrying ConfigStorage.get after MAX_RESTORE_RETRIES when provider is stale', async () => {
+  it('should stop retrying configService.get after MAX_RESTORE_RETRIES when provider is stale', async () => {
     // Simulate a stale saved model referencing a provider that no longer exists
-    mockConfigStorageGet.mockResolvedValue({ id: 'deleted-provider', use_model: 'some-model' });
+    mockConfigServiceGet.mockReturnValue({ id: 'deleted-provider', use_model: 'some-model' });
 
     // Providers are loaded but don't include the saved provider
     mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
@@ -139,7 +139,7 @@ describe('useChannelModelSelection restore retry limit', () => {
     // The hook runs for 5 channels (telegram, lark, dingtalk, weixin, wecom).
     // Initial render triggers the first attempt for each channel.
     // The saved provider 'deleted-provider' won't be found in mockProviders.
-    const initialCallCount = mockConfigStorageGet.mock.calls.length;
+    const initialCallCount = mockConfigServiceGet.mock.calls.length;
     expect(initialCallCount).toBeGreaterThan(0);
 
     // Simulate multiple SWR revalidations by triggering re-renders with
@@ -154,15 +154,15 @@ describe('useChannelModelSelection restore retry limit', () => {
       });
     }
 
-    // After MAX_RESTORE_RETRIES (5), the effect should stop calling ConfigStorage.get.
+    // After MAX_RESTORE_RETRIES (5), the effect should stop calling configService.get.
     // With 5 channels × at most 5 retries each = at most 25 calls.
     // Without the fix, this would be 5 × 10+ = 50+ calls.
-    const totalCalls = mockConfigStorageGet.mock.calls.length;
+    const totalCalls = mockConfigServiceGet.mock.calls.length;
     expect(totalCalls).toBeLessThanOrEqual(5 * 5);
   });
 
   it('should restore successfully when provider exists', async () => {
-    mockConfigStorageGet.mockResolvedValue({ id: 'provider-1', use_model: 'model-a' });
+    mockConfigServiceGet.mockReturnValue({ id: 'provider-1', use_model: 'model-a' });
 
     mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
 
@@ -173,8 +173,8 @@ describe('useChannelModelSelection restore retry limit', () => {
       render(<ChannelModalContent />);
     });
 
-    // Each of the 5 channels should call ConfigStorage.get exactly once
+    // Each of the 5 channels should call configService.get exactly once
     // (restored=true after finding the provider, so no retries)
-    expect(mockConfigStorageGet).toHaveBeenCalledTimes(5);
+    expect(mockConfigServiceGet).toHaveBeenCalledTimes(5);
   });
 });

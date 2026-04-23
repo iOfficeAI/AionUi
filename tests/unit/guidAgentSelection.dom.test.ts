@@ -13,7 +13,7 @@ import type { IProvider } from '../../src/common/config/storage';
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const configStorageMock = vi.hoisted(() => ({
+const configServiceMock = vi.hoisted(() => ({
   get: vi.fn(),
   set: vi.fn().mockResolvedValue(undefined),
 }));
@@ -47,8 +47,8 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/storage', () => ({
-  ConfigStorage: configStorageMock,
+vi.mock('../../src/common/config/configService', () => ({
+  configService: configServiceMock,
 }));
 
 vi.mock('../../src/common/config/presets/assistantPresets', () => ({
@@ -158,7 +158,7 @@ function setupMocks(overrides?: {
   ipcMock.getAvailableAgents.mockResolvedValue(AVAILABLE_AGENTS);
   ipcMock.getAssistants.mockResolvedValue([]);
 
-  configStorageMock.get.mockImplementation(async (key: string) => {
+  configServiceMock.get.mockImplementation((key: string) => {
     switch (key) {
       case 'acp.cachedModels':
         return cachedModels;
@@ -328,9 +328,9 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     // Clear mocks to only capture the mode save call
-    configStorageMock.get.mockClear();
-    configStorageMock.set.mockClear();
-    configStorageMock.get.mockResolvedValue({});
+    configServiceMock.get.mockClear();
+    configServiceMock.set.mockClear();
+    configServiceMock.get.mockReturnValue({});
 
     act(() => {
       result.current.setSelectedMode('bypassPermissions');
@@ -338,7 +338,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     // savePreferredMode should be called with 'claude' (effective type), not 'custom'
     await waitFor(() => {
-      const setCalls = configStorageMock.set.mock.calls;
+      const setCalls = configServiceMock.set.mock.calls;
       const acpConfigCall = setCalls.find(([key]: [string]) => key === 'acp.config');
       expect(acpConfigCall).toBeDefined();
       // Should save under the 'claude' key, not 'custom'
@@ -349,7 +349,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
   });
 
   it('resets back to the default agent immediately on new-chat navigation', async () => {
-    configStorageMock.get.mockImplementation(async (key: string) => {
+    configServiceMock.get.mockImplementation((key: string) => {
       switch (key) {
         case 'acp.cachedModels':
           return { claude: CLAUDE_CACHED_MODEL };
@@ -382,7 +382,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     rerender({ resetAssistant: true, locationKey: 'new-chat' });
 
     expect(result.current.selectedAgentKey).toBe('gemini');
-    expect(configStorageMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
+    expect(configServiceMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
   });
 
   it('uses default codex models when codex has no cached list', async () => {

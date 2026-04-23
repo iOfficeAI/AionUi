@@ -84,8 +84,8 @@ vi.mock('@/renderer/components/base/AionModal', () => ({
     ) : null,
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: { get: vi.fn().mockResolvedValue([]), set: vi.fn().mockResolvedValue(undefined) },
+vi.mock('@/common/config/configService', () => ({
+  configService: { get: vi.fn().mockReturnValue([]), set: vi.fn().mockResolvedValue(undefined) },
 }));
 
 vi.mock('@icon-park/react', () => ({

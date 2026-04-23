@@ -33,15 +33,15 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-// ── ConfigStorage mock ───────────────────────────────────────────────────────
+// ── configService mock ───────────────────────────────────────────────────────
 
-const configStorageGetMock = vi.fn().mockResolvedValue([]);
-const configStorageSetMock = vi.fn().mockResolvedValue(undefined);
+const configServiceGetMock = vi.fn().mockReturnValue([]);
+const configServiceSetMock = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../src/common/config/storage', () => ({
-  ConfigStorage: {
-    get: (...args: unknown[]) => configStorageGetMock(...args),
-    set: (...args: unknown[]) => configStorageSetMock(...args),
+vi.mock('../../src/common/config/configService', () => ({
+  configService: {
+    get: (...args: unknown[]) => configServiceGetMock(...args),
+    set: (...args: unknown[]) => configServiceSetMock(...args),
   },
 }));
 
@@ -106,7 +106,7 @@ import type {
 describe('useAssistantList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    configStorageGetMock.mockResolvedValue([]);
+    configServiceGetMock.mockReturnValue([]);
   });
 
   it('returns empty assistants and null activeAssistantId initially', async () => {
@@ -123,7 +123,7 @@ describe('useAssistantList', () => {
       { id: 'builtin-coder', name: 'Coder', is_preset: true, isBuiltin: true, enabled: true },
       { id: 'builtin-default', name: 'Default', is_preset: true, isBuiltin: true, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    configServiceGetMock.mockReturnValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -144,7 +144,7 @@ describe('useAssistantList', () => {
       { id: 'builtin-default', name: 'Default', is_preset: true, isBuiltin: true, enabled: true },
       { id: 'custom-1', name: 'My Agent', is_preset: true, isBuiltin: false, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    configServiceGetMock.mockReturnValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -166,7 +166,7 @@ describe('useAssistantList', () => {
       { id: 'builtin-default', name: 'Default', is_preset: true, isBuiltin: true, enabled: true },
       { id: 'custom-1', name: 'My Agent', is_preset: true, isBuiltin: false, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    configServiceGetMock.mockReturnValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -202,7 +202,7 @@ describe('useAssistantList', () => {
     const storedAgents = [
       { id: 'ext-buddy', name: 'Buddy', _source: 'extension', is_preset: true, isBuiltin: false, enabled: true },
     ];
-    configStorageGetMock.mockResolvedValue(storedAgents);
+    configServiceGetMock.mockReturnValue(storedAgents);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -214,9 +214,9 @@ describe('useAssistantList', () => {
     expect(result.current.isExtensionAssistant(result.current.assistants[0])).toBe(true);
   });
 
-  it('handles ConfigStorage error gracefully', async () => {
+  it('handles configService error gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    configStorageGetMock.mockRejectedValue(new Error('storage failure'));
+    configServiceGetMock.mockReturnValue(new Error('storage failure'));
 
     const { result } = renderHook(() => useAssistantList());
 

@@ -40,8 +40,8 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/storage', () => ({
-  ConfigStorage: { get: vi.fn().mockResolvedValue([]) },
+vi.mock('../../src/common/config/configService', () => ({
+  configService: { get: vi.fn().mockReturnValue([]) },
 }));
 
 vi.mock('../../src/common/config/presets/assistantPresets', () => ({

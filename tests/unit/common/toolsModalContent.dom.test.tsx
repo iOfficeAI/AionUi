@@ -60,9 +60,9 @@ const testState = vi.hoisted(() => ({
       },
     },
   }),
-  mockConfigGet: vi.fn(),
-  mockConfigSet: vi.fn(() => Promise.resolve()),
-  mockConfigRemove: vi.fn(() => Promise.resolve()),
+  mockConfigServiceGet: vi.fn(),
+  mockConfigServiceSet: vi.fn(() => Promise.resolve()),
+  mockConfigServiceRemove: vi.fn(() => Promise.resolve()),
   mockCheckSingleServerInstallStatus: vi.fn(() => Promise.resolve()),
   mockRemoveMcpFromAgents: vi.fn(() => Promise.resolve()),
   mockHandleTestMcpConnection: vi.fn(),
@@ -214,12 +214,12 @@ vi.mock('@/renderer/hooks/agent/useConfigModelListWithImage', () => ({
   }),
 }));
 
-vi.mock('@/common/config/storage', () => ({
+vi.mock('@/common/config/configService', () => ({
   BUILTIN_IMAGE_GEN_ID: testState.BUILTIN_IMAGE_GEN_ID,
-  ConfigStorage: {
-    get: (...args: unknown[]) => testState.mockConfigGet(...args),
-    set: (...args: unknown[]) => testState.mockConfigSet(...args),
-    remove: (...args: unknown[]) => testState.mockConfigRemove(...args),
+  configService: {
+    get: (...args: unknown[]) => testState.mockConfigServiceGet(...args),
+    set: (...args: unknown[]) => testState.mockConfigServiceSet(...args),
+    remove: (...args: unknown[]) => testState.mockConfigServiceRemove(...args),
   },
 }));
 
@@ -298,9 +298,9 @@ describe('ToolsModalContent image generation status refresh', () => {
     vi.clearAllMocks();
     testState.syncDeferred = testState.createDeferred();
     testState.mockSyncMcpToAgents.mockImplementation(() => testState.syncDeferred.promise);
-    testState.mockConfigGet.mockImplementation((key: string) => {
+    testState.mockConfigServiceGet.mockImplementation((key: string) => {
       if (key === 'tools.imageGenerationModel') {
-        return Promise.resolve({
+        return {
           id: 'provider-1',
           name: 'Image Provider',
           api_key: 'key',
@@ -308,10 +308,10 @@ describe('ToolsModalContent image generation status refresh', () => {
           base_url: 'https://example.com',
           useModel: 'grok-imagine-1.0',
           model: ['grok-imagine-1.0'],
-        });
+        };
       }
 
-      return Promise.resolve(undefined);
+      return undefined;
     });
   });
 
@@ -353,7 +353,7 @@ describe('ToolsModalContent image generation status refresh', () => {
     fireEvent.change(providerSelect, { target: { value: 'deepgram' } });
 
     await waitFor(() => {
-      expect(testState.mockConfigSet).toHaveBeenCalledWith(
+      expect(testState.mockConfigServiceSet).toHaveBeenCalledWith(
         'tools.speechToText',
         expect.objectContaining({
           provider: 'deepgram',
@@ -365,7 +365,7 @@ describe('ToolsModalContent image generation status refresh', () => {
     fireEvent.change(apiKeyInput, { target: { value: 'deepgram-secret' } });
 
     await waitFor(() => {
-      expect(testState.mockConfigSet).toHaveBeenLastCalledWith(
+      expect(testState.mockConfigServiceSet).toHaveBeenLastCalledWith(
         'tools.speechToText',
         expect.objectContaining({
           provider: 'deepgram',

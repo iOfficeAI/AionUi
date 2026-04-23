@@ -15,7 +15,7 @@ import type { AvailableAgent } from '../../../../src/renderer/utils/model/agentT
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const configStorageMock = vi.hoisted(() => ({
+const configServiceMock = vi.hoisted(() => ({
   get: vi.fn(),
   set: vi.fn().mockResolvedValue(undefined),
 }));
@@ -36,8 +36,8 @@ vi.mock('../../../../src/common', () => ({
   },
 }));
 
-vi.mock('../../../../src/common/config/storage', () => ({
-  ConfigStorage: configStorageMock,
+vi.mock('../../../../src/common/config/configService', () => ({
+  configService: configServiceMock,
 }));
 
 // SWR mock: uses React state to trigger re-renders when async data resolves.
@@ -110,7 +110,7 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
 
 function setupMocks(presetConfigs: AcpBackendConfig[] = []) {
   ipcMock.getAvailableAgents.mockResolvedValue(CLI_AGENTS);
-  configStorageMock.get.mockImplementation(async (key: string) => {
+  configServiceMock.get.mockImplementation((key: string) => {
     if (key === 'assistants') {
       return presetConfigs;
     }
@@ -294,7 +294,7 @@ describe('useConversationAgents', () => {
 
     it('returns empty arrays when ConfigStorage returns null', async () => {
       ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: [] });
-      configStorageMock.get.mockResolvedValue(null);
+      configServiceMock.get.mockReturnValue(null);
 
       const { result } = renderHook(() => useConversationAgents());
 

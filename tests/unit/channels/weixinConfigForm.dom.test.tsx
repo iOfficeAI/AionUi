@@ -64,8 +64,8 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   },
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: { get: vi.fn(async () => undefined), set: vi.fn(async () => {}) },
+vi.mock('@/common/config/configService', () => ({
+  configService: { get: vi.fn(() => undefined), set: vi.fn(async () => {}) },
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
@@ -77,7 +77,7 @@ vi.mock('qrcode.react', () => ({
 }));
 
 import WeixinConfigForm from '@/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 
 const noopModelSelection = {
   current_model: undefined,
@@ -137,7 +137,7 @@ describe('WeixinConfigForm', () => {
   });
 
   it('shows auto-follow label when a non-gemini agent is selected', async () => {
-    vi.mocked(ConfigStorage.get).mockResolvedValueOnce({ backend: 'claude', name: 'Claude' });
+    vi.mocked(configService.get).mockReturnValueOnce({ backend: 'claude', name: 'Claude' });
 
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
@@ -263,7 +263,7 @@ describe('WeixinConfigForm', () => {
   it('uses the WebUI EventSource login flow when electron login bridge is unavailable', async () => {
     const onStatusChange = vi.fn();
     window.electronAPI = {} as typeof window.electronAPI;
-    mockGetPluginStatus.mockResolvedValueOnce(
+    mockGetPluginStatus.mockReturnValueOnce(
       [{ id: 'weixin_default', type: 'weixin', enabled: true, hasToken: true, status: 'running' }]
     );
 
