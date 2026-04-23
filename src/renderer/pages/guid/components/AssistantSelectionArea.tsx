@@ -19,7 +19,8 @@ import SkillConfirmModals from '@/renderer/pages/settings/AssistantSettings/Skil
 import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import styles from '../index.module.css';
-import type { AcpBackendConfig, AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { Assistant } from '@/common/types/assistantTypes';
 import { Message } from '@arco-design/web-react';
 import { Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useLayoutEffect, useMemo } from 'react';
@@ -31,7 +32,12 @@ type AssistantSelectionAreaProps = {
   isPresetAgent: boolean;
   selectedAgentKey?: string;
   selectedAgentInfo: AvailableAgent | undefined;
-  customAgents: AcpBackendConfig[];
+  /**
+   * Backend-merged preset catalog. Renders as the pill bar and drives the
+   * selected-preset prompt examples. Does NOT include ACP engine configs —
+   * those are a separate concept and live on `acp.customAgents` instead.
+   */
+  assistants: Assistant[];
   localeKey: string;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   onSelectAssistant: (assistantId: string) => void;
@@ -49,7 +55,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   isPresetAgent,
   selectedAgentKey,
   selectedAgentInfo,
-  customAgents,
+  assistants,
   localeKey,
   currentEffectiveAgentInfo,
   onSelectAssistant,
@@ -69,7 +75,12 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     []
   );
 
-  const { assistants, activeAssistantId, setActiveAssistantId, activeAssistant, isExtensionAssistant, loadAssistants } =
+  // Internal useAssistantList owns the drawer editor's working state. Its
+  // `assistants` list is the same backend catalog we receive via the
+  // `assistants` prop (both sourced from ipcBridge.assistants.list), so we
+  // drop it here to avoid a parallel fetch and prop shadow; lookups for the
+  // editor target use the prop.
+  const { activeAssistantId, setActiveAssistantId, activeAssistant, isExtensionAssistant, loadAssistants } =
     useAssistantList();
   const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
@@ -228,7 +239,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   }, [onRegisterOpenDetails, openAssistantDetails]);
 
   // Only render if there are preset agents
-  if (!customAgents || !customAgents.some((a) => a.isPreset)) return null;
+  // Render only if the backend catalog has at least one assistant.
+  if (!assistants || assistants.length === 0) return null;
 
   if (isPresetAgent && selectedAgentInfo) {
     // Selected Assistant View
@@ -260,7 +272,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           )}
           {/* Prompts Section */}
           {(() => {
-            const agent = customAgents.find((a) => a.id === selectedAgentInfo.customAgentId);
+            const agent = assistants.find((a) => a.id === selectedAgentInfo.customAgentId);
             const prompts = agent?.promptsI18n?.[localeKey] || agent?.promptsI18n?.['en-US'] || agent?.prompts;
             if (prompts && prompts.length > 0) {
               return (
@@ -297,8 +309,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   return (
     <div className='mt-12px w-full'>
       <div className='flex flex-wrap gap-8px justify-center'>
-        {customAgents
-          .filter((a) => a.isPreset && a.enabled !== false)
+        {assistants
+          .filter((a) => a.enabled !== false)
           .toSorted((a, b) => {
             if (a.id === 'cowork') return -1;
             if (b.id === 'cowork') return 1;

@@ -13,7 +13,8 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
+import type { AcpBackend, AvailableAgent } from '../types';
+import type { Assistant } from '@/common/types/assistantTypes';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Brain, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
@@ -39,7 +40,11 @@ type GuidActionRowProps = {
   // Preset agent tag
   isPresetAgent: boolean;
   selectedAgentInfo: AvailableAgent | undefined;
-  customAgents: AcpBackendConfig[];
+  /**
+   * Backend-merged preset catalog — drives the preset tag label lookup. Not
+   * the ACP engine-config list (`acp.customAgents`).
+   */
+  assistants: Assistant[];
   localeKey: string;
   onClosePresetTag: () => void;
   agentLogo?: string | null;
@@ -75,7 +80,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onModeSelect,
   isPresetAgent,
   selectedAgentInfo,
-  customAgents,
+  assistants,
   localeKey,
   onClosePresetTag,
   agentLogo,
@@ -301,7 +306,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           <div className={styles.actionPresetAgent}>
             <PresetAgentTag
               agentInfo={selectedAgentInfo}
-              customAgents={customAgents}
+              assistants={assistants}
               localeKey={localeKey}
               onClose={onClosePresetTag}
               agentLogo={agentLogo}

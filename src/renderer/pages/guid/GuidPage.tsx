@@ -291,8 +291,8 @@ const GuidPage: React.FC = () => {
     const selectedId = agentSelection.selectedAgentInfo.customAgentId;
     const strippedId = selectedId.replace(/^builtin-/, '');
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
-    return agentSelection.customAgents.find((item) => candidates.has(item.id));
-  }, [agentSelection.customAgents, agentSelection.isPresetAgent, agentSelection.selectedAgentInfo?.customAgentId]);
+    return agentSelection.assistants.find((item) => candidates.has(item.id));
+  }, [agentSelection.assistants, agentSelection.isPresetAgent, agentSelection.selectedAgentInfo?.customAgentId]);
 
   // Sync disabledBuiltinSkills from preset assistant config
   useEffect(() => {
@@ -317,7 +317,7 @@ const GuidPage: React.FC = () => {
     const selectedId = agentSelection.selectedAgentInfo?.customAgentId;
     const strippedId = selectedId?.replace(/^builtin-/, '');
     const candidates = new Set(selectedId && strippedId ? [selectedId, `builtin-${strippedId}`, strippedId] : []);
-    const selectedAssistant = agentSelection.customAgents.find((item) => candidates.has(item.id));
+    const selectedAssistant = agentSelection.assistants.find((item) => candidates.has(item.id));
     const avatarValue = selectedAssistant?.avatar?.trim() || agentSelection.selectedAgentInfo?.avatar?.trim();
     if (!avatarValue) return { kind: 'icon' as const };
     const mappedAvatar = CUSTOM_AVATAR_IMAGE_MAP[avatarValue];
@@ -333,7 +333,7 @@ const GuidPage: React.FC = () => {
     }
     return { kind: 'emoji' as const, value: avatarValue };
   }, [
-    agentSelection.customAgents,
+    agentSelection.assistants,
     agentSelection.isPresetAgent,
     agentSelection.selectedAgentInfo?.avatar,
     agentSelection.selectedAgentInfo?.customAgentId,
@@ -505,7 +505,7 @@ const GuidPage: React.FC = () => {
       onModeSelect={agentSelection.setSelectedMode}
       isPresetAgent={agentSelection.isPresetAgent}
       selectedAgentInfo={agentSelection.selectedAgentInfo}
-      customAgents={agentSelection.customAgents}
+      assistants={agentSelection.assistants}
       localeKey={localeKey}
       onClosePresetTag={() => agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey)}
       agentLogo={effectiveAgentLogo}
@@ -728,7 +728,7 @@ const GuidPage: React.FC = () => {
           <AssistantSelectionArea
             isPresetAgent={agentSelection.isPresetAgent}
             selectedAgentInfo={agentSelection.selectedAgentInfo}
-            customAgents={agentSelection.customAgents}
+            assistants={agentSelection.assistants}
             localeKey={localeKey}
             currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
             onSelectAssistant={handleSelectAssistant}
