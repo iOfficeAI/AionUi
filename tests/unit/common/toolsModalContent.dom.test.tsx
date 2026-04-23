@@ -22,6 +22,7 @@ type MockServer = {
   builtin: boolean;
   enabled: boolean;
   updated_at: number;
+  original_json: string;
   transport: {
     type: 'stdio';
     command: string;
@@ -46,6 +47,7 @@ const testState = vi.hoisted(() => ({
     builtin: true,
     enabled: false,
     updated_at: 1,
+    original_json: '{}',
     transport: {
       type: 'stdio',
       command: 'node',
@@ -304,7 +306,7 @@ describe('ToolsModalContent image generation status refresh', () => {
           api_key: 'key',
           platform: 'new-api',
           base_url: 'https://example.com',
-          use_model: 'grok-imagine-1.0',
+          useModel: 'grok-imagine-1.0',
           model: ['grok-imagine-1.0'],
         });
       }

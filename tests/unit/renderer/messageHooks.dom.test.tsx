@@ -88,7 +88,7 @@ describe('message hooks cache merge', () => {
       },
     ];
 
-    mockGetConversationMessagesInvoke.mockResolvedValue(dbMessages);
+    mockGetConversationMessagesInvoke.mockResolvedValue({ items: dbMessages });
 
     const initialMessages: TestMessage[] = [
       {
@@ -125,7 +125,7 @@ describe('message hooks cache merge', () => {
   });
 
   it('adds optimistic messages and removes them by msg id', async () => {
-    mockGetConversationMessagesInvoke.mockResolvedValue([]);
+    mockGetConversationMessagesInvoke.mockResolvedValue({ items: [] });
 
     render(
       <MessageListProvider value={[]}>

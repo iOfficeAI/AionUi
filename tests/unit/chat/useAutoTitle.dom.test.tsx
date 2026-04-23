@@ -61,10 +61,12 @@ describe('useAutoTitle', () => {
 
   it('uses the first user message from history for the title', async () => {
     conversationGetMock.mockResolvedValue({ id: 'conv-1', name: 'New Chat' });
-    getConversationMessagesMock.mockResolvedValue([
-      createUserMessage('帮我整理一个 monorepo CI 失败排查清单'),
-      createUserMessage('继续'),
-    ]);
+    getConversationMessagesMock.mockResolvedValue({
+      items: [
+        createUserMessage('帮我整理一个 monorepo CI 失败排查清单'),
+        createUserMessage('继续'),
+      ],
+    });
     conversationUpdateMock.mockResolvedValue(true);
 
     const { result } = renderHook(() => useAutoTitle());
@@ -81,7 +83,7 @@ describe('useAutoTitle', () => {
 
   it('falls back to the current input when history is still empty', async () => {
     conversationGetMock.mockResolvedValue({ id: 'conv-1', name: 'New Chat' });
-    getConversationMessagesMock.mockResolvedValue([]);
+    getConversationMessagesMock.mockResolvedValue({ items: [] });
     conversationUpdateMock.mockResolvedValue(true);
 
     const { result } = renderHook(() => useAutoTitle());

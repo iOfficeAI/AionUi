@@ -54,8 +54,8 @@ describe('AcpConfigSelector', () => {
             id: 'reasoning_effort',
             type: 'select',
             category: 'config',
-            currentValue: 'medium',
-            selectedValue: 'medium',
+            current_value: 'medium',
+            selected_value: 'medium',
             options: [
               { value: 'low', name: 'Low' },
               { value: 'medium', name: 'Medium' },

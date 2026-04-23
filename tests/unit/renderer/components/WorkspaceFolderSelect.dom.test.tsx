@@ -146,7 +146,7 @@ describe('WorkspaceFolderSelect - non-desktop fallback', () => {
         value='/some/path'
         onChange={onChange}
         placeholder='Select folder'
-        inputPlaceholder='Enter workspace path'
+        input_placeholder='Enter workspace path'
         recentLabel='Recent'
         chooseDifferentLabel='Browse'
       />
@@ -156,7 +156,7 @@ describe('WorkspaceFolderSelect - non-desktop fallback', () => {
     expect(input).toHaveValue('/some/path');
   });
 
-  it('falls back to placeholder when inputPlaceholder is absent', () => {
+  it('falls back to placeholder when input_placeholder is absent', () => {
     mockIsElectronDesktop.mockReturnValue(false);
     render(
       <WorkspaceFolderSelect

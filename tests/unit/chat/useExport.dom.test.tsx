@@ -69,15 +69,17 @@ describe('useExport', () => {
     dateNowSpy = vi.spyOn(Date, 'now').mockReturnValue(1764021296000);
     mockGetDesktopPath.mockResolvedValue('/Desktop');
     mockGetFileMetadata.mockRejectedValue(new Error('missing'));
-    mockGetMessages.mockResolvedValue([
-      {
-        id: 'msg-1',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'right',
-        content: { content: 'hello export' },
-      },
-    ]);
+    mockGetMessages.mockResolvedValue({
+      items: [
+        {
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          type: 'text',
+          position: 'right',
+          content: { content: 'hello export' },
+        },
+      ],
+    });
     mockGetWorkspace.mockResolvedValue(undefined);
     mockCreateZip.mockResolvedValue(true);
     mockShowOpen.mockResolvedValue(['/picked']);

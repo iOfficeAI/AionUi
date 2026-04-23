@@ -10,12 +10,12 @@ vi.mock('@/renderer/utils/workspace/workspaceEvents', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout/WorkspacePanelHeader', () => ({
-  default: ({ children, workspace_path }: { children?: React.ReactNode; workspace_path?: string }) => {
-    mockWorkspacePanelHeader({ workspace_path, children });
+  default: ({ children, workspacePath }: { children?: React.ReactNode; workspacePath?: string }) => {
+    mockWorkspacePanelHeader({ workspacePath, children });
     return (
       <div data-testid='workspace-panel-header'>
         <span>{children}</span>
-        <span>{workspace_path}</span>
+        <span>{workspacePath}</span>
       </div>
     );
   },
@@ -43,13 +43,13 @@ describe('MobileWorkspaceOverlay', () => {
         mobileWorkspaceHandleRight={48}
         siderTitle='Workspace'
         sider={<div>Body</div>}
-        workspace_path='/workspace/project'
+        workspacePath='/workspace/project'
       />
     );
 
     expect(screen.getByTestId('workspace-panel-header')).toHaveTextContent('/workspace/project');
     expect(mockWorkspacePanelHeader).toHaveBeenCalledWith(
-      expect.objectContaining({ workspace_path: '/workspace/project', children: 'Workspace' })
+      expect.objectContaining({ workspacePath: '/workspace/project', children: 'Workspace' })
     );
   });
 

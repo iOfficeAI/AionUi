@@ -26,7 +26,7 @@ const cliAgents: AvailableAgent[] = [
   { backend: 'claude', name: 'Claude Code', cli_path: '/usr/bin/claude' },
 ];
 
-const preset_assistants: AvailableAgent[] = [
+const presetAssistants: AvailableAgent[] = [
   {
     backend: 'gemini',
     name: 'Writing Buddy',
@@ -62,7 +62,7 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 }));
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({ cliAgents, preset_assistants }),
+  useConversationAgents: () => ({ cliAgents, presetAssistants }),
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({

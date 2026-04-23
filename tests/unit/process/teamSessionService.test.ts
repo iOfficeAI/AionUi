@@ -105,10 +105,10 @@ describe('TeamSessionService', () => {
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
     await service.createTeam({
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Team Gemini',
       workspace: '/workspace',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       agents: [makeAgent()],
     });
 
@@ -120,9 +120,9 @@ describe('TeamSessionService', () => {
         }),
       })
     );
-    // Must have a concrete use_model, not the bare 'default' placeholder
+    // Must have a concrete useModel, not the bare 'default' placeholder
     const callArgs = (conversationService.createConversation as ReturnType<typeof vi.fn>).mock.calls[0][0];
-    expect(callArgs.model.use_model).not.toBe('default');
+    expect(callArgs.model.useModel).not.toBe('default');
   });
 
   it('uses configured gemini provider model when available', async () => {
@@ -151,10 +151,10 @@ describe('TeamSessionService', () => {
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
     await service.createTeam({
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Team Gemini API',
       workspace: '/workspace',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       agents: [makeAgent()],
     });
 
@@ -165,7 +165,7 @@ describe('TeamSessionService', () => {
           id: 'provider-gemini',
           platform: 'gemini',
           api_key: 'test-key',
-          use_model: 'gemini-2.5-pro',
+          useModel: 'gemini-2.5-pro',
         }),
       })
     );
@@ -209,10 +209,10 @@ describe('TeamSessionService', () => {
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
     await service.createTeam({
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Team Qwen',
       workspace: '/workspace',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       agents: [makeAgent({ agent_type: 'qwen', agent_name: 'Qwen', conversation_type: 'acp' })],
     });
 
@@ -237,10 +237,10 @@ describe('TeamSessionService', () => {
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
     await service.createTeam({
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Team Remote',
       workspace: '/workspace',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       agents: [
         makeAgent({
           agent_type: 'remote',
@@ -302,10 +302,10 @@ describe('TeamSessionService', () => {
     const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
 
     await service.createTeam({
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Team Preset Gemini',
       workspace: '/workspace',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       agents: [
         makeAgent({
           agent_type: 'gemini',
@@ -321,7 +321,7 @@ describe('TeamSessionService', () => {
         type: 'gemini',
         model: expect.objectContaining({
           id: 'provider-1',
-          use_model: 'gemini-2.0-flash',
+          useModel: 'gemini-2.0-flash',
         }),
         extra: expect.objectContaining({
           preset_assistant_id: 'assistant-1',
@@ -365,10 +365,10 @@ describe('TeamSessionService', () => {
 
     const team: TTeam = {
       id: 'team-1',
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Preset Team',
       workspace: '/workspace',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       leader_agent_id: 'slot-lead',
       agents: [
         {
@@ -426,10 +426,10 @@ describe('TeamSessionService', () => {
   it('repairs legacy teams whose agents array was lost but conversations still exist', async () => {
     const legacyTeam: TTeam = {
       id: 'team-legacy',
-      userId: 'user-1',
+      user_id: 'user-1',
       name: 'Legacy Team',
       workspace: '',
-      workspaceMode: 'shared',
+      workspace_mode: 'shared',
       leader_agent_id: 'slot-lead',
       agents: [],
       created_at: 1,
@@ -440,8 +440,8 @@ describe('TeamSessionService', () => {
       name: 'Legacy Team - Leader',
       type: 'acp',
       status: 'pending',
-      createTime: 1,
-      modifyTime: 2,
+      created_at: 1,
+      modified_at: 2,
       extra: {
         backend: 'codex',
         cli_path: 'codex',

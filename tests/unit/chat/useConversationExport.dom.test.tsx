@@ -61,15 +61,17 @@ describe('useConversationExport', () => {
       name: 'Current chat',
       type: 'gemini',
     });
-    mockMessagesGet.mockResolvedValue([
-      {
-        id: 'msg-1',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'right',
-        content: { content: 'hello export' },
-      },
-    ]);
+    mockMessagesGet.mockResolvedValue({
+      items: [
+        {
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          type: 'text',
+          position: 'right',
+          content: { content: 'hello export' },
+        },
+      ],
+    });
     mockWriteFile.mockResolvedValue(true);
     mockCopyText.mockResolvedValue(undefined);
   });

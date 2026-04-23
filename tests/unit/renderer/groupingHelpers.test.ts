@@ -136,19 +136,19 @@ describe('isConversationPinned', () => {
 });
 
 describe('getConversationPinnedAt', () => {
-  it('returns pinnedAt timestamp when available', () => {
+  it('returns pinned_at timestamp when available', () => {
     const conversation: TChatConversation = {
       id: 'conv-1',
       title: 'Test',
       created_at: 1000,
       updated_at: 1000,
-      extra: { pinnedAt: 5000 },
+      extra: { pinned_at: 5000 },
       userMsgCount: 0,
     };
     expect(getConversationPinnedAt(conversation)).toBe(5000);
   });
 
-  it('returns 0 when pinnedAt is undefined', () => {
+  it('returns 0 when pinned_at is undefined', () => {
     const conversation: TChatConversation = {
       id: 'conv-2',
       title: 'Test',
@@ -171,13 +171,13 @@ describe('getConversationPinnedAt', () => {
     expect(getConversationPinnedAt(conversation)).toBe(0);
   });
 
-  it('returns 0 when pinnedAt is not a number', () => {
+  it('returns 0 when pinned_at is not a number', () => {
     const conversation: TChatConversation = {
       id: 'conv-4',
       title: 'Test',
       created_at: 1000,
       updated_at: 1000,
-      extra: { pinnedAt: 'not-a-number' as unknown },
+      extra: { pinned_at: 'not-a-number' as unknown },
       userMsgCount: 0,
     };
     expect(getConversationPinnedAt(conversation)).toBe(0);
@@ -373,7 +373,7 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned',
         created_at: 1000,
         updated_at: 1000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
       {
@@ -428,7 +428,7 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned 1',
         created_at: 1000,
         updated_at: 1000,
-        extra: { pinned: true, pinnedAt: 3000, sortOrder: 2000 },
+        extra: { pinned: true, pinned_at: 3000, sortOrder: 2000 },
         userMsgCount: 0,
       },
       {
@@ -436,7 +436,7 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned 2',
         created_at: 2000,
         updated_at: 2000,
-        extra: { pinned: true, pinnedAt: 4000, sortOrder: 1000 },
+        extra: { pinned: true, pinned_at: 4000, sortOrder: 1000 },
         userMsgCount: 0,
       },
       {
@@ -444,27 +444,27 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned 3',
         created_at: 3000,
         updated_at: 3000,
-        extra: { pinned: true, pinnedAt: 5000 }, // no sortOrder
+        extra: { pinned: true, pinned_at: 5000 }, // no sortOrder
         userMsgCount: 0,
       },
     ];
 
     const result = buildGroupedHistory(conversations, mockT);
 
-    // conv-2 (sortOrder 1000) < conv-1 (sortOrder 2000) < conv-3 (no sortOrder, sorted by pinnedAt)
+    // conv-2 (sortOrder 1000) < conv-1 (sortOrder 2000) < conv-3 (no sortOrder, sorted by pinned_at)
     expect(result.pinnedConversations[0].id).toBe('conv-2');
     expect(result.pinnedConversations[1].id).toBe('conv-1');
     expect(result.pinnedConversations[2].id).toBe('conv-3');
   });
 
-  it('falls back to pinnedAt when sortOrder is not present', () => {
+  it('falls back to pinned_at when sortOrder is not present', () => {
     const conversations: TChatConversation[] = [
       {
         id: 'conv-1',
         title: 'Pinned 1',
         created_at: 1000,
         updated_at: 1000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
       {
@@ -472,14 +472,14 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned 2',
         created_at: 2000,
         updated_at: 2000,
-        extra: { pinned: true, pinnedAt: 3000 },
+        extra: { pinned: true, pinned_at: 3000 },
         userMsgCount: 0,
       },
     ];
 
     const result = buildGroupedHistory(conversations, mockT);
 
-    // Descending by pinnedAt: conv-2 (3000) before conv-1 (2000)
+    // Descending by pinned_at: conv-2 (3000) before conv-1 (2000)
     expect(result.pinnedConversations[0].id).toBe('conv-2');
     expect(result.pinnedConversations[1].id).toBe('conv-1');
   });
@@ -491,7 +491,7 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned',
         created_at: 1000,
         updated_at: 1000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
       {
@@ -545,7 +545,7 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned 1',
         created_at: 1000,
         updated_at: 1000,
-        extra: { pinned: true, pinnedAt: 1000 },
+        extra: { pinned: true, pinned_at: 1000 },
         userMsgCount: 0,
       },
       {
@@ -553,7 +553,7 @@ describe('buildGroupedHistory', () => {
         title: 'Pinned 2',
         created_at: 2000,
         updated_at: 2000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
     ];

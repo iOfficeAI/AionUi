@@ -25,7 +25,7 @@ describe('AuthService refreshToken', () => {
     const { AuthService } = await import('@process/webserver/auth/service/AuthService');
     const expiredToken = jwt.sign(
       {
-        userId: 'user-1',
+        user_id: 'user-1',
         username: 'alice',
       },
       'db-secret',
@@ -41,7 +41,7 @@ describe('AuthService refreshToken', () => {
     expect(refreshedToken).toEqual(expect.any(String));
     expect(refreshedToken).not.toBe(expiredToken);
     await expect(AuthService.verifyToken(refreshedToken!)).resolves.toMatchObject({
-      userId: 'user-1',
+      user_id: 'user-1',
       username: 'alice',
     });
   });
@@ -78,7 +78,7 @@ describe('AuthService refreshToken', () => {
     expect(refreshedToken).not.toBe(originalToken);
     await expect(AuthService.verifyToken(originalToken)).resolves.toBeNull();
     await expect(AuthService.verifyToken(refreshedToken!)).resolves.toMatchObject({
-      userId: 'user-1',
+      user_id: 'user-1',
       username: 'alice',
     });
 

@@ -6,7 +6,7 @@ const mockAcpSendInvoke = vi.fn();
 const mockAddOrUpdateMessage = vi.fn();
 const mockEmitterEmit = vi.fn();
 const mockBuildDisplayMessage = vi.fn(
-  (input: string, files: string[], workspace_path: string) => `${input}|${files.join(',')}|${workspace_path}`
+  (input: string, files: string[], workspacePath: string) => `${input}|${files.join(',')}|${workspacePath}`
 );
 
 let uuidCounter = 0;
@@ -63,7 +63,7 @@ describe('useAcpInitialMessage', () => {
       useAcpInitialMessage({
         conversation_id: 'conv-acp',
         backend: 'claude',
-        workspace_path: 'C:/workspace',
+        workspacePath: 'C:/workspace',
         setAiProcessing,
         checkAndUpdateTitle,
         addOrUpdateMessage: mockAddOrUpdateMessage,
