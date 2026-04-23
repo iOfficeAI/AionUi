@@ -241,7 +241,26 @@ end-to-end.
 
 ### P1 — test-authoring / infra
 
-**P1-A1 — STATUS: PARTIAL FIX LANDED** on `feat/backend-migration-e2e-helper-fix` at commit `d96d189aa`. Migrated the 7 assistant-spec `invokeBridge` call sites (3× `add-custom-external-path` POST, 3× `remove-custom-external-path` DELETE, 1× `extensions.get-assistants` GET) to the existing `tests/e2e/helpers/httpBridge.ts`. Also unconditionally sets `Content-Type: application/json` in httpBridge (closes P2-A2). **Unblocks the 4 Assistant Class E failures** (P2-3, P1-20, P1-21, P1-23). Still open: other `invokeBridge` callers (`helpers/extensions.ts`, `helpers/chatAionrs.ts`, cron/team/ext specs) — those targets may still have IPC handlers; audit per-key before migrating. Branch pending user review; not merged into base or coordinator branch.
+**P1-A1 — STATUS: VERIFIED FIX LANDED** on `feat/backend-migration-e2e-helper-fix`. Initial commit `d96d189aa` migrated 7 `invokeBridge` call sites to `httpBridge.ts`; follow-up commit (same branch tip) corrected `DELETE /api/skills/external-paths` to send `path` in JSON body (backend rejects query-param form) and cleaned up 4 more stragglers missed by initial replace_all. **Smoke-tested in real Electron**:
+
+- **P2-3 PASS** (was FAIL with "Bridge invoke timeout: add-custom-external-path", 9.5s)
+- **P1-20 PASS**
+- **P1-21 PASS**
+- **P1-23 now reveals a different, unrelated bug** (see new P1-A3 below): drawer doesn't auto-open from sessionStorage intent within 10s. Prior `invokeBridge` timeout was masking this.
+
+Expected full-suite Assistant e2e result: **35/37 PASS** (was 32/37; +3 for P2-3/P1-20/P1-21; P1-23 fails for new reason; P1-18 still env-dependent).
+
+Still open for other `invokeBridge` callers outside assistants: `helpers/extensions.ts`, `helpers/chatAionrs.ts`, cron/team/ext specs — those targets may still have live IPC handlers, audit per-key before migrating.
+
+Branch `feat/backend-migration-e2e-helper-fix` pending user review; not merged into base or coordinator.
+
+### P1-A3 (NEW, surfaced by P1-A1 fix): P1-23 drawer auto-open from sessionStorage intent
+
+**Symptom:** After `sessionStorage.setItem('guid.openAssistantEditorIntent', …)` and navigating to `#/settings/assistants`, the test expects the edit drawer to open automatically within 10s. With P1-A1 unblocking the setup `invokeBridge`, we now reach this assertion and it fails — drawer never becomes visible.
+
+**Hypothesis:** either (a) a listener that consumes the sessionStorage intent is not registered in time because of a mount race, or (b) the intent format changed between when the test was authored and now. Not yet confirmed; needs trace capture.
+
+**Scope:** frontend-dev territory. Probably ~30 min to diagnose + fix.
 
 **P1-A1 (original issue — now scoped to remaining callers): `tests/e2e/helpers/bridge.ts` has no-op `provider()` and no WebSocket `subscribe-*` handler after HTTP migration.**
 
