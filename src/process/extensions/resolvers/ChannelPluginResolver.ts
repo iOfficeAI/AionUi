@@ -200,7 +200,7 @@ export function resolveChannelPlugins(extensions: LoadedExtension[]): Map<string
         let iconUrl = plugin.icon;
         if (plugin.icon && !plugin.icon.match(/^(https?:|data:|aion-asset:|file:)/)) {
           const absPath = path.resolve(ext.directory, plugin.icon);
-          iconUrl = toAssetUrl(absPath);
+          iconUrl = toAssetUrl(ext.manifest.name, path.relative(ext.directory, absPath));
         }
 
         result.set(plugin.type, {

@@ -1291,6 +1291,13 @@ export type IAddTeamAgentParams = {
 
 export const team = {
   create: bridge.buildProvider<import('@process/team/types').TTeam, ICreateTeamParams>('team.create'),
+  /** Unified team-capable agent catalog. Consumed by TeamCreateModal and any
+   *  future UI that needs to list spawnable backends/presets with full
+   *  cliPath + customAgentId metadata. */
+  listCapableAgents: bridge.buildProvider<
+    IBridgeResponse<Array<import('@/common/types/teamAgentEntry').TeamAgentEntry>>,
+    void
+  >('team.list-capable-agents'),
   list: bridge.buildProvider<import('@process/team/types').TTeam[], { userId: string }>('team.list'),
   get: bridge.buildProvider<import('@process/team/types').TTeam | null, { id: string }>('team.get'),
   remove: bridge.buildProvider<void, { id: string }>('team.remove'),

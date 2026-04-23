@@ -92,7 +92,7 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
           console.warn(`[Extensions] Settings tab path traversal attempt: ${tab.entryPoint} in ${extName}`);
           continue;
         }
-        entryUrl = toAssetUrl(absEntry);
+        entryUrl = toAssetUrl(extName, path.relative(extDir, absEntry));
       }
 
       // Resolve icon path
@@ -100,7 +100,7 @@ export function resolveSettingsTabs(extensions: LoadedExtension[]): ResolvedSett
       if (tab.icon) {
         const absIcon = path.resolve(extDir, tab.icon);
         if (isPathWithinDirectory(absIcon, extDir) && existsSync(absIcon)) {
-          iconUrl = toAssetUrl(absIcon);
+          iconUrl = toAssetUrl(extName, path.relative(extDir, absIcon));
         } else {
           console.warn(`[Extensions] Settings tab icon not found or invalid: ${tab.icon} in ${extName}`);
         }

@@ -100,7 +100,7 @@
     "@uiw/react-codemirror": "^4.25.2",
     "@wecom/aibot-node-sdk": "^1.0.6",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.4.1",
+    "better-sqlite3": "^12.9.0",
     "buffer": "^6.0.3",
     "classnames": "^2.5.1",
     "cookie": "^1.0.2",
@@ -249,5 +249,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "kaiwu-web"
 }

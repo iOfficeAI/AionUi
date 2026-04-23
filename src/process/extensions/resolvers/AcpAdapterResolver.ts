@@ -31,7 +31,7 @@ function convertAcpAdapter(adapter: ExtAcpAdapter, ext: LoadedExtension): Record
     defaultCliPath: adapter.defaultCliPath || adapter.cliCommand,
     acpArgs: adapter.acpArgs,
     env: adapter.env,
-    avatar: adapter.icon ? resolveIconPath(adapter.icon, ext.directory) : undefined,
+    avatar: adapter.icon ? resolveIconPath(adapter.icon, ext.manifest.name, ext.directory) : undefined,
     authRequired: adapter.authRequired,
     supportsStreaming: adapter.supportsStreaming ?? false,
     connectionType,
@@ -48,10 +48,9 @@ function convertAcpAdapter(adapter: ExtAcpAdapter, ext: LoadedExtension): Record
   };
 }
 
-function resolveIconPath(icon: string, extensionDir: string): string {
+function resolveIconPath(icon: string, extName: string, extensionDir: string): string {
   if (icon.startsWith('http://') || icon.startsWith('https://')) return icon;
   if (!icon.includes('/') && !icon.includes('\\') && !icon.includes('.')) return icon;
   const absPath = path.isAbsolute(icon) ? icon : path.resolve(extensionDir, icon);
-  // Use aion-asset:// protocol to bypass file:// security restrictions in dev mode
-  return toAssetUrl(absPath);
+  return toAssetUrl(extName, path.relative(extensionDir, absPath));
 }

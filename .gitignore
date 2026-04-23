@@ -207,3 +207,7 @@ graphify-out/
 .graphify_python
 
 .snow/
+.docker-electron-cache/
+.docker-electron-builder-cache/
+out/
+aionui-build.sh

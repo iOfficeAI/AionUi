@@ -14,9 +14,8 @@ import { ipcBridge } from '@/common';
 import type { Mailbox } from '../../Mailbox.ts';
 import type { TaskManager } from '../../TaskManager.ts';
 import type { TeamAgent } from '../../types.ts';
-import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
-import { agentRegistry } from '@process/agent/AgentRegistry';
+import { teamAgentCatalog } from '../../TeamAgentCatalog.ts';
 import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import { resolveLocaleKey } from '@/common/utils';
 import { handleListModels } from '../modelListHandler.ts';
@@ -377,43 +376,41 @@ export class TeamMcpServer {
     const model = args.model ? String(args.model) : undefined;
     let agentType = args.agent_type ? String(args.agent_type) : undefined;
 
-    // When a preset is requested, resolve its backend from config so the caller
-    // does not need to specify agent_type separately.
+    // Resolve through the unified catalog. This handles presets, extension
+    // adapters, and builtin backends through one code path — no more inline
+    // assistants / ExtensionRegistry / ACP_BACKENDS_ALL lookups that drift
+    // apart every time someone adds a new source.
     if (customAgentId) {
-      const assistants = (await ProcessConfig.get('assistants')) ?? [];
-      const preset = assistants.find((a) => a.id === customAgentId && a.isPreset);
-      if (!preset) {
-        const availableIds = assistants
-          .filter((a) => a.isPreset && a.enabled !== false)
-          .map((a) => a.id)
+      const presetEntry = await teamAgentCatalog.resolveByCustomAgentId(customAgentId);
+      if (!presetEntry) {
+        const capable = await teamAgentCatalog.listTeamCapable();
+        const availableIds = capable
+          .filter((e) => e.source === 'preset' || e.source === 'extension')
+          .map((e) => e.customAgentId)
+          .filter(Boolean)
           .join(', ');
         throw new Error(
-          `Preset assistant "${customAgentId}" not found.${
-            availableIds ? ` Available: ${availableIds}.` : ' No preset assistants are currently enabled.'
+          `Agent identity "${customAgentId}" not found.${
+            availableIds ? ` Available: ${availableIds}.` : ' No preset / extension agents are currently enabled.'
           }`
         );
       }
-      if (preset.enabled === false) {
-        throw new Error(`Preset assistant "${customAgentId}" is disabled. Enable it before spawning.`);
+      if (!presetEntry.isTeamCapable) {
+        throw new Error(`Agent "${customAgentId}" is not team-capable.`);
       }
-      const presetBackend = preset.presetAgentType || 'gemini';
-      if (agentType && agentType !== presetBackend) {
+      if (agentType && agentType !== presetEntry.backend) {
         console.warn(
-          `[TeamMcpServer] handleSpawnAgent: agent_type "${agentType}" overridden by preset "${customAgentId}" backend "${presetBackend}".`
+          `[TeamMcpServer] handleSpawnAgent: agent_type "${agentType}" overridden by entry "${customAgentId}" backend "${presetEntry.backend}".`
         );
       }
-      agentType = presetBackend;
-    }
-
-    // Team mode validation: only backends with confirmed ACP MCP stdio support
-    if (agentType) {
-      const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-      if (!isTeamCapableBackend(agentType, cachedInitResults)) {
-        const capable = getTeamCapableBackends(
-          agentRegistry.getDetectedAgents().map((a) => a.backend),
-          cachedInitResults
-        );
-        throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
+      agentType = presetEntry.backend;
+    } else if (agentType) {
+      // Bare backend — validate against catalog and surface a helpful error.
+      const entry = await teamAgentCatalog.resolveByBackend(agentType);
+      if (!entry || !entry.isTeamCapable) {
+        const capable = await teamAgentCatalog.listTeamCapable();
+        const backends = Array.from(new Set(capable.map((e) => e.backend))).join(', ');
+        throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${backends}.`);
       }
     }
 

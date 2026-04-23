@@ -28,13 +28,22 @@ interface TitlebarProps {
 }
 
 const AionLogoMark: React.FC = () => (
-  <svg className='app-titlebar__brand-logo' viewBox='0 0 80 80' fill='none' aria-hidden='true' focusable='false'>
-    <path
-      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
-      fill='currentColor'
-    ></path>
-    <circle cx='40' cy='46' r='3' fill='currentColor'></circle>
-    <path d='M18 50 Q40 70 62 50' stroke='currentColor' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
+  <svg
+    className='app-titlebar__brand-logo'
+    viewBox='0 0 174.83 174.83'
+    fill='none'
+    aria-hidden='true'
+    focusable='false'
+  >
+    <rect width='174.83' height='174.83' fill='#090909' />
+    <g fill='#6d29d9'>
+      <polygon points='154.66 111.29 145.38 102 136.09 111.29 126.8 120.58 120.23 114 129.51 104.72 120.23 95.43 110.94 104.72 108.22 102 98.94 92.71 89.65 83.42 98.94 74.14 89.65 64.85 80.36 74.14 71.07 83.42 61.78 92.71 71.07 102 80.36 92.71 89.65 102 98.94 111.29 108.22 120.58 117.51 129.86 126.8 139.15 131.44 143.8 140.73 134.51 136.09 129.86 145.38 120.58 154.66 111.29' />
+      <rect x='46.01' y='86.23' width='13.14' height='13.14' transform='translate(-50.21 64.36) rotate(-45)' />
+      <polygon points='34 64.93 24.71 74.22 34 83.5 43.29 92.79 52.58 83.5 43.29 74.22 34 64.93' />
+      <polygon points='43.29 55.64 52.58 46.35 61.86 37.07 71.07 46.27 80.36 36.98 71.07 27.7 61.78 36.98 52.58 27.78 43.29 37.07 34 46.35 24.71 55.64 34 64.93 43.29 55.64' />
+      <rect x='64.5' y='48.99' width='13.14' height='13.14' transform='translate(-18.47 66.53) rotate(-45)' />
+      <rect x='83.08' y='48.99' width='13.14' height='13.14' transform='translate(-13.03 79.66) rotate(-45)' />
+    </g>
   </svg>
 );
 
@@ -69,7 +78,7 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
-  const appTitle = useMemo(() => 'AionUi', []);
+  const appTitle = useMemo(() => 'kaiwu-web', []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);

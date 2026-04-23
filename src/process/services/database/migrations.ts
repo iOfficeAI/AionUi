@@ -1214,6 +1214,162 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Clean up broken team conversations for extension ACP agents.
+ *
+ * Earlier versions of `buildAgentConversationParams` did not persist `cliPath`
+ * and `customAgentId` into `conversation.extra` when `isPreset=true`. For
+ * extension-contributed ACP adapters (which always have a `customAgentId`),
+ * this meant team-mode conversations were stored without the information
+ * needed to spawn the agent, and startup crashed with:
+ *
+ *     Failed to spawn agent "<backend>": No CLI path for backend "<backend>"
+ *
+ * Once the bug is fixed upstream, newly created teams are fine. But old rows
+ * remain unusable. This one-shot migration removes them so the affected teams
+ * disappear from the UI instead of blocking every launch with a spawn error.
+ *
+ * Scope guardrails (minimise blast radius):
+ *   - type = 'acp'                                     (not gemini/remote/etc.)
+ *   - extra.teamId IS NOT NULL                         (team conversations only)
+ *   - extra.presetAssistantId LIKE 'ext:%'             (extension-contributed)
+ *   - extra.cliPath IS NULL AND extra.customAgentId IS NULL  (missing fields)
+ *
+ * Built-in preset assistants (Claude/Codex/Qwen …) leave at least
+ * `customAgentId` unset but their spawn layer can still resolve the CLI via
+ * `ACP_BACKENDS_ALL`, so they keep working and are intentionally excluded.
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Remove broken extension-agent team conversations (missing cliPath)',
+  up: (db) => {
+    const rows = db
+      .prepare(
+        `SELECT id, extra FROM conversations
+         WHERE type = 'acp'
+           AND extra IS NOT NULL
+           AND json_extract(extra, '$.teamId') IS NOT NULL
+           AND json_extract(extra, '$.presetAssistantId') LIKE 'ext:%'
+           AND json_extract(extra, '$.cliPath') IS NULL
+           AND json_extract(extra, '$.customAgentId') IS NULL`
+      )
+      .all() as Array<{ id: string; extra: string }>;
+
+    if (rows.length === 0) {
+      console.log('[Migration v27] No broken extension team conversations found.');
+      return;
+    }
+
+    const affectedTeams = new Set<string>();
+    for (const row of rows) {
+      try {
+        const extra = JSON.parse(row.extra) as { teamId?: string };
+        if (extra.teamId) affectedTeams.add(extra.teamId);
+      } catch {
+        // ignore malformed JSON
+      }
+    }
+
+    const delConv = db.prepare('DELETE FROM conversations WHERE id = ?');
+    for (const row of rows) delConv.run(row.id);
+
+    const delTeam = db.prepare('DELETE FROM teams WHERE id = ?');
+    for (const teamId of affectedTeams) delTeam.run(teamId);
+
+    console.log(`[Migration v27] Removed ${rows.length} broken conversation(s) and ${affectedTeams.size} team(s)`);
+  },
+  down: (_db) => {
+    // Data cleanup is irreversible.
+    console.log('[Migration v27] Rolled back: no-op (data cleanup is irreversible)');
+  },
+};
+
+/**
+ * Migration v27 -> v28: Widen the broken team-conversation cleanup to catch
+ * rows produced by the OTHER broken spawn path — MCP-initiated teammate
+ * creation via `team_spawn_agent`.
+ *
+ * v27 only catches rows whose `presetAssistantId LIKE 'ext:%'`. That matches
+ * legacy TeamCreateModal-created leaders but not teammates spawned by the LLM
+ * (which went through `TeamSessionService.spawnAgent` → `addAgent`, and that
+ * code path never wrote cliPath/customAgentId/presetAssistantId for extension
+ * backends — see dbbc6630 for a live specimen before the TeamAgentCatalog fix).
+ *
+ * This migration is intentionally narrow:
+ *   - Only ACP team rows with no cliPath and no customAgentId (spawn-unable)
+ *   - Only backends NOT in the hardcoded builtin-CLI list. Builtin backends
+ *     (claude / codex / qwen / …) recover via ACP_BACKENDS_ALL cliCommand
+ *     fallback even with NULL cliPath, so their rows are not broken.
+ *
+ * The final TeamAgentCatalog fallback in AcpAgentManager means any fresh row
+ * written after this release is self-healing even if metadata is missing.
+ * This migration is strictly for pre-catalog corrupt state.
+ */
+const BUILTIN_BACKENDS_WITH_CLI_FALLBACK = [
+  'claude',
+  'qwen',
+  'codex',
+  'codebuddy',
+  'goose',
+  'auggie',
+  'kimi',
+  'opencode',
+  'droid',
+  'copilot',
+  'qodercli',
+  'vibe-acp',
+  'agent',
+  'kiro-cli',
+  'hermes',
+  'snow',
+];
+
+const migration_v28: IMigration = {
+  version: 28,
+  name: 'Remove broken team conversations for non-builtin backends (missing cliPath)',
+  up: (db) => {
+    const placeholders = BUILTIN_BACKENDS_WITH_CLI_FALLBACK.map(() => '?').join(',');
+    const rows = db
+      .prepare(
+        `SELECT id, extra FROM conversations
+         WHERE type = 'acp'
+           AND extra IS NOT NULL
+           AND json_extract(extra, '$.teamId') IS NOT NULL
+           AND json_extract(extra, '$.cliPath') IS NULL
+           AND json_extract(extra, '$.customAgentId') IS NULL
+           AND json_extract(extra, '$.backend') IS NOT NULL
+           AND json_extract(extra, '$.backend') NOT IN (${placeholders})`
+      )
+      .all(...BUILTIN_BACKENDS_WITH_CLI_FALLBACK) as Array<{ id: string; extra: string }>;
+
+    if (rows.length === 0) {
+      console.log('[Migration v28] No broken non-builtin team conversations found.');
+      return;
+    }
+
+    const affectedTeams = new Set<string>();
+    for (const row of rows) {
+      try {
+        const extra = JSON.parse(row.extra) as { teamId?: string };
+        if (extra.teamId) affectedTeams.add(extra.teamId);
+      } catch {
+        /* ignore malformed JSON */
+      }
+    }
+
+    const delConv = db.prepare('DELETE FROM conversations WHERE id = ?');
+    for (const row of rows) delConv.run(row.id);
+
+    const delTeam = db.prepare('DELETE FROM teams WHERE id = ?');
+    for (const teamId of affectedTeams) delTeam.run(teamId);
+
+    console.log(`[Migration v28] Removed ${rows.length} broken conversation(s) and ${affectedTeams.size} team(s)`);
+  },
+  down: (_db) => {
+    console.log('[Migration v28] Rolled back: no-op (data cleanup is irreversible)');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1222,7 +1378,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27, migration_v28,
 ];
 
 /**

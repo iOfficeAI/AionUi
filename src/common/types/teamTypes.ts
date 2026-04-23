@@ -3,6 +3,7 @@
 // Renderer code should import from here instead of @process/team/types.
 
 import type { AcpInitializeResult } from './acpTypes';
+import { isValidInitResult } from './acpTypes';
 
 /**
  * Backends known to support team mode without needing a cached initialize result.
@@ -19,14 +20,36 @@ const KNOWN_TEAM_CAPABLE_BACKENDS = new Set(['gemini', 'claude', 'codex', 'aionr
  * Check if an agent backend is team-capable.
  * Known backends (gemini, claude, codex, snow) are always team-capable.
  * Other ACP agents are team-capable when their cached initialize response includes mcpCapabilities.stdio.
+ *
+ * For extension-contributed agents, the cache is keyed by the conversation's runtime
+ * backend (typically "custom") rather than the adapter id. When a customAgentId
+ * with the `ext:` prefix is supplied, we also check the "custom" key as a fallback.
  */
 export function isTeamCapableBackend(
   backend: string,
-  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
+  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined,
+  customAgentId?: string
 ): boolean {
   if (KNOWN_TEAM_CAPABLE_BACKENDS.has(backend)) return true;
+
+  // Ignore ghost cache entries (no agentInfo + all transports false). They are
+  // produced by malformed initialize responses from legacy agents and would
+  // otherwise permanently pin the backend as "not team-capable".
   const initResult = cachedInitResults?.[backend];
-  return initResult?.capabilities.mcpCapabilities.stdio === true;
+  if (isValidInitResult(initResult) && initResult!.capabilities.mcpCapabilities.stdio === true) {
+    return true;
+  }
+
+  // Extension agents are cached under the runtime "custom" backend key rather
+  // than the adapter id, so `cachedInitResults[backend]` misses them.
+  if (customAgentId && customAgentId.startsWith('ext:')) {
+    const customResult = cachedInitResults?.['custom'];
+    if (isValidInitResult(customResult) && customResult!.capabilities.mcpCapabilities.stdio === true) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 /**

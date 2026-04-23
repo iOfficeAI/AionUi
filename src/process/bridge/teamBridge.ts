@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
+import { teamAgentCatalog } from '@process/team/TeamAgentCatalog';
 
 /**
  * Wrap an async provider handler so that unhandled rejections are caught and
@@ -37,6 +38,22 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
       return teamSessionService.createTeam(params);
     })
   );
+
+  // Unified team agent catalog — single endpoint for "what can I spawn?".
+  // Supersedes renderer-side merging of cliAgents + presetAssistants with
+  // isTeamCapableBackend filtering; now the process does it once and hands
+  // back a flat list of TeamAgentEntry already capability-filtered.
+  ipcBridge.team.listCapableAgents.provider(async () => {
+    try {
+      const entries = await teamAgentCatalog.listTeamCapable();
+      return { success: true as const, data: entries };
+    } catch (error) {
+      return {
+        success: false as const,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
 
   ipcBridge.team.list.provider(
     safeProvider(async ({ userId }) => {

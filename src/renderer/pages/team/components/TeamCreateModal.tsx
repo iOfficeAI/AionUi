@@ -4,11 +4,10 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
-import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
+import type { TeamAgentEntry } from '@/common/types/teamAgentEntry';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useTeamCapableAgents } from '../hooks/useTeamCapableAgents';
 import AionModal from '@renderer/components/base/AionModal';
 import AionSelect from '@renderer/components/base/AionSelect';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
@@ -17,9 +16,28 @@ import {
   agentFromKey,
   resolveConversationType,
   resolveTeamAgentType,
-  filterTeamSupportedAgents,
   AgentOptionLabel,
 } from './agentSelectUtils';
+import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
+
+// TeamAgentEntry → AvailableAgent adapter. Keeps the existing render code
+// (agentKey / AgentOptionLabel / filterOption) working without rewrites; the
+// fields line up 1:1 save for cosmetic renames.
+function entryToAvailableAgent(entry: TeamAgentEntry): AvailableAgent {
+  return {
+    backend: entry.backend,
+    name: entry.displayName,
+    cliPath: entry.cliPath || undefined,
+    customAgentId: entry.customAgentId,
+    isPreset: entry.isPreset,
+    presetAgentType: entry.presetAgentType,
+    isExtension: entry.isExtension,
+    extensionName: entry.extensionName,
+    supportedTransports: entry.supportedTransports,
+    avatar: entry.avatar,
+    context: entry.context,
+  };
+}
 
 const FormItem = Form.Item;
 const { Option, OptGroup } = AionSelect;
@@ -33,36 +51,29 @@ type Props = {
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { cliAgents, presetAssistants } = useConversationAgents();
+  const { entries, refresh } = useTeamCapableAgents();
   const [name, setName] = useState('');
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
-  const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
 
+  // Re-fetch when the modal opens so a freshly installed extension adapter
+  // or newly enabled preset is visible without restarting the renderer.
   useEffect(() => {
-    if (!visible) return;
-    let active = true;
-    ConfigStorage.get('acp.cachedInitializeResult')
-      .then((data) => {
-        if (active) setCachedInitResults(data ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
-  }, [visible]);
+    if (visible) void refresh();
+  }, [visible, refresh]);
 
-  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants], cachedInitResults);
+  // Process side already did the isTeamCapable filter. All remaining merging
+  // / deduping / grouping is pure rendering.
+  const allAgents = useMemo(() => entries.map(entryToAvailableAgent), [entries]);
 
   const { supportedCliAgents, supportedPresetAssistants } = useMemo(() => {
-    const supportedKeys = new Set(allAgents.map(agentKey));
     return {
-      supportedCliAgents: cliAgents.filter((a) => supportedKeys.has(agentKey(a))),
-      supportedPresetAssistants: presetAssistants.filter((a) => supportedKeys.has(agentKey(a))),
+      supportedCliAgents: allAgents.filter((a) => !a.isPreset),
+      supportedPresetAssistants: allAgents.filter((a) => a.isPreset),
     };
-  }, [allAgents, cliAgents, presetAssistants]);
+  }, [allAgents]);
 
   useEffect(() => {
     if (visible) {

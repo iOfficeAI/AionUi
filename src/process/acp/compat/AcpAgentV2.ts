@@ -3,7 +3,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
 import { NavigationInterceptor } from '@/common/chat/navigation';
 import type { AcpModelInfo, AcpResult, AcpSessionConfigOption } from '@/common/types/acpTypes';
-import { AcpErrorType, parseInitializeResult } from '@/common/types/acpTypes';
+import { AcpErrorType, isValidInitResult, parseInitializeResult } from '@/common/types/acpTypes';
 import { getFullAutoMode } from '@/common/types/agentModes';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import {
@@ -855,10 +855,16 @@ export class AcpAgentV2 {
    */
   private async cacheInitializeResult(initResult: unknown): Promise<void> {
     const backend = this.agentConfig.agentBackend;
+    const parsed = parseInitializeResult(initResult);
+    // Never cache a ghost handshake (no agentInfo + all transports false) —
+    // it would permanently misclassify the backend as not-team-capable.
+    if (!isValidInitResult(parsed)) {
+      return;
+    }
     const cached = (await ProcessConfig.get('acp.cachedInitializeResult')) || {};
     await ProcessConfig.set('acp.cachedInitializeResult', {
       ...cached,
-      [backend]: parseInitializeResult(initResult),
+      [backend]: parsed,
     });
   }
 

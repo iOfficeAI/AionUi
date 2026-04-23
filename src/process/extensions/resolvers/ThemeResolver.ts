@@ -54,8 +54,8 @@ function convertTheme(theme: ExtTheme, ext: LoadedExtension): ICssTheme | null {
     if (theme.cover) {
       const coverPath = path.resolve(ext.directory, theme.cover);
       if (isPathWithinDirectory(coverPath, ext.directory) && existsSync(coverPath)) {
-        // Use aion-asset:// protocol to bypass file:// security restrictions in dev mode
-        cover = toAssetUrl(coverPath);
+        const relCover = path.relative(ext.directory, coverPath);
+        cover = toAssetUrl(ext.manifest.name, relCover);
       }
     }
 

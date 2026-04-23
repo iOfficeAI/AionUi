@@ -59,6 +59,24 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
   },
 }));
 
+// Mock agentRegistry + mcpService for TeamAgentCatalog.
+// The catalog is how TeamMcpServer now resolves backend → spawn metadata and
+// validates capabilities; without these mocks it returns an empty list and
+// every backend fails validation.
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
+    getDetectedAgents: vi.fn(() => [
+      { id: 'claude', name: 'Claude', kind: 'acp', available: true, backend: 'claude', cliPath: 'claude' },
+      { id: 'codex', name: 'Codex', kind: 'acp', available: true, backend: 'codex', cliPath: 'codex' },
+    ]),
+  },
+}));
+vi.mock('@process/services/mcpServices/McpService', () => ({
+  mcpService: {
+    getSupportedTransportsForAgent: vi.fn(() => ['stdio']),
+  },
+}));
+
 import { TeamMcpServer } from '@process/team/mcp/team/TeamMcpServer';
 import type { Mailbox } from '@process/team/Mailbox';
 import type { TaskManager } from '@process/team/TaskManager';
@@ -536,7 +554,10 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(response.error).toContain('Preset assistant "builtin-missing" not found');
+      // TeamAgentCatalog rephrases the error to cover any spawnable identity
+      // (preset, extension adapter, custom CLI), not just presets.
+      expect(response.error).toContain('"builtin-missing"');
+      expect(response.error).toContain('not found');
       expect(spawnAgent).not.toHaveBeenCalled();
     });
 
@@ -558,7 +579,10 @@ describe('TeamMcpServer', () => {
         auth_token: authToken,
       })) as Record<string, unknown>;
 
-      expect(response.error).toContain('disabled');
+      // Catalog filters out disabled presets upstream so they aren't resolvable
+      // at all. The user-facing outcome (spawn rejected) is unchanged.
+      expect(response.error).toContain('"builtin-cowork"');
+      expect(response.error).toContain('not found');
       expect(spawnAgent).not.toHaveBeenCalled();
     });
   });

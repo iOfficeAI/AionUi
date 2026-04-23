@@ -22,6 +22,8 @@ import { pathToFileURL } from 'url';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from '@process/extensions';
+import { parseAssetUrl } from '@process/extensions/protocol/assetProtocol';
+import { safeResolveExtensionAsset } from '@process/extensions/protocol/safeResolveExtensionAsset';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
@@ -412,19 +414,22 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Register aion-asset:// protocol handler.
-  // Converts aion-asset://asset/C:/path/to/file.svg → file:///C:/path/to/file.svg
-  // and serves the local file through Electron's net module.
-  protocol.handle(AION_ASSET_PROTOCOL, (request) => {
-    const url = new URL(request.url);
-    // pathname is /C:/path/to/file.svg — strip leading slash on Windows
-    let filePath = decodeURIComponent(url.pathname);
-    if (process.platform === 'win32' && filePath.startsWith('/') && /^\/[A-Za-z]:/.test(filePath)) {
-      filePath = filePath.slice(1);
+  // URL format: aion-asset://asset/{extensionName}/{relativePathWithinExtension}
+  // Resolves the extension directory via ExtensionRegistry and serves the file after
+  // running the full safeResolveExtensionAsset check (whitelist + path escape + symlink).
+  protocol.handle(AION_ASSET_PROTOCOL, async (request) => {
+    const parsed = parseAssetUrl(request.url);
+    if (!parsed) {
+      console.warn(`[aion-asset] Malformed asset URL: ${request.url}`);
+      return new Response('Bad Request', { status: 400 });
     }
-    if (!fs.existsSync(filePath)) {
-      console.warn(`[aion-asset] File not found: ${request.url} -> ${filePath}`);
+    const resolution = await safeResolveExtensionAsset(parsed.extName, parsed.relPath);
+    if (!resolution.ok) {
+      const status = resolution.error === 'not-allowed' || resolution.error === 'escape' ? 403 : 404;
+      console.warn(`[aion-asset] ${resolution.error}: ${request.url}`);
+      return new Response(resolution.error, { status });
     }
-    return net.fetch(pathToFileURL(filePath).href);
+    return net.fetch(pathToFileURL(resolution.absPath).href);
   });
 
   // Set dock icon in development mode on macOS

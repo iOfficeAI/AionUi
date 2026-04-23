@@ -18,6 +18,7 @@ import type { AgentBackend } from '@/common/types/acpTypes';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
+import { teamAgentCatalog } from './TeamAgentCatalog';
 import { TeamSession } from './TeamSession';
 import type { TTeam, TeamAgent } from './types';
 import fs from 'fs/promises';
@@ -300,6 +301,23 @@ export class TeamSessionService {
       (getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined);
     const presetResources =
       isPreset && agent.customAgentId ? await this.loadPresetResources(agent.customAgentId) : undefined;
+
+    // Defensive fallback: if agent.cliPath / customAgentId are missing (e.g. a
+    // legacy row read from DB, or a caller that still constructs TeamAgent by
+    // hand), consult the catalog. This is the same lookup spawnAgent() does,
+    // duplicated here so `buildConversationParams` is self-healing — any future
+    // entry point into team creation automatically gets correct spawn metadata.
+    let resolvedCliPath = agent.cliPath;
+    let resolvedCustomAgentId = agent.customAgentId;
+    if (!resolvedCliPath || !resolvedCustomAgentId) {
+      const entry = resolvedCustomAgentId
+        ? await teamAgentCatalog.resolveByCustomAgentId(resolvedCustomAgentId)
+        : await teamAgentCatalog.resolveByBackend(backend);
+      if (entry) {
+        resolvedCliPath = resolvedCliPath || entry.cliPath || undefined;
+        resolvedCustomAgentId = resolvedCustomAgentId || entry.customAgentId;
+      }
+    }
     let model = await this.resolveConversationModel({
       backend,
       isPreset,
@@ -321,10 +339,10 @@ export class TeamSessionService {
       workspace,
       customWorkspace: Boolean(workspace) && !isInheritedWorkspace,
       model,
-      cliPath: agent.cliPath,
-      customAgentId: agent.customAgentId,
-      isPreset,
-      presetAgentType: isPreset ? backend : undefined,
+      cliPath: resolvedCliPath,
+      customAgentId: resolvedCustomAgentId,
+      isPreset: Boolean(resolvedCustomAgentId) && backend !== 'remote',
+      presetAgentType: Boolean(resolvedCustomAgentId) && backend !== 'remote' ? backend : undefined,
       presetResources,
       sessionMode: inheritedSessionMode,
       currentModelId: preferredModelId,
@@ -764,6 +782,19 @@ export class TeamSessionService {
       // Default to the leader's agent type instead of hardcoding 'claude'
       const leadAgent = team.agents.find((a) => a.role === 'leader');
       const resolvedType = agentType || leadAgent?.agentType || 'claude';
+
+      // Look up the canonical catalog entry so cliPath / customAgentId are
+      // guaranteed to land in the DB row for spawnable backends — including
+      // extension-contributed adapters which have no ACP_BACKENDS_ALL fallback.
+      // Without this, LLM-initiated team_spawn_agent for 'kaiwu' (or any ext
+      // backend) would persist a row with null cliPath and crash spawn with
+      // "No CLI path for backend kaiwu".
+      const entry = customAgentId
+        ? await teamAgentCatalog.resolveByCustomAgentId(customAgentId)
+        : await teamAgentCatalog.resolveByBackend(resolvedType);
+      const effectiveCliPath = entry?.cliPath || undefined;
+      const effectiveCustomAgentId = customAgentId ?? entry?.customAgentId;
+
       const newAgent = await this.addAgent(teamId, {
         conversationId: '',
         role: 'teammate',
@@ -772,7 +803,8 @@ export class TeamSessionService {
         status: 'pending',
         conversationType: this.resolveConversationType(resolvedType) as 'acp',
         model,
-        customAgentId,
+        cliPath: effectiveCliPath,
+        customAgentId: effectiveCustomAgentId,
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);

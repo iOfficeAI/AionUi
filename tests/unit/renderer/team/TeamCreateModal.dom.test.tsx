@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
+import type { TeamAgentEntry } from '@/common/types/teamAgentEntry';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -21,18 +21,40 @@ const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockCreateTeam = vi.hoisted(() => vi.fn());
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
 
-const cliAgents: AvailableAgent[] = [
-  { backend: 'gemini', name: 'Gemini CLI', cliPath: '/usr/bin/gemini' },
-  { backend: 'claude', name: 'Claude Code', cliPath: '/usr/bin/claude' },
-];
-
-const presetAssistants: AvailableAgent[] = [
+// Catalog returns the same data the process-side TeamAgentCatalog would
+// produce. Modal now consumes this directly via useTeamCapableAgents.
+const catalogEntries: TeamAgentEntry[] = [
   {
+    key: 'builtin:gemini',
     backend: 'gemini',
-    name: 'Writing Buddy',
+    displayName: 'Gemini CLI',
+    cliPath: '/usr/bin/gemini',
+    source: 'builtin',
+    isTeamCapable: true,
+    isPreset: false,
+    isExtension: false,
+  },
+  {
+    key: 'builtin:claude',
+    backend: 'claude',
+    displayName: 'Claude Code',
+    cliPath: '/usr/bin/claude',
+    source: 'builtin',
+    isTeamCapable: true,
+    isPreset: false,
+    isExtension: false,
+  },
+  {
+    key: 'preset:builtin-writing-buddy',
+    backend: 'gemini',
     customAgentId: 'builtin-writing-buddy',
-    isPreset: true,
+    displayName: 'Writing Buddy',
+    cliPath: '/usr/bin/gemini',
+    source: 'preset',
     presetAgentType: 'gemini',
+    isTeamCapable: true,
+    isPreset: true,
+    isExtension: false,
   },
 ];
 
@@ -61,8 +83,8 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }));
 
-vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({ cliAgents, presetAssistants }),
+vi.mock('@renderer/pages/team/hooks/useTeamCapableAgents', () => ({
+  useTeamCapableAgents: () => ({ entries: catalogEntries, isLoading: false, refresh: vi.fn() }),
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({

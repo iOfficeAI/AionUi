@@ -95,6 +95,44 @@ describe('isTeamCapableBackend', () => {
   it('returns false for unknown backend when cached data is undefined', () => {
     expect(isTeamCapableBackend('qwen', undefined)).toBe(false);
   });
+
+  it('returns true for extension agent when "custom" cache shows mcp stdio support', () => {
+    const customCached = makeCachedInit(['custom']);
+    expect(isTeamCapableBackend('kimi', customCached, 'ext:my-ext:kimi')).toBe(true);
+  });
+
+  it('returns false for extension agent when customAgentId is missing', () => {
+    const customCached = makeCachedInit(['custom']);
+    expect(isTeamCapableBackend('kimi', customCached)).toBe(false);
+  });
+
+  it('returns false for extension agent when customAgentId does not start with ext:', () => {
+    const customCached = makeCachedInit(['custom']);
+    expect(isTeamCapableBackend('kimi', customCached, 'kimi')).toBe(false);
+  });
+
+  it('ignores ghost cache entries (no agentInfo + all transports false)', () => {
+    // Simulate a malformed legacy handshake: parseInitializeResult returned defaults
+    // because the agent sent serverCapabilities instead of agentCapabilities.
+    const ghost: Record<string, AcpInitializeResult> = {
+      kimi: {
+        protocolVersion: 0,
+        capabilities: {
+          loadSession: false,
+          promptCapabilities: { image: false, audio: false, embeddedContext: false },
+          mcpCapabilities: { stdio: false, http: false, sse: false },
+          sessionCapabilities: { fork: null, resume: null, list: null, close: null },
+          _meta: {},
+        },
+        agentInfo: null,
+        authMethods: [],
+      },
+    };
+    expect(isTeamCapableBackend('kimi', ghost)).toBe(false);
+    // Also ignore when used as the fallback 'custom' key for extension agents
+    const ghostCustom: Record<string, AcpInitializeResult> = { custom: ghost.kimi };
+    expect(isTeamCapableBackend('kimi', ghostCustom, 'ext:some-ext:kimi')).toBe(false);
+  });
 });
 
 // ---------------------------------------------------------------------------
