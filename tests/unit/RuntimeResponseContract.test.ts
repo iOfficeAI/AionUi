@@ -64,6 +64,13 @@ describe('RuntimeResponseContract', () => {
         isFirstTurn: false,
       }).active
     ).toBe(false);
+    expect(
+      createRuntimeResponseContractState({
+        assistantId: 'custom-1776969323991',
+        prompt: undefined,
+        isFirstTurn: true,
+      }).active
+    ).toBe(false);
   });
 
   it('passes a valid senior PM monitoring packet', () => {

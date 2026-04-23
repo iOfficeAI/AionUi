@@ -77,7 +77,7 @@ export type RuntimeContractFinalizeResult = {
 
 type CreateRuntimeContractStateInput = {
   assistantId?: string;
-  prompt: string;
+  prompt?: unknown;
   isFirstTurn: boolean;
   runtimeContracts?: {
     enabled?: boolean;
@@ -85,8 +85,14 @@ type CreateRuntimeContractStateInput = {
   };
 };
 
-function classifyPromptFamily(prompt: string): RuntimeContractPromptFamily | undefined {
-  const text = prompt.toLowerCase();
+function normalizePromptText(prompt: unknown): string {
+  return typeof prompt === 'string' ? prompt : '';
+}
+
+function classifyPromptFamily(prompt: unknown): RuntimeContractPromptFamily | undefined {
+  const normalizedPrompt = normalizePromptText(prompt);
+  if (!normalizedPrompt) return undefined;
+  const text = normalizedPrompt.toLowerCase();
   if (
     text.includes('review this quarter') ||
     (text.includes('quarter') &&
@@ -101,7 +107,7 @@ function classifyPromptFamily(prompt: string): RuntimeContractPromptFamily | und
   if (text.includes('pass brief') || text.includes('missing cme') || text.includes('missing inputs')) {
     return 'direct_pass_brief';
   }
-  if (/\brfi\b/i.test(prompt) || text.includes('request for information')) {
+  if (/\brfi\b/i.test(normalizedPrompt) || text.includes('request for information')) {
     return 'direct_rfi';
   }
   return undefined;

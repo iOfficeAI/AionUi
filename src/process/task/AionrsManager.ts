@@ -255,13 +255,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  async sendMessage(data: { content: string; msg_id: string; files?: string[] }) {
+  async sendMessage(data: { content?: string; input?: string; msg_id: string; files?: string[] }) {
+    const content = data.content ?? data.input ?? '';
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
       position: 'right',
       conversation_id: this.conversation_id,
-      content: { content: data.content },
+      content: { content },
     };
     addMessage(this.conversation_id, message);
     try {
@@ -274,7 +275,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this._lastActivityAt = Date.now();
     this.activeResponseContract = createRuntimeResponseContractState({
       assistantId: this.data.data.presetAssistantId,
-      prompt: data.content,
+      prompt: content,
       isFirstTurn: this.isFreshSession,
       runtimeContracts: this.data.data.runtimeContracts,
     });
@@ -283,7 +284,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
     if (this.agent) {
-      await this.agent.send(data.content, data.msg_id, data.files);
+      await this.agent.send(content, data.msg_id, data.files);
     }
     this.isFreshSession = false;
   }
