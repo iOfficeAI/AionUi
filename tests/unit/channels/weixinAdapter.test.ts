@@ -17,7 +17,7 @@ describe('toUnifiedIncomingMessage', () => {
   it('maps conversation_id to id, chatId, and user.id', () => {
     const msg = toUnifiedIncomingMessage(baseRequest);
     expect(msg.id).toBe('user_abc123');
-    expect(msg.chat_id).toBe('user_abc123');
+    expect(msg.chatId).toBe('user_abc123');
     expect(msg.user.id).toBe('user_abc123');
   });
 

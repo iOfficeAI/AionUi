@@ -126,10 +126,10 @@ describe('L3 ACP Smoke Test', () => {
     const sessionResponse = await waitForResponse(child, (msg) => msg.id === 2);
     expect(sessionResponse.result).toBeDefined();
     const sessionResult = sessionResponse.result as Record<string, unknown>;
-    expect(sessionResult.session_id).toBeDefined();
-    expect(typeof sessionResult.session_id).toBe('string');
+    expect(sessionResult.sessionId).toBeDefined();
+    expect(typeof sessionResult.sessionId).toBe('string');
 
-    const session_id = sessionResult.session_id as string;
+    const session_id = sessionResult.sessionId as string;
 
     // Step 3: Send prompt
     writeMessage(child, {

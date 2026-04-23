@@ -171,7 +171,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
 
       const result = await promise;
@@ -186,7 +186,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/symlink/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/symlink/file.pptx' });
       expect(realpathSyncMock).toHaveBeenCalledWith('/symlink/file.pptx');
 
       await emitWatchReady(child);
@@ -198,7 +198,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await flush(); // wait for findFreePort
 
       expect(spawnMock).toHaveBeenCalledWith(
@@ -218,7 +218,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await flush(); // wait for spawn
       child.emit('exit', 1, null);
 
@@ -231,7 +231,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await flush();
       child.emit('exit', null, 'SIGKILL');
 
@@ -249,7 +249,7 @@ describe('pptPreviewBridge', () => {
       const child2 = createMockChildProcess();
       spawnMock.mockReturnValueOnce(child2);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await flush();
 
       const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });
@@ -272,7 +272,7 @@ describe('pptPreviewBridge', () => {
         throw new Error('install failed');
       });
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await flush();
 
       const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });
@@ -294,7 +294,7 @@ describe('pptPreviewBridge', () => {
         throw new Error('install failed');
       });
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await flush();
 
       const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });
@@ -318,12 +318,12 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise1 = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise1 = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
       const url1 = await promise1;
 
       // Second call should reuse (process still alive: exitCode === null)
-      const result2 = await startHandler.fn!({ filePath: '/test/file.pptx' });
+      const result2 = await startHandler.fn!({ file_path: '/test/file.pptx' });
 
       expect(spawnMock).toHaveBeenCalledTimes(1);
       expect(url1).toEqual(result2);
@@ -337,7 +337,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       // Flush microtasks for findFreePort
       await vi.advanceTimersByTimeAsync(0);
       child.stdout.emit('data', Buffer.from('Watch: started'));
@@ -345,7 +345,7 @@ describe('pptPreviewBridge', () => {
       await vi.advanceTimersByTimeAsync(0);
       await promise;
 
-      await stopHandler.fn!({ filePath: '/test/file.pptx' });
+      await stopHandler.fn!({ file_path: '/test/file.pptx' });
 
       expect(child.kill).not.toHaveBeenCalled();
 
@@ -363,14 +363,14 @@ describe('pptPreviewBridge', () => {
       const child1 = createMockChildProcess();
       spawnMock.mockReturnValueOnce(child1);
       fakePort.value = 55555;
-      const p1 = startHandler.fn!({ filePath: '/test/a.pptx' });
+      const p1 = startHandler.fn!({ file_path: '/test/a.pptx' });
       await emitWatchReady(child1);
       await p1;
 
       const child2 = createMockChildProcess();
       spawnMock.mockReturnValueOnce(child2);
       fakePort.value = 55556;
-      const p2 = startHandler.fn!({ filePath: '/test/b.pptx' });
+      const p2 = startHandler.fn!({ file_path: '/test/b.pptx' });
       await emitWatchReady(child2);
       await p2;
 
@@ -388,7 +388,7 @@ describe('pptPreviewBridge', () => {
 
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
       await promise;
 
@@ -410,7 +410,7 @@ describe('pptPreviewBridge', () => {
 
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
       await promise;
 
@@ -433,7 +433,7 @@ describe('pptPreviewBridge', () => {
 
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
       await promise;
 
@@ -450,7 +450,7 @@ describe('pptPreviewBridge', () => {
 
       const child1 = createMockChildProcess();
       spawnMock.mockReturnValue(child1);
-      const p1 = startHandler.fn!({ filePath: '/test/a.pptx' });
+      const p1 = startHandler.fn!({ file_path: '/test/a.pptx' });
       await emitWatchReady(child1);
       await p1;
 
@@ -458,7 +458,7 @@ describe('pptPreviewBridge', () => {
 
       const child2 = createMockChildProcess();
       spawnMock.mockReturnValue(child2);
-      const p2 = startHandler.fn!({ filePath: '/test/b.pptx' });
+      const p2 = startHandler.fn!({ file_path: '/test/b.pptx' });
       await emitWatchReady(child2);
       await p2;
 
@@ -477,7 +477,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
       await promise;
 
@@ -489,7 +489,7 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await emitWatchReady(child);
       await promise;
 
@@ -503,13 +503,13 @@ describe('pptPreviewBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = startHandler.fn!({ filePath: '/test/file.pptx' });
+      const promise = startHandler.fn!({ file_path: '/test/file.pptx' });
       await vi.advanceTimersByTimeAsync(0);
       child.stdout.emit('data', Buffer.from('Watch: started'));
       await vi.advanceTimersByTimeAsync(0);
       await promise;
 
-      await stopHandler.fn!({ filePath: '/test/file.pptx' });
+      await stopHandler.fn!({ file_path: '/test/file.pptx' });
       await vi.advanceTimersByTimeAsync(600);
 
       expect(isActivePreviewPort(55555)).toBe(false);

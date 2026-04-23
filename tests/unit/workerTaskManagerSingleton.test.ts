@@ -47,7 +47,7 @@ describe('workerTaskManagerSingleton', () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-extra-model',
       type: 'acp',
-      model: { use_model: 'gemini-2.0-flash' },
+      model: { useModel: 'gemini-2.0-flash' },
       extra: { backend: 'gemini', current_model_id: 'gemini-2.5-pro' },
     });
 
@@ -61,11 +61,11 @@ describe('workerTaskManagerSingleton', () => {
     );
   });
 
-  it('falls back to conversation.model.use_model when no persisted current_model_id exists', async () => {
+  it('falls back to conversation.model.useModel when no persisted current_model_id exists', async () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-model-fallback',
       type: 'acp',
-      model: { use_model: 'gemini-2.0-flash' },
+      model: { useModel: 'gemini-2.0-flash' },
       extra: { backend: 'gemini' },
     });
 
@@ -83,7 +83,7 @@ describe('workerTaskManagerSingleton', () => {
     mockGetConversation.mockResolvedValue({
       id: 'conv-qwen-default',
       type: 'acp',
-      model: { use_model: 'gemini-2.0-flash' },
+      model: { useModel: 'gemini-2.0-flash' },
       extra: { backend: 'qwen' },
     });
 

@@ -9,13 +9,13 @@ import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '../../src/re
 
 describe('modelSourceLabel', () => {
   it('maps cc-switch model info to a readable source label', () => {
-    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'cc-switch' })).toBe('cc-switch');
+    expect(getAcpModelSourceLabel({ source: 'models', source_detail: 'cc-switch' })).toBe('cc-switch');
   });
 
   it('returns empty for non-cc-switch source details', () => {
-    expect(getAcpModelSourceLabel({ source: 'configOption', sourceDetail: 'acp-config-option' })).toBe('');
-    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'persisted-model' })).toBe('');
-    expect(getAcpModelSourceLabel({ source: 'models', sourceDetail: 'codex-stream' })).toBe('');
+    expect(getAcpModelSourceLabel({ source: 'configOption', source_detail: 'acp-config-option' })).toBe('');
+    expect(getAcpModelSourceLabel({ source: 'models', source_detail: 'persisted-model' })).toBe('');
+    expect(getAcpModelSourceLabel({ source: 'models', source_detail: 'codex-stream' })).toBe('');
   });
 
   it('returns empty for coarse source without cc-switch detail', () => {

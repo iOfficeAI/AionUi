@@ -31,7 +31,7 @@ import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFacto
 
 function makeConfig(overrides: Partial<AgentConfig> = {}): AgentConfig {
   return {
-    agent_backend: 'codex',
+    agentBackend: 'codex',
     agentSource: 'builtin',
     agentId: 'test-id',
     cwd: '/tmp/test',
@@ -87,7 +87,7 @@ describe('LegacyConnectorFactory', () => {
       });
 
       const factory = new LegacyConnectorFactory();
-      factory.create(makeConfig({ agent_backend: 'codex' }), makeHandlers());
+      factory.create(makeConfig({ agentBackend: 'codex' }), makeHandlers());
 
       // Invoke the spawnFn to verify it calls connectCodex
       const { spawnFn } = mockProcessAcpClientInstances[0];
@@ -103,7 +103,7 @@ describe('LegacyConnectorFactory', () => {
       });
 
       const factory = new LegacyConnectorFactory();
-      factory.create(makeConfig({ agent_backend: 'claude' }), makeHandlers());
+      factory.create(makeConfig({ agentBackend: 'claude' }), makeHandlers());
 
       const { spawnFn } = mockProcessAcpClientInstances[0];
       await spawnFn();
@@ -119,7 +119,7 @@ describe('LegacyConnectorFactory', () => {
       );
 
       const factory = new LegacyConnectorFactory();
-      factory.create(makeConfig({ agent_backend: 'codebuddy' }), makeHandlers());
+      factory.create(makeConfig({ agentBackend: 'codebuddy' }), makeHandlers());
 
       const { spawnFn } = mockProcessAcpClientInstances[0];
       await spawnFn();
@@ -130,7 +130,7 @@ describe('LegacyConnectorFactory', () => {
       mocks.connectCodex.mockRejectedValue(new Error('npx failed'));
 
       const factory = new LegacyConnectorFactory();
-      factory.create(makeConfig({ agent_backend: 'codex' }), makeHandlers());
+      factory.create(makeConfig({ agentBackend: 'codex' }), makeHandlers());
 
       const { spawnFn } = mockProcessAcpClientInstances[0];
       await expect(spawnFn()).rejects.toThrow('npx failed');
@@ -145,7 +145,7 @@ describe('LegacyConnectorFactory', () => {
       const factory = new LegacyConnectorFactory();
       factory.create(
         makeConfig({
-          agent_backend: 'goose',
+          agentBackend: 'goose',
           agentSource: 'custom',
           command: '/usr/local/bin/goose',
           args: ['acp'],
@@ -165,7 +165,7 @@ describe('LegacyConnectorFactory', () => {
     it('throws when no command and no npx backend', async () => {
       const factory = new LegacyConnectorFactory();
       factory.create(
-        makeConfig({ agent_backend: 'unknown-backend' as AgentConfig['agent_backend'], command: undefined }),
+        makeConfig({ agentBackend: 'unknown-backend' as AgentConfig['agent_backend'], command: undefined }),
         makeHandlers()
       );
 

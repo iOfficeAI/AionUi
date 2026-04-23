@@ -332,8 +332,8 @@ describe('L1 Hub Install Flow — Integration', () => {
       const response = await waitForJsonRpcResponse(child, (msg) => msg.id === 2);
       const result = response.result as Record<string, unknown>;
 
-      expect(result.session_id).toBeDefined();
-      expect(typeof result.session_id).toBe('string');
+      expect(result.sessionId).toBeDefined();
+      expect(typeof result.sessionId).toBe('string');
       expect(result.models).toBeDefined();
     });
 
@@ -357,14 +357,14 @@ describe('L1 Hub Install Flow — Integration', () => {
         params: { cwd: '.', mcp_servers: [] },
       });
       const sessionResponse = await waitForJsonRpcResponse(child, (msg) => msg.id === 2);
-      const session_id = (sessionResponse.result as Record<string, unknown>).session_id as string;
+      const sessionId = (sessionResponse.result as Record<string, unknown>).sessionId as string;
 
       writeJsonRpc(child, {
         jsonrpc: JSONRPC_VERSION,
         id: 3,
         method: 'session/prompt',
         params: {
-          session_id,
+          sessionId,
           prompt: [{ type: 'text', text: 'What is 2+2?' }],
         },
       });
@@ -463,8 +463,8 @@ describe('L1 Hub Install Flow — Integration', () => {
       });
 
       const sessionResponse = await waitForJsonRpcResponse(child, (msg) => msg.id === 2);
-      const session_id = (sessionResponse.result as Record<string, unknown>).session_id as string;
-      expect(session_id).toBeDefined();
+      const sessionId = (sessionResponse.result as Record<string, unknown>).sessionId as string;
+      expect(sessionId).toBeDefined();
 
       // ── Phase 4: Send prompt and verify response (end-to-end data flow) ──
       writeJsonRpc(child, {
@@ -472,7 +472,7 @@ describe('L1 Hub Install Flow — Integration', () => {
         id: 3,
         method: 'session/prompt',
         params: {
-          session_id,
+          sessionId,
           prompt: [{ type: 'text', text: 'Integration test prompt' }],
         },
       });

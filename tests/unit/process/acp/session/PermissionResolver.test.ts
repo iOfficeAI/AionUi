@@ -12,15 +12,15 @@ function makeRequest(
   return {
     session_id: 'sess-1',
     toolCall: {
-      tool_call_id: call_id,
+      toolCallId: call_id,
       title: toolName,
       kind: overrides?.kind as RequestPermissionRequest['toolCall']['kind'],
       rawInput: overrides?.rawInput,
     },
     options: [
-      { option_id: 'allow', name: 'Allow', kind: 'allow_once' },
-      { option_id: 'deny', name: 'Deny', kind: 'reject_once' },
-      { option_id: 'always', name: 'Always', kind: 'allow_always' },
+      { optionId: 'allow', name: 'Allow', kind: 'allow_once' },
+      { optionId: 'deny', name: 'Deny', kind: 'reject_once' },
+      { optionId: 'always', name: 'Always', kind: 'allow_always' },
     ],
   };
 }
@@ -29,7 +29,7 @@ describe('PermissionResolver', () => {
   it('auto-approves in YOLO mode', async () => {
     const resolver = new PermissionResolver({ autoApproveAll: true });
     const result = await resolver.evaluate(makeRequest(), vi.fn());
-    expect(result.outcome).toEqual({ outcome: 'selected', option_id: 'allow' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow' });
   });
 
   it('returns cached approval on second call with same key', async () => {
@@ -45,7 +45,7 @@ describe('PermissionResolver', () => {
     const uiCallback2 = vi.fn();
     const result = await resolver.evaluate(makeRequest('read_file', 'c2', { kind: 'read' }), uiCallback2);
     expect(uiCallback2).not.toHaveBeenCalled();
-    expect(result.outcome).toEqual({ outcome: 'selected', option_id: 'allow_always' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow_always' });
   });
 
   it('does NOT cache-hit when kind differs', async () => {
@@ -91,7 +91,7 @@ describe('PermissionResolver', () => {
       uiCallback
     );
     expect(uiCallback).not.toHaveBeenCalled();
-    expect(result.outcome).toEqual({ outcome: 'selected', option_id: 'allow_always' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow_always' });
   });
 
   it('delegates to UI when no cache hit', async () => {
@@ -101,7 +101,7 @@ describe('PermissionResolver', () => {
     expect(uiCallback).toHaveBeenCalledOnce();
     resolver.resolve('c1', 'allow');
     const result = await promise;
-    expect(result.outcome).toEqual({ outcome: 'selected', option_id: 'allow' });
+    expect(result.outcome).toEqual({ outcome: 'selected', optionId: 'allow' });
   });
 
   it('passes kind, rawInput, and locations to UI callback', async () => {
@@ -110,13 +110,13 @@ describe('PermissionResolver', () => {
     const request: RequestPermissionRequest = {
       session_id: 'sess-1',
       toolCall: {
-        tool_call_id: 'c1',
+        toolCallId: 'c1',
         title: 'Execute Command',
         kind: 'execute',
         rawInput: { command: 'ls -la' },
         locations: [{ path: '/workspace/src' }],
       },
-      options: [{ option_id: 'allow', name: 'Allow', kind: 'allow_once' }],
+      options: [{ optionId: 'allow', name: 'Allow', kind: 'allow_once' }],
     };
 
     resolver.evaluate(request, uiCallback);

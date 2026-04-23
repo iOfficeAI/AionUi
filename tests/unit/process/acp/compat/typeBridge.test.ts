@@ -26,7 +26,7 @@ describe('typeBridge', () => {
       const result = toAgentConfig(oldConfig);
 
       expect(result).toMatchObject({
-        agent_backend: 'claude',
+        agentBackend: 'claude',
         agentSource: 'extension',
         agentId: 'test-agent-1',
         cwd: '/workspace/test',
@@ -189,12 +189,12 @@ describe('typeBridge', () => {
       const result = toAcpModelInfo(snapshot);
 
       expect(result.current_model_id).toBe('gpt-4');
-      expect(result.current_modelLabel).toBe('GPT-4');
+      expect(result.current_model_label).toBe('GPT-4');
       expect(result.available_models).toEqual([
         { id: 'gpt-4', label: 'GPT-4' },
         { id: 'gpt-3.5', label: 'GPT-3.5' },
       ]);
-      expect(result.canSwitch).toBe(true);
+      expect(result.can_switch).toBe(true);
       expect(result.source).toBe('models');
     });
 
@@ -207,7 +207,7 @@ describe('typeBridge', () => {
       const result = toAcpModelInfo(snapshot);
 
       expect(result.current_model_id).toBeNull();
-      expect(result.current_modelLabel).toBeNull();
+      expect(result.current_model_label).toBeNull();
     });
 
     it('should handle empty available models', () => {
@@ -219,7 +219,7 @@ describe('typeBridge', () => {
       const result = toAcpModelInfo(snapshot);
 
       expect(result.available_models).toEqual([]);
-      expect(result.canSwitch).toBe(false);
+      expect(result.can_switch).toBe(false);
     });
   });
 
@@ -232,7 +232,7 @@ describe('typeBridge', () => {
           type: 'select',
           category: 'model',
           description: 'Select model',
-          currentValue: 'gpt-4',
+          current_value: 'gpt-4',
           options: [
             { id: 'gpt-4', name: 'GPT-4' },
             { id: 'gpt-3.5', name: 'GPT-3.5' },
@@ -250,8 +250,8 @@ describe('typeBridge', () => {
           type: 'select',
           category: 'model',
           description: 'Select model',
-          currentValue: 'gpt-4',
-          selectedValue: 'gpt-4',
+          current_value: 'gpt-4',
+          selected_value: 'gpt-4',
           options: [
             { value: 'gpt-4', name: 'GPT-4', label: 'GPT-4' },
             { value: 'gpt-3.5', name: 'GPT-3.5', label: 'GPT-3.5' },
@@ -266,7 +266,7 @@ describe('typeBridge', () => {
           id: 'auto-approve',
           name: 'Auto Approve',
           type: 'boolean',
-          currentValue: true,
+          current_value: true,
         },
       ];
 
@@ -278,8 +278,8 @@ describe('typeBridge', () => {
           name: 'Auto Approve',
           label: 'Auto Approve',
           type: 'boolean',
-          currentValue: 'true',
-          selectedValue: 'true',
+          current_value: 'true',
+          selected_value: 'true',
         },
       ]);
     });
@@ -290,7 +290,7 @@ describe('typeBridge', () => {
           id: 'simple-option',
           name: 'Simple',
           type: 'select',
-          currentValue: 'value1',
+          current_value: 'value1',
         },
       ];
 

@@ -93,8 +93,8 @@ describe('WeixinPlugin — Promise bridge', () => {
     const received: unknown[] = [];
     plugin.onMessage(async (msg) => {
       received.push(msg);
-      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'partial' });
-      await plugin.editMessage(msg.chat_id, msgId, {
+      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'partial' });
+      await plugin.editMessage(msg.chatId, msgId, {
         type: 'text',
         text: 'Final answer',
         replyMarkup: { done: true },
@@ -120,10 +120,10 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.initialize(createConfig());
 
     plugin.onMessage(async (msg) => {
-      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text' });
-      await plugin.editMessage(msg.chat_id, msgId, { type: 'text', text: 'chunk 1' });
-      await plugin.editMessage(msg.chat_id, msgId, { type: 'text', text: 'chunk 1 chunk 2' });
-      await plugin.editMessage(msg.chat_id, msgId, {
+      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text' });
+      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'chunk 1' });
+      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'chunk 1 chunk 2' });
+      await plugin.editMessage(msg.chatId, msgId, {
         type: 'text',
         text: 'final complete text',
         replyMarkup: {},
@@ -142,8 +142,8 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.initialize(createConfig());
 
     plugin.onMessage(async (msg) => {
-      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'working' });
-      await plugin.editMessage(msg.chat_id, msgId, {
+      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'working' });
+      await plugin.editMessage(msg.chatId, msgId, {
         type: 'text',
         text: '',
         mediaActions: [{ type: 'file', path: '/tmp/report.pdf', file_name: 'report.pdf' }],

@@ -335,7 +335,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
     it('should return false initially', () => {
       const agent = createAgent();
 
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
 
     it('should return false when status is starting', async () => {
@@ -343,7 +343,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('starting');
 
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
 
     it('should return true when status is active', async () => {
@@ -351,7 +351,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('active');
 
-      expect(agent.hasActiveSession).toBe(true);
+      expect(agent.has_active_session).toBe(true);
     });
 
     it('should return true when status is prompting', async () => {
@@ -359,7 +359,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('prompting');
 
-      expect(agent.hasActiveSession).toBe(true);
+      expect(agent.has_active_session).toBe(true);
     });
 
     it('should return false when status is suspended', async () => {
@@ -367,7 +367,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('suspended');
 
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
 
     it('should return false when status is resuming', async () => {
@@ -375,7 +375,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('resuming');
 
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
 
     it('should return false when status is error', async () => {
@@ -383,7 +383,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('error');
 
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
 
     it('should return false when status is idle', async () => {
@@ -391,7 +391,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       capturedCallbacks.onStatusChange('idle');
 
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
   });
 
@@ -406,7 +406,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       await agent.start();
       expect(agent.is_connected).toBe(true);
-      expect(agent.hasActiveSession).toBe(true);
+      expect(agent.has_active_session).toBe(true);
 
       // Kill
       await agent.kill();
@@ -422,7 +422,7 @@ describe('AcpAgentV2 - Lifecycle Methods', () => {
 
       await expect(agent.start()).rejects.toThrow('Session failed to start');
       expect(agent.is_connected).toBe(false);
-      expect(agent.hasActiveSession).toBe(false);
+      expect(agent.has_active_session).toBe(false);
     });
 
     it('should handle cancelPrompt during active session', async () => {
@@ -666,7 +666,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
           { id: 'claude-4', label: 'Claude 4' },
           { id: 'claude-3', label: 'Claude 3' },
         ],
-        canSwitch: true,
+        can_switch: true,
         source: 'models',
       });
     });
@@ -708,7 +708,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
             category: 'general',
             description: 'First option',
             type: 'select',
-            currentValue: 'val1',
+            current_value: 'val1',
             options: [],
           },
           {
@@ -717,7 +717,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
             category: 'general',
             description: 'Second option',
             type: 'boolean',
-            currentValue: true,
+            current_value: true,
             options: [],
           },
         ],
@@ -733,8 +733,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
           type: 'select',
           category: 'general',
           description: 'First option',
-          currentValue: 'val1',
-          selectedValue: 'val1',
+          current_value: 'val1',
+          selected_value: 'val1',
         },
         {
           id: 'opt2',
@@ -743,8 +743,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
           type: 'boolean',
           category: 'general',
           description: 'Second option',
-          currentValue: 'true',
-          selectedValue: 'true',
+          current_value: 'true',
+          selected_value: 'true',
         },
       ]);
     });
@@ -770,7 +770,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
         current_model_id: 'claude-4',
         current_model_label: 'Claude 4',
         available_models: [{ id: 'claude-4', label: 'Claude 4' }],
-        canSwitch: true,
+        can_switch: true,
         source: 'models',
       });
       expect(mockSessionMethods.setModel).toHaveBeenCalledWith('claude-4');
@@ -801,7 +801,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
         current_model_id: 'claude-3',
         current_model_label: 'Claude 3',
         available_models: [{ id: 'claude-3', label: 'Claude 3' }],
-        canSwitch: true,
+        can_switch: true,
         source: 'models',
       });
       expect(mockSessionMethods.setModel).toHaveBeenCalledWith('claude-4');
@@ -830,7 +830,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
         current_model_id: 'claude-4',
         current_model_label: 'Claude 4',
         available_models: [{ id: 'claude-4', label: 'Claude 4' }],
-        canSwitch: true,
+        can_switch: true,
         source: 'models',
       });
 
@@ -917,7 +917,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
                 category: 'general',
                 description: 'First option',
                 type: 'select',
-                currentValue: 'new-value',
+                current_value: 'new-value',
                 options: [],
               },
             ],
@@ -936,8 +936,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
           type: 'select',
           category: 'general',
           description: 'First option',
-          currentValue: 'new-value',
-          selectedValue: 'new-value',
+          current_value: 'new-value',
+          selected_value: 'new-value',
         },
       ]);
       expect(mockSessionMethods.setConfigOption).toHaveBeenCalledWith('opt1', 'new-value');
@@ -956,7 +956,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
             category: 'general',
             description: 'First option',
             type: 'select',
-            currentValue: 'old-value',
+            current_value: 'old-value',
             options: [],
           },
         ],
@@ -982,8 +982,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
           type: 'select',
           category: 'general',
           description: 'First option',
-          currentValue: 'old-value',
-          selectedValue: 'old-value',
+          current_value: 'old-value',
+          selected_value: 'old-value',
         },
       ]);
       expect(mockSessionMethods.setConfigOption).toHaveBeenCalledWith('opt1', 'new-value');
@@ -1005,7 +1005,7 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
                 category: 'general',
                 description: 'First option',
                 type: 'select',
-                currentValue: 'updated',
+                current_value: 'updated',
                 options: [],
               },
             ],
@@ -1026,8 +1026,8 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
           type: 'select',
           category: 'general',
           description: 'First option',
-          currentValue: 'updated',
-          selectedValue: 'updated',
+          current_value: 'updated',
+          selected_value: 'updated',
         },
       ]);
 
