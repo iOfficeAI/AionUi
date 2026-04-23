@@ -9,7 +9,7 @@ import type { CronJob } from './CronStore';
 export interface ICronEventEmitter {
   emitJobCreated(job: CronJob): void;
   emitJobUpdated(job: CronJob): void;
-  emitJobExecuted(jobId: string, status: 'ok' | 'error' | 'skipped' | 'missed', error?: string): void;
-  emitJobRemoved(jobId: string): void;
-  showNotification(params: { title: string; body: string; conversationId: string }): Promise<void>;
+  emitJobExecuted(job_id: string, status: 'ok' | 'error' | 'skipped' | 'missed', error?: string): void;
+  emitJobRemoved(job_id: string): void;
+  showNotification(params: { title: string; body: string; conversation_id: string }): Promise<void>;
 }

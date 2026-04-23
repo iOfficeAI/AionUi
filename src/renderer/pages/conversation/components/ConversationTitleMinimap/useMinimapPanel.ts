@@ -51,7 +51,7 @@ type UseMinimapPanelReturn = {
 /**
  * Extracts all state management and side effects for the ConversationTitleMinimap component.
  */
-export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn => {
+export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn => {
   const [visible, setVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const [items, setItems] = useState<TurnPreviewItem[]>([]);
@@ -79,7 +79,7 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
     setActiveResultIndex(-1);
     isSearchInputComposingRef.current = false;
     pendingCloseAfterCompositionRef.current = false;
-  }, [conversationId]);
+  }, [conversation_id]);
 
   // Sync searchKeyword to ref
   useEffect(() => {
@@ -107,16 +107,16 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
 
   // Fetch data
   const fetchTurnPreview = useCallback(async () => {
-    if (!conversationId) {
+    if (!conversation_id) {
       setItems([]);
       return;
     }
     setLoading(true);
     try {
       const messages = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         page: 0,
-        pageSize: 10000,
+        page_size: 10000,
       });
       setItems(buildTurnPreview(messages?.items || []));
     } catch (error) {
@@ -125,7 +125,7 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
     } finally {
       setLoading(false);
     }
-  }, [conversationId]);
+  }, [conversation_id]);
 
   // Derived values
   const normalizedKeyword = useMemo(() => normalizeText(searchKeyword).toLowerCase(), [searchKeyword]);
@@ -180,13 +180,13 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
 
   // Handlers
   const openSearchPanel = useCallback(() => {
-    if (!conversationId) return;
+    if (!conversation_id) return;
     updatePanelLayout(panelHeight);
     setVisualStyle(readPopoverVisualStyle());
     setVisible(true);
     setIsSearchMode(true);
     void fetchTurnPreview();
-  }, [conversationId, fetchTurnPreview, panelHeight, updatePanelLayout]);
+  }, [conversation_id, fetchTurnPreview, panelHeight, updatePanelLayout]);
 
   const togglePanel = useCallback(() => {
     setVisible((prev) => {
@@ -331,9 +331,9 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
   // Jump to item
   const jumpToItem = useCallback(
     (item?: TurnPreviewItem) => {
-      if (!conversationId || !item) return;
+      if (!conversation_id || !item) return;
       dispatchChatMessageJump({
-        conversationId,
+        conversation_id,
         messageId: item.messageId,
         msgId: item.msgId,
         align: 'start',
@@ -342,7 +342,7 @@ export const useMinimapPanel = (conversationId?: string): UseMinimapPanelReturn 
       setVisible(false);
       setIsSearchMode(false);
     },
-    [conversationId]
+    [conversation_id]
   );
 
   // Keyboard navigation for search results

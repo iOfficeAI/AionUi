@@ -17,7 +17,7 @@ const getCycledConversationId = (
     return null;
   }
 
-  const activeIndex = visibleConversationIds.findIndex((conversationId) => conversationId === activeConversationId);
+  const activeIndex = visibleConversationIds.findIndex((conversation_id) => conversation_id === activeConversationId);
   if (activeIndex === -1) {
     return null;
   }

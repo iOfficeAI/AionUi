@@ -225,7 +225,7 @@ const ConversationTabs: React.FC = () => {
         } else if (key.startsWith('preset:')) {
           const assistantId = key.slice(7);
           // [BUG-6] Null check: find() may return undefined
-          const agent = presetAssistants.find((a) => a.customAgentId === assistantId);
+          const agent = presetAssistants.find((a) => a.custom_agent_id === assistantId);
           if (!agent) {
             Message.error(t('conversation.createFailed'));
             return;
@@ -302,7 +302,7 @@ const ConversationTabs: React.FC = () => {
               const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
               const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
               return (
-                <Menu.Item key={`preset:${agent.customAgentId}`}>
+                <Menu.Item key={`preset:${agent.custom_agent_id}`}>
                   <div className='flex items-center gap-8px'>
                     {avatarImage ? (
                       <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />

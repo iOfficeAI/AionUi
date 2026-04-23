@@ -267,16 +267,17 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<
       if (lastRole === msg.role) {
         const lastMsg = result[result.length - 1];
         const lastContent = lastMsg.content;
-        const newContent = msg.content;
+        const new_content = msg.content;
 
         // Merge contents
-        if (typeof lastContent === 'string' && typeof newContent === 'string') {
-          lastMsg.content = lastContent + '\n' + newContent;
+        if (typeof lastContent === 'string' && typeof new_content === 'string') {
+          lastMsg.content = lastContent + '\n' + new_content;
         } else {
           // Convert to array and merge
           const lastArray =
             typeof lastContent === 'string' ? [{ type: 'text' as const, text: lastContent }] : lastContent;
-          const newArray = typeof newContent === 'string' ? [{ type: 'text' as const, text: newContent }] : newContent;
+          const newArray =
+            typeof new_content === 'string' ? [{ type: 'text' as const, text: new_content }] : new_content;
           lastMsg.content = [...lastArray, ...newArray];
         }
       } else {
@@ -298,8 +299,8 @@ export class OpenAI2AnthropicConverter implements ProtocolConverter<
   /**
    * Map Anthropic stop reasons to OpenAI finish reasons
    */
-  private mapStopReason(stopReason: string | null): string {
-    switch (stopReason) {
+  private mapStopReason(stop_reason: string | null): string {
+    switch (stop_reason) {
       case 'end_turn':
         return 'stop';
       case 'max_tokens':

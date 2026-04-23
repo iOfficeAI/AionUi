@@ -24,21 +24,21 @@ import { notifyMcpReady } from '../../mcpReadiness.ts';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
 
 type SpawnAgentFn = (
-  agentName: string,
-  agentType?: string,
+  agent_name: string,
+  agent_type?: string,
   model?: string,
-  customAgentId?: string
+  custom_agent_id?: string
 ) => Promise<TeamAgent>;
 
 type TeamMcpServerParams = {
-  teamId: string;
+  team_id: string;
   getAgents: () => TeamAgent[];
   mailbox: Mailbox;
   taskManager: TaskManager;
   spawnAgent?: SpawnAgentFn;
-  renameAgent?: (slotId: string, newName: string) => void;
-  removeAgent?: (slotId: string) => void;
-  wakeAgent: (slotId: string) => Promise<void>;
+  renameAgent?: (slot_id: string, new_name: string) => void;
+  removeAgent?: (slot_id: string) => void;
+  wakeAgent: (slot_id: string) => Promise<void>;
 };
 
 export type StdioMcpConfig = {
@@ -83,13 +83,13 @@ export class TeamMcpServer {
       });
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);
-      console.error(`[TeamMcpServer] Team ${this.params.teamId} TCP server failed to start:`, error);
-      ipcBridge.team.mcpStatus.emit({ teamId: this.params.teamId, phase: 'tcp_error', error });
+      console.error(`[TeamMcpServer] Team ${this.params.team_id} TCP server failed to start:`, error);
+      ipcBridge.team.mcpStatus.emit({ team_id: this.params.team_id, phase: 'tcp_error', error });
       throw err;
     }
 
-    console.log(`[TeamMcpServer] Team ${this.params.teamId} TCP server started on port ${this._port}`);
-    ipcBridge.team.mcpStatus.emit({ teamId: this.params.teamId, phase: 'tcp_ready', port: this._port });
+    console.log(`[TeamMcpServer] Team ${this.params.team_id} TCP server started on port ${this._port}`);
+    ipcBridge.team.mcpStatus.emit({ team_id: this.params.team_id, phase: 'tcp_ready', port: this._port });
     return this.getStdioConfig();
   }
 
@@ -110,7 +110,7 @@ export class TeamMcpServer {
     }
 
     return {
-      name: `aionui-team-${this.params.teamId}`,
+      name: `aionui-team-${this.params.team_id}`,
       command: 'node',
       args: [scriptPath],
       env,
@@ -122,7 +122,7 @@ export class TeamMcpServer {
     if (this.tcpServer) {
       await new Promise<void>((resolve) => {
         this.tcpServer!.close(() => {
-          console.log(`[TeamMcpServer] Team ${this.params.teamId} TCP server stopped`);
+          console.log(`[TeamMcpServer] Team ${this.params.team_id} TCP server stopped`);
           this.tcpServer = null;
           resolve();
         });
@@ -148,11 +148,11 @@ export class TeamMcpServer {
 
   private resolveSlotId(nameOrSlotId: string): string | undefined {
     const agents = this.params.getAgents();
-    const bySlot = agents.find((a) => a.slotId === nameOrSlotId);
-    if (bySlot) return bySlot.slotId;
+    const bySlot = agents.find((a) => a.slot_id === nameOrSlotId);
+    if (bySlot) return bySlot.slot_id;
     const needle = TeamMcpServer.normalize(nameOrSlotId);
-    const byName = agents.find((a) => TeamMcpServer.normalize(a.agentName) === needle);
-    return byName?.slotId;
+    const byName = agents.find((a) => TeamMcpServer.normalize(a.agent_name) === needle);
+    return byName?.slot_id;
   }
 
   /**
@@ -162,9 +162,9 @@ export class TeamMcpServer {
    * Without this guard the error vanishes silently and the would-be wake target
    * never runs — which is one of the ways "codex 空转" used to present.
    */
-  private safeWake(slotId: string, context: string): void {
-    this.params.wakeAgent(slotId).catch((err) => {
-      console.error(`[TeamMcpServer] wake(${slotId}) failed during ${context}:`, err);
+  private safeWake(slot_id: string, context: string): void {
+    this.params.wakeAgent(slot_id).catch((err) => {
+      console.error(`[TeamMcpServer] wake(${slot_id}) failed during ${context}:`, err);
     });
   }
 
@@ -201,12 +201,12 @@ export class TeamMcpServer {
           return;
         }
 
-        const toolName = request.tool ?? '';
+        const tool_name = request.tool ?? '';
         const args = request.args ?? {};
         const fromSlotId = request.from_slot_id;
 
         try {
-          const result = await this.handleToolCall(toolName, args, fromSlotId);
+          const result = await this.handleToolCall(tool_name, args, fromSlotId);
           writeTcpMessage(socket, { result });
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
@@ -241,13 +241,13 @@ export class TeamMcpServer {
 
   // ── Tool dispatch ───────────────────────────────────────────────────────────
 
-  private async handleToolCall(toolName: string, args: Record<string, unknown>, fromSlotId?: string): Promise<string> {
-    switch (toolName) {
+  private async handleToolCall(tool_name: string, args: Record<string, unknown>, fromSlotId?: string): Promise<string> {
+    switch (tool_name) {
       case 'team_send_message':
         return this.handleSendMessage(args, fromSlotId);
       case 'team_spawn_agent': {
         const agents = this.params.getAgents();
-        const caller = fromSlotId ? agents.find((a) => a.slotId === fromSlotId) : undefined;
+        const caller = fromSlotId ? agents.find((a) => a.slot_id === fromSlotId) : undefined;
         if (caller && caller.role !== 'leader') {
           throw new Error(
             'Only the team leader can spawn new agents. Send a message to the leader via team_send_message and ask them to create the agent you need.'
@@ -272,14 +272,14 @@ export class TeamMcpServer {
       case 'team_list_models':
         return handleListModels(args);
       default:
-        throw new Error(`Unknown tool: ${toolName}`);
+        throw new Error(`Unknown tool: ${tool_name}`);
     }
   }
 
   // ── Tool handlers (logic preserved from original registerTools) ─────────────
 
   private async handleSendMessage(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox } = this.params;
+    const { team_id, getAgents, mailbox } = this.params;
     const to = String(args.to ?? '');
     const message = String(args.message ?? '');
     const summary = args.summary ? String(args.summary) : undefined;
@@ -287,28 +287,28 @@ export class TeamMcpServer {
     const agents = getAgents();
     // Use actual caller identity when available, fall back to leader
     const fromAgent =
-      (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
+      (callerSlotId && agents.find((a) => a.slot_id === callerSlotId)) ??
       agents.find((a) => a.role === 'leader') ??
       agents[0];
-    const fromSlotId = fromAgent?.slotId ?? 'unknown';
+    const fromSlotId = fromAgent?.slot_id ?? 'unknown';
 
     if (to === '*') {
       const recipients: string[] = [];
       await Promise.all(
         agents
-          .filter((agent) => agent.slotId !== fromSlotId)
+          .filter((agent) => agent.slot_id !== fromSlotId)
           .map((agent) =>
             mailbox
               .write({
-                teamId,
-                toAgentId: agent.slotId,
+                team_id,
+                toAgentId: agent.slot_id,
                 fromAgentId: fromSlotId,
                 content: message,
                 summary,
               })
               .then(() => {
-                recipients.push(agent.agentName);
-                this.safeWake(agent.slotId, 'broadcast message');
+                recipients.push(agent.agent_name);
+                this.safeWake(agent.slot_id, 'broadcast message');
               })
           )
       );
@@ -317,7 +317,7 @@ export class TeamMcpServer {
 
     const targetSlotId = this.resolveSlotId(to);
     if (!targetSlotId) {
-      throw new Error(`Teammate "${to}" not found. Available: ${agents.map((a) => a.agentName).join(', ')}`);
+      throw new Error(`Teammate "${to}" not found. Available: ${agents.map((a) => a.agent_name).join(', ')}`);
     }
 
     // Intercept shutdown responses from members
@@ -326,16 +326,16 @@ export class TeamMcpServer {
     const isShutdownRejected = trimmedMessage.startsWith('shutdown_rejected');
 
     if (isShutdownApproved || isShutdownRejected) {
-      const senderAgent = agents.find((a) => a.slotId === fromSlotId);
-      const memberName = senderAgent?.agentName ?? fromSlotId;
+      const senderAgent = agents.find((a) => a.slot_id === fromSlotId);
+      const memberName = senderAgent?.agent_name ?? fromSlotId;
       const leadAgent = agents.find((a) => a.role === 'leader');
-      const leadSlotId = leadAgent?.slotId;
+      const leadSlotId = leadAgent?.slot_id;
 
       if (isShutdownApproved && this.params.removeAgent) {
         this.params.removeAgent(fromSlotId);
         if (leadSlotId) {
           await mailbox.write({
-            teamId,
+            team_id,
             toAgentId: leadSlotId,
             fromAgentId: fromSlotId,
             content: `${memberName} has shut down and been removed from the team.`,
@@ -347,7 +347,7 @@ export class TeamMcpServer {
         const reason = trimmedMessage.replace(/^shutdown_rejected[:\s]*/i, '').trim() || 'No reason given.';
         if (leadSlotId) {
           await mailbox.write({
-            teamId,
+            team_id,
             toAgentId: leadSlotId,
             fromAgentId: fromSlotId,
             content: `${memberName} refused to shut down. Reason: ${reason}`,
@@ -359,7 +359,7 @@ export class TeamMcpServer {
     }
 
     await mailbox.write({
-      teamId,
+      team_id,
       toAgentId: targetSlotId,
       fromAgentId: fromSlotId,
       content: message,
@@ -371,58 +371,58 @@ export class TeamMcpServer {
   }
 
   private async handleSpawnAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox, spawnAgent } = this.params;
+    const { team_id, getAgents, mailbox, spawnAgent } = this.params;
     const name = String(args.name ?? '');
-    const customAgentId = args.custom_agent_id ? String(args.custom_agent_id) : undefined;
+    const custom_agent_id = args.custom_agent_id ? String(args.custom_agent_id) : undefined;
     const model = args.model ? String(args.model) : undefined;
-    let agentType = args.agent_type ? String(args.agent_type) : undefined;
+    let agent_type = args.agent_type ? String(args.agent_type) : undefined;
 
     // When a preset is requested, resolve its backend from config so the caller
     // does not need to specify agent_type separately.
-    if (customAgentId) {
+    if (custom_agent_id) {
       const assistants = (await ProcessConfig.get('assistants')) ?? [];
-      const preset = assistants.find((a) => a.id === customAgentId && a.isPreset);
+      const preset = assistants.find((a) => a.id === custom_agent_id && a.is_preset);
       if (!preset) {
         const availableIds = assistants
-          .filter((a) => a.isPreset && a.enabled !== false)
+          .filter((a) => a.is_preset && a.enabled !== false)
           .map((a) => a.id)
           .join(', ');
         throw new Error(
-          `Preset assistant "${customAgentId}" not found.${
+          `Preset assistant "${custom_agent_id}" not found.${
             availableIds ? ` Available: ${availableIds}.` : ' No preset assistants are currently enabled.'
           }`
         );
       }
       if (preset.enabled === false) {
-        throw new Error(`Preset assistant "${customAgentId}" is disabled. Enable it before spawning.`);
+        throw new Error(`Preset assistant "${custom_agent_id}" is disabled. Enable it before spawning.`);
       }
       const presetBackend = preset.presetAgentType || 'gemini';
-      if (agentType && agentType !== presetBackend) {
+      if (agent_type && agent_type !== presetBackend) {
         console.warn(
-          `[TeamMcpServer] handleSpawnAgent: agent_type "${agentType}" overridden by preset "${customAgentId}" backend "${presetBackend}".`
+          `[TeamMcpServer] handleSpawnAgent: agent_type "${agent_type}" overridden by preset "${custom_agent_id}" backend "${presetBackend}".`
         );
       }
-      agentType = presetBackend;
+      agent_type = presetBackend;
     }
 
     // Team mode validation: only backends with confirmed ACP MCP stdio support
-    if (agentType) {
+    if (agent_type) {
       const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-      if (!isTeamCapableBackend(agentType, cachedInitResults)) {
+      if (!isTeamCapableBackend(agent_type, cachedInitResults)) {
         const capable = getTeamCapableBackends(
           agentRegistry.getDetectedAgents().map((a) => a.backend),
           cachedInitResults
         );
-        throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
+        throw new Error(`Agent type "${agent_type}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
       }
     }
 
-    if (model && agentType) {
+    if (model && agent_type) {
       const cachedModels = await ProcessConfig.get('acp.cachedModels');
-      const available = cachedModels?.[agentType]?.availableModels;
+      const available = cachedModels?.[agent_type]?.available_models;
       if (available && available.length > 0 && !available.some((m: { id: string }) => m.id === model)) {
         console.warn(
-          `[TeamMcpServer] handleSpawnAgent: model "${model}" not in available models for backend "${agentType}". ` +
+          `[TeamMcpServer] handleSpawnAgent: model "${model}" not in available models for backend "${agent_type}". ` +
             `Backend will use default model as fallback.`
         );
       }
@@ -432,30 +432,30 @@ export class TeamMcpServer {
       throw new Error('Agent spawning is not available for this team.');
     }
 
-    const newAgent = await spawnAgent(name, agentType, model, customAgentId);
+    const newAgent = await spawnAgent(name, agent_type, model, custom_agent_id);
     const agents = getAgents();
     const fromAgent =
-      (callerSlotId && agents.find((a) => a.slotId === callerSlotId)) ??
+      (callerSlotId && agents.find((a) => a.slot_id === callerSlotId)) ??
       agents.find((a) => a.role === 'leader') ??
       agents[0];
-    const fromSlotId = fromAgent?.slotId ?? 'unknown';
+    const fromSlotId = fromAgent?.slot_id ?? 'unknown';
     await mailbox.write({
-      teamId,
-      toAgentId: newAgent.slotId,
+      team_id,
+      toAgentId: newAgent.slot_id,
       fromAgentId: fromSlotId,
       content: `You have been spawned as "${name}" and added to the team. Check the task board and await instructions.`,
     });
-    this.safeWake(newAgent.slotId, `spawn ${name}`);
-    return `Teammate "${name}" (${newAgent.slotId}) has been created and joined the team. You can now assign tasks and send messages to them.`;
+    this.safeWake(newAgent.slot_id, `spawn ${name}`);
+    return `Teammate "${name}" (${newAgent.slot_id}) has been created and joined the team. You can now assign tasks and send messages to them.`;
   }
 
   private async handleTaskCreate(args: Record<string, unknown>): Promise<string> {
-    const { teamId, taskManager } = this.params;
+    const { team_id, taskManager } = this.params;
     const subject = String(args.subject ?? '');
     const description = args.description ? String(args.description) : undefined;
     const owner = args.owner ? String(args.owner) : undefined;
 
-    const task = await taskManager.create({ teamId, subject, description, owner });
+    const task = await taskManager.create({ team_id, subject, description, owner });
     return `Task created: [${task.id.slice(0, 8)}] "${subject}"${owner ? ` (assigned to ${owner})` : ''}`;
   }
 
@@ -482,8 +482,8 @@ export class TeamMcpServer {
   }
 
   private async handleTaskList(): Promise<string> {
-    const { teamId, taskManager } = this.params;
-    const tasks = await taskManager.list(teamId);
+    const { team_id, taskManager } = this.params;
+    const tasks = await taskManager.list(team_id);
     if (tasks.length === 0) {
       return 'No tasks on the board yet.';
     }
@@ -500,30 +500,30 @@ export class TeamMcpServer {
     }
     const lines = agents.map((a) => {
       const modelSuffix = a.model ? `, model: ${a.model}` : '';
-      return `- ${a.agentName} (type: ${a.agentType}, role: ${a.role}, status: ${a.status}${modelSuffix})`;
+      return `- ${a.agent_name} (type: ${a.agent_type}, role: ${a.role}, status: ${a.status}${modelSuffix})`;
     });
     return `## Team Members\n${lines.join('\n')}`;
   }
 
   private async handleShutdownAgent(args: Record<string, unknown>, callerSlotId?: string): Promise<string> {
-    const { teamId, getAgents, mailbox } = this.params;
+    const { team_id, getAgents, mailbox } = this.params;
     const agentRef = String(args.agent ?? '');
 
     const resolvedSlotId = this.resolveSlotId(agentRef);
     if (!resolvedSlotId) {
       const agents = getAgents();
-      throw new Error(`Agent "${agentRef}" not found. Available: ${agents.map((a) => a.agentName).join(', ')}`);
+      throw new Error(`Agent "${agentRef}" not found. Available: ${agents.map((a) => a.agent_name).join(', ')}`);
     }
     const agents = getAgents();
-    const agent = agents.find((a) => a.slotId === resolvedSlotId);
+    const agent = agents.find((a) => a.slot_id === resolvedSlotId);
     if (agent?.role === 'leader') {
       throw new Error('Cannot shut down the team leader.');
     }
 
-    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'leader')?.slotId ?? 'unknown';
+    const fromSlotId = callerSlotId ?? agents.find((a) => a.role === 'leader')?.slot_id ?? 'unknown';
 
     await mailbox.write({
-      teamId,
+      team_id,
       toAgentId: resolvedSlotId,
       fromAgentId: fromSlotId,
       type: 'shutdown_request',
@@ -532,28 +532,28 @@ export class TeamMcpServer {
     });
     this.safeWake(resolvedSlotId, 'shutdown_request');
 
-    return `Shutdown request sent to "${agent?.agentName ?? agentRef}". Waiting for their confirmation.`;
+    return `Shutdown request sent to "${agent?.agent_name ?? agentRef}". Waiting for their confirmation.`;
   }
 
   private async handleDescribeAssistant(args: Record<string, unknown>): Promise<string> {
-    const customAgentId = args.custom_agent_id ? String(args.custom_agent_id) : '';
-    if (!customAgentId) {
+    const custom_agent_id = args.custom_agent_id ? String(args.custom_agent_id) : '';
+    if (!custom_agent_id) {
       throw new Error('custom_agent_id is required.');
     }
 
     const assistants = (await ProcessConfig.get('assistants')) ?? [];
-    const assistant = assistants.find((a) => a.id === customAgentId && a.isPreset);
+    const assistant = assistants.find((a) => a.id === custom_agent_id && a.is_preset);
     if (!assistant) {
       const availableIds = assistants
-        .filter((a) => a.isPreset && a.enabled !== false)
+        .filter((a) => a.is_preset && a.enabled !== false)
         .map((a) => a.id)
         .join(', ');
       throw new Error(
-        `Preset assistant "${customAgentId}" not found.${availableIds ? ` Available: ${availableIds}.` : ''}`
+        `Preset assistant "${custom_agent_id}" not found.${availableIds ? ` Available: ${availableIds}.` : ''}`
       );
     }
     if (assistant.enabled === false) {
-      throw new Error(`Preset assistant "${customAgentId}" is disabled.`);
+      throw new Error(`Preset assistant "${custom_agent_id}" is disabled.`);
     }
 
     // Resolve locale: explicit arg > user language > en-US fallback.
@@ -572,17 +572,19 @@ export class TeamMcpServer {
 
     // Built-in presets carry extra catalog data (example prompts, locale names)
     // that the stored assistant record does not. Merge both sources.
-    const builtinId = customAgentId.startsWith('builtin-') ? customAgentId.replace('builtin-', '') : customAgentId;
+    const builtinId = custom_agent_id.startsWith('builtin-')
+      ? custom_agent_id.replace('builtin-', '')
+      : custom_agent_id;
     const builtin = ASSISTANT_PRESETS.find((p) => p.id === builtinId);
 
-    const name = pickLocalized(builtin?.nameI18n) || assistant.name || customAgentId;
+    const name = pickLocalized(builtin?.nameI18n) || assistant.name || custom_agent_id;
     const description = pickLocalized(builtin?.descriptionI18n) || assistant.description || '';
     const backend = assistant.presetAgentType || builtin?.presetAgentType || 'gemini';
-    const skills = assistant.enabledSkills && assistant.enabledSkills.length > 0 ? assistant.enabledSkills : [];
+    const skills = assistant.enabled_skills && assistant.enabled_skills.length > 0 ? assistant.enabled_skills : [];
     const examples = pickLocalizedList(builtin?.promptsI18n);
 
     const lines: string[] = [];
-    lines.push(`# ${name} (${customAgentId})`);
+    lines.push(`# ${name} (${custom_agent_id})`);
     lines.push(`Backend: ${backend}`);
     lines.push('');
     if (description) {
@@ -605,7 +607,7 @@ export class TeamMcpServer {
     }
     lines.push('');
     lines.push(
-      `To spawn this preset as a teammate, call team_spawn_agent with custom_agent_id="${customAgentId}". ` +
+      `To spawn this preset as a teammate, call team_spawn_agent with custom_agent_id="${custom_agent_id}". ` +
         `Its full rules and skills will be injected into the spawned teammate's conversation automatically.`
     );
 
@@ -614,7 +616,7 @@ export class TeamMcpServer {
 
   private handleRenameAgent(args: Record<string, unknown>): string {
     const agentRef = String(args.agent ?? '');
-    const newName = String(args.new_name ?? '');
+    const new_name = String(args.new_name ?? '');
 
     if (!this.params.renameAgent) {
       throw new Error('Agent renaming is not available for this team.');
@@ -623,13 +625,13 @@ export class TeamMcpServer {
     const resolvedSlotId = this.resolveSlotId(agentRef);
     if (!resolvedSlotId) {
       const agents = this.params.getAgents();
-      throw new Error(`Agent "${agentRef}" not found. Available: ${agents.map((a) => a.agentName).join(', ')}`);
+      throw new Error(`Agent "${agentRef}" not found. Available: ${agents.map((a) => a.agent_name).join(', ')}`);
     }
 
     const agents = this.params.getAgents();
-    const oldName = agents.find((a) => a.slotId === resolvedSlotId)?.agentName ?? agentRef;
+    const old_name = agents.find((a) => a.slot_id === resolvedSlotId)?.agent_name ?? agentRef;
 
-    this.params.renameAgent(resolvedSlotId, newName);
-    return `Agent renamed: "${oldName}" → "${newName.trim()}"`;
+    this.params.renameAgent(resolvedSlotId, new_name);
+    return `Agent renamed: "${old_name}" → "${new_name.trim()}"`;
   }
 }

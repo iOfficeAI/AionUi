@@ -72,39 +72,39 @@ function normalizeToolCallStatus(status: string | undefined): 'pending' | 'in_pr
 export interface AcpAgentConfig {
   id: string;
   backend: AcpBackend;
-  cliPath?: string;
+  cli_path?: string;
   workingDir: string;
   customArgs?: string[]; // Custom CLI arguments (for custom backend)
   customEnv?: Record<string, string>; // Custom environment variables (for custom backend)
   extra?: {
     workspace?: string;
     backend: AcpBackend;
-    cliPath?: string;
-    customWorkspace?: boolean;
+    cli_path?: string;
+    custom_workspace?: boolean;
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
     /** Display name for the agent (from extension or custom config) / Agent 显示名称 */
-    agentName?: string;
+    agent_name?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
-    acpSessionId?: string;
+    acp_session_id?: string;
     /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
-    acpSessionConversationId?: string;
+    acp_session_conversation_id?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
-    acpSessionUpdatedAt?: number;
+    acp_session_updated_at?: number;
     /** Initial model ID to apply at session start (from channel config or persisted user choice) */
-    currentModelId?: string;
+    current_model_id?: string;
     /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
-    sessionMode?: string;
+    session_mode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
     teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
     /** Pending config option selections from Guid page (applied after session creation) */
-    pendingConfigOptions?: Record<string, string>;
+    pending_config_options?: Record<string, string>;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
   /** Callback when ACP session ID is updated / 当 ACP session ID 更新时的回调 */
-  onSessionIdUpdate?: (sessionId: string) => void;
+  onSessionIdUpdate?: (session_id: string) => void;
   /** Callback when ACP agent updates available slash commands / ACP 可用斜杠命令更新回调 */
   onAvailableCommandsUpdate?: (commands: AcpAvailableCommand[]) => void;
 }
@@ -115,38 +115,38 @@ export class AcpAgent {
   private extra: {
     workspace?: string;
     backend: AcpBackend;
-    cliPath?: string;
-    customWorkspace?: boolean;
+    cli_path?: string;
+    custom_workspace?: boolean;
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
     /** Display name for the agent (from extension or custom config) / Agent 显示名称 */
-    agentName?: string;
+    agent_name?: string;
     /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
-    acpSessionId?: string;
+    acp_session_id?: string;
     /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
-    acpSessionConversationId?: string;
+    acp_session_conversation_id?: string;
     /** Last update time of ACP session / ACP session 最后更新时间 */
-    acpSessionUpdatedAt?: number;
+    acp_session_updated_at?: number;
     /** Initial model ID to apply at session start (from channel config or persisted user choice) */
-    currentModelId?: string;
+    current_model_id?: string;
     /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
-    sessionMode?: string;
+    session_mode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
     teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
     /** Pending config option selections from Guid page (applied after session creation) */
-    pendingConfigOptions?: Record<string, string>;
+    pending_config_options?: Record<string, string>;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
   private pendingPermissions = new Map<
     string,
-    { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }
+    { resolve: (response: { option_id: string }) => void; reject: (error: Error) => void }
   >();
   private statusMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
-  private readonly onSessionIdUpdate?: (sessionId: string) => void;
+  private readonly onSessionIdUpdate?: (session_id: string) => void;
   private readonly onAvailableCommandsUpdate?: (commands: AcpAvailableCommand[]) => void;
 
   // Track pending navigation tool calls for URL extraction from results
@@ -188,8 +188,8 @@ export class AcpAgent {
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
-      cliPath: config.cliPath,
-      customWorkspace: false, // Default to system workspace
+      cli_path: config.cli_path,
+      custom_workspace: false, // Default to system workspace
       customArgs: config.customArgs,
       customEnv: config.customEnv,
       yoloMode: false,
@@ -228,8 +228,8 @@ export class AcpAgent {
    *
    * Delegates to NavigationInterceptor for unified logic
    */
-  private isNavigationTool(toolName: string): boolean {
-    return NavigationInterceptor.isNavigationTool(toolName);
+  private isNavigationTool(tool_name: string): boolean {
+    return NavigationInterceptor.isNavigationTool(tool_name);
   }
 
   /**
@@ -251,7 +251,7 @@ export class AcpAgent {
    * Handle intercepted navigation tool by emitting preview_open event
    * 处理被拦截的导航工具，发出 preview_open 事件
    */
-  private handleInterceptedNavigation(url: string, _toolName: string): void {
+  private handleInterceptedNavigation(url: string, _tool_name: string): void {
     const previewMessage = NavigationInterceptor.createPreviewMessage(url, this.id);
     this.onStreamEvent(previewMessage);
   }
@@ -285,7 +285,7 @@ export class AcpAgent {
           await Promise.race([
             this.connection.connect(
               this.extra.backend,
-              this.extra.cliPath,
+              this.extra.cli_path,
               this.extra.workspace,
               this.extra.customArgs,
               this.extra.customEnv
@@ -327,7 +327,7 @@ export class AcpAgent {
 
       // 避免重复创建会话：仅当尚无活动会话时再创建
       // Create new session or resume existing one (if ACP backend supports it)
-      if (!this.connection.hasActiveSession) {
+      if (!this.connection.has_active_session) {
         const sessionStart = Date.now();
         await this.createOrResumeSession();
         console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
@@ -340,14 +340,14 @@ export class AcpAgent {
           codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
         };
-        const sessionMode = yoloModeMap[this.extra.backend];
-        if (sessionMode) {
-          await this.applySessionMode(sessionMode, true, `${this.extra.backend} YOLO mode`);
+        const session_mode = yoloModeMap[this.extra.backend];
+        if (session_mode) {
+          await this.applySessionMode(session_mode, true, `${this.extra.backend} YOLO mode`);
         }
-      } else if (this.extra.sessionMode && this.extra.sessionMode !== 'default') {
+      } else if (this.extra.session_mode && this.extra.session_mode !== 'default') {
         // Apply non-default, non-YOLO session mode (e.g., acceptEdits, auto, dontAsk, plan)
         // so the CLI backend reflects the mode selected by the user on the Guid page.
-        await this.applySessionMode(this.extra.sessionMode, false, `session mode`);
+        await this.applySessionMode(this.extra.session_mode, false, `session mode`);
       }
 
       // For Claude backend, keep runtime model selection aligned with the
@@ -355,7 +355,7 @@ export class AcpAgent {
       // Do not send the relay's underlying model name (for example glm-5.1x)
       // to ACP, because claude-agent-acp only accepts slot ids.
       if (this.extra.backend === 'claude') {
-        const configuredModel = readClaudeModelInfoFromCcSwitch()?.currentModelId ?? getClaudeModelSlot();
+        const configuredModel = readClaudeModelInfoFromCcSwitch()?.current_model_id ?? getClaudeModelSlot();
         if (configuredModel) {
           try {
             const modelStart = Date.now();
@@ -376,27 +376,27 @@ export class AcpAgent {
             }
           }
         }
-      } else if (this.extra.currentModelId) {
+      } else if (this.extra.current_model_id) {
         // For non-claude backends (e.g. gemini-cli), apply the model configured in
         // channel settings or persisted from a prior user model switch.
         try {
-          await this.connection.setModel(this.extra.currentModelId);
+          await this.connection.setModel(this.extra.current_model_id);
         } catch (error) {
           console.warn(
-            `[ACP] Failed to set model "${this.extra.currentModelId}": ${error instanceof Error ? error.message : String(error)}`
+            `[ACP] Failed to set model "${this.extra.current_model_id}": ${error instanceof Error ? error.message : String(error)}`
           );
         }
       }
 
       // Apply pending config options from Guid page selection (e.g., reasoning_effort)
-      if (this.extra.pendingConfigOptions) {
+      if (this.extra.pending_config_options) {
         await Promise.all(
-          Object.entries(this.extra.pendingConfigOptions).map(async ([configId, value]) => {
+          Object.entries(this.extra.pending_config_options).map(async ([config_id, value]) => {
             try {
-              await this.connection.setConfigOption(configId, value);
+              await this.connection.setConfigOption(config_id, value);
             } catch (error) {
               console.warn(
-                `[ACP] Failed to apply pending config option "${configId}": ${error instanceof Error ? error.message : String(error)}`
+                `[ACP] Failed to apply pending config option "${config_id}": ${error instanceof Error ? error.message : String(error)}`
               );
             }
           })
@@ -410,8 +410,8 @@ export class AcpAgent {
       // cacheSessionCapabilities() is queued and may execute later, by which time
       // config_option_update notifications could have altered the connection state.
       const capabilitiesSnapshot = {
-        modelInfo: this.getModelInfo(),
-        configOptions: this.connection.getConfigOptions(),
+        model_info: this.getModelInfo(),
+        config_options: this.connection.getConfigOptions(),
         modes: this.connection.getModes(),
       };
       this.cacheSessionCapabilities(capabilitiesSnapshot).catch((err) => {
@@ -479,31 +479,31 @@ export class AcpAgent {
     if (this.extra.yoloMode) return;
     this.extra.yoloMode = true;
 
-    if (this.connection.isConnected && this.connection.hasActiveSession) {
+    if (this.connection.is_connected && this.connection.has_active_session) {
       const yoloModeMap: Partial<Record<AcpBackend, string>> = {
         claude: CLAUDE_YOLO_SESSION_MODE,
         qwen: QWEN_YOLO_SESSION_MODE,
       };
-      const sessionMode = yoloModeMap[this.extra.backend];
-      if (sessionMode) {
-        await this.connection.setSessionMode(sessionMode);
+      const session_mode = yoloModeMap[this.extra.backend];
+      if (session_mode) {
+        await this.connection.setSessionMode(session_mode);
       }
     }
   }
 
   /**
    * Get unified model info from ACP connection.
-   * Prefers stable configOptions API, falls back to unstable models API.
+   * Prefers stable config_options API, falls back to unstable models API.
    */
   getModelInfo(): AcpModelInfo | null {
     const preferredModelInfo = this.extra.backend === 'claude' ? readClaudeModelInfoFromCcSwitch() : null;
-    if (this.extra.backend === 'claude' && this.userModelOverride && preferredModelInfo?.availableModels?.length) {
-      const selectedModel = preferredModelInfo.availableModels.find((model) => model.id === this.userModelOverride);
+    if (this.extra.backend === 'claude' && this.userModelOverride && preferredModelInfo?.available_models?.length) {
+      const selectedModel = preferredModelInfo.available_models.find((model) => model.id === this.userModelOverride);
       if (selectedModel) {
         return {
           ...preferredModelInfo,
-          currentModelId: selectedModel.id,
-          currentModelLabel: selectedModel.label,
+          current_model_id: selectedModel.id,
+          current_model_label: selectedModel.label,
         };
       }
     }
@@ -526,8 +526,8 @@ export class AcpAgent {
    * Set a config option value on the ACP connection.
    * Used for reasoning effort and other non-model config options.
    */
-  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
-    await this.connection.setConfigOption(configId, value);
+  async setConfigOption(config_id: string, value: string): Promise<AcpSessionConfigOption[]> {
+    await this.connection.setConfigOption(config_id, value);
     return this.getConfigOptions();
   }
 
@@ -540,12 +540,12 @@ export class AcpAgent {
    *   2. Calls updateConfigOption() → sends config_option_update notification
    * This provides both the actual CLI model change AND a cache sync notification.
    *
-   * session/set_config_option only returns updated configOptions in the response
+   * session/set_config_option only returns updated config_options in the response
    * but does NOT send a separate notification, making it less robust for cache sync.
    */
-  async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
-    const modelInfo = this.getModelInfo();
-    if (!modelInfo) {
+  async setModelByConfigOption(model_id: string): Promise<AcpModelInfo | null> {
+    const model_info = this.getModelInfo();
+    if (!model_info) {
       throw new Error('No model info available');
     }
 
@@ -553,23 +553,23 @@ export class AcpAgent {
     // Falls back to session/set_config_option only for non-Claude backends
     // that don't support the unstable_setSessionModel method.
     try {
-      await this.connection.setModel(modelId);
+      await this.connection.setModel(model_id);
     } catch (setModelError) {
       // Fallback to set_config_option if set_model is not supported
-      if (modelInfo.source === 'configOption' && modelInfo.configOptionId) {
-        await this.connection.setConfigOption(modelInfo.configOptionId, modelId);
+      if (model_info.source === 'configOption' && model_info.config_option_id) {
+        await this.connection.setConfigOption(model_info.config_option_id, model_id);
       } else {
         throw setModelError;
       }
     }
 
-    this.userModelOverride = modelId;
+    this.userModelOverride = model_id;
 
     // Queue a model switch notice for the next prompt.
     // In terminal mode, "/model haiku" outputs "Set model to haiku" into the conversation,
     // and the AI reads this to update its self-identification. In ACP mode, set_model is
     // silent, so we inject an equivalent notice into the next user message.
-    this.pendingModelSwitchNotice = modelId;
+    this.pendingModelSwitchNotice = model_id;
 
     // Return updated model info after switch
     return this.getModelInfo();
@@ -579,13 +579,13 @@ export class AcpAgent {
    * Emit current model info to the stream event handler.
    */
   private emitModelInfo(): void {
-    const modelInfo = this.getModelInfo();
-    if (modelInfo) {
+    const model_info = this.getModelInfo();
+    if (model_info) {
       this.onStreamEvent({
         type: 'acp_model_info',
         conversation_id: this.id,
         msg_id: uuid(),
-        data: modelInfo,
+        data: model_info,
       });
     }
   }
@@ -639,7 +639,7 @@ export class AcpAgent {
       this.turnHasContent = false;
 
       // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
-      if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+      if (!this.connection.is_connected || !this.connection.has_active_session) {
         const reconnectStart = Date.now();
         try {
           await this.start();
@@ -671,14 +671,14 @@ export class AcpAgent {
       // 为所有上传的文件添加 @ 前缀（包括图片），使用完整路径让 Claude CLI 读取
       if (data.files && data.files.length > 0) {
         const fileRefs = data.files
-          .map((filePath) => {
+          .map((file_path) => {
             // Use full path instead of just filename
             // Escape paths with spaces using quotes for Claude CLI
             // 对含空格的路径使用引号包裹，确保 Claude CLI 正确解析
-            if (filePath.includes(' ')) {
-              return `@"${filePath}"`;
+            if (file_path.includes(' ')) {
+              return `@"${file_path}"`;
             }
-            return '@' + filePath;
+            return '@' + file_path;
           })
           .join(' ');
         // Prepend file references to the content
@@ -700,7 +700,7 @@ export class AcpAgent {
       if (this.userModelOverride) {
         const currentInfo = this.getModelInfo();
         const expected = this.userModelOverride;
-        if (currentInfo?.currentModelId !== expected) {
+        if (currentInfo?.current_model_id !== expected) {
           try {
             await this.connection.setModel(expected);
           } catch (err) {
@@ -827,12 +827,12 @@ export class AcpAgent {
       // Check if this @ reference is an uploaded file (full path or filename)
       // If yes, skip it - let Claude CLI handle it natively
       // 检查此 @ 引用是否是上传的文件（完整路径或文件名），如果是则跳过，让 Claude CLI 原生处理
-      const matchedUploadFile = uploadedFiles?.find((filePath) => {
+      const matchedUploadFile = uploadedFiles?.find((file_path) => {
         // Match by full path
-        if (atPath === filePath) return true;
+        if (atPath === file_path) return true;
         // Match by filename (for cases where message contains just filename)
-        const fileName = filePath.split(/[\\/]/).pop() || filePath;
-        return atPath === fileName;
+        const file_name = file_path.split(/[\\/]/).pop() || file_path;
+        return atPath === file_name;
       });
 
       if (matchedUploadFile) {
@@ -917,8 +917,8 @@ export class AcpAgent {
 
     // Try to find file by name in workspace (simple search)
     try {
-      const fileName = path.basename(atPath);
-      const foundPath = await this.findFileInWorkspace(workspace, fileName);
+      const file_name = path.basename(atPath);
+      const foundPath = await this.findFileInWorkspace(workspace, file_name);
       return foundPath;
     } catch {
       return null;
@@ -929,7 +929,11 @@ export class AcpAgent {
    * Simple file search in workspace (non-recursive for performance)
    * 在工作区中简单搜索文件（非递归以保证性能）
    */
-  private async findFileInWorkspace(workspace: string, fileName: string, maxDepth: number = 3): Promise<string | null> {
+  private async findFileInWorkspace(
+    workspace: string,
+    file_name: string,
+    maxDepth: number = 3
+  ): Promise<string | null> {
     const searchDir = async (dir: string, depth: number): Promise<string | null> => {
       if (depth > maxDepth) return null;
 
@@ -937,7 +941,7 @@ export class AcpAgent {
         const entries = await fs.readdir(dir, { withFileTypes: true });
         for (const entry of entries) {
           const fullPath = path.join(dir, entry.name);
-          if (entry.isFile() && entry.name === fileName) {
+          if (entry.isFile() && entry.name === file_name) {
             return fullPath;
           }
           if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
@@ -954,16 +958,16 @@ export class AcpAgent {
     return await searchDir(workspace, 0);
   }
 
-  confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
+  confirmMessage(data: { confirm_key: string; call_id: string }): Promise<AcpResult> {
     try {
-      if (this.pendingPermissions.has(data.callId)) {
-        const { resolve } = this.pendingPermissions.get(data.callId)!;
-        this.pendingPermissions.delete(data.callId);
+      if (this.pendingPermissions.has(data.call_id)) {
+        const { resolve } = this.pendingPermissions.get(data.call_id)!;
+        this.pendingPermissions.delete(data.call_id);
 
         // Store "allow_always" decision to ApprovalStore for future auto-approval
         // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
-        if (data.confirmKey === 'allow_always') {
-          const meta = this.permissionRequestMeta.get(data.callId);
+        if (data.confirm_key === 'allow_always') {
+          const meta = this.permissionRequestMeta.get(data.call_id);
           if (meta) {
             const approvalKey = createAcpApprovalKey({
               kind: meta.kind,
@@ -975,14 +979,14 @@ export class AcpAgent {
         }
 
         // Clean up metadata
-        this.permissionRequestMeta.delete(data.callId);
+        this.permissionRequestMeta.delete(data.call_id);
 
-        resolve({ optionId: data.confirmKey });
+        resolve({ option_id: data.confirm_key });
         return Promise.resolve({ success: true, data: null });
       }
       return Promise.resolve({
         success: false,
-        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found for callId: ${data.callId}`, false),
+        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found for call_id: ${data.call_id}`, false),
       });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
@@ -1015,19 +1019,19 @@ export class AcpAgent {
       // 从会话更新中拦截 chrome-devtools 导航工具
       if (data.update?.sessionUpdate === 'tool_call') {
         const toolCallUpdate = data as ToolCallUpdate;
-        const toolName = toolCallUpdate.update?.title || '';
-        const toolCallId = toolCallUpdate.update?.toolCallId;
-        if (this.isNavigationTool(toolName)) {
+        const tool_name = toolCallUpdate.update?.title || '';
+        const tool_call_id = toolCallUpdate.update?.tool_call_id;
+        if (this.isNavigationTool(tool_name)) {
           // Track this navigation tool call for result interception
           // 跟踪此导航工具调用以拦截结果
-          if (toolCallId) {
-            this.pendingNavigationTools.add(toolCallId);
+          if (tool_call_id) {
+            this.pendingNavigationTools.add(tool_call_id);
           }
           const url = this.extractNavigationUrl(toolCallUpdate.update);
           if (url) {
             // Emit preview_open event to show URL in preview panel
             // 发出 preview_open 事件，在预览面板中显示 URL
-            this.handleInterceptedNavigation(url, toolName);
+            this.handleInterceptedNavigation(url, tool_name);
           }
         }
       }
@@ -1036,8 +1040,8 @@ export class AcpAgent {
       // 拦截 tool_call_update 以从导航工具结果中提取 URL
       if (data.update?.sessionUpdate === 'tool_call_update') {
         const statusUpdate = data as import('@/common/types/acpTypes').ToolCallUpdateStatus;
-        const toolCallId = statusUpdate.update?.toolCallId;
-        if (toolCallId && this.pendingNavigationTools.has(toolCallId)) {
+        const tool_call_id = statusUpdate.update?.tool_call_id;
+        if (tool_call_id && this.pendingNavigationTools.has(tool_call_id)) {
           // This is a result for a tracked navigation tool
           // 这是已跟踪的导航工具的结果
           if (statusUpdate.update?.status === 'completed' && statusUpdate.update?.content) {
@@ -1054,7 +1058,7 @@ export class AcpAgent {
           }
           // Clean up tracking
           // 清理跟踪
-          this.pendingNavigationTools.delete(toolCallId);
+          this.pendingNavigationTools.delete(tool_call_id);
         }
       }
 
@@ -1093,21 +1097,21 @@ export class AcpAgent {
     }
   }
 
-  private handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
+  private handlePermissionRequest(data: AcpPermissionRequest): Promise<{ option_id: string }> {
     return new Promise((resolve, reject) => {
-      // Ensure every permission request has a stable toolCallId so UI + pending map stay in sync
-      // 确保每个权限请求都拥有稳定的 toolCallId，保证 UI 与 pending map 对齐
-      if (data.toolCall && !data.toolCall.toolCallId) {
-        data.toolCall.toolCallId = uuid();
+      // Ensure every permission request has a stable tool_call_id so UI + pending map stay in sync
+      // 确保每个权限请求都拥有稳定的 tool_call_id，保证 UI 与 pending map 对齐
+      if (data.toolCall && !data.toolCall.tool_call_id) {
+        data.toolCall.tool_call_id = uuid();
       }
-      const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
+      const requestId = data.toolCall.tool_call_id; // 使用 tool_call_id 作为 requestId
 
       // Check ApprovalStore for cached "always allow" decision
       // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
       const approvalKey = createAcpApprovalKey(data.toolCall);
       if (this.approvalStore.isApprovedForSession(approvalKey)) {
         // Auto-approve without showing dialog - no metadata storage needed
-        resolve({ optionId: 'allow_always' });
+        resolve({ option_id: 'allow_always' });
         return;
       }
 
@@ -1128,13 +1132,13 @@ export class AcpAgent {
       // 拦截 chrome-devtools 导航工具，在预览面板中显示
       // Note: We only emit preview_open event, do NOT block tool execution
       // 注意：只发送 preview_open 事件，不阻止工具执行，agent 需要 chrome-devtools 获取网页内容
-      const toolName = data.toolCall?.title || '';
-      if (this.isNavigationTool(toolName)) {
+      const tool_name = data.toolCall?.title || '';
+      if (this.isNavigationTool(tool_name)) {
         const url = this.extractNavigationUrl(data.toolCall);
         if (url) {
           // Emit preview_open event to show URL in preview panel
           // 发出 preview_open 事件，在预览面板中显示 URL
-          this.handleInterceptedNavigation(url, toolName);
+          this.handleInterceptedNavigation(url, tool_name);
         }
         // Track for later extraction from result if URL not available now
         // 跟踪以便稍后从结果中提取 URL（如果现在不可用）
@@ -1204,14 +1208,14 @@ export class AcpAgent {
       return;
     }
 
-    // Use totalTokens from PromptResponse as context usage indicator (fallback)
+    // Use total_tokens from PromptResponse as context usage indicator (fallback)
     // size=0 tells the frontend to use model-based context limit lookup
     this.onStreamEvent({
       type: 'acp_context_usage',
       conversation_id: this.id,
       msg_id: uuid(),
       data: {
-        used: usage.totalTokens,
+        used: usage.total_tokens,
         size: 0,
       },
     });
@@ -1244,7 +1248,7 @@ export class AcpAgent {
     this.statusMessageId = null;
   }
 
-  private handleFileOperation(operation: { method: string; path: string; content?: string; sessionId: string }): void {
+  private handleFileOperation(operation: { method: string; path: string; content?: string; session_id: string }): void {
     this.emitMessage(this.createFileOperationToolCall(operation));
   }
 
@@ -1252,9 +1256,9 @@ export class AcpAgent {
     method: string;
     path: string;
     content?: string;
-    sessionId: string;
+    session_id: string;
   }): TMessage {
-    const toolCallId = uuid();
+    const tool_call_id = uuid();
     const contentPreview =
       operation.method === 'fs/write_text_file' && operation.content
         ? [
@@ -1269,17 +1273,17 @@ export class AcpAgent {
         : undefined;
 
     return {
-      id: toolCallId,
-      msg_id: toolCallId,
+      id: tool_call_id,
+      msg_id: tool_call_id,
       conversation_id: this.id,
       type: 'acp_tool_call',
       position: 'left',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
-        sessionId: operation.sessionId,
+        session_id: operation.session_id,
         update: {
           sessionUpdate: 'tool_call',
-          toolCallId,
+          tool_call_id,
           status: 'completed',
           title: this.getFileOperationTitle(operation.method),
           kind: operation.method === 'fs/read_text_file' ? 'read' : 'edit',
@@ -1324,11 +1328,11 @@ export class AcpAgent {
       conversation_id: this.id,
       type: 'agent_status',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         backend: this.extra.backend,
         status,
-        agentName: this.extra.agentName,
+        agent_name: this.extra.agent_name,
       },
     };
 
@@ -1354,10 +1358,10 @@ export class AcpAgent {
       };
 
       const toolCallUpdate: ToolCallUpdate = {
-        sessionId: data.sessionId,
+        session_id: data.session_id,
         update: {
           sessionUpdate: 'tool_call' as const,
-          toolCallId: data.toolCall.toolCallId,
+          tool_call_id: data.toolCall.tool_call_id,
           status: normalizeToolCallStatus(data.toolCall.status),
           title: data.toolCall.title || 'Tool Call',
           kind: mapKindToValidType(data.toolCall.kind),
@@ -1388,7 +1392,7 @@ export class AcpAgent {
       conversation_id: this.id,
       type: 'tips',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         content: error,
         type: 'error',
@@ -1489,12 +1493,12 @@ export class AcpAgent {
     }
   }
 
-  get isConnected(): boolean {
-    return this.connection.isConnected;
+  get is_connected(): boolean {
+    return this.connection.is_connected;
   }
 
-  get hasActiveSession(): boolean {
-    return this.connection.hasActiveSession;
+  get has_active_session(): boolean {
+    return this.connection.has_active_session;
   }
 
   /**
@@ -1513,19 +1517,19 @@ export class AcpAgent {
    * (capability-driven with Claude-compatible resume path).
    */
   private async createOrResumeSession(): Promise<void> {
-    const resumeSessionId = this.extra.acpSessionId;
-    const resumeConversationId = this.extra.acpSessionConversationId;
+    const resumeSessionId = this.extra.acp_session_id;
+    const resumeConversationId = this.extra.acp_session_conversation_id;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // Derive teamId from injected team MCP server name (format: aionui-team-<teamId>)
+    // Derive team_id from injected team MCP server name (format: aionui-team-<team_id>)
     // Only emit MCP status events when running inside a team session.
     const teamMcpName = this.extra.teamMcpStdioConfig?.name;
-    const teamId = teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined;
-    const slotId = this.id;
+    const team_id = teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined;
+    const slot_id = this.id;
 
-    const emitMcpStatus = teamId
-      ? (phase: import('@/common/types/teamTypes').TeamMcpPhase, extra?: { serverCount?: number; error?: string }) => {
-          ipcBridge.team.mcpStatus.emit({ teamId: teamId!, slotId, phase, ...extra });
+    const emitMcpStatus = team_id
+      ? (phase: import('@/common/types/teamTypes').TeamMcpPhase, extra?: { server_count?: number; error?: string }) => {
+          ipcBridge.team.mcpStatus.emit({ team_id: team_id!, slot_id, phase, ...extra });
         }
       : null;
 
@@ -1539,9 +1543,9 @@ export class AcpAgent {
         // Skip resume, fall through to create new session
       } else if (resumeSessionId) {
         try {
-          let response: { sessionId?: string };
+          let response: { session_id?: string };
 
-          emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
+          emitMcpStatus?.('session_injecting', { server_count: mcpServers.length });
           response = await this.connection.resumeSession(resumeSessionId, this.extra.workspace, {
             forkSession: false,
             mcpServers,
@@ -1550,12 +1554,12 @@ export class AcpAgent {
           if (mcpServers.length === 0) {
             emitMcpStatus?.('degraded');
           } else {
-            emitMcpStatus?.('session_ready', { serverCount: mcpServers.length });
+            emitMcpStatus?.('session_ready', { server_count: mcpServers.length });
           }
 
-          if (response.sessionId && response.sessionId !== resumeSessionId) {
-            this.extra.acpSessionId = response.sessionId;
-            this.onSessionIdUpdate?.(response.sessionId);
+          if (response.session_id && response.session_id !== resumeSessionId) {
+            this.extra.acp_session_id = response.session_id;
+            this.onSessionIdUpdate?.(response.session_id);
           }
           return;
         } catch (resumeError) {
@@ -1566,18 +1570,18 @@ export class AcpAgent {
       }
 
       // No stored session or resume failed — create a brand new session
-      emitMcpStatus?.('session_injecting', { serverCount: mcpServers.length });
+      emitMcpStatus?.('session_injecting', { server_count: mcpServers.length });
       const response = await this.connection.newSession(this.extra.workspace, { mcpServers });
 
       if (mcpServers.length === 0) {
         emitMcpStatus?.('degraded');
       } else {
-        emitMcpStatus?.('session_ready', { serverCount: mcpServers.length });
+        emitMcpStatus?.('session_ready', { server_count: mcpServers.length });
       }
 
-      if (response.sessionId) {
-        this.extra.acpSessionId = response.sessionId;
-        this.onSessionIdUpdate?.(response.sessionId);
+      if (response.session_id) {
+        this.extra.acp_session_id = response.session_id;
+        this.onSessionIdUpdate?.(response.session_id);
       }
     };
 
@@ -1595,9 +1599,9 @@ export class AcpAgent {
     // the first conversationTurn/start may arrive before the backend has
     // finished the MCP handshake (initialize → tools/list), causing the
     // agent to process the message without team tools.
-    if (this.extra.teamMcpStdioConfig && teamId) {
+    if (this.extra.teamMcpStdioConfig && team_id) {
       emitMcpStatus?.('mcp_tools_waiting');
-      await waitForMcpReady(slotId, 30_000);
+      await waitForMcpReady(slot_id, 30_000);
       emitMcpStatus?.('mcp_tools_ready');
     }
   }
@@ -1649,7 +1653,7 @@ export class AcpAgent {
           ? mcpName.slice('aionui-team-'.length)
           : undefined;
       if (tId) {
-        ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
+        ipcBridge.team.mcpStatus.emit({ team_id: tId, slot_id: this.id, phase: 'load_failed', error: errMsg });
       }
       return [];
     }
@@ -1663,10 +1667,10 @@ export class AcpAgent {
    * @returns Promise that resolves when mode is set
    */
   async setMode(mode: string): Promise<{ success: boolean; error?: string }> {
-    if (!this.connection.isConnected || !this.connection.hasActiveSession) {
+    if (!this.connection.is_connected || !this.connection.has_active_session) {
       // No live session — persist the mode so it takes effect on next session start.
-      // AcpAgentManager reads extra.sessionMode during startSession().
-      this.extra.sessionMode = mode;
+      // AcpAgentManager reads extra.session_mode during startSession().
+      this.extra.session_mode = mode;
       return { success: true };
     }
     try {
@@ -1684,7 +1688,7 @@ export class AcpAgent {
       this.emitStatusMessage('connecting');
 
       // 使用配置的 CLI 路径调用 login 命令
-      if (!this.extra.cliPath) {
+      if (!this.extra.cli_path) {
         throw new Error(`No CLI path configured for ${backend} backend`);
       }
 
@@ -1693,14 +1697,14 @@ export class AcpAgent {
       let command: string;
       let args: string[];
 
-      if (this.extra.cliPath.startsWith('npx ')) {
+      if (this.extra.cli_path.startsWith('npx ')) {
         // Route legacy npx launchers through bundled bun.
-        const parts = this.extra.cliPath.split(' ');
+        const parts = this.extra.cli_path.split(' ');
         command = resolveNpxPath(cleanEnv);
         args = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), loginArg];
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
-        command = this.extra.cliPath;
+        command = this.extra.cli_path;
         args = [loginArg];
       }
 
@@ -1740,7 +1744,7 @@ export class AcpAgent {
   private async performAuthentication(): Promise<void> {
     try {
       const initResult = this.connection.getInitializeResult();
-      if (!initResult || initResult.authMethods.length === 0) {
+      if (!initResult || initResult.auth_methods.length === 0) {
         // No auth methods available - CLI should handle authentication itself
         this.emitStatusMessage('authenticated');
         return;
@@ -1804,21 +1808,21 @@ export class AcpAgent {
   private static cacheQueue: Promise<void> = Promise.resolve();
 
   /**
-   * Cache session-level capabilities (models, configOptions, modes) to disk.
+   * Cache session-level capabilities (models, config_options, modes) to disk.
    * Same pattern as cacheInitializeResult — persisted across sessions so
    * Guid page / AgentModeSelector / AcpConfigSelector can render from cache
    * before an active session exists.
    *
    * Accepts a pre-captured snapshot to avoid reading stale connection state —
    * streaming notifications (config_option_update) can modify the connection's
-   * configOptions between when the snapshot is taken and when this runs.
+   * config_options between when the snapshot is taken and when this runs.
    *
    * Uses a static queue to serialize writes — multiple backends starting
    * concurrently would otherwise overwrite each other's cache entries.
    */
   private cacheSessionCapabilities(snapshot: {
-    modelInfo: AcpModelInfo | null;
-    configOptions: AcpSessionConfigOption[] | null;
+    model_info: AcpModelInfo | null;
+    config_options: AcpSessionConfigOption[] | null;
     modes: AcpSessionModes | null;
   }): Promise<void> {
     const job = AcpAgent.cacheQueue.then(() => this.doCacheSessionCapabilities(snapshot));
@@ -1827,19 +1831,19 @@ export class AcpAgent {
   }
 
   private async doCacheSessionCapabilities(snapshot: {
-    modelInfo: AcpModelInfo | null;
-    configOptions: AcpSessionConfigOption[] | null;
+    model_info: AcpModelInfo | null;
+    config_options: AcpSessionConfigOption[] | null;
     modes: AcpSessionModes | null;
   }): Promise<void> {
     // Cache model info
-    if (snapshot.modelInfo && snapshot.modelInfo.availableModels?.length > 0) {
+    if (snapshot.model_info && snapshot.model_info.available_models?.length > 0) {
       const cachedModels = (await ProcessConfig.get('acp.cachedModels')) || {};
       // Preserve the original default model from the first session, not from user switches
       const existing = cachedModels[this.extra.backend];
       const nextModelInfo = {
-        ...snapshot.modelInfo,
-        currentModelId: existing?.currentModelId ?? snapshot.modelInfo.currentModelId,
-        currentModelLabel: existing?.currentModelLabel ?? snapshot.modelInfo.currentModelLabel,
+        ...snapshot.model_info,
+        current_model_id: existing?.current_model_id ?? snapshot.model_info.current_model_id,
+        current_model_label: existing?.current_model_label ?? snapshot.model_info.current_model_label,
       };
       await ProcessConfig.set('acp.cachedModels', {
         ...cachedModels,
@@ -1847,17 +1851,17 @@ export class AcpAgent {
       });
     }
 
-    // Cache configOptions (for backends that provide them, e.g. codex)
-    if (Array.isArray(snapshot.configOptions) && snapshot.configOptions.length > 0) {
-      const cachedOptions = (await ProcessConfig.get('acp.cachedConfigOptions')) || {};
-      await ProcessConfig.set('acp.cachedConfigOptions', {
+    // Cache config_options (for backends that provide them, e.g. codex)
+    if (Array.isArray(snapshot.config_options) && snapshot.config_options.length > 0) {
+      const cachedOptions = (await ProcessConfig.get('acp.cached_config_options')) || {};
+      await ProcessConfig.set('acp.cached_config_options', {
         ...cachedOptions,
-        [this.extra.backend]: snapshot.configOptions,
+        [this.extra.backend]: snapshot.config_options,
       });
     }
 
     // Cache top-level modes (for backends that use modes object, e.g. qoder, opencode)
-    if (snapshot.modes?.availableModes && snapshot.modes.availableModes.length > 0) {
+    if (snapshot.modes?.available_modes && snapshot.modes.available_modes.length > 0) {
       const cachedModes = (await ProcessConfig.get('acp.cachedModes')) || {};
       await ProcessConfig.set('acp.cachedModes', {
         ...cachedModes,
@@ -1871,7 +1875,7 @@ export class AcpAgent {
    * Available before any session is created (persisted from previous runs).
    */
   static async getCachedConfigOptions(backend: string): Promise<AcpSessionConfigOption[] | null> {
-    const cached = await ProcessConfig.get('acp.cachedConfigOptions');
+    const cached = await ProcessConfig.get('acp.cached_config_options');
     const options = cached?.[backend];
     return Array.isArray(options) ? options : null;
   }

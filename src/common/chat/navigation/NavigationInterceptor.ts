@@ -45,7 +45,7 @@ export interface PreviewOpenData {
  */
 export interface NavigationToolData {
   // Tool identification
-  toolName?: string;
+  tool_name?: string;
   server?: string;
   // URL sources (try in order)
   url?: string;
@@ -74,10 +74,10 @@ export class NavigationInterceptor {
    * Normalize tool name by stripping MCP prefixes and suffixes
    * 规范化工具名称，去除 MCP 前缀和后缀
    */
-  static normalizeToolName(toolName: string): string {
-    if (!toolName) return '';
+  static normalizeToolName(tool_name: string): string {
+    if (!tool_name) return '';
 
-    let normalized = toolName;
+    let normalized = tool_name;
 
     // Remove known prefixes
     for (const prefix of MCP_PREFIXES) {
@@ -121,23 +121,23 @@ export class NavigationInterceptor {
   static isNavigationTool(data: NavigationToolData | string): boolean {
     if (typeof data === 'string') {
       // Simple string check
-      const toolName = data;
-      const isChromeDevTools = this.isChromeDevToolsIdentifier(toolName);
-      const baseName = this.normalizeToolName(toolName);
+      const tool_name = data;
+      const isChromeDevTools = this.isChromeDevToolsIdentifier(tool_name);
+      const baseName = this.normalizeToolName(tool_name);
       const isNavTool = NAVIGATION_TOOLS.includes(baseName as NavigationToolName);
       return isChromeDevTools && isNavTool;
     }
 
     // Object-based check
-    const { toolName = '', server = '' } = data;
-    const fullName = toolName || '';
+    const { tool_name = '', server = '' } = data;
+    const fullName = tool_name || '';
 
     // Check server field
     const serverIsChromeDevTools = this.isChromeDevToolsIdentifier(server);
     // Check tool name for chrome-devtools reference
-    const toolNameIsChromeDevTools = this.isChromeDevToolsIdentifier(fullName);
+    const tool_nameIsChromeDevTools = this.isChromeDevToolsIdentifier(fullName);
 
-    const isChromeDevTools = serverIsChromeDevTools || toolNameIsChromeDevTools;
+    const isChromeDevTools = serverIsChromeDevTools || tool_nameIsChromeDevTools;
 
     // Normalize and check if it's a navigation tool
     const baseName = this.normalizeToolName(fullName);
@@ -223,10 +223,10 @@ export class NavigationInterceptor {
    * Create a preview_open response message
    * 创建 preview_open 响应消息
    */
-  static createPreviewMessage(url: string, conversationId: string, title?: string): IResponseMessage {
+  static createPreviewMessage(url: string, conversation_id: string, title?: string): IResponseMessage {
     return {
       type: 'preview_open',
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
       msg_id: uuid(),
       data: {
         content: url,
@@ -244,7 +244,7 @@ export class NavigationInterceptor {
    *
    * @returns InterceptionResult with intercepted status and optional preview message
    */
-  static intercept(data: NavigationToolData, conversationId: string): InterceptionResult {
+  static intercept(data: NavigationToolData, conversation_id: string): InterceptionResult {
     if (!this.isNavigationTool(data)) {
       return { intercepted: false };
     }
@@ -254,7 +254,7 @@ export class NavigationInterceptor {
       return { intercepted: false };
     }
 
-    const previewMessage = this.createPreviewMessage(url, conversationId);
+    const previewMessage = this.createPreviewMessage(url, conversation_id);
 
     return {
       intercepted: true,

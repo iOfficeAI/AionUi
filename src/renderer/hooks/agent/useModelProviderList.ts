@@ -30,25 +30,25 @@ export const useModelProviderList = (): ModelProviderListResult => {
   const { data: modelConfig } = useSWR('model.config.shared', () => ipcBridge.mode.getModelConfig.invoke());
 
   // Mutable cache for available-model filtering
-  const availableModelsCacheRef = useRef(new Map<string, string[]>());
+  const available_modelsCacheRef = useRef(new Map<string, string[]>());
 
   // 当 modelConfig 变化时清除缓存
   useEffect(() => {
-    availableModelsCacheRef.current.clear();
+    available_modelsCacheRef.current.clear();
   }, [modelConfig]);
 
   const getAvailableModels = useCallback((provider: IProvider): string[] => {
-    // 包含 modelEnabled 状态到缓存 key 中
-    const modelEnabledKey = provider.modelEnabled ? JSON.stringify(provider.modelEnabled) : 'all-enabled';
-    const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${modelEnabledKey}`;
-    const cache = availableModelsCacheRef.current;
+    // 包含 model_enabled 状态到缓存 key 中
+    const model_enabledKey = provider.model_enabled ? JSON.stringify(provider.model_enabled) : 'all-enabled';
+    const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${model_enabledKey}`;
+    const cache = available_modelsCacheRef.current;
     if (cache.has(cacheKey)) {
       return cache.get(cacheKey)!;
     }
     const result: string[] = [];
     for (const modelName of provider.model || []) {
       // 检查模型是否被禁用（默认为启用）
-      const isModelEnabled = provider.modelEnabled?.[modelName] !== false;
+      const isModelEnabled = provider.model_enabled?.[modelName] !== false;
       if (!isModelEnabled) continue;
 
       const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
@@ -71,8 +71,8 @@ export const useModelProviderList = (): ModelProviderListResult => {
         id: GOOGLE_AUTH_PROVIDER_ID,
         name: 'Gemini Google Auth',
         platform: 'gemini-with-google-auth',
-        baseUrl: '',
-        apiKey: '',
+        base_url: '',
+        api_key: '',
         model: geminiModeOptions.map((v) => v.value),
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
         enabled: true, // Google Auth provider 始终启用

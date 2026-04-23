@@ -20,8 +20,8 @@ const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = []
 // Message index cache type definitions
 interface MessageIndex {
   msgIdIndex: Map<string, number>; // msg_id -> index
-  callIdIndex: Map<string, number>; // tool_call.callId -> index
-  toolCallIdIndex: Map<string, number>; // codex_tool_call.toolCallId / acp_tool_call.toolCallId -> index
+  call_idIndex: Map<string, number>; // tool_call.call_id -> index
+  tool_call_idIndex: Map<string, number>; // codex_tool_call.tool_call_id / acp_tool_call.tool_call_id -> index
 }
 
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
@@ -32,24 +32,24 @@ const indexCache = new WeakMap<TMessage[], MessageIndex>();
 // Build message index
 function buildMessageIndex(list: TMessage[]): MessageIndex {
   const msgIdIndex = new Map<string, number>();
-  const callIdIndex = new Map<string, number>();
-  const toolCallIdIndex = new Map<string, number>();
+  const call_idIndex = new Map<string, number>();
+  const tool_call_idIndex = new Map<string, number>();
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
     if (msg.msg_id) msgIdIndex.set(msg.msg_id, i);
-    if (msg.type === 'tool_call' && msg.content?.callId) {
-      callIdIndex.set(msg.content.callId, i);
+    if (msg.type === 'tool_call' && msg.content?.call_id) {
+      call_idIndex.set(msg.content.call_id, i);
     }
-    if (msg.type === 'codex_tool_call' && msg.content?.toolCallId) {
-      toolCallIdIndex.set(msg.content.toolCallId, i);
+    if (msg.type === 'codex_tool_call' && msg.content?.tool_call_id) {
+      tool_call_idIndex.set(msg.content.tool_call_id, i);
     }
-    if (msg.type === 'acp_tool_call' && msg.content?.update?.toolCallId) {
-      toolCallIdIndex.set(msg.content.update.toolCallId, i);
+    if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
+      tool_call_idIndex.set(msg.content.update.tool_call_id, i);
     }
   }
 
-  return { msgIdIndex, callIdIndex, toolCallIdIndex };
+  return { msgIdIndex, call_idIndex, tool_call_idIndex };
 }
 
 // 获取或构建索引（带缓存）
@@ -85,16 +85,16 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       // Rebuild index maps from the new list to keep them in sync
       const rebuilt = buildMessageIndex(result);
       index.msgIdIndex = rebuilt.msgIdIndex;
-      index.callIdIndex = rebuilt.callIdIndex;
-      index.toolCallIdIndex = rebuilt.toolCallIdIndex;
+      index.call_idIndex = rebuilt.call_idIndex;
+      index.tool_call_idIndex = rebuilt.tool_call_idIndex;
     }
     return result;
   }
 
-  // tool_call: 使用 callIdIndex 快速查找
-  // tool_call: use callIdIndex for fast lookup
-  if (message.type === 'tool_call' && message.content?.callId) {
-    const existingIdx = index.callIdIndex.get(message.content.callId);
+  // tool_call: 使用 call_idIndex 快速查找
+  // tool_call: use call_idIndex for fast lookup
+  if (message.type === 'tool_call' && message.content?.call_id) {
+    const existingIdx = index.call_idIndex.get(message.content.call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'tool_call') {
@@ -106,15 +106,15 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     }
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
-    index.callIdIndex.set(message.content.callId, newIdx);
+    index.call_idIndex.set(message.content.call_id, newIdx);
     if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
   }
 
-  // codex_tool_call: 使用 toolCallIdIndex 快速查找
-  // codex_tool_call: use toolCallIdIndex for fast lookup
-  if (message.type === 'codex_tool_call' && message.content?.toolCallId) {
-    const existingIdx = index.toolCallIdIndex.get(message.content.toolCallId);
+  // codex_tool_call: 使用 tool_call_idIndex 快速查找
+  // codex_tool_call: use tool_call_idIndex for fast lookup
+  if (message.type === 'codex_tool_call' && message.content?.tool_call_id) {
+    const existingIdx = index.tool_call_idIndex.get(message.content.tool_call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'codex_tool_call') {
@@ -126,13 +126,13 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     }
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
-    index.toolCallIdIndex.set(message.content.toolCallId, newIdx);
+    index.tool_call_idIndex.set(message.content.tool_call_id, newIdx);
     if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
   }
 
-  // acp_tool_call: 使用 toolCallIdIndex 快速查找
-  // acp_tool_call: use toolCallIdIndex for fast lookup
+  // acp_tool_call: 使用 tool_call_idIndex 快速查找
+  // acp_tool_call: use tool_call_idIndex for fast lookup
   //
   // TODO(acp-rewrite): When AcpAgentV2 compat layer is removed, change the merge below
   // to deep-merge content.update instead of shallow-spreading content. tool_call_update
@@ -141,8 +141,8 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
   // handles this, but after migration it should be:
   //   const mergedUpdate = { ...existingMsg.content.update, ...message.content.update };
   //   const merged = { ...existingMsg.content, ...message.content, update: mergedUpdate };
-  if (message.type === 'acp_tool_call' && message.content?.update?.toolCallId) {
-    const existingIdx = index.toolCallIdIndex.get(message.content.update.toolCallId);
+  if (message.type === 'acp_tool_call' && message.content?.update?.tool_call_id) {
+    const existingIdx = index.tool_call_idIndex.get(message.content.update.tool_call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'acp_tool_call') {
@@ -154,7 +154,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     }
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
-    index.toolCallIdIndex.set(message.content.update.toolCallId, newIdx);
+    index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
     if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
   }
@@ -241,8 +241,8 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       // Rebuild index after splice
       const rebuilt = buildMessageIndex(newList);
       index.msgIdIndex = rebuilt.msgIdIndex;
-      index.callIdIndex = rebuilt.callIdIndex;
-      index.toolCallIdIndex = rebuilt.toolCallIdIndex;
+      index.call_idIndex = rebuilt.call_idIndex;
+      index.tool_call_idIndex = rebuilt.tool_call_idIndex;
       return newList;
     }
     const newIdx = list.length;
@@ -307,14 +307,14 @@ export const useAddOrUpdateMessage = () => {
           const msg = item.message;
           const newIdx = newList.length;
           if (msg.msg_id) index.msgIdIndex.set(msg.msg_id, newIdx);
-          if (msg.type === 'tool_call' && msg.content?.callId) {
-            index.callIdIndex.set(msg.content.callId, newIdx);
+          if (msg.type === 'tool_call' && msg.content?.call_id) {
+            index.call_idIndex.set(msg.content.call_id, newIdx);
           }
-          if (msg.type === 'codex_tool_call' && msg.content?.toolCallId) {
-            index.toolCallIdIndex.set(msg.content.toolCallId, newIdx);
+          if (msg.type === 'codex_tool_call' && msg.content?.tool_call_id) {
+            index.tool_call_idIndex.set(msg.content.tool_call_id, newIdx);
           }
-          if (msg.type === 'acp_tool_call' && msg.content?.update?.toolCallId) {
-            index.toolCallIdIndex.set(msg.content.update.toolCallId, newIdx);
+          if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
+            index.tool_call_idIndex.set(msg.content.update.tool_call_id, newIdx);
           }
           newList = newList.concat(msg);
         } else {
@@ -371,7 +371,7 @@ export const useMessageLstCache = (key: string) => {
       .invoke({
         conversation_id: key,
         page: 0,
-        pageSize: 10000,
+        page_size: 10000,
       })
       .then((result) => {
         const messages = result?.items;

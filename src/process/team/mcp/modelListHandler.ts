@@ -31,7 +31,7 @@ async function getMergedModelProviders(): Promise<IProvider[]> {
 }
 
 export async function handleListModels(args: Record<string, unknown>): Promise<string> {
-  const agentType = args.agent_type ? String(args.agent_type) : undefined;
+  const agent_type = args.agent_type ? String(args.agent_type) : undefined;
 
   const [cachedModels, providers, isGoogleAuth] = await Promise.all([
     ProcessConfig.get('acp.cachedModels'),
@@ -39,12 +39,12 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
     hasGeminiOauthCreds(),
   ]);
 
-  if (agentType) {
-    const models = getTeamAvailableModels(agentType, cachedModels, providers, isGoogleAuth);
+  if (agent_type) {
+    const models = getTeamAvailableModels(agent_type, cachedModels, providers, isGoogleAuth);
     if (models.length === 0) {
-      return `No models available for agent type "${agentType}".`;
+      return `No models available for agent type "${agent_type}".`;
     }
-    return `## Models for ${agentType}\n${models.map((m) => `- ${m.id}`).join('\n')}`;
+    return `## Models for ${agent_type}\n${models.map((m) => `- ${m.id}`).join('\n')}`;
   }
 
   // List models for all team-capable backends

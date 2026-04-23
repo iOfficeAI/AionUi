@@ -29,16 +29,16 @@ export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | Anthr
  * 策略：先剥离所有已知 API 路径后缀得到根 URL，再根据目标协议添加正确后缀。
  * Strategy: strip all known API path suffixes to get root URL, then add the correct suffix for target protocol.
  *
- * @param baseUrl 原始 base URL / Original base URL
+ * @param base_url 原始 base URL / Original base URL
  * @param authType 目标认证类型 / Target auth type
  * @returns 规范化后的 base URL / Normalized base URL
  */
-export function normalizeNewApiBaseUrl(baseUrl: string, authType: AuthType): string {
-  if (!baseUrl) return baseUrl;
+export function normalizeNewApiBaseUrl(base_url: string, authType: AuthType): string {
+  if (!base_url) return base_url;
 
   // 1. 移除尾部斜杠，剥离所有已知 API 路径后缀，得到根 URL
   //    Remove trailing slashes, strip all known API path suffixes to get root URL
-  const rootUrl = baseUrl
+  const rootUrl = base_url
     .replace(/\/+$/, '')
     .replace(/\/v1$/, '')
     .replace(/\/v1beta$/, '');
@@ -69,12 +69,12 @@ export class ClientFactory {
 
     // 对 new-api 网关进行 URL 规范化 / Normalize URL for new-api gateway
     const isNewApi = isNewApiPlatform(provider.platform);
-    const baseUrl = isNewApi ? normalizeNewApiBaseUrl(provider.baseUrl, authType) : provider.baseUrl;
+    const base_url = isNewApi ? normalizeNewApiBaseUrl(provider.base_url, authType) : provider.base_url;
 
     switch (authType) {
       case AuthType.USE_OPENAI: {
         const clientConfig: OpenAIClientConfig = {
-          baseURL: baseUrl,
+          baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
             'HTTP-Referer': 'https://aionui.com',
@@ -89,17 +89,17 @@ export class ClientFactory {
           clientConfig.httpAgent = new HttpsProxyAgent(options.proxy);
         }
 
-        return new OpenAIRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
+        return new OpenAIRotatingClient(provider.api_key, clientConfig, rotatingOptions);
       }
 
       case AuthType.USE_GEMINI: {
         const clientConfig: GeminiClientConfig = {
           model: provider.useModel,
-          baseURL: baseUrl,
+          baseURL: base_url,
           ...(options.baseConfig as GeminiClientConfig),
         };
 
-        return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions, authType);
+        return new GeminiRotatingClient(provider.api_key, clientConfig, rotatingOptions, authType);
       }
 
       case AuthType.USE_VERTEX_AI: {
@@ -109,24 +109,24 @@ export class ClientFactory {
           ...(options.baseConfig as GeminiClientConfig),
         };
 
-        return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions, authType);
+        return new GeminiRotatingClient(provider.api_key, clientConfig, rotatingOptions, authType);
       }
 
       case AuthType.USE_ANTHROPIC: {
         const clientConfig: AnthropicClientConfig = {
           model: provider.useModel,
-          baseURL: baseUrl,
+          baseURL: base_url,
           timeout: options.timeout,
           ...(options.baseConfig as AnthropicClientConfig),
         };
 
-        return new AnthropicRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
+        return new AnthropicRotatingClient(provider.api_key, clientConfig, rotatingOptions);
       }
 
       default: {
         // 默认使用OpenAI兼容协议
         const clientConfig: OpenAIClientConfig = {
-          baseURL: baseUrl,
+          baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
             'HTTP-Referer': 'https://aionui.com',
@@ -141,7 +141,7 @@ export class ClientFactory {
           clientConfig.httpAgent = new HttpsProxyAgent(options.proxy);
         }
 
-        return new OpenAIRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
+        return new OpenAIRotatingClient(provider.api_key, clientConfig, rotatingOptions);
       }
     }
   }

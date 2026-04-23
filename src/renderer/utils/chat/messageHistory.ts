@@ -1,7 +1,7 @@
 import type { TMessage } from '@/common/chat/chatLib';
 
-export function getConversationInputHistory(messages: TMessage[], conversationId?: string): string[] {
-  if (!conversationId) {
+export function getConversationInputHistory(messages: TMessage[], conversation_id?: string): string[] {
+  if (!conversation_id) {
     return [];
   }
 
@@ -11,7 +11,7 @@ export function getConversationInputHistory(messages: TMessage[], conversationId
   for (let index = messages.length - 1; index >= 0; index -= 1) {
     const message = messages[index];
     if (
-      message.conversation_id !== conversationId ||
+      message.conversation_id !== conversation_id ||
       message.type !== 'text' ||
       message.position !== 'right' ||
       !message.content.content.trim()

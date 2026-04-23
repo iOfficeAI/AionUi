@@ -5,10 +5,10 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 
 type Props = {
-  agentName: string;
-  agentType: string;
+  agent_name: string;
+  agent_type: string;
   /** When provided, enables preset-aware avatar (emoji / custom svg) via the agent's conversation extras. */
-  conversationId?: string;
+  conversation_id?: string;
   isLeader?: boolean;
   className?: string;
   logoClassName?: string;
@@ -19,9 +19,9 @@ type Props = {
 };
 
 const TeamAgentIdentity: React.FC<Props> = ({
-  agentName,
-  agentType,
-  conversationId,
+  agent_name,
+  agent_type,
+  conversation_id,
   isLeader = false,
   className,
   logoClassName,
@@ -30,11 +30,11 @@ const TeamAgentIdentity: React.FC<Props> = ({
   crownClassName,
 }) => {
   // Share the SWR key with AgentChatSlot / TeamChatEmptyState so this hits cache instead of firing a fetch
-  const { data: conversation } = useSWR(conversationId ? ['team-conversation', conversationId] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: conversationId! })
+  const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
+    ipcBridge.conversation.get.invoke({ id: conversation_id! })
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
-  const backendLogo = getAgentLogo(agentType);
+  const backendLogo = getAgentLogo(agent_type);
 
   const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
   const resolvedLogoClassName = logoClassName ?? defaultLogoClassName;
@@ -50,9 +50,9 @@ const TeamAgentIdentity: React.FC<Props> = ({
       return <img src={presetInfo.logo} alt={presetInfo.name} className={resolvedLogoClassName} />;
     }
     if (backendLogo) {
-      return <img src={backendLogo} alt={agentType} className={resolvedLogoClassName} />;
+      return <img src={backendLogo} alt={agent_type} className={resolvedLogoClassName} />;
     }
-    return <span className={resolvedAvatarClassName}>{agentName.charAt(0).toUpperCase() || '🤖'}</span>;
+    return <span className={resolvedAvatarClassName}>{agent_name.charAt(0).toUpperCase() || '🤖'}</span>;
   };
 
   const crownIcon = (
@@ -78,7 +78,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
   return (
     <div className={['flex items-center gap-8px', className].filter(Boolean).join(' ')}>
       {renderAvatar()}
-      <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{agentName}</span>
+      <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{agent_name}</span>
       {isLeader && (
         <span
           data-testid='team-leader-crown'

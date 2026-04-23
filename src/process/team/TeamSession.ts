@@ -12,10 +12,10 @@ import { TeammateManager } from './TeammateManager';
 import { TeamMcpServer, type StdioMcpConfig } from './mcp/team/TeamMcpServer';
 
 type SpawnAgentFn = (
-  agentName: string,
-  agentType?: string,
+  agent_name: string,
+  agent_type?: string,
   model?: string,
-  customAgentId?: string
+  custom_agent_id?: string
 ) => Promise<TeamAgent>;
 
 /**
@@ -24,7 +24,7 @@ type SpawnAgentFn = (
  * The MCP server provides team coordination tools to ACP agents.
  */
 export class TeamSession extends EventEmitter {
-  readonly teamId: string;
+  readonly team_id: string;
   private readonly team: TTeam;
   private readonly repo: ITeamRepository;
   private readonly mailbox: Mailbox;
@@ -37,38 +37,38 @@ export class TeamSession extends EventEmitter {
   constructor(team: TTeam, repo: ITeamRepository, workerTaskManager: IWorkerTaskManager, spawnAgent?: SpawnAgentFn) {
     super();
     this.team = team;
-    this.teamId = team.id;
+    this.team_id = team.id;
     this.repo = repo;
     this.workerTaskManager = workerTaskManager;
     this.mailbox = new Mailbox(repo);
     this.taskManager = new TaskManager(repo);
     this.teammateManager = new TeammateManager({
-      teamId: team.id,
+      team_id: team.id,
       agents: team.agents,
       mailbox: this.mailbox,
       workerTaskManager,
       teamWorkspace: team.workspace || undefined,
-      onAgentRemoved: (teamId, agents) => {
-        void this.repo.update(teamId, { agents, updatedAt: Date.now() });
+      onAgentRemoved: (team_id, agents) => {
+        void this.repo.update(team_id, { agents, updated_at: Date.now() });
       },
     });
 
     // Create MCP server for team coordination tools
     this.mcpServer = new TeamMcpServer({
-      teamId: team.id,
+      team_id: team.id,
       getAgents: () => this.teammateManager.getAgents(),
       mailbox: this.mailbox,
       taskManager: this.taskManager,
       spawnAgent,
-      renameAgent: (slotId: string, newName: string) => {
-        this.teammateManager.renameAgent(slotId, newName);
-        void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
+      renameAgent: (slot_id: string, new_name: string) => {
+        this.teammateManager.renameAgent(slot_id, new_name);
+        void this.repo.update(team.id, { agents: this.teammateManager.getAgents(), updated_at: Date.now() });
       },
-      removeAgent: (slotId: string) => {
+      removeAgent: (slot_id: string) => {
         // removeAgent already persists via onAgentRemoved callback
-        this.teammateManager.removeAgent(slotId);
+        this.teammateManager.removeAgent(slot_id);
       },
-      wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
+      wakeAgent: (slot_id: string) => this.teammateManager.wake(slot_id),
     });
   }
 
@@ -83,11 +83,11 @@ export class TeamSession extends EventEmitter {
     return this.mcpStdioConfig;
   }
 
-  /** Get the MCP stdio config, optionally tagged with a specific agent's slotId */
+  /** Get the MCP stdio config, optionally tagged with a specific agent's slot_id */
   getStdioConfig(agentSlotId?: string): StdioMcpConfig | null {
     if (!this.mcpStdioConfig) return null;
     if (!agentSlotId) return this.mcpStdioConfig;
-    // Return a copy with the agent's slotId in env
+    // Return a copy with the agent's slot_id in env
     return this.mcpServer.getStdioConfig(agentSlotId);
   }
 
@@ -96,12 +96,12 @@ export class TeamSession extends EventEmitter {
    * team mailbox. Wake failures must not be reported as send failures to the
    * renderer, otherwise the queue may re-enqueue an already-delivered message.
    */
-  private async wakeAfterAcceptedDelivery(slotId: string, context: 'team' | 'agent'): Promise<void> {
+  private async wakeAfterAcceptedDelivery(slot_id: string, context: 'team' | 'agent'): Promise<void> {
     try {
-      await this.teammateManager.wake(slotId);
+      await this.teammateManager.wake(slot_id);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      console.error(`[TeamSession] Accepted ${context} message but failed to wake ${slotId}:`, message);
+      console.error(`[TeamSession] Accepted ${context} message but failed to wake ${slot_id}:`, message);
     }
   }
 
@@ -113,11 +113,11 @@ export class TeamSession extends EventEmitter {
     // Ensure MCP server is running before waking agents
     await this.startMcpServer();
 
-    const leadSlotId = this.team.leaderAgentId;
-    const leadAgent = this.teammateManager.getAgents().find((a) => a.slotId === leadSlotId);
+    const leadSlotId = this.team.leader_agent_id;
+    const leadAgent = this.teammateManager.getAgents().find((a) => a.slot_id === leadSlotId);
 
     await this.mailbox.write({
-      teamId: this.teamId,
+      team_id: this.team_id,
       toAgentId: leadSlotId,
       fromAgentId: 'user',
       content,
@@ -125,21 +125,21 @@ export class TeamSession extends EventEmitter {
     });
 
     // Persist user message in leader's conversation so it appears as a user bubble in the chat UI
-    if (leadAgent?.conversationId) {
+    if (leadAgent?.conversation_id) {
       const msgId = crypto.randomUUID();
       const userMessage: TMessage = {
         id: msgId,
         msg_id: msgId,
         type: 'text',
         position: 'right',
-        conversation_id: leadAgent.conversationId,
+        conversation_id: leadAgent.conversation_id,
         content: { content },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
-      addMessage(leadAgent.conversationId, userMessage);
+      addMessage(leadAgent.conversation_id, userMessage);
       ipcBridge.conversation.responseStream.emit({
         type: 'user_content',
-        conversation_id: leadAgent.conversationId,
+        conversation_id: leadAgent.conversation_id,
         msg_id: msgId,
         data: content,
       });
@@ -149,19 +149,19 @@ export class TeamSession extends EventEmitter {
   }
 
   /**
-   * Send a user message directly to a specific agent (by slotId), bypassing the leader.
+   * Send a user message directly to a specific agent (by slot_id), bypassing the leader.
    * Ensures MCP server is running, writes to agent's mailbox, persists user bubble, then wakes the agent.
    */
   async sendMessageToAgent(
-    slotId: string,
+    slot_id: string,
     content: string,
     options?: { silent?: boolean; files?: string[] }
   ): Promise<void> {
     await this.startMcpServer();
 
     await this.mailbox.write({
-      teamId: this.teamId,
-      toAgentId: slotId,
+      team_id: this.team_id,
+      toAgentId: slot_id,
       fromAgentId: 'user',
       content,
       files: options?.files,
@@ -170,34 +170,34 @@ export class TeamSession extends EventEmitter {
     // When silent, skip the user bubble — the content still reaches the agent
     // via mailbox → buildRolePrompt "Unread Messages". Used when the leader's
     // conversation is reused and already contains the full user context.
-    const agent = this.teammateManager.getAgents().find((a) => a.slotId === slotId);
-    if (agent?.conversationId && !options?.silent) {
+    const agent = this.teammateManager.getAgents().find((a) => a.slot_id === slot_id);
+    if (agent?.conversation_id && !options?.silent) {
       const msgId = crypto.randomUUID();
       const userMessage: TMessage = {
         id: msgId,
         msg_id: msgId,
         type: 'text',
         position: 'right',
-        conversation_id: agent.conversationId,
+        conversation_id: agent.conversation_id,
         content: { content },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
-      addMessage(agent.conversationId, userMessage);
+      addMessage(agent.conversation_id, userMessage);
       ipcBridge.conversation.responseStream.emit({
         type: 'user_content',
-        conversation_id: agent.conversationId,
+        conversation_id: agent.conversation_id,
         msg_id: msgId,
         data: content,
       });
     }
 
-    await this.wakeAfterAcceptedDelivery(slotId, 'agent');
+    await this.wakeAfterAcceptedDelivery(slot_id, 'agent');
   }
 
   /** Rename an agent and persist to DB */
-  renameAgent(slotId: string, newName: string): void {
-    this.teammateManager.renameAgent(slotId, newName);
-    void this.repo.update(this.teamId, { agents: this.teammateManager.getAgents(), updatedAt: Date.now() });
+  renameAgent(slot_id: string, new_name: string): void {
+    this.teammateManager.renameAgent(slot_id, new_name);
+    void this.repo.update(this.team_id, { agents: this.teammateManager.getAgents(), updated_at: Date.now() });
   }
 
   /** Add a new agent to the team at runtime */
@@ -206,8 +206,8 @@ export class TeamSession extends EventEmitter {
   }
 
   /** Remove an agent from the team at runtime and clean up its state */
-  removeAgent(slotId: string): void {
-    this.teammateManager.removeAgent(slotId);
+  removeAgent(slot_id: string): void {
+    this.teammateManager.removeAgent(slot_id);
   }
 
   /** Get current agent states */
@@ -219,8 +219,8 @@ export class TeamSession extends EventEmitter {
   async dispose(): Promise<void> {
     // Kill all agent processes before clearing listeners
     for (const agent of this.teammateManager.getAgents()) {
-      if (agent.conversationId) {
-        this.workerTaskManager.kill(agent.conversationId);
+      if (agent.conversation_id) {
+        this.workerTaskManager.kill(agent.conversation_id);
       }
     }
     this.teammateManager.dispose();

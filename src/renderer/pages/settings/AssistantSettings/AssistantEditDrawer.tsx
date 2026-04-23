@@ -278,7 +278,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                 value={editName}
                 onChange={(value) => setEditName(value)}
                 disabled={activeAssistant?.isBuiltin}
-                placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })}
+                placeholder={t('settings.agent_namePlaceholder', { defaultValue: 'Enter a name for this agent' })}
                 data-testid='input-assistant-name'
                 className='flex-1 rounded-4px bg-bg-1'
               />

@@ -11,7 +11,7 @@ import { spawn } from 'child_process';
 /**
  * Spawns the nanobot CLI per-message and collects stdout.
  *
- * Command: nanobot agent -m "<message>" --session <sessionId> --no-markdown
+ * Command: nanobot agent -m "<message>" --session <session_id> --no-markdown
  */
 export class NanobotConnection {
   private child: ChildProcess | null = null;
@@ -25,7 +25,7 @@ export class NanobotConnection {
    * Send a message by spawning a one-shot nanobot CLI process.
    * Returns the parsed response text.
    */
-  async sendMessage(message: string, sessionId: string): Promise<string> {
+  async sendMessage(message: string, session_id: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
       const env = getEnhancedEnv();
 
@@ -35,7 +35,7 @@ export class NanobotConnection {
       // With shell: false (the default), Node.js handles argument quoting correctly:
       // - Windows: CreateProcessW properly quotes args containing spaces
       // - Unix: execvp passes args directly to the process
-      const args = ['agent', '-m', `"${message}"`, '--session', sessionId, '--no-markdown'];
+      const args = ['agent', '-m', `"${message}"`, '--session', session_id, '--no-markdown'];
 
       this.child = spawn('nanobot', args, {
         cwd: this.workingDir,

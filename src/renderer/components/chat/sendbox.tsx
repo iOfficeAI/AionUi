@@ -165,7 +165,7 @@ const SendBox: React.FC<{
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
-  slashCommands?: SlashCommandItem[];
+  slash_commands?: SlashCommandItem[];
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
   enableBtw?: boolean;
@@ -189,7 +189,7 @@ const SendBox: React.FC<{
   defaultMultiLine = false,
   lockMultiLine = false,
   sendButtonPrefix,
-  slashCommands = [],
+  slash_commands = [],
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
   enableBtw = false,
@@ -352,18 +352,18 @@ const SendBox: React.FC<{
   const { isFileDragging, dragHandlers } = useDragUpload({
     supportedExts,
     onFilesAdded,
-    conversationId: conversationContext?.conversationId,
+    conversation_id: conversationContext?.conversation_id,
   });
 
   const { isUploading } = useUploadState('sendbox');
   const [message, context] = Message.useMessage();
   const conversationExport = useConversationExport({
-    conversationId: conversationContext?.conversationId,
+    conversation_id: conversationContext?.conversation_id,
     workspace: conversationContext?.workspace,
     t,
     messageApi: message,
   });
-  const btwCommand = useBtwCommand(conversationContext?.conversationId, enableBtw);
+  const btwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
   const activeAtFileQuery = useMemo(() => {
     if (!conversationContext?.workspace) {
@@ -386,8 +386,8 @@ const SendBox: React.FC<{
   const allAtFileQueries = useMemo(() => getAllAtFileQueries(input), [input]);
   const deferredAtFileQuery = useDeferredValue(activeAtFileQuery?.query ?? '');
   const inputHistory = useMemo(
-    () => getConversationInputHistory(messageList, conversationContext?.conversationId),
-    [conversationContext?.conversationId, messageList]
+    () => getConversationInputHistory(messageList, conversationContext?.conversation_id),
+    [conversationContext?.conversation_id, messageList]
   );
   const unmatchedSelectedWorkspaceItems = useMemo(() => {
     if (!selectedWorkspaceItems?.length) {
@@ -422,7 +422,7 @@ const SendBox: React.FC<{
         source: 'builtin',
       });
     }
-    if (conversationContext?.conversationId) {
+    if (conversationContext?.conversation_id) {
       commands.push({
         name: 'copy',
         description: t('messages.copy', { defaultValue: 'Copy' }),
@@ -437,20 +437,20 @@ const SendBox: React.FC<{
       });
     }
     return commands;
-  }, [conversationContext?.conversationId, enableBtw, onSlashBuiltinCommand, t]);
+  }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
 
   const mergedSlashCommands = useMemo(() => {
     const map = new Map<string, SlashCommandItem>();
     for (const command of builtinSlashCommands) {
       map.set(command.name, command);
     }
-    for (const command of slashCommands) {
+    for (const command of slash_commands) {
       if (!map.has(command.name)) {
         map.set(command.name, command);
       }
     }
     return Array.from(map.values());
-  }, [builtinSlashCommands, slashCommands]);
+  }, [builtinSlashCommands, slash_commands]);
 
   const slashController = useSlashCommandController({
     input,
@@ -595,12 +595,12 @@ const SendBox: React.FC<{
           WebkitBackdropFilter: 'blur(14px) saturate(1.1)',
         }}
       >
-        <div className='text-13px font-semibold text-t-primary'>{t('messages.export.fileNameLabel')}</div>
+        <div className='text-13px font-semibold text-t-primary'>{t('messages.export.file_nameLabel')}</div>
         <Input
           autoFocus
           value={conversationExport.filename}
           onChange={conversationExport.setFilename}
-          placeholder={t('messages.export.fileNamePlaceholder')}
+          placeholder={t('messages.export.file_namePlaceholder')}
           disabled={conversationExport.loading}
           onKeyDown={(event) => {
             conversationExport.handleKeyDown(event);
@@ -947,16 +947,16 @@ const SendBox: React.FC<{
   const { onPaste, onFocus: handlePasteFocus } = usePasteService({
     supportedExts,
     onFilesAdded,
-    conversationId: conversationContext?.conversationId,
+    conversation_id: conversationContext?.conversation_id,
     onTextPaste: (text: string) => {
       // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
       const textarea = document.activeElement as HTMLTextAreaElement;
       if (textarea && textarea.tagName === 'TEXTAREA') {
         const cursorPosition = textarea.selectionStart;
-        const currentValue = textarea.value;
+        const current_value = textarea.value;
         const start = textarea.selectionStart ?? textarea.value.length;
         const end = textarea.selectionEnd ?? start;
-        const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
+        const newValue = current_value.slice(0, start) + text + current_value.slice(end);
         setInput(newValue);
         // 设置光标到插入文本后的位置
         setTimeout(() => {
@@ -988,7 +988,7 @@ const SendBox: React.FC<{
 
     // Pre-warm worker bootstrap after focus stays for 1s (debounce).
     // Avoids triggering warmup for every conversation during rapid switching.
-    const cid = conversationContext?.conversationId;
+    const cid = conversationContext?.conversation_id;
     if (cid && warmedConversationRef.current !== cid) {
       if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current);
       warmupTimerRef.current = setTimeout(() => {
@@ -996,7 +996,7 @@ const SendBox: React.FC<{
         ipcBridge.conversation.warmup.invoke({ conversation_id: cid }).catch(() => {});
       }, 1000);
     }
-  }, [handlePasteFocus, isMobile, conversationContext?.conversationId]);
+  }, [handlePasteFocus, isMobile, conversationContext?.conversation_id]);
   const handleInputBlur = useCallback(() => {
     if (warmupTimerRef.current) {
       clearTimeout(warmupTimerRef.current);
@@ -1013,7 +1013,7 @@ const SendBox: React.FC<{
     externalOwnedPathsRef.current = new Set();
     selectedItemByPathRef.current = new Map();
     suppressedExternalAppendPathsRef.current = new Set();
-  }, [conversationContext?.conversationId]);
+  }, [conversationContext?.conversation_id]);
 
   const applyHistoryInput = useCallback(
     (value: string) => {
@@ -1243,8 +1243,8 @@ const SendBox: React.FC<{
 
   const handleSpeechTranscript = useCallback(
     (transcript: string) => {
-      const currentValue = latestInputRef.current;
-      setInputRef.current(appendSpeechTranscript(currentValue, transcript));
+      const current_value = latestInputRef.current;
+      setInputRef.current(appendSpeechTranscript(current_value, transcript));
     },
     [latestInputRef, setInputRef]
   );

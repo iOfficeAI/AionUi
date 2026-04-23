@@ -518,25 +518,25 @@ function parseEnvOutput(output: string): Record<string, string> {
   const result: Record<string, string> = {};
   const varStartRe = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)/;
   let currentKey: string | null = null;
-  let currentValue: string | null = null;
+  let current_value: string | null = null;
 
   for (const line of output.split('\n')) {
     const match = varStartRe.exec(line);
     if (match) {
       // Flush previous variable
       if (currentKey !== null) {
-        result[currentKey] = currentValue!;
+        result[currentKey] = current_value!;
       }
       currentKey = match[1];
-      currentValue = match[2];
+      current_value = match[2];
     } else if (currentKey !== null) {
       // Continuation of a multi-line value
-      currentValue += '\n' + line;
+      current_value += '\n' + line;
     }
   }
   // Flush last variable
   if (currentKey !== null) {
-    result[currentKey] = currentValue!;
+    result[currentKey] = current_value!;
   }
   return result;
 }

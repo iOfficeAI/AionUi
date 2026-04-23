@@ -11,8 +11,8 @@ import { GeminiAgent } from '@process/agent/gemini';
 import { forkTask } from './utils';
 export default forkTask(({ data }, pipe) => {
   pipe.log('gemini.init', data);
-  console.log(`[GeminiWorker] presetRules length: ${data.presetRules?.length || 0}`);
-  console.log(`[GeminiWorker] presetRules preview: ${data.presetRules?.substring(0, 200) || 'empty'}`);
+  console.log(`[GeminiWorker] preset_rules length: ${data.preset_rules?.length || 0}`);
+  console.log(`[GeminiWorker] preset_rules preview: ${data.preset_rules?.substring(0, 200) || 'empty'}`);
 
   // Track registered confirmation listeners to prevent duplicate pipe.once registrations.
   // onToolCallsUpdate fires for every state change across ALL tools, so tools still in
@@ -31,15 +31,15 @@ export default forkTask(({ data }, pipe) => {
           if (confirmationDetails) {
             const { onConfirm, ...details } = confirmationDetails;
             // Always keep the latest onConfirm reference
-            confirmCallbacks.set(tool.callId, onConfirm);
+            confirmCallbacks.set(tool.call_id, onConfirm);
 
-            if (!registeredConfirmCallIds.has(tool.callId)) {
-              registeredConfirmCallIds.add(tool.callId);
-              pipe.once(tool.callId, (confirmKey: string, deferred?: { resolve: (v: unknown) => void }) => {
-                const latestOnConfirm = confirmCallbacks.get(tool.callId);
-                registeredConfirmCallIds.delete(tool.callId);
-                confirmCallbacks.delete(tool.callId);
-                if (latestOnConfirm) latestOnConfirm(confirmKey);
+            if (!registeredConfirmCallIds.has(tool.call_id)) {
+              registeredConfirmCallIds.add(tool.call_id);
+              pipe.once(tool.call_id, (confirm_key: string, deferred?: { resolve: (v: unknown) => void }) => {
+                const latestOnConfirm = confirmCallbacks.get(tool.call_id);
+                registeredConfirmCallIds.delete(tool.call_id);
+                confirmCallbacks.delete(tool.call_id);
+                if (latestOnConfirm) latestOnConfirm(confirm_key);
                 // Resolve the deferred so postMessagePromise in the main process
                 // gets its callback. Without this, the promise leaks and the
                 // main-process once(callbackKey) listener is never cleaned up.

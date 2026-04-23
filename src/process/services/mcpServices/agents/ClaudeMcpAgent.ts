@@ -50,7 +50,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
   /**
    * 检测Claude Code的MCP配置
    */
-  detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(_cli_path?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
         // 使用Claude Code CLI命令获取MCP配置
@@ -85,15 +85,15 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             const commandParts = commandStr.trim().split(/\s+/);
             const command = commandParts[0];
             const args = commandParts.slice(1);
-            const displayName =
+            const display_name =
               isBuiltinImageGenName(name.trim()) || isBuiltinImageGenTransport({ command, args })
                 ? BUILTIN_IMAGE_GEN_NAME
                 : name.trim();
 
             // 解析状态：Connected, Disconnected, Failed to connect, 等
-            const isConnected =
+            const is_connected =
               statusText.toLowerCase().includes('connected') && !statusText.toLowerCase().includes('disconnect');
-            const status = isConnected ? 'connected' : 'disconnected';
+            const status = is_connected ? 'connected' : 'disconnected';
 
             // 构建transport对象
             const transportObj = {
@@ -105,7 +105,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
 
             // 尝试获取tools信息（对所有已连接的服务器）
             let tools: Array<{ name: string; description?: string }> = [];
-            if (isConnected) {
+            if (is_connected) {
               try {
                 const testResult = await this.testMcpConnection(transportObj);
                 tools = testResult.tools || [];
@@ -117,18 +117,18 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
 
             mcpServers.push({
               id: `claude_${name.trim()}`,
-              name: displayName,
+              name: display_name,
               transport: transportObj,
               tools: tools,
               enabled: true,
               status: status,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
+              created_at: Date.now(),
+              updated_at: Date.now(),
               description: '',
-              originalJson: JSON.stringify(
+              original_json: JSON.stringify(
                 {
                   mcpServers: {
-                    [displayName]: {
+                    [display_name]: {
                       command: command,
                       args: args,
                       description: `Detected from Claude CLI`,

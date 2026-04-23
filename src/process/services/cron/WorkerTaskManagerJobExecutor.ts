@@ -40,38 +40,38 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     private readonly busyGuard: CronBusyGuard
   ) {}
 
-  isConversationBusy(conversationId: string): boolean {
-    return this.busyGuard.isProcessing(conversationId);
+  isConversationBusy(conversation_id: string): boolean {
+    return this.busyGuard.isProcessing(conversation_id);
   }
 
   async executeJob(job: CronJob, onAcquired?: () => void, preparedConversationId?: string): Promise<string | void> {
-    let conversationId = preparedConversationId ?? job.metadata.conversationId;
+    let conversation_id = preparedConversationId ?? job.metadata.conversation_id;
 
     // Create a conversation when needed (skip if already prepared by runNow):
     if (!preparedConversationId && job.metadata.agentConfig) {
-      conversationId = await this.resolveConversationForJob(job);
+      conversation_id = await this.resolveConversationForJob(job);
     }
 
     // For existing mode, ensure the reused conversation uses the correct model.
-    // If the job specifies a modelId, use that; otherwise fall back to the user's
+    // If the job specifies a model_id, use that; otherwise fall back to the user's
     // preferred model so it doesn't stay on whatever it was originally created with.
-    if (job.target.executionMode === 'existing' && conversationId && job.metadata.agentConfig) {
+    if (job.target.executionMode === 'existing' && conversation_id && job.metadata.agentConfig) {
       const convService = await getConversationService();
-      const conv = await convService.getConversation(conversationId);
+      const conv = await convService.getConversation(conversation_id);
       if (conv) {
         const baseModel = await this.resolveModelForBackend(job.metadata.agentConfig.backend);
-        const currentModel = job.metadata.agentConfig.modelId
-          ? { ...baseModel, useModel: job.metadata.agentConfig.modelId }
+        const current_model = job.metadata.agentConfig.model_id
+          ? { ...baseModel, useModel: job.metadata.agentConfig.model_id }
           : baseModel;
         const convModel = 'model' in conv ? (conv as { model: TProviderWithModel }).model : undefined;
-        if (convModel?.useModel !== currentModel.useModel) {
-          await convService.updateConversation(conversationId, {
-            model: convModel ? { ...convModel, useModel: currentModel.useModel } : currentModel,
+        if (convModel?.useModel !== current_model.useModel) {
+          await convService.updateConversation(conversation_id, {
+            model: convModel ? { ...convModel, useModel: current_model.useModel } : current_model,
           } as Partial<TChatConversation>);
           // Kill stale task so getOrBuildTask picks up the new model
-          const staleTask = this.taskManager.getTask(conversationId);
+          const staleTask = this.taskManager.getTask(conversation_id);
           if (staleTask) {
-            this.taskManager.kill(conversationId);
+            this.taskManager.kill(conversation_id);
           }
         }
       }
@@ -80,7 +80,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const msgId = uuid();
 
     // Reuse existing task if possible; ensure yoloMode is active for scheduled runs.
-    const existingTask = this.taskManager.getTask(conversationId);
+    const existingTask = this.taskManager.getTask(conversation_id);
     let task;
     try {
       if (existingTask) {
@@ -89,17 +89,17 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
           task = existingTask;
         } else {
           // Cannot enable yoloMode dynamically — kill and recreate.
-          this.taskManager.kill(conversationId);
-          task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+          this.taskManager.kill(conversation_id);
+          task = await this.taskManager.getOrBuildTask(conversation_id, { yoloMode: true });
         }
       } else {
-        task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+        task = await this.taskManager.getOrBuildTask(conversation_id, { yoloMode: true });
       }
     } catch (err) {
       // Conversation may have been deleted between scheduling and execution.
       // Re-throw with context so the caller (CronService) can log and update job state.
       throw new Error(
-        `Failed to acquire task for conversation ${conversationId}: ${err instanceof Error ? err.message : String(err)}`,
+        `Failed to acquire task for conversation ${conversation_id}: ${err instanceof Error ? err.message : String(err)}`,
         { cause: err }
       );
     }
@@ -107,7 +107,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Mark busy only after task acquisition succeeds. This ensures that if
     // getOrBuildTask throws (conversation deleted), setProcessing(true) is never
     // called and no "busy" state leaks into subsequent runs.
-    this.busyGuard.setProcessing(conversationId, true);
+    this.busyGuard.setProcessing(conversation_id, true);
     // Notify caller so it can register onceIdle callbacks while the conversation
     // is already marked busy (prevents premature idle fires).
     onAcquired?.();
@@ -117,14 +117,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // with a fresh task in that case.
     if (
       job.metadata.agentConfig?.mode ||
-      job.metadata.agentConfig?.configOptions ||
-      job.metadata.agentConfig?.modelId
+      job.metadata.agentConfig?.config_options ||
+      job.metadata.agentConfig?.model_id
     ) {
       const ok = await this.applyAgentSettings(task, job);
       if (!ok) {
         console.warn(`[CronExecutor] Agent settings failed for job ${job.id}, recreating task and retrying`);
-        this.taskManager.kill(conversationId);
-        task = await this.taskManager.getOrBuildTask(conversationId, { yoloMode: true });
+        this.taskManager.kill(conversation_id);
+        task = await this.taskManager.getOrBuildTask(conversation_id, { yoloMode: true });
         await this.applyAgentSettings(task, job);
       }
     }
@@ -141,12 +141,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // Other agents: separate follow-up message via onFirstFinish (multi-turn).
     const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isGeminiLike);
 
-    const triggeredAt = Date.now();
+    const triggered_at = Date.now();
     const cronMeta: CronMessageMeta = {
       source: 'cron',
-      cronJobId: job.id,
-      cronJobName: job.name,
-      triggeredAt,
+      cron_job_id: job.id,
+      cron_job_name: job.name,
+      triggered_at,
     };
 
     // Always hide cron prompt messages from UI — a cron_trigger card replaces them.
@@ -154,7 +154,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     // Emit and persist a cron_trigger message so users see a clickable card
     // linking back to the scheduled task detail page.
-    this.emitCronTriggerMessage(conversationId, job.id, job.name, triggeredAt);
+    this.emitCronTriggerMessage(conversation_id, job.id, job.name, triggered_at);
 
     // Pass both content and input — each agent type picks the field it uses.
     await task.sendMessage({
@@ -168,23 +168,23 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     if (needsSkillSuggest) {
       // Defensively unregister first in case a previous execution left a stale entry
-      skillSuggestWatcher.unregister(conversationId);
+      skillSuggestWatcher.unregister(conversation_id);
 
       if (isGeminiLike) {
         // Gemini/Aionrs: SKILL_SUGGEST instructions are already in the prompt.
         // Just register the watcher (no onFirstFinish) and start polling.
-        skillSuggestWatcher.register(conversationId, job.id, workspace!);
-        void this.detectSkillSuggestWithRetry(job.id, workspace!, conversationId, 0);
+        skillSuggestWatcher.register(conversation_id, job.id, workspace!);
+        void this.detectSkillSuggestWithRetry(job.id, workspace!, conversation_id, 0);
       } else {
         // Other agents: send a follow-up message after the first finish event.
-        skillSuggestWatcher.register(conversationId, job.id, workspace!, async () => {
-          await this.sendSkillSuggestRequest(task, job, conversationId, workspace!);
+        skillSuggestWatcher.register(conversation_id, job.id, workspace!, async () => {
+          await this.sendSkillSuggestRequest(task, job, conversation_id, workspace!);
         });
       }
     }
 
-    // Return the conversationId used (may differ from job.metadata.conversationId in new_conversation mode)
-    return conversationId !== job.metadata.conversationId ? conversationId : undefined;
+    // Return the conversation_id used (may differ from job.metadata.conversation_id in new_conversation mode)
+    return conversation_id !== job.metadata.conversation_id ? conversation_id : undefined;
   }
 
   /**
@@ -194,11 +194,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   private async buildConversationForJob(job: CronJob): Promise<TChatConversation> {
     const config = job.metadata.agentConfig!;
     const baseModel = await this.resolveModelForBackend(config.backend);
-    // If the job specifies a modelId, override the resolved model's useModel
-    const model = config.modelId ? { ...baseModel, useModel: config.modelId } : baseModel;
+    // If the job specifies a model_id, override the resolved model's useModel
+    const model = config.model_id ? { ...baseModel, useModel: config.model_id } : baseModel;
     const convName = `${job.name} - ${this.formatExecutionTimestamp(job)}`;
 
-    const agentType = this.getAgentType(config.backend);
+    const agent_type = this.getAgentType(config.backend);
 
     // Check if a per-task SKILL.md exists (user-saved via "Turn into skill").
     // If yes: inject it into the workspace and exclude both cron and cron-run builtin skills.
@@ -206,25 +206,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const hasSkill = await hasCronSkillFile(job.id);
     const cronSkillDir = getCronSkillDir(job.id);
 
-    // Pre-populate cachedConfigOptions so the frontend displays correct values immediately.
-    const cachedConfigOptions = await this.buildCachedConfigOptions(config);
+    // Pre-populate cached_config_options so the frontend displays correct values immediately.
+    const cached_config_options = await this.buildCachedConfigOptions(config);
 
     const params: CreateConversationParams = {
-      type: agentType,
+      type: agent_type,
       name: convName,
       model,
       extra: {
         backend: config.backend,
-        agentName: config.name,
-        cliPath: config.cliPath,
-        customAgentId: config.customAgentId,
-        presetAssistantId: config.isPreset ? config.customAgentId : undefined,
-        cronJobId: job.id,
+        agent_name: config.name,
+        cli_path: config.cli_path,
+        custom_agent_id: config.custom_agent_id,
+        preset_assistant_id: config.is_preset ? config.custom_agent_id : undefined,
+        cron_job_id: job.id,
         cronWorkspace: config.workspace || '',
         workspace: config.workspace || '',
-        ...(config.mode ? { sessionMode: config.mode } : {}),
-        ...(config.modelId ? { currentModelId: config.modelId } : {}),
-        ...(cachedConfigOptions ? { cachedConfigOptions } : {}),
+        ...(config.mode ? { session_mode: config.mode } : {}),
+        ...(config.model_id ? { current_model_id: config.model_id } : {}),
+        ...(cached_config_options ? { cached_config_options } : {}),
         ...(hasSkill
           ? { extraSkillPaths: [cronSkillDir], excludeBuiltinSkills: ['cron'] }
           : { excludeBuiltinSkills: ['cron'] }),
@@ -240,19 +240,19 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       const skillManager = AcpSkillManager.getInstance();
       await skillManager.discoverSkills(undefined, excludeBuiltinSkills);
       const excludeSet = new Set(excludeBuiltinSkills ?? []);
-      const loadedSkills = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
-      if (loadedSkills.length > 0) {
-        const updatedExtra = { ...conversation.extra, loadedSkills };
+      const loaded_skills = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
+      if (loaded_skills.length > 0) {
+        const updatedExtra = { ...conversation.extra, loaded_skills };
         service.updateConversation(conversation.id, { extra: updatedExtra } as Partial<typeof conversation>);
         conversation.extra = updatedExtra as typeof conversation.extra;
       }
     } catch (error) {
-      console.warn('[CronExecutor] Failed to persist loadedSkills:', error);
+      console.warn('[CronExecutor] Failed to persist loaded_skills:', error);
     }
 
     // Notify frontend so sider updates immediately
     ipcBridge.conversation.listChanged.emit({
-      conversationId: conversation.id,
+      conversation_id: conversation.id,
       action: 'created',
       source: conversation.source || 'aionui',
     });
@@ -267,14 +267,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   private async buildCachedConfigOptions(
     config: NonNullable<CronJob['metadata']['agentConfig']>
   ): Promise<unknown[] | undefined> {
-    if (!config.configOptions || Object.keys(config.configOptions).length === 0) return undefined;
+    if (!config.config_options || Object.keys(config.config_options).length === 0) return undefined;
     try {
-      const globalCache = await ProcessConfig.get('acp.cachedConfigOptions');
+      const globalCache = await ProcessConfig.get('acp.cached_config_options');
       const opts = globalCache?.[config.backend];
       if (!Array.isArray(opts) || opts.length === 0) return undefined;
       return opts.map((opt) => {
-        const val = config.configOptions![(opt as { id: string }).id];
-        return val !== undefined ? { ...opt, currentValue: val, selectedValue: val } : opt;
+        const val = config.config_options![(opt as { id: string }).id];
+        return val !== undefined ? { ...opt, current_value: val, selected_value: val } : opt;
       });
     } catch {
       return undefined;
@@ -418,8 +418,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       name: backend,
       useModel: preferredModelId || 'auto',
       platform: backend,
-      baseUrl: '',
-      apiKey: '',
+      base_url: '',
+      api_key: '',
     } as TProviderWithModel;
   }
 
@@ -457,7 +457,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
   async prepareConversation(job: CronJob): Promise<string> {
     if (!job.metadata.agentConfig) {
-      return job.metadata.conversationId;
+      return job.metadata.conversation_id;
     }
     return this.resolveConversationForJob(job);
   }
@@ -468,7 +468,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * - existing mode: reuse the latest child conversation, unless agent or workspace changed
    *
    * Only agent change or workspace change forces a new conversation in existing mode.
-   * Mode and configOptions changes do NOT require a new conversation.
+   * Mode and config_options changes do NOT require a new conversation.
    */
   private async resolveConversationForJob(job: CronJob): Promise<string> {
     // new_conversation mode: always create
@@ -515,25 +515,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
             extraUpdates.workspace = config.workspace || '';
           }
 
-          if (config.mode && extra?.sessionMode !== config.mode) {
-            extraUpdates.sessionMode = config.mode;
+          if (config.mode && extra?.session_mode !== config.mode) {
+            extraUpdates.session_mode = config.mode;
           }
 
-          if (config.modelId && extra?.currentModelId !== config.modelId) {
-            extraUpdates.currentModelId = config.modelId;
+          if (config.model_id && extra?.current_model_id !== config.model_id) {
+            extraUpdates.current_model_id = config.model_id;
           }
 
-          if (config.configOptions && Object.keys(config.configOptions).length > 0) {
+          if (config.config_options && Object.keys(config.config_options).length > 0) {
             // Prefer patching existing conversation cache; fall back to global cache
-            const existing = Array.isArray(extra?.cachedConfigOptions) ? extra.cachedConfigOptions : undefined;
+            const existing = Array.isArray(extra?.cached_config_options) ? extra.cached_config_options : undefined;
             if (existing && existing.length > 0) {
-              extraUpdates.cachedConfigOptions = existing.map((opt: Record<string, unknown>) => {
-                const val = config.configOptions![(opt.id as string) ?? ''];
-                return val !== undefined ? { ...opt, currentValue: val, selectedValue: val } : opt;
+              extraUpdates.cached_config_options = existing.map((opt: Record<string, unknown>) => {
+                const val = config.config_options![(opt.id as string) ?? ''];
+                return val !== undefined ? { ...opt, current_value: val, selected_value: val } : opt;
               });
             } else {
               const fromGlobal = await this.buildCachedConfigOptions(config);
-              if (fromGlobal) extraUpdates.cachedConfigOptions = fromGlobal;
+              if (fromGlobal) extraUpdates.cached_config_options = fromGlobal;
             }
           }
 
@@ -552,8 +552,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       return conv.id;
     }
 
-    // Fallback: use metadata conversationId (jobs created from conversation context)
-    return job.metadata.conversationId;
+    // Fallback: use metadata conversation_id (jobs created from conversation context)
+    return job.metadata.conversation_id;
   }
 
   /**
@@ -591,29 +591,29 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     }
 
     // Apply config options
-    if (job.metadata.agentConfig?.configOptions && hasSetConfigOption) {
-      for (const [configId, value] of Object.entries(job.metadata.agentConfig.configOptions)) {
+    if (job.metadata.agentConfig?.config_options && hasSetConfigOption) {
+      for (const [config_id, value] of Object.entries(job.metadata.agentConfig.config_options)) {
         try {
           await (task as { setConfigOption: (id: string, val: string) => Promise<unknown> }).setConfigOption(
-            configId,
+            config_id,
             value
           );
         } catch (err) {
-          console.warn(`[CronExecutor] setConfigOption("${configId}", "${value}") threw for job ${job.id}:`, err);
+          console.warn(`[CronExecutor] setConfigOption("${config_id}", "${value}") threw for job ${job.id}:`, err);
           return false;
         }
       }
     }
 
     // Apply model
-    if (job.metadata.agentConfig?.modelId) {
+    if (job.metadata.agentConfig?.model_id) {
       const hasSetModel =
         'setModel' in task &&
-        typeof (task as { setModel?: (modelId: string) => Promise<unknown> }).setModel === 'function';
+        typeof (task as { setModel?: (model_id: string) => Promise<unknown> }).setModel === 'function';
       if (hasSetModel) {
-        const desiredModel = job.metadata.agentConfig.modelId;
+        const desiredModel = job.metadata.agentConfig.model_id;
         try {
-          await (task as { setModel: (modelId: string) => Promise<unknown> }).setModel(desiredModel);
+          await (task as { setModel: (model_id: string) => Promise<unknown> }).setModel(desiredModel);
         } catch (err) {
           console.warn(`[CronExecutor] setModel("${desiredModel}") threw for job ${job.id}:`, err);
           return false;
@@ -631,7 +631,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   private async sendSkillSuggestRequest(
     task: { type: string; sendMessage: (data: unknown) => Promise<void> },
     job: CronJob,
-    conversationId: string,
+    conversation_id: string,
     workspace: string
   ): Promise<void> {
     const msgId = uuid();
@@ -645,7 +645,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       return;
     }
 
-    void this.detectSkillSuggestWithRetry(job.id, workspace, conversationId, 0);
+    void this.detectSkillSuggestWithRetry(job.id, workspace, conversation_id, 0);
   }
 
   /** Max retries for initial SKILL_SUGGEST.md detection (agent may still be writing it). */
@@ -658,48 +658,53 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Subsequent detection happens via AgentManager finish handlers calling
    * `skillSuggestWatcher.onFinish()`.
    */
-  private detectSkillSuggestWithRetry(jobId: string, workspace: string, conversationId: string, attempt: number): void {
-    const filePath = path.join(workspace, SKILL_SUGGEST_FILENAME);
+  private detectSkillSuggestWithRetry(
+    job_id: string,
+    workspace: string,
+    conversation_id: string,
+    attempt: number
+  ): void {
+    const file_path = path.join(workspace, SKILL_SUGGEST_FILENAME);
 
-    fs.readFile(filePath, 'utf-8')
+    fs.readFile(file_path, 'utf-8')
       .then(async (content) => {
         if (!content?.trim()) {
           throw Object.assign(new Error('empty'), { code: 'EMPTY' });
         }
 
         console.log(
-          `[CronExecutor] Found ${SKILL_SUGGEST_FILENAME} (${content.length} chars) for job ${jobId} on attempt ${attempt + 1}`
+          `[CronExecutor] Found ${SKILL_SUGGEST_FILENAME} (${content.length} chars) for job ${job_id} on attempt ${attempt + 1}`
         );
 
         // Register for ongoing monitoring and set the initial hash
-        skillSuggestWatcher.register(conversationId, jobId, workspace);
+        skillSuggestWatcher.register(conversation_id, job_id, workspace);
         const hash = contentHash(content);
 
         // Skip if SkillSuggestWatcher.checkAndEmit already processed this content
-        if (skillSuggestWatcher.getLastHash(conversationId) === hash) {
+        if (skillSuggestWatcher.getLastHash(conversation_id) === hash) {
           return;
         }
-        skillSuggestWatcher.setLastHash(conversationId, hash);
+        skillSuggestWatcher.setLastHash(conversation_id, hash);
 
         // Emit the initial detection
-        await this.emitSkillSuggestInitial(jobId, conversationId, content);
+        await this.emitSkillSuggestInitial(job_id, conversation_id, content);
       })
       .catch((err) => {
         // File not found or empty — retry if attempts remain
         if (attempt < WorkerTaskManagerJobExecutor.SKILL_DETECT_MAX_RETRIES) {
           setTimeout(() => {
-            this.detectSkillSuggestWithRetry(jobId, workspace, conversationId, attempt + 1);
+            this.detectSkillSuggestWithRetry(job_id, workspace, conversation_id, attempt + 1);
           }, WorkerTaskManagerJobExecutor.SKILL_DETECT_INTERVAL_MS);
         } else {
           // Exhausted retries — register anyway in case the user asks AI to write it later
-          skillSuggestWatcher.register(conversationId, jobId, workspace);
+          skillSuggestWatcher.register(conversation_id, job_id, workspace);
           console.log(
-            `[CronExecutor] Registered watcher for job ${jobId} (file not found after ${attempt + 1} retries)`
+            `[CronExecutor] Registered watcher for job ${job_id} (file not found after ${attempt + 1} retries)`
           );
         }
         // Only log unexpected errors (not ENOENT/EMPTY which are expected during retries)
         if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT' && (err as { code?: string })?.code !== 'EMPTY') {
-          console.warn(`[CronExecutor] Error detecting ${SKILL_SUGGEST_FILENAME} for job ${jobId}:`, err);
+          console.warn(`[CronExecutor] Error detecting ${SKILL_SUGGEST_FILENAME} for job ${job_id}:`, err);
         }
       });
   }
@@ -707,25 +712,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   /**
    * Emit the initial skill_suggest message when SKILL_SUGGEST.md is first found.
    */
-  private async emitSkillSuggestInitial(jobId: string, conversationId: string, content: string): Promise<void> {
-    if (await hasCronSkillFile(jobId)) {
-      skillSuggestWatcher.unregister(conversationId);
+  private async emitSkillSuggestInitial(job_id: string, conversation_id: string, content: string): Promise<void> {
+    if (await hasCronSkillFile(job_id)) {
+      skillSuggestWatcher.unregister(conversation_id);
       return;
     }
 
     const { validateSkillContent } = await import('./cronSkillFile');
     const validated = validateSkillContent(content);
     if (!validated) {
-      console.warn(`[CronExecutor] ${SKILL_SUGGEST_FILENAME} validation failed for job ${jobId}`);
+      console.warn(`[CronExecutor] ${SKILL_SUGGEST_FILENAME} validation failed for job ${job_id}`);
       return;
     }
 
     const message: IResponseMessage = {
       type: 'skill_suggest',
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
       msg_id: uuid(),
       data: {
-        cronJobId: jobId,
+        cron_job_id: job_id,
         name: validated.name,
         description: validated.description,
         skillContent: content,
@@ -736,7 +741,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     ipcBridge.geminiConversation.responseStream.emit(message);
     ipcBridge.acpConversation.responseStream.emit(message);
     ipcBridge.openclawConversation.responseStream.emit(message);
-    console.log(`[CronExecutor] Emitted initial skill_suggest for job ${jobId}, conversation ${conversationId}`);
+    console.log(`[CronExecutor] Emitted initial skill_suggest for job ${job_id}, conversation ${conversation_id}`);
   }
 
   /**
@@ -744,10 +749,10 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * card linking to the scheduled task detail page.
    */
   private emitCronTriggerMessage(
-    conversationId: string,
-    cronJobId: string,
-    cronJobName: string,
-    triggeredAt: number
+    conversation_id: string,
+    cron_job_id: string,
+    cron_job_name: string,
+    triggered_at: number
   ): void {
     const msgId = uuid();
     const triggerMessage: TMessage = {
@@ -755,21 +760,21 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       msg_id: msgId,
       type: 'cron_trigger',
       position: 'center',
-      conversation_id: conversationId,
-      content: { cronJobId, cronJobName, triggeredAt },
-      createdAt: triggeredAt,
+      conversation_id: conversation_id,
+      content: { cron_job_id, cron_job_name, triggered_at },
+      created_at: triggered_at,
       status: 'finish',
     };
 
     // Persist to database
-    addMessage(conversationId, triggerMessage);
+    addMessage(conversation_id, triggerMessage);
 
     // Emit to frontend for immediate display
     const ipcMessage: IResponseMessage = {
       type: 'cron_trigger',
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
       msg_id: msgId,
-      data: { cronJobId, cronJobName, triggeredAt },
+      data: { cron_job_id, cron_job_name, triggered_at },
     };
     ipcBridge.conversation.responseStream.emit(ipcMessage);
     ipcBridge.geminiConversation.responseStream.emit(ipcMessage);
@@ -777,12 +782,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     ipcBridge.openclawConversation.responseStream.emit(ipcMessage);
   }
 
-  onceIdle(conversationId: string, callback: () => Promise<void>): void {
-    this.busyGuard.onceIdle(conversationId, callback);
+  onceIdle(conversation_id: string, callback: () => Promise<void>): void {
+    this.busyGuard.onceIdle(conversation_id, callback);
   }
 
-  setProcessing(conversationId: string, busy: boolean): void {
-    this.busyGuard.setProcessing(conversationId, busy);
+  setProcessing(conversation_id: string, busy: boolean): void {
+    this.busyGuard.setProcessing(conversation_id, busy);
   }
 }
 

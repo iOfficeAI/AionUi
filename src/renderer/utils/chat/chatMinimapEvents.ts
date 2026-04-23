@@ -1,7 +1,7 @@
 export const CHAT_MESSAGE_JUMP_EVENT = 'aionui-chat-message-jump';
 
 export interface ChatMessageJumpDetail {
-  conversationId: string;
+  conversation_id: string;
   messageId?: string;
   msgId?: string;
   align?: 'start' | 'center' | 'end';

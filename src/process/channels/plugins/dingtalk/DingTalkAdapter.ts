@@ -35,7 +35,7 @@ export const DINGTALK_MESSAGE_LIMIT = 4000;
  * DingTalk Stream callback message data
  */
 export interface DingTalkStreamMessage {
-  conversationId?: string;
+  conversation_id?: string;
   atUsers?: Array<{
     dingtalkId?: string;
     staffId?: string;
@@ -49,7 +49,7 @@ export interface DingTalkStreamMessage {
   sessionWebhookExpiredTime?: number;
   createAt?: number;
   senderCorpId?: string;
-  conversationType?: string; // '1' = private, '2' = group
+  conversation_type?: string; // '1' = private, '2' = group
   msgtype?: string;
   text?: {
     content?: string;
@@ -76,7 +76,7 @@ export interface DingTalkStreamMessage {
   };
   file?: {
     downloadCode?: string;
-    fileName?: string;
+    file_name?: string;
     fileSize?: string;
   };
   sessionWebhook?: string;
@@ -88,7 +88,7 @@ export interface DingTalkStreamMessage {
  */
 export interface DingTalkCardActionData {
   outTrackId?: string;
-  userId?: string;
+  user_id?: string;
   content?: {
     cardPrivateData?: {
       actionIds?: string[];
@@ -102,15 +102,15 @@ export interface DingTalkCardActionData {
 /**
  * Encode chatId based on conversation type
  * Private chat: user:{senderStaffId}
- * Group chat: group:{conversationId}
+ * Group chat: group:{conversation_id}
  */
 export function encodeChatId(data: DingTalkStreamMessage): string {
-  if (data.conversationType === '1') {
+  if (data.conversation_type === '1') {
     // Private chat
     return `user:${data.senderStaffId || data.chatbotUserId || ''}`;
   }
   // Group chat
-  return `group:${data.conversationId || ''}`;
+  return `group:${data.conversation_id || ''}`;
 }
 
 /**
@@ -136,7 +136,7 @@ export function toUnifiedIncomingMessage(
 ): IUnifiedIncomingMessage | null {
   // Handle card action
   if (actionInfo) {
-    const userId = data.senderStaffId || '';
+    const user_id = data.senderStaffId || '';
     const chatId = encodeChatId(data);
 
     return {
@@ -144,8 +144,8 @@ export function toUnifiedIncomingMessage(
       platform: 'dingtalk',
       chatId,
       user: {
-        id: userId,
-        displayName: data.senderNick || `User ${userId.slice(-6)}`,
+        id: user_id,
+        display_name: data.senderNick || `User ${user_id.slice(-6)}`,
       },
       content: {
         type: 'action',
@@ -181,12 +181,12 @@ export function toUnifiedIncomingMessage(
  * Convert DingTalk sender info to unified user format
  */
 export function toUnifiedUser(data: DingTalkStreamMessage): IUnifiedUser | null {
-  const userId = data.senderStaffId || '';
-  if (!userId) return null;
+  const user_id = data.senderStaffId || '';
+  if (!user_id) return null;
 
   return {
-    id: userId,
-    displayName: data.senderNick || `User ${userId.slice(-6)}`,
+    id: user_id,
+    display_name: data.senderNick || `User ${user_id.slice(-6)}`,
   };
 }
 
@@ -200,7 +200,7 @@ function extractMessageContent(data: DingTalkStreamMessage): IUnifiedMessageCont
     case 'text': {
       let text = data.text?.content || '';
       // Remove @bot mentions in group chats
-      if (data.conversationType === '2') {
+      if (data.conversation_type === '2') {
         text = text.replace(/@\S+\s*/g, '').trim();
       }
       return { type: 'text', text };
@@ -211,7 +211,7 @@ function extractMessageContent(data: DingTalkStreamMessage): IUnifiedMessageCont
         .filter((item) => item.type === 'text')
         .map((item) => item.text || '');
       let text = textParts.join('');
-      if (data.conversationType === '2') {
+      if (data.conversation_type === '2') {
         text = text.replace(/@\S+\s*/g, '').trim();
       }
       return { type: 'text', text };
@@ -263,7 +263,7 @@ function extractMessageContent(data: DingTalkStreamMessage): IUnifiedMessageCont
           {
             type: 'document',
             fileId: data.file?.downloadCode || '',
-            fileName: data.file?.fileName,
+            file_name: data.file?.file_name,
             size: data.file?.fileSize ? parseInt(data.file.fileSize, 10) : undefined,
           },
         ],

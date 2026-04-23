@@ -53,7 +53,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     this.core = new RemoteAgentCore({
-      conversationId: data.conversation_id,
+      conversation_id: data.conversation_id,
       remoteConfig,
       sessionKey: data.sessionKey,
       onStreamEvent: (msg) => this.handleStreamEvent(msg),
@@ -103,24 +103,24 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
     if (msg.type === 'acp_permission') {
       const permissionData = msg.data as {
-        sessionId: string;
+        session_id: string;
         toolCall: {
-          toolCallId: string;
+          tool_call_id: string;
           title?: string;
           kind?: string;
           rawInput?: Record<string, unknown>;
         };
-        options: Array<{ optionId: string; name: string; kind: string }>;
+        options: Array<{ option_id: string; name: string; kind: string }>;
       };
 
       const confirmation: IConfirmation = {
-        id: permissionData.toolCall.toolCallId,
-        callId: permissionData.toolCall.toolCallId,
+        id: permissionData.toolCall.tool_call_id,
+        call_id: permissionData.toolCall.tool_call_id,
         title: permissionData.toolCall.title || 'Permission Required',
         description: JSON.stringify(permissionData.toolCall.rawInput || {}),
         options: permissionData.options.map((opt) => ({
           label: opt.name,
-          value: opt.optionId,
+          value: opt.option_id,
         })),
       };
 
@@ -197,7 +197,7 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
           position: 'right',
           conversation_id: this.conversation_id,
           content: { content: data.content },
-          createdAt: Date.now(),
+          created_at: Date.now(),
           ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
@@ -219,10 +219,10 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
   }
 
-  async confirm(id: string, callId: string, data: string) {
-    super.confirm(id, callId, data);
+  async confirm(id: string, call_id: string, data: string) {
+    super.confirm(id, call_id, data);
     await this.bootstrap;
-    await this.core.confirmMessage({ confirmKey: data, callId });
+    await this.core.confirmMessage({ confirm_key: data, call_id });
   }
 
   private emitErrorMessage(error: string): void {

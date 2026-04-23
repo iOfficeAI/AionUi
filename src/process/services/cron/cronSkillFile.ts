@@ -12,8 +12,8 @@ import { getCronSkillsDir } from '@process/utils/initStorage';
  * Get the cron skill directory path for a given job ID.
  * The directory contains SKILL.md and can be symlinked into a workspace.
  */
-export function getCronSkillDir(jobId: string): string {
-  return path.join(getCronSkillsDir(), jobId);
+export function getCronSkillDir(job_id: string): string {
+  return path.join(getCronSkillsDir(), job_id);
 }
 
 /**
@@ -102,21 +102,21 @@ export function parseCronSkillContent(content: string): { name: string; descript
 
 /**
  * Write a SKILL.md file for a cron job.
- * Creates directory {cronSkillsDir}/{jobId}/ and writes SKILL.md inside it.
+ * Creates directory {cronSkillsDir}/{job_id}/ and writes SKILL.md inside it.
  */
 export async function writeCronSkillFile(
-  jobId: string,
+  job_id: string,
   name: string,
   description: string,
   prompt: string,
   scheduleDescription?: string
 ): Promise<string> {
-  const dir = path.join(getCronSkillsDir(), jobId);
-  const filePath = path.join(dir, 'SKILL.md');
+  const dir = path.join(getCronSkillsDir(), job_id);
+  const file_path = path.join(dir, 'SKILL.md');
   await fs.mkdir(dir, { recursive: true });
   const content = buildCronSkillContent(name, description, prompt, scheduleDescription);
-  await fs.writeFile(filePath, content, 'utf-8');
-  return filePath;
+  await fs.writeFile(file_path, content, 'utf-8');
+  return file_path;
 }
 
 // Placeholder patterns that indicate the AI echoed the template instead of generating real content
@@ -172,27 +172,27 @@ export function validateSkillContent(content: string): { name: string; descripti
  * Write raw SKILL.md content directly (e.g. AI-generated skill from [SKILL_SUGGEST]).
  * Validates the content before writing. Throws if content is not a valid SKILL.md.
  */
-export async function writeRawCronSkillFile(jobId: string, rawContent: string): Promise<string> {
+export async function writeRawCronSkillFile(job_id: string, rawContent: string): Promise<string> {
   const validated = validateSkillContent(rawContent);
   if (!validated) {
     throw new Error('Invalid SKILL.md content: must have YAML frontmatter with name/description and a non-empty body');
   }
 
-  const dir = path.join(getCronSkillsDir(), jobId);
-  const filePath = path.join(dir, 'SKILL.md');
+  const dir = path.join(getCronSkillsDir(), job_id);
+  const file_path = path.join(dir, 'SKILL.md');
   await fs.mkdir(dir, { recursive: true });
-  await fs.writeFile(filePath, rawContent, 'utf-8');
-  return filePath;
+  await fs.writeFile(file_path, rawContent, 'utf-8');
+  return file_path;
 }
 
 /**
  * Read raw SKILL.md content for a cron job.
  * Returns null if the file doesn't exist.
  */
-export async function readCronSkillContent(jobId: string): Promise<string | null> {
-  const filePath = path.join(getCronSkillsDir(), jobId, 'SKILL.md');
+export async function readCronSkillContent(job_id: string): Promise<string | null> {
+  const file_path = path.join(getCronSkillsDir(), job_id, 'SKILL.md');
   try {
-    return await fs.readFile(filePath, 'utf-8');
+    return await fs.readFile(file_path, 'utf-8');
   } catch {
     return null;
   }
@@ -201,10 +201,10 @@ export async function readCronSkillContent(jobId: string): Promise<string | null
 /**
  * Check whether a per-task SKILL.md exists for the given cron job.
  */
-export async function hasCronSkillFile(jobId: string): Promise<boolean> {
-  const filePath = path.join(getCronSkillsDir(), jobId, 'SKILL.md');
+export async function hasCronSkillFile(job_id: string): Promise<boolean> {
+  const file_path = path.join(getCronSkillsDir(), job_id, 'SKILL.md');
   try {
-    await fs.access(filePath);
+    await fs.access(file_path);
     return true;
   } catch {
     return false;
@@ -214,7 +214,7 @@ export async function hasCronSkillFile(jobId: string): Promise<boolean> {
 /**
  * Delete the cron job's skill file directory.
  */
-export async function deleteCronSkillFile(jobId: string): Promise<void> {
-  const dir = path.join(getCronSkillsDir(), jobId);
+export async function deleteCronSkillFile(job_id: string): Promise<void> {
+  const dir = path.join(getCronSkillsDir(), job_id);
   await fs.rm(dir, { recursive: true, force: true });
 }

@@ -53,8 +53,8 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
 
   // Handle pasted files (append mode to support multiple pastes)
   const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
-    const filePaths = pastedFiles.map((file) => file.path);
-    setFiles((prevFiles) => [...prevFiles, ...filePaths]);
+    const file_paths = pastedFiles.map((file) => file.path);
+    setFiles((prevFiles) => [...prevFiles, ...file_paths]);
     setDir('');
   }, []);
 
@@ -82,8 +82,8 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
       if (textarea && textarea.tagName === 'TEXTAREA') {
         const start = textarea.selectionStart ?? textarea.value.length;
         const end = textarea.selectionEnd ?? start;
-        const currentValue = textarea.value;
-        const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
+        const current_value = textarea.value;
+        const newValue = current_value.slice(0, start) + text + current_value.slice(end);
         setInput(newValue);
 
         setTimeout(() => {

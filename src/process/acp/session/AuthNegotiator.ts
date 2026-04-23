@@ -31,9 +31,9 @@ export class AuthNegotiator {
    */
   async authenticate(
     protocol: { authenticate(methodId: string): Promise<unknown> },
-    authMethods?: AuthMethod[]
+    auth_methods?: AuthMethod[]
   ): Promise<void> {
-    const methods = authMethods ?? [];
+    const methods = auth_methods ?? [];
     if (methods.length === 0) return;
 
     const selected = this.selectAuthMethod(methods);
@@ -70,10 +70,10 @@ export class AuthNegotiator {
     return null;
   }
 
-  buildAuthRequiredData(authMethods?: AuthMethod[]): AuthRequiredData {
+  buildAuthRequiredData(auth_methods?: AuthMethod[]): AuthRequiredData {
     return {
       agentBackend: this.agentBackend,
-      methods: authMethods ?? [],
+      methods: auth_methods ?? [],
     };
   }
 }

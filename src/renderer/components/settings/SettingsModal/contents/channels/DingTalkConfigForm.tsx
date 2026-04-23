@@ -75,9 +75,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   // Agent selection
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: string; name: string; customAgentId?: string; isPreset?: boolean }>
+    Array<{ backend: string; name: string; custom_agent_id?: string; is_preset?: boolean }>
   >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; customAgentId?: string }>({
+  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; custom_agent_id?: string }>({
     backend: 'gemini',
   });
 
@@ -128,12 +128,12 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
         if (Array.isArray(agentsResp)) {
           const list = agentsResp
-            .filter((a) => !a.isPreset)
+            .filter((a) => !a.is_preset)
             .map((a) => ({
               backend: a.backend,
               name: a.name,
-              customAgentId: a.customAgentId,
-              isPreset: a.isPreset,
+              custom_agent_id: a.custom_agent_id,
+              is_preset: a.is_preset,
               isExtension: a.isExtension,
             }));
           setAvailableAgents(list);
@@ -142,7 +142,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
           setSelectedAgent({
             backend: (saved as any).backend as string,
-            customAgentId: (saved as any).customAgentId,
+            custom_agent_id: (saved as any).custom_agent_id,
             name: (saved as any).name,
           });
         } else if (typeof saved === 'string') {
@@ -156,7 +156,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: string; customAgentId?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
     try {
       await ConfigStorage.set('assistant.dingtalk.agent', agent);
       await channel.syncChannelSettings
@@ -289,9 +289,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   };
 
   // Revoke user
-  const handleRevokeUser = async (userId: string) => {
+  const handleRevokeUser = async (user_id: string) => {
     try {
-      await channel.revokeUser.invoke({ userId });
+      await channel.revokeUser.invoke({ user_id });
       Message.success(t('settings.assistant.userRevoked', 'User access revoked'));
       await loadAuthorizedUsers();
     } catch (error: unknown) {
@@ -318,7 +318,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   const hasExistingUsers = authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
+  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
@@ -472,24 +472,24 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
             droplist={
               <Menu
                 selectedKeys={[
-                  selectedAgent.customAgentId
-                    ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                  selectedAgent.custom_agent_id
+                    ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
                     : selectedAgent.backend,
                 ]}
               >
                 {agentOptions.map((a) => {
-                  const key = a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend;
+                  const key = a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
-                        const currentKey = selectedAgent.customAgentId
-                          ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                        const currentKey = selectedAgent.custom_agent_id
+                          ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
                           : selectedAgent.backend;
                         if (key === currentKey) {
                           return;
                         }
-                        const next = { backend: a.backend, customAgentId: a.customAgentId, name: a.name };
+                        const next = { backend: a.backend, custom_agent_id: a.custom_agent_id, name: a.name };
                         setSelectedAgent(next);
                         void persistSelectedAgent(next);
                       }}
@@ -506,9 +506,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                 {selectedAgent.name ||
                   availableAgents.find(
                     (a) =>
-                      (a.customAgentId ? `${a.backend}|${a.customAgentId}` : a.backend) ===
-                      (selectedAgent.customAgentId
-                        ? `${selectedAgent.backend}|${selectedAgent.customAgentId}`
+                      (a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend) ===
+                      (selectedAgent.custom_agent_id
+                        ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
                         : selectedAgent.backend)
                   )?.name ||
                   selectedAgent.backend}
@@ -619,7 +619,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                 <div key={pairing.code} className='flex items-center justify-between bg-fill-2 rd-8px p-12px'>
                   <div className='flex-1'>
                     <div className='flex items-center gap-8px'>
-                      <span className='text-14px font-500 text-t-primary'>{pairing.displayName || 'Unknown User'}</span>
+                      <span className='text-14px font-500 text-t-primary'>
+                        {pairing.display_name || 'Unknown User'}
+                      </span>
                       <Tooltip content={t('settings.assistant.copyCode', 'Copy pairing code')}>
                         <button
                           className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
@@ -691,7 +693,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               {authorizedUsers.map((user) => (
                 <div key={user.id} className='flex items-center justify-between bg-fill-2 rd-8px p-12px'>
                   <div className='flex-1'>
-                    <div className='text-14px font-500 text-t-primary'>{user.displayName || 'Unknown User'}</div>
+                    <div className='text-14px font-500 text-t-primary'>{user.display_name || 'Unknown User'}</div>
                     <div className='text-12px text-t-tertiary mt-4px'>
                       {t('settings.assistant.platform', 'Platform')}: {user.platformType}
                       <span className='mx-8px'>|</span>

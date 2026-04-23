@@ -12,12 +12,14 @@ type UseAgentAvailabilityOptions = {
   modelList: IProvider[];
   isGoogleAuth: boolean;
   availableAgents: AvailableAgent[] | undefined;
-  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string;
+  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined) => string;
 };
 
 type UseAgentAvailabilityResult = {
-  isMainAgentAvailable: (agentType: string) => boolean;
-  getEffectiveAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => EffectiveAgentInfo;
+  isMainAgentAvailable: (agent_type: string) => boolean;
+  getEffectiveAgentType: (
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+  ) => EffectiveAgentInfo;
 };
 
 /**
@@ -31,20 +33,20 @@ export const useAgentAvailability = ({
   resolvePresetAgentType,
 }: UseAgentAvailabilityOptions): UseAgentAvailabilityResult => {
   const isMainAgentAvailable = useCallback(
-    (agentType: string): boolean => {
-      if (agentType === 'gemini') {
+    (agent_type: string): boolean => {
+      if (agent_type === 'gemini') {
         return isGoogleAuth || (modelList != null && modelList.length > 0);
       }
-      return availableAgents?.some((agent) => agent.backend === agentType) ?? false;
+      return availableAgents?.some((agent) => agent.backend === agent_type) ?? false;
     },
     [modelList, availableAgents, isGoogleAuth]
   );
 
   const getEffectiveAgentType = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): EffectiveAgentInfo => {
+    (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined): EffectiveAgentInfo => {
       const originalType = resolvePresetAgentType(agentInfo);
       const isAvailable = isMainAgentAvailable(originalType);
-      return { agentType: originalType, isFallback: false, originalType, isAvailable };
+      return { agent_type: originalType, isFallback: false, originalType, isAvailable };
     },
     [resolvePresetAgentType, isMainAgentAvailable]
   );

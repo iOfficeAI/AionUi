@@ -50,7 +50,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   workspace,
   eventPrefix = 'gemini',
   messageApi: externalMessageApi,
-  teamId,
+  team_id,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -71,7 +71,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
   const modalsHook = useWorkspaceModals();
   const pasteHook = useWorkspacePaste({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     workspace,
     messageApi,
     t,
@@ -88,7 +88,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     messageApi,
     t,
     onFilesDropped: pasteHook.handleFilesToAdd,
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
   });
 
   const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
@@ -160,7 +160,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     messageApi,
     t,
     isTemporaryWorkspace,
-    teamId,
+    team_id,
   });
 
   let contextMenuStyle: React.CSSProperties | undefined;
@@ -182,10 +182,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   );
 
   const handleOpenChangeDiff = useCallback(
-    (diffContent: string, fileName: string, filePath: string) => {
+    (diffContent: string, file_name: string, file_path: string) => {
       openPreview(diffContent, 'diff', {
-        fileName,
-        filePath,
+        file_name,
+        file_path,
         workspace,
       });
     },

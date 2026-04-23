@@ -17,7 +17,7 @@ export interface LoginCallbacks {
    *  @param qrcodeData The raw QR code ticket — encode this directly when generating your own image. */
   onQR: (qrcodeUrl: string, qrcodeData: string) => void;
   onScanned: () => void;
-  onDone: (result: { accountId: string; botToken: string; baseUrl: string }) => void;
+  onDone: (result: { accountId: string; botToken: string; base_url: string }) => void;
   onError: (error: Error) => void;
 }
 
@@ -69,14 +69,14 @@ async function runLoginFlow(callbacks: LoginCallbacks, signal: AbortSignal): Pro
     }
     if (pollResult === 'aborted') return;
 
-    callbacks.onDone(pollResult as { accountId: string; botToken: string; baseUrl: string });
+    callbacks.onDone(pollResult as { accountId: string; botToken: string; base_url: string });
     return;
   }
 
   callbacks.onError(new Error('QR code expired too many times'));
 }
 
-type PollResult = 'expired' | 'aborted' | { accountId: string; botToken: string; baseUrl: string };
+type PollResult = 'expired' | 'aborted' | { accountId: string; botToken: string; base_url: string };
 
 async function pollQRStatus(qrcode: string, callbacks: LoginCallbacks, signal: AbortSignal): Promise<PollResult> {
   while (!signal.aborted) {
@@ -120,7 +120,7 @@ async function pollQRStatus(qrcode: string, callbacks: LoginCallbacks, signal: A
         return {
           accountId: result.ilink_bot_id,
           botToken: result.bot_token,
-          baseUrl: result.baseurl || DEFAULT_BASE_URL,
+          base_url: result.baseurl || DEFAULT_BASE_URL,
         };
     }
   }
@@ -129,7 +129,7 @@ async function pollQRStatus(qrcode: string, callbacks: LoginCallbacks, signal: A
 }
 
 function get<T>(
-  baseUrl: string,
+  base_url: string,
   pathWithQuery: string,
   signal: AbortSignal,
   timeoutMs: number = REQUEST_TIMEOUT_MS
@@ -140,7 +140,7 @@ function get<T>(
       return;
     }
 
-    const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
+    const base = base_url.endsWith('/') ? base_url : `${base_url}/`;
     const url = new URL(pathWithQuery, base);
     const options = {
       hostname: url.hostname,

@@ -29,8 +29,8 @@ function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
   return {
     backend: config.presetAgentType || 'gemini',
     name: config.name,
-    customAgentId: config.id,
-    isPreset: true,
+    custom_agent_id: config.id,
+    is_preset: true,
     context: config.context,
     avatar: config.avatar,
     presetAgentType: config.presetAgentType,
@@ -55,7 +55,7 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
   // Preset assistants from config layer
   const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
     const agents: AcpBackendConfig[] = (await ConfigStorage.get('assistants')) || [];
-    return agents.filter((a) => a.isPreset && a.enabled !== false);
+    return agents.filter((a) => a.is_preset && a.enabled !== false);
   });
 
   const presetAssistants = useMemo(() => (presetConfigs || []).map(configToAvailableAgent), [presetConfigs]);

@@ -93,12 +93,12 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
 
   // WebUI: file:///{absPath} -> /api/ext-asset
   if (url.startsWith('file://')) {
-    let filePath = decodeURIComponent(url.replace(/^file:\/\/\/?/, ''));
+    let file_path = decodeURIComponent(url.replace(/^file:\/\/\/?/, ''));
     // On Windows, file:///C:/path → C:/path (strip leading / before drive letter)
-    if (/^\/[A-Za-z]:/.test(filePath)) {
-      filePath = filePath.slice(1);
+    if (/^\/[A-Za-z]:/.test(file_path)) {
+      file_path = file_path.slice(1);
     }
-    return `/api/ext-asset?path=${encodeURIComponent(filePath)}`;
+    return `/api/ext-asset?path=${encodeURIComponent(file_path)}`;
   }
 
   return url;

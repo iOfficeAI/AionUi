@@ -17,9 +17,9 @@ export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
 export type AvailableAgent = {
   backend: string;
   name: string;
-  cliPath?: string;
-  customAgentId?: string;
-  isPreset?: boolean;
+  cli_path?: string;
+  custom_agent_id?: string;
+  is_preset?: boolean;
   context?: string;
   avatar?: string;
   presetAgentType?: string;

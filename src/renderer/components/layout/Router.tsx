@@ -78,7 +78,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings' element={<Navigate to='/settings/gemini' replace />} />
           <Route path='/test/components' element={withRouteFallback(ComponentsShowcase)} />
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
-          <Route path='/scheduled/:jobId' element={withRouteFallback(TaskDetailPage)} />
+          <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
         </Route>
         <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
       </Routes>

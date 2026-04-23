@@ -38,9 +38,9 @@ export const useMcpServers = () => {
             enabled: s.enabled !== false,
             transport: s.transport as IMcpServer['transport'],
             status: 'connected' as const,
-            createdAt: (s.createdAt as number) || Date.now(),
-            updatedAt: (s.updatedAt as number) || Date.now(),
-            originalJson: String(s.originalJson || '{}'),
+            created_at: (s.created_at as number) || Date.now(),
+            updated_at: (s.updated_at as number) || Date.now(),
+            original_json: String(s.original_json || '{}'),
             _source: 'extension' as const,
             _extensionName: s._extensionName as string | undefined,
           })) as IMcpServer[];

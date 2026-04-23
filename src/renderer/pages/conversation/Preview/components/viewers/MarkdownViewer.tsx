@@ -38,7 +38,7 @@ interface MarkdownPreviewProps {
   onContentChange?: (content: string) => void; // 内容改变回调 / Content change callback
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
-  filePath?: string; // 当前 Markdown 文件的绝对路径 / Absolute file path of current markdown
+  file_path?: string; // 当前 Markdown 文件的绝对路径 / Absolute file path of current markdown
 }
 
 const isDataOrRemoteUrl = (value?: string): boolean => {
@@ -202,7 +202,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   onContentChange,
   containerRef: externalContainerRef,
   onScroll: externalOnScroll,
-  filePath,
+  file_path,
 }) => {
   const { t } = useTranslation();
   const internalContainerRef = useRef<HTMLDivElement>(null);
@@ -278,12 +278,12 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   };
 
   const baseDir = useMemo(() => {
-    if (!filePath) return undefined;
-    const normalized = filePath.replace(/\\/g, '/');
+    if (!file_path) return undefined;
+    const normalized = file_path.replace(/\\/g, '/');
     const lastSlash = normalized.lastIndexOf('/');
     if (lastSlash === -1) return undefined;
     return normalized.slice(0, lastSlash);
-  }, [filePath]);
+  }, [file_path]);
 
   useEffect(() => {
     if (viewMode !== 'preview') return;

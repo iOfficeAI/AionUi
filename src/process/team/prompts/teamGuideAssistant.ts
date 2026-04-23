@@ -23,21 +23,21 @@ type AssistantRecord = { id?: string; name?: string };
  *   3. Returns undefined when neither is found (caller keeps backend-only cell).
  */
 export async function resolveLeaderAssistantLabel(
-  presetAssistantId: string | undefined | null
+  preset_assistant_id: string | undefined | null
 ): Promise<string | undefined> {
-  if (!presetAssistantId) return undefined;
+  if (!preset_assistant_id) return undefined;
 
   try {
     const assistants = (await ProcessConfig.get('assistants')) as AssistantRecord[] | null;
-    const stored = Array.isArray(assistants) ? assistants.find((a) => a?.id === presetAssistantId) : undefined;
+    const stored = Array.isArray(assistants) ? assistants.find((a) => a?.id === preset_assistant_id) : undefined;
     if (stored?.name) return stored.name;
   } catch {
     // Assistant config may not yet be initialized — fall through to preset catalog.
   }
 
-  const builtinId = presetAssistantId.startsWith('builtin-')
-    ? presetAssistantId.slice('builtin-'.length)
-    : presetAssistantId;
+  const builtinId = preset_assistant_id.startsWith('builtin-')
+    ? preset_assistant_id.slice('builtin-'.length)
+    : preset_assistant_id;
   const preset = ASSISTANT_PRESETS.find((p) => p.id === builtinId);
   if (!preset?.nameI18n) return undefined;
 

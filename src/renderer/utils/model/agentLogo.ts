@@ -94,21 +94,21 @@ export function getAgentLogo(agent: string | undefined | null): string | null {
  *
  * Priority:
  *   1. Explicit icon/avatar (if provided)
- *   2. Adapter ID from customAgentId (format `ext:extensionName:adapterId`) → built-in logo map
+ *   2. Adapter ID from custom_agent_id (format `ext:extensionName:adapterId`) → built-in logo map
  *   3. Backend ID → built-in logo map
  *   4. null (caller renders its own fallback)
  */
 export function resolveAgentLogo(opts: {
   icon?: string | null;
   backend?: string | null;
-  customAgentId?: string | null;
+  custom_agent_id?: string | null;
   isExtension?: boolean;
 }): string | null {
   if (opts.icon) return opts.icon;
 
-  // For extension agents, extract adapter ID from customAgentId
-  if (opts.isExtension && opts.customAgentId) {
-    const adapterId = opts.customAgentId.split(':').pop();
+  // For extension agents, extract adapter ID from custom_agent_id
+  if (opts.isExtension && opts.custom_agent_id) {
+    const adapterId = opts.custom_agent_id.split(':').pop();
     const logo = getAgentLogo(adapterId);
     if (logo) return logo;
   }
@@ -144,23 +144,23 @@ export const isDefaultModel = (value?: string | null, label?: string | null): bo
  * Get display label for a model, with fallback handling
  * 获取模型的显示标签，带回退处理
  *
- * @param selectedValue - Selected model value
+ * @param selected_value - Selected model value
  * @param selectedLabel - Selected model label
  * @param defaultModelLabel - Label to use for default models
  * @param fallbackLabel - Label to use when no label is available
  * @returns The computed display label
  */
 export const getModelDisplayLabel = ({
-  selectedValue,
+  selected_value,
   selectedLabel,
   defaultModelLabel,
   fallbackLabel,
 }: {
-  selectedValue?: string | null;
+  selected_value?: string | null;
   selectedLabel?: string | null;
   defaultModelLabel: string;
   fallbackLabel: string;
 }): string => {
   if (!selectedLabel) return fallbackLabel;
-  return isDefaultModel(selectedValue, selectedLabel) ? defaultModelLabel : selectedLabel;
+  return isDefaultModel(selected_value, selectedLabel) ? defaultModelLabel : selectedLabel;
 };

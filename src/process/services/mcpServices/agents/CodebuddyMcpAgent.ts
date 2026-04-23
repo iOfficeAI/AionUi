@@ -24,7 +24,7 @@ type CodebuddyMcpEntry = {
 
   // streamable-http / sse transport
   url?: string;
-  transportType?: string; // "streamable-http" | "sse"
+  transport_type?: string; // "streamable-http" | "sse"
   headers?: Record<string, string>;
   timeout?: number;
 
@@ -79,7 +79,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
   /**
    * Detect MCP servers from ~/.codebuddy/mcp.json
    */
-  detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(_cli_path?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
         const mcpServersConfig = this.readMcpConfig();
@@ -91,11 +91,11 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
 
         for (const [name, entry] of Object.entries(mcpServersConfig)) {
           const isDisabled = entry.disabled === true;
-          const transportType = this.resolveTransportType(entry);
+          const transport_type = this.resolveTransportType(entry);
 
           let transportObj: IMcpServer['transport'];
 
-          if (transportType === 'stdio') {
+          if (transport_type === 'stdio') {
             transportObj = {
               type: 'stdio' as const,
               command: entry.command || '',
@@ -105,7 +105,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
           } else {
             // streamable-http, sse, or http
             transportObj = {
-              type: transportType as 'sse' | 'streamable_http' | 'http',
+              type: transport_type as 'sse' | 'streamable_http' | 'http',
               url: entry.url || '',
               headers: entry.headers || entry.transport?.headers || {},
             };
@@ -128,10 +128,10 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
             tools: tools,
             enabled: !isDisabled,
             status: isDisabled ? 'disconnected' : 'connected',
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
+            created_at: Date.now(),
+            updated_at: Date.now(),
             description: '',
-            originalJson: JSON.stringify({ mcpServers: { [name]: entry } }, null, 2),
+            original_json: JSON.stringify({ mcpServers: { [name]: entry } }, null, 2),
           });
         }
 
@@ -152,7 +152,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
    * Maps external format (e.g. "streamable-http") to internal type (e.g. "streamable_http").
    */
   private resolveTransportType(entry: CodebuddyMcpEntry): string {
-    const raw = entry.transportType || entry.transport?.type || entry.type;
+    const raw = entry.transport_type || entry.transport?.type || entry.type;
     if (raw) {
       return this.normalizeTransportType(raw);
     }
@@ -204,7 +204,7 @@ export class CodebuddyMcpAgent extends AbstractMcpAgent {
               // For HTTP-based transports, use add-json to preserve full config
               const config: Record<string, unknown> = {
                 url: server.transport.url,
-                transportType: server.transport.type === 'sse' ? 'sse' : 'streamable-http',
+                transport_type: server.transport.type === 'sse' ? 'sse' : 'streamable-http',
               };
               if (server.transport.headers && Object.keys(server.transport.headers).length > 0) {
                 config.headers = server.transport.headers;

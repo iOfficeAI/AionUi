@@ -85,19 +85,19 @@ interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
   model: TProviderWithModel;
-  webSearchEngine?: 'google' | 'default';
+  web_search_engine?: 'google' | 'default';
   yoloMode?: boolean;
   GOOGLE_CLOUD_PROJECT?: string;
   mcpServers?: Record<string, unknown>;
-  contextFileName?: string;
+  context_file_name?: string;
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   // 系统规则，在初始化时注入到 userMemory / System rules, injected into userMemory at initialization
-  presetRules?: string;
+  preset_rules?: string;
   contextContent?: string; // 向后兼容 / Backward compatible
   /** 内置 skills 目录路径，使用 aioncli-core SkillManager 加载 / Builtin skills directory path, loaded by aioncli-core SkillManager */
   skillsDir?: string;
   /** 启用的 skills 列表，用于过滤 SkillManager 中的 skills / Enabled skills list for filtering skills in SkillManager */
-  enabledSkills?: string[];
+  enabled_skills?: string[];
 }
 
 export class GeminiAgent {
@@ -105,7 +105,7 @@ export class GeminiAgent {
   private workspace: string | null = null;
   private proxy: string | null = null;
   private model: TProviderWithModel | null = null;
-  private webSearchEngine: 'google' | 'default' | null = null;
+  private web_search_engine: 'google' | 'default' | null = null;
   private yoloMode: boolean = false;
   private googleCloudProject: string | null = null;
   private mcpServers: Record<string, unknown> = {};
@@ -117,19 +117,19 @@ export class GeminiAgent {
   private activeMsgId: string | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   // 系统规则，在初始化时注入 / System rules, injected at initialization
-  private presetRules?: string;
+  private preset_rules?: string;
   private contextContent?: string; // 向后兼容 / Backward compatible
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
-  private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
+  private api_keyManager: ApiKeyManager | null = null; // 多API Key管理器
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
   private skillsIndexPrependedOnce = false; // Track if we've prepended skills index to first message
-  private contextFileName: string | undefined;
+  private context_file_name: string | undefined;
   /** 内置 skills 目录路径 / Builtin skills directory path */
   private skillsDir?: string;
   /** 启用的 skills 列表 / Enabled skills list */
-  private enabledSkills?: string[];
+  private enabled_skills?: string[];
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -138,23 +138,23 @@ export class GeminiAgent {
     this.workspace = options.workspace;
     this.proxy = options.proxy;
     this.model = options.model;
-    this.webSearchEngine = options.webSearchEngine || 'default';
+    this.web_search_engine = options.web_search_engine || 'default';
     this.yoloMode = options.yoloMode || false;
     this.googleCloudProject = options.GOOGLE_CLOUD_PROJECT;
     this.mcpServers = options.mcpServers || {};
-    this.contextFileName = options.contextFileName;
+    this.context_file_name = options.context_file_name;
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
-    this.presetRules = options.presetRules;
+    this.preset_rules = options.preset_rules;
     this.skillsDir = options.skillsDir;
-    this.enabledSkills = options.enabledSkills;
-    // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
-    this.contextContent = options.contextContent || options.presetRules;
+    this.enabled_skills = options.enabled_skills;
+    // 向后兼容：优先使用 preset_rules，其次 contextContent / Backward compatible: prefer preset_rules, fallback to contextContent
+    this.contextContent = options.contextContent || options.preset_rules;
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
-      webSearchEngine: this.webSearchEngine,
+      web_search_engine: this.web_search_engine,
     });
 
     // Register as current agent for flashFallbackHandler access
@@ -182,10 +182,10 @@ export class GeminiAgent {
 
     // Get the current API key to use (either from multi-key manager or original)
     const getCurrentApiKey = () => {
-      if (this.apiKeyManager && this.apiKeyManager.hasMultipleKeys()) {
-        return process.env[this.apiKeyManager.getStatus().envKey] || this.model.apiKey;
+      if (this.api_keyManager && this.api_keyManager.hasMultipleKeys()) {
+        return process.env[this.api_keyManager.getStatus().envKey] || this.model.api_key;
       }
-      return this.model.apiKey;
+      return this.model.api_key;
     };
 
     // 清除所有认证相关的环境变量，避免不同认证类型之间的干扰
@@ -210,7 +210,7 @@ export class GeminiAgent {
     // Normalize URL for new-api gateway (different protocols need different URL formats)
     const isNewApi = isNewApiPlatform(this.model.platform);
     const getBaseUrl = () =>
-      isNewApi ? normalizeNewApiBaseUrl(this.model.baseUrl, this.authType) : this.model.baseUrl;
+      isNewApi ? normalizeNewApiBaseUrl(this.model.base_url, this.authType) : this.model.base_url;
 
     if (this.authType === AuthType.USE_GEMINI) {
       fallbackValue('GEMINI_API_KEY', getCurrentApiKey());
@@ -247,26 +247,26 @@ export class GeminiAgent {
       return;
     }
     if (this.authType === AuthType.USE_BEDROCK) {
-      const bedrockConfig = this.model.bedrockConfig;
+      const bedrock_config = this.model.bedrock_config;
 
-      if (!bedrockConfig) {
+      if (!bedrock_config) {
         throw new Error('Bedrock configuration missing');
       }
 
       // Set region (required)
-      process.env.AWS_REGION = bedrockConfig.region;
+      process.env.AWS_REGION = bedrock_config.region;
 
-      if (bedrockConfig.authMethod === 'accessKey') {
-        if (!bedrockConfig.accessKeyId || !bedrockConfig.secretAccessKey) {
+      if (bedrock_config.auth_method === 'accessKey') {
+        if (!bedrock_config.access_key_id || !bedrock_config.secret_access_key) {
           throw new Error('AWS credentials missing for access key authentication');
         }
-        process.env.AWS_ACCESS_KEY_ID = bedrockConfig.accessKeyId;
-        process.env.AWS_SECRET_ACCESS_KEY = bedrockConfig.secretAccessKey;
-      } else if (bedrockConfig.authMethod === 'profile') {
-        if (!bedrockConfig.profile) {
+        process.env.AWS_ACCESS_KEY_ID = bedrock_config.access_key_id;
+        process.env.AWS_SECRET_ACCESS_KEY = bedrock_config.secret_access_key;
+      } else if (bedrock_config.auth_method === 'profile') {
+        if (!bedrock_config.profile) {
           throw new Error('AWS profile name missing');
         }
-        process.env.AWS_PROFILE = bedrockConfig.profile;
+        process.env.AWS_PROFILE = bedrock_config.profile;
         // Clear access keys to ensure profile is used
         delete process.env.AWS_ACCESS_KEY_ID;
         delete process.env.AWS_SECRET_ACCESS_KEY;
@@ -276,8 +276,8 @@ export class GeminiAgent {
   }
 
   private initializeMultiKeySupport(): void {
-    const apiKey = this.model?.apiKey;
-    if (!apiKey || (!apiKey.includes(',') && !apiKey.includes('\n'))) {
+    const api_key = this.model?.api_key;
+    if (!api_key || (!api_key.includes(',') && !api_key.includes('\n'))) {
       return; // Single key or no key, skip multi-key setup
     }
 
@@ -287,7 +287,7 @@ export class GeminiAgent {
       this.authType === AuthType.USE_GEMINI ||
       this.authType === AuthType.USE_ANTHROPIC
     ) {
-      this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
+      this.api_keyManager = new ApiKeyManager(api_key, this.authType);
     }
   }
 
@@ -295,7 +295,7 @@ export class GeminiAgent {
    * Get multi-key manager (used by flashFallbackHandler)
    */
   getApiKeyManager(): ApiKeyManager | null {
-    return this.apiKeyManager;
+    return this.api_keyManager;
   }
 
   private createAbortController() {
@@ -351,8 +351,8 @@ export class GeminiAgent {
     await fs.promises.realpath(path);
 
     const settings = loadSettings(path).merged;
-    if (this.contextFileName) {
-      settings.contextFileName = this.contextFileName;
+    if (this.context_file_name) {
+      settings.context_file_name = this.context_file_name;
     }
     this.settings = settings;
 
@@ -367,14 +367,14 @@ export class GeminiAgent {
       workspace: path,
       settings,
       extensions,
-      sessionId,
+      session_id: sessionId,
       proxy: this.proxy,
       model: this.model.useModel,
       conversationToolConfig: this.toolConfig,
       yoloMode,
       mcpServers: this.mcpServers,
       skillsDir: this.skillsDir,
-      enabledSkills: this.enabledSkills,
+      enabled_skills: this.enabled_skills,
     });
     await this.config.initialize();
 
@@ -390,13 +390,13 @@ export class GeminiAgent {
     }
 
     // aioncli-core 的 SkillManager.discoverSkills() 会重新从用户 skills 目录加载所有 skills
-    // 覆盖了 loadCliConfig 中的过滤，需要在这里重新应用 enabledSkills 过滤
+    // 覆盖了 loadCliConfig 中的过滤，需要在这里重新应用 enabled_skills 过滤
     // aioncli-core's SkillManager.discoverSkills() reloads all skills from user directory,
-    // overriding our filtering in loadCliConfig, so we need to re-apply enabledSkills filter here
-    if (this.enabledSkills && this.enabledSkills.length > 0) {
-      const enabledSet = new Set(this.enabledSkills);
+    // overriding our filtering in loadCliConfig, so we need to re-apply enabled_skills filter here
+    if (this.enabled_skills && this.enabled_skills.length > 0) {
+      const enabledSet = new Set(this.enabled_skills);
       this.config.getSkillManager().filterSkills((skill) => enabledSet.has(skill.name));
-      console.log(`[GeminiAgent] Filtered skills after initialize: ${this.enabledSkills.join(', ')}`);
+      console.log(`[GeminiAgent] Filtered skills after initialize: ${this.enabled_skills.join(', ')}`);
     } else {
       // Non-preset agent: clear all optional skills (cron is injected via system instructions)
       this.config.getSkillManager().filterSkills(() => false);
@@ -436,19 +436,19 @@ export class GeminiAgent {
 
     this.geminiClient = this.config.getGeminiClient();
 
-    // 在初始化时注入 presetRules 到 userMemory
-    // Inject presetRules into userMemory at initialization
+    // 在初始化时注入 preset_rules 到 userMemory
+    // Inject preset_rules into userMemory at initialization
     // Rules 定义系统行为规则，在会话开始时就应该生效
     // Rules define system behavior, should be effective from session start
-    console.log(`[GeminiAgent] presetRules length: ${this.presetRules?.length || 0}`);
-    if (this.presetRules) {
+    console.log(`[GeminiAgent] preset_rules length: ${this.preset_rules?.length || 0}`);
+    if (this.preset_rules) {
       const currentMemory = this.config.getUserMemory();
-      const rulesSection = `[Assistant System Rules]\n${this.presetRules}`;
+      const rulesSection = `[Assistant System Rules]\n${this.preset_rules}`;
       const combined = currentMemory ? `${rulesSection}\n\n${currentMemory}` : rulesSection;
       this.config.setUserMemory(combined);
-      console.log(`[GeminiAgent] Injected presetRules into userMemory, total length: ${combined.length}`);
+      console.log(`[GeminiAgent] Injected preset_rules into userMemory, total length: ${combined.length}`);
     } else {
-      console.log(`[GeminiAgent] No presetRules to inject`);
+      console.log(`[GeminiAgent] No preset_rules to inject`);
     }
 
     // Note: Skills (技能定义) are prepended to the first message in send() method
@@ -507,7 +507,7 @@ export class GeminiAgent {
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
         try {
           const prevTrackedCalls = this.trackedCalls || [];
-          const toolCalls: TrackedToolCall[] = updatedCoreToolCalls.map((coreTc) => {
+          const tool_calls: TrackedToolCall[] = updatedCoreToolCalls.map((coreTc) => {
             const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
             const newTrackedCall: TrackedToolCall = {
               ...coreTc,
@@ -515,7 +515,7 @@ export class GeminiAgent {
             };
             return newTrackedCall;
           });
-          const display = mapToDisplay(toolCalls);
+          const display = mapToDisplay(tool_calls);
           this.onStreamEvent({
             type: 'tool_group',
             data: display.tools,
@@ -650,8 +650,8 @@ export class GeminiAgent {
    *
    * Delegates to NavigationInterceptor for unified logic
    */
-  private isNavigationTool(toolName: string): boolean {
-    return NavigationInterceptor.isNavigationTool(toolName);
+  private isNavigationTool(tool_name: string): boolean {
+    return NavigationInterceptor.isNavigationTool(tool_name);
   }
 
   /**
@@ -665,9 +665,9 @@ export class GeminiAgent {
    */
   private emitPreviewForNavigationTools(toolCallRequests: ToolCallRequestInfo[], _msg_id: string): void {
     for (const request of toolCallRequests) {
-      const toolName = request.name || '';
+      const tool_name = request.name || '';
 
-      if (this.isNavigationTool(toolName)) {
+      if (this.isNavigationTool(tool_name)) {
         const args = request.args || {};
         const url = NavigationInterceptor.extractUrl({ arguments: args as Record<string, unknown> });
         if (url) {
@@ -770,7 +770,7 @@ export class GeminiAgent {
     // 将 files 参数中的文件路径作为 @ 引用添加到消息末尾
     // Append files from files parameter as @ references to the message
     if (files && files.length > 0) {
-      const fileRefs = files.map((filePath) => `@${filePath}`).join(' ');
+      const fileRefs = files.map((file_path) => `@${file_path}`).join(' ');
       if (Array.isArray(message)) {
         if (message[0]?.text) {
           message[0].text = `${message[0].text} ${fileRefs}`;
@@ -812,9 +812,9 @@ export class GeminiAgent {
     let skillsPrefix = '';
 
     if (!this.skillsIndexPrependedOnce) {
-      // 优先使用 presetRules，否则回退到 contextContent
-      // Prefer presetRules, fallback to contextContent
-      const rulesContent = this.presetRules || this.contextContent;
+      // 优先使用 preset_rules，否则回退到 contextContent
+      // Prefer preset_rules, fallback to contextContent
+      const rulesContent = this.preset_rules || this.contextContent;
       if (rulesContent) {
         skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${rulesContent}\n\n`;
       }

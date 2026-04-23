@@ -40,12 +40,12 @@ export interface AcpClient {
   createSession(params: CreateSessionParams): Promise<NewSessionResponse>;
   loadSession(params: LoadSessionParams): Promise<LoadSessionResponse>;
   forkSession(params: ForkSessionParams): Promise<ForkSessionResponse>;
-  prompt(sessionId: string, content: PromptContent): Promise<PromptResponse>;
-  cancel(sessionId: string): Promise<void>;
-  closeSession(sessionId: string): Promise<void>;
-  setModel(sessionId: string, modelId: string): Promise<void>;
-  setMode(sessionId: string, modeId: string): Promise<void>;
-  setConfigOption(sessionId: string, id: string, value: string | boolean): Promise<void>;
+  prompt(session_id: string, content: PromptContent): Promise<PromptResponse>;
+  cancel(session_id: string): Promise<void>;
+  closeSession(session_id: string): Promise<void>;
+  setModel(session_id: string, model_id: string): Promise<void>;
+  setMode(session_id: string, mode_id: string): Promise<void>;
+  setConfigOption(session_id: string, id: string, value: string | boolean): Promise<void>;
   extMethod(method: string, params: Record<string, unknown>): Promise<unknown>;
 
   /** Authenticate with the agent (pass-through to SDK). */

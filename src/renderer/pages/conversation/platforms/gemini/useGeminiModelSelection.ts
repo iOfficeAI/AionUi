@@ -4,7 +4,7 @@ import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderLis
 import { useCallback, useEffect, useState } from 'react';
 
 export interface GeminiModelSelection {
-  currentModel?: TProviderWithModel;
+  current_model?: TProviderWithModel;
   providers: IProvider[];
   geminiModeLookup: Map<string, GeminiModeOption>;
   formatModelLabel: (provider?: { platform?: string }, modelName?: string) => string;
@@ -23,7 +23,7 @@ export const useGeminiModelSelection = ({
   initialModel,
   onSelectModel,
 }: UseGeminiModelSelectionOptions): GeminiModelSelection => {
-  const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
+  const [current_model, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
 
   useEffect(() => {
     setCurrentModel(initialModel);
@@ -48,15 +48,15 @@ export const useGeminiModelSelection = ({
   const getDisplayModelName = useCallback(
     (modelName?: string) => {
       if (!modelName) return '';
-      const label = formatModelLabel(currentModel, modelName);
+      const label = formatModelLabel(current_model, modelName);
       const maxLength = 20;
       return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label;
     },
-    [currentModel, formatModelLabel]
+    [current_model, formatModelLabel]
   );
 
   return {
-    currentModel,
+    current_model,
     providers,
     geminiModeLookup,
     formatModelLabel,

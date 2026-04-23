@@ -49,7 +49,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   const isImage = isImageFile(path);
   // 直接从路径中提取文件名，不清理时间戳后缀
   // Extract filename directly from path without cleaning timestamp suffix
-  const fileName = path.split(/[\\/]/).pop() || '';
+  const file_name = path.split(/[\\/]/).pop() || '';
   const fileExt = getFileExtension(path).toUpperCase().replace('.', '');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
@@ -113,7 +113,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
         <div className='rd-8px overflow-hidden border-1 border-solid b-color-border-2'>
           <Image
             src={imageUrl}
-            alt={fileName}
+            alt={file_name}
             width={60}
             height={60}
             className='object-cover cursor-pointer'
@@ -144,7 +144,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           <img className='w-full h-full object-contain' src={fileIcon} alt='File Icon' />
         </div>
         <div className='flex flex-col gap-2px min-w-0'>
-          <span className='text-14px text-t-primary max-w-150px truncate'>{fileName}</span>
+          <span className='text-14px text-t-primary max-w-150px truncate'>{file_name}</span>
           <span className='text-12px text-t-secondary'>
             {fileExt}: {fileSize || '...'}
           </span>

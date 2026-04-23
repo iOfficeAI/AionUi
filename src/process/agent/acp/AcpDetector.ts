@@ -159,7 +159,7 @@ class AcpDetector {
       kind: 'acp' as const,
       available: true,
       backend: cli.backendId,
-      cliPath: cli.cmd,
+      cli_path: cli.cmd,
       acpArgs: cli.args,
     }));
   }
@@ -196,7 +196,7 @@ class AcpDetector {
             kind: 'acp',
             available: true,
             backend: id,
-            cliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : cliCommand,
+            cli_path: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : cliCommand,
             acpArgs,
             isExtension: true,
             extensionName,
@@ -224,16 +224,16 @@ class AcpDetector {
       if (!customAgents?.length) return [];
 
       return customAgents
-        .filter((a) => a.enabled !== false && !a.isPreset && a.defaultCliPath)
+        .filter((a) => a.enabled !== false && !a.is_preset && a.defaultCliPath)
         .map((a) => ({
           id: `custom:${a.id}`,
           name: a.name || 'Custom Agent',
           kind: 'acp' as const,
           available: true,
           backend: 'custom',
-          cliPath: a.defaultCliPath,
+          cli_path: a.defaultCliPath,
           acpArgs: a.acpArgs,
-          customAgentId: a.id,
+          custom_agent_id: a.id,
         }));
     } catch (error) {
       if (error instanceof Error && (error.message.includes('ENOENT') || error.message.includes('not found'))) {

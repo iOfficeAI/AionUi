@@ -20,8 +20,8 @@ import type { TProviderWithModel } from '@/common/config/storage';
 // Read provider config from environment variables
 function getProviderFromEnv(): TProviderWithModel | null {
   const platform = process.env.AIONUI_IMG_PLATFORM;
-  const baseUrl = process.env.AIONUI_IMG_BASE_URL;
-  const apiKey = process.env.AIONUI_IMG_API_KEY;
+  const base_url = process.env.AIONUI_IMG_BASE_URL;
+  const api_key = process.env.AIONUI_IMG_API_KEY;
   const model = process.env.AIONUI_IMG_MODEL;
 
   if (!platform || !model) {
@@ -32,8 +32,8 @@ function getProviderFromEnv(): TProviderWithModel | null {
     id: BUILTIN_IMAGE_GEN_ID,
     name: BUILTIN_IMAGE_GEN_NAME,
     platform,
-    baseUrl: baseUrl || '',
-    apiKey: apiKey || '',
+    base_url: base_url || '',
+    api_key: api_key || '',
     useModel: model,
   };
 }

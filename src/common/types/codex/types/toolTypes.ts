@@ -77,7 +77,7 @@ export interface ToolDefinition {
 // MCP工具信息
 export interface McpToolInfo {
   name: string;
-  serverName: string;
+  server_name: string;
   description?: string;
-  inputSchema?: Record<string, unknown>;
+  input_schema?: Record<string, unknown>;
 }

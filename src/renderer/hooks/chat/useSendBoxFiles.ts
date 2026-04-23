@@ -24,8 +24,8 @@ export const createSetUploadFile = (
   );
 };
 
-const formatFileRef = (fileName: string): string => {
-  const trimmed = fileName.trim();
+const formatFileRef = (file_name: string): string => {
+  const trimmed = file_name.trim();
   // Remove @ prefix if present (normalize)
   // @ prefix is an internal implementation detail for ACP agents
   // It will be added by the backend when needed
@@ -63,9 +63,9 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
   // 处理拖拽或粘贴的文件
   const handleFilesAdded = useCallback(
     (files: FileMetadata[]) => {
-      const filePaths = files.map((file) => file.path);
+      const file_paths = files.map((file) => file.path);
       // 使用函数式更新，基于最新状态而不是闭包中的状态
-      setUploadFile((prevUploadFile) => [...prevUploadFile, ...filePaths]);
+      setUploadFile((prevUploadFile) => [...prevUploadFile, ...file_paths]);
     },
     [setUploadFile]
   );
@@ -75,7 +75,7 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
   const processMessageWithFiles = useCallback(
     (message: string): string => {
       if (atPath.length || uploadFile.length) {
-        const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => formatFileRef(fileName));
+        const cleanUploadFiles = getCleanFileNames(uploadFile).map((file_name) => formatFileRef(file_name));
         // atPath 现在可能包含字符串路径或对象，需要分别处理
         // atPath may now contain string paths or objects, need to handle separately
         const atPathStrings = atPath.map((item) => {
@@ -85,7 +85,7 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
             return item.path;
           }
         });
-        const cleanAtPaths = getCleanFileNames(atPathStrings).map((fileName) => formatFileRef(fileName));
+        const cleanAtPaths = getCleanFileNames(atPathStrings).map((file_name) => formatFileRef(file_name));
         return cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
       }
       return message;

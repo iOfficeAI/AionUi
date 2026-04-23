@@ -63,17 +63,17 @@ export function useReactToolScheduler(
   setPendingHistoryItem: React.Dispatch<React.SetStateAction<HistoryItemWithoutId | null>>,
   getPreferredEditor: () => EditorType | undefined
 ): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
-  const [toolCallsForDisplay, setToolCallsForDisplay] = useState<TrackedToolCall[]>([]);
+  const [tool_callsForDisplay, setToolCallsForDisplay] = useState<TrackedToolCall[]>([]);
 
   const outputUpdateHandler: OutputUpdateHandler = useCallback(
-    (toolCallId, outputChunk) => {
+    (tool_callId, outputChunk) => {
       setPendingHistoryItem((prevItem) => {
         if (prevItem?.type === 'tool_group') {
           return {
             ...prevItem,
             tools: prevItem.tools.map((toolDisplay) =>
-              toolDisplay.callId === toolCallId && toolDisplay.status === ToolCallStatus.Executing
-                ? { ...toolDisplay, resultDisplay: outputChunk }
+              toolDisplay.call_id === tool_callId && toolDisplay.status === ToolCallStatus.Executing
+                ? { ...toolDisplay, result_display: outputChunk }
                 : toolDisplay
             ),
           };
@@ -83,7 +83,7 @@ export function useReactToolScheduler(
 
       setToolCallsForDisplay((prevCalls) =>
         prevCalls.map((tc) => {
-          if (tc.request.callId === toolCallId && tc.status === 'executing') {
+          if (tc.request.callId === tool_callId && tc.status === 'executing') {
             const executingTc = tc as TrackedExecutingToolCall;
             return { ...executingTc, liveOutput: outputChunk };
           }
@@ -101,7 +101,7 @@ export function useReactToolScheduler(
     [onComplete]
   );
 
-  const toolCallsUpdateHandler: ToolCallsUpdateHandler = useCallback(
+  const tool_callsUpdateHandler: ToolCallsUpdateHandler = useCallback(
     (updatedCoreToolCalls: ToolCall[]) => {
       setToolCallsForDisplay((prevTrackedCalls) =>
         updatedCoreToolCalls.map((coreTc) => {
@@ -123,12 +123,12 @@ export function useReactToolScheduler(
         config,
         outputUpdateHandler,
         onAllToolCallsComplete: allToolCallsCompleteHandler,
-        onToolCallsUpdate: toolCallsUpdateHandler,
+        onToolCallsUpdate: tool_callsUpdateHandler,
         getPreferredEditor,
         // onEditorClose 在 aioncli-core v0.18.4 中已移除
         // onEditorClose was removed in aioncli-core v0.18.4
       }),
-    [config, outputUpdateHandler, allToolCallsCompleteHandler, toolCallsUpdateHandler, getPreferredEditor]
+    [config, outputUpdateHandler, allToolCallsCompleteHandler, tool_callsUpdateHandler, getPreferredEditor]
   );
 
   const schedule: ScheduleFn = useCallback(
@@ -146,7 +146,7 @@ export function useReactToolScheduler(
     );
   }, []);
 
-  return [toolCallsForDisplay, schedule, markToolsAsSubmitted];
+  return [tool_callsForDisplay, schedule, markToolsAsSubmitted];
 }
 
 /**
@@ -179,12 +179,12 @@ function mapCoreStatusToDisplayStatus(coreStatus: CoreStatus): ToolCallStatus {
  * Transforms `TrackedToolCall` objects into `HistoryItemToolGroup` objects for UI display.
  */
 export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): HistoryItemToolGroup {
-  const toolCalls = Array.isArray(toolOrTools) ? toolOrTools : [toolOrTools];
+  const tool_calls = Array.isArray(toolOrTools) ? toolOrTools : [toolOrTools];
 
-  const toolDisplays = toolCalls.map((trackedCall): IndividualToolCallDisplay => {
+  const toolDisplays = tool_calls.map((trackedCall): IndividualToolCallDisplay => {
     let displayName: string;
     let description: string;
-    let renderOutputAsMarkdown = false;
+    let render_output_as_markdown = false;
 
     if (trackedCall.status === 'error') {
       displayName = trackedCall.tool === undefined ? trackedCall.request.name : trackedCall.tool.displayName;
@@ -196,22 +196,23 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
     } else {
       displayName = trackedCall.tool.displayName;
       description = trackedCall.invocation.getDescription();
-      renderOutputAsMarkdown = trackedCall.tool.isOutputMarkdown;
+      render_output_as_markdown = trackedCall.tool.isOutputMarkdown;
     }
 
-    const baseDisplayProperties: Omit<IndividualToolCallDisplay, 'status' | 'resultDisplay' | 'confirmationDetails'> = {
-      callId: trackedCall.request.callId,
-      name: displayName,
-      description,
-      renderOutputAsMarkdown,
-    };
+    const baseDisplayProperties: Omit<IndividualToolCallDisplay, 'status' | 'result_display' | 'confirmationDetails'> =
+      {
+        call_id: trackedCall.request.callId,
+        name: displayName,
+        description,
+        render_output_as_markdown,
+      };
 
     switch (trackedCall.status) {
       case 'success':
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: trackedCall.response.resultDisplay,
+          result_display: trackedCall.response.resultDisplay,
           confirmationDetails: undefined,
         };
       case 'error': {
@@ -228,7 +229,7 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: errorResultDisplay,
+          result_display: errorResultDisplay,
           confirmationDetails: undefined,
         };
       }
@@ -236,21 +237,21 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: trackedCall.response.resultDisplay,
+          result_display: trackedCall.response.resultDisplay,
           confirmationDetails: undefined,
         };
       case 'awaiting_approval':
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: undefined,
+          result_display: undefined,
           confirmationDetails: trackedCall.confirmationDetails,
         };
       case 'executing':
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: (trackedCall as TrackedExecutingToolCall).liveOutput ?? undefined,
+          result_display: (trackedCall as TrackedExecutingToolCall).liveOutput ?? undefined,
           confirmationDetails: undefined,
         };
       case 'validating': // Fallthrough
@@ -258,18 +259,18 @@ export function mapToDisplay(toolOrTools: TrackedToolCall[] | TrackedToolCall): 
         return {
           ...baseDisplayProperties,
           status: mapCoreStatusToDisplayStatus(trackedCall.status),
-          resultDisplay: undefined,
+          result_display: undefined,
           confirmationDetails: undefined,
         };
       default: {
         return {
-          callId: (trackedCall as TrackedToolCall).request.callId,
+          call_id: (trackedCall as TrackedToolCall).request.callId,
           name: 'Unknown Tool',
           description: 'Encountered an unknown tool call state.',
           status: ToolCallStatus.Error,
-          resultDisplay: 'Unknown tool call state',
+          result_display: 'Unknown tool call state',
           confirmationDetails: undefined,
-          renderOutputAsMarkdown: false,
+          render_output_as_markdown: false,
         };
       }
     }

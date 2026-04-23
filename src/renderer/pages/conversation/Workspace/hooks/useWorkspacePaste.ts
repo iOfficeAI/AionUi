@@ -16,7 +16,7 @@ import type { MessageApi, PasteConfirmState, SelectedNodeRef } from '../types';
 import { getTargetFolderPath } from '../utils/treeHelpers';
 
 interface UseWorkspacePasteOptions {
-  conversationId: string;
+  conversation_id: string;
   workspace: string;
   messageApi: MessageApi;
   t: (key: string, options?: Record<string, unknown>) => string;
@@ -39,7 +39,7 @@ interface UseWorkspacePasteOptions {
  */
 export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
   const {
-    conversationId,
+    conversation_id,
     workspace,
     messageApi,
     t,
@@ -64,7 +64,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         return;
       }
 
-      const result = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths: selectedFiles, workspace });
+      const result = await ipcBridge.fs.copyFilesToWorkspace.invoke({ file_paths: selectedFiles, workspace });
       const copiedFiles = result.copiedFiles ?? [];
       const failedFiles = result.failedFiles ?? [];
 
@@ -116,7 +116,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
           for (let i = 0; i < fileList.length; i++) {
             const tracker = trackUpload(fileList[i].size, 'workspace');
             try {
-              await uploadFileViaHttp(fileList[i], conversationId, tracker.onProgress);
+              await uploadFileViaHttp(fileList[i], conversation_id, tracker.onProgress);
               successCount++;
             } catch (error) {
               messageApi.error(t('common.unknownError') || 'Upload failed');
@@ -138,7 +138,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
     }
 
     fileInputRef.current.click();
-  }, [conversationId, handleSelectHostFiles, messageApi, refreshWorkspace, t]);
+  }, [conversation_id, handleSelectHostFiles, messageApi, refreshWorkspace, t]);
 
   useEffect(() => {
     return () => {
@@ -171,8 +171,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       const skipConfirm = await ConfigStorage.get('workspace.pasteConfirm');
       if (skipConfirm) {
         try {
-          const filePaths = filesMeta.map((f) => f.path);
-          const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
+          const file_paths = filesMeta.map((f) => f.path);
+          const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ file_paths, workspace: targetFolderPath });
           const copiedFiles = res.copiedFiles ?? [];
           const failedFiles = res.failedFiles ?? [];
 
@@ -198,7 +198,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       // 否则显示确认对话框 / Otherwise show confirmation modal
       setPasteConfirm({
         visible: true,
-        fileName: filesMeta[0].name,
+        file_name: filesMeta[0].name,
         filesToPaste: filesMeta.map((f) => ({ path: f.path, name: f.name })),
         doNotAsk: false,
         targetFolder: targetFolderKey,
@@ -224,8 +224,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       const targetFolder = getTargetFolderPath(selectedNodeRef.current, selected, files, workspace);
       const targetFolderPath = targetFolder.fullPath;
 
-      const filePaths = pasteConfirm.filesToPaste.map((f) => f.path);
-      const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
+      const file_paths = pasteConfirm.filesToPaste.map((f) => f.path);
+      const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ file_paths, workspace: targetFolderPath });
       const copiedFiles = res.copiedFiles ?? [];
       const failedFiles = res.failedFiles ?? [];
 
@@ -254,7 +254,7 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       const meta = files.map((f) => ({ name: f.name, path: f.path }));
       void handleFilesToAdd(meta);
     },
-    conversationId,
+    conversation_id,
     source: 'workspace',
   });
 

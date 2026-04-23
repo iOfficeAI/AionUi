@@ -19,35 +19,35 @@ import { getEnhancedEnv, loadFullShellEnvironment } from '@process/utils/shellEn
 export type OldAcpAgentConfig = {
   id: string;
   backend: AgentBackend;
-  cliPath?: string;
+  cli_path?: string;
   workingDir: string;
   customArgs?: string[];
   customEnv?: Record<string, string>;
   extra?: {
     workspace?: string;
     backend: AgentBackend;
-    cliPath?: string;
-    customWorkspace?: boolean;
+    cli_path?: string;
+    custom_workspace?: boolean;
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
-    agentName?: string;
-    acpSessionId?: string;
-    acpSessionConversationId?: string;
-    acpSessionUpdatedAt?: number;
-    currentModelId?: string;
-    sessionMode?: string;
+    agent_name?: string;
+    acp_session_id?: string;
+    acp_session_conversation_id?: string;
+    acp_session_updated_at?: number;
+    current_model_id?: string;
+    session_mode?: string;
     teamMcpStdioConfig?: {
       name: string;
       command: string;
       args: string[];
       env: Array<{ name: string; value: string }>;
     };
-    pendingConfigOptions?: Record<string, string>;
+    pending_config_options?: Record<string, string>;
   };
   onStreamEvent: (data: unknown) => void;
   onSignalEvent?: (data: unknown) => void;
-  onSessionIdUpdate?: (sessionId: string) => void;
+  onSessionIdUpdate?: (session_id: string) => void;
   onAvailableCommandsUpdate?: (commands: Array<{ name: string; description?: string; hint?: string }>) => void;
 };
 
@@ -81,10 +81,10 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
 
   // Build initialDesired from Guid page selections
   const initialDesired: InitialDesiredConfig = {};
-  if (old.extra?.currentModelId) initialDesired.model = old.extra.currentModelId;
-  if (old.extra?.sessionMode) initialDesired.mode = old.extra.sessionMode;
-  if (old.extra?.pendingConfigOptions && Object.keys(old.extra.pendingConfigOptions).length > 0) {
-    initialDesired.configOptions = old.extra.pendingConfigOptions;
+  if (old.extra?.current_model_id) initialDesired.model = old.extra.current_model_id;
+  if (old.extra?.session_mode) initialDesired.mode = old.extra.session_mode;
+  if (old.extra?.pending_config_options && Object.keys(old.extra.pending_config_options).length > 0) {
+    initialDesired.config_options = old.extra.pending_config_options;
   }
   const hasInitialDesired = Object.keys(initialDesired).length > 0;
 
@@ -92,18 +92,18 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
     agentBackend: old.backend,
     agentSource: agentSource,
     // TODO(ACP Discovery): old.id is conversation_id, not a real agent identifier.
-    // Should be old.extra?.customAgentId ?? old.backend (or an agent registry ID).
+    // Should be old.extra?.custom_agent_id ?? old.backend (or an agent registry ID).
     // See docs/feature/acp-rewrite/TODO.md.
     agentId: old.id,
 
-    command: old.extra?.cliPath ?? old.cliPath,
+    command: old.extra?.cli_path ?? old.cli_path,
     args: old.extra?.customArgs ?? old.customArgs,
     env: old.extra?.customEnv ?? old.customEnv,
     cwd: old.workingDir,
 
     teamMcpConfig: teamMcpConfig,
 
-    resumeSessionId: old.extra?.acpSessionId,
+    resumeSessionId: old.extra?.acp_session_id,
     initialDesired: hasInitialDesired ? initialDesired : undefined,
 
     yoloMode: old.extra?.yoloMode,
@@ -114,22 +114,22 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
  * Convert new-style ModelSnapshot to old-style AcpModelInfo
  */
 export function toAcpModelInfo(snapshot: ModelSnapshot): AcpModelInfo {
-  const availableModels = snapshot.availableModels.map((model) => ({
-    id: model.modelId,
+  const available_models = snapshot.available_models.map((model) => ({
+    id: model.model_id,
     label: model.name,
   }));
 
-  let currentModelLabel: string | null = null;
-  if (snapshot.currentModelId) {
-    const currentModel = snapshot.availableModels.find((m) => m.modelId === snapshot.currentModelId);
-    currentModelLabel = currentModel?.name ?? snapshot.currentModelId;
+  let current_model_label: string | null = null;
+  if (snapshot.current_model_id) {
+    const current_model = snapshot.available_models.find((m) => m.model_id === snapshot.current_model_id);
+    current_model_label = current_model?.name ?? snapshot.current_model_id;
   }
 
   return {
-    currentModelId: snapshot.currentModelId,
-    currentModelLabel,
-    availableModels,
-    canSwitch: availableModels.length > 0,
+    current_model_id: snapshot.current_model_id,
+    current_model_label,
+    available_models,
+    can_switch: available_models.length > 0,
     source: 'models',
   };
 }
@@ -139,7 +139,8 @@ export function toAcpModelInfo(snapshot: ModelSnapshot): AcpModelInfo {
  */
 export function toAcpConfigOptions(options: ConfigOption[]): AcpSessionConfigOption[] {
   return options.map((opt) => {
-    const currentValue = typeof opt.currentValue === 'boolean' ? String(opt.currentValue) : String(opt.currentValue);
+    const current_value =
+      typeof opt.current_value === 'boolean' ? String(opt.current_value) : String(opt.current_value);
 
     const result: AcpSessionConfigOption = {
       id: opt.id,
@@ -148,8 +149,8 @@ export function toAcpConfigOptions(options: ConfigOption[]): AcpSessionConfigOpt
       type: opt.type === 'boolean' ? 'boolean' : 'select',
       category: opt.category,
       description: opt.description,
-      currentValue,
-      selectedValue: currentValue, // Duplicate for compatibility
+      current_value,
+      selected_value: current_value, // Duplicate for compatibility
     };
 
     // Convert suboptions if present
@@ -169,12 +170,12 @@ export function toAcpConfigOptions(options: ConfigOption[]): AcpSessionConfigOpt
  * Convert new-style TMessage to old-style IResponseMessage
  * This is the inverse of transformMessage() in chatLib.ts
  */
-export function toResponseMessage(msg: TMessage, conversationId: string): IResponseMessage {
+export function toResponseMessage(msg: TMessage, conversation_id: string): IResponseMessage {
   const base: IResponseMessage = {
     type: '',
     data: null,
     msg_id: msg.msg_id || msg.id,
-    conversation_id: conversationId,
+    conversation_id: conversation_id,
     hidden: msg.hidden,
   };
 

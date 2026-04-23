@@ -147,13 +147,13 @@ const PreviewPanel: React.FC = () => {
 
   // 使用 useCallback 包装 updateContent，确保引用稳定 / Wrap updateContent with useCallback for stable reference
   const handleContentChange = useCallback(
-    (newContent: string) => {
+    (new_content: string) => {
       // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
-      if (typeof newContent !== 'string') {
+      if (typeof new_content !== 'string') {
         return;
       }
       try {
-        updateContent(newContent);
+        updateContent(new_content);
       } catch {
         // Silently ignore errors
       }
@@ -294,18 +294,18 @@ const PreviewPanel: React.FC = () => {
   // (Word, PPT, PDF, Excel components provide their own)
   const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(contentType);
 
-  // 对所有有 filePath 的文件显示"在系统中打开"按钮（统一在工具栏显示）
-  // Show "Open in System" button for all files with filePath (unified in toolbar)
-  const showOpenInSystemButton = Boolean(metadata?.filePath);
+  // 对所有有 file_path 的文件显示"在系统中打开"按钮（统一在工具栏显示）
+  // Show "Open in System" button for all files with file_path (unified in toolbar)
+  const showOpenInSystemButton = Boolean(metadata?.file_path);
 
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
     try {
-      const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
+      const rawFileName = metadata?.file_name || `${contentType}-${Date.now()}`;
 
-      if (metadata?.filePath) {
+      if (metadata?.file_path) {
         // All files with a disk path (binary, image, zip, etc.) — unified path
-        await downloadFileFromPath(metadata.filePath, rawFileName);
+        await downloadFileFromPath(metadata.file_path, rawFileName);
         return;
       }
 
@@ -316,16 +316,16 @@ const PreviewPanel: React.FC = () => {
           return;
         }
         const blob = await fetch(content).then((res) => res.blob());
-        const nameExt = metadata?.fileName?.split('.').pop();
+        const nameExt = metadata?.file_name?.split('.').pop();
         const mimeExt = blob.type?.includes('/') ? blob.type.split('/').pop() : undefined;
         const ext = nameExt || mimeExt || 'png';
         const normalizedExt = ext.toLowerCase();
         const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
-        const fileName = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+        const file_name = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
-        link.download = fileName;
+        link.download = file_name;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -334,7 +334,7 @@ const PreviewPanel: React.FC = () => {
       }
 
       // Text / code content (no file path, no binary)
-      const nameExt = metadata?.fileName?.split('.').pop();
+      const nameExt = metadata?.file_name?.split('.').pop();
       let mimeType = 'text/plain;charset=utf-8';
       let ext = 'txt';
       if (contentType === 'markdown') {
@@ -361,17 +361,17 @@ const PreviewPanel: React.FC = () => {
       if (nameExt) ext = nameExt;
       const normalizedExt = ext.toLowerCase();
       const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
-      const fileName = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
-      downloadTextContent(content, fileName, mimeType);
+      const file_name = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+      downloadTextContent(content, file_name, mimeType);
     } catch (error) {
       console.error('[PreviewPanel] Failed to download file:', error);
       messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
     }
-  }, [content, contentType, metadata?.fileName, metadata?.filePath, metadata?.language, messageApi, t]);
+  }, [content, contentType, metadata?.file_name, metadata?.file_path, metadata?.language, messageApi, t]);
 
   // 在系统默认应用中打开文件 / Open file in system default application
   const handleOpenInSystem = useCallback(async () => {
-    if (!metadata?.filePath) {
+    if (!metadata?.file_path) {
       try {
         messageApi.error(t('preview.openInSystemFailed'));
       } catch {
@@ -382,7 +382,7 @@ const PreviewPanel: React.FC = () => {
 
     try {
       // 使用系统默认应用打开文件 / Open file with system default application
-      await ipcBridge.shell.openFile.invoke(metadata.filePath);
+      await ipcBridge.shell.openFile.invoke(metadata.file_path);
       try {
         messageApi.success(t('preview.openInSystemSuccess'));
       } catch {
@@ -395,7 +395,7 @@ const PreviewPanel: React.FC = () => {
         // Context holder may be unmounted after async operation
       }
     }
-  }, [metadata?.filePath, messageApi, t]);
+  }, [metadata?.file_path, messageApi, t]);
 
   // 渲染历史下拉菜单 / Render history dropdown
   const renderHistoryDropdown = () => {
@@ -422,7 +422,7 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview content={content} hideToolbar filePath={metadata?.filePath} />
+              <MarkdownPreview content={content} hideToolbar file_path={metadata?.file_path} />
             </div>
           );
         }
@@ -459,7 +459,7 @@ const PreviewPanel: React.FC = () => {
                   hideToolbar
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
-                  filePath={metadata?.filePath}
+                  file_path={metadata?.file_path}
                 />
               </div>
             </div>
@@ -475,7 +475,7 @@ const PreviewPanel: React.FC = () => {
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onContentChange={updateContent}
-          filePath={metadata?.filePath}
+          file_path={metadata?.file_path}
         />
       );
     }
@@ -490,7 +490,7 @@ const PreviewPanel: React.FC = () => {
             <div className='flex-1 overflow-hidden'>
               <HTMLRenderer
                 content={content}
-                filePath={metadata?.filePath}
+                file_path={metadata?.file_path}
                 copySuccessMessage={t('preview.html.copySuccess')}
                 inspectMode={inspectMode}
                 onElementSelected={handleElementSelected}
@@ -514,7 +514,7 @@ const PreviewPanel: React.FC = () => {
                   onChange={updateContent}
                   containerRef={editorContainerRef}
                   onScroll={handleEditorScroll}
-                  filePath={metadata?.filePath}
+                  file_path={metadata?.file_path}
                 />
               </div>
               {/* 拖动分割线 / Drag handle */}
@@ -531,7 +531,7 @@ const PreviewPanel: React.FC = () => {
                 {/* eslint-disable-next-line max-len */}
                 <HTMLRenderer
                   content={content}
-                  filePath={metadata?.filePath}
+                  file_path={metadata?.file_path}
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   inspectMode={inspectMode}
@@ -552,7 +552,7 @@ const PreviewPanel: React.FC = () => {
               key={activeTabId ?? undefined}
               value={content}
               onChange={handleContentChange}
-              filePath={metadata?.filePath}
+              file_path={metadata?.file_path}
             />
           </div>
         );
@@ -562,7 +562,7 @@ const PreviewPanel: React.FC = () => {
           <div className='flex-1 overflow-hidden'>
             <HTMLRenderer
               content={content}
-              filePath={metadata?.filePath}
+              file_path={metadata?.file_path}
               inspectMode={inspectMode}
               copySuccessMessage={t('preview.html.copySuccess')}
               onElementSelected={handleElementSelected}
@@ -632,19 +632,19 @@ const PreviewPanel: React.FC = () => {
         />
       );
     } else if (contentType === 'pdf') {
-      return <PDFPreview filePath={metadata?.filePath} content={content} />;
+      return <PDFPreview file_path={metadata?.file_path} content={content} />;
     } else if (contentType === 'ppt') {
-      return <PptViewer filePath={metadata?.filePath} content={content} />;
+      return <PptViewer file_path={metadata?.file_path} content={content} />;
     } else if (contentType === 'word') {
-      return <OfficeDocPreview filePath={metadata?.filePath} content={content} />;
+      return <OfficeDocPreview file_path={metadata?.file_path} content={content} />;
     } else if (contentType === 'excel') {
-      return <ExcelPreview filePath={metadata?.filePath} content={content} />;
+      return <ExcelPreview file_path={metadata?.file_path} content={content} />;
     } else if (contentType === 'image') {
       return (
         <ImagePreview
-          filePath={metadata?.filePath}
+          file_path={metadata?.file_path}
           content={content}
-          fileName={metadata?.fileName || metadata?.title}
+          file_name={metadata?.file_name || metadata?.title}
         />
       );
     } else if (contentType === 'url') {
@@ -702,7 +702,7 @@ const PreviewPanel: React.FC = () => {
             isEditMode={isEditMode}
             viewMode={viewMode}
             isSplitScreenEnabled={isSplitScreenEnabled}
-            fileName={metadata?.fileName || activeTab.title}
+            file_name={metadata?.file_name || activeTab.title}
             showOpenInSystemButton={showOpenInSystemButton}
             historyTarget={historyTarget}
             snapshotSaving={snapshotSaving}

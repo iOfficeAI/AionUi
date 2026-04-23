@@ -14,9 +14,9 @@ interface DiffPreviewHandlersOptions {
   /** Diff text content */
   diffText: string;
   /** Display file name (base name) */
-  displayName: string;
+  display_name: string;
   /** Full/relative file path (used for workspace resolution) */
-  filePath?: string;
+  file_path?: string;
   /** Optional preview panel title */
   title?: string;
 }
@@ -27,15 +27,15 @@ interface DiffPreviewHandlersOptions {
  * Used by components that display FileChangesPanel and need
  * handleFileClick (open file preview) and handleDiffClick (open diff view)
  */
-export const useDiffPreviewHandlers = ({ diffText, displayName, filePath, title }: DiffPreviewHandlersOptions) => {
+export const useDiffPreviewHandlers = ({ diffText, display_name, file_path, title }: DiffPreviewHandlersOptions) => {
   const { launchPreview } = usePreviewLauncher();
 
   const handleFileClick = useCallback(
     (_file: FileChangeItem) => {
-      const { contentType, editable, language } = getFileTypeInfo(displayName);
+      const { contentType, editable, language } = getFileTypeInfo(display_name);
       void launchPreview({
-        relativePath: filePath || displayName,
-        fileName: displayName,
+        relativePath: file_path || display_name,
+        file_name: display_name,
         title,
         contentType,
         editable,
@@ -44,13 +44,13 @@ export const useDiffPreviewHandlers = ({ diffText, displayName, filePath, title 
         diffContent: diffText,
       });
     },
-    [diffText, displayName, filePath, title, launchPreview]
+    [diffText, display_name, file_path, title, launchPreview]
   );
 
   const handleDiffClick = useCallback(
     (_file: FileChangeItem) => {
       void launchPreview({
-        fileName: displayName,
+        file_name: display_name,
         title,
         contentType: 'diff',
         editable: false,
@@ -58,7 +58,7 @@ export const useDiffPreviewHandlers = ({ diffText, displayName, filePath, title 
         diffContent: diffText,
       });
     },
-    [diffText, displayName, title, launchPreview]
+    [diffText, display_name, title, launchPreview]
   );
 
   return { handleFileClick, handleDiffClick };

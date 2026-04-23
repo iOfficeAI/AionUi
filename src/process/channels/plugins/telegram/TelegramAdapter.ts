@@ -80,7 +80,7 @@ export function toUnifiedIncomingMessage(ctx: Context): IUnifiedIncomingMessage 
 export function toUnifiedUser(telegramUser: TelegramUser | undefined): IUnifiedUser | null {
   if (!telegramUser) return null;
 
-  const displayName =
+  const display_name =
     [telegramUser.first_name, telegramUser.last_name].filter(Boolean).join(' ') ||
     telegramUser.username ||
     `User ${telegramUser.id}`;
@@ -88,7 +88,7 @@ export function toUnifiedUser(telegramUser: TelegramUser | undefined): IUnifiedU
   return {
     id: telegramUser.id.toString(),
     username: telegramUser.username,
-    displayName,
+    display_name,
     avatarUrl: undefined, // Telegram doesn't provide avatar URL directly
   };
 }
@@ -130,7 +130,7 @@ function extractMessageContent(message: Message): IUnifiedMessageContent {
         {
           type: 'document',
           fileId: message.document.file_id,
-          fileName: message.document.file_name,
+          file_name: message.document.file_name,
           mimeType: message.document.mime_type,
           size: message.document.file_size,
         },
@@ -162,7 +162,7 @@ function extractMessageContent(message: Message): IUnifiedMessageContent {
         {
           type: 'audio',
           fileId: message.audio.file_id,
-          fileName: message.audio.file_name,
+          file_name: message.audio.file_name,
           mimeType: message.audio.mime_type,
           size: message.audio.file_size,
           duration: message.audio.duration,
@@ -179,7 +179,7 @@ function extractMessageContent(message: Message): IUnifiedMessageContent {
         {
           type: 'video',
           fileId: message.video.file_id,
-          fileName: message.video.file_name,
+          file_name: message.video.file_name,
           mimeType: message.video.mime_type,
           size: message.video.file_size,
           duration: message.video.duration,

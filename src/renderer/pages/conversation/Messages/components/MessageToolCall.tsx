@@ -16,27 +16,27 @@ import MarkdownView from '@renderer/components/Markdown';
 import { iconColors } from '@/renderer/styles/colors';
 
 const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
-  const filePath = message.content.args.file_path;
+  const file_path = message.content.args.file_path;
 
   const diffText = useMemo(() => {
     return createTwoFilesPatch(
-      filePath,
-      filePath,
+      file_path,
+      file_path,
       message.content.args.old_string ?? '',
       message.content.args.new_string ?? '',
       '',
       '',
       { context: 3 }
     );
-  }, [filePath, message.content.args.old_string, message.content.args.new_string]);
+  }, [file_path, message.content.args.old_string, message.content.args.new_string]);
 
-  const fileInfo = useMemo(() => parseDiff(diffText, filePath), [diffText, filePath]);
-  const displayName = filePath.split(/[/\\]/).pop() || filePath;
-  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText, displayName, filePath });
+  const fileInfo = useMemo(() => parseDiff(diffText, file_path), [diffText, file_path]);
+  const display_name = file_path.split(/[/\\]/).pop() || file_path;
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText, display_name, file_path });
 
   return (
     <FileChangesPanel
-      title={fileInfo.fileName}
+      title={fileInfo.file_name}
       files={[fileInfo]}
       onFileClick={handleFileClick}
       onDiffClick={handleDiffClick}

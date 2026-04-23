@@ -10,11 +10,11 @@ import type {
 } from '@process/acp/types';
 
 type SyncResult = {
-  currentModelId?: string;
-  availableModels?: Array<{ modelId: string; name: string; description?: string }>;
-  currentModeId?: string;
-  availableModes?: Array<{ id: string; name: string; description?: string }>;
-  configOptions?: ConfigOption[];
+  current_model_id?: string;
+  available_models?: Array<{ model_id: string; name: string; description?: string }>;
+  current_mode_id?: string;
+  available_modes?: Array<{ id: string; name: string; description?: string }>;
+  config_options?: ConfigOption[];
   cwd: string;
   additionalDirectories?: string[];
   availableCommands?: AvailableCommand[];
@@ -23,19 +23,19 @@ type SyncResult = {
 type PendingChanges = {
   model: string | null;
   mode: string | null;
-  configOptions: Array<{ id: string; value: string | boolean }>;
+  config_options: Array<{ id: string; value: string | boolean }>;
 };
 
 export class ConfigTracker {
   // Current (confirmed by agent)
   private cwd = '';
   private additionalDirectories: string[] | undefined;
-  private availableModels: Array<{ modelId: string; name: string; description?: string }> = [];
-  private availableModes: Array<{ id: string; name: string; description?: string }> = [];
+  private available_models: Array<{ model_id: string; name: string; description?: string }> = [];
+  private available_modes: Array<{ id: string; name: string; description?: string }> = [];
   private availableCommands: AvailableCommand[] = [];
 
-  private currentModelId: string | null = null;
-  private currentModeId: string | null = null;
+  private current_model_id: string | null = null;
+  private current_mode_id: string | null = null;
   private currentConfigOptions: ConfigOption[] = [];
   // Desired (user intent, not yet synced)
   private desiredModelId: string | null = null;
@@ -46,29 +46,29 @@ export class ConfigTracker {
     if (!initialDesired) return;
     if (initialDesired.model) this.desiredModelId = initialDesired.model;
     if (initialDesired.mode) this.desiredModeId = initialDesired.mode;
-    if (initialDesired.configOptions) {
-      for (const [id, value] of Object.entries(initialDesired.configOptions)) {
+    if (initialDesired.config_options) {
+      for (const [id, value] of Object.entries(initialDesired.config_options)) {
         this.desiredConfigOptions.set(id, value);
       }
     }
   }
 
-  setDesiredModel(modelId: string): void {
-    this.desiredModelId = modelId;
+  setDesiredModel(model_id: string): void {
+    this.desiredModelId = model_id;
   }
 
-  setCurrentModel(modelId: string): void {
-    this.currentModelId = modelId;
-    if (this.desiredModelId === modelId) this.desiredModelId = null;
+  setCurrentModel(model_id: string): void {
+    this.current_model_id = model_id;
+    if (this.desiredModelId === model_id) this.desiredModelId = null;
   }
 
-  setDesiredMode(modeId: string): void {
-    this.desiredModeId = modeId;
+  setDesiredMode(mode_id: string): void {
+    this.desiredModeId = mode_id;
   }
 
-  setCurrentMode(modeId: string): void {
-    this.currentModeId = modeId;
-    if (this.desiredModeId === modeId) this.desiredModeId = null;
+  setCurrentMode(mode_id: string): void {
+    this.current_mode_id = mode_id;
+    if (this.desiredModeId === mode_id) this.desiredModeId = null;
   }
 
   setDesiredConfigOption(id: string, value: string | boolean): void {
@@ -77,18 +77,18 @@ export class ConfigTracker {
 
   setCurrentConfigOption(id: string, value: string | boolean): void {
     const opt = this.currentConfigOptions.find((o) => o.id === id);
-    if (opt) opt.currentValue = value;
+    if (opt) opt.current_value = value;
     this.desiredConfigOptions.delete(id);
   }
 
   syncFromSessionResult(result: SyncResult): void {
     this.cwd = result.cwd;
     this.additionalDirectories = result.additionalDirectories;
-    if (result.currentModelId !== undefined) this.currentModelId = result.currentModelId;
-    if (result.availableModels) this.availableModels = result.availableModels;
-    if (result.currentModeId !== undefined) this.currentModeId = result.currentModeId;
-    if (result.availableModes) this.availableModes = result.availableModes;
-    if (result.configOptions) this.currentConfigOptions = result.configOptions;
+    if (result.current_model_id !== undefined) this.current_model_id = result.current_model_id;
+    if (result.available_models) this.available_models = result.available_models;
+    if (result.current_mode_id !== undefined) this.current_mode_id = result.current_mode_id;
+    if (result.available_modes) this.available_modes = result.available_modes;
+    if (result.config_options) this.currentConfigOptions = result.config_options;
     if (result.availableCommands) this.availableCommands = result.availableCommands;
   }
 
@@ -96,7 +96,7 @@ export class ConfigTracker {
     return {
       model: this.desiredModelId,
       mode: this.desiredModeId,
-      configOptions: Array.from(this.desiredConfigOptions.entries()).map(([id, value]) => ({
+      config_options: Array.from(this.desiredConfigOptions.entries()).map(([id, value]) => ({
         id,
         value,
       })),
@@ -111,21 +111,21 @@ export class ConfigTracker {
 
   modelSnapshot(): ModelSnapshot {
     return {
-      currentModelId: this.currentModelId,
-      availableModels: [...this.availableModels],
+      current_model_id: this.current_model_id,
+      available_models: [...this.available_models],
     };
   }
 
   modeSnapshot(): ModeSnapshot {
     return {
-      currentModeId: this.currentModeId,
-      availableModes: [...this.availableModes],
+      current_mode_id: this.current_mode_id,
+      available_modes: [...this.available_modes],
     };
   }
 
   configSnapshot(): ConfigSnapshot {
     return {
-      configOptions: [...this.currentConfigOptions],
+      config_options: [...this.currentConfigOptions],
       availableCommands: [...this.availableCommands],
       cwd: this.cwd,
       additionalDirectories: this.additionalDirectories,

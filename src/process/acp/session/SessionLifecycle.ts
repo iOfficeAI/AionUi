@@ -226,23 +226,23 @@ export class SessionLifecycle {
     this.host.callbacks.onSessionId(this._sessionId!);
 
     this.host.configTracker.syncFromSessionResult({
-      currentModelId: sessionResult.models?.currentModelId ?? undefined,
-      availableModels: sessionResult.models?.availableModels?.map((m) => ({
-        modelId: m.modelId,
+      current_model_id: sessionResult.models?.currentModelId ?? undefined,
+      available_models: sessionResult.models?.availableModels?.map((m) => ({
+        model_id: m.modelId,
         name: m.name,
         description: m.description ?? undefined,
       })),
-      currentModeId: sessionResult.modes?.currentModeId ?? undefined,
-      availableModes: sessionResult.modes?.availableModes?.map((m) => ({
+      current_mode_id: sessionResult.modes?.currentModeId ?? undefined,
+      available_modes: sessionResult.modes?.availableModes?.map((m) => ({
         id: m.id,
         name: m.name,
         description: m.description ?? undefined,
       })),
-      configOptions: sessionResult.configOptions?.map((opt) => ({
+      config_options: sessionResult.configOptions?.map((opt) => ({
         id: opt.id,
         name: opt.name,
         type: opt.type,
-        currentValue: opt.currentValue,
+        current_value: opt.currentValue,
       })),
       cwd: this.host.agentConfig.cwd,
       additionalDirectories: this.host.agentConfig.additionalDirectories,
@@ -268,7 +268,7 @@ export class SessionLifecycle {
    * and fires an immediate setMode call to the agent.
    */
   private applyYoloMode(): void {
-    const availableModes = this.host.configTracker.modeSnapshot().availableModes;
+    const availableModes = this.host.configTracker.modeSnapshot().available_modes;
     const yoloModeId = resolveYoloModeId(this.host.agentConfig.agentBackend, availableModes);
     if (!yoloModeId) {
       console.warn(
@@ -314,7 +314,7 @@ export class SessionLifecycle {
         /* best effort */
       }
     }
-    for (const opt of pending.configOptions) {
+    for (const opt of pending.config_options) {
       try {
         await this._client.setConfigOption(this._sessionId, opt.id, opt.value);
         this.host.configTracker.setCurrentConfigOption(opt.id, opt.value);

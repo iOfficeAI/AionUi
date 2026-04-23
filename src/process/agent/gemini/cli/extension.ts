@@ -20,7 +20,7 @@ interface ExtensionConfigFile {
   name: string;
   version: string;
   mcpServers?: Record<string, MCPServerConfig>;
-  contextFileName?: string | string[];
+  context_file_name?: string | string[];
   excludeTools?: string[];
 }
 
@@ -80,7 +80,7 @@ function loadExtension(extensionDir: string): GeminiCLIExtension | null {
     }
 
     const contextFiles = getContextFileNames(config)
-      .map((contextFileName) => path.join(extensionDir, contextFileName))
+      .map((context_file_name) => path.join(extensionDir, context_file_name))
       .filter((contextFilePath) => fs.existsSync(contextFilePath));
 
     return {
@@ -100,12 +100,12 @@ function loadExtension(extensionDir: string): GeminiCLIExtension | null {
 }
 
 function getContextFileNames(config: ExtensionConfigFile): string[] {
-  if (!config.contextFileName) {
+  if (!config.context_file_name) {
     return ['QWEN.md'];
-  } else if (!Array.isArray(config.contextFileName)) {
-    return [config.contextFileName];
+  } else if (!Array.isArray(config.context_file_name)) {
+    return [config.context_file_name];
   }
-  return config.contextFileName;
+  return config.context_file_name;
 }
 
 /**

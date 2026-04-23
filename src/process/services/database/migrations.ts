@@ -1046,7 +1046,7 @@ const migration_v21: IMigration = {
 
 /**
  * Migration v21 -> v22: Remove CHECK constraint on conversations.type,
- * add cron job columns, hidden messages, and cronJobId index.
+ * add cron job columns, hidden messages, and cron_job_id index.
  *
  * The CHECK(type IN (...)) constraint forced a heavy table-rebuild migration
  * every time a new agent type was added (v10, v11, v14, v15, v16, v21 all did this).
@@ -1086,7 +1086,7 @@ const migration_v22: IMigration = {
       'CREATE INDEX IF NOT EXISTS idx_conversations_source_chat ON conversations(source, channel_chat_id, updated_at DESC)'
     );
     db.exec(
-      `CREATE INDEX IF NOT EXISTS idx_conversations_cron_job_id ON conversations(json_extract(extra, '$.cronJobId'))`
+      `CREATE INDEX IF NOT EXISTS idx_conversations_cron_job_id ON conversations(json_extract(extra, '$.cron_job_id'))`
     );
 
     // 2. Add cron job columns (execution_mode, agent_config)

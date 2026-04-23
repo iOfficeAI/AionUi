@@ -71,7 +71,7 @@ export class OpenClawAgent {
   private approvalStore = new AcpApprovalStore();
   private pendingPermissions = new Map<
     string,
-    { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }
+    { resolve: (response: { option_id: string }) => void; reject: (error: Error) => void }
   >();
   private statusMessageId: string | null = null;
   private disconnectTipMessageId: string | null = null;
@@ -131,7 +131,7 @@ export class OpenClawAgent {
           // Gateway already running, skip spawning
         } else {
           this.gatewayManager = new OpenClawGatewayManager({
-            cliPath: gatewayConfig.cliPath || 'openclaw',
+            cli_path: gatewayConfig.cli_path || 'openclaw',
             port,
           });
 
@@ -207,7 +207,7 @@ export class OpenClawAgent {
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
       // Auto-reconnect if needed
-      if (!this.connection?.isConnected || !this.connection?.sessionKey) {
+      if (!this.connection?.is_connected || !this.connection?.sessionKey) {
         await this.start();
       }
 
@@ -245,23 +245,23 @@ export class OpenClawAgent {
   /**
    * Confirm a permission request
    */
-  confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
-    const pending = this.pendingPermissions.get(data.callId);
+  confirmMessage(data: { confirm_key: string; call_id: string }): Promise<AcpResult> {
+    const pending = this.pendingPermissions.get(data.call_id);
     if (!pending) {
       return Promise.resolve({
         success: false,
-        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found: ${data.callId}`, false),
+        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found: ${data.call_id}`, false),
       });
     }
 
-    this.pendingPermissions.delete(data.callId);
+    this.pendingPermissions.delete(data.call_id);
 
     // Cache "always allow" decisions
-    if (data.confirmKey === 'allow_always') {
+    if (data.confirm_key === 'allow_always') {
       // TODO: Store in approval store
     }
 
-    pending.resolve({ optionId: data.confirmKey });
+    pending.resolve({ option_id: data.confirm_key });
     return Promise.resolve({ success: true, data: null });
   }
 
@@ -276,7 +276,7 @@ export class OpenClawAgent {
 
   private async waitForConnection(timeoutMs = 30000): Promise<void> {
     const startTime = Date.now();
-    while (!this.connection?.isConnected) {
+    while (!this.connection?.is_connected) {
       if (Date.now() - startTime > timeoutMs) {
         throw new Error('Connection timeout');
       }
@@ -516,7 +516,7 @@ export class OpenClawAgent {
           // Gateway actual fields
           phase?: string; // 'start' | 'update' | 'result' | 'partialResult'
           name?: string; // tool name e.g. 'exec', 'read', 'write'
-          toolCallId?: string;
+          tool_call_id?: string;
           args?: Record<string, unknown>;
           meta?: string; // result description
           isError?: boolean;
@@ -543,8 +543,8 @@ export class OpenClawAgent {
         }
 
         // Map name → kind
-        const toolName = toolData.name ?? toolData.title ?? '';
-        const kind = this.inferToolKind(toolName) ?? (toolData.kind as 'read' | 'edit' | 'execute') ?? 'execute';
+        const tool_name = toolData.name ?? toolData.title ?? '';
+        const kind = this.inferToolKind(tool_name) ?? (toolData.kind as 'read' | 'edit' | 'execute') ?? 'execute';
 
         // Build content: prefer meta (result description), fallback to args
         let content: ToolCallUpdate['update']['content'];
@@ -557,12 +557,12 @@ export class OpenClawAgent {
         }
 
         const acpUpdate: ToolCallUpdate = {
-          sessionId: this.id,
+          session_id: this.id,
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId: toolData.toolCallId || uuid(),
+            tool_call_id: toolData.tool_call_id || uuid(),
             status,
-            title: toolName || 'Tool Call',
+            title: tool_name || 'Tool Call',
             kind,
             content,
           },
@@ -610,13 +610,13 @@ export class OpenClawAgent {
     const request = payload as {
       requestId: string;
       toolCall?: {
-        toolCallId?: string;
+        tool_call_id?: string;
         title?: string;
         kind?: string;
         rawInput?: Record<string, unknown>;
       };
       options?: Array<{
-        optionId: string;
+        option_id: string;
         name: string;
         kind: string;
       }>;
@@ -640,12 +640,12 @@ export class OpenClawAgent {
         conversation_id: this.id,
         msg_id: uuid(),
         data: {
-          sessionId: this.id,
-          toolCall: request.toolCall || { toolCallId: requestId },
+          session_id: this.id,
+          toolCall: request.toolCall || { tool_call_id: requestId },
           options: request.options || [
-            { optionId: 'allow_once', name: 'Allow', kind: 'allow_once' },
-            { optionId: 'allow_always', name: 'Always Allow', kind: 'allow_always' },
-            { optionId: 'reject_once', name: 'Reject', kind: 'reject_once' },
+            { option_id: 'allow_once', name: 'Allow', kind: 'allow_once' },
+            { option_id: 'allow_always', name: 'Always Allow', kind: 'allow_always' },
+            { option_id: 'reject_once', name: 'Reject', kind: 'reject_once' },
           ],
         },
       });
@@ -768,7 +768,7 @@ export class OpenClawAgent {
       conversation_id: this.id,
       type: 'agent_status',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         backend: 'openclaw-gateway',
         status,
@@ -786,7 +786,7 @@ export class OpenClawAgent {
       conversation_id: this.id,
       type: 'tips',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         content: error,
         type: 'error',
@@ -840,11 +840,11 @@ export class OpenClawAgent {
 
   // ========== Getters ==========
 
-  get isConnected(): boolean {
-    return this.connection?.isConnected ?? false;
+  get is_connected(): boolean {
+    return this.connection?.is_connected ?? false;
   }
 
-  get hasActiveSession(): boolean {
+  get has_active_session(): boolean {
     return !!this.connection?.sessionKey;
   }
 

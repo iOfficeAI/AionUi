@@ -28,7 +28,7 @@ type ActiveSession = {
 };
 
 export type TypingManagerOpts = {
-  baseUrl: string;
+  base_url: string;
   token: string;
   /** X-WECHAT-UIN header value — generated once in startMonitor, passed through. */
   wechatUin: string;
@@ -40,7 +40,7 @@ export type TypingManagerOpts = {
 // ==================== HTTP helper ====================
 
 async function apiPost(params: {
-  baseUrl: string;
+  base_url: string;
   token: string;
   wechatUin: string;
   endpoint: string;
@@ -48,7 +48,7 @@ async function apiPost(params: {
   timeoutMs: number;
   signal?: AbortSignal;
 }): Promise<string> {
-  const url = `${params.baseUrl.replace(/\/$/, '')}/${params.endpoint}`;
+  const url = `${params.base_url.replace(/\/$/, '')}/${params.endpoint}`;
   const bodyStr = JSON.stringify(params.body);
 
   const controller = new AbortController();
@@ -84,15 +84,15 @@ async function apiPost(params: {
 // ==================== API calls ====================
 
 async function callGetConfig(params: {
-  baseUrl: string;
+  base_url: string;
   token: string;
   wechatUin: string;
-  userId: string;
+  user_id: string;
   contextToken?: string;
   signal?: AbortSignal;
 }): Promise<string> {
   const body: Record<string, unknown> = {
-    ilink_user_id: params.userId,
+    ilink_user_id: params.user_id,
     base_info: {},
   };
   if (params.contextToken !== undefined) {
@@ -100,7 +100,7 @@ async function callGetConfig(params: {
   }
 
   const text = await apiPost({
-    baseUrl: params.baseUrl,
+    base_url: params.base_url,
     token: params.token,
     wechatUin: params.wechatUin,
     endpoint: 'ilink/bot/getconfig',
@@ -117,21 +117,21 @@ async function callGetConfig(params: {
 }
 
 async function callSendTyping(params: {
-  baseUrl: string;
+  base_url: string;
   token: string;
   wechatUin: string;
-  userId: string;
+  user_id: string;
   typingTicket: string;
   status: 1 | 2;
   signal?: AbortSignal;
 }): Promise<void> {
   await apiPost({
-    baseUrl: params.baseUrl,
+    base_url: params.base_url,
     token: params.token,
     wechatUin: params.wechatUin,
     endpoint: 'ilink/bot/sendtyping',
     body: {
-      ilink_user_id: params.userId,
+      ilink_user_id: params.user_id,
       typing_ticket: params.typingTicket,
       status: params.status,
       base_info: {},
@@ -149,7 +149,7 @@ async function callSendTyping(params: {
  */
 export class TypingManager {
   private configCache = new Map<string, ConfigCacheEntry>();
-  /** Tracks active typing sessions per userId. Used for concurrent-session cleanup and abort. */
+  /** Tracks active typing sessions per user_id. Used for concurrent-session cleanup and abort. */
   private activeSessions = new Map<string, ActiveSession>();
   private stopped = false;
 
@@ -168,9 +168,9 @@ export class TypingManager {
     );
   }
 
-  private async getTypingTicket(userId: string, contextToken?: string): Promise<string> {
+  private async getTypingTicket(user_id: string, contextToken?: string): Promise<string> {
     const now = Date.now();
-    const entry = this.configCache.get(userId);
+    const entry = this.configCache.get(user_id);
 
     if (entry && now < entry.nextFetchAt) {
       return entry.typingTicket;
@@ -178,14 +178,14 @@ export class TypingManager {
 
     try {
       const ticket = await callGetConfig({
-        baseUrl: this.opts.baseUrl,
+        base_url: this.opts.base_url,
         token: this.opts.token,
         wechatUin: this.opts.wechatUin,
-        userId,
+        user_id,
         contextToken,
         signal: this.opts.abortSignal,
       });
-      this.configCache.set(userId, {
+      this.configCache.set(user_id, {
         typingTicket: ticket,
         // Spread expiry uniformly across the 24 h window (thundering-herd prevention)
         nextFetchAt: now + Math.random() * CONFIG_CACHE_TTL_MS,
@@ -193,11 +193,11 @@ export class TypingManager {
       });
       return ticket;
     } catch (err) {
-      this.opts.log(`[weixin-typing] getConfig failed for ${userId}: ${String(err)}`);
-      const prev = this.configCache.get(userId);
+      this.opts.log(`[weixin-typing] getConfig failed for ${user_id}: ${String(err)}`);
+      const prev = this.configCache.get(user_id);
       const prevDelay = prev?.retryDelayMs ?? CONFIG_INITIAL_RETRY_MS;
       const nextDelay = Math.min(prevDelay * 2, CONFIG_MAX_RETRY_MS);
-      this.configCache.set(userId, {
+      this.configCache.set(user_id, {
         typingTicket: prev?.typingTicket ?? '',
         nextFetchAt: now + (prev !== undefined ? nextDelay : CONFIG_INITIAL_RETRY_MS),
         retryDelayMs: nextDelay,
@@ -207,16 +207,16 @@ export class TypingManager {
   }
 
   /** Send TYPING with exponential-backoff retry. Never throws. */
-  private async sendTypingRetry(userId: string, ticket: string): Promise<void> {
+  private async sendTypingRetry(user_id: string, ticket: string): Promise<void> {
     let delay = TYPING_RETRY_DELAY_MS;
     for (let attempt = 0; attempt <= MAX_TYPING_RETRIES; attempt++) {
       try {
         // oxlint-disable-next-line eslint/no-await-in-loop
         await callSendTyping({
-          baseUrl: this.opts.baseUrl,
+          base_url: this.opts.base_url,
           token: this.opts.token,
           wechatUin: this.opts.wechatUin,
-          userId,
+          user_id,
           typingTicket: ticket,
           status: 1,
           signal: this.opts.abortSignal,
@@ -224,7 +224,7 @@ export class TypingManager {
         return;
       } catch (err) {
         if (attempt === MAX_TYPING_RETRIES) {
-          this.opts.log(`[weixin-typing] sendTyping failed for ${userId}: ${String(err)}`);
+          this.opts.log(`[weixin-typing] sendTyping failed for ${user_id}: ${String(err)}`);
           return;
         }
         // oxlint-disable-next-line eslint/no-await-in-loop
@@ -235,13 +235,13 @@ export class TypingManager {
   }
 
   /** Send CANCEL — single attempt, no abort signal forwarded, swallows all errors. Never throws. */
-  private async sendCancel(userId: string, ticket: string): Promise<void> {
+  private async sendCancel(user_id: string, ticket: string): Promise<void> {
     try {
       await callSendTyping({
-        baseUrl: this.opts.baseUrl,
+        base_url: this.opts.base_url,
         token: this.opts.token,
         wechatUin: this.opts.wechatUin,
-        userId,
+        user_id,
         typingTicket: ticket,
         status: 2,
         // No abortSignal — CANCEL should attempt even if the monitor is stopping
@@ -252,33 +252,33 @@ export class TypingManager {
   }
 
   /**
-   * Start typing indicator for userId.
+   * Start typing indicator for user_id.
    * Sends TYPING immediately, then every TYPING_INTERVAL_MS.
-   * If a previous session for userId is active, it is stopped (CANCEL sent) first.
+   * If a previous session for user_id is active, it is stopped (CANCEL sent) first.
    * If typingTicket is empty, returns a no-op stop — agent.chat still proceeds.
    * Returns a stop function that clears the interval and sends CANCEL. stop() is idempotent.
    */
-  async startTyping(userId: string, contextToken?: string): Promise<() => Promise<void>> {
+  async startTyping(user_id: string, contextToken?: string): Promise<() => Promise<void>> {
     if (this.stopped || this.opts.abortSignal?.aborted) return async () => {};
 
     // Stop any existing session for this user (sends CANCEL for the previous session)
-    const existing = this.activeSessions.get(userId);
+    const existing = this.activeSessions.get(user_id);
     if (existing !== undefined) {
       await existing.stop();
     }
 
-    const ticket = await this.getTypingTicket(userId, contextToken);
+    const ticket = await this.getTypingTicket(user_id, contextToken);
     if (!ticket) return async () => {};
 
     // Send immediately (fire-and-forget so fake-timer retry delays don't block startTyping)
-    void this.sendTypingRetry(userId, ticket);
+    void this.sendTypingRetry(user_id, ticket);
 
     if (this.stopped || this.opts.abortSignal?.aborted) return async () => {};
 
     // Periodic re-send
     const intervalId = setInterval(() => {
       if (!this.stopped) {
-        void this.sendTypingRetry(userId, ticket);
+        void this.sendTypingRetry(user_id, ticket);
       }
     }, TYPING_INTERVAL_MS);
 
@@ -287,11 +287,11 @@ export class TypingManager {
       if (done) return;
       done = true;
       clearInterval(intervalId);
-      this.activeSessions.delete(userId);
-      await this.sendCancel(userId, ticket);
+      this.activeSessions.delete(user_id);
+      await this.sendCancel(user_id, ticket);
     };
 
-    this.activeSessions.set(userId, { intervalId, stop });
+    this.activeSessions.set(user_id, { intervalId, stop });
     return stop;
   }
 }

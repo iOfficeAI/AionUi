@@ -21,7 +21,7 @@ import { getActivityTime } from '@/renderer/utils/chat/timeline';
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { jobId } = useParams<{ jobId: string }>();
+  const { job_id } = useParams<{ job_id: string }>();
   const [job, setJob] = useState<ICronJob | null>(null);
   const [loading, setLoading] = useState(true);
   const [editDialogVisible, setEditDialogVisible] = useState(false);
@@ -29,20 +29,20 @@ const TaskDetailPage: React.FC = () => {
 
   const isNewConversationMode = job?.target.executionMode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
-  const { conversations } = useCronJobConversations(jobId);
+  const { conversations } = useCronJobConversations(job_id);
 
   const fetchJob = useCallback(async () => {
-    if (!jobId) return;
+    if (!job_id) return;
     setLoading(true);
     try {
-      const found = await ipcBridge.cron.getJob.invoke({ jobId });
+      const found = await ipcBridge.cron.getJob.invoke({ job_id });
       setJob(found ?? null);
     } catch (err) {
       console.error('[TaskDetailPage] Failed to fetch job:', err);
     } finally {
       setLoading(false);
     }
-  }, [jobId]);
+  }, [job_id]);
 
   useEffect(() => {
     void fetchJob();
@@ -50,14 +50,14 @@ const TaskDetailPage: React.FC = () => {
 
   // Auto-refresh when the job is updated or executed
   useEffect(() => {
-    if (!jobId) return;
+    if (!job_id) return;
     const unsubUpdated = ipcBridge.cron.onJobUpdated.on((updated) => {
-      if (updated.id === jobId) {
+      if (updated.id === job_id) {
         setJob(updated);
       }
     });
     const unsubExecuted = ipcBridge.cron.onJobExecuted.on((data) => {
-      if (data.jobId === jobId) {
+      if (data.job_id === job_id) {
         void fetchJob();
       }
     });
@@ -65,12 +65,12 @@ const TaskDetailPage: React.FC = () => {
       unsubUpdated();
       unsubExecuted();
     };
-  }, [jobId, fetchJob]);
+  }, [job_id, fetchJob]);
 
   const handleToggleEnabled = useCallback(async () => {
     if (!job) return;
     try {
-      await ipcBridge.cron.updateJob.invoke({ jobId: job.id, updates: { enabled: !job.enabled } });
+      await ipcBridge.cron.updateJob.invoke({ job_id: job.id, updates: { enabled: !job.enabled } });
       Message.success(job.enabled ? t('cron.pauseSuccess') : t('cron.resumeSuccess'));
       await fetchJob();
     } catch (err) {
@@ -82,10 +82,10 @@ const TaskDetailPage: React.FC = () => {
     if (!job) return;
     setRunningNow(true);
     try {
-      const result = await ipcBridge.cron.runNow.invoke({ jobId: job.id });
+      const result = await ipcBridge.cron.runNow.invoke({ job_id: job.id });
       Message.success(t('cron.runNowSuccess'));
-      if (result?.conversationId) {
-        navigate(`/conversation/${result.conversationId}`);
+      if (result?.conversation_id) {
+        navigate(`/conversation/${result.conversation_id}`);
       }
     } catch (err) {
       Message.error(String(err));
@@ -97,7 +97,7 @@ const TaskDetailPage: React.FC = () => {
   const handleDelete = useCallback(async () => {
     if (!job) return;
     try {
-      await ipcBridge.cron.removeJob.invoke({ jobId: job.id });
+      await ipcBridge.cron.removeJob.invoke({ job_id: job.id });
       Message.success(t('cron.deleteSuccess'));
       navigate('/scheduled');
     } catch (err) {
@@ -290,11 +290,11 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {job.metadata.agentConfig?.modelId && (
+            {job.metadata.agentConfig?.model_id && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.model')}</h2>
                 <span className='break-words text-14px leading-22px text-t-primary'>
-                  {job.metadata.agentConfig.modelId}
+                  {job.metadata.agentConfig.model_id}
                 </span>
               </section>
             )}
@@ -308,12 +308,12 @@ const TaskDetailPage: React.FC = () => {
               </section>
             )}
 
-            {job.metadata.agentConfig?.configOptions &&
-              Object.keys(job.metadata.agentConfig.configOptions).length > 0 && (
+            {job.metadata.agentConfig?.config_options &&
+              Object.keys(job.metadata.agentConfig.config_options).length > 0 && (
                 <section className='flex flex-col gap-10px'>
                   <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('acp.config.reasoning_effort')}</h2>
                   <span className='break-words text-14px leading-22px text-t-primary'>
-                    {Object.values(job.metadata.agentConfig.configOptions).join(', ')}
+                    {Object.values(job.metadata.agentConfig.config_options).join(', ')}
                   </span>
                 </section>
               )}

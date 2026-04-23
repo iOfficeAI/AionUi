@@ -17,16 +17,16 @@ export type AcpSessionRow = {
 };
 
 export type IAcpSessionRepository = {
-  getSession(conversationId: string): AcpSessionRow | null;
+  getSession(conversation_id: string): AcpSessionRow | null;
   upsertSession(session: AcpSessionRow): void;
-  updateSessionId(conversationId: string, sessionId: string): void;
+  updateSessionId(conversation_id: string, session_id: string): void;
   updateStatus(
-    conversationId: string,
+    conversation_id: string,
     status: 'idle' | 'active' | 'suspended' | 'error',
     suspendedAt?: number | null
   ): void;
-  updateSessionConfig(conversationId: string, config: string): void;
-  touchLastActive(conversationId: string): void;
+  updateSessionConfig(conversation_id: string, config: string): void;
+  touchLastActive(conversation_id: string): void;
   getSuspendedSessions(): AcpSessionRow[];
-  deleteSession(conversationId: string): void;
+  deleteSession(conversation_id: string): void;
 };

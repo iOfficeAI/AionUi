@@ -16,7 +16,7 @@ import { WebSearchTool } from './web-search';
 
 interface ConversationToolConfigOptions {
   proxy: string;
-  webSearchEngine?: 'google' | 'default';
+  web_search_engine?: 'google' | 'default';
 }
 
 const getGeminiWebSearchRuntimeDir = () => {
@@ -35,11 +35,11 @@ export class ConversationToolConfig {
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
   private dedicatedConfig: Config | null = null; // 缓存专门的Config（用于OAuth认证）
-  private webSearchEngine: 'google' | 'default' = 'default';
+  private web_search_engine: 'google' | 'default' = 'default';
   private proxy: string = '';
   constructor(options: ConversationToolConfigOptions) {
     this.proxy = options.proxy;
-    this.webSearchEngine = options.webSearchEngine ?? 'default';
+    this.web_search_engine = options.web_search_engine ?? 'default';
   }
 
   /**
@@ -51,10 +51,10 @@ export class ConversationToolConfig {
     this.useAionuiWebFetch = true;
     this.excludeTools.push('web_fetch');
 
-    // 根据 webSearchEngine 配置决定启用哪个搜索工具
+    // 根据 web_search_engine 配置决定启用哪个搜索工具
     // gemini_web_search 只能在 Google OAuth 认证下使用，因为它需要创建 Google OAuth 客户端
     // gemini_web_search can only be used with Google OAuth auth, as it requires creating a Google OAuth client
-    if (this.webSearchEngine === 'google') {
+    if (this.web_search_engine === 'google') {
       if (authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI) {
         // 只有 Google OAuth 认证才启用 gemini_web_search
         // Only enable gemini_web_search for Google OAuth authentication
@@ -68,8 +68,8 @@ export class ConversationToolConfig {
         this.useGeminiWebSearch = false;
       }
     }
-    // webSearchEngine === 'default' 时不启用 Google 搜索工具（useGeminiWebSearch 保持默认 false）
-    // When webSearchEngine === 'default', don't enable Google search (useGeminiWebSearch stays false)
+    // web_search_engine === 'default' 时不启用 Google 搜索工具（useGeminiWebSearch 保持默认 false）
+    // When web_search_engine === 'default', don't enable Google search (useGeminiWebSearch stays false)
   }
 
   /**
@@ -77,15 +77,15 @@ export class ConversationToolConfig {
    */
   private async findBestGeminiModel(): Promise<TProviderWithModel | null> {
     try {
-      // 前端已通过 webSearchEngine 参数确认认证状态
-      const hasGoogleAuth = this.webSearchEngine === 'google';
+      // 前端已通过 web_search_engine 参数确认认证状态
+      const hasGoogleAuth = this.web_search_engine === 'google';
       if (hasGoogleAuth) {
         return {
           id: uuid(),
           name: 'Gemini Google Auth',
           platform: 'gemini-with-google-auth',
-          baseUrl: '',
-          apiKey: '',
+          base_url: '',
+          api_key: '',
           useModel: 'gemini-2.5-flash',
         };
       }
@@ -150,7 +150,7 @@ export class ConversationToolConfig {
     // 注册 gemini_web_search 工具（仅OpenAI模型）
     if (this.useGeminiWebSearch) {
       try {
-        // 前端已通过 webSearchEngine 参数确认认证状态，直接创建客户端
+        // 前端已通过 web_search_engine 参数确认认证状态，直接创建客户端
         // 创建专门的Config（如果还没有）
         if (!this.dedicatedConfig) {
           const geminiModel = await this.findBestGeminiModel();

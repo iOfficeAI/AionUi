@@ -13,20 +13,20 @@ import BaseToolCallDisplay from './BaseToolCallDisplay';
 type McpToolUpdate = Extract<CodexToolCallUpdate, { subtype: 'mcp_tool_call_begin' | 'mcp_tool_call_end' }>;
 
 const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
-  const { toolCallId, title, status, description, subtype, data } = content;
+  const { tool_call_id, title, status, description, subtype, data } = content;
   const { t } = useTranslation();
 
   const getDisplayTitle = () => {
     if (title) return title;
 
     const inv = data?.invocation || {};
-    const toolName = inv.tool || inv.name || inv.method || 'unknown';
+    const tool_name = inv.tool || inv.name || inv.method || 'unknown';
 
     switch (subtype) {
       case 'mcp_tool_call_begin':
-        return t('tools.titles.mcp_tool_starting', { toolName });
+        return t('tools.titles.mcp_tool_starting', { tool_name });
       case 'mcp_tool_call_end':
-        return t('tools.titles.mcp_tool', { toolName });
+        return t('tools.titles.mcp_tool', { tool_name });
       default:
         return 'MCP Tool';
     }
@@ -37,7 +37,7 @@ const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
 
     const inv = data.invocation;
     return {
-      toolName: inv.tool || inv.name || inv.method || 'unknown',
+      tool_name: inv.tool || inv.name || inv.method || 'unknown',
       arguments: inv.arguments,
     };
   };
@@ -46,7 +46,7 @@ const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
 
   return (
     <BaseToolCallDisplay
-      toolCallId={toolCallId}
+      tool_call_id={tool_call_id}
       title={getDisplayTitle()}
       status={status}
       description={description}
@@ -61,7 +61,7 @@ const McpToolDisplay: React.FC<{ content: McpToolUpdate }> = ({ content }) => {
               <Tag size='small' color='purple'>
                 {t('tools.labels.tool')}
               </Tag>
-              <span className='font-mono text-xs text-t-primary'>{toolDetails.toolName}</span>
+              <span className='font-mono text-xs text-t-primary'>{toolDetails.tool_name}</span>
             </div>
             {toolDetails.arguments && (
               <div className='mt-2'>

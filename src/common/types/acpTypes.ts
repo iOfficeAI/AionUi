@@ -191,7 +191,7 @@ export interface AcpBackendConfig {
    * User-entered values are injected as environment variables when spawning the process.
    * Example: [{ key: "MY_API_KEY", label: "API Key", type: "password", required: true }]
    */
-  apiKeyFields?: Array<{
+  api_keyFields?: Array<{
     key: string;
     label: string;
     type: 'text' | 'password' | 'select' | 'number' | 'boolean';
@@ -228,7 +228,7 @@ export interface AcpBackendConfig {
   skillsDirs?: string[];
 
   /** 是否为基于提示词的预设（无需 CLI 二进制文件）/ Whether this is a prompt-based preset (no CLI binary required) */
-  isPreset?: boolean;
+  is_preset?: boolean;
 
   /** 此预设的系统提示词或规则上下文 / The system prompt or rule context for this preset */
   context?: string;
@@ -243,7 +243,7 @@ export interface AcpBackendConfig {
   promptsI18n?: Record<string, string[]>;
 
   /**
-   * 此预设的主 Agent 类型（仅 isPreset=true 时生效）
+   * 此预设的主 Agent 类型（仅 is_preset=true 时生效）
    * 决定选择此预设时创建哪种类型的对话
    * - 'gemini': 创建 Gemini 对话
    * - 'claude': 创建使用 Claude 后端的 ACP 对话
@@ -251,7 +251,7 @@ export interface AcpBackendConfig {
    * - 任意字符串: 扩展贡献的 ACP 适配器 ID（如 'ext-buddy'）
    * 为向后兼容默认为 'gemini'
    *
-   * The primary agent type for this preset (only applies when isPreset=true).
+   * The primary agent type for this preset (only applies when is_preset=true).
    * Determines which conversation type to create when selecting this preset.
    * - 'gemini': Creates a Gemini conversation
    * - 'claude': Creates an ACP conversation with Claude backend
@@ -262,10 +262,10 @@ export interface AcpBackendConfig {
   presetAgentType?: string;
 
   /**
-   * 此助手可用的模型列表（仅 isPreset=true 时生效）
+   * 此助手可用的模型列表（仅 is_preset=true 时生效）
    * 如果未指定，将使用系统默认的模型列表
    *
-   * Available models for this assistant (only applies when isPreset=true).
+   * Available models for this assistant (only applies when is_preset=true).
    * If not specified, system default models will be used.
    */
   models?: string[];
@@ -274,28 +274,28 @@ export interface AcpBackendConfig {
   isBuiltin?: boolean;
 
   /**
-   * 此助手启用的 skills 列表（仅 isPreset=true 时生效）
+   * 此助手启用的 skills 列表（仅 is_preset=true 时生效）
    * 如果未指定或为空数组，将加载所有可用 skills
    *
-   * Enabled skills for this assistant (only applies when isPreset=true).
+   * Enabled skills for this assistant (only applies when is_preset=true).
    * If not specified or empty array, all available skills will be loaded.
    */
-  enabledSkills?: string[];
+  enabled_skills?: string[];
 
   /**
-   * 通过 "Add Skills" 添加的自定义 skills 名称列表（仅 isPreset=true 时生效）
+   * 通过 "Add Skills" 添加的自定义 skills 名称列表（仅 is_preset=true 时生效）
    * 这些 skills 会显示在 Custom Skills 区域，即使已经被导入
    *
-   * List of custom skill names added via "Add Skills" button (only applies when isPreset=true).
+   * List of custom skill names added via "Add Skills" button (only applies when is_preset=true).
    * These skills will be displayed in the Custom Skills section even after being imported.
    */
   customSkillNames?: string[];
 
   /**
-   * 禁用的内置自动注入 skills 列表（仅 isPreset=true 时生效）
+   * 禁用的内置自动注入 skills 列表（仅 is_preset=true 时生效）
    * 内置 skills（_builtin/ 目录下）默认自动注入所有对话，此列表中的 skills 将被排除
    *
-   * Disabled builtin auto-injected skills (only applies when isPreset=true).
+   * Disabled builtin auto-injected skills (only applies when is_preset=true).
    * Builtin skills (in _builtin/ directory) are auto-injected by default; skills in this list will be excluded.
    */
   disabledBuiltinSkills?: string[];
@@ -504,11 +504,11 @@ const NON_ACP_SKILLS_DIRS: Record<string, string[]> = {
  * Check if a given agent type/backend supports native skill discovery.
  * When false, callers should fallback to prompt injection for skills.
  */
-export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): boolean {
-  if (!agentTypeOrBackend) return false;
-  const acpConfig = ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll];
+export function hasNativeSkillSupport(agent_typeOrBackend: string | undefined): boolean {
+  if (!agent_typeOrBackend) return false;
+  const acpConfig = ACP_BACKENDS_ALL[agent_typeOrBackend as AcpBackendAll];
   if (acpConfig?.skillsDirs?.length) return true;
-  return !!NON_ACP_SKILLS_DIRS[agentTypeOrBackend]?.length;
+  return !!NON_ACP_SKILLS_DIRS[agent_typeOrBackend]?.length;
 }
 
 /**
@@ -516,9 +516,9 @@ export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): b
  * Get native skill directories for a given backend.
  * Returns undefined if the backend does not support native skill discovery.
  */
-export function getSkillsDirsForBackend(agentTypeOrBackend: string | undefined): string[] | undefined {
-  if (!agentTypeOrBackend) return undefined;
-  return ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll]?.skillsDirs ?? NON_ACP_SKILLS_DIRS[agentTypeOrBackend];
+export function getSkillsDirsForBackend(agent_typeOrBackend: string | undefined): string[] | undefined {
+  if (!agent_typeOrBackend) return undefined;
+  return ACP_BACKENDS_ALL[agent_typeOrBackend as AcpBackendAll]?.skillsDirs ?? NON_ACP_SKILLS_DIRS[agent_typeOrBackend];
 }
 
 // ACP 错误类型系统 - 优雅的错误处理 / ACP Error Type System - Elegant error handling
@@ -678,7 +678,7 @@ export type AcpInitializeResult = {
   protocolVersion: number;
   capabilities: AcpAgentCapabilities;
   agentInfo: AcpAgentInfo | null;
-  authMethods: AcpAuthMethod[];
+  auth_methods: AcpAuthMethod[];
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -753,7 +753,7 @@ export function parseInitializeResult(raw: unknown): AcpInitializeResult {
     protocolVersion: typeof result?.protocolVersion === 'number' ? result.protocolVersion : 0,
     capabilities: parseAgentCapabilitiesObject(result?.agentCapabilities),
     agentInfo: parseAgentInfo(result?.agentInfo),
-    authMethods: parseAuthMethods(result?.authMethods),
+    auth_methods: parseAuthMethods(result?.auth_methods),
   };
 }
 

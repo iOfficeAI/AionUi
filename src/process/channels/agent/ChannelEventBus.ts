@@ -32,7 +32,7 @@ export interface IAgentMessageEvent extends IResponseMessage {
  * Usage:
  * ```typescript
  * // 发送事件（在 GeminiAgentManager 等中）
- * channelEventBus.emitAgentMessage(conversationId, data);
+ * channelEventBus.emitAgentMessage(conversation_id, data);
  *
  * // 监听事件（在 ChannelMessageService 中）
  * channelEventBus.onAgentMessage((event) => {
@@ -51,10 +51,10 @@ class ChannelEventBus extends EventEmitter {
    * 发送 Agent 消息事件
    * Emit agent message event
    */
-  emitAgentMessage(conversationId: string, data: IResponseMessage): void {
+  emitAgentMessage(conversation_id: string, data: IResponseMessage): void {
     const event: IAgentMessageEvent = {
       ...data,
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
     };
     this.emit(ChannelEvents.AGENT_MESSAGE, event);
   }

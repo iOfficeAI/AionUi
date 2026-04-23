@@ -22,7 +22,7 @@ type UseAcpMessageReturn = {
   setAiProcessing: React.Dispatch<React.SetStateAction<boolean>>;
   resetState: () => void;
   tokenUsage: TokenUsageData | null;
-  contextLimit: number;
+  context_limit: number;
   hasThinkingMessage: boolean;
 };
 
@@ -39,7 +39,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   >(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
-  const [contextLimit, setContextLimit] = useState<number>(0);
+  const [context_limit, setContextLimit] = useState<number>(0);
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -60,8 +60,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const requestTraceRef = useRef<{
     startTime: number;
     backend: string;
-    modelId: string;
-    sessionMode?: string;
+    model_id: string;
+    session_mode?: string;
   } | null>(null);
 
   // Throttle thought updates to reduce render frequency
@@ -165,7 +165,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
               console.log(
-                `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #52c41a; font-weight: bold',
                 'color: inherit'
               );
@@ -249,7 +249,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         case 'acp_context_usage': {
           const usageData = message.data as { used: number; size: number };
           if (usageData && typeof usageData.used === 'number') {
-            setTokenUsage({ totalTokens: usageData.used });
+            setTokenUsage({ total_tokens: usageData.used });
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
             }
@@ -262,11 +262,11 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             requestTraceRef.current = {
               startTime: Number(trace.timestamp) || Date.now(),
               backend: String(trace.backend || 'unknown'),
-              modelId: String(trace.modelId || 'unknown'),
-              sessionMode: trace.sessionMode as string | undefined,
+              model_id: String(trace.model_id || 'unknown'),
+              session_mode: trace.session_mode as string | undefined,
             };
             console.log(
-              `%c[RequestTrace]%c START | ${trace.backend} → ${trace.modelId} | ${new Date().toISOString()}`,
+              `%c[RequestTrace]%c START | ${trace.backend} → ${trace.model_id} | ${new Date().toISOString()}`,
               'color: #1890ff; font-weight: bold',
               'color: inherit',
               trace
@@ -285,7 +285,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
             console.log(
-              `%c[RequestTrace]%c ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+              `%c[RequestTrace]%c ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
               'color: #ff4d4f; font-weight: bold',
               'color: inherit',
               message.data
@@ -356,13 +356,13 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       setHasHydratedRunningState(true);
 
       // Restore persisted context usage data
-      if (res.type === 'acp' && res.extra?.lastTokenUsage) {
-        const { lastTokenUsage, lastContextLimit } = res.extra;
-        if (lastTokenUsage.totalTokens > 0) {
-          setTokenUsage(lastTokenUsage);
+      if (res.type === 'acp' && res.extra?.last_token_usage) {
+        const { last_token_usage, last_context_limit } = res.extra;
+        if (last_token_usage.total_tokens > 0) {
+          setTokenUsage(last_token_usage);
         }
-        if (lastContextLimit && lastContextLimit > 0) {
-          setContextLimit(lastContextLimit);
+        if (last_context_limit && last_context_limit > 0) {
+          setContextLimit(last_context_limit);
         }
       }
     });
@@ -394,7 +394,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setAiProcessing,
     resetState,
     tokenUsage,
-    contextLimit,
+    context_limit,
     hasThinkingMessage,
   };
 };

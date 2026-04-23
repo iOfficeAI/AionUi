@@ -18,14 +18,14 @@ export const isConversationPinned = (conversation: TChatConversation): boolean =
 };
 
 export const isCronJobConversation = (conversation: TChatConversation): boolean => {
-  const extra = conversation.extra as { cronJobId?: string } | undefined;
-  return Boolean(extra?.cronJobId);
+  const extra = conversation.extra as { cron_job_id?: string } | undefined;
+  return Boolean(extra?.cron_job_id);
 };
 
 export const getConversationPinnedAt = (conversation: TChatConversation): number => {
-  const extra = conversation.extra as { pinnedAt?: number } | undefined;
-  if (typeof extra?.pinnedAt === 'number') {
-    return extra.pinnedAt;
+  const extra = conversation.extra as { pinned_at?: number } | undefined;
+  if (typeof extra?.pinned_at === 'number') {
+    return extra.pinned_at;
   }
   return 0;
 };
@@ -39,9 +39,9 @@ export const groupConversationsByWorkspace = (
 
   conversations.forEach((conv) => {
     const workspace = conv.extra?.workspace;
-    const customWorkspace = conv.extra?.customWorkspace;
+    const custom_workspace = conv.extra?.custom_workspace;
 
-    if (customWorkspace && workspace) {
+    if (custom_workspace && workspace) {
       if (!allWorkspaceGroups.has(workspace)) {
         allWorkspaceGroups.set(workspace, []);
       }
@@ -63,7 +63,7 @@ export const groupConversationsByWorkspace = (
       time,
       workspaceGroup: {
         workspace,
-        displayName: getWorkspaceDisplayName(workspace),
+        display_name: getWorkspaceDisplayName(workspace),
         conversations: sortedConvs,
       },
     });
@@ -91,8 +91,8 @@ export const groupConversationsByWorkspace = (
 
 /** Check whether a conversation belongs to a team (should be hidden from sidebar). */
 const isTeamConversation = (conversation: TChatConversation): boolean => {
-  const extra = conversation.extra as { teamId?: string } | undefined;
-  return Boolean(extra?.teamId);
+  const extra = conversation.extra as { team_id?: string } | undefined;
+  return Boolean(extra?.team_id);
 };
 
 export const buildGroupedHistory = (

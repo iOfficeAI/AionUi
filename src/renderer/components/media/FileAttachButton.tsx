@@ -40,7 +40,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
       if (!fileList || fileList.length === 0 || !onLocalFilesAdded) return;
       setUploading(true);
       try {
-        const processed = await FileService.processDroppedFiles(fileList, conversationContext?.conversationId);
+        const processed = await FileService.processDroppedFiles(fileList, conversationContext?.conversation_id);
         if (processed.length > 0) {
           onLocalFilesAdded(processed);
         }
@@ -52,7 +52,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
       // Reset so the same file can be re-selected
       e.target.value = '';
     },
-    [conversationContext?.conversationId, onLocalFilesAdded, t]
+    [conversationContext?.conversation_id, onLocalFilesAdded, t]
   );
 
   const plusIcon = <Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />;

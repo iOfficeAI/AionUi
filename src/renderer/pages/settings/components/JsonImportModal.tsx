@@ -11,8 +11,8 @@ interface JsonImportModalProps {
   visible: boolean;
   server?: IMcpServer;
   onCancel: () => void;
-  onSubmit: (server: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => void;
+  onSubmit: (server: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => void;
+  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => void;
 }
 
 interface ValidationResult {
@@ -56,11 +56,11 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   // 当编辑现有服务器时，预填充JSON数据
   React.useEffect(() => {
     if (visible && server) {
-      // 优先使用存储的originalJson，如果没有则生成JSON配置
-      if (server.originalJson) {
-        setJsonInput(server.originalJson);
+      // 优先使用存储的original_json，如果没有则生成JSON配置
+      if (server.original_json) {
+        setJsonInput(server.original_json);
       } else {
-        // 兼容没有originalJson的旧数据，生成JSON配置
+        // 兼容没有original_json的旧数据，生成JSON配置
         const serverConfig = {
           mcpServers: {
             [server.name]: {
@@ -103,12 +103,12 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
 
     // Check both "type" and "transport" fields for transport type detection
     // Gemini CLI uses "transport" field, standard format uses "type" field
-    const transportType = serverConfig.type || serverConfig.transport;
+    const transport_type = serverConfig.type || serverConfig.transport;
 
-    if (transportType === 'sse' || serverConfig.url?.includes('/sse')) {
+    if (transport_type === 'sse' || serverConfig.url?.includes('/sse')) {
       return { type: 'sse', url: serverConfig.url, headers: serverConfig.headers };
     }
-    if (transportType === 'streamable_http') {
+    if (transport_type === 'streamable_http') {
       return { type: 'streamable_http', url: serverConfig.url, headers: serverConfig.headers };
     }
     return { type: 'http', url: serverConfig.url, headers: serverConfig.headers };
@@ -125,9 +125,9 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
 
     const { name, ...restConfig } = rawServer;
-    const transportConfig = restConfig.transport;
-    if (transportConfig && typeof transportConfig === 'object' && !Array.isArray(transportConfig)) {
-      const typedTransport = transportConfig as JsonServerConfig;
+    const transport_config = restConfig.transport;
+    if (transport_config && typeof transport_config === 'object' && !Array.isArray(transport_config)) {
+      const typedTransport = transport_config as JsonServerConfig;
       if (typedTransport.type === 'stdio') {
         return {
           name,
@@ -211,7 +211,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
           transport: parseTransport(serverConfig),
           status: 'disconnected' as const,
           tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
-          originalJson: JSON.stringify({ mcpServers: { [serverKey]: serverConfig } }, null, 2),
+          original_json: JSON.stringify({ mcpServers: { [serverKey]: serverConfig } }, null, 2),
         };
       });
 
@@ -231,7 +231,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       transport: parseTransport(serverConfig),
       status: 'disconnected',
       tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
-      originalJson: jsonInput,
+      original_json: jsonInput,
     });
     onCancel();
   };

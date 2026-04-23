@@ -21,8 +21,8 @@ const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) =>
   const fileInfo = useMemo(() => parseDiff(unified_diff), [unified_diff]);
   const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({
     diffText: unified_diff,
-    displayName: fileInfo.fileName,
-    filePath: fileInfo.fullPath,
+    display_name: fileInfo.file_name,
+    file_path: fileInfo.fullPath,
   });
 
   return (

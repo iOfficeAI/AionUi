@@ -27,7 +27,7 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   const cronConversationIds = useMemo(() => {
     const ids = new Set<string>();
     for (const job of jobs) {
-      if (job.metadata.conversationId) ids.add(job.metadata.conversationId);
+      if (job.metadata.conversation_id) ids.add(job.metadata.conversation_id);
     }
     return ids;
   }, [jobs]);
@@ -46,10 +46,10 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
         setExpanded(true);
         return;
       }
-      // Expand for new_conversation-mode child conversations (check cronJobId in extra)
+      // Expand for new_conversation-mode child conversations (check cron_job_id in extra)
       ipcBridge.conversation.get.invoke({ id: convId }).then((conv) => {
         const extra = conv?.extra as Record<string, unknown> | undefined;
-        if (extra?.cronJobId) {
+        if (extra?.cron_job_id) {
           setExpanded(true);
         }
       });
@@ -60,8 +60,8 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   const existingModeConvIds = useMemo(
     () =>
       jobs
-        .filter((j) => j.target.executionMode !== 'new_conversation' && j.metadata.conversationId)
-        .map((j) => j.metadata.conversationId),
+        .filter((j) => j.target.executionMode !== 'new_conversation' && j.metadata.conversation_id)
+        .map((j) => j.metadata.conversation_id),
     [jobs]
   );
 
@@ -115,7 +115,7 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
             job={job}
             pathname={pathname}
             onNavigate={onNavigate}
-            existingConversation={existingConversations.get(job.metadata.conversationId)}
+            existingConversation={existingConversations.get(job.metadata.conversation_id)}
           />
         ))}
     </div>

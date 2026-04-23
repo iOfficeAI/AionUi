@@ -8,7 +8,7 @@ import { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type UseGeminiQuotaFallbackParams = {
-  currentModel: TProviderWithModel | undefined;
+  current_model: TProviderWithModel | undefined;
   providers: IProvider[];
   geminiModeLookup: Map<string, GeminiModeOption>;
   getAvailableModels: (provider: IProvider) => string[];
@@ -20,7 +20,7 @@ type UseGeminiQuotaFallbackParams = {
  * Returns a callback suitable for passing to useGeminiMessage's onError param.
  */
 export const useGeminiQuotaFallback = ({
-  currentModel,
+  current_model,
   providers,
   geminiModeLookup,
   getAvailableModels,
@@ -45,17 +45,17 @@ export const useGeminiQuotaFallback = ({
       if (quotaPromptedRef.current === msgId) return;
       quotaPromptedRef.current = msgId;
 
-      if (currentModel?.useModel) {
-        exhaustedModelsRef.current.add(currentModel.useModel);
+      if (current_model?.useModel) {
+        exhaustedModelsRef.current.add(current_model.useModel);
       }
       const fallbackTarget = resolveFallbackTarget({
-        currentModel,
+        current_model,
         providers,
         geminiModeLookup,
         getAvailableModels,
         exhaustedModels: exhaustedModelsRef.current,
       });
-      if (!fallbackTarget || !currentModel || fallbackTarget.model === currentModel.useModel) {
+      if (!fallbackTarget || !current_model || fallbackTarget.model === current_model.useModel) {
         Message.warning(
           t('conversation.chat.quotaExceededNoFallback', {
             defaultValue: 'Model quota reached. Please switch to another available model.',
@@ -73,7 +73,7 @@ export const useGeminiQuotaFallback = ({
         );
       });
     },
-    [currentModel, providers, geminiModeLookup, getAvailableModels, handleSelectModel, t]
+    [current_model, providers, geminiModeLookup, getAvailableModels, handleSelectModel, t]
   );
 
   return { handleGeminiError };

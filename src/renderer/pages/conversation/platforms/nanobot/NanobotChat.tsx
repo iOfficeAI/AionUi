@@ -17,10 +17,10 @@ import NanobotSendBox from './NanobotSendBox';
 const NanobotChat: React.FC<{
   conversation_id: string;
   workspace: string;
-  cronJobId?: string;
+  cron_job_id?: string;
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
-}> = ({ conversation_id, workspace, cronJobId, hideSendBox, emptySlot }) => {
+}> = ({ conversation_id, workspace, cron_job_id, hideSendBox, emptySlot }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -28,7 +28,7 @@ const NanobotChat: React.FC<{
   }, [workspace, updateLocalImage]);
   return (
     <ConversationProvider
-      value={{ conversationId: conversation_id, workspace, type: 'nanobot', cronJobId, hideSendBox }}
+      value={{ conversation_id: conversation_id, workspace, type: 'nanobot', cron_job_id, hideSendBox }}
     >
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>

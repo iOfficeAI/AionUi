@@ -39,7 +39,7 @@ if (!TEAM_MCP_TOKEN) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createTeamTool(
   server: McpServer,
-  toolName: string,
+  tool_name: string,
   description: string,
   schema: any,
   tcpPort: number,
@@ -47,9 +47,9 @@ function createTeamTool(
   authToken: string | undefined
 ): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  server.tool(toolName, description, schema, async (args: Record<string, unknown>) => {
+  server.tool(tool_name, description, schema, async (args: Record<string, unknown>) => {
     try {
-      const payload: Record<string, unknown> = { tool: toolName, args, auth_token: authToken };
+      const payload: Record<string, unknown> = { tool: tool_name, args, auth_token: authToken };
       if (agentSlotId) payload.from_slot_id = agentSlotId;
       const response = await sendTcpRequest(tcpPort, payload);
 

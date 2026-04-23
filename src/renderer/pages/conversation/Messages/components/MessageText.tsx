@@ -65,16 +65,16 @@ const parseFileMarker = (content: string) => {
   return { text, files };
 };
 
-const isAbsoluteMessageFilePath = (filePath: string): boolean =>
-  filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath);
+const isAbsoluteMessageFilePath = (file_path: string): boolean =>
+  file_path.startsWith('/') || /^[A-Za-z]:/.test(file_path);
 
-export const resolveMessageFilePath = (filePath: string, workspace?: string): string => {
-  if (!filePath || isAbsoluteMessageFilePath(filePath) || !workspace) {
-    return filePath;
+export const resolveMessageFilePath = (file_path: string, workspace?: string): string => {
+  if (!file_path || isAbsoluteMessageFilePath(file_path) || !workspace) {
+    return file_path;
   }
 
   const normalizedWorkspace = workspace.replace(/[\\/]+$/, '').replace(/\\/g, '/');
-  const normalizedFilePath = filePath.replace(/^\.?[\\/]+/, '').replace(/\\/g, '/');
+  const normalizedFilePath = file_path.replace(/^\.?[\\/]+/, '').replace(/\\/g, '/');
   return `${normalizedWorkspace}/${normalizedFilePath}`.replace(/\/+/g, '/');
 };
 
@@ -120,7 +120,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
   const resolvedFiles = useMemo(
-    () => files.map((filePath) => resolveMessageFilePath(filePath, conversationContext?.workspace)),
+    () => files.map((file_path) => resolveMessageFilePath(file_path, conversationContext?.workspace)),
     [conversationContext?.workspace, files]
   );
 
@@ -229,9 +229,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           })}
         >
           {copyButton}
-          {message.createdAt && (
+          {message.created_at && (
             <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
-              {formatMessageTime(message.createdAt)}
+              {formatMessageTime(message.created_at)}
             </span>
           )}
         </div>

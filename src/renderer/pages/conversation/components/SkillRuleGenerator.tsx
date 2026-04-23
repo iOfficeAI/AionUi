@@ -22,7 +22,7 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 interface SkillRuleGeneratorProps {
-  conversationId: string;
+  conversation_id: string;
   workspace?: string;
 }
 
@@ -30,8 +30,8 @@ const LoadRuleModal: React.FC<{
   visible: boolean;
   onCancel: () => void;
   workspace?: string;
-  conversationId: string;
-}> = ({ visible, onCancel, workspace, conversationId }) => {
+  conversation_id: string;
+}> = ({ visible, onCancel, workspace, conversation_id }) => {
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -96,7 +96,7 @@ Please acknowledge receiving this rule/skill and confirm you will apply it.
       await ipcBridge.conversation.sendMessage.invoke({
         input: prompt,
         msg_id: uuid(),
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
       });
 
       Message.success(t('conversation.skill_generator.rule_loaded', { defaultValue: 'Rule loaded successfully' }));
@@ -158,7 +158,7 @@ Please acknowledge receiving this rule/skill and confirm you will apply it.
   );
 };
 
-const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId, workspace }) => {
+const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversation_id, workspace }) => {
   const { t } = useTranslation();
   const [generateVisible, setGenerateVisible] = useState(false);
   const [loadVisible, setLoadVisible] = useState(false);
@@ -182,12 +182,12 @@ const SkillRuleGenerator: React.FC<SkillRuleGeneratorProps> = ({ conversationId,
     setLoading(true);
     try {
       // 1. Fetch conversation history
-      const pageSize = 50;
+      const page_size = 50;
       const MAX_CHARS = 30000;
 
       const messages = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversationId,
-        pageSize: pageSize,
+        conversation_id: conversation_id,
+        page_size: page_size,
         order: 'DESC',
       });
 
@@ -235,7 +235,7 @@ Requirements:
 
       // Listen for the response to capture preset content
       const removeListener = ipcBridge.conversation.responseStream.on((msg) => {
-        if (msg.conversation_id === conversationId && msg.msg_id === msg_id) {
+        if (msg.conversation_id === conversation_id && msg.msg_id === msg_id) {
           if (msg.type === 'content') {
             capturedContent += msg.data as string;
           } else if (msg.type === 'finish') {
@@ -253,7 +253,7 @@ Requirements:
       await ipcBridge.conversation.sendMessage.invoke({
         input: prompt,
         msg_id: msg_id,
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
       });
 
       setGenerateVisible(false);
@@ -274,7 +274,7 @@ Requirements:
         id: uuid(),
         name,
         enabled: true,
-        isPreset: true,
+        is_preset: true,
         context: content,
       };
       customAgents.push(presetAgent);
@@ -359,7 +359,7 @@ Requirements:
         visible={loadVisible}
         onCancel={() => setLoadVisible(false)}
         workspace={workspace}
-        conversationId={conversationId}
+        conversation_id={conversation_id}
       />
     </>
   );

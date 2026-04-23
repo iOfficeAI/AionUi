@@ -28,11 +28,11 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 }
 
 /** Save preferred model ID to the agent's acp.config key */
-export async function savePreferredModelId(agentKey: string, modelId: string): Promise<void> {
+export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
   try {
     const config = await ConfigStorage.get('acp.config');
     const backendConfig = config?.[agentKey as AcpBackendAll] || {};
-    await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: modelId } });
+    await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
   } catch {
     /* silent */
   }
@@ -42,8 +42,8 @@ export async function savePreferredModelId(agentKey: string, modelId: string): P
  * Get agent key for selection.
  * Returns "custom:uuid" for custom agents, "remote:uuid" for remote agents, backend type for others.
  */
-export const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string; isPreset?: boolean }): string => {
-  if (agent.backend === 'remote' && agent.customAgentId) return `remote:${agent.customAgentId}`;
-  if (agent.customAgentId) return `custom:${agent.customAgentId}`;
+export const getAgentKey = (agent: { backend: AcpBackend; custom_agent_id?: string; is_preset?: boolean }): string => {
+  if (agent.backend === 'remote' && agent.custom_agent_id) return `remote:${agent.custom_agent_id}`;
+  if (agent.custom_agent_id) return `custom:${agent.custom_agent_id}`;
   return agent.backend;
 };

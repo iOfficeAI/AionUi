@@ -21,8 +21,8 @@ export function initWorkspaceSnapshotBridge(): void {
     return snapshotService.compare(workspace);
   });
 
-  ipcBridge.fileSnapshot.getBaselineContent.provider(async ({ workspace, filePath }) => {
-    return snapshotService.getBaselineContent(workspace, filePath);
+  ipcBridge.fileSnapshot.getBaselineContent.provider(async ({ workspace, file_path }) => {
+    return snapshotService.getBaselineContent(workspace, file_path);
   });
 
   ipcBridge.fileSnapshot.getInfo.provider(async ({ workspace }) => {
@@ -33,28 +33,28 @@ export function initWorkspaceSnapshotBridge(): void {
     await snapshotService.dispose(workspace);
   });
 
-  ipcBridge.fileSnapshot.stageFile.provider(async ({ workspace, filePath }) => {
-    await snapshotService.stageFile(workspace, filePath);
+  ipcBridge.fileSnapshot.stageFile.provider(async ({ workspace, file_path }) => {
+    await snapshotService.stageFile(workspace, file_path);
   });
 
   ipcBridge.fileSnapshot.stageAll.provider(async ({ workspace }) => {
     await snapshotService.stageAll(workspace);
   });
 
-  ipcBridge.fileSnapshot.unstageFile.provider(async ({ workspace, filePath }) => {
-    await snapshotService.unstageFile(workspace, filePath);
+  ipcBridge.fileSnapshot.unstageFile.provider(async ({ workspace, file_path }) => {
+    await snapshotService.unstageFile(workspace, file_path);
   });
 
   ipcBridge.fileSnapshot.unstageAll.provider(async ({ workspace }) => {
     await snapshotService.unstageAll(workspace);
   });
 
-  ipcBridge.fileSnapshot.discardFile.provider(async ({ workspace, filePath, operation }) => {
-    await snapshotService.discardFile(workspace, filePath, operation);
+  ipcBridge.fileSnapshot.discardFile.provider(async ({ workspace, file_path, operation }) => {
+    await snapshotService.discardFile(workspace, file_path, operation);
   });
 
-  ipcBridge.fileSnapshot.resetFile.provider(async ({ workspace, filePath, operation }) => {
-    await snapshotService.resetFile(workspace, filePath, operation);
+  ipcBridge.fileSnapshot.resetFile.provider(async ({ workspace, file_path, operation }) => {
+    await snapshotService.resetFile(workspace, file_path, operation);
   });
 
   ipcBridge.fileSnapshot.getBranches.provider(async ({ workspace }) => {

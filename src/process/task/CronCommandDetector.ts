@@ -9,7 +9,7 @@
  */
 export type CronCommand =
   | { kind: 'create'; name: string; schedule: string; scheduleDescription: string; message: string }
-  | { kind: 'update'; jobId: string; name: string; schedule: string; scheduleDescription: string; message: string }
+  | { kind: 'update'; job_id: string; name: string; schedule: string; scheduleDescription: string; message: string }
   | { kind: 'list' };
 
 /**
@@ -72,14 +72,14 @@ export function detectCronCommands(content: string): CronCommand[] {
     }
   }
 
-  // Detect [CRON_UPDATE: jobId]...[/CRON_UPDATE]
+  // Detect [CRON_UPDATE: job_id]...[/CRON_UPDATE]
   const updateMatches = cleanContent.matchAll(/\[CRON_UPDATE:\s*([^\]]+)\]\s*\n?([\s\S]*?)\[\/CRON_UPDATE\]/gi);
   for (const match of updateMatches) {
-    const jobId = match[1].trim();
+    const job_id = match[1].trim();
     const body = match[2];
     const parsed = parseCronCreateBody(body);
-    if (parsed && jobId) {
-      commands.push({ kind: 'update', jobId, ...parsed });
+    if (parsed && job_id) {
+      commands.push({ kind: 'update', job_id, ...parsed });
     }
   }
 

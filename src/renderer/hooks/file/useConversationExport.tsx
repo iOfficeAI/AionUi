@@ -30,7 +30,7 @@ type MessageApi = {
 };
 
 type UseConversationExportOptions = {
-  conversationId?: string;
+  conversation_id?: string;
   workspace?: string;
   t: (key: string, options?: Record<string, unknown>) => string;
   messageApi: MessageApi;
@@ -55,7 +55,7 @@ type UseConversationExportResult = {
 };
 
 export function useConversationExport(options: UseConversationExportOptions): UseConversationExportResult {
-  const { conversationId, workspace, t, messageApi } = options;
+  const { conversation_id, workspace, t, messageApi } = options;
   const [step, setStep] = useState<ExportFlowStep>('closed');
   const [activeIndex, setActiveIndex] = useState(0);
   const [filename, setFilename] = useState('');
@@ -67,7 +67,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
   const transcriptLabels = useMemo<ExportTranscriptLabels>(
     () => ({
       conversation: t('messages.export.conversationLabel'),
-      conversationId: t('messages.export.conversationIdLabel'),
+      conversation_id: t('messages.export.conversation_idLabel'),
       exportedAt: t('messages.export.exportedAtLabel'),
       type: t('messages.export.typeLabel'),
       noMessages: t('messages.export.noMessages'),
@@ -90,21 +90,21 @@ export function useConversationExport(options: UseConversationExportOptions): Us
   }, []);
 
   const loadConversation = useCallback(async (): Promise<TChatConversation | null> => {
-    if (!conversationId) {
+    if (!conversation_id) {
       return null;
     }
-    if (conversationRef.current?.id === conversationId) {
+    if (conversationRef.current?.id === conversation_id) {
       return conversationRef.current;
     }
 
-    const conversation = await ipcBridge.conversation.get.invoke({ id: conversationId });
+    const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
     conversationRef.current = conversation;
     transcriptRef.current = null;
     return conversation;
-  }, [conversationId]);
+  }, [conversation_id]);
 
   const loadTranscript = useCallback(async (): Promise<string | null> => {
-    if (!conversationId) {
+    if (!conversation_id) {
       return null;
     }
     if (transcriptRef.current) {
@@ -118,19 +118,21 @@ export function useConversationExport(options: UseConversationExportOptions): Us
 
     const messages =
       messagesRef.current ??
-      (await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversationId,
-        page: 0,
-        pageSize: 10000,
-      })).items;
+      (
+        await ipcBridge.database.getConversationMessages.invoke({
+          conversation_id: conversation_id,
+          page: 0,
+          page_size: 10000,
+        })
+      ).items;
     messagesRef.current = messages;
     const transcript = buildConversationExportText(conversation, messages, transcriptLabels);
     transcriptRef.current = transcript;
     return transcript;
-  }, [conversationId, loadConversation, transcriptLabels]);
+  }, [conversation_id, loadConversation, transcriptLabels]);
 
   const openExportFlow = useCallback(async () => {
-    if (!conversationId) {
+    if (!conversation_id) {
       messageApi.error?.(t('messages.export.unavailable'));
       return;
     }
@@ -156,19 +158,21 @@ export function useConversationExport(options: UseConversationExportOptions): Us
 
       baseDirectoryRef.current = resolveExportBaseDirectory(workspace, desktopPath);
       const messagesResult = await ipcBridge.database.getConversationMessages.invoke({
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         page: 0,
-        pageSize: 10000,
+        page_size: 10000,
       });
       messagesRef.current = messagesResult.items;
-      setFilename(buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messagesResult.items)));
+      setFilename(
+        buildDefaultExportFileName(conversation.id, getDefaultExportFileNameSource(conversation, messagesResult.items))
+      );
       setActiveIndex(0);
       setStep('menu');
     } catch (error) {
       console.error('[useConversationExport] Failed to open export flow:', error);
       messageApi.error?.(t('messages.export.prepareFailed'));
     }
-  }, [conversationId, loadConversation, messageApi, t, workspace]);
+  }, [conversation_id, loadConversation, messageApi, t, workspace]);
 
   const handleCopy = useCallback(async () => {
     try {

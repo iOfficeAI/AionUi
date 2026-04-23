@@ -58,9 +58,9 @@ const getNextProtocol = (current: string): string => {
 };
 
 // Calculate API Key count
-const getApiKeyCount = (apiKey: string): number => {
-  if (!apiKey) return 0;
-  return apiKey.split(/[,\n]/).filter((k) => k.trim().length > 0).length;
+const getApiKeyCount = (api_key: string): number => {
+  if (!api_key) return 0;
+  return api_key.split(/[,\n]/).filter((k) => k.trim().length > 0).length;
 };
 
 /**
@@ -68,13 +68,13 @@ const getApiKeyCount = (apiKey: string): number => {
  * Get provider enable state (all/partial/none)
  */
 const getProviderState = (platform: IProvider): { checked: boolean; indeterminate: boolean } => {
-  if (!platform.modelEnabled) {
-    // 没有 modelEnabled 记录，默认全部启用
+  if (!platform.model_enabled) {
+    // 没有 model_enabled 记录，默认全部启用
     return { checked: true, indeterminate: false };
   }
 
   const models = platform.model ?? [];
-  const enabledCount = models.filter((model) => platform.modelEnabled?.[model] !== false).length;
+  const enabledCount = models.filter((model) => platform.model_enabled?.[model] !== false).length;
   const totalCount = models.length;
 
   if (enabledCount === 0) {
@@ -91,8 +91,8 @@ const getProviderState = (platform: IProvider): { checked: boolean; indeterminat
  * Check if model is enabled
  */
 const isModelEnabled = (platform: IProvider, model: string): boolean => {
-  if (!platform.modelEnabled) return true; // 默认启用
-  return platform.modelEnabled[model] !== false;
+  if (!platform.model_enabled) return true; // 默认启用
+  return platform.model_enabled[model] !== false;
 };
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
@@ -148,26 +148,26 @@ const ModelModalContent: React.FC = () => {
     const newState = !checked; // 切换状态
 
     // 批量更新所有模型状态
-    const modelEnabled: Record<string, boolean> = {};
+    const model_enabled: Record<string, boolean> = {};
     (platform.model ?? []).forEach((model) => {
-      modelEnabled[model] = newState;
+      model_enabled[model] = newState;
     });
 
     const updated = {
       ...platform,
-      modelEnabled,
+      model_enabled,
     };
     updatePlatform(updated, () => {});
   };
 
   // 切换模型启用状态
   const toggleModelEnabled = (platform: IProvider, model: string, enabled: boolean) => {
-    const modelEnabled = { ...platform.modelEnabled };
-    modelEnabled[model] = enabled;
+    const model_enabled = { ...platform.model_enabled };
+    model_enabled[model] = enabled;
 
     const updated = {
       ...platform,
-      modelEnabled,
+      model_enabled,
     };
 
     updatePlatform(updated, () => {});
@@ -197,7 +197,7 @@ const ModelModalContent: React.FC = () => {
         },
         extra: {
           workspace: '',
-          isHealthCheck: true,
+          is_health_check: true,
         },
       });
 
@@ -206,7 +206,7 @@ const ModelModalContent: React.FC = () => {
       // 2. 设置响应监听器
       const responsePromise = new Promise<{ success: boolean; error?: string; latency: number }>((resolve, reject) => {
         let hasResolved = false;
-        let requestTraceData: { backend?: string; modelId?: string; provider?: string } | null = null;
+        let requestTraceData: { backend?: string; model_id?: string; provider?: string } | null = null;
 
         const resolveOnce = (result: { success: boolean; error?: string; latency: number }) => {
           if (hasResolved) return;
@@ -222,12 +222,12 @@ const ModelModalContent: React.FC = () => {
             const trace = msg.data as Record<string, unknown>;
             requestTraceData = {
               backend: String(trace.backend || ''),
-              modelId: String(trace.modelId || ''),
+              model_id: String(trace.model_id || ''),
               provider: String(trace.platform || trace.provider || ''),
             };
-            const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
+            const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
             console.log(
-              `%c[Health Check]%c ➡️ START | ${displayName} → ${trace.modelId} | ${new Date().toISOString()}`,
+              `%c[Health Check]%c ➡️ START | ${display_name} → ${trace.model_id} | ${new Date().toISOString()}`,
               'color: #1890ff; font-weight: bold',
               'color: inherit',
               trace
@@ -244,9 +244,9 @@ const ModelModalContent: React.FC = () => {
             const duration = Date.now() - startTime;
             // 输出错误链路到 console
             if (requestTraceData) {
-              const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
+              const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
               console.log(
-                `%c[Health Check]%c ❌ ERROR | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                `%c[Health Check]%c ❌ ERROR | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #ff4d4f; font-weight: bold',
                 'color: inherit',
                 msg.data
@@ -263,9 +263,9 @@ const ModelModalContent: React.FC = () => {
           // 以”首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
           const duration = Date.now() - startTime;
           if (requestTraceData) {
-            const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
+            const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
             console.log(
-              `%c[Health Check]%c ✅ FIRST_RESPONSE | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+              `%c[Health Check]%c ✅ FIRST_RESPONSE | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
               'color: #52c41a; font-weight: bold',
               'color: inherit'
             );
@@ -281,9 +281,9 @@ const ModelModalContent: React.FC = () => {
             hasResolved = true;
             if (requestTraceData) {
               const duration = Date.now() - startTime;
-              const displayName = requestTraceData.backend || requestTraceData.provider || 'unknown';
+              const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
               console.log(
-                `%c[Health Check]%c ⏱️ FIRST_RESPONSE_TIMEOUT | ${displayName} → ${requestTraceData.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                `%c[Health Check]%c ⏱️ FIRST_RESPONSE_TIMEOUT | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #faad14; font-weight: bold',
                 'color: inherit'
               );
@@ -318,14 +318,14 @@ const ModelModalContent: React.FC = () => {
         const latestData = await ipcBridge.mode.getModelConfig.invoke();
         const newData = (latestData || []).map((item) => {
           if (item.id === platform.id) {
-            const modelHealth = { ...item.modelHealth };
-            modelHealth[modelName] = {
+            const model_health = { ...item.model_health };
+            model_health[modelName] = {
               status: result.success ? 'healthy' : 'unhealthy',
               lastCheck: Date.now(),
               latency,
               error: result.error,
             };
-            return { ...item, modelHealth };
+            return { ...item, model_health };
           }
           return item;
         });
@@ -364,14 +364,14 @@ const ModelModalContent: React.FC = () => {
         const latestData = await ipcBridge.mode.getModelConfig.invoke();
         const newData = (latestData || []).map((item) => {
           if (item.id === platform.id) {
-            const modelHealth = { ...item.modelHealth };
-            modelHealth[modelName] = {
+            const model_health = { ...item.model_health };
+            model_health[modelName] = {
               status: 'unhealthy',
               lastCheck: Date.now(),
               latency,
               error: errorMessage,
             };
-            return { ...item, modelHealth };
+            return { ...item, model_health };
           }
           return item;
         });
@@ -399,7 +399,7 @@ const ModelModalContent: React.FC = () => {
     if (!data) return;
     const newData: IProvider[] = data.map((platform: IProvider) => ({
       ...platform,
-      modelHealth: undefined as IProvider['modelHealth'],
+      model_health: undefined as IProvider['model_health'],
     }));
     saveModelConfig(newData, () => {
       Message.success({
@@ -552,11 +552,11 @@ const ModelModalContent: React.FC = () => {
                               className='cursor-pointer hover:text-t-primary transition-colors'
                               onClick={() => editModalCtrl.open({ data: platform })}
                             >
-                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）
+                              {t('settings.api_keyCount')}（{getApiKeyCount(platform.api_key)}）
                             </span>
                           </span>
                           <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {(platform.model ?? []).length} / {getApiKeyCount(platform.apiKey)}
+                            {(platform.model ?? []).length} / {getApiKeyCount(platform.api_key)}
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch
@@ -594,9 +594,9 @@ const ModelModalContent: React.FC = () => {
                   >
                     {(platform.model ?? []).map((model: string, index: number, arr: string[]) => {
                       const isNewApiProvider = isNewApiPlatform(platform.platform);
-                      const modelProtocol = platform.modelProtocols?.[model] || 'openai';
-                      const modelHealth = platform.modelHealth?.[model];
-                      const healthStatus = modelHealth?.status || 'unknown';
+                      const modelProtocol = platform.model_protocols?.[model] || 'openai';
+                      const model_health = platform.model_health?.[model];
+                      const healthStatus = model_health?.status || 'unknown';
 
                       return (
                         <div key={model}>
@@ -613,17 +613,17 @@ const ModelModalContent: React.FC = () => {
                                           {healthStatus === 'healthy' ? t('common.success') : t('common.failed')}
                                         </span>
                                       </div>
-                                      {modelHealth?.latency && (
+                                      {model_health?.latency && (
                                         <div className='text-12px mt-4px'>
-                                          {t('settings.latency')}: {modelHealth.latency}ms
+                                          {t('settings.latency')}: {model_health.latency}ms
                                         </div>
                                       )}
-                                      {modelHealth?.error && (
-                                        <div className='text-12px mt-4px'>{modelHealth.error}</div>
+                                      {model_health?.error && (
+                                        <div className='text-12px mt-4px'>{model_health.error}</div>
                                       )}
-                                      {modelHealth?.lastCheck && (
+                                      {model_health?.lastCheck && (
                                         <div className='text-12px mt-4px'>
-                                          {t('mcp.lastCheck')}: {new Date(modelHealth.lastCheck).toLocaleString()}
+                                          {t('mcp.lastCheck')}: {new Date(model_health.lastCheck).toLocaleString()}
                                         </div>
                                       )}
                                     </div>
@@ -645,9 +645,9 @@ const ModelModalContent: React.FC = () => {
                                   className='cursor-pointer select-none'
                                   onClick={() => {
                                     const nextProtocol = getNextProtocol(modelProtocol);
-                                    const newProtocols = { ...platform.modelProtocols };
+                                    const newProtocols = { ...platform.model_protocols };
                                     newProtocols[model] = nextProtocol;
-                                    updatePlatform({ ...platform, modelProtocols: newProtocols }, () => {});
+                                    updatePlatform({ ...platform, model_protocols: newProtocols }, () => {});
                                   }}
                                 >
                                   {getProtocolLabel(modelProtocol)}
@@ -680,9 +680,9 @@ const ModelModalContent: React.FC = () => {
                                   const newModels = platform.model.filter((item: string) => item !== model);
                                   // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
                                   // Clean all per-model state to avoid stale state on re-add.
-                                  const newProtocols = { ...platform.modelProtocols };
-                                  const newModelEnabled = { ...platform.modelEnabled };
-                                  const newModelHealth = { ...platform.modelHealth };
+                                  const newProtocols = { ...platform.model_protocols };
+                                  const newModelEnabled = { ...platform.model_enabled };
+                                  const newModelHealth = { ...platform.model_health };
                                   delete newProtocols[model];
                                   delete newModelEnabled[model];
                                   delete newModelHealth[model];
@@ -691,10 +691,10 @@ const ModelModalContent: React.FC = () => {
                                     {
                                       ...platform,
                                       model: newModels,
-                                      modelProtocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
-                                      modelEnabled:
+                                      model_protocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
+                                      model_enabled:
                                         Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
-                                      modelHealth: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
+                                      model_health: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
                                     },
                                     () => {}
                                   );

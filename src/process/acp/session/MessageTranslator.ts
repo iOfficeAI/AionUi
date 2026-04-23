@@ -52,8 +52,8 @@ export function mapToolContent(content: ToolCallContent[] | null | undefined): T
   if (!content || content.length === 0) return undefined;
   return content.map((item): ToolCallContentItem => {
     if (item.type === 'diff') {
-      const diff = item as { type: 'diff'; path?: string; oldText?: string; newText?: string };
-      return { type: 'diff', path: diff.path, oldText: diff.oldText, newText: diff.newText };
+      const diff = item as { type: 'diff'; path?: string; old_text?: string; new_text?: string };
+      return { type: 'diff', path: diff.path, old_text: diff.old_text, new_text: diff.new_text };
     }
     // 'content' and 'terminal' both map to 'content' type
     const contentItem = item as { type: string; content?: { type: string; text?: string } };
@@ -78,7 +78,7 @@ export class MessageTranslator {
   /** SDK messageId → generated UUID (scoped to current turn, cleared on onTurnEnd) */
   private messageMap = new Map<string, string>();
 
-  constructor(private readonly conversationId: string) {}
+  constructor(private readonly conversation_id: string) {}
 
   get activeEntryCount(): number {
     return this.messageMap.size;
@@ -139,7 +139,7 @@ export class MessageTranslator {
       {
         id: msgId,
         msg_id: msgId,
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         type: 'text',
         content: { content: text },
         position: 'left',
@@ -159,7 +159,7 @@ export class MessageTranslator {
       {
         id: msgId,
         msg_id: msgId,
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         type: 'thinking',
         content: { content: text, status: 'thinking' },
         position: 'left',
@@ -179,13 +179,13 @@ export class MessageTranslator {
       {
         id: toolCallId,
         msg_id: toolCallId,
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         type: 'acp_tool_call',
         content: {
-          sessionId: '',
+          session_id: '',
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId,
+            tool_call_id: toolCallId,
             status: update.status ?? 'pending',
             title: update.title ?? 'unknown',
             kind: mapToolKind(update.kind),
@@ -215,13 +215,13 @@ export class MessageTranslator {
       {
         id: toolCallId,
         msg_id: toolCallId,
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         type: 'acp_tool_call',
         content: {
-          sessionId: '',
+          session_id: '',
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId,
+            tool_call_id: toolCallId,
             status: update.status ?? 'completed',
             title: update.title ?? 'unknown',
             kind: mapToolKind(update.kind),
@@ -250,10 +250,10 @@ export class MessageTranslator {
       {
         id: planMsgId,
         msg_id: planMsgId,
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         type: 'plan',
         content: {
-          sessionId: '',
+          session_id: '',
           entries: plan.entries.map((e) => ({
             content: e.content,
             status: e.status as 'pending' | 'in_progress' | 'completed',
@@ -281,7 +281,7 @@ export class MessageTranslator {
       {
         id: crypto.randomUUID(),
         msg_id: crypto.randomUUID(),
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         type: 'available_commands',
         content: { commands },
         position: 'left',

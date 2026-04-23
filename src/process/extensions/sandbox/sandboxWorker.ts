@@ -95,7 +95,7 @@ const aionProxy = {
     : {}),
 };
 
-let callIdCounter = 0;
+let call_idCounter = 0;
 const pendingMainCalls = new Map<
   string,
   { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }
@@ -105,7 +105,7 @@ const pendingMainCalls = new Map<
 const CALL_MAIN_TIMEOUT = 30_000;
 
 function callMainThread(method: string, args: unknown[]): Promise<unknown> {
-  const id = `w-${++callIdCounter}`;
+  const id = `w-${++call_idCounter}`;
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       pendingMainCalls.delete(id);

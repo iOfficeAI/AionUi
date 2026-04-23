@@ -15,12 +15,12 @@ import type { SkillSuggestion } from '@renderer/utils/chat/skillSuggestParser';
 
 interface SkillSuggestCardProps {
   suggestion: SkillSuggestion;
-  cronJobId: string;
+  cron_job_id: string;
 }
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJobId }) => {
+const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cron_job_id }) => {
   const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -30,19 +30,19 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cronJob
   // Check if skill already exists on mount (persists across navigation)
   useEffect(() => {
     ipcBridge.cron.hasSkill
-      .invoke({ jobId: cronJobId })
+      .invoke({ job_id: cron_job_id })
       .then((exists) => {
         if (exists) setSaved(true);
       })
       .catch(() => {});
-  }, [cronJobId]);
+  }, [cron_job_id]);
 
   if (dismissed || saved) return null;
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      await ipcBridge.cron.saveSkill.invoke({ jobId: cronJobId, content: suggestion.content });
+      await ipcBridge.cron.saveSkill.invoke({ job_id: cron_job_id, content: suggestion.content });
       setSaved(true);
       Message.success(t('cron.skill.saveSuccess'));
     } catch (err) {

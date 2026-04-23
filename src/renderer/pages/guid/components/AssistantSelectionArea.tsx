@@ -28,7 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 type AssistantSelectionAreaProps = {
-  isPresetAgent: boolean;
+  is_presetAgent: boolean;
   selectedAgentKey?: string;
   selectedAgentInfo: AvailableAgent | undefined;
   customAgents: AcpBackendConfig[];
@@ -46,7 +46,7 @@ const resolveAssistantCandidateIds = (assistantId: string): string[] => {
 };
 
 const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
-  isPresetAgent,
+  is_presetAgent,
   selectedAgentKey,
   selectedAgentInfo,
   customAgents,
@@ -192,7 +192,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   );
 
   const resolveOpenAssistantId = (): string | null => {
-    if (selectedAgentInfo?.customAgentId) return selectedAgentInfo.customAgentId;
+    if (selectedAgentInfo?.custom_agent_id) return selectedAgentInfo.custom_agent_id;
     if (selectedAgentKey?.startsWith('custom:')) return selectedAgentKey.slice(7);
     return null;
   };
@@ -218,7 +218,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     }
 
     void editor.handleEdit(targetAssistant);
-  }, [agentMessage, assistants, customAgents, editor, selectedAgentInfo?.customAgentId, selectedAgentKey, t]);
+  }, [agentMessage, assistants, customAgents, editor, selectedAgentInfo?.custom_agent_id, selectedAgentKey, t]);
 
   useLayoutEffect(() => {
     if (!onRegisterOpenDetails) return;
@@ -226,9 +226,9 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   }, [onRegisterOpenDetails, openAssistantDetails]);
 
   // Only render if there are preset agents
-  if (!customAgents || !customAgents.some((a) => a.isPreset)) return null;
+  if (!customAgents || !customAgents.some((a) => a.is_preset)) return null;
 
-  if (isPresetAgent && selectedAgentInfo) {
+  if (is_presetAgent && selectedAgentInfo) {
     // Selected Assistant View
     return (
       <div className='mt-12px w-full'>
@@ -249,16 +249,16 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
                     currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() +
                     currentEffectiveAgentInfo.originalType.slice(1),
                   fallback:
-                    currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() +
-                    currentEffectiveAgentInfo.agentType.slice(1),
-                  defaultValue: `${currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1)} is unavailable, using ${currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1)} instead.`,
+                    currentEffectiveAgentInfo.agent_type.charAt(0).toUpperCase() +
+                    currentEffectiveAgentInfo.agent_type.slice(1),
+                  defaultValue: `${currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1)} is unavailable, using ${currentEffectiveAgentInfo.agent_type.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agent_type.slice(1)} instead.`,
                 })}
               </span>
             </div>
           )}
           {/* Prompts Section */}
           {(() => {
-            const agent = customAgents.find((a) => a.id === selectedAgentInfo.customAgentId);
+            const agent = customAgents.find((a) => a.id === selectedAgentInfo.custom_agent_id);
             const prompts = agent?.promptsI18n?.[localeKey] || agent?.promptsI18n?.['en-US'] || agent?.prompts;
             if (prompts && prompts.length > 0) {
               return (
@@ -296,7 +296,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     <div className='mt-12px w-full'>
       <div className='flex flex-wrap gap-8px justify-center'>
         {customAgents
-          .filter((a) => a.isPreset && a.enabled !== false)
+          .filter((a) => a.is_preset && a.enabled !== false)
           .toSorted((a, b) => {
             if (a.id === 'cowork') return -1;
             if (b.id === 'cowork') return 1;

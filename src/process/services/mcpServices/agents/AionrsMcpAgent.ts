@@ -42,10 +42,10 @@ let cachedConfigPath: string | null = null;
  * Get the aionrs global config path via `aionrs --config-path`.
  * The result is cached because the path does not change at runtime.
  */
-function getAionrsConfigPath(cliPath?: string): string {
+function getAionrsConfigPath(cli_path?: string): string {
   if (cachedConfigPath) return cachedConfigPath;
 
-  const cmd = cliPath || 'aionrs';
+  const cmd = cli_path || 'aionrs';
   const result = execSync(`${cmd} --config-path`, {
     encoding: 'utf-8',
     timeout: 3000,
@@ -78,11 +78,11 @@ function toAionrsTransportType(type: IMcpServerTransport['type']): AionrsTranspo
  * Convert an aionrs server config entry to an AionUi IMcpServer
  */
 function toMcpServer(name: string, config: AionrsServerConfig): IMcpServer {
-  const transportType = toAionUiTransportType(config.transport);
+  const transport_type = toAionUiTransportType(config.transport);
   const now = Date.now();
 
   const transport: IMcpServerTransport =
-    transportType === 'stdio'
+    transport_type === 'stdio'
       ? {
           type: 'stdio',
           command: config.command || '',
@@ -90,7 +90,7 @@ function toMcpServer(name: string, config: AionrsServerConfig): IMcpServer {
           env: config.env || {},
         }
       : {
-          type: transportType,
+          type: transport_type,
           url: config.url || '',
           headers: config.headers || {},
         };
@@ -102,10 +102,10 @@ function toMcpServer(name: string, config: AionrsServerConfig): IMcpServer {
     tools: [],
     enabled: true,
     status: 'disconnected',
-    createdAt: now,
-    updatedAt: now,
+    created_at: now,
+    updated_at: now,
     description: '',
-    originalJson: JSON.stringify({ mcpServers: { [name]: config } }, null, 2),
+    original_json: JSON.stringify({ mcpServers: { [name]: config } }, null, 2),
   };
 }
 
@@ -144,7 +144,7 @@ function toAionrsConfig(server: IMcpServer): AionrsServerConfig {
  * aionrs uses TOML format with [mcp.servers.*] sections
  */
 export class AionrsMcpAgent extends AbstractMcpAgent {
-  /** Remembered cliPath from the most recent detectMcpServers call */
+  /** Remembered cli_path from the most recent detectMcpServers call */
   private resolvedCliPath?: string;
 
   constructor() {
@@ -159,9 +159,9 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
   /**
    * Read and parse the aionrs config file
    */
-  private async readConfig(cliPath?: string): Promise<AionrsConfigFile> {
+  private async readConfig(cli_path?: string): Promise<AionrsConfigFile> {
     try {
-      const content = await fs.readFile(getAionrsConfigPath(cliPath), 'utf-8');
+      const content = await fs.readFile(getAionrsConfigPath(cli_path), 'utf-8');
       return parse(content) as AionrsConfigFile;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -184,11 +184,11 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
   /**
    * Detect MCP servers configured in aionrs config.toml
    */
-  detectMcpServers(cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(cli_path?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
-        this.resolvedCliPath = cliPath;
-        const config = await this.readConfig(cliPath);
+        this.resolvedCliPath = cli_path;
+        const config = await this.readConfig(cli_path);
         const servers = config.mcp?.servers;
 
         if (!servers || Object.keys(servers).length === 0) {

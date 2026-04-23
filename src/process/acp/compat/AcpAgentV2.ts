@@ -96,15 +96,15 @@ type PendingOp<T> = {
 export class AcpAgentV2 {
   private session: AcpSession | null = null;
   private readonly agentConfig: AgentConfig;
-  private conversationId: string;
+  private conversation_id: string;
   private onStreamEvent: (data: IResponseMessage) => void;
   private onSignalEvent?: (data: IResponseMessage) => void;
-  private onSessionIdUpdate?: (sessionId: string) => void;
+  private onSessionIdUpdate?: (session_id: string) => void;
   private onAvailableCommandsUpdate?: (commands: Array<{ name: string; description?: string; hint?: string }>) => void;
 
   // Cached state from callbacks
   private cachedModelInfo: AcpModelInfo | null = null;
-  private cachedConfigOptions: AcpSessionConfigOption[] = [];
+  private cached_config_options: AcpSessionConfigOption[] = [];
   private cachedModes: ModeSnapshot | null = null;
   private lastSessionId: string | null = null;
   private lastStatus: SessionStatus = 'idle';
@@ -129,7 +129,7 @@ export class AcpAgentV2 {
   private userModelOverride: string | null = null;
 
   constructor(config: OldAcpAgentConfig) {
-    this.conversationId = config.id;
+    this.conversation_id = config.id;
     this.onStreamEvent = config.onStreamEvent as (data: IResponseMessage) => void;
     this.onSignalEvent = config.onSignalEvent as ((data: IResponseMessage) => void) | undefined;
     this.onSessionIdUpdate = config.onSessionIdUpdate;
@@ -163,7 +163,7 @@ export class AcpAgentV2 {
             env: [
               ...aionStdioConfig.env,
               { name: 'AION_MCP_BACKEND', value: this.agentConfig.agentBackend },
-              { name: 'AION_MCP_CONVERSATION_ID', value: this.conversationId },
+              { name: 'AION_MCP_CONVERSATION_ID', value: this.conversation_id },
             ],
           };
           (this.agentConfig as { presetMcpServers?: McpServer[] }).presetMcpServers = [
@@ -241,7 +241,7 @@ export class AcpAgentV2 {
         const resolved =
           message.type === 'acp_tool_call' ? this.mergeToolCall(message as IMessageAcpToolCall) : message;
 
-        const oldMsg = toResponseMessage(resolved, this.conversationId);
+        const oldMsg = toResponseMessage(resolved, this.conversation_id);
         // Skip empty messages (e.g., filtered available_commands)
         if (oldMsg.type) {
           this.onStreamEvent(oldMsg);
@@ -253,10 +253,10 @@ export class AcpAgentV2 {
         }
       },
 
-      onSessionId: (sessionId: string) => {
-        this.lastSessionId = sessionId;
+      onSessionId: (session_id: string) => {
+        this.lastSessionId = session_id;
         if (this.onSessionIdUpdate) {
-          this.onSessionIdUpdate(sessionId);
+          this.onSessionIdUpdate(session_id);
         }
       },
 
@@ -278,7 +278,7 @@ export class AcpAgentV2 {
           const oldStatusName = this.mapStatusToOldName(status);
           this.onStreamEvent({
             type: 'agent_status',
-            conversation_id: this.conversationId,
+            conversation_id: this.conversation_id,
             msg_id: `status_${Date.now()}`,
             data: { status: oldStatusName, backend: this.agentConfig.agentBackend },
           });
@@ -297,7 +297,7 @@ export class AcpAgentV2 {
         // Emit to old stream event
         this.onStreamEvent({
           type: 'acp_model_info',
-          conversation_id: this.conversationId,
+          conversation_id: this.conversation_id,
           msg_id: `model_${Date.now()}`,
           data: this.cachedModelInfo,
         });
@@ -318,11 +318,11 @@ export class AcpAgentV2 {
       },
 
       onConfigUpdate: (config: ConfigSnapshot) => {
-        this.cachedConfigOptions = toAcpConfigOptions(config.configOptions);
+        this.cached_config_options = toAcpConfigOptions(config.config_options);
 
         // Resolve configOp if pending
         if (this.configOp) {
-          this.resolveOp(this.configOp, this.cachedConfigOptions);
+          this.resolveOp(this.configOp, this.cached_config_options);
           this.configOp = null;
         }
 
@@ -337,7 +337,7 @@ export class AcpAgentV2 {
       onContextUsage: (usage: ContextUsage) => {
         this.onStreamEvent({
           type: 'acp_context_usage',
-          conversation_id: this.conversationId,
+          conversation_id: this.conversation_id,
           msg_id: `usage_${Date.now()}`,
           data: { used: usage.used, size: usage.total, cost: usage.cost },
         });
@@ -347,12 +347,12 @@ export class AcpAgentV2 {
         if (this.onSignalEvent) {
           this.onSignalEvent({
             type: 'acp_permission',
-            conversation_id: this.conversationId,
-            msg_id: data.callId,
+            conversation_id: this.conversation_id,
+            msg_id: data.call_id,
             data: {
-              sessionId: this.lastSessionId ?? '',
+              session_id: this.lastSessionId ?? '',
               toolCall: {
-                toolCallId: data.callId,
+                tool_call_id: data.call_id,
                 title: data.title,
                 kind: data.kind,
                 rawInput: data.rawInput,
@@ -361,7 +361,7 @@ export class AcpAgentV2 {
                 locations: data.locations ?? [],
               },
               options: data.options.map((opt) => ({
-                optionId: opt.optionId,
+                option_id: opt.option_id,
                 name: opt.label,
                 kind: opt.kind,
               })),
@@ -377,7 +377,7 @@ export class AcpAgentV2 {
           case 'turn_finished':
             this.onSignalEvent({
               type: 'finish',
-              conversation_id: this.conversationId,
+              conversation_id: this.conversation_id,
               msg_id: `finish_${Date.now()}`,
               data: null,
             });
@@ -386,14 +386,14 @@ export class AcpAgentV2 {
           case 'session_expired':
             this.onSignalEvent({
               type: 'error',
-              conversation_id: this.conversationId,
+              conversation_id: this.conversation_id,
               msg_id: `signal_${Date.now()}`,
               data: 'Session expired',
             });
             // Emit finish signal after session_expired
             this.onSignalEvent({
               type: 'finish',
-              conversation_id: this.conversationId,
+              conversation_id: this.conversation_id,
               msg_id: `finish_${Date.now()}`,
               data: null,
             });
@@ -415,7 +415,7 @@ export class AcpAgentV2 {
 
             this.onSignalEvent({
               type: 'error',
-              conversation_id: this.conversationId,
+              conversation_id: this.conversation_id,
               msg_id: `signal_${Date.now()}`,
               data: event.message,
             });
@@ -423,7 +423,7 @@ export class AcpAgentV2 {
             if (isCrash) {
               this.onSignalEvent({
                 type: 'finish',
-                conversation_id: this.conversationId,
+                conversation_id: this.conversation_id,
                 msg_id: `finish_crash_${Date.now()}`,
                 data: {
                   error: event.message,
@@ -440,24 +440,24 @@ export class AcpAgentV2 {
 
   /**
    * Merge tool_call_update into existing tool_call to produce a complete message.
-   * The renderer does full replacement by toolCallId, so we must preserve fields
+   * The renderer does full replacement by tool_call_id, so we must preserve fields
    * (title, kind, etc.) that partial updates don't include.
    */
   private mergeToolCall(message: IMessageAcpToolCall): IMessageAcpToolCall {
-    const toolCallId = message.content?.update?.toolCallId;
-    if (!toolCallId) return message;
+    const tool_call_id = message.content?.update?.tool_call_id;
+    if (!tool_call_id) return message;
 
-    const existing = this.activeToolCalls.get(toolCallId);
+    const existing = this.activeToolCalls.get(tool_call_id);
     if (!existing) {
-      // First time seeing this toolCallId — store and pass through
-      this.activeToolCalls.set(toolCallId, message);
+      // First time seeing this tool_call_id — store and pass through
+      this.activeToolCalls.set(tool_call_id, message);
       return message;
     }
 
     // Merge: new fields override, missing fields preserved from existing
     const merged: IMessageAcpToolCall = {
       ...existing,
-      msg_id: toolCallId,
+      msg_id: tool_call_id,
       status: message.status,
       content: {
         ...existing.content,
@@ -474,11 +474,11 @@ export class AcpAgentV2 {
       },
     };
 
-    this.activeToolCalls.set(toolCallId, merged);
+    this.activeToolCalls.set(tool_call_id, merged);
 
     // Clean up completed/failed tool calls after a delay
     if (message.content.update.status === 'completed' || message.content.update.status === 'failed') {
-      setTimeout(() => this.activeToolCalls.delete(toolCallId), 60_000);
+      setTimeout(() => this.activeToolCalls.delete(tool_call_id), 60_000);
     }
 
     return merged;
@@ -492,7 +492,7 @@ export class AcpAgentV2 {
     // TODO(ACP Discovery): Re-enable after fixing agent_id.
     // const stable = this.toStableStatus(status);
     // const suspendedAt = status === 'suspended' ? Date.now() : null;
-    // this.acpSessionRepo?.updateStatus(this.conversationId, stable, suspendedAt);
+    // this.acpSessionRepo?.updateStatus(this.conversation_id, stable, suspendedAt);
   }
 
   private toStableStatus(status: SessionStatus): 'idle' | 'active' | 'suspended' | 'error' {
@@ -535,11 +535,11 @@ export class AcpAgentV2 {
 
   // ─── Public Getters ─────────────────────────────────────────────
 
-  get isConnected(): boolean {
+  get is_connected(): boolean {
     return this.lastStatus !== 'idle' && this.lastStatus !== 'error';
   }
 
-  get hasActiveSession(): boolean {
+  get has_active_session(): boolean {
     return this.lastStatus === 'active' || this.lastStatus === 'prompting';
   }
 
@@ -575,7 +575,7 @@ export class AcpAgentV2 {
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
       // Auto-reconnect if session is in error/idle state (mirrors V1 behavior).
-      // V1 checks isConnected/hasActiveSession before every prompt and calls start().
+      // V1 checks is_connected/has_active_session before every prompt and calls start().
       if (this.lastStatus === 'error' || this.lastStatus === 'idle') {
         try {
           await this.kill();
@@ -615,7 +615,7 @@ export class AcpAgentV2 {
           type: 'start',
           data: null,
           msg_id: data.msg_id ?? `start_${Date.now()}`,
-          conversation_id: this.conversationId,
+          conversation_id: this.conversation_id,
         });
       }
 
@@ -638,8 +638,8 @@ export class AcpAgentV2 {
       // V1's userModelOverride is never cleared — it re-checks on every prompt
       // to recover from CLI-internal state loss (e.g. Claude compaction).
       if (this.userModelOverride && this.session) {
-        const currentModel = this.cachedModelInfo?.currentModelId;
-        if (currentModel !== this.userModelOverride) {
+        const current_model = this.cachedModelInfo?.current_model_id;
+        if (current_model !== this.userModelOverride) {
           try {
             this.session.setModel(this.userModelOverride);
           } catch {
@@ -674,7 +674,7 @@ export class AcpAgentV2 {
       // re-throws without emitting turn_finished, so no duplicate.
       this.onSignalEvent?.({
         type: 'finish',
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         msg_id: `finish_${Date.now()}`,
         data: null,
       });
@@ -691,9 +691,9 @@ export class AcpAgentV2 {
     }
   }
 
-  async confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
+  async confirmMessage(data: { confirm_key: string; call_id: string }): Promise<AcpResult> {
     try {
-      this.session!.confirmPermission(data.callId, data.confirmKey);
+      this.session!.confirmPermission(data.call_id, data.confirm_key);
       return { success: true, data: null };
     } catch (err) {
       return {
@@ -716,13 +716,13 @@ export class AcpAgentV2 {
       const ccSwitchInfo = readClaudeModelInfoFromCcSwitch();
       if (ccSwitchInfo) {
         // If user has overridden the model via setModel, apply it to cc-switch data
-        const currentId = this.cachedModelInfo?.currentModelId;
-        if (currentId && ccSwitchInfo.availableModels?.some((m) => m.id === currentId)) {
-          const selected = ccSwitchInfo.availableModels.find((m) => m.id === currentId);
+        const currentId = this.cachedModelInfo?.current_model_id;
+        if (currentId && ccSwitchInfo.available_models?.some((m) => m.id === currentId)) {
+          const selected = ccSwitchInfo.available_models.find((m) => m.id === currentId);
           return {
             ...ccSwitchInfo,
-            currentModelId: currentId,
-            currentModelLabel: selected?.label ?? currentId,
+            current_model_id: currentId,
+            current_model_label: selected?.label ?? currentId,
           };
         }
         return ccSwitchInfo;
@@ -732,14 +732,14 @@ export class AcpAgentV2 {
   }
 
   getConfigOptions(): AcpSessionConfigOption[] {
-    return this.cachedConfigOptions.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
+    return this.cached_config_options.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
   }
 
-  async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
-    this.userModelOverride = modelId;
+  async setModelByConfigOption(model_id: string): Promise<AcpModelInfo | null> {
+    this.userModelOverride = model_id;
     // Queue model switch notice for Claude (ACP set_model is silent, AI doesn't know)
     if (this.agentConfig.agentBackend === 'claude') {
-      this.pendingModelSwitchNotice = modelId;
+      this.pendingModelSwitchNotice = model_id;
     }
     return new Promise<AcpModelInfo | null>((resolve, reject) => {
       const timer = setTimeout(() => {
@@ -748,7 +748,7 @@ export class AcpAgentV2 {
         resolve(this.cachedModelInfo);
       }, 10_000);
       this.modelOp = { resolve, reject, timer };
-      this.session!.setModel(modelId);
+      this.session!.setModel(model_id);
     });
   }
 
@@ -763,14 +763,14 @@ export class AcpAgentV2 {
     });
   }
 
-  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+  async setConfigOption(config_id: string, value: string): Promise<AcpSessionConfigOption[]> {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         this.configOp = null;
-        resolve(this.cachedConfigOptions); // Fallback to cached
+        resolve(this.cached_config_options); // Fallback to cached
       }, 10_000);
       this.configOp = { resolve, reject, timer };
-      this.session!.setConfigOption(configId, value);
+      this.session!.setConfigOption(config_id, value);
     });
   }
 
@@ -794,7 +794,7 @@ export class AcpAgentV2 {
     const url = NavigationInterceptor.extractUrl({ arguments: rawInput });
     if (!url) return;
 
-    const previewMsg = NavigationInterceptor.createPreviewMessage(url, this.conversationId);
+    const previewMsg = NavigationInterceptor.createPreviewMessage(url, this.conversation_id);
     this.onStreamEvent(previewMsg);
   }
 
@@ -814,7 +814,7 @@ export class AcpAgentV2 {
       console.warn('[AcpAgentV2] Auth already retried once, giving up');
       this.onSignalEvent?.({
         type: 'error',
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         msg_id: `signal_${Date.now()}`,
         data: 'Authentication failed after retry. Please authenticate manually and restart.',
       });
@@ -832,7 +832,7 @@ export class AcpAgentV2 {
       console.warn(`[AcpAgentV2] ${backend} auth refresh failed:`, err);
       this.onSignalEvent?.({
         type: 'error',
-        conversation_id: this.conversationId,
+        conversation_id: this.conversation_id,
         msg_id: `signal_${Date.now()}`,
         data: `Authentication failed for ${backend}. Please authenticate manually and restart.`,
       });
@@ -869,40 +869,40 @@ export class AcpAgentV2 {
    */
   private persistSessionCapabilities(): void {
     const backend = this.agentConfig.agentBackend;
-    const modelInfo = this.cachedModelInfo;
-    const configOptions = this.cachedConfigOptions;
+    const model_info = this.cachedModelInfo;
+    const config_options = this.cached_config_options;
     const modes = this.cachedModes;
 
     const job = AcpAgentV2.cacheQueue.then(async () => {
-      if (modelInfo && modelInfo.availableModels && modelInfo.availableModels.length > 0) {
+      if (model_info && model_info.available_models && model_info.available_models.length > 0) {
         const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
         const existing = cached[backend];
         await ProcessConfig.set('acp.cachedModels', {
           ...cached,
           [backend]: {
-            ...modelInfo,
+            ...model_info,
             // Preserve the original default model from the first session
-            currentModelId: existing?.currentModelId ?? modelInfo.currentModelId,
-            currentModelLabel: existing?.currentModelLabel ?? modelInfo.currentModelLabel,
+            current_model_id: existing?.current_model_id ?? model_info.current_model_id,
+            current_model_label: existing?.current_model_label ?? model_info.current_model_label,
           },
         });
       }
 
-      if (configOptions.length > 0) {
-        const cached = (await ProcessConfig.get('acp.cachedConfigOptions')) || {};
-        await ProcessConfig.set('acp.cachedConfigOptions', {
+      if (config_options.length > 0) {
+        const cached = (await ProcessConfig.get('acp.cached_config_options')) || {};
+        await ProcessConfig.set('acp.cached_config_options', {
           ...cached,
-          [backend]: configOptions,
+          [backend]: config_options,
         });
       }
 
-      if (modes && modes.availableModes.length > 0) {
+      if (modes && modes.available_modes.length > 0) {
         const cached = (await ProcessConfig.get('acp.cachedModes')) || {};
         await ProcessConfig.set('acp.cachedModes', {
           ...cached,
           [backend]: {
-            currentModeId: modes.currentModeId ?? undefined,
-            availableModes: modes.availableModes.map((m) => ({
+            current_mode_id: modes.current_mode_id ?? undefined,
+            available_modes: modes.available_modes.map((m) => ({
               id: m.id,
               name: m.name,
               description: m.description,

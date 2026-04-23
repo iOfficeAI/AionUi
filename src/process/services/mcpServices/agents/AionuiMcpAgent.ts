@@ -40,7 +40,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
    * 检测 AionUi 管理的 MCP 配置
    * 从 ProcessConfig 的统一配置中读取
    */
-  async detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  async detectMcpServers(_cli_path?: string): Promise<IMcpServer[]> {
     try {
       const mcpConfig = await ProcessConfig.get('mcp.config');
       if (!mcpConfig || !Array.isArray(mcpConfig)) {
@@ -83,7 +83,7 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
         if (this.getSupportedTransports().includes(server.transport.type)) {
           serverMap.set(server.name, {
             ...server,
-            updatedAt: Date.now(),
+            updated_at: Date.now(),
           });
         } else {
           console.warn(`[AionuiMcpAgent] Skipping ${server.name}: unsupported transport type ${server.transport.type}`);

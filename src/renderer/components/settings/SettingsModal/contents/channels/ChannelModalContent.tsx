@@ -136,7 +136,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
             platform,
             agent: (currentAgent as {
               backend: string;
-              customAgentId?: string;
+              custom_agent_id?: string;
               name?: string;
             }) || {
               backend: 'gemini',
@@ -661,9 +661,9 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: pluginStatus?.enabled || false,
       disabled: enableLoading,
-      isConnected: pluginStatus?.connected || false,
+      is_connected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
-      defaultModel: telegramModelSelection.currentModel?.useModel,
+      defaultModel: telegramModelSelection.current_model?.useModel,
       content: (
         <TelegramConfigForm
           pluginStatus={pluginStatus}
@@ -683,8 +683,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
-      isConnected: larkPluginStatus?.connected || false,
-      defaultModel: larkModelSelection.currentModel?.useModel,
+      is_connected: larkPluginStatus?.connected || false,
+      defaultModel: larkModelSelection.current_model?.useModel,
       content: (
         <LarkConfigForm
           pluginStatus={larkPluginStatus}
@@ -701,8 +701,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
-      isConnected: dingtalkPluginStatus?.connected || false,
-      defaultModel: dingtalkModelSelection.currentModel?.useModel,
+      is_connected: dingtalkPluginStatus?.connected || false,
+      defaultModel: dingtalkModelSelection.current_model?.useModel,
       content: (
         <DingTalkConfigForm
           pluginStatus={dingtalkPluginStatus}
@@ -719,8 +719,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
-      isConnected: weixinPluginStatus?.connected || false,
-      defaultModel: weixinModelSelection.currentModel?.useModel,
+      is_connected: weixinPluginStatus?.connected || false,
+      defaultModel: weixinModelSelection.current_model?.useModel,
       content: (
         <WeixinConfigForm
           pluginStatus={weixinPluginStatus}
@@ -737,8 +737,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: wecomPluginStatus?.enabled || false,
       disabled: wecomEnableLoading,
-      isConnected: wecomPluginStatus?.connected || false,
-      defaultModel: wecomModelSelection.currentModel?.useModel,
+      is_connected: wecomPluginStatus?.connected || false,
+      defaultModel: wecomModelSelection.current_model?.useModel,
       content: (
         <WecomConfigForm
           pluginStatus={wecomPluginStatus}
@@ -762,7 +762,7 @@ const ChannelModalContent: React.FC = () => {
         status: 'active',
         enabled: status.enabled || false,
         disabled: extensionLoadingMap[status.type] || false,
-        isConnected: status.connected || false,
+        is_connected: status.connected || false,
         icon: status.extensionMeta?.icon,
         isExtension: true,
         content: renderExtensionConfigForm(status),

@@ -20,7 +20,7 @@ const STAR_OFFICE_DETECT_TIMEOUT_DEFAULT = 1200;
 const STAR_OFFICE_DETECT_TIMEOUT_RETRY = 2400;
 
 interface StarOfficeMonitorCardProps {
-  conversationId?: string;
+  conversation_id?: string;
   onOpenUrl: (url: string, metadata?: PreviewMetadata) => void;
 }
 
@@ -38,7 +38,7 @@ type IdleWindow = Window & {
 
 type DetectState = 'checking' | 'ready' | 'not_found' | 'error';
 
-const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversationId, onOpenUrl }) => {
+const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversation_id, onOpenUrl }) => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [detecting, setDetecting] = useState(false);
@@ -258,23 +258,23 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
   }, []);
 
   const handleAskOpenClawInstall = useCallback(() => {
-    if (conversationId) {
+    if (conversation_id) {
       const hasLocal = detectState === 'ready' && Boolean(detectedUrl);
       const text = hasLocal
         ? t('starOffice.monitor.assistPromptInstalled', { url: detectedUrl || '' })
         : t('starOffice.monitor.installPrompt');
-      emitter.emit('staroffice.install.request', { conversationId, text, detectedUrl: detectedUrl || null });
+      emitter.emit('staroffice.install.request', { conversation_id, text, detectedUrl: detectedUrl || null });
     }
     setVisible(false);
-  }, [conversationId, detectState, detectedUrl, t]);
+  }, [conversation_id, detectState, detectedUrl, t]);
 
   const handleAskOpenClawDiagnose = useCallback(() => {
-    if (conversationId) {
+    if (conversation_id) {
       const text = t('starOffice.monitor.diagnosePrompt');
-      emitter.emit('staroffice.install.request', { conversationId, text, detectedUrl: detectedUrl || null });
+      emitter.emit('staroffice.install.request', { conversation_id, text, detectedUrl: detectedUrl || null });
     }
     setVisible(false);
-  }, [conversationId, detectedUrl, t]);
+  }, [conversation_id, detectedUrl, t]);
 
   const handleOpenDetectedMonitor = useCallback(() => {
     void (async () => {
@@ -302,11 +302,11 @@ const StarOfficeMonitorCard: React.FC<StarOfficeMonitorCardProps> = ({ conversat
   // Auto-detect and open monitor panel after install flow completes
   useAddEventListener(
     'staroffice.install.finished',
-    ({ conversationId: cid }) => {
-      if (cid !== conversationId) return;
+    ({ conversation_id: cid }) => {
+      if (cid !== conversation_id) return;
       handleOpenDetectedMonitor();
     },
-    [conversationId, handleOpenDetectedMonitor]
+    [conversation_id, handleOpenDetectedMonitor]
   );
 
   const iconFill = useMemo(() => {

@@ -42,11 +42,11 @@ export class SqliteChannelRepository implements IChannelRepository {
     return result.data;
   }
 
-  async deleteChannelUser(userId: string): Promise<void> {
+  async deleteChannelUser(user_id: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.deleteChannelUser(userId);
+    const result = db.deleteChannelUser(user_id);
     if (!result.success) {
-      throw new Error(result.error ?? `Failed to delete channel user ${userId}`);
+      throw new Error(result.error ?? `Failed to delete channel user ${user_id}`);
     }
   }
 

@@ -10,29 +10,29 @@ const DRAG_OVER_CLASS = 'border-l-2 border-[color:var(--color-primary-6)]';
 const TAB_OVERFLOW_THRESHOLD = 10;
 
 type TeamTabViewProps = {
-  slotId: string;
-  agentName: string;
-  agentType: string;
-  conversationId?: string;
+  slot_id: string;
+  agent_name: string;
+  agent_type: string;
+  conversation_id?: string;
   isActive: boolean;
   status: TeammateStatus;
   isLeader: boolean;
   /** Number of pending permission confirmations for this agent */
   pendingCount?: number;
-  onSwitch: (slotId: string) => void;
-  onRename?: (slotId: string, newName: string) => void;
-  onRemove?: (slotId: string) => void;
-  onDragStart: (slotId: string) => void;
-  onDragOver: (slotId: string) => void;
+  onSwitch: (slot_id: string) => void;
+  onRename?: (slot_id: string, new_name: string) => void;
+  onRemove?: (slot_id: string) => void;
+  onDragStart: (slot_id: string) => void;
+  onDragOver: (slot_id: string) => void;
   onDrop: () => void;
   isDragOver: boolean;
 };
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
-  slotId,
-  agentName,
-  agentType,
-  conversationId,
+  slot_id,
+  agent_name,
+  agent_type,
+  conversation_id,
   isActive,
   status,
   isLeader,
@@ -46,7 +46,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isDragOver,
 }) => {
   const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(agentName);
+  const [editValue, setEditValue] = useState(agent_name);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -59,32 +59,32 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   const commitRename = useCallback(() => {
     const trimmed = editValue.trim();
     setEditing(false);
-    if (trimmed && trimmed !== agentName && onRename) {
-      onRename(slotId, trimmed);
+    if (trimmed && trimmed !== agent_name && onRename) {
+      onRename(slot_id, trimmed);
     } else {
-      setEditValue(agentName);
+      setEditValue(agent_name);
     }
-  }, [editValue, agentName, slotId, onRename]);
+  }, [editValue, agent_name, slot_id, onRename]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter') {
         commitRename();
       } else if (e.key === 'Escape') {
-        setEditValue(agentName);
+        setEditValue(agent_name);
         setEditing(false);
       }
     },
-    [commitRename, agentName]
+    [commitRename, agent_name]
   );
 
   const startEditing = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setEditValue(agentName);
+      setEditValue(agent_name);
       setEditing(true);
     },
-    [agentName]
+    [agent_name]
   );
 
   const isRunning = status === 'active';
@@ -98,16 +98,16 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           : 'bg-2 text-[color:var(--color-text-3)] hover:text-[color:var(--color-text-2)] hover:bg-[color:var(--fill-2)] border-b border-[color:var(--border-base)]'
       } ${isDragOver ? DRAG_OVER_CLASS : ''}`}
       style={isRunning ? { animation: 'team-tab-breathe 2s ease-in-out infinite' } : undefined}
-      onClick={() => !editing && onSwitch(slotId)}
+      onClick={() => !editing && onSwitch(slot_id)}
       onDoubleClick={onRename ? startEditing : undefined}
       onDragStart={(e) => {
         e.dataTransfer.effectAllowed = 'move';
-        onDragStart(slotId);
+        onDragStart(slot_id);
       }}
       onDragOver={(e) => {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        onDragOver(slotId);
+        onDragOver(slot_id);
       }}
       onDrop={(e) => {
         e.preventDefault();
@@ -135,9 +135,9 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
             </span>
           )}
           <TeamAgentIdentity
-            agentName={agentName}
-            agentType={agentType}
-            conversationId={conversationId}
+            agent_name={agent_name}
+            agent_type={agent_type}
+            conversation_id={conversation_id}
             isLeader={isLeader}
             className='min-w-0 flex-1'
             logoClassName={`w-14px h-14px object-contain rounded-2px ${isActive ? 'opacity-100' : 'opacity-70'}`}
@@ -160,7 +160,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           className='opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity duration-150 shrink-0 flex items-center text-[color:var(--color-text-3)] hover:text-[color:var(--color-danger-6)]'
           onClick={(e) => {
             e.stopPropagation();
-            onRemove(slotId);
+            onRemove(slot_id);
           }}
         >
           <CloseSmall theme='outline' size='14' fill='currentColor' />
@@ -171,7 +171,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 };
 
 type TeamTabsProps = {
-  onTabClick?: (slotId: string) => void;
+  onTabClick?: (slot_id: string) => void;
   /** Pending permission confirmation counts per slot ID */
   pendingCounts?: Map<string, number>;
 };
@@ -213,20 +213,20 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
     };
   }, [updateTabOverflow]);
 
-  const handleDragStart = useCallback((slotId: string) => {
-    dragSourceRef.current = slotId;
+  const handleDragStart = useCallback((slot_id: string) => {
+    dragSourceRef.current = slot_id;
   }, []);
 
-  const handleDragOver = useCallback((slotId: string) => {
-    if (dragSourceRef.current && dragSourceRef.current !== slotId) {
-      setDragOverSlotId(slotId);
+  const handleDragOver = useCallback((slot_id: string) => {
+    if (dragSourceRef.current && dragSourceRef.current !== slot_id) {
+      setDragOverSlotId(slot_id);
     }
   }, []);
 
   const handleDrop = useCallback(() => {
     if (dragSourceRef.current && dragOverSlotId) {
       // Prevent dropping onto the leader's position (index 0)
-      const targetIndex = agents.findIndex((a) => a.slotId === dragOverSlotId);
+      const targetIndex = agents.findIndex((a) => a.slot_id === dragOverSlotId);
       if (targetIndex !== 0) {
         reorderAgents(dragSourceRef.current, dragOverSlotId);
       }
@@ -245,28 +245,28 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
           className='flex items-center h-full flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
         >
           {agents.map((agent) => {
-            const statusInfo = statusMap.get(agent.slotId);
+            const statusInfo = statusMap.get(agent.slot_id);
             return (
               <TeamTabView
-                key={agent.slotId}
-                slotId={agent.slotId}
-                agentName={agent.agentName}
-                agentType={agent.agentType}
-                conversationId={agent.conversationId}
-                isActive={agent.slotId === activeSlotId}
+                key={agent.slot_id}
+                slot_id={agent.slot_id}
+                agent_name={agent.agent_name}
+                agent_type={agent.agent_type}
+                conversation_id={agent.conversation_id}
+                isActive={agent.slot_id === activeSlotId}
                 status={statusInfo?.status ?? agent.status}
                 isLeader={agent.role === 'leader'}
-                pendingCount={pendingCounts?.get(agent.slotId) ?? 0}
-                onSwitch={(slotId) => {
-                  switchTab(slotId);
-                  onTabClick?.(slotId);
+                pendingCount={pendingCounts?.get(agent.slot_id) ?? 0}
+                onSwitch={(slot_id) => {
+                  switchTab(slot_id);
+                  onTabClick?.(slot_id);
                 }}
                 onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
                 onRemove={removeAgent ? (sid) => void removeAgent(sid) : undefined}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                isDragOver={dragOverSlotId === agent.slotId}
+                isDragOver={dragOverSlotId === agent.slot_id}
               />
             );
           })}

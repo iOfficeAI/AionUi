@@ -16,7 +16,7 @@ export interface ImageGenerationResult {
 }
 
 export interface WriteFileResult {
-  fileDiff: string;
-  fileName: string;
+  file_diff: string;
+  file_name: string;
   [key: string]: unknown;
 }

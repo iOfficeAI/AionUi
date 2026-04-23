@@ -80,9 +80,9 @@ export interface MultiKeyTestResult {
  */
 export interface ProtocolDetectionRequest {
   /** Base URL */
-  baseUrl: string;
+  base_url: string;
   /** API Key（可以是逗号或换行分隔的多个 Key）/ API Key (can be comma or newline separated) */
-  apiKey: string;
+  api_key: string;
   /** 超时时间（毫秒）/ Timeout in milliseconds */
   timeout?: number;
   /** 是否测试所有 Key（默认只测试第一个）/ Whether to test all keys */
@@ -137,7 +137,7 @@ interface ProtocolSignature {
     path: string;
     method: 'GET' | 'POST';
     /** 请求头 / Headers */
-    headers?: (apiKey: string) => Record<string, string>;
+    headers?: (api_key: string) => Record<string, string>;
     /** 请求体（POST 请求）/ Request body for POST */
     body?: object;
     /** 响应验证器 / Response validator */
@@ -228,8 +228,8 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       {
         path: '/models',
         method: 'GET',
-        headers: (apiKey) => ({
-          Authorization: `Bearer ${apiKey}`,
+        headers: (api_key) => ({
+          Authorization: `Bearer ${api_key}`,
         }),
         validator: (response, status) => {
           if (status !== 200) return false;
@@ -239,8 +239,8 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       {
         path: '/v1/models',
         method: 'GET',
-        headers: (apiKey) => ({
-          Authorization: `Bearer ${apiKey}`,
+        headers: (api_key) => ({
+          Authorization: `Bearer ${api_key}`,
         }),
         validator: (response, status) => {
           if (status !== 200) return false;
@@ -264,8 +264,8 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
         // Anthropic doesn't have models endpoint, use messages endpoint
         path: '/v1/messages',
         method: 'POST',
-        headers: (apiKey) => ({
-          'x-api-key': apiKey,
+        headers: (api_key) => ({
+          'x-api-key': api_key,
           'anthropic-version': '2023-06-01',
           'Content-Type': 'application/json',
         }),
@@ -305,9 +305,9 @@ export const THIRD_PARTY_KEY_PATTERNS: Array<{ pattern: RegExp; name: string; pr
  * 解析多个 API Key
  * Parse multiple API keys from string
  */
-export function parseApiKeys(apiKeyString: string): string[] {
-  if (!apiKeyString) return [];
-  return apiKeyString
+export function parseApiKeys(api_keyString: string): string[] {
+  if (!api_keyString) return [];
+  return api_keyString
     .split(/[,\n]/)
     .map((k) => k.trim())
     .filter((k) => k.length > 0);
@@ -317,9 +317,9 @@ export function parseApiKeys(apiKeyString: string): string[] {
  * 掩码 API Key
  * Mask API key for display
  */
-export function maskApiKey(apiKey: string): string {
-  if (apiKey.length <= 8) return '***';
-  return `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+export function maskApiKey(api_key: string): string {
+  if (api_key.length <= 8) return '***';
+  return `${api_key.substring(0, 4)}...${api_key.substring(api_key.length - 4)}`;
 }
 
 /**
@@ -353,9 +353,9 @@ export const API_PATH_SUFFIXES = [
  * 只移除末尾斜杠，不修改路径
  * Only removes trailing slashes, does not modify path
  */
-export function normalizeBaseUrl(baseUrl: string): string {
-  if (!baseUrl) return '';
-  let url = baseUrl.trim();
+export function normalizeBaseUrl(base_url: string): string {
+  if (!base_url) return '';
+  let url = base_url.trim();
   // 移除末尾斜杠
   url = url.replace(/\/+$/, '');
   return url;
@@ -365,9 +365,9 @@ export function normalizeBaseUrl(baseUrl: string): string {
  * 从 URL 中移除已知的 API 路径后缀
  * Remove known API path suffix from URL
  */
-export function removeApiPathSuffix(baseUrl: string): string | null {
-  if (!baseUrl) return null;
-  const url = baseUrl.replace(/\/+$/, '');
+export function removeApiPathSuffix(base_url: string): string | null {
+  if (!base_url) return null;
+  const url = base_url.replace(/\/+$/, '');
 
   // 按长度降序排列，先匹配更长的路径
   const sortedSuffixes = [...API_PATH_SUFFIXES].toSorted((a, b) => b.length - a.length);
@@ -384,8 +384,8 @@ export function removeApiPathSuffix(baseUrl: string): string | null {
  * 根据 URL 猜测协议类型
  * Guess protocol type from URL
  */
-export function guessProtocolFromUrl(baseUrl: string): ProtocolType | null {
-  const url = baseUrl.toLowerCase();
+export function guessProtocolFromUrl(base_url: string): ProtocolType | null {
+  const url = base_url.toLowerCase();
 
   for (const sig of PROTOCOL_SIGNATURES) {
     if (sig.urlPatterns) {
@@ -407,17 +407,17 @@ export function guessProtocolFromUrl(baseUrl: string): ProtocolType | null {
  * 优先匹配更具体的模式，然后是通用模式
  * Prioritize more specific patterns, then general patterns
  */
-export function guessProtocolFromKey(apiKey: string): ProtocolType | null {
+export function guessProtocolFromKey(api_key: string): ProtocolType | null {
   // 先尝试标准协议签名
   for (const sig of PROTOCOL_SIGNATURES) {
-    if (sig.keyPattern && sig.keyPattern.test(apiKey)) {
+    if (sig.keyPattern && sig.keyPattern.test(api_key)) {
       return sig.protocol;
     }
   }
 
   // 再尝试第三方服务 Key 格式
   for (const pattern of THIRD_PARTY_KEY_PATTERNS) {
-    if (pattern.pattern.test(apiKey)) {
+    if (pattern.pattern.test(api_key)) {
       return pattern.protocol;
     }
   }
@@ -429,9 +429,9 @@ export function guessProtocolFromKey(apiKey: string): ProtocolType | null {
  * 根据 API Key 识别服务提供商名称
  * Identify service provider name from API key
  */
-export function identifyProviderFromKey(apiKey: string): string | null {
+export function identifyProviderFromKey(api_key: string): string | null {
   for (const pattern of THIRD_PARTY_KEY_PATTERNS) {
-    if (pattern.pattern.test(apiKey)) {
+    if (pattern.pattern.test(api_key)) {
       return pattern.name;
     }
   }

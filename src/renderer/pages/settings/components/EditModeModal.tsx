@@ -66,8 +66,8 @@ const PROVIDER_CONFIGS = [
  * 根据名称或 URL 获取供应商 Logo
  * Get provider logo by name or URL
  */
-const getProviderLogo = (name?: string, baseUrl?: string, platform?: string): string | null => {
-  if (!name && !baseUrl && !platform) return null;
+const getProviderLogo = (name?: string, base_url?: string, platform?: string): string | null => {
+  if (!name && !base_url && !platform) return null;
 
   // 优先按 platform 匹配（Gemini 系列）
   if (platform) {
@@ -84,8 +84,8 @@ const getProviderLogo = (name?: string, baseUrl?: string, platform?: string): st
   if (byNameLower) return byNameLower.logo;
 
   // 按 URL 匹配
-  if (baseUrl) {
-    const byUrl = PROVIDER_CONFIGS.find((p) => p.url && baseUrl.includes(p.url.replace('https://', '').split('/')[0]));
+  if (base_url) {
+    const byUrl = PROVIDER_CONFIGS.find((p) => p.url && base_url.includes(p.url.replace('https://', '').split('/')[0]));
     if (byUrl) return byUrl.logo;
   }
 
@@ -116,12 +116,12 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
     // 获取供应商 Logo / Get provider logo
     const providerLogo = useMemo(() => {
-      return getProviderLogo(data?.name, data?.baseUrl, data?.platform);
-    }, [data?.name, data?.baseUrl, data?.platform]);
+      return getProviderLogo(data?.name, data?.base_url, data?.platform);
+    }, [data?.name, data?.base_url, data?.platform]);
 
-    // For Bedrock, don't pass bedrockConfig to avoid auto-refresh on input changes
+    // For Bedrock, don't pass bedrock_config to avoid auto-refresh on input changes
     // We'll build it dynamically in onFocus
-    const modelListState = useModeModeList(data?.platform || 'gemini', data?.baseUrl, data?.apiKey, true, undefined);
+    const modelListState = useModeModeList(data?.platform || 'gemini', data?.base_url, data?.api_key, true, undefined);
 
     useEffect(() => {
       if (data) {
@@ -129,11 +129,11 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
           ...data,
           model:
             data.model && data.model.length > 0 ? (data.model.length === 1 ? data.model[0] : data.model) : undefined,
-          bedrockAuthMethod: data.bedrockConfig?.authMethod || 'accessKey',
-          bedrockRegion: data.bedrockConfig?.region || 'us-east-1',
-          bedrockAccessKeyId: data.bedrockConfig?.accessKeyId || '',
-          bedrockSecretAccessKey: data.bedrockConfig?.secretAccessKey || '',
-          bedrockProfile: data.bedrockConfig?.profile || '',
+          bedrockAuthMethod: data.bedrock_config?.auth_method || 'accessKey',
+          bedrockRegion: data.bedrock_config?.region || 'us-east-1',
+          bedrockAccessKeyId: data.bedrock_config?.access_key_id || '',
+          bedrockSecretAccessKey: data.bedrock_config?.secret_access_key || '',
+          bedrockProfile: data.bedrock_config?.profile || '',
         });
       }
     }, [data, form]);
@@ -162,13 +162,13 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
             // Add Bedrock configuration if platform is Bedrock
             if (isBedrock) {
-              updatedProvider.bedrockConfig = {
-                authMethod: values.bedrockAuthMethod,
+              updatedProvider.bedrock_config = {
+                auth_method: values.bedrockAuthMethod,
                 region: values.bedrockRegion,
                 ...(values.bedrockAuthMethod === 'accessKey'
                   ? {
-                      accessKeyId: values.bedrockAccessKeyId,
-                      secretAccessKey: values.bedrockSecretAccessKey,
+                      access_key_id: values.bedrockAccessKeyId,
+                      secret_access_key: values.bedrockSecretAccessKey,
                     }
                   : {
                       profile: values.bedrockProfile,
@@ -206,10 +206,10 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
             <Form.Item
               hidden={isBedrock}
-              label={t('settings.baseUrl')}
+              label={t('settings.base_url')}
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
-              field={'baseUrl'}
+              field={'base_url'}
               disabled
             >
               <Input></Input>
@@ -217,26 +217,26 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
             <Form.Item
               hidden={isBedrock}
-              label={t('settings.apiKey')}
+              label={t('settings.api_key')}
               required={!isBedrock}
               rules={[{ required: !isBedrock }]}
-              field={'apiKey'}
+              field={'api_key'}
               extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}
             >
-              <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />
+              <Input.TextArea rows={4} placeholder={t('settings.api_keyPlaceholder')} />
             </Form.Item>
 
             {/* AWS Bedrock Authentication Method */}
             <Form.Item
               hidden={!isBedrock}
-              label={t('settings.bedrock.authMethod')}
+              label={t('settings.bedrock.auth_method')}
               field={'bedrockAuthMethod'}
               required={isBedrock}
               rules={[{ required: isBedrock }]}
             >
               <Select>
-                <Select.Option value='accessKey'>{t('settings.bedrock.authMethodAccessKey')}</Select.Option>
-                <Select.Option value='profile'>{t('settings.bedrock.authMethodProfile')}</Select.Option>
+                <Select.Option value='accessKey'>{t('settings.bedrock.auth_methodAccessKey')}</Select.Option>
+                <Select.Option value='profile'>{t('settings.bedrock.auth_methodProfile')}</Select.Option>
               </Select>
             </Form.Item>
 
@@ -264,7 +264,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Access Key ID */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-              label={t('settings.bedrock.accessKeyId')}
+              label={t('settings.bedrock.access_key_id')}
               field={'bedrockAccessKeyId'}
               required={isBedrock && bedrockAuthMethod === 'accessKey'}
               rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}
@@ -275,7 +275,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Secret Access Key */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-              label={t('settings.bedrock.secretAccessKey')}
+              label={t('settings.bedrock.secret_access_key')}
               field={'bedrockSecretAccessKey'}
               required={isBedrock && bedrockAuthMethod === 'accessKey'}
               rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}
@@ -310,7 +310,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                 allowCreate
                 mode={data?.model && data.model.length > 1 ? 'multiple' : undefined}
                 onFocus={async () => {
-                  // For Bedrock, build bedrockConfig from current form values and fetch models
+                  // For Bedrock, build bedrock_config from current form values and fetch models
                   if (isBedrock) {
                     const values = form.getFields();
                     if (!values.bedrockAuthMethod || !values.bedrockRegion) {
@@ -328,14 +328,14 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                       message.error(t('settings.bedrock.fillRequiredFields'));
                       return;
                     }
-                    // Build bedrockConfig and fetch models manually
-                    const bedrockConfig = {
-                      authMethod: values.bedrockAuthMethod,
+                    // Build bedrock_config and fetch models manually
+                    const bedrock_config = {
+                      auth_method: values.bedrockAuthMethod,
                       region: values.bedrockRegion,
                       ...(values.bedrockAuthMethod === 'accessKey'
                         ? {
-                            accessKeyId: values.bedrockAccessKeyId,
-                            secretAccessKey: values.bedrockSecretAccessKey,
+                            access_key_id: values.bedrockAccessKeyId,
+                            secret_access_key: values.bedrockSecretAccessKey,
                           }
                         : {
                             profile: values.bedrockProfile,
@@ -345,7 +345,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                       const res = await ipcBridge.mode.fetchModelList.invoke({
                         platform: data?.platform || 'bedrock',
                         api_key: '',
-                        bedrockConfig,
+                        bedrock_config,
                       });
                       const models =
                         res.mode.map((v) => {

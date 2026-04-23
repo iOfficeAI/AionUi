@@ -19,7 +19,7 @@ export interface WorkspaceProps {
   conversation_id: string;
   eventPrefix?: 'gemini' | 'acp' | 'codex' | 'aionrs';
   messageApi?: MessageApi;
-  teamId?: string;
+  team_id?: string;
 }
 
 /**
@@ -59,7 +59,7 @@ export interface DeleteModalState {
  */
 export interface PasteConfirmState {
   visible: boolean;
-  fileName: string;
+  file_name: string;
   filesToPaste: Array<{ path: string; name: string }>;
   doNotAsk: boolean;
   targetFolder: string | null;

@@ -173,10 +173,10 @@ export class McpOAuthService {
   /**
    * 登出（删除存储的 token）
    */
-  async logout(serverName: string): Promise<void> {
+  async logout(server_name: string): Promise<void> {
     try {
-      await this.tokenStorage.deleteCredentials(serverName);
-      console.log(`[McpOAuthService] Logged out from ${serverName}`);
+      await this.tokenStorage.deleteCredentials(server_name);
+      console.log(`[McpOAuthService] Logged out from ${server_name}`);
     } catch (error) {
       console.error('[McpOAuthService] Failed to logout:', error);
       throw error;

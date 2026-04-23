@@ -75,9 +75,9 @@ export const useMcpAgentStatus = () => {
       const currentEnabledServers = new Set(servers.filter((s) => s.enabled).map((s) => s.name));
       const filteredInstallStatus: Record<string, string[]> = {};
 
-      for (const [serverName, agents] of Object.entries(installStatus)) {
-        if (currentEnabledServers.has(serverName)) {
-          filteredInstallStatus[serverName] = agents;
+      for (const [server_name, agents] of Object.entries(installStatus)) {
+        if (currentEnabledServers.has(server_name)) {
+          filteredInstallStatus[server_name] = agents;
         }
       }
 
@@ -163,9 +163,9 @@ export const useMcpAgentStatus = () => {
   );
 
   // 仅检查单个服务器的安装状态（不执行连接测试等其他操作）
-  const checkSingleServerInstallStatus = useCallback(async (serverName: string) => {
+  const checkSingleServerInstallStatus = useCallback(async (server_name: string) => {
     // 设置加载状态
-    setLoadingServers((prev) => new Set(prev).add(serverName));
+    setLoadingServers((prev) => new Set(prev).add(server_name));
 
     try {
       // 获取可用的agents
@@ -183,7 +183,7 @@ export const useMcpAgentStatus = () => {
       // 只检查指定服务器的安装状态
       const installedAgents: string[] = [];
       mcpConfigs.forEach((agentConfig) => {
-        const hasServer = agentConfig.servers.some((server) => server.name === serverName);
+        const hasServer = agentConfig.servers.some((server) => server.name === server_name);
         if (hasServer) {
           installedAgents.push(agentConfig.source);
         }
@@ -193,9 +193,9 @@ export const useMcpAgentStatus = () => {
       setAgentInstallStatus((prev) => {
         const updated = { ...prev };
         if (installedAgents.length > 0) {
-          updated[serverName] = installedAgents;
+          updated[server_name] = installedAgents;
         } else {
-          delete updated[serverName];
+          delete updated[server_name];
         }
 
         // 同时更新本地存储
@@ -211,7 +211,7 @@ export const useMcpAgentStatus = () => {
       // 清除加载状态
       setLoadingServers((prev) => {
         const newSet = new Set(prev);
-        newSet.delete(serverName);
+        newSet.delete(server_name);
         return newSet;
       });
     }
@@ -219,8 +219,8 @@ export const useMcpAgentStatus = () => {
 
   // 检查特定服务器是否正在加载
   const isServerLoading = useCallback(
-    (serverName: string) => {
-      return loadingServers.has(serverName);
+    (server_name: string) => {
+      return loadingServers.has(server_name);
     },
     [loadingServers]
   );

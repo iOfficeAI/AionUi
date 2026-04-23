@@ -10,6 +10,6 @@ export const removeWorkspaceEntry = (path: string) => {
   return ipcBridge.fs.removeEntry.invoke({ path });
 };
 
-export const renameWorkspaceEntry = (path: string, newName: string) => {
-  return ipcBridge.fs.renameEntry.invoke({ path, newName });
+export const renameWorkspaceEntry = (path: string, new_name: string) => {
+  return ipcBridge.fs.renameEntry.invoke({ path, new_name });
 };

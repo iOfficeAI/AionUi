@@ -109,11 +109,11 @@ const migrateLegacyData = async () => {
   return false;
 };
 
-const WriteFile = async (filePath: string, data: string) => {
+const WriteFile = async (file_path: string, data: string) => {
   // Ensure parent directory exists to prevent ENOENT on first write
-  const dir = nodePath.dirname(filePath);
+  const dir = nodePath.dirname(file_path);
   await fs.mkdir(dir, { recursive: true });
-  return fs.writeFile(filePath, data);
+  return fs.writeFile(file_path, data);
 };
 
 /**
@@ -126,7 +126,7 @@ const WriteFile = async (filePath: string, data: string) => {
  *
  * The on-disk format stays base64(encodeURIComponent(JSON)) for backward compat.
  */
-const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: string) => {
+const JsonFileBuilder = <S extends object = Record<string, unknown>>(file_path: string) => {
   // -- encoding helpers (unchanged, keeps backward compat) --
   const encode = (data: unknown) => btoa(encodeURIComponent(String(data)));
   const decode = (base64: string) => decodeURIComponent(atob(base64));
@@ -136,13 +136,13 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
 
   const loadSync = (): S => {
     try {
-      const raw = readFileSync(filePath).toString();
+      const raw = readFileSync(file_path).toString();
       if (!raw || raw.trim() === '') return {} as S;
       const decoded = decode(raw);
       if (!decoded || decoded.trim() === '') return {} as S;
       const parsed = JSON.parse(decoded) as S;
-      if (filePath.includes('chat.txt') && Object.keys(parsed).length === 0) {
-        console.warn(`[Storage] Chat history file appears to be empty: ${filePath}`);
+      if (file_path.includes('chat.txt') && Object.keys(parsed).length === 0) {
+        console.warn(`[Storage] Chat history file appears to be empty: ${file_path}`);
       }
       return parsed;
     } catch {
@@ -165,12 +165,12 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
     const encoded = encode(JSON.stringify(data));
     // Write once, branch the promise: writeChain stays resolved (so one
     // failure doesn't block subsequent writes), callers get the real error.
-    const writeOp = writeChain.then(() => WriteFile(filePath, encoded));
+    const writeOp = writeChain.then(() => WriteFile(file_path, encoded));
     writeChain = writeOp.catch(() => {});
     return writeOp.then(
       () => data,
       (err) => {
-        console.error(`[Storage] Failed to persist ${filePath}:`, err);
+        console.error(`[Storage] Failed to persist ${file_path}:`, err);
         throw err;
       }
     );
@@ -224,7 +224,7 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
         mkdirSync(dir);
       }
       // Backup: copy the file then remove original
-      const doCopy = () => fs.copyFile(filePath, fullName).then(() => fs.rm(filePath, { recursive: true }));
+      const doCopy = () => fs.copyFile(file_path, fullName).then(() => fs.rm(file_path, { recursive: true }));
       const backupOp = writeChain.then(doCopy);
       writeChain = backupOp.catch(() => {});
       return backupOp.then(
@@ -358,7 +358,7 @@ const getAutoSkillsDir = () => {
 
 /**
  * Get the directory for per-cron-job SKILL.md files.
- * Each cron job gets its own subdirectory: {cronSkillsDir}/{jobId}/SKILL.md
+ * Each cron job gets its own subdirectory: {cronSkillsDir}/{job_id}/SKILL.md
  */
 const getCronSkillsDir = () => {
   return path.join(cacheDir, STORAGE_PATH.cronSkills);
@@ -457,7 +457,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
     // 如果设置了 resourceDir，使用该目录；否则使用默认的 rules/ 目录
     // If resourceDir is set, use that directory; otherwise use default rules/ directory
-    const presetRulesDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : rulesDir;
+    const preset_rulesDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : rulesDir;
     const presetSkillsDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : builtinSkillsDir;
 
     // 复制规则文件 / Copy rule files
@@ -465,7 +465,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     if (hasRuleFiles) {
       for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
         try {
-          const sourceRulesPath = path.join(presetRulesDir, ruleFile);
+          const sourceRulesPath = path.join(preset_rulesDir, ruleFile);
           // 目标文件名格式：{assistantId}.{locale}.md
           // Target file name format: {assistantId}.{locale}.md
           const targetFileName = `${assistantId}.${locale}.md`;
@@ -497,8 +497,8 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         const files = readdirSync(assistantsDir);
         for (const file of files) {
           if (rulesFilePattern.test(file)) {
-            const filePath = path.join(assistantsDir, file);
-            await fs.unlink(filePath);
+            const file_path = path.join(assistantsDir, file);
+            await fs.unlink(file_path);
           }
         }
       } catch (error) {
@@ -544,8 +544,8 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         const files = readdirSync(assistantsDir);
         for (const file of files) {
           if (skillsFilePattern.test(file)) {
-            const filePath = path.join(assistantsDir, file);
-            await fs.unlink(filePath);
+            const file_path = path.join(assistantsDir, file);
+            await fs.unlink(file_path);
           }
         }
       } catch (error) {
@@ -590,11 +590,11 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       // context is no longer stored in config, read from files instead
       // Cowork 默认启用 / Cowork enabled by default
       enabled: enabledByDefault,
-      isPreset: true,
+      is_preset: true,
       isBuiltin: true,
       presetAgentType: preset.presetAgentType || 'gemini',
       // Cowork 默认启用所有内置技能 / Cowork enables all builtin skills by default
-      enabledSkills: defaultEnabledSkills,
+      enabled_skills: defaultEnabledSkills,
       // 复制快捷提示词 / Copy quick prompts
       promptsI18n: preset.promptsI18n,
     });
@@ -627,9 +627,9 @@ const getDefaultMcpServers = (): IMcpServer[] => {
       command: config.command,
       args: config.args,
     },
-    createdAt: now,
-    updatedAt: now,
-    originalJson: JSON.stringify({ [name]: config }, null, 2),
+    created_at: now,
+    updated_at: now,
+    original_json: JSON.stringify({ [name]: config }, null, 2),
   }));
 };
 
@@ -685,8 +685,8 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       if (!cfg) return {};
       const env: Record<string, string> = {};
       if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
-      if (cfg.baseUrl) env.AIONUI_IMG_BASE_URL = cfg.baseUrl;
-      if (cfg.apiKey) env.AIONUI_IMG_API_KEY = cfg.apiKey;
+      if (cfg.base_url) env.AIONUI_IMG_BASE_URL = cfg.base_url;
+      if (cfg.api_key) env.AIONUI_IMG_API_KEY = cfg.api_key;
       if (cfg.useModel) env.AIONUI_IMG_MODEL = cfg.useModel;
       return env;
     };
@@ -735,15 +735,15 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
         const newOriginalJson =
           needsPathUpdate && updatedTransport.type === 'stdio'
             ? buildOriginalJson(scriptPath, updatedTransport.env ?? {})
-            : existing.originalJson;
+            : existing.original_json;
 
         mcpServers[existingIdx] = {
           ...existing,
           name: needsNameMigration ? BUILTIN_IMAGE_GEN_NAME : existing.name,
           transport: updatedTransport,
-          originalJson: newOriginalJson,
+          original_json: newOriginalJson,
           enabled: needsMigration ? true : existing.enabled,
-          updatedAt: now,
+          updated_at: now,
         };
         changed = true;
       }
@@ -762,9 +762,9 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
           args: [scriptPath],
           env,
         },
-        createdAt: now,
-        updatedAt: now,
-        originalJson: buildOriginalJson(scriptPath, env),
+        created_at: now,
+        updated_at: now,
+        original_json: buildOriginalJson(scriptPath, env),
       };
       mcpServers.push(newServer);
       changed = true;
@@ -792,16 +792,16 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 const cleanupOrphanedHealthCheckConversations = async () => {
   try {
     const db = await getDatabase();
-    const pageSize = 1000;
+    const page_size = 1000;
     const idsToDelete: string[] = [];
     let page = 0;
     let hasMore = true;
 
     while (hasMore) {
-      const result = db.getUserConversations(undefined, page, pageSize);
+      const result = db.getUserConversations(undefined, page, page_size);
       result.data.forEach((conversation) => {
-        const extra = conversation.extra as { isHealthCheck?: boolean } | undefined;
-        if (extra?.isHealthCheck === true) {
+        const extra = conversation.extra as { is_health_check?: boolean } | undefined;
+        if (extra?.is_health_check === true) {
           idsToDelete.push(conversation.id);
         }
       });
@@ -870,8 +870,8 @@ const initStorage = async () => {
     mark('5.1 initBuiltinAssistantRules');
 
     // 5.2 Split storage semantics (one-time migration):
-    //   - `assistants`        → built-in / preset assistants (isPreset === true)
-    //   - `acp.customAgents`  → user-defined custom ACP agents (isPreset !== true)
+    //   - `assistants`        → built-in / preset assistants (is_preset === true)
+    //   - `acp.customAgents`  → user-defined custom ACP agents (is_preset !== true)
     //
     // Historical context: v1.9.18 moved every entry from `acp.customAgents` into
     // `assistants`, conflating the two concepts. This migration splits them back.
@@ -886,8 +886,8 @@ const initStorage = async () => {
         ((await configFile.get('assistants').catch((): undefined => undefined)) as AcpBackendConfig[] | undefined) ||
         [];
 
-      const presetsInAssistants = currentAssistants.filter((a) => a.isPreset === true);
-      const customsInAssistants = currentAssistants.filter((a) => a.isPreset !== true);
+      const presetsInAssistants = currentAssistants.filter((a) => a.is_preset === true);
+      const customsInAssistants = currentAssistants.filter((a) => a.is_preset !== true);
 
       // Merge customs, dedupe by id (existing acp.customAgents takes priority).
       const existingCustomIds = new Set(legacyCustomAgents.map((a) => a.id));
@@ -960,7 +960,7 @@ const initStorage = async () => {
           existing.name !== builtin.name ||
           existing.description !== builtin.description ||
           existing.avatar !== builtin.avatar ||
-          existing.isPreset !== builtin.isPreset ||
+          existing.is_preset !== builtin.is_preset ||
           existing.isBuiltin !== builtin.isBuiltin ||
           nameI18nMissing ||
           !!nameI18nChanged ||
@@ -977,21 +977,21 @@ const initStorage = async () => {
         // presetAgentType is user-controlled, use builtin default if not set
         const resolvedPresetAgentType = existing.presetAgentType ?? builtin.presetAgentType;
 
-        // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设置 enabledSkills 时）
-        // Add default enabled skills for builtin assistants with defaultEnabledSkills (only during migration and if user hasn't set enabledSkills)
-        let resolvedEnabledSkills = existing.enabledSkills;
+        // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设置 enabled_skills 时）
+        // Add default enabled skills for builtin assistants with defaultEnabledSkills (only during migration and if user hasn't set enabled_skills)
+        let resolvedEnabledSkills = existing.enabled_skills;
         const needsSkillsMigration =
           needsBuiltinSkillsMigration &&
-          builtin.enabledSkills &&
-          (!existing.enabledSkills || existing.enabledSkills.length === 0);
+          builtin.enabled_skills &&
+          (!existing.enabled_skills || existing.enabled_skills.length === 0);
         if (needsSkillsMigration) {
-          resolvedEnabledSkills = builtin.enabledSkills;
+          resolvedEnabledSkills = builtin.enabled_skills;
         }
 
         if (
           shouldUpdate ||
           needsEnabledFix ||
-          (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills) ||
+          (needsSkillsMigration && resolvedEnabledSkills !== existing.enabled_skills) ||
           needsPromptsI18nUpdate
         ) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
@@ -1000,7 +1000,7 @@ const initStorage = async () => {
             ...builtin,
             enabled: resolvedEnabled,
             presetAgentType: resolvedPresetAgentType,
-            enabledSkills: resolvedEnabledSkills,
+            enabled_skills: resolvedEnabledSkills,
             // 确保 promptsI18n 被更新 / Ensure promptsI18n is updated
             promptsI18n: builtin.promptsI18n,
           };
@@ -1096,17 +1096,17 @@ const skillsContentCache = new Map<string, string>();
 /**
  * 加载指定 skills 的内容（带缓存）
  * Load content of specified skills (with caching)
- * @param enabledSkills - skill 名称列表 / list of skill names
+ * @param enabled_skills - skill 名称列表 / list of skill names
  * @returns 合并后的 skills 内容 / merged skills content
  */
-export const loadSkillsContent = async (enabledSkills: string[]): Promise<string> => {
-  if (!enabledSkills || enabledSkills.length === 0) {
+export const loadSkillsContent = async (enabled_skills: string[]): Promise<string> => {
+  if (!enabled_skills || enabled_skills.length === 0) {
     return '';
   }
 
   // 使用排序后的 skill 名称作为缓存 key，确保相同组合命中缓存
   // Use sorted skill names as cache key to ensure same combinations hit cache
-  const cacheKey = [...enabledSkills].toSorted().join(',');
+  const cacheKey = [...enabled_skills].toSorted().join(',');
   const cached = skillsContentCache.get(cacheKey);
   if (cached !== undefined) {
     return cached;
@@ -1116,7 +1116,7 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
   const builtinSkillsDir = getAutoSkillsDir();
   const skillContents: string[] = [];
 
-  for (const skillName of enabledSkills) {
+  for (const skillName of enabled_skills) {
     // 1. Auto-enabled builtin: builtin-skills/_builtin/{skillName}/SKILL.md
     const builtinSkillFile = path.join(builtinSkillsDir, skillName, 'SKILL.md');
     // 2. Bundled skill: builtin-skills/{skillName}/SKILL.md

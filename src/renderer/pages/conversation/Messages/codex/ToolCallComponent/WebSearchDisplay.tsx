@@ -12,7 +12,7 @@ import BaseToolCallDisplay from './BaseToolCallDisplay';
 type WebSearchUpdate = Extract<CodexToolCallUpdate, { subtype: 'web_search_begin' | 'web_search_end' }>;
 
 const WebSearchDisplay: React.FC<{ content: WebSearchUpdate }> = ({ content }) => {
-  const { toolCallId, title, status, description, subtype, data } = content;
+  const { tool_call_id, title, status, description, subtype, data } = content;
   const { t } = useTranslation();
 
   const getDisplayTitle = () => {
@@ -32,7 +32,7 @@ const WebSearchDisplay: React.FC<{ content: WebSearchUpdate }> = ({ content }) =
 
   return (
     <BaseToolCallDisplay
-      toolCallId={toolCallId}
+      tool_call_id={tool_call_id}
       title={getDisplayTitle()}
       status={status}
       description={description}

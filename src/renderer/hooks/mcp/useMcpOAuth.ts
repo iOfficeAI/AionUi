@@ -98,9 +98,9 @@ export const useMcpOAuth = () => {
 
   // 登出
   const logout = useCallback(
-    async (serverName: string, serverId: string): Promise<{ success: boolean; error?: string }> => {
+    async (server_name: string, serverId: string): Promise<{ success: boolean; error?: string }> => {
       try {
-        await mcpService.logoutMcpOAuth.invoke(serverName);
+        await mcpService.logoutMcpOAuth.invoke(server_name);
 
         // 登出成功，更新状态
         setOAuthStatus((prev) => ({

@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 
 interface HTMLPreviewProps {
   content: string;
-  filePath?: string;
+  file_path?: string;
   hideToolbar?: boolean;
 }
 
@@ -28,7 +28,7 @@ interface SelectedElement {
  * - 支持元素选择器（类似 DevTools）
  * - 支持双向定位：预览 ↔ 代码
  */
-const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolbar = false }) => {
+const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolbar = false }) => {
   const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editMode, setEditMode] = useState(false);
@@ -71,20 +71,20 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
 
     // 注入 <base> 标签以支持相对路径 / Inject <base> tag to support relative paths
     let finalHtml = htmlCode;
-    if (filePath) {
+    if (file_path) {
       // 获取文件所在目录 / Get directory of the file
-      const fileDir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+      const fileDir = file_path.substring(0, file_path.lastIndexOf('/') + 1);
       // 构造 file:// 协议的 base URL / Construct file:// protocol base URL
-      const baseUrl = `file://${fileDir}`;
+      const base_url = `file://${fileDir}`;
 
       // 检查是否已有 base 标签 / Check if base tag exists
       if (!finalHtml.match(/<base\s+href=/i)) {
         if (finalHtml.match(/<head>/i)) {
-          finalHtml = finalHtml.replace(/<head>/i, `<head><base href="${baseUrl}">`);
+          finalHtml = finalHtml.replace(/<head>/i, `<head><base href="${base_url}">`);
         } else if (finalHtml.match(/<html>/i)) {
-          finalHtml = finalHtml.replace(/<html>/i, `<html><head><base href="${baseUrl}"></head>`);
+          finalHtml = finalHtml.replace(/<html>/i, `<html><head><base href="${base_url}"></head>`);
         } else {
-          finalHtml = `<head><base href="${baseUrl}"></head>${finalHtml}`;
+          finalHtml = `<head><base href="${base_url}"></head>${finalHtml}`;
         }
       }
     }
@@ -286,7 +286,7 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${filePath?.split('/').pop() || 'document'}.html`;
+    link.download = `${file_path?.split('/').pop() || 'document'}.html`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

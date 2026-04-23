@@ -51,8 +51,8 @@ const TOOL_CONTINUATION_WAIT_MS = 15_000;
  */
 export class ChannelMessageService {
   /**
-   * 活跃消息流缓存：conversationId -> 流状态
-   * Active message stream cache: conversationId -> stream state
+   * 活跃消息流缓存：conversation_id -> 流状态
+   * Active message stream cache: conversation_id -> stream state
    */
   private activeStreams: Map<string, IStreamState> = new Map();
 
@@ -77,9 +77,9 @@ export class ChannelMessageService {
     }
   }
 
-  private resolveStream(conversationId: string, stream: IStreamState): void {
+  private resolveStream(conversation_id: string, stream: IStreamState): void {
     this.clearFinishTimer(stream);
-    this.activeStreams.delete(conversationId);
+    this.activeStreams.delete(conversation_id);
     stream.resolve(stream.msgId);
   }
 
@@ -106,8 +106,8 @@ export class ChannelMessageService {
    * Handle agent message event
    */
   private handleAgentMessage(event: IAgentMessageEvent): void {
-    const conversationId = event.conversation_id;
-    const stream = this.activeStreams.get(conversationId);
+    const conversation_id = event.conversation_id;
+    const stream = this.activeStreams.get(conversation_id);
     if (!stream) {
       // 没有活跃的流，忽略消息
       // No active stream, ignore message
@@ -132,12 +132,12 @@ export class ChannelMessageService {
         if (shouldWaitForContinuation) {
           this.clearFinishTimer(stream);
           stream.finishTimer = setTimeout(() => {
-            if (this.activeStreams.get(conversationId) === stream) {
-              this.resolveStream(conversationId, stream);
+            if (this.activeStreams.get(conversation_id) === stream) {
+              this.resolveStream(conversation_id, stream);
             }
           }, TOOL_CONTINUATION_WAIT_MS);
         } else {
-          this.resolveStream(conversationId, stream);
+          this.resolveStream(conversation_id, stream);
         }
       }
       return;
@@ -154,7 +154,7 @@ export class ChannelMessageService {
 
     stream.lastVisibleMessageType = message.type;
 
-    let messageList = this.messageListMap.get(conversationId);
+    let messageList = this.messageListMap.get(conversation_id);
     if (!messageList) {
       messageList = [];
     }
@@ -166,21 +166,21 @@ export class ChannelMessageService {
       const isInsert = type === 'insert';
       stream.callback(msg, isInsert);
     });
-    this.messageListMap.set(conversationId, messageList.slice(-20));
+    this.messageListMap.set(conversation_id, messageList.slice(-20));
   }
 
   /**
    * Send a message and get streaming response
    *
-   * @param _sessionId - User session ID (kept for API compatibility)
-   * @param conversationId - Conversation ID for context
+   * @param _session_id - User session ID (kept for API compatibility)
+   * @param conversation_id - Conversation ID for context
    * @param message - User message text
    * @param onStream - Callback for streaming updates
    * @returns Promise that resolves when streaming is complete
    */
   async sendMessage(
-    _sessionId: string,
-    conversationId: string,
+    _session_id: string,
+    conversation_id: string,
     message: string,
     onStream: StreamCallback
   ): Promise<string> {
@@ -199,7 +199,7 @@ export class ChannelMessageService {
       // 检查会话来源，如果来自 Channel 则开启 yoloMode (自动同意)
       // Check conversation source, enable yoloMode if it's from a Channel
       const db = await getDatabase();
-      const dbResult = db.getConversation(conversationId);
+      const dbResult = db.getConversation(conversation_id);
       const isFromChannel =
         dbResult.success &&
         (dbResult.data?.source === 'lark' ||
@@ -208,7 +208,7 @@ export class ChannelMessageService {
           dbResult.data?.source === 'weixin' ||
           dbResult.data?.source === 'wecom');
 
-      task = await workerTaskManager.getOrBuildTask(conversationId, {
+      task = await workerTaskManager.getOrBuildTask(conversation_id, {
         yoloMode: isFromChannel,
       });
     } catch (error) {
@@ -218,7 +218,7 @@ export class ChannelMessageService {
         {
           type: 'tips',
           id: uuid(),
-          conversation_id: conversationId,
+          conversation_id: conversation_id,
           content: {
             type: 'error',
             content: `Error: ${errorMsg}`,
@@ -230,14 +230,14 @@ export class ChannelMessageService {
     }
 
     return new Promise((resolve, reject) => {
-      const existingStream = this.activeStreams.get(conversationId);
+      const existingStream = this.activeStreams.get(conversation_id);
       if (existingStream) {
-        this.resolveStream(conversationId, existingStream);
+        this.resolveStream(conversation_id, existingStream);
       }
 
       // 注册流状态
       // Register stream state
-      this.activeStreams.set(conversationId, {
+      this.activeStreams.set(conversation_id, {
         msgId,
         callback: onStream,
         buffer: '',
@@ -263,16 +263,16 @@ export class ChannelMessageService {
           {
             type: 'tips',
             id: uuid(),
-            conversation_id: conversationId,
+            conversation_id: conversation_id,
             content: { type: 'error', content: errorMessage },
           },
           true
         );
-        const stream = this.activeStreams.get(conversationId);
+        const stream = this.activeStreams.get(conversation_id);
         if (stream) {
           this.clearFinishTimer(stream);
         }
-        this.activeStreams.delete(conversationId);
+        this.activeStreams.delete(conversation_id);
         reject(error);
       });
     });
@@ -284,7 +284,7 @@ export class ChannelMessageService {
    *
    * 清理会话上下文。Agent 的清理由 WorkerManage 处理。
    */
-  async clearContext(_sessionId: string): Promise<void> {
+  async clearContext(_session_id: string): Promise<void> {
     // Agent cleanup is handled by WorkerManage
   }
 
@@ -292,11 +292,11 @@ export class ChannelMessageService {
    * Clear active stream for a conversation
    * 清理指定会话的活跃流
    */
-  clearStreamByConversationId(conversationId: string): void {
-    const stream = this.activeStreams.get(conversationId);
+  clearStreamByConversationId(conversation_id: string): void {
+    const stream = this.activeStreams.get(conversation_id);
     if (!stream) return;
     this.clearFinishTimer(stream);
-    this.activeStreams.delete(conversationId);
+    this.activeStreams.delete(conversation_id);
     // Resolve (not reject) so the caller's post-stream cleanup runs normally
     // (e.g., ActionExecutor finalizing the card with action buttons).
     stream.resolve(stream.msgId);
@@ -305,36 +305,36 @@ export class ChannelMessageService {
   /**
    * Stop streaming for a conversation
    */
-  async stopStreaming(conversationId: string): Promise<void> {
+  async stopStreaming(conversation_id: string): Promise<void> {
     try {
-      const task = workerTaskManager.getTask(conversationId);
+      const task = workerTaskManager.getTask(conversation_id);
       if (task) {
         await task.stop();
       }
     } catch (error) {
       console.warn(`[ChannelMessageService] Failed to stop streaming:`, error);
     }
-    this.clearStreamByConversationId(conversationId);
+    this.clearStreamByConversationId(conversation_id);
   }
 
   /**
    * Confirm a tool call for a conversation
    * 确认工具调用
    *
-   * @param conversationId - Conversation ID
-   * @param callId - Tool call ID
+   * @param conversation_id - Conversation ID
+   * @param call_id - Tool call ID
    * @param value - Confirmation value (e.g., 'proceed_once', 'cancel')
    */
-  async confirm(conversationId: string, callId: string, value: string): Promise<void> {
+  async confirm(conversation_id: string, call_id: string, value: string): Promise<void> {
     try {
-      const task = workerTaskManager.getTask(conversationId);
+      const task = workerTaskManager.getTask(conversation_id);
       if (!task) {
-        throw new Error(`Task not found for conversation ${conversationId}`);
+        throw new Error(`Task not found for conversation ${conversation_id}`);
       }
 
       // 调用 agent 的 confirm 方法
       // Call agent's confirm method
-      task.confirm(conversationId, callId, value);
+      task.confirm(conversation_id, call_id, value);
     } catch (error) {
       console.error(`[ChannelMessageService] Failed to confirm tool call:`, error);
       throw error;
@@ -348,8 +348,8 @@ export class ChannelMessageService {
   async shutdown(): Promise<void> {
     // 清理所有活跃流
     // Clear all active streams
-    for (const [conversationId] of this.activeStreams) {
-      this.clearStreamByConversationId(conversationId);
+    for (const [conversation_id] of this.activeStreams) {
+      this.clearStreamByConversationId(conversation_id);
     }
     this.activeStreams.clear();
 

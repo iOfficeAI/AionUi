@@ -11,15 +11,15 @@ import { ConfigStorage } from '@/common/config/storage';
 export type PresetAssistantResourceDeps = {
   readAssistantRule: (args: { assistantId: string; locale: string }) => Promise<string>;
   readAssistantSkill: (args: { assistantId: string; locale: string }) => Promise<string>;
-  readBuiltinRule: (args: { fileName: string }) => Promise<string>;
-  readBuiltinSkill: (args: { fileName: string }) => Promise<string>;
-  getEnabledSkills: (customAgentId: string) => Promise<string[] | undefined>;
-  getDisabledBuiltinSkills: (customAgentId: string) => Promise<string[] | undefined>;
+  readBuiltinRule: (args: { file_name: string }) => Promise<string>;
+  readBuiltinSkill: (args: { file_name: string }) => Promise<string>;
+  getEnabledSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
+  getDisabledBuiltinSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
 };
 
 export type LoadPresetAssistantResourcesOptions = {
-  customAgentId?: string;
+  custom_agent_id?: string;
   localeKey: string;
   fallbackRules?: string;
 };
@@ -27,7 +27,7 @@ export type LoadPresetAssistantResourcesOptions = {
 export type PresetAssistantResources = {
   rules?: string;
   skills: string;
-  enabledSkills?: string[];
+  enabled_skills?: string[];
   disabledBuiltinSkills?: string[];
 };
 
@@ -36,22 +36,22 @@ const defaultDeps: PresetAssistantResourceDeps = {
   readAssistantSkill: (args) => ipcBridge.fs.readAssistantSkill.invoke(args),
   readBuiltinRule: (args) => ipcBridge.fs.readBuiltinRule.invoke(args),
   readBuiltinSkill: (args) => ipcBridge.fs.readBuiltinSkill.invoke(args),
-  getEnabledSkills: async (customAgentId) => {
+  getEnabledSkills: async (custom_agent_id) => {
     const [presets, customs] = await Promise.all([
       ConfigStorage.get('assistants'),
       ConfigStorage.get('acp.customAgents'),
     ]);
     const assistant =
-      presets?.find((agent) => agent.id === customAgentId) ?? customs?.find((agent) => agent.id === customAgentId);
-    return assistant?.enabledSkills;
+      presets?.find((agent) => agent.id === custom_agent_id) ?? customs?.find((agent) => agent.id === custom_agent_id);
+    return assistant?.enabled_skills;
   },
-  getDisabledBuiltinSkills: async (customAgentId) => {
+  getDisabledBuiltinSkills: async (custom_agent_id) => {
     const [presets, customs] = await Promise.all([
       ConfigStorage.get('assistants'),
       ConfigStorage.get('acp.customAgents'),
     ]);
     const assistant =
-      presets?.find((agent) => agent.id === customAgentId) ?? customs?.find((agent) => agent.id === customAgentId);
+      presets?.find((agent) => agent.id === custom_agent_id) ?? customs?.find((agent) => agent.id === custom_agent_id);
     return assistant?.disabledBuiltinSkills;
   },
   warn: (message, error) => {
@@ -63,13 +63,13 @@ export async function loadPresetAssistantResources(
   options: LoadPresetAssistantResourcesOptions,
   deps: PresetAssistantResourceDeps = defaultDeps
 ): Promise<PresetAssistantResources> {
-  const { customAgentId, localeKey, fallbackRules } = options;
+  const { custom_agent_id, localeKey, fallbackRules } = options;
 
-  if (!customAgentId) {
+  if (!custom_agent_id) {
     return {
       rules: fallbackRules,
       skills: '',
-      enabledSkills: undefined,
+      enabled_skills: undefined,
       disabledBuiltinSkills: undefined,
     };
   }
@@ -78,19 +78,19 @@ export async function loadPresetAssistantResources(
   let skills = '';
 
   try {
-    rules = (await deps.readAssistantRule({ assistantId: customAgentId, locale: localeKey })) || '';
+    rules = (await deps.readAssistantRule({ assistantId: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
-    deps.warn(`[presetAssistantResources] Failed to load rules for ${customAgentId}`, error);
+    deps.warn(`[presetAssistantResources] Failed to load rules for ${custom_agent_id}`, error);
   }
 
   try {
-    skills = (await deps.readAssistantSkill({ assistantId: customAgentId, locale: localeKey })) || '';
+    skills = (await deps.readAssistantSkill({ assistantId: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
-    deps.warn(`[presetAssistantResources] Failed to load skills for ${customAgentId}`, error);
+    deps.warn(`[presetAssistantResources] Failed to load skills for ${custom_agent_id}`, error);
   }
 
-  if (customAgentId.startsWith('builtin-')) {
-    const presetId = customAgentId.replace('builtin-', '');
+  if (custom_agent_id.startsWith('builtin-')) {
+    const presetId = custom_agent_id.replace('builtin-', '');
     const preset = ASSISTANT_PRESETS.find((item) => item.id === presetId);
 
     if (preset) {
@@ -98,10 +98,10 @@ export async function loadPresetAssistantResources(
         try {
           const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
           if (ruleFile) {
-            rules = (await deps.readBuiltinRule({ fileName: ruleFile })) || '';
+            rules = (await deps.readBuiltinRule({ file_name: ruleFile })) || '';
           }
         } catch (error) {
-          deps.warn(`[presetAssistantResources] Failed to load builtin rules for ${customAgentId}`, error);
+          deps.warn(`[presetAssistantResources] Failed to load builtin rules for ${custom_agent_id}`, error);
         }
       }
 
@@ -109,10 +109,10 @@ export async function loadPresetAssistantResources(
         try {
           const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
           if (skillFile) {
-            skills = (await deps.readBuiltinSkill({ fileName: skillFile })) || '';
+            skills = (await deps.readBuiltinSkill({ file_name: skillFile })) || '';
           }
         } catch (error) {
-          deps.warn(`[presetAssistantResources] Failed to load builtin skills for ${customAgentId}`, error);
+          deps.warn(`[presetAssistantResources] Failed to load builtin skills for ${custom_agent_id}`, error);
         }
       }
     }
@@ -121,7 +121,7 @@ export async function loadPresetAssistantResources(
   return {
     rules: rules || fallbackRules,
     skills,
-    enabledSkills: await deps.getEnabledSkills(customAgentId),
-    disabledBuiltinSkills: await deps.getDisabledBuiltinSkills(customAgentId),
+    enabled_skills: await deps.getEnabledSkills(custom_agent_id),
+    disabledBuiltinSkills: await deps.getDisabledBuiltinSkills(custom_agent_id),
   };
 }

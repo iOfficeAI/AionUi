@@ -80,7 +80,7 @@ const PreviewHistoryDropdown: React.FC<PreviewHistoryDropdownProps> = ({
       <div className='px-8px py-6px' style={{ borderColor: 'var(--border-base, #e5e6eb)' }}>
         <div className='text-12px text-t-secondary'>{t('preview.historyVersions')}</div>
         <div className='text-11px text-t-tertiary truncate'>
-          {historyTarget?.fileName || historyTarget?.title || t('preview.currentFile')}
+          {historyTarget?.file_name || historyTarget?.title || t('preview.currentFile')}
         </div>
       </div>
 
@@ -101,7 +101,7 @@ const PreviewHistoryDropdown: React.FC<PreviewHistoryDropdownProps> = ({
               className='px-12px py-8px cursor-pointer hover:bg-bg-2 transition-colors'
               onClick={() => onSnapshotSelect(snapshot)}
             >
-              <div className='text-12px text-t-primary'>{new Date(snapshot.createdAt).toLocaleString()}</div>
+              <div className='text-12px text-t-primary'>{new Date(snapshot.created_at).toLocaleString()}</div>
               <div className='text-11px text-t-tertiary'>{(snapshot.size / 1024).toFixed(1)} KB</div>
             </div>
           ))

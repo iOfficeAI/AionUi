@@ -105,10 +105,10 @@ export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebS
   protected createInvocation(
     params: WebSearchToolParams,
     messageBus: MessageBus,
-    _toolName?: string,
-    _toolDisplayName?: string
+    _tool_name?: string,
+    _tool_display_name?: string
   ): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
-    return new WebSearchInvocation(this.dedicatedConfig, params, messageBus, _toolName, _toolDisplayName);
+    return new WebSearchInvocation(this.dedicatedConfig, params, messageBus, _tool_name, _tool_display_name);
   }
 }
 
@@ -117,10 +117,10 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
     private readonly dedicatedConfig: Config,
     params: WebSearchToolParams,
     messageBus: MessageBus,
-    _toolName?: string,
-    _toolDisplayName?: string
+    _tool_name?: string,
+    _tool_display_name?: string
   ) {
-    super(params, messageBus, _toolName, _toolDisplayName);
+    super(params, messageBus, _tool_name, _tool_display_name);
   }
 
   getDescription(): string {

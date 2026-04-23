@@ -21,7 +21,7 @@ export interface DeviceAuthEntry {
   token: string;
   role: string;
   scopes: string[];
-  updatedAtMs: number;
+  updated_atMs: number;
 }
 
 interface DeviceAuthStore {
@@ -58,12 +58,12 @@ function normalizeScopes(scopes: string[] | undefined): string[] {
   return [...out].toSorted();
 }
 
-function readStore(filePath: string): DeviceAuthStore | null {
+function readStore(file_path: string): DeviceAuthStore | null {
   try {
-    if (!fs.existsSync(filePath)) {
+    if (!fs.existsSync(file_path)) {
       return null;
     }
-    const raw = fs.readFileSync(filePath, 'utf8');
+    const raw = fs.readFileSync(file_path, 'utf8');
     const parsed = JSON.parse(raw) as DeviceAuthStore;
     if (parsed?.version !== 1 || typeof parsed.deviceId !== 'string') {
       return null;
@@ -77,12 +77,12 @@ function readStore(filePath: string): DeviceAuthStore | null {
   }
 }
 
-function writeStore(filePath: string, store: DeviceAuthStore): void {
+function writeStore(file_path: string, store: DeviceAuthStore): void {
   try {
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
+    fs.mkdirSync(path.dirname(file_path), { recursive: true });
+    fs.writeFileSync(file_path, `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
     try {
-      fs.chmodSync(filePath, 0o600);
+      fs.chmodSync(file_path, 0o600);
     } catch {
       // best-effort
     }
@@ -96,8 +96,8 @@ function writeStore(filePath: string, store: DeviceAuthStore): void {
  * Load device auth token for a specific device and role
  */
 export function loadDeviceAuthToken(params: { deviceId: string; role: string }): DeviceAuthEntry | null {
-  const filePath = resolveDeviceAuthPath();
-  const store = readStore(filePath);
+  const file_path = resolveDeviceAuthPath();
+  const store = readStore(file_path);
   if (!store) {
     return null;
   }
@@ -121,8 +121,8 @@ export function storeDeviceAuthToken(params: {
   token: string;
   scopes?: string[];
 }): DeviceAuthEntry {
-  const filePath = resolveDeviceAuthPath();
-  const existing = readStore(filePath);
+  const file_path = resolveDeviceAuthPath();
+  const existing = readStore(file_path);
   const role = normalizeRole(params.role);
   const next: DeviceAuthStore = {
     version: 1,
@@ -133,10 +133,10 @@ export function storeDeviceAuthToken(params: {
     token: params.token,
     role,
     scopes: normalizeScopes(params.scopes),
-    updatedAtMs: Date.now(),
+    updated_atMs: Date.now(),
   };
   next.tokens[role] = entry;
-  writeStore(filePath, next);
+  writeStore(file_path, next);
   return entry;
 }
 
@@ -144,8 +144,8 @@ export function storeDeviceAuthToken(params: {
  * Clear device auth token for a specific device and role
  */
 export function clearDeviceAuthToken(params: { deviceId: string; role: string }): void {
-  const filePath = resolveDeviceAuthPath();
-  const store = readStore(filePath);
+  const file_path = resolveDeviceAuthPath();
+  const store = readStore(file_path);
   if (!store || store.deviceId !== params.deviceId) {
     return;
   }
@@ -159,5 +159,5 @@ export function clearDeviceAuthToken(params: { deviceId: string; role: string })
     tokens: { ...store.tokens },
   };
   delete next.tokens[role];
-  writeStore(filePath, next);
+  writeStore(file_path, next);
 }

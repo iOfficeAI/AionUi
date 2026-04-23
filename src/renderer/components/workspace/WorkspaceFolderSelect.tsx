@@ -51,7 +51,7 @@ type WorkspaceFolderSelectProps = {
   onChange: (value: string) => void;
   onClear?: () => void;
   placeholder: string;
-  inputPlaceholder?: string;
+  input_placeholder?: string;
   recentLabel: string;
   chooseDifferentLabel: string;
   recentStorageKey?: string;
@@ -65,7 +65,7 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   onChange,
   onClear,
   placeholder,
-  inputPlaceholder,
+  input_placeholder,
   recentLabel,
   chooseDifferentLabel,
   recentStorageKey = DEFAULT_RECENT_WS_KEY,
@@ -150,7 +150,7 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   const folderName = value ? value.split(/[\\/]/).pop() || value : '';
 
   if (!isDesktop) {
-    return <Input placeholder={inputPlaceholder ?? placeholder} value={value ?? ''} onChange={onChange} />;
+    return <Input placeholder={input_placeholder ?? placeholder} value={value ?? ''} onChange={onChange} />;
   }
 
   return (

@@ -18,31 +18,33 @@ const AcpChat: React.FC<{
   conversation_id: string;
   workspace?: string;
   backend: AcpBackend;
-  sessionMode?: string;
-  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
-  agentName?: string;
-  cronJobId?: string;
+  session_mode?: string;
+  cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+  agent_name?: string;
+  cron_job_id?: string;
   hideSendBox?: boolean;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
   emptySlot?: React.ReactNode;
 }> = ({
   conversation_id,
   workspace,
   backend,
-  sessionMode,
-  cachedConfigOptions,
-  agentName,
-  cronJobId,
+  session_mode,
+  cached_config_options,
+  agent_name,
+  cron_job_id,
   hideSendBox,
-  teamId,
+  team_id,
   agentSlotId,
   emptySlot,
 }) => {
   useMessageLstCache(conversation_id);
 
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>
+    <ConversationProvider
+      value={{ conversation_id: conversation_id, workspace, type: 'acp', cron_job_id, hideSendBox }}
+    >
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot} />
@@ -52,11 +54,11 @@ const AcpChat: React.FC<{
             <AcpSendBox
               conversation_id={conversation_id}
               backend={backend}
-              sessionMode={sessionMode}
-              cachedConfigOptions={cachedConfigOptions}
-              agentName={agentName}
+              session_mode={session_mode}
+              cached_config_options={cached_config_options}
+              agent_name={agent_name}
               workspacePath={workspace}
-              teamId={teamId}
+              team_id={team_id}
               agentSlotId={agentSlotId}
             ></AcpSendBox>
           </ConversationChatConfirm>

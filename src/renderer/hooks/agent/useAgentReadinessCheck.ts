@@ -15,7 +15,7 @@ export type AgentCheckResult = {
   latency?: number;
   error?: string;
   checking: boolean;
-  cliPath?: string;
+  cli_path?: string;
 };
 
 export type AgentReadinessState = {
@@ -39,7 +39,7 @@ type UseAgentReadinessCheckOptions = {
   // The backend type to check (for ACP conversations)
   backend?: AgentBackend;
   // Conversation type ('gemini' or 'acp')
-  conversationType: 'gemini' | 'acp' | 'codex';
+  conversation_type: 'gemini' | 'acp' | 'codex';
   // Whether to auto-check on mount
   autoCheck?: boolean;
   // Callback when a ready agent is found
@@ -65,7 +65,7 @@ const AGENT_NAMES: Partial<Record<AgentBackend, string>> = {
  * and recommend available alternatives.
  */
 export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
-  const { backend, conversationType, autoCheck = false, onAgentReady } = options;
+  const { backend, conversation_type, autoCheck = false, onAgentReady } = options;
 
   const [state, setState] = useState<AgentReadinessState>({
     isReady: true, // Assume ready until proven otherwise
@@ -73,12 +73,12 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     availableAgents: [],
     bestAgent: null,
     progress: 0,
-    currentAgent: conversationType === 'gemini' ? 'gemini' : (backend as AgentBackend) || null,
+    currentAgent: conversation_type === 'gemini' ? 'gemini' : (backend as AgentBackend) || null,
   });
 
   // Check the current agent's readiness
   const checkCurrentAgent = useCallback(async (): Promise<boolean> => {
-    const agentToCheck = conversationType === 'gemini' ? 'gemini' : backend;
+    const agentToCheck = conversation_type === 'gemini' ? 'gemini' : backend;
     if (!agentToCheck) return true;
 
     setState((prev) => ({
@@ -118,11 +118,11 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
       }));
       return false;
     }
-  }, [backend, conversationType]);
+  }, [backend, conversation_type]);
 
   // Find available alternative agents
   const findAlternatives = useCallback(async () => {
-    const currentAgentBackend = conversationType === 'gemini' ? 'gemini' : backend;
+    const currentAgentBackend = conversation_type === 'gemini' ? 'gemini' : backend;
 
     setState((prev) => ({
       ...prev,
@@ -144,13 +144,13 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
 
       // Filter out current agent and custom agents
       const agentsToCheck = agentsList
-        .filter((agent) => !agent.isPreset && agent.backend !== 'remote' && agent.backend !== currentAgentBackend)
+        .filter((agent) => !agent.is_preset && agent.backend !== 'remote' && agent.backend !== currentAgentBackend)
         .map((agent) => ({
           backend: agent.backend as AgentBackend,
           name: AGENT_NAMES[agent.backend as AgentBackend] || agent.name,
           available: false,
           checking: true,
-          cliPath: agent.cliPath,
+          cli_path: agent.cli_path,
         }));
 
       if (agentsToCheck.length === 0) {
@@ -249,7 +249,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
         isChecking: false,
       }));
     }
-  }, [backend, conversationType, onAgentReady]);
+  }, [backend, conversation_type, onAgentReady]);
 
   // Full check: current agent + alternatives if needed
   const performFullCheck = useCallback(async () => {
@@ -267,9 +267,9 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
       availableAgents: [],
       bestAgent: null,
       progress: 0,
-      currentAgent: conversationType === 'gemini' ? 'gemini' : (backend as AgentBackend) || null,
+      currentAgent: conversation_type === 'gemini' ? 'gemini' : (backend as AgentBackend) || null,
     });
-  }, [backend, conversationType]);
+  }, [backend, conversation_type]);
 
   // Auto-check on mount if enabled
   useEffect(() => {

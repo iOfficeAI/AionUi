@@ -111,12 +111,12 @@ Examples:
   if (options.stdin) {
     mermaidCode = await readStdin();
   } else if (options.input) {
-    const filePath = resolve(options.input);
-    if (!existsSync(filePath)) {
-      console.error(`Error: File not found: ${filePath}`);
+    const file_path = resolve(options.input);
+    if (!existsSync(file_path)) {
+      console.error(`Error: File not found: ${file_path}`);
       process.exit(1);
     }
-    mermaidCode = readFileSync(filePath, 'utf8');
+    mermaidCode = readFileSync(file_path, 'utf8');
   } else {
     console.error('Error: No input provided. Use --stdin or provide a file path.');
     process.exit(1);

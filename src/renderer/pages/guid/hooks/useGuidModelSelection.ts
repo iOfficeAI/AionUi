@@ -47,8 +47,8 @@ export type GuidModelSelectionResult = {
   geminiModeOptions: ReturnType<typeof useGeminiGoogleAuthModels>['geminiModeOptions'];
   geminiModeLookup: Map<string, ReturnType<typeof useGeminiGoogleAuthModels>['geminiModeOptions'][number]>;
   formatGeminiModelLabel: (provider: { platform?: string } | undefined, modelName?: string) => string;
-  currentModel: TProviderWithModel | undefined;
-  setCurrentModel: (modelInfo: TProviderWithModel) => Promise<void>;
+  current_model: TProviderWithModel | undefined;
+  setCurrentModel: (model_info: TProviderWithModel) => Promise<void>;
 };
 
 /**
@@ -77,8 +77,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         id: uuid(),
         name: 'Gemini Google Auth',
         platform: 'gemini-with-google-auth',
-        baseUrl: '',
-        apiKey: '',
+        base_url: '',
+        api_key: '',
         model: geminiModelValues,
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       };
@@ -108,19 +108,19 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     [geminiModeLookup]
   );
 
-  const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  const [current_model, _setCurrentModel] = useState<TProviderWithModel>();
   const selectedModelKeyRef = useRef<string | null>(null);
   const prevStorageKeyRef = useRef<string | null>(null);
 
   const storageKey = MODEL_STORAGE_KEY[agentKey];
 
   const setCurrentModel = useCallback(
-    async (modelInfo: TProviderWithModel) => {
-      selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
-      await ConfigStorage.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
+    async (model_info: TProviderWithModel) => {
+      selectedModelKeyRef.current = buildModelKey(model_info.id, model_info.useModel);
+      await ConfigStorage.set(storageKey, { id: model_info.id, useModel: model_info.useModel }).catch((error) => {
         console.error('Failed to save default model:', error);
       });
-      _setCurrentModel(modelInfo);
+      _setCurrentModel(model_info);
     },
     [storageKey]
   );
@@ -138,7 +138,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         selectedModelKeyRef.current = null;
       }
 
-      const currentKey = selectedModelKeyRef.current || buildModelKey(currentModel?.id, currentModel?.useModel);
+      const currentKey = selectedModelKeyRef.current || buildModelKey(current_model?.id, current_model?.useModel);
       if (!agentChanged && isModelKeyAvailable(currentKey, modelList)) {
         if (!selectedModelKeyRef.current && currentKey) {
           selectedModelKeyRef.current = currentKey;
@@ -188,7 +188,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     geminiModeOptions,
     geminiModeLookup,
     formatGeminiModelLabel,
-    currentModel,
+    current_model,
     setCurrentModel,
   };
 };

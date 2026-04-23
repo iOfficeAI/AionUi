@@ -16,7 +16,10 @@ import { HEADER_HEIGHT, PANEL_MIN_WIDTH } from './minimapTypes';
 import { isIndexMatch, renderHighlightedText } from './minimapUtils';
 import { useMinimapPanel } from './useMinimapPanel';
 
-const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ conversationId, hideTrigger = false }) => {
+const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({
+  conversation_id,
+  hideTrigger = false,
+}) => {
   const { t } = useTranslation();
   const {
     visible,
@@ -42,7 +45,7 @@ const ConversationTitleMinimap: React.FC<ConversationTitleMinimapProps> = ({ con
     handleSearchInputBlur,
     handleSearchInputCompositionStart,
     handleSearchInputCompositionEnd,
-  } = useMinimapPanel(conversationId);
+  } = useMinimapPanel(conversation_id);
 
   const contentNode = useMemo(() => {
     const frameStyle: React.CSSProperties = {

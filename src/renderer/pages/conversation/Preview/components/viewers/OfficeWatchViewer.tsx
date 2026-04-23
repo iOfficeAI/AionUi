@@ -55,7 +55,7 @@ const I18N_KEYS = {
 
 interface OfficeWatchViewerProps {
   docType: DocType;
-  filePath?: string;
+  file_path?: string;
   content?: string;
 }
 
@@ -69,7 +69,7 @@ interface OfficeWatchViewerProps {
  * Used by PptViewer, OfficeDocViewer, and ExcelViewer — each passes its
  * docType to select the correct IPC bridge, proxy path, and i18n keys.
  */
-const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, filePath }) => {
+const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_path }) => {
   const { t } = useTranslation();
   const keys = I18N_KEYS[docType];
 
@@ -77,13 +77,13 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, filePath
   const [loading, setLoading] = useState(true);
   const [status, setStatus] = useState<'starting' | 'installing'>('starting');
   const [error, setError] = useState<string | null>(null);
-  const filePathRef = useRef(filePath);
+  const file_pathRef = useRef(file_path);
 
   useEffect(() => {
-    filePathRef.current = filePath;
+    file_pathRef.current = file_path;
     const bridge = BRIDGE[docType];
 
-    if (!filePath) {
+    if (!file_path) {
       setLoading(false);
       setError(t('preview.errors.missingFilePath'));
       return;
@@ -102,7 +102,7 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, filePath
       setStatus('starting');
       setError(null);
       try {
-        const result = await bridge.start.invoke({ filePath });
+        const result = await bridge.start.invoke({ file_path });
         const url = result.url;
         if (!url || ('error' in result && result.error)) {
           throw new Error((result as { error?: string }).error || t(keys.startFailed));
@@ -132,11 +132,11 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, filePath
     return () => {
       cancelled = true;
       unsubStatus();
-      if (filePathRef.current) {
-        bridge.stop.invoke({ filePath: filePathRef.current }).catch(() => {});
+      if (file_pathRef.current) {
+        bridge.stop.invoke({ file_path: file_pathRef.current }).catch(() => {});
       }
     };
-  }, [docType, filePath]);
+  }, [docType, file_path]);
 
   if (loading) {
     return (

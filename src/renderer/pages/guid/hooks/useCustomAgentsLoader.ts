@@ -42,7 +42,7 @@ export const useCustomAgentsLoader = ({
         ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]),
       ]);
       const list: AcpBackendConfig[] = [
-        ...((presetAssistants || []) as AcpBackendConfig[]).filter((a) => a.isPreset),
+        ...((presetAssistants || []) as AcpBackendConfig[]).filter((a) => a.is_preset),
         ...((userCustomAgents || []) as AcpBackendConfig[]).filter((a) => availableCustomAgentIds.has(a.id)),
       ];
       for (const ext of extAssistants) {
@@ -53,12 +53,12 @@ export const useCustomAgentsLoader = ({
           name: typeof ext.name === 'string' ? ext.name : id,
           nameI18n: ext.nameI18n as Record<string, string> | undefined,
           avatar: typeof ext.avatar === 'string' ? ext.avatar : undefined,
-          isPreset: true,
+          is_preset: true,
           enabled: true,
           presetAgentType: typeof ext.presetAgentType === 'string' ? ext.presetAgentType : undefined,
           context: typeof ext.context === 'string' ? ext.context : undefined,
           contextI18n: ext.contextI18n as Record<string, string> | undefined,
-          enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+          enabled_skills: Array.isArray(ext.enabled_skills) ? (ext.enabled_skills as string[]) : undefined,
           prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
           promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
         } as AcpBackendConfig);

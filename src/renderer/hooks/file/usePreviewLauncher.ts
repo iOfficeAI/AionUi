@@ -40,7 +40,7 @@ interface PreviewLaunchOptions {
   /** 备用路径（如绝对路径）/ Fallback path (absolute or provided path) */
   originalPath?: string;
   /** 文件名 / File name */
-  fileName?: string;
+  file_name?: string;
   /** 预览标题 / Preview title */
   title?: string;
   /** 代码语言（用于语法高亮）/ Code language (for syntax highlighting) */
@@ -79,7 +79,7 @@ export const usePreviewLauncher = () => {
     async ({
       relativePath,
       originalPath,
-      fileName,
+      file_name,
       title,
       language,
       contentType,
@@ -96,14 +96,14 @@ export const usePreviewLauncher = () => {
 
       // 文件名和标题计算 / Compute file name and title
       const computedFileName =
-        fileName || (relativePath ? relativePath.split(/[\\/]/).pop() || relativePath : undefined);
+        file_name || (relativePath ? relativePath.split(/[\\/]/).pop() || relativePath : undefined);
       const previewTitle = title || computedFileName || relativePath || contentType.toUpperCase();
 
       // 预览元数据 / Preview metadata
       const metadata = {
         title: previewTitle,
-        fileName: computedFileName || previewTitle,
-        filePath: resolvedPath,
+        file_name: computedFileName || previewTitle,
+        file_path: resolvedPath,
         workspace,
         language,
       };

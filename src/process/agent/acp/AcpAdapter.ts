@@ -21,14 +21,14 @@ import type {
  * Adapter class to convert ACP messages to AionUI message format
  */
 export class AcpAdapter {
-  private conversationId: string;
+  private conversation_id: string;
   private backend: AgentBackend;
   private activeToolCalls: Map<string, IMessageAcpToolCall> = new Map();
   private currentMessageId: string | null = uuid(); // Track current message for streaming chunks
   private currentPlanMsgId: string | null = null; // Stable id for plan within a turn
 
-  constructor(conversationId: string, backend: AgentBackend) {
-    this.conversationId = conversationId;
+  constructor(conversation_id: string, backend: AgentBackend) {
+    this.conversation_id = conversation_id;
     this.backend = backend;
   }
 
@@ -158,8 +158,8 @@ export class AcpAdapter {
     const baseMessage = {
       id: uuid(), // Each chunk still gets unique id (for deduplication in composeMessage)
       msg_id: msgId, // But shares msg_id to enable accumulation
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
+      conversation_id: this.conversation_id,
+      created_at: Date.now(),
       position: 'left' as const,
     };
 
@@ -208,8 +208,8 @@ export class AcpAdapter {
   private convertThoughtChunk(update: AgentThoughtChunkUpdate['update']): TMessage | null {
     const baseMessage = {
       id: uuid(),
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
+      conversation_id: this.conversation_id,
+      created_at: Date.now(),
       position: 'center' as const,
     };
 
@@ -228,14 +228,14 @@ export class AcpAdapter {
   }
 
   private createOrUpdateAcpToolCall(update: ToolCallUpdate): IMessageAcpToolCall | null {
-    const toolCallId = update.update.toolCallId;
+    const tool_call_id = update.update.tool_call_id;
 
-    // 使用 toolCallId 作为 msg_id，确保同一个工具调用的消息可以被合并
+    // 使用 tool_call_id 作为 msg_id，确保同一个工具调用的消息可以被合并
     const baseMessage = {
       id: uuid(),
-      msg_id: toolCallId, // 关键：使用 toolCallId 作为 msg_id
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
+      msg_id: tool_call_id, // 关键：使用 tool_call_id 作为 msg_id
+      conversation_id: this.conversation_id,
+      created_at: Date.now(),
       position: 'left' as const,
     };
 
@@ -245,7 +245,7 @@ export class AcpAdapter {
       content: update, // 直接使用 ToolCallUpdate 作为 content
     };
 
-    this.activeToolCalls.set(toolCallId, acpToolCallMessage);
+    this.activeToolCalls.set(tool_call_id, acpToolCallMessage);
     return acpToolCallMessage;
   }
 
@@ -255,12 +255,12 @@ export class AcpAdapter {
    */
   private updateAcpToolCall(update: ToolCallUpdateStatus): IMessageAcpToolCall | null {
     const toolCallData = update.update;
-    const toolCallId = toolCallData.toolCallId;
+    const tool_call_id = toolCallData.tool_call_id;
 
     // Get existing message
-    const existingMessage = this.activeToolCalls.get(toolCallId);
+    const existingMessage = this.activeToolCalls.get(tool_call_id);
     if (!existingMessage) {
-      console.warn(`No existing tool call found for ID: ${toolCallId}`);
+      console.warn(`No existing tool call found for ID: ${tool_call_id}`);
       return null;
     }
 
@@ -281,18 +281,18 @@ export class AcpAdapter {
     // Create updated message with the SAME msg_id so composeMessage will merge it
     const updatedMessage: IMessageAcpToolCall = {
       ...existingMessage,
-      msg_id: toolCallId, // 确保 msg_id 一致，这样 composeMessage 会合并消息
+      msg_id: tool_call_id, // 确保 msg_id 一致，这样 composeMessage 会合并消息
       content: updatedContent,
-      createdAt: Date.now(), // 更新时间戳
+      created_at: Date.now(), // 更新时间戳
     };
 
     // Update stored message
-    this.activeToolCalls.set(toolCallId, updatedMessage);
+    this.activeToolCalls.set(tool_call_id, updatedMessage);
 
     // Clean up completed/failed tool calls after a delay to prevent memory leaks
     if (toolCallData.status === 'completed' || toolCallData.status === 'failed') {
       setTimeout(() => {
-        this.activeToolCalls.delete(toolCallId);
+        this.activeToolCalls.delete(tool_call_id);
       }, 60000); // Clean up after 1 minute
     }
 
@@ -311,8 +311,8 @@ export class AcpAdapter {
     const baseMessage = {
       id: this.currentPlanMsgId,
       msg_id: this.currentPlanMsgId,
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
+      conversation_id: this.conversation_id,
+      created_at: Date.now(),
       position: 'left' as const,
     };
 
@@ -322,7 +322,7 @@ export class AcpAdapter {
         ...baseMessage,
         type: 'plan',
         content: {
-          sessionId: update.sessionId,
+          session_id: update.session_id,
           entries: planData.entries,
         },
       };

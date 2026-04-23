@@ -29,22 +29,22 @@ export type CronJob = {
     executionMode?: 'existing' | 'new_conversation';
   };
   metadata: {
-    conversationId: string;
+    conversation_id: string;
     conversationTitle?: string;
-    agentType: AgentBackend;
+    agent_type: AgentBackend;
     createdBy: 'user' | 'agent';
-    createdAt: number;
-    updatedAt: number;
+    created_at: number;
+    updated_at: number;
     agentConfig?: {
       backend: AgentBackend;
       name: string;
-      cliPath?: string;
-      isPreset?: boolean;
-      customAgentId?: string;
+      cli_path?: string;
+      is_preset?: boolean;
+      custom_agent_id?: string;
       presetAgentType?: string;
       mode?: string;
-      modelId?: string;
-      configOptions?: Record<string, string>;
+      model_id?: string;
+      config_options?: Record<string, string>;
       workspace?: string;
     };
   };
@@ -116,12 +116,12 @@ function jobToRow(job: CronJob): CronJobRow {
     payload_message: job.target.payload.text,
     execution_mode: job.target.executionMode ?? 'existing',
     agent_config: job.metadata.agentConfig ? JSON.stringify(job.metadata.agentConfig) : null,
-    conversation_id: job.metadata.conversationId,
+    conversation_id: job.metadata.conversation_id,
     conversation_title: job.metadata.conversationTitle ?? null,
-    agent_type: job.metadata.agentType,
+    agent_type: job.metadata.agent_type,
     created_by: job.metadata.createdBy,
-    created_at: job.metadata.createdAt,
-    updated_at: job.metadata.updatedAt,
+    created_at: job.metadata.created_at,
+    updated_at: job.metadata.updated_at,
     next_run_at: job.state.nextRunAtMs ?? null,
     last_run_at: job.state.lastRunAtMs ?? null,
     last_status: job.state.lastStatus ?? null,
@@ -175,12 +175,12 @@ function rowToJob(row: CronJobRow): CronJob {
       executionMode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
     },
     metadata: {
-      conversationId: row.conversation_id,
+      conversation_id: row.conversation_id,
       conversationTitle: row.conversation_title ?? undefined,
-      agentType: row.agent_type as AgentBackend,
+      agent_type: row.agent_type as AgentBackend,
       createdBy: row.created_by as 'user' | 'agent',
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
       agentConfig: row.agent_config ? JSON.parse(row.agent_config) : undefined,
     },
     state: {
@@ -251,8 +251,8 @@ class CronStore {
   /**
    * Update an existing cron job
    */
-  async update(jobId: string, updates: Partial<CronJob>): Promise<void> {
-    const existing = await this.getById(jobId);
+  async update(job_id: string, updates: Partial<CronJob>): Promise<void> {
+    const existing = await this.getById(job_id);
     if (!existing) {
       return;
     }
@@ -263,7 +263,7 @@ class CronStore {
       metadata: {
         ...existing.metadata,
         ...updates.metadata,
-        updatedAt: Date.now(),
+        updated_at: Date.now(),
       },
       state: {
         ...existing.state,
@@ -315,24 +315,24 @@ class CronStore {
         row.run_count,
         row.retry_count,
         row.max_retries,
-        jobId
+        job_id
       );
   }
 
   /**
    * Delete a cron job
    */
-  async delete(jobId: string): Promise<void> {
+  async delete(job_id: string): Promise<void> {
     const db = await getDatabase();
-    db.getDriver().prepare('DELETE FROM cron_jobs WHERE id = ?').run(jobId);
+    db.getDriver().prepare('DELETE FROM cron_jobs WHERE id = ?').run(job_id);
   }
 
   /**
    * Get a cron job by ID
    */
-  async getById(jobId: string): Promise<CronJob | null> {
+  async getById(job_id: string): Promise<CronJob | null> {
     const db = await getDatabase();
-    const row = db.getDriver().prepare('SELECT * FROM cron_jobs WHERE id = ?').get(jobId) as CronJobRow | undefined;
+    const row = db.getDriver().prepare('SELECT * FROM cron_jobs WHERE id = ?').get(job_id) as CronJobRow | undefined;
     return row ? rowToJob(row) : null;
   }
 
@@ -348,12 +348,12 @@ class CronStore {
   /**
    * List cron jobs by conversation ID
    */
-  async listByConversation(conversationId: string): Promise<CronJob[]> {
+  async listByConversation(conversation_id: string): Promise<CronJob[]> {
     const db = await getDatabase();
     const rows = db
       .getDriver()
       .prepare('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC')
-      .all(conversationId) as CronJobRow[];
+      .all(conversation_id) as CronJobRow[];
     return rows.map(rowToJob);
   }
 
@@ -373,9 +373,9 @@ class CronStore {
    * Delete all cron jobs for a conversation
    * Called when conversation is deleted
    */
-  async deleteByConversation(conversationId: string): Promise<number> {
+  async deleteByConversation(conversation_id: string): Promise<number> {
     const db = await getDatabase();
-    const result = db.getDriver().prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversationId);
+    const result = db.getDriver().prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversation_id);
     return result.changes;
   }
 }

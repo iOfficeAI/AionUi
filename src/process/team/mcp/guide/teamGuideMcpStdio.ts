@@ -42,17 +42,17 @@ if (!AION_MCP_TOKEN) {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function createAionTool(
   server: McpServer,
-  toolName: string,
+  tool_name: string,
   description: string,
   schema: any,
   tcpPort: number,
   authToken: string | undefined
 ): void {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  server.tool(toolName, description, schema, async (args: Record<string, unknown>) => {
+  server.tool(tool_name, description, schema, async (args: Record<string, unknown>) => {
     try {
       const payload: Record<string, unknown> = {
-        tool: toolName,
+        tool: tool_name,
         args,
         auth_token: authToken,
         backend: AION_MCP_BACKEND,

@@ -17,18 +17,12 @@ declare global {
 }
 
 function getBaseUrl(): string {
-  const port =
-    typeof window !== 'undefined'
-      ? (window as Window).__backendPort || 13400
-      : 13400;
+  const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
   return `http://127.0.0.1:${port}`;
 }
 
 function getWsUrl(): string {
-  const port =
-    typeof window !== 'undefined'
-      ? (window as Window).__backendPort || 13400
-      : 13400;
+  const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
   return `ws://127.0.0.1:${port}/ws`;
 }
 
@@ -36,11 +30,7 @@ function getWsUrl(): string {
 // HTTP request helper
 // ---------------------------------------------------------------------------
 
-async function httpRequest<T>(
-  method: string,
-  path: string,
-  body?: unknown,
-): Promise<T> {
+async function httpRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
 
@@ -61,9 +51,7 @@ async function httpRequest<T>(
     } catch {
       errorBody = await response.text();
     }
-    throw new Error(
-      `Backend ${method} ${path} failed (${response.status}): ${JSON.stringify(errorBody)}`,
-    );
+    throw new Error(`Backend ${method} ${path} failed (${response.status}): ${JSON.stringify(errorBody)}`);
   }
 
   const contentType = response.headers.get('Content-Type');
@@ -85,13 +73,11 @@ async function httpRequest<T>(
 
 type ProviderLike<Data, Params> = {
   provider: (handler: (params: Params) => Promise<Data>) => void;
-  invoke: Params extends undefined
-    ? () => Promise<Data>
-    : (params: Params) => Promise<Data>;
+  invoke: Params extends undefined ? () => Promise<Data> : (params: Params) => Promise<Data>;
 };
 
 export function httpGet<Data, Params = undefined>(
-  path: string | ((params: Params) => string),
+  path: string | ((params: Params) => string)
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
@@ -104,7 +90,7 @@ export function httpGet<Data, Params = undefined>(
 
 export function httpPost<Data, Params = undefined>(
   path: string | ((params: Params) => string),
-  mapBody?: (params: Params) => unknown,
+  mapBody?: (params: Params) => unknown
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
@@ -118,7 +104,7 @@ export function httpPost<Data, Params = undefined>(
 
 export function httpPut<Data, Params = undefined>(
   path: string | ((params: Params) => string),
-  mapBody?: (params: Params) => unknown,
+  mapBody?: (params: Params) => unknown
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
@@ -132,7 +118,7 @@ export function httpPut<Data, Params = undefined>(
 
 export function httpPatch<Data, Params = undefined>(
   path: string | ((params: Params) => string),
-  mapBody?: (params: Params) => unknown,
+  mapBody?: (params: Params) => unknown
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
@@ -145,7 +131,7 @@ export function httpPatch<Data, Params = undefined>(
 }
 
 export function httpDelete<Data, Params = undefined>(
-  path: string | ((params: Params) => string),
+  path: string | ((params: Params) => string)
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
@@ -160,10 +146,7 @@ export function httpDelete<Data, Params = undefined>(
  * Stub provider for features not yet implemented in the backend.
  * Returns a sensible default value and logs a warning.
  */
-export function stubProvider<Data, Params = undefined>(
-  name: string,
-  defaultValue: Data,
-): ProviderLike<Data, Params> {
+export function stubProvider<Data, Params = undefined>(name: string, defaultValue: Data): ProviderLike<Data, Params> {
   return {
     provider: () => {},
     invoke: (async (_params?: Params) => {
@@ -216,7 +199,11 @@ function ensureWs(): void {
         const handlers = wsListeners.get(eventName);
         if (handlers) {
           for (const h of handlers) {
-            try { h(payload); } catch { /* never crash listener */ }
+            try {
+              h(payload);
+            } catch {
+              /* never crash listener */
+            }
           }
         }
       }
@@ -250,15 +237,11 @@ function scheduleWsReconnect(): void {
 // ---------------------------------------------------------------------------
 
 type EmitterLike<Params> = {
-  on: (
-    callback: Params extends undefined ? () => void : (params: Params) => void,
-  ) => () => void;
+  on: (callback: Params extends undefined ? () => void : (params: Params) => void) => () => void;
   emit: Params extends undefined ? () => void : (params: Params) => void;
 };
 
-export function wsEmitter<Params = undefined>(
-  eventName: string,
-): EmitterLike<Params> {
+export function wsEmitter<Params = undefined>(eventName: string): EmitterLike<Params> {
   return {
     on: (callback: (params: Params) => void) => {
       ensureWs();
@@ -278,9 +261,7 @@ export function wsEmitter<Params = undefined>(
 /**
  * Stub emitter for events not yet implemented in the backend.
  */
-export function stubEmitter<Params = undefined>(
-  _name: string,
-): EmitterLike<Params> {
+export function stubEmitter<Params = undefined>(_name: string): EmitterLike<Params> {
   return {
     on: () => () => {},
     emit: (() => {}) as EmitterLike<Params>['emit'],

@@ -87,7 +87,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       Message.warning(t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' }));
       return;
     }
-    const userId = user?.id ?? 'system_default_user';
+    const user_id = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
       const agents: TeamAgent[] = [];
@@ -95,22 +95,22 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
       const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
       agents.push({
-        slotId: '',
-        conversationId: '',
+        slot_id: '',
+        conversation_id: '',
         role: 'leader',
         status: 'pending',
-        agentType: dispatchAgentType,
-        agentName: 'Leader',
-        conversationType: resolveConversationType(dispatchAgentType),
-        cliPath: dispatchAgent?.cliPath,
-        customAgentId: dispatchAgent?.customAgentId,
+        agent_type: dispatchAgentType,
+        agent_name: 'Leader',
+        conversation_type: resolveConversationType(dispatchAgentType),
+        cli_path: dispatchAgent?.cli_path,
+        custom_agent_id: dispatchAgent?.custom_agent_id,
       });
 
       const team = await ipcBridge.team.create.invoke({
-        userId,
+        user_id,
         name,
         workspace,
-        workspaceMode: 'shared',
+        workspace_mode: 'shared',
         agents,
       });
 
@@ -270,7 +270,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               value={workspace}
               onChange={setWorkspace}
               placeholder={t('team.create.selectFolder', { defaultValue: 'Select folder' })}
-              inputPlaceholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
+              input_placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
               recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
               chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                 defaultValue: 'Choose a different folder',

@@ -68,7 +68,7 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   }
 
   const cachedModels = await ConfigStorage.get('acp.cachedModels');
-  const cachedModelId = cachedModels?.[backend]?.currentModelId;
+  const cachedModelId = cachedModels?.[backend]?.current_model_id;
   if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
     return cachedModelId;
   }
@@ -98,22 +98,22 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
-  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const enabledModel = provider.model.find((m) => provider.model_enabled?.[m] !== false);
 
   return {
     id: provider.id,
     platform: provider.platform,
     name: provider.name,
-    baseUrl: provider.baseUrl,
-    apiKey: provider.apiKey,
+    base_url: provider.base_url,
+    api_key: provider.api_key,
     useModel: enabledModel || provider.model[0],
     capabilities: provider.capabilities,
-    contextLimit: provider.contextLimit,
-    modelProtocols: provider.modelProtocols,
-    bedrockConfig: provider.bedrockConfig,
+    context_limit: provider.context_limit,
+    model_protocols: provider.model_protocols,
+    bedrock_config: provider.bedrock_config,
     enabled: provider.enabled,
-    modelEnabled: provider.modelEnabled,
-    modelHealth: provider.modelHealth,
+    model_enabled: provider.model_enabled,
+    model_health: provider.model_health,
   };
 }
 
@@ -134,22 +134,22 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
     throw new Error('No enabled model provider');
   }
 
-  const enabledModel = enabledProvider.model.find((m) => enabledProvider.modelEnabled?.[m] !== false);
+  const enabledModel = enabledProvider.model.find((m) => enabledProvider.model_enabled?.[m] !== false);
 
   return {
     id: enabledProvider.id,
     platform: enabledProvider.platform,
     name: enabledProvider.name,
-    baseUrl: enabledProvider.baseUrl,
-    apiKey: enabledProvider.apiKey,
+    base_url: enabledProvider.base_url,
+    api_key: enabledProvider.api_key,
     useModel: enabledModel || enabledProvider.model[0],
     capabilities: enabledProvider.capabilities,
-    contextLimit: enabledProvider.contextLimit,
-    modelProtocols: enabledProvider.modelProtocols,
-    bedrockConfig: enabledProvider.bedrockConfig,
+    context_limit: enabledProvider.context_limit,
+    model_protocols: enabledProvider.model_protocols,
+    bedrock_config: enabledProvider.bedrock_config,
     enabled: enabledProvider.enabled,
-    modelEnabled: enabledProvider.modelEnabled,
-    modelHealth: enabledProvider.modelHealth,
+    model_enabled: enabledProvider.model_enabled,
+    model_health: enabledProvider.model_health,
   };
 }
 
@@ -166,15 +166,15 @@ async function resolveGeminiModel(): Promise<TProviderWithModel> {
       name: 'Gemini',
       useModel: 'default',
       platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-      baseUrl: '',
-      apiKey: '',
+      base_url: '',
+      api_key: '',
     };
   }
 }
 
 /**
  * Build ICreateConversationParams for a CLI agent.
- * The backend will automatically fill in derived fields (gateway.cliPath, runtimeValidation, etc.).
+ * The backend will automatically fill in derived fields (gateway.cli_path, runtimeValidation, etc.).
  * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
  */
 export async function buildCliAgentParams(
@@ -198,13 +198,13 @@ export async function buildCliAgentParams(
   return buildAgentConversationParams({
     backend: agent.backend,
     name: agent.name,
-    agentName: agent.name,
+    agent_name: agent.name,
     workspace,
-    cliPath: agent.cliPath,
-    customAgentId: agent.customAgentId,
+    cli_path: agent.cli_path,
+    custom_agent_id: agent.custom_agent_id,
     model,
-    sessionMode: preferredMode,
-    currentModelId: preferredAcpModelId,
+    session_mode: preferredMode,
+    current_model_id: preferredAcpModelId,
   });
 }
 
@@ -219,17 +219,17 @@ export async function buildPresetAssistantParams(
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
-  const { customAgentId, presetAgentType = 'gemini' } = agent;
+  const { custom_agent_id, presetAgentType = 'gemini' } = agent;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
 
   const {
-    rules: presetContext,
-    enabledSkills,
+    rules: preset_context,
+    enabled_skills,
     disabledBuiltinSkills,
   } = await loadPresetAssistantResources({
-    customAgentId,
+    custom_agent_id,
     localeKey,
   });
 
@@ -241,18 +241,18 @@ export async function buildPresetAssistantParams(
   return buildAgentConversationParams({
     backend: agent.backend,
     name: agent.name,
-    agentName: agent.name,
+    agent_name: agent.name,
     workspace,
-    customAgentId,
-    isPreset: true,
+    custom_agent_id,
+    is_preset: true,
     presetAgentType,
     presetResources: {
-      rules: presetContext,
-      enabledSkills,
+      rules: preset_context,
+      enabled_skills,
       excludeBuiltinSkills: disabledBuiltinSkills,
     },
     model,
-    sessionMode: preferredMode,
-    currentModelId: preferredAcpModelId,
+    session_mode: preferredMode,
+    current_model_id: preferredAcpModelId,
   });
 }

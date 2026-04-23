@@ -267,7 +267,7 @@ const CssThemeSettings: React.FC = () => {
         if (updated) {
           await ConfigStorage.set(
             'css.themes',
-            normalized.filter((t) => !t.isPreset)
+            normalized.filter((t) => !t.is_preset)
           );
         }
 
@@ -293,7 +293,7 @@ const CssThemeSettings: React.FC = () => {
         // Merge preset, extension, and user themes; deduplicate by ID (first occurrence wins)
         const seenIds = new Set<string>();
         const allThemes: ICssTheme[] = [];
-        for (const theme of [...normalizedPresets, ...extensionThemes, ...normalized.filter((t) => !t.isPreset)]) {
+        for (const theme of [...normalizedPresets, ...extensionThemes, ...normalized.filter((t) => !t.is_preset)]) {
           if (!theme?.id || seenIds.has(theme.id)) continue;
           seenIds.add(theme.id);
           allThemes.push(theme);
@@ -313,7 +313,7 @@ const CssThemeSettings: React.FC = () => {
 
         const expectedCss = resolveCssByActiveTheme(
           effectiveActiveId,
-          normalized.filter((theme) => !theme.isPreset)
+          normalized.filter((theme) => !theme.is_preset)
         );
 
         setThemes(allThemes);
@@ -378,7 +378,7 @@ const CssThemeSettings: React.FC = () => {
       try {
         const normalizedCss = resolveCssByActiveTheme(
           theme.id,
-          themes.filter((item) => !item.isPreset)
+          themes.filter((item) => !item.is_preset)
         );
         // Use queued, best-effort write function
         await applyThemeCss(normalizedCss, theme.id);
@@ -412,31 +412,31 @@ const CssThemeSettings: React.FC = () => {
    * 保存主题 / Save theme
    */
   const handleSaveTheme = useCallback(
-    async (themeData: Omit<ICssTheme, 'id' | 'createdAt' | 'updatedAt' | 'isPreset'>) => {
+    async (themeData: Omit<ICssTheme, 'id' | 'created_at' | 'updated_at' | 'is_preset'>) => {
       try {
         const now = Date.now();
         let updatedThemes: ICssTheme[];
         const normalizedThemeData = ensureBackgroundCss(themeData);
 
-        if (editingTheme && !editingTheme.isPreset) {
+        if (editingTheme && !editingTheme.is_preset) {
           // 更新现有用户主题 / Update existing user theme
           updatedThemes = themes.map((t) =>
-            t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updatedAt: now } : t
+            t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updated_at: now } : t
           );
         } else {
           // 添加新主题（包括从预设主题编辑创建副本）/ Add new theme (including copy from preset)
           const newTheme: ICssTheme = {
             id: uuid(),
             ...normalizedThemeData,
-            isPreset: false,
-            createdAt: now,
-            updatedAt: now,
+            is_preset: false,
+            created_at: now,
+            updated_at: now,
           };
           updatedThemes = [...themes, newTheme];
         }
 
         // 只保存用户主题 / Only save user themes
-        const userThemes = updatedThemes.filter((t) => !t.isPreset);
+        const userThemes = updatedThemes.filter((t) => !t.is_preset);
         await ConfigStorage.set('css.themes', userThemes);
 
         setThemes(updatedThemes);
@@ -463,7 +463,7 @@ const CssThemeSettings: React.FC = () => {
         onOk: async () => {
           try {
             const updatedThemes = themes.filter((t) => t.id !== themeId);
-            const userThemes = updatedThemes.filter((t) => !t.isPreset);
+            const userThemes = updatedThemes.filter((t) => !t.is_preset);
             await ConfigStorage.set('css.themes', userThemes);
 
             // 如果删除的是当前激活主题，清除激活状态 / If deleting active theme, clear active state
@@ -567,7 +567,7 @@ const CssThemeSettings: React.FC = () => {
           setEditingTheme(null);
         }}
         onSave={handleSaveTheme}
-        onDelete={editingTheme && !editingTheme.isPreset ? () => handleDeleteTheme(editingTheme.id) : undefined}
+        onDelete={editingTheme && !editingTheme.is_preset ? () => handleDeleteTheme(editingTheme.id) : undefined}
       />
     </div>
   );

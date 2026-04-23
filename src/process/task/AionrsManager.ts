@@ -39,9 +39,9 @@ function isValidCommandName(name: string): boolean {
 }
 
 export class AionrsApprovalStore extends BaseApprovalStore<AionrsApprovalKey> {
-  static createKeysFromConfirmation(action: string, commandType?: string): AionrsApprovalKey[] {
-    if (action === 'exec' && commandType) {
-      return commandType
+  static createKeysFromConfirmation(action: string, command_type?: string): AionrsApprovalKey[] {
+    if (action === 'exec' && command_type) {
+      return command_type
         .split(',')
         .map((cmd) => cmd.trim())
         .filter(Boolean)
@@ -61,11 +61,11 @@ type AionrsManagerData = {
   model: TProviderWithModel;
   conversation_id: string;
   yoloMode?: boolean;
-  presetRules?: string;
+  preset_rules?: string;
   maxTokens?: number;
   maxTurns?: number;
-  sessionMode?: string;
-  sessionId?: string;
+  session_mode?: string;
+  session_id?: string;
   resume?: string;
   teamMcpStdioConfig?: {
     name: string;
@@ -81,7 +81,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   readonly approvalStore = new AionrsApprovalStore();
   private agent: AionrsAgent | null = null;
   private agentReady: Promise<void>;
-  private currentMode: string = 'default';
+  private current_mode: string = 'default';
   private _capabilities: AionrsCapabilities | null = null;
   private _configSentAt: number | null = null;
   private _messageSentAt: number | null = null;
@@ -110,7 +110,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
-    this.currentMode = data.sessionMode || 'default';
+    this.current_mode = data.session_mode || 'default';
 
     // enableFork=false skips auto-init in ForkTask, so init manually
     this.init();
@@ -125,15 +125,15 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
    * otherwise pass --session-id for a new session.
    */
   override async start() {
-    let sessionArgs: { resume?: string; sessionId?: string };
+    let sessionArgs: { resume?: string; session_id?: string };
     try {
       const db = await getDatabase();
       const result = db.getConversationMessages(this.conversation_id, 0, 1);
       const hasMessages = (result.data?.length ?? 0) > 0;
-      sessionArgs = hasMessages ? { resume: this.conversation_id } : { sessionId: this.conversation_id };
+      sessionArgs = hasMessages ? { resume: this.conversation_id } : { session_id: this.conversation_id };
     } catch {
       // Fallback: start as new session if DB check fails
-      sessionArgs = { sessionId: this.conversation_id };
+      sessionArgs = { session_id: this.conversation_id };
     }
 
     const mergedData = { ...this.data.data, ...sessionArgs };
@@ -155,10 +155,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       model: mergedData.model,
       proxy: mergedData.proxy,
       yoloMode: mergedData.yoloMode,
-      presetRules: mergedData.presetRules,
+      preset_rules: mergedData.preset_rules,
       maxTokens: mergedData.maxTokens,
       maxTurns: mergedData.maxTurns,
-      sessionId: mergedData.sessionId,
+      session_id: mergedData.session_id,
       resume: mergedData.resume,
       stdioMcpServers,
       onStreamEvent: (event) => this.emit('aionrs.message', event),
@@ -170,9 +170,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     if (this.data.data.teamMcpStdioConfig) {
       const { notifyMcpReady } = await import('@process/team/mcpReadiness');
-      const slotId = this.data.data.teamMcpStdioConfig.env?.find((e) => e.name === 'TEAM_AGENT_SLOT_ID')?.value;
-      if (slotId) {
-        notifyMcpReady(slotId);
+      const slot_id = this.data.data.teamMcpStdioConfig.env?.find((e) => e.name === 'TEAM_AGENT_SLOT_ID')?.value;
+      if (slot_id) {
+        notifyMcpReady(slot_id);
       }
     }
   }
@@ -247,13 +247,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
     const type = content.confirmationDetails?.type;
 
-    if (this.currentMode === 'yolo') {
-      this.agent?.approveTool(content.callId, 'once');
+    if (this.current_mode === 'yolo') {
+      this.agent?.approveTool(content.call_id, 'once');
       return true;
     }
-    if (this.currentMode === 'auto_edit') {
+    if (this.current_mode === 'auto_edit') {
       if (type === 'edit' || type === 'info') {
-        this.agent?.approveTool(content.callId, 'once');
+        this.agent?.approveTool(content.call_id, 'once');
         return true;
       }
     }
@@ -269,11 +269,11 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       // Check approval store ("always allow" memory)
       const action = content.confirmationDetails?.type ?? 'info';
-      const commandType =
+      const command_type =
         action === 'exec' ? (content.confirmationDetails as { rootCommand?: string })?.rootCommand : undefined;
-      const keys = AionrsApprovalStore.createKeysFromConfirmation(action, commandType);
+      const keys = AionrsApprovalStore.createKeysFromConfirmation(action, command_type);
       if (keys.length > 0 && this.approvalStore.allApproved(keys)) {
-        this.agent?.approveTool(content.callId, 'once');
+        this.agent?.approveTool(content.call_id, 'once');
         continue;
       }
 
@@ -286,12 +286,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       this.addConfirmation({
         title: content.confirmationDetails?.title || content.name || '',
-        id: content.callId,
+        id: content.call_id,
         action,
         description: content.description || '',
-        callId: content.callId,
+        call_id: content.call_id,
         options,
-        commandType,
+        command_type,
       });
     }
   }
@@ -363,7 +363,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         duration,
         status,
       },
-      createdAt: this.thinkingStartTime || Date.now(),
+      created_at: this.thinkingStartTime || Date.now(),
     };
     addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
   }
@@ -423,15 +423,15 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       workspace: this.workspace,
       backend: 'aionrs',
       pendingConfirmations: this.getConfirmations().length,
-      modelId: this.model.useModel,
+      model_id: this.model.useModel,
     });
   }
 
   private saveContextUsage(data: unknown): void {
     if (!data || typeof data !== 'object' || !('input_tokens' in data)) return;
     const usage = data as { input_tokens: number; output_tokens: number };
-    const totalTokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
-    if (totalTokens <= 0) return;
+    const total_tokens = (usage.input_tokens || 0) + (usage.output_tokens || 0);
+    if (total_tokens <= 0) return;
 
     void (async () => {
       try {
@@ -440,7 +440,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         if (result.success && result.data && result.data.type === 'aionrs') {
           const conversation = result.data;
           db.updateConversation(this.conversation_id, {
-            extra: { ...conversation.extra, lastTokenUsage: { totalTokens } },
+            extra: { ...conversation.extra, last_token_usage: { total_tokens } },
           } as Partial<typeof conversation>);
         }
       } catch {
@@ -543,10 +543,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
           conversation_id: this.conversation_id,
           msg_id: uuid(),
           data: {
-            agentType: 'aionrs' as const,
+            agent_type: 'aionrs' as const,
             provider: this.model.name,
-            modelId: this.model.useModel,
-            baseUrl: this.model.baseUrl,
+            model_id: this.model.useModel,
+            base_url: this.model.base_url,
             platform: this.model.platform,
             timestamp: Date.now(),
           },
@@ -600,7 +600,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       processedData.conversation_id = this.conversation_id;
 
-      const pipelineStart = Date.now();
+      const pipeline_start = Date.now();
 
       // Transform and persist message (skip transient UI state)
       const skipTransformTypes = ['finished', 'start', 'finish'];
@@ -638,7 +638,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       this.emitToEventBuses(processedData as IResponseMessage);
       const emitDuration = Date.now() - emitStart;
 
-      const totalDuration = Date.now() - pipelineStart;
+      const totalDuration = Date.now() - pipeline_start;
       if (totalDuration > 10) {
         mainLog(
           '[AionrsManager]',
@@ -684,7 +684,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         conversation_id: this.conversation_id,
         content: { content },
         status: 'finish',
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
 
       const collectedResponses: string[] = [];
@@ -721,18 +721,18 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   getMode(): { mode: string; initialized: boolean } {
-    return { mode: this.currentMode, initialized: true };
+    return { mode: this.current_mode, initialized: true };
   }
 
   async setMode(mode: string): Promise<{ success: boolean; data?: { mode: string } }> {
-    this.currentMode = mode;
+    this.current_mode = mode;
     this.saveSessionMode(mode);
     if (this.agent) {
       this._configSentAt = Date.now();
       mainLog('[AionrsManager]', `set_mode sent: mode=${mode}`);
       this.agent.setMode(mode as 'default' | 'auto_edit' | 'yolo');
     }
-    return { success: true, data: { mode: this.currentMode } };
+    return { success: true, data: { mode: this.current_mode } };
   }
 
   private async saveSessionMode(mode: string): Promise<void> {
@@ -742,7 +742,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (result.success && result.data && result.data.type === 'aionrs') {
         const conversation = result.data;
         db.updateConversation(this.conversation_id, {
-          extra: { ...conversation.extra, sessionMode: mode },
+          extra: { ...conversation.extra, session_mode: mode },
         } as Partial<typeof conversation>);
       }
     } catch (error) {
@@ -750,24 +750,24 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  confirm(id: string, callId: string, data: string) {
+  confirm(id: string, call_id: string, data: string) {
     // Store "always allow" in approval store
     if (data === ToolConfirmationOutcome.ProceedAlways) {
-      const confirmation = this.confirmations.find((c) => c.callId === callId);
+      const confirmation = this.confirmations.find((c) => c.call_id === call_id);
       if (confirmation?.action) {
-        const keys = AionrsApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.commandType);
+        const keys = AionrsApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.command_type);
         this.approvalStore.approveAll(keys);
       }
     }
 
-    super.confirm(id, callId, data);
+    super.confirm(id, call_id, data);
 
     if (this.agent) {
       if (data === ToolConfirmationOutcome.Cancel) {
-        this.agent.denyTool(callId, 'User cancelled');
+        this.agent.denyTool(call_id, 'User cancelled');
       } else {
         const scope = data === ToolConfirmationOutcome.ProceedAlways ? 'always' : 'once';
-        this.agent.approveTool(callId, scope);
+        this.agent.approveTool(call_id, scope);
       }
     }
   }

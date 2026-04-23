@@ -68,7 +68,7 @@ export interface LoadCliConfigOptions {
   workspace: string;
   settings: Settings;
   extensions: GeminiCLIExtension[];
-  sessionId: string;
+  session_id: string;
   proxy?: string;
   model?: string;
   conversationToolConfig: ConversationToolConfig;
@@ -77,21 +77,21 @@ export interface LoadCliConfigOptions {
   /** 内置 skills 目录路径 / Builtin skills directory path */
   skillsDir?: string;
   /** 启用的 skills 列表，用于过滤加载的 skills / Enabled skills list for filtering loaded skills */
-  enabledSkills?: string[];
+  enabled_skills?: string[];
 }
 
 export async function loadCliConfig({
   workspace,
   settings,
   extensions,
-  sessionId,
+  session_id,
   proxy,
   model,
   conversationToolConfig,
   yoloMode,
   mcpServers,
   skillsDir,
-  enabledSkills,
+  enabled_skills,
 }: LoadCliConfigOptions): Promise<Config> {
   const argv: Partial<CliArgs> = {
     yolo: yoloMode,
@@ -114,10 +114,10 @@ export async function loadCliConfig({
 
   // 加载内置 skills 并创建虚拟 extension
   // Load builtin skills and create a virtual extension
-  // 仅在指定 enabledSkills 时加载，非 preset agent 不加载任何可选 skills
-  // Only load when enabledSkills is specified; non-preset agents get no optional skills
+  // 仅在指定 enabled_skills 时加载，非 preset agent 不加载任何可选 skills
+  // Only load when enabled_skills is specified; non-preset agents get no optional skills
   let builtinSkills: SkillDefinition[] = [];
-  if (skillsDir && enabledSkills && enabledSkills.length > 0) {
+  if (skillsDir && enabled_skills && enabled_skills.length > 0) {
     try {
       // Load skills from both top-level and _builtin/ subdirectory
       // loadSkillsFromDir only scans direct children, so _builtin/cron is not found by default
@@ -133,11 +133,11 @@ export async function loadCliConfig({
         }
       }
       const allSkills = [...topLevelSkills, ...builtinDirSkills];
-      const enabledSet = new Set(enabledSkills);
+      const enabledSet = new Set(enabled_skills);
       const originalCount = allSkills.length;
       builtinSkills = allSkills.filter((skill) => enabledSet.has(skill.name));
       console.log(
-        `[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`
+        `[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabled_skills.join(', ')})`
       );
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
@@ -169,11 +169,11 @@ export async function loadCliConfig({
   }
 
   // Set the context filename in the server's memoryTool module BEFORE loading memory
-  // TODO(b/343434939): This is a bit of a hack. The contextFileName should ideally be passed
+  // TODO(b/343434939): This is a bit of a hack. The context_file_name should ideally be passed
   // directly to the Config constructor in core, and have core handle setGeminiMdFilename.
   // However, loadHierarchicalGeminiMemory is called *before* createServerConfig.
-  if (settings.contextFileName) {
-    setServerGeminiMdFilename(settings.contextFileName);
+  if (settings.context_file_name) {
+    setServerGeminiMdFilename(settings.context_file_name);
   } else {
     // Reset to default if not provided in settings.
     setServerGeminiMdFilename(getCurrentGeminiMdFilename());
@@ -264,7 +264,7 @@ export async function loadCliConfig({
   // extensionLoader was created above, reuse for Config initialization
 
   const config = new Config({
-    sessionId,
+    sessionId: session_id,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     // sandbox: sandboxConfig,
     targetDir: workspace,
@@ -331,8 +331,8 @@ export async function loadCliConfig({
   // 可用值 / Available values: 'retry_always' | 'retry_once' | 'stop' | 'retry_later' | 'upgrade' | null
   //
   // 工作流程 / Workflow:
-  // 1. handler 调用 apiKeyManager.rotateKey() 更新 process.env 中的 API Key
-  //    handler calls apiKeyManager.rotateKey() to update API Key in process.env
+  // 1. handler 调用 api_keyManager.rotateKey() 更新 process.env 中的 API Key
+  //    handler calls api_keyManager.rotateKey() to update API Key in process.env
   // 2. aioncli-core 的 tryRotateApiKey 检测到 env 变化后会调用 config.refreshAuth()
   //    aioncli-core's tryRotateApiKey detects env change and calls config.refreshAuth()
   // 3. 返回 'retry_once' 表示本次重试，'stop' 表示停止
@@ -343,15 +343,15 @@ export async function loadCliConfig({
   // 对于 RATE_LIMIT 错误，如果没有其他 API key 可用，应该返回 null 让内置重试机制处理
   // For RATE_LIMIT errors, if no other API keys available, return null to let built-in retry handle it
   const fallbackModelHandler = async (
-    _currentModel: string,
+    _current_model: string,
     _fallbackModel: string,
     _error?: unknown
   ): Promise<FallbackIntent | null> => {
     try {
       const agent = getCurrentGeminiAgent();
-      const apiKeyManager = agent?.getApiKeyManager();
+      const api_keyManager = agent?.getApiKeyManager();
 
-      if (!apiKeyManager?.hasMultipleKeys()) {
+      if (!api_keyManager?.hasMultipleKeys()) {
         // 单 Key 模式，返回 'stop' 停止重试
         // 避免返回 'retry_once' 导致无限重试循环
         // Single key mode, return 'stop' to stop retrying
@@ -362,7 +362,7 @@ export async function loadCliConfig({
 
       // 轮换到下一个可用的 API Key，这会更新 process.env
       // Rotate to next available API Key, this updates process.env
-      const hasMoreKeys = apiKeyManager.rotateKey();
+      const hasMoreKeys = api_keyManager.rotateKey();
 
       if (hasMoreKeys) {
         // 还有可用的 Key，重试一次

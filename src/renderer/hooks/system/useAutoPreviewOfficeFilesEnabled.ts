@@ -10,7 +10,7 @@ export const isOfficeAutoPreviewTriggerMessage = (message: Pick<IResponseMessage
   OFFICE_AUTO_PREVIEW_TRIGGER_TYPES.has(message.type);
 
 export const findNewOfficeFiles = (currentFiles: string[], knownFiles: Set<string>): string[] =>
-  currentFiles.filter((filePath) => !knownFiles.has(filePath));
+  currentFiles.filter((file_path) => !knownFiles.has(file_path));
 
 /**
  * Returns whether auto-preview for newly created Office files is enabled globally.

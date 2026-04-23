@@ -13,28 +13,28 @@ import { PermissionType, PermissionSeverity, PERMISSION_DECISION_MAP } from '../
  */
 const BASE_PERMISSION_OPTIONS: ReadonlyArray<CodexPermissionOption> = [
   {
-    optionId: 'allow_once',
+    option_id: 'allow_once',
     name: 'codex.permissions.allow_once',
     kind: 'allow_once' as const,
     description: 'codex.permissions.allow_once_desc',
     severity: PermissionSeverity.LOW,
   },
   {
-    optionId: 'allow_always',
+    option_id: 'allow_always',
     name: 'codex.permissions.allow_always',
     kind: 'allow_always' as const,
     description: 'codex.permissions.allow_always_desc',
     severity: PermissionSeverity.MEDIUM,
   },
   {
-    optionId: 'reject_once',
+    option_id: 'reject_once',
     name: 'codex.permissions.reject_once',
     kind: 'reject_once' as const,
     description: 'codex.permissions.reject_once_desc',
     severity: PermissionSeverity.LOW,
   },
   {
-    optionId: 'reject_always',
+    option_id: 'reject_always',
     name: 'codex.permissions.reject_always',
     kind: 'reject_always' as const,
     description: 'codex.permissions.reject_always_desc',
@@ -88,7 +88,7 @@ const PERMISSION_CONFIGS: Record<PermissionType, PermissionConfig> = {
 function createPermissionOptions(permissionType: PermissionType): CodexPermissionOption[] {
   return BASE_PERMISSION_OPTIONS.map((option) => ({
     ...option,
-    description: `codex.permissions.${permissionType}.${option.optionId}_desc`,
+    description: `codex.permissions.${permissionType}.${option.option_id}_desc`,
   }));
 }
 
@@ -111,8 +111,8 @@ export function createPermissionOptionsForType(permissionType: PermissionType): 
 /**
  * 将UI选项决策转换为后端决策
  */
-export function mapPermissionDecision(optionId: keyof typeof PERMISSION_DECISION_MAP): string {
-  return PERMISSION_DECISION_MAP[optionId] || 'denied';
+export function mapPermissionDecision(option_id: keyof typeof PERMISSION_DECISION_MAP): string {
+  return PERMISSION_DECISION_MAP[option_id] || 'denied';
 }
 
 /**

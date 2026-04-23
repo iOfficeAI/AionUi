@@ -15,14 +15,14 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
  * Electron desktop uses IPC, WebUI uses HTTP API.
  */
 async function createTempFile(
-  fileName: string,
+  file_name: string,
   data: Uint8Array,
   contentType: string,
-  conversationId?: string,
+  conversation_id?: string,
   source: UploadSource = 'sendbox'
 ): Promise<string | null> {
   if (isElectronDesktop()) {
-    const tempPath = await ipcBridge.fs.createUploadFile.invoke({ fileName, conversationId });
+    const tempPath = await ipcBridge.fs.createUploadFile.invoke({ file_name, conversation_id });
     if (tempPath) {
       await ipcBridge.fs.writeFile.invoke({ path: tempPath, data });
     }
@@ -31,10 +31,10 @@ async function createTempFile(
   // WebUI: upload via HTTP multipart
   const arrayBuf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([arrayBuf], { type: contentType });
-  const file = new File([blob], fileName, { type: contentType });
+  const file = new File([blob], file_name, { type: contentType });
   const tracker = trackUpload(file.size, source);
   try {
-    return await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
+    return await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress);
   } finally {
     tracker.finish();
   }
@@ -135,7 +135,7 @@ class PasteServiceClass {
     supportedExts: string[],
     onFilesAdded: (files: FileMetadata[]) => void,
     onTextPaste?: (text: string) => void,
-    conversationId?: string,
+    conversation_id?: string,
     source: UploadSource = 'sendbox'
   ): Promise<boolean> {
     // 立即事件冒泡,避免全局监听器重复处理
@@ -152,11 +152,11 @@ class PasteServiceClass {
       const usedFileNames = new Set<string>();
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
-        const filePath = (file as File & { path?: string }).path;
+        const file_path = (file as File & { path?: string }).path;
 
         // 检查是否有文件路径 (Electron 环境下 File 对象会有额外的 path 属性)
 
-        if (!filePath && file.type.startsWith('image/')) {
+        if (!file_path && file.type.startsWith('image/')) {
           // 剪贴板图片，需要检查是否支持该类型
           const fileExt = getFileExtension(file.name) || getExtensionFromMimeType(file.type);
 
@@ -170,27 +170,27 @@ class PasteServiceClass {
               const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
 
               const isSystemGenerated = file.name && /^[a-zA-Z]?_?\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/.test(file.name);
-              let fileName = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
+              let file_name = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
               // Ensure unique filename within the same paste batch to prevent
               // collisions when multiple images are pasted simultaneously
-              if (usedFileNames.has(fileName)) {
-                const extIdx = fileName.lastIndexOf('.');
-                const baseName = extIdx > 0 ? fileName.slice(0, extIdx) : fileName;
-                const ext = extIdx > 0 ? fileName.slice(extIdx) : fileExt;
+              if (usedFileNames.has(file_name)) {
+                const extIdx = file_name.lastIndexOf('.');
+                const baseName = extIdx > 0 ? file_name.slice(0, extIdx) : file_name;
+                const ext = extIdx > 0 ? file_name.slice(extIdx) : fileExt;
                 let counter = 2;
                 while (usedFileNames.has(`${baseName}_${counter}${ext}`)) {
                   counter++;
                 }
-                fileName = `${baseName}_${counter}${ext}`;
+                file_name = `${baseName}_${counter}${ext}`;
               }
-              usedFileNames.add(fileName);
+              usedFileNames.add(file_name);
 
               // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
-              const tempPath = await createTempFile(fileName, uint8Array, file.type, conversationId, source);
+              const tempPath = await createTempFile(file_name, uint8Array, file.type, conversation_id, source);
 
               if (tempPath) {
                 fileList.push({
-                  name: fileName,
+                  name: file_name,
                   path: tempPath,
                   size: file.size,
                   type: file.type,
@@ -207,7 +207,7 @@ class PasteServiceClass {
             // 不支持的文件类型，跳过但不报错（让后续过滤处理）
             console.warn(`Unsupported image type: ${file.type}, extension: ${fileExt}`);
           }
-        } else if (filePath) {
+        } else if (file_path) {
           // 有文件路径的文件（从文件管理器拖拽的文件）
           // 检查文件类型是否支持
           const fileExt = getFileExtension(file.name);
@@ -215,7 +215,7 @@ class PasteServiceClass {
           if (allowAll || supportedExts.includes(fileExt)) {
             fileList.push({
               name: file.name,
-              path: filePath,
+              path: file_path,
               size: file.size,
               type: file.type,
               lastModified: file.lastModified,
@@ -235,29 +235,29 @@ class PasteServiceClass {
               const uint8Array = new Uint8Array(arrayBuffer);
 
               // Ensure unique filename within the same paste batch
-              let fileName = file.name;
-              if (usedFileNames.has(fileName)) {
-                const extIdx = fileName.lastIndexOf('.');
-                const baseName = extIdx > 0 ? fileName.slice(0, extIdx) : fileName;
-                const ext = extIdx > 0 ? fileName.slice(extIdx) : fileExt;
+              let file_name = file.name;
+              if (usedFileNames.has(file_name)) {
+                const extIdx = file_name.lastIndexOf('.');
+                const baseName = extIdx > 0 ? file_name.slice(0, extIdx) : file_name;
+                const ext = extIdx > 0 ? file_name.slice(extIdx) : fileExt;
                 let counter = 2;
                 while (usedFileNames.has(`${baseName}_${counter}${ext}`)) {
                   counter++;
                 }
-                fileName = `${baseName}_${counter}${ext}`;
+                file_name = `${baseName}_${counter}${ext}`;
               }
-              usedFileNames.add(fileName);
+              usedFileNames.add(file_name);
 
               const tempPath = await createTempFile(
-                fileName,
+                file_name,
                 uint8Array,
                 file.type || 'application/octet-stream',
-                conversationId,
+                conversation_id,
                 source
               );
               if (tempPath) {
                 fileList.push({
-                  name: fileName,
+                  name: file_name,
                   path: tempPath,
                   size: file.size,
                   type: file.type,

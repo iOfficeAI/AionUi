@@ -97,7 +97,7 @@ class HubStateManagerImpl {
     const detectedBackends = new Set<string>(
       detectedAgents
         .map((a) => {
-          if (isAgentKind(a, 'acp') && a.backend === 'custom' && a.isExtension) return a.customAgentId ?? a.name;
+          if (isAgentKind(a, 'acp') && a.backend === 'custom' && a.isExtension) return a.custom_agent_id ?? a.name;
           if (a.backend !== 'custom') return a.backend;
           return null;
         })

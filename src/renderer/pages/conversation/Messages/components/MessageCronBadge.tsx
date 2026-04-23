@@ -32,7 +32,7 @@ const MessageCronBadge: React.FC<MessageCronBadgeProps> = ({ meta }) => {
       style={{ color: 'var(--color-bg-6)' }}
     >
       <AlarmClock strokeWidth={4} theme='outline' size={13} fill={iconColors.secondary} className='flex items-center' />
-      <span>{formatTime(meta.triggeredAt, i18n.language)}</span>
+      <span>{formatTime(meta.triggered_at, i18n.language)}</span>
     </div>
   );
 };

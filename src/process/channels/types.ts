@@ -99,9 +99,9 @@ export interface IChannelPluginConfig {
   credentials?: IPluginCredentials;
   config?: IPluginConfigOptions;
   status: PluginStatus;
-  lastConnected?: number;
-  createdAt: number;
-  updatedAt: number;
+  last_connected?: number;
+  created_at: number;
+  updated_at: number;
 }
 
 /**
@@ -114,7 +114,7 @@ export interface IChannelPluginStatus {
   enabled: boolean;
   connected: boolean;
   status: PluginStatus;
-  lastConnected?: number;
+  last_connected?: number;
   error?: string;
   activeUsers: number;
   botUsername?: string;
@@ -160,10 +160,10 @@ export interface IChannelUser {
   id: string;
   platformUserId: string;
   platformType: PluginType;
-  displayName?: string;
+  display_name?: string;
   authorizedAt: number;
   lastActive?: number;
-  sessionId?: string;
+  session_id?: string;
 }
 
 /**
@@ -191,12 +191,12 @@ export type ChannelAgentType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
  */
 export interface IChannelSession {
   id: string;
-  userId: string;
-  agentType: ChannelAgentType;
-  conversationId?: string;
+  user_id: string;
+  agent_type: ChannelAgentType;
+  conversation_id?: string;
   workspace?: string;
   chatId?: string; // Channel chat isolation ID (e.g. user:xxx, group:xxx)
-  createdAt: number;
+  created_at: number;
   lastActivity: number;
 }
 
@@ -228,7 +228,7 @@ export interface IChannelPairingRequest {
   code: string;
   platformUserId: string;
   platformType: PluginType;
-  displayName?: string;
+  display_name?: string;
   requestedAt: number;
   expiresAt: number;
   status: PairingStatus;
@@ -269,7 +269,7 @@ export type MessageContentType =
 export interface IUnifiedUser {
   id: string;
   username?: string;
-  displayName: string;
+  display_name: string;
   avatarUrl?: string;
 }
 
@@ -284,7 +284,7 @@ export type AttachmentType = 'photo' | 'document' | 'voice' | 'audio' | 'video' 
 export interface IUnifiedAttachment {
   type: AttachmentType;
   fileId: string;
-  fileName?: string;
+  file_name?: string;
   mimeType?: string;
   size?: number;
   duration?: number;
@@ -340,7 +340,7 @@ export interface IActionButton {
 export interface IChannelMediaAction {
   type: 'image' | 'file';
   path: string;
-  fileName?: string;
+  file_name?: string;
   caption?: string;
 }
 
@@ -356,7 +356,7 @@ export interface IUnifiedOutgoingMessage {
   replyMarkup?: unknown;
   imageUrl?: string;
   fileUrl?: string;
-  fileName?: string;
+  file_name?: string;
   mediaActions?: IChannelMediaAction[];
   replyToMessageId?: string;
   silent?: boolean;
@@ -368,7 +368,7 @@ export interface IUnifiedOutgoingMessage {
 export interface BotInfo {
   id: string;
   username?: string;
-  displayName: string;
+  display_name: string;
 }
 
 // ==================== Action Types ====================
@@ -387,10 +387,10 @@ export interface IUnifiedAction {
   params?: Record<string, string>;
   context: {
     platform: PluginType;
-    userId: string;
+    user_id: string;
     chatId: string;
     messageId?: string;
-    sessionId?: string;
+    session_id?: string;
   };
 }
 
@@ -448,10 +448,10 @@ export function rowToChannelUser(row: IChannelUserRow): IChannelUser {
     id: row.id,
     platformUserId: row.platform_user_id,
     platformType: row.platform_type as PluginType,
-    displayName: row.display_name ?? undefined,
+    display_name: row.display_name ?? undefined,
     authorizedAt: row.authorized_at,
     lastActive: row.last_active ?? undefined,
-    sessionId: row.session_id ?? undefined,
+    session_id: row.session_id ?? undefined,
   };
 }
 
@@ -463,10 +463,10 @@ export function channelUserToRow(user: IChannelUser): IChannelUserRow {
     id: user.id,
     platform_user_id: user.platformUserId,
     platform_type: user.platformType,
-    display_name: user.displayName ?? null,
+    display_name: user.display_name ?? null,
     authorized_at: user.authorizedAt,
     last_active: user.lastActive ?? null,
-    session_id: user.sessionId ?? null,
+    session_id: user.session_id ?? null,
   };
 }
 
@@ -476,12 +476,12 @@ export function channelUserToRow(user: IChannelUser): IChannelUserRow {
 export function rowToChannelSession(row: IChannelSessionRow): IChannelSession {
   return {
     id: row.id,
-    userId: row.user_id,
-    agentType: row.agent_type as ChannelAgentType,
-    conversationId: row.conversation_id ?? undefined,
+    user_id: row.user_id,
+    agent_type: row.agent_type as ChannelAgentType,
+    conversation_id: row.conversation_id ?? undefined,
     workspace: row.workspace ?? undefined,
     chatId: row.chat_id ?? undefined,
-    createdAt: row.created_at,
+    created_at: row.created_at,
     lastActivity: row.last_activity,
   };
 }
@@ -492,12 +492,12 @@ export function rowToChannelSession(row: IChannelSessionRow): IChannelSession {
 export function channelSessionToRow(session: IChannelSession): IChannelSessionRow {
   return {
     id: session.id,
-    user_id: session.userId,
-    agent_type: session.agentType,
-    conversation_id: session.conversationId ?? null,
+    user_id: session.user_id,
+    agent_type: session.agent_type,
+    conversation_id: session.conversation_id ?? null,
     workspace: session.workspace ?? null,
     chat_id: session.chatId ?? null,
-    created_at: session.createdAt,
+    created_at: session.created_at,
     last_activity: session.lastActivity,
   };
 }
@@ -510,7 +510,7 @@ export function rowToPairingRequest(row: IChannelPairingCodeRow): IChannelPairin
     code: row.code,
     platformUserId: row.platform_user_id,
     platformType: row.platform_type as PluginType,
-    displayName: row.display_name ?? undefined,
+    display_name: row.display_name ?? undefined,
     requestedAt: row.requested_at,
     expiresAt: row.expires_at,
     status: row.status as PairingStatus,
@@ -525,7 +525,7 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
     code: request.code,
     platform_user_id: request.platformUserId,
     platform_type: request.platformType,
-    display_name: request.displayName ?? null,
+    display_name: request.display_name ?? null,
     requested_at: request.requestedAt,
     expires_at: request.expiresAt,
     status: request.status,

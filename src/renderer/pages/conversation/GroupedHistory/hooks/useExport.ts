@@ -45,12 +45,12 @@ export const useExport = ({
   const exportCanceledRef = useRef(false);
   const { t } = useTranslation();
 
-  const fileExists = useCallback(async (filePath: string): Promise<boolean> => {
+  const fileExists = useCallback(async (file_path: string): Promise<boolean> => {
     try {
       const metadata = await withTimeout(
-        ipcBridge.fs.getFileMetadata.invoke({ path: filePath }),
+        ipcBridge.fs.getFileMetadata.invoke({ path: file_path }),
         EXPORT_IO_TIMEOUT_MS,
-        `getFileMetadata:${filePath}`
+        `getFileMetadata:${file_path}`
       );
       return metadata.size >= 0;
     } catch {
@@ -59,8 +59,8 @@ export const useExport = ({
   }, []);
 
   const createUniqueFilePath = useCallback(
-    async (directory: string, fileNameWithoutExt: string, ext: 'json' | 'md' | 'zip') => {
-      const safeBaseName = sanitizeFileName(fileNameWithoutExt);
+    async (directory: string, file_nameWithoutExt: string, ext: 'json' | 'md' | 'zip') => {
+      const safeBaseName = sanitizeFileName(file_nameWithoutExt);
       const findCandidate = async (index: number): Promise<string> => {
         const suffix = index === 0 ? '' : `-${Date.now()}-${index}`;
         const candidate = joinFilePath(directory, `${safeBaseName}${suffix}.${ext}`);
@@ -138,20 +138,20 @@ export const useExport = ({
     }
   }, [exportModalLoading, exportTargetPath, getDesktopPath, t]);
 
-  const fetchConversationMessages = useCallback(async (conversationId: string): Promise<TMessage[]> => {
+  const fetchConversationMessages = useCallback(async (conversation_id: string): Promise<TMessage[]> => {
     try {
       const result = await withTimeout(
         ipcBridge.database.getConversationMessages.invoke({
-          conversation_id: conversationId,
+          conversation_id: conversation_id,
           page: 0,
-          pageSize: 10000,
+          page_size: 10000,
         }),
         EXPORT_IO_TIMEOUT_MS,
-        `getConversationMessages:${conversationId}`
+        `getConversationMessages:${conversation_id}`
       );
       return result.items;
     } catch (error) {
-      console.warn('[WorkspaceGroupedHistory] Export message fetch timeout/failure:', conversationId, error);
+      console.warn('[WorkspaceGroupedHistory] Export message fetch timeout/failure:', conversation_id, error);
       return [];
     }
   }, []);
@@ -233,7 +233,7 @@ export const useExport = ({
     }
     void openExportModal({
       mode: 'batch',
-      conversationIds: Array.from(selectedConversationIds),
+      conversation_ids: Array.from(selectedConversationIds),
     });
   }, [openExportModal, selectedConversationIds, t]);
 
@@ -284,7 +284,7 @@ export const useExport = ({
       }
 
       const selectedConversations = conversations.filter((conversation) =>
-        exportTask.conversationIds.includes(conversation.id)
+        exportTask.conversation_ids.includes(conversation.id)
       );
       if (selectedConversations.length === 0) {
         Message.warning(t('conversation.history.batchNoSelection'));

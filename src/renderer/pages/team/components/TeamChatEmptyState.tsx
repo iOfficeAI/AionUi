@@ -21,7 +21,7 @@ const useRemoteDraft = getSendBoxDraftHook('remote', { _type: 'remote', atPath: 
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
 
 type Props = {
-  conversationId: string;
+  conversation_id: string;
 };
 
 const SUGGESTIONS = [
@@ -55,7 +55,7 @@ const resolveAgentTypeFromConversation = (conversation: TChatConversation): stri
 
 const resolveAgentName = (conversation: TChatConversation, presetName: string | null): string => {
   if (presetName) return presetName;
-  const extraAgentName = (conversation.extra as { agentName?: string } | undefined)?.agentName;
+  const extraAgentName = (conversation.extra as { agent_name?: string } | undefined)?.agent_name;
   if (extraAgentName && extraAgentName.trim()) return extraAgentName.trim();
   // conversation.name is typically "teamName - agentRole"
   const segments = conversation.name?.split(' - ') ?? [];
@@ -64,24 +64,24 @@ const resolveAgentName = (conversation: TChatConversation, presetName: string | 
   return 'Leader';
 };
 
-const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
+const TeamChatEmptyState: React.FC<Props> = ({ conversation_id }) => {
   const { t } = useTranslation();
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
-  const { data: conversation } = useSWR(conversationId ? ['team-conversation', conversationId] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: conversationId })
+  const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
+    ipcBridge.conversation.get.invoke({ id: conversation_id })
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
 
   // Hooks must run unconditionally; the lookup below picks the right draft at call time.
   // `satisfies Record<DetectedAgentKind, ...>` keeps the map exhaustive — adding a new
   // DetectedAgentKind without wiring up a draft setter here becomes a typecheck error.
-  const acpDraft = useAcpDraft(conversationId);
-  const geminiDraft = useGeminiDraft(conversationId);
-  const aionrsDraft = useAionrsDraft(conversationId);
-  const nanobotDraft = useNanobotDraft(conversationId);
-  const remoteDraft = useRemoteDraft(conversationId);
-  const openClawDraft = useOpenClawDraft(conversationId);
+  const acpDraft = useAcpDraft(conversation_id);
+  const geminiDraft = useGeminiDraft(conversation_id);
+  const aionrsDraft = useAionrsDraft(conversation_id);
+  const nanobotDraft = useNanobotDraft(conversation_id);
+  const remoteDraft = useRemoteDraft(conversation_id);
+  const openClawDraft = useOpenClawDraft(conversation_id);
   const setContentByKind = {
     acp: (text: string) => acpDraft.mutate((prev) => ({ ...prev, content: text })),
     gemini: (text: string) => geminiDraft.mutate((prev) => ({ ...prev, content: text })),
@@ -100,12 +100,12 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
   );
 
   if (!conversation) return null;
-  const teamId = (conversation.extra as { teamId?: string } | undefined)?.teamId?.trim();
-  if (!teamId) return null;
+  const team_id = (conversation.extra as { team_id?: string } | undefined)?.team_id?.trim();
+  if (!team_id) return null;
 
-  const agentType = resolveAgentTypeFromConversation(conversation);
-  const agentName = resolveAgentName(conversation, presetInfo?.name ?? null);
-  const backendLogo = getAgentLogo(agentType);
+  const agent_type = resolveAgentTypeFromConversation(conversation);
+  const agent_name = resolveAgentName(conversation, presetInfo?.name ?? null);
+  const backendLogo = getAgentLogo(agent_type);
 
   const renderAvatar = () => {
     if (presetInfo) {
@@ -125,11 +125,11 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
       );
     }
     if (backendLogo) {
-      return <img src={backendLogo} alt={agentName} className='w-48px h-48px object-contain rounded-8px opacity-80' />;
+      return <img src={backendLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />;
     }
     return (
       <div className='w-48px h-48px rounded-full bg-fill-3 flex items-center justify-center text-20px font-medium text-t-secondary'>
-        {agentName.charAt(0).toUpperCase()}
+        {agent_name.charAt(0).toUpperCase()}
       </div>
     );
   };
@@ -141,7 +141,7 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
     >
       {renderAvatar()}
       <div className='flex flex-col gap-6px'>
-        <span className='text-16px font-semibold text-t-primary'>{agentName}</span>
+        <span className='text-16px font-semibold text-t-primary'>{agent_name}</span>
         <span data-testid='team-chat-empty-state-subtitle' className='text-13px text-t-secondary'>
           {t('team.emptyState.subtitle', { defaultValue: "Describe your goal and I'll get the team working on it" })}
         </span>

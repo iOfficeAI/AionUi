@@ -8,7 +8,7 @@ export interface WorkspaceStateDetail {
 
 export interface WorkspaceHasFilesDetail {
   hasFiles: boolean;
-  conversationId?: string;
+  conversation_id?: string;
 }
 
 export function dispatchWorkspaceToggleEvent() {
@@ -25,9 +25,9 @@ export function dispatchWorkspaceStateEvent(collapsed: boolean) {
  * 当工作空间文件状态变化时触发
  * Dispatch when workspace files status changes
  */
-export function dispatchWorkspaceHasFilesEvent(hasFiles: boolean, conversationId?: string) {
+export function dispatchWorkspaceHasFilesEvent(hasFiles: boolean, conversation_id?: string) {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(
-    new CustomEvent<WorkspaceHasFilesDetail>(WORKSPACE_HAS_FILES_EVENT, { detail: { hasFiles, conversationId } })
+    new CustomEvent<WorkspaceHasFilesDetail>(WORKSPACE_HAS_FILES_EVENT, { detail: { hasFiles, conversation_id } })
   );
 }

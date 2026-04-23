@@ -68,7 +68,7 @@ export class OpenClawGatewayConnection {
   private tickTimer: NodeJS.Timeout | null = null;
 
   // Connection state
-  private _isConnected = false;
+  private _is_connected = false;
   private _helloOk: HelloOk | null = null;
 
   // Current session
@@ -117,7 +117,7 @@ export class OpenClawGatewayConnection {
     this.ws.on('close', (code, reason) => {
       const reasonText = this.rawDataToString(reason);
       this.ws = null;
-      this._isConnected = false;
+      this._is_connected = false;
       this.flushPendingErrors(new Error(`Gateway closed (${code}): ${reasonText}`));
       this.scheduleReconnect();
       this.opts.onClose?.(code, reasonText);
@@ -150,7 +150,7 @@ export class OpenClawGatewayConnection {
     }
     this.ws?.close();
     this.ws = null;
-    this._isConnected = false;
+    this._is_connected = false;
     this._sessionKey = null;
     this.flushPendingErrors(new Error('Gateway client stopped'));
   }
@@ -211,8 +211,8 @@ export class OpenClawGatewayConnection {
   /**
    * Resolve or create a session
    */
-  async sessionsResolve(params: SessionsResolveParams): Promise<{ key: string; sessionId: string }> {
-    const result = await this.request<{ key: string; sessionId: string }>('sessions.resolve', params);
+  async sessionsResolve(params: SessionsResolveParams): Promise<{ key: string; session_id: string }> {
+    const result = await this.request<{ key: string; session_id: string }>('sessions.resolve', params);
     this._sessionKey = result.key;
     return result;
   }
@@ -220,8 +220,8 @@ export class OpenClawGatewayConnection {
   /**
    * Reset or create a session, returns the canonical session key
    */
-  async sessionsReset(params: SessionsResetParams): Promise<{ key: string; sessionId: string }> {
-    const result = await this.request<{ key: string; sessionId: string }>('sessions.reset', params);
+  async sessionsReset(params: SessionsResetParams): Promise<{ key: string; session_id: string }> {
+    const result = await this.request<{ key: string; session_id: string }>('sessions.reset', params);
     this._sessionKey = result.key;
     return result;
   }
@@ -290,7 +290,7 @@ export class OpenClawGatewayConnection {
       maxProtocol: this.opts.maxProtocol ?? OPENCLAW_PROTOCOL_VERSION,
       client: {
         id: this.opts.clientName ?? GATEWAY_CLIENT_IDS.GATEWAY_CLIENT,
-        displayName: this.opts.clientDisplayName ?? 'AionUI',
+        display_name: this.opts.clientDisplayName ?? 'AionUI',
         version: this.opts.clientVersion ?? '1.0.0',
         platform: this.opts.platform ?? process.platform,
         mode: this.opts.mode ?? GATEWAY_CLIENT_MODES.BACKEND,
@@ -325,7 +325,7 @@ export class OpenClawGatewayConnection {
           }
         }
 
-        this._isConnected = true;
+        this._is_connected = true;
         this._helloOk = helloOk;
         this.backoffMs = 1000;
         this.reconnectAttempts = 0;
@@ -509,8 +509,8 @@ export class OpenClawGatewayConnection {
 
   // ========== Getters ==========
 
-  get isConnected(): boolean {
-    return this._isConnected;
+  get is_connected(): boolean {
+    return this._is_connected;
   }
 
   get helloOk(): HelloOk | null {

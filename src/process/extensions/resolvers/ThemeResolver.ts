@@ -62,12 +62,12 @@ function convertTheme(theme: ExtTheme, ext: LoadedExtension): ICssTheme | null {
     return {
       // Prefix with extension name to avoid ID conflicts
       id: `ext-${ext.manifest.name}-${theme.id}`,
-      name: `${theme.name} (${ext.manifest.displayName || ext.manifest.name})`,
+      name: `${theme.name} (${ext.manifest.display_name || ext.manifest.name})`,
       css,
       cover,
-      isPreset: true,
-      createdAt: now,
-      updatedAt: now,
+      is_preset: true,
+      created_at: now,
+      updated_at: now,
     };
   } catch (error) {
     console.warn(

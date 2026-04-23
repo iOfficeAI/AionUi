@@ -33,7 +33,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
     try {
       const agents = await ConfigStorage.get('assistants');
       if (agents && Array.isArray(agents)) {
-        setPresets(agents.filter((a) => a.isPreset));
+        setPresets(agents.filter((a) => a.is_preset));
       }
     } catch (error) {
       console.error('Failed to load presets:', error);

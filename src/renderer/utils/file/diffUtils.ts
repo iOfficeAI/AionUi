@@ -93,7 +93,7 @@ export function extractContentFromDiff(diffContent: string): string {
  */
 export interface FileChangeInfo {
   /** File name */
-  fileName: string;
+  file_name: string;
   /** Full path */
   fullPath: string;
   /** Number of insertions */
@@ -108,31 +108,31 @@ export interface FileChangeInfo {
  * Parse unified diff format, extract file info and change statistics
  *
  * @param diff Unified diff string
- * @param fileNameHint Optional filename hint when diff header is missing
+ * @param file_nameHint Optional filename hint when diff header is missing
  * @returns Parsed file change info
  */
-export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo => {
+export const parseDiff = (diff: string, file_nameHint?: string): FileChangeInfo => {
   const lines = diff.split('\n');
 
   // Extract filename
   const gitLine = lines.find((line) => line.startsWith('diff --git'));
-  let fileName = fileNameHint || 'Unknown file';
-  let fullPath = fileNameHint || 'Unknown file';
+  let file_name = file_nameHint || 'Unknown file';
+  let fullPath = file_nameHint || 'Unknown file';
 
   if (gitLine) {
     const match = gitLine.match(/diff --git a\/(.+) b\/(.+)/);
     if (match) {
       fullPath = match[1];
-      fileName = fullPath.split('/').pop() || fullPath;
+      file_name = fullPath.split('/').pop() || fullPath;
     }
   } else {
     const parsedPath = parseFilePathFromDiff(diff);
     if (parsedPath) {
       fullPath = parsedPath;
-      fileName = parsedPath.split(/[\\/]/).pop() || parsedPath;
-    } else if (fileNameHint) {
-      fileName = fileNameHint.split(/[\\/]/).pop() || fileNameHint;
-      fullPath = fileNameHint;
+      file_name = parsedPath.split(/[\\/]/).pop() || parsedPath;
+    } else if (file_nameHint) {
+      file_name = file_nameHint.split(/[\\/]/).pop() || file_nameHint;
+      fullPath = file_nameHint;
     }
   }
 
@@ -161,7 +161,7 @@ export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo =
   }
 
   return {
-    fileName,
+    file_name,
     fullPath,
     insertions,
     deletions,

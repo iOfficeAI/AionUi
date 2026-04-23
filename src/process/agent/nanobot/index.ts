@@ -29,14 +29,14 @@ export class NanobotAgent {
   private readonly id: string;
   private readonly config: NanobotAgentConfig;
   private connection: NanobotConnection;
-  private sessionId: string;
+  private session_id: string;
 
   constructor(config: NanobotAgentConfig) {
     this.id = config.id;
     this.config = config;
     this.connection = new NanobotConnection(config.workingDir);
     // Use conversation ID as nanobot session to maintain context
-    this.sessionId = config.id;
+    this.session_id = config.id;
   }
 
   /** No-op: nanobot doesn't need a persistent connection */
@@ -51,7 +51,7 @@ export class NanobotAgent {
     const responseMsgId = uuid();
 
     try {
-      const responseText = await this.connection.sendMessage(data.content, this.sessionId);
+      const responseText = await this.connection.sendMessage(data.content, this.session_id);
 
       // Emit response content
       this.config.onStreamEvent({

@@ -120,7 +120,7 @@ export const useAssistantEditor = ({
       setEditContext(assistant.context || '');
       setEditSkills('');
       setAvailableSkills([]);
-      setSelectedSkills(Array.isArray(assistant.enabledSkills) ? assistant.enabledSkills : []);
+      setSelectedSkills(Array.isArray(assistant.enabled_skills) ? assistant.enabled_skills : []);
       setCustomSkills([]);
       setDisabledBuiltinSkills(Array.isArray(assistant.disabledBuiltinSkills) ? assistant.disabledBuiltinSkills : []);
       return;
@@ -139,7 +139,7 @@ export const useAssistantEditor = ({
       if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
-        setSelectedSkills(assistant.enabledSkills || []);
+        setSelectedSkills(assistant.enabled_skills || []);
         setCustomSkills(assistant.customSkillNames || []);
       } else {
         setAvailableSkills([]);
@@ -218,7 +218,7 @@ export const useAssistantEditor = ({
       setEditSkills(skills);
       setAvailableSkills(skillsList);
       setBuiltinAutoSkills(autoSkills);
-      setSelectedSkills(assistant.enabledSkills || []);
+      setSelectedSkills(assistant.enabled_skills || []);
       setCustomSkills(assistant.customSkillNames || []);
       setDisabledBuiltinSkills(Array.isArray(assistant.disabledBuiltinSkills) ? assistant.disabledBuiltinSkills : []);
     } catch (error) {
@@ -277,11 +277,11 @@ export const useAssistantEditor = ({
           name: editName,
           description: editDescription,
           avatar: editAvatar,
-          isPreset: true,
+          is_preset: true,
           isBuiltin: false,
           presetAgentType: editAgent,
           enabled: true,
-          enabledSkills: selectedSkills,
+          enabled_skills: selectedSkills,
           customSkillNames: finalCustomSkills,
           disabledBuiltinSkills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
         };
@@ -310,7 +310,7 @@ export const useAssistantEditor = ({
           description: editDescription,
           avatar: editAvatar,
           presetAgentType: editAgent,
-          enabledSkills: selectedSkills,
+          enabled_skills: selectedSkills,
           customSkillNames: finalCustomSkills,
           disabledBuiltinSkills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
         };

@@ -25,7 +25,7 @@ export type GuidAgentSelectionResult = {
   defaultAgentKey: string;
   selectedAgent: string;
   selectedAgentInfo: AvailableAgent | undefined;
-  isPresetAgent: boolean;
+  is_presetAgent: boolean;
   availableAgents: AvailableAgent[] | undefined;
   customAgents: AcpBackendConfig[];
   selectedMode: string;
@@ -35,26 +35,28 @@ export type GuidAgentSelectionResult = {
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
-  cachedConfigOptions: AcpSessionConfigOption[];
-  pendingConfigOptions: Record<string, string>;
-  setPendingConfigOption: (configId: string, value: string) => void;
-  getAgentKey: (agent: { backend: AcpBackend; customAgentId?: string }) => string;
+  cached_config_options: AcpSessionConfigOption[];
+  pending_config_options: Record<string, string>;
+  setPendingConfigOption: (config_id: string, value: string) => void;
+  getAgentKey: (agent: { backend: AcpBackend; custom_agent_id?: string }) => string;
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   resolvePresetRulesAndSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<{ rules?: string; skills?: string }>;
   resolvePresetContext: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<string | undefined>;
-  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string;
+  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined) => string;
   resolveEnabledSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
-  isMainAgentAvailable: (agentType: string) => boolean;
-  getEffectiveAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => EffectiveAgentInfo;
+  isMainAgentAvailable: (agent_type: string) => boolean;
+  getEffectiveAgentType: (
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+  ) => EffectiveAgentInfo;
   refreshCustomAgents: () => Promise<void>;
   customAgentAvatarMap: Map<string, string | undefined>;
 };
@@ -87,8 +89,8 @@ export const useGuidAgentSelection = ({
   const initialRestoreDoneRef = useRef(false);
   const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
-  const [cachedConfigOptions, setCachedConfigOptions] = useState<AcpSessionConfigOption[]>([]);
-  const [pendingConfigOptions, setPendingConfigOptions] = useState<Record<string, string>>({});
+  const [cached_config_options, setCachedConfigOptions] = useState<AcpSessionConfigOption[]>([]);
+  const [pending_config_options, setPendingConfigOptions] = useState<Record<string, string>>({});
 
   // Wrap setSelectedAgentKey to also save to storage
   const setSelectedAgentKey = useCallback((key: string) => {
@@ -112,14 +114,14 @@ export const useGuidAgentSelection = ({
   }, []);
 
   // Update a single pending config option selection (local mode, Guid page)
-  const setPendingConfigOption = useCallback((configId: string, value: string) => {
-    setPendingConfigOptions((prev) => ({ ...prev, [configId]: value }));
+  const setPendingConfigOption = useCallback((config_id: string, value: string) => {
+    setPendingConfigOptions((prev) => ({ ...prev, [config_id]: value }));
   }, []);
 
   // Wrap setSelectedAcpModel to also save preferred model to the agent's config
-  const setSelectedAcpModel = useCallback((modelId: React.SetStateAction<string | null>) => {
+  const setSelectedAcpModel = useCallback((model_id: React.SetStateAction<string | null>) => {
     _setSelectedAcpModel((prev) => {
-      const newModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
+      const newModelId = typeof model_id === 'function' ? model_id(prev) : model_id;
       const agentKey = selectedAgentRef.current;
       if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
         void savePreferredModelId(agentKey, newModelId);
@@ -131,8 +133,8 @@ export const useGuidAgentSelection = ({
   const availableCustomAgentIds = useMemo(() => {
     const ids = new Set<string>();
     (availableAgents || []).forEach((agent) => {
-      if (agent.customAgentId) {
-        ids.add(agent.customAgentId);
+      if (agent.custom_agent_id) {
+        ids.add(agent.custom_agent_id);
       }
     });
     return ids;
@@ -166,17 +168,17 @@ export const useGuidAgentSelection = ({
    */
   const findAgentByKey = (key: string): AvailableAgent | undefined => {
     if (key.startsWith('custom:')) {
-      const customAgentId = key.slice(7);
-      const foundInAvailable = availableAgents?.find((a) => a.customAgentId === customAgentId);
+      const custom_agent_id = key.slice(7);
+      const foundInAvailable = availableAgents?.find((a) => a.custom_agent_id === custom_agent_id);
       if (foundInAvailable) return foundInAvailable;
 
-      const assistant = customAgents.find((a) => a.id === customAgentId);
+      const assistant = customAgents.find((a) => a.id === custom_agent_id);
       if (assistant) {
         return {
           backend: assistant.presetAgentType || 'gemini',
           name: assistant.name,
-          customAgentId: assistant.id,
-          isPreset: true,
+          custom_agent_id: assistant.id,
+          is_preset: true,
           context: '',
           avatar: assistant.avatar,
           presetAgentType: assistant.presetAgentType,
@@ -185,7 +187,7 @@ export const useGuidAgentSelection = ({
     }
     if (key.startsWith('remote:')) {
       const remoteId = key.slice(7);
-      return availableAgents?.find((a) => a.backend === 'remote' && a.customAgentId === remoteId);
+      return availableAgents?.find((a) => a.backend === 'remote' && a.custom_agent_id === remoteId);
     }
     return availableAgents?.find((a) => a.backend === key);
   };
@@ -199,7 +201,7 @@ export const useGuidAgentSelection = ({
   const selectedAgentInfo = useMemo(() => {
     return findAgentByKey(selectedAgentKey);
   }, [selectedAgentKey, availableAgents, customAgents]);
-  const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
+  const is_presetAgent = Boolean(selectedAgentInfo?.is_preset);
 
   // --- SWR: Fetch detected execution engines (shared cache) ---
   const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
@@ -212,7 +214,7 @@ export const useGuidAgentSelection = ({
     const remoteAsAvailable: AvailableAgent[] = (remoteAgentsData || []).map((ra) => ({
       backend: 'remote',
       name: ra.name,
-      customAgentId: ra.id,
+      custom_agent_id: ra.id,
       avatar: ra.avatar,
     }));
     setAvailableAgents([...availableAgentsData, ...remoteAsAvailable]);
@@ -235,7 +237,7 @@ export const useGuidAgentSelection = ({
 
     if (resetAssistant && !resetHandledRef.current) {
       resetHandledRef.current = true;
-      const firstCliAgent = availableAgents.find((a) => !a.isPreset);
+      const firstCliAgent = availableAgents.find((a) => !a.is_preset);
       const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
       _setSelectedAgentKey(fallbackKey);
       ConfigStorage.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
@@ -304,28 +306,28 @@ export const useGuidAgentSelection = ({
   }, []);
 
   const currentEffectiveAgentInfo = useMemo(() => {
-    if (!isPresetAgent) {
+    if (!is_presetAgent) {
       const isAvailable = isMainAgentAvailable(selectedAgent as string);
       return {
-        agentType: selectedAgent as string,
+        agent_type: selectedAgent as string,
         isFallback: false,
         originalType: selectedAgent as string,
         isAvailable,
       };
     }
     return getEffectiveAgentType(selectedAgentInfo);
-  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
+  }, [is_presetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
 
   // Load cached ACP config options per backend
   useEffect(() => {
-    const backend = isPresetAgent
-      ? currentEffectiveAgentInfo.agentType
+    const backend = is_presetAgent
+      ? currentEffectiveAgentInfo.agent_type
       : selectedAgentKey.startsWith('custom:')
         ? 'custom'
         : selectedAgentKey;
     if (!backend) return;
     let isActive = true;
-    ConfigStorage.get('acp.cachedConfigOptions')
+    ConfigStorage.get('acp.cached_config_options')
       .then((cached) => {
         if (!isActive) return;
         const options = cached?.[backend];
@@ -346,13 +348,13 @@ export const useGuidAgentSelection = ({
     return () => {
       isActive = false;
     };
-  }, [selectedAgentKey, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
     // For preset agents, resolve to the actual backend type for config lookup
-    const backend = isPresetAgent
-      ? currentEffectiveAgentInfo.agentType
+    const backend = is_presetAgent
+      ? currentEffectiveAgentInfo.agent_type
       : selectedAgentKey.startsWith('custom:')
         ? 'custom'
         : selectedAgentKey;
@@ -369,25 +371,25 @@ export const useGuidAgentSelection = ({
           _setSelectedAcpModel(preferred);
         } else {
           const cachedInfo = acpCachedModels[backend];
-          _setSelectedAcpModel(cachedInfo?.currentModelId ?? null);
+          _setSelectedAcpModel(cachedInfo?.current_model_id ?? null);
         }
       })
       .catch(() => {
         if (cancelled) return;
         const cachedInfo = acpCachedModels[backend];
-        _setSelectedAcpModel(cachedInfo?.currentModelId ?? null);
+        _setSelectedAcpModel(cachedInfo?.current_model_id ?? null);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, acpCachedModels, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
     _setSelectedMode('default');
     // For preset agents, use the effective backend type for config lookup and mode saving
-    const configKey = isPresetAgent ? currentEffectiveAgentInfo.agentType : selectedAgent;
+    const configKey = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
     selectedAgentRef.current = configKey;
     if (!configKey) return;
 
@@ -444,12 +446,12 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup
-    const backend = isPresetAgent
-      ? currentEffectiveAgentInfo.agentType
+    const backend = is_presetAgent
+      ? currentEffectiveAgentInfo.agent_type
       : selectedAgentKey.startsWith('custom:')
         ? 'custom'
         : selectedAgentKey;
@@ -461,19 +463,19 @@ export const useGuidAgentSelection = ({
     if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
       return {
         source: 'models' as const,
-        currentModelId: DEFAULT_CODEX_MODELS[0].id,
-        currentModelLabel: DEFAULT_CODEX_MODELS[0].label,
-        availableModels: DEFAULT_CODEX_MODELS.map((m) => ({ id: m.id, label: m.label })),
-        canSwitch: true,
+        current_model_id: DEFAULT_CODEX_MODELS[0].id,
+        current_model_label: DEFAULT_CODEX_MODELS[0].label,
+        available_models: DEFAULT_CODEX_MODELS.map((m) => ({ id: m.id, label: m.label })),
+        can_switch: true,
       } satisfies AcpModelInfo;
     }
 
     return null;
-  }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, acpCachedModels, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
-    const firstCliAgent = availableAgents?.find((a) => !a.isPreset);
+    const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
     return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
   }, [availableAgents]);
 
@@ -483,7 +485,7 @@ export const useGuidAgentSelection = ({
     defaultAgentKey,
     selectedAgent,
     selectedAgentInfo,
-    isPresetAgent,
+    is_presetAgent,
     availableAgents,
     customAgents,
     selectedMode,
@@ -493,8 +495,8 @@ export const useGuidAgentSelection = ({
     setSelectedAcpModel,
     currentAcpCachedModelInfo,
     currentEffectiveAgentInfo,
-    cachedConfigOptions,
-    pendingConfigOptions,
+    cached_config_options,
+    pending_config_options,
     setPendingConfigOption,
     getAgentKey,
     findAgentByKey,

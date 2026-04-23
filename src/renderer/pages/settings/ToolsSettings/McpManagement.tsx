@@ -100,7 +100,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
 
   // 包装添加服务器，添加后自动测试连接
   const wrappedHandleAddMcpServer = React.useCallback(
-    async (serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => {
+    async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const addedServer = await handleAddMcpServer(serverData);
       if (addedServer) {
         // 直接使用返回的服务器对象进行测试，避免闭包问题
@@ -125,7 +125,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   const wrappedHandleEditMcpServer = React.useCallback(
     async (
       editingMcpServer: IMcpServer | undefined,
-      serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>
+      serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>
     ) => {
       const updatedServer = await handleEditMcpServer(editingMcpServer, serverData);
       if (updatedServer) {
@@ -147,7 +147,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
 
   // 包装批量导入，导入后自动测试连接
   const wrappedHandleBatchImportMcpServers = React.useCallback(
-    async (serversData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => {
+    async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
       const addedServers = await handleBatchImportMcpServers(serversData);
       if (addedServers && addedServers.length > 0) {
         addedServers.forEach((server) => {

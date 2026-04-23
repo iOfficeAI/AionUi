@@ -14,7 +14,7 @@ interface InitialMessageData {
 }
 
 export const useInitialMessage = (
-  conversationId: string,
+  conversation_id: string,
   acpStatus: string | null,
   onSend: (msg_id: string, input: string, files: string[]) => Promise<boolean>
 ) => {
@@ -26,7 +26,7 @@ export const useInitialMessage = (
     // Prevent duplicate processing
     if (processedRef.current) return;
 
-    const storageKey = `acp_initial_message_${conversationId}`;
+    const storageKey = `acp_initial_message_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) {
@@ -66,7 +66,7 @@ export const useInitialMessage = (
       setError(err instanceof Error ? err.message : 'Unknown error');
       sessionStorage.removeItem(storageKey);
     }
-  }, [conversationId, acpStatus, onSend]);
+  }, [conversation_id, acpStatus, onSend]);
 
   useEffect(() => {
     processInitialMessage().catch((err) => {

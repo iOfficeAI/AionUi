@@ -32,9 +32,9 @@ export type RemoteAgentConfig = {
   /** Device token issued by Gateway after hello-ok (OpenClaw protocol only) */
   deviceToken?: string;
   status?: RemoteAgentStatus;
-  lastConnectedAt?: number;
-  createdAt: number;
-  updatedAt: number;
+  last_connectedAt?: number;
+  created_at: number;
+  updated_at: number;
 };
 
 /** Parameters for creating/updating a remote agent config */

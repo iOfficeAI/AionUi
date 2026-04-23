@@ -37,14 +37,14 @@ export function initPetConfirmManager(bounds: { x: number; y: number; width: num
   registerIpcHandlers();
   // Use main-process hook (buildEmitter.on() only works in renderer)
   setConfirmHook({
-    onAdd: (conversationId, data) => {
-      showConfirmation({ ...data, conversation_id: conversationId });
+    onAdd: (conversation_id, data) => {
+      showConfirmation({ ...data, conversation_id: conversation_id });
     },
-    onUpdate: (conversationId, data) => {
-      updateConfirmation({ ...data, conversation_id: conversationId });
+    onUpdate: (conversation_id, data) => {
+      updateConfirmation({ ...data, conversation_id: conversation_id });
     },
-    onRemove: (conversationId, confirmationId) => {
-      removeConfirmation({ conversation_id: conversationId, id: confirmationId });
+    onRemove: (conversation_id, confirmationId) => {
+      removeConfirmation({ conversation_id: conversation_id, id: confirmationId });
     },
   });
 }
@@ -336,12 +336,12 @@ function registerIpcHandlers(): void {
 
   ipcMain.on(
     'pet:confirm-respond',
-    (_event, data: { conversation_id: string; msg_id: string; callId: string; data: any }) => {
+    (_event, data: { conversation_id: string; msg_id: string; call_id: string; data: any }) => {
       console.log('[PetConfirm] Received response:', JSON.stringify(data));
 
       // Remove from local tracking
       const confirmation = Array.from(currentConfirmations.values()).find(
-        (c) => c.callId === data.callId && c.conversation_id === data.conversation_id
+        (c) => c.call_id === data.call_id && c.conversation_id === data.conversation_id
       );
 
       if (confirmation) {
@@ -349,7 +349,7 @@ function registerIpcHandlers(): void {
 
         // CRITICAL: Immediately broadcast removal to prevent main renderer from also responding.
         // The main renderer's ConversationChatConfirm has keyboard shortcuts that can trigger
-        // a second response. Since worker uses pipe.once(callId), only the first response is
+        // a second response. Since worker uses pipe.once(call_id), only the first response is
         // processed — if main renderer responds first (e.g., user presses Enter accidentally),
         // the pet window's response (e.g., 'cancel') is ignored.
         // By emitting remove NOW, main renderer removes the confirmation from state before
@@ -360,8 +360,8 @@ function registerIpcHandlers(): void {
       // Forward response directly to task (main→main, cannot use ipcBridge.invoke)
       const task = workerTaskManager.getTask(data.conversation_id);
       if (task) {
-        console.log('[PetConfirm] Calling task.confirm with:', data.msg_id, data.callId, data.data);
-        task.confirm(data.msg_id, data.callId, data.data);
+        console.log('[PetConfirm] Calling task.confirm with:', data.msg_id, data.call_id, data.data);
+        task.confirm(data.msg_id, data.call_id, data.data);
       } else {
         console.error('[PetConfirm] Task not found for conversation:', data.conversation_id);
       }

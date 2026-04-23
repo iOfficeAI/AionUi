@@ -32,7 +32,7 @@ function passesCapabilityFilter(provider: IProvider, modelName: string): boolean
  * Get available models for a given agent backend in team context.
  *
  * Resolution order:
- * 1. ACP backends (claude, codex, qwen, etc.) -> read from acp.cachedModels[backend].availableModels
+ * 1. ACP backends (claude, codex, qwen, etc.) -> read from acp.cachedModels[backend].available_models
  * 2. Gemini -> Google Auth models (if authenticated) + ALL enabled providers' models
  * 3. Aionrs -> all enabled providers (except gemini-with-google-auth) with capability filtering
  * 4. Others -> empty list (no model switching)
@@ -49,8 +49,8 @@ export function getTeamAvailableModels(
 ): TeamAvailableModel[] {
   // ACP backends: use cached model list from ACP protocol
   const acpModelInfo = cachedModels?.[backend];
-  if (acpModelInfo?.availableModels && acpModelInfo.availableModels.length > 0) {
-    return acpModelInfo.availableModels.map((m) => ({
+  if (acpModelInfo?.available_models && acpModelInfo.available_models.length > 0) {
+    return acpModelInfo.available_models.map((m) => ({
       id: m.id,
       label: m.label || m.id,
     }));
@@ -79,7 +79,7 @@ export function getTeamAvailableModels(
     const enabledProviders = (providers || []).filter((p) => p.enabled !== false && p.model?.length);
     for (const p of enabledProviders) {
       for (const m of p.model || []) {
-        if (p.modelEnabled?.[m] !== false && passesCapabilityFilter(p, m)) {
+        if (p.model_enabled?.[m] !== false && passesCapabilityFilter(p, m)) {
           addModel(m);
         }
       }
@@ -97,7 +97,7 @@ export function getTeamAvailableModels(
     );
     for (const provider of enabledProviders) {
       for (const m of provider.model) {
-        if (provider.modelEnabled?.[m] !== false && !seen.has(m) && passesCapabilityFilter(provider, m)) {
+        if (provider.model_enabled?.[m] !== false && !seen.has(m) && passesCapabilityFilter(provider, m)) {
           seen.add(m);
           result.push({ id: m, label: m });
         }
@@ -123,7 +123,7 @@ export function getTeamDefaultModelId(
   if (preferred) return preferred;
 
   // 2. Cached current model from last ACP session
-  const cached = cachedModels?.[backend]?.currentModelId;
+  const cached = cachedModels?.[backend]?.current_model_id;
   if (cached) return cached;
 
   return undefined;
@@ -133,23 +133,23 @@ export function getTeamDefaultModelId(
  * Resolve a model ID to its friendly display label.
  *
  * Lookup order:
- * 1. ACP cachedModels[backend].availableModels — match by id, return label
+ * 1. ACP cachedModels[backend].available_models — match by id, return label
  * 2. Fall back to the raw model ID
  *
  * This function is synchronous and expects pre-fetched data.
  */
 export function resolveTeamModelLabel(
-  modelId: string | undefined,
+  model_id: string | undefined,
   backend: string,
   cachedModels: Record<string, AcpModelInfo> | null | undefined
 ): string {
-  if (!modelId) return '(default)';
+  if (!model_id) return '(default)';
 
-  const acpModels = cachedModels?.[backend]?.availableModels;
+  const acpModels = cachedModels?.[backend]?.available_models;
   if (acpModels) {
-    const match = acpModels.find((m) => m.id === modelId);
+    const match = acpModels.find((m) => m.id === model_id);
     if (match?.label) return match.label;
   }
 
-  return modelId;
+  return model_id;
 }

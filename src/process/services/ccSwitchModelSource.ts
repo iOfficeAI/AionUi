@@ -62,14 +62,14 @@ function parseJsonObject<T extends Record<string, unknown>>(content: string): T 
   }
 }
 
-function uniqueModelIds(modelIds: Array<string | null>): string[] {
+function uniqueModelIds(model_ids: Array<string | null>): string[] {
   const seen = new Set<string>();
   const result: string[] = [];
 
-  for (const modelId of modelIds) {
-    if (!modelId || seen.has(modelId)) continue;
-    seen.add(modelId);
-    result.push(modelId);
+  for (const model_id of model_ids) {
+    if (!model_id || seen.has(model_id)) continue;
+    seen.add(model_id);
+    result.push(model_id);
   }
 
   return result;
@@ -111,36 +111,37 @@ export function buildClaudeModelInfoFromCcSwitchConfig(
   const opusModelId = isNonEmptyString(env.ANTHROPIC_DEFAULT_OPUS_MODEL) ? env.ANTHROPIC_DEFAULT_OPUS_MODEL : null;
   const haikuModelId = isNonEmptyString(env.ANTHROPIC_DEFAULT_HAIKU_MODEL) ? env.ANTHROPIC_DEFAULT_HAIKU_MODEL : null;
 
-  const availableModels = uniqueModelIds([defaultModelId, opusModelId, haikuModelId]).flatMap((modelId) => {
-    const slotId =
-      modelId === defaultModelId
+  const available_models = uniqueModelIds([defaultModelId, opusModelId, haikuModelId]).flatMap((model_id) => {
+    const slot_id =
+      model_id === defaultModelId
         ? 'default'
-        : modelId === opusModelId
+        : model_id === opusModelId
           ? 'opus'
-          : modelId === haikuModelId
+          : model_id === haikuModelId
             ? 'haiku'
             : null;
-    if (!slotId) return [];
+    if (!slot_id) return [];
     return [
       {
-        id: slotId,
-        label: modelLabels.get(modelId) || modelId,
+        id: slot_id,
+        label: modelLabels.get(model_id) || model_id,
       },
     ];
   });
 
-  if (availableModels.length === 0) return null;
+  if (available_models.length === 0) return null;
 
   const preferredSlot = normalizeClaudeModelSlot(activeSlot) ?? normalizeClaudeModelSlot(settingsConfig.model);
-  const currentModelId = availableModels.find((model) => model.id === preferredSlot)?.id || availableModels[0].id;
-  const currentModelLabel = availableModels.find((model) => model.id === currentModelId)?.label || currentModelId;
+  const current_model_id = available_models.find((model) => model.id === preferredSlot)?.id || available_models[0].id;
+  const current_model_label =
+    available_models.find((model) => model.id === current_model_id)?.label || current_model_id;
   return {
-    currentModelId,
-    currentModelLabel,
-    availableModels,
-    canSwitch: availableModels.length > 1,
+    current_model_id,
+    current_model_label,
+    available_models,
+    can_switch: available_models.length > 1,
     source: 'models',
-    sourceDetail: 'cc-switch',
+    source_detail: 'cc-switch',
   };
 }
 

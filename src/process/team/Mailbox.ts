@@ -11,7 +11,7 @@ export class Mailbox {
    * @returns The persisted message.
    */
   async write(params: {
-    teamId: string;
+    team_id: string;
     toAgentId: string;
     fromAgentId: string;
     content: string;
@@ -21,7 +21,7 @@ export class Mailbox {
   }): Promise<MailboxMessage> {
     const message: MailboxMessage = {
       id: crypto.randomUUID(),
-      teamId: params.teamId,
+      team_id: params.team_id,
       toAgentId: params.toAgentId,
       fromAgentId: params.fromAgentId,
       type: params.type ?? 'message',
@@ -29,7 +29,7 @@ export class Mailbox {
       summary: params.summary,
       files: params.files,
       read: false,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     };
 
     return this.repo.writeMessage(message);
@@ -39,14 +39,14 @@ export class Mailbox {
    * Read all unread messages for an agent, atomically marking them as read.
    * Uses a single transaction to prevent concurrent double-reads.
    */
-  async readUnread(teamId: string, agentId: string): Promise<MailboxMessage[]> {
-    return this.repo.readUnreadAndMark(teamId, agentId);
+  async readUnread(team_id: string, agentId: string): Promise<MailboxMessage[]> {
+    return this.repo.readUnreadAndMark(team_id, agentId);
   }
 
   /**
    * Get message history for an agent (newest first).
    */
-  async getHistory(teamId: string, agentId: string, limit?: number): Promise<MailboxMessage[]> {
-    return this.repo.getMailboxHistory(teamId, agentId, limit);
+  async getHistory(team_id: string, agentId: string, limit?: number): Promise<MailboxMessage[]> {
+    return this.repo.getMailboxHistory(team_id, agentId, limit);
   }
 }

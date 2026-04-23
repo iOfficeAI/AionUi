@@ -132,7 +132,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
         click: () => {
           showAndFocus();
           mainWindowRef?.webContents.send('tray:navigate-to-conversation', {
-            conversationId: conv.id,
+            conversation_id: conv.id,
           });
         },
       });

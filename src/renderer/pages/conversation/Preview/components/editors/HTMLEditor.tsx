@@ -17,7 +17,7 @@ interface HTMLEditorProps {
   onChange: (value: string) => void;
   containerRef?: React.RefObject<HTMLDivElement>;
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void;
-  filePath?: string; // 用于生成稳定的 key / Used to generate stable key
+  file_path?: string; // 用于生成稳定的 key / Used to generate stable key
 }
 
 /**
@@ -27,7 +27,7 @@ interface HTMLEditorProps {
  * 使用 CodeMirror 进行 HTML 代码编辑，支持撤销/重做历史记录
  * Uses CodeMirror for HTML code editing with undo/redo history support
  */
-const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, onScroll, filePath }) => {
+const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, onScroll, file_path }) => {
   const { theme } = useThemeContext();
   const editorWrapperRef = useRef<HTMLDivElement>(null);
 
@@ -43,11 +43,11 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
   );
   useScrollSyncTarget(containerRef, handleTargetScroll);
 
-  // 使用 filePath 作为 key 的一部分，确保编辑器实例稳定
-  // Use filePath as part of key to ensure editor instance is stable
+  // 使用 file_path 作为 key 的一部分，确保编辑器实例稳定
+  // Use file_path as part of key to ensure editor instance is stable
   const editorKey = useMemo(() => {
-    return filePath || 'html-editor';
-  }, [filePath]);
+    return file_path || 'html-editor';
+  }, [file_path]);
 
   // 包装 onChange 以添加类型检查 / Wrap onChange to add type checking
   const handleChange = useCallback(

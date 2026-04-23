@@ -403,16 +403,16 @@ export const copyFilesToDirectory = async (
 
     // 使用原始文件名，只在目标文件已存在时才添加唯一后缀
     // Use original filename, only add unique suffix when destination exists
-    let fileName = path.basename(absoluteFilePath);
-    let destPath = path.join(dir, fileName);
+    let file_name = path.basename(absoluteFilePath);
+    let destPath = path.join(dir, file_name);
 
     // 如果目标文件已存在，添加时间戳后缀避免覆盖
     // If destination exists, add timestamp suffix to avoid overwriting
     if (existsSync(destPath)) {
-      const ext = path.extname(fileName);
-      const baseName = path.basename(fileName, ext);
-      fileName = `${baseName}_${Date.now()}${ext}`;
-      destPath = path.join(dir, fileName);
+      const ext = path.extname(file_name);
+      const baseName = path.basename(file_name, ext);
+      file_name = `${baseName}_${Date.now()}${ext}`;
+      destPath = path.join(dir, file_name);
     }
 
     try {

@@ -44,15 +44,15 @@ export interface PPTJsonData {
 
 export interface ConversionServiceApi {
   // Word
-  wordToMarkdown: (filePath: string) => Promise<ConversionResult<string>>;
+  wordToMarkdown: (file_path: string) => Promise<ConversionResult<string>>;
   markdownToWord: (markdown: string, targetPath: string) => Promise<ConversionResult<void>>;
 
   // Excel
-  excelToJson: (filePath: string) => Promise<ConversionResult<ExcelWorkbookData>>;
+  excelToJson: (file_path: string) => Promise<ConversionResult<ExcelWorkbookData>>;
   jsonToExcel: (data: ExcelWorkbookData, targetPath: string) => Promise<ConversionResult<void>>;
 
   // PowerPoint
-  pptToJson: (filePath: string) => Promise<ConversionResult<PPTJsonData>>;
+  pptToJson: (file_path: string) => Promise<ConversionResult<PPTJsonData>>;
 
   // PDF
   markdownToPdf: (markdown: string, targetPath: string) => Promise<ConversionResult<void>>;
@@ -64,7 +64,7 @@ export type DocumentConversionTarget = 'markdown' | 'excel-json' | 'ppt-json';
 
 // 统一的文档转换请求参数 / Unified document conversion request payload
 export interface DocumentConversionRequest {
-  filePath: string; // 待转换文件的绝对路径 / Absolute file path to convert
+  file_path: string; // 待转换文件的绝对路径 / Absolute file path to convert
   to: DocumentConversionTarget; // 目标格式 / Desired target format
 }
 

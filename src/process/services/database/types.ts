@@ -29,7 +29,7 @@ export interface IUser {
   last_login?: number | null;
 }
 
-// Image metadata removed - images are stored in filesystem and referenced via message.resultDisplay
+// Image metadata removed - images are stored in filesystem and referenced via message.result_display
 
 /**
  * ======================
@@ -53,7 +53,7 @@ export interface IPaginatedResult<T> {
   data: T[];
   total: number;
   page: number;
-  pageSize: number;
+  page_size: number;
   hasMore: boolean;
 }
 
@@ -113,19 +113,19 @@ export interface IConfigRow {
 /**
  * Convert TChatConversation to database row
  */
-export function conversationToRow(conversation: TChatConversation, userId: string): IConversationRow {
+export function conversationToRow(conversation: TChatConversation, user_id: string): IConversationRow {
   return {
     id: conversation.id,
-    user_id: userId,
+    user_id: user_id,
     name: conversation.name,
     type: conversation.type,
     extra: JSON.stringify(conversation.extra),
     model: 'model' in conversation ? JSON.stringify(conversation.model) : undefined,
     status: conversation.status,
     source: conversation.source,
-    channel_chat_id: conversation.channelChatId,
-    created_at: conversation.createdAt,
-    updated_at: conversation.modifiedAt,
+    channel_chat_id: conversation.channel_chat_id,
+    created_at: conversation.created_at,
+    updated_at: conversation.modified_at,
   };
 }
 
@@ -137,11 +137,11 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     id: row.id,
     name: row.name,
     desc: undefined as string | undefined,
-    createdAt: row.created_at,
-    modifiedAt: row.updated_at,
+    created_at: row.created_at,
+    modified_at: row.updated_at,
     status: row.status,
     source: row.source,
-    channelChatId: row.channel_chat_id,
+    channel_chat_id: row.channel_chat_id,
   };
 
   // Gemini type has model field
@@ -226,7 +226,7 @@ export function messageToRow(message: TMessage): IMessageRow {
     position: message.position,
     status: message.status,
     hidden: message.hidden ? 1 : 0,
-    created_at: message.createdAt || Date.now(),
+    created_at: message.created_at || Date.now(),
   };
 }
 
@@ -243,7 +243,7 @@ export function rowToMessage(row: IMessageRow): TMessage {
     position: row.position,
     status: row.status,
     hidden: row.hidden === 1 ? true : undefined,
-    createdAt: row.created_at,
+    created_at: row.created_at,
   } as TMessage;
 }
 

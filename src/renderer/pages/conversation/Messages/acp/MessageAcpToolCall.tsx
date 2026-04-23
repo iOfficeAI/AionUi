@@ -30,22 +30,26 @@ const StatusTag: React.FC<{ status: string }> = ({ status }) => {
 };
 
 // Diff content display as a separate component to ensure hooks are called unconditionally
-const DiffContentView: React.FC<{ oldText: string; newText: string; path: string }> = ({ oldText, newText, path }) => {
-  const displayName = path.split(/[/\\]/).pop() || path || 'Unknown file';
+const DiffContentView: React.FC<{ old_text: string; new_text: string; path: string }> = ({
+  old_text,
+  new_text,
+  path,
+}) => {
+  const display_name = path.split(/[/\\]/).pop() || path || 'Unknown file';
   const formattedDiff = useMemo(
-    () => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }),
-    [displayName, oldText, newText]
+    () => createTwoFilesPatch(display_name, display_name, old_text, new_text, '', '', { context: 3 }),
+    [display_name, old_text, new_text]
   );
-  const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
+  const fileInfo = useMemo(() => parseDiff(formattedDiff, display_name), [formattedDiff, display_name]);
   const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({
     diffText: formattedDiff,
-    displayName,
-    filePath: path || displayName,
+    display_name,
+    file_path: path || display_name,
   });
 
   return (
     <FileChangesPanel
-      title={displayName}
+      title={display_name}
       files={[fileInfo]}
       onFileClick={handleFileClick}
       onDiffClick={handleDiffClick}
@@ -57,7 +61,7 @@ const DiffContentView: React.FC<{ oldText: string; newText: string; path: string
 const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update']['content'][0] }> = ({ content }) => {
   if (content.type === 'diff') {
     return (
-      <DiffContentView oldText={content.oldText || ''} newText={content.newText || ''} path={content.path || ''} />
+      <DiffContentView old_text={content.old_text || ''} new_text={content.new_text || ''} path={content.path || ''} />
     );
   }
 
@@ -83,7 +87,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
     return null;
   }
   const { update } = content;
-  const { toolCallId, kind, title, status, rawInput, content: diffContent } = update;
+  const { tool_call_id, kind, title, status, rawInput, content: diffContent } = update;
 
   const getKindDisplayName = (kind: string) => {
     switch (kind) {
@@ -122,7 +126,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
               ))}
             </div>
           )}
-          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {toolCallId}</div>
+          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {tool_call_id}</div>
         </div>
       </div>
     </Card>

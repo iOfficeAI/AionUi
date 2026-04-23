@@ -138,11 +138,11 @@ export function createErrorRecoveryKeyboard(): InlineKeyboard {
 
 /**
  * Tool confirmation keyboard for Gemini tool calls
- * @param callId - The tool call ID for tracking
+ * @param call_id - The tool call ID for tracking
  * @param options - Array of { label, value } options
  */
 export function createToolConfirmationKeyboard(
-  callId: string,
+  call_id: string,
   options: Array<{ label: string; value: string }>
 ): InlineKeyboard {
   const keyboard = new InlineKeyboard();
@@ -150,9 +150,9 @@ export function createToolConfirmationKeyboard(
   // Show at most 2 buttons per row
   for (let i = 0; i < options.length; i += 2) {
     if (i > 0) keyboard.row();
-    keyboard.text(options[i].label, `confirm:${callId}:${options[i].value}`);
+    keyboard.text(options[i].label, `confirm:${call_id}:${options[i].value}`);
     if (i + 1 < options.length) {
-      keyboard.text(options[i + 1].label, `confirm:${callId}:${options[i + 1].value}`);
+      keyboard.text(options[i + 1].label, `confirm:${call_id}:${options[i + 1].value}`);
     }
   }
   return keyboard;

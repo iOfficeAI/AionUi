@@ -16,7 +16,7 @@ type ExecCommandUpdate = Extract<
 >;
 
 const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content }) => {
-  const { toolCallId, title, status, description, content: contentArray, subtype, data } = content;
+  const { tool_call_id, title, status, description, content: contentArray, subtype, data } = content;
   const { t } = useTranslation();
 
   const getDisplayTitle = () => {
@@ -63,7 +63,7 @@ const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content 
 
   return (
     <BaseToolCallDisplay
-      toolCallId={toolCallId}
+      tool_call_id={tool_call_id}
       title={getDisplayTitle()}
       status={status}
       description={description}

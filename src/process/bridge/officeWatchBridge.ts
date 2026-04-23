@@ -28,7 +28,7 @@ interface WatchSession {
   aborted: boolean;
 }
 
-// Track sessions by filePath — separate maps for word and excel
+// Track sessions by file_path — separate maps for word and excel
 const wordSessions = new Map<string, WatchSession>();
 const excelSessions = new Map<string, WatchSession>();
 
@@ -92,12 +92,12 @@ function waitForPort(port: number, maxRetries = 150, interval = 100): Promise<vo
 /**
  * Kill an existing session and remove it from the map.
  */
-function killSession(filePath: string, sessions: Map<string, WatchSession>): void {
-  const session = sessions.get(filePath);
+function killSession(file_path: string, sessions: Map<string, WatchSession>): void {
+  const session = sessions.get(file_path);
   if (session) {
     session.aborted = true;
     session.process.kill();
-    sessions.delete(filePath);
+    sessions.delete(file_path);
   }
 }
 
@@ -133,14 +133,14 @@ function installOfficecli(emitStatus: StatusEmitter): boolean {
  * Auto-installs officecli on first use if not found.
  */
 async function startWatch(
-  filePath: string,
+  file_path: string,
   docType: OfficeDocType,
   emitStatus: StatusEmitter,
   retry = false
 ): Promise<string> {
   // Resolve symlinks so the pipe name matches what officecli commands compute
   try {
-    filePath = fs.realpathSync(filePath);
+    file_path = fs.realpathSync(file_path);
   } catch {
     // If realpath fails, use original path
   }
@@ -149,41 +149,41 @@ async function startWatch(
   const pendingKills = getPendingKillsMap(docType);
 
   // Cancel any pending delayed kill (Strict Mode re-mount)
-  const pendingTimer = pendingKills.get(filePath);
+  const pendingTimer = pendingKills.get(file_path);
   if (pendingTimer) {
     clearTimeout(pendingTimer);
-    pendingKills.delete(filePath);
+    pendingKills.delete(file_path);
   }
 
   // Reuse existing session if process is still alive
-  const existing = sessions.get(filePath);
+  const existing = sessions.get(file_path);
   if (existing && !existing.aborted && existing.process.exitCode === null) {
     const url = `http://localhost:${existing.port}`;
     return url;
   }
 
   // Kill any existing/pending session for this file first
-  killSession(filePath, sessions);
+  killSession(file_path, sessions);
 
   const port = await findFreePort();
 
   emitStatus({ state: 'starting' });
 
-  const child = spawn('officecli', ['watch', filePath, '--port', String(port)], {
+  const child = spawn('officecli', ['watch', file_path, '--port', String(port)], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: getEnhancedEnv(),
   });
 
   // Track session immediately so stop can kill it
   const session: WatchSession = { process: child, port, aborted: false };
-  sessions.set(filePath, session);
+  sessions.set(file_path, session);
 
   return new Promise<string>((resolve, reject) => {
     let settled = false;
     const timeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        killSession(filePath, sessions);
+        killSession(file_path, sessions);
         reject(new Error('officecli watch timed out'));
       }
     }, 15000);
@@ -214,7 +214,7 @@ async function startWatch(
       })
       .catch(() => {
         settle(new Error('officecli watch server did not become ready'));
-        killSession(filePath, sessions);
+        killSession(file_path, sessions);
       });
 
     child.stderr?.on('data', (data: Buffer) => {
@@ -223,7 +223,7 @@ async function startWatch(
 
     child.on('error', (err) => {
       console.error(`[officeWatch] spawn error (${docType}):`, err.message);
-      sessions.delete(filePath);
+      sessions.delete(file_path);
       if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !retry) {
         // officecli not found — try auto-install then retry once
         // settle() without error: defuses the current promise machinery
@@ -231,7 +231,7 @@ async function startWatch(
         // call below chains its own resolve/reject to the outer promise.
         settle();
         if (installOfficecli(emitStatus)) {
-          startWatch(filePath, docType, emitStatus, true).then(resolve, reject);
+          startWatch(file_path, docType, emitStatus, true).then(resolve, reject);
         } else {
           reject(new Error('officecli is not installed and auto-install failed'));
         }
@@ -241,7 +241,7 @@ async function startWatch(
     });
 
     child.on('exit', (code, signal) => {
-      sessions.delete(filePath);
+      sessions.delete(file_path);
       if (session.aborted) {
         settle();
         return;
@@ -274,19 +274,19 @@ export function isActiveOfficeWatchPort(port: number): boolean {
  * Stop all running Word and Excel watch processes (called on app shutdown).
  */
 export function stopAllOfficeWatchSessions(): void {
-  for (const [filePath] of wordSessions) {
-    killSession(filePath, wordSessions);
+  for (const [file_path] of wordSessions) {
+    killSession(file_path, wordSessions);
   }
-  for (const [filePath] of excelSessions) {
-    killSession(filePath, excelSessions);
+  for (const [file_path] of excelSessions) {
+    killSession(file_path, excelSessions);
   }
 }
 
 export function initOfficeWatchBridge(): void {
   // Word preview handlers
-  ipcBridge.wordPreview.start.provider(async ({ filePath }) => {
+  ipcBridge.wordPreview.start.provider(async ({ file_path }) => {
     try {
-      const url = await startWatch(filePath, 'word', (payload) => ipcBridge.wordPreview.status.emit(payload));
+      const url = await startWatch(file_path, 'word', (payload) => ipcBridge.wordPreview.status.emit(payload));
       return { url };
     } catch (err) {
       console.error('[officeWatch] word start failed:', err);
@@ -294,22 +294,22 @@ export function initOfficeWatchBridge(): void {
     }
   });
 
-  ipcBridge.wordPreview.stop.provider(async ({ filePath }) => {
+  ipcBridge.wordPreview.stop.provider(async ({ file_path }) => {
     try {
-      filePath = fs.realpathSync(filePath);
+      file_path = fs.realpathSync(file_path);
     } catch {}
     // Delay kill to allow Strict Mode re-mount to reuse the session
     const timer = setTimeout(() => {
-      wordPendingKills.delete(filePath);
-      killSession(filePath, wordSessions);
+      wordPendingKills.delete(file_path);
+      killSession(file_path, wordSessions);
     }, 500);
-    wordPendingKills.set(filePath, timer);
+    wordPendingKills.set(file_path, timer);
   });
 
   // Excel preview handlers
-  ipcBridge.excelPreview.start.provider(async ({ filePath }) => {
+  ipcBridge.excelPreview.start.provider(async ({ file_path }) => {
     try {
-      const url = await startWatch(filePath, 'excel', (payload) => ipcBridge.excelPreview.status.emit(payload));
+      const url = await startWatch(file_path, 'excel', (payload) => ipcBridge.excelPreview.status.emit(payload));
       return { url };
     } catch (err) {
       console.error('[officeWatch] excel start failed:', err);
@@ -317,15 +317,15 @@ export function initOfficeWatchBridge(): void {
     }
   });
 
-  ipcBridge.excelPreview.stop.provider(async ({ filePath }) => {
+  ipcBridge.excelPreview.stop.provider(async ({ file_path }) => {
     try {
-      filePath = fs.realpathSync(filePath);
+      file_path = fs.realpathSync(file_path);
     } catch {}
     // Delay kill to allow Strict Mode re-mount to reuse the session
     const timer = setTimeout(() => {
-      excelPendingKills.delete(filePath);
-      killSession(filePath, excelSessions);
+      excelPendingKills.delete(file_path);
+      killSession(file_path, excelSessions);
     }, 500);
-    excelPendingKills.set(filePath, timer);
+    excelPendingKills.set(file_path, timer);
   });
 }

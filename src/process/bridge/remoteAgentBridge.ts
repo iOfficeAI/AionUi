@@ -63,8 +63,8 @@ export function initRemoteAgentBridge(): void {
       devicePublicKey: device.publicKeyPem,
       devicePrivateKey: device.privateKeyPem,
       status: 'unknown' as const,
-      createdAt: now,
-      updatedAt: now,
+      created_at: now,
+      updated_at: now,
     };
     const result = db.createRemoteAgent(config);
     if (!result.success || !result.data) {

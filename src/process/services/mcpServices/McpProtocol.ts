@@ -35,7 +35,7 @@ export interface McpConnectionTestResult {
   tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
   error?: string;
   needsAuth?: boolean; // 是否需要 OAuth 认证
-  authMethod?: 'oauth' | 'basic'; // 认证方法
+  auth_method?: 'oauth' | 'basic'; // 认证方法
   wwwAuthenticate?: string; // WWW-Authenticate 头内容
 }
 
@@ -65,10 +65,10 @@ export interface McpSyncResult {
 export interface IMcpProtocol {
   /**
    * 检测MCP配置
-   * @param cliPath 可选的CLI路径
+   * @param cli_path 可选的CLI路径
    * @returns MCP服务器列表
    */
-  detectMcpServers(cliPath?: string): Promise<IMcpServer[]>;
+  detectMcpServers(cli_path?: string): Promise<IMcpServer[]>;
 
   /**
    * 安装MCP服务器到agent
@@ -141,7 +141,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     return newOperation;
   }
 
-  abstract detectMcpServers(cliPath?: string): Promise<IMcpServer[]>;
+  abstract detectMcpServers(cli_path?: string): Promise<IMcpServer[]>;
 
   abstract installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult>;
 
@@ -335,7 +335,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           return {
             success: false,
             needsAuth: true,
-            authMethod: wwwAuthenticate.toLowerCase().includes('bearer') ? 'oauth' : 'basic',
+            auth_method: wwwAuthenticate.toLowerCase().includes('bearer') ? 'oauth' : 'basic',
             wwwAuthenticate: wwwAuthenticate,
             error: 'Authentication required',
           };
@@ -440,7 +440,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           return {
             success: false,
             needsAuth: true,
-            authMethod: wwwAuthenticate.toLowerCase().includes('bearer') ? 'oauth' : 'basic',
+            auth_method: wwwAuthenticate.toLowerCase().includes('bearer') ? 'oauth' : 'basic',
             wwwAuthenticate: wwwAuthenticate,
             error: 'Authentication required',
           };

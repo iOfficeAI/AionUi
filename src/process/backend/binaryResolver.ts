@@ -6,14 +6,14 @@
  *  2. System PATH
  */
 
-import { existsSync } from 'node:fs'
-import { join } from 'node:path'
-import { execSync } from 'node:child_process'
+import { existsSync } from 'node:fs';
+import { join } from 'node:path';
+import { execSync } from 'node:child_process';
 
-const BINARY_NAME = 'aionui-backend'
+const BINARY_NAME = 'aionui-backend';
 
 function getBinaryName(): string {
-  return process.platform === 'win32' ? `${BINARY_NAME}.exe` : BINARY_NAME
+  return process.platform === 'win32' ? `${BINARY_NAME}.exe` : BINARY_NAME;
 }
 
 /**
@@ -21,15 +21,13 @@ function getBinaryName(): string {
  * Returns the absolute path to the binary, or throws if not found.
  */
 export function resolveBinaryPath(): string {
-  const bundled = bundledPath()
-  if (bundled) return bundled
+  const bundled = bundledPath();
+  if (bundled) return bundled;
 
-  const fromPath = resolveFromSystemPATH()
-  if (fromPath) return fromPath
+  const fromPath = resolveFromSystemPATH();
+  if (fromPath) return fromPath;
 
-  throw new Error(
-    `Cannot find "${BINARY_NAME}" binary. Checked bundled location and system PATH.`,
-  )
+  throw new Error(`Cannot find "${BINARY_NAME}" binary. Checked bundled location and system PATH.`);
 }
 
 /**
@@ -37,14 +35,14 @@ export function resolveBinaryPath(): string {
  * Layout: bundled-aionui-backend/{platform}-{arch}/aionui-backend[.exe]
  */
 function bundledPath(): string | null {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath
-  if (!resourcesPath) return null
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (!resourcesPath) return null;
 
-  const runtimeKey = `${process.platform}-${process.arch}`
-  const candidate = join(resourcesPath, 'bundled-aionui-backend', runtimeKey, getBinaryName())
+  const runtimeKey = `${process.platform}-${process.arch}`;
+  const candidate = join(resourcesPath, 'bundled-aionui-backend', runtimeKey, getBinaryName());
 
-  if (existsSync(candidate)) return candidate
-  return null
+  if (existsSync(candidate)) return candidate;
+  return null;
 }
 
 /**
@@ -52,11 +50,11 @@ function bundledPath(): string | null {
  */
 function resolveFromSystemPATH(): string | null {
   try {
-    const cmd = process.platform === 'win32' ? `where ${BINARY_NAME}` : `which ${BINARY_NAME}`
-    const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim()
-    if (result && existsSync(result)) return result
+    const cmd = process.platform === 'win32' ? `where ${BINARY_NAME}` : `which ${BINARY_NAME}`;
+    const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
+    if (result && existsSync(result)) return result;
   } catch {
     // not found in PATH
   }
-  return null
+  return null;
 }

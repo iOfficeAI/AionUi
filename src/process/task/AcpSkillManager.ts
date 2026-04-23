@@ -90,7 +90,7 @@ function extractBody(content: string): string {
  *
  * 支持两类 skills:
  * - 内置 skills (_builtin/): 所有场景自动注入
- * - 可选 skills: 通过 enabledSkills 参数控制
+ * - 可选 skills: 通过 enabled_skills 参数控制
  */
 export class AcpSkillManager {
   private static instance: AcpSkillManager | null = null;
@@ -112,15 +112,15 @@ export class AcpSkillManager {
   }
 
   /**
-   * 获取单例实例（带 enabledSkills + excludeBuiltinSkills 缓存键）
-   * Get singleton instance (with enabledSkills + excludeBuiltinSkills cache key)
+   * 获取单例实例（带 enabled_skills + excludeBuiltinSkills 缓存键）
+   * Get singleton instance (with enabled_skills + excludeBuiltinSkills cache key)
    *
-   * @param enabledSkills - 启用的 skills 列表 / Enabled skills list
+   * @param enabled_skills - 启用的 skills 列表 / Enabled skills list
    * @param excludeBuiltinSkills - 排除的内置 skills 列表 / Builtin skills to exclude
    * @returns AcpSkillManager 实例 / AcpSkillManager instance
    */
-  static getInstance(enabledSkills?: string[], excludeBuiltinSkills?: string[]): AcpSkillManager {
-    const enabledPart = enabledSkills?.toSorted().join(',') || 'all';
+  static getInstance(enabled_skills?: string[], excludeBuiltinSkills?: string[]): AcpSkillManager {
+    const enabledPart = enabled_skills?.toSorted().join(',') || 'all';
     const excludePart = excludeBuiltinSkills?.toSorted().join(',') || '';
     const cacheKey = excludePart ? `${enabledPart}|exclude:${excludePart}` : enabledPart;
 
@@ -216,7 +216,7 @@ export class AcpSkillManager {
    * 由 SkillResolver 解析后缓存在 ExtensionRegistry 中。
    * 这里将它们合并到 AcpSkillManager 中，使 agent 能够按需加载。
    */
-  private async discoverExtensionSkills(enabledSkills?: string[]): Promise<void> {
+  private async discoverExtensionSkills(enabled_skills?: string[]): Promise<void> {
     if (this.extensionInitialized) return;
 
     try {
@@ -229,9 +229,9 @@ export class AcpSkillManager {
       }
 
       for (const extSkill of extSkills) {
-        // 如果指定了 enabledSkills，只加载被启用的扩展 skills
-        // If enabledSkills is specified, only load enabled extension skills
-        if (enabledSkills && enabledSkills.length > 0 && !enabledSkills.includes(extSkill.name)) {
+        // 如果指定了 enabled_skills，只加载被启用的扩展 skills
+        // If enabled_skills is specified, only load enabled extension skills
+        if (enabled_skills && enabled_skills.length > 0 && !enabled_skills.includes(extSkill.name)) {
           continue;
         }
 
@@ -264,21 +264,21 @@ export class AcpSkillManager {
    * 初始化：发现并加载所有 skills 的索引（不加载 body）
    * Initialize: discover and load index of all skills (without body)
    *
-   * @param enabledSkills - 启用的可选 skills 列表 / Enabled optional skills list
+   * @param enabled_skills - 启用的可选 skills 列表 / Enabled optional skills list
    * @param excludeBuiltinSkills - 排除的内置自动注入 skills / Builtin auto-injected skills to exclude
    */
-  async discoverSkills(enabledSkills?: string[], excludeBuiltinSkills?: string[]): Promise<void> {
+  async discoverSkills(enabled_skills?: string[], excludeBuiltinSkills?: string[]): Promise<void> {
     // 始终先加载内置 skills / Always load builtin skills first
     await this.discoverAutoSkills(excludeBuiltinSkills);
 
     // 加载扩展贡献的 skills / Load extension-contributed skills
-    await this.discoverExtensionSkills(enabledSkills);
+    await this.discoverExtensionSkills(enabled_skills);
 
     if (this.initialized) return;
 
-    // 未指定 enabledSkills 时不加载任何可选 skills（非 preset agent 场景）
-    // Skip all optional skills when enabledSkills is not specified (non-preset agent)
-    if (!enabledSkills || enabledSkills.length === 0) {
+    // 未指定 enabled_skills 时不加载任何可选 skills（非 preset agent 场景）
+    // Skip all optional skills when enabled_skills is not specified (non-preset agent)
+    if (!enabled_skills || enabled_skills.length === 0) {
       this.initialized = true;
       return;
     }
@@ -301,7 +301,7 @@ export class AcpSkillManager {
           if (skillName === '_builtin') continue;
 
           // Only load enabled skills
-          if (!enabledSkills.includes(skillName)) continue;
+          if (!enabled_skills.includes(skillName)) continue;
 
           // Skip if already discovered (builtin-skills/ takes precedence)
           if (this.skills.has(skillName)) continue;

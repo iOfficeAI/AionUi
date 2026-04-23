@@ -42,11 +42,11 @@ export interface TeamGuidePromptOptions {
  */
 export function getTeamGuidePrompt(input?: string | TeamGuidePromptOptions): string {
   const opts: TeamGuidePromptOptions = typeof input === 'string' ? { backend: input } : (input ?? {});
-  const agentType = opts.backend || 'claude';
+  const agent_type = opts.backend || 'claude';
   const rawLabel = opts.leaderLabel?.trim();
   // When an assistant label is present, keep the backend in parentheses so the
   // agent still knows which CLI/runtime is in use; fall back to plain backend.
-  const leaderCell = rawLabel ? `${rawLabel} (${agentType})` : agentType;
+  const leaderCell = rawLabel ? `${rawLabel} (${agent_type})` : agent_type;
   return `## Team Mode
 
 You can create a multi-agent Team for the user.
@@ -71,10 +71,10 @@ If case 2 applies, ask at most once whether the user wants to bring in a Team. K
 3. Present a team configuration table: role name, responsibility, agent type, and recommended model (from aion_list_models results) for each member. Example format:
    | Role | Responsibility | Type | Model |
    | Leader | Coordinate and review | ${leaderCell} | (default) |
-   | Developer | Implement features | ${agentType} | (model from list) |
-   | Tester | Write and run tests | ${agentType} | (model from list) |
+   | Developer | Implement features | ${agent_type} | (model from list) |
+   | Tester | Write and run tests | ${agent_type} | (model from list) |
 4. **Output the table as a normal text message and END YOUR TURN.** Do NOT call \`aion_create_team\` or any other tool (including ask_user) in this turn. Wait for the user to reply in their next message with explicit confirmation (e.g. "ok", "go ahead", "确认") before proceeding.
-5. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agentType.)
+5. After user confirms → call \`aion_create_team\`. The summary MUST include both the goal and the confirmed team configuration. (The system automatically sets the correct agent type — you do NOT need to pass agent_type.)
 6. After \`aion_create_team\` returns → the system navigates to the team page **automatically**. Read the \`next_step\` in the response and follow it. End your turn immediately.
 7. User declines or wants changes → adjust or proceed solo. Do not mention Team again unless the user asks.
 

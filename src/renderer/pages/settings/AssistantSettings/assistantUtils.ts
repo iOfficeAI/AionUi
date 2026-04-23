@@ -53,7 +53,7 @@ export const resolveAvatarImageSrc = (
 export const sortAssistants = (agents: AssistantListItem[]): AssistantListItem[] => {
   const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
   return agents
-    .filter((agent) => agent.isPreset)
+    .filter((agent) => agent.is_preset)
     .toSorted((a, b) => {
       const indexA = presetOrder.indexOf(a.id);
       const indexB = presetOrder.indexOf(b.id);
@@ -89,10 +89,10 @@ export const normalizeExtensionAssistants = (extensionAssistants: Record<string,
         context: typeof ext.context === 'string' ? ext.context : undefined,
         contextI18n: ext.contextI18n as Record<string, string> | undefined,
         models: Array.isArray(ext.models) ? (ext.models as string[]) : undefined,
-        enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
+        enabled_skills: Array.isArray(ext.enabled_skills) ? (ext.enabled_skills as string[]) : undefined,
         prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
         promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
-        isPreset: true,
+        is_preset: true,
         isBuiltin: false,
         enabled: true,
         _source: 'extension',

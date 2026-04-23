@@ -136,14 +136,14 @@ const UpdateModal: React.FC = () => {
 
       const res = await ipcBridge.update.download.invoke({
         url: asset.url,
-        fileName: asset.name,
+        file_name: asset.name,
       });
       if (!res?.success || !res.data) {
         throw new Error(res?.msg || t('update.downloadStartFailed'));
       }
 
       setDownloadId(res.data.downloadId);
-      setDownloadPath(res.data.filePath);
+      setDownloadPath(res.data.file_path);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
       console.error('Download failed:', err);
@@ -251,8 +251,8 @@ const UpdateModal: React.FC = () => {
 
       if (evt.status === 'completed') {
         setStatus('success');
-        if (evt.filePath) {
-          setDownloadPath(evt.filePath);
+        if (evt.file_path) {
+          setDownloadPath(evt.file_path);
         }
       } else if (evt.status === 'error' || evt.status === 'cancelled') {
         setStatus('error');

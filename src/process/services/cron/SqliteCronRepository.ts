@@ -13,16 +13,16 @@ export class SqliteCronRepository implements ICronRepository {
     await cronStore.insert(job);
   }
 
-  async update(jobId: string, updates: Partial<CronJob>): Promise<void> {
-    await cronStore.update(jobId, updates);
+  async update(job_id: string, updates: Partial<CronJob>): Promise<void> {
+    await cronStore.update(job_id, updates);
   }
 
-  async delete(jobId: string): Promise<void> {
-    await cronStore.delete(jobId);
+  async delete(job_id: string): Promise<void> {
+    await cronStore.delete(job_id);
   }
 
-  async getById(jobId: string): Promise<CronJob | null> {
-    return cronStore.getById(jobId);
+  async getById(job_id: string): Promise<CronJob | null> {
+    return cronStore.getById(job_id);
   }
 
   async listAll(): Promise<CronJob[]> {
@@ -33,11 +33,11 @@ export class SqliteCronRepository implements ICronRepository {
     return cronStore.listEnabled();
   }
 
-  async listByConversation(conversationId: string): Promise<CronJob[]> {
-    return cronStore.listByConversation(conversationId);
+  async listByConversation(conversation_id: string): Promise<CronJob[]> {
+    return cronStore.listByConversation(conversation_id);
   }
 
-  async deleteByConversation(conversationId: string): Promise<number> {
-    return cronStore.deleteByConversation(conversationId);
+  async deleteByConversation(conversation_id: string): Promise<number> {
+    return cronStore.deleteByConversation(conversation_id);
   }
 }

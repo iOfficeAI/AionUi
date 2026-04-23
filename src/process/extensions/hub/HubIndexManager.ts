@@ -109,8 +109,8 @@ class HubIndexManagerImpl {
       setTimeout(() => reject(new Error('Fetch timeout')), 5000)
     );
 
-    for (const baseUrl of HUB_REMOTE_URLS) {
-      const url = new URL(HUB_INDEX_FILE, baseUrl).toString();
+    for (const base_url of HUB_REMOTE_URLS) {
+      const url = new URL(HUB_INDEX_FILE, base_url).toString();
       try {
         console.log(`[HubIndexManager] Attempting to fetch remote index from: ${url}`);
 

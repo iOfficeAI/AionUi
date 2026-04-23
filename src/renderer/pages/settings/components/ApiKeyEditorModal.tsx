@@ -22,9 +22,9 @@ interface ApiKeyItem {
 
 interface ApiKeyEditorModalProps {
   visible: boolean;
-  apiKeys: string; // 逗号分隔的 API Keys
+  api_keys: string; // 逗号分隔的 API Keys
   onClose: () => void;
-  onSave: (apiKeys: string) => void;
+  onSave: (api_keys: string) => void;
   onTestKey?: (key: string) => Promise<boolean>; // 测试单个 key 的回调
 }
 
@@ -32,14 +32,14 @@ interface ApiKeyEditorModalProps {
  * API Key 编辑器弹窗
  * API Key Editor Modal
  */
-const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys, onClose, onSave, onTestKey }) => {
+const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, api_keys, onClose, onSave, onTestKey }) => {
   const { t } = useTranslation();
   const [keys, setKeys] = useState<ApiKeyItem[]>([]);
 
   // 初始化 keys
   useEffect(() => {
     if (visible) {
-      const keyList = apiKeys
+      const keyList = api_keys
         .split(',')
         .map((k) => k.trim())
         .filter(Boolean);
@@ -50,7 +50,7 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
         setKeys(keyList.map((k) => ({ id: crypto.randomUUID(), value: k, status: 'pending', editing: false })));
       }
     }
-  }, [visible, apiKeys]);
+  }, [visible, api_keys]);
 
   // 更新单个 key 的值
   const updateKeyValue = useCallback((id: string, value: string) => {
@@ -175,7 +175,7 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
                   value={key.value}
                   onChange={(v) => updateKeyValue(key.id, v)}
                   disabled={!key.editing}
-                  placeholder={t('settings.apiKeyPlaceholder')}
+                  placeholder={t('settings.api_keyPlaceholder')}
                 />
               </div>
               {/* 操作按钮 - 编辑状态时只显示保存按钮 */}

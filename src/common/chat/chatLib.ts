@@ -222,7 +222,7 @@ export type IMessageAgentStatus = IMessage<
     backend: AgentBackend; // Agent identifier: 'claude', 'qwen', 'codex', 'remote', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error';
     /** Display name for the agent (e.g. extension-contributed adapter name) / Agent 显示名称 */
-    agentName?: string;
+    agent_name?: string;
     // Optional legacy fields for backward compatibility
     session_id?: string;
     is_connected?: boolean;
@@ -238,7 +238,7 @@ export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissi
 
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
-  toolCallId: string;
+  tool_call_id: string;
   status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
   title?: string; // Optional - can be derived from data or kind
   kind: 'execute' | 'patch' | 'mcp' | 'web_search';
@@ -249,7 +249,7 @@ interface BaseCodexToolCallUpdate {
     type: 'text' | 'diff' | 'output';
     text?: string;
     output?: string;
-    filePath?: string;
+    file_path?: string;
     old_text?: string;
     new_text?: string;
   }>;
@@ -624,7 +624,7 @@ export const composeMessage = (
       if (!existingMessage.content.length) return existingMessage;
 
       let didMergeIntoThisMessage = false;
-      const newContent = existingMessage.content.map((tool) => {
+      const new_content = existingMessage.content.map((tool) => {
         const newToolData = remainingToolsMap.get(tool.call_id);
         if (!newToolData) return tool;
         didMergeIntoThisMessage = true;
@@ -634,7 +634,7 @@ export const composeMessage = (
       });
 
       if (!didMergeIntoThisMessage) return existingMessage;
-      const updatedMessage = { ...existingMessage, content: newContent } as TMessage;
+      const updatedMessage = { ...existingMessage, content: new_content } as TMessage;
       updatesToReport.push(updatedMessage);
       return updatedMessage;
     });
@@ -674,7 +674,7 @@ export const composeMessage = (
   if (message.type === 'codex_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
+      if (msg.type === 'codex_tool_call' && msg.content.tool_call_id === message.content.tool_call_id) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });
@@ -688,7 +688,7 @@ export const composeMessage = (
   if (message.type === 'acp_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
+      if (msg.type === 'acp_tool_call' && msg.content.update?.tool_call_id === message.content.update?.tool_call_id) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });

@@ -47,17 +47,17 @@ interface EventTypes {
   'remote.workspace.refresh': void;
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
-  'conversation.deleted': [string]; // conversationId
+  'conversation.deleted': [string]; // conversation_id
   // 预览面板事件 / Preview panel events
   'preview.open': [
-    { content: string; contentType: PreviewContentType; metadata?: { title?: string; fileName?: string } },
+    { content: string; contentType: PreviewContentType; metadata?: { title?: string; file_name?: string } },
   ];
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [string]; // prompt text to fill
   'sendbox.reply': [ReplyQuote]; // reply/quote a message
   'sendbox.reply.clear': void; // clear reply quote
-  'staroffice.install.request': [{ conversationId: string; text: string; detectedUrl?: string | null }];
-  'staroffice.install.finished': [{ conversationId: string }];
+  'staroffice.install.request': [{ conversation_id: string; text: string; detectedUrl?: string | null }];
+  'staroffice.install.finished': [{ conversation_id: string }];
 }
 
 export const emitter = new EventEmitter<EventTypes>();

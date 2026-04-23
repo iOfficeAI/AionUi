@@ -298,8 +298,8 @@ const Layout: React.FC<{
     };
 
     // Navigate to conversation when requested from tray / 托盘请求导航到对话页面
-    const handleNavigateToConversation = (event: CustomEvent<{ conversationId: string }>) => {
-      void navigate(`/conversation/${event.detail.conversationId}`);
+    const handleNavigateToConversation = (event: CustomEvent<{ conversation_id: string }>) => {
+      void navigate(`/conversation/${event.detail.conversation_id}`);
     };
 
     // Open about dialog when requested from tray / 托盘请求打开关于对话框

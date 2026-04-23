@@ -17,12 +17,12 @@ export function initCronBridge(): void {
     return cronService.listJobs();
   });
 
-  ipcBridge.cron.listJobsByConversation.provider(async ({ conversationId }) => {
-    return cronService.listJobsByConversation(conversationId);
+  ipcBridge.cron.listJobsByConversation.provider(async ({ conversation_id }) => {
+    return cronService.listJobsByConversation(conversation_id);
   });
 
-  ipcBridge.cron.getJob.provider(async ({ jobId }) => {
-    return cronService.getJob(jobId);
+  ipcBridge.cron.getJob.provider(async ({ job_id }) => {
+    return cronService.getJob(job_id);
   });
 
   // CRUD handlers
@@ -30,27 +30,27 @@ export function initCronBridge(): void {
     return cronService.addJob(params);
   });
 
-  ipcBridge.cron.updateJob.provider(async ({ jobId, updates }) => {
-    return cronService.updateJob(jobId, updates);
+  ipcBridge.cron.updateJob.provider(async ({ job_id, updates }) => {
+    return cronService.updateJob(job_id, updates);
   });
 
-  ipcBridge.cron.removeJob.provider(async ({ jobId }) => {
-    await cronService.removeJob(jobId);
+  ipcBridge.cron.removeJob.provider(async ({ job_id }) => {
+    await cronService.removeJob(job_id);
   });
 
-  ipcBridge.cron.runNow.provider(async ({ jobId }) => {
+  ipcBridge.cron.runNow.provider(async ({ job_id }) => {
     // Create conversation (if needed) and return immediately.
     // Message sending runs in background; frontend navigates to the conversation.
-    const conversationId = await cronService.runNow(jobId);
-    return { conversationId };
+    const conversation_id = await cronService.runNow(job_id);
+    return { conversation_id };
   });
 
   // Skill management
-  ipcBridge.cron.saveSkill.provider(async ({ jobId, content }) => {
-    await writeRawCronSkillFile(jobId, content);
+  ipcBridge.cron.saveSkill.provider(async ({ job_id, content }) => {
+    await writeRawCronSkillFile(job_id, content);
   });
 
-  ipcBridge.cron.hasSkill.provider(async ({ jobId }) => {
-    return hasCronSkillFile(jobId);
+  ipcBridge.cron.hasSkill.provider(async ({ job_id }) => {
+    return hasCronSkillFile(job_id);
   });
 }

@@ -39,7 +39,7 @@ type LegacyExternalPlugin = {
   sendMessage: (chatId: string, message: unknown) => Promise<string | unknown> | string | unknown;
   editMessage?: (chatId: string, messageId: string, message: unknown) => Promise<unknown> | unknown;
   getActiveUserCount?: () => number;
-  getBotInfo?: () => { username?: string; displayName?: string } | null;
+  getBotInfo?: () => { username?: string; display_name?: string } | null;
   onMessage?: (handler: PluginMessageHandler) => void;
   onConfirm?: (handler: PluginConfirmHandler) => void;
 };
@@ -114,7 +114,7 @@ function createDuckTypedWrapper(
       return this.impl?.getActiveUserCount?.() ?? 0;
     }
 
-    getBotInfo(): { username?: string; displayName?: string } | null {
+    getBotInfo(): { username?: string; display_name?: string } | null {
       return this.impl?.getBotInfo?.() ?? null;
     }
   };

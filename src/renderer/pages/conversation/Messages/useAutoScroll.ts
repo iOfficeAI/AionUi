@@ -230,10 +230,10 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
 
     if (!isNewMessage) return;
 
-    const lastMessage = messages[messages.length - 1];
+    const last_message = messages[messages.length - 1];
 
     // User sent a message - force scroll regardless of userScrolled state
-    if (lastMessage?.position === 'right') {
+    if (last_message?.position === 'right') {
       userScrolledRef.current = false;
       // Use double RAF to ensure DOM is updated before scrolling (#977)
       requestAnimationFrame(() => {

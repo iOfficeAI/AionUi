@@ -27,7 +27,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import SortableSiderEntry from '../SortableSiderEntry';
 import { useStoredSiderOrder } from '../useStoredSiderOrder';
 
-const buildCronConversationOrderKey = (jobId: string): string => `cron-job-conversation-order-${jobId}`;
+const buildCronConversationOrderKey = (job_id: string): string => `cron-job-conversation-order-${job_id}`;
 
 interface CronJobSiderItemProps {
   job: ICronJob;
@@ -170,7 +170,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
           updates: {
             extra: {
               pinned: !pinned,
-              pinnedAt: pinned ? undefined : Date.now(),
+              pinned_at: pinned ? undefined : Date.now(),
             } as Partial<TChatConversation['extra']>,
           } as Partial<TChatConversation>,
           mergeExtra: true,
@@ -188,8 +188,8 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
     [t]
   );
 
-  const handleMenuVisibleChange = useCallback((conversationId: string, visible: boolean) => {
-    setDropdownVisibleId(visible ? conversationId : null);
+  const handleMenuVisibleChange = useCallback((conversation_id: string, visible: boolean) => {
+    setDropdownVisibleId(visible ? conversation_id : null);
   }, []);
 
   const handleOpenMenu = useCallback((conv: TChatConversation) => {
@@ -200,7 +200,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const getConversationId = useCallback((conversation: TChatConversation) => conversation.id, []);
   const getConversationGroupKey = useCallback((conv: TChatConversation) => {
     const ws = (conv.extra as Record<string, unknown> | undefined)?.workspace as string | undefined;
-    const customWs = (conv.extra as Record<string, unknown> | undefined)?.customWorkspace;
+    const customWs = (conv.extra as Record<string, unknown> | undefined)?.custom_workspace;
     return customWs && ws ? `workspace:${ws}` : 'plain';
   }, []);
   const {
@@ -221,7 +221,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
     const plain: TChatConversation[] = [];
     for (const conv of orderedChildConversations) {
       const ws = (conv.extra as Record<string, unknown> | undefined)?.workspace as string | undefined;
-      const customWs = (conv.extra as Record<string, unknown> | undefined)?.customWorkspace;
+      const customWs = (conv.extra as Record<string, unknown> | undefined)?.custom_workspace;
       if (customWs && ws) {
         if (!groups.has(ws)) groups.set(ws, []);
         groups.get(ws)!.push(conv);

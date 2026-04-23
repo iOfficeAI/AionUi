@@ -55,22 +55,22 @@ type TaskRow = {
 function rowToTeam(row: TeamRow): TTeam {
   return {
     id: row.id,
-    userId: row.user_id,
+    user_id: row.user_id,
     name: row.name,
     workspace: row.workspace,
-    workspaceMode: row.workspace_mode as TTeam['workspaceMode'],
-    leaderAgentId: row.lead_agent_id,
+    workspace_mode: row.workspace_mode as TTeam['workspace_mode'],
+    leader_agent_id: row.lead_agent_id,
     agents: JSON.parse(row.agents) as TeamAgent[],
-    sessionMode: row.session_mode ?? undefined,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    session_mode: row.session_mode ?? undefined,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 
 function rowToMailbox(row: MailboxRow): MailboxMessage {
   return {
     id: row.id,
-    teamId: row.team_id,
+    team_id: row.team_id,
     toAgentId: row.to_agent_id,
     fromAgentId: row.from_agent_id,
     type: row.type as MailboxMessage['type'],
@@ -78,14 +78,14 @@ function rowToMailbox(row: MailboxRow): MailboxMessage {
     summary: row.summary ?? undefined,
     files: row.files ? (JSON.parse(row.files) as string[]) : undefined,
     read: Boolean(row.read),
-    createdAt: row.created_at,
+    created_at: row.created_at,
   };
 }
 
 function rowToTask(row: TaskRow): TeamTask {
   return {
     id: row.id,
-    teamId: row.team_id,
+    team_id: row.team_id,
     subject: row.subject,
     description: row.description ?? undefined,
     status: row.status as TeamTask['status'],
@@ -93,8 +93,8 @@ function rowToTask(row: TaskRow): TeamTask {
     blockedBy: JSON.parse(row.blocked_by) as string[],
     blocks: JSON.parse(row.blocks) as string[],
     metadata: JSON.parse(row.metadata) as Record<string, unknown>,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
   };
 }
 
@@ -130,15 +130,15 @@ export class SqliteTeamRepository implements ITeamRepository {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       team.id,
-      team.userId,
+      team.user_id,
       team.name,
       team.workspace,
-      team.workspaceMode,
-      team.leaderAgentId,
+      team.workspace_mode,
+      team.leader_agent_id,
       JSON.stringify(team.agents),
-      team.sessionMode ?? null,
-      team.createdAt,
-      team.updatedAt
+      team.session_mode ?? null,
+      team.created_at,
+      team.updated_at
     );
     return team;
   }
@@ -149,9 +149,9 @@ export class SqliteTeamRepository implements ITeamRepository {
     return row ? rowToTeam(row) : null;
   }
 
-  async findAll(userId: string): Promise<TTeam[]> {
+  async findAll(user_id: string): Promise<TTeam[]> {
     const db = await this.getDb();
-    const rows = db.prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as TeamRow[];
+    const rows = db.prepare('SELECT * FROM teams WHERE user_id = ? ORDER BY updated_at DESC').all(user_id) as TeamRow[];
     return rows.map(rowToTeam);
   }
 
@@ -167,11 +167,11 @@ export class SqliteTeamRepository implements ITeamRepository {
     ).run(
       merged.name,
       merged.workspace,
-      merged.workspaceMode,
-      merged.leaderAgentId,
+      merged.workspace_mode,
+      merged.leader_agent_id,
       JSON.stringify(merged.agents),
-      merged.sessionMode ?? null,
-      merged.updatedAt,
+      merged.session_mode ?? null,
+      merged.updated_at,
       id
     );
     return merged;
@@ -182,14 +182,14 @@ export class SqliteTeamRepository implements ITeamRepository {
     db.prepare('DELETE FROM teams WHERE id = ?').run(id);
   }
 
-  async deleteMailboxByTeam(teamId: string): Promise<void> {
+  async deleteMailboxByTeam(team_id: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM mailbox WHERE team_id = ?').run(teamId);
+    db.prepare('DELETE FROM mailbox WHERE team_id = ?').run(team_id);
   }
 
-  async deleteTasksByTeam(teamId: string): Promise<void> {
+  async deleteTasksByTeam(team_id: string): Promise<void> {
     const db = await this.getDb();
-    db.prepare('DELETE FROM team_tasks WHERE team_id = ?').run(teamId);
+    db.prepare('DELETE FROM team_tasks WHERE team_id = ?').run(team_id);
   }
 
   // -------------------------------------------------------------------------
@@ -203,7 +203,7 @@ export class SqliteTeamRepository implements ITeamRepository {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       message.id,
-      message.teamId,
+      message.team_id,
       message.toAgentId,
       message.fromAgentId,
       message.type,
@@ -211,23 +211,23 @@ export class SqliteTeamRepository implements ITeamRepository {
       message.summary ?? null,
       message.files ? JSON.stringify(message.files) : null,
       Number(message.read),
-      message.createdAt
+      message.created_at
     );
     return message;
   }
 
-  async readUnread(teamId: string, toAgentId: string): Promise<MailboxMessage[]> {
+  async readUnread(team_id: string, toAgentId: string): Promise<MailboxMessage[]> {
     const db = await this.getDb();
     const rows = db
       .prepare(
         `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ? AND read = 0
          ORDER BY created_at ASC`
       )
-      .all(teamId, toAgentId) as MailboxRow[];
+      .all(team_id, toAgentId) as MailboxRow[];
     return rows.map(rowToMailbox);
   }
 
-  async readUnreadAndMark(teamId: string, toAgentId: string): Promise<MailboxMessage[]> {
+  async readUnreadAndMark(team_id: string, toAgentId: string): Promise<MailboxMessage[]> {
     const db = await this.getDb();
     const rows = db.transaction(() => {
       const unread = db
@@ -235,7 +235,7 @@ export class SqliteTeamRepository implements ITeamRepository {
           `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ? AND read = 0
            ORDER BY created_at ASC`
         )
-        .all(teamId, toAgentId) as MailboxRow[];
+        .all(team_id, toAgentId) as MailboxRow[];
       if (unread.length > 0) {
         const ids = unread.map((r) => r.id);
         db.prepare(`UPDATE mailbox SET read = 1 WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
@@ -250,14 +250,14 @@ export class SqliteTeamRepository implements ITeamRepository {
     db.prepare('UPDATE mailbox SET read = 1 WHERE id = ?').run(messageId);
   }
 
-  async getMailboxHistory(teamId: string, toAgentId: string, limit = 50): Promise<MailboxMessage[]> {
+  async getMailboxHistory(team_id: string, toAgentId: string, limit = 50): Promise<MailboxMessage[]> {
     const db = await this.getDb();
     const rows = db
       .prepare(
         `SELECT * FROM mailbox WHERE team_id = ? AND to_agent_id = ?
          ORDER BY created_at DESC LIMIT ?`
       )
-      .all(teamId, toAgentId, limit) as MailboxRow[];
+      .all(team_id, toAgentId, limit) as MailboxRow[];
     return rows.map(rowToMailbox);
   }
 
@@ -272,7 +272,7 @@ export class SqliteTeamRepository implements ITeamRepository {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     ).run(
       task.id,
-      task.teamId,
+      task.team_id,
       task.subject,
       task.description ?? null,
       task.status,
@@ -280,8 +280,8 @@ export class SqliteTeamRepository implements ITeamRepository {
       JSON.stringify(task.blockedBy),
       JSON.stringify(task.blocks),
       JSON.stringify(task.metadata),
-      task.createdAt,
-      task.updatedAt
+      task.created_at,
+      task.updated_at
     );
     return task;
   }
@@ -315,25 +315,25 @@ export class SqliteTeamRepository implements ITeamRepository {
       JSON.stringify(merged.blockedBy),
       JSON.stringify(merged.blocks),
       JSON.stringify(merged.metadata),
-      merged.updatedAt,
+      merged.updated_at,
       id
     );
     return merged;
   }
 
-  async findTasksByTeam(teamId: string): Promise<TeamTask[]> {
+  async findTasksByTeam(team_id: string): Promise<TeamTask[]> {
     const db = await this.getDb();
     const rows = db
       .prepare('SELECT * FROM team_tasks WHERE team_id = ? ORDER BY created_at ASC')
-      .all(teamId) as TaskRow[];
+      .all(team_id) as TaskRow[];
     return rows.map(rowToTask);
   }
 
-  async findTasksByOwner(teamId: string, owner: string): Promise<TeamTask[]> {
+  async findTasksByOwner(team_id: string, owner: string): Promise<TeamTask[]> {
     const db = await this.getDb();
     const rows = db
       .prepare(`SELECT * FROM team_tasks WHERE team_id = ? AND owner = ? ORDER BY created_at ASC`)
-      .all(teamId, owner) as TaskRow[];
+      .all(team_id, owner) as TaskRow[];
     return rows.map(rowToTask);
   }
 

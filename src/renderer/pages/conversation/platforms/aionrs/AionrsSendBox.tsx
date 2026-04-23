@@ -87,15 +87,15 @@ const useSendBoxDraft = (conversation_id: string) => {
 const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
-  sessionMode?: string;
-}> = ({ conversation_id, modelSelection, teamId, agentSlotId, sessionMode }) => {
+  session_mode?: string;
+}> = ({ conversation_id, modelSelection, team_id, agentSlotId, session_mode }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const { currentModel, getDisplayModelName } = modelSelection;
+  const { current_model, getDisplayModelName } = modelSelection;
 
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
     useAionrsMessage(conversation_id, {
@@ -116,7 +116,7 @@ const AionrsSendBox: React.FC<{
     });
   }, [conversation_id]);
 
-  const slashCommands = useSlashCommands(conversation_id);
+  const slash_commands = useSlashCommands(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
@@ -129,8 +129,8 @@ const AionrsSendBox: React.FC<{
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
     const handler = (text: string) => {
-      const newContent = content ? `${content}\n${text}` : text;
-      setContentRef.current(newContent);
+      const new_content = content ? `${content}\n${text}` : text;
+      setContentRef.current(new_content);
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
@@ -154,7 +154,7 @@ const AionrsSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      if (!currentModel?.useModel) {
+      if (!current_model?.useModel) {
         Message.warning(t('conversation.chat.noModelSelected'));
         throw new Error('No model selected');
       }
@@ -164,7 +164,7 @@ const AionrsSendBox: React.FC<{
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      if (!teamId) {
+      if (!team_id) {
         addOrUpdateMessage(
           {
             id: msg_id,
@@ -174,7 +174,7 @@ const AionrsSendBox: React.FC<{
             content: {
               content: displayMessage,
             },
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
           true
         );
@@ -182,11 +182,11 @@ const AionrsSendBox: React.FC<{
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        if (teamId) {
+        if (team_id) {
           if (agentSlotId) {
             const result = await ipcBridge.team.sendMessageToAgent.invoke({
-              teamId,
-              slotId: agentSlotId,
+              team_id,
+              slot_id: agentSlotId,
               content: displayMessage,
               files,
             });
@@ -195,7 +195,7 @@ const AionrsSendBox: React.FC<{
               throw new Error(maybeError.message || 'Failed to send message to agent');
             }
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
+            const result = await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to team');
@@ -223,11 +223,11 @@ const AionrsSendBox: React.FC<{
       agentSlotId,
       checkAndUpdateTitle,
       conversation_id,
-      currentModel?.useModel,
+      current_model?.useModel,
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
-      teamId,
+      team_id,
       workspacePath,
     ]
   );
@@ -247,7 +247,7 @@ const AionrsSendBox: React.FC<{
     unlockInteraction,
     resetActiveExecution,
   } = useConversationCommandQueue({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     enabled: true,
     isBusy,
     isHydrated: hasHydratedRunningState,
@@ -282,7 +282,7 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (!teamId && isBusy) {
+    if (!team_id && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -370,10 +370,10 @@ const AionrsSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={isBusy}
-        disabled={!currentModel?.useModel}
+        disabled={!current_model?.useModel}
         placeholder={
-          currentModel?.useModel
-            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) })
+          current_model?.useModel
+            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.useModel) })
             : t('conversation.chat.noModelSelected')
         }
         onStop={handleStop}
@@ -388,9 +388,9 @@ const AionrsSendBox: React.FC<{
             <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
             <AgentModeSelector
               backend='aionrs'
-              conversationId={conversation_id}
+              conversation_id={conversation_id}
               compact
-              initialMode={sessionMode}
+              initialMode={session_mode}
               dynamicModes={dynamicModes}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
@@ -402,7 +402,7 @@ const AionrsSendBox: React.FC<{
         sendButtonPrefix={
           <ContextUsageIndicator
             tokenUsage={tokenUsage}
-            contextLimit={getModelContextLimit(currentModel?.useModel)}
+            context_limit={getModelContextLimit(current_model?.useModel)}
             size={24}
           />
         }
@@ -446,7 +446,7 @@ const AionrsSendBox: React.FC<{
           </>
         }
         onSend={onSendHandler}
-        slashCommands={slashCommands}
+        slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
       />

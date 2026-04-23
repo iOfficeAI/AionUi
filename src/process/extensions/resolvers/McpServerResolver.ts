@@ -26,9 +26,9 @@ function convertMcpServer(server: ExtMcpServer, ext: LoadedExtension, timestamp:
     description: server.description,
     enabled: server.enabled,
     transport: server.transport,
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    originalJson: JSON.stringify(server, null, 2),
+    created_at: timestamp,
+    updated_at: timestamp,
+    original_json: JSON.stringify(server, null, 2),
     _source: 'extension',
     _extensionName: ext.manifest.name,
   };

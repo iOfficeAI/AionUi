@@ -22,13 +22,13 @@ type FileChangeListProps = {
   loading: boolean;
   snapshotInfo: SnapshotInfo | null;
   onRefresh: () => void;
-  onOpenDiff: (diffContent: string, fileName: string, filePath: string) => void;
-  onStageFile: (filePath: string) => void;
+  onOpenDiff: (diffContent: string, file_name: string, file_path: string) => void;
+  onStageFile: (file_path: string) => void;
   onStageAll: () => void;
-  onUnstageFile: (filePath: string) => void;
+  onUnstageFile: (file_path: string) => void;
   onUnstageAll: () => void;
-  onDiscardFile: (filePath: string, operation: FileChangeInfo['operation']) => void;
-  onResetFile: (filePath: string, operation: FileChangeInfo['operation']) => void;
+  onDiscardFile: (file_path: string, operation: FileChangeInfo['operation']) => void;
+  onResetFile: (file_path: string, operation: FileChangeInfo['operation']) => void;
 };
 
 const STATUS_COLORS: Record<FileChangeInfo['operation'], string> = {
@@ -183,8 +183,8 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
 
   const loadDiffState = useCallback(
     async (change: FileChangeInfo) => {
-      const fileName = change.relativePath;
-      if (!isTextFile(fileName)) return null;
+      const file_name = change.relativePath;
+      if (!isTextFile(file_name)) return null;
 
       try {
         let before = '';
@@ -193,17 +193,17 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
         if (change.operation === 'modify' || change.operation === 'delete') {
           const baseline = await ipcBridge.fileSnapshot.getBaselineContent.invoke({
             workspace,
-            filePath: change.relativePath,
+            file_path: change.relativePath,
           });
           before = baseline ?? '';
         }
 
         if (change.operation === 'modify' || change.operation === 'create') {
-          const current = await ipcBridge.fs.readFile.invoke({ path: change.filePath });
+          const current = await ipcBridge.fs.readFile.invoke({ path: change.file_path });
           after = typeof current === 'string' ? current : '';
         }
 
-        const diffContent = createTwoFilesPatch(fileName, fileName, before, after);
+        const diffContent = createTwoFilesPatch(file_name, file_name, before, after);
         const stats = createDiffStats(diffContent);
         return {
           diff: diffContent,
@@ -220,42 +220,42 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
 
   const handleToggleDiff = useCallback(
     async (change: FileChangeInfo) => {
-      const fileName = change.relativePath;
-      if (!isTextFile(fileName)) return;
+      const file_name = change.relativePath;
+      if (!isTextFile(file_name)) return;
 
-      if (expandedFilePath === change.filePath) {
+      if (expandedFilePath === change.file_path) {
         setExpandedFilePath(null);
         return;
       }
 
-      if (diffCache[change.filePath]) {
-        setExpandedFilePath(change.filePath);
+      if (diffCache[change.file_path]) {
+        setExpandedFilePath(change.file_path);
         return;
       }
 
-      setLoadingFilePath(change.filePath);
+      setLoadingFilePath(change.file_path);
       const nextDiff = await loadDiffState(change);
-      setLoadingFilePath((current) => (current === change.filePath ? null : current));
+      setLoadingFilePath((current) => (current === change.file_path ? null : current));
       if (!nextDiff) {
         return;
       }
 
       setDiffCache((current) => ({
         ...current,
-        [change.filePath]: nextDiff,
+        [change.file_path]: nextDiff,
       }));
-      setExpandedFilePath(change.filePath);
+      setExpandedFilePath(change.file_path);
     },
     [diffCache, expandedFilePath, loadDiffState]
   );
 
   const handleOpenPreview = useCallback(
     async (change: FileChangeInfo) => {
-      const cached = diffCache[change.filePath] ?? (await loadDiffState(change));
+      const cached = diffCache[change.file_path] ?? (await loadDiffState(change));
       if (!cached) {
         return;
       }
-      onOpenDiff(cached.diff, change.relativePath, change.filePath);
+      onOpenDiff(cached.diff, change.relativePath, change.file_path);
     },
     [diffCache, loadDiffState, onOpenDiff]
   );
@@ -384,14 +384,14 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
               </div>
             ) : (
               group.items.map((change) => {
-                const diffState = diffCache[change.filePath];
-                const isExpanded = expandedFilePath === change.filePath;
-                const isLoadingDiff = loadingFilePath === change.filePath;
+                const diffState = diffCache[change.file_path];
+                const isExpanded = expandedFilePath === change.file_path;
+                const isLoadingDiff = loadingFilePath === change.file_path;
                 const canExpand = isTextFile(change.relativePath);
 
                 return (
                   <FileChangeItem
-                    key={`${group.key}-${change.filePath}`}
+                    key={`${group.key}-${change.file_path}`}
                     change={change}
                     diffState={diffState}
                     expanded={isExpanded}
@@ -414,7 +414,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
                     }
                   >
                     {diffState ? (
-                      <Diff2Html diff={diffState.diff} title={change.relativePath} filePath={change.filePath} />
+                      <Diff2Html diff={diffState.diff} title={change.relativePath} file_path={change.file_path} />
                     ) : isLoadingDiff ? (
                       <div className='flex items-center justify-center py-12px text-12px text-t-quaternary'>
                         <Spin size={14} />

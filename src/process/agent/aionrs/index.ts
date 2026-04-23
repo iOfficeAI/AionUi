@@ -37,10 +37,10 @@ export type AionrsAgentOptions = {
   model: TProviderWithModel;
   proxy?: string;
   yoloMode?: boolean;
-  presetRules?: string;
+  preset_rules?: string;
   maxTokens?: number;
   maxTurns?: number;
-  sessionId?: string;
+  session_id?: string;
   resume?: string;
   /**
    * Stdio MCP servers to register with the aionrs session after start.
@@ -63,7 +63,7 @@ export class AionrsAgent {
   private configBackup: { path: string; content: string | null } | null = null;
   private mcpReadyPromise: Promise<void>;
   private mcpReadyResolve!: () => void;
-  public sessionId?: string;
+  public session_id?: string;
   public capabilities?: AionrsCapabilities;
 
   constructor(options: AionrsAgentOptions) {
@@ -93,7 +93,7 @@ export class AionrsAgent {
       maxTokens: this.options.maxTokens,
       maxTurns: this.options.maxTurns,
       autoApprove: this.options.yoloMode,
-      sessionId: this.options.sessionId,
+      session_id: this.options.session_id,
       resume: this.options.resume,
     });
 
@@ -144,7 +144,7 @@ export class AionrsAgent {
       // If resume failed (session not found), fallback to a new session
       if (this.options.resume) {
         console.error('[AionrsAgent] Resume failed, falling back to new session:', err);
-        this.options = { ...this.options, resume: undefined, sessionId: this.options.resume };
+        this.options = { ...this.options, resume: undefined, session_id: this.options.resume };
         this.ready = false;
         this.readyPromise = new Promise((resolve, reject) => {
           this.readyResolve = resolve;
@@ -186,10 +186,10 @@ export class AionrsAgent {
     }
 
     // Inject preset rules as history context (skip on resume — rules were already injected)
-    if (this.options.presetRules && !this.options.resume) {
+    if (this.options.preset_rules && !this.options.resume) {
       this.sendCommand({
         type: 'init_history',
-        text: `[Assistant System Rules]\n${this.options.presetRules}`,
+        text: `[Assistant System Rules]\n${this.options.preset_rules}`,
       });
     }
   }
@@ -198,7 +198,7 @@ export class AionrsAgent {
     switch (event.type) {
       case 'ready':
         this.ready = true;
-        this.sessionId = event.session_id;
+        this.session_id = event.session_id;
         this.capabilities = event.capabilities;
         this.readyResolve();
         break;
@@ -221,11 +221,11 @@ export class AionrsAgent {
           type: 'tool_group',
           data: [
             {
-              callId: event.call_id,
+              call_id: event.call_id,
               name: event.tool.name,
               description: event.tool.description,
               status: 'Confirming',
-              renderOutputAsMarkdown: false,
+              render_output_as_markdown: false,
               confirmationDetails: this.mapConfirmationDetails(event),
             },
           ],
@@ -238,11 +238,11 @@ export class AionrsAgent {
           type: 'tool_group',
           data: [
             {
-              callId: event.call_id,
+              call_id: event.call_id,
               name: event.tool_name,
               description: '',
               status: 'Executing',
-              renderOutputAsMarkdown: false,
+              render_output_as_markdown: false,
             },
           ],
           msg_id: event.msg_id,
@@ -254,15 +254,15 @@ export class AionrsAgent {
           type: 'tool_group',
           data: [
             {
-              callId: event.call_id,
+              call_id: event.call_id,
               name: event.tool_name,
               description: '',
               status: event.status === 'success' ? 'Success' : 'Error',
-              resultDisplay:
+              result_display:
                 event.output_type === 'diff'
-                  ? { fileDiff: event.output, fileName: (event.metadata as Record<string, string>)?.file_path ?? '' }
+                  ? { file_diff: event.output, file_name: (event.metadata as Record<string, string>)?.file_path ?? '' }
                   : event.output,
-              renderOutputAsMarkdown: event.output_type === 'text',
+              render_output_as_markdown: event.output_type === 'text',
             },
           ],
           msg_id: event.msg_id,
@@ -274,11 +274,11 @@ export class AionrsAgent {
           type: 'tool_group',
           data: [
             {
-              callId: event.call_id,
+              call_id: event.call_id,
               name: '',
               description: event.reason,
               status: 'Canceled',
-              renderOutputAsMarkdown: false,
+              render_output_as_markdown: false,
             },
           ],
           msg_id: event.msg_id,
@@ -332,8 +332,8 @@ export class AionrsAgent {
         return {
           type: 'edit' as const,
           title: tool.description,
-          fileName: (tool.args as Record<string, string>).file_path ?? '',
-          fileDiff: '',
+          file_name: (tool.args as Record<string, string>).file_path ?? '',
+          file_diff: '',
         };
       case 'exec':
         return {
@@ -346,9 +346,9 @@ export class AionrsAgent {
         return {
           type: 'mcp' as const,
           title: tool.description,
-          toolName: tool.name,
-          toolDisplayName: tool.name,
-          serverName: '',
+          tool_name: tool.name,
+          tool_display_name: tool.name,
+          server_name: '',
         };
       case 'info':
       default:
@@ -384,12 +384,12 @@ export class AionrsAgent {
     this.sendCommand({ type: 'stop' });
   }
 
-  approveTool(callId: string, scope: 'once' | 'always' = 'once'): void {
-    this.sendCommand({ type: 'tool_approve', call_id: callId, scope });
+  approveTool(call_id: string, scope: 'once' | 'always' = 'once'): void {
+    this.sendCommand({ type: 'tool_approve', call_id: call_id, scope });
   }
 
-  denyTool(callId: string, reason = ''): void {
-    this.sendCommand({ type: 'tool_deny', call_id: callId, reason });
+  denyTool(call_id: string, reason = ''): void {
+    this.sendCommand({ type: 'tool_deny', call_id: call_id, reason });
   }
 
   setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {

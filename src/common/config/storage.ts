@@ -30,7 +30,7 @@ export interface IConfigStorageRefer {
     preferredModelId?: string;
   };
   'codex.config'?: {
-    cliPath?: string;
+    cli_path?: string;
     yoloMode?: boolean;
     sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
   };
@@ -39,7 +39,7 @@ export interface IConfigStorageRefer {
       auth_methodId?: string;
       authToken?: string;
       lastAuthTime?: number;
-      cliPath?: string;
+      cli_path?: string;
       yoloMode?: boolean;
       /** Preferred session mode for new conversations / 新会话的默认模式 */
       preferredMode?: string;
@@ -260,7 +260,7 @@ export type TChatConversation =
         {
           workspace?: string;
           backend: AcpBackend;
-          cliPath?: string;
+          cli_path?: string;
           custom_workspace?: boolean;
           agent_name?: string;
           custom_agent_id?: string; // UUID for identifying specific custom agent
@@ -308,7 +308,7 @@ export type TChatConversation =
         'codex',
         {
           workspace?: string;
-          cliPath?: string;
+          cli_path?: string;
           custom_workspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
           preset_context?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
@@ -349,7 +349,7 @@ export type TChatConversation =
             token?: string;
             password?: string;
             useExternalGateway?: boolean;
-            cliPath?: string;
+            cli_path?: string;
           };
           /** Session key for resume */
           sessionKey?: string;

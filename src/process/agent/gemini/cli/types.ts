@@ -36,21 +36,21 @@ export enum ToolCallStatus {
 export interface ToolCallEvent {
   type: 'tool_call';
   status: ToolCallStatus;
-  callId: string;
+  call_id: string;
   name: string;
   args: Record<string, never>;
-  resultDisplay: ToolResultDisplay | undefined;
+  result_display: ToolResultDisplay | undefined;
   confirmationDetails: ToolCallConfirmationDetails | SerializableConfirmationDetails | undefined;
 }
 
 export interface IndividualToolCallDisplay {
-  callId: string;
+  call_id: string;
   name: string;
   description: string;
-  resultDisplay: ToolResultDisplay | undefined;
+  result_display: ToolResultDisplay | undefined;
   status: ToolCallStatus;
   confirmationDetails: ToolCallConfirmationDetails | SerializableConfirmationDetails | undefined;
-  renderOutputAsMarkdown?: boolean;
+  render_output_as_markdown?: boolean;
 }
 
 export interface CompressionProps {
@@ -245,7 +245,7 @@ export interface SubmitPromptResult {
 export type SlashCommandProcessorResult =
   | {
       type: 'schedule_tool';
-      toolName: string;
+      tool_name: string;
       toolArgs: Record<string, unknown>;
     }
   | {

@@ -12,7 +12,7 @@ import { useEffect, useRef, useState } from 'react';
 type UseWorkspaceCollapseParams = {
   workspaceEnabled: boolean;
   isMobile: boolean;
-  conversationId?: string;
+  conversation_id?: string;
 };
 
 type UseWorkspaceCollapseReturn = {
@@ -27,7 +27,7 @@ type UseWorkspaceCollapseReturn = {
 export function useWorkspaceCollapse({
   workspaceEnabled,
   isMobile,
-  conversationId,
+  conversation_id,
 }: UseWorkspaceCollapseParams): UseWorkspaceCollapseReturn {
   // Workspace panel collapse state - globally persisted
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(() => {
@@ -92,7 +92,7 @@ export function useWorkspaceCollapse({
     }
     const handleHasFiles = (event: Event) => {
       const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail;
-      const convId = detail.conversationId;
+      const convId = detail.conversation_id;
 
       // Update current conversation ID
       currentConversationIdRef.current = convId;
@@ -178,7 +178,7 @@ export function useWorkspaceCollapse({
       return;
     }
     setRightSiderCollapsed(true);
-  }, [conversationId, isMobile, workspaceEnabled]);
+  }, [conversation_id, isMobile, workspaceEnabled]);
 
   // Mobile: blur active element on conversation switch to prevent soft keyboard
   useEffect(() => {
@@ -189,7 +189,7 @@ export function useWorkspaceCollapse({
       blurActiveElement();
     });
     return () => cancelAnimationFrame(rafId);
-  }, [conversationId, isMobile]);
+  }, [conversation_id, isMobile]);
 
   return { rightSiderCollapsed, setRightSiderCollapsed };
 }

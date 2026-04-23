@@ -27,7 +27,7 @@ interface StoredIdentity {
   deviceId: string;
   publicKeyPem: string;
   privateKeyPem: string;
-  createdAtMs: number;
+  created_atMs: number;
 }
 
 // OpenClaw uses ~/.openclaw/identity/device.json
@@ -67,18 +67,18 @@ export function generateIdentity(): DeviceIdentity {
   return { deviceId, publicKeyPem, privateKeyPem };
 }
 
-function ensureDir(filePath: string): void {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+function ensureDir(file_path: string): void {
+  fs.mkdirSync(path.dirname(file_path), { recursive: true });
 }
 
 /**
  * Load or create device identity
  * Uses the same storage location as OpenClaw CLI for compatibility
  */
-export function loadOrCreateDeviceIdentity(filePath: string = DEFAULT_FILE): DeviceIdentity {
+export function loadOrCreateDeviceIdentity(file_path: string = DEFAULT_FILE): DeviceIdentity {
   try {
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, 'utf8');
+    if (fs.existsSync(file_path)) {
+      const raw = fs.readFileSync(file_path, 'utf8');
       const parsed = JSON.parse(raw) as StoredIdentity;
       if (
         parsed?.version === 1 &&
@@ -94,9 +94,9 @@ export function loadOrCreateDeviceIdentity(filePath: string = DEFAULT_FILE): Dev
             ...parsed,
             deviceId: derivedId,
           };
-          fs.writeFileSync(filePath, `${JSON.stringify(updated, null, 2)}\n`, { mode: 0o600 });
+          fs.writeFileSync(file_path, `${JSON.stringify(updated, null, 2)}\n`, { mode: 0o600 });
           try {
-            fs.chmodSync(filePath, 0o600);
+            fs.chmodSync(file_path, 0o600);
           } catch {
             // best-effort
           }
@@ -119,17 +119,17 @@ export function loadOrCreateDeviceIdentity(filePath: string = DEFAULT_FILE): Dev
 
   // Generate new identity
   const identity = generateIdentity();
-  ensureDir(filePath);
+  ensureDir(file_path);
   const stored: StoredIdentity = {
     version: 1,
     deviceId: identity.deviceId,
     publicKeyPem: identity.publicKeyPem,
     privateKeyPem: identity.privateKeyPem,
-    createdAtMs: Date.now(),
+    created_atMs: Date.now(),
   };
-  fs.writeFileSync(filePath, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
+  fs.writeFileSync(file_path, `${JSON.stringify(stored, null, 2)}\n`, { mode: 0o600 });
   try {
-    fs.chmodSync(filePath, 0o600);
+    fs.chmodSync(file_path, 0o600);
   } catch {
     // best-effort
   }

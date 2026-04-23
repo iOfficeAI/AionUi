@@ -26,12 +26,12 @@ function isValidCommandName(name: string): boolean {
 }
 
 /**
- * Parse commandType string into individual commands
+ * Parse command_type string into individual commands
  * Handles comma-separated commands from piped operations (e.g., "curl, grep")
  * Filters out invalid command names (e.g., special shell characters)
  */
-function parseCommandTypes(commandType: string): string[] {
-  return commandType
+function parseCommandTypes(command_type: string): string[] {
+  return command_type
     .split(',')
     .map((cmd) => cmd.trim())
     .filter(Boolean)
@@ -55,9 +55,9 @@ export class GeminiApprovalStore extends BaseApprovalStore<GeminiApprovalKey> {
    * Create approval keys from confirmation data
    * For exec confirmations with multiple commands, returns keys for each command
    */
-  static createKeysFromConfirmation(action: string, commandType?: string): GeminiApprovalKey[] {
-    if (action === 'exec' && commandType) {
-      const commands = parseCommandTypes(commandType);
+  static createKeysFromConfirmation(action: string, command_type?: string): GeminiApprovalKey[] {
+    if (action === 'exec' && command_type) {
+      const commands = parseCommandTypes(command_type);
       return commands.map((cmd) => ({
         action: 'exec' as const,
         identifier: cmd,

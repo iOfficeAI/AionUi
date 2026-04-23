@@ -18,7 +18,7 @@ export interface ResolvedModelProvider {
   /** Display name */
   name: string;
   /** API base URL */
-  baseUrl?: string;
+  base_url?: string;
   /** Default models */
   models: string[];
   /** Logo URL (aion-asset://) */
@@ -73,7 +73,7 @@ function convertModelProvider(
     id: globalId,
     platform: provider.platform,
     name: provider.name,
-    baseUrl: provider.baseUrl,
+    base_url: provider.base_url,
     models: provider.models ?? [],
     logo: logoUrl,
     _extensionName: ext.manifest.name,

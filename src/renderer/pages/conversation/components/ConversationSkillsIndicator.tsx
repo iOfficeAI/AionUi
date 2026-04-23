@@ -18,17 +18,17 @@ type ConversationSkillsIndicatorProps = {
 
 /**
  * Shows loaded skills for a conversation in a popover dropdown.
- * Reads from conversation.extra.loadedSkills which is persisted by the agent manager
+ * Reads from conversation.extra.loaded_skills which is persisted by the agent manager
  * when skills are actually discovered and loaded on first message.
  */
 const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = ({ conversation }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const loadedSkills = (conversation?.extra as { loadedSkills?: Array<{ name: string; description: string }> })
-    ?.loadedSkills;
+  const loaded_skills = (conversation?.extra as { loaded_skills?: Array<{ name: string; description: string }> })
+    ?.loaded_skills;
 
-  if (!loadedSkills || loadedSkills.length === 0) return null;
+  if (!loaded_skills || loaded_skills.length === 0) return null;
 
   const handleSkillClick = (skillName: string) => {
     navigate(`/settings/capabilities?tab=skills&highlight=${encodeURIComponent(skillName)}`);
@@ -37,10 +37,10 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
   const content = (
     <div className='max-w-320px max-h-300px overflow-y-auto'>
       <div className='text-12px font-500 text-t-secondary mb-8px'>
-        {t('conversation.skills.loaded')} ({loadedSkills.length})
+        {t('conversation.skills.loaded')} ({loaded_skills.length})
       </div>
       <div className='flex flex-col gap-4px'>
-        {loadedSkills.map((skill) => (
+        {loaded_skills.map((skill) => (
           <div
             key={skill.name}
             className='flex items-center gap-8px py-4px px-8px rounded-4px hover:bg-2 cursor-pointer text-13px text-t-primary truncate'
@@ -61,7 +61,7 @@ const ConversationSkillsIndicator: React.FC<ConversationSkillsIndicatorProps> = 
       >
         <Lightning theme='filled' size={14} fill={iconColors.primary} strokeWidth={2} style={{ lineHeight: 0 }} />
         <span className='text-13px text-t-primary lh-[1]' data-testid='skills-indicator-count'>
-          {loadedSkills.length}
+          {loaded_skills.length}
         </span>
       </span>
     </Popover>

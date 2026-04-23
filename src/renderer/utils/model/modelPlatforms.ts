@@ -58,7 +58,7 @@ export interface PlatformConfig {
   /** 平台标识 / Platform identifier */
   platform: PlatformType;
   /** Base URL（预设供应商使用） / Base URL (for preset providers) */
-  baseUrl?: string;
+  base_url?: string;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
 }
@@ -86,18 +86,18 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     value: 'gemini',
     logo: GeminiLogo,
     platform: 'gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com',
+    base_url: 'https://generativelanguage.googleapis.com',
   },
   { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
 
   // 预设供应商（按字母顺序排列）
-  { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
+  { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', base_url: 'https://api.openai.com/v1' },
   {
     name: 'Anthropic',
     value: 'Anthropic',
     logo: AnthropicLogo,
     platform: 'anthropic',
-    baseUrl: 'https://api.anthropic.com',
+    base_url: 'https://api.anthropic.com',
   },
   {
     name: 'AWS Bedrock',
@@ -111,113 +111,113 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     value: 'DeepSeek',
     logo: DeepSeekLogo,
     platform: 'custom',
-    baseUrl: 'https://api.deepseek.com/v1',
+    base_url: 'https://api.deepseek.com/v1',
   },
-  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
+  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', base_url: 'https://api.minimaxi.com/v1' },
   {
     name: 'Novita',
     value: 'Novita',
     logo: NovitaLogo,
     platform: 'custom',
-    baseUrl: 'https://api.novita.ai/openai/v1',
+    base_url: 'https://api.novita.ai/openai/v1',
   },
   {
     name: 'OpenRouter',
     value: 'OpenRouter',
     logo: OpenRouterLogo,
     platform: 'custom',
-    baseUrl: 'https://openrouter.ai/api/v1',
+    base_url: 'https://openrouter.ai/api/v1',
   },
   {
     name: 'Dashscope',
     value: 'Dashscope',
     logo: QwenLogo,
     platform: 'custom',
-    baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   },
   {
     name: 'Dashscope Coding Plan',
     value: 'Dashscope-Coding',
     logo: QwenLogo,
     platform: 'custom',
-    baseUrl: 'https://coding.dashscope.aliyuncs.com/v1',
+    base_url: 'https://coding.dashscope.aliyuncs.com/v1',
   },
   {
     name: 'SiliconFlow-CN',
     value: 'SiliconFlow-CN',
     logo: SiliconFlowLogo,
     platform: 'custom',
-    baseUrl: 'https://api.siliconflow.cn/v1',
+    base_url: 'https://api.siliconflow.cn/v1',
   },
   {
     name: 'SiliconFlow',
     value: 'SiliconFlow',
     logo: SiliconFlowLogo,
     platform: 'custom',
-    baseUrl: 'https://api.siliconflow.com/v1',
+    base_url: 'https://api.siliconflow.com/v1',
   },
   {
     name: 'Zhipu',
     value: 'Zhipu',
     logo: ZhipuLogo,
     platform: 'custom',
-    baseUrl: 'https://open.bigmodel.cn/api/paas/v4',
+    base_url: 'https://open.bigmodel.cn/api/paas/v4',
   },
   {
     name: 'Moonshot (China)',
     value: 'Moonshot',
     logo: KimiLogo,
     platform: 'custom',
-    baseUrl: 'https://api.moonshot.cn/v1',
+    base_url: 'https://api.moonshot.cn/v1',
   },
   {
     name: 'Moonshot (Global)',
     value: 'Moonshot-Global',
     logo: KimiLogo,
     platform: 'custom',
-    baseUrl: 'https://api.moonshot.ai/v1',
+    base_url: 'https://api.moonshot.ai/v1',
   },
-  { name: 'xAI', value: 'xAI', logo: XaiLogo, platform: 'custom', baseUrl: 'https://api.x.ai/v1' },
+  { name: 'xAI', value: 'xAI', logo: XaiLogo, platform: 'custom', base_url: 'https://api.x.ai/v1' },
   {
     name: 'Ark',
     value: 'Ark',
     logo: VolcengineLogo,
     platform: 'custom',
-    baseUrl: 'https://ark.cn-beijing.volces.com/api/v3',
+    base_url: 'https://ark.cn-beijing.volces.com/api/v3',
   },
   {
     name: 'Qianfan',
     value: 'Qianfan',
     logo: BaiduLogo,
     platform: 'custom',
-    baseUrl: 'https://qianfan.baidubce.com/v2',
+    base_url: 'https://qianfan.baidubce.com/v2',
   },
   {
     name: 'Hunyuan',
     value: 'Hunyuan',
     logo: TencentLogo,
     platform: 'custom',
-    baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1',
+    base_url: 'https://api.hunyuan.cloud.tencent.com/v1',
   },
-  { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', baseUrl: 'https://api.lingyiwanwu.com/v1' },
-  { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', baseUrl: 'https://api.poe.com/v1' },
-  { name: 'PPIO', value: 'PPIO', logo: PPIOLogo, platform: 'custom', baseUrl: 'https://api.ppinfra.com/v3/openai' },
+  { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', base_url: 'https://api.lingyiwanwu.com/v1' },
+  { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', base_url: 'https://api.poe.com/v1' },
+  { name: 'PPIO', value: 'PPIO', logo: PPIOLogo, platform: 'custom', base_url: 'https://api.ppinfra.com/v3/openai' },
   {
     name: 'ModelScope',
     value: 'ModelScope',
     logo: ModelScopeLogo,
     platform: 'custom',
-    baseUrl: 'https://api-inference.modelscope.cn/v1',
+    base_url: 'https://api-inference.modelscope.cn/v1',
   },
   {
     name: 'InfiniAI',
     value: 'InfiniAI',
     logo: InfiniAILogo,
     platform: 'custom',
-    baseUrl: 'https://cloud.infini-ai.com/maas/v1',
+    base_url: 'https://cloud.infini-ai.com/maas/v1',
   },
-  { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', baseUrl: 'https://wishub-x1.ctyun.cn/v1' },
-  { name: 'StepFun', value: 'StepFun', logo: StepFunLogo, platform: 'custom', baseUrl: 'https://api.stepfun.com/v1' },
+  { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', base_url: 'https://wishub-x1.ctyun.cn/v1' },
+  { name: 'StepFun', value: 'StepFun', logo: StepFunLogo, platform: 'custom', base_url: 'https://api.stepfun.com/v1' },
 ];
 
 /**
@@ -253,11 +253,11 @@ export const getPlatformByValue = (value: string): PlatformConfig | undefined =>
 };
 
 /**
- * 获取所有预设供应商（有 baseUrl 的）
- * Get all preset providers (with baseUrl)
+ * 获取所有预设供应商（有 base_url 的）
+ * Get all preset providers (with base_url)
  */
 export const getPresetProviders = (): PlatformConfig[] => {
-  return MODEL_PLATFORMS.filter((p) => p.baseUrl);
+  return MODEL_PLATFORMS.filter((p) => p.base_url);
 };
 
 /**
@@ -277,12 +277,12 @@ export const isGeminiPlatform = (platform: PlatformType): boolean => {
 };
 
 /**
- * 检查是否为自定义选项（无预设 baseUrl）
- * Check if it's custom option (no preset baseUrl)
+ * 检查是否为自定义选项（无预设 base_url）
+ * Check if it's custom option (no preset base_url)
  */
 export const isCustomOption = (value: string): boolean => {
   const platform = getPlatformByValue(value);
-  return value === 'custom' && !platform?.baseUrl;
+  return value === 'custom' && !platform?.base_url;
 };
 
 // Re-export from common for renderer convenience

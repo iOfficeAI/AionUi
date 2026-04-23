@@ -8,8 +8,8 @@ interface AddMcpServerModalProps {
   visible: boolean;
   server?: IMcpServer;
   onCancel: () => void;
-  onSubmit: (server: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => void;
-  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => void;
+  onSubmit: (server: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => void;
+  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => void;
   importMode?: 'json' | 'oneclick';
 }
 

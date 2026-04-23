@@ -22,7 +22,7 @@ type UseWorkspaceMigrationParams = {
   messageApi: MessageApi;
   t: TFunction;
   isTemporaryWorkspace: boolean;
-  teamId?: string;
+  team_id?: string;
 };
 
 /**
@@ -35,7 +35,7 @@ export function useWorkspaceMigration({
   messageApi,
   t,
   isTemporaryWorkspace,
-  teamId,
+  team_id,
 }: UseWorkspaceMigrationParams) {
   const navigate = useNavigate();
   const { mutate: globalMutate } = useSWRConfig();
@@ -103,12 +103,12 @@ export function useWorkspaceMigration({
         });
 
         // Recursively collect all file paths
-        const filePaths = collectFilePaths(workspaceFiles);
+        const file_paths = collectFilePaths(workspaceFiles);
 
         // Copy all files to the target workspace
-        if (filePaths.length > 0) {
+        if (file_paths.length > 0) {
           const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
-            filePaths,
+            file_paths,
             workspace: targetWorkspace,
             sourceRoot: workspace,
           });
@@ -118,9 +118,9 @@ export function useWorkspaceMigration({
           }
         }
 
-        if (teamId) {
+        if (team_id) {
           // Team mode: update workspace in-place for team + all agent conversations
-          await ipcBridge.team.updateWorkspace.invoke({ teamId, workspace: targetWorkspace });
+          await ipcBridge.team.updateWorkspace.invoke({ team_id, workspace: targetWorkspace });
 
           // Close modal and reset state
           setShowMigrationModal(false);
@@ -129,7 +129,7 @@ export function useWorkspaceMigration({
           setMigrationLoading(false);
 
           // Revalidate SWR caches so TeamPage re-renders with the new workspace
-          await globalMutate(`team/${teamId}`);
+          await globalMutate(`team/${team_id}`);
           await globalMutate((key) => Array.isArray(key) && key[0] === 'team-conversation', undefined, {
             revalidate: true,
           });
@@ -148,12 +148,12 @@ export function useWorkspaceMigration({
             ...currentConversation,
             id: newId,
             name: currentConversation.name,
-            createdAt: Date.now(),
-            modifiedAt: Date.now(),
+            created_at: Date.now(),
+            modified_at: Date.now(),
             extra: {
               ...currentConversation.extra,
               workspace: targetWorkspace,
-              customWorkspace: true,
+              custom_workspace: true,
             },
           } as typeof currentConversation;
 
@@ -180,7 +180,7 @@ export function useWorkspaceMigration({
         setMigrationLoading(false);
       }
     },
-    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate, teamId, globalMutate]
+    [selectedTargetPath, conversation_id, workspace, t, messageApi, navigate, team_id, globalMutate]
   );
 
   const handleMigrationConfirm = useCallback(async () => {
@@ -201,7 +201,7 @@ export function useWorkspaceMigration({
     }
 
     // In team mode, skip cron check — team conversations don't own cron jobs
-    if (!teamId) {
+    if (!team_id) {
       if (cronLoading) {
         messageApi.info(t('common.loading'));
         return;
@@ -214,7 +214,17 @@ export function useWorkspaceMigration({
     }
 
     await executeMigration(false);
-  }, [jobs, cronLoading, isTemporaryWorkspace, selectedTargetPath, workspace, t, messageApi, executeMigration, teamId]);
+  }, [
+    jobs,
+    cronLoading,
+    isTemporaryWorkspace,
+    selectedTargetPath,
+    workspace,
+    t,
+    messageApi,
+    executeMigration,
+    team_id,
+  ]);
 
   const handleCloseMigrationModal = useCallback(() => {
     if (!migrationLoading) {

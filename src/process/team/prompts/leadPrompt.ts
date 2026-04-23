@@ -6,7 +6,7 @@ export type LeaderPromptParams = {
   teammates: TeamAgent[];
   availableAgentTypes?: Array<{ type: string; name: string }>;
   availableAssistants?: Array<{
-    customAgentId: string;
+    custom_agent_id: string;
     name: string;
     backend: string;
     description?: string;
@@ -31,9 +31,9 @@ export function buildLeaderPrompt(params: LeaderPromptParams): string {
       ? '(no teammates yet — propose the lineup to the user first, then use team_spawn_agent only after they confirm or explicitly ask you to create teammates immediately)'
       : teammates
           .map((t) => {
-            const formerly = renamedAgents?.get(t.slotId);
+            const formerly = renamedAgents?.get(t.slot_id);
             const formerlyNote = formerly ? ` [formerly: ${formerly}]` : '';
-            return `- ${t.agentName} (${t.agentType}, status: ${t.status})${formerlyNote}`;
+            return `- ${t.agent_name} (${t.agent_type}, status: ${t.status})${formerlyNote}`;
           })
           .join('\n');
 
@@ -53,7 +53,7 @@ ${availableAssistants
   .map((a) => {
     const desc = a.description ? ` — ${a.description}` : '';
     const skills = a.skills && a.skills.length > 0 ? `\n   skills: ${a.skills.join(', ')}` : '';
-    return `- \`${a.customAgentId}\` (${a.name}, backend: ${a.backend})${desc}${skills}`;
+    return `- \`${a.custom_agent_id}\` (${a.name}, backend: ${a.backend})${desc}${skills}`;
   })
   .join('\n')}
 

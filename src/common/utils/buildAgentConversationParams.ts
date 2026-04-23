@@ -10,25 +10,25 @@ import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
-  enabledSkills?: string[];
+  enabled_skills?: string[];
   excludeBuiltinSkills?: string[];
 };
 
 export type BuildAgentConversationInput = {
   backend: string;
   name: string;
-  agentName?: string;
-  presetAssistantId?: string;
+  agent_name?: string;
+  preset_assistant_id?: string;
   workspace: string;
   model: TProviderWithModel;
-  cliPath?: string;
-  customAgentId?: string;
-  customWorkspace?: boolean;
-  isPreset?: boolean;
+  cli_path?: string;
+  custom_agent_id?: string;
+  custom_workspace?: boolean;
+  is_preset?: boolean;
   presetAgentType?: string;
   presetResources?: BuildAgentConversationPresetResources;
-  sessionMode?: string;
-  currentModelId?: string;
+  session_mode?: string;
+  current_model_id?: string;
   extra?: Partial<ICreateConversationParams['extra']>;
 };
 
@@ -54,55 +54,55 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   const {
     backend,
     name,
-    agentName,
-    presetAssistantId,
+    agent_name,
+    preset_assistant_id,
     workspace,
     model,
-    cliPath,
-    customAgentId,
-    customWorkspace = true,
-    isPreset = false,
+    cli_path,
+    custom_agent_id,
+    custom_workspace = true,
+    is_preset = false,
     presetAgentType,
     presetResources,
-    sessionMode,
-    currentModelId,
+    session_mode,
+    current_model_id,
     extra: extraOverrides,
   } = input;
 
   const effectivePresetType = presetAgentType || backend;
-  const effectivePresetAssistantId = presetAssistantId || customAgentId;
-  const type = getConversationTypeForBackend(isPreset ? effectivePresetType : backend);
+  const effectivePresetAssistantId = preset_assistant_id || custom_agent_id;
+  const type = getConversationTypeForBackend(is_preset ? effectivePresetType : backend);
   const extra: ICreateConversationParams['extra'] = {
     workspace,
-    customWorkspace,
+    custom_workspace,
     ...extraOverrides,
   };
 
-  if (isPreset) {
-    extra.enabledSkills = presetResources?.enabledSkills;
+  if (is_preset) {
+    extra.enabled_skills = presetResources?.enabled_skills;
     extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;
-    extra.presetAssistantId = effectivePresetAssistantId;
+    extra.preset_assistant_id = effectivePresetAssistantId;
     if (type === 'gemini') {
-      extra.presetRules = presetResources?.rules;
+      extra.preset_rules = presetResources?.rules;
     } else {
-      extra.presetContext = presetResources?.rules;
+      extra.preset_context = presetResources?.rules;
       if (type === 'acp') {
         extra.backend = effectivePresetType as AcpBackend;
       }
     }
   } else if (type === 'remote') {
-    extra.remoteAgentId = customAgentId;
+    extra.remoteAgentId = custom_agent_id;
   } else if (type === 'acp' || type === 'openclaw-gateway') {
     extra.backend = backend as AcpBackendAll;
-    extra.agentName = agentName || name;
-    if (cliPath) extra.cliPath = cliPath;
-    if (customAgentId) {
-      extra.customAgentId = customAgentId;
+    extra.agent_name = agent_name || name;
+    if (cli_path) extra.cli_path = cli_path;
+    if (custom_agent_id) {
+      extra.custom_agent_id = custom_agent_id;
     }
   }
 
-  if (sessionMode) extra.sessionMode = sessionMode;
-  if (currentModelId) extra.currentModelId = currentModelId;
+  if (session_mode) extra.session_mode = session_mode;
+  if (current_model_id) extra.current_model_id = current_model_id;
 
   return {
     type,

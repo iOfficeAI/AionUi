@@ -13,7 +13,7 @@ export type TurnCompletionContext = {
   canSendMessage?: boolean;
   workspace?: string;
   backend?: string;
-  modelId?: string;
+  model_id?: string;
   modelLabel?: string;
   pendingConfirmations?: number;
 };
@@ -30,22 +30,22 @@ export class ConversationTurnCompletionService {
     return ConversationTurnCompletionService.instance;
   }
 
-  async notifyPotentialCompletion(conversationId: string, context: TurnCompletionContext = {}): Promise<void> {
-    if (!conversationId || this.pendingEmits.has(conversationId)) {
+  async notifyPotentialCompletion(conversation_id: string, context: TurnCompletionContext = {}): Promise<void> {
+    if (!conversation_id || this.pendingEmits.has(conversation_id)) {
       return;
     }
 
     const timeout = setTimeout(() => {
-      this.pendingEmits.delete(conversationId);
+      this.pendingEmits.delete(conversation_id);
     }, this.dedupeWindowMs);
     timeout.unref?.();
-    this.pendingEmits.set(conversationId, timeout);
+    this.pendingEmits.set(conversation_id, timeout);
 
     let conversation: TChatConversation | undefined;
     try {
       const db = await getDatabase();
       if (typeof db.getConversation === 'function') {
-        const result = db.getConversation(conversationId);
+        const result = db.getConversation(conversation_id);
         if (result.success && result.data) {
           conversation = result.data as TChatConversation;
         }
@@ -57,19 +57,19 @@ export class ConversationTurnCompletionService {
     const extra = ((conversation?.extra as Record<string, unknown>) ?? {}) as Record<string, unknown>;
     const workspace = context.workspace ?? (typeof extra.workspace === 'string' ? extra.workspace : '');
     const persistedModelId =
-      context.modelId ?? (typeof extra.currentModelId === 'string' ? extra.currentModelId : undefined);
+      context.model_id ?? (typeof extra.current_model_id === 'string' ? extra.current_model_id : undefined);
     const status = context.status ?? (conversation?.status as AgentStatus) ?? 'finished';
     const isProcessing =
-      typeof cronBusyGuard.isProcessing === 'function' ? cronBusyGuard.isProcessing(conversationId) : false;
+      typeof cronBusyGuard.isProcessing === 'function' ? cronBusyGuard.isProcessing(conversation_id) : false;
 
     const event: IConversationTurnCompletedEvent = {
-      sessionId: conversationId,
+      session_id: conversation_id,
       status,
       state: context.state ?? 'ai_waiting_input',
       detail: context.detail ?? '',
       canSendMessage: context.canSendMessage ?? true,
       runtime: {
-        hasTask: Boolean(extra.cronJobId),
+        hasTask: Boolean(extra.cron_job_id),
         taskStatus: status,
         isProcessing,
         pendingConfirmations: context.pendingConfirmations ?? 0,
@@ -85,12 +85,12 @@ export class ConversationTurnCompletionService {
           'acp',
         useModel: persistedModelId ?? (conversation as { model?: { useModel?: string } })?.model?.useModel ?? '',
       },
-      lastMessage: {
+      last_message: {
         id: undefined,
         type: undefined,
         content: undefined,
         status: undefined,
-        createdAt: Date.now(),
+        created_at: Date.now(),
       },
     };
 

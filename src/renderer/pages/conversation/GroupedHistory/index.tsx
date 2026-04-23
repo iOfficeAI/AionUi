@@ -223,7 +223,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         <div className='py-8px'>
           <div className='text-14px mb-16px text-t-secondary'>
             {exportTask?.mode === 'batch'
-              ? t('conversation.history.exportDialogBatchDescription', { count: exportTask.conversationIds.length })
+              ? t('conversation.history.exportDialogBatchDescription', { count: exportTask.conversation_ids.length })
               : t('conversation.history.exportDialogSingleDescription')}
           </div>
 
@@ -425,7 +425,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                         header={
                           <div className='flex items-center gap-8px text-14px min-w-0'>
                             <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
-                              {group.displayName}
+                              {group.display_name}
                             </span>
                           </div>
                         }

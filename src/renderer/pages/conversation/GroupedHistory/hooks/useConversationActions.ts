@@ -24,7 +24,7 @@ type UseConversationActionsParams = {
   selectedConversationIds: Set<string>;
   setSelectedConversationIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   toggleSelectedConversation: (conversation: TChatConversation) => void;
-  markAsRead: (conversationId: string) => void;
+  markAsRead: (conversation_id: string) => void;
 };
 
 export const useConversationActions = ({
@@ -63,12 +63,12 @@ export const useConversationActions = ({
       blockMobileInputFocus();
       blurActiveElement();
 
-      const customWorkspace = conversation.extra?.customWorkspace;
+      const custom_workspace = conversation.extra?.custom_workspace;
       const newWorkspace = conversation.extra?.workspace;
 
       markAsRead(conversation.id);
 
-      if (!customWorkspace) {
+      if (!custom_workspace) {
         closeAllTabs();
         void navigate(`/conversation/${conversation.id}`);
         if (onSessionClick) {
@@ -92,14 +92,14 @@ export const useConversationActions = ({
   );
 
   const removeConversation = useCallback(
-    async (conversationId: string) => {
-      const success = await ipcBridge.conversation.remove.invoke({ id: conversationId });
+    async (conversation_id: string) => {
+      const success = await ipcBridge.conversation.remove.invoke({ id: conversation_id });
       if (!success) {
         return false;
       }
 
-      emitter.emit('conversation.deleted', conversationId);
-      if (id === conversationId) {
+      emitter.emit('conversation.deleted', conversation_id);
+      if (id === conversation_id) {
         void navigate('/');
       }
       return true;
@@ -108,7 +108,7 @@ export const useConversationActions = ({
   );
 
   const handleDeleteClick = useCallback(
-    (conversationId: string) => {
+    (conversation_id: string) => {
       Modal.confirm({
         title: t('conversation.history.deleteTitle'),
         content: t('conversation.history.deleteConfirm'),
@@ -117,7 +117,7 @@ export const useConversationActions = ({
         okButtonProps: { status: 'warning' },
         onOk: async () => {
           try {
-            const success = await removeConversation(conversationId);
+            const success = await removeConversation(conversation_id);
             if (success) {
               emitter.emit('chat.history.refresh');
               Message.success(t('conversation.history.deleteSuccess'));
@@ -152,7 +152,7 @@ export const useConversationActions = ({
       onOk: async () => {
         const selectedIds = Array.from(selectedConversationIds);
         try {
-          const results = await Promise.all(selectedIds.map((conversationId) => removeConversation(conversationId)));
+          const results = await Promise.all(selectedIds.map((conversation_id) => removeConversation(conversation_id)));
           const successCount = results.filter(Boolean).length;
           emitter.emit('chat.history.refresh');
           if (successCount > 0) {
@@ -225,7 +225,7 @@ export const useConversationActions = ({
           updates: {
             extra: {
               pinned: !pinned,
-              pinnedAt: pinned ? undefined : Date.now(),
+              pinned_at: pinned ? undefined : Date.now(),
             } as Partial<TChatConversation['extra']>,
           } as Partial<TChatConversation>,
           mergeExtra: true,
@@ -244,8 +244,8 @@ export const useConversationActions = ({
     [t]
   );
 
-  const handleMenuVisibleChange = useCallback((conversationId: string, visible: boolean) => {
-    setDropdownVisibleId(visible ? conversationId : null);
+  const handleMenuVisibleChange = useCallback((conversation_id: string, visible: boolean) => {
+    setDropdownVisibleId(visible ? conversation_id : null);
   }, []);
 
   const handleOpenMenu = useCallback((conversation: TChatConversation) => {

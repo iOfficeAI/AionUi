@@ -78,13 +78,13 @@ function getExtensionFromMimeType(mimeType: string): string {
 async function saveInlineImage(mimeType: string, base64Data: string, workingDir: string): Promise<string> {
   const ext = getExtensionFromMimeType(mimeType);
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const fileName = `gemini-img-${uniqueSuffix}${ext}`;
-  const filePath = path.join(workingDir, fileName);
+  const file_name = `gemini-img-${uniqueSuffix}${ext}`;
+  const file_path = path.join(workingDir, file_name);
 
   const imageBuffer = Buffer.from(base64Data, 'base64');
-  await fs.promises.writeFile(filePath, imageBuffer);
+  await fs.promises.writeFile(file_path, imageBuffer);
 
-  return filePath;
+  return file_path;
 }
 
 /**
@@ -346,7 +346,7 @@ export const processGeminiStreamEvents = async (
  * 某些模型可能返回不同的参数名称，需要映射到工具期望的标准名称
  * Normalize tool parameter names - some models may return different param names
  */
-const normalizeToolParams = (toolName: string, args: Record<string, unknown>): Record<string, unknown> => {
+const normalizeToolParams = (tool_name: string, args: Record<string, unknown>): Record<string, unknown> => {
   const normalized = { ...args };
 
   // Strip leading "@" for file references (users often write @file.ext)
@@ -360,7 +360,7 @@ const normalizeToolParams = (toolName: string, args: Record<string, unknown>): R
   // 文件操作工具：将 path 映射到 file_path
   // File operation tools: map 'path' to 'file_path'
   const fileTools = ['ReadFileTool', 'WriteFileTool', 'EditTool', 'read_file', 'write_file', 'edit'];
-  if (fileTools.includes(toolName) && 'path' in normalized && !('file_path' in normalized)) {
+  if (fileTools.includes(tool_name) && 'path' in normalized && !('file_path' in normalized)) {
     normalized.file_path = normalized.path;
     delete normalized.path;
   }
@@ -368,7 +368,7 @@ const normalizeToolParams = (toolName: string, args: Record<string, unknown>): R
   // 目录操作相关工具：兼容旧版本模型输出的 path/directory 字段
   // Directory-related tools: normalize legacy keys (path/directory) to dir_path
   const dirPathTools = ['list_directory', 'glob', 'search_file_content', 'run_shell_command'];
-  if (dirPathTools.includes(toolName)) {
+  if (dirPathTools.includes(tool_name)) {
     const dirLikeKeys = ['dir_path', 'path', 'directory_path', 'directory', 'dir', 'folder_path', 'folder'];
     for (const key of dirLikeKeys) {
       if (key in normalized && typeof normalized[key] === 'string' && normalized[key]) {
@@ -384,7 +384,7 @@ const normalizeToolParams = (toolName: string, args: Record<string, unknown>): R
     // 新版 core 要求 list_directory 必填 dir_path，这里缺省时默认当前目录
     // aioncli-core now requires dir_path; default to workspace root when missing
     if (
-      toolName === 'list_directory' &&
+      tool_name === 'list_directory' &&
       (typeof normalized.dir_path !== 'string' || normalized.dir_path.length === 0)
     ) {
       normalized.dir_path = '.';

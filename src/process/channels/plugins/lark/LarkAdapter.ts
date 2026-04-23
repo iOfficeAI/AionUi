@@ -90,16 +90,16 @@ export function toUnifiedIncomingMessage(
 
     if (!operator) return null;
 
-    const userId = operator.user_id || operator.open_id || '';
-    const chatId = cardEvent.event?.open_chat_id || userId;
+    const user_id = operator.user_id || operator.open_id || '';
+    const chatId = cardEvent.event?.open_chat_id || user_id;
 
     return {
       id: cardEvent.event?.token || Date.now().toString(),
       platform: 'lark',
       chatId,
       user: {
-        id: userId,
-        displayName: `User ${userId.slice(-6)}`,
+        id: user_id,
+        display_name: `User ${user_id.slice(-6)}`,
       },
       content: {
         type: 'action',
@@ -118,8 +118,8 @@ export function toUnifiedIncomingMessage(
 
   if (!message || !sender) return null;
 
-  const userId = sender.sender_id?.user_id || sender.sender_id?.open_id || '';
-  if (!userId) return null;
+  const user_id = sender.sender_id?.user_id || sender.sender_id?.open_id || '';
+  if (!user_id) return null;
 
   const user = toUnifiedUser(sender);
   if (!user) return null;
@@ -129,7 +129,7 @@ export function toUnifiedIncomingMessage(
   return {
     id: message.message_id || Date.now().toString(),
     platform: 'lark',
-    chatId: message.chat_id || userId,
+    chatId: message.chat_id || user_id,
     user,
     content,
     timestamp: message.create_time ? parseInt(message.create_time, 10) : Date.now(),
@@ -143,12 +143,12 @@ export function toUnifiedIncomingMessage(
 export function toUnifiedUser(sender: LarkMessageEvent['event']['sender']): IUnifiedUser | null {
   if (!sender?.sender_id) return null;
 
-  const userId = sender.sender_id.user_id || sender.sender_id.open_id || '';
-  if (!userId) return null;
+  const user_id = sender.sender_id.user_id || sender.sender_id.open_id || '';
+  if (!user_id) return null;
 
   return {
-    id: userId,
-    displayName: `User ${userId.slice(-6)}`, // Lark doesn't provide name in message event
+    id: user_id,
+    display_name: `User ${user_id.slice(-6)}`, // Lark doesn't provide name in message event
   };
 }
 
@@ -196,7 +196,7 @@ function extractMessageContent(message: LarkMessageEvent['event']['message']): I
           {
             type: 'document',
             fileId: typeof content === 'object' ? (content as any).file_key || '' : '',
-            fileName: typeof content === 'object' ? (content as any).file_name || '' : '',
+            file_name: typeof content === 'object' ? (content as any).file_name || '' : '',
           },
         ],
       };

@@ -244,7 +244,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             size='large'
             value={name}
             onChange={handleNameChange}
-            placeholder={t('settings.agentNamePlaceholder')}
+            placeholder={t('settings.agent_namePlaceholder')}
           />
         </div>
       </div>

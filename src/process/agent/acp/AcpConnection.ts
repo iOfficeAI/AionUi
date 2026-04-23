@@ -95,14 +95,14 @@ export class AcpConnection {
   private child: ChildProcess | null = null;
   private pendingRequests = new Map<number, PendingRequest<unknown>>();
   private nextRequestId = 0;
-  private sessionId: string | null = null;
+  private session_id: string | null = null;
   private isInitialized = false;
   private backend: AcpBackend | null = null;
   private initializeResult: AcpInitializeResult | null = null;
   private workingDir: string = process.cwd();
 
   // Cached session capabilities from session/new response
-  private configOptions: AcpSessionConfigOption[] | null = null;
+  private config_options: AcpSessionConfigOption[] | null = null;
   private models: AcpSessionModels | null = null;
   private modes: AcpSessionModes | null = null;
 
@@ -115,11 +115,11 @@ export class AcpConnection {
 
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
-    optionId: string;
-  }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
+    option_id: string;
+  }> = () => Promise.resolve({ option_id: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onPromptUsage: (usage: AcpPromptResponseUsage) => void = () => {}; // Handler for PromptResponse.usage (per-turn token data)
-  public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void =
+  public onFileOperation: (operation: { method: string; path: string; content?: string; session_id: string }) => void =
     () => {};
 
   /**
@@ -142,7 +142,7 @@ export class AcpConnection {
   /**
    * Kill the current child process (if any) and clear process-related state.
    * Used by both disconnect() and retry paths. Does NOT reset session-level
-   * state (sessionId, backend, etc.) — that is disconnect()'s responsibility.
+   * state (session_id, backend, etc.) — that is disconnect()'s responsibility.
    */
   private async terminateChild(): Promise<void> {
     if (!this.child) {
@@ -168,18 +168,18 @@ export class AcpConnection {
   // 通用的后端连接方法
   private async connectGenericBackend(
     backend: Exclude<AcpBackend, 'claude' | 'codebuddy' | 'codex'>,
-    cliPath: string,
+    cli_path: string,
     workingDir: string,
     acpArgs?: string[],
     customEnv?: Record<string, string>
   ): Promise<void> {
-    const result = await spawnGenericBackend(backend, cliPath, workingDir, acpArgs, customEnv);
+    const result = await spawnGenericBackend(backend, cli_path, workingDir, acpArgs, customEnv);
     await this.spawnAndSetup(result, backend);
   }
 
   async connect(
     backend: AcpBackend,
-    cliPath?: string,
+    cli_path?: string,
     workingDir: string = process.cwd(),
     acpArgs?: string[],
     customEnv?: Record<string, string>
@@ -187,14 +187,14 @@ export class AcpConnection {
     const connectStart = Date.now();
     console.log(`[ACP-PERF] connect: start backend=${backend}`);
 
-    await this.doConnect(backend, cliPath, workingDir, acpArgs, customEnv);
+    await this.doConnect(backend, cli_path, workingDir, acpArgs, customEnv);
 
     console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
   private async doConnect(
     backend: AcpBackend,
-    cliPath?: string,
+    cli_path?: string,
     workingDir: string = process.cwd(),
     acpArgs?: string[],
     customEnv?: Record<string, string>
@@ -245,17 +245,17 @@ export class AcpConnection {
       case 'kiro':
       case 'hermes':
       case 'snow':
-        if (!cliPath) {
+        if (!cli_path) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
-        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs, customEnv);
+        await this.connectGenericBackend(backend, cli_path, workingDir, acpArgs, customEnv);
         break;
 
       case 'custom':
-        if (!cliPath) {
+        if (!cli_path) {
           throw new Error('Custom agent CLI path/command is required');
         }
-        await this.connectGenericBackend('custom', cliPath, workingDir, acpArgs, customEnv);
+        await this.connectGenericBackend('custom', cli_path, workingDir, acpArgs, customEnv);
         break;
 
       default:
@@ -426,13 +426,13 @@ export class AcpConnection {
     this.pendingRequests.clear();
 
     // 2. Clear connection state
-    this.sessionId = null;
+    this.session_id = null;
     this.isInitialized = false;
     this.isSetupComplete = false;
     this.isDetached = false;
     this.backend = null;
     this.initializeResult = null;
-    this.configOptions = null;
+    this.config_options = null;
     this.models = null;
     this.modes = null;
     this.child = null;
@@ -602,13 +602,13 @@ export class AcpConnection {
           // Check for end_turn message and extract usage data
           if (message.result && typeof message.result === 'object') {
             const promptResult = message.result as Record<string, unknown>;
-            if (promptResult.stopReason === 'end_turn') {
+            if (promptResult.stop_reason === 'end_turn') {
               this.onEndTurn();
             }
             // Extract PromptResponse.usage (per-turn token data from codex-acp / PR #167)
             if (promptResult.usage && typeof promptResult.usage === 'object') {
               const usage = promptResult.usage as AcpPromptResponseUsage;
-              if (typeof usage.totalTokens === 'number') {
+              if (typeof usage.total_tokens === 'number') {
                 this.onPromptUsage(usage);
               }
             }
@@ -642,14 +642,14 @@ export class AcpConnection {
           }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
-          // Update cached configOptions when config_option_update arrives
+          // Update cached config_options when config_option_update arrives
           if (
             message.params?.update &&
             (message.params.update as Record<string, unknown>).sessionUpdate === 'config_option_update'
           ) {
-            const updatePayload = message.params.update as { configOptions?: AcpSessionConfigOption[] };
-            if (Array.isArray(updatePayload.configOptions)) {
-              this.configOptions = updatePayload.configOptions;
+            const updatePayload = message.params.update as { config_options?: AcpSessionConfigOption[] };
+            if (Array.isArray(updatePayload.config_options)) {
+              this.config_options = updatePayload.config_options;
             }
           }
           this.onSessionUpdate(message.params);
@@ -688,7 +688,7 @@ export class AcpConnection {
   }
 
   private async handlePermissionRequest(params: AcpPermissionRequest): Promise<{
-    outcome: { outcome: string; optionId: string };
+    outcome: { outcome: string; option_id: string };
   }> {
     // 暂停所有 session/prompt 请求的超时计时器
     this.pauseSessionPromptTimeouts();
@@ -696,13 +696,13 @@ export class AcpConnection {
       const response = await this.onPermissionRequest(params);
 
       // 根据用户的选择决定outcome
-      const optionId = response.optionId;
-      const outcome = optionId.includes('reject') ? 'rejected' : 'selected';
+      const option_id = response.option_id;
+      const outcome = option_id.includes('reject') ? 'rejected' : 'selected';
 
       return {
         outcome: {
           outcome,
-          optionId: optionId,
+          option_id: option_id,
         },
       };
     } catch (error) {
@@ -711,7 +711,7 @@ export class AcpConnection {
       return {
         outcome: {
           outcome: 'rejected',
-          optionId: 'reject_once', // 默认拒绝
+          option_id: 'reject_once', // 默认拒绝
         },
       };
     } finally {
@@ -766,7 +766,7 @@ export class AcpConnection {
   async newSession(
     cwd: string = process.cwd(),
     options?: { resumeSessionId?: string; forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
-  ): Promise<AcpResponse & { sessionId?: string }> {
+  ): Promise<AcpResponse & { session_id?: string }> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
@@ -786,7 +786,7 @@ export class AcpConnection {
         }
       : undefined;
 
-    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
+    const response = await this.sendRequest<AcpResponse & { session_id?: string }>('session/new', {
       cwd: normalizedCwd,
       mcpServers: options?.mcpServers ?? [],
       // Claude-style ACP uses _meta for resume
@@ -796,7 +796,7 @@ export class AcpConnection {
       ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
-    this.sessionId = response.sessionId;
+    this.session_id = response.session_id;
 
     this.parseSessionCapabilities(response);
 
@@ -822,10 +822,10 @@ export class AcpConnection {
   }
 
   async resumeSession(
-    sessionId: string,
+    session_id: string,
     cwd: string = process.cwd(),
     options?: { forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
-  ): Promise<AcpResponse & { sessionId?: string }> {
+  ): Promise<AcpResponse & { session_id?: string }> {
     const caps = this.initializeResult?.capabilities;
     const useClaudeMetaResume = this.backend === 'claude' || !!caps?._meta?.claudeCode;
     const supportsLoadSession = caps?.loadSession === true;
@@ -833,7 +833,7 @@ export class AcpConnection {
 
     if (shouldTryLoadSession) {
       try {
-        return await this.loadSession(sessionId, cwd, options?.mcpServers);
+        return await this.loadSession(session_id, cwd, options?.mcpServers);
       } catch (loadError) {
         const loadErrorMsg = loadError instanceof Error ? loadError.message : String(loadError);
         console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadErrorMsg);
@@ -841,7 +841,7 @@ export class AcpConnection {
     }
 
     return await this.newSession(cwd, {
-      resumeSessionId: sessionId,
+      resumeSessionId: session_id,
       forkSession: options?.forkSession,
       mcpServers: options?.mcpServers,
     });
@@ -852,24 +852,24 @@ export class AcpConnection {
    * Codex ACP bridge implements `load_session()` which internally calls
    * `resume_thread_from_rollout` to restore full conversation history from disk.
    *
-   * @param sessionId - The session ID to load/resume
+   * @param session_id - The session ID to load/resume
    * @param cwd - Working directory for the session
    */
   async loadSession(
-    sessionId: string,
+    session_id: string,
     cwd: string = process.cwd(),
     mcpServers?: AcpSessionMcpServer[]
-  ): Promise<AcpResponse & { sessionId?: string }> {
+  ): Promise<AcpResponse & { session_id?: string }> {
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
-    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/load', {
-      sessionId,
+    const response = await this.sendRequest<AcpResponse & { session_id?: string }>('session/load', {
+      session_id,
       cwd: normalizedCwd,
       mcpServers: (mcpServers ?? []) as unknown[],
     });
 
-    // session/load returns modes/models/configOptions but not sessionId — keep the one we sent
-    this.sessionId = response.sessionId || sessionId;
+    // session/load returns modes/models/config_options but not session_id — keep the one we sent
+    this.session_id = response.session_id || session_id;
 
     this.parseSessionCapabilities(response);
 
@@ -877,17 +877,17 @@ export class AcpConnection {
   }
 
   /**
-   * Parse configOptions, models, and modes from a session response (session/new or session/load).
+   * Parse config_options, models, and modes from a session response (session/new or session/load).
    */
   private parseSessionCapabilities(response: unknown): void {
     const result = response as Record<string, unknown>;
-    if (Array.isArray(result.configOptions)) {
-      this.configOptions = result.configOptions as AcpSessionConfigOption[];
+    if (Array.isArray(result.config_options)) {
+      this.config_options = result.config_options as AcpSessionConfigOption[];
     }
 
     // Parse top-level modes (used by qoder, opencode, etc.)
     const modesField = result.modes as AcpSessionModes | undefined;
-    if (modesField?.availableModes && modesField.availableModes.length > 0) {
+    if (modesField?.available_modes && modesField.available_modes.length > 0) {
       this.modes = modesField;
     }
 
@@ -931,7 +931,7 @@ export class AcpConnection {
   }
 
   async sendPrompt(prompt: string): Promise<AcpResponse> {
-    if (!this.sessionId) {
+    if (!this.session_id) {
       throw new Error('No active ACP session');
     }
 
@@ -940,7 +940,7 @@ export class AcpConnection {
     console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
 
     return await this.sendRequest('session/prompt', {
-      sessionId: this.sessionId,
+      session_id: this.session_id,
       prompt: [{ type: 'text', text: prompt }],
     });
   }
@@ -951,13 +951,13 @@ export class AcpConnection {
    * Also clears all pending session/prompt requests locally.
    */
   cancelPrompt(): void {
-    if (!this.sessionId) return;
+    if (!this.session_id) return;
 
     // Send ACP session/cancel notification (no response expected)
     this.sendMessage({
       jsonrpc: JSONRPC_VERSION,
       method: 'session/cancel',
-      params: { sessionId: this.sessionId },
+      params: { session_id: this.session_id },
     });
 
     // Clear all pending session/prompt requests
@@ -972,72 +972,72 @@ export class AcpConnection {
     }
   }
 
-  async setSessionMode(modeId: string): Promise<AcpResponse> {
-    if (!this.sessionId) {
+  async setSessionMode(mode_id: string): Promise<AcpResponse> {
+    if (!this.session_id) {
       throw new Error('No active ACP session');
     }
 
     const response = await this.sendRequest<AcpResponse>('session/set_mode', {
-      sessionId: this.sessionId,
-      modeId,
+      session_id: this.session_id,
+      mode_id,
     });
 
     // Optimistically update the cached modes state
     if (this.modes) {
-      this.modes = { ...this.modes, currentModeId: modeId };
+      this.modes = { ...this.modes, current_mode_id: mode_id };
     }
 
     return response;
   }
 
-  async setModel(modelId: string): Promise<AcpResponse> {
-    if (!this.sessionId) {
+  async setModel(model_id: string): Promise<AcpResponse> {
+    if (!this.session_id) {
       throw new Error('No active ACP session');
     }
 
     const response = await this.sendRequest<AcpResponse>('session/set_model', {
-      sessionId: this.sessionId,
-      modelId,
+      session_id: this.session_id,
+      model_id,
     });
 
     // Update local models cache with the new model ID
     if (this.models) {
-      this.models = { ...this.models, currentModelId: modelId };
+      this.models = { ...this.models, current_model_id: model_id };
     }
 
-    // Also update configOptions cache so getModelInfo() returns consistent data.
+    // Also update config_options cache so getModelInfo() returns consistent data.
     // The unstable_setSessionModel handler in claude-agent-acp will also send a
     // config_option_update notification, but we update eagerly for immediate reads.
-    if (this.configOptions) {
-      this.configOptions = this.configOptions.map((opt) =>
-        opt.category === 'model' ? { ...opt, currentValue: modelId, selectedValue: modelId } : opt
+    if (this.config_options) {
+      this.config_options = this.config_options.map((opt) =>
+        opt.category === 'model' ? { ...opt, current_value: model_id, selected_value: model_id } : opt
       );
     }
 
     return response;
   }
 
-  async setConfigOption(configId: string, value: string): Promise<AcpResponse> {
-    if (!this.sessionId) {
+  async setConfigOption(config_id: string, value: string): Promise<AcpResponse> {
+    if (!this.session_id) {
       throw new Error('No active ACP session');
     }
 
     const response = await this.sendRequest<AcpResponse>(ACP_METHODS.SET_CONFIG_OPTION, {
-      sessionId: this.sessionId,
-      configId,
+      session_id: this.session_id,
+      config_id,
       value,
     });
 
-    // The response may contain the updated configOptions
+    // The response may contain the updated config_options
     const result = response as unknown as Record<string, unknown>;
-    if (Array.isArray(result.configOptions)) {
-      this.configOptions = result.configOptions as AcpSessionConfigOption[];
-    } else if (this.configOptions) {
-      // Optimistically update the cached currentValue so getModelInfo() reflects
-      // the switch immediately, even if the agent responds without configOptions.
+    if (Array.isArray(result.config_options)) {
+      this.config_options = result.config_options as AcpSessionConfigOption[];
+    } else if (this.config_options) {
+      // Optimistically update the cached current_value so getModelInfo() reflects
+      // the switch immediately, even if the agent responds without config_options.
       // A subsequent config_option_update notification will overwrite this if needed.
-      this.configOptions = this.configOptions.map((opt) =>
-        opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt
+      this.config_options = this.config_options.map((opt) =>
+        opt.id === config_id ? { ...opt, current_value: value, selected_value: value } : opt
       );
     }
 
@@ -1045,7 +1045,7 @@ export class AcpConnection {
   }
 
   getConfigOptions(): AcpSessionConfigOption[] | null {
-    return this.configOptions;
+    return this.config_options;
   }
 
   getModels(): AcpSessionModels | null {
@@ -1061,14 +1061,14 @@ export class AcpConnection {
     // session/close is an ACP RFD — sending it to unsupported agents wastes
     // time and may trigger "method not found" errors in their logs.
     if (
-      this.sessionId &&
+      this.session_id &&
       this.child &&
       !this.child.killed &&
       this.initializeResult?.capabilities.sessionCapabilities.close
     ) {
       try {
         await Promise.race([
-          this.sendRequest('session/close', { sessionId: this.sessionId }),
+          this.sendRequest('session/close', { session_id: this.session_id }),
           new Promise((_, reject) => setTimeout(() => reject(new Error('session/close timeout')), 2000)),
         ]);
       } catch {
@@ -1088,22 +1088,22 @@ export class AcpConnection {
 
     // Reset session-level state
     this.pendingRequests.clear();
-    this.sessionId = null;
+    this.session_id = null;
     this.isInitialized = false;
     this.backend = null;
     this.initializeResult = null;
-    this.configOptions = null;
+    this.config_options = null;
     this.models = null;
     this.modes = null;
   }
 
-  get isConnected(): boolean {
+  get is_connected(): boolean {
     const connected = this.child !== null && !this.child.killed;
     return connected;
   }
 
-  get hasActiveSession(): boolean {
-    const hasSession = this.sessionId !== null;
+  get has_active_session(): boolean {
+    const hasSession = this.session_id !== null;
     return hasSession;
   }
 
@@ -1112,7 +1112,7 @@ export class AcpConnection {
    * 获取当前 session ID（用于会话恢复支持）。
    */
   get currentSessionId(): string | null {
-    return this.sessionId;
+    return this.session_id;
   }
 
   get currentBackend(): AcpBackend | null {
@@ -1130,25 +1130,25 @@ export class AcpConnection {
 
   // Normalize read operations to the conversation workspace before touching the filesystem
   // 访问文件前先把读取操作映射到会话工作区
-  private async handleReadOperation(params: { path: string; sessionId?: string }): Promise<{ content: string }> {
+  private async handleReadOperation(params: { path: string; session_id?: string }): Promise<{ content: string }> {
     const resolvedReadPath = this.resolveWorkspacePath(params.path);
     this.onFileOperation({
       method: 'fs/read_text_file',
       path: resolvedReadPath,
-      sessionId: params.sessionId || '',
+      session_id: params.session_id || '',
     });
     return await readTextFile(resolvedReadPath);
   }
 
   // Normalize write operations and emit UI events so the workspace view stays in sync
   // 将写入操作归一化并通知 UI，保持工作区视图同步
-  private async handleWriteOperation(params: { path: string; content: string; sessionId?: string }): Promise<null> {
+  private async handleWriteOperation(params: { path: string; content: string; session_id?: string }): Promise<null> {
     const resolvedWritePath = this.resolveWorkspacePath(params.path);
     this.onFileOperation({
       method: 'fs/write_text_file',
       path: resolvedWritePath,
       content: params.content,
-      sessionId: params.sessionId || '',
+      session_id: params.session_id || '',
     });
     return await writeTextFile(resolvedWritePath, params.content);
   }

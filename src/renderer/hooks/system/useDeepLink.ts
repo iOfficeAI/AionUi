@@ -17,8 +17,8 @@ export type DeepLinkPayload = {
 };
 
 export type DeepLinkAddProviderDetail = {
-  baseUrl?: string;
-  apiKey?: string;
+  base_url?: string;
+  api_key?: string;
   name?: string;
   platform?: string;
 };
@@ -57,8 +57,8 @@ export const useDeepLink = () => {
       // Support both formats: "add-provider" and "provider/add" (one-api style)
       if (payload.action === 'add-provider' || payload.action === 'provider/add') {
         pendingDeepLinkData = {
-          baseUrl: payload.params.baseUrl || payload.params.base_url,
-          apiKey: payload.params.apiKey || payload.params.api_key || payload.params.key,
+          base_url: payload.params.base_url,
+          api_key: payload.params.api_key || payload.params.key,
           name: payload.params.name,
           platform: payload.params.platform,
         };

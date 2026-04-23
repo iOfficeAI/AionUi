@@ -38,12 +38,12 @@ export interface UpdateCheckRequest {
 
 export interface UpdateDownloadRequest {
   url: string;
-  fileName?: string;
+  file_name?: string;
 }
 
 export interface UpdateDownloadResult {
   downloadId: string;
-  filePath: string;
+  file_path: string;
 }
 
 export type UpdateDownloadStatus = 'starting' | 'downloading' | 'completed' | 'error' | 'cancelled';
@@ -55,7 +55,7 @@ export interface UpdateDownloadProgressEvent {
   totalBytes?: number;
   percent?: number;
   bytesPerSecond?: number;
-  filePath?: string;
+  file_path?: string;
   error?: string;
 }
 

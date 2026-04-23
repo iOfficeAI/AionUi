@@ -307,7 +307,7 @@ export function createAgentSelectionCard(
       content: currentAgent === agent.type ? `✓ ${agent.emoji} ${agent.name}` : `${agent.emoji} ${agent.name}`,
     },
     type: currentAgent === agent.type ? 'primary' : 'default',
-    value: { action: 'agent.select', agentType: agent.type },
+    value: { action: 'agent.select', agent_type: agent.type },
   }));
 
   // Split buttons into rows of 2
@@ -343,8 +343,8 @@ export function createAgentSelectionCard(
  */
 export function createSessionStatusCard(session?: {
   id: string;
-  agentType: ChannelAgentType;
-  createdAt: number;
+  agent_type: ChannelAgentType;
+  created_at: number;
   lastActivity: number;
 }): LarkCard {
   if (!session) {
@@ -374,7 +374,7 @@ export function createSessionStatusCard(session?: {
     };
   }
 
-  const duration = Math.floor((Date.now() - session.createdAt) / 1000 / 60);
+  const duration = Math.floor((Date.now() - session.created_at) / 1000 / 60);
   const lastActivity = Math.floor((Date.now() - session.lastActivity) / 1000);
 
   return {
@@ -387,7 +387,7 @@ export function createSessionStatusCard(session?: {
       {
         tag: 'markdown',
         content: [
-          `🤖 **Agent:** ${session.agentType}`,
+          `🤖 **Agent:** ${session.agent_type}`,
           `⏱ **Duration:** ${duration} min`,
           `📝 **Last activity:** ${lastActivity} sec ago`,
           `🔖 **Session ID:** \`${session.id.slice(-8)}\``,
@@ -677,11 +677,11 @@ export function createErrorRecoveryCard(errorMessage?: string): LarkCard {
 
 /**
  * Create tool confirmation card
- * @param callId - The tool call ID for tracking
+ * @param call_id - The tool call ID for tracking
  * @param options - Array of { label, value } options
  */
 export function createToolConfirmationCard(
-  callId: string,
+  call_id: string,
   title: string,
   description: string,
   options: Array<{ label: string; value: string }>
@@ -690,7 +690,7 @@ export function createToolConfirmationCard(
     tag: 'button',
     text: { tag: 'plain_text', content: opt.label },
     type: 'default',
-    value: { action: 'system.confirm', callId: callId, value: opt.value },
+    value: { action: 'system.confirm', call_id: call_id, value: opt.value },
   }));
 
   // Split buttons into rows of 2

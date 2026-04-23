@@ -56,7 +56,7 @@ const EXTENSION_MAP: Record<string, FileTypeInfo> = {
  * 根据文件名推断内容类型及是否可编辑
  * Determine preview content type and editability from file name
  */
-export const getFileTypeInfo = (fileName: string): FileTypeInfo => {
-  const ext = fileName.toLowerCase().split('.').pop() || '';
+export const getFileTypeInfo = (file_name: string): FileTypeInfo => {
+  const ext = file_name.toLowerCase().split('.').pop() || '';
   return EXTENSION_MAP[ext] || { contentType: 'code', editable: true, language: ext || 'text' };
 };

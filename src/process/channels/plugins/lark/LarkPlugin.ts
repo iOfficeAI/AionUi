@@ -27,7 +27,7 @@ export class LarkPlugin extends BasePlugin {
   private wsClient: lark.WSClient | null = null;
   private eventDispatcher: lark.EventDispatcher | null = null;
   private botInfo: { appId: string; name?: string } | null = null;
-  private isConnected: boolean = false;
+  private is_connected: boolean = false;
 
   // Token management
   private accessToken: string | null = null;
@@ -115,7 +115,7 @@ export class LarkPlugin extends BasePlugin {
           console.error(`[LarkPlugin] WebSocket start() error:`, err);
         });
 
-      this.isConnected = true;
+      this.is_connected = true;
 
       // Start event cache cleanup timer
       this.startEventCleanup();
@@ -146,7 +146,7 @@ export class LarkPlugin extends BasePlugin {
     this.tokenExpiresAt = 0;
     this.activeUsers.clear();
     this.processedEvents.clear();
-    this.isConnected = false;
+    this.is_connected = false;
 
     console.log('[LarkPlugin] Stopped and cleaned up');
   }
@@ -165,7 +165,7 @@ export class LarkPlugin extends BasePlugin {
     if (!this.botInfo) return null;
     return {
       id: this.botInfo.appId,
-      displayName: this.botInfo.name || 'Aion Assistant',
+      display_name: this.botInfo.name || 'Aion Assistant',
     };
   }
 
@@ -372,11 +372,11 @@ export class LarkPlugin extends BasePlugin {
         this.markEventProcessed(eventId);
       }
 
-      const userId = sender.sender_id?.user_id || sender.sender_id?.open_id;
-      if (!userId) return;
+      const user_id = sender.sender_id?.user_id || sender.sender_id?.open_id;
+      if (!user_id) return;
 
       // Track user
-      this.activeUsers.add(userId);
+      this.activeUsers.add(user_id);
 
       // Convert to unified message
       const unifiedMessage = toUnifiedIncomingMessage(event);
@@ -443,17 +443,17 @@ export class LarkPlugin extends BasePlugin {
       }
       this.markEventProcessed(eventId);
 
-      const userId = operator.operator_id?.user_id || operator.operator_id?.open_id;
-      if (!userId) {
+      const user_id = operator.operator_id?.user_id || operator.operator_id?.open_id;
+      if (!user_id) {
         console.warn('[LarkPlugin] No user ID in bot menu event');
         return;
       }
 
       // Track user
-      this.activeUsers.add(userId);
+      this.activeUsers.add(user_id);
 
       // Get chat_id from event (for sending response)
-      const chatId = event?.event?.chat_id || userId;
+      const chatId = event?.event?.chat_id || user_id;
 
       // Map event_key to action
       const buttonAction = this.getMenuButtonAction(eventKey);
@@ -468,8 +468,8 @@ export class LarkPlugin extends BasePlugin {
         platform: 'lark' as const,
         chatId,
         user: {
-          id: userId,
-          displayName: `User ${userId.slice(-6)}`,
+          id: user_id,
+          display_name: `User ${user_id.slice(-6)}`,
         },
         content: {
           type: 'action' as const,
@@ -515,11 +515,11 @@ export class LarkPlugin extends BasePlugin {
         this.markEventProcessed(eventToken);
       }
 
-      const userId = operator.user_id || operator.open_id;
-      if (!userId) return;
+      const user_id = operator.user_id || operator.open_id;
+      if (!user_id) return;
 
       // Track user
-      this.activeUsers.add(userId);
+      this.activeUsers.add(user_id);
 
       // Extract action info
       const actionInfo = extractCardAction(action);

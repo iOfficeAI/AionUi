@@ -111,11 +111,11 @@ export class TeamGuideMcpServer {
           return;
         }
 
-        const toolName = request.tool ?? '';
+        const tool_name = request.tool ?? '';
         const args = request.args ?? {};
 
         try {
-          const result = await this.handleToolCall(toolName, args, request.backend, request.conversation_id);
+          const result = await this.handleToolCall(tool_name, args, request.backend, request.conversation_id);
           writeTcpMessage(socket, { result });
         } catch (err) {
           const errMsg = err instanceof Error ? err.message : String(err);
@@ -147,18 +147,18 @@ export class TeamGuideMcpServer {
   // ── Tool dispatch ─────────────────────────────────────────────────────────
 
   private async handleToolCall(
-    toolName: string,
+    tool_name: string,
     args: Record<string, unknown>,
     backend?: string,
     callerConversationId?: string
   ): Promise<string> {
-    switch (toolName) {
+    switch (tool_name) {
       case 'aion_create_team':
         return this.handleCreateTeam(args, backend, callerConversationId);
       case 'aion_list_models':
         return handleListModels(args);
       default:
-        throw new Error(`Unknown tool: ${toolName}`);
+        throw new Error(`Unknown tool: ${tool_name}`);
     }
   }
 
@@ -189,25 +189,25 @@ export class TeamGuideMcpServer {
     // Use system-injected backend (from AION_MCP_BACKEND env var) as the authoritative agent type.
     // Falls back to 'claude' only when the backend is unknown or not in the whitelist.
     const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-    const agentType = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'claude';
+    const agent_type = backend && isTeamCapableBackend(backend, cachedInitResults) ? backend : 'claude';
 
     const teamName = name || summary.split(/\s+/).slice(0, 5).join(' ');
-    const userId = 'system_default_user';
+    const user_id = 'system_default_user';
 
     const team = await this.teamSessionService.createTeam({
-      userId,
+      user_id,
       name: teamName,
       workspace,
-      workspaceMode: 'shared',
-      sessionMode: 'yolo',
+      workspace_mode: 'shared',
+      session_mode: 'yolo',
       agents: [
         {
-          slotId: '',
-          conversationId: callerConversationId || '',
+          slot_id: '',
+          conversation_id: callerConversationId || '',
           role: 'leader',
-          agentType,
-          agentName: 'Leader',
-          conversationType: getConversationTypeForBackend(agentType),
+          agent_type,
+          agent_name: 'Leader',
+          conversation_type: getConversationTypeForBackend(agent_type),
           status: 'pending',
         },
       ],
@@ -221,14 +221,14 @@ export class TeamGuideMcpServer {
     // (bypassing the IPC bridge), so conversation.listChanged is never emitted automatically.
     if (callerConversationId) {
       ipcBridge.conversation.listChanged.emit({
-        conversationId: callerConversationId,
+        conversation_id: callerConversationId,
         action: 'updated',
         source: 'aionui',
       });
     }
 
     // Notify frontend to refresh team list
-    ipcBridge.team.listChanged.emit({ teamId: team.id, action: 'created' });
+    ipcBridge.team.listChanged.emit({ team_id: team.id, action: 'created' });
 
     // Navigate to team page immediately after creation.
     ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });
@@ -236,14 +236,14 @@ export class TeamGuideMcpServer {
     // Fire-and-forget: start session in background.
     // getOrStartSession rebuilds the leader's agent task with team MCP tools (skipCache).
     // Always send the summary to the leader so it can propose/spawn teammates.
-    const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversationId === callerConversationId);
+    const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversation_id === callerConversationId);
     void (async () => {
       try {
         const session = await this.teamSessionService.getOrStartSession(team.id);
         if (leadAgent) {
           // When the leader is reused, skip the UI bubble — the conversation already
           // shows the full user context. The summary still reaches the agent via mailbox.
-          await session.sendMessageToAgent(leadAgent.slotId, summary, { silent: leaderIsReused });
+          await session.sendMessageToAgent(leadAgent.slot_id, summary, { silent: leaderIsReused });
         }
       } catch (err) {
         console.error('[TeamGuideMcpServer] async session/message failed:', err);
@@ -251,10 +251,10 @@ export class TeamGuideMcpServer {
     })();
 
     return JSON.stringify({
-      teamId: team.id,
+      team_id: team.id,
       name: team.name,
       route,
-      leadAgent: leadAgent ? { slotId: leadAgent.slotId, conversationId: leadAgent.conversationId } : null,
+      leadAgent: leadAgent ? { slot_id: leadAgent.slot_id, conversation_id: leadAgent.conversation_id } : null,
       status: 'team_created',
       next_step: 'The team page has been opened automatically. End your turn now — do not add extra commentary.',
     });

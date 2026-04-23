@@ -69,7 +69,7 @@ export class DingTalkPlugin extends BasePlugin {
   readonly type: PluginType = 'dingtalk';
 
   private client: DWClient | null = null;
-  private isConnected: boolean = false;
+  private is_connected: boolean = false;
 
   // Credentials
   private clientId: string = '';
@@ -160,7 +160,7 @@ export class DingTalkPlugin extends BasePlugin {
 
       // Connect
       await this.client.connect();
-      this.isConnected = true;
+      this.is_connected = true;
 
       // Start event cache cleanup timer
       this.startEventCleanup();
@@ -192,7 +192,7 @@ export class DingTalkPlugin extends BasePlugin {
     this.processedEvents.clear();
     this.aiCardSessions.clear();
     this.webhookCache.clear();
-    this.isConnected = false;
+    this.is_connected = false;
 
     console.log('[DingTalkPlugin] Stopped and cleaned up');
   }
@@ -211,7 +211,7 @@ export class DingTalkPlugin extends BasePlugin {
     if (!this.clientId) return null;
     return {
       id: this.clientId,
-      displayName: 'Aion Assistant',
+      display_name: 'Aion Assistant',
     };
   }
 
@@ -324,11 +324,11 @@ export class DingTalkPlugin extends BasePlugin {
         this.markEventProcessed(eventId);
       }
 
-      const userId = data.senderStaffId || '';
-      if (!userId) return;
+      const user_id = data.senderStaffId || '';
+      if (!user_id) return;
 
       // Track user
-      this.activeUsers.add(userId);
+      this.activeUsers.add(user_id);
 
       // Cache sessionWebhook for this chat
       if (data.sessionWebhook) {
@@ -384,11 +384,11 @@ export class DingTalkPlugin extends BasePlugin {
       }
       this.markEventProcessed(eventId);
 
-      const userId = data.userId || '';
-      if (!userId) return;
+      const user_id = data.user_id || '';
+      if (!user_id) return;
 
       // Track user
-      this.activeUsers.add(userId);
+      this.activeUsers.add(user_id);
 
       // Extract action from card callback
       const params = data.content?.cardPrivateData?.params || {};
@@ -396,9 +396,9 @@ export class DingTalkPlugin extends BasePlugin {
       if (!actionInfo) return;
 
       // Handle tool confirmation specially
-      if (actionInfo.name === 'system.confirm' && actionInfo.params?.callId && actionInfo.params?.value) {
+      if (actionInfo.name === 'system.confirm' && actionInfo.params?.call_id && actionInfo.params?.value) {
         if (this.confirmHandler) {
-          void this.confirmHandler(userId, 'dingtalk', actionInfo.params.callId, actionInfo.params.value).catch(
+          void this.confirmHandler(user_id, 'dingtalk', actionInfo.params.call_id, actionInfo.params.value).catch(
             (error) => {
               console.error('[DingTalkPlugin] Confirm handler error:', error);
             }
@@ -409,10 +409,10 @@ export class DingTalkPlugin extends BasePlugin {
 
       // Build a minimal DingTalkStreamMessage for conversion
       const mockData: DingTalkStreamMessage = {
-        senderStaffId: userId,
-        senderNick: `User ${userId.slice(-6)}`,
+        senderStaffId: user_id,
+        senderNick: `User ${user_id.slice(-6)}`,
         msgId: streamMessageId,
-        conversationType: '1', // Assume private for card actions
+        conversation_type: '1', // Assume private for card actions
         createAt: Date.now(),
       };
 
@@ -469,7 +469,7 @@ export class DingTalkPlugin extends BasePlugin {
     await this.apiRequest('POST', '/v1.0/card/instances/deliver', token, {
       outTrackId,
       openSpaceId,
-      userIdType: 1,
+      user_idType: 1,
       imGroupOpenDeliverModel: chatType === 'group' ? { robotCode: this.clientId } : undefined,
       imRobotOpenDeliverModel: chatType === 'user' ? { spaceType: 'IM_ROBOT' } : undefined,
     });
@@ -624,7 +624,7 @@ export class DingTalkPlugin extends BasePlugin {
       // Send to individual user via robot
       const body: Record<string, unknown> = {
         robotCode: this.clientId,
-        userIds: [id],
+        user_ids: [id],
         msgKey: contentType === 'actionCard' ? 'sampleActionCard6' : 'sampleMarkdown',
         msgParam:
           contentType === 'actionCard'

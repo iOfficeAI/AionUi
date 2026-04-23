@@ -56,7 +56,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [skillPaths, setSkillPaths] = useState<{ userSkillsDir: string; builtinSkillsDir: string } | null>(null);
   const [externalSources, setExternalSources] = useState<ExternalSource[]>([]);
   const [activeSourceTab, setActiveSourceTab] = useState<string>('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search_query, setSearchQuery] = useState('');
   const [searchExternalQuery, setSearchExternalQuery] = useState('');
   const [showAddPathModal, setShowAddPathModal] = useState(false);
   const [customPathName, setCustomPathName] = useState('');
@@ -68,13 +68,13 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
 
   const filteredSkills = useMemo(() => {
-    if (!searchQuery.trim()) return mySkills;
-    const lowerQuery = searchQuery.toLowerCase();
+    if (!search_query.trim()) return mySkills;
+    const lowerQuery = search_query.toLowerCase();
     return mySkills.filter(
       (s) =>
         s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
     );
-  }, [mySkills, searchQuery]);
+  }, [mySkills, search_query]);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -128,9 +128,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleImport = async (skillPath: string) => {
     try {
       await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath });
-      Message.success(
-        t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' })
-      );
+      Message.success(t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' }));
       void fetchData();
     } catch (error) {
       console.error('Failed to import skill:', error);
@@ -408,7 +406,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   type='text'
                   className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
                   placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
-                  value={searchQuery}
+                  value={search_query}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>

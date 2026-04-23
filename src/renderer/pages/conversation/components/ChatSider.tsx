@@ -11,8 +11,8 @@ import ChatWorkspace from '../Workspace';
 
 const ChatSider: React.FC<{
   conversation?: TChatConversation;
-  teamId?: string;
-}> = ({ conversation, teamId }) => {
+  team_id?: string;
+}> = ({ conversation, team_id }) => {
   const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
 
   let workspaceNode: React.ReactNode = null;
@@ -22,7 +22,7 @@ const ChatSider: React.FC<{
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         messageApi={messageApi}
-        teamId={teamId}
+        team_id={team_id}
       ></ChatWorkspace>
     );
   } else if (conversation?.type === 'acp' && conversation.extra?.workspace) {
@@ -32,7 +32,7 @@ const ChatSider: React.FC<{
         workspace={conversation.extra.workspace}
         eventPrefix='acp'
         messageApi={messageApi}
-        teamId={teamId}
+        team_id={team_id}
       ></ChatWorkspace>
     );
   } else if (conversation?.type === 'codex' && conversation.extra?.workspace) {
@@ -42,7 +42,7 @@ const ChatSider: React.FC<{
         workspace={conversation.extra.workspace}
         eventPrefix='codex'
         messageApi={messageApi}
-        teamId={teamId}
+        team_id={team_id}
       ></ChatWorkspace>
     );
   } else if (conversation?.type === 'aionrs' && conversation.extra?.workspace) {
@@ -52,7 +52,7 @@ const ChatSider: React.FC<{
         workspace={conversation.extra.workspace}
         eventPrefix='aionrs'
         messageApi={messageApi}
-        teamId={teamId}
+        team_id={team_id}
       ></ChatWorkspace>
     );
   }

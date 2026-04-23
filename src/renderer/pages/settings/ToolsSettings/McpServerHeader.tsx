@@ -20,7 +20,7 @@ import { iconColors } from '@/renderer/styles/colors';
 interface McpServerHeaderProps {
   server: IMcpServer;
   agentInstallStatus: Record<string, string[]>;
-  isServerLoading: (serverName: string) => boolean;
+  isServerLoading: (server_name: string) => boolean;
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
@@ -109,7 +109,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
         </Tooltip>
         {isReadOnly && (
           <McpAgentStatusDisplay
-            serverName={server.name}
+            server_name={server.name}
             agentInstallStatus={agentInstallStatus}
             isLoadingAgentStatus={isServerLoading(server.name)}
             alwaysVisible
@@ -141,7 +141,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
         <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
           <div className='flex items-center gap-2 invisible group-hover:visible'>
             <McpAgentStatusDisplay
-              serverName={server.name}
+              server_name={server.name}
               agentInstallStatus={agentInstallStatus}
               isLoadingAgentStatus={isServerLoading(server.name)}
             />

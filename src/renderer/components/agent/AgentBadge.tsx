@@ -14,7 +14,7 @@ export type AgentBadgeProps = {
   /** Agent backend type */
   backend?: string;
   /** Display name for the agent */
-  agentName?: string;
+  agent_name?: string;
   /** Custom agent logo (SVG path or emoji string) */
   agentLogo?: string;
   /** Whether the logo is an emoji */
@@ -25,15 +25,15 @@ export type AgentBadgeProps = {
 
 /** Render agent logo from custom logo, backend logo, or fallback Robot icon */
 export const AgentLogoIcon: React.FC<
-  Pick<AgentBadgeProps, 'backend' | 'agentLogo' | 'agentLogoIsEmoji' | 'agentName'>
-> = ({ backend, agentLogo, agentLogoIsEmoji, agentName }) => {
+  Pick<AgentBadgeProps, 'backend' | 'agentLogo' | 'agentLogoIsEmoji' | 'agent_name'>
+> = ({ backend, agentLogo, agentLogoIsEmoji, agent_name }) => {
   const logoContent = (() => {
     if (agentLogo) {
       if (agentLogoIsEmoji) {
         return <span className='text-14px leading-none'>{agentLogo}</span>;
       }
       return (
-        <img src={agentLogo} alt={`${agentName || 'agent'} logo`} className='block w-16px h-16px object-contain' />
+        <img src={agentLogo} alt={`${agent_name || 'agent'} logo`} className='block w-16px h-16px object-contain' />
       );
     }
     const logo = getAgentLogo(backend);
@@ -54,7 +54,7 @@ export const AgentLogoIcon: React.FC<
  * When `assistantId` is provided, clicking navigates to AssistantSettings editor.
  * Otherwise renders as a static display badge.
  */
-const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agentName, agentLogo, agentLogoIsEmoji, assistantId }) => {
+const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agent_name, agentLogo, agentLogoIsEmoji, assistantId }) => {
   const navigate = useNavigate();
   const handleClick = useCallback(() => {
     if (!assistantId) return;
@@ -69,11 +69,11 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agentName, agentLogo, 
     >
       <AgentLogoIcon
         backend={backend}
-        agentName={agentName}
+        agent_name={agent_name}
         agentLogo={agentLogo}
         agentLogoIsEmoji={agentLogoIsEmoji}
       />
-      <span className='text-sm text-t-primary'>{agentName || backend}</span>
+      <span className='text-sm text-t-primary'>{agent_name || backend}</span>
     </div>
   );
 };

@@ -16,7 +16,7 @@ interface UseWorkspaceDragImportOptions {
   messageApi: MessageApi;
   t: TFunction<'translation'>;
   /** Conversation ID for WebUI HTTP uploads */
-  conversationId: string;
+  conversation_id: string;
 }
 
 interface DroppedItem {
@@ -44,7 +44,7 @@ export function useWorkspaceDragImport({
   onFilesDropped,
   messageApi,
   t,
-  conversationId,
+  conversation_id,
 }: UseWorkspaceDragImportOptions) {
   const [isDragging, setIsDragging] = useState(false);
   const dragCounterRef = useRef(0);
@@ -89,10 +89,10 @@ export function useWorkspaceDragImport({
         item: (index: number) => files[index] || null,
       }) as unknown as FileList;
 
-      const processed = await FileService.processDroppedFiles(pseudoList, conversationId, 'workspace');
+      const processed = await FileService.processDroppedFiles(pseudoList, conversation_id, 'workspace');
       return processed.map((meta) => ({ path: meta.path, name: meta.name, kind: 'file' as const }));
     },
-    [conversationId]
+    [conversation_id]
   );
 
   /**
@@ -134,10 +134,10 @@ export function useWorkspaceDragImport({
 
           // 使用 Electron webUtils.getPathForFile API 获取文件/目录的绝对路径
           // Use Electron webUtils.getPathForFile API to get absolute path for file/directory
-          let filePath: string | undefined;
+          let file_path: string | undefined;
           if (window.electronAPI?.getPathForFile) {
             try {
-              filePath = window.electronAPI.getPathForFile(file);
+              file_path = window.electronAPI.getPathForFile(file);
             } catch (err) {
               console.warn('[WorkspaceDragImport] getPathForFile failed:', err);
             }
@@ -145,14 +145,14 @@ export function useWorkspaceDragImport({
 
           // 回退到 File.path 属性（旧版 Electron 或非 Electron 环境）
           // Fallback to File.path property (older Electron or non-Electron)
-          if (!filePath) {
+          if (!file_path) {
             const electronFile = file as File & { path?: string };
-            filePath = electronFile.path;
+            file_path = electronFile.path;
           }
 
-          if (filePath) {
-            const name = file.name || getBaseName(filePath);
-            itemsWithPath.push({ path: filePath, name, kind: 'file' });
+          if (file_path) {
+            const name = file.name || getBaseName(file_path);
+            itemsWithPath.push({ path: file_path, name, kind: 'file' });
           } else {
             // 没有 path 属性，可能是从浏览器拖拽或非 Electron 环境
             // 检查是否是目录（通过 webkitGetAsEntry）
@@ -203,7 +203,7 @@ export function useWorkspaceDragImport({
         );
       }
     },
-    [conversationId, createTempItemsFromFiles, messageApi, onFilesDropped, resetDragState, resolveDroppedItems, t]
+    [conversation_id, createTempItemsFromFiles, messageApi, onFilesDropped, resetDragState, resolveDroppedItems, t]
   );
 
   const dragHandlers = {

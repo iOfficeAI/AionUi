@@ -458,11 +458,11 @@ export async function handleAtCommand({
     invocation = readManyFilesTool!.build(toolArgs);
     const result = await invocation.execute(signal);
     toolCallDisplay = {
-      callId: `client-read-${userMessageTimestamp}`,
+      call_id: `client-read-${userMessageTimestamp}`,
       name: readManyFilesTool!.displayName,
       description: invocation.getDescription(),
       status: ToolCallStatus.Success,
-      resultDisplay: result.returnDisplay || `Successfully read: ${contentLabelsForDisplay.join(', ')}`,
+      result_display: result.returnDisplay || `Successfully read: ${contentLabelsForDisplay.join(', ')}`,
       confirmationDetails: undefined,
     };
 
@@ -475,10 +475,10 @@ export async function handleAtCommand({
         if (typeof part === 'string') {
           const match = fileContentRegex.exec(part);
           if (match) {
-            const filePathSpecInContent = match[1]; // This is a resolved pathSpec
+            const file_pathSpecInContent = match[1]; // This is a resolved pathSpec
             const fileActualContent = match[2].trim();
             processedQueryParts.push({
-              text: `\nContent from @${filePathSpecInContent}:\n`,
+              text: `\nContent from @${file_pathSpecInContent}:\n`,
             });
             processedQueryParts.push({ text: fileActualContent });
           } else {
@@ -498,11 +498,11 @@ export async function handleAtCommand({
     return { processedQuery: processedQueryParts, shouldProceed: true };
   } catch (error: unknown) {
     toolCallDisplay = {
-      callId: `client-read-${userMessageTimestamp}`,
+      call_id: `client-read-${userMessageTimestamp}`,
       name: readManyFilesTool!.displayName,
       description: invocation?.getDescription() ?? 'Error attempting to execute tool to read files',
       status: ToolCallStatus.Error,
-      resultDisplay: `Error reading files (${contentLabelsForDisplay.join(', ')}): ${getErrorMessage(error)}`,
+      result_display: `Error reading files (${contentLabelsForDisplay.join(', ')}): ${getErrorMessage(error)}`,
       confirmationDetails: undefined,
     };
     addItem({ type: 'tool_group', tools: [toolCallDisplay] } as Omit<HistoryItem, 'id'>, userMessageTimestamp);

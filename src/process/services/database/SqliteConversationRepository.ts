@@ -44,11 +44,11 @@ export class SqliteConversationRepository implements IConversationRepository {
   async getMessages(
     id: string,
     page: number,
-    pageSize: number,
+    page_size: number,
     order?: 'ASC' | 'DESC'
   ): Promise<PaginatedResult<TMessage>> {
     const db = await this.getDb();
-    const result = db.getConversationMessages(id, page, pageSize, order);
+    const result = db.getConversationMessages(id, page, page_size, order);
     return {
       data: result.data ?? [],
       total: result.total ?? 0,
@@ -62,9 +62,9 @@ export class SqliteConversationRepository implements IConversationRepository {
   }
 
   /**
-   * The underlying DB getUserConversations accepts (userId?, page, pageSize).
+   * The underlying DB getUserConversations accepts (user_id?, page, page_size).
    * The interface accepts (cursor?, offset?, limit?) for forward compatibility.
-   * We map offset/limit → page/pageSize, ignoring cursor (not supported by SQLite impl).
+   * We map offset/limit → page/page_size, ignoring cursor (not supported by SQLite impl).
    */
   async getUserConversations(
     _cursor?: string,
@@ -72,9 +72,9 @@ export class SqliteConversationRepository implements IConversationRepository {
     limit?: number
   ): Promise<PaginatedResult<TChatConversation>> {
     const db = await this.getDb();
-    const pageSize = limit ?? 50;
-    const page = offset !== undefined && pageSize > 0 ? Math.floor(offset / pageSize) : 0;
-    const result = db.getUserConversations(undefined, page, pageSize);
+    const page_size = limit ?? 50;
+    const page = offset !== undefined && page_size > 0 ? Math.floor(offset / page_size) : 0;
+    const result = db.getUserConversations(undefined, page, page_size);
     return {
       data: result.data ?? [],
       total: result.total ?? 0,
@@ -88,13 +88,13 @@ export class SqliteConversationRepository implements IConversationRepository {
     return result.data ?? [];
   }
 
-  async searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse> {
+  async searchMessages(keyword: string, page: number, page_size: number): Promise<IMessageSearchResponse> {
     const db = await this.getDb();
-    return db.searchConversationMessages(keyword, undefined, page, pageSize);
+    return db.searchConversationMessages(keyword, undefined, page, page_size);
   }
 
-  async getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]> {
+  async getConversationsByCronJob(cron_job_id: string): Promise<TChatConversation[]> {
     const db = await this.getDb();
-    return db.getConversationsByCronJobId(cronJobId);
+    return db.getConversationsByCronJobId(cron_job_id);
   }
 }

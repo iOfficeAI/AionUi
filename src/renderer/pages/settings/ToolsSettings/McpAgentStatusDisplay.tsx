@@ -5,7 +5,7 @@ import { LoadingOne } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 
 interface McpAgentStatusDisplayProps {
-  serverName: string;
+  server_name: string;
   agentInstallStatus: Record<string, string[]>;
   isLoadingAgentStatus: boolean;
   /** Read-only rows (extension MCP) can keep icons visible without hover */
@@ -13,12 +13,12 @@ interface McpAgentStatusDisplayProps {
 }
 
 const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
-  serverName,
+  server_name,
   agentInstallStatus,
   isLoadingAgentStatus,
   alwaysVisible = false,
 }) => {
-  const agents = agentInstallStatus[serverName] || [];
+  const agents = agentInstallStatus[server_name] || [];
   const agentsKey = useMemo(() => agents.join('|'), [agents]);
   const [isAlwaysVisibleAnimatedIn, setIsAlwaysVisibleAnimatedIn] = useState(!alwaysVisible);
 
@@ -57,7 +57,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
               const animationDelay = `${(agents.length - 1 - index) * 0.05}s`;
 
               return (
-                <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
+                <Tooltip key={`${server_name}-${agent}-${index}`} content={agent}>
                   <div
                     className={`w-6 h-6 flex items-center relative cursor-pointer transition-all duration-200 ease-out ${
                       alwaysVisible
@@ -84,7 +84,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({
             }
 
             return (
-              <Tag key={`${serverName}-${agent}-${index}`} size='small' color='green'>
+              <Tag key={`${server_name}-${agent}-${index}`} size='small' color='green'>
                 {agent}
               </Tag>
             );

@@ -9,16 +9,16 @@ export const collectSelectedFiles = (uploadFile: string[], atPath: Array<string 
 export const buildDisplayMessage = (input: string, files: string[], workspacePath: string): string => {
   if (!files.length) return input;
   const normalizedWorkspace = workspacePath?.replace(/[\\/]+$/, '');
-  const displayPaths = files.map((filePath) => {
-    const sanitizedPath = filePath.replace(AIONUI_TIMESTAMP_REGEX, '$1');
+  const displayPaths = files.map((file_path) => {
+    const sanitizedPath = file_path.replace(AIONUI_TIMESTAMP_REGEX, '$1');
     if (!normalizedWorkspace) {
       return sanitizedPath;
     }
 
-    const isAbsolute = filePath.startsWith('/') || /^[A-Za-z]:/.test(filePath);
+    const isAbsolute = file_path.startsWith('/') || /^[A-Za-z]:/.test(file_path);
     if (isAbsolute) {
       // If file is inside workspace, preserve relative path (including subdirectories like uploads/)
-      const normalizedFile = filePath.replace(/\\/g, '/');
+      const normalizedFile = file_path.replace(/\\/g, '/');
       const normalizedWorkspaceWithForwardSlash = normalizedWorkspace.replace(/\\/g, '/');
       if (normalizedFile.startsWith(normalizedWorkspaceWithForwardSlash + '/')) {
         const relativePath = normalizedFile.slice(normalizedWorkspaceWithForwardSlash.length + 1);
@@ -26,8 +26,8 @@ export const buildDisplayMessage = (input: string, files: string[], workspacePat
       }
       // External file outside workspace: use basename only so the marker stays tied to this workspace
       const parts = sanitizedPath.split(/[\\/]/);
-      const fileName = parts[parts.length - 1] || sanitizedPath;
-      return `${normalizedWorkspace}/${fileName}`;
+      const file_name = parts[parts.length - 1] || sanitizedPath;
+      return `${normalizedWorkspace}/${file_name}`;
     }
     return `${normalizedWorkspace}/${sanitizedPath}`;
   });

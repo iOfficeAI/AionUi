@@ -67,7 +67,7 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
 
       // Delay slightly to allow the agent to reach a stable state if needed
       setTimeout(() => {
-        void this.confirm(data.id, data.callId, autoOption.value);
+        void this.confirm(data.id, data.call_id, autoOption.value);
       }, 50);
       return;
     }
@@ -81,14 +81,14 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any>
     this.confirmations = [...this.confirmations, data];
     this.emitter.emitConfirmationAdd(this.conversation_id, data);
   }
-  confirm(_msg_id: string, callId: string, _data: ConfirmationOption) {
-    // 查找要移除的确认项（根据 callId 匹配）
-    // Find the confirmation to remove (match by callId)
-    const confirmationToRemove = this.confirmations.find((p) => p.callId === callId);
+  confirm(_msg_id: string, call_id: string, _data: ConfirmationOption) {
+    // 查找要移除的确认项（根据 call_id 匹配）
+    // Find the confirmation to remove (match by call_id)
+    const confirmationToRemove = this.confirmations.find((p) => p.call_id === call_id);
 
     // 从缓存中移除
     // Remove from cache
-    this.confirmations = this.confirmations.filter((p) => p.callId !== callId);
+    this.confirmations = this.confirmations.filter((p) => p.call_id !== call_id);
 
     // 通知前端移除确认项
     // Notify frontend to remove the confirmation

@@ -34,7 +34,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
   /**
    * 检测Qwen Code的MCP配置
    */
-  detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(_cli_path?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
         // 尝试通过Qwen CLI命令获取MCP配置
@@ -62,18 +62,18 @@ export class QwenMcpAgent extends AbstractMcpAgent {
             const command = commandParts[0];
             const args = commandParts.slice(1);
 
-            const transportType = transport as 'stdio' | 'sse' | 'http';
+            const transport_type = transport as 'stdio' | 'sse' | 'http';
 
             // 构建transport对象
             const transportObj: any =
-              transportType === 'stdio'
+              transport_type === 'stdio'
                 ? {
                     type: 'stdio',
                     command: command,
                     args: args,
                     env: {},
                   }
-                : transportType === 'sse'
+                : transport_type === 'sse'
                   ? {
                       type: 'sse',
                       url: commandStr.trim(),
@@ -102,14 +102,14 @@ export class QwenMcpAgent extends AbstractMcpAgent {
               tools: tools,
               enabled: true,
               status: status === 'Connected' ? 'connected' : 'disconnected',
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
+              created_at: Date.now(),
+              updated_at: Date.now(),
               description: '',
-              originalJson: JSON.stringify(
+              original_json: JSON.stringify(
                 {
                   mcpServers: {
                     [name.trim()]:
-                      transportType === 'stdio'
+                      transport_type === 'stdio'
                         ? {
                             command: command,
                             args: args,
@@ -117,7 +117,7 @@ export class QwenMcpAgent extends AbstractMcpAgent {
                           }
                         : {
                             url: commandStr.trim(),
-                            type: transportType,
+                            type: transport_type,
                             description: `Detected from Qwen CLI`,
                           },
                   },

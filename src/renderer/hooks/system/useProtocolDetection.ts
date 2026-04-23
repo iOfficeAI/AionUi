@@ -35,7 +35,7 @@ interface UseProtocolDetectionResult {
   /** 错误信息 / Error message */
   error: string | null;
   /** 手动触发检测 / Manually trigger detection */
-  detect: (baseUrl: string, apiKey: string) => Promise<void>;
+  detect: (base_url: string, api_key: string) => Promise<void>;
   /** 重置状态 / Reset state */
   reset: () => void;
 }
@@ -47,13 +47,13 @@ interface UseProtocolDetectionResult {
  * 用于自动检测 API 端点使用的协议类型
  * Used to auto-detect the protocol type used by an API endpoint
  *
- * @param baseUrl - Base URL
- * @param apiKey - API Key（可以是逗号或换行分隔的多个 Key）
+ * @param base_url - Base URL
+ * @param api_key - API Key（可以是逗号或换行分隔的多个 Key）
  * @param options - 配置选项
  */
 export function useProtocolDetection(
-  baseUrl: string,
-  apiKey: string,
+  base_url: string,
+  api_key: string,
   options: UseProtocolDetectionOptions = {}
 ): UseProtocolDetectionResult {
   const { debounceMs = 800, autoDetect = true, timeout = 10000, testAllKeys = false } = options;
@@ -94,8 +94,8 @@ export function useProtocolDetection(
 
       try {
         const detectionResult = await ipcBridge.mode.detectProtocol.invoke({
-          baseUrl: url,
-          apiKey: key,
+          base_url: url,
+          api_key: key,
           timeout,
           testAllKeys,
         });
@@ -155,7 +155,7 @@ export function useProtocolDetection(
     }
 
     // 如果没有有效输入，重置状态
-    if (!baseUrl || !apiKey) {
+    if (!base_url || !api_key) {
       setResult(null);
       setError(null);
       return;
@@ -163,7 +163,7 @@ export function useProtocolDetection(
 
     // 设置防抖定时器
     debounceTimerRef.current = setTimeout(() => {
-      void detect(baseUrl, apiKey);
+      void detect(base_url, api_key);
     }, debounceMs);
 
     return () => {
@@ -171,7 +171,7 @@ export function useProtocolDetection(
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [baseUrl, apiKey, autoDetect, debounceMs, detect]);
+  }, [base_url, api_key, autoDetect, debounceMs, detect]);
 
   // 组件卸载时清理
   useEffect(() => {

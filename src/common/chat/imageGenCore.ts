@@ -43,8 +43,8 @@ export function safeJsonParse<T = unknown>(jsonString: string, fallbackValue: T)
   }
 }
 
-export function isImageFile(filePath: string): boolean {
-  const ext = path.extname(filePath).toLowerCase();
+export function isImageFile(file_path: string): boolean {
+  const ext = path.extname(file_path).toLowerCase();
   return IMAGE_EXTENSIONS.includes(ext as ImageExtension);
 }
 
@@ -52,21 +52,21 @@ export function isHttpUrl(str: string): boolean {
   return str.startsWith('http://') || str.startsWith('https://');
 }
 
-export async function fileToBase64(filePath: string): Promise<string> {
+export async function fileToBase64(file_path: string): Promise<string> {
   try {
-    const fileBuffer = await fs.promises.readFile(filePath);
+    const fileBuffer = await fs.promises.readFile(file_path);
     return fileBuffer.toString('base64');
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (errorMessage.includes('ENOENT') || errorMessage.includes('no such file')) {
-      throw new Error(`Image file not found: ${filePath}`, { cause: error });
+      throw new Error(`Image file not found: ${file_path}`, { cause: error });
     }
     throw new Error(`Failed to read image file: ${errorMessage}`, { cause: error });
   }
 }
 
-export function getImageMimeType(filePath: string): string {
-  const ext = path.extname(filePath).toLowerCase();
+export function getImageMimeType(file_path: string): string {
+  const ext = path.extname(file_path).toLowerCase();
   return MIME_TYPE_MAP[ext] || MIME_TYPE_MAP[DEFAULT_IMAGE_EXTENSION];
 }
 
@@ -82,15 +82,15 @@ export function getFileExtensionFromDataUrl(dataUrl: string): string {
 export async function saveGeneratedImage(base64Data: string, workspaceDir: string): Promise<string> {
   const timestamp = Date.now();
   const fileExtension = getFileExtensionFromDataUrl(base64Data);
-  const fileName = `img-${timestamp}${fileExtension}`;
-  const filePath = path.join(workspaceDir, fileName);
+  const file_name = `img-${timestamp}${fileExtension}`;
+  const file_path = path.join(workspaceDir, file_name);
 
   const base64WithoutPrefix = base64Data.replace(/^data:image\/[^;]+;base64,/, '');
   const imageBuffer = Buffer.from(base64WithoutPrefix, 'base64');
 
   try {
-    await fs.promises.writeFile(filePath, imageBuffer);
-    return filePath;
+    await fs.promises.writeFile(file_path, imageBuffer);
+    return file_path;
   } catch (error) {
     console.error('[ImageGen] Failed to save image file:', error);
     throw new Error(`Failed to save image: ${error instanceof Error ? error.message : String(error)}`, {
@@ -265,13 +265,13 @@ export async function executeImageGeneration(
           image_url: { url: match[1] },
         }));
       } else {
-        const filePathRegex = /!\[[^\]]*\]\(([^)]+\.(?:jpg|jpeg|png|gif|webp|bmp|tiff|svg))\)/gi;
-        const filePathMatches = [...responseText.matchAll(filePathRegex)];
-        if (filePathMatches.length > 0) {
+        const file_pathRegex = /!\[[^\]]*\]\(([^)]+\.(?:jpg|jpeg|png|gif|webp|bmp|tiff|svg))\)/gi;
+        const file_pathMatches = [...responseText.matchAll(file_pathRegex)];
+        if (file_pathMatches.length > 0) {
           const processedImages: Array<{ type: 'image_url'; image_url: { url: string } }> = [];
-          for (const match of filePathMatches) {
-            const filePath = match[1];
-            const fullPath = path.isAbsolute(filePath) ? filePath : path.join(workspaceDir, filePath);
+          for (const match of file_pathMatches) {
+            const file_path = match[1];
+            const fullPath = path.isAbsolute(file_path) ? file_path : path.join(workspaceDir, file_path);
             try {
               await fs.promises.access(fullPath);
               const base64Data = await fileToBase64(fullPath);
@@ -281,7 +281,7 @@ export async function executeImageGeneration(
                 image_url: { url: `data:${mimeType};base64,${base64Data}` },
               });
             } catch (_fileError) {
-              console.warn(`[ImageGen] Could not load image file: ${filePath}`);
+              console.warn(`[ImageGen] Could not load image file: ${file_path}`);
             }
           }
           if (processedImages.length > 0) {

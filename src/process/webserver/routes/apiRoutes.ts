@@ -53,8 +53,8 @@ function decodeMulterFileName(raw: string): string {
   }
 }
 
-function sanitizeFileName(fileName: string): string {
-  const decoded = decodeMulterFileName(fileName);
+function sanitizeFileName(file_name: string): string {
+  const decoded = decodeMulterFileName(file_name);
   const basename = path.basename(decoded);
   const safe = basename.replace(/[<>:"/\\|?*]/g, '_');
   if (!safe || safe === '.' || safe === '..') return `file_${Date.now()}`;
@@ -72,13 +72,13 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   return normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`);
 }
 
-export async function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): Promise<string> {
-  if (!conversationId) {
+export async function resolveUploadWorkspace(conversation_id: string, requestedWorkspace?: string): Promise<string> {
+  if (!conversation_id) {
     throw new Error('Missing conversation id');
   }
 
   const db = await getDatabase();
-  const result = db.getConversation(conversationId);
+  const result = db.getConversation(conversation_id);
   const conversationWorkspace = result.data?.extra?.workspace;
   if (!result.success || !conversationWorkspace) {
     throw new Error('Conversation workspace not found');
@@ -151,7 +151,7 @@ type MatchedApiRoute = {
 
 type MatchedStaticAsset = {
   extensionName: string;
-  filePath: string;
+  file_path: string;
 };
 
 function resolveMatchedApiRoute(requestPath: string): MatchedApiRoute | null {
@@ -188,10 +188,10 @@ function resolveMatchedStaticAsset(requestPath: string): MatchedStaticAsset | nu
 
       const relativePart = requestPath.slice(urlPrefix.length);
       if (!relativePart || relativePart === '/') continue;
-      const filePath = path.resolve(staticRoot, `.${relativePart}`);
-      if (!isPathInsideRoot(filePath, staticRoot)) continue;
-      if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) continue;
-      return { extensionName: contribution.extensionName, filePath };
+      const file_path = path.resolve(staticRoot, `.${relativePart}`);
+      if (!isPathInsideRoot(file_path, staticRoot)) continue;
+      if (!fs.existsSync(file_path) || !fs.statSync(file_path).isFile()) continue;
+      return { extensionName: contribution.extensionName, file_path };
     }
   }
   return null;
@@ -213,7 +213,7 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
           middlewareNext();
         },
         (_req, response, middlewareNext) => {
-          response.sendFile(staticMatch.filePath, (error) => {
+          response.sendFile(staticMatch.file_path, (error) => {
             if (error) middlewareNext(error);
           });
         },
@@ -305,7 +305,7 @@ export function registerApiRoutes(app: Express): void {
     async (req: Request, res: Response) => {
       try {
         const file = req.file;
-        const conversationId = typeof req.body.conversationId === 'string' ? req.body.conversationId : '';
+        const conversation_id = typeof req.body.conversation_id === 'string' ? req.body.conversation_id : '';
         const requestedWorkspace = typeof req.body.workspace === 'string' ? req.body.workspace : '';
 
         if (!file) {
@@ -317,10 +317,10 @@ export function registerApiRoutes(app: Express): void {
         // Check user preference: save to workspace or cache directory
         // Default to cache directory (false) to avoid cluttering workspace
         const saveToWorkspace = await ProcessConfig.get('upload.saveToWorkspace').catch(() => false);
-        if (conversationId && saveToWorkspace) {
+        if (conversation_id && saveToWorkspace) {
           let workspace: string;
           try {
-            workspace = await resolveUploadWorkspace(conversationId, requestedWorkspace);
+            workspace = await resolveUploadWorkspace(conversation_id, requestedWorkspace);
           } catch (error) {
             const message = error instanceof Error ? error.message : 'Invalid upload workspace';
             const statusCode =
@@ -424,7 +424,7 @@ export function registerApiRoutes(app: Express): void {
 
         const result = await SpeechToTextService.transcribe({
           audioBuffer: Uint8Array.from(audio.buffer),
-          fileName: sanitizeFileName(audio.originalname || `speech-${Date.now()}.webm`),
+          file_name: sanitizeFileName(audio.originalname || `speech-${Date.now()}.webm`),
           languageHint,
           mimeType,
         });

@@ -68,7 +68,7 @@ function serializeKey(key: AcpApprovalKey): string {
  * AcpApprovalStore - Caches approval decisions for the ACP session
  */
 export class AcpApprovalStore {
-  private map: Map<string, string> = new Map(); // key -> optionId
+  private map: Map<string, string> = new Map(); // key -> option_id
 
   /**
    * Get cached decision for a key
@@ -82,10 +82,10 @@ export class AcpApprovalStore {
    * Store a decision for a key
    * Only stores allow_always decisions (the only type worth caching)
    */
-  put(key: AcpApprovalKey, optionId: string): void {
-    if (optionId === 'allow_always') {
+  put(key: AcpApprovalKey, option_id: string): void {
+    if (option_id === 'allow_always') {
       const serialized = serializeKey(key);
-      this.map.set(serialized, optionId);
+      this.map.set(serialized, option_id);
     }
   }
 

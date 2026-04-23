@@ -20,7 +20,7 @@ export type {
  */
 export type MailboxMessage = {
   id: string;
-  teamId: string;
+  team_id: string;
   toAgentId: string;
   fromAgentId: string;
   type: 'message' | 'idle_notification' | 'shutdown_request';
@@ -28,22 +28,22 @@ export type MailboxMessage = {
   summary?: string;
   files?: string[];
   read: boolean;
-  createdAt: number;
+  created_at: number;
 };
 
 /** A unit of work tracked inside a team's shared task board */
 export type TeamTask = {
   id: string;
-  teamId: string;
+  team_id: string;
   subject: string;
   description?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'deleted';
-  owner?: string; // slotId of the assigned agent
+  owner?: string; // slot_id of the assigned agent
   blockedBy: string[]; // task ids this task depends on
   blocks: string[]; // task ids that depend on this task
   metadata: Record<string, unknown>;
-  createdAt: number;
-  updatedAt: number;
+  created_at: number;
+  updated_at: number;
 };
 
 /**

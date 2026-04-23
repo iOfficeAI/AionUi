@@ -38,7 +38,7 @@ export const useMcpConnection = (
         try {
           await saveMcpServers((prevServers) =>
             prevServers.map((s) =>
-              s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s
+              s.id === server.id ? { ...s, status, updated_at: Date.now(), ...additionalData } : s
             )
           );
         } catch (error) {
@@ -74,7 +74,7 @@ export const useMcpConnection = (
               description: tool.description,
               ...(tool._meta ? { _meta: tool._meta } : {}),
             })),
-            lastConnected: Date.now(),
+            last_connected: Date.now(),
           });
           await globalMessageQueue.add(() => {
             message.success(`${server.name}: ${t('settings.mcpTestConnectionSuccess')}`);

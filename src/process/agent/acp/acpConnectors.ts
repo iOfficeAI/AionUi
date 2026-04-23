@@ -264,14 +264,14 @@ export function ensureMinNodeVersion(
  * Creates spawn configuration for ACP CLI commands.
  * Exported for unit testing.
  *
- * @param cliPath - CLI command path (e.g., 'goose', 'npx @pkg/cli')
+ * @param cli_path - CLI command path (e.g., 'goose', 'npx @pkg/cli')
  * @param workingDir - Working directory for the spawned process
  * @param acpArgs - Arguments to enable ACP mode (e.g., ['acp'] for goose, ['--acp'] for auggie, ['exec','--output-format','acp'] for droid)
  * @param customEnv - Custom environment variables
  * @param prebuiltEnv - Pre-built env to use directly (skips internal getEnhancedEnv)
  */
 export function createGenericSpawnConfig(
-  cliPath: string,
+  cli_path: string,
   workingDir: string,
   acpArgs?: string[],
   customEnv?: Record<string, string>,
@@ -288,9 +288,9 @@ export function createGenericSpawnConfig(
   let spawnCommand: string;
   let spawnArgs: string[];
 
-  if (cliPath.startsWith('npx ')) {
+  if (cli_path.startsWith('npx ')) {
     // Route legacy npx package launchers through the bundled bun runtime.
-    const parts = cliPath.split(' ').filter(Boolean);
+    const parts = cli_path.split(' ').filter(Boolean);
     spawnCommand = resolveNpxPath(env);
     spawnArgs = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), ...effectiveAcpArgs];
   } else if (isWindows) {
@@ -300,13 +300,13 @@ export function createGenericSpawnConfig(
     //
     // chcp 65001: switch console to UTF-8 so stderr/stdout doesn't get garbled
     // (Chinese Windows defaults to CP936/GBK).
-    // Quotes around cliPath handle paths with spaces (e.g. "C:\Program Files\agent.exe").
-    spawnCommand = `chcp 65001 >nul && "${cliPath}"`;
+    // Quotes around cli_path handle paths with spaces (e.g. "C:\Program Files\agent.exe").
+    spawnCommand = `chcp 65001 >nul && "${cli_path}"`;
     spawnArgs = effectiveAcpArgs;
   } else {
-    // Unix: simple command or path. If cliPath contains spaces (e.g., "goose acp"),
+    // Unix: simple command or path. If cli_path contains spaces (e.g., "goose acp"),
     // parse into command + inline args.
-    const parts = cliPath.split(/\s+/);
+    const parts = cli_path.split(/\s+/);
     spawnCommand = parts[0];
     spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
   }
@@ -519,7 +519,7 @@ async function prepareCodebuddy(): Promise<NpxPrepareResult> {
  */
 export async function spawnGenericBackend(
   backend: string,
-  cliPath: string,
+  cli_path: string,
   workingDir: string,
   acpArgs?: string[],
   customEnv?: Record<string, string>
@@ -538,7 +538,7 @@ export async function spawnGenericBackend(
 
   const spawnStart = Date.now();
   const detached = process.platform !== 'win32';
-  const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, undefined, cleanEnv as Record<string, string>);
+  const config = createGenericSpawnConfig(cli_path, workingDir, acpArgs, undefined, cleanEnv as Record<string, string>);
   const child = spawn(config.command, config.args, {
     ...config.options,
     detached,

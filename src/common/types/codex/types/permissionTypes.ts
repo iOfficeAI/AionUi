@@ -41,7 +41,7 @@ export const PERMISSION_DECISION_MAP = {
 } as const;
 
 export interface CodexPermissionOption {
-  optionId: string;
+  option_id: string;
   name: string;
   kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
   description?: string;
@@ -56,7 +56,7 @@ export interface CodexToolCallRawInput {
 
 export interface CodexToolCall {
   title?: string;
-  toolCallId: string;
+  tool_call_id: string;
   kind?: 'edit' | 'read' | 'fetch' | 'execute' | string;
   rawInput?: CodexToolCallRawInput;
 }
@@ -65,8 +65,8 @@ export interface CodexToolCall {
 export interface BaseCodexPermissionRequest {
   title?: string;
   description?: string;
-  agentType?: 'codex';
-  sessionId?: string;
+  agent_type?: 'codex';
+  session_id?: string;
   requestId?: string;
   options: CodexPermissionOption[];
 }

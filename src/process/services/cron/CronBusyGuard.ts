@@ -25,27 +25,27 @@ export class CronBusyGuard {
   /**
    * Check if a conversation is currently processing a message
    */
-  isProcessing(conversationId: string): boolean {
-    return this.states.get(conversationId)?.isProcessing ?? false;
+  isProcessing(conversation_id: string): boolean {
+    return this.states.get(conversation_id)?.isProcessing ?? false;
   }
 
   /**
    * Set the processing state of a conversation
    * Should be called at the start and end of message processing
    */
-  setProcessing(conversationId: string, value: boolean): void {
-    const state = this.states.get(conversationId) ?? { isProcessing: false, lastActiveAt: 0 };
+  setProcessing(conversation_id: string, value: boolean): void {
+    const state = this.states.get(conversation_id) ?? { isProcessing: false, lastActiveAt: 0 };
     state.isProcessing = value;
     if (value) {
       state.lastActiveAt = Date.now();
     }
-    this.states.set(conversationId, state);
+    this.states.set(conversation_id, state);
 
     // Fire idle callbacks when processing completes
     if (!value) {
-      const callbacks = this.idleCallbacks.get(conversationId);
+      const callbacks = this.idleCallbacks.get(conversation_id);
       if (callbacks) {
-        this.idleCallbacks.delete(conversationId);
+        this.idleCallbacks.delete(conversation_id);
         for (const cb of callbacks) cb();
       }
     }
@@ -55,38 +55,38 @@ export class CronBusyGuard {
    * Register a one-time callback for when a conversation becomes idle.
    * If already idle, fires immediately.
    */
-  onceIdle(conversationId: string, callback: IdleCallback): void {
-    if (!this.isProcessing(conversationId)) {
+  onceIdle(conversation_id: string, callback: IdleCallback): void {
+    if (!this.isProcessing(conversation_id)) {
       callback();
       return;
     }
-    const existing = this.idleCallbacks.get(conversationId) ?? [];
+    const existing = this.idleCallbacks.get(conversation_id) ?? [];
     existing.push(callback);
-    this.idleCallbacks.set(conversationId, existing);
+    this.idleCallbacks.set(conversation_id, existing);
   }
 
   /**
    * Get the last active timestamp of a conversation
    */
-  getLastActiveAt(conversationId: string): number | undefined {
-    return this.states.get(conversationId)?.lastActiveAt;
+  getLastActiveAt(conversation_id: string): number | undefined {
+    return this.states.get(conversation_id)?.lastActiveAt;
   }
 
   /**
    * Wait for a conversation to become idle
    * Polls the state until isProcessing is false or timeout
    *
-   * @param conversationId - The conversation to wait for
+   * @param conversation_id - The conversation to wait for
    * @param timeoutMs - Maximum time to wait (default 60s)
    * @throws Error if timeout is reached
    */
-  async waitForIdle(conversationId: string, timeoutMs = 60000): Promise<void> {
+  async waitForIdle(conversation_id: string, timeoutMs = 60000): Promise<void> {
     const start = Date.now();
     const pollInterval = 1000; // 1 second
 
-    while (this.isProcessing(conversationId)) {
+    while (this.isProcessing(conversation_id)) {
       if (Date.now() - start > timeoutMs) {
-        throw new Error(`Timeout waiting for conversation ${conversationId} to be idle`);
+        throw new Error(`Timeout waiting for conversation ${conversation_id} to be idle`);
       }
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
@@ -119,8 +119,8 @@ export class CronBusyGuard {
    * Remove state for a specific conversation
    * Call when conversation is deleted
    */
-  remove(conversationId: string): void {
-    this.states.delete(conversationId);
+  remove(conversation_id: string): void {
+    this.states.delete(conversation_id);
   }
 
   /**

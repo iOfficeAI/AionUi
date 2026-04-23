@@ -56,7 +56,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const slashCommands = useSlashCommands(conversation_id);
+  const slash_commands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -163,8 +163,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   useEffect(() => {
     const handler = (text: string) => {
-      const newContent = content ? `${content}\n${text}` : text;
-      setContentRef.current(newContent);
+      const new_content = content ? `${content}\n${text}` : text;
+      setContentRef.current(new_content);
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
@@ -211,8 +211,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
-      const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile((prev) => [...prev, ...filePaths]);
+      const file_paths = pastedFiles.map((file) => file.path);
+      setUploadFile((prev) => [...prev, ...file_paths]);
     },
     [setUploadFile]
   );
@@ -244,7 +244,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         type: 'text',
         position: 'right',
         content: { content: displayMessage },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
@@ -281,7 +281,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     unlockInteraction,
     resetActiveExecution,
   } = useConversationCommandQueue({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     enabled: true,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
@@ -290,7 +290,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   const onSendHandler = async (message: string) => {
     emitter.emit('nanobot.selected.file.clear');
-    const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
+    const file_paths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
     setUploadFile([]);
 
@@ -301,11 +301,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         hasPendingCommands,
       })
     ) {
-      enqueue({ input: message, files: filePaths });
+      enqueue({ input: message, files: file_paths });
       return;
     }
 
-    await executeCommand({ input: message, files: filePaths });
+    await executeCommand({ input: message, files: file_paths });
   };
 
   const handleEditQueuedCommand = useCallback(
@@ -358,7 +358,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           type: 'text',
           position: 'right',
           content: { content: initialDisplayMessage },
-          createdAt: Date.now(),
+          created_at: Date.now(),
         };
         // Reset AI reply for new turn
         // 重置 AI 回复用于新一轮
@@ -472,7 +472,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
           </>
         }
         onSend={onSendHandler}
-        slashCommands={slashCommands}
+        slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
       ></SendBox>

@@ -72,7 +72,7 @@ export type SessionStatus = 'idle' | 'starting' | 'active' | 'prompting' | 'susp
 export type InitialDesiredConfig = {
   model?: string;
   mode?: string;
-  configOptions?: Record<string, string | boolean>;
+  config_options?: Record<string, string | boolean>;
 };
 
 // ─── Prompt ─────────────────────────────────────────────────────
@@ -88,20 +88,20 @@ export type AvailableCommand = {
 };
 
 export type ConfigSnapshot = {
-  configOptions: ConfigOption[];
+  config_options: ConfigOption[];
   availableCommands: AvailableCommand[];
   cwd: string;
   additionalDirectories?: string[];
 };
 
 export type ModelSnapshot = {
-  currentModelId: string | null;
-  availableModels: Array<{ modelId: string; name: string; description?: string }>;
+  current_model_id: string | null;
+  available_models: Array<{ model_id: string; name: string; description?: string }>;
 };
 
 export type ModeSnapshot = {
-  currentModeId: string | null;
-  availableModes: Array<{ id: string; name: string; description?: string }>;
+  current_mode_id: string | null;
+  available_modes: Array<{ id: string; name: string; description?: string }>;
 };
 
 export type ContextUsage = {
@@ -117,19 +117,19 @@ export type ConfigOption = {
   type: 'select' | 'boolean';
   category?: 'mode' | 'model' | 'thought_level' | string;
   description?: string;
-  currentValue: string | boolean;
+  current_value: string | boolean;
   options?: Array<{ id: string; name: string; description?: string }>;
 };
 
 // ─── Permission ─────────────────────────────────────────────────
 
 export type PermissionUIData = {
-  callId: string;
+  call_id: string;
   title: string;
   description: string;
   kind?: ToolKind;
   options: Array<{
-    optionId: string;
+    option_id: string;
     label: string;
     kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
   }>;
@@ -157,7 +157,7 @@ export type SessionSignal =
 export type SessionCallbacks = {
   onInitialize?: (result: unknown) => void;
   onMessage: (message: TMessage) => void;
-  onSessionId: (sessionId: string) => void;
+  onSessionId: (session_id: string) => void;
   onStatusChange: (status: SessionStatus) => void;
   onConfigUpdate: (config: ConfigSnapshot) => void;
   onModelUpdate: (model: ModelSnapshot) => void;
@@ -171,7 +171,7 @@ export type SessionCallbacks = {
 
 export type SignalEvent =
   | { type: 'status_change'; status: SessionStatus }
-  | { type: 'session_id_update'; sessionId: string }
+  | { type: 'session_id_update'; session_id: string }
   | { type: 'model_update'; model: ModelSnapshot }
   | { type: 'mode_update'; mode: ModeSnapshot }
   | { type: 'config_update'; config: ConfigSnapshot }

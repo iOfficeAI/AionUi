@@ -37,7 +37,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
   const requestTraceRef = useRef<{
     startTime: number;
     provider: string;
-    modelId: string;
+    model_id: string;
   } | null>(null);
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
@@ -158,7 +158,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
               console.log(
-                `%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                `%c[RequestTrace]%c ✅ FINISH | ${requestTraceRef.current.provider} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #52c41a; font-weight: bold',
                 'color: inherit'
               );
@@ -232,16 +232,16 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
             };
             if (finishedData?.usageMetadata) {
               const newTokenUsage: TokenUsageData = {
-                totalTokens: finishedData.usageMetadata.totalTokenCount || 0,
+                total_tokens: finishedData.usageMetadata.totalTokenCount || 0,
               };
               setTokenUsage(newTokenUsage);
-              // Persist token usage stats to conversation's extra.lastTokenUsage field
+              // Persist token usage stats to conversation's extra.last_token_usage field
               // Uses mergeExtra option so backend auto-merges extra field
               void ipcBridge.conversation.update.invoke({
                 id: conversation_id,
                 updates: {
                   extra: {
-                    lastTokenUsage: newTokenUsage,
+                    last_token_usage: newTokenUsage,
                   } as TChatConversation['extra'],
                 },
                 mergeExtra: true,
@@ -258,10 +258,10 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
             requestTraceRef.current = {
               startTime: Number(trace.timestamp) || Date.now(),
               provider: String(trace.platform || trace.provider || 'unknown'),
-              modelId: String(trace.modelId || 'unknown'),
+              model_id: String(trace.model_id || 'unknown'),
             };
             console.log(
-              `%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.modelId} | ${new Date().toISOString()}`,
+              `%c[RequestTrace]%c ➡️ START | ${requestTraceRef.current.provider} → ${trace.model_id} | ${new Date().toISOString()}`,
               'color: #1890ff; font-weight: bold',
               'color: inherit',
               trace
@@ -276,7 +276,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
               console.log(
-                `%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.modelId} | ${duration}ms | ${new Date().toISOString()}`,
+                `%c[RequestTrace]%c ❌ ERROR | ${requestTraceRef.current.provider} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #ff4d4f; font-weight: bold',
                 'color: inherit',
                 message.data
@@ -342,10 +342,10 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
       // Load persisted token usage stats
-      if (res.type === 'gemini' && res.extra?.lastTokenUsage) {
-        const { lastTokenUsage } = res.extra;
-        if (lastTokenUsage.totalTokens > 0) {
-          setTokenUsage(lastTokenUsage);
+      if (res.type === 'gemini' && res.extra?.last_token_usage) {
+        const { last_token_usage } = res.extra;
+        if (last_token_usage.total_tokens > 0) {
+          setTokenUsage(last_token_usage);
         }
       }
       setHasHydratedRunningState(true);

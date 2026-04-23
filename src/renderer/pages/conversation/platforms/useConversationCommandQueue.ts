@@ -9,7 +9,7 @@ export type ConversationCommandQueueItem = {
   id: string;
   input: string;
   files: string[];
-  createdAt: number;
+  created_at: number;
 };
 
 export type ConversationCommandQueueState = {
@@ -43,15 +43,15 @@ const COMMAND_QUEUE_LOG_PREFIX = '[conversation-command-queue]';
 
 const summarizeQueuedCommand = (item: ConversationCommandQueueItem): Record<string, unknown> => ({
   id: item.id,
-  createdAt: item.createdAt,
+  created_at: item.created_at,
   inputLength: item.input.length,
   fileCount: item.files.length,
   preview: item.input.replace(/\s+/g, ' ').trim().slice(0, 120),
 });
 
-const logCommandQueue = (conversationId: string, event: string, payload: Record<string, unknown> = {}): void => {
+const logCommandQueue = (conversation_id: string, event: string, payload: Record<string, unknown> = {}): void => {
   console.info(COMMAND_QUEUE_LOG_PREFIX, {
-    conversationId,
+    conversation_id,
     event,
     ...payload,
   });
@@ -64,7 +64,7 @@ const createDefaultQueueState = (): ConversationCommandQueueState => ({
 
 const queueStore = new Map<string, ConversationCommandQueueState>();
 
-const getStorageKey = (conversationId: string): string => `conversation-command-queue/${conversationId}`;
+const getStorageKey = (conversation_id: string): string => `conversation-command-queue/${conversation_id}`;
 const measureQueueStateBytes = (state: ConversationCommandQueueState): number =>
   new TextEncoder().encode(JSON.stringify(state)).length;
 
@@ -82,8 +82,8 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
     typeof candidate.input !== 'string' ||
     !Array.isArray(candidate.files) ||
     !candidate.files.every((file) => typeof file === 'string') ||
-    typeof candidate.createdAt !== 'number' ||
-    !Number.isFinite(candidate.createdAt)
+    typeof candidate.created_at !== 'number' ||
+    !Number.isFinite(candidate.created_at)
   ) {
     return null;
   }
@@ -92,7 +92,7 @@ const normalizeQueueItem = (item: unknown): ConversationCommandQueueItem | null 
     id: candidate.id,
     input: candidate.input,
     files: uniqueFiles(candidate.files),
-    createdAt: candidate.createdAt,
+    created_at: candidate.created_at,
   };
 
   if (
@@ -147,7 +147,7 @@ export const createQueuedCommandItem = ({
   id: uuid(),
   input,
   files: uniqueFiles(files),
-  createdAt: Date.now(),
+  created_at: Date.now(),
 });
 
 const getQueueValidationFailureReason = (state: ConversationCommandQueueState): QueueValidationFailureReason | null => {
@@ -194,9 +194,9 @@ const isQueueValidationFailure = (
   validation: QueueValidationSuccess | QueueValidationFailure
 ): validation is QueueValidationFailure => !validation.ok;
 
-const readPersistedQueueState = (conversationId: string): ConversationCommandQueueState => {
-  if (queueStore.has(conversationId)) {
-    return queueStore.get(conversationId) ?? createDefaultQueueState();
+const readPersistedQueueState = (conversation_id: string): ConversationCommandQueueState => {
+  if (queueStore.has(conversation_id)) {
+    return queueStore.get(conversation_id) ?? createDefaultQueueState();
   }
 
   if (typeof window === 'undefined') {
@@ -204,15 +204,15 @@ const readPersistedQueueState = (conversationId: string): ConversationCommandQue
   }
 
   try {
-    const stored = window.sessionStorage.getItem(getStorageKey(conversationId));
+    const stored = window.sessionStorage.getItem(getStorageKey(conversation_id));
     if (!stored) {
       return createDefaultQueueState();
     }
 
     const parsed = JSON.parse(stored) as unknown;
     const normalized = normalizeQueueState(parsed);
-    queueStore.set(conversationId, normalized);
-    logCommandQueue(conversationId, 'restored', {
+    queueStore.set(conversation_id, normalized);
+    logCommandQueue(conversation_id, 'restored', {
       itemCount: normalized.items.length,
       isPaused: normalized.isPaused,
     });
@@ -223,29 +223,29 @@ const readPersistedQueueState = (conversationId: string): ConversationCommandQue
   }
 };
 
-const removePersistedQueueState = (conversationId: string): void => {
-  queueStore.delete(conversationId);
+const removePersistedQueueState = (conversation_id: string): void => {
+  queueStore.delete(conversation_id);
   if (typeof window !== 'undefined') {
     try {
-      window.sessionStorage.removeItem(getStorageKey(conversationId));
+      window.sessionStorage.removeItem(getStorageKey(conversation_id));
     } catch (error) {
       console.warn('[conversation-command-queue] Failed to remove persisted queue state:', error);
     }
   }
 };
 
-const persistQueueState = (conversationId: string, state: ConversationCommandQueueState): void => {
+const persistQueueState = (conversation_id: string, state: ConversationCommandQueueState): void => {
   const normalized = normalizeQueueState(state);
 
   if (normalized.items.length === 0 && !normalized.isPaused) {
-    removePersistedQueueState(conversationId);
+    removePersistedQueueState(conversation_id);
     return;
   }
 
-  queueStore.set(conversationId, normalized);
+  queueStore.set(conversation_id, normalized);
   if (typeof window !== 'undefined') {
     try {
-      window.sessionStorage.setItem(getStorageKey(conversationId), JSON.stringify(normalized));
+      window.sessionStorage.setItem(getStorageKey(conversation_id), JSON.stringify(normalized));
     } catch (error) {
       console.warn('[conversation-command-queue] Failed to persist queue state:', error);
     }
@@ -306,7 +306,7 @@ export const shouldEnqueueConversationCommand = ({
 }): boolean => enabled && (isBusy || hasPendingCommands);
 
 type UseConversationCommandQueueOptions = {
-  conversationId: string;
+  conversation_id: string;
   enabled?: boolean;
   isBusy: boolean;
   isHydrated?: boolean;
@@ -343,7 +343,7 @@ const getQueueValidationMessage = (
 };
 
 export const useConversationCommandQueue = ({
-  conversationId,
+  conversation_id,
   enabled = true,
   isBusy,
   isHydrated = true,
@@ -351,8 +351,8 @@ export const useConversationCommandQueue = ({
 }: UseConversationCommandQueueOptions) => {
   const { t } = useTranslation();
   const { data = createDefaultQueueState(), mutate } = useSWR(
-    [`/conversation-command-queue/${conversationId}`, conversationId, enabled],
-    ([, id, isEnabled]) => (isEnabled ? readPersistedQueueState(id) : createDefaultQueueState())
+    [`/conversation-command-queue/${conversation_id}`, conversation_id, enabled],
+    ([, id, is_enabled]) => (is_enabled ? readPersistedQueueState(id) : createDefaultQueueState())
   );
 
   const stateRef = useRef(data);
@@ -371,7 +371,7 @@ export const useConversationCommandQueue = ({
     if (waitingForTurnStartRef.current && isBusy) {
       waitingForTurnStartRef.current = false;
       waitingForTurnCompletionRef.current = true;
-      logCommandQueue(conversationId, 'turn-started', {
+      logCommandQueue(conversation_id, 'turn-started', {
         pendingItemCount: stateRef.current.items.length,
       });
       return;
@@ -379,11 +379,11 @@ export const useConversationCommandQueue = ({
 
     if (waitingForTurnCompletionRef.current && !isBusy) {
       waitingForTurnCompletionRef.current = false;
-      logCommandQueue(conversationId, 'turn-finished', {
+      logCommandQueue(conversation_id, 'turn-finished', {
         pendingItemCount: stateRef.current.items.length,
       });
     }
-  }, [conversationId, isBusy]);
+  }, [conversation_id, isBusy]);
 
   useEffect(() => {
     pausedRef.current = data.isPaused;
@@ -404,9 +404,9 @@ export const useConversationCommandQueue = ({
     interactionLockedRef.current = false;
     stateRef.current = createDefaultQueueState();
     setIsInteractionLocked(false);
-    removePersistedQueueState(conversationId);
+    removePersistedQueueState(conversation_id);
     void mutate(createDefaultQueueState(), { revalidate: false });
-  }, [conversationId, enabled, mutate]);
+  }, [conversation_id, enabled, mutate]);
 
   const updateState = useCallback(
     (
@@ -416,7 +416,7 @@ export const useConversationCommandQueue = ({
         const nextState = createDefaultQueueState();
         stateRef.current = nextState;
         pausedRef.current = false;
-        removePersistedQueueState(conversationId);
+        removePersistedQueueState(conversation_id);
         return Promise.resolve(nextState);
       }
 
@@ -425,33 +425,33 @@ export const useConversationCommandQueue = ({
           const nextState = normalizeQueueState(updater(current ?? createDefaultQueueState()));
           stateRef.current = nextState;
           pausedRef.current = nextState.isPaused;
-          persistQueueState(conversationId, nextState);
+          persistQueueState(conversation_id, nextState);
           return nextState;
         },
         { revalidate: false }
       );
     },
-    [conversationId, enabled, mutate]
+    [conversation_id, enabled, mutate]
   );
 
   const clear = useCallback(() => {
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
     pausedRef.current = false;
-    logCommandQueue(conversationId, 'cleared');
+    logCommandQueue(conversation_id, 'cleared');
     void updateState(() => createDefaultQueueState());
-  }, [conversationId, updateState]);
+  }, [conversation_id, updateState]);
 
   useAddEventListener(
     'conversation.deleted',
     (deletedConversationId) => {
-      if (deletedConversationId !== conversationId) {
+      if (deletedConversationId !== conversation_id) {
         return;
       }
       clear();
-      removePersistedQueueState(conversationId);
+      removePersistedQueueState(conversation_id);
     },
-    [clear, conversationId]
+    [clear, conversation_id]
   );
 
   const enqueue = useCallback(
@@ -466,7 +466,7 @@ export const useConversationCommandQueue = ({
 
       if (isQueueValidationFailure(validation)) {
         const reason: QueueValidationFailureReason = validation.reason;
-        logCommandQueue(conversationId, 'enqueue-rejected', {
+        logCommandQueue(conversation_id, 'enqueue-rejected', {
           reason,
           item: summarizeQueuedCommand(item),
           currentItemCount: currentState.items.length,
@@ -480,14 +480,14 @@ export const useConversationCommandQueue = ({
         items: [...currentState.items, item],
       };
       stateRef.current = nextState;
-      logCommandQueue(conversationId, 'enqueued', {
+      logCommandQueue(conversation_id, 'enqueued', {
         item: summarizeQueuedCommand(item),
         currentItemCount: currentState.items.length,
       });
       void updateState(() => nextState);
       return item;
     },
-    [conversationId, enabled, t, updateState]
+    [conversation_id, enabled, t, updateState]
   );
 
   const update = useCallback(
@@ -510,7 +510,7 @@ export const useConversationCommandQueue = ({
       const failureReason = getQueueValidationFailureReason(nextState);
 
       if (failureReason) {
-        logCommandQueue(conversationId, 'update-rejected', {
+        logCommandQueue(conversation_id, 'update-rejected', {
           reason: failureReason,
           commandId,
           inputLength: input.length,
@@ -520,14 +520,14 @@ export const useConversationCommandQueue = ({
       }
 
       stateRef.current = nextState;
-      logCommandQueue(conversationId, 'updated', {
+      logCommandQueue(conversation_id, 'updated', {
         commandId,
         inputLength: input.length,
       });
       void updateState(() => nextState);
       return true;
     },
-    [conversationId, enabled, t, updateState]
+    [conversation_id, enabled, t, updateState]
   );
 
   const remove = useCallback(
@@ -536,7 +536,7 @@ export const useConversationCommandQueue = ({
         return;
       }
 
-      logCommandQueue(conversationId, 'removed', {
+      logCommandQueue(conversation_id, 'removed', {
         commandId,
       });
       void updateState((state) => {
@@ -547,7 +547,7 @@ export const useConversationCommandQueue = ({
         };
       });
     },
-    [conversationId, enabled, updateState]
+    [conversation_id, enabled, updateState]
   );
 
   const reorder = useCallback(
@@ -556,7 +556,7 @@ export const useConversationCommandQueue = ({
         return;
       }
 
-      logCommandQueue(conversationId, 'reordered', {
+      logCommandQueue(conversation_id, 'reordered', {
         activeCommandId,
         overCommandId,
       });
@@ -565,7 +565,7 @@ export const useConversationCommandQueue = ({
         items: reorderQueuedCommand(state.items, activeCommandId, overCommandId),
       }));
     },
-    [conversationId, enabled, updateState]
+    [conversation_id, enabled, updateState]
   );
 
   const pause = useCallback(() => {
@@ -576,7 +576,7 @@ export const useConversationCommandQueue = ({
     pausedRef.current = true;
     waitingForTurnStartRef.current = false;
     waitingForTurnCompletionRef.current = false;
-    logCommandQueue(conversationId, 'paused', {
+    logCommandQueue(conversation_id, 'paused', {
       itemCount: data.items.length,
     });
     void updateState((state) => {
@@ -589,7 +589,7 @@ export const useConversationCommandQueue = ({
         isPaused: true,
       };
     });
-  }, [conversationId, data.items.length, enabled, updateState]);
+  }, [conversation_id, data.items.length, enabled, updateState]);
 
   const resume = useCallback(() => {
     if (!enabled) {
@@ -597,14 +597,14 @@ export const useConversationCommandQueue = ({
     }
 
     pausedRef.current = false;
-    logCommandQueue(conversationId, 'resumed', {
+    logCommandQueue(conversation_id, 'resumed', {
       itemCount: data.items.length,
     });
     void updateState((state) => ({
       ...state,
       isPaused: state.items.length > 0 ? false : state.isPaused,
     }));
-  }, [conversationId, data.items.length, enabled, updateState]);
+  }, [conversation_id, data.items.length, enabled, updateState]);
 
   const lockInteraction = useCallback(() => {
     if (!enabled) {
@@ -612,11 +612,11 @@ export const useConversationCommandQueue = ({
     }
 
     interactionLockedRef.current = true;
-    logCommandQueue(conversationId, 'interaction-locked', {
+    logCommandQueue(conversation_id, 'interaction-locked', {
       itemCount: stateRef.current.items.length,
     });
     setIsInteractionLocked(true);
-  }, [conversationId, enabled]);
+  }, [conversation_id, enabled]);
 
   const unlockInteraction = useCallback(() => {
     if (!enabled) {
@@ -624,11 +624,11 @@ export const useConversationCommandQueue = ({
     }
 
     interactionLockedRef.current = false;
-    logCommandQueue(conversationId, 'interaction-unlocked', {
+    logCommandQueue(conversation_id, 'interaction-unlocked', {
       itemCount: stateRef.current.items.length,
     });
     setIsInteractionLocked(false);
-  }, [conversationId, enabled]);
+  }, [conversation_id, enabled]);
 
   const resetActiveExecution = useCallback(
     (reason: 'stop' | 'external-reset') => {
@@ -640,13 +640,13 @@ export const useConversationCommandQueue = ({
         return;
       }
 
-      logCommandQueue(conversationId, 'execution-reset', {
+      logCommandQueue(conversation_id, 'execution-reset', {
         reason,
         pendingItemCount: stateRef.current.items.length,
       });
       setExecutionGateVersion((version) => version + 1);
     },
-    [conversationId]
+    [conversation_id]
   );
 
   useEffect(() => {
@@ -665,7 +665,7 @@ export const useConversationCommandQueue = ({
 
     const [nextCommand, ...remainingCommands] = data.items;
     waitingForTurnStartRef.current = true;
-    logCommandQueue(conversationId, 'dequeued', {
+    logCommandQueue(conversation_id, 'dequeued', {
       item: summarizeQueuedCommand(nextCommand),
       remainingItemCount: remainingCommands.length,
     });
@@ -676,7 +676,7 @@ export const useConversationCommandQueue = ({
 
     void onExecute(nextCommand).catch((error) => {
       console.error('[conversation-command-queue] Failed to execute queued command:', error);
-      logCommandQueue(conversationId, 'execute-failed', {
+      logCommandQueue(conversation_id, 'execute-failed', {
         item: summarizeQueuedCommand(nextCommand),
         error: error instanceof Error ? error.message : String(error),
       });
@@ -694,7 +694,7 @@ export const useConversationCommandQueue = ({
       );
     });
   }, [
-    conversationId,
+    conversation_id,
     data.items,
     enabled,
     executionGateVersion,

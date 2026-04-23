@@ -23,8 +23,8 @@ export interface PreviewMetadata {
   language?: string;
   title?: string;
   diff?: string;
-  fileName?: string;
-  filePath?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
+  file_name?: string;
+  file_path?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
   workspace?: string; // 工作空间根目录 / Workspace root directory
   editable?: boolean; // 是否可编辑 / Whether editable
 }
@@ -209,35 +209,35 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const findPreviewTabInList = useCallback(
     (tabList: PreviewTab[], type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
-      const normalizedFileName = normalize(meta?.fileName);
+      const normalizedFileName = normalize(meta?.file_name);
       const normalizedTitle = normalize(meta?.title);
-      const normalizedFilePath = normalize(meta?.filePath);
+      const normalizedFilePath = normalize(meta?.file_path);
 
       return (
         tabList.find((tab) => {
           if (tab.contentType !== type) return false;
-          const tabFileName = normalize(tab.metadata?.fileName);
+          const tabFileName = normalize(tab.metadata?.file_name);
           const tabTitle = normalize(tab.metadata?.title);
-          const tabFilePath = normalize(tab.metadata?.filePath);
+          const tabFilePath = normalize(tab.metadata?.file_path);
 
-          // 优先通过 filePath 匹配（最可靠）/ Prefer matching by filePath (most reliable)
+          // 优先通过 file_path 匹配（最可靠）/ Prefer matching by file_path (most reliable)
           if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
 
-          // 通过 fileName 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
-          // When matching by fileName, ensure path compatibility (avoid conflicts of same-named files in different directories)
+          // 通过 file_name 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
+          // When matching by file_name, ensure path compatibility (avoid conflicts of same-named files in different directories)
           if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) {
-            // 如果两边都有 filePath，则必须完全匹配
-            // If both have filePath, they must match exactly
+            // 如果两边都有 file_path，则必须完全匹配
+            // If both have file_path, they must match exactly
             if (normalizedFilePath && tabFilePath) {
               return normalizedFilePath === tabFilePath;
             }
-            // 如果只有一边有 filePath，不能仅凭 fileName 匹配
-            // If only one side has filePath, cannot match by fileName alone
+            // 如果只有一边有 file_path，不能仅凭 file_name 匹配
+            // If only one side has file_path, cannot match by file_name alone
             if (normalizedFilePath || tabFilePath) {
               return false;
             }
-            // 都没有 filePath 时，可以通过 fileName 匹配
-            // When neither has filePath, can match by fileName
+            // 都没有 file_path 时，可以通过 file_name 匹配
+            // When neither has file_path, can match by file_name
             return true;
           }
 
@@ -267,12 +267,12 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const openPreview = useCallback(
-    (newContent: string, type: PreviewContentType, meta?: PreviewMetadata) => {
+    (new_content: string, type: PreviewContentType, meta?: PreviewMetadata) => {
       let nextActiveTabId: string | null = null;
 
       setTabs((prevTabs) => {
         // 如果同一个文件已经打开，则直接激活现有 tab，避免重复 / Focus existing tab when the same file is opened again
-        const existingTab = findPreviewTabInList(prevTabs, type, newContent, meta);
+        const existingTab = findPreviewTabInList(prevTabs, type, new_content, meta);
 
         if (existingTab) {
           nextActiveTabId = existingTab.id;
@@ -286,15 +286,15 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
             return {
               ...tab,
-              content: newContent,
+              content: new_content,
               metadata: meta ? { ...tab.metadata, ...meta } : tab.metadata,
-              originalContent: newContent,
+              originalContent: new_content,
             };
           });
         }
 
         // Tab 标题：优先使用文件名，并从 title 中提取实际文件名
-        // Tab title: Prefer fileName and extract actual filename from title
+        // Tab title: Prefer file_name and extract actual filename from title
         const fallbackTitle = (() => {
           // 根据内容类型设置默认标题 / Set default title based on content type
           if (type === 'markdown') return 'Markdown';
@@ -304,19 +304,19 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           return 'Preview';
         })();
 
-        const title = extractFileName(meta?.fileName) || extractFileName(meta?.title) || fallbackTitle;
+        const title = extractFileName(meta?.file_name) || extractFileName(meta?.title) || fallbackTitle;
 
         // 生成唯一 ID / Generate unique ID
         const tabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
         const newTab: PreviewTab = {
           id: tabId,
-          content: newContent,
+          content: new_content,
           contentType: type,
           metadata: meta,
           title,
           isDirty: false,
-          originalContent: newContent, // 保存原始内容 / Save original content
+          originalContent: new_content, // 保存原始内容 / Save original content
         };
 
         nextActiveTabId = tabId;
@@ -346,8 +346,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setTabs((prevTabs) => {
         // Clean up mtime record for the closed tab
         const tabToClose = prevTabs.find((tab) => tab.id === tabId);
-        if (tabToClose?.metadata?.filePath) {
-          fileMtimeRef.current.delete(tabToClose.metadata.filePath);
+        if (tabToClose?.metadata?.file_path) {
+          fileMtimeRef.current.delete(tabToClose.metadata.file_path);
         }
 
         const newTabs = prevTabs.filter((tab) => tab.id !== tabId);
@@ -381,13 +381,13 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const updateContent = useCallback(
-    (newContent: string) => {
+    (new_content: string) => {
       if (!activeTabId) {
         return;
       }
 
       // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
-      if (typeof newContent !== 'string') {
+      if (typeof new_content !== 'string') {
         return;
       }
 
@@ -396,8 +396,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           const updated = prevTabs.map((tab) => {
             if (tab.id === activeTabId) {
               // 检查内容是否与原始内容不同 / Check if content differs from original
-              const isDirty = newContent !== tab.originalContent;
-              return { ...tab, content: newContent, isDirty };
+              const isDirty = new_content !== tab.originalContent;
+              return { ...tab, content: new_content, isDirty };
             }
             return tab;
           });
@@ -418,17 +418,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const tab = tabs.find((t) => t.id === targetTabId);
       if (!tab) return false;
 
-      // 如果有 filePath 和 workspace，写回工作空间文件 / If filePath and workspace exist, write back to workspace file
-      if (tab.metadata?.filePath && tab.metadata?.workspace) {
+      // 如果有 file_path 和 workspace，写回工作空间文件 / If file_path and workspace exist, write back to workspace file
+      if (tab.metadata?.file_path && tab.metadata?.workspace) {
         try {
-          const filePath = tab.metadata.filePath;
+          const file_path = tab.metadata.file_path;
 
           // 标记文件正在保存（避免触发文件监听回调）/ Mark file as being saved (to avoid triggering file watch callback)
-          savingFilesRef.current.add(filePath);
+          savingFilesRef.current.add(file_path);
 
           // 使用 IPC 写入文件 / Write file via IPC
           const success = await ipcBridge.fs.writeFile.invoke({
-            path: filePath,
+            path: file_path,
             data: tab.content,
           });
 
@@ -445,15 +445,15 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
           // 延迟移除保存标记（给文件监听一点时间忽略变化）/ Delay removing save flag (give file watch time to ignore change)
           setTimeout(() => {
-            savingFilesRef.current.delete(filePath);
+            savingFilesRef.current.delete(file_path);
           }, 500);
 
           return success;
         } catch (error) {
           // 发生错误，静默处理（只记录到控制台）/ Error occurred, handle silently (log only)
           // 确保移除保存标记 / Ensure save flag is removed
-          if (tab.metadata?.filePath) {
-            savingFilesRef.current.delete(tab.metadata.filePath);
+          if (tab.metadata?.file_path) {
+            savingFilesRef.current.delete(tab.metadata.file_path);
           }
           throw error;
         }
@@ -496,18 +496,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     // 防抖定时器映射：每个文件路径对应一个定时器 / Debounce timer map: one timer per file path
     const debounceTimers = new Map<string, NodeJS.Timeout>();
 
-    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ filePath, content, operation }) => {
+    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ file_path, content, operation }) => {
       // 如果是删除操作，立即处理，不需要防抖 / If delete operation, handle immediately without debounce
       if (operation === 'delete') {
         // 清除该文件的防抖定时器 / Clear debounce timer for this file
-        const existingTimer = debounceTimers.get(filePath);
+        const existingTimer = debounceTimers.get(file_path);
         if (existingTimer) {
           clearTimeout(existingTimer);
-          debounceTimers.delete(filePath);
+          debounceTimers.delete(file_path);
         }
 
         setTabs((prevTabs) => {
-          const tabToClose = prevTabs.find((tab) => tab.metadata?.filePath === filePath);
+          const tabToClose = prevTabs.find((tab) => tab.metadata?.file_path === file_path);
           if (tabToClose) {
             closeTab(tabToClose.id);
           }
@@ -518,7 +518,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // 对写入操作进行防抖：500ms 内没有新的更新才真正更新内容
       // Debounce write operations: Only update content if no new updates within 500ms
-      const existingTimer = debounceTimers.get(filePath);
+      const existingTimer = debounceTimers.get(file_path);
       if (existingTimer) {
         clearTimeout(existingTimer);
       }
@@ -527,17 +527,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // 使用函数式更新来访问最新的 tabs 状态 / Use functional update to access latest tabs state
         setTabs((prevTabs) => {
           // 查找受影响的 tabs / Find affected tabs
-          const affectedTabs = prevTabs.filter((tab) => tab.metadata?.filePath === filePath);
+          const affectedTabs = prevTabs.filter((tab) => tab.metadata?.file_path === file_path);
 
           if (affectedTabs.length === 0) {
             return prevTabs;
           }
 
           return prevTabs.map((tab) => {
-            if (tab.metadata?.filePath !== filePath) return tab;
+            if (tab.metadata?.file_path !== file_path) return tab;
 
             // 如果正在保存或用户已编辑，不更新 / Don't update if saving or user has edited
-            if (savingFilesRef.current.has(filePath) || tab.isDirty) {
+            if (savingFilesRef.current.has(file_path) || tab.isDirty) {
               return tab;
             }
 
@@ -551,10 +551,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         });
 
         // 清除定时器 / Clean up timer
-        debounceTimers.delete(filePath);
+        debounceTimers.delete(file_path);
       }, 500); // 500ms 防抖时间 / 500ms debounce delay
 
-      debounceTimers.set(filePath, timer);
+      debounceTimers.set(file_path, timer);
     });
 
     return () => {
@@ -571,39 +571,39 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // is unreliable after the first emission in Electron (only the first event reaches the renderer).
   const checkFileUpdate = useCallback(
     (tab: PreviewTab) => {
-      const filePath = tab.metadata?.filePath;
-      if (!filePath || tab.isDirty || savingFilesRef.current.has(filePath)) return;
+      const file_path = tab.metadata?.file_path;
+      if (!file_path || tab.isDirty || savingFilesRef.current.has(file_path)) return;
 
       void ipcBridge.fs.getFileMetadata
-        .invoke({ path: filePath })
+        .invoke({ path: file_path })
         .then((metadata) => {
           if (!metadata) return;
-          const prevMtime = fileMtimeRef.current.get(filePath);
-          fileMtimeRef.current.set(filePath, metadata.lastModified);
+          const prevMtime = fileMtimeRef.current.get(file_path);
+          fileMtimeRef.current.set(file_path, metadata.lastModified);
           if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
 
           const readPromise =
             tab.contentType === 'image'
-              ? ipcBridge.fs.getImageBase64.invoke({ path: filePath })
-              : ipcBridge.fs.readFile.invoke({ path: filePath });
+              ? ipcBridge.fs.getImageBase64.invoke({ path: file_path })
+              : ipcBridge.fs.readFile.invoke({ path: file_path });
 
           void readPromise
             .then((content) => {
               if (content == null) return;
               setTabs((latest) =>
                 latest.map((t) => {
-                  if (t.metadata?.filePath !== filePath) return t;
-                  if (savingFilesRef.current.has(filePath) || t.isDirty) return t;
+                  if (t.metadata?.file_path !== file_path) return t;
+                  if (savingFilesRef.current.has(file_path) || t.isDirty) return t;
                   return { ...t, content, originalContent: content, isDirty: false };
                 })
               );
             })
             .catch((error) => {
-              console.error('[PreviewContext] Failed to read file after mtime change:', filePath, error);
+              console.error('[PreviewContext] Failed to read file after mtime change:', file_path, error);
             });
         })
         .catch((error) => {
-          console.error('[PreviewContext] Failed to get file metadata:', filePath, error);
+          console.error('[PreviewContext] Failed to get file metadata:', file_path, error);
         });
     },
     [setTabs]
@@ -614,7 +614,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const activeTabRef = useRef<PreviewTab | null>(null);
   activeTabRef.current = activeTab;
 
-  const activeFilePath = activeTab?.metadata?.filePath;
+  const activeFilePath = activeTab?.metadata?.file_path;
 
   // Poll active tab every 1s
   useEffect(() => {

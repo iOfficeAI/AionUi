@@ -71,10 +71,10 @@ function buildCacheKey(request: RequestPermissionRequest): string {
 // ─── PermissionResolver ─────────────────────────────────────────
 
 type PendingPermission = {
-  callId: string;
+  call_id: string;
   resolve: (response: RequestPermissionResponse) => void;
   reject: (error: Error) => void;
-  createdAt: number;
+  created_at: number;
 };
 
 type PermissionResolverConfig = {
@@ -120,16 +120,16 @@ export class PermissionResolver {
 
     // Level 3: UI delegation
     const { toolCall } = request;
-    const callId = toolCall.toolCallId;
+    const call_id = toolCall.toolCallId;
     return new Promise<RequestPermissionResponse>((resolve, reject) => {
-      this.pending.set(callId, { callId, resolve, reject, createdAt: Date.now(), cacheKey });
+      this.pending.set(call_id, { call_id, resolve, reject, created_at: Date.now(), cacheKey });
       uiCallback({
-        callId,
+        call_id,
         title: toolCall.title ?? '',
         description: '',
         kind: toolCall.kind ?? undefined,
         options: request.options.map((o) => ({
-          optionId: o.optionId,
+          option_id: o.optionId,
           label: o.name,
           kind: o.kind,
         })),
@@ -142,10 +142,10 @@ export class PermissionResolver {
     });
   }
 
-  resolve(callId: string, optionId: string): void {
-    const entry = this.pending.get(callId);
+  resolve(call_id: string, optionId: string): void {
+    const entry = this.pending.get(call_id);
     if (!entry) return;
-    this.pending.delete(callId);
+    this.pending.delete(call_id);
 
     // Cache "allow always" decisions for future auto-approval (never cache deny)
     if (optionId.startsWith('allow_') && optionId.includes('always')) {

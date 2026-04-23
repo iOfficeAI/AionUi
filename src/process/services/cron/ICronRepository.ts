@@ -8,11 +8,11 @@ import type { CronJob } from './CronStore';
 
 export interface ICronRepository {
   insert(job: CronJob): Promise<void>;
-  update(jobId: string, updates: Partial<CronJob>): Promise<void>;
-  delete(jobId: string): Promise<void>;
-  getById(jobId: string): Promise<CronJob | null>;
+  update(job_id: string, updates: Partial<CronJob>): Promise<void>;
+  delete(job_id: string): Promise<void>;
+  getById(job_id: string): Promise<CronJob | null>;
   listAll(): Promise<CronJob[]>;
   listEnabled(): Promise<CronJob[]>;
-  listByConversation(conversationId: string): Promise<CronJob[]>;
-  deleteByConversation(conversationId: string): Promise<number>;
+  listByConversation(conversation_id: string): Promise<CronJob[]>;
+  deleteByConversation(conversation_id: string): Promise<number>;
 }
