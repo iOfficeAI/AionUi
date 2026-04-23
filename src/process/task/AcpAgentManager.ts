@@ -115,6 +115,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private missingFinishFallbackTurnId: number | null = null;
   private readonly missingFinishFallbackDelayMs = 15000;
+  /** True while `agent.sendMessage()` is awaiting (prompt in flight).
+   *  The idle-finish fallback timer is suppressed during this window because
+   *  long tool-call gaps (>15 s) between stream events are normal and do not
+   *  indicate a missing finish signal. */
+  private promptInFlight: boolean = false;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data, new IpcAgentEventEmitter(), false);
@@ -251,6 +256,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return;
     }
 
+    // While the prompt is still awaiting (`agent.sendMessage()` hasn't resolved),
+    // don't schedule the idle timer.  Long gaps between stream events are normal
+    // during tool-call execution (e.g. Codex running shell commands).  The timer
+    // is only meaningful *after* sendMessage resolves without a finish signal.
+    if (this.promptInFlight) {
+      return;
+    }
+
     this.clearMissingFinishFallback();
     this.missingFinishFallbackTurnId = turnId;
     this.missingFinishFallbackTimer = setTimeout(() => {
@@ -366,14 +379,21 @@ ${collectedResponses.join('\n')}`;
     data: Parameters<AcpAgent['sendMessage']>[0] & Record<string, unknown>
   ): Promise<AcpResult> {
     const turnId = this.beginTrackedTurn();
+    this.promptInFlight = true;
 
     try {
       const result = await this.agent.sendMessage(data);
+      this.promptInFlight = false;
+
       if (this.consumeTrackedTurnFinished(turnId)) {
         return result;
       }
 
       if (this.activeTrackedTurnId === turnId && this.activeTrackedTurnHasRuntimeActivity) {
+        // Finish signal hasn't arrived yet but prompt resolved and there was
+        // runtime activity.  Now that promptInFlight is false the idle timer
+        // can be armed to catch a genuinely missing finish signal.
+        this.scheduleMissingFinishFallback();
         return result;
       }
 
@@ -394,6 +414,7 @@ ${collectedResponses.join('\n')}`;
       );
       return result;
     } catch (error) {
+      this.promptInFlight = false;
       this.clearTrackedTurn(turnId);
       throw error;
     }
