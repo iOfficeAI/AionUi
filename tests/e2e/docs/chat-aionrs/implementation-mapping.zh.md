@@ -3,7 +3,7 @@
 本文档记录 `test-cases.zh.md` 中定义的 15 个测试用例与实际 E2E 实现文件的对应关系。
 
 **生成时间**：2026-04-22  
-**实现目录**：`tests/e2e/features/chat-aionrs/`  
+**实现目录**：`tests/e2e/features/conversations/aionrs/`  
 **文档版本**：test-cases.zh.md v1.0
 
 ---
@@ -31,11 +31,11 @@
 
 | 用例 ID | 用例标题 | 实现文件 | 行号 | 测试函数名 | 截图数 | 状态 |
 |---------|---------|----------|------|-----------|--------|------|
-| TC-A-01 | 最小可行路径 | tests/e2e/features/chat-aionrs/basic-flow.e2e.ts | 79 | `test('TC-A-01: should complete minimal conversation with no attachments')` | 4 | ✅ |
-| TC-A-02 | 关联单个文件夹 | tests/e2e/features/chat-aionrs/basic-flow.e2e.ts | 154 | `test('TC-A-02: should associate single folder and reference in message')` | 3 | ✅ |
-| TC-A-03 | 上传单个文件 | tests/e2e/features/chat-aionrs/basic-flow.e2e.ts | 223 | `test('TC-A-03: should upload single file and binary receives file parameter')` | 3 | ✅ |
-| TC-A-04 | 非默认模型 | tests/e2e/features/chat-aionrs/model-selection.e2e.ts | 70 | `test.skip('TC-A-04: should use second model selected on guid page')` | 4 | ⏭️ Skip |
-| TC-A-05 | yolo 权限 | tests/e2e/features/chat-aionrs/permission-modes.e2e.ts | 69 | `test('TC-A-05: should use yolo permission selected on guid page')` | 5 | ✅ |
+| TC-A-01 | 最小可行路径 | tests/e2e/features/conversations/aionrs/basic-flow.e2e.ts | 79 | `test('TC-A-01: should complete minimal conversation with no attachments')` | 4 | ✅ |
+| TC-A-02 | 关联单个文件夹 | tests/e2e/features/conversations/aionrs/basic-flow.e2e.ts | 154 | `test('TC-A-02: should associate single folder and reference in message')` | 3 | ✅ |
+| TC-A-03 | 上传单个文件 | tests/e2e/features/conversations/aionrs/basic-flow.e2e.ts | 223 | `test('TC-A-03: should upload single file and binary receives file parameter')` | 3 | ✅ |
+| TC-A-04 | 非默认模型 | tests/e2e/features/conversations/aionrs/model-selection.e2e.ts | 70 | `test.skip('TC-A-04: should use second model selected on guid page')` | 4 | ⏭️ Skip |
+| TC-A-05 | yolo 权限 | tests/e2e/features/conversations/aionrs/permission-modes.e2e.ts | 69 | `test('TC-A-05: should use yolo permission selected on guid page')` | 5 | ✅ |
 
 **小计**：5 个测试，19 张截图
 
@@ -45,13 +45,13 @@
 
 | 用例 ID | 用例标题 | 实现文件 | 行号 | 测试函数名 | 截图数 | 状态 |
 |---------|---------|----------|------|-----------|--------|------|
-| TC-A-06 | 切换权限 | tests/e2e/features/chat-aionrs/permission-modes.e2e.ts | 154 | `test('TC-A-06: should switch permission mid-conversation and persist to DB')` | 5 | ✅ |
-| TC-A-07 | 切换模型 | tests/e2e/features/chat-aionrs/model-selection.e2e.ts | 135 | `test.skip('TC-A-07: should switch model mid-conversation and update DB')` | 5 | ⏭️ Skip |
-| TC-A-08 | 连续切换 | tests/e2e/features/chat-aionrs/mid-conversation-switch.e2e.ts | 68 | `test('TC-A-08: should handle continuous switch (model → permission → model)')` | 6 | ⏭️ Skip |
-| TC-A-09 | 多轮对话 | tests/e2e/features/chat-aionrs/mid-conversation-switch.e2e.ts | 178 | `test('TC-A-09: should handle 3 rounds of conversation after model/permission switch')` | 6 | ⏭️ Skip |
-| TC-A-10 | 组合场景 1 | tests/e2e/features/chat-aionrs/combo-scenarios.e2e.ts | 72 | `test('TC-A-10: should handle folder + second model + yolo mode combo')` | 3 | ✅ |
-| TC-A-11 | 组合场景 2 | tests/e2e/features/chat-aionrs/combo-scenarios.e2e.ts | 151 | `test('TC-A-11: should handle file + non-default model + default mode combo')` | 3 | ✅ |
-| TC-A-12 | 完整组合 | tests/e2e/features/chat-aionrs/combo-scenarios.e2e.ts | 229 | `test('TC-A-12: should handle full combo (folder + file + second model + yolo)')` | 4 | ✅ |
+| TC-A-06 | 切换权限 | tests/e2e/features/conversations/aionrs/permission-modes.e2e.ts | 154 | `test('TC-A-06: should switch permission mid-conversation and persist to DB')` | 5 | ✅ |
+| TC-A-07 | 切换模型 | tests/e2e/features/conversations/aionrs/model-selection.e2e.ts | 135 | `test.skip('TC-A-07: should switch model mid-conversation and update DB')` | 5 | ⏭️ Skip |
+| TC-A-08 | 连续切换 | tests/e2e/features/conversations/aionrs/mid-conversation-switch.e2e.ts | 68 | `test('TC-A-08: should handle continuous switch (model → permission → model)')` | 6 | ⏭️ Skip |
+| TC-A-09 | 多轮对话 | tests/e2e/features/conversations/aionrs/mid-conversation-switch.e2e.ts | 178 | `test('TC-A-09: should handle 3 rounds of conversation after model/permission switch')` | 6 | ⏭️ Skip |
+| TC-A-10 | 组合场景 1 | tests/e2e/features/conversations/aionrs/combo-scenarios.e2e.ts | 72 | `test('TC-A-10: should handle folder + second model + yolo mode combo')` | 3 | ✅ |
+| TC-A-11 | 组合场景 2 | tests/e2e/features/conversations/aionrs/combo-scenarios.e2e.ts | 151 | `test('TC-A-11: should handle file + non-default model + default mode combo')` | 3 | ✅ |
+| TC-A-12 | 完整组合 | tests/e2e/features/conversations/aionrs/combo-scenarios.e2e.ts | 229 | `test('TC-A-12: should handle full combo (folder + file + second model + yolo)')` | 4 | ✅ |
 
 **小计**：7 个测试，32 张截图
 
@@ -61,9 +61,9 @@
 
 | 用例 ID | 用例标题 | 实现文件 | 行号 | 测试函数名 | 截图数 | 状态 |
 |---------|---------|----------|------|-----------|--------|------|
-| TC-A-13 | Binary 不可达 | tests/e2e/features/chat-aionrs/edge-cases.e2e.ts | 67 | `test('TC-A-13: should handle empty workspace folder without crashing')` | 3 | ⚠️ 偏差 |
-| TC-A-14 | 超大文件限制 | tests/e2e/features/chat-aionrs/edge-cases.e2e.ts | 127 | `test('TC-A-14: should handle very long message (2000 characters)')` | 3 | ⚠️ 偏差 |
-| TC-A-15 | 不存在文件夹 | tests/e2e/features/chat-aionrs/edge-cases.e2e.ts | 185 | `test('TC-A-15: should handle rapid consecutive messages without race conditions')` | 3 | ⚠️ 偏差 |
+| TC-A-13 | Binary 不可达 | tests/e2e/features/conversations/aionrs/edge-cases.e2e.ts | 67 | `test('TC-A-13: should handle empty workspace folder without crashing')` | 3 | ⚠️ 偏差 |
+| TC-A-14 | 超大文件限制 | tests/e2e/features/conversations/aionrs/edge-cases.e2e.ts | 127 | `test('TC-A-14: should handle very long message (2000 characters)')` | 3 | ⚠️ 偏差 |
+| TC-A-15 | 不存在文件夹 | tests/e2e/features/conversations/aionrs/edge-cases.e2e.ts | 185 | `test('TC-A-15: should handle rapid consecutive messages without race conditions')` | 3 | ⚠️ 偏差 |
 
 **小计**：3 个测试，9 张截图
 
@@ -258,7 +258,7 @@ expect(extra.workspace).toBe(workspacePath); // 或 undefined（无文件夹）
 ### 更新流程
 1. 运行命令重新统计截图数：
    ```bash
-   for file in tests/e2e/features/chat-aionrs/*.e2e.ts; do 
+   for file in tests/e2e/features/conversations/aionrs/*.e2e.ts; do 
      echo "$(basename $file): $(grep -c 'takeScreenshot' $file)"; 
    done
    ```

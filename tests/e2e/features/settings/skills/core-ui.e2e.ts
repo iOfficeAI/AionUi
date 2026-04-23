@@ -45,7 +45,7 @@ import {
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
-  normalizeTestId
+  normalizeTestId,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -65,9 +65,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
   // TC-S-01: Render My Skills list (basic scenario)
   // ============================================================================
 
-  test('TC-S-01: should render My Skills section with builtin and custom skills', async ({
-    page
-  }) => {
+  test('TC-S-01: should render My Skills section with builtin and custom skills', async ({ page }) => {
     // Setup: Create 2 test skills (1 builtin-like, 1 custom)
     const tempSource = createTempExternalSource('tc-s-01');
     try {
@@ -98,12 +96,8 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-01/02-my-skills-section.png');
 
       // Expected: Display 2 skill cards
-      const builtinCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Builtin')}"]`
-      );
-      const customCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Custom')}"]`
-      );
+      const builtinCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Builtin')}"]`);
+      const customCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Custom')}"]`);
 
       await expect(builtinCard).toBeVisible();
       await expect(customCard).toBeVisible();
@@ -117,10 +111,10 @@ test.describe('Skills Hub - Core UI (P0)', () => {
 
       // Bridge assertion: Verify backend state
       const skills = await getMySkills(page);
-      const testSkills = skills.filter(s => s.name.startsWith('E2E-Test-'));
+      const testSkills = skills.filter((s) => s.name.startsWith('E2E-Test-'));
       expect(testSkills).toHaveLength(2);
-      expect(testSkills.map(s => s.name)).toContain('E2E-Test-Builtin');
-      expect(testSkills.map(s => s.name)).toContain('E2E-Test-Custom');
+      expect(testSkills.map((s) => s.name)).toContain('E2E-Test-Builtin');
+      expect(testSkills.map((s) => s.name)).toContain('E2E-Test-Custom');
     } finally {
       // Cleanup
       await deleteSkillViaBridge(page, 'E2E-Test-Builtin');
@@ -133,9 +127,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
   // TC-S-05: Delete custom skill (success scenario)
   // ============================================================================
 
-  test('TC-S-05: should delete custom skill via UI with confirmation modal', async ({
-    page
-  }) => {
+  test('TC-S-05: should delete custom skill via UI with confirmation modal', async ({ page }) => {
     // Setup: Create 1 custom skill with unique name
     const skillName = `E2E-Test-Delete-Target-${Date.now()}`;
     const tempSource = createTempExternalSource('tc-s-05');
@@ -153,9 +145,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-05/01-before-delete.png');
 
       // Step 2: Locate target skill card in My Skills section
-      const targetCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skillName)}"]`
-      );
+      const targetCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillName)}"]`);
       await expect(targetCard).toBeVisible();
 
       // Step 3: Hover to show delete button (may require actual hover)
@@ -166,9 +156,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-05/02-delete-button-visible.png');
 
       // Step 4: Click delete button
-      const deleteButton = page.locator(
-        `[data-testid="btn-delete-${normalizeTestId(skillName)}"]`
-      );
+      const deleteButton = page.locator(`[data-testid="btn-delete-${normalizeTestId(skillName)}"]`);
       await deleteButton.click();
 
       // Step 5: Verify confirmation modal appears
@@ -205,7 +193,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
 
       // Bridge assertion: Verify skill is deleted from backend
       const skills = await getMySkills(page);
-      const deletedSkill = skills.find(s => s.name === skillName);
+      const deletedSkill = skills.find((s) => s.name === skillName);
       expect(deletedSkill).toBeUndefined();
     } finally {
       tempSource.cleanup();
@@ -226,7 +214,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
 
     // Query all skills and find a real builtin skill
     const skills = await getMySkills(page);
-    const builtinSkills = skills.filter(s => s.source === 'builtin');
+    const builtinSkills = skills.filter((s) => s.source === 'builtin');
 
     // Ensure at least one builtin skill exists
     expect(builtinSkills.length).toBeGreaterThan(0);
@@ -261,9 +249,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
   // TC-S-08: Render external skills list (single source)
   // ============================================================================
 
-  test('TC-S-08: should render external skills section with custom source', async ({
-    page
-  }) => {
+  test('TC-S-08: should render external skills section with custom source', async ({ page }) => {
     // Setup: Create temporary external source with 1 skill (real directory + SKILL.md)
     const tempSource = createTempExternalSource('tc-s-08');
     try {
@@ -295,9 +281,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-08/03-source-tab.png');
 
       // Step 5: Verify skill card is displayed
-      const externalCard = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-External')}"]`
-      );
+      const externalCard = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-External')}"]`);
       await expect(externalCard).toBeVisible();
 
       // Screenshot 04: External skill card
@@ -360,9 +344,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await page.waitForTimeout(1000);
 
       // Expected: New skill appears in "My Skills"
-      const mySkillCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Import-Single')}"]`
-      );
+      const mySkillCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId('E2E-Test-Import-Single')}"]`);
       await expect(mySkillCard).toBeVisible();
 
       // Screenshot 05: Skill in My Skills section
@@ -370,7 +352,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
 
       // Bridge assertion
       const skills = await getMySkills(page);
-      const importedSkill = skills.find(s => s.name === 'E2E-Test-Import-Single');
+      const importedSkill = skills.find((s) => s.name === 'E2E-Test-Import-Single');
       expect(importedSkill).toBeDefined();
     } finally {
       await deleteSkillViaBridge(page, 'E2E-Test-Import-Single');
@@ -496,9 +478,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-19/01-before-export.png');
 
       // Step 2: Locate skill card in "My Skills"
-      const skillCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(skillName)}"]`
-      );
+      const skillCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(skillName)}"]`);
       await expect(skillCard).toBeVisible();
 
       // Step 3: Hover to show "Export" button and wait
@@ -509,9 +489,7 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-19/02-export-button-visible.png');
 
       // Step 4: Click "Export" button to open Dropdown (force click to avoid hover issues)
-      const exportButton = page.locator(
-        `[data-testid="btn-export-${normalizeTestId(skillName)}"]`
-      );
+      const exportButton = page.locator(`[data-testid="btn-export-${normalizeTestId(skillName)}"]`);
       await expect(exportButton).toBeVisible();
       await exportButton.click({ force: true });
 
@@ -567,14 +545,17 @@ test.describe('Skills Hub - Core UI (P0)', () => {
       console.log('  Skill name:', skillName);
       console.log('  Export dest path:', tempExportDest.path);
       console.log('  Export dest exists:', fs.existsSync(tempExportDest.path));
-      console.log('  Export dest contents:', fs.existsSync(tempExportDest.path) ? fs.readdirSync(tempExportDest.path) : 'N/A');
+      console.log(
+        '  Export dest contents:',
+        fs.existsSync(tempExportDest.path) ? fs.readdirSync(tempExportDest.path) : 'N/A'
+      );
       console.log('  Expected skill path:', exportedSkillPath);
       console.log('  Skill path exists:', fs.existsSync(exportedSkillPath));
       console.log('  Success message appeared:', successMessageAppeared);
 
       // Verify imported skill location via Bridge
       const mySkills = await getMySkills(page);
-      const exportedSkill = mySkills.find(s => s.name === skillName);
+      const exportedSkill = mySkills.find((s) => s.name === skillName);
       console.log('  Skill in My Skills:', exportedSkill ? 'yes' : 'no');
       if (exportedSkill) {
         console.log('  Skill.location:', exportedSkill.location);

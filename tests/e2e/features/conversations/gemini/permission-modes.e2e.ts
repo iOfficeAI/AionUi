@@ -26,6 +26,11 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     if (!hasAuth) {
       test.skip(true, 'Gemini OAuth or API key not configured');
     }
+    // Clear volatile UI state (persisted mode handled by explicit selectGeminiMode
+    // calls inside each test — this suite always selects autoEdit explicitly).
+    await page.evaluate(() => {
+      sessionStorage.clear();
+    });
   });
 
   test.afterEach(async ({ page }) => {
@@ -51,13 +56,13 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     await selectGeminiAgent(page);
 
     // Screenshot 01: Gemini agent selected
-    await takeScreenshot(page, 'tc-g-06/gemini/01-agent-selected.png');
+    await takeScreenshot(page, `chat-gemini/tc-g-06/01-agent-selected.png`);
 
     // Step 2: Select autoEdit permission mode
     await selectGeminiMode(page, 'autoEdit');
 
     // Screenshot 02: AutoEdit mode selected
-    await takeScreenshot(page, 'tc-g-06/gemini/02-autoedit-mode.png');
+    await takeScreenshot(page, `chat-gemini/tc-g-06/02-autoedit-mode.png`);
 
     // Step 3: Input message and send
     const timestamp = Date.now();
@@ -69,7 +74,7 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     await inputLocator.fill(messageText);
 
     // Screenshot 03: Message input filled
-    await takeScreenshot(page, 'tc-g-06/gemini/03-message-input.png');
+    await takeScreenshot(page, `chat-gemini/tc-g-06/03-message-input.png`);
 
     const sendBtn = page.locator('[data-testid="guid-send-btn"]');
     await sendBtn.waitFor({ state: 'visible', timeout: 10_000 });
@@ -79,7 +84,7 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     await page.waitForURL(/#\/conversation\/[^/]+$/, { timeout: 15_000 });
 
     // Screenshot 04: Conversation page loaded
-    await takeScreenshot(page, 'tc-g-06/gemini/04-conversation-page.png');
+    await takeScreenshot(page, `chat-gemini/tc-g-06/04-conversation-page.png`);
 
     // Step 5: Extract conversation ID from URL
     const currentURL = page.url();
@@ -91,7 +96,7 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     await waitForGeminiReply(page, conversationId, 90_000);
 
     // Screenshot 05: AI reply finished
-    await takeScreenshot(page, 'tc-g-06/gemini/05-ai-reply-finished.png');
+    await takeScreenshot(page, `chat-gemini/tc-g-06/05-ai-reply-finished.png`);
 
     // Step 7: Verify conversation data in database
     const conv = await getGeminiConversationDB(page, conversationId);
@@ -106,8 +111,11 @@ test.describe('Gemini Chat - Permission Modes (P1)', () => {
     const extra = readConvExtra(conv);
     expect(extra.sessionMode).toBe('autoEdit');
 
-    // Verify workspace not set
-    expect(extra.workspace).toBeUndefined();
+    // Gemini always provisions a workspace — either user-attached or auto-created
+    // `gemini-temp-<timestamp>`. In this test we didn't attach a folder, so the
+    // agent created a temp workspace (see src/process/utils/initAgent.ts).
+    const ws = String(extra.workspace ?? '');
+    expect(ws).toMatch(/gemini-temp-\d+/);
 
     console.log(`[TC-G-06] Conversation verified:`, {
       id: conversationId,

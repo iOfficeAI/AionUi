@@ -7,12 +7,18 @@ import path from 'path';
 
 const SCREENSHOTS_DIR = path.resolve(__dirname, '..', 'screenshots');
 
-/** Take a screenshot and save it under `tests/e2e/screenshots/<name>.png`. */
+/**
+ * Take a screenshot and save it under `tests/e2e/screenshots/<name>`.
+ * `.png` is appended automatically when the caller omits it.
+ */
 export async function takeScreenshot(page: Page, name: string, opts?: { fullPage?: boolean }): Promise<void> {
-  fs.mkdirSync(SCREENSHOTS_DIR, { recursive: true });
+  const fileName = name.endsWith('.png') ? name : `${name}.png`;
+  const fullPath = path.join(SCREENSHOTS_DIR, fileName);
+
+  fs.mkdirSync(path.dirname(fullPath), { recursive: true });
 
   await page.screenshot({
-    path: path.join(SCREENSHOTS_DIR, `${name}.png`),
+    path: fullPath,
     fullPage: opts?.fullPage ?? false,
   });
 }

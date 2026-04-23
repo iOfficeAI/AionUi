@@ -12,7 +12,7 @@ import {
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
-  normalizeTestId
+  normalizeTestId,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -50,7 +50,7 @@ test.describe('Skills Hub - Manual Import (P1)', () => {
 
           return Promise.resolve({
             canceled: false,
-            filePaths: [targetPath]
+            filePaths: [targetPath],
           });
         };
       }, skillPath);
@@ -88,7 +88,7 @@ test.describe('Skills Hub - Manual Import (P1)', () => {
 
       // Verify skill is in My Skills via Bridge
       const mySkills = await getMySkills(page);
-      const importedSkill = mySkills.find(s => s.name === skillName);
+      const importedSkill = mySkills.find((s) => s.name === skillName);
       expect(importedSkill).toBeDefined();
       expect(importedSkill?.source).toBe('custom');
 

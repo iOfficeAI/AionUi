@@ -15,7 +15,7 @@
  * - Model options: data-testid="aionrs-model-option-{modelId}"
  */
 
-import { test, expect } from '../../fixtures';
+import { test, expect } from '../../../fixtures';
 import {
   resolveAionrsPreconditions,
   cleanupE2EAionrsConversations,
@@ -28,8 +28,8 @@ import {
   selectAionrsAgent,
   selectAionrsModel,
   type AionrsTestModels,
-} from '../../helpers';
-import { takeScreenshot } from '../../helpers/screenshots';
+} from '../../../helpers';
+import { takeScreenshot } from '../../../helpers/screenshots';
 
 test.describe('Aionrs Chat - Model Selection (P0 + P1)', () => {
   test.setTimeout(120000); // 2 minutes

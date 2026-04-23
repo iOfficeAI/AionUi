@@ -259,6 +259,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
     <>
       {hasConfirmation && confirmation && (
         <div
+          data-testid='conversation-confirmation-dialog'
           className={`relative p-16px bg-dialog-fill-0 flex flex-col overflow-hidden m-b-20px rd-20px max-w-800px max-h-[calc(100vh-200px)] w-full mx-auto box-border`}
           style={{
             boxShadow: '0px 2px 20px 0px rgba(74, 88, 250, 0.1)',

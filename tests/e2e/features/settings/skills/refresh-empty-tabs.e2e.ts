@@ -17,7 +17,7 @@ import {
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
-  normalizeTestId
+  normalizeTestId,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -54,9 +54,7 @@ test.describe('Skills Hub - Refresh/Empty/Tabs (P1)', () => {
       // Verify 1 skill exists
       const mySkillsSection = page.locator('[data-testid="my-skills-section"]');
       await expect(mySkillsSection).toBeVisible();
-      const initialCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(initialSkill)}"]`
-      );
+      const initialCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(initialSkill)}"]`);
       await expect(initialCard).toBeVisible();
 
       // Step 2: Dynamically add new skill via Bridge
@@ -80,14 +78,12 @@ test.describe('Skills Hub - Refresh/Empty/Tabs (P1)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-04/03-after-refresh.png');
 
       // Expected: New skill card appears
-      const newCard = page.locator(
-        `[data-testid="my-skill-card-${normalizeTestId(newSkill)}"]`
-      );
+      const newCard = page.locator(`[data-testid="my-skill-card-${normalizeTestId(newSkill)}"]`);
       await expect(newCard).toBeVisible();
 
       // Expected: Skill count updated (verify via Bridge)
       const mySkills = await getMySkills(page);
-      const testSkills = mySkills.filter(s => s.name.startsWith('E2E-Test-'));
+      const testSkills = mySkills.filter((s) => s.name.startsWith('E2E-Test-'));
       expect(testSkills.length).toBe(2);
 
       // Screenshot 04: Verify both skills visible
@@ -115,7 +111,7 @@ test.describe('Skills Hub - Refresh/Empty/Tabs (P1)', () => {
 
     // Verify via Bridge that no E2E test skills exist
     const mySkills = await getMySkills(page);
-    const testSkills = mySkills.filter(s => s.name.startsWith('E2E-Test-'));
+    const testSkills = mySkills.filter((s) => s.name.startsWith('E2E-Test-'));
     expect(testSkills.length).toBe(0);
 
     // Screenshot 02: No E2E test skills
@@ -169,12 +165,8 @@ test.describe('Skills Hub - Refresh/Empty/Tabs (P1)', () => {
       await page.waitForTimeout(500);
 
       // Verify Source A skills visible
-      const skillA1 = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceA-Skill1')}"]`
-      );
-      const skillA2 = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceA-Skill2')}"]`
-      );
+      const skillA1 = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceA-Skill1')}"]`);
+      const skillA2 = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceA-Skill2')}"]`);
       await expect(skillA1).toBeVisible();
       await expect(skillA2).toBeVisible();
 
@@ -191,15 +183,9 @@ test.describe('Skills Hub - Refresh/Empty/Tabs (P1)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-09/03-switched-to-b.png');
 
       // Expected: Tab B active, Source B skills visible
-      const skillB1 = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceB-Skill1')}"]`
-      );
-      const skillB2 = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceB-Skill2')}"]`
-      );
-      const skillB3 = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceB-Skill3')}"]`
-      );
+      const skillB1 = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceB-Skill1')}"]`);
+      const skillB2 = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceB-Skill2')}"]`);
+      const skillB3 = page.locator(`[data-testid="external-skill-card-${normalizeTestId('E2E-Test-SourceB-Skill3')}"]`);
       await expect(skillB1).toBeVisible();
       await expect(skillB2).toBeVisible();
       await expect(skillB3).toBeVisible();

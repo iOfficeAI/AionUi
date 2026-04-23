@@ -48,9 +48,7 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     await takeScreenshot(page, 'assistants/p2-1/04-final-state.png');
 
     // Verify no memory/cleanup warnings
-    const hasMemoryWarning = errors.some(
-      (e) => e.includes('memory') || e.includes('timer') || e.includes('cleanup'),
-    );
+    const hasMemoryWarning = errors.some((e) => e.includes('memory') || e.includes('timer') || e.includes('cleanup'));
     expect(hasMemoryWarning).toBe(false);
   });
 
@@ -133,7 +131,10 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
       await expect(modal).toBeVisible({ timeout: 5000 });
 
       // Find and add the test skill
-      const addBtns = modal.locator('button').filter({ hasText: /Add|添加/i }).filter({ hasNotText: /Added|已添加/i });
+      const addBtns = modal
+        .locator('button')
+        .filter({ hasText: /Add|添加/i })
+        .filter({ hasNotText: /Added|已添加/i });
       if ((await addBtns.count()) > 0) {
         await addBtns.first().click();
         await page.waitForTimeout(500);
@@ -160,7 +161,10 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     }
 
     const firstSkillCard = skillCards.first();
-    const deleteBtn = firstSkillCard.locator('button').filter({ has: page.locator('svg') }).last();
+    const deleteBtn = firstSkillCard
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .last();
 
     // Verify delete button exists
     const deleteCount = await deleteBtn.count();
@@ -205,8 +209,14 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     await takeScreenshot(page, 'assistants/p2-4/03-skills-modal-opened.png');
 
     // Look for add path button (might be icon-only or have text like "Add Path")
-    const addPathBtn = skillsModal.locator('button').filter({ has: page.locator('svg') }).last();
-    const btnCount = await skillsModal.locator('button').filter({ has: page.locator('svg') }).count();
+    const addPathBtn = skillsModal
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .last();
+    const btnCount = await skillsModal
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .count();
 
     if (btnCount === 0) {
       // No add path button found, skip test
@@ -286,8 +296,14 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
     await expect(skillsModal).toBeVisible({ timeout: 5000 });
 
     // Look for add path button
-    const addPathBtn = skillsModal.locator('button').filter({ has: page.locator('svg') }).last();
-    const btnCount = await skillsModal.locator('button').filter({ has: page.locator('svg') }).count();
+    const addPathBtn = skillsModal
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .last();
+    const btnCount = await skillsModal
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .count();
 
     if (btnCount === 0) {
       await takeScreenshot(page, 'assistants/p2-5/02-no-add-button.png');
@@ -314,7 +330,10 @@ test.describe('Assistant Settings Edge Cases (P2)', () => {
 
     // Look for folder button
     const pathInput = pathModal.locator('input').nth(1);
-    const folderBtn = pathModal.locator('button').filter({ has: page.locator('svg') }).last();
+    const folderBtn = pathModal
+      .locator('button')
+      .filter({ has: page.locator('svg') })
+      .last();
 
     const folderBtnVisible = await folderBtn.isVisible().catch(() => false);
     if (!folderBtnVisible) {

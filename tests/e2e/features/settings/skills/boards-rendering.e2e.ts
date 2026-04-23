@@ -44,7 +44,7 @@ test.describe('Skills Hub - Boards Rendering (P1)', () => {
 
     // Additional verification: If extension skills exist, verify cards have Extension badge
     const extensionCards = page.locator('[data-testid^="my-skill-card-"]').filter({
-      has: page.locator('text=/Extension/i')
+      has: page.locator('text=/Extension/i'),
     });
     const cardCount = await extensionCards.count();
     console.log(`[TC-S-27] Extension skills found: ${cardCount}`);
@@ -82,7 +82,7 @@ test.describe('Skills Hub - Boards Rendering (P1)', () => {
 
     // Expected: If auto skills exist, verify cards have Auto badge
     const autoCards = page.locator('[data-testid^="my-skill-card-"]').filter({
-      has: page.locator('text=/Auto/i')
+      has: page.locator('text=/Auto/i'),
     });
     const cardCount = await autoCards.count();
     console.log(`[TC-S-28] Auto skill cards found: ${cardCount}`);

@@ -18,7 +18,7 @@ import {
   createTempExternalSource,
   createTestSkill,
   cleanupTestSkills,
-  normalizeTestId
+  normalizeTestId,
 } from '../../../helpers/skillsHub';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import * as path from 'path';
@@ -66,9 +66,7 @@ test.describe('Skills Hub - Path/Export (P1)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-14/01-initial-state.png');
 
       // Verify initial skill visible
-      const initialCard = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId(initialSkill)}"]`
-      );
+      const initialCard = page.locator(`[data-testid="external-skill-card-${normalizeTestId(initialSkill)}"]`);
       await expect(initialCard).toBeVisible();
 
       // Step 2: Dynamically add new skill to external source directory
@@ -90,9 +88,7 @@ test.describe('Skills Hub - Path/Export (P1)', () => {
       await takeScreenshot(page, 'skills-hub/tc-s-14/03-after-refresh.png');
 
       // Expected: New skill card appears
-      const newCard = page.locator(
-        `[data-testid="external-skill-card-${normalizeTestId(newSkill)}"]`
-      );
+      const newCard = page.locator(`[data-testid="external-skill-card-${normalizeTestId(newSkill)}"]`);
       await expect(newCard).toBeVisible();
 
       // Screenshot 04: Both skills visible
