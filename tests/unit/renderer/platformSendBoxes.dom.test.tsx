@@ -431,28 +431,26 @@ describe('platform send box queue integration', () => {
     mockGeminiSendInvoke.mockResolvedValue({ success: true });
     mockOpenClawSendInvoke.mockResolvedValue({ success: true });
     mockOpenClawRuntimeInvoke.mockResolvedValue({
-      success: true,
-      data: {
-        runtime: {
-          workspace: 'C:/workspace',
-          backend: 'openclaw',
-          agent_name: 'OpenClaw',
-          cli_path: 'C:/cli/openclaw',
-          model: 'model-a',
-          identityHash: 'identity-1',
-          hasActiveSession: true,
-        },
-        expected: {
-          expectedWorkspace: 'C:/workspace',
-          expectedBackend: 'openclaw',
-          expectedAgentName: 'OpenClaw',
-          expectedCliPath: 'C:/cli/openclaw',
-          expectedModel: 'model-a',
-          expectedIdentityHash: 'identity-1',
-        },
+      conversation_id: 'conv-openclaw',
+      runtime: {
+        workspace: 'C:/workspace',
+        backend: 'openclaw',
+        agent_name: 'OpenClaw',
+        cli_path: 'C:/cli/openclaw',
+        model: 'model-a',
+        identityHash: 'identity-1',
+        has_active_session: true,
+      },
+      expected: {
+        expectedWorkspace: 'C:/workspace',
+        expectedBackend: 'openclaw',
+        expectedAgentName: 'OpenClaw',
+        expectedCliPath: 'C:/cli/openclaw',
+        expectedModel: 'model-a',
+        expectedIdentityHash: 'identity-1',
       },
     });
-    mockDatabaseMessagesInvoke.mockResolvedValue([]);
+    mockDatabaseMessagesInvoke.mockResolvedValue({ items: [] });
     mockDraftData.atPath = [];
     mockDraftData.content = '';
     mockDraftData.uploadFile = [];
@@ -469,7 +467,7 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          current_model: { use_model: 'gemini-2.5' },
+          current_model: { useModel: 'gemini-2.5' },
           getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
@@ -483,7 +481,7 @@ describe('platform send box queue integration', () => {
       <AionrsSendBox
         conversation_id='conv-aionrs'
         modelSelection={{
-          current_model: { use_model: 'aionrs-1' },
+          current_model: { useModel: 'aionrs-1' },
           getDisplayModelName: (model_id: string) => model_id,
         }}
       />,
@@ -532,7 +530,7 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          current_model: { use_model: 'gemini-2.5' },
+          current_model: { useModel: 'gemini-2.5' },
           getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
@@ -551,7 +549,7 @@ describe('platform send box queue integration', () => {
       <AionrsSendBox
         conversation_id='conv-aionrs'
         modelSelection={{
-          current_model: { use_model: 'aionrs-1' },
+          current_model: { useModel: 'aionrs-1' },
           getDisplayModelName: (model_id: string) => model_id,
         }}
       />,
@@ -591,7 +589,7 @@ describe('platform send box queue integration', () => {
     ],
   ])(
     'sends commands immediately for %s when queueing is not required',
-    async (_name, element, sendSpy, assertPayload, shouldAssertBridgeSuccess = true) => {
+    async (_name, element, sendSpy, assertPayload, _shouldAssertBridgeSuccess = true) => {
       render(element);
 
       fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
@@ -602,9 +600,6 @@ describe('platform send box queue integration', () => {
 
       assertPayload(sendSpy.mock.calls[0]?.[0] as { input: string; conversation_id: string });
       expect(queueSpies.enqueue).not.toHaveBeenCalled();
-      if (shouldAssertBridgeSuccess) {
-        expect(mockAssertBridgeSuccess).toHaveBeenCalled();
-      }
     }
   );
 
@@ -651,7 +646,7 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          current_model: { use_model: 'gemini-2.5' },
+          current_model: { useModel: 'gemini-2.5' },
           getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
@@ -665,7 +660,7 @@ describe('platform send box queue integration', () => {
       <AionrsSendBox
         conversation_id='conv-aionrs'
         modelSelection={{
-          current_model: { use_model: 'aionrs-1' },
+          current_model: { useModel: 'aionrs-1' },
           getDisplayModelName: (model_id: string) => model_id,
         }}
       />,
@@ -694,7 +689,7 @@ describe('platform send box queue integration', () => {
       <GeminiSendBox
         conversation_id='conv-gemini'
         modelSelection={{
-          current_model: { use_model: 'gemini-2.5' },
+          current_model: { useModel: 'gemini-2.5' },
           getDisplayModelName: (model_id: string) => model_id,
           providers: ['google'],
           geminiModeLookup: {},
@@ -720,7 +715,7 @@ describe('platform send box queue integration', () => {
   it('uses display message for ACP attachments so chat history can retain uploaded images', async () => {
     mockDraftData.uploadFile = ['C:/workspace/uploads/photo.png'];
 
-    render(<AcpSendBox conversation_id='conv-acp' backend='claude' workspace_path='C:/workspace' />);
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' workspacePath='C:/workspace' />);
 
     fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
 
@@ -743,25 +738,23 @@ describe('platform send box queue integration', () => {
 
   it('blocks OpenClaw dispatch when runtime validation fails', async () => {
     mockOpenClawRuntimeInvoke.mockResolvedValue({
-      success: true,
-      data: {
-        runtime: {
-          workspace: 'C:/another-workspace',
-          backend: 'openclaw',
-          agent_name: 'OpenClaw',
-          cli_path: 'C:/cli/openclaw',
-          model: 'model-a',
-          identityHash: 'identity-1',
-          hasActiveSession: true,
-        },
-        expected: {
-          expectedWorkspace: 'C:/workspace',
-          expectedBackend: 'openclaw',
-          expectedAgentName: 'OpenClaw',
-          expectedCliPath: 'C:/cli/openclaw',
-          expectedModel: 'model-a',
-          expectedIdentityHash: 'identity-1',
-        },
+      conversation_id: 'conv-openclaw',
+      runtime: {
+        workspace: 'C:/another-workspace',
+        backend: 'openclaw',
+        agent_name: 'OpenClaw',
+        cli_path: 'C:/cli/openclaw',
+        model: 'model-a',
+        identityHash: 'identity-1',
+        has_active_session: true,
+      },
+      expected: {
+        expectedWorkspace: 'C:/workspace',
+        expectedBackend: 'openclaw',
+        expectedAgentName: 'OpenClaw',
+        expectedCliPath: 'C:/cli/openclaw',
+        expectedModel: 'model-a',
+        expectedIdentityHash: 'identity-1',
       },
     });
 
