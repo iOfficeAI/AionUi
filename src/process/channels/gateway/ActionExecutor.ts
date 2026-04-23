@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import path from 'path';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation } from '@/common/config/storage';
+import path from 'node:path';
 import { getDatabase } from '@process/services/database';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
@@ -34,6 +34,7 @@ import { stripHtml } from '../plugins/weixin/WeixinAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
 import { buildChannelConversationExtra, resolveChannelSendProtocol } from '../utils';
+import { buildIncomingAttachmentText, hasIncomingChatPayload } from '../utils/incomingAttachmentText';
 import i18n from '@process/services/i18n';
 
 // ==================== Platform-specific Helpers ====================
@@ -355,6 +356,9 @@ export class ActionExecutor {
       return;
     }
 
+    const incomingFiles = await plugin.resolveIncomingFiles(message);
+    const chatText = buildIncomingAttachmentText(content.text, content.attachments, incomingFiles);
+
     // Build action context
     const context: IActionContext = {
       platform,
@@ -533,9 +537,8 @@ export class ActionExecutor {
       } else if (content.type === 'action') {
         // Action encoded in content
         await this.executeAction(context, content.text, {});
-      } else if (content.type === 'text' && content.text) {
-        // Regular text message - send to AI
-        await this.handleChatMessage(context, content.text);
+      } else if (hasIncomingChatPayload(chatText, incomingFiles)) {
+        await this.handleChatMessage(context, chatText, incomingFiles);
       } else {
         // Unsupported content type
         await context.sendMessage({
@@ -595,7 +598,7 @@ export class ActionExecutor {
   /**
    * Handle chat message - send to AI and stream response
    */
-  private async handleChatMessage(context: IActionContext, text: string): Promise<void> {
+  private async handleChatMessage(context: IActionContext, text: string, files?: string[]): Promise<void> {
     // Update session activity (scoped by chatId)
     if (context.channelUser) {
       this.sessionManager.updateSessionActivity(context.channelUser.id, context.chatId);
@@ -738,7 +741,8 @@ export class ActionExecutor {
               }, delay);
             }
           }
-        }
+        },
+        files
       );
 
       // 清除待处理的定时器，确保最后一条消息被处理

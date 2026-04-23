@@ -191,6 +191,10 @@ export abstract class BasePlugin {
     }
   }
 
+  async resolveIncomingFiles(_message: IUnifiedIncomingMessage): Promise<string[] | undefined> {
+    return undefined;
+  }
+
   // ==================== Abstract Methods (implement in subclass) ====================
 
   /**

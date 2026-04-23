@@ -144,4 +144,37 @@ describe('ChannelMessageService', () => {
     service.clearStreamByConversationId('conv-3');
     await expect(newStreamPromise).resolves.toContain('channel_msg_');
   });
+
+  it('forwards downloaded attachment paths to the task sendMessage payload', async () => {
+    const service = new ChannelMessageService();
+
+    vi.spyOn(databaseModule, 'getDatabase').mockResolvedValue({
+      getConversation: () => ({ success: false }),
+    } as any);
+
+    const sendTaskMessage = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(workerTaskManager, 'getOrBuildTask').mockResolvedValue({
+      type: 'gemini',
+      sendMessage: sendTaskMessage,
+    } as any);
+
+    const streamPromise = service.sendMessage(
+      'session-1',
+      'conv-4',
+      '[Image: /tmp/aionui-lark-uploads/msg-1/attachment-1.png]',
+      vi.fn(),
+      ['/tmp/aionui-lark-uploads/msg-1/attachment-1.png']
+    );
+
+    await flushMicrotasks();
+
+    expect(sendTaskMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        files: ['/tmp/aionui-lark-uploads/msg-1/attachment-1.png'],
+      })
+    );
+
+    service.clearStreamByConversationId('conv-4');
+    await expect(streamPromise).resolves.toContain('channel_msg_');
+  });
 });

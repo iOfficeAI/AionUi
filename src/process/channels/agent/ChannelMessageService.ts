@@ -182,7 +182,8 @@ export class ChannelMessageService {
     _sessionId: string,
     conversationId: string,
     message: string,
-    onStream: StreamCallback
+    onStream: StreamCallback,
+    files?: string[]
   ): Promise<string> {
     // 确保服务已初始化
     // Ensure service is initialized
@@ -252,9 +253,9 @@ export class ChannelMessageService {
       // Build payload based on agent type.
       // Gemini and Aionrs expect { input }, ACP expects { content }.
       const useInputPayload = task.type === 'gemini' || task.type === 'aionrs';
-      const payload: { input?: string; content?: string; msg_id: string } = useInputPayload
-        ? { input: message, msg_id: msgId }
-        : { content: message, msg_id: msgId };
+      const payload: { input?: string; content?: string; msg_id: string; files?: string[] } = useInputPayload
+        ? { input: message, msg_id: msgId, ...(files?.length ? { files } : {}) }
+        : { content: message, msg_id: msgId, ...(files?.length ? { files } : {}) };
 
       task.sendMessage(payload).catch((error: Error) => {
         const errorMessage = `Error: ${error.message || 'Failed to send message'}`;

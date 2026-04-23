@@ -4,11 +4,72 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { promises as fs } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import * as lark from '@larksuiteoapi/node-sdk';
 
 import type { BotInfo, IChannelPluginConfig, IUnifiedOutgoingMessage, PluginType } from '../../types';
 import { BasePlugin } from '../BasePlugin';
 import { extractCardAction, LARK_MESSAGE_LIMIT, toLarkSendParams, toUnifiedIncomingMessage } from './LarkAdapter';
+
+function getHeaderValue(headers: unknown, name: string): string | undefined {
+  if (!headers || typeof headers !== 'object') return undefined;
+
+  const targetKey = name.toLowerCase();
+  const entries = Object.entries(headers as Record<string, unknown>);
+  const matched = entries.find(([key]) => key.toLowerCase() === targetKey)?.[1];
+
+  if (typeof matched === 'string') return matched;
+  if (Array.isArray(matched) && typeof matched[0] === 'string') return matched[0];
+  return undefined;
+}
+
+function parseContentDispositionFileName(contentDisposition?: string): string | undefined {
+  if (!contentDisposition) return undefined;
+
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1]);
+  }
+
+  const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return fileNameMatch?.[1];
+}
+
+function sanitizeFileName(fileName: string): string {
+  return Array.from(fileName)
+    .map((char) => {
+      if ('<>:"/\\|?*'.includes(char)) {
+        return '_';
+      }
+
+      return char.charCodeAt(0) < 32 ? '_' : char;
+    })
+    .join('');
+}
+
+function resolveExtension(contentType?: string, resourceType?: string): string {
+  if (!contentType) {
+    if (resourceType === 'image') return '.png';
+    if (resourceType === 'audio') return '.mp3';
+    return '';
+  }
+
+  if (contentType.includes('png')) return '.png';
+  if (contentType.includes('jpeg')) return '.jpg';
+  if (contentType.includes('gif')) return '.gif';
+  if (contentType.includes('webp')) return '.webp';
+  if (contentType.includes('pdf')) return '.pdf';
+  if (contentType.includes('mpeg')) return '.mp3';
+  return '';
+}
+
+function resolveResourceType(messageType: string | undefined, attachmentType: string): 'image' | 'file' | 'audio' {
+  if (messageType === 'image' || attachmentType === 'photo') return 'image';
+  if (messageType === 'audio' || attachmentType === 'audio') return 'audio';
+  return 'file';
+}
 
 /**
  * LarkPlugin - Lark/Feishu Bot integration for Personal Assistant
@@ -156,6 +217,61 @@ export class LarkPlugin extends BasePlugin {
    */
   getActiveUserCount(): number {
     return this.activeUsers.size;
+  }
+
+  override async resolveIncomingFiles(
+    message: Parameters<BasePlugin['resolveIncomingFiles']>[0]
+  ): Promise<string[] | undefined> {
+    if (!this.client) {
+      return undefined;
+    }
+
+    const attachments = message.content.attachments;
+    if (!attachments || attachments.length === 0) {
+      return undefined;
+    }
+
+    await this.ensureAccessToken();
+
+    const rawMessage = (message.raw as { event?: { message?: { message_type?: string } } } | undefined)?.event?.message;
+    const downloadDir = path.join(os.tmpdir(), 'aionui-lark-uploads', message.id);
+    await fs.mkdir(downloadDir, { recursive: true });
+
+    const downloadedFiles = await Promise.all(
+      attachments.map(async (attachment, index) => {
+        const resourceType = resolveResourceType(rawMessage?.message_type, attachment.type);
+
+        try {
+          const resource = await this.client.im.v1.messageResource.get({
+            path: {
+              message_id: message.id,
+              file_key: attachment.fileId,
+            },
+            params: {
+              type: resourceType,
+            },
+          });
+
+          const headerFileName = parseContentDispositionFileName(
+            getHeaderValue(resource.headers, 'content-disposition')
+          );
+          const contentType = getHeaderValue(resource.headers, 'content-type');
+          const fallbackName = `attachment-${index + 1}${resolveExtension(contentType, resourceType)}`;
+          const fileName = sanitizeFileName(attachment.fileName || headerFileName || fallbackName);
+          const filePath = path.join(downloadDir, fileName);
+
+          await resource.writeFile(filePath);
+          return filePath;
+        } catch (error) {
+          console.error('[LarkPlugin] Failed to download incoming attachment:', error);
+          return null;
+        }
+      })
+    );
+
+    const filePaths = downloadedFiles.filter((filePath): filePath is string => Boolean(filePath));
+
+    return filePaths.length > 0 ? filePaths : undefined;
   }
 
   /**
