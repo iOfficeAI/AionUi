@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import type { AcpBackend, AcpBackendConfig } from '../types';
 import { useCallback } from 'react';
 
@@ -33,6 +32,8 @@ type UsePresetAssistantResolverResult = {
 /**
  * Hook that provides preset assistant resolution callbacks.
  * Resolves rules, skills, context, and agent type for preset assistants.
+ * Rule/skill read requests are served by the backend, which dispatches per
+ * assistant source (builtin manifest / extension bundle / user md file).
  */
 export const usePresetAssistantResolver = ({
   customAgents,
@@ -65,34 +66,6 @@ export const usePresetAssistantResolver = ({
         });
       } catch (_error) {
         // skills may not exist, this is normal
-      }
-
-      // Fallback for builtin assistants
-      if (customAgentId.startsWith('builtin-')) {
-        const presetId = customAgentId.replace('builtin-', '');
-        const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-        if (preset) {
-          if (!rules && preset.ruleFiles) {
-            try {
-              const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
-              if (ruleFile) {
-                rules = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
-              }
-            } catch (e) {
-              console.warn(`Failed to load builtin rules for ${customAgentId}:`, e);
-            }
-          }
-          if (!skills && preset.skillFiles) {
-            try {
-              const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
-              if (skillFile) {
-                skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
-              }
-            } catch (_e) {
-              // skills fallback failure is ok
-            }
-          }
-        }
       }
 
       return { rules: rules || agentInfo.context, skills };

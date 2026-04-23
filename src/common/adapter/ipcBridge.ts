@@ -30,6 +30,14 @@ import type {
 } from '../update/updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
+import type {
+  Assistant,
+  CreateAssistantRequest,
+  ImportAssistantsRequest,
+  ImportAssistantsResult,
+  SetAssistantStateRequest,
+  UpdateAssistantRequest,
+} from '../types/assistantTypes';
 import {
   httpGet,
   httpPost,
@@ -53,6 +61,25 @@ export const shell = {
   openFolderWith: httpPost<void, { folderPath: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
     '/api/shell/open-folder-with',
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Assistants — routed to /api/assistants/*
+// ---------------------------------------------------------------------------
+
+export const assistants = {
+  list: httpGet<Assistant[], void>('/api/assistants'),
+  create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
+  update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+  delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
+  setState: httpPatch<Assistant, SetAssistantStateRequest>(
+    (p) => `/api/assistants/${p.id}/state`,
+    (p) => {
+      const { id: _id, ...body } = p;
+      return body;
+    },
+  ),
+  import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
 };
 
 // ---------------------------------------------------------------------------

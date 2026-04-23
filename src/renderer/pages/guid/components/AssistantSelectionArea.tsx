@@ -208,7 +208,9 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     }
 
     const candidates = resolveAssistantCandidateIds(assistantId);
-    const targetAssistant = [...assistants, ...customAgents].find((assistant) => candidates.includes(assistant.id));
+    // `assistants` is the backend-merged catalog (builtin + user + extension)
+    // and is the only list that yields the Assistant shape the editor expects.
+    const targetAssistant = assistants.find((assistant) => candidates.includes(assistant.id));
     if (!targetAssistant) {
       agentMessage.warning(
         t('common.failed', { defaultValue: 'Failed' }) +
@@ -218,7 +220,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     }
 
     void editor.handleEdit(targetAssistant);
-  }, [agentMessage, assistants, customAgents, editor, selectedAgentInfo?.customAgentId, selectedAgentKey, t]);
+  }, [agentMessage, assistants, editor, selectedAgentInfo?.customAgentId, selectedAgentKey, t]);
 
   useLayoutEffect(() => {
     if (!onRegisterOpenDetails) return;

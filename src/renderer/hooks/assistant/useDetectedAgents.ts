@@ -12,7 +12,8 @@ export type AvailableBackend = {
 
 /**
  * Provides detected execution engines for backend selectors (e.g. AssistantEditDrawer).
- * Excludes preset assistants — those live in ConfigStorage('assistants').
+ * Excludes preset assistants — those live in the backend catalog
+ * (`ipcBridge.assistants.list`).
  *
  * Returns `availableBackends` (simplified shape for Select dropdowns)
  * and `refreshAgentDetection` to trigger a re-scan.

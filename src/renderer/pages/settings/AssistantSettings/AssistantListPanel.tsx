@@ -4,7 +4,6 @@
  */
 import {
   filterAssistants,
-  getAssistantSource,
   groupAssistantsByEnabled,
   type AssistantListFilter,
 } from './assistantUtils';
@@ -92,13 +91,11 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   const filterOptions: Array<{ key: AssistantListFilter; label: string }> = [
     { key: 'all', label: t('settings.assistantFilterAll', { defaultValue: 'All' }) },
     { key: 'builtin', label: t('settings.assistantFilterBuiltin', { defaultValue: 'System' }) },
-    { key: 'custom', label: t('settings.assistantFilterCustom', { defaultValue: 'Custom' }) },
+    { key: 'user', label: t('settings.assistantFilterCustom', { defaultValue: 'Custom' }) },
   ];
 
   const renderSourceTag = (assistant: AssistantListItem) => {
-    const source = getAssistantSource(assistant);
-
-    if (source === 'builtin' || source === 'extension') {
+    if (assistant.source === 'builtin' || assistant.source === 'extension') {
       return null;
     }
 

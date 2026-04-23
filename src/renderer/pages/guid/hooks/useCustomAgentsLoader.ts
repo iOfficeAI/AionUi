@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
+import type { Assistant } from '@/common/types/assistantTypes';
 import type { AcpBackendConfig } from '../types';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -22,8 +23,37 @@ type UseCustomAgentsLoaderResult = {
 };
 
 /**
- * Hook that loads custom agents from ConfigStorage and ipcBridge.
- * Handles both user-created custom agents and extension-contributed assistants.
+ * Adapt a backend Assistant record into the AcpBackendConfig shape used by the
+ * Guid page selection logic.
+ */
+function assistantToAcpBackendConfig(assistant: Assistant): AcpBackendConfig {
+  return {
+    id: assistant.id,
+    name: assistant.name,
+    nameI18n: Object.keys(assistant.nameI18n).length > 0 ? assistant.nameI18n : undefined,
+    description: assistant.description,
+    descriptionI18n:
+      Object.keys(assistant.descriptionI18n).length > 0 ? assistant.descriptionI18n : undefined,
+    avatar: assistant.avatar,
+    isPreset: true,
+    isBuiltin: assistant.source === 'builtin',
+    enabled: assistant.enabled,
+    presetAgentType: assistant.presetAgentType,
+    context: assistant.context,
+    contextI18n: Object.keys(assistant.contextI18n).length > 0 ? assistant.contextI18n : undefined,
+    enabledSkills: assistant.enabledSkills.length > 0 ? assistant.enabledSkills : undefined,
+    customSkillNames: assistant.customSkillNames.length > 0 ? assistant.customSkillNames : undefined,
+    disabledBuiltinSkills:
+      assistant.disabledBuiltinSkills.length > 0 ? assistant.disabledBuiltinSkills : undefined,
+    prompts: assistant.prompts.length > 0 ? assistant.prompts : undefined,
+    promptsI18n: Object.keys(assistant.promptsI18n).length > 0 ? assistant.promptsI18n : undefined,
+    models: assistant.models.length > 0 ? assistant.models : undefined,
+  } as AcpBackendConfig;
+}
+
+/**
+ * Hook that loads the assistant catalog (backend-merged builtin + user + extension)
+ * plus any user-defined custom ACP agents from ConfigStorage.
  */
 export const useCustomAgentsLoader = ({
   availableCustomAgentIds,
@@ -36,33 +66,14 @@ export const useCustomAgentsLoader = ({
 
   const loadCustomAgents = useCallback(async () => {
     try {
-      const [presetAssistants, userCustomAgents, extAssistants] = await Promise.all([
-        ConfigStorage.get('assistants'),
+      const [assistants, userCustomAgents] = await Promise.all([
+        ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[]),
         ConfigStorage.get('acp.customAgents'),
-        ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[]),
       ]);
       const list: AcpBackendConfig[] = [
-        ...((presetAssistants || []) as AcpBackendConfig[]).filter((a) => a.isPreset),
+        ...assistants.map(assistantToAcpBackendConfig),
         ...((userCustomAgents || []) as AcpBackendConfig[]).filter((a) => availableCustomAgentIds.has(a.id)),
       ];
-      for (const ext of extAssistants) {
-        const id = typeof ext.id === 'string' ? ext.id : '';
-        if (!id || list.some((a) => a.id === id)) continue;
-        list.push({
-          id,
-          name: typeof ext.name === 'string' ? ext.name : id,
-          nameI18n: ext.nameI18n as Record<string, string> | undefined,
-          avatar: typeof ext.avatar === 'string' ? ext.avatar : undefined,
-          isPreset: true,
-          enabled: true,
-          presetAgentType: typeof ext.presetAgentType === 'string' ? ext.presetAgentType : undefined,
-          context: typeof ext.context === 'string' ? ext.context : undefined,
-          contextI18n: ext.contextI18n as Record<string, string> | undefined,
-          enabledSkills: Array.isArray(ext.enabledSkills) ? (ext.enabledSkills as string[]) : undefined,
-          prompts: Array.isArray(ext.prompts) ? (ext.prompts as string[]) : undefined,
-          promptsI18n: ext.promptsI18n as Record<string, string[]> | undefined,
-        } as AcpBackendConfig);
-      }
       setCustomAgents(list);
     } catch (error) {
       console.error('Failed to load custom agents:', error);
@@ -81,7 +92,7 @@ export const useCustomAgentsLoader = ({
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);
     }
-    // Re-read ConfigStorage so UI reflects any changes (e.g. presetAgentType switch)
+    // Re-read backend + ConfigStorage so UI reflects any changes (e.g. presetAgentType switch)
     await loadCustomAgents();
   }, [loadCustomAgents]);
 

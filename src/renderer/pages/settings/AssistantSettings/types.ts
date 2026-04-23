@@ -1,4 +1,4 @@
-import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import type { Assistant } from '@/common/types/assistantTypes';
 
 // Skill info type
 export type SkillSource = 'builtin' | 'custom' | 'extension';
@@ -32,8 +32,4 @@ export type BuiltinAutoSkill = {
   description: string;
 };
 
-export type AssistantListItem = AcpBackendConfig & {
-  _source?: string;
-  _extensionName?: string;
-  _kind?: string;
-};
+export type AssistantListItem = Assistant;

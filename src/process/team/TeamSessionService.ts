@@ -247,21 +247,21 @@ export class TeamSessionService {
     const deps: PresetAssistantResourceDeps = {
       readAssistantRule: ({ assistantId, locale }) => this.readAssistantResource('rules', assistantId, locale),
       readAssistantSkill: ({ assistantId, locale }) => this.readAssistantResource('skills', assistantId, locale),
-      readBuiltinRule: async ({ fileName }) => {
-        const builtinDir = await this.findBuiltinResourceDir('rules');
-        return fs.readFile(path.join(builtinDir, path.basename(fileName)), 'utf-8');
-      },
-      readBuiltinSkill: async ({ fileName }) => {
-        const builtinDir = await this.findBuiltinResourceDir('skills');
-        return fs.readFile(path.join(builtinDir, path.basename(fileName)), 'utf-8');
-      },
       getEnabledSkills: async (assistantId) => {
-        const customAgents = await ProcessConfig.get('assistants');
-        return customAgents?.find((agent) => agent.id === assistantId)?.enabledSkills;
+        try {
+          const list = await ipcBridge.assistants.list.invoke();
+          return list.find((a) => a.id === assistantId)?.enabledSkills;
+        } catch {
+          return undefined;
+        }
       },
       getDisabledBuiltinSkills: async (assistantId) => {
-        const customAgents = await ProcessConfig.get('assistants');
-        return customAgents?.find((agent) => agent.id === assistantId)?.disabledBuiltinSkills;
+        try {
+          const list = await ipcBridge.assistants.list.invoke();
+          return list.find((a) => a.id === assistantId)?.disabledBuiltinSkills;
+        } catch {
+          return undefined;
+        }
       },
       warn: (message, error) => {
         console.warn(message, error);

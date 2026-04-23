@@ -22,7 +22,7 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
  * `contributes.acpAdapters` in the extension manifest. Discovered from
  * ExtensionRegistry at runtime. Verified via CLI availability before inclusion.
  *
- * **Custom agents** — User-defined ACP CLIs from ConfigStorage 'assistants'.
+ * **Custom agents** — User-defined ACP CLIs from ConfigStorage 'acp.customAgents'.
  * No CLI availability check — the user is responsible for the path they provide.
  *
  * This class is a pure detection module — it does NOT own state or coordinate

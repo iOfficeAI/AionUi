@@ -55,8 +55,6 @@ export interface IConfigStorageRefer {
   'acp.agentIdleTimeout'?: number;
   /** User-defined custom ACP agents (isPreset !== true, require defaultCliPath). */
   'acp.customAgents'?: AcpBackendConfig[];
-  /** Preset assistant configurations (isPreset === true, prompt-only, no CLI). */
-  assistants?: AcpBackendConfig[];
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
   // Cached model lists per ACP backend for Guid page pre-selection

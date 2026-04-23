@@ -455,7 +455,7 @@ ${collectedResponses.join('\n')}`;
     customArgs?: string[];
     customEnv?: Record<string, string>;
   }> {
-    const customAgents = await ProcessConfig.get('assistants');
+    const customAgents = await ProcessConfig.get('acp.customAgents');
     let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
       (agent) => agent.id === data.customAgentId
     );

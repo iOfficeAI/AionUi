@@ -17,7 +17,6 @@ import type { TeamAgent } from '../../types.ts';
 import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
 import { agentRegistry } from '@process/agent/AgentRegistry';
-import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import { resolveLocaleKey } from '@/common/utils';
 import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
@@ -377,14 +376,15 @@ export class TeamMcpServer {
     const model = args.model ? String(args.model) : undefined;
     let agentType = args.agent_type ? String(args.agent_type) : undefined;
 
-    // When a preset is requested, resolve its backend from config so the caller
-    // does not need to specify agent_type separately.
+    // When a preset is requested, resolve its backend from the backend-owned
+    // assistant catalog so the caller does not need to specify agent_type
+    // separately.
     if (customAgentId) {
-      const assistants = (await ProcessConfig.get('assistants')) ?? [];
-      const preset = assistants.find((a) => a.id === customAgentId && a.isPreset);
+      const assistants = await ipcBridge.assistants.list.invoke();
+      const preset = assistants.find((a) => a.id === customAgentId);
       if (!preset) {
         const availableIds = assistants
-          .filter((a) => a.isPreset && a.enabled !== false)
+          .filter((a) => a.enabled !== false)
           .map((a) => a.id)
           .join(', ');
         throw new Error(
@@ -541,11 +541,14 @@ export class TeamMcpServer {
       throw new Error('custom_agent_id is required.');
     }
 
-    const assistants = (await ProcessConfig.get('assistants')) ?? [];
-    const assistant = assistants.find((a) => a.id === customAgentId && a.isPreset);
+    // Query the backend catalog (merged builtin + user + extension). The
+    // returned Assistant already carries locale maps and prompt examples that
+    // previously lived only in the frontend ASSISTANT_PRESETS constant.
+    const assistants = await ipcBridge.assistants.list.invoke();
+    const assistant = assistants.find((a) => a.id === customAgentId);
     if (!assistant) {
       const availableIds = assistants
-        .filter((a) => a.isPreset && a.enabled !== false)
+        .filter((a) => a.enabled !== false)
         .map((a) => a.id)
         .join(', ');
       throw new Error(
@@ -570,16 +573,11 @@ export class TeamMcpServer {
       return source[localeKey] || source['en-US'] || Object.values(source)[0] || [];
     };
 
-    // Built-in presets carry extra catalog data (example prompts, locale names)
-    // that the stored assistant record does not. Merge both sources.
-    const builtinId = customAgentId.startsWith('builtin-') ? customAgentId.replace('builtin-', '') : customAgentId;
-    const builtin = ASSISTANT_PRESETS.find((p) => p.id === builtinId);
-
-    const name = pickLocalized(builtin?.nameI18n) || assistant.name || customAgentId;
-    const description = pickLocalized(builtin?.descriptionI18n) || assistant.description || '';
-    const backend = assistant.presetAgentType || builtin?.presetAgentType || 'gemini';
-    const skills = assistant.enabledSkills && assistant.enabledSkills.length > 0 ? assistant.enabledSkills : [];
-    const examples = pickLocalizedList(builtin?.promptsI18n);
+    const name = pickLocalized(assistant.nameI18n) || assistant.name || customAgentId;
+    const description = pickLocalized(assistant.descriptionI18n) || assistant.description || '';
+    const backend = assistant.presetAgentType || 'gemini';
+    const skills = assistant.enabledSkills.length > 0 ? assistant.enabledSkills : [];
+    const examples = pickLocalizedList(assistant.promptsI18n);
 
     const lines: string[] = [];
     lines.push(`# ${name} (${customAgentId})`);

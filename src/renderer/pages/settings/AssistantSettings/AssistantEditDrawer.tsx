@@ -4,7 +4,6 @@
  */
 import type { AssistantListItem, BuiltinAutoSkill, SkillInfo } from './types';
 import type { AvailableBackend } from '@/renderer/hooks/assistant';
-import { hasBuiltinSkills } from './assistantUtils';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
@@ -92,7 +91,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   disabledBuiltinSkills,
   setDisabledBuiltinSkills,
   activeAssistant,
-  activeAssistantId,
+  activeAssistantId: _activeAssistantId,
   isExtensionAssistant,
   availableBackends,
   handleSave,
@@ -127,11 +126,13 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
     return () => window.removeEventListener('resize', updateDrawerWidth);
   }, []);
 
-  // Whether skills section should be visible
+  // Whether skills section should be visible.
+  // All non-extension assistants expose a skills panel: user/custom can edit,
+  // builtins show a read-only toggle list. The backend has already filtered
+  // extension assistants into their own source class.
   const showSkills =
     isCreating ||
-    (activeAssistantId !== null && hasBuiltinSkills(activeAssistantId)) ||
-    (activeAssistant !== null && !activeAssistant.isBuiltin);
+    (activeAssistant !== null && activeAssistant.source !== 'extension');
 
   const agentOptions = availableBackends;
 
@@ -166,7 +167,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
       (name) =>
         pendingSkills.some((skill) => skill.name === name) || availableSkills.some((skill) => skill.name === name)
     ).length + autoInjectedActiveCount;
-  const isRuleEditable = !activeAssistant?.isBuiltin;
+  const isRuleEditable = activeAssistant?.source !== 'builtin';
   const rulesContainerHeight = rulesExpanded
     ? '420px'
     : isRuleEditable && promptViewMode === 'edit'
@@ -226,7 +227,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               {t('common.cancel', { defaultValue: 'Cancel' })}
             </Button>
           </div>
-          {!isCreating && !activeAssistant?.isBuiltin && !isExtensionAssistant(activeAssistant) && (
+          {!isCreating && activeAssistant?.source !== 'builtin' && !isExtensionAssistant(activeAssistant) && (
             <Button
               status='danger'
               onClick={handleDeleteClick}
@@ -249,7 +250,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               {t('settings.assistantNameAvatar', { defaultValue: 'Name & Avatar' })}
             </Typography.Text>
             <div className='mt-10px flex items-center gap-12px'>
-              {activeAssistant?.isBuiltin ? (
+              {activeAssistant?.source === 'builtin' ? (
                 <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px'>
                   {editAvatarImage ? (
                     <img src={editAvatarImage} alt='' width={24} height={24} style={{ objectFit: 'contain' }} />
@@ -277,7 +278,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               <Input
                 value={editName}
                 onChange={(value) => setEditName(value)}
-                disabled={activeAssistant?.isBuiltin}
+                disabled={activeAssistant?.source === 'builtin'}
                 placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })}
                 data-testid='input-assistant-name'
                 className='flex-1 rounded-4px bg-bg-1'
@@ -294,7 +295,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               className='mt-10px rounded-4px bg-bg-1'
               value={editDescription}
               onChange={(value) => setEditDescription(value)}
-              disabled={activeAssistant?.isBuiltin}
+              disabled={activeAssistant?.source === 'builtin'}
               data-testid='input-assistant-desc'
               placeholder={t('settings.assistantDescriptionPlaceholder', {
                 defaultValue: 'What can this assistant help with?',
