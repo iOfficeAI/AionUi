@@ -42,7 +42,7 @@ function configToAvailableAgent(config: AcpBackendConfig): AvailableAgent {
  *
  * Two independent data sources:
  *   - Execution engines — from AgentRegistry via IPC (agents.detected)
- *   - Preset assistants — from ConfigStorage ('assistants')
+ *   - Preset assistants — from configService ('assistants')
  */
 export const useConversationAgents = (): UseConversationAgentsResult => {
   // Execution engines from AgentRegistry (shared cache with useDetectedAgents / useGuidAgentSelection)
@@ -54,7 +54,7 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
 
   // Preset assistants from config layer
   const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
-    const agents: AcpBackendConfig[] = (configService.get('assistants')) || [];
+    const agents: AcpBackendConfig[] = configService.get('assistants') || [];
     return agents.filter((a) => a.is_preset && a.enabled !== false);
   });
 

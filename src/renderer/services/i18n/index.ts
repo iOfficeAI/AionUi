@@ -72,7 +72,7 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
 // Electron renderer, so the detector would read the wrong (or missing) value
 // and fall back to navigator.language, causing a language mismatch (Issue #1176).
 // Instead, we use localStorage only as a hint for the initial render and let
-// ConfigStorage (which bridges to the main process) be the single source of truth.
+// configService (which bridges to the backend) be the single source of truth.
 i18n
   .use(initReactI18next)
   .init({
@@ -90,7 +90,7 @@ i18n
     console.error('Failed to initialize i18n:', error);
   });
 
-// Load initial language from ConfigStorage (single source of truth)
+// Load initial language from configService (single source of truth)
 async function initLanguage(): Promise<void> {
   try {
     const savedLanguage = configService.get('language');

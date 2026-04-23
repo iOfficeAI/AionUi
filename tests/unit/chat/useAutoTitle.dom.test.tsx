@@ -62,10 +62,7 @@ describe('useAutoTitle', () => {
   it('uses the first user message from history for the title', async () => {
     conversationGetMock.mockResolvedValue({ id: 'conv-1', name: 'New Chat' });
     getConversationMessagesMock.mockResolvedValue({
-      items: [
-        createUserMessage('帮我整理一个 monorepo CI 失败排查清单'),
-        createUserMessage('继续'),
-      ],
+      items: [createUserMessage('帮我整理一个 monorepo CI 失败排查清单'), createUserMessage('继续')],
     });
     conversationUpdateMock.mockResolvedValue(true);
 

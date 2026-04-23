@@ -38,7 +38,7 @@ type AssistantLike = {
  */
 /**
  * Resolve the assistant config ID (preserving original prefix like 'builtin-').
- * Use this when matching against the assistant list in ConfigStorage 'assistants'.
+ * Use this when matching against the assistant list in configService 'assistants'.
  */
 export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {

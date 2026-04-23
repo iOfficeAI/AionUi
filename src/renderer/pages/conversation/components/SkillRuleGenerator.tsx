@@ -269,7 +269,7 @@ Requirements:
 
   const registerPreset = async (name: string, content: string) => {
     try {
-      const customAgents = ((configService.get('assistants')) ?? []) as AcpBackendConfig[];
+      const customAgents = (configService.get('assistants') ?? []) as AcpBackendConfig[];
       const presetAgent: AcpBackendConfig = {
         id: uuid(),
         name,

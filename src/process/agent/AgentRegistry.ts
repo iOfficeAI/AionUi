@@ -31,7 +31,7 @@ import type { RemoteAgentConfig } from '@process/agent/remote/types';
  *   - Aionrs       — always present (Rust binary, availability resolved at runtime)
  *   - OpenClaw GW  — detected via `openclaw` CLI on PATH
  *   - Nanobot      — detected via `nanobot` CLI on PATH
- *   - Custom ACP   — user-defined ACP CLIs from ConfigStorage 'assistants'
+ *   - Custom ACP   — user-defined ACP CLIs from configService 'assistants'
  *
  * Preset assistants (prompt-only presets with no CLI binary) are NOT
  * execution engines — they live in the configuration layer and reference
@@ -278,7 +278,7 @@ class AgentRegistry {
   }
 
   /**
-   * Refresh custom ACP agents from ConfigStorage 'assistants'.
+   * Refresh custom ACP agents from configService 'assistants'.
    * Called after the user adds/edits/deletes a custom agent in Settings.
    */
   async refreshCustomAgents(): Promise<void> {

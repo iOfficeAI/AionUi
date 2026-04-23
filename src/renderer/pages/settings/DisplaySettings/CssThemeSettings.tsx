@@ -261,7 +261,7 @@ const CssThemeSettings: React.FC = () => {
   useEffect(() => {
     const loadThemes = async () => {
       try {
-        const savedThemes = (configService.get('css.themes')) || [];
+        const savedThemes = configService.get('css.themes') || [];
         const { normalized, updated } = normalizeUserThemes(savedThemes);
         const activeId = configService.get('css.activeThemeId');
 
@@ -321,7 +321,7 @@ const CssThemeSettings: React.FC = () => {
         setActiveThemeId(effectiveActiveId);
 
         // Self-heal potential split-brain state (activeThemeId != customCss) caused by partial IPC write failures.
-        const savedCustomCss = (configService.get('customCss')) || '';
+        const savedCustomCss = configService.get('customCss') || '';
         if (savedCustomCss !== expectedCss) {
           await configService.set('customCss', expectedCss);
           // Only dispatch when CSS actually changed to avoid redundant re-renders
@@ -355,8 +355,8 @@ const CssThemeSettings: React.FC = () => {
 
         // Recover state unconditionally from what is actually in storage
         try {
-          const realId = (configService.get('css.activeThemeId')) || DEFAULT_THEME_ID;
-          const realCss = (configService.get('customCss')) || '';
+          const realId = configService.get('css.activeThemeId') || DEFAULT_THEME_ID;
+          const realCss = configService.get('customCss') || '';
 
           // Unconditionally align UI state with the real storage state
           setActiveThemeId(realId);

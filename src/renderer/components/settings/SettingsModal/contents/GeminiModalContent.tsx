@@ -99,7 +99,7 @@ const GeminiModalContent: React.FC = () => {
       const values = form.getFieldsValue();
       const { googleAccount: _googleAccount, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
 
-      const existingConfig = ((configService.get('gemini.config')) || {}) as Record<string, unknown>;
+      const existingConfig = (configService.get('gemini.config') || {}) as Record<string, unknown>;
       const accountProjects = (existingConfig.accountProjects as Record<string, string>) || {};
 
       if (currentAccountEmail && GOOGLE_CLOUD_PROJECT) {

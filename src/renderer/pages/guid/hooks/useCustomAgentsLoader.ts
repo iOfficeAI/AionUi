@@ -22,7 +22,7 @@ type UseCustomAgentsLoaderResult = {
 };
 
 /**
- * Hook that loads custom agents from ConfigStorage and ipcBridge.
+ * Hook that loads custom agents from configService and ipcBridge.
  * Handles both user-created custom agents and extension-contributed assistants.
  */
 export const useCustomAgentsLoader = ({
@@ -81,7 +81,7 @@ export const useCustomAgentsLoader = ({
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);
     }
-    // Re-read ConfigStorage so UI reflects any changes (e.g. presetAgentType switch)
+    // Re-read configService so UI reflects any changes (e.g. presetAgentType switch)
     await loadCustomAgents();
   }, [loadCustomAgents]);
 

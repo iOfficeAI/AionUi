@@ -56,7 +56,8 @@ export const useMcpServers = () => {
 
         // 异步保存到存储（在微任务中执行）
         queueMicrotask(() => {
-          configService.set('mcp.config', newServers)
+          configService
+            .set('mcp.config', newServers)
             .then(() => resolve())
             .catch((error) => {
               console.error('Failed to save MCP servers:', error);

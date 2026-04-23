@@ -10,7 +10,7 @@ const THEME_CACHE_KEY = '__aionui_theme';
 // Initialize theme immediately when module loads
 const initTheme = async () => {
   try {
-    const theme = (configService.get('theme')) as Theme;
+    const theme = configService.get('theme') as Theme;
     const initialTheme = theme || DEFAULT_THEME;
     document.documentElement.setAttribute('data-theme', initialTheme);
     document.body.setAttribute('arco-theme', initialTheme);

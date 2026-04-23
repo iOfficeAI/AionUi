@@ -18,9 +18,9 @@ import MarqueePillLabel from './MarqueePillLabel';
  *
  * Supports two modes:
  * - **Conversation mode** (conversation_id provided): fetches live config from backend,
- *   listens for updates via responseStream, and caches to ConfigStorage.
+ *   listens for updates via responseStream, and caches to configService.
  * - **Local mode** (no conversation_id, e.g. Guid page): renders from initialConfigOptions
- *   (typically loaded from ConfigStorage cache) and notifies parent via onOptionSelect.
+ *   (typically loaded from configService cache) and notifies parent via onOptionSelect.
  */
 const AcpConfigSelector: React.FC<{
   conversation_id?: string;
@@ -28,7 +28,7 @@ const AcpConfigSelector: React.FC<{
   compact?: boolean;
   buttonClassName?: string;
   leadingIcon?: ReactNode;
-  /** Cached config options for immediate render (from DB or ConfigStorage) */
+  /** Cached config options for immediate render (from DB or configService) */
   initialConfigOptions?: unknown[];
   /** Local mode callback when user selects an option (Guid page) */
   onOptionSelect?: (config_id: string, value: string) => void;

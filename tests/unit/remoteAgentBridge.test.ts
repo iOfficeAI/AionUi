@@ -14,7 +14,15 @@ const providerMap = vi.hoisted(() => new Map<string, (...args: unknown[]) => unk
 
 const mockDb = vi.hoisted(() => ({
   getRemoteAgents: vi.fn(() => [
-    { id: 'a1', name: 'Agent1', protocol: 'openclaw', url: 'wss://a1', authType: 'bearer', created_at: 0, updated_at: 0 },
+    {
+      id: 'a1',
+      name: 'Agent1',
+      protocol: 'openclaw',
+      url: 'wss://a1',
+      authType: 'bearer',
+      created_at: 0,
+      updated_at: 0,
+    },
   ]),
   getRemoteAgent: vi.fn((id: string) =>
     id === 'a1'

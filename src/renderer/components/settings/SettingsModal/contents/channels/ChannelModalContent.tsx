@@ -48,7 +48,7 @@ type ExtensionFieldValues = Record<string, Record<string, string | number | bool
 const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
+ * Internal hook: wraps useGeminiModelSelection with configService persistence
  * for a specific channel config key (e.g. 'assistant.telegram.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
@@ -76,7 +76,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
 
     const restore = async () => {
       try {
-        const saved = (configService.get(configKey)) as { id: string; useModel: string } | undefined;
+        const saved = configService.get(configKey) as { id: string; useModel: string } | undefined;
         if (!saved?.id || !saved?.useModel) {
           // Nothing saved — mark restored so we don't keep retrying
           setRestored(true);
@@ -200,7 +200,7 @@ const ChannelModalContent: React.FC = () => {
     wecom: true,
   });
 
-  // Model selection state — uses unified hook with ConfigStorage persistence
+  // Model selection state — uses unified hook with configService persistence
   const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
   const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
   const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');

@@ -658,7 +658,13 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     mockWakeAgent = vi.fn().mockResolvedValue(undefined);
 
     agents = [
-      makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader', conversation_type: 'acp', status: 'idle' }),
+      makeAgent({
+        slot_id: 'slot-lead',
+        agent_name: 'Leader',
+        role: 'leader',
+        conversation_type: 'acp',
+        status: 'idle',
+      }),
       makeAgent({
         slot_id: 'slot-worker',
         agent_name: 'Worker',

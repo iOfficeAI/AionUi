@@ -43,7 +43,7 @@ const LocalAgents: React.FC = () => {
 
   const handleSaveCustomAgent = useCallback(
     async (agent: AcpBackendConfig) => {
-      const current = ((configService.get('acp.customAgents')) || []) as AcpBackendConfig[];
+      const current = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
       const existingIndex = current.findIndex((a) => a.id === agent.id);
       const updatedAgents =
         existingIndex >= 0 ? current.map((a, i) => (i === existingIndex ? agent : a)) : [...current, agent];
@@ -57,7 +57,7 @@ const LocalAgents: React.FC = () => {
 
   const handleDeleteCustomAgent = useCallback(
     async (agentId: string) => {
-      const current = ((configService.get('acp.customAgents')) || []) as AcpBackendConfig[];
+      const current = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
       const agents = current.filter((a) => a.id !== agentId);
       await configService.set('acp.customAgents', agents);
       await mutateCustomAgents();
@@ -67,7 +67,7 @@ const LocalAgents: React.FC = () => {
 
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
-      const current = ((configService.get('acp.customAgents')) || []) as AcpBackendConfig[];
+      const current = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
       const updatedAgents = current.map((a) => (a.id === agentId ? { ...a, enabled } : a));
       if (updatedAgents.some((a) => a.id === agentId)) {
         await configService.set('acp.customAgents', updatedAgents);

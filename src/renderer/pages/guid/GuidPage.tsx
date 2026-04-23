@@ -431,7 +431,7 @@ const GuidPage: React.FC = () => {
       const custom_agent_id = agentSelection.selectedAgentInfo?.custom_agent_id;
       if (!custom_agent_id || nextType === currentPresetAgentType) return;
       try {
-        const agents = ((configService.get('acp.customAgents')) || []) as AcpBackendConfig[];
+        const agents = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
         const idx = agents.findIndex((a) => a.id === custom_agent_id);
         if (idx < 0) {
           Message.warning(t('common.failed', { defaultValue: 'Failed' }));

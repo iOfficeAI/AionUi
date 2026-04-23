@@ -20,7 +20,7 @@ const COLOR_SCHEME_CACHE_KEY = '__aionui_colorScheme';
  */
 const initColorScheme = async () => {
   try {
-    const scheme = (configService.get('colorScheme')) as ColorScheme;
+    const scheme = configService.get('colorScheme') as ColorScheme;
     const initialScheme = scheme || DEFAULT_COLOR_SCHEME;
     document.documentElement.setAttribute('data-color-scheme', initialScheme);
     try {

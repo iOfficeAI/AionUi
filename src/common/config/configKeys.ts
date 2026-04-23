@@ -20,7 +20,9 @@ export type ConfigKeyMap = {
     preferredMode?: string;
     preferredModelId?: string;
   };
-  'codex.config': { cli_path?: string; yoloMode?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access' } | undefined;
+  'codex.config':
+    | { cli_path?: string; yoloMode?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access' }
+    | undefined;
   'acp.config': {
     [backend in AcpBackend]?: {
       auth_methodId?: string;

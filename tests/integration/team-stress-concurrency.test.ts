@@ -64,7 +64,9 @@ class InMemoryTeamRepository implements ITeamRepository {
   }
 
   async readUnreadAndMark(team_id: string, agentId: string): Promise<MailboxMessage[]> {
-    const unread = [...this.messages.values()].filter((m) => m.team_id === team_id && m.toAgentId === agentId && !m.read);
+    const unread = [...this.messages.values()].filter(
+      (m) => m.team_id === team_id && m.toAgentId === agentId && !m.read
+    );
     for (const msg of unread) {
       this.messages.set(msg.id, { ...msg, read: true });
     }

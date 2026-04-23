@@ -63,7 +63,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleSave = async () => {
     if (!editingPreset) return;
     try {
-      const allAgents = (configService.get('assistants')) || [];
+      const allAgents = configService.get('assistants') || [];
       const updatedAgents = allAgents.map((a) =>
         a.id === editingPreset.id ? { ...a, name: editName, context: editContext } : a
       );
@@ -80,7 +80,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleDelete = async () => {
     if (!presetToDelete) return;
     try {
-      const allAgents = (configService.get('assistants')) || [];
+      const allAgents = configService.get('assistants') || [];
       const updatedAgents = allAgents.filter((a) => a.id !== presetToDelete.id);
       await configService.set('assistants', updatedAgents);
       setDeleteVisible(false);

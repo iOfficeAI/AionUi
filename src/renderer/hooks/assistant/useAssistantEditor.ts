@@ -263,7 +263,7 @@ export const useAssistantEditor = ({
         }
       }
 
-      const agents = (configService.get('assistants')) || [];
+      const agents = configService.get('assistants') || [];
 
       // Calculate final customSkills: merge existing + pending
       const pendingSkillNames = pendingSkills.map((s) => s.name);
@@ -368,7 +368,7 @@ export const useAssistantEditor = ({
       ]);
 
       // Remove assistant from config
-      const agents = (configService.get('assistants')) || [];
+      const agents = configService.get('assistants') || [];
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
       await configService.set('assistants', updatedAgents);
 
@@ -396,7 +396,7 @@ export const useAssistantEditor = ({
     }
 
     try {
-      const agents = (configService.get('assistants')) || [];
+      const agents = configService.get('assistants') || [];
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
       await configService.set('assistants', updatedAgents);
 

@@ -319,9 +319,7 @@ export const useGuidAgentSelection = ({
     const cached = configService.get('acp.cached_config_options');
     const options = cached?.[backend];
     const filtered = Array.isArray(options)
-      ? (options as Array<{ category?: string }>).filter(
-          (opt) => opt.category !== 'model' && opt.category !== 'mode'
-        )
+      ? (options as Array<{ category?: string }>).filter((opt) => opt.category !== 'model' && opt.category !== 'mode')
       : [];
     setCachedConfigOptions(filtered as AcpSessionConfigOption[]);
     setPendingConfigOptions({});

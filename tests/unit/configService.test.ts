@@ -33,7 +33,7 @@ describe('ConfigService', () => {
       await configService.initialize();
       expect(mockFetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/settings/client'),
-        expect.objectContaining({ method: 'GET' }),
+        expect.objectContaining({ method: 'GET' })
       );
       expect(configService.get('theme')).toBe('dark');
       expect(configService.get('language')).toBe('zh-CN');
@@ -75,7 +75,7 @@ describe('ConfigService', () => {
       expect(configService.get('theme')).toBe('dark');
       expect(mockFetch).toHaveBeenLastCalledWith(
         expect.stringContaining('/api/settings/client'),
-        expect.objectContaining({ method: 'PUT' }),
+        expect.objectContaining({ method: 'PUT' })
       );
     });
 
@@ -86,7 +86,7 @@ describe('ConfigService', () => {
       mockFetch.mockReturnValueOnce(
         new Promise<{ ok: boolean; headers: { get: () => null } }>((r) => {
           resolveHttp = () => r({ ok: true, headers: { get: () => null } });
-        }),
+        })
       );
       const setPromise = configService.set('language', 'en-US');
       expect(configService.get('language')).toBe('en-US');

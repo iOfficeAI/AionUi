@@ -263,9 +263,9 @@ describe('WeixinConfigForm', () => {
   it('uses the WebUI EventSource login flow when electron login bridge is unavailable', async () => {
     const onStatusChange = vi.fn();
     window.electronAPI = {} as typeof window.electronAPI;
-    mockGetPluginStatus.mockReturnValueOnce(
-      [{ id: 'weixin_default', type: 'weixin', enabled: true, hasToken: true, status: 'running' }]
-    );
+    mockGetPluginStatus.mockReturnValueOnce([
+      { id: 'weixin_default', type: 'weixin', enabled: true, hasToken: true, status: 'running' },
+    ]);
 
     render(
       <WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={onStatusChange} />
