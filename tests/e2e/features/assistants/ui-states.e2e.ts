@@ -18,7 +18,6 @@ import {
   clearSearch,
   closeDrawer,
   takeScreenshot,
-  httpGet,
   httpPost,
   httpInvoke,
 } from '../../helpers';
@@ -900,17 +899,29 @@ test.describe('Assistant Settings UI States (P1)', () => {
   });
 
   test('P1-23: session storage intent opens assistant editor', async ({ page }) => {
-    // 1. Navigate to home first (not assistants page yet)
+    // 1. Navigate to Assistant settings first to discover a valid id from the rendered list.
+    //    `/api/extensions/assistants` only returns extension-contributed assistants (empty in
+    //    dev env); the visible list combines those with built-ins loaded via a separate path
+    //    (resource bundle + registry init). Harvesting the id from the DOM guarantees it
+    //    matches what the renderer's intent-consumer effect compares against.
+    await goToAssistantSettings(page);
+    await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    const targetId = await page.evaluate(() => {
+      const el = document.querySelector('[data-testid^="assistant-card-"]');
+      return el ? (el.getAttribute('data-testid') || '').replace('assistant-card-', '') : null;
+    });
+    if (!targetId) {
+      test.skip(true, 'No assistant cards rendered in env — cannot harvest target id for intent test');
+      return;
+    }
+
+    // 2. Navigate to home (clears the settings page state) before planting the intent.
     await page.evaluate(() => {
       window.location.hash = '#/';
     });
     await page.waitForLoadState('networkidle');
     await page.waitForTimeout(300);
     await takeScreenshot(page, 'assistants/p1-23/01-home-page.png');
-
-    // 2. Get assistants list via HTTP to ensure we have valid ID
-    const assistants = await httpGet<Array<{ id: string }>>(page, '/api/extensions/assistants');
-    const targetId = assistants[0]?.id || 'builtin-agent';
 
     // 3. Set sessionStorage intent BEFORE navigating to assistants page
     await page.evaluate((id) => {
@@ -933,14 +944,6 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10000 });
     await takeScreenshot(page, 'assistants/p1-23/03-page-loaded.png');
 
-    // Debug: check if sessionStorage was cleared
-    const debugInfo = await page.evaluate(() => {
-      const intent = sessionStorage.getItem('guid.openAssistantEditorIntent');
-      const drawerVisible = !!document.querySelector('[data-testid="assistant-edit-drawer"]');
-      console.log(`[E2E P1-23] After navigation - intent: ${intent}, drawer visible: ${drawerVisible}`);
-      return { intentStillExists: intent !== null, drawerVisible };
-    });
-    console.log('[E2E P1-23] Debug info:', debugInfo);
 
     // 6. Verify drawer automatically opened
     const drawer = page.locator('[data-testid="assistant-edit-drawer"]');
