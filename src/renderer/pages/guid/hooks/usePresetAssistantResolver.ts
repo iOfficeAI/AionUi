@@ -5,11 +5,18 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpBackend, AcpBackendConfig } from '../types';
+import type { Assistant } from '@/common/types/assistantTypes';
+import type { AcpBackend } from '../types';
 import { useCallback } from 'react';
 
 type UsePresetAssistantResolverOptions = {
-  customAgents: AcpBackendConfig[];
+  /**
+   * Backend-merged preset catalog (`GET /api/assistants`). The resolver looks
+   * up `presetAgentType`, `enabledSkills`, and `disabledBuiltinSkills` on
+   * the chosen assistant record — all of which live on the `Assistant` type,
+   * not on the ACP engine-config `AcpBackendConfig`.
+   */
+  assistants: Assistant[];
   localeKey: string;
 };
 
@@ -36,7 +43,7 @@ type UsePresetAssistantResolverResult = {
  * assistant source (builtin manifest / extension bundle / user md file).
  */
 export const usePresetAssistantResolver = ({
-  customAgents,
+  assistants,
   localeKey,
 }: UsePresetAssistantResolverOptions): UsePresetAssistantResolverResult => {
   const resolvePresetRulesAndSkills = useCallback(
@@ -87,28 +94,32 @@ export const usePresetAssistantResolver = ({
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string => {
       if (!agentInfo) return 'gemini';
       if (!agentInfo.customAgentId) return agentInfo.backend as string;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      return customAgent?.presetAgentType || 'gemini';
+      const assistant = assistants.find((a) => a.id === agentInfo.customAgentId);
+      return assistant?.presetAgentType || 'gemini';
     },
-    [customAgents]
+    [assistants]
   );
 
   const resolveEnabledSkills = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
       if (!agentInfo || !agentInfo.customAgentId) return undefined;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      return customAgent?.enabledSkills;
+      const assistant = assistants.find((a) => a.id === agentInfo.customAgentId);
+      // Preserve legacy "undefined means use agent default" semantics by
+      // treating an empty list the same as absent.
+      if (!assistant || assistant.enabledSkills.length === 0) return undefined;
+      return assistant.enabledSkills;
     },
-    [customAgents]
+    [assistants]
   );
 
   const resolveDisabledBuiltinSkills = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
       if (!agentInfo || !agentInfo.customAgentId) return undefined;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      return customAgent?.disabledBuiltinSkills;
+      const assistant = assistants.find((a) => a.id === agentInfo.customAgentId);
+      if (!assistant || assistant.disabledBuiltinSkills.length === 0) return undefined;
+      return assistant.disabledBuiltinSkills;
     },
-    [customAgents]
+    [assistants]
   );
 
   return {

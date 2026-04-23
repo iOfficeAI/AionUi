@@ -13,70 +13,84 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { mutate } from 'swr';
 
 type UseCustomAgentsLoaderOptions = {
+  /**
+   * Ids of ACP custom agents detected as installed/available. Used to filter
+   * `ConfigStorage.get('acp.customAgents')` down to engine configs whose CLI
+   * actually resolves on this machine.
+   */
   availableCustomAgentIds: Set<string>;
 };
 
 type UseCustomAgentsLoaderResult = {
+  /**
+   * Preset assistant catalog returned by the backend — merged builtin + user +
+   * extension, already sorted. This is the list the Guid pill bar and the
+   * Settings list render.
+   */
+  assistants: Assistant[];
+  /**
+   * User-defined ACP custom agent ENGINE configs from
+   * `ConfigStorage.get('acp.customAgents')` (CLI path, args, env). Completely
+   * separate from `assistants`. Only entries whose ids appear in
+   * `availableCustomAgentIds` are returned — we hide configs whose CLI is
+   * missing from PATH.
+   */
   customAgents: AcpBackendConfig[];
+  /**
+   * Merged id → avatar lookup for the `@` mention dropdown, which iterates
+   * detected CLI agents (including ACP customs) and needs to resolve avatars
+   * from either source.
+   */
   customAgentAvatarMap: Map<string, string | undefined>;
   refreshCustomAgents: () => Promise<void>;
 };
 
 /**
- * Adapt a backend Assistant record into the AcpBackendConfig shape used by the
- * Guid page selection logic.
- */
-function assistantToAcpBackendConfig(assistant: Assistant): AcpBackendConfig {
-  return {
-    id: assistant.id,
-    name: assistant.name,
-    nameI18n: Object.keys(assistant.nameI18n).length > 0 ? assistant.nameI18n : undefined,
-    description: assistant.description,
-    descriptionI18n:
-      Object.keys(assistant.descriptionI18n).length > 0 ? assistant.descriptionI18n : undefined,
-    avatar: assistant.avatar,
-    isPreset: true,
-    isBuiltin: assistant.source === 'builtin',
-    enabled: assistant.enabled,
-    presetAgentType: assistant.presetAgentType,
-    context: assistant.context,
-    contextI18n: Object.keys(assistant.contextI18n).length > 0 ? assistant.contextI18n : undefined,
-    enabledSkills: assistant.enabledSkills.length > 0 ? assistant.enabledSkills : undefined,
-    customSkillNames: assistant.customSkillNames.length > 0 ? assistant.customSkillNames : undefined,
-    disabledBuiltinSkills:
-      assistant.disabledBuiltinSkills.length > 0 ? assistant.disabledBuiltinSkills : undefined,
-    prompts: assistant.prompts.length > 0 ? assistant.prompts : undefined,
-    promptsI18n: Object.keys(assistant.promptsI18n).length > 0 ? assistant.promptsI18n : undefined,
-    models: assistant.models.length > 0 ? assistant.models : undefined,
-  } as AcpBackendConfig;
-}
-
-/**
- * Hook that loads the assistant catalog (backend-merged builtin + user + extension)
- * plus any user-defined custom ACP agents from ConfigStorage.
+ * Loads the two distinct assistant-shaped data sources that the Guid page
+ * consumes. These two lists are intentionally kept separate by type:
+ *
+ *   - `assistants: Assistant[]` — the backend-merged preset catalog
+ *     (`GET /api/assistants`). This is the single source of truth for
+ *     "what to render in the AssistantSelectionArea pill bar" and what the
+ *     editor drawer edits.
+ *   - `customAgents: AcpBackendConfig[]` — user-defined ACP engine configs
+ *     that still live in `ConfigStorage.get('acp.customAgents')` because
+ *     they describe a CLI binary to spawn, not a prompt-only preset.
+ *
+ * Conflating these two as a single `customAgents: AcpBackendConfig[]` used
+ * to be a frequent source of bugs (the name hid which of the two a call
+ * site actually needed).
  */
 export const useCustomAgentsLoader = ({
   availableCustomAgentIds,
 }: UseCustomAgentsLoaderOptions): UseCustomAgentsLoaderResult => {
+  const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
 
   const customAgentAvatarMap = useMemo(() => {
-    return new Map(customAgents.map((agent) => [agent.id, agent.avatar]));
-  }, [customAgents]);
+    const map = new Map<string, string | undefined>();
+    for (const assistant of assistants) {
+      map.set(assistant.id, assistant.avatar);
+    }
+    for (const agent of customAgents) {
+      map.set(agent.id, agent.avatar);
+    }
+    return map;
+  }, [assistants, customAgents]);
 
   const loadCustomAgents = useCallback(async () => {
     try {
-      const [assistants, userCustomAgents] = await Promise.all([
+      const [assistantList, userCustomAgents] = await Promise.all([
         ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[]),
         ConfigStorage.get('acp.customAgents'),
       ]);
-      const list: AcpBackendConfig[] = [
-        ...assistants.map(assistantToAcpBackendConfig),
-        ...((userCustomAgents || []) as AcpBackendConfig[]).filter((a) => availableCustomAgentIds.has(a.id)),
-      ];
-      setCustomAgents(list);
+      setAssistants(assistantList);
+      const filteredCustoms = ((userCustomAgents || []) as AcpBackendConfig[]).filter((a) =>
+        availableCustomAgentIds.has(a.id),
+      );
+      setCustomAgents(filteredCustoms);
     } catch (error) {
-      console.error('Failed to load custom agents:', error);
+      console.error('Failed to load assistants/custom agents:', error);
     }
   }, [availableCustomAgentIds]);
 
@@ -92,7 +106,8 @@ export const useCustomAgentsLoader = ({
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);
     }
-    // Re-read backend + ConfigStorage so UI reflects any changes (e.g. presetAgentType switch)
+    // Re-read backend + ConfigStorage so UI reflects any changes
+    // (e.g. presetAgentType switch on an assistant, CLI path edit on a custom).
     await loadCustomAgents();
   }, [loadCustomAgents]);
 
@@ -101,6 +116,7 @@ export const useCustomAgentsLoader = ({
   }, [refreshCustomAgents]);
 
   return {
+    assistants,
     customAgents,
     customAgentAvatarMap,
     refreshCustomAgents,
