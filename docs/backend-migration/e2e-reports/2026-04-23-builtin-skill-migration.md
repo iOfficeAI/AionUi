@@ -3,9 +3,9 @@
 **Date:** 2026-04-23
 **Runner:** e2e-tester (aionui-builtin-skill-migration team)
 **Plan:** [`../plans/2026-04-23-builtin-skill-migration-plan.md`](../plans/2026-04-23-builtin-skill-migration-plan.md) §Task 3
-**Backend SHA (`aionui-backend`):** `0ab877f` (feat/builtin-skills — embed via include_dir + materialize endpoints)
-**Frontend SHA (`AionUi`):** `2e2bda33d` (feat/backend-migration-builtin-skills — AcpSkillManager HTTP swap + materialize call path)
-**Verdict:** **BLOCKED — 3 Class F/D backend contract defects**. 5/8 passed, 3 failed. Do NOT mark T3 complete per plan §3.5. Back to backend-dev.
+**Backend SHA (`aionui-backend`):** run 1 `0ab877f` → run 2 `04f1537` (H1 fix: camelCase audit on `skill.rs`)
+**Frontend SHA (`AionUi`):** `69585b28b` (feat/backend-migration-builtin-skills — unchanged across runs; test file only)
+**Verdict:** **CLEAN on run 2 — 8/8 green, 13.5s wall time.** Run 1 surfaced 2 Class F/D backend contract defects (D1 `ReadBuiltinResourceRequest`, D2 `SkillListItemResponse` missing camelCase rename); both fixed in H1. All three previously-failing scenarios now pass. T3 unblocks T4.
 
 ## Environment
 
@@ -40,26 +40,30 @@ Identical pattern to the assistant-user-data pilot's T5:
 
 S6 (orphan sweep) seeds `{tmp}/agent-skills/<id>/` before the sibling backend starts, then asserts the startup task removes those dirs because the empty conversations table has no matching rows. S8 verifies the backend does NOT touch `{data_dir}/builtin-skills/` (that cleanup is Electron-main-process territory) and annotates whether any legacy dirs survive under the live cache — authoritative assertion deferred to T4's packaging smoke.
 
-## Per-scenario matrix
+## Per-scenario matrix (run 2 — after H1 fix)
 
-| # | Scenario | Verdict | Duration | Notes |
+| # | Scenario | Run 1 | Run 2 | Notes |
 |---|---|---|---|---|
-| S1 | `GET /api/skills/builtin-auto` non-empty + round-trip body read | **FAIL (Class F)** | 11.5s | List returns correct shape, but the follow-up `POST /api/skills/builtin-skill {fileName}` rejects with 400 because backend expects `file_name`. See §Defects. |
-| S2 | AcpSkillManager data-source (list + body round-trip) | **FAIL (Class F)** | 11.3s | Same root cause as S1 — iterates bodies via `fileName`; all fail 400. This is the exact path the live ACP runtime takes. |
-| S3 | `materialize-for-agent` writes opt-in skills into the dir | PASS | 11.2s | `mermaid/SKILL.md` present; auto-inject dirs flattened; all body files readable. |
-| S4 | Materialized dir structure suits gemini `--extensions` | PASS | 124ms | Every top-level entry is a dir with a `SKILL.md`. |
-| S5 | DELETE cleanup + idempotency | PASS | 18ms | First DELETE removes dir; second DELETE succeeds (no 404). |
-| S6 | Startup orphan sweep for unknown conversation ids | PASS | 276ms | Seeded orphan dirs (`orphan-conv-1`, `orphan-conv-2`) removed within 5s of boot; parent `agent-skills/` survives; `/api/skills/builtin-auto` still serves. |
-| S7 | `/api/skills` builtin rows expose absolute `location` + `relativeLocation` for export | **FAIL (Class D)** | 153ms | `entry.location` is absolute and stats OK; but `entry.relativeLocation` is `undefined`. Backend emits `relative_location` (snake_case). See §Defects. |
-| S8 | Legacy `{cacheDir}/builtin-skills/` lifecycle | PASS (annotated) | 265ms | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling backend stays healthy. Annotation reports whether live `~/.aionui-config*/builtin-skills` is present. Full cold-restart coverage: T4 packaging smoke. |
+| S1 | `GET /api/skills/builtin-auto` non-empty + round-trip body read | FAIL (Class F) | **PASS (11.7s)** | Run 1: 400 on `{fileName}` — `ReadBuiltinResourceRequest` missing camelCase rename. Run 2: round-trip works; frontmatter + name assertions green. |
+| S2 | AcpSkillManager data-source (list + body round-trip) | FAIL (Class F) | **PASS (213ms)** | Run 1: same root cause as S1. Run 2: every auto-inject body fetched successfully — ACP runtime data-source is healthy. |
+| S3 | `materialize-for-agent` writes opt-in skills into the dir | PASS | **PASS (20ms)** | `mermaid/SKILL.md` present; auto-inject dirs flattened; all body files readable. |
+| S4 | Materialized dir structure suits gemini `--extensions` | PASS | **PASS (15ms)** | Every top-level entry is a dir with a `SKILL.md`. |
+| S5 | DELETE cleanup + idempotency | PASS | **PASS (31ms)** | First DELETE removes dir; second DELETE succeeds (no 404). |
+| S6 | Startup orphan sweep for unknown conversation ids | PASS | **PASS (280ms)** | Seeded orphan dirs (`orphan-conv-1`, `orphan-conv-2`) removed within 5s of boot; parent `agent-skills/` survives; `/api/skills/builtin-auto` still serves. |
+| S7 | `/api/skills` builtin rows expose absolute `location` + `relativeLocation` for export | FAIL (Class D) | **PASS (152ms)** | Run 1: `relativeLocation` always undefined — `SkillListItemResponse` missing camelCase rename. Run 2: `relativeLocation` populated for every builtin row; export-symlink round-trip lands a readable `SKILL.md` in a throw-away tempdir. |
+| S8 | Legacy `{cacheDir}/builtin-skills/` lifecycle | PASS (annotated) | **PASS (259ms)** | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling backend stays healthy. Annotation reports whether live `~/.aionui-config*/builtin-skills` is present. Full cold-restart coverage: T4 packaging smoke. |
+
+**Run 2 total wall clock:** 13.5s (down from 38s — no retries, fewer ~10s Electron boots needed).
 
 ## Test file
 
 - [`tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts`](../../../tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts)
 
-## Defects (routing to backend-dev)
+## Defects from run 1 (resolved in H1 / `04f1537`)
 
-### D1 — `ReadBuiltinResourceRequest` missing camelCase rename (Class F)
+All three backend contract defects below were fixed by backend-dev under task H1 (`fix(api-types): enforce camelCase on wire for all skill.rs public types`) — an audit-level pass over `aionui-api-types/src/skill.rs` that added `#[serde(rename_all = "camelCase")]` to every request/response type that still lacked it. Run 2 verified all three paths live.
+
+### D1 — `ReadBuiltinResourceRequest` missing camelCase rename (Class F) — RESOLVED
 
 **Location:** `aionui-backend/crates/aionui-api-types/src/skill.rs:170-173`
 
@@ -96,7 +100,7 @@ pub struct ReadBuiltinResourceRequest {
 }
 ```
 
-### D2 — `SkillListItemResponse` missing camelCase rename (Class D)
+### D2 — `SkillListItemResponse` missing camelCase rename (Class D) — RESOLVED
 
 **Location:** `aionui-backend/crates/aionui-api-types/src/skill.rs:27-36`
 
@@ -134,7 +138,7 @@ pub struct SkillListItemResponse { /* ... */ }
 
 After fixing, rerun `cargo test --test skills_builtin_e2e` — the existing integration test likely round-trips with snake_case payloads and won't catch wire-format drift. Consider adding a JSON-level assertion (`assert_eq!(json["relativeLocation"], ...)` in D1/D2's sibling tests) to prevent regression.
 
-### D3 — scope of audit
+### D3 — scope of audit — RESOLVED
 
 Recommend a single follow-up pass over `aionui-api-types/src/skill.rs` adding `#[serde(rename_all = "camelCase")]` to every request/response type that currently relies on the default snake-case mapping. Candidates to verify:
 - `ReadSkillInfoRequest` / `ReadSkillInfoResponse`
@@ -146,9 +150,11 @@ Recommend a single follow-up pass over `aionui-api-types/src/skill.rs` adding `#
 
 The pilot originally dodged this only because `aionui-extension` tests drive requests in snake-case JSON (Rust-side tests), and the live renderer paths exercising these fields were covered by prior pilots (where the `#[serde(rename_all)]` had already been added on the listed types). The new builtin-skill flow is the first to hit these two stragglers.
 
+H1 (`04f1537`) applied exactly this audit — every struct in `skill.rs` that could go on the wire now carries the rename.
+
 ## Probe transcripts
 
-### Happy-path probes (run against sibling backend for safety — pre-run sanity check)
+### Run 1 probes (against sibling backend at `0ab877f`, pre-H1)
 
 ```
 GET  /api/skills/builtin-auto           → 200, 4 entries (aionui-skills, cron, officecli, skill-creator)
@@ -157,6 +163,19 @@ GET  /api/skills                        → 200, emits {relative_location, is_cu
 POST /api/skills/materialize-for-agent  → 200 on {conversationId, enabledSkills}
 DELETE /api/skills/materialize-for-agent/{id}  → 200, idempotent
 ```
+
+### Run 2 probes (against sibling backend at `04f1537`, post-H1)
+
+```
+$ curl -sX POST http://127.0.0.1:25905/api/skills/builtin-skill \
+    -H 'Content-Type: application/json' -d '{"fileName":"auto-inject/cron/SKILL.md"}' | head -c 100
+{"success":true,"data":"---\nname: cron\ndescription: Scheduled task management..."}
+
+$ curl -s http://127.0.0.1:25905/api/skills | jq '.data[0]' -c
+{"name":"aionui-skills","...","location":"/tmp/skill-probe2/builtin-skills-view/aionui-skills/SKILL.md","relativeLocation":"auto-inject/aionui-skills/SKILL.md","isCustom":false,"source":"builtin"}
+```
+
+Both confirmations: `{fileName}` is now accepted, and `/api/skills` emits `relativeLocation` / `isCustom` on the wire.
 
 ### Sibling backend log tail (S6 / S8 boot)
 
@@ -188,21 +207,20 @@ probe GET /api/skills/builtin-auto     → non-empty
 
 ## Failure classification — Skill-Library pilot rubric
 
-| Class | Count | Notes |
-|---|---|---|
-| D — backend response shape mismatch | 1 | S7 (SkillListItemResponse snake_case) |
-| F — backend contract gap | 1 | S1 + S2 (same root — ReadBuiltinResourceRequest rejects fileName) |
-| A — stateful / scale flakes | 0 | Re-ran twice; same failures, same places. |
-| B / C / E — test-authoring | 0 | S1 initial run had one Class B (wrong frontmatter-name assumption) — fixed pre-report, is not a current failure. |
+| Class | Run 1 | Run 2 | Notes |
+|---|---|---|---|
+| D — backend response shape mismatch | 1 | 0 | Run 1: S7 (SkillListItemResponse snake_case). Fixed in H1. |
+| F — backend contract gap | 1 | 0 | Run 1: S1 + S2 (ReadBuiltinResourceRequest rejects fileName). Fixed in H1. |
+| A — stateful / scale flakes | 0 | 0 | Two clean runs at 38s and 13.5s; no flakes. |
+| B / C / E — test-authoring | 0 | 0 | Run 1 pre-report had one Class B (frontmatter-name assumption) — self-fixed before submission. |
 
 ## Outcome per plan §3.5
 
-**Class D and Class F present — do NOT mark T3 complete.** Routing:
+**Run 2: all 8 scenarios green. T3 clean — marking complete, handing to T4.**
 
-- **D1, D2 → backend-dev.** Both are two-line `#[serde(rename_all = "camelCase")]` additions in `aionui-api-types/src/skill.rs`; a follow-up audit of the other skill types in the same file is recommended (§D3).
-- After backend-dev commits + pushes on `feat/builtin-skills`, rebuild `~/.cargo/bin/aionui-backend`, rerun this suite (should take ~40s). On clean second run, T3 gets the green stamp and T4 is unblocked.
-
-No renderer-side change needed — the frontend is correct against the *design spec* (§6 of the backend spec explicitly requires camelCase on the wire).
+- Run 1 correctly classified 2 defects (D1 + D2) and routed to backend-dev per §3.5. Backend-dev landed H1 (`04f1537`) as a full-file camelCase audit on `skill.rs` — exceeds the minimum fix and closes D3 in one pass.
+- No frontend changes owed across either run — the renderer has been spec-correct throughout (§6 of the backend spec mandates camelCase on the wire).
+- T4 coordinator closure unblocked.
 
 ## Follow-ups (non-blocking, document for future)
 
