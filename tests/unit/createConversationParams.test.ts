@@ -82,7 +82,7 @@ describe('createConversationParams', () => {
     });
     expect(params.extra.preset_rules).toBe('preset rules');
     expect(params.extra.enabled_skills).toEqual(['moltbook']);
-    expect(params.model.use_model).toBe('gpt-4.1');
+    expect(params.model.useModel).toBe('gpt-4.1');
   });
 
   it('maps acp preset assistants to preset_context and backend', async () => {
@@ -172,7 +172,7 @@ describe('createConversationParams', () => {
 
     expect(params.type).toBe('aionrs');
     expect(params.model.id).toBe('provider-1');
-    expect(params.model.use_model).toBe('gpt-4.1');
+    expect(params.model.useModel).toBe('gpt-4.1');
   });
 
   it('throws error for aionrs if no provider configured', async () => {
@@ -341,7 +341,7 @@ describe('createConversationParams', () => {
     ]);
 
     const params = await buildCliAgentParams({ backend: 'aionrs', name: 'A' }, '/tmp');
-    expect(params.model.use_model).toBe('m1');
+    expect(params.model.useModel).toBe('m1');
   });
 
   it('handles missing cli_path for acp backend', async () => {

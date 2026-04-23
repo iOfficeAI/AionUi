@@ -63,10 +63,10 @@ function makeConversation(overrides: Partial<TChatConversation> = {}): TChatConv
       name: 'Gemini',
       base_url: 'https://example.com',
       api_key: 'secret',
-      use_model: 'gemini-2.5-flash',
+      useModel: 'gemini-2.5-flash',
     },
-    createTime: Date.now(),
-    modifyTime: Date.now(),
+    created_at: Date.now(),
+    modified_at: Date.now(),
     ...overrides,
   } as TChatConversation;
 }
@@ -164,8 +164,8 @@ describe('ConversationSideQuestionService', () => {
       type: 'acp',
       name: 'ACP Conversation',
       extra: { backend: 'opencode' },
-      createTime: Date.now(),
-      modifyTime: Date.now(),
+      created_at: Date.now(),
+      modified_at: Date.now(),
     } as TChatConversation;
     const service = new ConversationSideQuestionService(makeService(conversation));
 

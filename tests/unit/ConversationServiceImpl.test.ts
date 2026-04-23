@@ -36,11 +36,11 @@ function makeRepo(overrides: Partial<IConversationRepository> = {}): IConversati
     createConversation: vi.fn(),
     updateConversation: vi.fn(),
     deleteConversation: vi.fn(),
-    getMessages: vi.fn(() => ({ data: [], total: 0, has_more: false })),
+    getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     insertMessage: vi.fn(),
-    getUserConversations: vi.fn(() => ({ data: [], total: 0, has_more: false })),
+    getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     listAllConversations: vi.fn(() => []),
-    searchMessages: vi.fn(async () => ({ data: [], total: 0, has_more: false })),
+    searchMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
     getConversationsByCronJob: vi.fn(async () => []),
     ...overrides,
   };
@@ -75,8 +75,8 @@ function makeConversation(overrides?: Partial<TChatConversation>): TChatConversa
     name: 'Test Conversation',
     type: 'gemini',
     model: { provider: 'gemini', model: 'gemini-2.0-flash' },
-    createTime: 1000,
-    modifyTime: 1000,
+    created_at: 1000,
+    modified_at: 1000,
     source: 'create' as const,
     extra: {},
     ...overrides,
@@ -144,7 +144,7 @@ describe('ConversationServiceImpl.createWithMigration', () => {
 
   it('creates conversation in repo', async () => {
     const repo = makeRepo({
-      getMessages: vi.fn(() => ({ data: [], total: 0, has_more: false })),
+      getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     });
     const svc = new ConversationServiceImpl(repo);
     const conv = { id: 'new', name: 'test' } as any;
@@ -157,8 +157,8 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockReturnValueOnce({ data: [msg], total: 1, has_more: false }) // source first page
-        .mockReturnValue({ data: [], total: 1, has_more: false }), // integrity check calls
+        .mockReturnValueOnce({ data: [msg], total: 1, hasMore: false }) // source first page
+        .mockReturnValue({ data: [], total: 1, hasMore: false }), // integrity check calls
     });
     const svc = new ConversationServiceImpl(repo);
     await svc.createWithMigration({ conversation: { id: 'new' } as any, sourceConversationId: 'src' });
@@ -179,9 +179,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([job1, job2]);
 
@@ -218,9 +218,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([job1, job2]);
 
@@ -242,9 +242,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 0, has_more: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 0, hasMore: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockRejectedValue(new Error('Cron error'));
 
@@ -266,9 +266,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([]);
 
@@ -287,9 +287,9 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source messages page 0
-        .mockResolvedValueOnce({ data: [], total: 5, has_more: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 3, has_more: false }), // Target integrity check (mismatch)
+        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source messages page 0
+        .mockResolvedValueOnce({ data: [], total: 5, hasMore: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 3, hasMore: false }), // Target integrity check (mismatch)
     });
     mockCronService.listJobsByConversation.mockResolvedValue([]);
 
@@ -309,23 +309,23 @@ describe('ConversationServiceImpl.createWithMigration', () => {
       conversation_id: 'source-conv',
       type: 'user',
       text: `message ${i}`,
-      createTime: 1000 + i,
+      created_at: 1000 + i,
     }));
     const page2Messages = Array.from({ length: 50 }, (_, i) => ({
       id: `msg-${100 + i}`,
       conversation_id: 'source-conv',
       type: 'user',
       text: `message ${100 + i}`,
-      createTime: 1100 + i,
+      created_at: 1100 + i,
     }));
 
     const repo = makeRepo({
       getMessages: vi
         .fn()
-        .mockResolvedValueOnce({ data: page1Messages, total: 150, has_more: true }) // Page 0
-        .mockResolvedValueOnce({ data: page2Messages, total: 150, has_more: false }) // Page 1
-        .mockResolvedValueOnce({ data: [], total: 150, has_more: false }) // Source integrity check
-        .mockResolvedValueOnce({ data: [], total: 150, has_more: false }), // Target integrity check
+        .mockResolvedValueOnce({ data: page1Messages, total: 150, hasMore: true }) // Page 0
+        .mockResolvedValueOnce({ data: page2Messages, total: 150, hasMore: false }) // Page 1
+        .mockResolvedValueOnce({ data: [], total: 150, hasMore: false }) // Source integrity check
+        .mockResolvedValueOnce({ data: [], total: 150, hasMore: false }), // Target integrity check
     });
     mockCronService.listJobsByConversation.mockResolvedValue([]);
 
@@ -341,13 +341,13 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     expect(repo.deleteConversation).toHaveBeenCalledWith('source-conv');
   });
 
-  it('sets createTime and modifyTime if missing', async () => {
+  it('sets created_at and modified_at if missing', async () => {
     const now = Date.now();
     const targetConv = makeConversation({
       id: 'target-conv',
       name: 'Target',
-      createTime: undefined as any,
-      modifyTime: undefined as any,
+      created_at: undefined as any,
+      modified_at: undefined as any,
     });
 
     const repo = makeRepo();
@@ -359,14 +359,14 @@ describe('ConversationServiceImpl.createWithMigration', () => {
 
     expect(repo.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
-        createTime: expect.any(Number),
-        modifyTime: expect.any(Number),
+        created_at: expect.any(Number),
+        modified_at: expect.any(Number),
       })
     );
 
     const call = vi.mocked(repo.createConversation).mock.calls[0][0];
-    expect(call.createTime).toBeGreaterThanOrEqual(now);
-    expect(call.modifyTime).toBeGreaterThanOrEqual(now);
+    expect(call.created_at).toBeGreaterThanOrEqual(now);
+    expect(call.modified_at).toBeGreaterThanOrEqual(now);
   });
 });
 
@@ -442,8 +442,8 @@ describe('ConversationServiceImpl.createConversation', () => {
       name: 'Gemini Agent',
       type: 'gemini',
       model: { provider: 'gemini', model: 'gemini-2.0-flash' },
-      createTime: 1000,
-      modifyTime: 1000,
+      created_at: 1000,
+      modified_at: 1000,
       source: 'create' as const,
       extra: { workspace: '/factory-workspace', enabled_skills: ['skill1'] },
     } as any);

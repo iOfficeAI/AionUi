@@ -465,7 +465,7 @@ describe('SendBox queue and interaction behaviors', () => {
     };
 
     renderControlledSendBox({
-      slashCommands: [
+      slash_commands: [
         { name: 'open', description: 'Duplicate builtin', kind: 'builtin', source: 'custom' },
         { name: 'plan', description: 'Plan next step', kind: 'template', source: 'custom' },
       ],
@@ -489,7 +489,7 @@ describe('SendBox queue and interaction behaviors', () => {
     const onSlashBuiltinCommand = vi.fn();
     renderControlledSendBox({
       initialValue: 'draft command',
-      slashCommands: [{ name: 'review', description: 'Review code', kind: 'template', source: 'custom' }],
+      slash_commands: [{ name: 'review', description: 'Review code', kind: 'template', source: 'custom' }],
       onSlashBuiltinCommand,
     });
 

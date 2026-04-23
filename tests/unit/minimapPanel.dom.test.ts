@@ -30,9 +30,9 @@ vi.mock('../../src/renderer/utils/chat/chatMinimapEvents', () => ({
 import { useMinimapPanel } from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel';
 import type { TurnPreviewItem } from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes';
 
-// Helper: build a fake message array that buildTurnPreview can process
-const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
-  turns.flatMap(({ question, answer }, i) => [
+// Helper: build a paginated response that useMinimapPanel can process
+const makeFakeMessages = (turns: { question: string; answer: string }[]) => {
+  const items = turns.flatMap(({ question, answer }, i) => [
     {
       id: `q${i}`,
       msg_id: `mq${i}`,
@@ -52,11 +52,13 @@ const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
       created_at: Date.now(),
     },
   ]);
+  return { items, total: items.length, hasMore: false };
+};
 
 describe('useMinimapPanel', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mocks.getConversationMessages.mockResolvedValue([]);
+    mocks.getConversationMessages.mockResolvedValue({ items: [], total: 0, hasMore: false });
   });
 
   afterEach(() => {

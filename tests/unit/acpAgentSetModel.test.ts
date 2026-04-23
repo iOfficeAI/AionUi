@@ -15,15 +15,19 @@ const { mockConnect, mockSetModel, mockDisconnect, mockGetInitializeResponse } =
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
-    hasActiveSession = true;
+    has_active_session = true;
     is_connected = true;
     connect = mockConnect;
     setModel = mockSetModel;
     disconnect = mockDisconnect;
     getInitializeResponse = mockGetInitializeResponse;
+    getInitializeResult = mockGetInitializeResponse;
+    newSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
+    resumeSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
     getConfigOptions = vi.fn().mockReturnValue(null);
     getModels = vi.fn().mockReturnValue(null);
     getModes = vi.fn().mockReturnValue(null);
+    getAgentCapabilities = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;
@@ -177,9 +181,9 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
         { id: 'opus', label: 'Claude Opus 4.6 CC' },
         { id: 'haiku', label: 'GLM 5.1x' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'models',
-      sourceDetail: 'cc-switch',
+      source_detail: 'cc-switch',
     });
 
     const agent = new AcpAgent({
@@ -204,9 +208,9 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
         { id: 'opus', label: 'Claude Opus 4.6 CC' },
         { id: 'haiku', label: 'GLM 5.1x' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'models',
-      sourceDetail: 'cc-switch',
+      source_detail: 'cc-switch',
     });
 
     const agent = new AcpAgent({
@@ -221,7 +225,7 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
 
     expect(mockSetModel).toHaveBeenCalledWith('opus');
     expect(modelInfo?.current_model_id).toBe('opus');
-    expect(modelInfo?.current_modelLabel).toBe('Claude Opus 4.6 CC');
+    expect(modelInfo?.current_model_label).toBe('Claude Opus 4.6 CC');
   });
 });
 

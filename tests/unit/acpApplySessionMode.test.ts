@@ -16,16 +16,20 @@ const { mockConnect, mockSetSessionMode, mockSetModel, mockDisconnect, mockGetIn
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
-    hasActiveSession = true;
+    has_active_session = true;
     is_connected = true;
     connect = mockConnect;
     setSessionMode = mockSetSessionMode;
     setModel = mockSetModel;
     disconnect = mockDisconnect;
     getInitializeResponse = mockGetInitializeResponse;
+    getInitializeResult = mockGetInitializeResponse;
+    newSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
+    resumeSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
     getConfigOptions = vi.fn().mockReturnValue(null);
     getModels = vi.fn().mockReturnValue(null);
     getModes = vi.fn().mockReturnValue(null);
+    getAgentCapabilities = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;

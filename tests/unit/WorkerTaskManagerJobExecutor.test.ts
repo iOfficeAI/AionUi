@@ -217,7 +217,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
   });
 
   describe('cronMeta attachment', () => {
-    it('includes cronMeta with source, cron_job_id, cron_job_name, and triggeredAt', async () => {
+    it('includes cronMeta with source, cron_job_id, cron_job_name, and triggered_at', async () => {
       const task = makeTask('acp');
       const taskManager = makeTaskManager({
         getTask: vi.fn(() => task as any),
@@ -232,8 +232,8 @@ describe('WorkerTaskManagerJobExecutor', () => {
       expect(sentArg.cronMeta.source).toBe('cron');
       expect(sentArg.cronMeta.cron_job_id).toBe('job-1');
       expect(sentArg.cronMeta.cron_job_name).toBe('Test Job');
-      expect(sentArg.cronMeta.triggeredAt).toBeGreaterThanOrEqual(before);
-      expect(sentArg.cronMeta.triggeredAt).toBeLessThanOrEqual(Date.now());
+      expect(sentArg.cronMeta.triggered_at).toBeGreaterThanOrEqual(before);
+      expect(sentArg.cronMeta.triggered_at).toBeLessThanOrEqual(Date.now());
     });
   });
 

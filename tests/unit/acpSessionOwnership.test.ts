@@ -64,7 +64,7 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
 
         if (shouldTryLoadSession) {
           try {
-            return await this.loadSession(session_id, cwd, options?.mcp_servers);
+            return await this.loadSession(session_id, cwd, options?.mcpServers);
           } catch (loadError) {
             console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
           }
@@ -73,7 +73,7 @@ vi.mock('@process/agent/acp/AcpConnection', () => {
         return await this.newSession(cwd, {
           resumeSessionId: session_id,
           forkSession: options?.forkSession,
-          mcp_servers: options?.mcp_servers,
+          mcpServers: options?.mcpServers,
         });
       }
       on = mockOn;

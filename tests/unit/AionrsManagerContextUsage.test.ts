@@ -160,7 +160,7 @@ const CONV_ID = 'conv-cu-1';
 function createManager(conversation_id = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
+    model: { name: 'test-provider', useModel: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversation_id,
   };
   return new AionrsManager(data as any, data.model as any);
@@ -210,7 +210,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
         expect.objectContaining({
           extra: expect.objectContaining({
             last_token_usage: expect.objectContaining({
-              totalTokens: expect.any(Number),
+              total_tokens: expect.any(Number),
             }),
           }),
         })
@@ -235,7 +235,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
         CONV_ID,
         expect.objectContaining({
           extra: expect.objectContaining({
-            last_token_usage: { totalTokens: 5800 },
+            last_token_usage: { total_tokens: 5800 },
           }),
         })
       );
@@ -261,7 +261,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
         CONV_ID,
         expect.objectContaining({
           extra: expect.objectContaining({
-            last_token_usage: { totalTokens: 3500 },
+            last_token_usage: { total_tokens: 3500 },
           }),
         })
       );

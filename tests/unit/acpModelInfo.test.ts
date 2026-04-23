@@ -18,9 +18,9 @@ describe('buildAcpModelInfo', () => {
         { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
         { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
       ],
-      canSwitch: false,
+      can_switch: false,
       source: 'models',
-      sourceDetail: 'cc-switch',
+      source_detail: 'cc-switch',
     };
 
     const config_options: AcpSessionConfigOption[] = [
@@ -29,7 +29,7 @@ describe('buildAcpModelInfo', () => {
         name: 'Model',
         category: 'model',
         type: 'select',
-        currentValue: 'gpt-5.4',
+        current_value: 'gpt-5.4',
         options: [{ value: 'gpt-5.4', name: 'gpt-5.4' }],
       },
     ];
@@ -51,7 +51,7 @@ describe('buildAcpModelInfo', () => {
         name: 'Model',
         category: 'model',
         type: 'select',
-        currentValue: 'gpt-5.4',
+        current_value: 'gpt-5.4',
         options: [
           { value: 'gpt-5.3-codex', name: 'gpt-5.3-codex' },
           { value: 'gpt-5.4', name: 'gpt-5.4' },
@@ -68,7 +68,7 @@ describe('buildAcpModelInfo', () => {
       current_model_id: null,
       current_model_label: null,
       available_models: [],
-      canSwitch: false,
+      can_switch: false,
       source: 'models',
     });
 
@@ -79,10 +79,10 @@ describe('buildAcpModelInfo', () => {
         { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
         { id: 'gpt-5.4', label: 'gpt-5.4' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'configOption',
-      sourceDetail: 'acp-config-option',
-      configOptionId: 'model',
+      source_detail: 'acp-config-option',
+      config_option_id: 'model',
     });
   });
 
@@ -104,9 +104,9 @@ describe('buildAcpModelInfo', () => {
         { id: 'gpt-5.3-codex/high', label: 'gpt-5.3-codex (high)' },
         { id: 'gpt-5.4/high', label: 'gpt-5.4 (high)' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'models',
-      sourceDetail: 'acp-models',
+      source_detail: 'acp-models',
     });
   });
 
@@ -118,19 +118,19 @@ describe('buildAcpModelInfo', () => {
         { id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' },
         { id: 'gpt-5.4', label: 'gpt-5.4' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'configOption',
-      sourceDetail: 'acp-config-option',
-      configOptionId: 'model',
+      source_detail: 'acp-config-option',
+      config_option_id: 'model',
     });
 
     expect(summary).toEqual({
       source: 'configOption',
-      sourceDetail: 'acp-config-option',
+      source_detail: 'acp-config-option',
       current_model_id: 'gpt-5.4',
       current_model_label: 'gpt-5.4',
       availableModelCount: 2,
-      canSwitch: true,
+      can_switch: true,
       sampleModelIds: ['gpt-5.3-codex', 'gpt-5.4'],
     });
   });

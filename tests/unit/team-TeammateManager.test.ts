@@ -218,7 +218,7 @@ describe('TeammateManager', () => {
         team_id: 'team-1',
         slot_id: 'slot-1',
         status: 'failed',
-        lastMessage: 'Error occurred',
+        last_message: 'Error occurred',
       });
       mgr.dispose();
     });
@@ -234,7 +234,7 @@ describe('TeammateManager', () => {
         team_id: 'team-1',
         slot_id: 'slot-1',
         status: 'completed',
-        lastMessage: undefined,
+        last_message: undefined,
       });
       mgr.dispose();
     });
@@ -335,7 +335,7 @@ describe('TeammateManager', () => {
       expect(mockIpcBridge.team.agentRenamed.emit).toHaveBeenCalledWith({
         team_id: 'team-1',
         slot_id: 'slot-1',
-        oldName: 'Claude',
+        old_name: 'Claude',
         new_name: 'Assistant',
       });
       mgr.dispose();
@@ -372,7 +372,7 @@ describe('TeammateManager', () => {
       mgr.renameAgent('slot-1', 'Third');
 
       // The renamed agents map stores the first original name
-      // (tested indirectly via agentRenamed events which show oldName correctly)
+      // (tested indirectly via agentRenamed events which show old_name correctly)
       const agent = mgr.getAgents().find((a) => a.slot_id === 'slot-1');
       expect(agent?.agent_name).toBe('Third');
       mgr.dispose();

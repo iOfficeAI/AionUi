@@ -57,24 +57,18 @@ describe('AcpModelSelector', () => {
       return () => {};
     });
     ipcMock.getModelConfig.mockResolvedValue([]);
-    ipcMock.setModel.mockResolvedValue({
-      success: true,
-      data: { modelInfo: null },
-    });
+    ipcMock.setModel.mockResolvedValue(undefined);
   });
 
   it('shows the model source in the compact button label', async () => {
     ipcMock.getModelInfo.mockResolvedValue({
-      success: true,
-      data: {
-        modelInfo: {
-          current_model_id: 'claude-opus-4-6',
-          current_model_label: 'Claude Opus 4.6',
-          available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
-          canSwitch: false,
-          source: 'models',
-          sourceDetail: 'cc-switch',
-        },
+      model_info: {
+        current_model_id: 'claude-opus-4-6',
+        current_model_label: 'Claude Opus 4.6',
+        available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
+        can_switch: false,
+        source: 'models',
+        source_detail: 'cc-switch',
       },
     });
 
@@ -87,8 +81,7 @@ describe('AcpModelSelector', () => {
 
   it('shows codex stream as the model source when stream events arrive', async () => {
     ipcMock.getModelInfo.mockResolvedValue({
-      success: true,
-      data: { modelInfo: null },
+      model_info: null,
     });
 
     render(<AcpModelSelector conversation_id='conv-1' backend='codex' />);
@@ -107,35 +100,29 @@ describe('AcpModelSelector', () => {
   it('refreshes Claude model info when the window regains focus', async () => {
     ipcMock.getModelInfo
       .mockResolvedValueOnce({
-        success: true,
-        data: {
-          modelInfo: {
-            current_model_id: 'claude-opus-4-6',
-            current_model_label: 'Claude Opus 4.6',
-            available_models: [
-              { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-              { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
-            ],
-            canSwitch: true,
-            source: 'models',
-            sourceDetail: 'cc-switch',
-          },
+        model_info: {
+          current_model_id: 'claude-opus-4-6',
+          current_model_label: 'Claude Opus 4.6',
+          available_models: [
+            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+            { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+          ],
+          can_switch: true,
+          source: 'models',
+          source_detail: 'cc-switch',
         },
       })
       .mockResolvedValueOnce({
-        success: true,
-        data: {
-          modelInfo: {
-            current_model_id: 'claude-sonnet-4-5',
-            current_model_label: 'Claude Sonnet 4.5',
-            available_models: [
-              { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
-              { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-            ],
-            canSwitch: true,
-            source: 'models',
-            sourceDetail: 'cc-switch',
-          },
+        model_info: {
+          current_model_id: 'claude-sonnet-4-5',
+          current_model_label: 'Claude Sonnet 4.5',
+          available_models: [
+            { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
+            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+          ],
+          can_switch: true,
+          source: 'models',
+          source_detail: 'cc-switch',
         },
       });
 
@@ -156,37 +143,19 @@ describe('AcpModelSelector', () => {
 
   it('updates the visible model label immediately after selecting a different model', async () => {
     ipcMock.getModelInfo.mockResolvedValue({
-      success: true,
-      data: {
-        modelInfo: {
-          current_model_id: 'claude-opus-4-6',
-          current_model_label: 'Claude Opus 4.6',
-          available_models: [
-            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-            { id: 'glm-5.1x', label: 'GLM 5.1x' },
-          ],
-          canSwitch: true,
-          source: 'models',
-          sourceDetail: 'cc-switch',
-        },
+      model_info: {
+        current_model_id: 'claude-opus-4-6',
+        current_model_label: 'Claude Opus 4.6',
+        available_models: [
+          { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
+          { id: 'glm-5.1x', label: 'GLM 5.1x' },
+        ],
+        can_switch: true,
+        source: 'models',
+        source_detail: 'cc-switch',
       },
     });
-    ipcMock.setModel.mockResolvedValue({
-      success: true,
-      data: {
-        modelInfo: {
-          current_model_id: 'glm-5.1x',
-          current_model_label: 'GLM 5.1x',
-          available_models: [
-            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-            { id: 'glm-5.1x', label: 'GLM 5.1x' },
-          ],
-          canSwitch: true,
-          source: 'models',
-          sourceDetail: 'cc-switch',
-        },
-      },
-    });
+    ipcMock.setModel.mockResolvedValue(undefined);
 
     render(<AcpModelSelector conversation_id='conv-1' backend='claude' />);
 

@@ -37,7 +37,7 @@ vi.mock('../../src/renderer/utils/workspace/workspaceHistory', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
-  Message: { info: vi.fn(), error: vi.fn() },
+  Message: { info: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -62,10 +62,10 @@ function makeDeps(overrides: Partial<GuidSendDeps> = {}): GuidSendDeps {
     dir: '',
     setDir: vi.fn(),
     setLoading: vi.fn(),
-    selected_agent: 'remote',
+    selectedAgent: 'remote',
     selectedAgentKey: 'remote:agent-1',
     selectedAgentInfo: undefined,
-    is_preset_agent: false,
+    is_presetAgent: false,
     selectedMode: 'default',
     selectedAcpModel: null,
     pending_config_options: {},

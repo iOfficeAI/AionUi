@@ -111,7 +111,7 @@ describe('databaseBridge', () => {
 
   describe('getUserConversations', () => {
     it('returns db conversations when no file conversations exist', async () => {
-      const dbConv: Partial<TChatConversation> = { id: 'c1', modifyTime: 2000 };
+      const dbConv: Partial<TChatConversation> = { id: 'c1', modified_at: 2000 };
       vi.mocked(repo.getUserConversations).mockReturnValue({
         data: [dbConv as TChatConversation],
         total: 1,
@@ -125,7 +125,7 @@ describe('databaseBridge', () => {
 
     it('merges file-only conversations that are not in DB', async () => {
       const { ProcessChat } = await import('../../src/process/utils/initStorage');
-      const fileConv: Partial<TChatConversation> = { id: 'file-c1', modifyTime: 1000 };
+      const fileConv: Partial<TChatConversation> = { id: 'file-c1', modified_at: 1000 };
       vi.mocked(ProcessChat.get).mockResolvedValue([fileConv] as any);
       vi.mocked(repo.getUserConversations).mockReturnValue({ data: [], total: 0, has_more: false });
 
@@ -136,7 +136,7 @@ describe('databaseBridge', () => {
 
     it('excludes file conversations already present in DB', async () => {
       const { ProcessChat } = await import('../../src/process/utils/initStorage');
-      const conv: Partial<TChatConversation> = { id: 'shared-c1', modifyTime: 2000 };
+      const conv: Partial<TChatConversation> = { id: 'shared-c1', modified_at: 2000 };
       vi.mocked(ProcessChat.get).mockResolvedValue([conv] as any);
       vi.mocked(repo.getUserConversations).mockReturnValue({
         data: [conv as TChatConversation],

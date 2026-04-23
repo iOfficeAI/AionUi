@@ -37,14 +37,14 @@ function makeAgent(backend: string, acpSessionId?: string): AcpAgent {
     extra: {
       backend: backend as any,
       workspace: '/tmp',
-      acpSessionId,
+      acp_session_id: acpSessionId,
     },
     onStreamEvent: vi.fn(),
   });
 }
 
 const CONFIG_OPTIONS: AcpSessionConfigOption[] = [
-  { id: 'model', category: 'model', type: 'select', currentValue: 'gpt-4o', options: [] },
+  { id: 'model', category: 'model', type: 'select', current_value: 'gpt-4o', options: [] },
 ];
 const MODELS: AcpSessionModels = {
   current_model_id: 'gpt-4o',
@@ -161,7 +161,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
       expect.any(String),
       expect.objectContaining({
         forkSession: false,
-        mcp_servers: [],
+        mcpServers: [],
       })
     );
     expect(newSession).not.toHaveBeenCalled();
@@ -189,7 +189,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
 
     await (agent as any).createOrResumeSession();
 
-    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcp_servers: [] }));
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
   it('creates a fresh session when no acpSessionId is stored', async () => {
@@ -202,7 +202,7 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
     await (agent as any).createOrResumeSession();
 
     expect(resumeSession).not.toHaveBeenCalled();
-    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcp_servers: [] }));
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
   it('updates acpSessionId when resume returns a new session ID', async () => {
@@ -239,7 +239,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ session_id: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ session_id: 'fresh' } as any);
 
-    const result = await conn.resumeSession('s1', '/tmp', { mcp_servers: [] });
+    const result = await conn.resumeSession('s1', '/tmp', { mcpServers: [] });
 
     expect(loadSession).toHaveBeenCalledWith('s1', '/tmp', []);
     expect(newSession).not.toHaveBeenCalled();
@@ -253,14 +253,14 @@ describe('AcpConnection.resumeSession capability routing', () => {
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ session_id: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ session_id: 's1' } as any);
 
-    await conn.resumeSession('s1', '/tmp', { mcp_servers: [] });
+    await conn.resumeSession('s1', '/tmp', { mcpServers: [] });
 
     expect(loadSession).not.toHaveBeenCalled();
     expect(newSession).toHaveBeenCalledWith(
       '/tmp',
       expect.objectContaining({
         resumeSessionId: 's1',
-        mcp_servers: [],
+        mcpServers: [],
       })
     );
   });
@@ -274,7 +274,7 @@ describe('AcpConnection.resumeSession capability routing', () => {
     const loadSession = vi.spyOn(conn, 'loadSession').mockResolvedValue({ session_id: 's1' } as any);
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ session_id: 's1' } as any);
 
-    await conn.resumeSession('s1', '/tmp', { mcp_servers: [] });
+    await conn.resumeSession('s1', '/tmp', { mcpServers: [] });
 
     expect(loadSession).not.toHaveBeenCalled();
     expect(newSession).toHaveBeenCalled();
@@ -287,13 +287,13 @@ describe('AcpConnection.resumeSession capability routing', () => {
     vi.spyOn(conn, 'loadSession').mockRejectedValue(new Error('load failed'));
     const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ session_id: 'fresh' } as any);
 
-    const result = await conn.resumeSession('s1', '/tmp', { mcp_servers: [] });
+    const result = await conn.resumeSession('s1', '/tmp', { mcpServers: [] });
 
     expect(newSession).toHaveBeenCalledWith(
       '/tmp',
       expect.objectContaining({
         resumeSessionId: 's1',
-        mcp_servers: [],
+        mcpServers: [],
       })
     );
     expect(result.session_id).toBe('fresh');

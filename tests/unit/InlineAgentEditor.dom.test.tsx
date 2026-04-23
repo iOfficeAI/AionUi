@@ -196,7 +196,7 @@ describe('InlineAgentEditor', () => {
   });
 
   it('shows CLI failure alert when step is cli_check', async () => {
-    mockTestCustomAgent.mockResolvedValue({ success: false, data: { step: 'cli_check' } });
+    mockTestCustomAgent.mockResolvedValue({ step: 'cli_check', error: 'cli check failed' });
     const agent = makeAgent();
 
     await act(async () => {
@@ -214,7 +214,7 @@ describe('InlineAgentEditor', () => {
   });
 
   it('shows ACP failure alert when step is acp_initialize', async () => {
-    mockTestCustomAgent.mockResolvedValue({ success: false, data: { step: 'acp_initialize' } });
+    mockTestCustomAgent.mockResolvedValue({ step: 'acp_initialize', error: 'acp init failed' });
     const agent = makeAgent();
 
     await act(async () => {

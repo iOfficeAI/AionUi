@@ -54,9 +54,9 @@ describe('GuidModelSelector', () => {
           current_model_id: 'claude-opus-4-6',
           current_model_label: 'Claude Opus 4.6',
           available_models: [{ id: 'claude-opus-4-6', label: 'Claude Opus 4.6' }],
-          canSwitch: false,
+          can_switch: false,
           source: 'models',
-          sourceDetail: 'cc-switch',
+          source_detail: 'cc-switch',
         }}
         selectedAcpModel={null}
         setSelectedAcpModel={vi.fn()}
@@ -81,9 +81,9 @@ describe('GuidModelSelector', () => {
             { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
             { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
           ],
-          canSwitch: true,
+          can_switch: true,
           source: 'models',
-          sourceDetail: 'acp-models',
+          source_detail: 'acp-models',
         }}
         selectedAcpModel={'claude-sonnet-4-5'}
         setSelectedAcpModel={vi.fn()}

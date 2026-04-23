@@ -100,7 +100,7 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
 
       if (shouldTryLoadSession) {
         try {
-          return await this.loadSession(session_id, cwd, options?.mcp_servers);
+          return await this.loadSession(session_id, cwd, options?.mcpServers);
         } catch (loadError) {
           console.warn(`[ACP ${this.backend}] session/load failed, falling back to session/new resume:`, loadError);
         }
@@ -109,7 +109,7 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
       return await this.newSession(cwd, {
         resumeSessionId: session_id,
         forkSession: options?.forkSession,
-        mcp_servers: options?.mcp_servers,
+        mcpServers: options?.mcpServers,
       });
     }
   },
@@ -330,9 +330,9 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
     });
     await callCreateOrResume(agent);
     const opts = mockNewSession.mock.calls[0][1];
-    expect(Array.isArray(opts.mcp_servers)).toBe(true);
-    expect(opts.mcp_servers).toHaveLength(1);
-    expect(opts.mcp_servers[0]).toMatchObject({ name: 'aionui-team-abc' });
+    expect(Array.isArray(opts.mcpServers)).toBe(true);
+    expect(opts.mcpServers).toHaveLength(1);
+    expect(opts.mcpServers[0]).toMatchObject({ name: 'aionui-team-abc' });
   });
 
   it('fresh session (no prior session_id) calls newSession with mcpServers', async () => {
@@ -340,7 +340,7 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
     await callCreateOrResume(agent);
     expect(mockLoadSession).not.toHaveBeenCalled();
     const opts = mockNewSession.mock.calls[0][1];
-    expect(opts.mcp_servers).toHaveLength(1);
+    expect(opts.mcpServers).toHaveLength(1);
   });
 
   it('resume fallback to newSession when loadSession throws', async () => {
@@ -525,7 +525,7 @@ describe('Step 8: Task #3 IPC mcpStatus events', () => {
     await callCreateOrResume(agent);
 
     const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_ready');
-    expect(readyCalls[0][0].serverCount).toBe(1);
+    expect(readyCalls[0][0].server_count).toBe(1);
   });
 });
 

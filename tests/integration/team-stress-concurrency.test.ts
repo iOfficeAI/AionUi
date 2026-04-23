@@ -129,7 +129,7 @@ class InMemoryTeamRepository implements ITeamRepository {
   async removeFromBlockedBy(task_id: string, unblockedId: string): Promise<TeamTask> {
     const task = this.tasks.get(task_id);
     if (!task) throw new Error(`Task ${task_id} not found`);
-    const updated = { ...task, blocked_by: task.blocked_by.filter((id) => id !== unblockedId), updated_at: Date.now() };
+    const updated = { ...task, blockedBy: task.blockedBy.filter((id) => id !== unblockedId), updated_at: Date.now() };
     this.tasks.set(task_id, updated);
     return { ...updated };
   }
@@ -406,7 +406,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
     const depth = 10;
 
     // Build a linear chain: task[0] <- task[1] <- ... <- task[9]
-    // task[i] is blocked_by task[i-1]
+    // task[i] is blockedBy task[i-1]
     // Sequential creation is required: each task depends on the previous id
     const tasks: TeamTask[] = [];
     for (let i = 0; i < depth; i++) {
@@ -414,7 +414,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
       const task = await taskManager.create({
         team_id,
         subject: `Task ${i}`,
-        blocked_by: i > 0 ? [tasks[i - 1].id] : [],
+        blockedBy: i > 0 ? [tasks[i - 1].id] : [],
       });
       tasks.push(task);
     }
@@ -423,7 +423,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
     for (let i = 1; i < depth; i++) {
       // eslint-disable-next-line no-await-in-loop
       const t = await repo.findTaskById(tasks[i].id);
-      expect(t?.blocked_by).toContain(tasks[i - 1].id);
+      expect(t?.blockedBy).toContain(tasks[i - 1].id);
     }
 
     // Root task (task[0]) should have task[1] in its blocks array
@@ -450,7 +450,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
 
     const downstreamTasks = await Promise.all(
       Array.from({ length: 20 }, (_, i) =>
-        taskManager.create({ team_id, subject: `Downstream ${i}`, blocked_by: [upstream.id] })
+        taskManager.create({ team_id, subject: `Downstream ${i}`, blockedBy: [upstream.id] })
       )
     );
 
@@ -458,7 +458,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
     const upstreamFinal = await repo.findTaskById(upstream.id);
     const blocksSet = new Set(upstreamFinal?.blocks ?? []);
 
-    // BUG DETECTION: concurrent create() with same blocked_by causes blocks array corruption
+    // BUG DETECTION: concurrent create() with same blockedBy causes blocks array corruption
     // Both tasks read upstream.blocks=[] before either write, resulting in only the last
     // write surviving. The upstream.blocks should contain all 20 IDs.
     if (blocksSet.size < 20) {
@@ -471,23 +471,23 @@ describe('Stress — TaskManager deep dependency chains', () => {
     // The downstream tasks are all correctly created
     expect(downstreamTasks).toHaveLength(20);
     for (const dt of downstreamTasks) {
-      expect(dt.blocked_by).toContain(upstream.id);
+      expect(dt.blockedBy).toContain(upstream.id);
     }
   });
 
   /**
-   * BUG: TaskManager.create() concurrent `blocked_by` registration is not atomic.
+   * BUG: TaskManager.create() concurrent `blockedBy` registration is not atomic.
    *
-   * When two tasks are created simultaneously with the same blocked_by=[upstreamId],
+   * When two tasks are created simultaneously with the same blockedBy=[upstreamId],
    * both read upstream.blocks=[] before either write completes, then both write
    * [upstreamId.blocks, ownId], clobbering each other. The upstream's `blocks`
    * array ends up missing one entry.
    *
    * Impact: checkUnblocks() won't find the missing downstream task via `blocks`.
-   * However, checkUnblocks() uses findTasksByTeam() + filter by blocked_by, so
+   * However, checkUnblocks() uses findTasksByTeam() + filter by blockedBy, so
    * the resolution itself still works — but the bidirectional link is corrupted.
    */
-  it('BUG: concurrent create with same blocked_by corrupts upstream.blocks array', async () => {
+  it('BUG: concurrent create with same blockedBy corrupts upstream.blocks array', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
     const team_id = 'team-blocks-race';
@@ -496,8 +496,8 @@ describe('Stress — TaskManager deep dependency chains', () => {
 
     // Create exactly 2 downstream tasks simultaneously (minimal race)
     const [taskA, taskB] = await Promise.all([
-      taskManager.create({ team_id, subject: 'Task A', blocked_by: [upstream.id] }),
-      taskManager.create({ team_id, subject: 'Task B', blocked_by: [upstream.id] }),
+      taskManager.create({ team_id, subject: 'Task A', blockedBy: [upstream.id] }),
+      taskManager.create({ team_id, subject: 'Task B', blockedBy: [upstream.id] }),
     ]);
 
     const upstreamAfter = await repo.findTaskById(upstream.id);
@@ -512,25 +512,25 @@ describe('Stress — TaskManager deep dependency chains', () => {
     }
 
     // Despite the blocks corruption, both downstream tasks correctly reference upstream
-    expect(taskA.blocked_by).toContain(upstream.id);
-    expect(taskB.blocked_by).toContain(upstream.id);
+    expect(taskA.blockedBy).toContain(upstream.id);
+    expect(taskB.blockedBy).toContain(upstream.id);
 
-    // checkUnblocks() still works because it scans via blocked_by filter (not blocks array)
+    // checkUnblocks() still works because it scans via blockedBy filter (not blocks array)
     await taskManager.update(upstream.id, { status: 'completed' });
     const unblocked = await taskManager.checkUnblocks(upstream.id);
     expect(unblocked).toHaveLength(2); // Both tasks fully unblocked
   });
 
-  it('circular dependency: A blocked_by B, B blocked_by A — create completes without deadlock', async () => {
+  it('circular dependency: A blockedBy B, B blockedBy A — create completes without deadlock', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
     const team_id = 'team-circular';
 
-    // Create A and B without blocked_by first
+    // Create A and B without blockedBy first
     const taskA = await taskManager.create({ team_id, subject: 'Task A' });
-    const taskB = await taskManager.create({ team_id, subject: 'Task B', blocked_by: [taskA.id] });
+    const taskB = await taskManager.create({ team_id, subject: 'Task B', blockedBy: [taskA.id] });
     // Now "close the loop" by updating A to be blocked by B
-    await repo.updateTask(taskA.id, { blocked_by: [taskB.id], updated_at: Date.now() });
+    await repo.updateTask(taskA.id, { blockedBy: [taskB.id], updated_at: Date.now() });
 
     // checkUnblocks should not infinite-loop
     await expect(taskManager.checkUnblocks(taskA.id)).resolves.toBeDefined();
@@ -547,7 +547,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
     const dependent = await taskManager.create({
       team_id,
       subject: 'Dependent',
-      blocked_by: [gate1.id, gate2.id],
+      blockedBy: [gate1.id, gate2.id],
     });
 
     // Complete gate1 — dependent still has gate2 blocking it
@@ -559,7 +559,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
     await taskManager.update(gate2.id, { status: 'completed' });
     const unblocked2 = await taskManager.checkUnblocks(gate2.id);
     expect(unblocked2.some((t) => t.id === dependent.id)).toBe(true);
-    expect(unblocked2[0].blocked_by).toHaveLength(0);
+    expect(unblocked2[0].blockedBy).toHaveLength(0);
   });
 });
 

@@ -569,9 +569,9 @@ describe('RemoteAgentCore', () => {
       expect(core.is_connected).toBe(true);
     });
 
-    it('hasActiveSession returns false without session key', () => {
+    it('has_active_session returns false without session key', () => {
       const core = new RemoteAgentCore(makeConfig());
-      expect(core.hasActiveSession).toBe(false);
+      expect(core.has_active_session).toBe(false);
     });
 
     it('currentSessionKey returns null without connection', () => {

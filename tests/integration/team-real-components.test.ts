@@ -165,7 +165,7 @@ function createInMemoryRepo(): ITeamRepository {
     async removeFromBlockedBy(task_id: string, unblockedId: string) {
       const task = tasks.get(task_id);
       if (!task) throw new Error(`Task ${task_id} not found`);
-      const updated = { ...task, blocked_by: task.blocked_by.filter((id) => id !== unblockedId), updated_at: Date.now() };
+      const updated = { ...task, blockedBy: task.blockedBy.filter((id) => id !== unblockedId), updated_at: Date.now() };
       tasks.set(task_id, updated);
       return updated;
     },
@@ -376,26 +376,26 @@ describe('Real TaskManager — dependency graph resolution', () => {
   it('creates a task with default pending status', async () => {
     const task = await taskManager.create({ team_id: 't', subject: 'Build feature' });
     expect(task.status).toBe('pending');
-    expect(task.blocked_by).toEqual([]);
+    expect(task.blockedBy).toEqual([]);
     expect(task.blocks).toEqual([]);
     expect(task.id).toBeTruthy();
   });
 
-  it('bidirectional links: creating B with blocked_by A updates A.blocks', async () => {
+  it('bidirectional links: creating B with blockedBy A updates A.blocks', async () => {
     const taskA = await taskManager.create({ team_id: 't', subject: 'Task A' });
-    const taskB = await taskManager.create({ team_id: 't', subject: 'Task B', blocked_by: [taskA.id] });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'Task B', blockedBy: [taskA.id] });
 
-    expect(taskB.blocked_by).toContain(taskA.id);
+    expect(taskB.blockedBy).toContain(taskA.id);
 
     // Verify A.blocks was updated with B's id
     const updatedA = await repo.findTaskById(taskA.id);
     expect(updatedA?.blocks).toContain(taskB.id);
   });
 
-  it('checkUnblocks removes task_id from dependents blocked_by array', async () => {
+  it('checkUnblocks removes task_id from dependents blockedBy array', async () => {
     const taskA = await taskManager.create({ team_id: 't', subject: 'Task A' });
-    const taskB = await taskManager.create({ team_id: 't', subject: 'Task B', blocked_by: [taskA.id] });
-    const taskC = await taskManager.create({ team_id: 't', subject: 'Task C', blocked_by: [taskA.id] });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'Task B', blockedBy: [taskA.id] });
+    const taskC = await taskManager.create({ team_id: 't', subject: 'Task C', blockedBy: [taskA.id] });
 
     // Complete task A
     await taskManager.update(taskA.id, { status: 'completed' });
@@ -407,11 +407,11 @@ describe('Real TaskManager — dependency graph resolution', () => {
     expect(unblockedIds).toContain(taskB.id);
     expect(unblockedIds).toContain(taskC.id);
 
-    // Verify their blocked_by arrays are now empty
+    // Verify their blockedBy arrays are now empty
     const finalB = await repo.findTaskById(taskB.id);
     const finalC = await repo.findTaskById(taskC.id);
-    expect(finalB?.blocked_by).toEqual([]);
-    expect(finalC?.blocked_by).toEqual([]);
+    expect(finalB?.blockedBy).toEqual([]);
+    expect(finalC?.blockedBy).toEqual([]);
   });
 
   it('checkUnblocks returns empty for tasks with no dependents', async () => {
@@ -426,7 +426,7 @@ describe('Real TaskManager — dependency graph resolution', () => {
     const taskA = await taskManager.create({ team_id: 't', subject: 'A' });
     const taskB = await taskManager.create({ team_id: 't', subject: 'B' });
     // Task C depends on BOTH A and B
-    const taskC = await taskManager.create({ team_id: 't', subject: 'C', blocked_by: [taskA.id, taskB.id] });
+    const taskC = await taskManager.create({ team_id: 't', subject: 'C', blockedBy: [taskA.id, taskB.id] });
 
     await taskManager.update(taskA.id, { status: 'completed' });
     const partialUnblock = await taskManager.checkUnblocks(taskA.id);
@@ -434,15 +434,15 @@ describe('Real TaskManager — dependency graph resolution', () => {
     // C still depends on B, so should NOT be returned as fully unblocked
     expect(partialUnblock.map((t) => t.id)).not.toContain(taskC.id);
 
-    // Verify C still has B in its blocked_by
+    // Verify C still has B in its blockedBy
     const finalC = await repo.findTaskById(taskC.id);
-    expect(finalC?.blocked_by).toContain(taskB.id);
-    expect(finalC?.blocked_by).not.toContain(taskA.id);
+    expect(finalC?.blockedBy).toContain(taskB.id);
+    expect(finalC?.blockedBy).not.toContain(taskA.id);
   });
 
   it('FIXED: checkUnblocks now clears blocks array on the completed task', async () => {
     const taskA = await taskManager.create({ team_id: 't', subject: 'A' });
-    const taskB = await taskManager.create({ team_id: 't', subject: 'B', blocked_by: [taskA.id] });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'B', blockedBy: [taskA.id] });
 
     await taskManager.update(taskA.id, { status: 'completed' });
     await taskManager.checkUnblocks(taskA.id);
@@ -450,9 +450,9 @@ describe('Real TaskManager — dependency graph resolution', () => {
     const cleanedA = await repo.findTaskById(taskA.id);
     // FIXED: A.blocks is now cleared after checkUnblocks
     expect(cleanedA?.blocks).toEqual([]);
-    // B.blocked_by is correctly empty
+    // B.blockedBy is correctly empty
     const updatedB = await repo.findTaskById(taskB.id);
-    expect(updatedB?.blocked_by).toEqual([]);
+    expect(updatedB?.blockedBy).toEqual([]);
   });
 
   it('list returns all tasks for a team', async () => {
@@ -832,9 +832,9 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
       wakeAgent: vi.fn().mockResolvedValue(undefined),
       renameAgent: (slot_id: string, new_name: string) => {
         renamedSlotId = slot_id;
-        renamedName = newName;
+        renamedName = new_name;
         const agent = agentsCopy.find((a) => a.slot_id === slot_id);
-        if (agent) agent.agent_name = newName;
+        if (agent) agent.agent_name = new_name;
       },
     });
 
@@ -914,7 +914,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
 
   it('team_task_update with completed status triggers checkUnblocks', async () => {
     const taskA = await taskManager.create({ team_id: 'team-1', subject: 'A' });
-    const taskB = await taskManager.create({ team_id: 'team-1', subject: 'B', blocked_by: [taskA.id] });
+    const taskB = await taskManager.create({ team_id: 'team-1', subject: 'B', blockedBy: [taskA.id] });
 
     await tcpCall(port, {
       tool: 'team_task_update',
@@ -924,7 +924,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
 
     // B should now be unblocked
     const updatedB = await repo.findTaskById(taskB.id);
-    expect(updatedB?.blocked_by).toEqual([]);
+    expect(updatedB?.blockedBy).toEqual([]);
   });
 });
 

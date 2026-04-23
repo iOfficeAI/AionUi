@@ -178,7 +178,7 @@ describeOrSkip('SqliteTeamRepository', () => {
       team_id: 'team-1',
       subject: `Task ${id}`,
       status: 'open',
-      blocked_by: [],
+      blockedBy: [],
       blocks: [],
       metadata: {},
       created_at: Date.now(),
@@ -221,7 +221,7 @@ describeOrSkip('SqliteTeamRepository', () => {
       team_id: 'team-1',
       subject: `Task ${id}`,
       status: 'open',
-      blocked_by: [],
+      blockedBy: [],
       blocks: [],
       metadata: {},
       created_at: Date.now(),
@@ -234,17 +234,17 @@ describeOrSkip('SqliteTeamRepository', () => {
     });
 
     it('removes a blocker id from blockedBy array', async () => {
-      await repo.createTask(makeTask('t1', { blocked_by: ['t0', 't2'] }));
+      await repo.createTask(makeTask('t1', { blockedBy: ['t0', 't2'] }));
       const updated = await repo.removeFromBlockedBy('t1', 't0');
 
-      expect(updated.blocked_by).toEqual(['t2']);
+      expect(updated.blockedBy).toEqual(['t2']);
     });
 
     it('returns task unchanged when blocker id is not present', async () => {
-      await repo.createTask(makeTask('t1', { blocked_by: ['t0'] }));
+      await repo.createTask(makeTask('t1', { blockedBy: ['t0'] }));
       const updated = await repo.removeFromBlockedBy('t1', 'nonexistent');
 
-      expect(updated.blocked_by).toEqual(['t0']);
+      expect(updated.blockedBy).toEqual(['t0']);
     });
 
     it('throws for nonexistent task', async () => {

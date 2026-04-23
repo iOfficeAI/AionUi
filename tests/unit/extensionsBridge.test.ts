@@ -58,8 +58,8 @@ function makeConversation(overrides: Partial<TChatConversation> = {}): TChatConv
     id: 'c1',
     type: 'nanobot' as any,
     status: 'finished',
-    modifyTime: Date.now(),
-    createTime: Date.now(),
+    modified_at: Date.now(),
+    created_at: Date.now(),
     ...overrides,
   } as TChatConversation;
 }
@@ -95,7 +95,7 @@ describe('ActivitySnapshotBuilder', () => {
   it('excludes health-check conversations from totalConversations', async () => {
     const conversations = [
       makeConversation({ id: 'c1' }),
-      makeConversation({ id: 'hc1', extra: { isHealthCheck: true } as any }),
+      makeConversation({ id: 'hc1', extra: { is_health_check: true } as any }),
     ];
     vi.mocked(repo.getUserConversations).mockResolvedValue({
       data: conversations,

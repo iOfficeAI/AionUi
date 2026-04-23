@@ -128,7 +128,7 @@ const CLAUDE_CACHED_MODEL: AcpModelInfo = {
     { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
     { id: 'claude-opus-4-5-20250514', label: 'Claude Opus 4.5' },
   ],
-  canSwitch: true,
+  can_switch: true,
 };
 
 const MODEL_LIST: IProvider[] = [
@@ -155,7 +155,7 @@ function setupMocks(overrides?: {
   const acpConfig = overrides?.acpConfig ?? { claude: { preferredMode: 'bypassPermissions' } };
   const geminiConfig = overrides?.geminiConfig ?? {};
 
-  ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: AVAILABLE_AGENTS });
+  ipcMock.getAvailableAgents.mockResolvedValue(AVAILABLE_AGENTS);
   ipcMock.getAssistants.mockResolvedValue([]);
 
   configStorageMock.get.mockImplementation(async (key: string) => {
@@ -304,7 +304,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     await waitFor(() => {
       expect(result.current.is_presetAgent).toBe(false);
-      expect(result.current.selected_agent).toBe('claude');
+      expect(result.current.selectedAgent).toBe('claude');
     });
 
     // Should look up acpCachedModels['claude']
@@ -376,12 +376,12 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     await waitFor(() => {
       expect(result.current.availableAgents).toBeDefined();
-      expect(result.current.selected_agentKey).toBe(`custom:${PRESET_AGENT_ID}`);
+      expect(result.current.selectedAgentKey).toBe(`custom:${PRESET_AGENT_ID}`);
     });
 
     rerender({ resetAssistant: true, locationKey: 'new-chat' });
 
-    expect(result.current.selected_agentKey).toBe('gemini');
+    expect(result.current.selectedAgentKey).toBe('gemini');
     expect(configStorageMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
   });
 
