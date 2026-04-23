@@ -110,8 +110,8 @@ Skill e2e suite's 29 tests).
 | Branch | Repo | SHA |
 |--------|------|-----|
 | `feat/backend-migration-coordinator` | AionUi | this commit (`c323acbf6` is the merge parent) |
-| `feat/backend-migration-assistant-verify` | AionUi | `5ce9a2b84` |
-| `feat/extension-skill-library` | aionui-backend | `274f8ab` (unchanged — no backend work in this track) |
+| `feat/backend-migration-assistant-verify` | AionUi | `5ce9a2b84` (deleted 2026-04-23 after merge into coordinator) |
+| `archive/skill-library-pilot-2026-04-23` | aionui-backend | `274f8ab` (formerly `feat/extension-skill-library`; branch renamed to archive on pilot cleanup to preserve E1–E5 impl + source-field fix commits for future cherry-pick) |
 
 Per spec §4.3 and user instruction, **none of these branches are merged back
 into `feat/backend-migration`** in either repo. Integration is a separate
