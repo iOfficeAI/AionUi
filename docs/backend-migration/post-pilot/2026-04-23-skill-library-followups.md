@@ -1,6 +1,7 @@
 # Skill-Library Pilot — Post-Pilot Follow-ups
 
 **Opened:** 2026-04-23 (after pilot closure at 2026-04-22 22/29 e2e)
+**Latest Skill e2e rerun:** 2026-04-23 ~12:50 → **23 PASS / 5 FAIL / 1 SKIP** (was 22/7 in Phase D). Gains: TC-S-08 (FAIL→PASS via P1-2 stable-testid fix), TC-S-06 (FAIL→SKIP via P1-1 env-gate). Remaining 5 fail all gated on P0-1/P0-2: TC-S-17 (P0-1 product decision), TC-S-15/25/28 (P0-2 sandbox), TC-S-27 (extension registry integration, long-term).
 **Context:** pilot was closed successfully with transport/migration layer
 CLEAN. These are the items pilot surfaced but doesn't own — deferred
 per coordinator's Phase D ruling.
