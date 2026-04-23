@@ -135,3 +135,40 @@ tested against their own production `aionui-config.txt`:
 - Bug A pending main-process log diagnosis
 - Mention this lesson in coordinator handoff (T6) with the explicit
   recommendation above.
+
+## 2026-04-23 — `stat -f` on symlinks is a footgun
+
+**Symptom:** e2e-tester during T3 rerun nearly reported the `~/.cargo/bin/aionui-backend` as stale because `stat -f "%Sm"` returned the symlink's own mtime (Apr 23 18:41), not the target binary mtime (Apr 24 03:11).
+
+**Fix (runbook-level):** When checking whether a symlink's target is fresh, use one of:
+- `stat -Lf "%Sm" <symlink>` — `-L` follows links
+- `ls -laL <symlink>` — same
+- `readlink <symlink>` + `stat` on the result
+
+Cited in `cmd` / runbook docs going forward. Not a playbook-for-coordinators issue per se, but a runbook hygiene item.
+
+## 2026-04-23 — API schema conventions need lints, not reviews
+
+**Symptom:** T3 E2E found 3 of 8 scenarios failing because `aionui-api-types/src/skill.rs` had 19 of 22 public structs without `#[serde(rename_all = "camelCase")]`. Spec §6 and AGENTS.md API conventions both require camelCase on the wire. Code review of the T1 PR (would have) missed this because the 19 structs were pre-existing at T1 start, just never explicitly audited.
+
+**Fix (process-level):** Project should gain a small test/lint that iterates every public struct in `aionui-api-types/src/*` with `Serialize` or `Deserialize` derive and asserts the `rename_all = "camelCase"` attribute is present (or the struct is explicitly opted out). A 50-line test in `aionui-api-types/tests/` would have caught this class before T3.
+
+**Follow-up ticket filed** in coordinator-builtin-skill-migration-2026-04-23.md §Followups.
+
+## 2026-04-23 — Packaging smoke as standalone acceptance step
+
+**Symptom (motivation):** When a pilot's entire motivation is "kill the binary + sibling assets/" assumption (builtin-skill pilot was, and so was assistant pilot's H2), verifying the fix actually requires running the binary *in a state where no sibling assets/ exist*. A dev-machine `cargo run` always has the sibling via `target/debug/assets/`; packaging via `bun run build` is expensive (~15 min for Electron).
+
+**Fix:** A mid-fidelity smoke that takes 2 minutes:
+```bash
+cargo build --release
+TMPDIR=$(mktemp -d)
+cp target/release/aionui-backend "$TMPDIR/"
+# Note: no `assets/` copied
+"$TMPDIR/aionui-backend" --local --port 25905 --data-dir "$TMPDIR/data" &
+# ... curl checks
+```
+If the endpoints return populated data, the binary is genuinely self-contained.
+If not, packaging bug exists even if dev builds "work."
+
+Run this as part of T4 coordinator closure for any pilot touching asset delivery.

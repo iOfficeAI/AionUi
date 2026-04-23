@@ -221,3 +221,67 @@ to each repo root:
   recommendation.
 - **Post-pilot followup ticket list:** `docs/backend-migration/post-pilot/2026-04-23-skill-library-followups.md`.
   Concrete P0/P1/P2 items for module-2 prerequisites and deferred work.
+
+---
+
+## Built-in Skill Migration — 2026-04-23
+
+Scope: move built-in skill resources from AionUi frontend (`src/process/resources/skills/`) to the Rust backend. Embed via `include_dir!`. Rename `_builtin/` → `auto-inject/`. Frontend `AcpSkillManager` and gemini CLI wiring all route through HTTP; frontend never touches skill files.
+
+**Feature branches (no PRs raised per user instruction):**
+
+| Branch | Repo | Final SHA |
+|---|---|---|
+| `feat/backend-migration-builtin-skills` | AionUi | `ff5290db5` |
+| `feat/builtin-skills` | aionui-backend | `04f1537` |
+
+### Endpoints added
+
+| Method | Path | Behavior |
+|---|---|---|
+| POST | `/api/skills/materialize-for-agent` | Write a conversation's skill bundle to `{data_dir}/agent-skills/{conversationId}/`, return absolute dir path. Flat layout: `{target}/{name}/SKILL.md`, auto-inject unconditional, opt-in overwrites on collision. |
+| DELETE | `/api/skills/materialize-for-agent/{conversationId}` | Idempotent cleanup. |
+
+### Endpoints modified (contract additions)
+
+- `GET /api/skills/builtin-auto` — response entries gain `location` field (relative path like `"auto-inject/cron/SKILL.md"`).
+- `GET /api/skills` — `source=builtin` rows gain optional `relativeLocation` field (for HTTP body reads); `location` synthesizes an absolute-style path under `{data_dir}/builtin-skills-view/` for the export-symlink flow.
+- `POST /api/skills/builtin-skill` — `fileName` now accepts the `auto-inject/` prefix.
+- All camelCase on the wire enforced via `#[serde(rename_all = "camelCase")]` on 21 of 22 skill.rs derive blocks (H1 hotfix).
+
+### Constant rename
+
+`BUILTIN_AUTO_SKILLS_SUBDIR: &str = "_builtin"` → `"auto-inject"` in `aionui-extension/constants.rs`. All downstream callers updated.
+
+### Built-in skill corpus
+
+- Location at compile time: `aionui-backend/crates/aionui-app/assets/builtin-skills/`
+- 23 skills total (4 auto-inject + 19 opt-in)
+- Embedded into the binary via `include_dir!`. `AIONUI_BUILTIN_SKILLS_PATH` env var overrides with disk path (E2E/dev).
+
+### Invariants established
+
+- Frontend `src/process/resources/skills/` deleted. `grep -rnE '"_builtin"|/_builtin|_builtin/' src/` returns zero production hits.
+- Frontend code no longer reads skill files; all skill access is HTTP through `ipcBridge.fs.*`.
+- Gemini CLI gets a pre-materialized skill dir path from the backend; never scans for skill files itself.
+- Packaging: `aionui-backend` binary self-contained — no sibling `assets/` directory required. Verified via release-binary smoke in a fresh tempdir.
+
+### Tests
+
+| Suite | Count | Location |
+|---|---|---|
+| Rust inline unit (aionui-extension::skill_service) | +13 new | `crates/aionui-extension/src/skill_service.rs` |
+| Rust HTTP integration | +14 new | `crates/aionui-app/tests/skills_builtin_e2e.rs` |
+| Rust wire-shape regression (camelCase + snake-case rejection) | +multiple per type | `crates/aionui-api-types/src/skill.rs` |
+| Frontend Vitest | +11 new | `tests/unit/acpSkillManager.test.ts`, `tests/unit/initAgent.materialize.test.ts` |
+| Playwright E2E | 8 scenarios | `tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts` |
+
+### Hotfix in flight
+
+- **H1** (`04f1537`): T3 run-1 found 3 of 8 scenarios failing because 19 of 22 public skill.rs derive blocks lacked `#[serde(rename_all = "camelCase")]`. Backend-dev audited the whole file (`3 → 21` rename_all attrs) + added regression-guard tests. T3 run-2 passed 8/8 in 13.5s.
+
+### Lessons (see playbook)
+
+- `stat -f` on a symlink reports link-mtime not target-mtime; use `stat -L` or `readlink` for `~/.cargo/bin/aionui-backend` freshness checks.
+- camelCase on the wire is a project-wide invariant; a linter would prevent this class of reactive hotfixes.
+- Packaging smoke (release binary in fresh tempdir) is a worthwhile standalone step for any pilot touching asset delivery.
