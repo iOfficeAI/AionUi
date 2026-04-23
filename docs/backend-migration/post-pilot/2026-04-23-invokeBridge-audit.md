@@ -1,5 +1,26 @@
 # `invokeBridge` Audit — 2026-04-23
 
+> **⚠️ OUT OF SCOPE for this migration track.**
+>
+> This audit was produced while the coordinator was scoped to
+> **Skill-Library + Assistant surface only**. The findings below document
+> latent Class E failures in `conversation` / `cron` / `team` / `extension`
+> e2e helpers — **those domains are owned by their respective future
+> migration tracks, not by this one**.
+>
+> Any commit that modifies files outside `tests/e2e/{features/assistants,
+> features/settings/skills, helpers/skillsHub.ts, helpers/httpBridge.ts,
+> helpers/index.ts}` overreaches this track's charter and should be reverted.
+> Two such commits (cron-crud + extensions migration) were landed then
+> reverted (`e61e07c38`, `c2d4af05a`) because they crossed into team / cron /
+> extensions territory.
+>
+> This file remains checked in **as a forward-reference for whoever owns
+> those domains later** — it tells them what needs to change and where the
+> breakage patterns are. It is **not a todo list for this coordinator**.
+
+
+
 **Scope:** Find all remaining e2e call sites that use `invokeBridge()` after
 the Skill-pilot + Assistant-verify work, determine which keys still have
 live IPC handlers vs. which keys are HTTP-migrated in the renderer.
