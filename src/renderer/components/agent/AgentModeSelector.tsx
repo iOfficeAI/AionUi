@@ -163,7 +163,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     let cancelled = false;
 
     ipcBridge.acpConversation.getMode
-      .invoke({ conversation_id })
+      .invoke({ conversationId: conversation_id })
       .then((result) => {
         if (!cancelled && result) {
           // Only sync from backend when manager is initialized;
@@ -204,7 +204,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       try {
         // setMode returns void; success if no throw
         await ipcBridge.acpConversation.setMode.invoke({
-          conversation_id,
+          conversationId: conversation_id,
           mode,
         });
 

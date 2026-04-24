@@ -51,11 +51,11 @@ const AcpConfigSelector: React.FC<{
     if (!backend || !conversation_id) return;
     let cancelled = false;
     ipcBridge.acpConversation.getConfigOptions
-      .invoke({ conversation_id })
+      .invoke({ conversationId: conversation_id })
       .then((result) => {
         if (cancelled) return;
-        if (result?.config_options?.length > 0) {
-          setConfigOptions(result.config_options);
+        if (result?.configOptions?.length > 0) {
+          setConfigOptions(result.configOptions);
         }
       })
       .catch(() => {});
@@ -72,10 +72,10 @@ const AcpConfigSelector: React.FC<{
       if (message.conversation_id !== conversation_id) return;
       if (message.type === 'acp_model_info') {
         ipcBridge.acpConversation.getConfigOptions
-          .invoke({ conversation_id })
+          .invoke({ conversationId: conversation_id })
           .then((result) => {
-            if (result?.config_options?.length > 0) {
-              setConfigOptions(result.config_options);
+            if (result?.configOptions?.length > 0) {
+              setConfigOptions(result.configOptions);
             }
           })
           .catch(() => {});
@@ -106,14 +106,14 @@ const AcpConfigSelector: React.FC<{
 
       // Conversation mode: send to ACP backend (setConfigOption returns void)
       ipcBridge.acpConversation.setConfigOption
-        .invoke({ conversation_id, config_id, value })
+        .invoke({ conversationId: conversation_id, configId: config_id, value })
         .then(() => {
           // Re-fetch config options after successful set
           ipcBridge.acpConversation.getConfigOptions
-            .invoke({ conversation_id })
+            .invoke({ conversationId: conversation_id })
             .then((result) => {
-              if (result?.config_options?.length > 0) {
-                setConfigOptions(result.config_options);
+              if (result?.configOptions?.length > 0) {
+                setConfigOptions(result.configOptions);
               }
             })
             .catch(() => {});
@@ -122,10 +122,10 @@ const AcpConfigSelector: React.FC<{
           console.error('[AcpConfigSelector] Failed to set config option:', error);
           // Revert on error by re-fetching
           ipcBridge.acpConversation.getConfigOptions
-            .invoke({ conversation_id })
+            .invoke({ conversationId: conversation_id })
             .then((result) => {
-              if (result?.config_options) {
-                setConfigOptions(result.config_options);
+              if (result?.configOptions) {
+                setConfigOptions(result.configOptions);
               }
             })
             .catch(() => {});

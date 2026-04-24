@@ -97,10 +97,10 @@ const AcpModelSelector: React.FC<{
 
   const reloadModelInfo = useCallback(
     async (options?: { preserveInitialModel?: boolean }) => {
-      const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversation_id });
+      const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId: conversation_id });
 
-      if (result?.model_info) {
-        const info = result.model_info;
+      if (result?.modelInfo) {
+        const info = result.modelInfo;
         if (backend === 'codex') {
           console.log('[AcpModelSelector][codex] Initial model info:', info);
         }
@@ -228,14 +228,14 @@ const AcpModelSelector: React.FC<{
         };
       });
       ipcBridge.acpConversation.setModel
-        .invoke({ conversation_id, model_id })
+        .invoke({ conversationId: conversation_id, modelId: model_id })
         .then(() => {
           // setModel returns void; re-fetch model info after successful set
           ipcBridge.acpConversation.getModelInfo
-            .invoke({ conversation_id })
+            .invoke({ conversationId: conversation_id })
             .then((result) => {
-              if (result?.model_info) {
-                updateModelInfo(result.model_info);
+              if (result?.modelInfo) {
+                updateModelInfo(result.modelInfo);
               }
             })
             .catch(() => {});
