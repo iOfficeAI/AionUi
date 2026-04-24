@@ -55,8 +55,11 @@ const useModeModeList = (
       models: { label: string; value: string }[];
       fix_base_url?: string;
     }> => {
-      // 如果有 API key、base_url 或 bedrock_config，尝试通过 API 获取模型列表
-      if (api_key || base_url || bedrock_config) {
+      // Only call the backend when we have credentials it can actually use:
+      // - bedrock: bedrock_config carries the credentials (api_key not required)
+      // - everything else: api_key is mandatory per backend validator
+      const hasUsableCredentials = platform === 'bedrock' ? !!bedrock_config : !!api_key;
+      if (hasUsableCredentials) {
         const res = await ipcBridge.mode.fetchModelList.invoke({
           base_url,
           api_key: api_key ?? '',

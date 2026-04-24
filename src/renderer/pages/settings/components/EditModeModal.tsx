@@ -302,7 +302,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               required
               rules={[{ required: true }]}
               validateStatus={modelListState.error ? 'error' : undefined}
-              help={modelListState.error}
+              help={modelListState.error instanceof Error ? modelListState.error.message : modelListState.error ? String(modelListState.error) : undefined}
             >
               <Select
                 loading={modelListState.isLoading}
