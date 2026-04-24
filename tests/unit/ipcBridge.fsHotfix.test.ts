@@ -49,4 +49,31 @@ describe('ipcBridge.fs — createTempFile/createUploadFile use snake_case body',
     expect(body).toEqual({ file_name: 'auto-inject/cron/SKILL.md' });
     expect(body).not.toHaveProperty('fileName');
   });
+
+  it('readBuiltinRule sends {file_name}', async () => {
+    await fs.readBuiltinRule.invoke({ file_name: 'presets/word-creator.en-US.md' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ file_name: 'presets/word-creator.en-US.md' });
+    expect(body).not.toHaveProperty('fileName');
+  });
+
+  it('readAssistantRule sends {assistant_id, locale}', async () => {
+    await fs.readAssistantRule.invoke({ assistant_id: 'custom-1', locale: 'zh-CN' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ assistant_id: 'custom-1', locale: 'zh-CN' });
+    expect(body).not.toHaveProperty('assistantId');
+  });
+
+  it('readAssistantSkill sends {assistant_id, locale}', async () => {
+    await fs.readAssistantSkill.invoke({ assistant_id: 'custom-1', locale: 'en-US' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ assistant_id: 'custom-1', locale: 'en-US' });
+    expect(body).not.toHaveProperty('assistantId');
+  });
 });
