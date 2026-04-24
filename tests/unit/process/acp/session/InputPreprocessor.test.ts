@@ -1,6 +1,12 @@
 // tests/unit/process/acp/session/InputPreprocessor.test.ts
+import nodePath from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { describe, it, expect, vi } from 'vitest';
 import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
+
+function toExpectedResourceUri(filePath: string): string {
+  return pathToFileURL(nodePath.resolve(filePath)).toString();
+}
 
 describe('InputPreprocessor', () => {
   it('returns text-only content when no files', () => {
@@ -29,7 +35,7 @@ describe('InputPreprocessor', () => {
       {
         type: 'resource_link',
         name: 'demo.jpg',
-        uri: 'file:///foo/demo.jpg',
+        uri: toExpectedResourceUri('/foo/demo.jpg'),
         mimeType: 'image/jpeg',
       },
     ]);
@@ -64,7 +70,7 @@ describe('InputPreprocessor', () => {
       {
         type: 'resource_link',
         name: 'blob.bin',
-        uri: 'file:///foo/blob.bin',
+        uri: toExpectedResourceUri('/foo/blob.bin'),
       },
     ]);
   });
