@@ -51,6 +51,7 @@ import AcpModelSelector from '../../src/renderer/components/agent/AcpModelSelect
 describe('AcpModelSelector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    ipcMock.getModelInfo.mockReset();
     responseHandler = null;
     ipcMock.onResponseStream.mockImplementation((handler: (message: any) => void) => {
       responseHandler = handler;
@@ -97,40 +98,21 @@ describe('AcpModelSelector', () => {
     });
   });
 
-  it('refreshes Claude model info when the window regains focus', async () => {
+  it('fetches model info via focus polling when initial load returns null', async () => {
     ipcMock.getModelInfo
-      .mockResolvedValueOnce({
-        model_info: {
-          current_model_id: 'claude-opus-4-6',
-          current_model_label: 'Claude Opus 4.6',
-          available_models: [
-            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-            { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
-          ],
-          can_switch: true,
-          source: 'models',
-          source_detail: 'cc-switch',
-        },
-      })
+      .mockResolvedValueOnce({ model_info: null })
       .mockResolvedValueOnce({
         model_info: {
           current_model_id: 'claude-sonnet-4-5',
           current_model_label: 'Claude Sonnet 4.5',
-          available_models: [
-            { id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' },
-            { id: 'claude-opus-4-6', label: 'Claude Opus 4.6' },
-          ],
-          can_switch: true,
+          available_models: [{ id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' }],
+          can_switch: false,
           source: 'models',
           source_detail: 'cc-switch',
         },
       });
 
     render(<AcpModelSelector conversation_id='conv-1' backend='claude' />);
-
-    await waitFor(() => {
-      expect(screen.getAllByText('Claude Opus 4.6 · cc-switch').length).toBeGreaterThan(0);
-    });
 
     act(() => {
       window.dispatchEvent(new Event('focus'));

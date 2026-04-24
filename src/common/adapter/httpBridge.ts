@@ -38,7 +38,10 @@ async function httpRequest<T>(method: string, path: string, body?: unknown): Pro
     headers['Content-Type'] = 'application/json';
   }
 
-  console.debug(`[httpBridge] ${method} ${path}`, body !== undefined ? JSON.stringify(body).slice(0, 500) : '(no body)');
+  console.debug(
+    `[httpBridge] ${method} ${path}`,
+    body !== undefined ? JSON.stringify(body).slice(0, 500) : '(no body)'
+  );
 
   const response = await fetch(url, {
     method,

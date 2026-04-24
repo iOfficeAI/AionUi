@@ -111,13 +111,21 @@ export const conversation = {
     return {
       session_id: (r.session_id ?? r.conversation_id ?? '') as string,
       status: (r.status ?? 'finished') as IConversationTurnCompletedEvent['status'],
-      state: (r.state ?? (r.status === 'finished' ? 'ai_waiting_input' : 'unknown')) as IConversationTurnCompletedEvent['state'],
+      state: (r.state ??
+        (r.status === 'finished' ? 'ai_waiting_input' : 'unknown')) as IConversationTurnCompletedEvent['state'],
       detail: (r.detail ?? '') as string,
       canSendMessage: (r.canSendMessage ?? r.status === 'finished') as boolean,
-      runtime: (r.runtime ?? { hasTask: false, isProcessing: false, pendingConfirmations: 0 }) as IConversationTurnCompletedEvent['runtime'],
+      runtime: (r.runtime ?? {
+        hasTask: false,
+        isProcessing: false,
+        pendingConfirmations: 0,
+      }) as IConversationTurnCompletedEvent['runtime'],
       workspace: (r.workspace ?? '') as string,
       model: (r.model ?? { platform: '', name: '', useModel: '' }) as IConversationTurnCompletedEvent['model'],
-      last_message: (r.last_message ?? { content: null, created_at: Date.now() }) as IConversationTurnCompletedEvent['last_message'],
+      last_message: (r.last_message ?? {
+        content: null,
+        created_at: Date.now(),
+      }) as IConversationTurnCompletedEvent['last_message'],
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
