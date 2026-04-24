@@ -101,7 +101,8 @@ required for correctness (the frontend stops reading it).
 
 ### `src/common/adapter/ipcBridge.ts` (lines 515–540)
 
-Replace the `mode` block. The batch shim goes away. New surface:
+Replace the `mode` block. The batch shim goes away. Two separate
+fetch-models entries — anonymous pre-create vs by-id refresh. New surface:
 
 ```ts
 export const mode = {
@@ -113,7 +114,17 @@ export const mode = {
   deleteProvider: httpDelete<void, { id: string }>(
     (p) => `/api/providers/${p.id}`,
   ),
-  fetchModelList: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
+  // Anonymous pre-create: user fills AddPlatformModal, clicks "Fetch Models"
+  // before the provider row exists. Credentials in body, no id.
+  fetchModelList: httpPost<FetchModelsResponse, {
+    platform: string;
+    base_url: string;
+    api_key: string;
+    bedrock_config?: BedrockConfig;
+    try_fix?: boolean;
+  }>('/api/providers/fetch-models'),
+  // By-id refresh: provider already persisted, refresh its model list.
+  fetchModelsForProvider: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
     (p) => `/api/providers/${p.id}/models`,
   ),
   detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>(
@@ -121,6 +132,9 @@ export const mode = {
   ),
 };
 ```
+
+Backend endpoint `POST /api/providers/fetch-models` added in T1b. See
+backend spec §5.
 
 Types `CreateProviderRequest` / `UpdateProviderRequest` / `FetchModelsResponse`
 added to `src/common/types/providerApi.ts` (new file, ~80 lines, direct
