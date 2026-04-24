@@ -7,8 +7,11 @@
 import { describe, expect, it } from 'vitest';
 import {
   createRuntimeResponseContractState,
+  buildRuntimeResponseContractInitialPrompt,
+  buildRuntimeResponseContractRepairPrompt,
   denyForbiddenPreArtifactTools,
   finalizeRuntimeResponseContract,
+  resetRuntimeResponseContractForRepair,
 } from '../../src/process/task/RuntimeResponseContract';
 
 const CANARY_PROMPT =
@@ -80,6 +83,18 @@ describe('RuntimeResponseContract', () => {
     expect(result.errors).toEqual([]);
   });
 
+  it('blocks invented spending-reserve thresholds when the prompt only gives current months', () => {
+    const inventedThresholdPacket = VALID_PACKET.replace(
+      'Track reserve months, PE range, hedge fund benchmark, and liquidity.',
+      'Spending reserve is below the 18-24 month target band.'
+    );
+    const result = finalizeRuntimeResponseContract(activeState(), inventedThresholdPacket);
+    expect(result.status).toBe('blocked');
+    expect(result.errors).toContain(
+      'spending/liquidity reserve policy threshold was inferred without user-provided IPS threshold'
+    );
+  });
+
   it('safely crops narration only when no forbidden pre-artifact tool occurred', () => {
     const result = finalizeRuntimeResponseContract(activeState(), `I should inspect skills first.\n\n${VALID_PACKET}`);
     expect(result.status).toBe('repaired');
@@ -97,7 +112,7 @@ describe('RuntimeResponseContract', () => {
     expect(result.visibleText).toContain('# Portfolio Construction Input Scaffold');
   });
 
-  it('denies forbidden pre-artifact workspace tools and blocks instead of cropping', () => {
+  it('denies forbidden pre-artifact workspace and skill tools and blocks instead of cropping', () => {
     const state = activeState();
     const denied = denyForbiddenPreArtifactTools(state, [
       {
@@ -107,11 +122,36 @@ describe('RuntimeResponseContract', () => {
         renderOutputAsMarkdown: false,
         status: 'Confirming',
       },
+      {
+        callId: 'call-2',
+        name: 'Skill',
+        description: 'Invoke portfolio-construction before drafting',
+        renderOutputAsMarkdown: false,
+        status: 'Confirming',
+      },
     ]);
 
-    expect(denied).toHaveLength(1);
+    expect(denied).toHaveLength(2);
     const result = finalizeRuntimeResponseContract(state, `Some wrapper text\n\n${VALID_PACKET}`);
     expect(result.status).toBe('blocked');
     expect(result.errors).toContain('forbidden pre-artifact tool/search occurred before a valid artifact');
+  });
+
+  it('builds a one-shot no-tool repair prompt from a blocked first attempt', () => {
+    const state = activeState();
+    const result = finalizeRuntimeResponseContract(state, 'Let me inspect the skill first.');
+    expect(result.status).toBe('blocked');
+
+    resetRuntimeResponseContractForRepair(state);
+    const prompt = buildRuntimeResponseContractRepairPrompt(state, result.errors);
+    const initialPrompt = buildRuntimeResponseContractInitialPrompt(state, CANARY_PROMPT);
+
+    expect(state.repairAttempted).toBe(true);
+    expect(state.currentAttemptDeniedToolCalls).toEqual([]);
+    expect(prompt).toContain('no tool calls');
+    expect(prompt).toContain('# Senior PM Portfolio Construction Packet');
+    expect(prompt).toContain(CANARY_PROMPT);
+    expect(initialPrompt).toContain('Do not invent a spending-reserve target');
+    expect(initialPrompt).toContain('14 months is an observed reserve level');
   });
 });

@@ -53,11 +53,14 @@ export type RuntimeContractState = {
   promptFamily?: RuntimeContractPromptFamily;
   appliesUntil: 'first_valid_artifact';
   firstArtifactSeen: boolean;
+  repairAttempted: boolean;
   deniedToolCalls: RuntimeContractToolTrace[];
+  currentAttemptDeniedToolCalls: RuntimeContractToolTrace[];
   hiddenReasoningTrace: string[];
   rawContentTrace: string[];
   repeatedToolViolation: boolean;
   debug: boolean;
+  promptText: string;
 };
 
 export type RuntimeContractToolTrace = {
@@ -126,11 +129,14 @@ export function createRuntimeResponseContractState(input: CreateRuntimeContractS
     promptFamily,
     appliesUntil: 'first_valid_artifact',
     firstArtifactSeen: false,
+    repairAttempted: false,
     deniedToolCalls: [],
+    currentAttemptDeniedToolCalls: [],
     hiddenReasoningTrace: [],
     rawContentTrace: [],
     repeatedToolViolation: false,
     debug: Boolean(input.runtimeContracts?.debug),
+    promptText: normalizePromptText(input.prompt),
   };
 }
 
@@ -153,6 +159,7 @@ export function recordRuntimeContractReasoning(state: RuntimeContractState | nul
 function isForbiddenToolName(name: string): boolean {
   const lower = name.toLowerCase();
   return (
+    lower === 'skill' ||
     lower === 'glob' ||
     lower === 'read' ||
     lower.includes('workspace_search') ||
@@ -179,8 +186,9 @@ export function denyForbiddenPreArtifactTools(
     };
     denied.push(denial);
     state.deniedToolCalls.push(denial);
+    state.currentAttemptDeniedToolCalls.push(denial);
   }
-  if (denied.length > 0 && state.deniedToolCalls.length > denied.length) {
+  if (denied.length > 0 && (state.currentAttemptDeniedToolCalls.length > denied.length || state.repairAttempted)) {
     state.repeatedToolViolation = true;
   }
   return denied;
@@ -195,7 +203,25 @@ function findFirstAllowedHeadingIndex(text: string): number {
   return indexes.length === 0 ? -1 : Math.min(...indexes);
 }
 
-function validateVisibleText(text: string): string[] {
+function promptSuppliesLiquidityThreshold(promptText: string): boolean {
+  return /(spending|liquidity|cash)\s+reserve[^.!?;\n]{0,120}\b(policy|target|floor|min(?:imum)?|range|band|threshold|required|ips)\b/i.test(
+    promptText
+  );
+}
+
+function textInventsLiquidityThreshold(text: string): boolean {
+  return (
+    /\b18\s*[-–—]\s*24\b/.test(text) ||
+    /(spending|liquidity|cash)\s+reserve[\s\S]{0,160}\b(breach|below\s+(?:target|policy|floor|minimum|required)|target\s+band|policy\s+band)\b/i.test(
+      text
+    ) ||
+    /\b(breach|below\s+(?:target|policy|floor|minimum|required)|target\s+band|policy\s+band)\b[\s\S]{0,160}(spending|liquidity|cash)\s+reserve/i.test(
+      text
+    )
+  );
+}
+
+function validateVisibleText(text: string, state?: RuntimeContractState): string[] {
   const errors: string[] = [];
   const first = firstLine(text);
   if (!ALLOWED_FIRST_VISIBLE_LINES.includes(first as (typeof ALLOWED_FIRST_VISIBLE_LINES)[number])) {
@@ -209,6 +235,11 @@ function validateVisibleText(text: string): string[] {
   if (first === '# Senior PM Portfolio Construction Packet') {
     for (const section of REQUIRED_MONITORING_SECTIONS) {
       if (!text.includes(section)) errors.push(`missing required section: ${section}`);
+    }
+  }
+  if (state?.promptFamily === 'direct_monitoring_review' && !promptSuppliesLiquidityThreshold(state.promptText)) {
+    if (textInventsLiquidityThreshold(text)) {
+      errors.push('spending/liquidity reserve policy threshold was inferred without user-provided IPS threshold');
     }
   }
   return errors;
@@ -231,6 +262,76 @@ function buildRuntimeContractBlocker(errors: string[]): string {
   ].join('\n');
 }
 
+export function resetRuntimeResponseContractForRepair(state: RuntimeContractState): void {
+  state.repairAttempted = true;
+  state.firstArtifactSeen = false;
+  state.currentAttemptDeniedToolCalls = [];
+  state.rawContentTrace = [];
+  state.hiddenReasoningTrace = [];
+  state.repeatedToolViolation = false;
+}
+
+export function buildRuntimeResponseContractInitialPrompt(state: RuntimeContractState, userContent: string): string {
+  if (!state.active) return userContent;
+  return [
+    'AionUi runtime response contract is active for this first turn.',
+    'Answer directly as the selected assistant. Do not call tools, do not invoke skills, do not search/read the workspace, do not narrate routing, and do not include hidden-reasoning tags.',
+    '',
+    'First visible line must be exactly one of:',
+    ...ALLOWED_FIRST_VISIBLE_LINES.map((line) => `- ${line}`),
+    '',
+    'For this direct monitoring review, use:',
+    '# Senior PM Portfolio Construction Packet',
+    '',
+    'Required sections:',
+    '- ## Known Facts',
+    '- ## Measurement',
+    '- ## Attribution',
+    '- ## Appraisal',
+    '- ## Implementation And Rebalancing',
+    '- ## Monitoring Dashboard',
+    '- ## Bottom Line',
+    '',
+    'Use only the facts in the user request unless the user supplied attachments. Treat unspecified policy thresholds as policy-check items, not confirmed breaches.',
+    'Do not invent a spending-reserve target, target band, floor, breach, or below-target status when the user only gives the current reserve months.',
+    'For the spending reserve in this prompt, use this posture: "14 months is an observed reserve level; IPS target/floor not provided; review policy threshold before labeling a breach."',
+    'Separate measurement, attribution, appraisal, implementation, monitoring, and bottom-line actions.',
+    '',
+    'User request:',
+    userContent,
+  ].join('\n');
+}
+
+export function buildRuntimeResponseContractRepairPrompt(state: RuntimeContractState, errors: string[]): string {
+  return [
+    'The previous response violated the active AionUi visible-output contract and was not shown to the user.',
+    'Regenerate the answer now with no tool calls, no skill invocation, no workspace search, no preamble, and no hidden-reasoning tags.',
+    '',
+    'First visible line must be exactly:',
+    '# Senior PM Portfolio Construction Packet',
+    '',
+    'Required sections:',
+    '- ## Known Facts',
+    '- ## Measurement',
+    '- ## Attribution',
+    '- ## Appraisal',
+    '- ## Implementation And Rebalancing',
+    '- ## Monitoring Dashboard',
+    '- ## Bottom Line',
+    '',
+    'Do not call Skill, Glob, Read, workspace search, or any other tool before the packet.',
+    'Use only the facts in the original user request and mark missing policy thresholds as policy-check items, not confirmed breaches.',
+    'Do not invent a spending-reserve target, target band, floor, breach, or below-target status when the original request only gives current reserve months.',
+    'For the spending reserve in the original request, use this posture: "14 months is an observed reserve level; IPS target/floor not provided; review policy threshold before labeling a breach."',
+    '',
+    'Original user request:',
+    state.promptText,
+    '',
+    'Contract errors to avoid:',
+    ...errors.map((error) => `- ${error}`),
+  ].join('\n');
+}
+
 export function finalizeRuntimeResponseContract(
   state: RuntimeContractState | null | undefined,
   rawVisibleText: string
@@ -239,7 +340,7 @@ export function finalizeRuntimeResponseContract(
     return { visibleText: rawVisibleText, status: 'inactive', errors: [], cropped: false };
   }
 
-  const deniedTools = state.deniedToolCalls.length > 0;
+  const deniedTools = state.currentAttemptDeniedToolCalls.length > 0;
   let candidate = rawVisibleText.trimStart();
   let cropped = false;
   const headingIndex = findFirstAllowedHeadingIndex(candidate);
@@ -249,7 +350,7 @@ export function finalizeRuntimeResponseContract(
     cropped = true;
   }
 
-  const errors = validateVisibleText(candidate);
+  const errors = validateVisibleText(candidate, state);
   if (deniedTools) {
     errors.push('forbidden pre-artifact tool/search occurred before a valid artifact');
   }

@@ -34,11 +34,14 @@ import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import {
   createRuntimeResponseContractState,
+  buildRuntimeResponseContractInitialPrompt,
+  buildRuntimeResponseContractRepairPrompt,
   denyForbiddenPreArtifactTools,
   finalizeRuntimeResponseContract,
   isRuntimeResponseContractActive,
   recordRuntimeContractRawContent,
   recordRuntimeContractReasoning,
+  resetRuntimeResponseContractForRepair,
   type RuntimeContractFinalizeResult,
   type RuntimeContractState,
 } from './RuntimeResponseContract';
@@ -112,6 +115,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private currentMsgContent: string = '';
   private isFreshSession = true;
   private activeResponseContract: RuntimeContractState | null = null;
+  private agentStartError: unknown = null;
 
   // Heartbeat state
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
@@ -149,8 +153,11 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     // enableFork=false skips auto-init in ForkTask, so init manually
     this.init();
 
-    // Start the agent bootstrap — store promise so sendMessage can await it
-    this.agentReady = this.start().catch(() => {});
+    // Start the agent bootstrap; keep failures visible so sendMessage can fail closed.
+    this.agentReady = this.start().catch((error) => {
+      mainError('[AionrsManager]', 'Failed to start aionrs agent', error);
+      this.agentStartError = error;
+    });
   }
 
   /**
@@ -281,12 +288,40 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     });
     // Wait for agent bootstrap to complete before sending
     await this.agentReady;
+    if (this.agentStartError) {
+      await this.handleStartupFailure(data.msg_id, this.agentStartError);
+      return;
+    }
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
-    if (this.agent) {
-      await this.agent.send(content, data.msg_id, data.files);
+    if (!this.agent) {
+      await this.handleStartupFailure(data.msg_id, new Error('aionrs agent did not initialize'));
+      return;
     }
+    const outboundContent = isRuntimeResponseContractActive(this.activeResponseContract)
+      ? buildRuntimeResponseContractInitialPrompt(this.activeResponseContract, content)
+      : content;
+    await this.agent.send(outboundContent, data.msg_id, data.files);
     this.isFreshSession = false;
+  }
+
+  private async handleStartupFailure(msgId: string, error: unknown): Promise<void> {
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.status = 'finished';
+    const detail = error instanceof Error ? error.message : String(error);
+    const response: IResponseMessage = {
+      type: 'error',
+      msg_id: msgId,
+      conversation_id: this.conversation_id,
+      data: `AionRS runtime startup failed before the first assistant response: ${detail}`,
+    };
+    const tMessage = transformMessage(response);
+    if (tMessage) {
+      addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+      await flushConversationMessages(this.conversation_id);
+    }
+    ipcBridge.conversation.responseStream.emit(response);
+    this.activeResponseContract = null;
   }
 
   /**
@@ -522,9 +557,36 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  private async handleContractTurnEnd(processedData: IResponseMessage): Promise<void> {
+  private scheduleContractRepair(state: RuntimeContractState, errors: string[], msgId: string): void {
+    mainWarn('[AionrsManager]', 'Runtime response contract blocked first attempt; requesting one no-tool repair', {
+      conversationId: this.conversation_id,
+      msgId,
+      errors,
+    });
+    resetRuntimeResponseContractForRepair(state);
+    this.currentMsgId = msgId;
+    this.currentMsgContent = '';
+    this._messageSentAt = Date.now();
+
+    setTimeout(() => {
+      if (!this.agent || this.activeResponseContract !== state) return;
+      void this.agent.send(buildRuntimeResponseContractRepairPrompt(state, errors), msgId, []).catch((error) => {
+        mainError('[AionrsManager]', 'Runtime response contract repair send failed', error);
+      });
+    }, 0);
+  }
+
+  private async handleContractTurnEnd(
+    processedData: IResponseMessage,
+    options: { allowRepair?: boolean } = {}
+  ): Promise<void> {
     const result = finalizeRuntimeResponseContract(this.activeResponseContract, this.currentMsgContent);
     const msgId = this.currentMsgId || processedData.msg_id || uuid();
+    const state = this.activeResponseContract;
+    if (result.status === 'blocked' && state && !state.repairAttempted && this.agent && options.allowRepair !== false) {
+      this.scheduleContractRepair(state, result.errors, msgId);
+      return;
+    }
     this.currentMsgId = msgId;
     this.currentMsgContent = result.visibleText;
 
@@ -597,7 +659,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     this.status = 'finished';
     if (this.activeResponseContract?.active) {
-      void this.handleContractTurnEnd(finishMessage);
+      void this.handleContractTurnEnd(finishMessage, { allowRepair: false });
       return;
     }
 

@@ -94,18 +94,20 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
 }));
 
 vi.mock('@process/agent/aionrs', () => ({
-  AionrsAgent: vi.fn().mockImplementation(() => ({
-    start: vi.fn().mockResolvedValue(undefined),
-    stop: vi.fn(),
-    kill: vi.fn(),
-    send: vi.fn().mockResolvedValue(undefined),
-    approveTool: vi.fn(),
-    denyTool: mockDenyTool,
-    injectConversationHistory: vi.fn().mockResolvedValue(undefined),
-    get bootstrap() {
-      return Promise.resolve();
-    },
-  })),
+  AionrsAgent: vi.fn().mockImplementation(function () {
+    return {
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn().mockResolvedValue(undefined),
+      approveTool: vi.fn(),
+      denyTool: mockDenyTool,
+      injectConversationHistory: vi.fn().mockResolvedValue(undefined),
+      get bootstrap() {
+        return Promise.resolve();
+      },
+    };
+  }),
 }));
 
 vi.mock('@process/channels/agent/ChannelEventBus', () => ({
@@ -114,6 +116,14 @@ vi.mock('@process/channels/agent/ChannelEventBus', () => ({
 
 vi.mock('@process/team/teamEventBus', () => ({
   teamEventBus: { emit: vi.fn() },
+}));
+
+vi.mock('@process/team/prompts/teamGuideCapability', () => ({
+  shouldInjectTeamGuideMcp: vi.fn(() => Promise.resolve(false)),
+}));
+
+vi.mock('@process/team/mcp/guide/teamGuideSingleton', () => ({
+  getTeamGuideStdioConfig: vi.fn(() => undefined),
 }));
 
 vi.mock('@process/services/cron/CronBusyGuard', () => ({
@@ -131,6 +141,7 @@ vi.mock('@/process/task/ConversationTurnCompletionService', () => ({
 }));
 
 import { AionrsManager } from '@/process/task/AionrsManager';
+import { AionrsAgent } from '@process/agent/aionrs';
 
 const CANARY_PROMPT =
   'Review this quarter for an existing endowment policy: equities outperformed, private marks lag, PE NAV rose above the policy range because public markets fell, spending reserve is down to 14 months, and the hedge fund sleeve underperformed its custom benchmark.';
@@ -244,5 +255,34 @@ describe('AionrsManager runtime response contract', () => {
       'runtime-contract forbids pre-artifact workspace search/read tools'
     );
     expect(emissions('tool_group')).toHaveLength(0);
+  });
+
+  it('fails closed when the aionrs runtime cannot start', async () => {
+    vi.mocked(AionrsAgent).mockImplementationOnce(function () {
+      return {
+        start: vi.fn().mockRejectedValue(new Error('aionrs binary not found')),
+        stop: vi.fn(),
+        kill: vi.fn(),
+        send: vi.fn().mockResolvedValue(undefined),
+        approveTool: vi.fn(),
+        denyTool: mockDenyTool,
+        injectConversationHistory: vi.fn().mockResolvedValue(undefined),
+        get bootstrap() {
+          return Promise.reject(new Error('aionrs binary not found'));
+        },
+      } as any;
+    });
+
+    const manager = createManager();
+    await manager.sendMessage({ content: CANARY_PROMPT, msg_id: 'user-1' });
+
+    const errors = emissions('error');
+    expect(errors).toHaveLength(1);
+    expect(errors[0].data).toContain('aionrs binary not found');
+    expect(mockAddOrUpdateMessage).toHaveBeenCalledWith(
+      'conv-contract-1',
+      expect.objectContaining({ type: 'tips' }),
+      'aionrs'
+    );
   });
 });
