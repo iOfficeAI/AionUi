@@ -10,9 +10,10 @@ import type { IConversationService } from '../../../src/process/services/IConver
 import type { ITeamRepository } from '../../../src/process/team/repository/ITeamRepository';
 import type { TTeam, TeamAgent } from '../../../src/common/types/teamTypes';
 
-const { mockConfigGet, mockReadFile } = vi.hoisted(() => ({
+const { mockConfigGet, mockReadFile, mockAssistantsList } = vi.hoisted(() => ({
   mockConfigGet: vi.fn(),
   mockReadFile: vi.fn(),
+  mockAssistantsList: vi.fn(async () => [] as Array<Record<string, unknown>>),
 }));
 
 vi.mock('../../../src/process/utils/initStorage', () => ({
@@ -20,6 +21,25 @@ vi.mock('../../../src/process/utils/initStorage', () => ({
     get: mockConfigGet,
   },
   getAssistantsDir: () => '/assistants',
+}));
+
+// Post-migration: TeamSessionService resolves preset rules via
+// `ipcBridge.assistants.list` (see loadPresetAssistantResources defaults).
+// Route the lookup through the same mockConfigGet('assistants') fixture so
+// existing tests keep passing without a second source of truth.
+vi.mock('../../../src/common', () => ({
+  ipcBridge: {
+    assistants: {
+      list: { invoke: mockAssistantsList },
+    },
+    team: {
+      listChanged: { emit: vi.fn() },
+      agentSpawned: { emit: vi.fn() },
+      agentRemoved: { emit: vi.fn() },
+      agentRenamed: { emit: vi.fn() },
+      mcpStatus: { emit: vi.fn() },
+    },
+  },
 }));
 
 vi.mock('fs/promises', () => ({
@@ -285,6 +305,10 @@ describe('TeamSessionService', () => {
       }
       return undefined;
     });
+    // Assistant catalog (post-migration backend shape). The key field tested
+    // is `enabledSkills` — `defaultDeps.getEnabledSkills` reads that camelCase
+    // field off the Assistant record.
+    mockAssistantsList.mockResolvedValue([{ id: 'assistant-1', enabledSkills: ['skill-a'] }]);
     mockReadFile.mockImplementation(async (targetPath: string) => {
       if (targetPath.includes('assistant-1.en-US.md')) {
         return 'PRESET RULES';
