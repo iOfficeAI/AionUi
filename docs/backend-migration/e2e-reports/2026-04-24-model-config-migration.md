@@ -72,6 +72,8 @@ What this DOM-level suite covers regardless of Playwright availability: the `Mod
 
 **Verdict:** No Playwright failure caused by T2 model-config migration. The direct model-selection suite skips cleanly (expected: no provider configured in the test env, and the affected tests are explicitly skipped by source anyway). Settings-side smoke exhibits pre-existing skill-library failures that match the 2026-04-22 baseline — they flagged as needing attention independently, not regressions introduced by T2.
 
+**Post-run environment restore (playbook 2026-04-23 "don't leave environment mutated for other pilots"):** After the Playwright run completed, the `~/.cargo/bin/aionui-backend` symlink was restored from the value saved at `/tmp/backend-symlink-original.txt`. Verified with `readlink ~/.cargo/bin/aionui-backend` — matches original target `aionui-backend-assistant-camel/target/release/aionui-backend`. Environment is back to pre-T2.5 state; subsequent pilots on this host see their own expected backend build.
+
 ### E2E helper gap identified (T2 follow-up)
 
 During inspection, found that the aionrs/gemini e2e helpers still call a **removed** IPC channel:
