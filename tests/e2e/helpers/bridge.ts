@@ -52,6 +52,97 @@ const HTTP_ROUTES: Record<string, HttpRoute> = {
       return `/api/conversations/${encodeURIComponent(String(p.conversation_id))}/messages?${qs.toString()}`;
     },
   },
+  // Workspace / file-system routes (aionui-backend, --local mode: no auth).
+  'fs.dir': {
+    method: 'POST',
+    path: '/api/fs/dir',
+  },
+  'fs.list': {
+    method: 'POST',
+    path: '/api/fs/list',
+  },
+  'fs.read': {
+    method: 'POST',
+    path: '/api/fs/read',
+  },
+  'fs.write': {
+    method: 'POST',
+    path: '/api/fs/write',
+  },
+  'fs.rename': {
+    method: 'POST',
+    path: '/api/fs/rename',
+  },
+  'fs.remove': {
+    method: 'POST',
+    path: '/api/fs/remove',
+  },
+  'fs.metadata': {
+    method: 'POST',
+    path: '/api/fs/metadata',
+  },
+  // Office preview start/stop — officecli watch server lifecycle.
+  // mapBody translates legacy { filePath } to backend's { file_path } snake_case.
+  'word-preview.start': {
+    method: 'POST',
+    path: '/api/word-preview/start',
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+  },
+  'word-preview.stop': {
+    method: 'POST',
+    path: '/api/word-preview/stop',
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+  },
+  'excel-preview.start': {
+    method: 'POST',
+    path: '/api/excel-preview/start',
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+  },
+  'excel-preview.stop': {
+    method: 'POST',
+    path: '/api/excel-preview/stop',
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+  },
+  'ppt-preview.start': {
+    method: 'POST',
+    path: '/api/ppt-preview/start',
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+  },
+  'ppt-preview.stop': {
+    method: 'POST',
+    path: '/api/ppt-preview/stop',
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+  },
+  // Document conversion (docx→md, xlsx→json, pptx→json)
+  'document.convert': {
+    method: 'POST',
+    path: '/api/document/convert',
+  },
+  // Preview history — save/list/retrieve snapshots for text-content tabs
+  'preview-history.list': {
+    method: 'POST',
+    path: '/api/preview-history/list',
+  },
+  'preview-history.save': {
+    method: 'POST',
+    path: '/api/preview-history/save',
+  },
+  'preview-history.get-content': {
+    method: 'POST',
+    path: '/api/preview-history/get-content',
+  },
+  // File snapshot — git-backed staging/compare/discard for workspace changes tab
+  'fs.snapshot.init': { method: 'POST', path: '/api/fs/snapshot/init' },
+  'fs.snapshot.info': { method: 'POST', path: '/api/fs/snapshot/info' },
+  'fs.snapshot.compare': { method: 'POST', path: '/api/fs/snapshot/compare' },
+  'fs.snapshot.stage': { method: 'POST', path: '/api/fs/snapshot/stage' },
+  'fs.snapshot.stage-all': { method: 'POST', path: '/api/fs/snapshot/stage-all' },
+  'fs.snapshot.unstage': { method: 'POST', path: '/api/fs/snapshot/unstage' },
+  'fs.snapshot.unstage-all': { method: 'POST', path: '/api/fs/snapshot/unstage-all' },
+  'fs.snapshot.discard': { method: 'POST', path: '/api/fs/snapshot/discard' },
+  'fs.snapshot.reset': { method: 'POST', path: '/api/fs/snapshot/reset' },
+  'fs.snapshot.branches': { method: 'POST', path: '/api/fs/snapshot/branches' },
+  'fs.snapshot.dispose': { method: 'POST', path: '/api/fs/snapshot/dispose' },
 };
 
 /**
