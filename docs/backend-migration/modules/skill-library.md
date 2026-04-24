@@ -285,3 +285,57 @@ Scope: move built-in skill resources from AionUi frontend (`src/process/resource
 - `stat -f` on a symlink reports link-mtime not target-mtime; use `stat -L` or `readlink` for `~/.cargo/bin/aionui-backend` freshness checks.
 - camelCase on the wire is a project-wide invariant; a linter would prevent this class of reactive hotfixes.
 - Packaging smoke (release binary in fresh tempdir) is a worthwhile standalone step for any pilot touching asset delivery.
+
+---
+
+## Snake-Case Wire Realignment — 2026-04-24
+
+Scope: revert H1's directional mistake. The builtin-skill pilot (2026-04-23) landed H1 (`04f1537`) which added 21 `#[serde(rename_all = "camelCase")]` attributes to `skill.rs`. `origin/main` at `dae96f8` had already established snake_case as the project-wide wire convention; H1 created a camelCase island. Subsequent merges didn't clean it up. This realignment undoes H1 and flips every pilot-introduced field to snake_case on both sides.
+
+**Feature branches (no PRs raised per user instruction):**
+
+| Branch | Repo | Final SHA |
+|---|---|---|
+| `feat/backend-migration-builtin-skills` | AionUi | `64bddde5c` |
+| `feat/builtin-skills` | aionui-backend | `326e228` |
+
+### Changes
+
+- `crates/aionui-api-types/src/skill.rs`: 21 → 0 `rename_all = "camelCase"` attrs; 18 unit tests flipped to snake_case assertions; 2 test names updated (`_camel_case` → `_snake_case`, `_serializes_camel` → `_serializes_snake`).
+- `crates/aionui-app/tests/skills_builtin_e2e.rs`: 13 JSON body keys flipped.
+- `crates/aionui-app/tests/assistants_e2e.rs`: 14 `assistantId` body keys flipped to `assistant_id` (the rule/read path tunnels through skill.rs types).
+- Frontend `ipcBridge.ts`: `listAvailableSkills` row (`relativeLocation`→`relative_location`, `isCustom`→`is_custom`); `materializeSkillsForAgent` req (`conversationId`→`conversation_id`, `enabledSkills`→`enabled_skills`); resp (`dirPath`→`dir_path`).
+- Frontend `AcpSkillManager`: field access sites.
+- Frontend `initAgent.ts`: destructure with rename (`{ dir_path: dirPath }`) preserves JS-style locals while sending snake_case on wire.
+- Frontend incidental: `SkillInfo` type narrowing in `SkillsHubSettings.tsx` + `AssistantSettings/types.ts` (TSC required).
+- Frontend E2E: 5 classes of camelCase residue flipped in the Playwright spec.
+- Frontend Vitest: `acpSkillManager.test.ts`, `initAgent.materialize.test.ts`, `SkillsHubSettings.dom.test.tsx` updated.
+
+### Wire format (final)
+
+| Endpoint | Request body | Response |
+|---|---|---|
+| `GET /api/skills/builtin-auto` | — | `[{name, description, location}]` (all snake lowercase) |
+| `POST /api/skills/builtin-skill` | `{file_name}` | string |
+| `GET /api/skills` | — | `[{name, description, location, relative_location?, is_custom, source}]` |
+| `POST /api/skills/materialize-for-agent` | `{conversation_id, enabled_skills}` | `{dir_path}` |
+| `DELETE /api/skills/materialize-for-agent/{id}` | path param only | `{success: true}` |
+
+### Tests
+
+| Suite | Result |
+|---|---|
+| `cargo test -p aionui-api-types` | 421/421 (18 flipped tests included) |
+| `cargo test --test skills_builtin_e2e` | 14/14 |
+| `cargo test --test assistants_e2e` | 44/44 (regression clean) |
+| `cargo clippy --workspace -- -D warnings` | same baseline (pre-existing debt) |
+| `bun run test --run` | baseline unchanged |
+| `bunx tsc --noEmit` | clean |
+| Playwright `builtin-skill-migration` | 8/8 on run 3 (13.1s, 0 flakes) |
+| Packaging smoke (release binary + tempdir) | all green |
+
+### Lesson
+
+The H1 mis-direction cost one full hotfix cycle + this realignment cycle. Root cause: I treated the T3 run-1 contract mismatch as "fix backend to match frontend" without checking `git log crates/aionui-api-types/` for the project-wide convention. `dae96f8` was a month-old blanket refactor that would have told me snake_case was the right direction.
+
+**New rule in the playbook:** any wire-format question must first check api-types commit history for a blanket convention refactor before proposing a fix direction.

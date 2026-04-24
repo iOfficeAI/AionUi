@@ -182,3 +182,39 @@ Run this as part of T4 coordinator closure for any pilot touching asset delivery
 **Fix going forward:** Every migration-class plan must include an explicit "delete the migrated resource directory" step in the frontend refactor task, AND a DoD verification: `find src/process/resources -type d` post-migration returns only currently-active directories. The builtin-skill pilot did this correctly (step 2.2: `git rm -r src/process/resources/skills`) because the lesson had been learned once.
 
 **Action:** Cleaned up at commit `e409eb6a7` on `feat/backend-migration-coordinator` (93 files / 12,750 lines removed). Next pilot: add this as an explicit T2 checklist item.
+
+## 2026-04-24 — Wire-format fix direction needs an oracle
+
+**Symptom:** During builtin-skill pilot T3 run-1, the frontend sent camelCase bodies and the backend rejected them (400). I mis-diagnosed the fix as "make backend accept camelCase" and landed H1 (`04f1537`), which added 21 `#[serde(rename_all = "camelCase")]` to `skill.rs`. H1 passed its tests and T3 run-2 went green against a now-camelCase contract. Subsequent main→builtin-skills merge (`10cd7b0`) brought in `dae96f8`'s *"refactor: remove camelCase serde rename from all aionui-api-types structs"* without reverting H1, leaving a camelCase island inside a snake_case project. Frontend's own merge from `feat/backend-migration` flipped most fields to snake_case but kept camelCase on pilot-new fields. Net: broken end-to-end contract that user spotted via probe.
+
+**Root cause:** I didn't check the project-wide convention before choosing the fix direction.
+
+**Fix (process-level):** Any wire-format question — "which side adapts?" — must first run:
+
+```bash
+git log --oneline -- crates/aionui-api-types/
+```
+
+If there's a recent blanket refactor like `dae96f8`, its decision is the oracle. The other side adapts.
+
+If there isn't, the question becomes "what does AGENTS.md say about API conventions?" (check §API Conventions). If still unclear, the question is a design decision to be brainstormed with the user, not hot-patched.
+
+**Under no circumstance should a hotfix choose a direction by looking only at "what makes the failing test pass right now."** That's exactly how I picked camelCase in H1 — it was the shortest diff that turned T3 green.
+
+## 2026-04-24 — Teammate "task completed" requires verified push
+
+**Symptom:** e2e-tester on T3 reported "8/8 green, Task #4 completed, T4 unblocked" while its test-file flips + report update were only in the working tree. Local HEAD unchanged, origin unchanged. Coordinator (me) had marked T4 ready and was about to run merge, which would have pulled an empty diff.
+
+**Root cause:** Teammate's mental model treated "tests pass" as completion. Git step was forgotten.
+
+**Fix (rule for coordinators):** When a teammate reports "task complete", coordinator verifies by:
+
+```bash
+cd <repo>
+git fetch origin <branch>
+git log origin/<branch> --oneline -3   # should include teammate's new commit
+```
+
+Do NOT accept "completed" claim without this check. If teammate's SHA is missing, reopen the task (TaskUpdate in_progress) and send a precise instruction to commit + push. Frame it explicitly as "NOT a replay" because teammates sometimes misinterpret re-assignment-looking messages.
+
+**Fix (rule for spawn prompts):** Every spawn prompt for a teammate whose deliverable is git-tracked must include: "'Task complete' means commit + push succeeded AND upstream sync verified, not just tests pass. Run `git log origin/<branch> --oneline -1` before claiming completion and confirm your SHA is there." Add this once to the playbook's spawn-prompt-discipline section.
