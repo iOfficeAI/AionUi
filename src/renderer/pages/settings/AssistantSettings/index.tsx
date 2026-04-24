@@ -5,18 +5,17 @@
  *
  * | Field          | Builtin | Extension | Custom |
  * |----------------|---------|-----------|--------|
- * | Save button    |  yes    |  no       |  yes   |
+ * | Save button    |  no     |  no       |  yes   |
  * | Name           |  no     |  no       |  yes   |
  * | Description    |  no     |  no       |  yes   |
  * | Avatar         |  no     |  no       |  yes   |
- * | Main Agent     |  yes    |  no       |  yes   |
+ * | Main Agent     |  no     |  no       |  yes   |
  * | Prompt editing |  no     |  no       |  yes   |
  * | Delete         |  no     |  no       |  yes   |
  *
- * Builtin assistants allow switching Main Agent and saving,
- * but their identity fields (name, description, avatar) and
- * prompt content are read-only.
- * Extension assistants are fully read-only.
+ * Builtin and extension assistants are fully read-only. The drawer
+ * still renders their skills panel so users can inspect what's bundled,
+ * but every editing control (including Save) is disabled.
  */
 import { Message } from '@arco-design/web-react';
 import coworkSvg from '@/renderer/assets/icons/cowork.svg';

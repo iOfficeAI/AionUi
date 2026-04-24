@@ -167,7 +167,9 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
       (name) =>
         pendingSkills.some((skill) => skill.name === name) || availableSkills.some((skill) => skill.name === name)
     ).length + autoInjectedActiveCount;
-  const isRuleEditable = activeAssistant?.source !== 'builtin';
+  const isBuiltin = activeAssistant?.source === 'builtin';
+  const isRuleEditable = !isBuiltin;
+  const isSkillsEditable = isCreating || !isBuiltin;
   const rulesContainerHeight = rulesExpanded
     ? '420px'
     : isRuleEditable && promptViewMode === 'edit'
@@ -214,6 +216,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               type='primary'
               onClick={handleSave}
               data-testid='btn-save-assistant'
+              disabled={!isCreating && activeAssistant?.source === 'builtin'}
               className='w-[100px] rounded-[100px]'
             >
               {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
@@ -310,6 +313,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               className='mt-10px w-full rounded-4px'
               value={editAgent}
               onChange={(value) => setEditAgent(value as string)}
+              disabled={activeAssistant?.source === 'builtin'}
               data-testid='select-assistant-agent'
             >
               {agentOptions.map((opt) => (
@@ -424,6 +428,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                   type='outline'
                   icon={<Plus size={14} />}
                   onClick={() => setSkillsModalVisible(true)}
+                  disabled={!isSkillsEditable}
                   className='rounded-[100px]'
                   data-testid='btn-add-skills'
                 >
@@ -465,6 +470,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                       >
                         <Checkbox
                           checked={selectedSkills.includes(skill.name)}
+                          disabled={!isSkillsEditable}
                           className='mt-2px cursor-pointer'
                           onChange={() => {
                             if (selectedSkills.includes(skill.name)) {
@@ -505,6 +511,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                       >
                         <Checkbox
                           checked={selectedSkills.includes(skill.name)}
+                          disabled={!isSkillsEditable}
                           className='mt-2px cursor-pointer'
                           onChange={() => {
                             if (selectedSkills.includes(skill.name)) {
@@ -681,6 +688,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                         <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
                           <Checkbox
                             checked={!disabledBuiltinSkills.includes(skill.name)}
+                            disabled={!isSkillsEditable}
                             className='mt-2px cursor-pointer'
                             onChange={() => {
                               if (disabledBuiltinSkills.includes(skill.name)) {

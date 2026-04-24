@@ -133,17 +133,13 @@ export const useAssistantEditor = ({
       setEditContext(context);
       setEditSkills(skills);
 
-      // Load skills list for non-builtin assistants (builtin skills are managed by backend bundle)
-      if (!isBuiltinAssistant(assistant)) {
-        const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
-        setAvailableSkills(skillsList);
-        setSelectedSkills(assistant.enabled_skills ?? []);
-        setCustomSkills(assistant.custom_skill_names ?? []);
-      } else {
-        setAvailableSkills([]);
-        setSelectedSkills(assistant.enabled_skills ?? []);
-        setCustomSkills([]);
-      }
+      // Always load the available skills catalog so builtin/extension panels
+      // render for every assistant type. Custom skills stay empty for builtin
+      // assistants since they cannot own user-imported skills.
+      const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
+      setAvailableSkills(skillsList);
+      setSelectedSkills(assistant.enabled_skills ?? []);
+      setCustomSkills(isBuiltinAssistant(assistant) ? [] : (assistant.custom_skill_names ?? []));
       setDisabledBuiltinSkills(assistant.disabled_builtin_skills ?? []);
     } catch (error) {
       console.error('Failed to load assistant content:', error);
