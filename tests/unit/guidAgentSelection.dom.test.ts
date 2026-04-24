@@ -25,6 +25,7 @@ const ipcMock = vi.hoisted(() => ({
   refreshCustomAgents: vi.fn().mockResolvedValue(undefined),
   getCustomAgents: vi.fn(),
   getAssistants: vi.fn(),
+  assistantsList: vi.fn().mockResolvedValue([]),
   remoteAgentList: vi.fn().mockResolvedValue([]),
 }));
 
@@ -38,6 +39,9 @@ vi.mock('../../src/common', () => ({
       getAvailableAgents: { invoke: ipcMock.getAvailableAgents },
       refreshCustomAgents: { invoke: ipcMock.refreshCustomAgents },
     },
+    assistants: {
+      list: { invoke: ipcMock.assistantsList },
+    },
     extensions: {
       getAssistants: { invoke: ipcMock.getAssistants },
     },
@@ -49,6 +53,15 @@ vi.mock('../../src/common', () => ({
 
 vi.mock('../../src/common/config/configService', () => ({
   configService: configServiceMock,
+}));
+
+// useCustomAgentsLoader now reads 'acp.customAgents' via ConfigStorage (not
+// configService) — mock both so neither path blocks on the real storage impl.
+vi.mock('../../src/common/config/storage', () => ({
+  ConfigStorage: {
+    get: vi.fn().mockResolvedValue([]),
+    set: vi.fn().mockResolvedValue(undefined),
+  },
 }));
 
 vi.mock('../../src/common/config/presets/assistantPresets', () => ({
@@ -120,6 +133,28 @@ const CUSTOM_AGENTS: AcpBackendConfig[] = [
   } as AcpBackendConfig,
 ];
 
+// Backend-shaped assistant catalog (post-migration API). The hook now reads
+// presets from `ipcBridge.assistants.list` instead of configService.
+const ASSISTANT_CATALOG = [
+  {
+    id: PRESET_AGENT_ID,
+    source: 'user',
+    name: 'Cowork Assistant',
+    nameI18n: {},
+    descriptionI18n: {},
+    enabled: true,
+    sortOrder: 0,
+    presetAgentType: 'claude',
+    enabledSkills: [],
+    customSkillNames: [],
+    disabledBuiltinSkills: [],
+    contextI18n: {},
+    prompts: [],
+    promptsI18n: {},
+    models: [],
+  },
+];
+
 const CLAUDE_CACHED_MODEL: AcpModelInfo = {
   source: 'models',
   current_model_id: 'claude-sonnet-4-5-20250514',
@@ -157,6 +192,7 @@ function setupMocks(overrides?: {
 
   ipcMock.getAvailableAgents.mockResolvedValue(AVAILABLE_AGENTS);
   ipcMock.getAssistants.mockResolvedValue([]);
+  ipcMock.assistantsList.mockResolvedValue(ASSISTANT_CATALOG);
 
   configServiceMock.get.mockImplementation((key: string) => {
     switch (key) {

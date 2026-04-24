@@ -22,6 +22,7 @@ const configServiceMock = vi.hoisted(() => ({
 
 const ipcMock = vi.hoisted(() => ({
   getAvailableAgents: vi.fn(),
+  assistantsList: vi.fn().mockResolvedValue([]),
 }));
 
 // ---------------------------------------------------------------------------
@@ -32,6 +33,9 @@ vi.mock('../../../../src/common', () => ({
   ipcBridge: {
     acpConversation: {
       getAvailableAgents: { invoke: ipcMock.getAvailableAgents },
+    },
+    assistants: {
+      list: { invoke: ipcMock.assistantsList },
     },
   },
 }));
@@ -110,6 +114,11 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
 
 function setupMocks(presetConfigs: AcpBackendConfig[] = []) {
   ipcMock.getAvailableAgents.mockResolvedValue(CLI_AGENTS);
+  // Post-migration: hook reads from ipcBridge.assistants.list instead of
+  // configService. AcpBackendConfig and Assistant overlap on the fields the
+  // hook touches (id, name, presetAgentType, enabled, context, avatar), so we
+  // cast the fixtures rather than re-shape the whole payload.
+  ipcMock.assistantsList.mockResolvedValue(presetConfigs);
   configServiceMock.get.mockImplementation((key: string) => {
     if (key === 'assistants') {
       return presetConfigs;
@@ -276,24 +285,12 @@ describe('useConversationAgents', () => {
       expect(result.current.presetAssistants[0].name).toBe('Enabled');
     });
 
-    it('filters out non-preset configs (is_preset !== true)', async () => {
-      const agents: AcpBackendConfig[] = [
-        makePresetConfig({ id: 'preset', name: 'Preset One' }),
-        { id: 'cli-agent', name: 'CLI Agent', enabled: true } as AcpBackendConfig,
-      ];
-      setupMocks(agents);
+    // Note: `is_preset` filtering moved to the backend — `/api/assistants`
+    // returns presets only, so the hook no longer filters on this flag.
 
-      const { result } = renderHook(() => useConversationAgents());
-
-      await waitFor(() => {
-        expect(result.current.presetAssistants.length).toBe(1);
-      });
-
-      expect(result.current.presetAssistants[0].custom_agent_id).toBe('preset');
-    });
-
-    it('returns empty arrays when ConfigStorage returns null', async () => {
-      ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: [] });
+    it('returns empty arrays when the backend returns no assistants', async () => {
+      ipcMock.getAvailableAgents.mockResolvedValue([]);
+      ipcMock.assistantsList.mockResolvedValue([]);
       configServiceMock.get.mockReturnValue(null);
 
       const { result } = renderHook(() => useConversationAgents());

@@ -111,7 +111,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-1',
       backend: 'claude',
-      enabledSkills: ['pptx'],
+      enabled_skills: ['pptx'],
     });
 
     expect(materializeInvoke).toHaveBeenCalledWith({

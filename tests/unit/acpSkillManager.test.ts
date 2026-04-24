@@ -20,7 +20,7 @@ type AvailableSkill = {
 const { listBuiltinAutoSkills, readBuiltinSkill, listAvailableSkills, fsReadFile, registryGetSkills, resetMocks } =
   vi.hoisted(() => {
     const autoMock = vi.fn<() => Promise<AutoSkillEntry[]>>();
-    const readMock = vi.fn<(args: { fileName: string }) => Promise<string>>();
+    const readMock = vi.fn<(args: { file_name: string }) => Promise<string>>();
     const listMock = vi.fn<() => Promise<AvailableSkill[]>>();
     const readFileMock = vi.fn<(path: string, encoding: string) => Promise<string>>();
     const registryMock = vi.fn<() => Array<{ name: string; description: string; location: string }>>();
@@ -122,7 +122,7 @@ describe('AcpSkillManager', () => {
     await mgr.discoverAutoSkills();
     const skill = await mgr.getSkill('cron');
 
-    expect(readBuiltinSkill).toHaveBeenCalledWith({ fileName: 'auto-inject/cron/SKILL.md' });
+    expect(readBuiltinSkill).toHaveBeenCalledWith({ file_name: 'auto-inject/cron/SKILL.md' });
     expect(skill?.body).toBe('Detailed cron instructions.');
     expect(fsReadFile).not.toHaveBeenCalled();
   });
