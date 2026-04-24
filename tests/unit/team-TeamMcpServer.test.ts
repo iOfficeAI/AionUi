@@ -144,10 +144,15 @@ describe('TeamMcpServer', () => {
   let mailbox: Mailbox;
   let taskManager: ReturnType<typeof makeTaskManager>;
   let agents: TeamAgent[];
-  let wakeAgent: ReturnType<typeof vi.fn>;
-  let spawnAgent: ReturnType<typeof vi.fn>;
-  let renameAgent: ReturnType<typeof vi.fn>;
-  let removeAgent: ReturnType<typeof vi.fn>;
+  let wakeAgent: (slotId: string) => Promise<void>;
+  let spawnAgent: (
+    agentName: string,
+    agentType?: string,
+    model?: string,
+    customAgentId?: string
+  ) => Promise<TeamAgent>;
+  let renameAgent: (slotId: string, newName: string) => void;
+  let removeAgent: (slotId: string) => void;
   let authToken: string;
 
   beforeEach(async () => {
@@ -159,10 +164,14 @@ describe('TeamMcpServer', () => {
     ];
     mailbox = makeMailbox();
     taskManager = makeTaskManager();
-    wakeAgent = vi.fn().mockResolvedValue(undefined);
-    spawnAgent = vi.fn().mockResolvedValue(makeAgent({ slotId: 'slot-new', agentName: 'NewBot' }));
-    renameAgent = vi.fn();
-    removeAgent = vi.fn();
+    wakeAgent = vi.fn<(slotId: string) => Promise<void>>().mockResolvedValue(undefined);
+    spawnAgent = vi
+      .fn<
+        (agentName: string, agentType?: string, model?: string, customAgentId?: string) => Promise<TeamAgent>
+      >()
+      .mockResolvedValue(makeAgent({ slotId: 'slot-new', agentName: 'NewBot' }));
+    renameAgent = vi.fn<(slotId: string, newName: string) => void>();
+    removeAgent = vi.fn<(slotId: string) => void>();
 
     server = new TeamMcpServer({
       teamId: 'team-1',
@@ -360,8 +369,8 @@ describe('TeamMcpServer', () => {
       })) as Record<string, unknown>;
 
       expect(taskManager.update).toHaveBeenCalledWith('task-abc', expect.objectContaining({ status: 'completed' }));
-      expect(taskManager.checkUnblocks).toHaveBeenCalledWith('task-abc');
-      expect(response.result).toContain('task-ab');
+      expect(taskManager.checkUnblocks).toHaveBeenCalledWith('task-1');
+      expect(response.result).toContain('task-1');
     });
 
     it('does not call checkUnblocks when status is not "completed"', async () => {
@@ -382,6 +391,40 @@ describe('TeamMcpServer', () => {
       })) as Record<string, unknown>;
 
       expect(response.error).toContain('Invalid task status');
+    });
+
+    it('does not overwrite owner when the caller omits the owner argument', async () => {
+      // Status-only updates used to spread `owner: undefined` into the task
+      // patch, which caused the repository layer to persist the owner as NULL
+      // and silently unassign the task. The tool should now omit the owner
+      // field entirely in that case.
+      await tcpRequest(server.getPort(), {
+        tool: 'team_task_update',
+        args: { task_id: 'task-abc', status: 'in_progress' },
+        auth_token: authToken,
+      });
+
+      expect(taskManager.update).toHaveBeenCalledWith('task-abc', { status: 'in_progress' });
+    });
+
+    it('ignores blank owner strings instead of clearing the existing owner', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_task_update',
+        args: { task_id: 'task-abc', status: 'in_progress', owner: '   ' },
+        auth_token: authToken,
+      });
+
+      expect(taskManager.update).toHaveBeenCalledWith('task-abc', { status: 'in_progress' });
+    });
+
+    it('forwards a trimmed owner when the caller provides one', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_task_update',
+        args: { task_id: 'task-abc', owner: '  alice  ' },
+        auth_token: authToken,
+      });
+
+      expect(taskManager.update).toHaveBeenCalledWith('task-abc', { owner: 'alice' });
     });
   });
 

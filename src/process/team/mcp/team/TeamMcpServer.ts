@@ -463,7 +463,8 @@ export class TeamMcpServer {
     const { taskManager } = this.params;
     const taskId = String(args.task_id ?? '');
     const rawStatus = args.status ? String(args.status) : undefined;
-    const owner = args.owner ? String(args.owner) : undefined;
+    const ownerProvided = typeof args.owner === 'string' && args.owner.trim().length > 0;
+    const owner = ownerProvided ? String(args.owner).trim() : undefined;
 
     const VALID_STATUSES = new Set(['pending', 'in_progress', 'completed', 'deleted']);
     const status =
@@ -474,11 +475,19 @@ export class TeamMcpServer {
       throw new Error(`Invalid task status "${rawStatus}". Must be one of: ${[...VALID_STATUSES].join(', ')}`);
     }
 
-    await taskManager.update(taskId, { status, owner });
+    // Only include fields the caller actually specified. Spreading `owner: undefined`
+    // through taskManager.update → repo.updateTask would overwrite the existing
+    // owner with NULL, silently unassigning the task on any status-only change.
+    const updates: { status?: 'pending' | 'in_progress' | 'completed' | 'deleted'; owner?: string } = {};
+    if (status !== undefined) updates.status = status;
+    if (ownerProvided && owner !== undefined) updates.owner = owner;
+
+    const task = await taskManager.update(taskId, updates);
+    const resolvedTaskId = task.id;
     if (status === 'completed') {
-      await taskManager.checkUnblocks(taskId);
+      await taskManager.checkUnblocks(resolvedTaskId);
     }
-    return `Task ${taskId.slice(0, 8)} updated.${status ? ` Status: ${status}.` : ''}${owner ? ` Owner: ${owner}.` : ''}`;
+    return `Task ${resolvedTaskId.slice(0, 8)} updated.${status ? ` Status: ${status}.` : ''}${owner ? ` Owner: ${owner}.` : ''}`;
   }
 
   private async handleTaskList(): Promise<string> {

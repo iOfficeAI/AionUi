@@ -495,6 +495,19 @@ describe('TeamMcpServer — TCP tool interface', () => {
       expect(taskManager.checkUnblocks).toHaveBeenCalledWith('task-uuid-001');
     });
 
+    it('uses the resolved task id for unblocks when the caller passes a short task id', async () => {
+      taskManager.update.mockResolvedValueOnce({ id: 'task-uuid-001', status: 'completed' });
+
+      const resp = (await callTool(port, authToken, 'team_task_update', {
+        task_id: 'task-uui',
+        status: 'completed',
+      })) as { result: string };
+
+      expect(taskManager.update).toHaveBeenCalledWith('task-uui', expect.objectContaining({ status: 'completed' }));
+      expect(taskManager.checkUnblocks).toHaveBeenCalledWith('task-uuid-001');
+      expect(resp.result).toContain('task-uui');
+    });
+
     it('updates task owner', async () => {
       const resp = (await callTool(port, authToken, 'team_task_update', {
         task_id: 'task-uuid-001',
