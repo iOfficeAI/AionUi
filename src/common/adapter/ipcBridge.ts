@@ -473,7 +473,6 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   getAvailableAgents: httpGet<
     Array<{
       id: string;
@@ -483,13 +482,14 @@ export const acpConversation = {
       source: 'internal' | 'builtin' | 'extension' | 'custom';
     }>,
     void
-  >('/api/acp/agents'),
-  checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
-  refreshCustomAgents: httpPost<void, void>('/api/acp/agents/refresh'),
+  >('/api/agents'),
+  refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'cli_check' | 'acp_initialize'; error?: string },
     { command: string; acpArgs?: string[]; env?: Record<string, string> }
-  >('/api/acp/agents/test'),
+  >('/api/agents/test'),
+  detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
+  checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: AgentBackend }>(
     '/api/acp/health-check'
   ),
