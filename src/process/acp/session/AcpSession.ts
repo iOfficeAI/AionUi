@@ -102,7 +102,10 @@ export class AcpSession {
 
     this.configTracker = new ConfigTracker(options?.initialDesired);
     this.messageTranslator = new MessageTranslator(agentConfig.agentId);
-    this.inputPreprocessor = new InputPreprocessor((path) => fs.readFileSync(path, 'utf-8'));
+    this.inputPreprocessor = new InputPreprocessor(
+      (path) => fs.readFileSync(path, 'utf-8'),
+      (path) => fs.readFileSync(path)
+    );
     this.permissionResolver = new PermissionResolver({
       autoApproveAll: agentConfig.yoloMode ?? false,
       cacheMaxSize: options?.approvalCacheMaxSize,

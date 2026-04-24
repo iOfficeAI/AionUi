@@ -5,8 +5,32 @@ import type { ContentBlock } from '@agentclientprotocol/sdk';
 // Match @path or @"path with spaces" (quoted form)
 const AT_FILE_REGEX = /@(?:"([^"]+)"|(\S+\.\w+))/g;
 
+const IMAGE_MIME_BY_EXT: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.webp': 'image/webp',
+  '.bmp': 'image/bmp',
+};
+
+const getImageMime = (filePath: string): string | null => {
+  const idx = filePath.lastIndexOf('.');
+  if (idx === -1) return null;
+  return IMAGE_MIME_BY_EXT[filePath.slice(idx).toLowerCase()] ?? null;
+};
+
+export type BinaryReader = (path: string) => Uint8Array | Buffer;
+
 export class InputPreprocessor {
-  constructor(private readonly readFile: (path: string) => string) {}
+  private readonly readBinary: BinaryReader | null;
+
+  constructor(
+    private readonly readFile: (path: string) => string,
+    readBinary?: BinaryReader
+  ) {
+    this.readBinary = readBinary ?? null;
+  }
 
   process(text: string, files?: string[]): PromptContent {
     const items: ContentBlock[] = [{ type: 'text', text }];
@@ -48,6 +72,20 @@ export class InputPreprocessor {
   }
 
   private tryReadFile(filePath: string): ContentBlock | null {
+    const imageMime = getImageMime(filePath);
+    if (imageMime && this.readBinary) {
+      try {
+        const bytes = this.readBinary(filePath);
+        const buffer = Buffer.isBuffer(bytes) ? bytes : Buffer.from(bytes);
+        return {
+          type: 'image',
+          data: buffer.toString('base64'),
+          mimeType: imageMime,
+        };
+      } catch {
+        return null;
+      }
+    }
     try {
       const content = this.readFile(filePath);
       return { type: 'text', text: `[File: ${filePath}]\n${content}` };

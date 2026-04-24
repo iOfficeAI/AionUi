@@ -207,3 +207,4 @@ graphify-out/
 .graphify_python
 
 .snow/
+.asar-stage/
