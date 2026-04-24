@@ -6,7 +6,7 @@
 
 import { Close } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
-import { getFileExtension } from '@/renderer/services/FileService';
+import { getCleanFileName, getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
 import { Image } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/icons/file-icon.svg';
@@ -47,9 +47,11 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
   }
 
   const isImage = isImageFile(path);
-  // 直接从路径中提取文件名，不清理时间戳后缀
-  // Extract filename directly from path without cleaning timestamp suffix
-  const fileName = path.split(/[\\/]/).pop() || '';
+  // Display a cleaned filename (strips `_aionui_<ts>` collision suffix) for readability,
+  // but load the image using the original `path` so that getImageBase64 finds the real
+  // file on disk. See src/common/config/constants.ts (AIONUI_TIMESTAMP_REGEX) for the
+  // suffix format.
+  const fileName = getCleanFileName(path);
   const fileExt = getFileExtension(path).toUpperCase().replace('.', '');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');

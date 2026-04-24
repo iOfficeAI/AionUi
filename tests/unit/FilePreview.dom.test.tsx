@@ -31,6 +31,11 @@ vi.mock('../../src/renderer/services/FileService', () => ({
     const dot = name.lastIndexOf('.');
     return dot >= 0 ? name.slice(dot) : '';
   },
+  // Mirror the real helper: strip `_aionui_<13 digits>` collision suffix from basename.
+  getCleanFileName: (filePath: string) => {
+    const base = filePath.split(/[\\/]/).pop() || '';
+    return base.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+  },
 }));
 
 vi.mock('@arco-design/web-react', () => ({
@@ -120,6 +125,25 @@ describe('FilePreview', () => {
     // After max retries, should show the placeholder
     const img = screen.getByTestId('arco-image');
     expect(img).toHaveAttribute('src', PLACEHOLDER_SVG);
+  });
+
+  it('loads image from the timestamped on-disk path but displays a cleaned filename', async () => {
+    // Regression guard for #2370 revert: the on-disk file may carry an `_aionui_<ts>`
+    // collision suffix; FilePreview must load from the real path (so getImageBase64 finds
+    // the file) while showing the user a clean basename.
+    getImageBase64Mock.mockResolvedValue(REAL_IMAGE_B64);
+    const realPath = '/workspace/uploads/photo_aionui_1234567890123.png';
+
+    render(<FilePreview path={realPath} onRemove={vi.fn()} />);
+
+    await flushMicrotasks();
+
+    // Loading used the full timestamped path
+    expect(getImageBase64Mock).toHaveBeenCalledWith({ path: realPath });
+
+    // Display used the cleaned filename
+    const img = screen.getByTestId('arco-image');
+    expect(img).toHaveAttribute('alt', 'photo.png');
   });
 
   it('renders non-image files without retry logic', async () => {

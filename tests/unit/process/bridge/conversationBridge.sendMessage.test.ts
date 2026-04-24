@@ -167,4 +167,42 @@ describe('conversationBridge.sendMessage', () => {
       })
     );
   });
+
+  it('rewrites the [[AION_FILES]] marker with canonical paths before dispatching to the agent', async () => {
+    // Regression guard for PR #2370 revert: the persisted/agent-visible marker must match
+    // the files we actually hand the agent, so FilePreview can resolve the preview path
+    // against the real on-disk file. The renderer's optimistic marker is unreliable:
+    // for non-Gemini it may not reflect cache-vs-workspace, for Gemini it does not know
+    // the `_aionui_<ts>` collision suffix the backend adds.
+    const handler = providerCallbacks.get('conversation.sendMessage');
+    const task = {
+      type: 'acp',
+      workspace: '/mock/workspace',
+      sendMessage: vi.fn(async () => undefined),
+    };
+    mockWorkerTaskManager.getOrBuildTask.mockResolvedValue(task);
+
+    const optimisticInput = 'please analyze\n\n[[AION_FILES]]\n/mock/workspace/uploads/photo.jpg';
+    const canonicalPath = '/mock/workspace/uploads/photo_aionui_1234567890123.jpg';
+
+    const result = await handler!({
+      conversation_id: 'acp-conversation',
+      input: optimisticInput,
+      msg_id: 'msg-2',
+      files: [canonicalPath],
+    });
+
+    expect(result).toEqual({ success: true });
+    const sent = task.sendMessage.mock.calls[0][0] as {
+      input: string;
+      content: string;
+      agentContent: string;
+      files: string[];
+    };
+    const expectedCanonical = `please analyze\n\n[[AION_FILES]]\n${canonicalPath}`;
+    expect(sent.input).toBe(expectedCanonical);
+    expect(sent.content).toBe(expectedCanonical);
+    expect(sent.agentContent).toBe(expectedCanonical);
+    expect(sent.files).toEqual([canonicalPath]);
+  });
 });
