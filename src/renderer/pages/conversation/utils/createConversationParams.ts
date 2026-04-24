@@ -10,6 +10,7 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
+import { normalizeCodexConfigOptions, normalizeCodexConfigOptionValues } from '@/common/types/codex/codexConfigOptions';
 import { resolveAvailableModel, resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
 import {
@@ -93,22 +94,28 @@ async function resolvePreferredAcpConfigSelection(backend: string): Promise<AcpC
     ConfigStorage.get('acp.cachedConfigOptions'),
   ]);
   const preferredConfigOptions = acpConfig?.[backend as AcpBackend]?.preferredConfigOptions;
+  const normalizedPreferredConfigOptions =
+    backend === 'codex' ? normalizeCodexConfigOptionValues(preferredConfigOptions) : preferredConfigOptions;
   const cachedOptions = cachedConfigOptions?.[backend as AcpBackend];
+  const normalizedCachedOptions =
+    backend === 'codex' && Array.isArray(cachedOptions) ? normalizeCodexConfigOptions(cachedOptions) : cachedOptions;
 
   const nextCachedConfigOptions =
-    Array.isArray(cachedOptions) && cachedOptions.length > 0
-      ? Object.keys(preferredConfigOptions || {}).length > 0
-        ? cachedOptions.map((option) => {
-            const nextValue = preferredConfigOptions?.[option.id];
+    Array.isArray(normalizedCachedOptions) && normalizedCachedOptions.length > 0
+      ? Object.keys(normalizedPreferredConfigOptions || {}).length > 0
+        ? normalizedCachedOptions.map((option) => {
+            const nextValue = normalizedPreferredConfigOptions?.[option.id];
             return nextValue ? { ...option, currentValue: nextValue, selectedValue: nextValue } : option;
           })
-        : cachedOptions
+        : normalizedCachedOptions
       : undefined;
 
   return {
     cachedConfigOptions: nextCachedConfigOptions,
     configOptionValues:
-      preferredConfigOptions && Object.keys(preferredConfigOptions).length > 0 ? preferredConfigOptions : undefined,
+      normalizedPreferredConfigOptions && Object.keys(normalizedPreferredConfigOptions).length > 0
+        ? normalizedPreferredConfigOptions
+        : undefined,
   };
 }
 

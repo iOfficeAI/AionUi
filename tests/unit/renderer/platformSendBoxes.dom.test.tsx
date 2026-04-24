@@ -26,6 +26,9 @@ const mockShouldEnqueueConversationCommand = vi.fn(() => false);
 const mockUseCommandQueueEnabled = vi.fn(() => true);
 let mockConversationStatus: 'idle' | 'running' = 'idle';
 let mockAcpRunning = false;
+let mockAcpAiProcessing = false;
+let mockAcpHasThinkingMessage = false;
+let mockAcpHasStreamingContent = false;
 let mockGeminiRunning = false;
 let mockAionrsRunning = false;
 const mockUseConversationCommandQueue = vi.fn(() => ({
@@ -168,7 +171,11 @@ vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({
 
 vi.mock('@/renderer/components/chat/ThoughtDisplay', () => ({
   __esModule: true,
-  default: () => React.createElement('div', { 'data-testid': 'thought-display' }),
+  default: ({ running }: { running?: boolean }) =>
+    React.createElement('div', {
+      'data-testid': 'thought-display',
+      'data-running': String(Boolean(running)),
+    }),
 }));
 
 vi.mock('@/renderer/components/media/FilePreview', () => ({
@@ -288,12 +295,13 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpMessage', () => ({
     running: mockAcpRunning,
     hasHydratedRunningState: true,
     acpStatus: null,
-    aiProcessing: false,
+    aiProcessing: mockAcpAiProcessing,
     setAiProcessing: vi.fn(),
     resetState: vi.fn(),
     tokenUsage: 0,
     contextLimit: 0,
-    hasThinkingMessage: false,
+    hasThinkingMessage: mockAcpHasThinkingMessage,
+    hasStreamingContent: mockAcpHasStreamingContent,
   })),
 }));
 
@@ -415,6 +423,9 @@ describe('platform send box queue integration', () => {
     resetQueueSpies();
     mockConversationStatus = 'idle';
     mockAcpRunning = false;
+    mockAcpAiProcessing = false;
+    mockAcpHasThinkingMessage = false;
+    mockAcpHasStreamingContent = false;
     mockGeminiRunning = false;
     mockAionrsRunning = false;
 
@@ -749,6 +760,28 @@ describe('platform send box queue integration', () => {
       conversation_id: 'conv-acp',
       files: ['C:/workspace/uploads/photo.png'],
     });
+  });
+
+  it('shows an ACP processing indicator while tool or thinking steps are running before content streams', () => {
+    mockAcpRunning = true;
+    mockAcpAiProcessing = true;
+    mockAcpHasThinkingMessage = true;
+    mockAcpHasStreamingContent = false;
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='codex' />);
+
+    expect(screen.getByTestId('thought-display')).toHaveAttribute('data-running', 'true');
+  });
+
+  it('hides the generic ACP processing indicator once assistant content starts streaming', () => {
+    mockAcpRunning = true;
+    mockAcpAiProcessing = true;
+    mockAcpHasThinkingMessage = true;
+    mockAcpHasStreamingContent = true;
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='codex' />);
+
+    expect(screen.getByTestId('thought-display')).toHaveAttribute('data-running', 'false');
   });
 
   it('blocks OpenClaw dispatch when runtime validation fails', async () => {

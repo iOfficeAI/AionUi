@@ -148,10 +148,12 @@ const MODEL_LIST: IProvider[] = [
 
 function setupMocks(overrides?: {
   cachedModels?: Record<string, AcpModelInfo>;
+  cachedConfigOptions?: Record<string, import('../../src/common/types/acpTypes').AcpSessionConfigOption[]>;
   acpConfig?: Record<string, unknown>;
   geminiConfig?: Record<string, unknown>;
 }) {
   const cachedModels = overrides?.cachedModels ?? { claude: CLAUDE_CACHED_MODEL };
+  const cachedConfigOptions = overrides?.cachedConfigOptions ?? {};
   const acpConfig = overrides?.acpConfig ?? { claude: { preferredMode: 'bypassPermissions' } };
   const geminiConfig = overrides?.geminiConfig ?? {};
 
@@ -162,6 +164,8 @@ function setupMocks(overrides?: {
     switch (key) {
       case 'acp.cachedModels':
         return cachedModels;
+      case 'acp.cachedConfigOptions':
+        return cachedConfigOptions;
       case 'assistants':
         return CUSTOM_AGENTS;
       case 'guid.lastSelectedAgent':
@@ -407,5 +411,24 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);
+  });
+
+  it('uses default codex config options when codex has no cached option list', async () => {
+    setupMocks({ cachedModels: {}, cachedConfigOptions: {}, acpConfig: {} });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('codex');
+    });
+
+    await waitFor(() => {
+      expect(result.current.currentAcpCachedConfigOptions[0]?.id).toBe('reasoning_effort');
+      expect(result.current.cachedConfigOptions[0]?.id).toBe('reasoning_effort');
+    });
   });
 });

@@ -126,6 +126,8 @@ const AcpSendBoxInner: React.FC<AcpSendBoxBaseProps & { messageState: UseAcpMess
     tokenUsage,
     contextLimit,
     hasThinkingMessage,
+    hasStreamingContent,
+    thought,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -151,6 +153,7 @@ const AcpSendBoxInner: React.FC<AcpSendBoxBaseProps & { messageState: UseAcpMess
     setUploadFile,
   });
   const isBusy = running || aiProcessing;
+  const showProcessingIndicator = isBusy && !hasStreamingContent;
 
   useEffect(() => {
     const handler = (text: string) => {
@@ -348,7 +351,11 @@ Please check your local CLI tool authentication status`,
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
+      <ThoughtDisplay
+        running={showProcessingIndicator}
+        thought={hasThinkingMessage ? undefined : thought}
+        onStop={handleStop}
+      />
 
       <SendBox
         value={content}

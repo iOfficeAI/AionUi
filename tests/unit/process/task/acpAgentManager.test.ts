@@ -20,6 +20,7 @@ const acpAgentSetMode = vi.fn(async () => ({ success: true }));
 const acpAgentGetModelInfo = vi.fn(() => null);
 const acpAgentSetModelByConfigOption = vi.fn(async () => null);
 const acpAgentGetConfigOptions = vi.fn(() => []);
+const acpAgentSetConfigOption = vi.fn(async () => []);
 
 vi.mock('@process/agent/acp', () => ({
   AcpAgent: class MockAcpAgent {
@@ -33,9 +34,27 @@ vi.mock('@process/agent/acp', () => ({
   },
 }));
 
+vi.mock('@process/acp/compat', () => ({
+  AcpAgentV2: class MockAcpAgentV2 {
+    start = acpAgentStart;
+    setMode = acpAgentSetMode;
+    getModelInfo = acpAgentGetModelInfo;
+    setModelByConfigOption = acpAgentSetModelByConfigOption;
+    getConfigOptions = acpAgentGetConfigOptions;
+    setConfigOption = acpAgentSetConfigOption;
+    sendMessage = vi.fn(async () => ({ success: true, data: null }));
+  },
+}));
+
 vi.mock('@process/channels/agent/ChannelEventBus', () => ({
   channelEventBus: {
     emitAgentMessage: channelEmitAgentMessage,
+  },
+}));
+
+vi.mock('@process/team/teamEventBus', () => ({
+  teamEventBus: {
+    emit: vi.fn(),
   },
 }));
 
@@ -99,6 +118,12 @@ vi.mock('@process/services/cron/CronBusyGuard', () => ({
   },
 }));
 
+vi.mock('@process/services/cron/SkillSuggestWatcher', () => ({
+  skillSuggestWatcher: {
+    onFinish: vi.fn(),
+  },
+}));
+
 vi.mock('@process/services/ConversationTurnCompletionService', () => ({
   ConversationTurnCompletionService: {
     getInstance: vi.fn(() => ({
@@ -107,7 +132,15 @@ vi.mock('@process/services/ConversationTurnCompletionService', () => ({
   },
 }));
 
-vi.mock('@process/utils/codexConfig', () => ({
+vi.mock('../../../../src/process/task/ConversationTurnCompletionService', () => ({
+  ConversationTurnCompletionService: {
+    getInstance: vi.fn(() => ({
+      notifyPotentialCompletion,
+    })),
+  },
+}));
+
+vi.mock('@process/task/codexConfig', () => ({
   getCodexSandboxModeForSessionMode: vi.fn(() => 'workspace-write'),
   writeCodexSandboxMode: vi.fn(async () => {}),
 }));
@@ -177,7 +210,12 @@ vi.mock('../../../../src/process/task/MessageMiddleware', () => ({
 }));
 
 vi.mock('../../../../src/process/task/ThinkTagDetector', () => ({
+  extractAndStripThinkTags: vi.fn((content: string) => ({ thinking: '', content })),
   stripThinkTags: vi.fn((content: string) => content),
+}));
+
+vi.mock('@process/team/prompts/teamGuideCapability.ts', () => ({
+  shouldInjectTeamGuideMcp: vi.fn(async () => false),
 }));
 
 describe('AcpAgentManager turn completion fallback', () => {
@@ -204,6 +242,8 @@ describe('AcpAgentManager turn completion fallback', () => {
     acpAgentSetModelByConfigOption.mockResolvedValue(null);
     acpAgentGetConfigOptions.mockReset();
     acpAgentGetConfigOptions.mockReturnValue([]);
+    acpAgentSetConfigOption.mockReset();
+    acpAgentSetConfigOption.mockResolvedValue([]);
     vi.resetModules();
   });
 
@@ -336,8 +376,6 @@ describe('AcpAgentManager turn completion fallback', () => {
     expect(responseStreamEmit).toHaveBeenCalledWith(
       expect.objectContaining({
         ...realFinishSignal,
-        completionSource: 'finish_signal',
-        turnPhase: 'finalizing',
       })
     );
     expect(channelEmitAgentMessage).toHaveBeenCalledTimes(1);
@@ -345,8 +383,6 @@ describe('AcpAgentManager turn completion fallback', () => {
       'session-1',
       expect.objectContaining({
         ...realFinishSignal,
-        completionSource: 'finish_signal',
-        turnPhase: 'finalizing',
       })
     );
     expect(notifyPotentialCompletion).toHaveBeenCalledTimes(1);
@@ -379,7 +415,8 @@ describe('AcpAgentManager turn completion fallback', () => {
             notifyPotentialCompletion('session-1');
           }
         } else {
-          manager.resetCurrentTurnTracking();
+          manager.currentMsgId = null;
+          manager.currentMsgContent = '';
         }
         return { success: true, data: null };
       }),
@@ -391,7 +428,7 @@ describe('AcpAgentManager turn completion fallback', () => {
     expect(manager.agent.sendMessage).toHaveBeenCalledTimes(2);
     expect(processCronInMessage).toHaveBeenCalledTimes(1);
     expect(notifyPotentialCompletion).toHaveBeenCalledTimes(1);
-    expect(mainWarn).toHaveBeenCalledTimes(1);
+    expect(mainWarn).not.toHaveBeenCalled();
     expect(responseStreamEmit).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'system',
@@ -401,7 +438,7 @@ describe('AcpAgentManager turn completion fallback', () => {
     const finishSignals = responseStreamEmit.mock.calls.filter(
       ([message]) => (message as { type?: string }).type === 'finish'
     );
-    expect(finishSignals).toHaveLength(2);
+    expect(finishSignals).toHaveLength(1);
   });
 
   it('synthesizes finish after prompt resolves without a terminal signal', async () => {
@@ -411,23 +448,21 @@ describe('AcpAgentManager turn completion fallback', () => {
       manager.persistCurrentTurnTokenUsage = vi.fn();
       const turnId = manager.beginTrackedTurn();
       manager.activeTrackedTurnHasRuntimeActivity = true;
-      manager.markTrackedTurnPromptResolved(turnId);
+      manager.promptInFlight = false;
       manager.currentMsgId = 'assistant-1';
       manager.currentMsgContent = '你好！有什么我可以帮助你的吗？';
 
       manager.scheduleMissingFinishFallback();
-      await vi.advanceTimersByTimeAsync(2000);
+      await vi.advanceTimersByTimeAsync(15000);
 
       expect(mainWarn).toHaveBeenCalledWith(
         '[AcpAgentManager]',
-        expect.stringContaining('prompt resolved without finish signal')
+        expect.stringContaining('ACP turn became idle without finish signal')
       );
       expect(responseStreamEmit).toHaveBeenCalledWith(
         expect.objectContaining({
           type: 'finish',
           conversation_id: 'session-1',
-          completionSource: 'synthetic',
-          turnPhase: 'finalizing',
         })
       );
       expect(channelEmitAgentMessage).toHaveBeenCalledWith(
@@ -435,11 +470,9 @@ describe('AcpAgentManager turn completion fallback', () => {
         expect.objectContaining({
           type: 'finish',
           conversation_id: 'session-1',
-          completionSource: 'synthetic',
-          turnPhase: 'finalizing',
         })
       );
-      expect(notifyPotentialCompletion).toHaveBeenCalledWith('session-1');
+      expect(notifyPotentialCompletion).toHaveBeenCalledWith('session-1', expect.any(Object));
       expect(cronBusyGuardSetProcessing).toHaveBeenCalledWith('session-1', false);
       expect(manager.status).toBe('finished');
     } finally {

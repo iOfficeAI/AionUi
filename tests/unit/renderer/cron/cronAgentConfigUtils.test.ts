@@ -85,7 +85,7 @@ describe('cron config option helpers', () => {
     expect(getCronConfigOptions('codex')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          id: 'model_reasoning_effort',
+          id: 'reasoning_effort',
         }),
       ])
     );

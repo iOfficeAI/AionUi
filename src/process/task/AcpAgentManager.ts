@@ -5,6 +5,7 @@ import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
+import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IConfigStorageRefer } from '@/common/config/storage';
@@ -112,6 +113,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private activeTrackedTurnId: number | null = null;
   private activeTrackedTurnHasRuntimeActivity: boolean = false;
   private readonly completedTrackedTurnIds = new Set<number>();
+  private hasEmittedSessionActiveStatus: boolean = false;
   private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
   private missingFinishFallbackTurnId: number | null = null;
   private readonly missingFinishFallbackDelayMs = 15000;
@@ -184,6 +186,48 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     const keys = Array.from(this.bufferedStreamTextMessages.keys());
     for (const key of keys) {
       this.flushBufferedStreamTextMessage(key);
+    }
+  }
+
+  private getFallbackConfigOptions(): AcpSessionConfigOption[] {
+    return getDefaultAcpConfigOptions(this.options.backend);
+  }
+
+  private withSelectedFallbackConfigOption(configId: string, value: string): AcpSessionConfigOption[] {
+    return this.getFallbackConfigOptions().map((option) =>
+      option.id === configId ? { ...option, currentValue: value, selectedValue: value } : option
+    );
+  }
+
+  private emitBootstrapReadyState(backend: AcpBackend): void {
+    if (!this.hasEmittedSessionActiveStatus) {
+      this.handleStreamEvent(
+        {
+          type: 'agent_status',
+          conversation_id: this.conversation_id,
+          msg_id: `status_${Date.now()}`,
+          data: { status: 'session_active', backend },
+        },
+        backend
+      );
+    }
+
+    const modelInfo = this.getModelInfo();
+    if (modelInfo) {
+      this.handleStreamEvent(
+        {
+          type: 'acp_model_info',
+          conversation_id: this.conversation_id,
+          msg_id: `model_${Date.now()}`,
+          data: modelInfo,
+        },
+        backend
+      );
+    } else {
+      const configOptions = this.getConfigOptions();
+      if (configOptions.length > 0) {
+        void this.saveConfigOptions(configOptions);
+      }
     }
   }
 
@@ -642,6 +686,9 @@ ${collectedResponses.join('\n')}`;
       const status = (message.data as { status?: string } | null)?.status;
       const shouldDisplayStatus = this.isFirstMessage || status === 'error' || status === 'disconnected';
       if (!shouldDisplayStatus) return;
+      if (status === 'session_active') {
+        this.hasEmittedSessionActiveStatus = true;
+      }
     }
 
     // Handle preview_open event (chrome-devtools navigation interception)
@@ -847,7 +894,7 @@ ${collectedResponses.join('\n')}`;
    * Also caches the model list for Guid page pre-selection.
    */
   private async restorePersistedState(): Promise<void> {
-    if (this.currentMode && this.currentMode !== 'default') {
+    if (this.currentMode && this.currentMode !== 'default' && this.options.backend !== 'codex') {
       try {
         await this.agent.setMode(this.currentMode);
       } catch (error) {
@@ -941,6 +988,7 @@ ${collectedResponses.join('\n')}`;
       return this.agent.start().then(async () => {
         await this.restorePersistedState();
         this.bootstrapping = false;
+        this.emitBootstrapReadyState(data.backend);
         return this.agent;
       });
     })();
@@ -1334,8 +1382,11 @@ ${collectedResponses.join('\n')}`;
    * Returns options like reasoning effort, output format, etc.
    */
   getConfigOptions(): AcpSessionConfigOption[] {
-    if (!this.agent) return [];
-    return this.agent.getConfigOptions();
+    const liveOptions = this.agent?.getConfigOptions() || [];
+    if (liveOptions.length > 0) {
+      return liveOptions;
+    }
+    return this.getFallbackConfigOptions();
   }
 
   /**
@@ -1351,6 +1402,15 @@ ${collectedResponses.join('\n')}`;
       }
     }
     if (!this.agent) return [];
+    const liveOptions = this.agent.getConfigOptions();
+    const fallbackOptions = this.getFallbackConfigOptions();
+    const fallbackOption = fallbackOptions.find((option) => option.id === configId);
+    if (liveOptions.length === 0 && fallbackOption) {
+      const updatedFallbackOptions = this.withSelectedFallbackConfigOption(configId, value);
+      void this.saveConfigOptions(updatedFallbackOptions);
+      return updatedFallbackOptions;
+    }
+
     const updated = await this.agent.setConfigOption(configId, value);
     if (updated.length > 0) {
       void this.saveConfigOptions(updated);

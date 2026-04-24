@@ -107,7 +107,7 @@ export function buildOpenApiSpec(): Record<string, any> {
                 type: 'string',
               },
               example: {
-                model_reasoning_effort: 'high',
+                reasoning_effort: 'high',
               },
             },
             codexModel: {

@@ -16,7 +16,7 @@ describe('openapi conversation create schema', () => {
       expect.objectContaining({
         type: 'object',
         example: {
-          model_reasoning_effort: 'high',
+          reasoning_effort: 'high',
         },
       })
     );

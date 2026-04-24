@@ -7,7 +7,11 @@
 import { ipcBridge } from '@/common';
 import type { AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
+import {
+  getDefaultAcpConfigOptions,
+  normalizeCodexConfigOptions,
+  normalizeCodexConfigOptionValues,
+} from '@/common/types/codex/codexConfigOptions';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
@@ -18,6 +22,31 @@ import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
+
+const filterVisibleAcpConfigOptions = (options: unknown, backend?: string): AcpSessionConfigOption[] => {
+  if (!Array.isArray(options)) {
+    return [];
+  }
+
+  const visibleOptions = (options as AcpSessionConfigOption[]).filter(
+    (opt) => opt.category !== 'model' && opt.category !== 'mode'
+  );
+
+  return backend === 'codex' ? normalizeCodexConfigOptions(visibleOptions) : visibleOptions;
+};
+
+const normalizeCachedAcpConfigOptions = (
+  cached?: Record<string, AcpSessionConfigOption[]> | null
+): Record<string, AcpSessionConfigOption[]> => {
+  if (!cached) {
+    return {};
+  }
+
+  return {
+    ...cached,
+    ...(Array.isArray(cached.codex) && { codex: normalizeCodexConfigOptions(cached.codex) }),
+  };
+};
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -274,7 +303,7 @@ export const useGuidAgentSelection = ({
 
     const cachedOptions = acpCachedConfigOptions[currentConfigBackendKey];
     if (cachedOptions && cachedOptions.length > 0) {
-      return cachedOptions;
+      return filterVisibleAcpConfigOptions(cachedOptions, currentConfigBackendKey);
     }
 
     return getDefaultAcpConfigOptions(currentConfigBackend, currentModel);
@@ -362,7 +391,7 @@ export const useGuidAgentSelection = ({
     ConfigStorage.get('acp.cachedConfigOptions')
       .then((cached) => {
         if (!isActive) return;
-        setAcpCachedConfigOptions(cached || {});
+        setAcpCachedConfigOptions(normalizeCachedAcpConfigOptions(cached));
       })
       .catch(() => {
         // Silently ignore - cached config options are optional
@@ -396,22 +425,42 @@ export const useGuidAgentSelection = ({
 
         console.log('[Guid][codex] Probed model info:', modelInfo);
 
-        const cached = (await ConfigStorage.get('acp.cachedModels').catch(() => ({}))) || {};
+        const [cached, cachedConfigOptions] = await Promise.all([
+          ConfigStorage.get('acp.cachedModels').catch(() => ({})),
+          ConfigStorage.get('acp.cachedConfigOptions').catch(() => ({})),
+        ]);
         if (cancelled) return;
 
         const nextCachedModels = {
           ...cached,
           codex: modelInfo,
         };
+        const visibleConfigOptions = filterVisibleAcpConfigOptions(result.data?.configOptions, 'codex');
 
         setAcpCachedModels((prev) => ({
           ...prev,
           codex: modelInfo,
         }));
 
+        if (visibleConfigOptions.length > 0) {
+          setAcpCachedConfigOptions((prev) => ({
+            ...prev,
+            codex: visibleConfigOptions,
+          }));
+          setCachedConfigOptions(visibleConfigOptions);
+        }
+
         await ConfigStorage.set('acp.cachedModels', nextCachedModels).catch((error) => {
           console.error('Failed to save probed ACP model info:', error);
         });
+        if (visibleConfigOptions.length > 0) {
+          await ConfigStorage.set('acp.cachedConfigOptions', {
+            ...cachedConfigOptions,
+            codex: visibleConfigOptions,
+          }).catch((error) => {
+            console.error('Failed to save probed ACP config options:', error);
+          });
+        }
       })
       .catch((error) => {
         probedModelBackendsRef.current.delete('codex');
@@ -434,25 +483,21 @@ export const useGuidAgentSelection = ({
     ConfigStorage.get('acp.cachedConfigOptions')
       .then((cached) => {
         if (!isActive) return;
-        const options = cached?.[backend];
-        // Filter out model/mode categories — those are handled by AcpModelSelector / AgentModeSelector
-        const filtered = Array.isArray(options)
-          ? (options as Array<{ category?: string }>).filter(
-              (opt) => opt.category !== 'model' && opt.category !== 'mode'
-            )
-          : [];
-        setCachedConfigOptions(filtered as AcpSessionConfigOption[]);
+        const filtered = filterVisibleAcpConfigOptions(cached?.[backend], backend);
+        const fallbackOptions =
+          filtered.length > 0 ? filtered : getDefaultAcpConfigOptions(backend as AgentBackend, currentModel);
+        setCachedConfigOptions(fallbackOptions);
         setPendingConfigOptions({});
       })
       .catch(() => {
         if (!isActive) return;
-        setCachedConfigOptions([]);
+        setCachedConfigOptions(getDefaultAcpConfigOptions(backend as AgentBackend, currentModel));
         setPendingConfigOptions({});
       });
     return () => {
       isActive = false;
     };
-  }, [selectedAgentKey, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, isPresetAgent, currentEffectiveAgentInfo.agentType, currentModel]);
 
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
@@ -507,8 +552,10 @@ export const useGuidAgentSelection = ({
     loadPreferredConfigOptions
       .then((preferred) => {
         if (cancelled) return;
+        const normalizedPreferred =
+          currentConfigBackendKey === 'codex' ? normalizeCodexConfigOptionValues(preferred) : preferred;
         const defaults = currentAcpCachedConfigOptions.reduce<Record<string, string>>((acc, option) => {
-          const candidate = preferred[option.id] || option.currentValue || option.selectedValue;
+          const candidate = normalizedPreferred[option.id] || option.currentValue || option.selectedValue;
           if (candidate) {
             acc[option.id] = candidate;
           }
