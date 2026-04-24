@@ -204,7 +204,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                             await removeTeam(teamIdToDelete);
                             Message.success(t('team.sider.deleteSuccess'));
                             if (window.location.hash.includes(`/team/${teamIdToDelete}`)) {
-                              navigate('/');
+                              window.location.hash = '#/';
                             }
                           },
                           style: { borderRadius: '12px' },
