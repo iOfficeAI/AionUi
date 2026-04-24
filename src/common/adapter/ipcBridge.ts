@@ -331,21 +331,21 @@ export const fs = {
   >('/api/fs/copy'),
   removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
   renameEntry: httpPost<{ newPath: string }, { path: string; newName: string }>('/api/fs/rename'),
-  readBuiltinRule: httpPost<string, { fileName: string }>('/api/skills/builtin-rule'),
+  readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
-  readAssistantRule: httpPost<string, { assistantId: string; locale?: string }>('/api/skills/assistant-rule/read'),
-  writeAssistantRule: httpPost<boolean, { assistantId: string; content: string; locale?: string }>(
+  readAssistantRule: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-rule/read'),
+  writeAssistantRule: httpPost<boolean, { assistant_id: string; content: string; locale?: string }>(
     '/api/skills/assistant-rule/write',
   ),
-  deleteAssistantRule: httpDelete<boolean, { assistantId: string }>(
-    (p) => `/api/skills/assistant-rule/${p.assistantId}`,
+  deleteAssistantRule: httpDelete<boolean, { assistant_id: string }>(
+    (p) => `/api/skills/assistant-rule/${p.assistant_id}`,
   ),
-  readAssistantSkill: httpPost<string, { assistantId: string; locale?: string }>('/api/skills/assistant-skill/read'),
-  writeAssistantSkill: httpPost<boolean, { assistantId: string; content: string; locale?: string }>(
+  readAssistantSkill: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-skill/read'),
+  writeAssistantSkill: httpPost<boolean, { assistant_id: string; content: string; locale?: string }>(
     '/api/skills/assistant-skill/write',
   ),
-  deleteAssistantSkill: httpDelete<boolean, { assistantId: string }>(
-    (p) => `/api/skills/assistant-skill/${p.assistantId}`,
+  deleteAssistantSkill: httpDelete<boolean, { assistant_id: string }>(
+    (p) => `/api/skills/assistant-skill/${p.assistant_id}`,
   ),
   listAvailableSkills: httpGet<
     Array<{

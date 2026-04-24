@@ -67,7 +67,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
       // a direct column on the assistant row.
       if (editContext !== editingPreset.context) {
         await ipcBridge.fs.writeAssistantRule.invoke({
-          assistantId: editingPreset.id,
+          assistant_id: editingPreset.id,
           content: editContext,
         });
       }

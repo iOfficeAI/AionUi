@@ -68,7 +68,7 @@ export const useAssistantEditor = ({
   const loadAssistantContext = useCallback(
     async (assistantId: string): Promise<string> => {
       try {
-        const content = await ipcBridge.fs.readAssistantRule.invoke({ assistantId, locale: localeKey });
+        const content = await ipcBridge.fs.readAssistantRule.invoke({ assistant_id: assistantId, locale: localeKey });
         return content || '';
       } catch (error) {
         console.error(`Failed to load rule for ${assistantId}:`, error);
@@ -82,7 +82,7 @@ export const useAssistantEditor = ({
   const loadAssistantSkills = useCallback(
     async (assistantId: string): Promise<string> => {
       try {
-        const content = await ipcBridge.fs.readAssistantSkill.invoke({ assistantId, locale: localeKey });
+        const content = await ipcBridge.fs.readAssistantSkill.invoke({ assistant_id: assistantId, locale: localeKey });
         return content || '';
       } catch (error) {
         console.error(`Failed to load skills for ${assistantId}:`, error);
@@ -282,7 +282,7 @@ export const useAssistantEditor = ({
         // Save rule file
         if (editContext.trim()) {
           await ipcBridge.fs.writeAssistantRule.invoke({
-            assistantId: created.id,
+            assistant_id: created.id,
             locale: localeKey,
             content: editContext,
           });
@@ -310,7 +310,7 @@ export const useAssistantEditor = ({
         // Save rule file (if changed)
         if (editContext.trim()) {
           await ipcBridge.fs.writeAssistantRule.invoke({
-            assistantId: activeAssistant.id,
+            assistant_id: activeAssistant.id,
             locale: localeKey,
             content: editContext,
           });
