@@ -222,6 +222,69 @@ probe GET /api/skills/builtin-auto     → non-empty
 - No frontend changes owed across either run — the renderer has been spec-correct throughout (§6 of the backend spec mandates camelCase on the wire).
 - T4 coordinator closure unblocked.
 
+## Run 3 — post-realign (snake_case wire)
+
+**Date:** 2026-04-24
+**Backend SHA:** `326e228` (aionui-backend — H1 reverted; `skill.rs` realigned to snake_case on wire)
+**Frontend SHA:** `dba2ef499` (AionUi — `refactor(skill): realign wire format to snake_case (T2)`)
+**Backend binary timestamp:** Apr 24 14:35:12 2026
+**Verdict:** **CLEAN — 8/8 green, 13.1s wall time.** Project-wide `snake_case` wire contract now enforced end-to-end.
+
+### Why re-run
+
+Between runs 2 and 3 the project-wide API contract was flipped from camelCase to snake_case (plan: `2026-04-23-snake-case-realign-plan.md`). This matches the canonical convention used by the rest of the backend (team, conversation, cron, channel, assistant). H1's camelCase rename on `skill.rs` was reverted under T1 and `aionui-api-types/src/skill.rs` now asserts `snake_case` on both request and response paths (`test_materialize_response_serializes_snake`, `test_skill_list_item_serde` asserts `json["is_custom"]` / absence of `isCustom`, etc.). Frontend T2 flipped `ipcBridge.ts` + hooks to consume the new wire format.
+
+Run 3 verifies the full stack is coherent after both flips.
+
+### Test-file flips (T3)
+
+After the realign, `tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts` still had camelCase residue in both response assertions and request bodies. All flipped under T3:
+
+| Site | Before | After |
+|---|---|---|
+| `interface SkillInfo` field (L67-68) | `relativeLocation`, `isCustom` | `relative_location`, `is_custom` |
+| `interface MaterializeResponse` (L73) | `dirPath` | `dir_path` |
+| All `resp.dirPath` readers (S3/S4/S5) | `resp.dirPath` | `resp.dir_path` |
+| S3/S4/S5 POST body keys | `{ conversationId, enabledSkills }` | `{ conversation_id, enabled_skills }` |
+| S1/S2 `POST /api/skills/builtin-skill` body | `{ fileName }` | `{ file_name }` |
+| S7 `POST /api/skills/export-symlink` body | `{ skillPath, targetDir }` | `{ skill_path, target_dir }` |
+| S7 assertion (already flipped by frontend-dev) | `entry.relativeLocation` | `entry.relative_location` |
+
+Local TS variable names (`conversationId`, `skillPath`, `targetDir`) are retained — they're not wire-carried fields. The URL-path interpolation `/${conversationId}` is a path segment, not a body field, and stays as-is.
+
+### Per-scenario matrix — run 3
+
+| # | Scenario | Run 3 | Notes |
+|---|---|---|---|
+| S1 | `GET /api/skills/builtin-auto` non-empty + round-trip body read | **PASS (11.3s)** | `{file_name}` round-trip with snake_case body; frontmatter + name assertions green. |
+| S2 | AcpSkillManager data-source (list + body round-trip) | **PASS (95ms)** | All auto-inject bodies fetch successfully over snake_case wire. |
+| S3 | `materialize-for-agent` writes opt-in skills into the dir | **PASS (19ms)** | `resp.dir_path` present; `mermaid/SKILL.md` and flattened auto-inject dirs all materialized. |
+| S4 | Materialized dir structure suits gemini `--extensions` | **PASS (20ms)** | Every top-level entry is a dir with a `SKILL.md`. |
+| S5 | DELETE cleanup + idempotency | **PASS (28ms)** | First DELETE removes dir; second DELETE succeeds. |
+| S7 | `/api/skills` exposes absolute `location` + `relative_location` for export | **PASS (187ms)** | `relative_location` populated on every builtin row; export-symlink round-trip with `{skill_path, target_dir}` lands a readable `SKILL.md`. |
+| S6 | Startup orphan sweep for unknown conversation ids | **PASS (274ms)** | Seeded `orphan-conv-1/2` removed within 5s of sibling backend boot. |
+| S8 | Legacy `{cacheDir}/builtin-skills/` lifecycle | **PASS (261ms)** | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling stays healthy. |
+
+**Run 3 total wall clock:** 13.1s. No retries, no flakes.
+
+### Failure classification — run 3
+
+| Class | Count | Notes |
+|---|---|---|
+| A — stateful / scale flakes | 0 | Clean single-pass run. |
+| B — test-authoring | 0 | Straight-through. |
+| C — test/fixture mismatch | 0 at final run | Intermediate run (3a) had 3 Class C failures (S1/S2/S7 sending `{fileName, skillPath, targetDir}` camelCase bodies the audit pattern missed). Re-audited, flipped, re-ran — all green. |
+| D / F — backend contract | 0 | Wire format matches snake_case spec. |
+| E — infra | 0 | |
+
+### Outcome
+
+**All 8 scenarios green on the realigned pair (backend `326e228` + frontend `dba2ef499`). T3 complete, unblocks T4.**
+
+- snake_case wire contract verified end-to-end across read, write, delete, cold-start, and external-export flows.
+- No further frontend or backend changes owed.
+- T4 coordinator closure now unblocked per §3.5.
+
 ## Follow-ups (non-blocking, document for future)
 
 - Adding a snapshot-level JSON contract test in `aionui-api-types` (or a pact-style check in `skills_builtin_e2e.rs`) would have caught both defects pre-T3. Worth considering as a backend-dev chore after the pilot.

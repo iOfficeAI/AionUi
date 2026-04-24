@@ -27,9 +27,9 @@ import { computeOpenClawIdentityHash } from './openclawUtils';
  */
 async function materializeAgentSkillsDir(conversationId: string, enabledSkills: string[]): Promise<string> {
   try {
-    const { dirPath } = await ipcBridge.fs.materializeSkillsForAgent.invoke({
-      conversationId,
-      enabledSkills,
+    const { dir_path: dirPath } = await ipcBridge.fs.materializeSkillsForAgent.invoke({
+      conversation_id: conversationId,
+      enabled_skills: enabledSkills,
     });
     return dirPath;
   } catch (error) {

@@ -250,7 +250,7 @@ export class AcpSkillManager {
         // For builtin skills prefer the relative location (used by readBuiltinSkill);
         // custom skills expose an absolute path we can read directly.
         const location =
-          entry.source === 'builtin' && entry.relativeLocation ? entry.relativeLocation : entry.location;
+          entry.source === 'builtin' && entry.relative_location ? entry.relative_location : entry.location;
 
         this.skills.set(entry.name, {
           name: entry.name,

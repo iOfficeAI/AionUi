@@ -64,13 +64,13 @@ interface SkillInfo {
   name: string;
   description: string;
   location: string;
-  relativeLocation?: string;
-  isCustom: boolean;
+  relative_location?: string;
+  is_custom: boolean;
   source: 'builtin' | 'custom' | 'extension';
 }
 
 interface MaterializeResponse {
-  dirPath: string;
+  dir_path: string;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     // AcpSkillManager relies on.
     const sample = list[0];
     const content = await httpPost<string>(page, '/api/skills/builtin-skill', {
-      fileName: sample.location,
+      file_name: sample.location,
     });
     expect(typeof content).toBe('string');
     expect(content).toContain('---');
@@ -145,7 +145,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
     // would degrade ACP's "all conversations get these" contract.
     for (const entry of list) {
       const body = await httpPost<string>(page, '/api/skills/builtin-skill', {
-        fileName: entry.location,
+        file_name: entry.location,
       });
       expect(body.length).toBeGreaterThan(0);
     }
@@ -157,23 +157,23 @@ test.describe('Built-in Skill Migration (T3)', () => {
     const conversationId = `e2e-s3-${Date.now()}`;
     try {
       const resp = await httpPost<MaterializeResponse>(page, '/api/skills/materialize-for-agent', {
-        conversationId,
-        enabledSkills: [OPT_IN_PROBE_NAME],
+        conversation_id: conversationId,
+        enabled_skills: [OPT_IN_PROBE_NAME],
       });
-      expect(resp.dirPath).toBeTruthy();
-      expect(path.isAbsolute(resp.dirPath)).toBe(true);
+      expect(resp.dir_path).toBeTruthy();
+      expect(path.isAbsolute(resp.dir_path)).toBe(true);
 
       // The materialized dir must contain auto-inject skills *and* the
       // opt-in probe, flattened at the top level (§6.2 of the backend
       // spec: auto-inject/ is collapsed, one skill = one top-level dir).
-      const entries = fs.readdirSync(resp.dirPath);
+      const entries = fs.readdirSync(resp.dir_path);
       for (const expected of AUTO_INJECT_DIR_NAMES) {
         expect(entries).toContain(expected);
       }
       expect(entries).toContain(OPT_IN_PROBE_NAME);
 
       // The opt-in skill must actually contain its SKILL.md content.
-      const skillMd = path.join(resp.dirPath, OPT_IN_PROBE_NAME, 'SKILL.md');
+      const skillMd = path.join(resp.dir_path, OPT_IN_PROBE_NAME, 'SKILL.md');
       expect(fs.existsSync(skillMd)).toBe(true);
       const body = fs.readFileSync(skillMd, 'utf-8');
       expect(body).toContain('---');
@@ -194,19 +194,19 @@ test.describe('Built-in Skill Migration (T3)', () => {
     const conversationId = `e2e-s4-${Date.now()}`;
     try {
       const resp = await httpPost<MaterializeResponse>(page, '/api/skills/materialize-for-agent', {
-        conversationId,
-        enabledSkills: [],
+        conversation_id: conversationId,
+        enabled_skills: [],
       });
-      expect(fs.existsSync(resp.dirPath)).toBe(true);
+      expect(fs.existsSync(resp.dir_path)).toBe(true);
 
       // gemini's --extensions loader expects each subdir to be a skill
       // with a SKILL.md. Verify that structure across every materialized
       // entry.
-      const entries = fs.readdirSync(resp.dirPath, { withFileTypes: true });
+      const entries = fs.readdirSync(resp.dir_path, { withFileTypes: true });
       expect(entries.length).toBeGreaterThan(0);
       for (const entry of entries) {
         expect(entry.isDirectory()).toBe(true);
-        const skillMd = path.join(resp.dirPath, entry.name, 'SKILL.md');
+        const skillMd = path.join(resp.dir_path, entry.name, 'SKILL.md');
         expect(fs.existsSync(skillMd)).toBe(true);
       }
     } finally {
@@ -219,13 +219,13 @@ test.describe('Built-in Skill Migration (T3)', () => {
   test('S5: DELETE /api/skills/materialize-for-agent/:id removes the per-conversation dir', async ({ page }) => {
     const conversationId = `e2e-s5-${Date.now()}`;
     const resp = await httpPost<MaterializeResponse>(page, '/api/skills/materialize-for-agent', {
-      conversationId,
-      enabledSkills: [],
+      conversation_id: conversationId,
+      enabled_skills: [],
     });
-    expect(fs.existsSync(resp.dirPath)).toBe(true);
+    expect(fs.existsSync(resp.dir_path)).toBe(true);
 
     await httpDelete(page, `/api/skills/materialize-for-agent/${conversationId}`);
-    expect(fs.existsSync(resp.dirPath)).toBe(false);
+    expect(fs.existsSync(resp.dir_path)).toBe(false);
 
     // Idempotent — a second DELETE must still succeed (no 404).
     await httpDelete(page, `/api/skills/materialize-for-agent/${conversationId}`);
@@ -254,10 +254,10 @@ test.describe('Built-in Skill Migration (T3)', () => {
       expect(entry.location.endsWith(path.join('SKILL.md'))).toBe(true);
       expect(fs.existsSync(entry.location)).toBe(true);
 
-      // relativeLocation must be present for builtins and point under the
+      // relative_location must be present for builtins and point under the
       // embedded corpus (auto-inject or top-level).
-      expect(entry.relativeLocation).toBeTruthy();
-      expect(entry.relativeLocation!).toMatch(/^(auto-inject\/)?[^/]+\/SKILL\.md$/);
+      expect(entry.relative_location).toBeTruthy();
+      expect(entry.relative_location!).toMatch(/^(auto-inject\/)?[^/]+\/SKILL\.md$/);
     }
 
     // Sample one entry and perform an end-to-end export via
@@ -268,8 +268,8 @@ test.describe('Built-in Skill Migration (T3)', () => {
     const targetDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-s7-export-'));
     try {
       await httpPost(page, '/api/skills/export-symlink', {
-        skillPath,
-        targetDir,
+        skill_path: skillPath,
+        target_dir: targetDir,
       });
       const exported = path.join(targetDir, probe.name);
       // The export step is a symlink on unix, a copy on win32. Either way

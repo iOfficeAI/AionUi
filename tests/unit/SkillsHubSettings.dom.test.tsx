@@ -115,8 +115,8 @@ describe('SkillsHubSettings Component', () => {
 
     // Default mock responses
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
-      { name: 'Builtin1', description: 'desc2', location: '/path2', isCustom: false, source: 'builtin' },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', is_custom: true, source: 'custom' },
+      { name: 'Builtin1', description: 'desc2', location: '/path2', is_custom: false, source: 'builtin' },
     ]);
 
     mockDetectAndCountExternalSkills.mockResolvedValue([
@@ -219,7 +219,7 @@ describe('SkillsHubSettings Component', () => {
   it('should call delete endpoint when deleting custom skill', async () => {
     // Modify mock to only return the custom skill
     mockListAvailableSkills.mockResolvedValue([
-      { name: 'MySkill1', description: 'desc1', location: '/path1', isCustom: true, source: 'custom' },
+      { name: 'MySkill1', description: 'desc1', location: '/path1', is_custom: true, source: 'custom' },
     ]);
 
     const { Modal } = await import('@arco-design/web-react');
