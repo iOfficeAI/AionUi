@@ -476,15 +476,11 @@ export const acpConversation = {
   detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   getAvailableAgents: httpGet<
     Array<{
-      backend: string;
+      id: string;
       name: string;
-      kind?: string;
-      cli_path?: string;
-      supportedTransports?: string[];
-      isExtension?: boolean;
-      extensionName?: string;
-      is_preset?: boolean;
-      custom_agent_id?: string;
+      backend: string;
+      available: boolean;
+      source: 'internal' | 'builtin' | 'extension' | 'custom';
     }>,
     void
   >('/api/acp/agents'),
@@ -975,6 +971,7 @@ export interface ICreateConversationParams {
     custom_workspace?: boolean;
     defaultFiles?: string[];
     backend?: AgentBackend;
+    agent_id?: string;
     cli_path?: string;
     web_search_engine?: 'google' | 'default';
     agent_name?: string;

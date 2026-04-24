@@ -17,6 +17,7 @@ export type BuildAgentConversationPresetResources = {
 export type BuildAgentConversationInput = {
   backend: string;
   name: string;
+  agent_id?: string;
   agent_name?: string;
   preset_assistant_id?: string;
   workspace: string;
@@ -54,6 +55,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   const {
     backend,
     name,
+    agent_id,
     agent_name,
     preset_assistant_id,
     workspace,
@@ -95,6 +97,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   } else if (type === 'acp' || type === 'openclaw-gateway') {
     extra.backend = backend as AcpBackendAll;
     extra.agent_name = agent_name || name;
+    if (agent_id) extra.agent_id = agent_id;
     if (cli_path) extra.cli_path = cli_path;
     if (custom_agent_id) {
       extra.custom_agent_id = custom_agent_id;
