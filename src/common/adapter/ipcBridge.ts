@@ -29,7 +29,21 @@ import type {
   AutoUpdateStatus,
 } from '../update/updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
+import type {
+  CreateProviderRequest,
+  FetchModelsAnonymousRequest,
+  FetchModelsResponse,
+  UpdateProviderRequest,
+} from '../types/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
+import type {
+  Assistant,
+  CreateAssistantRequest,
+  ImportAssistantsRequest,
+  ImportAssistantsResult,
+  SetAssistantStateRequest,
+  UpdateAssistantRequest,
+} from '../types/assistantTypes';
 import {
   httpGet,
   httpPost,
@@ -52,8 +66,27 @@ export const shell = {
   openExternal: httpPost<void, string>('/api/shell/open-external', (url) => ({ url })),
   checkToolInstalled: httpPost<boolean, { tool: string }>('/api/shell/check-tool-installed'),
   openFolderWith: httpPost<void, { folderPath: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
-    '/api/shell/open-folder-with'
+    '/api/shell/open-folder-with',
   ),
+};
+
+// ---------------------------------------------------------------------------
+// Assistants — routed to /api/assistants/*
+// ---------------------------------------------------------------------------
+
+export const assistants = {
+  list: httpGet<Assistant[], void>('/api/assistants'),
+  create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
+  update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+  delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
+  setState: httpPatch<Assistant, SetAssistantStateRequest>(
+    (p) => `/api/assistants/${p.id}/state`,
+    (p) => {
+      const { id: _id, ...body } = p;
+      return body;
+    },
+  ),
+  import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
 };
 
 // ---------------------------------------------------------------------------
@@ -68,42 +101,42 @@ export const conversation = {
   >('/api/conversations/clone'),
   get: httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`),
   getAssociateConversation: httpGet<TChatConversation[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/associated`
+    (p) => `/api/conversations/${p.conversation_id}/associated`,
   ),
-  listByCronJob: httpGet<TChatConversation[], { cron_job_id: string }>(
-    (p) => `/api/cron/jobs/${p.cron_job_id}/conversations`
+  listByCronJob: httpGet<TChatConversation[], { cronJobId: string }>(
+    (p) => `/api/cron/jobs/${p.cronJobId}/conversations`,
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
-    (p) => ({ ...p.updates })
+    (p) => ({ updates: p.updates, mergeExtra: p.mergeExtra }),
   ),
   reset: httpPost<void, IResetConversationParams>(
     (p) => `/api/conversations/${p.id}/reset`,
-    (p) => ({ gemini: p.gemini })
+    (p) => ({ gemini: p.gemini }),
   ),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
-  stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/stop`),
+  stop: httpPost<void, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/stop`,
+  ),
   sendMessage: httpPost<void, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
-    (p) => ({
-      content: p.input,
-      msg_id: p.msg_id,
-      files: p.files,
-      loading_id: p.loading_id,
-      inject_skills: p.inject_skills,
-    })
+    (p) => ({ input: p.input, msg_id: p.msg_id, files: p.files, loading_id: p.loading_id, injectSkills: p.injectSkills }),
   ),
-  getSlashCommands: httpGet<{ commands: SlashCommandItem[] }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/slash-commands`
-  ),
-  askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
+  getSlashCommands: httpGet<
+    { commands: SlashCommandItem[] },
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/slash-commands`),
+  askSideQuestion: httpPost<
+    ConversationSideQuestionResult,
+    { conversation_id: string; question: string }
+  >(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
-    (p) => ({ question: p.question })
+    (p) => ({ question: p.question }),
   ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
-    (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
-    (p) => ({ confirm_key: p.confirm_key, msg_id: p.msg_id })
+    (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.callId}/confirm`,
+    (p) => ({ confirmKey: p.confirmKey, msg_id: p.msg_id }),
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
@@ -129,16 +162,16 @@ export const conversation = {
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
-  getWorkspace: httpGet<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/workspace?workspace=${encodeURIComponent(p.workspace)}&path=${encodeURIComponent(p.path)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`
-  ),
+  getWorkspace: httpGet<
+    IDirOrFile[],
+    { conversation_id: string; workspace: string; path: string; search?: string }
+  >((p) => `/api/conversations/${p.conversation_id}/workspace?workspace=${encodeURIComponent(p.workspace)}&path=${encodeURIComponent(p.path)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`),
   responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
     'responseSearchWorkSpace',
-    undefined as unknown as void
+    undefined as unknown as void,
   ),
   reloadContext: httpPost<void, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/reload-context`
+    (p) => `/api/conversations/${p.conversation_id}/reload-context`,
   ),
   setConfig: httpPost<
     void,
@@ -148,24 +181,26 @@ export const conversation = {
     }
   >(
     (p) => `/api/conversations/${p.conversation_id}/config`,
-    (p) => p.config
+    (p) => p.config,
   ),
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
-    confirm: httpPost<void, { conversation_id: string; msg_id: string; data: unknown; call_id: string }>(
-      (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
-      (p) => ({ msg_id: p.msg_id, data: p.data })
+    confirm: httpPost<
+      void,
+      { conversation_id: string; msg_id: string; data: unknown; callId: string }
+    >(
+      (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.callId}/confirm`,
+      (p) => ({ msg_id: p.msg_id, data: p.data }),
     ),
     list: httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
-      (p) => `/api/conversations/${p.conversation_id}/confirmations`
+      (p) => `/api/conversations/${p.conversation_id}/confirmations`,
     ),
     remove: wsEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
   },
   approval: {
-    check: httpGet<boolean, { conversation_id: string; action: string; command_type?: string }>(
-      (p) =>
-        `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.command_type ? `&command_type=${encodeURIComponent(p.command_type)}` : ''}`
+    check: httpGet<boolean, { conversation_id: string; action: string; commandType?: string }>(
+      (p) => `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.commandType ? `&commandType=${encodeURIComponent(p.commandType)}` : ''}`,
     ),
   },
 };
@@ -215,21 +250,27 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'),
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
-  systemInfo: httpGet<{ cacheDir: string; workDir: string; logDir: string; platform: string; arch: string }, void>(
-    '/api/system/info'
-  ),
+  systemInfo: httpGet<
+    { cacheDir: string; workDir: string; logDir: string; platform: string; arch: string },
+    void
+  >('/api/system/info'),
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
-  updateSystemInfo: httpPost<void, { cacheDir: string; workDir: string }>('/api/system/info', (p) => p),
+  updateSystemInfo: httpPost<void, { cacheDir: string; workDir: string }>(
+    '/api/system/info',
+    (p) => p,
+  ),
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),
   updateCdpConfig: bridge.buildProvider<IBridgeResponse<ICdpConfig>, Partial<ICdpConfig>>('app.update-cdp-config'),
-  getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
+  getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>(
+    'app.get-start-on-boot-status',
+  ),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
-    'app.set-start-on-boot'
+    'app.set-start-on-boot',
   ),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
-    'app.log-stream'
+    'app.log-stream',
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
 };
@@ -260,9 +301,10 @@ export const autoUpdate = {
 // ---------------------------------------------------------------------------
 
 export const starOffice = {
-  detectUrl: httpPost<{ url: string | null }, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>(
-    '/api/star-office/detect'
-  ),
+  detectUrl: httpPost<
+    { url: string | null },
+    { preferredUrl?: string; force?: boolean; timeoutMs?: number }
+  >('/api/star-office/detect'),
 };
 
 // ---------------------------------------------------------------------------
@@ -307,43 +349,59 @@ export const fs = {
   getFileMetadata: httpPost<IFileMetadata, { path: string }>('/api/fs/metadata'),
   copyFilesToWorkspace: httpPost<
     { copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> },
-    { file_paths: string[]; workspace: string; sourceRoot?: string }
+    { filePaths: string[]; workspace: string; sourceRoot?: string }
   >('/api/fs/copy'),
   removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
-  renameEntry: httpPost<{ newPath: string }, { path: string; new_name: string }>('/api/fs/rename'),
-  readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
+  renameEntry: httpPost<{ newPath: string }, { path: string; newName: string }>('/api/fs/rename'),
+  readBuiltinRule: httpPost<string, { fileName: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistantId: string; locale?: string }>('/api/skills/assistant-rule/read'),
   writeAssistantRule: httpPost<boolean, { assistantId: string; content: string; locale?: string }>(
-    '/api/skills/assistant-rule/write'
+    '/api/skills/assistant-rule/write',
   ),
   deleteAssistantRule: httpDelete<boolean, { assistantId: string }>(
-    (p) => `/api/skills/assistant-rule/${p.assistantId}`
+    (p) => `/api/skills/assistant-rule/${p.assistantId}`,
   ),
   readAssistantSkill: httpPost<string, { assistantId: string; locale?: string }>('/api/skills/assistant-skill/read'),
   writeAssistantSkill: httpPost<boolean, { assistantId: string; content: string; locale?: string }>(
-    '/api/skills/assistant-skill/write'
+    '/api/skills/assistant-skill/write',
   ),
   deleteAssistantSkill: httpDelete<boolean, { assistantId: string }>(
-    (p) => `/api/skills/assistant-skill/${p.assistantId}`
+    (p) => `/api/skills/assistant-skill/${p.assistantId}`,
   ),
   listAvailableSkills: httpGet<
     Array<{
       name: string;
       description: string;
       location: string;
-      isCustom: boolean;
+      relative_location?: string;
+      is_custom: boolean;
       source: 'builtin' | 'custom' | 'extension';
     }>,
     void
   >('/api/skills'),
-  listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string }>, void>('/api/skills/builtin-auto'),
-  readSkillInfo: httpPost<{ name: string; description: string }, { skillPath: string }>('/api/skills/info'),
-  importSkill: httpPost<{ skillName: string }, { skillPath: string }>('/api/skills/import'),
-  scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folderPath: string }>(
-    '/api/skills/scan'
+  listBuiltinAutoSkills: httpGet<
+    Array<{ name: string; description: string; location: string }>,
+    void
+  >('/api/skills/builtin-auto'),
+  materializeSkillsForAgent: httpPost<
+    { dir_path: string },
+    { conversation_id: string; enabled_skills: string[] }
+  >('/api/skills/materialize-for-agent'),
+  cleanupSkillsForAgent: httpDelete<void, { conversationId: string }>(
+    (p) => `/api/skills/materialize-for-agent/${encodeURIComponent(p.conversationId)}`,
   ),
-  detectCommonSkillPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/detect-paths'),
+  readSkillInfo: httpPost<{ name: string; description: string }, { skillPath: string }>(
+    '/api/skills/info',
+  ),
+  importSkill: httpPost<{ skillName: string }, { skillPath: string }>('/api/skills/import'),
+  scanForSkills: httpPost<
+    Array<{ name: string; description: string; path: string }>,
+    { folderPath: string }
+  >('/api/skills/scan'),
+  detectCommonSkillPaths: httpGet<Array<{ name: string; path: string }>, void>(
+    '/api/skills/detect-paths',
+  ),
   detectAndCountExternalSkills: httpGet<
     Array<{
       name: string;
@@ -353,14 +411,18 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skillName: string }, { skillPath: string }>('/api/skills/import-symlink'),
+  importSkillWithSymlink: httpPost<{ skillName: string }, { skillPath: string }>(
+    '/api/skills/import-symlink',
+  ),
   deleteSkill: httpDelete<void, { skillName: string }>((p) => `/api/skills/${p.skillName}`),
   getSkillPaths: httpGet<{ userSkillsDir: string; builtinSkillsDir: string }, void>('/api/skills/paths'),
-  exportSkillWithSymlink: httpPost<void, { skillPath: string; targetDir: string }>('/api/skills/export-symlink'),
+  exportSkillWithSymlink: httpPost<void, { skillPath: string; targetDir: string }>(
+    '/api/skills/export-symlink',
+  ),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
   addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),
   removeCustomExternalPath: httpDelete<void, { path: string }>(
-    (p) => `/api/skills/external-paths?path=${encodeURIComponent(p.path)}`
+    (p) => `/api/skills/external-paths?path=${encodeURIComponent(p.path)}`,
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
@@ -379,10 +441,10 @@ export const speechToText = {
 // ---------------------------------------------------------------------------
 
 export const fileWatch = {
-  startWatch: httpPost<void, { file_path: string }>('/api/fs/watch/start'),
-  stopWatch: httpPost<void, { file_path: string }>('/api/fs/watch/stop'),
+  startWatch: httpPost<void, { filePath: string }>('/api/fs/watch/start'),
+  stopWatch: httpPost<void, { filePath: string }>('/api/fs/watch/stop'),
   stopAllWatches: httpPost<void, void>('/api/fs/watch/stop-all'),
-  fileChanged: wsEmitter<{ file_path: string; eventType: string }>('fileWatch.fileChanged'),
+  fileChanged: wsEmitter<{ filePath: string; eventType: string }>('fileWatch.fileChanged'),
 };
 
 // Workspace Office file scan
@@ -393,7 +455,7 @@ export const workspaceOfficeWatch = {
 // File streaming updates (real-time content push when agent writes)
 export const fileStream = {
   contentUpdate: wsEmitter<{
-    file_path: string;
+    filePath: string;
     content: string;
     workspace: string;
     relativePath: string;
@@ -403,24 +465,30 @@ export const fileStream = {
 
 // File snapshot providers
 export const fileSnapshot = {
-  init: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/init'),
-  compare: httpPost<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
-    '/api/fs/snapshot/compare'
+  init: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    '/api/fs/snapshot/init',
   ),
-  getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/info'),
+  compare: httpPost<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
+    '/api/fs/snapshot/compare',
+  ),
+  getBaselineContent: httpPost<string | null, { workspace: string; filePath: string }>(
+    '/api/fs/snapshot/baseline',
+  ),
+  getInfo: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    '/api/fs/snapshot/info',
+  ),
   dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
-  stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
+  stageFile: httpPost<void, { workspace: string; filePath: string }>('/api/fs/snapshot/stage'),
   stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
-  unstageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/unstage'),
+  unstageFile: httpPost<void, { workspace: string; filePath: string }>('/api/fs/snapshot/unstage'),
   unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
   discardFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
   >('/api/fs/snapshot/discard'),
   resetFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
   >('/api/fs/snapshot/reset'),
   getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
@@ -430,15 +498,15 @@ export const fileSnapshot = {
 // ---------------------------------------------------------------------------
 
 export const googleAuth = {
-  login: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.login', {
-    success: false,
-    msg: 'Google Auth not available in backend mode',
-  }),
+  login: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>(
+    'googleAuth.login',
+    { success: false, msg: 'Google Auth not available in backend mode' },
+  ),
   logout: stubProvider<void, {}>('googleAuth.logout', undefined as unknown as void),
-  status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.status', {
-    success: false,
-    msg: 'Google Auth not available in backend mode',
-  }),
+  status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>(
+    'googleAuth.status',
+    { success: false, msg: 'Google Auth not available in backend mode' },
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -460,11 +528,11 @@ export const bedrock = {
   testConnection: httpPost<
     { msg?: string },
     {
-      bedrock_config: {
-        auth_method: 'accessKey' | 'profile';
+      bedrockConfig: {
+        authMethod: 'accessKey' | 'profile';
         region: string;
-        access_key_id?: string;
-        secret_access_key?: string;
+        accessKeyId?: string;
+        secretAccessKey?: string;
         profile?: string;
       };
     }
@@ -476,24 +544,27 @@ export const bedrock = {
 // ---------------------------------------------------------------------------
 
 export const mode = {
-  fetchModelList: httpPost<
-    { mode: Array<string | { id: string; name: string }>; fix_base_url?: string },
-    {
-      base_url?: string;
-      api_key: string;
-      try_fix?: boolean;
-      platform?: string;
-      bedrock_config?: {
-        auth_method: 'accessKey' | 'profile';
-        region: string;
-        access_key_id?: string;
-        secret_access_key?: string;
-        profile?: string;
-      };
+  listProviders: httpGet<IProvider[], void>('/api/providers'),
+  createProvider: httpPost<IProvider, CreateProviderRequest>('/api/providers'),
+  updateProvider: httpPut<IProvider, { id: string } & UpdateProviderRequest>(
+    (p) => `/api/providers/${p.id}`,
+    (p) => {
+      const { id: _id, ...body } = p;
+      return body;
     }
-  >('/api/providers/fetch-models'),
-  saveModelConfig: httpPost<void, IProvider[]>('/api/providers/batch'),
-  getModelConfig: httpGet<IProvider[], void>('/api/providers'),
+  ),
+  deleteProvider: httpDelete<void, { id: string }>((p) => `/api/providers/${p.id}`),
+  fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
+    (p) => `/api/providers/${p.id}/models`,
+    (p) => ({ try_fix: p.try_fix })
+  ),
+  /**
+   * Pre-create form preview — anonymous fetch-models (T1b).
+   * Takes credentials in the body, no provider row required. Used by
+   * AddPlatformModal / EditModeModal / ApiKeyEditorModal while the
+   * dropdown is still being populated.
+   */
+  fetchModelList: httpPost<FetchModelsResponse, FetchModelsAnonymousRequest>('/api/providers/fetch-models'),
   detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>('/api/providers/detect-protocol'),
 };
 
@@ -530,27 +601,33 @@ export const acpConversation = {
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: AgentBackend }>(
     '/api/acp/health-check'
   ),
-  setMode: httpPut<void, { conversation_id: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/mode`,
-    (p) => ({ mode: p.mode })
+  setMode: httpPut<void, { conversationId: string; mode: string }>(
+    (p) => `/api/conversations/${p.conversationId}/acp/mode`,
+    (p) => ({ mode: p.mode }),
   ),
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/mode`
+  getMode: httpGet<{ mode: string; initialized: boolean }, { conversationId: string }>(
+    (p) => `/api/conversations/${p.conversationId}/acp/mode`,
   ),
-  getModelInfo: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/model`
+  getModelInfo: httpGet<{ modelInfo: AcpModelInfo | null }, { conversationId: string }>(
+    (p) => `/api/conversations/${p.conversationId}/acp/model`,
   ),
-  setModel: httpPut<void, { conversation_id: string; model_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/model`,
-    (p) => ({ model_id: p.model_id })
+  setModel: httpPut<
+    void,
+    { conversationId: string; modelId: string }
+  >(
+    (p) => `/api/conversations/${p.conversationId}/acp/model`,
+    (p) => ({ model_id: p.modelId }),
   ),
   getConfigOptions: httpGet<
-    { config_options: import('../types/acpTypes').AcpSessionConfigOption[] },
-    { conversation_id: string }
-  >((p) => `/api/conversations/${p.conversation_id}/acp/config`),
-  setConfigOption: httpPut<void, { conversation_id: string; config_id: string; value: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/config/${p.config_id}`,
-    (p) => ({ value: p.value })
+    { configOptions: import('../types/acpTypes').AcpSessionConfigOption[] },
+    { conversationId: string }
+  >((p) => `/api/conversations/${p.conversationId}/acp/config`),
+  setConfigOption: httpPut<
+    void,
+    { conversationId: string; configId: string; value: string }
+  >(
+    (p) => `/api/conversations/${p.conversationId}/acp/config/${p.configId}`,
+    (p) => ({ value: p.value }),
   ),
 };
 
@@ -569,7 +646,7 @@ export const mcpService = {
       tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
       error?: string;
       needsAuth?: boolean;
-      auth_method?: 'oauth' | 'basic';
+      authMethod?: 'oauth' | 'basic';
       wwwAuthenticate?: string;
     },
     IMcpServer
@@ -585,13 +662,15 @@ export const mcpService = {
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
     { mcpServerName: string; agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }> }
   >('/api/mcp/remove-from-agents'),
-  checkOAuthStatus: httpPost<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }, IMcpServer>(
-    '/api/mcp/oauth/check-status'
-  ),
-  loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server: IMcpServer; config?: unknown }>(
-    '/api/mcp/oauth/login'
-  ),
-  logoutMcpOAuth: httpPost<void, string>('/api/mcp/oauth/logout', (server_name) => ({ server_name })),
+  checkOAuthStatus: httpPost<
+    { isAuthenticated: boolean; needsLogin: boolean; error?: string },
+    IMcpServer
+  >('/api/mcp/oauth/check-status'),
+  loginMcpOAuth: httpPost<
+    { success: boolean; error?: string },
+    { server: IMcpServer; config?: unknown }
+  >('/api/mcp/oauth/login'),
+  logoutMcpOAuth: httpPost<void, string>('/api/mcp/oauth/logout', (serverName) => ({ serverName })),
   getAuthenticatedServers: httpGet<string[], void>('/api/mcp/oauth/authenticated'),
 };
 
@@ -609,16 +688,16 @@ export const openclawConversation = {
   responseStream: conversation.responseStream,
   getRuntime: httpGet<
     {
-      conversation_id: string;
+      conversationId: string;
       runtime: {
         workspace?: string;
         backend?: string;
-        agent_name?: string;
-        cli_path?: string;
+        agentName?: string;
+        cliPath?: string;
         model?: string;
         sessionKey?: string | null;
-        is_connected?: boolean;
-        has_active_session?: boolean;
+        isConnected?: boolean;
+        hasActiveSession?: boolean;
         identityHash?: string | null;
       };
       expected?: {
@@ -642,15 +721,18 @@ export const openclawConversation = {
 export const remoteAgent = {
   list: httpGet<import('@process/agent/remote/types').RemoteAgentConfig[], void>('/api/remote-agents'),
   get: httpGet<import('@process/agent/remote/types').RemoteAgentConfig | null, { id: string }>(
-    (p) => `/api/remote-agents/${p.id}`
+    (p) => `/api/remote-agents/${p.id}`,
   ),
   create: httpPost<
     import('@process/agent/remote/types').RemoteAgentConfig,
     import('@process/agent/remote/types').RemoteAgentInput
   >('/api/remote-agents'),
-  update: httpPut<boolean, { id: string; updates: Partial<import('@process/agent/remote/types').RemoteAgentInput> }>(
+  update: httpPut<
+    boolean,
+    { id: string; updates: Partial<import('@process/agent/remote/types').RemoteAgentInput> }
+  >(
     (p) => `/api/remote-agents/${p.id}`,
-    (p) => p.updates
+    (p) => p.updates,
   ),
   delete: httpDelete<boolean, { id: string }>((p) => `/api/remote-agents/${p.id}`),
   testConnection: httpPost<
@@ -658,7 +740,7 @@ export const remoteAgent = {
     { url: string; authType: string; authToken?: string; allowInsecure?: boolean }
   >('/api/remote-agents/test-connection'),
   handshake: httpPost<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }, { id: string }>(
-    (p) => `/api/remote-agents/${p.id}/handshake`
+    (p) => `/api/remote-agents/${p.id}/handshake`,
   ),
 };
 
@@ -675,27 +757,27 @@ export type PaginatedResult<T> = {
 export const database = {
   getConversationMessages: httpGet<
     PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; page_size?: number; order?: string }
+    { conversation_id: string; page?: number; pageSize?: number; order?: string }
   >(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}`
+    (p) => `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}${p.order ? `&order=${p.order}` : ''}`,
   ),
   getUserConversations: httpGet<
     PaginatedResult<import('@/common/config/storage').TChatConversation>,
     { cursor?: string; limit?: number }
-  >((p) => {
-    const params = new URLSearchParams();
-    if (p.cursor) params.set('cursor', p.cursor);
-    if (p.limit) params.set('limit', String(p.limit));
-    const qs = params.toString();
-    return `/api/conversations${qs ? `?${qs}` : ''}`;
-  }),
+  >(
+    (p) => {
+      const params = new URLSearchParams();
+      if (p.cursor) params.set('cursor', p.cursor);
+      if (p.limit) params.set('limit', String(p.limit));
+      const qs = params.toString();
+      return `/api/conversations${qs ? `?${qs}` : ''}`;
+    },
+  ),
   searchConversationMessages: httpGet<
     PaginatedResult<import('../types/database').IMessageSearchItem>,
-    { keyword: string; page?: number; page_size?: number }
+    { keyword: string; page?: number; pageSize?: number }
   >(
-    (p) =>
-      `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&page_size=${p.page_size ?? 50}`
+    (p) => `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}`,
   ),
 };
 
@@ -705,7 +787,9 @@ export const database = {
 
 export const previewHistory = {
   list: httpPost<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('/api/preview-history/list'),
-  save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>('/api/preview-history/save'),
+  save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>(
+    '/api/preview-history/save',
+  ),
   getContent: httpPost<
     { snapshot: PreviewSnapshotInfo; content: string } | null,
     { target: PreviewHistoryTarget; snapshotId: string }
@@ -719,7 +803,7 @@ export const preview = {
     contentType: import('../types/preview').PreviewContentType;
     metadata?: {
       title?: string;
-      file_name?: string;
+      fileName?: string;
     };
   }>('preview.open'),
 };
@@ -740,21 +824,27 @@ export const document = {
 // ---------------------------------------------------------------------------
 
 export const pptPreview = {
-  start: httpPost<{ url: string }, { file_path: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
-  status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
+  start: httpPost<{ url: string }, { filePath: string }>('/api/ppt-preview/start'),
+  stop: httpPost<void, { filePath: string }>('/api/ppt-preview/stop'),
+  status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>(
+    'ppt-preview.status',
+  ),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string }, { file_path: string }>('/api/word-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
-  status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
+  start: httpPost<{ url: string }, { filePath: string }>('/api/word-preview/start'),
+  stop: httpPost<void, { filePath: string }>('/api/word-preview/stop'),
+  status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>(
+    'word-preview.status',
+  ),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string }, { file_path: string }>('/api/excel-preview/start'),
-  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
-  status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
+  start: httpPost<{ url: string }, { filePath: string }>('/api/excel-preview/start'),
+  stop: httpPost<void, { filePath: string }>('/api/excel-preview/stop'),
+  status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>(
+    'excel-preview.status',
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -787,37 +877,60 @@ export const windowControls = {
 
 export const systemSettings = {
   getCloseToTray: httpGet<boolean, void>('/api/settings/client?key=closeToTray'),
-  setCloseToTray: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ closeToTray: p.enabled })),
+  setCloseToTray: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ closeToTray: p.enabled }),
+  ),
   getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
-  setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    notificationEnabled: p.enabled,
-  })),
+  setNotificationEnabled: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ notificationEnabled: p.enabled }),
+  ),
   getCronNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=cronNotificationEnabled'),
-  setCronNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    cronNotificationEnabled: p.enabled,
-  })),
+  setCronNotificationEnabled: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ cronNotificationEnabled: p.enabled }),
+  ),
   getKeepAwake: httpGet<boolean, void>('/api/settings/client?key=keepAwake'),
-  setKeepAwake: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ keepAwake: p.enabled })),
-  changeLanguage: httpPatch<void, { language: string }>('/api/settings', (p) => ({ language: p.language })),
+  setKeepAwake: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ keepAwake: p.enabled }),
+  ),
+  changeLanguage: httpPatch<void, { language: string }>(
+    '/api/settings',
+    (p) => ({ language: p.language }),
+  ),
   languageChanged: wsEmitter<{ language: string }>('system-settings:language-changed'),
   getSaveUploadToWorkspace: httpGet<boolean, void>('/api/settings/client?key=saveUploadToWorkspace'),
-  setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    saveUploadToWorkspace: p.enabled,
-  })),
+  setSaveUploadToWorkspace: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ saveUploadToWorkspace: p.enabled }),
+  ),
   getAutoPreviewOfficeFiles: httpGet<boolean, void>('/api/settings/client?key=autoPreviewOfficeFiles'),
-  setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    autoPreviewOfficeFiles: p.enabled,
-  })),
+  setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ autoPreviewOfficeFiles: p.enabled }),
+  ),
   getPetEnabled: httpGet<boolean, void>('/api/settings/client?key=petEnabled'),
-  setPetEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ petEnabled: p.enabled })),
+  setPetEnabled: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ petEnabled: p.enabled }),
+  ),
   getPetSize: httpGet<number, void>('/api/settings/client?key=petSize'),
-  setPetSize: httpPut<void, { size: number }>('/api/settings/client', (p) => ({ petSize: p.size })),
+  setPetSize: httpPut<void, { size: number }>(
+    '/api/settings/client',
+    (p) => ({ petSize: p.size }),
+  ),
   getPetDnd: httpGet<boolean, void>('/api/settings/client?key=petDnd'),
-  setPetDnd: httpPut<void, { dnd: boolean }>('/api/settings/client', (p) => ({ petDnd: p.dnd })),
+  setPetDnd: httpPut<void, { dnd: boolean }>(
+    '/api/settings/client',
+    (p) => ({ petDnd: p.dnd }),
+  ),
   getPetConfirmEnabled: httpGet<boolean, void>('/api/settings/client?key=petConfirmEnabled'),
-  setPetConfirmEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    petConfirmEnabled: p.enabled,
-  })),
+  setPetConfirmEnabled: httpPut<void, { enabled: boolean }>(
+    '/api/settings/client',
+    (p) => ({ petConfirmEnabled: p.enabled }),
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -828,12 +941,12 @@ export type INotificationOptions = {
   title: string;
   body: string;
   icon?: string;
-  conversation_id?: string;
+  conversationId?: string;
 };
 
 export const notification = {
   show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
-  clicked: bridge.buildEmitter<{ conversation_id?: string }>('notification.clicked'),
+  clicked: bridge.buildEmitter<{ conversationId?: string }>('notification.clicked'),
 };
 
 // ---------------------------------------------------------------------------
@@ -841,11 +954,14 @@ export const notification = {
 // ---------------------------------------------------------------------------
 
 export const task = {
-  stopAll: stubProvider<{ success: boolean; count: number }, void>('task.stopAll', { success: true, count: 0 }),
-  getRunningCount: stubProvider<{ success: boolean; count: number }, void>('task.getRunningCount', {
-    success: true,
-    count: 0,
-  }),
+  stopAll: stubProvider<{ success: boolean; count: number }, void>(
+    'task.stopAll',
+    { success: true, count: 0 },
+  ),
+  getRunningCount: stubProvider<{ success: boolean; count: number }, void>(
+    'task.getRunningCount',
+    { success: true, count: 0 },
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -871,17 +987,21 @@ export const webui = {
   >('/api/webui/start'),
   stop: httpPost<void, void>('/api/webui/stop'),
   changePassword: httpPost<void, { newPassword: string }>('/api/webui/change-password'),
-  changeUsername: httpPost<{ username: string }, { newUsername: string }>('/api/webui/change-username'),
+  changeUsername: httpPost<{ username: string }, { newUsername: string }>(
+    '/api/webui/change-username',
+  ),
   resetPassword: httpPost<{ newPassword: string }, void>('/api/webui/reset-password'),
-  generateQRToken: httpPost<{ token: string; expiresAt: number; qrUrl: string }, void>('/api/webui/generate-qr-token'),
-  verifyQRToken: httpPost<{ session_token: string; username: string }, { qrToken: string }>(
-    '/api/webui/verify-qr-token'
+  generateQRToken: httpPost<{ token: string; expiresAt: number; qrUrl: string }, void>(
+    '/api/webui/generate-qr-token',
+  ),
+  verifyQRToken: httpPost<{ sessionToken: string; username: string }, { qrToken: string }>(
+    '/api/webui/verify-qr-token',
   ),
   statusChanged: wsEmitter<{ running: boolean; port?: number; localUrl?: string; networkUrl?: string }>(
-    'webui.status-changed'
+    'webui.status-changed',
   ),
   resetPasswordResult: wsEmitter<{ success: boolean; newPassword?: string; msg?: string }>(
-    'webui.reset-password-result'
+    'webui.reset-password-result',
   ),
 };
 
@@ -891,27 +1011,27 @@ export const webui = {
 
 export const cron = {
   listJobs: httpGet<ICronJob[], void>('/api/cron/jobs'),
-  listJobsByConversation: httpGet<ICronJob[], { conversation_id: string }>(
-    (p) => `/api/cron/jobs?conversation_id=${encodeURIComponent(p.conversation_id)}`
+  listJobsByConversation: httpGet<ICronJob[], { conversationId: string }>(
+    (p) => `/api/cron/jobs?conversationId=${encodeURIComponent(p.conversationId)}`,
   ),
-  getJob: httpGet<ICronJob | null, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
+  getJob: httpGet<ICronJob | null, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}`),
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
-  updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
-    (p) => `/api/cron/jobs/${p.job_id}`,
-    (p) => p.updates
+  updateJob: httpPut<ICronJob, { jobId: string; updates: Partial<ICronJob> }>(
+    (p) => `/api/cron/jobs/${p.jobId}`,
+    (p) => p.updates,
   ),
-  removeJob: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
-  runNow: httpPost<{ conversation_id: string }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/run`),
-  saveSkill: httpPost<void, { job_id: string; content: string }>(
-    (p) => `/api/cron/jobs/${p.job_id}/skill`,
-    (p) => ({ content: p.content })
+  removeJob: httpDelete<void, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}`),
+  runNow: httpPost<{ conversationId: string }, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}/run`),
+  saveSkill: httpPost<void, { jobId: string; content: string }>(
+    (p) => `/api/cron/jobs/${p.jobId}/skill`,
+    (p) => ({ content: p.content }),
   ),
-  hasSkill: httpGet<boolean, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
+  hasSkill: httpGet<boolean, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}/skill`),
   onJobCreated: wsEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: wsEmitter<ICronJob>('cron.job-updated'),
-  onJobRemoved: wsEmitter<{ job_id: string }>('cron.job-removed'),
-  onJobExecuted: wsEmitter<{ job_id: string; status: 'ok' | 'error' | 'skipped' | 'missed'; error?: string }>(
-    'cron.job-executed'
+  onJobRemoved: wsEmitter<{ jobId: string }>('cron.job-removed'),
+  onJobExecuted: wsEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped' | 'missed'; error?: string }>(
+    'cron.job-executed',
   ),
 };
 
@@ -935,12 +1055,12 @@ export interface ICronJob {
     executionMode?: 'existing' | 'new_conversation';
   };
   metadata: {
-    conversation_id: string;
+    conversationId: string;
     conversationTitle?: string;
-    agent_type: AgentBackend;
+    agentType: AgentBackend;
     createdBy: 'user' | 'agent';
-    created_at: number;
-    updated_at: number;
+    createdAt: number;
+    updatedAt: number;
     agentConfig?: ICronAgentConfig;
   };
   state: {
@@ -957,13 +1077,13 @@ export interface ICronJob {
 export interface ICronAgentConfig {
   backend: AgentBackend;
   name: string;
-  cli_path?: string;
-  is_preset?: boolean;
-  custom_agent_id?: string;
+  cliPath?: string;
+  isPreset?: boolean;
+  customAgentId?: string;
   presetAgentType?: string;
   mode?: string;
-  model_id?: string;
-  config_options?: Record<string, string>;
+  modelId?: string;
+  configOptions?: Record<string, string>;
   workspace?: string;
 }
 
@@ -973,9 +1093,9 @@ export interface ICreateCronJobParams {
   schedule: ICronSchedule;
   prompt?: string;
   message?: string;
-  conversation_id: string;
+  conversationId: string;
   conversationTitle?: string;
-  agent_type: AgentBackend;
+  agentType: AgentBackend;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';
   agentConfig?: ICronAgentConfig;
@@ -991,14 +1111,14 @@ interface ISendMessageParams {
   conversation_id: string;
   files?: string[];
   loading_id?: string;
-  inject_skills?: string[];
+  injectSkills?: string[];
 }
 
 export interface IConfirmMessageParams {
-  confirm_key: string;
+  confirmKey: string;
   msg_id: string;
   conversation_id: string;
-  call_id: string;
+  callId: string;
 }
 
 export interface ICreateConversationParams {
@@ -1008,25 +1128,24 @@ export interface ICreateConversationParams {
   model: TProviderWithModel;
   extra: {
     workspace?: string;
-    custom_workspace?: boolean;
+    customWorkspace?: boolean;
     defaultFiles?: string[];
     backend?: AgentBackend;
-    agent_id?: string;
-    cli_path?: string;
-    web_search_engine?: 'google' | 'default';
-    agent_name?: string;
-    custom_agent_id?: string;
+    cliPath?: string;
+    webSearchEngine?: 'google' | 'default';
+    agentName?: string;
+    customAgentId?: string;
     context?: string;
-    context_file_name?: string;
-    preset_rules?: string;
-    enabled_skills?: string[];
-    preset_context?: string;
-    preset_assistant_id?: string;
-    session_mode?: string;
+    contextFileName?: string;
+    presetRules?: string;
+    enabledSkills?: string[];
+    presetContext?: string;
+    presetAssistantId?: string;
+    sessionMode?: string;
     codexModel?: string;
-    current_model_id?: string;
-    cached_config_options?: import('../types/acpTypes').AcpSessionConfigOption[];
-    pending_config_options?: Record<string, string>;
+    currentModelId?: string;
+    cachedConfigOptions?: import('../types/acpTypes').AcpSessionConfigOption[];
+    pendingConfigOptions?: Record<string, string>;
     runtimeValidation?: {
       expectedWorkspace?: string;
       expectedBackend?: string;
@@ -1036,11 +1155,11 @@ export interface ICreateConversationParams {
       expectedIdentityHash?: string | null;
       switchedAt?: number;
     };
-    is_health_check?: boolean;
+    isHealthCheck?: boolean;
     remoteAgentId?: string;
     extraSkillPaths?: string[];
     excludeBuiltinSkills?: string[];
-    team_id?: string;
+    teamId?: string;
   };
 }
 
@@ -1084,7 +1203,7 @@ export interface IResponseMessage {
 }
 
 export interface IConversationTurnCompletedEvent {
-  session_id: string;
+  sessionId: string;
   status: 'pending' | 'running' | 'finished';
   state:
     | 'ai_generating'
@@ -1109,17 +1228,17 @@ export interface IConversationTurnCompletedEvent {
     name: string;
     useModel: string;
   };
-  last_message: {
+  lastMessage: {
     id?: string;
     type?: string;
     content: unknown;
     status?: string | null;
-    created_at: number;
+    createdAt: number;
   };
 }
 
 export interface IConversationListChangedEvent {
-  conversation_id: string;
+  conversationId: string;
   action: 'created' | 'updated' | 'deleted';
   source?: string;
 }
@@ -1143,7 +1262,7 @@ interface IBridgeResponse<D = {}> {
 
 export interface IExtensionInfo {
   name: string;
-  display_name: string;
+  displayName: string;
   version: string;
   description?: string;
   source: string;
@@ -1179,7 +1298,7 @@ export interface IExtensionWebuiContribution {
 export type AgentActivityState = 'idle' | 'writing' | 'researching' | 'executing' | 'syncing' | 'error';
 
 export interface IExtensionAgentActivityEvent {
-  conversation_id: string;
+  conversationId: string;
   at: number;
   kind: 'status' | 'tool' | 'message';
   text: string;
@@ -1188,7 +1307,7 @@ export interface IExtensionAgentActivityEvent {
 export interface IExtensionAgentActivityItem {
   id: string;
   backend: string;
-  agent_name: string;
+  agentName: string;
   state: AgentActivityState;
   runtimeStatus: 'pending' | 'running' | 'finished' | 'unknown';
   conversations: number;
@@ -1213,7 +1332,9 @@ export const extensions = {
   getAgents: httpGet<Record<string, unknown>[], void>('/api/extensions/agents'),
   getAcpAdapters: httpGet<Record<string, unknown>[], void>('/api/extensions/acp-adapters'),
   getMcpServers: httpGet<Record<string, unknown>[], void>('/api/extensions/mcp-servers'),
-  getSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>('/api/extensions/skills'),
+  getSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
+    '/api/extensions/skills',
+  ),
   getSettingsTabs: httpGet<IExtensionSettingsTab[], void>('/api/extensions/settings-tabs'),
   getWebuiContributions: httpGet<IExtensionWebuiContribution[], void>('/api/extensions/webui'),
   getAgentActivitySnapshot: httpGet<IExtensionAgentActivitySnapshot, void>('/api/extensions/agent-activity'),
@@ -1238,7 +1359,9 @@ import type {
 
 export const channel = {
   getPluginStatus: httpGet<IChannelPluginStatus[], void>('/api/channel/plugins'),
-  enablePlugin: httpPost<void, { pluginId: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
+  enablePlugin: httpPost<void, { pluginId: string; config: Record<string, unknown> }>(
+    '/api/channel/plugins/enable',
+  ),
   disablePlugin: httpPost<void, { pluginId: string }>('/api/channel/plugins/disable'),
   testPlugin: httpPost<
     { success: boolean; botUsername?: string; error?: string },
@@ -1248,18 +1371,20 @@ export const channel = {
   approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
   rejectPairing: httpPost<void, { code: string }>('/api/channel/pairings/reject'),
   getAuthorizedUsers: httpGet<IChannelUser[], void>('/api/channel/users'),
-  revokeUser: httpPost<void, { user_id: string }>('/api/channel/users/revoke'),
+  revokeUser: httpPost<void, { userId: string }>('/api/channel/users/revoke'),
   getActiveSessions: httpGet<IChannelSession[], void>('/api/channel/sessions'),
   syncChannelSettings: httpPost<
     void,
     {
       platform: string;
-      agent: { backend: string; custom_agent_id?: string; name?: string };
+      agent: { backend: string; customAgentId?: string; name?: string };
       model?: { id: string; useModel: string };
     }
   >('/api/channel/settings/sync'),
   pairingRequested: wsEmitter<IChannelPairingRequest>('channel.pairing-requested'),
-  pluginStatusChanged: wsEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
+  pluginStatusChanged: wsEmitter<{ pluginId: string; status: IChannelPluginStatus }>(
+    'channel.plugin-status-changed',
+  ),
   userAuthorized: wsEmitter<IChannelUser>('channel.user-authorized'),
 };
 
@@ -1276,7 +1401,9 @@ export const hub = {
   retryInstall: httpPost<void, { name: string }>('/api/hub/retry-install'),
   checkUpdates: httpPost<{ name: string }[], void>('/api/hub/check-updates'),
   update: httpPost<void, { name: string }>('/api/hub/update'),
-  onStateChanged: wsEmitter<{ name: string; status: HubExtensionStatus; error?: string }>('hub.state-changed'),
+  onStateChanged: wsEmitter<{ name: string; status: HubExtensionStatus; error?: string }>(
+    'hub.state-changed',
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -1284,57 +1411,57 @@ export const hub = {
 // ---------------------------------------------------------------------------
 
 export type ICreateTeamParams = {
-  user_id: string;
+  userId: string;
   name: string;
   workspace: string;
-  workspace_mode: 'shared' | 'isolated';
+  workspaceMode: 'shared' | 'isolated';
   agents: import('@process/team/types').TeamAgent[];
 };
 
 export type IAddTeamAgentParams = {
-  team_id: string;
-  agent: Omit<import('@process/team/types').TeamAgent, 'slot_id'>;
+  teamId: string;
+  agent: Omit<import('@process/team/types').TeamAgent, 'slotId'>;
 };
 
 export const team = {
   create: httpPost<import('@process/team/types').TTeam, ICreateTeamParams>('/api/teams'),
-  list: httpGet<import('@process/team/types').TTeam[], { user_id: string }>(
-    (p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`
+  list: httpGet<import('@process/team/types').TTeam[], { userId: string }>(
+    (p) => `/api/teams?userId=${encodeURIComponent(p.userId)}`,
   ),
   get: httpGet<import('@process/team/types').TTeam | null, { id: string }>((p) => `/api/teams/${p.id}`),
   remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
   addAgent: httpPost<import('@process/team/types').TeamAgent, IAddTeamAgentParams>(
-    (p) => `/api/teams/${p.team_id}/agents`,
-    (p) => p.agent
+    (p) => `/api/teams/${p.teamId}/agents`,
+    (p) => p.agent,
   ),
-  removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
-    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
+  removeAgent: httpDelete<void, { teamId: string; slotId: string }>(
+    (p) => `/api/teams/${p.teamId}/agents/${p.slotId}`,
   ),
-  sendMessage: httpPost<void, { team_id: string; content: string; files?: string[] }>(
-    (p) => `/api/teams/${p.team_id}/messages`,
-    (p) => ({ content: p.content, files: p.files })
+  sendMessage: httpPost<void, { teamId: string; content: string; files?: string[] }>(
+    (p) => `/api/teams/${p.teamId}/messages`,
+    (p) => ({ content: p.content, files: p.files }),
   ),
-  sendMessageToAgent: httpPost<void, { team_id: string; slot_id: string; content: string; files?: string[] }>(
-    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
-    (p) => ({ content: p.content, files: p.files })
+  sendMessageToAgent: httpPost<void, { teamId: string; slotId: string; content: string; files?: string[] }>(
+    (p) => `/api/teams/${p.teamId}/agents/${p.slotId}/messages`,
+    (p) => ({ content: p.content, files: p.files }),
   ),
-  stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
-  ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
-  renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
-    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
-    (p) => ({ name: p.new_name })
+  stop: httpDelete<void, { teamId: string }>((p) => `/api/teams/${p.teamId}/session`),
+  ensureSession: httpPost<void, { teamId: string }>((p) => `/api/teams/${p.teamId}/session`),
+  renameAgent: httpPatch<void, { teamId: string; slotId: string; newName: string }>(
+    (p) => `/api/teams/${p.teamId}/agents/${p.slotId}/name`,
+    (p) => ({ name: p.newName }),
   ),
   renameTeam: httpPatch<void, { id: string; name: string }>(
     (p) => `/api/teams/${p.id}/name`,
-    (p) => ({ name: p.name })
+    (p) => ({ name: p.name }),
   ),
-  setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
-    (p) => `/api/teams/${p.team_id}/session-mode`,
-    (p) => ({ session_mode: p.session_mode })
+  setSessionMode: httpPost<void, { teamId: string; sessionMode: string }>(
+    (p) => `/api/teams/${p.teamId}/session-mode`,
+    (p) => ({ sessionMode: p.sessionMode }),
   ),
-  updateWorkspace: httpPost<void, { team_id: string; workspace: string }>(
-    (p) => `/api/teams/${p.team_id}/workspace`,
-    (p) => ({ workspace: p.workspace })
+  updateWorkspace: httpPost<void, { teamId: string; workspace: string }>(
+    (p) => `/api/teams/${p.teamId}/workspace`,
+    (p) => ({ workspace: p.workspace }),
   ),
   agentStatusChanged: wsEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
   agentSpawned: wsEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),

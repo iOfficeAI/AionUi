@@ -1,0 +1,368 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { assistants } from '../../src/common/adapter/ipcBridge';
+import type {
+  Assistant,
+  CreateAssistantRequest,
+  ImportAssistantsRequest,
+  ImportAssistantsResult,
+  SetAssistantStateRequest,
+  UpdateAssistantRequest,
+} from '../../src/common/types/assistantTypes';
+
+// ---------------------------------------------------------------------------
+// fetch stub
+// ---------------------------------------------------------------------------
+
+type FetchCall = {
+  url: string;
+  path: string;
+  method: string;
+  body?: unknown;
+  headers: Record<string, string>;
+};
+
+let fetchCalls: FetchCall[];
+let fetchImpl: (url: string, init?: RequestInit) => Promise<Response>;
+
+// Extract the `/api/...` path from the request URL so assertions don't hardcode
+// the httpBridge fallback host/port. `httpBridge.getBaseUrl()` currently
+// defaults to `http://127.0.0.1:13400` when `window.__backendPort` is absent,
+// but the contract under test is the *path shape*, not the transport origin.
+function extractPath(rawUrl: string): string {
+  try {
+    return new URL(rawUrl).pathname;
+  } catch {
+    return rawUrl;
+  }
+}
+
+function installFetch(impl: (url: string, init?: RequestInit) => Promise<Response>) {
+  fetchImpl = impl;
+  globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = typeof input === 'string' ? input : input.toString();
+    fetchCalls.push({
+      url,
+      path: extractPath(url),
+      method: (init?.method ?? 'GET').toUpperCase(),
+      body: init?.body ? JSON.parse(init.body as string) : undefined,
+      headers: (init?.headers as Record<string, string>) ?? {},
+    });
+    return fetchImpl(url, init);
+  }) as unknown as typeof fetch;
+}
+
+function jsonResponse(data: unknown, status = 200): Response {
+  return new Response(JSON.stringify({ success: true, data }), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+function errorResponse(status: number, body: unknown = { success: false, msg: 'err' }): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
+beforeEach(() => {
+  fetchCalls = [];
+});
+
+afterEach(() => {
+  // Reset the backend port hint between tests if any test set it.
+  if (typeof window !== 'undefined') {
+    delete (window as Window & { __backendPort?: number }).__backendPort;
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Fixtures
+// ---------------------------------------------------------------------------
+
+function makeAssistant(overrides: Partial<Assistant> = {}): Assistant {
+  return {
+    id: 'custom-1',
+    source: 'user',
+    name: 'Custom',
+    name_i18n: {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: 0,
+    preset_agent_type: 'gemini',
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+    ...overrides,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// list — GET /api/assistants
+// ---------------------------------------------------------------------------
+
+describe('ipcBridge.assistants.list', () => {
+  it('issues GET /api/assistants with no body', async () => {
+    const list = [makeAssistant({ id: 'a' }), makeAssistant({ id: 'b', source: 'builtin' })];
+    installFetch(async () => jsonResponse(list));
+
+    const result = await assistants.list.invoke();
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].method).toBe('GET');
+    expect(fetchCalls[0].path).toBe('/api/assistants');
+    expect(fetchCalls[0].body).toBeUndefined();
+    expect(result).toEqual(list);
+  });
+
+  it('unwraps the { success, data } envelope', async () => {
+    const list = [makeAssistant({ id: 'x' })];
+    installFetch(async () =>
+      new Response(JSON.stringify({ success: true, data: list, extra: 'ignored' }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    const result = await assistants.list.invoke();
+    expect(result).toEqual(list);
+  });
+
+  it('throws with status + body details when the backend returns 500', async () => {
+    installFetch(async () => errorResponse(500, { success: false, msg: 'boom' }));
+
+    await expect(assistants.list.invoke()).rejects.toThrow(/GET \/api\/assistants failed \(500\)/);
+  });
+
+  it('targets window.__backendPort when preload has injected it', async () => {
+    // docs/development-workflow.md §"仓库关系": preload injects the spawned
+    // backend port into window.__backendPort so renderer can reach it on a
+    // random port. Bridge must honor that over the hard-coded fallback.
+    // This suite runs in the node environment, so shim a minimal window.
+    const g = globalThis as typeof globalThis & { window?: { __backendPort?: number } };
+    const hadWindow = 'window' in g;
+    g.window = { __backendPort: 55123 };
+    try {
+      installFetch(async () => jsonResponse([]));
+      await assistants.list.invoke();
+      expect(new URL(fetchCalls[0].url).port).toBe('55123');
+    } finally {
+      if (hadWindow) delete g.window!.__backendPort;
+      else delete g.window;
+    }
+  });
+
+  // H4 regression: when the bridge runs in the Electron main process (no
+  // `window` global), the assistant-migration hook invokes ipcBridge.* from
+  // src/index.ts before any window exists. src/index.ts writes the spawned
+  // backend port to globalThis.__backendPort; getBackendPort must honor that
+  // instead of falling back to the hardcoded 13400.
+  it('targets globalThis.__backendPort when window is absent (main-process path)', async () => {
+    const g = globalThis as typeof globalThis & {
+      window?: unknown;
+      __backendPort?: number;
+    };
+    const hadWindow = 'window' in g;
+    const savedWindow = g.window;
+    delete g.window;
+    g.__backendPort = 64518;
+    try {
+      installFetch(async () => jsonResponse([]));
+      await assistants.list.invoke();
+      expect(new URL(fetchCalls[0].url).port).toBe('64518');
+    } finally {
+      delete g.__backendPort;
+      if (hadWindow) g.window = savedWindow;
+    }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// create — POST /api/assistants
+// ---------------------------------------------------------------------------
+
+describe('ipcBridge.assistants.create', () => {
+  it('issues POST /api/assistants with the request body as JSON', async () => {
+    const created = makeAssistant({ id: 'new-1', name: 'New' });
+    const request: CreateAssistantRequest = {
+      name: 'New',
+      description: 'desc',
+      preset_agent_type: 'claude',
+      enabled_skills: ['pptx'],
+    };
+    installFetch(async () => jsonResponse(created));
+
+    const result = await assistants.create.invoke(request);
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].method).toBe('POST');
+    expect(fetchCalls[0].path).toBe('/api/assistants');
+    expect(fetchCalls[0].body).toEqual(request);
+    expect(fetchCalls[0].headers['Content-Type']).toBe('application/json');
+    expect(result).toEqual(created);
+  });
+
+  it('propagates 4xx errors from the backend', async () => {
+    installFetch(async () => errorResponse(400, { success: false, msg: 'name required' }));
+
+    await expect(assistants.create.invoke({ name: '' })).rejects.toThrow(
+      /POST \/api\/assistants failed \(400\)/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// update — PUT /api/assistants/:id
+// ---------------------------------------------------------------------------
+
+describe('ipcBridge.assistants.update', () => {
+  it('issues PUT /api/assistants/:id with the id in the path and full body', async () => {
+    const updated = makeAssistant({ id: 'custom-1', name: 'Renamed' });
+    const request: UpdateAssistantRequest = {
+      id: 'custom-1',
+      name: 'Renamed',
+      description: 'd',
+    };
+    installFetch(async () => jsonResponse(updated));
+
+    const result = await assistants.update.invoke(request);
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].method).toBe('PUT');
+    expect(fetchCalls[0].path).toBe('/api/assistants/custom-1');
+    // The current adapter passes the full params object (including id) as the body.
+    expect(fetchCalls[0].body).toEqual(request);
+    expect(result).toEqual(updated);
+  });
+
+  it('propagates 404 when the assistant is absent', async () => {
+    installFetch(async () => errorResponse(404, { success: false, msg: 'not found' }));
+
+    await expect(assistants.update.invoke({ id: 'missing' })).rejects.toThrow(
+      /PUT \/api\/assistants\/missing failed \(404\)/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// delete — DELETE /api/assistants/:id
+// ---------------------------------------------------------------------------
+
+describe('ipcBridge.assistants.delete', () => {
+  it('issues DELETE /api/assistants/:id with no body', async () => {
+    installFetch(async () => new Response(null, { status: 204 }));
+
+    await assistants.delete.invoke({ id: 'custom-1' });
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].method).toBe('DELETE');
+    expect(fetchCalls[0].path).toBe('/api/assistants/custom-1');
+    expect(fetchCalls[0].body).toBeUndefined();
+  });
+
+  it('propagates backend errors on delete', async () => {
+    installFetch(async () => errorResponse(409, { success: false, msg: 'builtin immutable' }));
+
+    await expect(assistants.delete.invoke({ id: 'builtin-office' })).rejects.toThrow(
+      /DELETE \/api\/assistants\/builtin-office failed \(409\)/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setState — PATCH /api/assistants/:id/state
+// ---------------------------------------------------------------------------
+
+describe('ipcBridge.assistants.setState', () => {
+  it('issues PATCH /api/assistants/:id/state with body stripped of id', async () => {
+    const updated = makeAssistant({ id: 'custom-1', enabled: false });
+    const request: SetAssistantStateRequest = {
+      id: 'custom-1',
+      enabled: false,
+      sort_order: 3,
+    };
+    installFetch(async () => jsonResponse(updated));
+
+    const result = await assistants.setState.invoke(request);
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].method).toBe('PATCH');
+    expect(fetchCalls[0].path).toBe('/api/assistants/custom-1/state');
+    // Adapter pulls `id` out of the body; the path carries the id instead.
+    expect(fetchCalls[0].body).toEqual({ enabled: false, sort_order: 3 });
+    expect(result).toEqual(updated);
+  });
+
+  it('propagates 400 when the state payload is invalid', async () => {
+    installFetch(async () => errorResponse(400));
+
+    await expect(assistants.setState.invoke({ id: 'custom-1' })).rejects.toThrow(
+      /PATCH \/api\/assistants\/custom-1\/state failed \(400\)/,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// import — POST /api/assistants/import
+// ---------------------------------------------------------------------------
+
+describe('ipcBridge.assistants.import', () => {
+  it('issues POST /api/assistants/import with the full ImportAssistantsRequest body', async () => {
+    const request: ImportAssistantsRequest = {
+      assistants: [
+        { name: 'A' },
+        { name: 'B', preset_agent_type: 'claude' },
+      ],
+    };
+    const response: ImportAssistantsResult = {
+      imported: 2,
+      skipped: 0,
+      failed: 0,
+      errors: [],
+    };
+    installFetch(async () => jsonResponse(response));
+
+    const result = await assistants.import.invoke(request);
+
+    expect(fetchCalls).toHaveLength(1);
+    expect(fetchCalls[0].method).toBe('POST');
+    expect(fetchCalls[0].path).toBe('/api/assistants/import');
+    expect(fetchCalls[0].body).toEqual(request);
+    expect(result).toEqual(response);
+  });
+
+  it('surfaces per-row import errors in the typed response', async () => {
+    const response: ImportAssistantsResult = {
+      imported: 1,
+      skipped: 0,
+      failed: 1,
+      errors: [{ id: 'custom-bad', error: 'invalid name' }],
+    };
+    installFetch(async () => jsonResponse(response));
+
+    const result = await assistants.import.invoke({
+      assistants: [{ name: 'ok' }, { id: 'custom-bad', name: '' }],
+    });
+
+    expect(result.failed).toBe(1);
+    expect(result.errors[0]).toEqual({ id: 'custom-bad', error: 'invalid name' });
+  });
+
+  it('propagates 500 from the import endpoint', async () => {
+    installFetch(async () => errorResponse(500));
+
+    await expect(
+      assistants.import.invoke({ assistants: [{ name: 'x' }] }),
+    ).rejects.toThrow(/POST \/api\/assistants\/import failed \(500\)/);
+  });
+});

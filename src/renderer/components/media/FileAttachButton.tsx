@@ -59,7 +59,15 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
 
   // Electron desktop: simple button, no dropdown needed
   if (isElectronDesktop()) {
-    return <Button type='secondary' shape='circle' icon={plusIcon} onClick={openFileSelector} />;
+    return (
+      <Button
+        type='secondary'
+        shape='circle'
+        icon={plusIcon}
+        onClick={openFileSelector}
+        data-testid='aionrs-attach-folder-btn'
+      />
+    );
   }
 
   // WebUI: dropdown with two options
@@ -80,7 +88,14 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
       <Dropdown droplist={dropdownMenu} trigger='click' position='top'>
         <Button type='secondary' shape='circle' icon={plusIcon} loading={uploading} disabled={uploading} />
       </Dropdown>
-      <input ref={fileInputRef} type='file' multiple style={{ display: 'none' }} onChange={handleLocalFileChange} />
+      <input
+        ref={fileInputRef}
+        type='file'
+        multiple
+        style={{ display: 'none' }}
+        onChange={handleLocalFileChange}
+        data-testid='aionrs-file-upload-input'
+      />
     </>
   );
 };

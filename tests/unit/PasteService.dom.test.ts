@@ -72,15 +72,15 @@ describe('PasteService.handlePaste — filename deduplication', () => {
       finish: vi.fn(),
     });
 
-    // Each createTempFile call returns a unique path based on the fileName argument
-    vi.mocked(ipcBridge.fs.createTempFile.invoke).mockImplementation(async ({ fileName }) => {
+    // Each createTempFile call returns a unique path based on the file_name argument
+    vi.mocked(ipcBridge.fs.createTempFile.invoke).mockImplementation(async ({ file_name }) => {
       tempFileCounter++;
-      return `/tmp/temp-${tempFileCounter}/${fileName}`;
+      return `/tmp/temp-${tempFileCounter}/${file_name}`;
     });
-    // Each createUploadFile call returns a unique path based on the fileName argument
-    vi.mocked(ipcBridge.fs.createUploadFile.invoke).mockImplementation(async ({ fileName }) => {
+    // Each createUploadFile call returns a unique path based on the file_name argument
+    vi.mocked(ipcBridge.fs.createUploadFile.invoke).mockImplementation(async ({ file_name }) => {
       tempFileCounter++;
-      return `/tmp/upload-${tempFileCounter}/${fileName}`;
+      return `/tmp/upload-${tempFileCounter}/${file_name}`;
     });
     vi.mocked(ipcBridge.fs.writeFile.invoke).mockResolvedValue(undefined as never);
 

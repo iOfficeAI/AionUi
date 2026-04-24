@@ -10,6 +10,25 @@ vi.mock('electron', () => ({
 const mockAssistants = vi.hoisted(() => ({
   value: null as Array<Record<string, unknown>> | null,
 }));
+
+// TeamMcpServer.handleSpawnAgent / .handleDescribeAssistant now read the
+// preset catalog via ipcBridge.assistants.list (post-migration). Without
+// this stub the real httpBridge fires a localhost fetch, which fails under
+// unit test and masks the test's expected error messages.
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    team: {
+      mcpStatus: { emit: vi.fn() },
+      agentSpawned: { emit: vi.fn() },
+      agentRemoved: { emit: vi.fn() },
+      agentRenamed: { emit: vi.fn() },
+    },
+    assistants: {
+      list: { invoke: vi.fn(async () => mockAssistants.value ?? []) },
+    },
+  },
+}));
+
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
     get: vi.fn(async (key: string) => {
@@ -511,7 +530,7 @@ describe('TeamMcpServer', () => {
           name: 'Word Creator',
           is_preset: true,
           enabled: true,
-          presetAgentType: 'claude',
+          preset_agent_type: 'claude',
         },
       ];
 
@@ -547,7 +566,7 @@ describe('TeamMcpServer', () => {
           name: 'Cowork',
           is_preset: true,
           enabled: false,
-          presetAgentType: 'claude',
+          preset_agent_type: 'claude',
         },
       ];
 

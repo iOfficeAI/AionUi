@@ -18,22 +18,22 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
     const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.base_url, data?.api_key);
-    const existingModels = data?.model || [];
+    const existingModels = data?.models || [];
     const optionsList = useMemo(() => {
       // 处理新的数据格式，可能包含 fix_base_url
       const models = Array.isArray(modelList) ? modelList : modelList?.models || [];
-      if (!models || !data?.model) return models;
+      if (!models || !data?.models) return models;
       return models.map((item) => {
-        return { ...item, disabled: data.model.includes(item.value) };
+        return { ...item, disabled: data.models.includes(item.value) };
       });
-    }, [modelList, data?.model]);
+    }, [modelList, data?.models]);
     const previewModels = useMemo(() => existingModels.slice(0, 6), [existingModels]);
     const remainingCount =
       existingModels.length > previewModels.length ? existingModels.length - previewModels.length : 0;
 
     const handleConfirm = useCallback(() => {
       if (!model) return;
-      const updatedData: IProvider = { ...data, model: [...existingModels, model] };
+      const updatedData: IProvider = { ...data, models: [...existingModels, model] };
 
       // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
       if (isNewApi) {

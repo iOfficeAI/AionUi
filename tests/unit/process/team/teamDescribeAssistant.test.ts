@@ -4,6 +4,10 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getAppPath: () => '/app' },
 }));
 
+// Default to the simulated user language. Tests override per-case via mockImplementationOnce.
+let configLanguage: string | null = 'en-US';
+let configAssistants: Array<Record<string, unknown>> | null = null;
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     team: {
@@ -12,12 +16,16 @@ vi.mock('@/common', () => ({
       agentRemoved: { emit: vi.fn() },
       agentRenamed: { emit: vi.fn() },
     },
+    // Post-migration: TeamMcpServer.handleDescribeAssistant reads presets
+    // from the backend catalog via ipcBridge.assistants.list. The fixture
+    // shape is `Record<string, unknown>[]` so callers can continue to
+    // populate `configAssistants` with either the legacy AcpBackendConfig
+    // shape or a backend Assistant shape without extra casting.
+    assistants: {
+      list: { invoke: vi.fn(async () => configAssistants ?? []) },
+    },
   },
 }));
-
-// Default to the simulated user language. Tests override per-case via mockImplementationOnce.
-let configLanguage: string | null = 'en-US';
-let configAssistants: Array<Record<string, unknown>> | null = null;
 
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
@@ -60,10 +68,12 @@ describe('handleDescribeAssistant', () => {
       {
         id: 'builtin-word-creator',
         name: 'Word Creator',
+        description: 'Drafts DOCX files for you',
         is_preset: true,
         enabled: true,
-        presetAgentType: 'gemini',
+        preset_agent_type: 'gemini',
         enabled_skills: ['officecli-docx'],
+        prompts_i18n: { 'en-US': ['Draft a quarterly report summary.'] },
       },
     ];
 
@@ -114,7 +124,12 @@ describe('handleDescribeAssistant', () => {
         name: 'Word Creator',
         is_preset: true,
         enabled: true,
-        presetAgentType: 'gemini',
+        preset_agent_type: 'gemini',
+        enabled_skills: [],
+        prompts_i18n: {
+          'en-US': ['Draft a quarterly report summary.'],
+          'zh-CN': ['帮我整理一份季度报告摘要。'],
+        },
       },
     ];
 
@@ -135,7 +150,7 @@ describe('handleDescribeAssistant', () => {
         description: 'Writes novels',
         is_preset: true,
         enabled: true,
-        presetAgentType: 'gemini',
+        preset_agent_type: 'gemini',
         enabled_skills: [],
       },
     ];

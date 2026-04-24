@@ -9,6 +9,7 @@ import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { Assistant } from '@/common/types/assistantTypes';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
@@ -27,6 +28,9 @@ export type GuidAgentSelectionResult = {
   selectedAgentInfo: AvailableAgent | undefined;
   is_presetAgent: boolean;
   availableAgents: AvailableAgent[] | undefined;
+  /** Backend-merged preset catalog: builtin + user + extension. */
+  assistants: Assistant[];
+  /** User-defined ACP engine configs (CLI path, args) from ConfigStorage. */
   customAgents: AcpBackendConfig[];
   selectedMode: string;
   setSelectedMode: React.Dispatch<React.SetStateAction<string>>;
@@ -145,7 +149,7 @@ export const useGuidAgentSelection = ({
   const getAgentKey = getAgentKeyUtil;
 
   // --- Sub-hooks ---
-  const { customAgents, customAgentAvatarMap, refreshCustomAgents } = useCustomAgentsLoader({
+  const { assistants, customAgents, customAgentAvatarMap, refreshCustomAgents } = useCustomAgentsLoader({
     availableCustomAgentIds,
   });
 
@@ -155,7 +159,7 @@ export const useGuidAgentSelection = ({
     resolvePresetAgentType,
     resolveEnabledSkills,
     resolveDisabledBuiltinSkills,
-  } = usePresetAssistantResolver({ customAgents, localeKey });
+  } = usePresetAssistantResolver({ assistants, localeKey });
 
   const { isMainAgentAvailable, getEffectiveAgentType } = useAgentAvailability({
     modelList,
@@ -174,17 +178,19 @@ export const useGuidAgentSelection = ({
       const foundInAvailable = availableAgents?.find((a) => a.custom_agent_id === custom_agent_id);
       if (foundInAvailable) return foundInAvailable;
 
-      const assistant = customAgents.find((a) => a.id === custom_agent_id);
+      // "custom:<id>" keys point at the preset catalog for prompt-only
+      // assistants (backend merge), not the ACP engine-config table.
+      const assistant = assistants.find((a) => a.id === custom_agent_id);
       if (assistant) {
         return {
-          agent_type: assistant.presetAgentType || 'gemini',
-          backend: assistant.presetAgentType || 'gemini',
+          agent_type: assistant.preset_agent_type || 'gemini',
+          backend: assistant.preset_agent_type || 'gemini',
           name: assistant.name,
           custom_agent_id: assistant.id,
           is_preset: true,
           context: '',
           avatar: assistant.avatar,
-          presetAgentType: assistant.presetAgentType,
+          presetAgentType: assistant.preset_agent_type,
         };
       }
     }
@@ -203,7 +209,7 @@ export const useGuidAgentSelection = ({
       : selectedAgentKey;
   const selectedAgentInfo = useMemo(() => {
     return findAgentByKey(selectedAgentKey);
-  }, [selectedAgentKey, availableAgents, customAgents]);
+  }, [selectedAgentKey, availableAgents, assistants]);
   const is_presetAgent = Boolean(selectedAgentInfo?.is_preset);
 
   // --- SWR: Fetch detected execution engines (shared cache) ---
@@ -451,6 +457,7 @@ export const useGuidAgentSelection = ({
     selectedAgentInfo,
     is_presetAgent,
     availableAgents,
+    assistants,
     customAgents,
     selectedMode,
     setSelectedMode,

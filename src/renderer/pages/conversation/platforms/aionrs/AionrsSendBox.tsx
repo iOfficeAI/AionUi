@@ -362,6 +362,7 @@ const AionrsSendBox: React.FC<{
       <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
       <SendBox
+        data-testid='aionrs-sendbox'
         value={content}
         onChange={setContent}
         selectedWorkspaceItems={atPath}
@@ -413,6 +414,7 @@ const AionrsSendBox: React.FC<{
                 {uploadFile.map((path) => (
                   <FilePreview
                     key={path}
+                    data-testid={`aionrs-file-tag-${uploadFile.indexOf(path)}`}
                     path={path}
                     onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))}
                   />
@@ -424,9 +426,11 @@ const AionrsSendBox: React.FC<{
                 {atPath.map((item) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {
+                    const folderIndex = atPath.filter((v) => typeof v !== 'string' && !v.isFile).indexOf(item);
                     return (
                       <Tag
                         key={item.path}
+                        data-testid={`aionrs-folder-tag-${folderIndex}`}
                         color='blue'
                         closable
                         onClose={() => {

@@ -55,8 +55,6 @@ export interface IConfigStorageRefer {
   'acp.agentIdleTimeout'?: number;
   /** User-defined custom ACP agents (is_preset !== true, require defaultCliPath). */
   'acp.customAgents'?: AcpBackendConfig[];
-  /** Preset assistant configurations (is_preset === true, prompt-only, no CLI). */
-  assistants?: AcpBackendConfig[];
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
   // Cached model lists per ACP backend for Guid page pre-selection
@@ -65,7 +63,6 @@ export interface IConfigStorageRefer {
   'acp.cached_config_options'?: Record<string, import('@/common/types/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector
   'acp.cachedModes'?: Record<string, import('@/common/types/acpTypes').AcpSessionModes>;
-  'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
@@ -495,7 +492,7 @@ export interface IProvider {
   name: string;
   base_url: string;
   api_key: string;
-  model: string[];
+  models: string[];
   /**
    * 模型能力标签列表。打了标签就是支持，没打就是不支持
    */
@@ -543,14 +540,14 @@ export interface IProvider {
     string,
     {
       status: 'unknown' | 'healthy' | 'unhealthy';
-      lastCheck?: number; // 时间戳 / timestamp
+      last_check?: number; // 时间戳 / timestamp
       latency?: number; // 延迟时间（毫秒）/ latency in milliseconds
       error?: string; // 错误信息 / error message
     }
   >;
 }
 
-export type TProviderWithModel = Omit<IProvider, 'model'> & {
+export type TProviderWithModel = Omit<IProvider, 'models'> & {
   useModel: string;
 };
 

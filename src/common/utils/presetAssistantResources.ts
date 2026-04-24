@@ -5,14 +5,23 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
-import { configService } from '@/common/config/configService';
+
+/**
+ * Thin pass-through over `ipcBridge.fs.readAssistant{Rule,Skill}`. The backend
+ * performs source classification (builtin / user / extension) and serves the
+ * appropriate rule md from the backend manifest, extension bundle, or user
+ * directory. Callers no longer need to distinguish builtin vs. user here.
+ *
+ * `enabledSkills` / `disabledBuiltinSkills` are now part of the Assistant
+ * record returned by `/api/assistants`; callers should read them directly from
+ * there rather than via this helper. The two override hooks on
+ * `PresetAssistantResourceDeps` are kept for backwards compatibility with
+ * TeamSessionService, which still carries its own lookup path.
+ */
 
 export type PresetAssistantResourceDeps = {
   readAssistantRule: (args: { assistantId: string; locale: string }) => Promise<string>;
   readAssistantSkill: (args: { assistantId: string; locale: string }) => Promise<string>;
-  readBuiltinRule: (args: { file_name: string }) => Promise<string>;
-  readBuiltinSkill: (args: { file_name: string }) => Promise<string>;
   getEnabledSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   getDisabledBuiltinSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
@@ -34,25 +43,21 @@ export type PresetAssistantResources = {
 const defaultDeps: PresetAssistantResourceDeps = {
   readAssistantRule: (args) => ipcBridge.fs.readAssistantRule.invoke(args),
   readAssistantSkill: (args) => ipcBridge.fs.readAssistantSkill.invoke(args),
-  readBuiltinRule: (args) => ipcBridge.fs.readBuiltinRule.invoke(args),
-  readBuiltinSkill: (args) => ipcBridge.fs.readBuiltinSkill.invoke(args),
   getEnabledSkills: async (custom_agent_id) => {
-    const [presets, customs] = await Promise.all([
-      configService.get('assistants'),
-      configService.get('acp.customAgents'),
-    ]);
-    const assistant =
-      presets?.find((agent) => agent.id === custom_agent_id) ?? customs?.find((agent) => agent.id === custom_agent_id);
-    return assistant?.enabled_skills;
+    try {
+      const list = await ipcBridge.assistants.list.invoke();
+      return list.find((a) => a.id === custom_agent_id)?.enabled_skills;
+    } catch {
+      return undefined;
+    }
   },
   getDisabledBuiltinSkills: async (custom_agent_id) => {
-    const [presets, customs] = await Promise.all([
-      configService.get('assistants'),
-      configService.get('acp.customAgents'),
-    ]);
-    const assistant =
-      presets?.find((agent) => agent.id === custom_agent_id) ?? customs?.find((agent) => agent.id === custom_agent_id);
-    return assistant?.disabledBuiltinSkills;
+    try {
+      const list = await ipcBridge.assistants.list.invoke();
+      return list.find((a) => a.id === custom_agent_id)?.disabled_builtin_skills;
+    } catch {
+      return undefined;
+    }
   },
   warn: (message, error) => {
     console.warn(message, error);
@@ -87,35 +92,6 @@ export async function loadPresetAssistantResources(
     skills = (await deps.readAssistantSkill({ assistantId: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
     deps.warn(`[presetAssistantResources] Failed to load skills for ${custom_agent_id}`, error);
-  }
-
-  if (custom_agent_id.startsWith('builtin-')) {
-    const presetId = custom_agent_id.replace('builtin-', '');
-    const preset = ASSISTANT_PRESETS.find((item) => item.id === presetId);
-
-    if (preset) {
-      if (!rules && preset.ruleFiles) {
-        try {
-          const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
-          if (ruleFile) {
-            rules = (await deps.readBuiltinRule({ file_name: ruleFile })) || '';
-          }
-        } catch (error) {
-          deps.warn(`[presetAssistantResources] Failed to load builtin rules for ${custom_agent_id}`, error);
-        }
-      }
-
-      if (!skills && preset.skillFiles) {
-        try {
-          const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
-          if (skillFile) {
-            skills = (await deps.readBuiltinSkill({ file_name: skillFile })) || '';
-          }
-        } catch (error) {
-          deps.warn(`[presetAssistantResources] Failed to load builtin skills for ${custom_agent_id}`, error);
-        }
-      }
-    }
   }
 
   return {

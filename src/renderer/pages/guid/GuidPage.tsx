@@ -291,13 +291,13 @@ const GuidPage: React.FC = () => {
     const selectedId = agentSelection.selectedAgentInfo.custom_agent_id;
     const strippedId = selectedId.replace(/^builtin-/, '');
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
-    return agentSelection.customAgents.find((item) => candidates.has(item.id));
-  }, [agentSelection.customAgents, agentSelection.is_presetAgent, agentSelection.selectedAgentInfo?.custom_agent_id]);
+    return agentSelection.assistants.find((item) => candidates.has(item.id));
+  }, [agentSelection.assistants, agentSelection.is_presetAgent, agentSelection.selectedAgentInfo?.custom_agent_id]);
 
   // Sync disabledBuiltinSkills from preset assistant config
   useEffect(() => {
     if (agentSelection.is_presetAgent && selectedAssistantRecord) {
-      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabledBuiltinSkills ?? []);
+      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabled_builtin_skills ?? []);
     } else {
       setGuidDisabledBuiltinSkills(undefined);
     }
@@ -305,19 +305,19 @@ const GuidPage: React.FC = () => {
 
   const heroTitle = useMemo(() => {
     if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
-    const i18nName = selectedAssistantRecord?.nameI18n?.[localeKey];
+    const i18nName = selectedAssistantRecord?.name_i18n?.[localeKey];
     if (i18nName) return i18nName;
     return mention.selectedAgentLabel || t('conversation.welcome.title');
   }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
   const selectedAssistantDescription = useMemo(() => {
-    return selectedAssistantRecord?.descriptionI18n?.[localeKey] || selectedAssistantRecord?.description || '';
+    return selectedAssistantRecord?.description_i18n?.[localeKey] || selectedAssistantRecord?.description || '';
   }, [selectedAssistantRecord, localeKey]);
   const selectedAssistantAvatar = useMemo(() => {
     if (!agentSelection.is_presetAgent) return null;
     const selectedId = agentSelection.selectedAgentInfo?.custom_agent_id;
     const strippedId = selectedId?.replace(/^builtin-/, '');
     const candidates = new Set(selectedId && strippedId ? [selectedId, `builtin-${strippedId}`, strippedId] : []);
-    const selectedAssistant = agentSelection.customAgents.find((item) => candidates.has(item.id));
+    const selectedAssistant = agentSelection.assistants.find((item) => candidates.has(item.id));
     const avatarValue = selectedAssistant?.avatar?.trim() || agentSelection.selectedAgentInfo?.avatar?.trim();
     if (!avatarValue) return { kind: 'icon' as const };
     const mappedAvatar = CUSTOM_AVATAR_IMAGE_MAP[avatarValue];
@@ -333,7 +333,7 @@ const GuidPage: React.FC = () => {
     }
     return { kind: 'emoji' as const, value: avatarValue };
   }, [
-    agentSelection.customAgents,
+    agentSelection.assistants,
     agentSelection.is_presetAgent,
     agentSelection.selectedAgentInfo?.avatar,
     agentSelection.selectedAgentInfo?.custom_agent_id,
@@ -355,10 +355,16 @@ const GuidPage: React.FC = () => {
 
   // Clear resetAssistant from location.state after the hook has consumed it,
   // so that re-renders don't re-trigger the reset logic.
+  //
+  // Must go through React Router's navigate — raw window.history.replaceState
+  // with `location.pathname` would write the HashRouter virtual path (e.g.
+  // '/guid') into the browser's real URL and strip the leading '#'. On the
+  // next hard reload, the browser would then request '/guid' directly from
+  // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
     if (!resetAssistantRequested) return;
-    window.history.replaceState(null, '', `${location.pathname}${location.search}${location.hash}`);
-  }, [resetAssistantRequested, location.pathname, location.search, location.hash]);
+    navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
+  }, [resetAssistantRequested, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;
@@ -409,7 +415,7 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.is_presetAgent, selectedAssistantDescription]);
 
-  const currentPresetAgentType = selectedAssistantRecord?.presetAgentType || 'gemini';
+  const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'gemini';
   const agentSwitcherItems = useMemo(() => {
     if (!agentSelection.availableAgents) return [];
     // Build from detected execution engines, excluding preset assistants and remote agents
@@ -499,7 +505,7 @@ const GuidPage: React.FC = () => {
       onModeSelect={agentSelection.setSelectedMode}
       is_presetAgent={agentSelection.is_presetAgent}
       selectedAgentInfo={agentSelection.selectedAgentInfo}
-      customAgents={agentSelection.customAgents}
+      assistants={agentSelection.assistants}
       localeKey={localeKey}
       onClosePresetTag={() => agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey)}
       agentLogo={effectiveAgentLogo}
@@ -722,7 +728,7 @@ const GuidPage: React.FC = () => {
           <AssistantSelectionArea
             is_presetAgent={agentSelection.is_presetAgent}
             selectedAgentInfo={agentSelection.selectedAgentInfo}
-            customAgents={agentSelection.customAgents}
+            assistants={agentSelection.assistants}
             localeKey={localeKey}
             currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
             onSelectAssistant={handleSelectAssistant}

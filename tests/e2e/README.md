@@ -14,7 +14,24 @@ bunx electron-vite build
 > `bun run start` (`electron-vite dev`) uses Vite's HMR and hot-reloads automatically.
 > E2E tests do NOT use Vite dev server — they load static files from `out/`.
 
-### 2. Run Tests
+### 2. Ensure `aionui-backend` is on PATH
+
+The Electron main process spawns the `aionui-backend` binary during startup and
+exposes its port to the renderer via `window.__backendPort`. The binary is
+located via `which aionui-backend`, so it must be reachable from the `PATH`
+inherited by the Playwright runner. If it isn't, `__backendPort` will be `0`
+and every HTTP call from the renderer (or from e2e helpers that use
+`tests/e2e/helpers/httpBridge.ts`) will fail with `Failed to fetch`.
+
+```bash
+# Install the backend binary (builds to ~/.cargo/bin/aionui-backend)
+cd ../aionui-backend && cargo install --path crates/aionui-app
+
+# Make sure it's on PATH when running tests
+export PATH="$HOME/.cargo/bin:$PATH"
+```
+
+### 3. Run Tests
 
 ```bash
 # All E2E tests

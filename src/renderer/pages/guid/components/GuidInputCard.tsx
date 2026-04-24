@@ -121,6 +121,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         onBlur={onBlur}
         {...compositionHandlers}
         onKeyDown={handleKeyDown}
+        data-testid='guid-input'
       />
       {mentionOpen && (
         <div className='absolute z-50' style={{ left: 16, top: 44 }}>

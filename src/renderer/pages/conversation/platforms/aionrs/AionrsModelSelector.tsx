@@ -27,7 +27,7 @@ const AionrsModelSelector: React.FC<{
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
 
-  const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
+  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
 
   const current_model = selection?.current_model;
   const current_modelHealth = useMemo(() => {
@@ -93,6 +93,7 @@ const AionrsModelSelector: React.FC<{
                   return (
                     <Menu.Item
                       key={`${provider.id}-${modelName}`}
+                      data-testid={`aionrs-model-option-${modelName}`}
                       className={current_model?.id + current_model?.useModel === provider.id + modelName ? '!bg-2' : ''}
                       onClick={() => void handleSelectModel(provider, modelName)}
                     >
@@ -112,6 +113,7 @@ const AionrsModelSelector: React.FC<{
       }
     >
       <Button
+        data-testid='aionrs-model-selector'
         className={classNames(
           'sendbox-model-btn header-model-btn',
           compact && '!max-w-[120px]',

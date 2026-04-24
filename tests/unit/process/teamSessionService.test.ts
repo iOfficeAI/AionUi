@@ -10,9 +10,11 @@ import type { IConversationService } from '../../../src/process/services/IConver
 import type { ITeamRepository } from '../../../src/process/team/repository/ITeamRepository';
 import type { TTeam, TeamAgent } from '../../../src/common/types/teamTypes';
 
-const { mockConfigGet, mockReadFile } = vi.hoisted(() => ({
+const { mockConfigGet, mockReadFile, mockAssistantsList, mockListProviders } = vi.hoisted(() => ({
   mockConfigGet: vi.fn(),
   mockReadFile: vi.fn(),
+  mockAssistantsList: vi.fn(async () => [] as Array<Record<string, unknown>>),
+  mockListProviders: vi.fn(async () => [] as Array<Record<string, unknown>>),
 }));
 
 vi.mock('../../../src/process/utils/initStorage', () => ({
@@ -20,6 +22,28 @@ vi.mock('../../../src/process/utils/initStorage', () => ({
     get: mockConfigGet,
   },
   getAssistantsDir: () => '/assistants',
+}));
+
+// Post-migration: TeamSessionService resolves preset rules via
+// `ipcBridge.assistants.list` (see loadPresetAssistantResources defaults).
+// Route the lookup through the same mockConfigGet('assistants') fixture so
+// existing tests keep passing without a second source of truth.
+vi.mock('../../../src/common', () => ({
+  ipcBridge: {
+    assistants: {
+      list: { invoke: mockAssistantsList },
+    },
+    mode: {
+      listProviders: { invoke: mockListProviders },
+    },
+    team: {
+      listChanged: { emit: vi.fn() },
+      agentSpawned: { emit: vi.fn() },
+      agentRemoved: { emit: vi.fn() },
+      agentRenamed: { emit: vi.fn() },
+      mcpStatus: { emit: vi.fn() },
+    },
+  },
 }));
 
 vi.mock('fs/promises', () => ({
@@ -126,22 +150,18 @@ describe('TeamSessionService', () => {
   });
 
   it('uses configured gemini provider model when available', async () => {
-    mockConfigGet.mockImplementation(async (key: string) => {
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-gemini',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'test-key',
-            base_url: 'https://generativelanguage.googleapis.com',
-            model: ['gemini-2.5-pro'],
-            enabled: true,
-          },
-        ];
-      }
-      return undefined;
-    });
+    mockConfigGet.mockResolvedValue(undefined);
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-gemini',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'test-key',
+        base_url: 'https://generativelanguage.googleapis.com',
+        models: ['gemini-2.5-pro'],
+        enabled: true,
+      },
+    ]);
     mockReadFile.mockRejectedValue(new Error('ENOENT'));
 
     const repo = makeRepo();
@@ -172,22 +192,20 @@ describe('TeamSessionService', () => {
   });
 
   it('uses preferred ACP model when creating qwen team conversations', async () => {
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'key',
+        base_url: 'https://example.com',
+        models: ['gemini-2.0-flash'],
+        enabled: true,
+      },
+    ]);
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'gemini.defaultModel') {
         return undefined;
-      }
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-1',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'key',
-            base_url: 'https://example.com',
-            model: ['gemini-2.0-flash'],
-            enabled: true,
-          },
-        ];
       }
       if (key === 'acp.config') {
         return {
@@ -263,28 +281,30 @@ describe('TeamSessionService', () => {
   });
 
   it('creates preset gemini team conversations with preset rules and enabled skills', async () => {
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'key',
+        base_url: 'https://example.com',
+        models: ['gemini-2.0-flash'],
+        enabled: true,
+      },
+    ]);
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'language') {
         return 'en-US';
-      }
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-1',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'key',
-            base_url: 'https://example.com',
-            model: ['gemini-2.0-flash'],
-            enabled: true,
-          },
-        ];
       }
       if (key === 'assistants') {
         return [{ id: 'assistant-1', enabled_skills: ['skill-a'] }];
       }
       return undefined;
     });
+    // Assistant catalog (post-migration backend shape). The key field tested
+    // is `enabled_skills` — `defaultDeps.getEnabledSkills` reads that snake_case
+    // field off the Assistant record.
+    mockAssistantsList.mockResolvedValue([{ id: 'assistant-1', enabled_skills: ['skill-a'] }]);
     mockReadFile.mockImplementation(async (targetPath: string) => {
       if (targetPath.includes('assistant-1.en-US.md')) {
         return 'PRESET RULES';
@@ -333,22 +353,20 @@ describe('TeamSessionService', () => {
   });
 
   it('preserves preset assistant identity and only inherits session mode when adding teammates', async () => {
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'key',
+        base_url: 'https://example.com',
+        models: ['gemini-2.0-flash'],
+        enabled: true,
+      },
+    ]);
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'gemini.defaultModel') {
         return undefined;
-      }
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-1',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'key',
-            base_url: 'https://example.com',
-            model: ['gemini-2.0-flash'],
-            enabled: true,
-          },
-        ];
       }
       if (key === 'acp.config') {
         return {

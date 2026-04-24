@@ -8,8 +8,8 @@ import { describe, expect, it } from 'vitest';
  */
 
 type IProviderLike = {
-  model?: string[];
-  modelEnabled?: Record<string, boolean>;
+  models?: string[];
+  model_enabled?: Record<string, boolean>;
 };
 
 const getProviderState = (platform: IProviderLike): { checked: boolean; indeterminate: boolean } => {
@@ -17,7 +17,7 @@ const getProviderState = (platform: IProviderLike): { checked: boolean; indeterm
     return { checked: true, indeterminate: false };
   }
 
-  const models = platform.model ?? [];
+  const models = platform.models ?? [];
   const enabledCount = models.filter((model) => platform.model_enabled?.[model] !== false).length;
   const totalCount = models.length;
 
@@ -49,7 +49,7 @@ describe('ModelModalContent helpers — undefined model guard (ELECTRON-T9)', ()
 
   it('getProviderState returns correct state for normal data', () => {
     const platform: IProviderLike = {
-      model: ['a', 'b', 'c'],
+      models: ['a', 'b', 'c'],
       model_enabled: { a: true, b: false, c: true },
     };
     expect(getProviderState(platform)).toEqual({ checked: true, indeterminate: true });
@@ -57,7 +57,7 @@ describe('ModelModalContent helpers — undefined model guard (ELECTRON-T9)', ()
 
   it('getProviderState returns all-unchecked when every model is disabled', () => {
     const platform: IProviderLike = {
-      model: ['a', 'b'],
+      models: ['a', 'b'],
       model_enabled: { a: false, b: false },
     };
     expect(getProviderState(platform)).toEqual({ checked: false, indeterminate: false });

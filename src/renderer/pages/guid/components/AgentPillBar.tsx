@@ -76,6 +76,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               <React.Fragment key={getAgentKey(agent)}>
                 {!isMobile && index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
                 <div
+                  data-testid={`agent-pill-${agent.backend}`}
                   data-agent-pill='true'
                   data-agent-key={getAgentKey(agent)}
                   data-agent-type={agent.agent_type}

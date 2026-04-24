@@ -7,7 +7,7 @@ import type {
   AcpSessionModes,
 } from '@/common/types/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/speech';
-import type { ICssTheme, IMcpServer, IProvider, TProviderWithModel } from '@/common/config/storage';
+import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
 export type ConfigKeyMap = {
   'gemini.config': {
@@ -43,7 +43,6 @@ export type ConfigKeyMap = {
   'acp.cachedModels': Record<string, AcpModelInfo> | undefined;
   'acp.cached_config_options': Record<string, AcpSessionConfigOption[]> | undefined;
   'acp.cachedModes': Record<string, AcpSessionModes> | undefined;
-  'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;

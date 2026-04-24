@@ -12,7 +12,7 @@ const ipcMock = vi.hoisted(() => ({
   getModelInfo: vi.fn(),
   setModel: vi.fn(),
   onResponseStream: vi.fn(() => () => {}),
-  getModelConfig: vi.fn().mockResolvedValue([]),
+  listProviders: vi.fn().mockResolvedValue([]),
 }));
 
 let responseHandler: ((message: any) => void) | null = null;
@@ -25,7 +25,7 @@ vi.mock('@/common', () => ({
       responseStream: { on: ipcMock.onResponseStream },
     },
     mode: {
-      getModelConfig: { invoke: ipcMock.getModelConfig },
+      listProviders: { invoke: ipcMock.listProviders },
     },
   },
 }));
@@ -57,7 +57,7 @@ describe('AcpModelSelector', () => {
       responseHandler = handler;
       return () => {};
     });
-    ipcMock.getModelConfig.mockResolvedValue([]);
+    ipcMock.listProviders.mockResolvedValue([]);
     ipcMock.setModel.mockResolvedValue(undefined);
   });
 

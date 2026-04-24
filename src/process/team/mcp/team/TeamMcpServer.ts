@@ -17,7 +17,6 @@ import type { TeamAgent } from '../../types.ts';
 import { isTeamCapableBackend, getTeamCapableBackends } from '@/common/types/teamTypes.ts';
 import { ProcessConfig } from '@process/utils/initStorage.ts';
 import { agentRegistry } from '@process/agent/AgentRegistry';
-import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import { resolveLocaleKey } from '@/common/utils';
 import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
@@ -377,14 +376,15 @@ export class TeamMcpServer {
     const model = args.model ? String(args.model) : undefined;
     let agent_type = args.agent_type ? String(args.agent_type) : undefined;
 
-    // When a preset is requested, resolve its backend from config so the caller
-    // does not need to specify agent_type separately.
+    // When a preset is requested, resolve its backend from the backend-owned
+    // assistant catalog so the caller does not need to specify agent_type
+    // separately.
     if (custom_agent_id) {
-      const assistants = (await ProcessConfig.get('assistants')) ?? [];
-      const preset = assistants.find((a) => a.id === custom_agent_id && a.is_preset);
+      const assistants = await ipcBridge.assistants.list.invoke();
+      const preset = assistants.find((a) => a.id === custom_agent_id);
       if (!preset) {
         const availableIds = assistants
-          .filter((a) => a.is_preset && a.enabled !== false)
+          .filter((a) => a.enabled !== false)
           .map((a) => a.id)
           .join(', ');
         throw new Error(
@@ -396,7 +396,7 @@ export class TeamMcpServer {
       if (preset.enabled === false) {
         throw new Error(`Preset assistant "${custom_agent_id}" is disabled. Enable it before spawning.`);
       }
-      const presetBackend = preset.presetAgentType || 'gemini';
+      const presetBackend = preset.preset_agent_type || 'gemini';
       if (agent_type && agent_type !== presetBackend) {
         console.warn(
           `[TeamMcpServer] handleSpawnAgent: agent_type "${agent_type}" overridden by preset "${custom_agent_id}" backend "${presetBackend}".`
@@ -541,11 +541,14 @@ export class TeamMcpServer {
       throw new Error('custom_agent_id is required.');
     }
 
-    const assistants = (await ProcessConfig.get('assistants')) ?? [];
-    const assistant = assistants.find((a) => a.id === custom_agent_id && a.is_preset);
+    // Query the backend catalog (merged builtin + user + extension). The
+    // returned Assistant already carries locale maps and prompt examples that
+    // previously lived only in the frontend ASSISTANT_PRESETS constant.
+    const assistants = await ipcBridge.assistants.list.invoke();
+    const assistant = assistants.find((a) => a.id === custom_agent_id);
     if (!assistant) {
       const availableIds = assistants
-        .filter((a) => a.is_preset && a.enabled !== false)
+        .filter((a) => a.enabled !== false)
         .map((a) => a.id)
         .join(', ');
       throw new Error(
@@ -570,18 +573,11 @@ export class TeamMcpServer {
       return source[localeKey] || source['en-US'] || Object.values(source)[0] || [];
     };
 
-    // Built-in presets carry extra catalog data (example prompts, locale names)
-    // that the stored assistant record does not. Merge both sources.
-    const builtinId = custom_agent_id.startsWith('builtin-')
-      ? custom_agent_id.replace('builtin-', '')
-      : custom_agent_id;
-    const builtin = ASSISTANT_PRESETS.find((p) => p.id === builtinId);
-
-    const name = pickLocalized(builtin?.nameI18n) || assistant.name || custom_agent_id;
-    const description = pickLocalized(builtin?.descriptionI18n) || assistant.description || '';
-    const backend = assistant.presetAgentType || builtin?.presetAgentType || 'gemini';
-    const skills = assistant.enabled_skills && assistant.enabled_skills.length > 0 ? assistant.enabled_skills : [];
-    const examples = pickLocalizedList(builtin?.promptsI18n);
+    const name = pickLocalized(assistant.name_i18n) || assistant.name || custom_agent_id;
+    const description = pickLocalized(assistant.description_i18n) || assistant.description || '';
+    const backend = assistant.preset_agent_type || 'gemini';
+    const skills = assistant.enabled_skills.length > 0 ? assistant.enabled_skills : [];
+    const examples = pickLocalizedList(assistant.prompts_i18n);
 
     const lines: string[] = [];
     lines.push(`# ${name} (${custom_agent_id})`);

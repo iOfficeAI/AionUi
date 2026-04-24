@@ -48,6 +48,7 @@ export {
   type ChannelPluginStatus,
 } from './extensions';
 export { invokeBridge } from './bridge';
+export { httpInvoke, httpGet, httpPost, httpDelete } from './httpBridge';
 export {
   selectAgent,
   selectModel,
@@ -101,3 +102,41 @@ export {
   SKILLS_INDICATOR_COUNT,
   AGENT_BADGE,
 } from './selectors';
+export {
+  resolveAionrsBinary,
+  getAionrsTestModels,
+  resolveAionrsPreconditions,
+  createAionrsConversationViaBridge,
+  sendAionrsMessage,
+  waitForAionrsReply,
+  getAionrsConversationDB,
+  getAionrsMessages,
+  cleanupE2EAionrsConversations,
+  createTempWorkspace,
+  selectAionrsAgent,
+  selectAionrsModel,
+  selectAionrsMode,
+  attachAionrsFolder,
+  uploadAionrsFiles,
+  type TProviderWithModel,
+  type AionrsTestModels,
+} from './chatAionrs';
+export {
+  checkGeminiAuth,
+  createGeminiConversationViaBridge,
+  sendGeminiMessage,
+  waitForGeminiReply,
+  getGeminiConversationDB,
+  readConvModelName,
+  readConvExtra,
+  cleanupE2EGeminiConversations,
+  createTempGeminiWorkspace,
+  selectGeminiAgent,
+  selectGeminiModel,
+  selectGeminiMode,
+  isElectronDesktop,
+  attachGeminiFolder,
+  uploadGeminiFiles,
+  getGeminiTestModels,
+  type GeminiTestModels,
+} from './chatGemini';

@@ -16,14 +16,32 @@ declare global {
   }
 }
 
+/**
+ * Resolve the backend port, honoring both renderer and main-process contexts.
+ *
+ * - Renderer: the preload bridge writes `window.__backendPort` before the
+ *   first HTTP call, so reading from window is authoritative.
+ * - Main process: `window` is undefined. `src/index.ts` writes the port to
+ *   `globalThis.__backendPort` immediately after `backendManager.start()`
+ *   resolves, so any main-process ipcBridge caller (e.g. the one-shot
+ *   assistant migration hook) hits the correct port.
+ * - Fallback `13400` only applies when neither is initialized — the request
+ *   will still fail cleanly with ECONNREFUSED rather than masking the bug.
+ */
+function getBackendPort(): number {
+  if (typeof window !== 'undefined' && (window as Window).__backendPort) {
+    return (window as Window).__backendPort as number;
+  }
+  const g = globalThis as typeof globalThis & { __backendPort?: number };
+  return g.__backendPort ?? 13400;
+}
+
 function getBaseUrl(): string {
-  const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
-  return `http://127.0.0.1:${port}`;
+  return `http://127.0.0.1:${getBackendPort()}`;
 }
 
 function getWsUrl(): string {
-  const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
-  return `ws://127.0.0.1:${port}/ws`;
+  return `ws://127.0.0.1:${getBackendPort()}/ws`;
 }
 
 // ---------------------------------------------------------------------------

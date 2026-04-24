@@ -127,7 +127,7 @@ describe('useChannelModelSelection restore retry limit', () => {
     mockConfigServiceGet.mockReturnValue({ id: 'deleted-provider', use_model: 'some-model' });
 
     // Providers are loaded but don't include the saved provider
-    mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
+    mockProviders = [{ id: 'provider-1', name: 'Provider One', models: ['model-a', 'model-b'] }];
 
     const { default: ChannelModalContent } =
       await import('@/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent');
@@ -147,7 +147,7 @@ describe('useChannelModelSelection restore retry limit', () => {
     // Each re-render should increment the retry count until the limit is hit.
     for (let i = 0; i < 10; i++) {
       // Create a new providers array reference to trigger the useEffect
-      mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
+      mockProviders = [{ id: 'provider-1', name: 'Provider One', models: ['model-a', 'model-b'] }];
       await act(async () => {
         // Force re-render by triggering state updates
         await new Promise((resolve) => setTimeout(resolve, 0));
@@ -164,7 +164,7 @@ describe('useChannelModelSelection restore retry limit', () => {
   it('should restore successfully when provider exists', async () => {
     mockConfigServiceGet.mockReturnValue({ id: 'provider-1', use_model: 'model-a' });
 
-    mockProviders = [{ id: 'provider-1', name: 'Provider One', model: ['model-a', 'model-b'] }];
+    mockProviders = [{ id: 'provider-1', name: 'Provider One', models: ['model-a', 'model-b'] }];
 
     const { default: ChannelModalContent } =
       await import('@/renderer/components/settings/SettingsModal/contents/channels/ChannelModalContent');

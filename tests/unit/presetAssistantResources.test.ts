@@ -14,8 +14,6 @@ function createDeps(overrides: Partial<PresetAssistantResourceDeps> = {}): Prese
   return {
     readAssistantRule: vi.fn(async () => ''),
     readAssistantSkill: vi.fn(async () => ''),
-    readBuiltinRule: vi.fn(async () => ''),
-    readBuiltinSkill: vi.fn(async () => ''),
     getEnabledSkills: vi.fn(async () => undefined),
     getDisabledBuiltinSkills: vi.fn(async () => undefined),
     warn: vi.fn(),
@@ -67,7 +65,10 @@ describe('loadPresetAssistantResources', () => {
     });
   });
 
-  it('falls back to builtin preset resources and warns when user resources fail', async () => {
+  it('falls back to fallbackRules and empty skills, warning twice, when user resources fail', async () => {
+    // Backend now serves builtin content via readAssistant{Rule,Skill}, so
+    // there is no separate builtin fallback path on the deps anymore — if
+    // both throw, callers get the caller-supplied fallbackRules verbatim.
     const deps = createDeps({
       readAssistantRule: vi.fn(async () => {
         throw new Error('missing user rule');
@@ -75,8 +76,6 @@ describe('loadPresetAssistantResources', () => {
       readAssistantSkill: vi.fn(async () => {
         throw new Error('missing user skill');
       }),
-      readBuiltinRule: vi.fn(async () => 'builtin rules'),
-      readBuiltinSkill: vi.fn(async () => 'builtin skills'),
       getEnabledSkills: vi.fn(async () => ['moltbook']),
     });
 
@@ -90,13 +89,11 @@ describe('loadPresetAssistantResources', () => {
     );
 
     expect(result).toEqual({
-      rules: 'builtin rules',
-      skills: 'builtin skills',
+      rules: 'fallback rules',
+      skills: '',
       enabled_skills: ['moltbook'],
       disabledBuiltinSkills: undefined,
     });
-    expect(deps.readBuiltinRule).toHaveBeenCalledOnce();
-    expect(deps.readBuiltinSkill).toHaveBeenCalledOnce();
     expect(deps.warn).toHaveBeenCalledTimes(2);
   });
 });

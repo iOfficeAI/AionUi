@@ -4,8 +4,8 @@ import { EditTwo, Delete, Lightning } from '@icon-park/react';
 import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
-import { configService } from '@/common/config/configService';
-import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import { ipcBridge } from '@/common';
+import type { Assistant } from '@/common/types/assistantTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import CodeMirror from '@uiw/react-codemirror';
@@ -19,11 +19,11 @@ interface PresetManagementProps {
 const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const { t } = useTranslation();
   const { theme } = useThemeContext();
-  const [presets, setPresets] = useState<AcpBackendConfig[]>([]);
-  const [editingPreset, setEditingAgent] = useState<AcpBackendConfig | null>(null);
+  const [presets, setPresets] = useState<Assistant[]>([]);
+  const [editingPreset, setEditingAgent] = useState<Assistant | null>(null);
   const [editVisible, setEditVisible] = useState(false);
   const [deleteVisible, setDeleteVisible] = useState(false);
-  const [presetToDelete, setPresetToDelete] = useState<AcpBackendConfig | null>(null);
+  const [presetToDelete, setPresetToDelete] = useState<Assistant | null>(null);
 
   // Form state
   const [editName, setEditName] = useState('');
@@ -31,10 +31,9 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
 
   const loadPresets = useCallback(async () => {
     try {
-      const agents = configService.get('assistants');
-      if (agents && Array.isArray(agents)) {
-        setPresets(agents.filter((a) => a.is_preset));
-      }
+      const agents = await ipcBridge.assistants.list.invoke();
+      // Only user-authored presets are editable here; builtin/extension are read-only.
+      setPresets(agents.filter((a) => a.source === 'user'));
     } catch (error) {
       console.error('Failed to load presets:', error);
     }
@@ -53,7 +52,7 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
     }
   }, []);
 
-  const handleEdit = (preset: AcpBackendConfig) => {
+  const handleEdit = (preset: Assistant) => {
     setEditingAgent(preset);
     setEditName(preset.name);
     setEditContext(preset.context || '');
@@ -63,16 +62,21 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleSave = async () => {
     if (!editingPreset) return;
     try {
-      const allAgents = configService.get('assistants') || [];
-      const updatedAgents = allAgents.map((a) =>
-        a.id === editingPreset.id ? { ...a, name: editName, context: editContext } : a
-      );
-      await configService.set('assistants', updatedAgents);
+      await ipcBridge.assistants.update.invoke({ id: editingPreset.id, name: editName });
+      // Rule content is persisted via the skill-md dispatch endpoint rather than
+      // a direct column on the assistant row.
+      if (editContext !== editingPreset.context) {
+        await ipcBridge.fs.writeAssistantRule.invoke({
+          assistantId: editingPreset.id,
+          content: editContext,
+        });
+      }
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
       void loadPresets();
       void refreshAgentDetection();
     } catch (error) {
+      console.error('Failed to save preset:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };
@@ -80,14 +84,13 @@ const PresetManagement: React.FC<PresetManagementProps> = ({ message }) => {
   const handleDelete = async () => {
     if (!presetToDelete) return;
     try {
-      const allAgents = configService.get('assistants') || [];
-      const updatedAgents = allAgents.filter((a) => a.id !== presetToDelete.id);
-      await configService.set('assistants', updatedAgents);
+      await ipcBridge.assistants.delete.invoke({ id: presetToDelete.id });
       setDeleteVisible(false);
       message.success(t('common.success', { defaultValue: 'Deleted' }));
       void loadPresets();
       void refreshAgentDetection();
     } catch (error) {
+      console.error('Failed to delete preset:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
     }
   };

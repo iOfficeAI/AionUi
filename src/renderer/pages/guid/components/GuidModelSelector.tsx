@@ -47,7 +47,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   const defaultModelLabel = t('common.defaultModel');
 
   // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
+  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
 
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {
@@ -246,7 +246,12 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           </Menu>
         }
       >
-        <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
+        <Button
+          className={'sendbox-model-btn guid-config-btn'}
+          shape='round'
+          size='small'
+          data-testid='guid-model-selector'
+        >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{geminiButtonLabel}</span>

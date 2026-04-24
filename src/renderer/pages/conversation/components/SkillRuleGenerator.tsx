@@ -15,11 +15,9 @@ import {
 import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 interface SkillRuleGeneratorProps {
   conversation_id: string;
@@ -269,16 +267,15 @@ Requirements:
 
   const registerPreset = async (name: string, content: string) => {
     try {
-      const customAgents = (configService.get('assistants') ?? []) as AcpBackendConfig[];
-      const presetAgent: AcpBackendConfig = {
-        id: uuid(),
-        name,
-        enabled: true,
-        is_preset: true,
-        context: content,
-      };
-      customAgents.push(presetAgent);
-      await configService.set('assistants', customAgents);
+      const created = await ipcBridge.assistants.create.invoke({ name });
+      // Persist the rule content separately via the skill-md dispatch endpoint
+      // (backend spec §6.4); the Assistant row doesn't carry inline context.
+      if (content.trim()) {
+        await ipcBridge.fs.writeAssistantRule.invoke({
+          assistantId: created.id,
+          content,
+        });
+      }
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
       Message.success(
         t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })

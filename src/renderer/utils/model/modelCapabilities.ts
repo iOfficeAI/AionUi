@@ -92,7 +92,7 @@ export const hasModelCapability = (model: IProvider, type: ModelType): boolean |
     } else {
       // 3. 优先级3：正则表达式匹配
       // 检查平台下是否有任一模型支持该能力
-      const modelNames = model.model || [];
+      const modelNames = model.models || [];
 
       // 统一逻辑处理所有能力类型
       // 检查是否有任一模型支持该能力

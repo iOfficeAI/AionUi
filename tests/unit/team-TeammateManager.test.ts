@@ -17,6 +17,12 @@ const mockIpcBridge = vi.hoisted(() => ({
   conversation: {
     responseStream: { emit: vi.fn() },
   },
+  // Post-migration: leader's first wake pulls the preset catalog via
+  // ipcBridge.assistants.list for availableAssistants. Default to an empty
+  // list; individual tests can override when they exercise that path.
+  assistants: {
+    list: { invoke: vi.fn(async () => []) },
+  },
 }));
 
 const mockAddMessage = vi.hoisted(() => vi.fn());

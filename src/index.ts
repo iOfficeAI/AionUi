@@ -462,12 +462,33 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Start aionui-backend subprocess and wait for health check
+  let backendStartedOk = false;
   try {
     const { getDataPath } = await import('./process/utils/utils');
     const backendPort = await backendManager.start(getDataPath());
     mark(`backendManager.start (port=${backendPort})`);
+    // Expose the backend port to main-process callers of httpBridge (e.g. the
+    // one-shot assistant migration hook below). Must land BEFORE any
+    // ipcBridge.* invoke from the main process — the renderer side reads
+    // window.__backendPort via preload, but main has no `window`.
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+    backendStartedOk = true;
   } catch (error) {
     console.error('[AionUi] Failed to start aionui-backend:', error);
+  }
+
+  // One-shot migration: import legacy `ConfigStorage.get('assistants')` into
+  // the backend. Only runs when backend is healthy; the migration flag
+  // remains false on failure so the next launch retries. Insert-only on the
+  // backend side, so retries are idempotent.
+  if (backendStartedOk) {
+    try {
+      const { migrateAssistantsToBackend } = await import('./process/utils/migrateAssistants');
+      await migrateAssistantsToBackend(ProcessConfig);
+      mark('migrateAssistantsToBackend');
+    } catch (error) {
+      console.error('[AionUi] Assistant migration hook threw:', error);
+    }
   }
 
   try {

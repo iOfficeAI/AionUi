@@ -9,10 +9,15 @@ import { resolveLocaleKey } from '../../src/common/utils';
 
 const loadPresetAssistantResources = vi.fn();
 const configGet = vi.fn();
+const listProvidersInvoke = vi.fn();
 const defaultCodexModels: Array<{ id: string; label: string }> = [];
 
 vi.mock('@/common', () => ({
-  ipcBridge: {},
+  ipcBridge: {
+    mode: {
+      listProviders: { invoke: listProvidersInvoke },
+    },
+  },
 }));
 
 vi.mock('@/common/config/configService', () => ({
@@ -36,6 +41,9 @@ describe('createConversationParams', () => {
   beforeEach(() => {
     loadPresetAssistantResources.mockReset();
     configGet.mockReset();
+    listProvidersInvoke.mockReset();
+    // Default: backend returns an empty provider list unless the test overrides it.
+    listProvidersInvoke.mockResolvedValue([]);
     defaultCodexModels.length = 0;
   });
 
@@ -45,14 +53,14 @@ describe('createConversationParams', () => {
       skills: '',
       enabled_skills: ['moltbook'],
     });
-    configGet.mockReturnValue([
+    listProvidersInvoke.mockResolvedValue([
       {
         id: 'provider-1',
         platform: 'openai',
         name: 'Provider',
         base_url: 'https://example.com',
         api_key: 'token',
-        model: ['gpt-4.1'],
+        models: ['gpt-4.1'],
         enabled: true,
       },
     ]);
@@ -109,7 +117,7 @@ describe('createConversationParams', () => {
       skills: '',
       enabled_skills: [],
     });
-    configGet.mockReturnValue([]); // No providers
+    listProvidersInvoke.mockResolvedValue([]); // No providers
 
     const params = await buildPresetAssistantParams(
       {
@@ -128,7 +136,7 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to gemini-placeholder when no provider configured for gemini (CLI)', async () => {
-    configGet.mockReturnValue([]); // No providers
+    listProvidersInvoke.mockResolvedValue([]); // No providers
 
     const params = await buildCliAgentParams(
       {
@@ -144,14 +152,14 @@ describe('createConversationParams', () => {
   });
 
   it('resolves aionrs model from enabled provider', async () => {
-    configGet.mockReturnValue([
+    listProvidersInvoke.mockResolvedValue([
       {
         id: 'provider-1',
         platform: 'openai',
         name: 'Provider',
         base_url: 'https://example.com',
         api_key: 'token',
-        model: ['gpt-4.1'],
+        models: ['gpt-4.1'],
         enabled: true,
       },
     ]);
@@ -170,7 +178,7 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no provider configured', async () => {
-    configGet.mockReturnValue([]);
+    listProvidersInvoke.mockResolvedValue([]);
 
     await expect(
       buildCliAgentParams(
@@ -293,14 +301,14 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no enabled provider', async () => {
-    configGet.mockReturnValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    listProvidersInvoke.mockResolvedValue([{ id: 'p1', enabled: false, models: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
       'No enabled model provider for Aion CLI'
     );
   });
 
   it('throws error for gemini if no enabled provider', async () => {
-    configGet.mockReturnValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    listProvidersInvoke.mockResolvedValue([{ id: 'p1', enabled: false, models: ['m1'] }]);
     // Note: buildCliAgentParams for gemini uses resolveGeminiModel which catches the error
     const params = await buildCliAgentParams({ backend: 'gemini', name: 'Agent' }, '/tmp');
     expect(params.model.id).toBe('gemini-placeholder');
@@ -321,14 +329,14 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to first model if none enabled for aionrs', async () => {
-    configGet.mockReturnValue([
+    listProvidersInvoke.mockResolvedValue([
       {
         id: 'p1',
         platform: 'openai',
         name: 'P1',
         base_url: 'b1',
         api_key: 'k1',
-        model: ['m1', 'm2'],
+        models: ['m1', 'm2'],
         enabled: true,
         model_enabled: { m1: false, m2: false },
       },

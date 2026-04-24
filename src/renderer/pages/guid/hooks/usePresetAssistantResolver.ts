@@ -5,12 +5,18 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
-import type { AcpBackendConfig } from '../types';
+import type { Assistant } from '@/common/types/assistantTypes';
+import type { AcpBackend } from '../types';
 import { useCallback } from 'react';
 
 type UsePresetAssistantResolverOptions = {
-  customAgents: AcpBackendConfig[];
+  /**
+   * Backend-merged preset catalog (`GET /api/assistants`). The resolver looks
+   * up `presetAgentType`, `enabledSkills`, and `disabledBuiltinSkills` on
+   * the chosen assistant record — all of which live on the `Assistant` type,
+   * not on the ACP engine-config `AcpBackendConfig`.
+   */
+  assistants: Assistant[];
   localeKey: string;
 };
 
@@ -35,9 +41,11 @@ type UsePresetAssistantResolverResult = {
 /**
  * Hook that provides preset assistant resolution callbacks.
  * Resolves rules, skills, context, and agent type for preset assistants.
+ * Rule/skill read requests are served by the backend, which dispatches per
+ * assistant source (builtin manifest / extension bundle / user md file).
  */
 export const usePresetAssistantResolver = ({
-  customAgents,
+  assistants,
   localeKey,
 }: UsePresetAssistantResolverOptions): UsePresetAssistantResolverResult => {
   const resolvePresetRulesAndSkills = useCallback(
@@ -69,34 +77,6 @@ export const usePresetAssistantResolver = ({
         // skills may not exist, this is normal
       }
 
-      // Fallback for builtin assistants
-      if (custom_agent_id.startsWith('builtin-')) {
-        const presetId = custom_agent_id.replace('builtin-', '');
-        const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-        if (preset) {
-          if (!rules && preset.ruleFiles) {
-            try {
-              const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
-              if (ruleFile) {
-                rules = await ipcBridge.fs.readBuiltinRule.invoke({ file_name: ruleFile });
-              }
-            } catch (e) {
-              console.warn(`Failed to load builtin rules for ${custom_agent_id}:`, e);
-            }
-          }
-          if (!skills && preset.skillFiles) {
-            try {
-              const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
-              if (skillFile) {
-                skills = await ipcBridge.fs.readBuiltinSkill.invoke({ file_name: skillFile });
-              }
-            } catch (_e) {
-              // skills fallback failure is ok
-            }
-          }
-        }
-      }
-
       return { rules: rules || agentInfo.context, skills };
     },
     [localeKey]
@@ -116,10 +96,10 @@ export const usePresetAssistantResolver = ({
     (agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined): string => {
       if (!agentInfo) return 'gemini';
       if (!agentInfo.custom_agent_id) return agentInfo.backend || agentInfo.agent_type;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.custom_agent_id);
-      return customAgent?.presetAgentType || 'gemini';
+      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
+      return assistant?.preset_agent_type || 'gemini';
     },
-    [customAgents]
+    [assistants]
   );
 
   const resolveEnabledSkills = useCallback(
@@ -127,10 +107,13 @@ export const usePresetAssistantResolver = ({
       agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
     ): string[] | undefined => {
       if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.custom_agent_id);
-      return customAgent?.enabled_skills;
+      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
+      // Preserve legacy "undefined means use agent default" semantics by
+      // treating an empty list the same as absent.
+      if (!assistant || assistant.enabled_skills.length === 0) return undefined;
+      return assistant.enabled_skills;
     },
-    [customAgents]
+    [assistants]
   );
 
   const resolveDisabledBuiltinSkills = useCallback(
@@ -138,10 +121,11 @@ export const usePresetAssistantResolver = ({
       agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
     ): string[] | undefined => {
       if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.custom_agent_id);
-      return customAgent?.disabledBuiltinSkills;
+      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
+      if (!assistant || assistant.disabled_builtin_skills.length === 0) return undefined;
+      return assistant.disabled_builtin_skills;
     },
-    [customAgents]
+    [assistants]
   );
 
   return {

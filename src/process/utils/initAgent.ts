@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
@@ -12,28 +13,49 @@ import { uuid } from '@/common/utils';
 
 // Re-export for backward compatibility (tests mock this path)
 export { hasNativeSkillSupport };
-import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
-import { getSkillsDir, getBuiltinSkillsCopyDir, getAutoSkillsDir, getSystemDir } from './initStorage';
+import { getSystemDir } from './initStorage';
 import { computeOpenClawIdentityHash } from './openclawUtils';
+
+/**
+ * Ask the backend to materialize auto-inject + opt-in skills for the given
+ * conversation and return the absolute directory path that holds
+ * `{skillName}/SKILL.md` subdirs. On HTTP failure the empty-string fallback
+ * keeps caller code simple — the conversation then starts without any
+ * skills (degraded capability, not a hard failure).
+ */
+async function materializeAgentSkillsDir(conversationId: string, enabledSkills: string[]): Promise<string> {
+  try {
+    const { dir_path: dirPath } = await ipcBridge.fs.materializeSkillsForAgent.invoke({
+      conversation_id: conversationId,
+      enabled_skills: enabledSkills,
+    });
+    return dirPath;
+  } catch (error) {
+    console.warn('[setupAssistantWorkspace] Failed to materialize skills via backend:', error);
+    return '';
+  }
+}
 
 /**
  * 为 assistant 设置原生 workspace 结构（skill symlinks）
  * Set up native workspace structure for assistant (skill symlinks only)
  *
- * 将启用的 skills symlink 到 CLI 原生 skills 目录，让各 CLI 自动发现
- * Symlink enabled skills into CLI-native skills directories for auto-discovery
+ * 后端物化 auto-inject + opt-in skills 到 {dataDir}/agent-skills/{convId}/，
+ * 前端将其下每个 {skillName} 子目录 symlink 到 CLI 的原生 skills 目录。
  *
- * 只在 temp workspace（非用户指定）时执行，避免污染用户项目目录
- * Only runs for temp workspaces (not user-specified) to avoid polluting user project dirs
+ * Backend materializes auto-inject + opt-in skills into
+ * {dataDir}/agent-skills/{convId}/; we symlink each {skillName} subdir into
+ * the CLI's native skills dir for auto-discovery.
  *
- * 注意：Rules/人格设定通过 system prompt 注入，不写 context file
- * Note: Rules/personality are injected via system prompt, NOT written to context files
+ * 只在 temp workspace（非用户指定）时执行，避免污染用户项目目录。
+ * Only runs for temp workspaces (not user-specified) to avoid polluting user project dirs.
  */
 export async function setupAssistantWorkspace(
   workspace: string,
   options: {
+    conversationId: string;
     agent_type?: string;
     backend?: string;
     enabled_skills?: string[];
@@ -43,73 +65,50 @@ export async function setupAssistantWorkspace(
     extraSkillPaths?: string[];
   }
 ): Promise<void> {
-  // Determine skills directories from ACP_BACKENDS_ALL config
   const key = options.backend || options.agent_type || '';
   const skillsDirs = getSkillsDirsForBackend(key);
-
-  // If no native skill directory is known for this CLI, skip symlink setup.
-  // The caller should use prompt injection as fallback.
   if (!skillsDirs) return;
 
-  const autoSkillsDir = getAutoSkillsDir();
-  const userSkillsDir = getSkillsDir();
+  const materializedDir = await materializeAgentSkillsDir(options.conversationId, options.enabled_skills ?? []);
+
+  let materializedSkillNames: string[] = [];
+  if (materializedDir) {
+    try {
+      const entries = await fs.readdir(materializedDir, { withFileTypes: true });
+      materializedSkillNames = entries.filter((e) => e.isDirectory()).map((e) => e.name);
+    } catch (error) {
+      console.warn(
+        `[setupAssistantWorkspace] Failed to enumerate materialized skills dir ${materializedDir}:`,
+        error
+      );
+    }
+  }
+
+  const excludeSet = new Set(options.excludeBuiltinSkills ?? []);
 
   for (const skillsRelDir of skillsDirs) {
     const targetSkillsDir = path.join(workspace, skillsRelDir);
     await fs.mkdir(targetSkillsDir, { recursive: true });
 
-    // Always symlink _builtin skills for all native-skill backends
-    let autoSkillNames: string[] = [];
-    try {
-      autoSkillNames = await fs.readdir(autoSkillsDir);
-    } catch {
-      // _builtin dir not ready yet, skip
-    }
-    const excludeSet = new Set(options.excludeBuiltinSkills ?? []);
-    for (const skillName of autoSkillNames) {
+    for (const skillName of materializedSkillNames) {
       if (excludeSet.has(skillName)) continue;
-      const sourceSkillDir = path.join(autoSkillsDir, skillName);
+      const sourceSkillDir = path.join(materializedDir, skillName);
       const targetSkillDir = path.join(targetSkillsDir, skillName);
       try {
-        await fs.stat(sourceSkillDir);
-        try {
-          await fs.lstat(targetSkillDir);
-          // Already exists, skip
-        } catch {
-          await fs.symlink(sourceSkillDir, targetSkillDir, 'junction');
-          console.log(`[setupAssistantWorkspace] Symlinked builtin skill: ${skillName} -> ${targetSkillDir}`);
-        }
+        await fs.lstat(targetSkillDir);
+        // Already exists (from a previous materialize on this workspace), skip.
       } catch {
-        console.warn(`[setupAssistantWorkspace] Builtin skill directory not found: ${sourceSkillDir}`);
-      }
-    }
-
-    // Symlink optional enabled skills
-    for (const skillName of options.enabled_skills ?? []) {
-      // Skip if already symlinked as a builtin skill
-      if (autoSkillNames.includes(skillName)) continue;
-
-      // Try builtin-skills/ first, then user skills/
-      const builtinCandidate = path.join(getBuiltinSkillsCopyDir(), skillName);
-      const userCandidate = path.join(userSkillsDir, skillName);
-      const sourceSkillDir = existsSync(builtinCandidate) ? builtinCandidate : userCandidate;
-      const targetSkillDir = path.join(targetSkillsDir, skillName);
-
-      try {
-        await fs.stat(sourceSkillDir);
         try {
-          await fs.lstat(targetSkillDir);
-          // Already exists, skip
-        } catch {
           await fs.symlink(sourceSkillDir, targetSkillDir, 'junction');
           console.log(`[setupAssistantWorkspace] Symlinked skill: ${skillName} -> ${targetSkillDir}`);
+        } catch (error) {
+          console.warn(`[setupAssistantWorkspace] Failed to symlink skill ${skillName}:`, error);
         }
-      } catch {
-        console.warn(`[setupAssistantWorkspace] Skill directory not found: ${sourceSkillDir}`);
       }
     }
 
-    // Symlink extra skill directories (e.g. cron job SKILL.md dirs)
+    // Symlink extra skill directories (e.g. cron job SKILL.md dirs) — these
+    // live outside the backend-managed corpus so we wire them up directly.
     for (const extraPath of options.extraSkillPaths ?? []) {
       const skillDirName = path.basename(extraPath);
       const targetSkillDir = path.join(targetSkillsDir, skillDirName);
@@ -180,10 +179,13 @@ export const createGeminiAgent = async (
     custom_workspace
   );
 
+  const conversationId = uuid();
+
   // 对 temp workspace 设置 skill symlinks（原生 SkillManager 自动发现）
   // Set up skill symlinks for native SkillManager discovery
   if (!finalCustomWorkspace) {
     await setupAssistantWorkspace(newWorkspace, {
+      conversationId,
       agent_type: 'gemini',
       enabled_skills,
       extraSkillPaths,
@@ -217,7 +219,7 @@ export const createGeminiAgent = async (
     created_at: Date.now(),
     modified_at: Date.now(),
     name: newWorkspace,
-    id: uuid(),
+    id: conversationId,
   };
 };
 
@@ -230,9 +232,12 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     extra.custom_workspace
   );
 
+  const conversationId = uuid();
+
   // 对 temp workspace 设置 skill symlinks（原生发现）
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
+      conversationId,
       backend: extra.backend,
       enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
@@ -269,7 +274,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     created_at: Date.now(),
     modified_at: Date.now(),
     name: workspace,
-    id: uuid(),
+    id: conversationId,
   };
 };
 
@@ -282,9 +287,12 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     extra.custom_workspace
   );
 
+  const conversationId = uuid();
+
   // 对 temp workspace 设置 skill symlinks
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
+      conversationId,
       agent_type: 'nanobot',
       enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
@@ -303,7 +311,7 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     created_at: Date.now(),
     modified_at: Date.now(),
     name: workspace,
-    id: uuid(),
+    id: conversationId,
   };
 };
 
@@ -316,8 +324,11 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
     extra.custom_workspace
   );
 
+  const conversationId = uuid();
+
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
+      conversationId,
       enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
@@ -336,7 +347,7 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
     created_at: Date.now(),
     modified_at: Date.now(),
     name: workspace,
-    id: uuid(),
+    id: conversationId,
   };
 };
 
@@ -349,9 +360,12 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
     extra.custom_workspace
   );
 
+  const conversationId = uuid();
+
   // Set up skill symlinks for native discovery by aionrs CLI
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
+      conversationId,
       agent_type: 'aionrs',
       enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
@@ -374,7 +388,7 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
     created_at: Date.now(),
     modified_at: Date.now(),
     name: workspace,
-    id: uuid(),
+    id: conversationId,
   };
 };
 
@@ -387,9 +401,12 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     extra.custom_workspace
   );
 
+  const conversationId = uuid();
+
   // 对 temp workspace 设置 skill symlinks
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
+      conversationId,
       enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
@@ -425,6 +442,6 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     created_at: Date.now(),
     modified_at: Date.now(),
     name: workspace,
-    id: uuid(),
+    id: conversationId,
   };
 };

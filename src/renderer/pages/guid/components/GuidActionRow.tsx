@@ -13,7 +13,8 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
+import type { AcpBackend, AvailableAgent } from '../types';
+import type { Assistant } from '@/common/types/assistantTypes';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Brain, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
@@ -39,7 +40,11 @@ type GuidActionRowProps = {
   // Preset agent tag
   is_presetAgent: boolean;
   selectedAgentInfo: AvailableAgent | undefined;
-  customAgents: AcpBackendConfig[];
+  /**
+   * Backend-merged preset catalog — drives the preset tag label lookup. Not
+   * the ACP engine-config list (`acp.customAgents`).
+   */
+  assistants: Assistant[];
   localeKey: string;
   onClosePresetTag: () => void;
   agentLogo?: string | null;
@@ -75,7 +80,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onModeSelect,
   is_presetAgent,
   selectedAgentInfo,
-  customAgents,
+  assistants,
   localeKey,
   onClosePresetTag,
   agentLogo,
@@ -222,6 +227,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
                 loading={uploading}
                 disabled={uploading}
+                data-testid='file-upload-btn'
               ></Button>
               {files.length > 0 && (
                 <Tooltip
@@ -249,6 +255,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             className='sendbox-model-btn'
             shape='round'
             size='small'
+            data-testid='workspace-selector-btn'
             onClick={() => {
               ipcBridge.dialog.showOpen
                 .invoke({ properties: ['openDirectory', 'createDirectory'] })
@@ -299,7 +306,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           <div className={styles.actionPresetAgent}>
             <PresetAgentTag
               agentInfo={selectedAgentInfo}
-              customAgents={customAgents}
+              assistants={assistants}
               localeKey={localeKey}
               onClose={onClosePresetTag}
               agentLogo={agentLogo}
@@ -323,6 +330,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           }}
           icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
           onClick={onSend}
+          data-testid='guid-send-btn'
         />
       </div>
     </div>

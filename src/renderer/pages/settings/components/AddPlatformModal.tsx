@@ -350,7 +350,7 @@ const AddPlatformModal = ModalHOC<{
           // Prefer user input base_url, fallback to platform preset
           base_url: isBedrock ? '' : values.base_url || selectedPlatform?.base_url || '',
           api_key: isBedrock ? '' : values.api_key,
-          model: [values.model],
+          models: [values.model],
         };
 
         // Add Bedrock configuration if platform is Bedrock
@@ -569,7 +569,7 @@ const AddPlatformModal = ModalHOC<{
             required
             rules={[{ required: true }]}
             validateStatus={modelListState.error ? 'error' : 'success'}
-            help={modelListState.error}
+            help={modelListState.error instanceof Error ? modelListState.error.message : modelListState.error ? String(modelListState.error) : undefined}
           >
             <Select
               loading={modelListState.isLoading}
@@ -621,7 +621,7 @@ const AddPlatformModal = ModalHOC<{
                           bedrock_config,
                         });
                         const models =
-                          res.mode.map((v) => {
+                          res.models.map((v) => {
                             if (typeof v === 'string') {
                               return { label: v, value: v };
                             } else {
@@ -679,7 +679,7 @@ const AddPlatformModal = ModalHOC<{
               api_key: key,
               platform: selectedPlatform?.platform ?? 'custom',
             });
-            return Array.isArray(res?.mode) && res.mode.length > 0;
+            return Array.isArray(res?.models) && res.models.length > 0;
           } catch {
             return false;
           }

@@ -182,13 +182,15 @@ export class TeammateManager extends EventEmitter {
               name: a.name,
             }));
 
-          const assistants = (await ProcessConfig.get('assistants')) ?? [];
+          const assistants = await ipcBridge.assistants.list
+            .invoke()
+            .catch((): import('@/common/types/assistantTypes').Assistant[] => []);
           availableAssistants = assistants
-            .filter((a) => a.is_preset && a.enabled !== false)
+            .filter((a) => a.enabled !== false)
             .map((a) => ({
               custom_agent_id: a.id,
               name: a.name,
-              backend: a.presetAgentType || 'gemini',
+              backend: a.preset_agent_type || 'gemini',
               description: a.description,
               skills: a.enabled_skills,
             }))

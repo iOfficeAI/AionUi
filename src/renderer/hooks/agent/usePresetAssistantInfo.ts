@@ -6,10 +6,10 @@
 
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import type { TChatConversation } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
+import type { Assistant } from '@/common/types/assistantTypes';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import useSWR from 'swr';
@@ -38,7 +38,8 @@ type AssistantLike = {
  */
 /**
  * Resolve the assistant config ID (preserving original prefix like 'builtin-').
- * Use this when matching against the assistant list in configService 'assistants'.
+ * Use this when matching against the backend assistant catalog
+ * (`ipcBridge.assistants.list`).
  */
 export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
@@ -176,17 +177,13 @@ function hasMatchingEnabledSkills(candidateSkills: string[] | undefined, enabled
 }
 
 /**
- * 根据 preset 构建助手信息
- * Build assistant info from preset
+ * Build assistant info from a backend-provided Assistant record.
  */
-function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo | null {
-  const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-  if (!preset) return null;
-
-  const name = preset.nameI18n[locale] || preset.nameI18n['en-US'] || preset.id;
-  const avatar = typeof preset.avatar === 'string' ? preset.avatar : '';
+function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): PresetAssistantInfo {
+  const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
+  const name = assistant.name_i18n?.[localeKey] || assistant.name_i18n?.[locale] || assistant.name || assistant.id;
+  const avatar = typeof assistant.avatar === 'string' ? assistant.avatar : '';
   const normalized = normalizeAvatar(avatar);
-
   return { name, logo: normalized.logo, isEmoji: normalized.isEmoji };
 }
 
@@ -207,80 +204,39 @@ function buildCustomAgentInfo(
   };
 }
 
-function buildExtensionAssistantInfo(
-  extensionAssistant: { name?: string; nameI18n?: Record<string, string>; avatar?: string },
-  locale: string
-): PresetAssistantInfo {
-  const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
-  const normalized = normalizeAvatar(typeof extensionAssistant.avatar === 'string' ? extensionAssistant.avatar : '');
-  const name =
-    extensionAssistant.nameI18n?.[localeKey] ||
-    extensionAssistant.nameI18n?.[locale] ||
-    extensionAssistant.name ||
-    '🤖';
-
-  return {
-    name,
-    logo: normalized.logo,
-    isEmoji: normalized.isEmoji,
-  };
-}
-
 function inferLegacyAssistantInfo(
   conversation: TChatConversation,
   locale: string,
-  customAgents?: AssistantLike[] | null,
-  extensionAssistants?: AssistantLike[] | null
+  assistants?: Assistant[] | null,
+  customAgents?: AssistantLike[] | null
 ): PresetAssistantInfo | null {
   const { rules, enabled_skills } = extractLegacyPresetPayload(conversation);
   const extractedName = extractAssistantNameFromRules(rules);
 
-  const builtinByName = ASSISTANT_PRESETS.find((preset) =>
-    matchesAssistantName(extractedName, [preset.id, preset.nameI18n['zh-CN'], preset.nameI18n['en-US']])
+  const byName = assistants?.find((assistant) =>
+    matchesAssistantName(extractedName, [
+      assistant.id,
+      assistant.name,
+      assistant.name_i18n?.['zh-CN'],
+      assistant.name_i18n?.['en-US'],
+    ])
   );
-  if (builtinByName) {
-    return buildPresetInfo(builtinByName.id, locale);
-  }
+  if (byName) return buildPresetInfoFromAssistant(byName, locale);
 
-  const builtinBySkills = ASSISTANT_PRESETS.filter((preset) =>
-    hasMatchingEnabledSkills(preset.defaultEnabledSkills, enabled_skills)
+  const bySkills = assistants?.filter((assistant) =>
+    hasMatchingEnabledSkills(assistant.enabled_skills, enabled_skills)
   );
-  if (builtinBySkills.length === 1) {
-    return buildPresetInfo(builtinBySkills[0].id, locale);
-  }
+  if (bySkills?.length === 1) return buildPresetInfoFromAssistant(bySkills[0], locale);
 
   const customByName = customAgents?.find((agent) =>
     matchesAssistantName(extractedName, [agent.id, agent.name, agent.nameI18n?.['zh-CN'], agent.nameI18n?.['en-US']])
   );
-  if (customByName) {
-    return buildCustomAgentInfo(customByName, locale);
-  }
+  if (customByName) return buildCustomAgentInfo(customByName, locale);
 
   const customBySkills = customAgents?.filter((agent) =>
     hasMatchingEnabledSkills(agent.enabled_skills, enabled_skills)
   );
-  if (customBySkills?.length === 1) {
-    return buildCustomAgentInfo(customBySkills[0], locale);
-  }
-
-  const extensionByName = extensionAssistants?.find((assistant) =>
-    matchesAssistantName(extractedName, [
-      assistant.id,
-      assistant.name,
-      assistant.nameI18n?.['zh-CN'],
-      assistant.nameI18n?.['en-US'],
-    ])
-  );
-  if (extensionByName) {
-    return buildExtensionAssistantInfo(extensionByName, locale);
-  }
-
-  const extensionBySkills = extensionAssistants?.filter((assistant) =>
-    hasMatchingEnabledSkills(assistant.enabled_skills, enabled_skills)
-  );
-  if (extensionBySkills?.length === 1) {
-    return buildExtensionAssistantInfo(extensionBySkills[0], locale);
-  }
+  if (customBySkills?.length === 1) return buildCustomAgentInfo(customBySkills[0], locale);
 
   return null;
 }
@@ -298,34 +254,26 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 } {
   const { i18n } = useTranslation();
 
-  // Fetch both preset assistants and user-defined custom ACP agents.
-  // `presetId` may reference either, so we merge both sources before lookup.
+  // Merged assistant catalog (builtin + user + extension) from backend
   const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants', () =>
-    configService.get('assistants')
+    ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[])
   );
+
+  // User-defined ACP custom agents (still in ConfigStorage — separate from assistants)
   const { data: userCustomAgentsList, isLoading: isLoadingUserCustomAgents } = useSWR('acp.customAgents', () =>
     configService.get('acp.customAgents')
   );
   const customAgents = useMemo(
-    () => [
-      ...((assistantsList as AssistantLike[] | undefined) ?? []),
-      ...((userCustomAgentsList as AssistantLike[] | undefined) ?? []),
-    ],
-    [assistantsList, userCustomAgentsList]
-  );
-  const isLoadingCustomAgents = isLoadingAssistants || isLoadingUserCustomAgents;
-
-  // Fetch extension-contributed assistants
-  const { data: extensionAssistants, isLoading: isLoadingExtAssistants } = useSWR('extensions.assistants', () =>
-    ipcBridge.extensions.getAssistants.invoke().catch(() => [] as Record<string, unknown>[])
+    () => (userCustomAgentsList as AssistantLike[] | undefined) ?? [],
+    [userCustomAgentsList]
   );
 
-  // Fetch extension-contributed ACP adapters (for ext:{extensionName}:{adapterId} conversations)
+  // Extension-contributed ACP adapters (for ext:{extensionName}:{adapterId} conversations)
   const { data: extensionAcpAdapters, isLoading: isLoadingExtAdapters } = useSWR('extensions.acpAdapters', () =>
     ipcBridge.extensions.getAcpAdapters.invoke().catch(() => [] as Record<string, unknown>[])
   );
 
-  // Fetch remote agents for remote conversations
+  // Remote agent for remote conversations
   const remoteAgentId =
     conversation?.type === 'remote' ? (conversation.extra as { remoteAgentId?: string })?.remoteAgentId : undefined;
   const { data: remoteAgent, isLoading: isLoadingRemoteAgent } = useSWR(
@@ -336,7 +284,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   return useMemo(() => {
     if (!conversation) return { info: null, isLoading: false };
 
-    // Handle remote agent conversations
+    // Remote agent conversations short-circuit to the remote record
     if (conversation.type === 'remote' && remoteAgentId) {
       if (isLoadingRemoteAgent) return { info: null, isLoading: true };
       if (remoteAgent) {
@@ -353,54 +301,36 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     const locale = i18n.language || 'en-US';
 
     if (!presetId) {
-      const inferredInfo = inferLegacyAssistantInfo(
-        conversation,
-        locale,
-        customAgents,
-        extensionAssistants as AssistantLike[] | undefined
-      );
-      if (inferredInfo) {
-        return { info: inferredInfo, isLoading: false };
-      }
+      const inferredInfo = inferLegacyAssistantInfo(conversation, locale, assistantsList, customAgents);
+      if (inferredInfo) return { info: inferredInfo, isLoading: false };
 
       const { hasPayload } = extractLegacyPresetPayload(conversation);
-      if (hasPayload && (isLoadingCustomAgents || isLoadingExtAssistants)) {
+      if (hasPayload && (isLoadingAssistants || isLoadingUserCustomAgents)) {
         return { info: null, isLoading: true };
       }
-
       return { info: null, isLoading: false };
     }
 
-    // First try to find in built-in presets (synchronous, no loading needed)
-    const builtinInfo = buildPresetInfo(presetId, locale);
-    if (builtinInfo) {
-      return { info: builtinInfo, isLoading: false };
+    // Assistant lookup: backend returns merged builtin + user + extension list.
+    // Accept either the bare id or the legacy `builtin-` / `ext-` prefixed forms.
+    if (assistantsList && Array.isArray(assistantsList)) {
+      const assistantMatch = assistantsList.find(
+        (a) => a.id === presetId || a.id === `builtin-${presetId}` || a.id === `ext-${presetId}`
+      );
+      if (assistantMatch) return { info: buildPresetInfoFromAssistant(assistantMatch, locale), isLoading: false };
     }
 
-    // Custom/extension data still loading — don't fall through to fallback yet
-    if (isLoadingCustomAgents || isLoadingExtAssistants || isLoadingExtAdapters)
+    // Still loading — defer to avoid flickering fallback
+    if (isLoadingAssistants || isLoadingUserCustomAgents || isLoadingExtAdapters)
       return { info: null as PresetAssistantInfo | null, isLoading: true };
 
-    // If not found in built-in presets, try to find in custom agents
+    // Fallback to user-authored ACP custom agents
     if (customAgents && Array.isArray(customAgents)) {
       const customAgent = customAgents.find((agent) => agent.id === presetId || agent.id === `builtin-${presetId}`);
-      if (customAgent) {
-        return { info: buildCustomAgentInfo(customAgent, locale), isLoading: false };
-      }
+      if (customAgent) return { info: buildCustomAgentInfo(customAgent, locale), isLoading: false };
     }
 
-    // Try extension-contributed assistants
-    if (extensionAssistants && Array.isArray(extensionAssistants)) {
-      const extAssistant = extensionAssistants.find((a) => a.id === presetId || a.id === `ext-${presetId}`);
-      if (extAssistant) {
-        return {
-          info: buildExtensionAssistantInfo(extAssistant as AssistantLike, locale),
-          isLoading: false,
-        };
-      }
-    }
-
-    // Try extension-contributed ACP adapters (custom_agent_id like ext:{extensionName}:{adapterId})
+    // Extension ACP adapters (custom_agent_id like ext:{extensionName}:{adapterId})
     if (presetId.startsWith('ext:') && extensionAcpAdapters && Array.isArray(extensionAcpAdapters)) {
       const parts = presetId.split(':');
       if (parts.length >= 3) {
@@ -411,7 +341,6 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
           const id = typeof a.id === 'string' ? a.id : '';
           return extName === extensionName && id === adapterId;
         });
-
         if (adapter) {
           const name = typeof adapter.name === 'string' ? adapter.name : adapterId;
           const avatar = typeof adapter.avatar === 'string' ? adapter.avatar : '';
@@ -425,12 +354,10 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   }, [
     conversation,
     i18n.language,
-    customAgents,
+    assistantsList,
     isLoadingAssistants,
+    customAgents,
     isLoadingUserCustomAgents,
-    isLoadingCustomAgents,
-    extensionAssistants,
-    isLoadingExtAssistants,
     extensionAcpAdapters,
     isLoadingExtAdapters,
     remoteAgentId,

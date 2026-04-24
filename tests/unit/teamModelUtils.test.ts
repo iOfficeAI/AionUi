@@ -97,7 +97,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini',
-        model: ['gemini-2.5-pro', 'gemini-2.0-flash'],
+        models: ['gemini-2.5-pro', 'gemini-2.0-flash'],
         model_enabled: { 'gemini-2.5-pro': true, 'gemini-2.0-flash': true },
       }),
     ];
@@ -120,7 +120,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini-with-google-auth',
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, true);
@@ -133,13 +133,13 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         platform: 'gemini',
         enabled: false,
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
       makeProvider({
         id: 'p2',
         platform: 'gemini',
         enabled: true,
-        model: ['gemini-2.0-flash'],
+        models: ['gemini-2.0-flash'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, false);
@@ -153,7 +153,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini',
-        model: ['gemini-2.5-pro', 'gemini-2.0-flash'],
+        models: ['gemini-2.5-pro', 'gemini-2.0-flash'],
         model_enabled: { 'gemini-2.5-pro': true, 'gemini-2.0-flash': false },
       }),
     ];
@@ -165,7 +165,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini',
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, false);
@@ -178,12 +178,12 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         id: 'gemini-api',
         platform: 'gemini',
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
       makeProvider({
         id: 'openai',
         platform: 'openai-compatible',
-        model: ['gpt-4o', 'gpt-4o-mini'],
+        models: ['gpt-4o', 'gpt-4o-mini'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, false);
@@ -200,12 +200,12 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         id: 'openai',
         platform: 'openai-compatible',
-        model: ['gpt-4o'],
+        models: ['gpt-4o'],
       }),
       makeProvider({
         id: 'anthropic',
         platform: 'anthropic',
-        model: ['claude-sonnet-4'],
+        models: ['claude-sonnet-4'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, true);
@@ -220,7 +220,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini',
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
     ];
     // isGoogleAuth not passed (undefined)
@@ -236,12 +236,12 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         id: 'p1',
         platform: 'openai-compatible',
-        model: ['gpt-4o', 'gpt-4o-mini'],
+        models: ['gpt-4o', 'gpt-4o-mini'],
       }),
       makeProvider({
         id: 'p2',
         platform: 'openai-compatible',
-        model: ['another-model'],
+        models: ['another-model'],
       }),
     ];
     const result = getTeamAvailableModels('aionrs', {}, providers);
@@ -257,7 +257,7 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         platform: 'openai-compatible',
         enabled: false,
-        model: ['gpt-4o'],
+        models: ['gpt-4o'],
       }),
     ];
     const result = getTeamAvailableModels('aionrs', {}, providers);
@@ -268,7 +268,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'openai-compatible',
-        model: ['gpt-4o', 'gpt-4o-mini'],
+        models: ['gpt-4o', 'gpt-4o-mini'],
         model_enabled: { 'gpt-4o': true, 'gpt-4o-mini': false },
       }),
     ];
@@ -281,12 +281,12 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         id: 'p1',
         platform: 'openai-compatible',
-        model: ['gpt-4o', 'gpt-4o-mini'],
+        models: ['gpt-4o', 'gpt-4o-mini'],
       }),
       makeProvider({
         id: 'p2',
         platform: 'openai-compatible',
-        model: ['gpt-4o', 'custom-model'],
+        models: ['gpt-4o', 'custom-model'],
       }),
     ];
     const result = getTeamAvailableModels('aionrs', {}, providers);
@@ -305,7 +305,7 @@ describe('getTeamAvailableModels', () => {
         id: 'p1',
         platform: 'openai-compatible',
         // dall-e-3 matches excludeFromPrimary, imagen-3 excluded from function_calling
-        model: ['gpt-4o', 'dall-e-3', 'imagen-3'],
+        models: ['gpt-4o', 'dall-e-3', 'imagen-3'],
       }),
     ];
     const result = getTeamAvailableModels('aionrs', {}, providers);
@@ -317,12 +317,12 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         id: 'google-auth',
         platform: 'gemini-with-google-auth',
-        model: ['auto', 'gemini-2.5-pro'],
+        models: ['auto', 'gemini-2.5-pro'],
       }),
       makeProvider({
         id: 'openai',
         platform: 'openai-compatible',
-        model: ['gpt-4o'],
+        models: ['gpt-4o'],
       }),
     ];
     const result = getTeamAvailableModels('aionrs', {}, providers);
@@ -335,7 +335,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini',
-        model: ['gemini-2.5-pro', 'flux-schnell'],
+        models: ['gemini-2.5-pro', 'flux-schnell'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, false);
@@ -378,12 +378,12 @@ describe('getTeamAvailableModels', () => {
       makeProvider({
         id: 'g1',
         platform: 'gemini',
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
       makeProvider({
         id: 'g2',
         platform: 'gemini-with-google-auth',
-        model: ['gemini-2.0-flash'],
+        models: ['gemini-2.0-flash'],
       }),
     ];
     const result = getTeamAvailableModels('gemini', {}, providers, true);
@@ -406,7 +406,7 @@ describe('getTeamAvailableModels', () => {
     const providers: IProvider[] = [
       makeProvider({
         platform: 'gemini',
-        model: ['gemini-2.5-pro'],
+        models: ['gemini-2.5-pro'],
       }),
     ];
     const result = getTeamAvailableModels('claude', cachedModels, providers);
