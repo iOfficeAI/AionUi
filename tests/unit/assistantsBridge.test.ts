@@ -91,17 +91,17 @@ function makeAssistant(overrides: Partial<Assistant> = {}): Assistant {
     id: 'custom-1',
     source: 'user',
     name: 'Custom',
-    nameI18n: {},
-    descriptionI18n: {},
+    name_i18n: {},
+    description_i18n: {},
     enabled: true,
-    sortOrder: 0,
-    presetAgentType: 'gemini',
-    enabledSkills: [],
-    customSkillNames: [],
-    disabledBuiltinSkills: [],
-    contextI18n: {},
+    sort_order: 0,
+    preset_agent_type: 'gemini',
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
     prompts: [],
-    promptsI18n: {},
+    prompts_i18n: {},
     models: [],
     ...overrides,
   };
@@ -197,8 +197,8 @@ describe('ipcBridge.assistants.create', () => {
     const request: CreateAssistantRequest = {
       name: 'New',
       description: 'desc',
-      presetAgentType: 'claude',
-      enabledSkills: ['pptx'],
+      preset_agent_type: 'claude',
+      enabled_skills: ['pptx'],
     };
     installFetch(async () => jsonResponse(created));
 
@@ -289,7 +289,7 @@ describe('ipcBridge.assistants.setState', () => {
     const request: SetAssistantStateRequest = {
       id: 'custom-1',
       enabled: false,
-      sortOrder: 3,
+      sort_order: 3,
     };
     installFetch(async () => jsonResponse(updated));
 
@@ -299,7 +299,7 @@ describe('ipcBridge.assistants.setState', () => {
     expect(fetchCalls[0].method).toBe('PATCH');
     expect(fetchCalls[0].path).toBe('/api/assistants/custom-1/state');
     // Adapter pulls `id` out of the body; the path carries the id instead.
-    expect(fetchCalls[0].body).toEqual({ enabled: false, sortOrder: 3 });
+    expect(fetchCalls[0].body).toEqual({ enabled: false, sort_order: 3 });
     expect(result).toEqual(updated);
   });
 
@@ -321,7 +321,7 @@ describe('ipcBridge.assistants.import', () => {
     const request: ImportAssistantsRequest = {
       assistants: [
         { name: 'A' },
-        { name: 'B', presetAgentType: 'claude' },
+        { name: 'B', preset_agent_type: 'claude' },
       ],
     };
     const response: ImportAssistantsResult = {

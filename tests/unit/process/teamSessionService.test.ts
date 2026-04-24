@@ -306,9 +306,9 @@ describe('TeamSessionService', () => {
       return undefined;
     });
     // Assistant catalog (post-migration backend shape). The key field tested
-    // is `enabledSkills` — `defaultDeps.getEnabledSkills` reads that camelCase
+    // is `enabled_skills` — `defaultDeps.getEnabledSkills` reads that snake_case
     // field off the Assistant record.
-    mockAssistantsList.mockResolvedValue([{ id: 'assistant-1', enabledSkills: ['skill-a'] }]);
+    mockAssistantsList.mockResolvedValue([{ id: 'assistant-1', enabled_skills: ['skill-a'] }]);
     mockReadFile.mockImplementation(async (targetPath: string) => {
       if (targetPath.includes('assistant-1.en-US.md')) {
         return 'PRESET RULES';

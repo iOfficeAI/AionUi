@@ -181,13 +181,13 @@ export const useGuidAgentSelection = ({
       const assistant = assistants.find((a) => a.id === custom_agent_id);
       if (assistant) {
         return {
-          backend: assistant.presetAgentType || 'gemini',
+          backend: assistant.preset_agent_type || 'gemini',
           name: assistant.name,
           custom_agent_id: assistant.id,
           is_preset: true,
           context: '',
           avatar: assistant.avatar,
-          presetAgentType: assistant.presetAgentType,
+          presetAgentType: assistant.preset_agent_type,
         };
       }
     }

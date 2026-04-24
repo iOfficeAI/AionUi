@@ -43,6 +43,6 @@ export async function resolveLeaderAssistantLabel(
   const userLanguage = (await ProcessConfig.get('language').catch((): null => null)) as string | null;
   const localeKey = resolveLocaleKey(userLanguage || 'en-US');
 
-  const localized = match.nameI18n?.[localeKey] || match.nameI18n?.['en-US'];
+  const localized = match.name_i18n?.[localeKey] || match.name_i18n?.['en-US'];
   return localized || match.name || undefined;
 }

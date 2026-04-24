@@ -13,22 +13,22 @@ export interface Assistant {
   id: string;
   source: AssistantSource;
   name: string;
-  nameI18n: Record<string, string>;
+  name_i18n: Record<string, string>;
   description?: string;
-  descriptionI18n: Record<string, string>;
+  description_i18n: Record<string, string>;
   avatar?: string;
   enabled: boolean;
-  sortOrder: number;
-  presetAgentType: string;
-  enabledSkills: string[];
-  customSkillNames: string[];
-  disabledBuiltinSkills: string[];
+  sort_order: number;
+  preset_agent_type: string;
+  enabled_skills: string[];
+  custom_skill_names: string[];
+  disabled_builtin_skills: string[];
   context?: string;
-  contextI18n: Record<string, string>;
+  context_i18n: Record<string, string>;
   prompts: string[];
-  promptsI18n: Record<string, string[]>;
+  prompts_i18n: Record<string, string[]>;
   models: string[];
-  lastUsedAt?: number;
+  last_used_at?: number;
 }
 
 export interface CreateAssistantRequest {
@@ -36,15 +36,15 @@ export interface CreateAssistantRequest {
   name: string;
   description?: string;
   avatar?: string;
-  presetAgentType?: string;
-  enabledSkills?: string[];
-  customSkillNames?: string[];
-  disabledBuiltinSkills?: string[];
+  preset_agent_type?: string;
+  enabled_skills?: string[];
+  custom_skill_names?: string[];
+  disabled_builtin_skills?: string[];
   prompts?: string[];
   models?: string[];
-  nameI18n?: Record<string, string>;
-  descriptionI18n?: Record<string, string>;
-  promptsI18n?: Record<string, string[]>;
+  name_i18n?: Record<string, string>;
+  description_i18n?: Record<string, string>;
+  prompts_i18n?: Record<string, string[]>;
 }
 
 export type UpdateAssistantRequest = Partial<Omit<CreateAssistantRequest, 'id'>> & {
@@ -54,8 +54,8 @@ export type UpdateAssistantRequest = Partial<Omit<CreateAssistantRequest, 'id'>>
 export interface SetAssistantStateRequest {
   id: string;
   enabled?: boolean;
-  sortOrder?: number;
-  lastUsedAt?: number;
+  sort_order?: number;
+  last_used_at?: number;
 }
 
 export interface ImportAssistantsRequest {

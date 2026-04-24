@@ -71,9 +71,9 @@ describe('handleDescribeAssistant', () => {
         description: 'Drafts DOCX files for you',
         is_preset: true,
         enabled: true,
-        presetAgentType: 'gemini',
-        enabledSkills: ['officecli-docx'],
-        promptsI18n: { 'en-US': ['Draft a quarterly report summary.'] },
+        preset_agent_type: 'gemini',
+        enabled_skills: ['officecli-docx'],
+        prompts_i18n: { 'en-US': ['Draft a quarterly report summary.'] },
       },
     ];
 
@@ -124,9 +124,9 @@ describe('handleDescribeAssistant', () => {
         name: 'Word Creator',
         is_preset: true,
         enabled: true,
-        presetAgentType: 'gemini',
-        enabledSkills: [],
-        promptsI18n: {
+        preset_agent_type: 'gemini',
+        enabled_skills: [],
+        prompts_i18n: {
           'en-US': ['Draft a quarterly report summary.'],
           'zh-CN': ['帮我整理一份季度报告摘要。'],
         },
@@ -150,8 +150,8 @@ describe('handleDescribeAssistant', () => {
         description: 'Writes novels',
         is_preset: true,
         enabled: true,
-        presetAgentType: 'gemini',
-        enabledSkills: [],
+        preset_agent_type: 'gemini',
+        enabled_skills: [],
       },
     ];
 

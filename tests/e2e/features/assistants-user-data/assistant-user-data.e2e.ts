@@ -76,10 +76,10 @@ interface Assistant {
   name: string;
   description?: string;
   enabled: boolean;
-  sortOrder: number;
-  presetAgentType: string;
-  nameI18n?: Record<string, string>;
-  descriptionI18n?: Record<string, string>;
+  sort_order: number;
+  preset_agent_type: string;
+  name_i18n?: Record<string, string>;
+  description_i18n?: Record<string, string>;
   prompts?: string[];
   models?: string[];
 }
@@ -155,7 +155,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     const created = await httpPost<Assistant>(page, '/api/assistants', {
       name: initial.name,
       description: initial.description,
-      presetAgentType: 'gemini',
+      preset_agent_type: 'gemini',
     });
     expect(created.id).toBeTruthy();
 
@@ -191,7 +191,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
 
     const created = await httpPost<Assistant>(page, '/api/assistants', {
       name,
-      presetAgentType: 'gemini',
+      preset_agent_type: 'gemini',
     });
     await httpPost(page, '/api/skills/assistant-rule/write', {
       assistantId: created.id,

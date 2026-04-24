@@ -250,7 +250,7 @@ export class TeamSessionService {
       getEnabledSkills: async (assistantId) => {
         try {
           const list = await ipcBridge.assistants.list.invoke();
-          return list.find((a) => a.id === assistantId)?.enabledSkills;
+          return list.find((a) => a.id === assistantId)?.enabled_skills;
         } catch {
           return undefined;
         }
@@ -258,7 +258,7 @@ export class TeamSessionService {
       getDisabledBuiltinSkills: async (assistantId) => {
         try {
           const list = await ipcBridge.assistants.list.invoke();
-          return list.find((a) => a.id === assistantId)?.disabledBuiltinSkills;
+          return list.find((a) => a.id === assistantId)?.disabled_builtin_skills;
         } catch {
           return undefined;
         }

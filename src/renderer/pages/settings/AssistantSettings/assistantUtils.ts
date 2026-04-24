@@ -37,7 +37,7 @@ export const resolveAvatarImageSrc = (
  * is a deterministic fallback for local reorder operations.
  */
 export const sortAssistants = (list: AssistantListItem[]): AssistantListItem[] =>
-  [...list].sort((a, b) => a.sortOrder - b.sortOrder);
+  [...list].sort((a, b) => a.sort_order - b.sort_order);
 
 /**
  * Apply search and management filter to assistant list.
@@ -53,8 +53,8 @@ export const filterAssistants = (
   return assistants.filter((assistant) => {
     if (normalizedQuery) {
       const searchableText = [
-        assistant.nameI18n?.[localeKey] || assistant.name,
-        assistant.descriptionI18n?.[localeKey] || assistant.description || '',
+        assistant.name_i18n?.[localeKey] || assistant.name,
+        assistant.description_i18n?.[localeKey] || assistant.description || '',
       ]
         .join(' ')
         .toLowerCase();
