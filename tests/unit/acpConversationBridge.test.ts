@@ -52,8 +52,8 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     };
   }),
 }));
-vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));
-vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
+vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: vi.fn() }));
+vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: vi.fn() }));
 
 vi.mock('../../src/process/services/mcpServices/McpService', () => ({
   mcpService: { getSupportedTransportsForAgent: vi.fn(() => []) },

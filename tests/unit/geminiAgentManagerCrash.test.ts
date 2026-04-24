@@ -66,7 +66,7 @@ vi.mock('@office-ai/aioncli-core', () => ({
   Storage: { getOAuthCredsPath: vi.fn(() => '/fake/oauth') },
 }));
 vi.mock('node:fs', () => ({ existsSync: vi.fn(() => false) }));
-vi.mock('../../src/process/task/IpcAgentEventEmitter', () => ({ IpcAgentEventEmitter: class {} }));
+vi.mock('../../src/process/task/IpcAgentEventEmitter', () => ({ IpcAgentEventEmitter: vi.fn() }));
 vi.mock('../../src/process/task/BaseAgentManager', () => ({
   default: class BaseAgentManager {
     conversation_id = 'conv-test';

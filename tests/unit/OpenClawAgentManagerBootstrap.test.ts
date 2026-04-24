@@ -80,7 +80,7 @@ vi.mock('../../src/process/task/BaseAgentManager', () => ({
 }));
 
 vi.mock('../../src/process/task/IpcAgentEventEmitter', () => ({
-  IpcAgentEventEmitter: class {},
+  IpcAgentEventEmitter: vi.fn(),
 }));
 
 import OpenClawAgentManager from '../../src/process/task/OpenClawAgentManager';

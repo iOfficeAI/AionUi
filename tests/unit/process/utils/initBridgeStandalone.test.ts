@@ -44,15 +44,15 @@ vi.mock('@process/agent/AgentRegistry', () => ({
 }));
 
 vi.mock('@process/services/database/SqliteChannelRepository', () => ({
-  SqliteChannelRepository: class {},
+  SqliteChannelRepository: vi.fn(),
 }));
 
 vi.mock('@process/services/database/SqliteConversationRepository', () => ({
-  SqliteConversationRepository: class {},
+  SqliteConversationRepository: vi.fn(),
 }));
 
 vi.mock('@process/services/ConversationServiceImpl', () => ({
-  ConversationServiceImpl: class {},
+  ConversationServiceImpl: vi.fn(),
 }));
 
 vi.mock('@process/task/workerTaskManagerSingleton', () => ({

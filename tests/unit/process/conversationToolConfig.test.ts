@@ -29,11 +29,11 @@ vi.mock('../../../src/common/platform', () => ({
 }));
 
 vi.mock('../../../src/process/agent/gemini/cli/tools/web-fetch', () => ({
-  WebFetchTool: class {},
+  WebFetchTool: vi.fn(),
 }));
 
 vi.mock('../../../src/process/agent/gemini/cli/tools/web-search', () => ({
-  WebSearchTool: class {},
+  WebSearchTool: vi.fn(),
 }));
 
 import { ConversationToolConfig } from '../../../src/process/agent/gemini/cli/tools/conversation-tool-config';

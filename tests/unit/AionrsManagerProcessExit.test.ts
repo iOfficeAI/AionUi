@@ -179,8 +179,7 @@ describe('AionrsManager Process Exit + Heartbeat', () => {
 
   describe('process exit during active turn emits error + finish', () => {
     it('emits error event with exit code and active msg_id', () => {
-      (manager as Record<string, unknown>)['handleProcessExit'] &&
-        (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-active-1');
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-active-1');
 
       const errors = findEmissions('error');
       expect(errors).toHaveLength(1);

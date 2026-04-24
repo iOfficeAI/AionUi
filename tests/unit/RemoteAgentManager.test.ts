@@ -139,7 +139,7 @@ vi.mock('../../src/process/task/BaseAgentManager', () => {
 });
 
 vi.mock('../../src/process/task/IpcAgentEventEmitter', () => ({
-  IpcAgentEventEmitter: class {},
+  IpcAgentEventEmitter: vi.fn(),
 }));
 
 import RemoteAgentManager from '../../src/process/task/RemoteAgentManager';
