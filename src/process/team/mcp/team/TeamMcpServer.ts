@@ -396,7 +396,7 @@ export class TeamMcpServer {
       if (preset.enabled === false) {
         throw new Error(`Preset assistant "${custom_agent_id}" is disabled. Enable it before spawning.`);
       }
-      const presetBackend = preset.presetAgentType || 'gemini';
+      const presetBackend = preset.preset_agent_type || 'gemini';
       if (agent_type && agent_type !== presetBackend) {
         console.warn(
           `[TeamMcpServer] handleSpawnAgent: agent_type "${agent_type}" overridden by preset "${custom_agent_id}" backend "${presetBackend}".`
@@ -573,11 +573,11 @@ export class TeamMcpServer {
       return source[localeKey] || source['en-US'] || Object.values(source)[0] || [];
     };
 
-    const name = pickLocalized(assistant.nameI18n) || assistant.name || custom_agent_id;
-    const description = pickLocalized(assistant.descriptionI18n) || assistant.description || '';
-    const backend = assistant.presetAgentType || 'gemini';
-    const skills = assistant.enabledSkills.length > 0 ? assistant.enabledSkills : [];
-    const examples = pickLocalizedList(assistant.promptsI18n);
+    const name = pickLocalized(assistant.name_i18n) || assistant.name || custom_agent_id;
+    const description = pickLocalized(assistant.description_i18n) || assistant.description || '';
+    const backend = assistant.preset_agent_type || 'gemini';
+    const skills = assistant.enabled_skills.length > 0 ? assistant.enabled_skills : [];
+    const examples = pickLocalizedList(assistant.prompts_i18n);
 
     const lines: string[] = [];
     lines.push(`# ${name} (${custom_agent_id})`);

@@ -50,7 +50,7 @@ const PresetAgentTag: React.FC<PresetAgentTagProps> = ({
       /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(avatarImage))
   );
   const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
-  const name = assistant?.nameI18n?.[localeKey] || assistant?.name || agentInfo.name;
+  const name = assistant?.name_i18n?.[localeKey] || assistant?.name || agentInfo.name;
 
   const hasSwitcher = Boolean(agentSwitcherItems && agentSwitcherItems.length > 0 && onAgentSwitch);
 

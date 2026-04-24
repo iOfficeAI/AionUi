@@ -98,7 +98,7 @@ export const useAssistantEditor = ({
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
-    setEditAgent(assistant.presetAgentType || 'gemini');
+    setEditAgent(assistant.preset_agent_type || 'gemini');
     setPendingSkills([]);
     setDeletePendingSkillName(null);
     setDeleteCustomSkillName(null);
@@ -118,9 +118,9 @@ export const useAssistantEditor = ({
       setEditContext(assistant.context || '');
       setEditSkills('');
       setAvailableSkills([]);
-      setSelectedSkills(assistant.enabledSkills ?? []);
+      setSelectedSkills(assistant.enabled_skills ?? []);
       setCustomSkills([]);
-      setDisabledBuiltinSkills(assistant.disabledBuiltinSkills ?? []);
+      setDisabledBuiltinSkills(assistant.disabled_builtin_skills ?? []);
       return;
     }
 
@@ -137,14 +137,14 @@ export const useAssistantEditor = ({
       if (!isBuiltinAssistant(assistant)) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
-        setSelectedSkills(assistant.enabledSkills ?? []);
-        setCustomSkills(assistant.customSkillNames ?? []);
+        setSelectedSkills(assistant.enabled_skills ?? []);
+        setCustomSkills(assistant.custom_skill_names ?? []);
       } else {
         setAvailableSkills([]);
-        setSelectedSkills(assistant.enabledSkills ?? []);
+        setSelectedSkills(assistant.enabled_skills ?? []);
         setCustomSkills([]);
       }
-      setDisabledBuiltinSkills(assistant.disabledBuiltinSkills ?? []);
+      setDisabledBuiltinSkills(assistant.disabled_builtin_skills ?? []);
     } catch (error) {
       console.error('Failed to load assistant content:', error);
       setEditContext('');
@@ -189,10 +189,10 @@ export const useAssistantEditor = ({
   const handleDuplicate = async (assistant: AssistantListItem) => {
     setIsCreating(true);
     setActiveAssistantId(null);
-    setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
-    setEditDescription(assistant.descriptionI18n?.[localeKey] || assistant.description || '');
+    setEditName(`${assistant.name_i18n?.[localeKey] || assistant.name} (Copy)`);
+    setEditDescription(assistant.description_i18n?.[localeKey] || assistant.description || '');
     setEditAvatar(assistant.avatar || '\u{1F916}');
-    setEditAgent(assistant.presetAgentType || 'gemini');
+    setEditAgent(assistant.preset_agent_type || 'gemini');
     setPromptViewMode('edit');
     setEditVisible(true);
 
@@ -217,9 +217,9 @@ export const useAssistantEditor = ({
       setEditSkills(skills);
       setAvailableSkills(skillsList);
       setBuiltinAutoSkills(autoSkills);
-      setSelectedSkills(assistant.enabledSkills ?? []);
-      setCustomSkills(assistant.customSkillNames ?? []);
-      setDisabledBuiltinSkills(assistant.disabledBuiltinSkills ?? []);
+      setSelectedSkills(assistant.enabled_skills ?? []);
+      setCustomSkills(assistant.custom_skill_names ?? []);
+      setDisabledBuiltinSkills(assistant.disabled_builtin_skills ?? []);
     } catch (error) {
       console.error('Failed to load assistant content for duplication:', error);
       setEditContext('');
@@ -272,10 +272,10 @@ export const useAssistantEditor = ({
           name: editName,
           description: editDescription || undefined,
           avatar: editAvatar || undefined,
-          presetAgentType: editAgent,
-          enabledSkills: selectedSkills,
-          customSkillNames: finalCustomSkills,
-          disabledBuiltinSkills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+          preset_agent_type: editAgent,
+          enabled_skills: selectedSkills,
+          custom_skill_names: finalCustomSkills,
+          disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
         };
         const created = await ipcBridge.assistants.create.invoke(createRequest);
 
@@ -300,10 +300,10 @@ export const useAssistantEditor = ({
           name: editName,
           description: editDescription || undefined,
           avatar: editAvatar || undefined,
-          presetAgentType: editAgent,
-          enabledSkills: selectedSkills,
-          customSkillNames: finalCustomSkills,
-          disabledBuiltinSkills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+          preset_agent_type: editAgent,
+          enabled_skills: selectedSkills,
+          custom_skill_names: finalCustomSkills,
+          disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
         };
         await ipcBridge.assistants.update.invoke(updateRequest);
 

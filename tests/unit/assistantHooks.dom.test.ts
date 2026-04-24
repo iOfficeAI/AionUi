@@ -112,17 +112,17 @@ function makeAssistant(overrides: Partial<Assistant> & { id: string; name: strin
     id: overrides.id,
     name: overrides.name,
     source: 'user',
-    nameI18n: {},
-    descriptionI18n: {},
+    name_i18n: {},
+    description_i18n: {},
     enabled: true,
-    sortOrder: 0,
-    presetAgentType: 'gemini',
-    enabledSkills: [],
-    customSkillNames: [],
-    disabledBuiltinSkills: [],
-    contextI18n: {},
+    sort_order: 0,
+    preset_agent_type: 'gemini',
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
     prompts: [],
-    promptsI18n: {},
+    prompts_i18n: {},
     models: [],
     ...overrides,
   };
@@ -152,11 +152,11 @@ describe('useAssistantList', () => {
     assistantsListInvoke.mockResolvedValue([]);
   });
 
-  it('loads from ipcBridge.assistants.list and populates the list sorted by sortOrder', async () => {
+  it('loads from ipcBridge.assistants.list and populates the list sorted by sort_order', async () => {
     assistantsListInvoke.mockResolvedValue([
-      makeAssistant({ id: 'b', name: 'B', sortOrder: 2 }),
-      makeAssistant({ id: 'a', name: 'A', sortOrder: 0, source: 'builtin' }),
-      makeAssistant({ id: 'c', name: 'C', sortOrder: 1 }),
+      makeAssistant({ id: 'b', name: 'B', sort_order: 2 }),
+      makeAssistant({ id: 'a', name: 'A', sort_order: 0, source: 'builtin' }),
+      makeAssistant({ id: 'c', name: 'C', sort_order: 1 }),
     ]);
 
     const { result } = renderHook(() => useAssistantList());
@@ -171,8 +171,8 @@ describe('useAssistantList', () => {
 
   it('defaults activeAssistantId to the first assistant after load', async () => {
     assistantsListInvoke.mockResolvedValue([
-      makeAssistant({ id: 'first', name: 'First', sortOrder: 0 }),
-      makeAssistant({ id: 'second', name: 'Second', sortOrder: 1 }),
+      makeAssistant({ id: 'first', name: 'First', sort_order: 0 }),
+      makeAssistant({ id: 'second', name: 'Second', sort_order: 1 }),
     ]);
 
     const { result } = renderHook(() => useAssistantList());
@@ -185,8 +185,8 @@ describe('useAssistantList', () => {
 
   it('preserves activeAssistantId across reloads when the id still exists', async () => {
     assistantsListInvoke.mockResolvedValue([
-      makeAssistant({ id: 'one', name: 'One', sortOrder: 0 }),
-      makeAssistant({ id: 'two', name: 'Two', sortOrder: 1 }),
+      makeAssistant({ id: 'one', name: 'One', sort_order: 0 }),
+      makeAssistant({ id: 'two', name: 'Two', sort_order: 1 }),
     ]);
 
     const { result } = renderHook(() => useAssistantList());
@@ -207,7 +207,7 @@ describe('useAssistantList', () => {
   });
 
   it('falls back to the first assistant when the active id disappears on reload', async () => {
-    assistantsListInvoke.mockResolvedValueOnce([makeAssistant({ id: 'old', name: 'Old', sortOrder: 0 })]);
+    assistantsListInvoke.mockResolvedValueOnce([makeAssistant({ id: 'old', name: 'Old', sort_order: 0 })]);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -217,7 +217,7 @@ describe('useAssistantList', () => {
 
     // Second load returns a different set.
     assistantsListInvoke.mockResolvedValueOnce([
-      makeAssistant({ id: 'fresh', name: 'Fresh', sortOrder: 0 }),
+      makeAssistant({ id: 'fresh', name: 'Fresh', sort_order: 0 }),
     ]);
     await act(async () => {
       await result.current.loadAssistants();
@@ -327,7 +327,7 @@ describe('useAssistantEditor', () => {
     expect(assistantsCreateInvoke.mock.calls[0][0]).toMatchObject({
       name: 'My Helper',
       description: 'test',
-      presetAgentType: 'gemini',
+      preset_agent_type: 'gemini',
     });
     expect(writeAssistantRuleInvoke).toHaveBeenCalledWith({
       assistantId: 'new-assistant',

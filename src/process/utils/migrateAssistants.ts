@@ -86,8 +86,14 @@ function asStringArray(value: unknown): string[] | undefined {
  * into the backend `CreateAssistantRequest` contract. Drops CLI-specific
  * fields (cliCommand, defaultCliPath, acpArgs, env) and the redundant
  * isPreset/isBuiltin flags.
+ *
+ * Exported so the mapper can be unit-tested in isolation. Legacy input keeps
+ * its historical camelCase shape; output matches the backend snake_case wire
+ * contract.
  */
-function toBackendShape(legacy: Record<string, unknown>): CreateAssistantRequest {
+export function legacyAssistantToCreateRequest(
+  legacy: Record<string, unknown>,
+): CreateAssistantRequest {
   const legacyId = typeof legacy.id === 'string' ? legacy.id : '';
 
   // Rename colliding user-authored ids to preserve data (spec §8.1).
@@ -96,7 +102,7 @@ function toBackendShape(legacy: Record<string, unknown>): CreateAssistantRequest
   const name = typeof legacy.name === 'string' && legacy.name.trim().length > 0 ? legacy.name : 'Untitled';
   const description = typeof legacy.description === 'string' ? legacy.description : undefined;
   const avatar = typeof legacy.avatar === 'string' ? legacy.avatar : undefined;
-  const presetAgentType =
+  const preset_agent_type =
     typeof legacy.presetAgentType === 'string' ? legacy.presetAgentType : 'gemini';
 
   return {
@@ -104,15 +110,15 @@ function toBackendShape(legacy: Record<string, unknown>): CreateAssistantRequest
     name,
     description,
     avatar,
-    presetAgentType,
-    enabledSkills: asStringArray(legacy.enabledSkills),
-    customSkillNames: asStringArray(legacy.customSkillNames),
-    disabledBuiltinSkills: asStringArray(legacy.disabledBuiltinSkills),
+    preset_agent_type,
+    enabled_skills: asStringArray(legacy.enabledSkills),
+    custom_skill_names: asStringArray(legacy.customSkillNames),
+    disabled_builtin_skills: asStringArray(legacy.disabledBuiltinSkills),
     prompts: asStringArray(legacy.prompts),
     models: asStringArray(legacy.models),
-    nameI18n: asStringRecord(legacy.nameI18n),
-    descriptionI18n: asStringRecord(legacy.descriptionI18n),
-    promptsI18n: asStringArrayRecord(legacy.promptsI18n),
+    name_i18n: asStringRecord(legacy.nameI18n),
+    description_i18n: asStringRecord(legacy.descriptionI18n),
+    prompts_i18n: asStringArrayRecord(legacy.promptsI18n),
   };
 }
 
@@ -221,7 +227,7 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   if (userAssistants.length > 0) {
     try {
       const result = await ipcBridge.assistants.import.invoke({
-        assistants: userAssistants.map(toBackendShape),
+        assistants: userAssistants.map(legacyAssistantToCreateRequest),
       });
       if (result.failed !== 0) {
         console.error(

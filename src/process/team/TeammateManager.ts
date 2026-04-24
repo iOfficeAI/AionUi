@@ -190,9 +190,9 @@ export class TeammateManager extends EventEmitter {
             .map((a) => ({
               custom_agent_id: a.id,
               name: a.name,
-              backend: a.presetAgentType || 'gemini',
+              backend: a.preset_agent_type || 'gemini',
               description: a.description,
-              skills: a.enabledSkills,
+              skills: a.enabled_skills,
             }))
             .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
         }

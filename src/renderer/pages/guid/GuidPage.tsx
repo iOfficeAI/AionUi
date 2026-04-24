@@ -297,7 +297,7 @@ const GuidPage: React.FC = () => {
   // Sync disabledBuiltinSkills from preset assistant config
   useEffect(() => {
     if (agentSelection.is_presetAgent && selectedAssistantRecord) {
-      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabledBuiltinSkills ?? []);
+      setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabled_builtin_skills ?? []);
     } else {
       setGuidDisabledBuiltinSkills(undefined);
     }
@@ -305,12 +305,12 @@ const GuidPage: React.FC = () => {
 
   const heroTitle = useMemo(() => {
     if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
-    const i18nName = selectedAssistantRecord?.nameI18n?.[localeKey];
+    const i18nName = selectedAssistantRecord?.name_i18n?.[localeKey];
     if (i18nName) return i18nName;
     return mention.selectedAgentLabel || t('conversation.welcome.title');
   }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
   const selectedAssistantDescription = useMemo(() => {
-    return selectedAssistantRecord?.descriptionI18n?.[localeKey] || selectedAssistantRecord?.description || '';
+    return selectedAssistantRecord?.description_i18n?.[localeKey] || selectedAssistantRecord?.description || '';
   }, [selectedAssistantRecord, localeKey]);
   const selectedAssistantAvatar = useMemo(() => {
     if (!agentSelection.is_presetAgent) return null;
@@ -415,7 +415,7 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.is_presetAgent, selectedAssistantDescription]);
 
-  const currentPresetAgentType = selectedAssistantRecord?.presetAgentType || 'gemini';
+  const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'gemini';
   const agentSwitcherItems = useMemo(() => {
     if (!agentSelection.availableAgents) return [];
     // Build from detected execution engines, excluding preset assistants and remote agents

@@ -141,7 +141,7 @@ describe('useConversationAgents', () => {
 
   describe('configToAvailableAgent mapping', () => {
     it('maps presetAgentType to backend field', async () => {
-      setupMocks([makePresetConfig({ id: 'p1', name: 'Claude Preset', presetAgentType: 'claude' })]);
+      setupMocks([makePresetConfig({ id: 'p1', name: 'Claude Preset', preset_agent_type: 'claude' })]);
 
       const { result } = renderHook(() => useConversationAgents());
 
@@ -165,7 +165,7 @@ describe('useConversationAgents', () => {
     });
 
     it('defaults backend to "gemini" when presetAgentType is empty string', async () => {
-      setupMocks([makePresetConfig({ id: 'p3', name: 'Empty Type', presetAgentType: '' })]);
+      setupMocks([makePresetConfig({ id: 'p3', name: 'Empty Type', preset_agent_type: '' })]);
 
       const { result } = renderHook(() => useConversationAgents());
 
@@ -179,8 +179,8 @@ describe('useConversationAgents', () => {
 
     it('sets is_preset to true for all preset assistants', async () => {
       setupMocks([
-        makePresetConfig({ id: 'a1', name: 'A1', presetAgentType: 'claude' }),
-        makePresetConfig({ id: 'a2', name: 'A2', presetAgentType: 'codex' }),
+        makePresetConfig({ id: 'a1', name: 'A1', preset_agent_type: 'claude' }),
+        makePresetConfig({ id: 'a2', name: 'A2', preset_agent_type: 'codex' }),
       ]);
 
       const { result } = renderHook(() => useConversationAgents());
@@ -201,7 +201,7 @@ describe('useConversationAgents', () => {
           name: 'Writer Bot',
           avatar: '🖊️',
           context: 'You are a creative writer.',
-          presetAgentType: 'qwen',
+          preset_agent_type: 'qwen',
         }),
       ]);
 
@@ -221,9 +221,9 @@ describe('useConversationAgents', () => {
 
     it('handles various presetAgentType values correctly', async () => {
       setupMocks([
-        makePresetConfig({ id: 'c1', name: 'Codex', presetAgentType: 'codex' }),
-        makePresetConfig({ id: 'c2', name: 'CodeBuddy', presetAgentType: 'codebuddy' }),
-        makePresetConfig({ id: 'c3', name: 'Aionrs', presetAgentType: 'aionrs' }),
+        makePresetConfig({ id: 'c1', name: 'Codex', preset_agent_type: 'codex' }),
+        makePresetConfig({ id: 'c2', name: 'CodeBuddy', preset_agent_type: 'codebuddy' }),
+        makePresetConfig({ id: 'c3', name: 'Aionrs', preset_agent_type: 'aionrs' }),
       ]);
 
       const { result } = renderHook(() => useConversationAgents());
@@ -255,8 +255,8 @@ describe('useConversationAgents', () => {
 
     it('returns presetAssistants derived from ConfigStorage("assistants")', async () => {
       const presets = [
-        makePresetConfig({ id: 'p1', name: 'Assistant A', presetAgentType: 'claude' }),
-        makePresetConfig({ id: 'p2', name: 'Assistant B', presetAgentType: 'gemini' }),
+        makePresetConfig({ id: 'p1', name: 'Assistant A', preset_agent_type: 'claude' }),
+        makePresetConfig({ id: 'p2', name: 'Assistant B', preset_agent_type: 'gemini' }),
       ];
       setupMocks(presets);
 

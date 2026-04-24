@@ -17,22 +17,22 @@ import {
 } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 
 // Helper to create a minimal AssistantListItem. The backend contract requires
-// sortOrder, so default it to 0 and let callers override.
+// sort_order, so default it to 0 and let callers override.
 function makeAssistant(overrides: Partial<AssistantListItem> & { id: string; name: string }): AssistantListItem {
   return {
     enabled: true,
-    sortOrder: 0,
+    sort_order: 0,
     source: 'user',
-    nameI18n: {},
-    descriptionI18n: {},
-    contextI18n: {},
+    name_i18n: {},
+    description_i18n: {},
+    context_i18n: {},
     prompts: [],
-    promptsI18n: {},
+    prompts_i18n: {},
     models: [],
-    enabledSkills: [],
-    customSkillNames: [],
-    disabledBuiltinSkills: [],
-    presetAgentType: 'gemini',
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    preset_agent_type: 'gemini',
     ...overrides,
   } as AssistantListItem;
 }
@@ -96,18 +96,18 @@ describe('resolveAvatarImageSrc', () => {
 });
 
 // ---------------------------------------------------------------------------
-// sortAssistants — sorts by sortOrder (backend already returns sorted)
+// sortAssistants — sorts by sort_order (backend already returns sorted)
 // ---------------------------------------------------------------------------
 describe('sortAssistants', () => {
   it('returns an empty array when given an empty array', () => {
     expect(sortAssistants([])).toEqual([]);
   });
 
-  it('sorts by ascending sortOrder', () => {
+  it('sorts by ascending sort_order', () => {
     const input: AssistantListItem[] = [
-      makeAssistant({ id: 'c', name: 'C', sortOrder: 20 }),
-      makeAssistant({ id: 'a', name: 'A', sortOrder: 0 }),
-      makeAssistant({ id: 'b', name: 'B', sortOrder: 10 }),
+      makeAssistant({ id: 'c', name: 'C', sort_order: 20 }),
+      makeAssistant({ id: 'a', name: 'A', sort_order: 0 }),
+      makeAssistant({ id: 'b', name: 'B', sort_order: 10 }),
     ];
 
     expect(sortAssistants(input).map((a) => a.id)).toEqual(['a', 'b', 'c']);
@@ -115,8 +115,8 @@ describe('sortAssistants', () => {
 
   it('does not mutate the input array', () => {
     const input: AssistantListItem[] = [
-      makeAssistant({ id: 'c', name: 'C', sortOrder: 2 }),
-      makeAssistant({ id: 'a', name: 'A', sortOrder: 0 }),
+      makeAssistant({ id: 'c', name: 'C', sort_order: 2 }),
+      makeAssistant({ id: 'a', name: 'A', sort_order: 0 }),
     ];
     const original = [...input];
 
@@ -124,10 +124,10 @@ describe('sortAssistants', () => {
     expect(input.map((a) => a.id)).toEqual(original.map((a) => a.id));
   });
 
-  it('preserves relative order for equal sortOrder values', () => {
+  it('preserves relative order for equal sort_order values', () => {
     const input: AssistantListItem[] = [
-      makeAssistant({ id: 'first', name: 'F', sortOrder: 5 }),
-      makeAssistant({ id: 'second', name: 'S', sortOrder: 5 }),
+      makeAssistant({ id: 'first', name: 'F', sort_order: 5 }),
+      makeAssistant({ id: 'second', name: 'S', sort_order: 5 }),
     ];
 
     expect(sortAssistants(input).map((a) => a.id)).toEqual(['first', 'second']);
@@ -142,7 +142,7 @@ describe('filterAssistants', () => {
     makeAssistant({
       id: 'builtin-alpha',
       name: 'Alpha',
-      nameI18n: { 'en-US': 'Alpha' },
+      name_i18n: { 'en-US': 'Alpha' },
       description: 'Word helper',
       source: 'builtin',
       enabled: true,
@@ -150,7 +150,7 @@ describe('filterAssistants', () => {
     makeAssistant({
       id: 'custom-beta',
       name: 'Beta',
-      nameI18n: { 'en-US': 'Beta' },
+      name_i18n: { 'en-US': 'Beta' },
       description: 'Sales helper',
       source: 'user',
       enabled: false,
@@ -158,7 +158,7 @@ describe('filterAssistants', () => {
     makeAssistant({
       id: 'ext-gamma',
       name: 'Gamma',
-      nameI18n: { 'en-US': 'Gamma' },
+      name_i18n: { 'en-US': 'Gamma' },
       description: 'Extension helper',
       source: 'extension',
       enabled: true,

@@ -27,13 +27,13 @@ export type UseConversationAgentsResult = {
  */
 function assistantToAvailableAgent(assistant: Assistant): AvailableAgent {
   return {
-    backend: assistant.presetAgentType || 'gemini',
+    backend: assistant.preset_agent_type || 'gemini',
     name: assistant.name,
     custom_agent_id: assistant.id,
     is_preset: true,
     context: assistant.context,
     avatar: assistant.avatar,
-    presetAgentType: assistant.presetAgentType,
+    presetAgentType: assistant.preset_agent_type,
   };
 }
 

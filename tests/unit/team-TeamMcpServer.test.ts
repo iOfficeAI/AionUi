@@ -530,7 +530,7 @@ describe('TeamMcpServer', () => {
           name: 'Word Creator',
           is_preset: true,
           enabled: true,
-          presetAgentType: 'claude',
+          preset_agent_type: 'claude',
         },
       ];
 
@@ -566,7 +566,7 @@ describe('TeamMcpServer', () => {
           name: 'Cowork',
           is_preset: true,
           enabled: false,
-          presetAgentType: 'claude',
+          preset_agent_type: 'claude',
         },
       ];
 

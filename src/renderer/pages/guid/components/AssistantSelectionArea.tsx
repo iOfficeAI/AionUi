@@ -272,7 +272,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           {/* Prompts Section */}
           {(() => {
             const agent = assistants.find((a) => a.id === selectedAgentInfo.custom_agent_id);
-            const prompts = agent?.promptsI18n?.[localeKey] || agent?.promptsI18n?.['en-US'] || agent?.prompts;
+            const prompts = agent?.prompts_i18n?.[localeKey] || agent?.prompts_i18n?.['en-US'] || agent?.prompts;
             if (prompts && prompts.length > 0) {
               return (
                 <div className='mt-16px'>
@@ -344,7 +344,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
                   <Robot theme='outline' size={16} />
                 )}
                 <span className='text-14px text-2 hover:text-1'>
-                  {assistant.nameI18n?.[localeKey] || assistant.name}
+                  {assistant.name_i18n?.[localeKey] || assistant.name}
                 </span>
               </div>
             );

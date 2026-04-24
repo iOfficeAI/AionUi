@@ -95,7 +95,7 @@ export const usePresetAssistantResolver = ({
       if (!agentInfo) return 'gemini';
       if (!agentInfo.custom_agent_id) return agentInfo.backend as string;
       const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
-      return assistant?.presetAgentType || 'gemini';
+      return assistant?.preset_agent_type || 'gemini';
     },
     [assistants]
   );
@@ -106,8 +106,8 @@ export const usePresetAssistantResolver = ({
       const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
       // Preserve legacy "undefined means use agent default" semantics by
       // treating an empty list the same as absent.
-      if (!assistant || assistant.enabledSkills.length === 0) return undefined;
-      return assistant.enabledSkills;
+      if (!assistant || assistant.enabled_skills.length === 0) return undefined;
+      return assistant.enabled_skills;
     },
     [assistants]
   );
@@ -116,8 +116,8 @@ export const usePresetAssistantResolver = ({
     (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined): string[] | undefined => {
       if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
       const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
-      if (!assistant || assistant.disabledBuiltinSkills.length === 0) return undefined;
-      return assistant.disabledBuiltinSkills;
+      if (!assistant || assistant.disabled_builtin_skills.length === 0) return undefined;
+      return assistant.disabled_builtin_skills;
     },
     [assistants]
   );
