@@ -330,7 +330,7 @@ describe('useAssistantEditor', () => {
       preset_agent_type: 'gemini',
     });
     expect(writeAssistantRuleInvoke).toHaveBeenCalledWith({
-      assistantId: 'new-assistant',
+      assistant_id: 'new-assistant',
       locale: 'en-US',
       content: 'rule body',
     });

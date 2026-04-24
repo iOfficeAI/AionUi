@@ -76,4 +76,40 @@ describe('ipcBridge.fs — createTempFile/createUploadFile use snake_case body',
     expect(body).toEqual({ assistant_id: 'custom-1', locale: 'en-US' });
     expect(body).not.toHaveProperty('assistantId');
   });
+
+  it('writeAssistantRule sends {assistant_id, content, locale}', async () => {
+    await fs.writeAssistantRule.invoke({ assistant_id: 'custom-1', content: 'rule md', locale: 'zh-CN' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ assistant_id: 'custom-1', content: 'rule md', locale: 'zh-CN' });
+    expect(body).not.toHaveProperty('assistantId');
+  });
+
+  it('writeAssistantSkill sends {assistant_id, content, locale}', async () => {
+    await fs.writeAssistantSkill.invoke({ assistant_id: 'custom-1', content: 'skill md', locale: 'en-US' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ assistant_id: 'custom-1', content: 'skill md', locale: 'en-US' });
+    expect(body).not.toHaveProperty('assistantId');
+  });
+
+  it('deleteAssistantRule builds URL /api/skills/assistant-rule/<id>', async () => {
+    await fs.deleteAssistantRule.invoke({ assistant_id: 'custom-42' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/skills/assistant-rule/custom-42');
+    expect(init!.method).toBe('DELETE');
+    expect(init!.body).toBeUndefined();
+  });
+
+  it('deleteAssistantSkill builds URL /api/skills/assistant-skill/<id>', async () => {
+    await fs.deleteAssistantSkill.invoke({ assistant_id: 'custom-42' });
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(String(url)).toContain('/api/skills/assistant-skill/custom-42');
+    expect(init!.method).toBe('DELETE');
+    expect(init!.body).toBeUndefined();
+  });
 });

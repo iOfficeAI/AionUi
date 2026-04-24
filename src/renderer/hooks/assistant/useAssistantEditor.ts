@@ -282,7 +282,7 @@ export const useAssistantEditor = ({
         // Save rule file
         if (editContext.trim()) {
           await ipcBridge.fs.writeAssistantRule.invoke({
-            assistantId: created.id,
+            assistant_id: created.id,
             locale: localeKey,
             content: editContext,
           });
@@ -310,7 +310,7 @@ export const useAssistantEditor = ({
         // Save rule file (if changed)
         if (editContext.trim()) {
           await ipcBridge.fs.writeAssistantRule.invoke({
-            assistantId: activeAssistant.id,
+            assistant_id: activeAssistant.id,
             locale: localeKey,
             content: editContext,
           });
