@@ -11,7 +11,7 @@ const DEFAULT_BEDROCK_MODEL = 'anthropic.claude-sonnet-4-5-20250929-v1:0';
 
 export function initBedrockBridge(): void {
   // Test AWS Bedrock connection with provided credentials
-  ipcBridge.bedrock.testConnection.provider(async ({ bedrockConfig }) => {
+  ipcBridge.bedrock.testConnection.provider(async ({ bedrock_config }) => {
     try {
       // Dynamically import BedrockContentGenerator to avoid loading unnecessary dependencies
       const { BedrockContentGenerator } =
@@ -27,27 +27,27 @@ export function initBedrockBridge(): void {
 
       try {
         // Set environment variables based on auth method
-        if (bedrockConfig.authMethod === 'accessKey') {
-          if (!bedrockConfig.accessKeyId || !bedrockConfig.secretAccessKey) {
+        if (bedrock_config.auth_method === 'accessKey') {
+          if (!bedrock_config.access_key_id || !bedrock_config.secret_access_key) {
             throw new Error('AWS credentials missing for access key authentication');
           }
-          process.env.AWS_ACCESS_KEY_ID = bedrockConfig.accessKeyId;
-          process.env.AWS_SECRET_ACCESS_KEY = bedrockConfig.secretAccessKey;
+          process.env.AWS_ACCESS_KEY_ID = bedrock_config.access_key_id;
+          process.env.AWS_SECRET_ACCESS_KEY = bedrock_config.secret_access_key;
           delete process.env.AWS_PROFILE;
-        } else if (bedrockConfig.authMethod === 'profile') {
-          if (!bedrockConfig.profile) {
+        } else if (bedrock_config.auth_method === 'profile') {
+          if (!bedrock_config.profile) {
             throw new Error('AWS profile name missing');
           }
-          process.env.AWS_PROFILE = bedrockConfig.profile;
+          process.env.AWS_PROFILE = bedrock_config.profile;
           delete process.env.AWS_ACCESS_KEY_ID;
           delete process.env.AWS_SECRET_ACCESS_KEY;
         }
-        process.env.AWS_REGION = bedrockConfig.region;
+        process.env.AWS_REGION = bedrock_config.region;
 
         // Create Bedrock client and test with a simple call
         const client = new BedrockContentGenerator({
           model: DEFAULT_BEDROCK_MODEL,
-          region: bedrockConfig.region,
+          region: bedrock_config.region,
         });
 
         // Test connection with countTokens (lightweight, no quota usage)

@@ -28,14 +28,14 @@ describe('IpcAgentEventEmitter', () => {
 
   it('emitConfirmationAdd calls ipcBridge with conversationId merged', () => {
     const emitter = new IpcAgentEventEmitter();
-    const data = { id: 'conf1', callId: 'call1', options: [] } as any;
+    const data = { id: 'conf1', call_id: 'call1', options: [] } as any;
     emitter.emitConfirmationAdd('conv1', data);
     expect(mocks.add).toHaveBeenCalledWith(expect.objectContaining({ conversation_id: 'conv1', id: 'conf1' }));
   });
 
   it('emitConfirmationUpdate calls ipcBridge with conversationId merged', () => {
     const emitter = new IpcAgentEventEmitter();
-    const data = { id: 'conf1', callId: 'call1', options: [] } as any;
+    const data = { id: 'conf1', call_id: 'call1', options: [] } as any;
     emitter.emitConfirmationUpdate('conv1', data);
     expect(mocks.update).toHaveBeenCalledWith(expect.objectContaining({ conversation_id: 'conv1', id: 'conf1' }));
   });

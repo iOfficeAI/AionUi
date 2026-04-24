@@ -32,24 +32,26 @@ export type GuidSendDeps = {
   selectedAgent: string;
   selectedAgentKey: string;
   selectedAgentInfo: AvailableAgent | undefined;
-  isPresetAgent: boolean;
+  is_presetAgent: boolean;
   selectedMode: string;
   selectedAcpModel: string | null;
-  pendingConfigOptions: Record<string, string>;
-  cachedConfigOptions: import('@/common/types/acpTypes').AcpSessionConfigOption[];
-  currentModel: TProviderWithModel | undefined;
+  pending_config_options: Record<string, string>;
+  cached_config_options: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+  current_model: TProviderWithModel | undefined;
 
   // Agent helpers
   findAgentByKey: (key: string) => AvailableAgent | undefined;
-  getEffectiveAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => EffectiveAgentInfo;
+  getEffectiveAgentType: (
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+  ) => EffectiveAgentInfo;
   resolvePresetRulesAndSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<{ rules?: string; skills?: string }>;
   resolveEnabledSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   guidDisabledBuiltinSkills: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
@@ -90,12 +92,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedAgent,
     selectedAgentKey,
     selectedAgentInfo,
-    isPresetAgent,
+    is_presetAgent,
     selectedMode,
     selectedAcpModel,
-    pendingConfigOptions,
-    cachedConfigOptions,
-    currentModel,
+    pending_config_options,
+    cached_config_options,
+    current_model,
     findAgentByKey,
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
@@ -120,58 +122,58 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const finalWorkspace = dir || '';
 
     const agentInfo = selectedAgentInfo;
-    const isPreset = isPresetAgent;
-    const presetAssistantId = isPreset ? agentInfo?.customAgentId : undefined;
+    const is_preset = is_presetAgent;
+    const preset_assistant_id = is_preset ? agentInfo?.custom_agent_id : undefined;
 
-    const { agentType: effectiveAgentType } = getEffectiveAgentType(agentInfo);
+    const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
-    const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
-    const enabledSkills = resolveEnabledSkills(agentInfo);
+    const { rules: preset_rules } = await resolvePresetRulesAndSkills(agentInfo);
+    const enabled_skills = resolveEnabledSkills(agentInfo);
     // Use guid page's local skill state (initialized from assistant config, overridable by user)
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
 
     const finalEffectiveAgentType = effectiveAgentType;
 
     // Gemini path
-    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
+    if (!selectedAgent || selectedAgent === 'gemini' || (is_preset && finalEffectiveAgentType === 'gemini')) {
       // The placeholder only makes sense while Google Auth is active — otherwise
       // it fabricates a logged-out auth type and the chat page fails to load.
-      if (!currentModel && !isGoogleAuth) {
+      if (!current_model && !isGoogleAuth) {
         Message.warning(t('conversation.noModelConfigured'));
         return;
       }
-      const placeholderModel = currentModel || {
+      const placeholderModel = current_model || {
         id: 'gemini-placeholder',
         name: 'Gemini',
         useModel: 'default',
         platform: 'gemini-with-google-auth' as const,
-        baseUrl: '',
-        apiKey: '',
+        base_url: '',
+        api_key: '',
       };
       try {
         const geminiConversationParams = buildAgentConversationParams({
           backend: 'gemini',
           name: input,
-          agentName: agentInfo?.name,
-          presetAssistantId,
+          agent_name: agentInfo?.name,
+          preset_assistant_id,
           workspace: finalWorkspace,
           model: placeholderModel,
-          customAgentId: agentInfo?.customAgentId,
-          customWorkspace: isCustomWorkspace,
-          isPreset,
+          custom_agent_id: agentInfo?.custom_agent_id,
+          custom_workspace: isCustomWorkspace,
+          is_preset,
           presetAgentType: finalEffectiveAgentType,
-          presetResources: isPreset
+          presetResources: is_preset
             ? {
-                rules: presetRules,
-                enabledSkills,
+                rules: preset_rules,
+                enabled_skills,
                 excludeBuiltinSkills,
               }
             : undefined,
-          sessionMode: selectedMode,
+          session_mode: selectedMode,
           extra: {
             defaultFiles: files,
             excludeBuiltinSkills,
-            webSearchEngine:
+            web_search_engine:
               placeholderModel.platform === 'gemini-with-google-auth' ||
               placeholderModel.platform === 'gemini-vertex-ai'
                 ? 'google'
@@ -215,24 +217,24 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const openclawConversationParams = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
         name: input,
-        agentName: openclawAgentInfo?.name,
-        presetAssistantId,
+        agent_name: openclawAgentInfo?.name,
+        preset_assistant_id,
         workspace: finalWorkspace,
-        model: currentModel!,
-        cliPath: openclawAgentInfo?.cliPath,
-        customAgentId: openclawAgentInfo?.customAgentId,
-        customWorkspace: isCustomWorkspace,
+        model: current_model!,
+        cli_path: openclawAgentInfo?.cli_path,
+        custom_agent_id: openclawAgentInfo?.custom_agent_id,
+        custom_workspace: isCustomWorkspace,
         extra: {
           defaultFiles: files,
           runtimeValidation: {
             expectedWorkspace: finalWorkspace,
             expectedBackend: openclawAgentInfo?.backend,
             expectedAgentName: openclawAgentInfo?.name,
-            expectedCliPath: openclawAgentInfo?.cliPath,
-            expectedModel: currentModel?.useModel,
+            expectedCliPath: openclawAgentInfo?.cli_path,
+            expectedModel: current_model?.useModel,
             switchedAt: Date.now(),
           },
-          enabledSkills: isPreset ? enabledSkills : undefined,
+          enabled_skills: is_preset ? enabled_skills : undefined,
           excludeBuiltinSkills,
         },
       });
@@ -274,15 +276,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const nanobotConversationParams = buildAgentConversationParams({
         backend: nanobotAgentInfo?.backend || 'nanobot',
         name: input,
-        agentName: nanobotAgentInfo?.name,
-        presetAssistantId,
+        agent_name: nanobotAgentInfo?.name,
+        preset_assistant_id,
         workspace: finalWorkspace,
-        model: currentModel!,
-        customAgentId: nanobotAgentInfo?.customAgentId,
-        customWorkspace: isCustomWorkspace,
+        model: current_model!,
+        custom_agent_id: nanobotAgentInfo?.custom_agent_id,
+        custom_workspace: isCustomWorkspace,
         extra: {
           defaultFiles: files,
-          enabledSkills: isPreset ? enabledSkills : undefined,
+          enabled_skills: is_preset ? enabled_skills : undefined,
           excludeBuiltinSkills,
         },
       });
@@ -319,8 +321,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     }
 
     // Aionrs path (direct selection or preset assistant with aionrs as main agent)
-    if (selectedAgent === 'aionrs' || (isPreset && finalEffectiveAgentType === 'aionrs')) {
-      if (!currentModel) {
+    if (selectedAgent === 'aionrs' || (is_preset && finalEffectiveAgentType === 'aionrs')) {
+      if (!current_model) {
         Message.warning(t('conversation.noModelConfigured'));
         return;
       }
@@ -328,16 +330,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'aionrs',
           name: input,
-          model: currentModel,
+          model: current_model,
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
-            customWorkspace: isCustomWorkspace,
-            presetRules: isPreset ? presetRules : undefined,
-            enabledSkills: isPreset ? enabledSkills : undefined,
+            custom_workspace: isCustomWorkspace,
+            preset_rules: is_preset ? preset_rules : undefined,
+            enabled_skills: is_preset ? enabled_skills : undefined,
             excludeBuiltinSkills,
-            presetAssistantId,
-            sessionMode: selectedMode,
+            preset_assistant_id,
+            session_mode: selectedMode,
           },
         });
 
@@ -374,43 +376,43 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       // Agent-type fallback only applies to preset assistants whose primary agent
       // was unavailable and got switched (e.g. claude → gemini).  For non-preset
       // agents (including extension-contributed ACP adapters with backend='custom'),
-      // we must keep the original selectedAgent so the correct backend/cliPath is used.
-      const agentTypeChanged = isPreset && selectedAgent !== finalEffectiveAgentType;
-      const acpBackend: string | undefined = agentTypeChanged
+      // we must keep the original selectedAgent so the correct backend/cli_path is used.
+      const agent_typeChanged = is_preset && selectedAgent !== finalEffectiveAgentType;
+      const acpBackend: string | undefined = agent_typeChanged
         ? finalEffectiveAgentType
-        : isPreset
+        : is_preset
           ? finalEffectiveAgentType
           : selectedAgent;
 
-      const acpAgentInfo = agentTypeChanged
+      const acpAgentInfo = agent_typeChanged
         ? findAgentByKey(acpBackend as string)
         : agentInfo || findAgentByKey(selectedAgentKey);
 
-      if (!acpAgentInfo && !isPreset) {
+      if (!acpAgentInfo && !is_preset) {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = acpBackend || selectedAgent;
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
-        agentName: acpAgentInfo?.name,
-        presetAssistantId,
+        agent_name: acpAgentInfo?.name,
+        preset_assistant_id,
         workspace: finalWorkspace,
-        model: currentModel!,
-        cliPath: acpAgentInfo?.cliPath,
-        customAgentId: acpAgentInfo?.customAgentId,
-        customWorkspace: isCustomWorkspace,
-        isPreset,
+        model: current_model!,
+        cli_path: acpAgentInfo?.cli_path,
+        custom_agent_id: acpAgentInfo?.custom_agent_id,
+        custom_workspace: isCustomWorkspace,
+        is_preset,
         presetAgentType: finalEffectiveAgentType,
-        presetResources: isPreset
+        presetResources: is_preset
           ? {
-              rules: presetRules,
-              enabledSkills,
+              rules: preset_rules,
+              enabled_skills,
               excludeBuiltinSkills,
             }
           : undefined,
-        sessionMode: selectedMode,
-        currentModelId: selectedAcpModel || undefined,
+        session_mode: selectedMode,
+        current_model_id: selectedAcpModel || undefined,
         extra: {
           defaultFiles: files,
           excludeBuiltinSkills,
@@ -420,24 +422,24 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       try {
         // Merge pending selections into cached options so the UI shows the user's choice immediately
         const mergedCachedConfigOptions =
-          cachedConfigOptions.length > 0
-            ? Object.keys(pendingConfigOptions).length > 0
-              ? cachedConfigOptions.map((opt) => {
-                  const pending = opt.id ? pendingConfigOptions[opt.id] : undefined;
-                  return pending ? { ...opt, currentValue: pending, selectedValue: pending } : opt;
+          cached_config_options.length > 0
+            ? Object.keys(pending_config_options).length > 0
+              ? cached_config_options.map((opt) => {
+                  const pending = opt.id ? pending_config_options[opt.id] : undefined;
+                  return pending ? { ...opt, current_value: pending, selected_value: pending } : opt;
                 })
-              : cachedConfigOptions
+              : cached_config_options
             : undefined;
 
-        // Inject cachedConfigOptions & pendingConfigOptions into the params built by utility
+        // Inject cached_config_options & pending_config_options into the params built by utility
         if (mergedCachedConfigOptions) {
           agentConversationParams.extra = {
             ...agentConversationParams.extra,
-            cachedConfigOptions: mergedCachedConfigOptions,
+            cached_config_options: mergedCachedConfigOptions,
           };
         }
-        if (Object.keys(pendingConfigOptions).length > 0) {
-          agentConversationParams.extra = { ...agentConversationParams.extra, pendingConfigOptions };
+        if (Object.keys(pending_config_options).length > 0) {
+          agentConversationParams.extra = { ...agentConversationParams.extra, pending_config_options };
         }
 
         const conversation = await ipcBridge.conversation.create.invoke(agentConversationParams);
@@ -473,12 +475,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedAgent,
     selectedAgentKey,
     selectedAgentInfo,
-    isPresetAgent,
+    is_presetAgent,
     selectedMode,
     selectedAcpModel,
-    pendingConfigOptions,
-    cachedConfigOptions,
-    currentModel,
+    pending_config_options,
+    cached_config_options,
+    current_model,
     findAgentByKey,
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
@@ -529,9 +531,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const isButtonDisabled =
     loading ||
     !input.trim() ||
-    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) ||
-      (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&
-      !currentModel &&
+    ((((!selectedAgent || selectedAgent === 'gemini') && !is_presetAgent) ||
+      (is_presetAgent && currentEffectiveAgentInfo.agent_type === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&
+      !current_model &&
       isGoogleAuth);
 
   return {

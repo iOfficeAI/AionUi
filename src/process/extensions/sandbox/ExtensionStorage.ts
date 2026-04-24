@@ -101,20 +101,20 @@ export class ExtensionStorage {
   }
 
   private getFilePath(extensionName: string): string {
-    const filePath = path.join(this.storageDir, `${extensionName}.json`);
-    if (!isPathWithinDirectory(filePath, this.storageDir)) {
+    const file_path = path.join(this.storageDir, `${extensionName}.json`);
+    if (!isPathWithinDirectory(file_path, this.storageDir)) {
       throw new Error(`[ExtensionStorage] Invalid extension name: "${extensionName}"`);
     }
-    return filePath;
+    return file_path;
   }
 
   private loadData(extensionName: string): Record<string, unknown> {
     const cached = this.cache.get(extensionName);
     if (cached) return cached;
 
-    const filePath = this.getFilePath(extensionName);
+    const file_path = this.getFilePath(extensionName);
     try {
-      const raw = fs.readFileSync(filePath, 'utf-8');
+      const raw = fs.readFileSync(file_path, 'utf-8');
       const data = JSON.parse(raw) as Record<string, unknown>;
       this.cache.set(extensionName, data);
       return data;
@@ -128,8 +128,8 @@ export class ExtensionStorage {
 
   private saveData(extensionName: string, data: Record<string, unknown>): void {
     fs.mkdirSync(this.storageDir, { recursive: true });
-    const filePath = this.getFilePath(extensionName);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    const file_path = this.getFilePath(extensionName);
+    fs.writeFileSync(file_path, JSON.stringify(data, null, 2), 'utf-8');
     this.cache.set(extensionName, data);
   }
 }

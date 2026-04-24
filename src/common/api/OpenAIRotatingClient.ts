@@ -13,12 +13,12 @@ export interface OpenAIClientConfig {
 export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
   private readonly baseConfig: OpenAIClientConfig;
 
-  constructor(apiKeys: string, config: OpenAIClientConfig = {}, options: RotatingApiClientOptions = {}) {
-    const createClient = (apiKey: string) => {
-      const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
+  constructor(api_keys: string, config: OpenAIClientConfig = {}, options: RotatingApiClientOptions = {}) {
+    const createClient = (api_key: string) => {
+      const cleanedApiKey = api_key.replace(/[\s\r\n\t]/g, '').trim();
       const openaiConfig: any = {
         baseURL: config.baseURL,
-        apiKey: cleanedApiKey,
+        api_key: cleanedApiKey,
         defaultHeaders: config.defaultHeaders,
       };
 
@@ -29,7 +29,7 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
       return new OpenAI(openaiConfig);
     };
 
-    super(apiKeys, AuthType.USE_OPENAI, createClient, options);
+    super(api_keys, AuthType.USE_OPENAI, createClient, options);
     this.baseConfig = config;
   }
 

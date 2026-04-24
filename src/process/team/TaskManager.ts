@@ -4,7 +4,7 @@ import type { TeamTask } from './types';
 
 /** Parameters for creating a new task */
 type CreateTaskParams = {
-  teamId: string;
+  team_id: string;
   subject: string;
   description?: string;
   owner?: string;
@@ -34,7 +34,7 @@ export class TaskManager {
     const now = Date.now();
     const task: TeamTask = {
       id: crypto.randomUUID(),
-      teamId: params.teamId,
+      team_id: params.team_id,
       subject: params.subject,
       description: params.description,
       status: 'pending',
@@ -42,8 +42,8 @@ export class TaskManager {
       blockedBy: params.blockedBy ?? [],
       blocks: [],
       metadata: {},
-      createdAt: now,
-      updatedAt: now,
+      created_at: now,
+      updated_at: now,
     };
 
     const created = await this.repo.createTask(task);
@@ -57,27 +57,27 @@ export class TaskManager {
   }
 
   /**
-   * Update a task. Auto-updates `updatedAt`. Returns the merged task.
+   * Update a task. Auto-updates `updated_at`. Returns the merged task.
    */
   async update(taskId: string, updates: UpdateTaskParams): Promise<TeamTask> {
     return this.repo.updateTask(taskId, {
       ...updates,
-      updatedAt: Date.now(),
+      updated_at: Date.now(),
     });
   }
 
   /**
    * List all tasks for a team.
    */
-  async list(teamId: string): Promise<TeamTask[]> {
-    return this.repo.findTasksByTeam(teamId);
+  async list(team_id: string): Promise<TeamTask[]> {
+    return this.repo.findTasksByTeam(team_id);
   }
 
   /**
    * Get tasks assigned to a specific agent.
    */
-  async getByOwner(teamId: string, ownerId: string): Promise<TeamTask[]> {
-    return this.repo.findTasksByOwner(teamId, ownerId);
+  async getByOwner(team_id: string, ownerId: string): Promise<TeamTask[]> {
+    return this.repo.findTasksByOwner(team_id, ownerId);
   }
 
   /**
@@ -87,11 +87,11 @@ export class TaskManager {
    * (i.e. tasks that are now fully unblocked).
    */
   async checkUnblocks(taskId: string): Promise<TeamTask[]> {
-    // Locate the completed task to get its teamId
+    // Locate the completed task to get its team_id
     const completedTask = await this.repo.findTaskById(taskId);
     if (!completedTask) return [];
 
-    const allTasks = await this.repo.findTasksByTeam(completedTask.teamId);
+    const allTasks = await this.repo.findTasksByTeam(completedTask.team_id);
     const dependents = allTasks.filter((t) => t.blockedBy.includes(taskId));
 
     if (dependents.length === 0) return [];
@@ -100,7 +100,7 @@ export class TaskManager {
     const updated = await Promise.all(dependents.map((t) => this.repo.removeFromBlockedBy(t.id, taskId)));
 
     // Clear the completed task's stale blocks pointer (Bug #5)
-    await this.repo.updateTask(taskId, { blocks: [], updatedAt: Date.now() });
+    await this.repo.updateTask(taskId, { blocks: [], updated_at: Date.now() });
 
     return updated.filter((t) => t.blockedBy.length === 0);
   }

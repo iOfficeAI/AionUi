@@ -104,15 +104,15 @@ describe('ConversationSearchPopover', () => {
             modifyTime: 1,
             extra: {
               workspace: '/workspace/topic-a',
-              customWorkspace: true,
+              custom_workspace: true,
             },
             model: {
               id: 'provider-1',
               platform: 'openai',
               name: 'Provider',
-              baseUrl: 'https://example.com',
-              apiKey: 'test-key',
-              useModel: 'gpt-4o-mini',
+              base_url: 'https://example.com',
+              api_key: 'test-key',
+              use_model: 'gpt-4o-mini',
             },
           },
           messageId: 'msg-1',
@@ -123,8 +123,8 @@ describe('ConversationSearchPopover', () => {
       ],
       total: 1,
       page: 0,
-      pageSize: 20,
-      hasMore: false,
+      page_size: 20,
+      has_more: false,
     });
 
     const onConversationSelect = vi.fn();
@@ -145,7 +145,7 @@ describe('ConversationSearchPopover', () => {
       expect(searchConversationMessagesInvoke).toHaveBeenCalledWith({
         keyword: 'target keyword',
         page: 0,
-        pageSize: 20,
+        page_size: 20,
       });
     });
 

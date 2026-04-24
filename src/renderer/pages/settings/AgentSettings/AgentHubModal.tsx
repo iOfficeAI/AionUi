@@ -141,15 +141,15 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
                     bold
                     className='mb-6px block min-h-36px text-center text-13px leading-18px line-clamp-2'
                   >
-                    {agent.displayName}
+                    {agent.display_name}
                   </Typography.Text>
 
                   <div className='mb-6px flex h-40px items-center justify-center'>
                     {logo ? (
-                      <img src={logo} alt={agent.displayName} className='h-36px w-36px rounded-10px object-contain' />
+                      <img src={logo} alt={agent.display_name} className='h-36px w-36px rounded-10px object-contain' />
                     ) : (
                       <div className='flex h-36px w-36px items-center justify-center rounded-10px bg-fill-2 text-16px font-bold text-t-secondary'>
-                        {agent.displayName.charAt(0)}
+                        {agent.display_name.charAt(0)}
                       </div>
                     )}
                   </div>

@@ -34,8 +34,8 @@ export class ConversationServiceImpl implements IConversationService {
     return this.repo.listAllConversations();
   }
 
-  async getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]> {
-    return this.repo.getConversationsByCronJob(cronJobId);
+  async getConversationsByCronJob(cron_job_id: string): Promise<TChatConversation[]> {
+    return this.repo.getConversationsByCronJob(cron_job_id);
   }
 
   async deleteConversation(id: string): Promise<void> {
@@ -66,19 +66,19 @@ export class ConversationServiceImpl implements IConversationService {
     const { conversation, sourceConversationId, migrateCron } = params;
     const conv: TChatConversation = {
       ...conversation,
-      createdAt: conversation.createdAt ?? Date.now(),
-      modifiedAt: conversation.modifiedAt ?? Date.now(),
+      created_at: conversation.created_at ?? Date.now(),
+      modified_at: conversation.modified_at ?? Date.now(),
     };
     await this.repo.createConversation(conv);
 
     if (sourceConversationId) {
       // Copy all messages from source conversation
-      const pageSize = 10000;
+      const page_size = 10000;
       let page = 0;
       let hasMore = true;
 
       while (hasMore) {
-        const { data: messages, hasMore: more } = await this.repo.getMessages(sourceConversationId, page, pageSize);
+        const { data: messages, hasMore: more } = await this.repo.getMessages(sourceConversationId, page, page_size);
         for (const msg of messages) {
           await this.repo.insertMessage({
             ...msg,
@@ -98,7 +98,7 @@ export class ConversationServiceImpl implements IConversationService {
             await cronService.updateJob(job.id, {
               metadata: {
                 ...job.metadata,
-                conversationId: conv.id,
+                conversation_id: conv.id,
                 conversationTitle: conv.name,
               },
             });
@@ -137,14 +137,14 @@ export class ConversationServiceImpl implements IConversationService {
           params.model,
           params.extra.workspace,
           params.extra.defaultFiles as string[] | undefined,
-          params.extra.webSearchEngine,
-          params.extra.customWorkspace,
-          params.extra.contextFileName,
-          params.extra.presetRules,
-          params.extra.enabledSkills as string[] | undefined,
-          params.extra.presetAssistantId,
-          params.extra.sessionMode,
-          params.extra.isHealthCheck,
+          params.extra.web_search_engine,
+          params.extra.custom_workspace,
+          params.extra.context_file_name,
+          params.extra.preset_rules,
+          params.extra.enabled_skills as string[] | undefined,
+          params.extra.preset_assistant_id,
+          params.extra.session_mode,
+          params.extra.is_health_check,
           params.extra.extraSkillPaths as string[] | undefined,
           params.extra.excludeBuiltinSkills as string[] | undefined
         );
@@ -180,8 +180,8 @@ export class ConversationServiceImpl implements IConversationService {
     if (params.id) overrides.id = params.id;
     if (params.name) overrides.name = params.name;
     if (params.source) overrides.source = params.source;
-    if (params.channelChatId) overrides.channelChatId = params.channelChatId;
-    // Merge extra fields from params that the factory didn't consume (e.g. cronJobId).
+    if (params.channel_chat_id) overrides.channel_chat_id = params.channel_chat_id;
+    // Merge extra fields from params that the factory didn't consume (e.g. cron_job_id).
     // Factory-produced values take precedence; only novel keys from params.extra are added.
     if (params.extra && conversation.extra) {
       const factoryExtra = conversation.extra as Record<string, unknown>;

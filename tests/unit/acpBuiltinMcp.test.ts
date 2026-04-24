@@ -27,8 +27,8 @@ describe('ACP built-in MCP session config', () => {
             AIONUI_IMG_MODEL: 'gpt-image-1',
           },
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
       {
@@ -43,8 +43,8 @@ describe('ACP built-in MCP session config', () => {
             Authorization: 'Bearer test-token',
           },
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
       {
@@ -56,8 +56,8 @@ describe('ACP built-in MCP session config', () => {
           type: 'stdio',
           command: 'node',
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
       {
@@ -69,8 +69,8 @@ describe('ACP built-in MCP session config', () => {
           command: 'npx',
           args: ['-y', 'chrome-devtools-mcp@latest'],
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
       {
@@ -83,8 +83,8 @@ describe('ACP built-in MCP session config', () => {
           type: 'stdio',
           command: 'node',
         },
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
         originalJson: '{}',
       },
     ];
@@ -144,8 +144,8 @@ const makeDetectedServer = (overrides: Partial<IMcpServer> = {}): IMcpServer => 
     command: 'npx',
     args: ['-y', 'chrome-devtools-mcp@latest'],
   },
-  createdAt: 1,
-  updatedAt: 1,
+  created_at: 1,
+  updated_at: 1,
   originalJson: '{}',
   ...overrides,
 });
@@ -200,7 +200,7 @@ describe('McpService Gemini detection', () => {
     const { McpService } = await import('../../src/process/services/mcpServices/McpService');
     const service = new McpService();
 
-    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cliPath: undefined }]);
+    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cli_path: undefined }]);
 
     expect(result).toEqual([
       {
@@ -232,7 +232,7 @@ describe('McpService Gemini detection', () => {
     const { McpService } = await import('../../src/process/services/mcpServices/McpService');
     const service = new McpService();
 
-    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cliPath: undefined }]);
+    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cli_path: undefined }]);
 
     expect(result).toEqual([
       {
@@ -266,7 +266,7 @@ describe('McpService Gemini detection', () => {
     const { McpService } = await import('../../src/process/services/mcpServices/McpService');
     const service = new McpService();
 
-    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cliPath: undefined }]);
+    const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cli_path: undefined }]);
 
     expect(result).toEqual([]);
     expect(builtinDetect).toHaveBeenCalledOnce();
@@ -302,7 +302,7 @@ describe('McpService OpenCode detection', () => {
     const { McpService } = await import('../../src/process/services/mcpServices/McpService');
     const service = new McpService();
 
-    const result = await service.getAgentMcpConfigs([{ backend: 'opencode', name: 'OpenCode', cliPath: 'opencode' }]);
+    const result = await service.getAgentMcpConfigs([{ backend: 'opencode', name: 'OpenCode', cli_path: 'opencode' }]);
 
     expect(result).toEqual([
       {

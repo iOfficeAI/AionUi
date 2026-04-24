@@ -15,15 +15,19 @@ const { mockConnect, mockSetModel, mockDisconnect, mockGetInitializeResponse } =
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
-    hasActiveSession = true;
-    isConnected = true;
+    has_active_session = true;
+    is_connected = true;
     connect = mockConnect;
     setModel = mockSetModel;
     disconnect = mockDisconnect;
     getInitializeResponse = mockGetInitializeResponse;
+    getInitializeResult = mockGetInitializeResponse;
+    newSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
+    resumeSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
     getConfigOptions = vi.fn().mockReturnValue(null);
     getModels = vi.fn().mockReturnValue(null);
     getModes = vi.fn().mockReturnValue(null);
+    getAgentCapabilities = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;
@@ -108,12 +112,12 @@ describe('AcpAgent.start() — setModel for non-claude backends', () => {
     mockGetInitializeResponse.mockReturnValue(null);
   });
 
-  it('calls connection.setModel when extra.currentModelId is set and backend is not claude', async () => {
+  it('calls connection.setModel when extra.current_model_id is set and backend is not claude', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'gemini',
-        currentModelId: 'gemini-2.5-pro',
+        current_model_id: 'gemini-2.5-pro',
       },
     });
 
@@ -130,7 +134,7 @@ describe('AcpAgent.start() — setModel for non-claude backends', () => {
       ...baseConfig,
       extra: {
         backend: 'gemini',
-        currentModelId: 'gemini-2.5-pro',
+        current_model_id: 'gemini-2.5-pro',
       },
     });
 
@@ -138,7 +142,7 @@ describe('AcpAgent.start() — setModel for non-claude backends', () => {
     expect(mockSetModel).toHaveBeenCalledOnce();
   });
 
-  it('does not call connection.setModel when extra.currentModelId is absent', async () => {
+  it('does not call connection.setModel when extra.current_model_id is absent', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
@@ -170,16 +174,16 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
 
   it('uses the cc-switch slot id when Claude model info is available', async () => {
     mockReadClaudeModelInfoFromCcSwitch.mockReturnValue({
-      currentModelId: 'haiku',
-      currentModelLabel: 'GLM 5.1x',
-      availableModels: [
+      current_model_id: 'haiku',
+      current_model_label: 'GLM 5.1x',
+      available_models: [
         { id: 'default', label: 'Gemini 3.1 Pro' },
         { id: 'opus', label: 'Claude Opus 4.6 CC' },
         { id: 'haiku', label: 'GLM 5.1x' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'models',
-      sourceDetail: 'cc-switch',
+      source_detail: 'cc-switch',
     });
 
     const agent = new AcpAgent({
@@ -197,16 +201,16 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
 
   it('keeps the user-selected Claude slot in model info after switching', async () => {
     mockReadClaudeModelInfoFromCcSwitch.mockReturnValue({
-      currentModelId: 'haiku',
-      currentModelLabel: 'GLM 5.1x',
-      availableModels: [
+      current_model_id: 'haiku',
+      current_model_label: 'GLM 5.1x',
+      available_models: [
         { id: 'default', label: 'Gemini 3.1 Pro' },
         { id: 'opus', label: 'Claude Opus 4.6 CC' },
         { id: 'haiku', label: 'GLM 5.1x' },
       ],
-      canSwitch: true,
+      can_switch: true,
       source: 'models',
-      sourceDetail: 'cc-switch',
+      source_detail: 'cc-switch',
     });
 
     const agent = new AcpAgent({
@@ -220,8 +224,8 @@ describe('AcpAgent.start() — setModel for claude backend', () => {
     const modelInfo = await agent.setModelByConfigOption('opus');
 
     expect(mockSetModel).toHaveBeenCalledWith('opus');
-    expect(modelInfo?.currentModelId).toBe('opus');
-    expect(modelInfo?.currentModelLabel).toBe('Claude Opus 4.6 CC');
+    expect(modelInfo?.current_model_id).toBe('opus');
+    expect(modelInfo?.current_model_label).toBe('Claude Opus 4.6 CC');
   });
 });
 
@@ -250,7 +254,7 @@ describe('AcpAgent turn-level thought/content observability', () => {
       conversation_id: 'obs-agent',
       type: 'tips',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: { type: 'warning', content: 'Thinking...' },
     });
     (agent as any).handleEndTurn();
@@ -274,7 +278,7 @@ describe('AcpAgent turn-level thought/content observability', () => {
       conversation_id: 'obs-agent',
       type: 'text',
       position: 'left',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: { content: 'Final answer' },
     });
     (agent as any).handleEndTurn();

@@ -54,8 +54,8 @@ describe('SpeechToTextService', () => {
       enabled: true,
       provider: 'openai',
       openai: {
-        apiKey: 'openai-key',
-        baseUrl: 'https://example.com/v1',
+        api_key: 'openai-key',
+        base_url: 'https://example.com/v1',
         model: 'whisper-1',
       },
     });
@@ -106,8 +106,8 @@ describe('SpeechToTextService', () => {
       enabled: true,
       provider: 'openai',
       openai: {
-        apiKey: 'openai-key',
-        baseUrl: 'https://example.com/v1',
+        api_key: 'openai-key',
+        base_url: 'https://example.com/v1',
         model: 'whisper-1',
       },
     });
@@ -143,8 +143,8 @@ describe('SpeechToTextService', () => {
       enabled: true,
       provider: 'deepgram',
       deepgram: {
-        apiKey: 'deepgram-key',
-        baseUrl: 'https://api.deepgram.com/v1/listen',
+        api_key: 'deepgram-key',
+        base_url: 'https://api.deepgram.com/v1/listen',
         detectLanguage: true,
         model: 'nova-2',
         punctuate: true,

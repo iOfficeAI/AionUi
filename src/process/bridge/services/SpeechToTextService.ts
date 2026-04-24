@@ -74,8 +74,8 @@ const getRequestLogMeta = (request: SpeechToTextRequest) => {
   };
 };
 
-const normalizeBaseUrl = (baseUrl: string | undefined, fallback: string) => {
-  const trimmed = baseUrl?.trim();
+const normalizeBaseUrl = (base_url: string | undefined, fallback: string) => {
+  const trimmed = base_url?.trim();
   return trimmed && trimmed.length > 0 ? trimmed.replace(/\/+$/, '') : fallback;
 };
 
@@ -93,13 +93,13 @@ const toErrorMessage = async (response: Response): Promise<string> => {
   }
 };
 
-const buildOpenAIUrl = (baseUrl?: string) => {
-  const normalized = normalizeBaseUrl(baseUrl, DEFAULT_OPENAI_BASE_URL);
+const buildOpenAIUrl = (base_url?: string) => {
+  const normalized = normalizeBaseUrl(base_url, DEFAULT_OPENAI_BASE_URL);
   return normalized.endsWith('/audio/transcriptions') ? normalized : `${normalized}/audio/transcriptions`;
 };
 
 const buildDeepgramUrl = (config: SpeechToTextConfig['deepgram'], languageHint?: string) => {
-  const normalized = normalizeBaseUrl(config?.baseUrl, DEFAULT_DEEPGRAM_BASE_URL);
+  const normalized = normalizeBaseUrl(config?.base_url, DEFAULT_DEEPGRAM_BASE_URL);
   const url = new URL(normalized);
   url.searchParams.set('model', config?.model || DEFAULT_DEEPGRAM_MODEL);
   url.searchParams.set('punctuate', String(config?.punctuate !== false));
@@ -126,18 +126,18 @@ const resolveSpeechToTextConfig = async (): Promise<SpeechToTextConfig> => {
 
 const resolveProviderApiKey = (provider: SpeechToTextProvider, config: SpeechToTextConfig): string => {
   if (provider === 'openai') {
-    const apiKey = config.openai?.apiKey?.trim();
-    if (!apiKey) {
+    const api_key = config.openai?.api_key?.trim();
+    if (!api_key) {
       throw new Error('STT_OPENAI_NOT_CONFIGURED');
     }
-    return apiKey;
+    return api_key;
   }
 
-  const apiKey = config.deepgram?.apiKey?.trim();
-  if (!apiKey) {
+  const api_key = config.deepgram?.api_key?.trim();
+  if (!api_key) {
     throw new Error('STT_DEEPGRAM_NOT_CONFIGURED');
   }
-  return apiKey;
+  return api_key;
 };
 
 export class SpeechToTextService {
@@ -187,13 +187,13 @@ export class SpeechToTextService {
     config: SpeechToTextConfig,
     request: SpeechToTextRequest
   ): Promise<SpeechToTextResult> {
-    const apiKey = resolveProviderApiKey('openai', config);
+    const api_key = resolveProviderApiKey('openai', config);
     const audioBuffer = Buffer.from(normalizeAudioBuffer(request.audioBuffer));
     const blob = new Blob([audioBuffer], {
       type: request.mimeType || 'application/octet-stream',
     });
     const formData = new FormData();
-    formData.append('file', blob, request.fileName);
+    formData.append('file', blob, request.file_name);
     formData.append('model', config.openai?.model || DEFAULT_OPENAI_MODEL);
 
     const language = request.languageHint || config.openai?.language;
@@ -208,10 +208,10 @@ export class SpeechToTextService {
       formData.append('temperature', String(config.openai.temperature));
     }
 
-    const response = await fetch(buildOpenAIUrl(config.openai?.baseUrl), {
+    const response = await fetch(buildOpenAIUrl(config.openai?.base_url), {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${apiKey}`,
+        Authorization: `Bearer ${api_key}`,
       },
       body: formData,
     });
@@ -233,11 +233,11 @@ export class SpeechToTextService {
     config: SpeechToTextConfig,
     request: SpeechToTextRequest
   ): Promise<SpeechToTextResult> {
-    const apiKey = resolveProviderApiKey('deepgram', config);
+    const api_key = resolveProviderApiKey('deepgram', config);
     const response = await fetch(buildDeepgramUrl(config.deepgram, request.languageHint), {
       method: 'POST',
       headers: {
-        Authorization: `Token ${apiKey}`,
+        Authorization: `Token ${api_key}`,
         'Content-Type': request.mimeType || 'application/octet-stream',
       },
       body: Buffer.from(normalizeAudioBuffer(request.audioBuffer)),

@@ -165,7 +165,7 @@ const FALLBACK_DELAY_MS = 15_000;
 function createManager(conversationId = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversationId,
   };
   return new AionrsManager(data as any, data.model as any);

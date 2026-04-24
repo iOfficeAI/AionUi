@@ -23,9 +23,9 @@ export const useBatchSelection = (batchMode: boolean, conversations: TChatConver
     const existingIds = new Set(conversations.map((conversation) => conversation.id));
     setSelectedConversationIds((prev) => {
       const next = new Set<string>();
-      prev.forEach((conversationId) => {
-        if (existingIds.has(conversationId)) {
-          next.add(conversationId);
+      prev.forEach((conversation_id) => {
+        if (existingIds.has(conversation_id)) {
+          next.add(conversation_id);
         }
       });
       return next;

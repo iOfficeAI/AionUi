@@ -11,8 +11,8 @@ const STORAGE_KEY_PREFIX = 'team-pending-permissions-';
  * - Syncs with live IPC events for real-time accuracy
  * - Persists counts back to localStorage after each change
  */
-export function useTeamPendingPermissions(teamId: string, conversationIds: string[]) {
-  const storageKey = `${STORAGE_KEY_PREFIX}${teamId}`;
+export function useTeamPendingPermissions(team_id: string, conversation_ids: string[]) {
+  const storageKey = `${STORAGE_KEY_PREFIX}${team_id}`;
 
   const readFromStorage = (): Record<string, number> => {
     try {
@@ -30,7 +30,7 @@ export function useTeamPendingPermissions(teamId: string, conversationIds: strin
     try {
       // Only persist entries for current conversations; prune stale ones
       const pruned: Record<string, number> = {};
-      for (const cid of conversationIds) {
+      for (const cid of conversation_ids) {
         const count = pendingCounts[cid];
         if (count !== undefined && count > 0) {
           pruned[cid] = count;
@@ -40,18 +40,18 @@ export function useTeamPendingPermissions(teamId: string, conversationIds: strin
     } catch {
       // Storage quota exceeded — silent ignore
     }
-  }, [storageKey, pendingCounts, conversationIds]);
+  }, [storageKey, pendingCounts, conversation_ids]);
 
   // Initial load from backend + live subscription
   useEffect(() => {
-    if (conversationIds.length === 0) return;
+    if (conversation_ids.length === 0) return;
 
-    const idSet = new Set(conversationIds);
+    const idSet = new Set(conversation_ids);
 
     // Fetch initial counts from backend
     const fetchInitial = async () => {
       const results = await Promise.allSettled(
-        conversationIds.map(async (cid) => {
+        conversation_ids.map(async (cid) => {
           try {
             const data = await ipcBridge.conversation.confirmation.list.invoke({ conversation_id: cid });
             return { cid, count: data.length };
@@ -90,10 +90,10 @@ export function useTeamPendingPermissions(teamId: string, conversationIds: strin
     );
 
     return unsub;
-  }, [conversationIds.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [conversation_ids.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** Total pending confirmations across all agents in this team */
-  const totalPending = conversationIds.reduce((sum, cid) => sum + (pendingCounts[cid] ?? 0), 0);
+  const totalPending = conversation_ids.reduce((sum, cid) => sum + (pendingCounts[cid] ?? 0), 0);
 
   /** Clear persisted storage for this team (call when team is deleted) */
   const clearStorage = useCallback(() => {

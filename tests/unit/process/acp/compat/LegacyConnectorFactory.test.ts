@@ -165,7 +165,7 @@ describe('LegacyConnectorFactory', () => {
     it('throws when no command and no npx backend', async () => {
       const factory = new LegacyConnectorFactory();
       factory.create(
-        makeConfig({ agentBackend: 'unknown-backend' as AgentConfig['agentBackend'], command: undefined }),
+        makeConfig({ agentBackend: 'unknown-backend' as AgentConfig['agent_backend'], command: undefined }),
         makeHandlers()
       );
 

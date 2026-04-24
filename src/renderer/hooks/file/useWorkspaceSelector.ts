@@ -18,7 +18,7 @@ export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex';
  * Hook to select a new workspace directory for the current conversation.
  * 选择会话新的工作空间目录的 Hook。
  */
-export const useWorkspaceSelector = (conversationId: string, eventPrefix: WorkspaceEventPrefix) => {
+export const useWorkspaceSelector = (conversation_id: string, eventPrefix: WorkspaceEventPrefix) => {
   const { mutate } = useSWRConfig();
   const { t } = useTranslation();
 
@@ -33,7 +33,7 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
 
       // 获取最新的会话数据 / Fetch latest conversation data
       const conversation = (await ipcBridge.conversation.get.invoke({
-        id: conversationId,
+        id: conversation_id,
       })) as TChatConversation | null;
       if (!conversation) {
         Message.error(t('common.saveFailed'));
@@ -42,14 +42,17 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
 
       // 更新会话 extra 中的 workspace 字段 / Update conversation.extra.workspace
       const nextExtra = { ...conversation.extra, workspace: workspacePath };
-      const success = await ipcBridge.conversation.update.invoke({ id: conversationId, updates: { extra: nextExtra } });
+      const success = await ipcBridge.conversation.update.invoke({
+        id: conversation_id,
+        updates: { extra: nextExtra },
+      });
       if (!success) {
         Message.error(t('common.saveFailed'));
         return;
       }
 
       // 手动刷新 SWR 缓存以及广播给工作区和会话列表 / Refresh SWR cache and notify workspace/history
-      await mutate(`conversation/${conversationId}`, { ...conversation, extra: nextExtra }, false);
+      await mutate(`conversation/${conversation_id}`, { ...conversation, extra: nextExtra }, false);
       emitter.emit(`${eventPrefix}.workspace.refresh`);
       emitter.emit('chat.history.refresh');
       Message.success(t('common.saveSuccess'));
@@ -57,5 +60,5 @@ export const useWorkspaceSelector = (conversationId: string, eventPrefix: Worksp
       console.error('Failed to select workspace:', error);
       Message.error(t('common.saveFailed'));
     }
-  }, [conversationId, eventPrefix, mutate, t]);
+  }, [conversation_id, eventPrefix, mutate, t]);
 };

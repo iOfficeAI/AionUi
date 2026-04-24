@@ -17,7 +17,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/hooks/context/ConversationContext', () => ({
-  useConversationContextSafe: () => ({ conversationId: 'conv-1' }),
+  useConversationContextSafe: () => ({ conversation_id: 'conv-1' }),
 }));
 
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({

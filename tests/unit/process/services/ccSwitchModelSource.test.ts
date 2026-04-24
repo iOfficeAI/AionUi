@@ -59,9 +59,9 @@ describeOrSkip('ccSwitchModelSource', () => {
     );
 
     expect(modelInfo).toEqual({
-      currentModelId: 'haiku',
+      current_model_id: 'haiku',
       currentModelLabel: 'Claude Haiku 4.5',
-      availableModels: [
+      available_models: [
         { id: 'default', label: 'Claude Sonnet 4.5' },
         { id: 'opus', label: 'Claude Opus 4.6' },
         { id: 'haiku', label: 'Claude Haiku 4.5' },
@@ -95,9 +95,9 @@ describeOrSkip('ccSwitchModelSource', () => {
     );
 
     expect(modelInfo).toEqual({
-      currentModelId: 'default',
+      current_model_id: 'default',
       currentModelLabel: 'Claude Sonnet 4.5',
-      availableModels: [
+      available_models: [
         { id: 'default', label: 'Claude Sonnet 4.5' },
         { id: 'opus', label: 'Claude Opus 4.6' },
       ],
@@ -119,9 +119,9 @@ describeOrSkip('ccSwitchModelSource', () => {
     );
 
     expect(modelInfo).toEqual({
-      currentModelId: 'default',
+      current_model_id: 'default',
       currentModelLabel: 'Claude Sonnet 4.5',
-      availableModels: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
+      available_models: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
       canSwitch: false,
       source: 'models',
       sourceDetail: 'cc-switch',
@@ -167,9 +167,9 @@ describeOrSkip('ccSwitchModelSource', () => {
     const modelInfo = readClaudeModelInfoFromCcSwitch({ settingsPath, databasePath, claudeSettingsPath });
 
     expect(modelInfo).toEqual({
-      currentModelId: 'default',
+      current_model_id: 'default',
       currentModelLabel: 'Claude Sonnet 4.5',
-      availableModels: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
+      available_models: [{ id: 'default', label: 'Claude Sonnet 4.5' }],
       canSwitch: false,
       source: 'models',
       sourceDetail: 'cc-switch',

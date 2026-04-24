@@ -11,7 +11,7 @@ interface UsePasteServiceProps {
   onFilesAdded?: (files: FileMetadata[]) => void;
   onTextPaste?: (text: string) => void;
   /** Conversation ID for WebUI file uploads */
-  conversationId?: string;
+  conversation_id?: string;
   source?: UploadSource;
 }
 
@@ -23,7 +23,7 @@ export const usePasteService = ({
   supportedExts,
   onFilesAdded,
   onTextPaste,
-  conversationId,
+  conversation_id,
   source = 'sendbox',
 }: UsePasteServiceProps) => {
   const { t } = useTranslation();
@@ -44,7 +44,7 @@ export const usePasteService = ({
           supportedExts,
           onFilesAdded || (() => {}),
           onTextPaste,
-          conversationId,
+          conversation_id,
           source
         );
         if (handled && (!files || files.length === 0)) {
@@ -58,7 +58,7 @@ export const usePasteService = ({
         return false;
       }
     },
-    [conversationId, source, supportedExts, onFilesAdded, onTextPaste, t]
+    [conversation_id, source, supportedExts, onFilesAdded, onTextPaste, t]
   );
 
   // 焦点处理

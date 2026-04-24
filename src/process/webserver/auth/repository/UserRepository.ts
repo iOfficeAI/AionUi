@@ -181,20 +181,20 @@ export const UserRepository = {
   /**
    * 更新用户密码
    * Update user password
-   * @param userId - 用户 ID / User ID
+   * @param user_id - 用户 ID / User ID
    * @param passwordHash - 新的密码哈希 / New password hash
    */
-  async updatePassword(userId: string, passwordHash: string): Promise<void> {
+  async updatePassword(user_id: string, passwordHash: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserPassword(userId, passwordHash);
+    const result = db.updateUserPassword(user_id, passwordHash);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update user password');
     }
   },
 
-  async updateUsername(userId: string, username: string): Promise<void> {
+  async updateUsername(user_id: string, username: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserUsername(userId, username);
+    const result = db.updateUserUsername(user_id, username);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update username');
     }
@@ -203,11 +203,11 @@ export const UserRepository = {
   /**
    * 更新用户最后登录时间
    * Update user's last login time
-   * @param userId - 用户 ID / User ID
+   * @param user_id - 用户 ID / User ID
    */
-  async updateLastLogin(userId: string): Promise<void> {
+  async updateLastLogin(user_id: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserLastLogin(userId);
+    const result = db.updateUserLastLogin(user_id);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update last login');
     }
@@ -216,12 +216,12 @@ export const UserRepository = {
   /**
    * 更新用户的 JWT secret
    * Update user's JWT secret
-   * @param userId - 用户 ID / User ID
+   * @param user_id - 用户 ID / User ID
    * @param jwtSecret - JWT secret 字符串 / JWT secret string
    */
-  async updateJwtSecret(userId: string, jwtSecret: string): Promise<void> {
+  async updateJwtSecret(user_id: string, jwtSecret: string): Promise<void> {
     const db = await getDatabase();
-    const result = db.updateUserJwtSecret(userId, jwtSecret);
+    const result = db.updateUserJwtSecret(user_id, jwtSecret);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update JWT secret');
     }

@@ -26,7 +26,7 @@ export type HubContributes = {
 
 export interface IHubExtension {
   name: string; // Extension unique ID
-  displayName: string; // UI display name
+  display_name: string; // UI display name
   version?: string;
   description: string;
   author: string;

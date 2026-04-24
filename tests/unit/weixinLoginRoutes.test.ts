@@ -47,12 +47,12 @@ describe('registerWeixinLoginRoutes', () => {
     const callbacks = mockStartLogin.mock.calls[0]?.[0] as {
       onQR: (pageUrl: string, qrcodeData: string) => void;
       onScanned: () => void;
-      onDone: (result: { accountId: string; botToken: string; baseUrl: string }) => void;
+      onDone: (result: { accountId: string; botToken: string; base_url: string }) => void;
     };
 
     callbacks.onQR('https://qr.page/url', 'ticket_raw');
     callbacks.onScanned();
-    callbacks.onDone({ accountId: 'acc1', botToken: 'bot1', baseUrl: 'https://base.url' });
+    callbacks.onDone({ accountId: 'acc1', botToken: 'bot1', base_url: 'https://base.url' });
     req.emit('close');
 
     expect(res.setHeader).toHaveBeenCalledWith('Content-Type', 'text/event-stream');
@@ -62,7 +62,7 @@ describe('registerWeixinLoginRoutes', () => {
     expect(writes).toContain('event: qr\ndata: {"qrcodeData":"ticket_raw"}\n\n');
     expect(writes).toContain('event: scanned\ndata: {}\n\n');
     expect(writes).toContain(
-      'event: done\ndata: {"accountId":"acc1","botToken":"bot1","baseUrl":"https://base.url"}\n\n'
+      'event: done\ndata: {"accountId":"acc1","botToken":"bot1","base_url":"https://base.url"}\n\n'
     );
     expect(res.end).toHaveBeenCalled();
     expect(mockAbort).toHaveBeenCalled();

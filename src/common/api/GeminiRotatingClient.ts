@@ -19,19 +19,19 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   private readonly converter: OpenAI2GeminiConverter;
 
   constructor(
-    apiKeys: string,
+    api_keys: string,
     config: GeminiClientConfig = {},
     options: RotatingApiClientOptions = {},
     authType: AuthType = AuthType.USE_GEMINI
   ) {
-    const createClient = (apiKey: string) => {
-      const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
+    const createClient = (api_key: string) => {
+      const cleanedApiKey = api_key.replace(/[\s\r\n\t]/g, '').trim();
       const clientConfig: {
-        apiKey?: string;
+        api_key?: string;
         vertexai: boolean;
         baseURL?: string;
       } = {
-        apiKey: cleanedApiKey === '' ? undefined : cleanedApiKey,
+        api_key: cleanedApiKey === '' ? undefined : cleanedApiKey,
         vertexai: authType === AuthType.USE_VERTEX_AI,
       };
       if (config.baseURL) {
@@ -40,7 +40,7 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       return new GoogleGenAI(clientConfig);
     };
 
-    super(apiKeys, authType, createClient, options);
+    super(api_keys, authType, createClient, options);
     this.config = config;
     this.converter = new OpenAI2GeminiConverter({
       defaultModel: config.model || 'gemini-1.5-flash',

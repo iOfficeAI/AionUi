@@ -15,16 +15,16 @@ vi.mock('@arco-design/web-react', () => ({
   },
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: { set: vi.fn().mockResolvedValue(undefined) },
+vi.mock('@/common/config/configService', () => ({
+  configService: { set: vi.fn().mockResolvedValue(undefined) },
 }));
 
 const makeMockServer = (overrides?: Partial<IMcpServer>): IMcpServer => ({
   id: 'mcp_1',
   name: 'test-server',
   enabled: true,
-  createdAt: 1000,
-  updatedAt: 1000,
+  created_at: 1000,
+  updated_at: 1000,
   transport: { type: 'stdio' as const, command: 'echo', args: [] },
   ...overrides,
 });

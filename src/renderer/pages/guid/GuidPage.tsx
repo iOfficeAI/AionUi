@@ -27,7 +27,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
@@ -128,12 +128,12 @@ const GuidPage: React.FC = () => {
     selectedAgent: agentSelection.selectedAgent,
     selectedAgentKey: agentSelection.selectedAgentKey,
     selectedAgentInfo: agentSelection.selectedAgentInfo,
-    isPresetAgent: agentSelection.isPresetAgent,
+    is_presetAgent: agentSelection.is_presetAgent,
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
-    pendingConfigOptions: agentSelection.pendingConfigOptions,
-    cachedConfigOptions: agentSelection.cachedConfigOptions,
-    currentModel: modelSelection.currentModel,
+    pending_config_options: agentSelection.pending_config_options,
+    cached_config_options: agentSelection.cached_config_options,
+    current_model: modelSelection.current_model,
 
     // Agent helpers
     findAgentByKey: agentSelection.findAgentByKey,
@@ -287,34 +287,34 @@ const GuidPage: React.FC = () => {
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
   const selectedAssistantRecord = useMemo(() => {
-    if (!agentSelection.isPresetAgent || !agentSelection.selectedAgentInfo?.customAgentId) return undefined;
-    const selectedId = agentSelection.selectedAgentInfo.customAgentId;
+    if (!agentSelection.is_presetAgent || !agentSelection.selectedAgentInfo?.custom_agent_id) return undefined;
+    const selectedId = agentSelection.selectedAgentInfo.custom_agent_id;
     const strippedId = selectedId.replace(/^builtin-/, '');
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
     return agentSelection.assistants.find((item) => candidates.has(item.id));
-  }, [agentSelection.assistants, agentSelection.isPresetAgent, agentSelection.selectedAgentInfo?.customAgentId]);
+  }, [agentSelection.assistants, agentSelection.is_presetAgent, agentSelection.selectedAgentInfo?.custom_agent_id]);
 
   // Sync disabledBuiltinSkills from preset assistant config
   useEffect(() => {
-    if (agentSelection.isPresetAgent && selectedAssistantRecord) {
+    if (agentSelection.is_presetAgent && selectedAssistantRecord) {
       setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabledBuiltinSkills ?? []);
     } else {
       setGuidDisabledBuiltinSkills(undefined);
     }
-  }, [agentSelection.isPresetAgent, selectedAssistantRecord]);
+  }, [agentSelection.is_presetAgent, selectedAssistantRecord]);
 
   const heroTitle = useMemo(() => {
-    if (!agentSelection.isPresetAgent) return t('conversation.welcome.title');
+    if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
     const i18nName = selectedAssistantRecord?.nameI18n?.[localeKey];
     if (i18nName) return i18nName;
     return mention.selectedAgentLabel || t('conversation.welcome.title');
-  }, [agentSelection.isPresetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
+  }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
   const selectedAssistantDescription = useMemo(() => {
     return selectedAssistantRecord?.descriptionI18n?.[localeKey] || selectedAssistantRecord?.description || '';
   }, [selectedAssistantRecord, localeKey]);
   const selectedAssistantAvatar = useMemo(() => {
-    if (!agentSelection.isPresetAgent) return null;
-    const selectedId = agentSelection.selectedAgentInfo?.customAgentId;
+    if (!agentSelection.is_presetAgent) return null;
+    const selectedId = agentSelection.selectedAgentInfo?.custom_agent_id;
     const strippedId = selectedId?.replace(/^builtin-/, '');
     const candidates = new Set(selectedId && strippedId ? [selectedId, `builtin-${strippedId}`, strippedId] : []);
     const selectedAssistant = agentSelection.assistants.find((item) => candidates.has(item.id));
@@ -334,9 +334,9 @@ const GuidPage: React.FC = () => {
     return { kind: 'emoji' as const, value: avatarValue };
   }, [
     agentSelection.assistants,
-    agentSelection.isPresetAgent,
+    agentSelection.is_presetAgent,
     agentSelection.selectedAgentInfo?.avatar,
-    agentSelection.selectedAgentInfo?.customAgentId,
+    agentSelection.selectedAgentInfo?.custom_agent_id,
   ]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
@@ -368,7 +368,7 @@ const GuidPage: React.FC = () => {
 
   useEffect(() => {
     const node = descriptionTextRef.current;
-    if (!node || !agentSelection.isPresetAgent || !selectedAssistantDescription) {
+    if (!node || !agentSelection.is_presetAgent || !selectedAssistantDescription) {
       setCanExpandDescription(false);
       return;
     }
@@ -413,14 +413,14 @@ const GuidPage: React.FC = () => {
     const observer = new ResizeObserver(() => checkExpandable());
     observer.observe(node);
     return () => observer.disconnect();
-  }, [agentSelection.isPresetAgent, selectedAssistantDescription]);
+  }, [agentSelection.is_presetAgent, selectedAssistantDescription]);
 
   const currentPresetAgentType = selectedAssistantRecord?.presetAgentType || 'gemini';
   const agentSwitcherItems = useMemo(() => {
     if (!agentSelection.availableAgents) return [];
     // Build from detected execution engines, excluding preset assistants and remote agents
     return agentSelection.availableAgents
-      .filter((a) => !a.isPreset && a.backend !== 'remote')
+      .filter((a) => !a.is_preset && a.backend !== 'remote')
       .map((a) => ({
         key: a.backend,
         label: a.name,
@@ -429,26 +429,26 @@ const GuidPage: React.FC = () => {
       }));
   }, [agentSelection.availableAgents, currentPresetAgentType]);
   const effectiveAgentLogo = useMemo(
-    () => getAgentLogo(agentSelection.currentEffectiveAgentInfo.agentType),
-    [agentSelection.currentEffectiveAgentInfo.agentType]
+    () => getAgentLogo(agentSelection.currentEffectiveAgentInfo.agent_type),
+    [agentSelection.currentEffectiveAgentInfo.agent_type]
   );
   const handlePresetAgentTypeSwitch = useCallback(
     async (nextType: string) => {
-      const customAgentId = agentSelection.selectedAgentInfo?.customAgentId;
-      if (!customAgentId || nextType === currentPresetAgentType) return;
+      const custom_agent_id = agentSelection.selectedAgentInfo?.custom_agent_id;
+      if (!custom_agent_id || nextType === currentPresetAgentType) return;
       try {
-        const agents = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-        const idx = agents.findIndex((a) => a.id === customAgentId);
+        const agents = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
+        const idx = agents.findIndex((a) => a.id === custom_agent_id);
         if (idx < 0) {
           Message.warning(t('common.failed', { defaultValue: 'Failed' }));
           return;
         }
         const updated = [...agents];
         updated[idx] = { ...updated[idx], presetAgentType: nextType };
-        await ConfigStorage.set('acp.customAgents', updated);
+        await configService.set('acp.customAgents', updated);
         await agentSelection.refreshCustomAgents();
-        const agentName = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
-        Message.success(t('guid.switchedToAgent', { agent: agentName }));
+        const agent_name = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
+        Message.success(t('guid.switchedToAgent', { agent: agent_name }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);
         Message.error(t('common.failed', { defaultValue: 'Failed' }));
@@ -458,15 +458,15 @@ const GuidPage: React.FC = () => {
   );
 
   // Resolve the effective agent type once — covers both direct selection and preset assistants
-  const effectiveAgentType = agentSelection.isPresetAgent
-    ? agentSelection.currentEffectiveAgentInfo.agentType
+  const effectiveAgentType = agentSelection.is_presetAgent
+    ? agentSelection.currentEffectiveAgentInfo.agent_type
     : agentSelection.selectedAgent;
 
   // Agents that use configured model providers instead of ACP probe-based models
   const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
   const isGeminiMode =
     PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
-    (!agentSelection.isPresetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
+    (!agentSelection.is_presetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
 
   // Build the mention dropdown node
   const mentionDropdownNode = (
@@ -483,7 +483,7 @@ const GuidPage: React.FC = () => {
     <GuidModelSelector
       isGeminiMode={isGeminiMode}
       modelList={modelSelection.modelList}
-      currentModel={modelSelection.currentModel}
+      current_model={modelSelection.current_model}
       setCurrentModel={modelSelection.setCurrentModel}
       geminiModeLookup={modelSelection.geminiModeLookup}
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
@@ -500,10 +500,10 @@ const GuidPage: React.FC = () => {
       onSelectWorkspace={(dir) => guidInput.setDir(dir)}
       modelSelectorNode={modelSelectorNode}
       selectedAgent={agentSelection.selectedAgent}
-      effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agentType}
+      effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
       selectedMode={agentSelection.selectedMode}
       onModeSelect={agentSelection.setSelectedMode}
-      isPresetAgent={agentSelection.isPresetAgent}
+      is_presetAgent={agentSelection.is_presetAgent}
       selectedAgentInfo={agentSelection.selectedAgentInfo}
       assistants={agentSelection.assistants}
       localeKey={localeKey}
@@ -513,8 +513,8 @@ const GuidPage: React.FC = () => {
       onAgentSwitch={(key) => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
-      configOptionsBackend={agentSelection.currentEffectiveAgentInfo.agentType}
-      cachedConfigOptions={agentSelection.cachedConfigOptions}
+      config_optionsBackend={agentSelection.currentEffectiveAgentInfo.agent_type}
+      cached_config_options={agentSelection.cached_config_options}
       onConfigOptionSelect={agentSelection.setPendingConfigOption}
       builtinAutoSkills={builtinAutoSkills}
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
@@ -536,7 +536,7 @@ const GuidPage: React.FC = () => {
         <SkillsMarketBanner />
         <div className={styles.guidLayout}>
           <div className={styles.heroHeader}>
-            {agentSelection.isPresetAgent ? (
+            {agentSelection.is_presetAgent ? (
               <div className={styles.heroHeaderControls}>
                 <div className={styles.heroHeaderLeft}>
                   <Button
@@ -647,7 +647,7 @@ const GuidPage: React.FC = () => {
             )}
           </div>
 
-          {agentSelection.isPresetAgent && selectedAssistantDescription ? (
+          {agentSelection.is_presetAgent && selectedAssistantDescription ? (
             <div
               className={`${styles.heroSubtitle} ${isDescriptionExpanded ? styles.heroSubtitleExpanded : ''}`}
               onClick={() => {
@@ -726,7 +726,7 @@ const GuidPage: React.FC = () => {
           />
 
           <AssistantSelectionArea
-            isPresetAgent={agentSelection.isPresetAgent}
+            is_presetAgent={agentSelection.is_presetAgent}
             selectedAgentInfo={agentSelection.selectedAgentInfo}
             assistants={agentSelection.assistants}
             localeKey={localeKey}

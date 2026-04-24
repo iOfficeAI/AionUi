@@ -49,17 +49,17 @@ export class GeminiAgentManager extends BaseAgentManager<
   {
     workspace: string;
     model: TProviderWithModel;
-    webSearchEngine?: 'google' | 'default';
+    web_search_engine?: 'google' | 'default';
     mcpServers?: Record<string, UiMcpServerConfig>;
-    contextFileName?: string;
+    context_file_name?: string;
     // 系统规则 / System rules
-    presetRules?: string;
+    preset_rules?: string;
     contextContent?: string; // 向后兼容 / Backward compatible
     GOOGLE_CLOUD_PROJECT?: string;
     /** 内置 skills 目录路径 / Builtin skills directory path */
     skillsDir?: string;
     /** 启用的 skills 列表 / Enabled skills list */
-    enabledSkills?: string[];
+    enabled_skills?: string[];
     /** Yolo mode: auto-approve all tool calls / 自动允许模式 */
     yoloMode?: boolean;
   },
@@ -67,12 +67,12 @@ export class GeminiAgentManager extends BaseAgentManager<
 > {
   workspace: string;
   model: TProviderWithModel;
-  contextFileName?: string;
-  presetRules?: string;
+  context_file_name?: string;
+  preset_rules?: string;
   contextContent?: string;
-  enabledSkills?: string[];
+  enabled_skills?: string[];
   excludeBuiltinSkills?: string[];
-  presetAssistantId?: string;
+  preset_assistant_id?: string;
   private bootstrap: Promise<void>;
 
   /** Fingerprint of MCP config used by the current worker, for change detection */
@@ -128,7 +128,7 @@ export class GeminiAgentManager extends BaseAgentManager<
   private forceYoloMode?: boolean;
 
   /** Current session mode for approval behavior / 当前会话模式（影响审批行为） */
-  private currentMode: string = 'default';
+  private current_mode: string = 'default';
 
   /** Current turn's thinking message msg_id for accumulating content */
   private thinkingMsgId: string | null = null;
@@ -139,8 +139,8 @@ export class GeminiAgentManager extends BaseAgentManager<
   private thinkingDbFlushTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly thinkingDbFlushIntervalMs = 120;
 
-  /** Stored webSearchEngine for worker re-bootstrap / 保存 webSearchEngine 用于重建 worker */
-  private webSearchEngine?: 'google' | 'default';
+  /** Stored web_search_engine for worker re-bootstrap / 保存 web_search_engine 用于重建 worker */
+  private web_search_engine?: 'google' | 'default';
 
   /** Team MCP stdio config injected by TeamSessionService */
   private teamMcpStdioConfig?: {
@@ -154,17 +154,17 @@ export class GeminiAgentManager extends BaseAgentManager<
     data: {
       workspace: string;
       conversation_id: string;
-      webSearchEngine?: 'google' | 'default';
-      contextFileName?: string;
+      web_search_engine?: 'google' | 'default';
+      context_file_name?: string;
       // 系统规则 / System rules
-      presetRules?: string;
+      preset_rules?: string;
       contextContent?: string; // 向后兼容 / Backward compatible
       /** 启用的 skills 列表 / Enabled skills list */
-      enabledSkills?: string[];
+      enabled_skills?: string[];
       /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
       yoloMode?: boolean;
       /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-      sessionMode?: string;
+      session_mode?: string;
       /** Team MCP server stdio config injected by TeamSessionService */
       teamMcpStdioConfig?: {
         name: string;
@@ -175,7 +175,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       /** Builtin skill names to exclude from discovery (e.g. 'cron' for cron-spawned conversations) */
       excludeBuiltinSkills?: string[];
       /** Preset assistant id backing this conversation — used to label Leader in team guide prompt */
-      presetAssistantId?: string;
+      preset_assistant_id?: string;
     },
     model: TProviderWithModel
   ) {
@@ -183,14 +183,14 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
-    this.contextFileName = data.contextFileName;
-    this.presetRules = data.presetRules;
-    this.enabledSkills = data.enabledSkills;
+    this.context_file_name = data.context_file_name;
+    this.preset_rules = data.preset_rules;
+    this.enabled_skills = data.enabled_skills;
     this.excludeBuiltinSkills = data.excludeBuiltinSkills;
-    this.presetAssistantId = data.presetAssistantId;
+    this.preset_assistant_id = data.preset_assistant_id;
     this.forceYoloMode = data.yoloMode;
-    this.currentMode = data.sessionMode || 'default';
-    this.webSearchEngine = data.webSearchEngine;
+    this.current_mode = data.session_mode || 'default';
+    this.web_search_engine = data.web_search_engine;
     this.teamMcpStdioConfig = data.teamMcpStdioConfig;
     mainLog(
       '[GeminiAgentManager]',
@@ -198,7 +198,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       this.teamMcpStdioConfig ? `PRESENT (command=${this.teamMcpStdioConfig.command})` : 'MISSING'
     );
     // 向后兼容 / Backward compatible
-    this.contextContent = data.contextContent || data.presetRules;
+    this.contextContent = data.contextContent || data.preset_rules;
     this.bootstrap = this.createBootstrap();
     // Prevent unhandled rejection when bootstrap fails (e.g. missing OAuth credentials).
     // The error still propagates when sendMessage() awaits this.bootstrap.
@@ -232,42 +232,42 @@ export class GeminiAgentManager extends BaseAgentManager<
           }
         }
 
-        // presetRules are now written to GEMINI.md by setupAssistantWorkspace()
+        // preset_rules are now written to GEMINI.md by setupAssistantWorkspace()
         // and loaded natively by Gemini CLI via loadServerHierarchicalMemory()
         // Skills are symlinked into .gemini/skills/ and discovered natively by SkillManager
         // No prompt injection needed -> native mechanisms handle everything
 
-        // Merge builtin skill names into enabledSkills for the worker's skill discovery
-        // 将内置 skill 名称合并到 enabledSkills，使 worker 的 SkillManager 能找到它们
-        const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
-        await skillManager.discoverSkills(this.enabledSkills);
+        // Merge builtin skill names into enabled_skills for the worker's skill discovery
+        // 将内置 skill 名称合并到 enabled_skills，使 worker 的 SkillManager 能找到它们
+        const skillManager = AcpSkillManager.getInstance(this.enabled_skills);
+        await skillManager.discoverSkills(this.enabled_skills);
         const excludeSet = new Set(this.excludeBuiltinSkills ?? []);
         const builtinSkillNames = skillManager
           .getBuiltinSkillsIndex()
           .map((s) => s.name)
           .filter((name) => !excludeSet.has(name));
-        const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabledSkills || [])])];
+        const allEnabledSkills = [...new Set([...builtinSkillNames, ...(this.enabled_skills || [])])];
 
         // Determine yoloMode from legacy config (SecurityModalContent)
         const legacyYoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
-        if (legacyYoloMode && this.currentMode === 'default') {
-          this.currentMode = 'yolo';
+        if (legacyYoloMode && this.current_mode === 'default') {
+          this.current_mode = 'yolo';
         }
-        if (legacyYoloMode && this.currentMode !== 'yolo') {
+        if (legacyYoloMode && this.current_mode !== 'yolo') {
           void this.clearLegacyYoloConfig();
         }
-        const effectiveYoloMode = this.forceYoloMode ?? this.currentMode === 'yolo';
+        const effectiveYoloMode = this.forceYoloMode ?? this.current_mode === 'yolo';
 
         // Inject the solo/team decision guide for solo Gemini agents.
-        // ACP agents get this via AcpAgentManager; Gemini needs it appended to presetRules
+        // ACP agents get this via AcpAgentManager; Gemini needs it appended to preset_rules
         // so it goes into GEMINI.md and the agent knows when to stay solo vs discuss Team mode.
-        let effectivePresetRules = this.presetRules;
+        let effectivePresetRules = this.preset_rules;
         if (!this.teamMcpStdioConfig) {
           const [{ getTeamGuidePrompt }, { resolveLeaderAssistantLabel }] = await Promise.all([
             import('@process/team/prompts/teamGuidePrompt.ts'),
             import('@process/team/prompts/teamGuideAssistant.ts'),
           ]);
-          const leaderLabel = await resolveLeaderAssistantLabel(this.presetAssistantId);
+          const leaderLabel = await resolveLeaderAssistantLabel(this.preset_assistant_id);
           const teamGuide = getTeamGuidePrompt({ backend: 'gemini', leaderLabel });
           effectivePresetRules = effectivePresetRules ? `${effectivePresetRules}\n\n${teamGuide}` : teamGuide;
         }
@@ -277,18 +277,18 @@ export class GeminiAgentManager extends BaseAgentManager<
           GOOGLE_CLOUD_PROJECT: projectId,
           workspace: this.workspace,
           model: this.model,
-          webSearchEngine: this.webSearchEngine,
+          web_search_engine: this.web_search_engine,
           mcpServers,
-          contextFileName: this.contextFileName,
-          // presetRules are no longer injected here — they are in GEMINI.md
+          context_file_name: this.context_file_name,
+          // preset_rules are no longer injected here — they are in GEMINI.md
           // Keep for backward compatibility with existing conversations
-          presetRules: effectivePresetRules,
+          preset_rules: effectivePresetRules,
           contextContent: this.contextContent,
           skillsDir: getSkillsDir(),
           // 启用的 skills 列表（含内置 skills），用于 worker 的 SkillManager
           // Enabled skills list (including builtins) for worker's SkillManager
-          enabledSkills: allEnabledSkills,
-          // Yolo mode: derived from currentMode, not directly from legacy config
+          enabled_skills: allEnabledSkills,
+          // Yolo mode: derived from current_mode, not directly from legacy config
           yoloMode: effectiveYoloMode,
         });
       })
@@ -342,9 +342,9 @@ export class GeminiAgentManager extends BaseAgentManager<
             enabled: true,
             transport,
             status: 'connected', // Extension MCP servers are treated as available
-            createdAt: (extServer.createdAt as number) || Date.now(),
-            updatedAt: (extServer.updatedAt as number) || Date.now(),
-            originalJson: String(extServer.originalJson || '{}'),
+            created_at: (extServer.created_at as number) || Date.now(),
+            updated_at: (extServer.updated_at as number) || Date.now(),
+            original_json: String(extServer.original_json || '{}'),
           });
         }
       } catch (extError) {
@@ -575,7 +575,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       case 'edit':
         {
           question = t('messages.confirmation.applyChange');
-          description = confirmationDetails.fileName;
+          description = confirmationDetails.file_name;
           options.push(
             {
               label: t('messages.confirmation.yesAllowOnce'),
@@ -635,10 +635,10 @@ export class GeminiAgentManager extends BaseAgentManager<
       default: {
         const mcpProps = confirmationDetails;
         question = t('messages.confirmation.allowMCPTool', {
-          toolName: mcpProps.toolName,
-          serverName: mcpProps.serverName,
+          tool_name: mcpProps.tool_name,
+          server_name: mcpProps.server_name,
         });
-        description = confirmationDetails.serverName + ':' + confirmationDetails.toolName;
+        description = confirmationDetails.server_name + ':' + confirmationDetails.tool_name;
         options.push(
           {
             label: t('messages.confirmation.yesAllowOnce'),
@@ -646,21 +646,21 @@ export class GeminiAgentManager extends BaseAgentManager<
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowTool', {
-              toolName: mcpProps.toolName,
-              serverName: mcpProps.serverName,
+              tool_name: mcpProps.tool_name,
+              server_name: mcpProps.server_name,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
             params: {
-              toolName: mcpProps.toolName,
-              serverName: mcpProps.serverName,
+              tool_name: mcpProps.tool_name,
+              server_name: mcpProps.server_name,
             },
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
-              serverName: mcpProps.serverName,
+              server_name: mcpProps.server_name,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
-            params: { serverName: mcpProps.serverName },
+            params: { server_name: mcpProps.server_name },
           },
           {
             label: t('messages.confirmation.no'),
@@ -682,31 +682,31 @@ export class GeminiAgentManager extends BaseAgentManager<
   private tryAutoApprove(content: IMessageToolGroup['content'][number]): boolean {
     const type = content.confirmationDetails?.type;
     console.debug(
-      `[GeminiAgentManager] tryAutoApprove: currentMode=${this.currentMode}, confirmationType=${type}, callId=${content.callId}`
+      `[GeminiAgentManager] tryAutoApprove: current_mode=${this.current_mode}, confirmationType=${type}, call_id=${content.call_id}`
     );
-    if (this.currentMode === 'yolo') {
+    if (this.current_mode === 'yolo') {
       // yolo: auto-approve ALL operations
-      console.debug(`[GeminiAgentManager] YOLO auto-approving ${type}: callId=${content.callId}`);
-      void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+      console.debug(`[GeminiAgentManager] YOLO auto-approving ${type}: call_id=${content.call_id}`);
+      void this.postMessagePromise(content.call_id, ToolConfirmationOutcome.ProceedOnce);
       return true;
     }
     // Team MCP servers (aionui-team-*) are always auto-approved regardless of mode
     if (type === 'mcp') {
-      const serverName = (content.confirmationDetails as { serverName?: string })?.serverName ?? '';
-      if (serverName.startsWith('aionui-team-')) {
+      const server_name = (content.confirmationDetails as { server_name?: string })?.server_name ?? '';
+      if (server_name.startsWith('aionui-team-')) {
         console.log(
-          `[GeminiAgentManager] Auto-approving team MCP tool: serverName=${serverName}, callId=${content.callId}`
+          `[GeminiAgentManager] Auto-approving team MCP tool: server_name=${server_name}, call_id=${content.call_id}`
         );
-        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        void this.postMessagePromise(content.call_id, ToolConfirmationOutcome.ProceedOnce);
         return true;
       }
     }
-    if (this.currentMode === 'autoEdit') {
+    if (this.current_mode === 'autoEdit') {
       // autoEdit: auto-approve edit (write/replace) and info (read) operations
       // Only exec and mcp still require manual confirmation
       if (type === 'edit' || type === 'info') {
-        console.log(`[GeminiAgentManager] Auto-approving ${type}: callId=${content.callId}`);
-        void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
+        console.log(`[GeminiAgentManager] Auto-approving ${type}: call_id=${content.call_id}`);
+        void this.postMessagePromise(content.call_id, ToolConfirmationOutcome.ProceedOnce);
         return true;
       }
     }
@@ -728,10 +728,10 @@ export class GeminiAgentManager extends BaseAgentManager<
           // 当工具处于确认状态但缺少详情时，提供兜底确认
           this.addConfirmation({
             title: 'Awaiting Confirmation',
-            id: content.callId,
+            id: content.call_id,
             action: 'confirm',
             description: content.description || content.name || 'Tool requires confirmation',
-            callId: content.callId,
+            call_id: content.call_id,
             options: [
               {
                 label: 'messages.confirmation.yesAllowOnce',
@@ -746,19 +746,19 @@ export class GeminiAgentManager extends BaseAgentManager<
           return;
         }
         if (!question || !hasOptions) return;
-        // Extract commandType from exec confirmations for "always allow" memory
-        const commandType =
+        // Extract command_type from exec confirmations for "always allow" memory
+        const command_type =
           content.confirmationDetails?.type === 'exec'
             ? (content.confirmationDetails as { rootCommand?: string }).rootCommand
             : undefined;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
-          id: content.callId,
+          id: content.call_id,
           action: content.confirmationDetails.type,
           description: description || content.description || '',
-          callId: content.callId,
+          call_id: content.call_id,
           options: options,
-          commandType,
+          command_type,
         });
       });
     }
@@ -807,10 +807,10 @@ export class GeminiAgentManager extends BaseAgentManager<
       if (data.type === 'start') {
         this.status = 'running';
         const traceData = {
-          agentType: 'gemini' as const,
+          agent_type: 'gemini' as const,
           provider: this.model.name,
-          modelId: this.model.useModel,
-          baseUrl: this.model.baseUrl,
+          model_id: this.model.useModel,
+          base_url: this.model.base_url,
           platform: this.model.platform,
           authType: getProviderAuthType(this.model),
           timestamp: Date.now(),
@@ -932,7 +932,7 @@ export class GeminiAgentManager extends BaseAgentManager<
 
       // Check recent assistant messages for cron commands (position: left means assistant)
       // Filter by timestamp to avoid re-processing old messages
-      const assistantMsgs = result.data.filter((m) => m.position === 'left' && (m.createdAt ?? 0) > afterTimestamp);
+      const assistantMsgs = result.data.filter((m) => m.position === 'left' && (m.created_at ?? 0) > afterTimestamp);
 
       // Return false if no assistant messages found after timestamp (will trigger retry)
       if (assistantMsgs.length === 0) {
@@ -951,8 +951,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       if (textContent) {
         const skillRequests = detectSkillLoadRequest(textContent);
         if (skillRequests.length > 0) {
-          const skillManager = AcpSkillManager.getInstance(this.enabledSkills);
-          await skillManager.discoverSkills(this.enabledSkills);
+          const skillManager = AcpSkillManager.getInstance(this.enabled_skills);
+          await skillManager.discoverSkills(this.enabled_skills);
           const skills = await skillManager.getSkills(skillRequests);
           if (skills.length > 0) {
             const skillContent = buildSkillContentText(skills);
@@ -1004,7 +1004,7 @@ export class GeminiAgentManager extends BaseAgentManager<
    * 获取当前会话模式。
    */
   getMode(): { mode: string; initialized: boolean } {
-    return { mode: this.currentMode, initialized: true };
+    return { mode: this.current_mode, initialized: true };
   }
 
   /**
@@ -1015,8 +1015,8 @@ export class GeminiAgentManager extends BaseAgentManager<
    * not via a protocol-level session/set_mode call.
    */
   async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
-    const prev = this.currentMode;
-    this.currentMode = mode;
+    const prev = this.current_mode;
+    this.current_mode = mode;
     this.saveSessionMode(mode);
 
     // Sync legacy yoloMode config: when leaving yolo mode, clear the old
@@ -1025,7 +1025,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       void this.clearLegacyYoloConfig();
     }
 
-    return { success: true, data: { mode: this.currentMode } };
+    return { success: true, data: { mode: this.current_mode } };
   }
 
   /**
@@ -1049,7 +1049,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
-          sessionMode: mode,
+          session_mode: mode,
         };
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
@@ -1079,21 +1079,21 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
   }
 
-  confirm(id: string, callId: string, data: string) {
+  confirm(id: string, call_id: string, data: string) {
     // Store "always allow" decision before removing confirmation from cache
     // 在从缓存中移除确认之前，存储 "always allow" 决策
     if (data === ToolConfirmationOutcome.ProceedAlways) {
-      const confirmation = this.confirmations.find((c) => c.callId === callId);
+      const confirmation = this.confirmations.find((c) => c.call_id === call_id);
       if (confirmation?.action) {
-        const keys = GeminiApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.commandType);
+        const keys = GeminiApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.command_type);
         this.approvalStore.approveAll(keys);
       }
     }
 
-    super.confirm(id, callId, data);
-    // 发送确认到 worker，使用 callId 作为消息类型
-    // Send confirmation to worker, using callId as message type
-    return this.postMessagePromise(callId, data);
+    super.confirm(id, call_id, data);
+    // 发送确认到 worker，使用 call_id 作为消息类型
+    // Send confirmation to worker, using call_id as message type
+    return this.postMessagePromise(call_id, data);
   }
 
   // Manually trigger context reload
@@ -1160,7 +1160,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         duration,
         status,
       },
-      createdAt: this.thinkingStartTime || Date.now(),
+      created_at: this.thinkingStartTime || Date.now(),
     };
     addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
   }

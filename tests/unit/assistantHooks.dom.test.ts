@@ -207,9 +207,7 @@ describe('useAssistantList', () => {
   });
 
   it('falls back to the first assistant when the active id disappears on reload', async () => {
-    assistantsListInvoke.mockResolvedValueOnce([
-      makeAssistant({ id: 'old', name: 'Old', sortOrder: 0 }),
-    ]);
+    assistantsListInvoke.mockResolvedValueOnce([makeAssistant({ id: 'old', name: 'Old', sortOrder: 0 })]);
 
     const { result } = renderHook(() => useAssistantList());
 
@@ -232,13 +230,13 @@ describe('useAssistantList', () => {
     const { result } = renderHook(() => useAssistantList());
 
     expect(
-      result.current.isExtensionAssistant(makeAssistant({ id: 'ext', name: 'Ext', source: 'extension' })),
+      result.current.isExtensionAssistant(makeAssistant({ id: 'ext', name: 'Ext', source: 'extension' }))
     ).toBe(true);
     expect(
-      result.current.isExtensionAssistant(makeAssistant({ id: 'custom', name: 'C', source: 'user' })),
+      result.current.isExtensionAssistant(makeAssistant({ id: 'custom', name: 'C', source: 'user' }))
     ).toBe(false);
     expect(
-      result.current.isExtensionAssistant(makeAssistant({ id: 'b', name: 'B', source: 'builtin' })),
+      result.current.isExtensionAssistant(makeAssistant({ id: 'b', name: 'B', source: 'builtin' }))
     ).toBe(false);
     expect(result.current.isExtensionAssistant(null)).toBe(false);
     expect(result.current.isExtensionAssistant(undefined)).toBe(false);

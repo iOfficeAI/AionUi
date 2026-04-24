@@ -37,12 +37,12 @@ vi.mock('@/common/utils/buildAgentConversationParams', () => ({
     type: 'acp',
     name: p.name,
     model: {},
-    extra: { teamId: p.extra?.teamId, workspace: p.workspace },
+    extra: { team_id: p.extra?.team_id, workspace: p.workspace },
   })),
   getConversationTypeForBackend: vi.fn(() => 'claude'),
 }));
 vi.mock('@/common/utils/presetAssistantResources', () => ({
-  loadPresetAssistantResources: vi.fn().mockResolvedValue({ rules: '', enabledSkills: [] }),
+  loadPresetAssistantResources: vi.fn().mockResolvedValue({ rules: '', enabled_skills: [] }),
 }));
 vi.mock('@/common/utils', () => ({
   uuid: vi.fn((len: number) => 'mock-uuid-' + len),
@@ -144,11 +144,11 @@ function makeConversationService(autoWorkspace = '/auto/workspace/path'): IConve
 
 function makeLeadAgent(overrides: Partial<TeamAgent> = {}): Omit<TeamAgent, 'slotId'> {
   return {
-    conversationId: '',
+    conversation_id: '',
     role: 'leader',
-    agentType: 'claude',
-    agentName: 'Leader',
-    conversationType: 'acp',
+    agent_type: 'claude',
+    agent_name: 'Leader',
+    conversation_type: 'acp',
     status: 'pending',
     ...overrides,
   };
@@ -257,7 +257,7 @@ describe('Case 1: createTeam — empty workspace back-fills from leader conversa
       name: 'Test Team',
       workspace: '', // <-- empty, should NOT overwrite leader's workspace
       workspaceMode: 'shared',
-      agents: [makeLeadAgent({ conversationId: existingConv.id }) as TeamAgent],
+      agents: [makeLeadAgent({ conversation_id: existingConv.id }) as TeamAgent],
     });
 
     // Leader's conversation workspace must remain intact (not overwritten with '')
@@ -302,11 +302,11 @@ describe('Case 2: addAgent — new member conversation gets leader workspace', (
 
     // 3. Add a new member
     const newMember: Omit<TeamAgent, 'slotId'> = {
-      conversationId: '',
+      conversation_id: '',
       role: 'teammate',
-      agentType: 'claude',
-      agentName: 'Worker',
-      conversationType: 'acp',
+      agent_type: 'claude',
+      agent_name: 'Worker',
+      conversation_type: 'acp',
       status: 'pending',
     };
 
@@ -319,9 +319,9 @@ describe('Case 2: addAgent — new member conversation gets leader workspace', (
       extra?: { workspace?: string };
     };
     // The workspace passed to buildAgentConversationParams should be the team workspace
-    expect(addedAgent.conversationId).toBeTruthy();
+    expect(addedAgent.conversation_id).toBeTruthy();
     // Verify the new agent's conversation exists and is tracked
-    const newConv = await conversationService.getConversation(addedAgent.conversationId);
+    const newConv = await conversationService.getConversation(addedAgent.conversation_id);
     // The conversation was created; its extra.workspace should match the auto workspace
     // (because buildConversationParams passes team.workspace to buildAgentConversationParams)
     expect(newConv).toBeDefined();
@@ -348,11 +348,11 @@ describe('Case 2: addAgent — new member conversation gets leader workspace', (
     (service as unknown as { repo: ITeamRepository }).repo.findById = vi.fn(async () => team);
 
     await service.addAgent(team.id, {
-      conversationId: '',
+      conversation_id: '',
       role: 'teammate',
-      agentType: 'claude',
-      agentName: 'Worker',
-      conversationType: 'acp',
+      agent_type: 'claude',
+      agent_name: 'Worker',
+      conversation_type: 'acp',
       status: 'pending',
     });
 
@@ -377,12 +377,12 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
     const WORKSPACE = '/projects/myproject';
     const result = buildRolePrompt({
       agent: {
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
+        slot_id: 'slot-lead',
+        conversation_id: 'conv-lead',
         role: 'leader',
-        agentType: 'claude',
-        agentName: 'Leader',
-        conversationType: 'acp',
+        agent_type: 'claude',
+        agent_name: 'Leader',
+        conversation_type: 'acp',
         status: 'idle',
       },
       mailboxMessages: [],
@@ -398,12 +398,12 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
   it('leader prompt does NOT contain workspace section when teamWorkspace is undefined', () => {
     const result = buildRolePrompt({
       agent: {
-        slotId: 'slot-lead',
-        conversationId: 'conv-lead',
+        slot_id: 'slot-lead',
+        conversation_id: 'conv-lead',
         role: 'leader',
-        agentType: 'claude',
-        agentName: 'Leader',
-        conversationType: 'acp',
+        agent_type: 'claude',
+        agent_name: 'Leader',
+        conversation_type: 'acp',
         status: 'idle',
       },
       mailboxMessages: [],
@@ -419,22 +419,22 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
   it('teammate prompt includes workspace path when teamWorkspace is provided', () => {
     const WORKSPACE = '/projects/myproject';
     const leader: TeamAgent = {
-      slotId: 'slot-lead',
-      conversationId: 'conv-lead',
+      slot_id: 'slot-lead',
+      conversation_id: 'conv-lead',
       role: 'leader',
-      agentType: 'claude',
-      agentName: 'Leader',
-      conversationType: 'acp',
+      agent_type: 'claude',
+      agent_name: 'Leader',
+      conversation_type: 'acp',
       status: 'idle',
     };
     const result = buildRolePrompt({
       agent: {
-        slotId: 'slot-member',
-        conversationId: 'conv-member',
+        slot_id: 'slot-member',
+        conversation_id: 'conv-member',
         role: 'teammate',
-        agentType: 'claude',
-        agentName: 'Worker',
-        conversationType: 'acp',
+        agent_type: 'claude',
+        agent_name: 'Worker',
+        conversation_type: 'acp',
         status: 'idle',
       },
       mailboxMessages: [],
@@ -458,17 +458,17 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
       leaderAgentId: 'slot-lead',
       agents: [
         {
-          slotId: 'slot-lead',
-          conversationId: 'conv-lead',
+          slot_id: 'slot-lead',
+          conversation_id: 'conv-lead',
           role: 'leader',
-          agentType: 'claude',
-          agentName: 'Leader',
-          conversationType: 'acp',
+          agent_type: 'claude',
+          agent_name: 'Leader',
+          conversation_type: 'acp',
           status: 'idle',
         },
       ],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
     };
 
     const session = new TeamSession(team, makeRepo(), makeWorkerTaskManager());
@@ -487,17 +487,17 @@ describe('Case 3: buildRolePrompt — teamWorkspace injects workspace section', 
       leaderAgentId: 'slot-lead',
       agents: [
         {
-          slotId: 'slot-lead',
-          conversationId: 'conv-lead',
+          slot_id: 'slot-lead',
+          conversation_id: 'conv-lead',
           role: 'leader',
-          agentType: 'claude',
-          agentName: 'Leader',
-          conversationType: 'acp',
+          agent_type: 'claude',
+          agent_name: 'Leader',
+          conversation_type: 'acp',
           status: 'idle',
         },
       ],
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
     };
 
     const session = new TeamSession(team, makeRepo(), makeWorkerTaskManager());
@@ -548,11 +548,11 @@ describe('Case 4: Concurrent addAgent — mutex serializes writes', () => {
     const results = await Promise.all(
       names.map((name) =>
         service.addAgent(team.id, {
-          conversationId: '',
+          conversation_id: '',
           role: 'teammate',
-          agentType: 'claude',
-          agentName: name,
-          conversationType: 'acp',
+          agent_type: 'claude',
+          agent_name: name,
+          conversation_type: 'acp',
           status: 'pending',
         })
       )
@@ -562,7 +562,7 @@ describe('Case 4: Concurrent addAgent — mutex serializes writes', () => {
     expect(results).toHaveLength(4);
     // The final agents list should have Leader + 4 teammates = 5
     expect(latestAgents).toHaveLength(5);
-    const agentNames = latestAgents.map((a) => a.agentName);
+    const agentNames = latestAgents.map((a) => a.agent_name);
     expect(agentNames).toContain('Leader');
     for (const name of names) {
       expect(agentNames).toContain(name);

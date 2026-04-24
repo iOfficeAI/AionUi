@@ -93,9 +93,9 @@ const mockUpdateSystemInfo = vi.fn();
 const mockGetStartOnBootStatus = vi.fn();
 const mockSetStartOnBoot = vi.fn();
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: vi.fn().mockResolvedValue(undefined),
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: vi.fn().mockReturnValue(undefined),
     set: vi.fn().mockResolvedValue(undefined),
   },
 }));

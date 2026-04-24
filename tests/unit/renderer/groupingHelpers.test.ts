@@ -16,7 +16,7 @@ import {
 
 // Mock dependencies
 vi.mock('@/renderer/utils/chat/timeline', () => ({
-  getActivityTime: (conv: TChatConversation) => conv.updatedAt || conv.createdAt,
+  getActivityTime: (conv: TChatConversation) => conv.updated_at || conv.created_at,
 }));
 
 vi.mock('@/renderer/utils/workspace/workspace', () => ({
@@ -38,24 +38,24 @@ vi.mock('@/renderer/pages/conversation/GroupedHistory/utils/sortOrderHelpers', (
 const mockT = (key: string) => key;
 
 describe('isCronJobConversation', () => {
-  it('returns true when extra.cronJobId exists', () => {
+  it('returns true when extra.cron_job_id exists', () => {
     const conversation: TChatConversation = {
       id: 'conv-1',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
-      extra: { cronJobId: 'job-123' },
+      created_at: 1000,
+      updated_at: 1000,
+      extra: { cron_job_id: 'job-123' },
       userMsgCount: 0,
     };
     expect(isCronJobConversation(conversation)).toBe(true);
   });
 
-  it('returns false when extra.cronJobId is undefined', () => {
+  it('returns false when extra.cron_job_id is undefined', () => {
     const conversation: TChatConversation = {
       id: 'conv-2',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       extra: {},
       userMsgCount: 0,
     };
@@ -66,20 +66,20 @@ describe('isCronJobConversation', () => {
     const conversation: TChatConversation = {
       id: 'conv-3',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       userMsgCount: 0,
     };
     expect(isCronJobConversation(conversation)).toBe(false);
   });
 
-  it('returns false when extra.cronJobId is empty string', () => {
+  it('returns false when extra.cron_job_id is empty string', () => {
     const conversation: TChatConversation = {
       id: 'conv-4',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
-      extra: { cronJobId: '' },
+      created_at: 1000,
+      updated_at: 1000,
+      extra: { cron_job_id: '' },
       userMsgCount: 0,
     };
     expect(isCronJobConversation(conversation)).toBe(false);
@@ -91,8 +91,8 @@ describe('isConversationPinned', () => {
     const conversation: TChatConversation = {
       id: 'conv-1',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       extra: { pinned: true },
       userMsgCount: 0,
     };
@@ -103,8 +103,8 @@ describe('isConversationPinned', () => {
     const conversation: TChatConversation = {
       id: 'conv-2',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       extra: { pinned: false },
       userMsgCount: 0,
     };
@@ -115,8 +115,8 @@ describe('isConversationPinned', () => {
     const conversation: TChatConversation = {
       id: 'conv-3',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       extra: {},
       userMsgCount: 0,
     };
@@ -127,8 +127,8 @@ describe('isConversationPinned', () => {
     const conversation: TChatConversation = {
       id: 'conv-4',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       userMsgCount: 0,
     };
     expect(isConversationPinned(conversation)).toBe(false);
@@ -136,24 +136,24 @@ describe('isConversationPinned', () => {
 });
 
 describe('getConversationPinnedAt', () => {
-  it('returns pinnedAt timestamp when available', () => {
+  it('returns pinned_at timestamp when available', () => {
     const conversation: TChatConversation = {
       id: 'conv-1',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
-      extra: { pinnedAt: 5000 },
+      created_at: 1000,
+      updated_at: 1000,
+      extra: { pinned_at: 5000 },
       userMsgCount: 0,
     };
     expect(getConversationPinnedAt(conversation)).toBe(5000);
   });
 
-  it('returns 0 when pinnedAt is undefined', () => {
+  it('returns 0 when pinned_at is undefined', () => {
     const conversation: TChatConversation = {
       id: 'conv-2',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       extra: {},
       userMsgCount: 0,
     };
@@ -164,20 +164,20 @@ describe('getConversationPinnedAt', () => {
     const conversation: TChatConversation = {
       id: 'conv-3',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
       userMsgCount: 0,
     };
     expect(getConversationPinnedAt(conversation)).toBe(0);
   });
 
-  it('returns 0 when pinnedAt is not a number', () => {
+  it('returns 0 when pinned_at is not a number', () => {
     const conversation: TChatConversation = {
       id: 'conv-4',
       title: 'Test',
-      createdAt: 1000,
-      updatedAt: 1000,
-      extra: { pinnedAt: 'not-a-number' as unknown },
+      created_at: 1000,
+      updated_at: 1000,
+      extra: { pinned_at: 'not-a-number' as unknown },
       userMsgCount: 0,
     };
     expect(getConversationPinnedAt(conversation)).toBe(0);
@@ -190,25 +190,25 @@ describe('groupConversationsByWorkspace', () => {
       {
         id: 'conv-1',
         title: 'Test 1',
-        createdAt: 3000,
-        updatedAt: 3000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 3000,
+        updated_at: 3000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Test 2',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
       {
         id: 'conv-3',
         title: 'Test 3',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { workspace: '/path/b', customWorkspace: true },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { workspace: '/path/b', custom_workspace: true },
         userMsgCount: 0,
       },
     ];
@@ -236,16 +236,16 @@ describe('groupConversationsByWorkspace', () => {
       {
         id: 'conv-1',
         title: 'Test 1',
-        createdAt: 3000,
-        updatedAt: 3000,
+        created_at: 3000,
+        updated_at: 3000,
         extra: {},
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Test 2',
-        createdAt: 2000,
-        updatedAt: 2000,
+        created_at: 2000,
+        updated_at: 2000,
         userMsgCount: 0,
       },
     ];
@@ -265,24 +265,24 @@ describe('groupConversationsByWorkspace', () => {
       {
         id: 'conv-1',
         title: 'Test 1',
-        createdAt: 1000,
-        updatedAt: 1000,
+        created_at: 1000,
+        updated_at: 1000,
         extra: {},
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Test 2',
-        createdAt: 5000,
-        updatedAt: 5000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 5000,
+        updated_at: 5000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
       {
         id: 'conv-3',
         title: 'Test 3',
-        createdAt: 3000,
-        updatedAt: 3000,
+        created_at: 3000,
+        updated_at: 3000,
         extra: {},
         userMsgCount: 0,
       },
@@ -305,25 +305,25 @@ describe('groupConversationsByWorkspace', () => {
       {
         id: 'conv-1',
         title: 'Test 1',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Test 2',
-        createdAt: 3000,
-        updatedAt: 3000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 3000,
+        updated_at: 3000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
       {
         id: 'conv-3',
         title: 'Test 3',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
     ];
@@ -341,17 +341,17 @@ describe('groupConversationsByWorkspace', () => {
       {
         id: 'conv-1',
         title: 'Test 1',
-        createdAt: 1000,
-        updatedAt: 1000,
+        created_at: 1000,
+        updated_at: 1000,
         extra: { workspace: '/path/a' }, // missing customWorkspace
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Test 2',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { customWorkspace: true }, // missing workspace
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { custom_workspace: true }, // missing workspace
         userMsgCount: 0,
       },
     ];
@@ -371,16 +371,16 @@ describe('buildGroupedHistory', () => {
       {
         id: 'conv-1',
         title: 'Pinned',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Normal',
-        createdAt: 3000,
-        updatedAt: 3000,
+        created_at: 3000,
+        updated_at: 3000,
         extra: {},
         userMsgCount: 0,
       },
@@ -399,17 +399,17 @@ describe('buildGroupedHistory', () => {
       {
         id: 'conv-1',
         title: 'Normal',
-        createdAt: 1000,
-        updatedAt: 1000,
+        created_at: 1000,
+        updated_at: 1000,
         extra: {},
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Cron Job',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { cronJobId: 'job-123' },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { cron_job_id: 'job-123' },
         userMsgCount: 0,
       },
     ];
@@ -426,60 +426,60 @@ describe('buildGroupedHistory', () => {
       {
         id: 'conv-1',
         title: 'Pinned 1',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { pinned: true, pinnedAt: 3000, sortOrder: 2000 },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { pinned: true, pinned_at: 3000, sortOrder: 2000 },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Pinned 2',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { pinned: true, pinnedAt: 4000, sortOrder: 1000 },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { pinned: true, pinned_at: 4000, sortOrder: 1000 },
         userMsgCount: 0,
       },
       {
         id: 'conv-3',
         title: 'Pinned 3',
-        createdAt: 3000,
-        updatedAt: 3000,
-        extra: { pinned: true, pinnedAt: 5000 }, // no sortOrder
+        created_at: 3000,
+        updated_at: 3000,
+        extra: { pinned: true, pinned_at: 5000 }, // no sortOrder
         userMsgCount: 0,
       },
     ];
 
     const result = buildGroupedHistory(conversations, mockT);
 
-    // conv-2 (sortOrder 1000) < conv-1 (sortOrder 2000) < conv-3 (no sortOrder, sorted by pinnedAt)
+    // conv-2 (sortOrder 1000) < conv-1 (sortOrder 2000) < conv-3 (no sortOrder, sorted by pinned_at)
     expect(result.pinnedConversations[0].id).toBe('conv-2');
     expect(result.pinnedConversations[1].id).toBe('conv-1');
     expect(result.pinnedConversations[2].id).toBe('conv-3');
   });
 
-  it('falls back to pinnedAt when sortOrder is not present', () => {
+  it('falls back to pinned_at when sortOrder is not present', () => {
     const conversations: TChatConversation[] = [
       {
         id: 'conv-1',
         title: 'Pinned 1',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Pinned 2',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { pinned: true, pinnedAt: 3000 },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { pinned: true, pinned_at: 3000 },
         userMsgCount: 0,
       },
     ];
 
     const result = buildGroupedHistory(conversations, mockT);
 
-    // Descending by pinnedAt: conv-2 (3000) before conv-1 (2000)
+    // Descending by pinned_at: conv-2 (3000) before conv-1 (2000)
     expect(result.pinnedConversations[0].id).toBe('conv-2');
     expect(result.pinnedConversations[1].id).toBe('conv-1');
   });
@@ -489,33 +489,33 @@ describe('buildGroupedHistory', () => {
       {
         id: 'conv-1',
         title: 'Pinned',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Cron',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { cronJobId: 'job-123' },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { cron_job_id: 'job-123' },
         userMsgCount: 0,
       },
       {
         id: 'conv-3',
         title: 'Normal',
-        createdAt: 3000,
-        updatedAt: 3000,
+        created_at: 3000,
+        updated_at: 3000,
         extra: {},
         userMsgCount: 0,
       },
       {
         id: 'conv-4',
         title: 'Workspace',
-        createdAt: 4000,
-        updatedAt: 4000,
-        extra: { workspace: '/path/a', customWorkspace: true },
+        created_at: 4000,
+        updated_at: 4000,
+        extra: { workspace: '/path/a', custom_workspace: true },
         userMsgCount: 0,
       },
     ];
@@ -543,17 +543,17 @@ describe('buildGroupedHistory', () => {
       {
         id: 'conv-1',
         title: 'Pinned 1',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { pinned: true, pinnedAt: 1000 },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { pinned: true, pinned_at: 1000 },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Pinned 2',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { pinned: true, pinnedAt: 2000 },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { pinned: true, pinned_at: 2000 },
         userMsgCount: 0,
       },
     ];
@@ -569,17 +569,17 @@ describe('buildGroupedHistory', () => {
       {
         id: 'conv-1',
         title: 'Cron 1',
-        createdAt: 1000,
-        updatedAt: 1000,
-        extra: { cronJobId: 'job-1' },
+        created_at: 1000,
+        updated_at: 1000,
+        extra: { cron_job_id: 'job-1' },
         userMsgCount: 0,
       },
       {
         id: 'conv-2',
         title: 'Cron 2',
-        createdAt: 2000,
-        updatedAt: 2000,
-        extra: { cronJobId: 'job-2' },
+        created_at: 2000,
+        updated_at: 2000,
+        extra: { cron_job_id: 'job-2' },
         userMsgCount: 0,
       },
     ];

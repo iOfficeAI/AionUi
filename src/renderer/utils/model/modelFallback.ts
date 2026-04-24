@@ -15,7 +15,7 @@ export const scoreModel = (modelName: string): number => {
 };
 
 export type ResolveFallbackParams = {
-  currentModel: { id: string; useModel: string } | undefined;
+  current_model: { id: string; useModel: string } | undefined;
   providers: IProvider[];
   geminiModeLookup: Map<string, GeminiModeOption>;
   getAvailableModels: (provider: IProvider) => string[];
@@ -28,20 +28,20 @@ export type ResolveFallbackParams = {
  * fallback is available.
  */
 export const resolveFallbackTarget = (params: ResolveFallbackParams): { provider: IProvider; model: string } | null => {
-  const { currentModel, providers, geminiModeLookup, getAvailableModels, exhaustedModels } = params;
+  const { current_model, providers, geminiModeLookup, getAvailableModels, exhaustedModels } = params;
 
-  if (!currentModel) return null;
+  if (!current_model) return null;
   const provider =
-    providers.find((item) => item.id === currentModel.id) ||
+    providers.find((item) => item.id === current_model.id) ||
     providers.find((item) => item.platform?.toLowerCase().includes('gemini-with-google-auth'));
   if (!provider) return null;
 
   const isGoogleAuthProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
   const manualOption = isGoogleAuthProvider ? geminiModeLookup.get('manual') : undefined;
   const manualModels = manualOption?.subModels?.map((model) => model.value) || [];
-  const availableModels = isGoogleAuthProvider ? manualModels : getAvailableModels(provider);
-  const candidates = availableModels.filter(
-    (model) => model && model !== currentModel.useModel && !exhaustedModels.has(model) && model !== 'manual'
+  const available_models = isGoogleAuthProvider ? manualModels : getAvailableModels(provider);
+  const candidates = available_models.filter(
+    (model) => model && model !== current_model.useModel && !exhaustedModels.has(model) && model !== 'manual'
   );
 
   if (!candidates.length) return null;

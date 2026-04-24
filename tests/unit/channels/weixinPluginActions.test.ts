@@ -33,11 +33,11 @@ function createConfig(): IChannelPluginConfig {
     credentials: {
       accountId: 'test_user',
       botToken: 'test_token',
-      baseUrl: 'https://example.com',
+      base_url: 'https://example.com',
     },
     status: 'created' as const,
-    createdAt: now,
-    updatedAt: now,
+    created_at: now,
+    updated_at: now,
   };
 }
 
@@ -56,15 +56,15 @@ describe('WeixinPlugin — Action Mapping', () => {
     plugin.onMessage(async (msg) => {
       received.push(msg);
       // Simulate successful action execution response
-      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'New session started' });
-      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'Done', replyMarkup: {} });
+      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'New session started' });
+      await plugin.editMessage(msg.chat_id, msgId, { type: 'text', text: 'Done', replyMarkup: {} });
     });
 
     await plugin.start();
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
 
     // Trigger chat with session.new
-    await agent.chat({ conversationId: 'user123', text: 'session.new' });
+    await agent.chat({ conversation_id: 'user123', text: 'session.new' });
 
     expect(received).toHaveLength(1);
     expect(received[0].content.type).toBe('action');
@@ -83,14 +83,14 @@ describe('WeixinPlugin — Action Mapping', () => {
     const received: any[] = [];
     plugin.onMessage(async (msg) => {
       received.push(msg);
-      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'Status info' });
-      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'Status: OK', replyMarkup: {} });
+      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'Status info' });
+      await plugin.editMessage(msg.chat_id, msgId, { type: 'text', text: 'Status: OK', replyMarkup: {} });
     });
 
     await plugin.start();
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
 
-    await agent.chat({ conversationId: 'user123', text: 'session.status' });
+    await agent.chat({ conversation_id: 'user123', text: 'session.status' });
 
     expect(received).toHaveLength(1);
     expect(received[0].content.type).toBe('action');
@@ -105,14 +105,14 @@ describe('WeixinPlugin — Action Mapping', () => {
     const received: any[] = [];
     plugin.onMessage(async (msg) => {
       received.push(msg);
-      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'AI Response' });
-      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'Hello human', replyMarkup: {} });
+      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'AI Response' });
+      await plugin.editMessage(msg.chat_id, msgId, { type: 'text', text: 'Hello human', replyMarkup: {} });
     });
 
     await plugin.start();
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
 
-    await agent.chat({ conversationId: 'user123', text: 'Hello AI' });
+    await agent.chat({ conversation_id: 'user123', text: 'Hello AI' });
 
     expect(received).toHaveLength(1);
     expect(received[0].content.type).toBe('text');
@@ -128,14 +128,14 @@ describe('WeixinPlugin — Action Mapping', () => {
     const received: any[] = [];
     plugin.onMessage(async (msg) => {
       received.push(msg);
-      await plugin.sendMessage(msg.chatId, { type: 'text', text: 'Empty response' });
+      await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'Empty response' });
     });
 
     await plugin.start();
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
 
     // Trigger chat with empty text
-    await agent.chat({ conversationId: 'user123', text: '' });
+    await agent.chat({ conversation_id: 'user123', text: '' });
 
     expect(received).toHaveLength(1);
     expect(received[0].content.text).toBe('');
@@ -151,8 +151,8 @@ describe('WeixinPlugin — Action Mapping', () => {
     plugin.onMessage(async (msg) => {
       received.push(msg);
       // Resolve the pending response to avoid timeout
-      const msgId = await plugin.sendMessage(msg.chatId, { type: 'text', text: 'ok' });
-      await plugin.editMessage(msg.chatId, msgId, { type: 'text', text: 'done', replyMarkup: {} });
+      const msgId = await plugin.sendMessage(msg.chat_id, { type: 'text', text: 'ok' });
+      await plugin.editMessage(msg.chat_id, msgId, { type: 'text', text: 'done', replyMarkup: {} });
     });
 
     await plugin.start();
@@ -165,8 +165,8 @@ describe('WeixinPlugin — Action Mapping', () => {
       toUnifiedIncomingMessage: () => ({
         id: '123',
         platform: 'weixin',
-        chatId: 'user123',
-        user: { id: 'user123', displayName: 'User' },
+        chat_id: 'user123',
+        user: { id: 'user123', display_name: 'User' },
         content: { type: 'image', text: 'session.new' }, // Non-text type
         timestamp: Date.now(),
       }),
@@ -183,7 +183,7 @@ describe('WeixinPlugin — Action Mapping', () => {
     await pluginWithMock.start();
 
     const { agent } = mockStartFn.mock.calls[1][0] as MonitorOptions;
-    await agent.chat({ conversationId: 'user123', text: 'session.new' });
+    await agent.chat({ conversation_id: 'user123', text: 'session.new' });
 
     expect(received).toHaveLength(1);
     expect(received[0].content.type).toBe('image');

@@ -29,21 +29,21 @@ type Props = {
 
 type TeamPageContentProps = {
   team: TTeam;
-  onRenameTeam: (newName: string) => Promise<boolean>;
+  onRenameTeam: (new_name: string) => Promise<boolean>;
 };
 
 /** Compact aionrs model selector for the agent header */
-const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
-  conversationId,
+const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialModel?: TProviderWithModel }> = ({
+  conversation_id,
   initialModel,
 }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversationId, updates: { model: selected } });
+      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
       return Boolean(ok);
     },
-    [conversationId]
+    [conversation_id]
   );
   const modelSelection = useAionrsModelSelection({ initialModel, onSelectModel });
   return <AionrsModelSelector selection={modelSelection} />;
@@ -52,20 +52,21 @@ const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel
 /** Fetches conversation for a single agent and renders TeamChatView */
 const AgentChatSlot: React.FC<{
   agent: TeamAgent;
-  teamId: string;
+  team_id: string;
   isLeader: boolean;
   isFullscreen?: boolean;
   onToggleFullscreen?: () => void;
   onRemove?: () => void;
-}> = ({ agent, teamId, isLeader, isFullscreen = false, onToggleFullscreen, onRemove }) => {
-  const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: agent.conversationId })
+}> = ({ agent, team_id, isLeader, isFullscreen = false, onToggleFullscreen, onRemove }) => {
+  const { data: conversation } = useSWR(
+    agent.conversation_id ? ['team-conversation', agent.conversation_id] : null,
+    () => ipcBridge.conversation.get.invoke({ id: agent.conversation_id })
   );
 
   const isAionrs = conversation?.type === 'aionrs';
-  const initialModelId = (conversation?.extra as { currentModelId?: string })?.currentModelId;
-  const isAcpLike = agent.conversationType === 'acp' || agent.conversationType === 'codex';
-  const isGemini = agent.conversationType === 'gemini';
+  const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
+  const isAcpLike = agent.conversation_type === 'acp' || agent.conversation_type === 'codex';
+  const isGemini = agent.conversation_type === 'gemini';
 
   const geminiOnSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -103,34 +104,34 @@ const AgentChatSlot: React.FC<{
         }
       >
         <TeamAgentIdentity
-          agentName={agent.agentName}
-          agentType={agent.agentType}
-          conversationId={agent.conversationId}
+          agent_name={agent.agent_name}
+          agent_type={agent.agent_type}
+          conversation_id={agent.conversation_id}
           isLeader={isLeader}
           className='min-w-0'
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
         />
         <div className='flex items-center gap-8px shrink-0'>
-          {agent.conversationId && !isAionrs && isAcpLike && (
+          {agent.conversation_id && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AcpModelSelector
-                key={agent.conversationId}
-                conversationId={agent.conversationId}
-                backend={agent.agentType}
+                key={agent.conversation_id}
+                conversation_id={agent.conversation_id}
+                backend={agent.agent_type}
                 initialModelId={initialModelId}
               />
             </div>
           )}
-          {agent.conversationId && isGemini && (
+          {agent.conversation_id && isGemini && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <GeminiModelSelector selection={geminiModelSelection} />
             </div>
           )}
-          {isAionrs && agent.conversationId && (
+          {isAionrs && agent.conversation_id && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AionrsHeaderModelSelector
-                key={agent.conversationId}
-                conversationId={agent.conversationId}
+                key={agent.conversation_id}
+                conversation_id={agent.conversation_id}
                 initialModel={conversation?.model as TProviderWithModel | undefined}
               />
             </div>
@@ -155,9 +156,9 @@ const AgentChatSlot: React.FC<{
         {conversation ? (
           <TeamChatView
             conversation={conversation as TChatConversation}
-            teamId={teamId}
-            agentSlotId={isLeader ? undefined : agent.slotId}
-            agentName={agent.agentName}
+            team_id={team_id}
+            agentSlotId={isLeader ? undefined : agent.slot_id}
+            agent_name={agent.agent_name}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
@@ -181,48 +182,48 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [fullscreenSlotId, setFullscreenSlotId] = useState<string | null>(null);
 
-  const activeAgent = agents.find((a) => a.slotId === activeSlotId);
+  const activeAgent = agents.find((a) => a.slot_id === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'leader');
 
   const doRemoveAgent = useCallback(
-    async (slotId: string) => {
+    async (slot_id: string) => {
       try {
-        await ipcBridge.team.removeAgent.invoke({ teamId: team.id, slotId });
+        await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
         Message.success(t('common.deleteSuccess'));
         // Only switch tab when removing the currently active tab
-        if (slotId === activeSlotId && leadAgent?.slotId) switchTab(leadAgent.slotId);
-        if (fullscreenSlotId === slotId) setFullscreenSlotId(null);
+        if (slot_id === activeSlotId && leadAgent?.slot_id) switchTab(leadAgent.slot_id);
+        if (fullscreenSlotId === slot_id) setFullscreenSlotId(null);
       } catch (error) {
         console.error('Failed to remove agent:', error);
         Message.error(String(error));
       }
     },
-    [team.id, activeSlotId, leadAgent?.slotId, switchTab, fullscreenSlotId, t]
+    [team.id, activeSlotId, leadAgent?.slot_id, switchTab, fullscreenSlotId, t]
   );
 
   const handleRemoveAgent = useCallback(
-    (slotId: string) => {
-      const status = statusMap.get(slotId)?.status;
+    (slot_id: string) => {
+      const status = statusMap.get(slot_id)?.status;
       if (status === 'active') {
         Modal.confirm({
           title: t('team.removeAgent.confirmTitle'),
           content: t('team.removeAgent.confirmContent'),
-          onOk: () => doRemoveAgent(slotId),
+          onOk: () => doRemoveAgent(slot_id),
         });
       } else {
-        void doRemoveAgent(slotId);
+        void doRemoveAgent(slot_id);
       }
     },
     [statusMap, doRemoveAgent, t]
   );
-  const leaderConversationId = leadAgent?.conversationId ?? '';
+  const leaderConversationId = leadAgent?.conversation_id ?? '';
   const isLeaderAgent = activeAgent?.role === 'leader';
-  const allConversationIds = useMemo(() => agents.map((a) => a.conversationId).filter(Boolean), [agents]);
+  const allConversationIds = useMemo(() => agents.map((a) => a.conversation_id).filter(Boolean), [agents]);
 
   // Fetch leader agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
-    leadAgent?.conversationId ? ['team-conversation', leadAgent.conversationId] : null,
-    () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversationId })
+    leadAgent?.conversation_id ? ['team-conversation', leadAgent.conversation_id] : null,
+    () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversation_id })
   );
 
   // Use team workspace if specified, otherwise fall back to leader agent's conversation workspace (temp workspace)
@@ -231,10 +232,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   // Auto-expand workspace panel on mount when workspace is available
   useEffect(() => {
-    if (workspaceEnabled && leadAgent?.conversationId) {
-      dispatchWorkspaceHasFilesEvent(true, leadAgent.conversationId);
+    if (workspaceEnabled && leadAgent?.conversation_id) {
+      dispatchWorkspaceHasFilesEvent(true, leadAgent.conversation_id);
     }
-  }, [workspaceEnabled, leadAgent?.conversationId]);
+  }, [workspaceEnabled, leadAgent?.conversation_id]);
 
   const siderTitle = useMemo(
     () => (
@@ -247,7 +248,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   const sider = useMemo(() => {
     if (!workspaceEnabled || !dispatchConversation) return <div />;
-    return <ChatSider conversation={dispatchConversation} teamId={team.id} />;
+    return <ChatSider conversation={dispatchConversation} team_id={team.id} />;
   }, [workspaceEnabled, dispatchConversation, team.id]);
 
   const updateScrollArrows = useCallback(() => {
@@ -274,11 +275,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   }, [updateScrollArrows]);
 
   const handleTabClick = useCallback(
-    (slotId: string) => {
-      switchTab(slotId);
-      if (fullscreenSlotId) setFullscreenSlotId(slotId);
+    (slot_id: string) => {
+      switchTab(slot_id);
+      if (fullscreenSlotId) setFullscreenSlotId(slot_id);
       requestAnimationFrame(() => {
-        const el = agentRefs.current[slotId];
+        const el = agentRefs.current[slot_id];
         if (el) {
           el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
           // Flash: opacity 1→0→1
@@ -300,15 +301,15 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   );
 
   const scrollToPrev = useCallback(() => {
-    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
+    const idx = agents.findIndex((a) => a.slot_id === activeSlotId);
     const target = idx > 0 ? idx - 1 : 0;
-    if (agents[target]) handleTabClick(agents[target].slotId);
+    if (agents[target]) handleTabClick(agents[target].slot_id);
   }, [agents, activeSlotId, handleTabClick]);
 
   const scrollToNext = useCallback(() => {
-    const idx = agents.findIndex((a) => a.slotId === activeSlotId);
+    const idx = agents.findIndex((a) => a.slot_id === activeSlotId);
     const target = idx >= 0 && idx < agents.length - 1 ? idx + 1 : 0;
-    if (agents[target]) handleTabClick(agents[target].slotId);
+    if (agents[target]) handleTabClick(agents[target].slot_id);
   }, [agents, activeSlotId, handleTabClick]);
 
   // Every time the page mounts, scroll + flash the active tab
@@ -338,12 +339,12 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // Track pending permission confirmation counts per agent (requirements 5, 6, 7, 8)
   const { pendingCounts } = useTeamPendingPermissions(team.id, allConversationIds);
 
-  // Build slotId → pendingCount map for tab badge display
+  // Build slot_id → pendingCount map for tab badge display
   const slotPendingCounts = useMemo(() => {
     const map = new Map<string, number>();
     for (const agent of agents) {
-      if (agent.conversationId) {
-        map.set(agent.slotId, pendingCounts[agent.conversationId] ?? 0);
+      if (agent.conversation_id) {
+        map.set(agent.slot_id, pendingCounts[agent.conversation_id] ?? 0);
       }
     }
     return map;
@@ -356,7 +357,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   return (
     <TeamPermissionProvider
-      teamId={team.id}
+      team_id={team.id}
       isLeaderAgent={isLeaderAgent}
       leaderConversationId={leaderConversationId}
       allConversationIds={allConversationIds}
@@ -368,8 +369,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         sider={sider}
         workspaceEnabled={workspaceEnabled}
         tabsSlot={tabsSlot}
-        conversationId={activeAgent?.conversationId}
-        agentName={undefined}
+        conversation_id={activeAgent?.conversation_id}
+        agent_name={undefined}
         workspacePath={effectiveWorkspace}
         onRenameTitle={onRenameTeam}
       >
@@ -377,18 +378,18 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
           {fullscreenSlotId ? (
             // Fullscreen: single agent fills the entire content area
             (() => {
-              const agent = agents.find((a) => a.slotId === fullscreenSlotId);
+              const agent = agents.find((a) => a.slot_id === fullscreenSlotId);
               if (!agent) return null;
-              const isLeaderSlot = agent.slotId === leadAgent?.slotId;
+              const isLeaderSlot = agent.slot_id === leadAgent?.slot_id;
               return (
                 <div className='flex-1 h-full'>
                   <AgentChatSlot
                     agent={agent}
-                    teamId={team.id}
+                    team_id={team.id}
                     isLeader={isLeaderSlot}
                     isFullscreen
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
-                    onRemove={() => handleRemoveAgent(agent.slotId)}
+                    onRemove={() => handleRemoveAgent(agent.slot_id)}
                   />
                 </div>
               );
@@ -416,12 +417,12 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
               >
                 {agents.map((agent) => {
                   const isSingle = agents.length <= 2;
-                  const isLeaderSlot = agent.slotId === leadAgent?.slotId;
+                  const isLeaderSlot = agent.slot_id === leadAgent?.slot_id;
                   return (
                     <div
-                      key={agent.slotId}
+                      key={agent.slot_id}
                       ref={(el) => {
-                        agentRefs.current[agent.slotId] = el;
+                        agentRefs.current[agent.slot_id] = el;
                       }}
                       className='relative h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{
@@ -437,10 +438,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                     >
                       <AgentChatSlot
                         agent={agent}
-                        teamId={team.id}
+                        team_id={team.id}
                         isLeader={isLeaderSlot}
-                        onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
-                        onRemove={() => handleRemoveAgent(agent.slotId)}
+                        onToggleFullscreen={() => setFullscreenSlotId(agent.slot_id)}
+                        onRemove={() => handleRemoveAgent(agent.slot_id)}
                       />
                     </div>
                   );
@@ -473,19 +474,19 @@ const TeamPage: React.FC<Props> = ({ team }) => {
   const { statusMap, renameAgent, removeAgent, mutateTeam } = useTeamSession(team);
   const { user } = useAuth();
   const { mutate: globalMutate } = useSWRConfig();
-  const defaultSlotId = team.agents[0]?.slotId ?? '';
+  const defaultSlotId = team.agents[0]?.slot_id ?? '';
 
   const handleRemoveAgentWithConfirm = useCallback(
-    (slotId: string) => {
+    (slot_id: string) => {
       const doRemove = async () => {
         try {
-          await removeAgent(slotId);
+          await removeAgent(slot_id);
           Message.success(t('common.deleteSuccess'));
         } catch (error) {
           Message.error(String(error));
         }
       };
-      const status = statusMap.get(slotId)?.status;
+      const status = statusMap.get(slot_id)?.status;
       if (status === 'active') {
         Modal.confirm({
           title: t('team.removeAgent.confirmTitle'),
@@ -500,9 +501,9 @@ const TeamPage: React.FC<Props> = ({ team }) => {
   );
 
   const handleRenameTeam = useCallback(
-    async (newName: string): Promise<boolean> => {
+    async (new_name: string): Promise<boolean> => {
       try {
-        await ipcBridge.team.renameTeam.invoke({ id: team.id, name: newName });
+        await ipcBridge.team.renameTeam.invoke({ id: team.id, name: new_name });
         await mutateTeam();
         await globalMutate(`teams/${user?.id ?? 'system_default_user'}`);
         return true;
@@ -519,7 +520,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       agents={team.agents}
       statusMap={statusMap}
       defaultActiveSlotId={defaultSlotId}
-      teamId={team.id}
+      team_id={team.id}
       renameAgent={renameAgent}
       removeAgent={handleRemoveAgentWithConfirm}
     >

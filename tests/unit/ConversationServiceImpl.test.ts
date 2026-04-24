@@ -58,11 +58,11 @@ function makeCronJob(overrides?: Partial<CronJob>): CronJob {
     schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
     target: { payload: { kind: 'message', text: 'hello' } },
     metadata: {
-      conversationId: 'conv-1',
-      agentType: 'gemini',
+      conversation_id: 'conv-1',
+      agent_type: 'gemini',
       createdBy: 'user',
-      createdAt: 1000,
-      updatedAt: 1000,
+      created_at: 1000,
+      updated_at: 1000,
     },
     state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     ...overrides,
@@ -75,8 +75,8 @@ function makeConversation(overrides?: Partial<TChatConversation>): TChatConversa
     name: 'Test Conversation',
     type: 'gemini',
     model: { provider: 'gemini', model: 'gemini-2.0-flash' },
-    createTime: 1000,
-    modifyTime: 1000,
+    created_at: 1000,
+    modified_at: 1000,
     source: 'create' as const,
     extra: {},
     ...overrides,
@@ -169,11 +169,11 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
     const job1 = makeCronJob({
       id: 'job-1',
-      metadata: { conversationId: 'source-conv', conversationTitle: 'Source' } as any,
+      metadata: { conversation_id: 'source-conv', conversationTitle: 'Source' } as any,
     });
     const job2 = makeCronJob({
       id: 'job-2',
-      metadata: { conversationId: 'source-conv', conversationTitle: 'Source' } as any,
+      metadata: { conversation_id: 'source-conv', conversationTitle: 'Source' } as any,
     });
 
     const repo = makeRepo({
@@ -196,14 +196,14 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     expect(mockCronService.updateJob).toHaveBeenCalledWith('job-1', {
       metadata: {
         ...job1.metadata,
-        conversationId: 'target-conv',
+        conversation_id: 'target-conv',
         conversationTitle: 'Target',
       },
     });
     expect(mockCronService.updateJob).toHaveBeenCalledWith('job-2', {
       metadata: {
         ...job2.metadata,
-        conversationId: 'target-conv',
+        conversation_id: 'target-conv',
         conversationTitle: 'Target',
       },
     });
@@ -212,8 +212,8 @@ describe('ConversationServiceImpl.createWithMigration', () => {
 
   it('deletes cron jobs when migrateCron is false', async () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
-    const job1 = makeCronJob({ id: 'job-1', metadata: { conversationId: 'source-conv' } as any });
-    const job2 = makeCronJob({ id: 'job-2', metadata: { conversationId: 'source-conv' } as any });
+    const job1 = makeCronJob({ id: 'job-1', metadata: { conversation_id: 'source-conv' } as any });
+    const job2 = makeCronJob({ id: 'job-2', metadata: { conversation_id: 'source-conv' } as any });
 
     const repo = makeRepo({
       getMessages: vi
@@ -309,14 +309,14 @@ describe('ConversationServiceImpl.createWithMigration', () => {
       conversation_id: 'source-conv',
       type: 'user',
       text: `message ${i}`,
-      createTime: 1000 + i,
+      created_at: 1000 + i,
     }));
     const page2Messages = Array.from({ length: 50 }, (_, i) => ({
       id: `msg-${100 + i}`,
       conversation_id: 'source-conv',
       type: 'user',
       text: `message ${100 + i}`,
-      createTime: 1100 + i,
+      created_at: 1100 + i,
     }));
 
     const repo = makeRepo({
@@ -341,13 +341,13 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     expect(repo.deleteConversation).toHaveBeenCalledWith('source-conv');
   });
 
-  it('sets createTime and modifyTime if missing', async () => {
+  it('sets created_at and modified_at if missing', async () => {
     const now = Date.now();
     const targetConv = makeConversation({
       id: 'target-conv',
       name: 'Target',
-      createTime: undefined as any,
-      modifyTime: undefined as any,
+      created_at: undefined as any,
+      modified_at: undefined as any,
     });
 
     const repo = makeRepo();
@@ -359,14 +359,14 @@ describe('ConversationServiceImpl.createWithMigration', () => {
 
     expect(repo.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
-        createTime: expect.any(Number),
-        modifyTime: expect.any(Number),
+        created_at: expect.any(Number),
+        modified_at: expect.any(Number),
       })
     );
 
     const call = vi.mocked(repo.createConversation).mock.calls[0][0];
-    expect(call.createTime).toBeGreaterThanOrEqual(now);
-    expect(call.modifyTime).toBeGreaterThanOrEqual(now);
+    expect(call.created_at).toBeGreaterThanOrEqual(now);
+    expect(call.modified_at).toBeGreaterThanOrEqual(now);
   });
 });
 
@@ -411,7 +411,7 @@ describe('ConversationServiceImpl.createConversation', () => {
     );
   });
 
-  it('allows cronJobId in extra field', async () => {
+  it('allows cron_job_id in extra field', async () => {
     const repo = makeRepo();
     const svc = new ConversationServiceImpl(repo);
     const result = await svc.createConversation({
@@ -419,19 +419,19 @@ describe('ConversationServiceImpl.createConversation', () => {
       model: { provider: 'gemini', model: 'gemini-2.0-flash' } as any,
       extra: {
         workspace: '/workspace',
-        cronJobId: 'job-123',
+        cron_job_id: 'job-123',
       },
     });
 
     expect(repo.createConversation).toHaveBeenCalledWith(
       expect.objectContaining({
         extra: expect.objectContaining({
-          cronJobId: 'job-123',
+          cron_job_id: 'job-123',
         }),
       })
     );
     expect(result.extra).toMatchObject({
-      cronJobId: 'job-123',
+      cron_job_id: 'job-123',
     });
   });
 
@@ -442,10 +442,10 @@ describe('ConversationServiceImpl.createConversation', () => {
       name: 'Gemini Agent',
       type: 'gemini',
       model: { provider: 'gemini', model: 'gemini-2.0-flash' },
-      createTime: 1000,
-      modifyTime: 1000,
+      created_at: 1000,
+      modified_at: 1000,
       source: 'create' as const,
-      extra: { workspace: '/factory-workspace', enabledSkills: ['skill1'] },
+      extra: { workspace: '/factory-workspace', enabled_skills: ['skill1'] },
     } as any);
 
     const repo = makeRepo();
@@ -456,7 +456,7 @@ describe('ConversationServiceImpl.createConversation', () => {
       model: { provider: 'gemini', model: 'gemini-2.0-flash' } as any,
       extra: {
         workspace: '/params-workspace', // Should be ignored (factory takes precedence)
-        cronJobId: 'job-123', // Should be added (not in factory)
+        cron_job_id: 'job-123', // Should be added (not in factory)
       },
     });
 
@@ -464,8 +464,8 @@ describe('ConversationServiceImpl.createConversation', () => {
       expect.objectContaining({
         extra: expect.objectContaining({
           workspace: '/factory-workspace', // Factory value preserved
-          enabledSkills: ['skill1'], // Factory value preserved
-          cronJobId: 'job-123', // Params value added
+          enabled_skills: ['skill1'], // Factory value preserved
+          cron_job_id: 'job-123', // Params value added
         }),
       })
     );

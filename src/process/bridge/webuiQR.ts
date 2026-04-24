@@ -78,8 +78,8 @@ export function generateQRLoginUrlDirect(port: number, allowRemote: boolean): { 
 
   // 构建 QR URL / Build QR URL
   const lanIP = WebuiService.getLanIP();
-  const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
-  const qrUrl = `${baseUrl}/qr-login?token=${token}`;
+  const base_url = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
+  const qrUrl = `${base_url}/qr-login?token=${token}`;
 
   return { qrUrl, expiresAt };
 }
@@ -96,7 +96,7 @@ export async function verifyQRTokenDirect(
   clientIP?: string
 ): Promise<{
   success: boolean;
-  data?: { sessionToken: string; username: string };
+  data?: { session_token: string; username: string };
   msg?: string;
 }> {
   try {
@@ -149,7 +149,7 @@ export async function verifyQRTokenDirect(
     }
 
     // 生成会话 token / Generate session token
-    const sessionToken = await AuthService.generateToken(adminUser);
+    const session_token = await AuthService.generateToken(adminUser);
 
     // 更新最后登录时间 / Update last login time
     await UserRepository.updateLastLogin(adminUser.id);
@@ -160,7 +160,7 @@ export async function verifyQRTokenDirect(
     return {
       success: true,
       data: {
-        sessionToken,
+        session_token,
         username: adminUser.username,
       },
     };

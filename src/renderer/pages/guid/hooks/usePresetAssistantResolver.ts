@@ -22,17 +22,17 @@ type UsePresetAssistantResolverOptions = {
 
 type UsePresetAssistantResolverResult = {
   resolvePresetRulesAndSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<{ rules?: string; skills?: string }>;
   resolvePresetContext: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<string | undefined>;
-  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => string;
+  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined) => string;
   resolveEnabledSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined
+    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
 };
 
@@ -48,27 +48,27 @@ export const usePresetAssistantResolver = ({
 }: UsePresetAssistantResolverOptions): UsePresetAssistantResolverResult => {
   const resolvePresetRulesAndSkills = useCallback(
     async (
-      agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+      agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
     ): Promise<{ rules?: string; skills?: string }> => {
       if (!agentInfo) return {};
-      const customAgentId = agentInfo.customAgentId;
-      if (!customAgentId) return { rules: agentInfo.context };
+      const custom_agent_id = agentInfo.custom_agent_id;
+      if (!custom_agent_id) return { rules: agentInfo.context };
 
       let rules = '';
       let skills = '';
 
       try {
         rules = await ipcBridge.fs.readAssistantRule.invoke({
-          assistantId: customAgentId,
+          assistantId: custom_agent_id,
           locale: localeKey,
         });
       } catch (error) {
-        console.warn(`Failed to load rules for ${customAgentId}:`, error);
+        console.warn(`Failed to load rules for ${custom_agent_id}:`, error);
       }
 
       try {
         skills = await ipcBridge.fs.readAssistantSkill.invoke({
-          assistantId: customAgentId,
+          assistantId: custom_agent_id,
           locale: localeKey,
         });
       } catch (_error) {
@@ -82,7 +82,7 @@ export const usePresetAssistantResolver = ({
 
   const resolvePresetContext = useCallback(
     async (
-      agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined
+      agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
     ): Promise<string | undefined> => {
       const { rules } = await resolvePresetRulesAndSkills(agentInfo);
       return rules;
@@ -91,19 +91,19 @@ export const usePresetAssistantResolver = ({
   );
 
   const resolvePresetAgentType = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string => {
+    (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined): string => {
       if (!agentInfo) return 'gemini';
-      if (!agentInfo.customAgentId) return agentInfo.backend as string;
-      const assistant = assistants.find((a) => a.id === agentInfo.customAgentId);
+      if (!agentInfo.custom_agent_id) return agentInfo.backend as string;
+      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
       return assistant?.presetAgentType || 'gemini';
     },
     [assistants]
   );
 
   const resolveEnabledSkills = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
-      if (!agentInfo || !agentInfo.customAgentId) return undefined;
-      const assistant = assistants.find((a) => a.id === agentInfo.customAgentId);
+    (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined): string[] | undefined => {
+      if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
+      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
       // Preserve legacy "undefined means use agent default" semantics by
       // treating an empty list the same as absent.
       if (!assistant || assistant.enabledSkills.length === 0) return undefined;
@@ -113,9 +113,9 @@ export const usePresetAssistantResolver = ({
   );
 
   const resolveDisabledBuiltinSkills = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
-      if (!agentInfo || !agentInfo.customAgentId) return undefined;
-      const assistant = assistants.find((a) => a.id === agentInfo.customAgentId);
+    (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined): string[] | undefined => {
+      if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
+      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
       if (!assistant || assistant.disabledBuiltinSkills.length === 0) return undefined;
       return assistant.disabledBuiltinSkills;
     },

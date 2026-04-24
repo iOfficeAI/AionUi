@@ -35,7 +35,7 @@ function createExtension(baseDir: string, folderName: string, manifestName: stri
     JSON.stringify(
       {
         name: manifestName,
-        displayName: manifestName,
+        display_name: manifestName,
         version,
         contributes: {},
       },

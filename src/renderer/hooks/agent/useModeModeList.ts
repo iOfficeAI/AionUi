@@ -41,32 +41,37 @@ const useModeModeList = (
   base_url?: string,
   api_key?: string,
   try_fix?: boolean,
-  bedrockConfig?: {
-    authMethod: 'accessKey' | 'profile';
+  bedrock_config?: {
+    auth_method: 'accessKey' | 'profile';
     region: string;
-    accessKeyId?: string;
-    secretAccessKey?: string;
+    access_key_id?: string;
+    secret_access_key?: string;
     profile?: string;
   }
 ) => {
   return useSWR(
-    [platform + '/models', { platform, base_url, api_key, try_fix, bedrockConfig }],
-    async ([_url, { platform, base_url, api_key, try_fix, bedrockConfig }]): Promise<{
+    [platform + '/models', { platform, base_url, api_key, try_fix, bedrock_config }],
+    async ([_url, { platform, base_url, api_key, try_fix, bedrock_config }]): Promise<{
       models: { label: string; value: string }[];
       fix_base_url?: string;
     }> => {
-      // 如果有 API key、base_url 或 bedrockConfig，尝试通过 API 获取模型列表
-      if (api_key || base_url || bedrockConfig) {
-        const res = await ipcBridge.mode.fetchModelList.invoke({ base_url, api_key, try_fix, platform, bedrockConfig });
-        let modelList =
-          res.mode.map((v) => {
-            // Handle both string and object formats (Bedrock returns objects with id and name)
-            if (typeof v === 'string') {
-              return { label: v, value: v };
-            } else {
-              return { label: v.name, value: v.id };
-            }
-          });
+      // 如果有 API key、base_url 或 bedrock_config，尝试通过 API 获取模型列表
+      if (api_key || base_url || bedrock_config) {
+        const res = await ipcBridge.mode.fetchModelList.invoke({
+          base_url,
+          api_key,
+          try_fix,
+          platform,
+          bedrock_config,
+        });
+        let modelList = res.mode.map((v) => {
+          // Handle both string and object formats (Bedrock returns objects with id and name)
+          if (typeof v === 'string') {
+            return { label: v, value: v };
+          } else {
+            return { label: v.name, value: v.id };
+          }
+        });
 
         // 如果是 Gemini 平台，优化排序
         if (platform?.includes('gemini')) {
@@ -84,7 +89,7 @@ const useModeModeList = (
         return { models: modelList };
       }
 
-      // 既没有 API key 也没有 base_url 也没有 bedrockConfig 时，返回空列表
+      // 既没有 API key 也没有 base_url 也没有 bedrock_config 时，返回空列表
       return { models: [] };
     }
   );

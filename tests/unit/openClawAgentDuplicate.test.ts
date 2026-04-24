@@ -80,10 +80,10 @@ describe('OpenClawAgent — duplicate reply prevention (#1281)', () => {
 
     // Simulate an active connection by setting internal state
     const agentInternal = agent as unknown as {
-      connection: { isConnected: boolean; sessionKey: string; chatSend: () => Promise<void> };
+      connection: { is_connected: boolean; sessionKey: string; chatSend: () => Promise<void> };
     };
     agentInternal.connection = {
-      isConnected: true,
+      is_connected: true,
       sessionKey: 'test-session',
       chatSend: vi.fn().mockResolvedValue(undefined),
     };

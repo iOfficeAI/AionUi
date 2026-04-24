@@ -424,14 +424,14 @@ const handleAppReady = async (): Promise<void> => {
   protocol.handle(AION_ASSET_PROTOCOL, (request) => {
     const url = new URL(request.url);
     // pathname is /C:/path/to/file.svg — strip leading slash on Windows
-    let filePath = decodeURIComponent(url.pathname);
-    if (process.platform === 'win32' && filePath.startsWith('/') && /^\/[A-Za-z]:/.test(filePath)) {
-      filePath = filePath.slice(1);
+    let file_path = decodeURIComponent(url.pathname);
+    if (process.platform === 'win32' && file_path.startsWith('/') && /^\/[A-Za-z]:/.test(file_path)) {
+      file_path = file_path.slice(1);
     }
-    if (!fs.existsSync(filePath)) {
-      console.warn(`[aion-asset] File not found: ${request.url} -> ${filePath}`);
+    if (!fs.existsSync(file_path)) {
+      console.warn(`[aion-asset] File not found: ${request.url} -> ${file_path}`);
     }
-    return net.fetch(pathToFileURL(filePath).href);
+    return net.fetch(pathToFileURL(file_path).href);
   });
 
   // Set dock icon in development mode on macOS

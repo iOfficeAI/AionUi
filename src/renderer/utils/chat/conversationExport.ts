@@ -18,14 +18,14 @@ const normalizeDefaultExportSegment = (name: string): string => {
   return normalized || 'conversation';
 };
 
-const getShortConversationId = (conversationId?: string): string => {
-  const normalized = (conversationId || '').trim();
+const getShortConversationId = (conversation_id?: string): string => {
+  const normalized = (conversation_id || '').trim();
   return normalized.slice(0, 8) || 'conversation';
 };
 
-export const joinFilePath = (dir: string, fileName: string): string => {
+export const joinFilePath = (dir: string, file_name: string): string => {
   const separator = dir.includes('\\') ? '\\' : '/';
-  return dir.endsWith('/') || dir.endsWith('\\') ? `${dir}${fileName}` : `${dir}${separator}${fileName}`;
+  return dir.endsWith('/') || dir.endsWith('\\') ? `${dir}${file_name}` : `${dir}${separator}${file_name}`;
 };
 
 export const formatTimestamp = (time = Date.now()): string => {
@@ -60,7 +60,7 @@ export type MessageRole = 'user' | 'assistant' | 'system';
 
 export type ExportTranscriptLabels = {
   conversation: string;
-  conversationId: string;
+  conversation_id: string;
   exportedAt: string;
   type: string;
   noMessages: string;
@@ -87,7 +87,7 @@ export const buildConversationExportText = (
 ): string => {
   const lines: string[] = [];
   lines.push(`${labels.conversation}: ${conversation.name || labels.conversation}`);
-  lines.push(`${labels.conversationId}: ${conversation.id}`);
+  lines.push(`${labels.conversation_id}: ${conversation.id}`);
   lines.push(`${labels.exportedAt}: ${new Date().toISOString()}`);
   lines.push(`${labels.type}: ${conversation.type}`);
   lines.push('');
@@ -107,9 +107,9 @@ export const buildConversationExportText = (
   return lines.join('\n').trimEnd();
 };
 
-export const buildDefaultExportFileName = (conversationId: string, conversationName: string): string => {
+export const buildDefaultExportFileName = (conversation_id: string, conversationName: string): string => {
   const safeName = normalizeDefaultExportSegment(conversationName).slice(0, 48).replace(/-+$/g, '') || 'conversation';
-  return `${formatDefaultExportFileDate()}-${getShortConversationId(conversationId)}-${safeName}.txt`;
+  return `${formatDefaultExportFileDate()}-${getShortConversationId(conversation_id)}-${safeName}.txt`;
 };
 
 export const getDefaultExportFileNameSource = (conversation: TChatConversation, messages: TMessage[]): string => {

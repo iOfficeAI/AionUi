@@ -46,11 +46,11 @@ export function handlePreviewOpenEvent(message: IResponseMessage | { type: strin
  */
 export function createPreviewOpenMessage(
   url: string,
-  conversationId: string,
+  conversation_id: string,
   msgId: string,
   title?: string
 ): IResponseMessage {
-  const message = NavigationInterceptor.createPreviewMessage(url, conversationId, title);
+  const message = NavigationInterceptor.createPreviewMessage(url, conversation_id, title);
   message.msg_id = msgId; // Override with provided msgId
   return message;
 }
@@ -61,10 +61,10 @@ export function createPreviewOpenMessage(
  *
  * Delegates to NavigationInterceptor.isNavigationTool
  */
-export function isNavigationTool(toolName: string, serverName?: string): boolean {
+export function isNavigationTool(tool_name: string, server_name?: string): boolean {
   return NavigationInterceptor.isNavigationTool({
-    toolName,
-    server: serverName,
+    tool_name,
+    server: server_name,
   });
 }
 

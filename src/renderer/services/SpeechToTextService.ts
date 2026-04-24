@@ -57,20 +57,20 @@ export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Pr
   ensureAudioSize(blob);
 
   const mimeType = blob.type || 'audio/webm';
-  const fileName = createAudioFileName(mimeType);
+  const file_name = createAudioFileName(mimeType);
 
   if (isElectronDesktop()) {
     const audioBuffer = new Uint8Array(await blob.arrayBuffer());
     return ipcBridge.speechToText.transcribe.invoke({
       audioBuffer: Array.from(audioBuffer),
-      fileName,
+      file_name,
       languageHint,
       mimeType,
     });
   }
 
   const formData = new FormData();
-  formData.append('audio', blob, fileName);
+  formData.append('audio', blob, file_name);
   formData.append('mimeType', mimeType);
   if (languageHint) {
     formData.append('languageHint', languageHint);

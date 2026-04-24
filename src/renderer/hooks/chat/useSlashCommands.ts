@@ -13,17 +13,17 @@ const MAX_CACHE_SIZE = 50;
 
 const slashCommandCache = new Map<string, CacheEntry>();
 
-function getCachedCommands(conversationId: string): SlashCommandItem[] | null {
-  const entry = slashCommandCache.get(conversationId);
+function getCachedCommands(conversation_id: string): SlashCommandItem[] | null {
+  const entry = slashCommandCache.get(conversation_id);
   if (!entry) return null;
   if (Date.now() - entry.timestamp > CACHE_TTL_MS) {
-    slashCommandCache.delete(conversationId);
+    slashCommandCache.delete(conversation_id);
     return null;
   }
   return entry.commands;
 }
 
-function setCachedCommands(conversationId: string, commands: SlashCommandItem[]): void {
+function setCachedCommands(conversation_id: string, commands: SlashCommandItem[]): void {
   // LRU eviction if cache is full
   if (slashCommandCache.size >= MAX_CACHE_SIZE) {
     const oldestKey = slashCommandCache.keys().next().value;
@@ -31,33 +31,33 @@ function setCachedCommands(conversationId: string, commands: SlashCommandItem[])
       slashCommandCache.delete(oldestKey);
     }
   }
-  slashCommandCache.set(conversationId, { commands, timestamp: Date.now() });
+  slashCommandCache.set(conversation_id, { commands, timestamp: Date.now() });
 }
 
 interface UseSlashCommandsOptions {
-  conversationType?: string;
+  conversation_type?: string;
   codexStatus?: string | null;
   /** When provided, changes to this value trigger a re-fetch. Used by ACP to
    *  re-fetch commands after the agent becomes active. */
   agentStatus?: string | null;
 }
 
-export function useSlashCommands(conversationId: string, options: UseSlashCommandsOptions = {}) {
-  const { conversationType, codexStatus, agentStatus } = options;
-  const canUseCachedCommands = isSlashCommandListEnabled({ conversationType, codexStatus });
+export function useSlashCommands(conversation_id: string, options: UseSlashCommandsOptions = {}) {
+  const { conversation_type, codexStatus, agentStatus } = options;
+  const canUseCachedCommands = isSlashCommandListEnabled({ conversation_type, codexStatus });
   const requestIdRef = useRef(0);
   const [commands, setCommands] = useState<SlashCommandItem[]>(() => {
     if (!canUseCachedCommands) {
       return [];
     }
-    return getCachedCommands(conversationId) || [];
+    return getCachedCommands(conversation_id) || [];
   });
 
   useEffect(() => {
     const requestId = ++requestIdRef.current;
     let isCancelled = false;
 
-    if (!conversationId) {
+    if (!conversation_id) {
       setCommands([]);
       return;
     }
@@ -67,13 +67,13 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
       return;
     }
 
-    const cached = getCachedCommands(conversationId);
+    const cached = getCachedCommands(conversation_id);
     if (canUseCachedCommands && cached) {
       setCommands(cached);
     }
 
     void ipcBridge.conversation.getSlashCommands
-      .invoke({ conversation_id: conversationId })
+      .invoke({ conversation_id: conversation_id })
       .then((result) => {
         if (isCancelled || requestId !== requestIdRef.current) {
           return;
@@ -82,7 +82,7 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
           setCommands([]);
           return;
         }
-        setCachedCommands(conversationId, result.commands);
+        setCachedCommands(conversation_id, result.commands);
         setCommands(result.commands);
       })
       .catch((error) => {
@@ -96,7 +96,7 @@ export function useSlashCommands(conversationId: string, options: UseSlashComman
     return () => {
       isCancelled = true;
     };
-  }, [conversationId, canUseCachedCommands, codexStatus, conversationType, agentStatus]);
+  }, [conversation_id, canUseCachedCommands, codexStatus, conversation_type, agentStatus]);
 
   return commands;
 }

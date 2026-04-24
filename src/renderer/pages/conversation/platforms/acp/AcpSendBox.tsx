@@ -91,20 +91,20 @@ const useSendBoxDraft = (conversation_id: string) => {
 const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
-  sessionMode?: string;
-  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
-  agentName?: string;
+  session_mode?: string;
+  cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+  agent_name?: string;
   workspacePath?: string;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
 }> = ({
   conversation_id,
   backend,
-  sessionMode,
-  cachedConfigOptions,
-  agentName,
+  session_mode,
+  cached_config_options,
+  agent_name,
   workspacePath,
-  teamId,
+  team_id,
   agentSlotId,
 }) => {
   const {
@@ -115,7 +115,7 @@ const AcpSendBox: React.FC<{
     setAiProcessing,
     resetState,
     tokenUsage,
-    contextLimit,
+    context_limit,
     hasThinkingMessage,
   } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
@@ -124,7 +124,7 @@ const AcpSendBox: React.FC<{
   const showModeSelector = true;
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
-  const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
+  const slash_commands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
@@ -148,8 +148,8 @@ const AcpSendBox: React.FC<{
   useEffect(() => {
     const handler = (text: string) => {
       // If there's existing content, add newline and new text; otherwise just set the text
-      const newContent = content ? `${content}\n${text}` : text;
-      setContentRef.current(newContent);
+      const new_content = content ? `${content}\n${text}` : text;
+      setContentRef.current(new_content);
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
@@ -165,7 +165,7 @@ const AcpSendBox: React.FC<{
 
   // Check for and send initial message from guid page
   useAcpInitialMessage({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     backend,
     workspacePath,
     setAiProcessing,
@@ -182,17 +182,17 @@ const AcpSendBox: React.FC<{
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        if (teamId) {
+        if (team_id) {
           if (agentSlotId) {
             const result = await ipcBridge.team.sendMessageToAgent.invoke({
-              teamId,
-              slotId: agentSlotId,
+              team_id,
+              slot_id: agentSlotId,
               content: displayMessage,
               files,
             });
             assertTeamBridgeSuccess(result, 'Failed to send message to agent');
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
+            const result = await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
             assertTeamBridgeSuccess(result, 'Failed to send message to team');
           }
         } else {
@@ -238,7 +238,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId, workspacePath]
+    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, team_id, workspacePath]
   );
 
   const {
@@ -256,7 +256,7 @@ Please check your local CLI tool authentication status`,
     unlockInteraction,
     resetActiveExecution,
   } = useConversationCommandQueue({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     enabled: true,
     isBusy,
     isHydrated: hasHydratedRunningState,
@@ -352,7 +352,7 @@ Please check your local CLI tool authentication status`,
         loading={isBusy}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
-          backend: agentName || backend,
+          backend: agent_name || backend,
           defaultValue: `Send message to {{backend}}...`,
         })}
         onStop={handleStop}
@@ -369,9 +369,9 @@ Please check your local CLI tool authentication status`,
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}
-                conversationId={conversation_id}
+                conversation_id={conversation_id}
                 compact
-                initialMode={sessionMode}
+                initialMode={session_mode}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.permission')}
@@ -380,10 +380,10 @@ Please check your local CLI tool authentication status`,
               />
             )}
             <AcpConfigSelector
-              conversationId={conversation_id}
+              conversation_id={conversation_id}
               backend={backend}
-              compact={!!teamId}
-              initialConfigOptions={cachedConfigOptions}
+              compact={!!team_id}
+              initialConfigOptions={cached_config_options}
             />
           </div>
         }
@@ -427,15 +427,15 @@ Please check your local CLI tool authentication status`,
           </>
         }
         onSend={onSendHandler}
-        slashCommands={slashCommands}
+        slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
-        compactActions={!!teamId}
+        compactActions={!!team_id}
         sendButtonPrefix={
           tokenUsage ? (
             <ContextUsageIndicator
               tokenUsage={tokenUsage}
-              contextLimit={contextLimit > 0 ? contextLimit : undefined}
+              context_limit={context_limit > 0 ? context_limit : undefined}
               size={24}
             />
           ) : undefined

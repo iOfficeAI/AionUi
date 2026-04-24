@@ -110,7 +110,7 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
   /**
    * 消息创建时间
    */
-  createdAt?: number;
+  created_at?: number;
   /**
    * 消息位置
    */
@@ -127,9 +127,9 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
 
 export type CronMessageMeta = {
   source: 'cron';
-  cronJobId: string;
-  cronJobName: string;
-  triggeredAt: number;
+  cron_job_id: string;
+  cron_job_name: string;
+  triggered_at: number;
 };
 
 export type IMessageText = IMessage<
@@ -150,7 +150,7 @@ export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | '
 export type IMessageToolCall = IMessage<
   'tool_call',
   {
-    callId: string;
+    call_id: string;
     name: string;
     args: Record<string, any>;
     error?: string;
@@ -166,15 +166,15 @@ type IMessageToolGroupConfirmationDetailsBase<Type, Extra extends Record<string,
 export type IMessageToolGroup = IMessage<
   'tool_group',
   Array<{
-    callId: string;
+    call_id: string;
     description: string;
     name: string;
-    renderOutputAsMarkdown: boolean;
-    resultDisplay?:
+    render_output_as_markdown: boolean;
+    result_display?:
       | string
       | {
-          fileDiff: string;
-          fileName: string;
+          file_diff: string;
+          file_name: string;
         }
       | {
           img_url: string;
@@ -185,8 +185,8 @@ export type IMessageToolGroup = IMessage<
       | IMessageToolGroupConfirmationDetailsBase<
           'edit',
           {
-            fileName: string;
-            fileDiff: string;
+            file_name: string;
+            file_diff: string;
             isModifying?: boolean;
           }
         >
@@ -207,9 +207,9 @@ export type IMessageToolGroup = IMessage<
       | IMessageToolGroupConfirmationDetailsBase<
           'mcp',
           {
-            toolName: string;
-            toolDisplayName: string;
-            serverName: string;
+            tool_name: string;
+            tool_display_name: string;
+            server_name: string;
           }
         >;
   }>
@@ -222,11 +222,11 @@ export type IMessageAgentStatus = IMessage<
     backend: AgentBackend; // Agent identifier: 'claude', 'qwen', 'codex', 'remote', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error';
     /** Display name for the agent (e.g. extension-contributed adapter name) / Agent 显示名称 */
-    agentName?: string;
+    agent_name?: string;
     // Optional legacy fields for backward compatibility
-    sessionId?: string;
-    isConnected?: boolean;
-    hasActiveSession?: boolean;
+    session_id?: string;
+    is_connected?: boolean;
+    has_active_session?: boolean;
   }
 >;
 
@@ -238,7 +238,7 @@ export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissi
 
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
-  toolCallId: string;
+  tool_call_id: string;
   status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
   title?: string; // Optional - can be derived from data or kind
   kind: 'execute' | 'patch' | 'mcp' | 'web_search';
@@ -249,9 +249,9 @@ interface BaseCodexToolCallUpdate {
     type: 'text' | 'diff' | 'output';
     text?: string;
     output?: string;
-    filePath?: string;
-    oldText?: string;
-    newText?: string;
+    file_path?: string;
+    old_text?: string;
+    new_text?: string;
   }>;
 
   // Timing
@@ -311,7 +311,7 @@ export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpd
 export type IMessagePlan = IMessage<
   'plan',
   {
-    sessionId: string;
+    session_id: string;
     entries: PlanUpdate['update']['entries'];
   }
 >;
@@ -343,7 +343,7 @@ export type IMessageAvailableCommands = IMessage<
 export type IMessageSkillSuggest = IMessage<
   'skill_suggest',
   {
-    cronJobId: string;
+    cron_job_id: string;
     name: string;
     description: string;
     /** Full SKILL.md content (including frontmatter) */
@@ -354,9 +354,9 @@ export type IMessageSkillSuggest = IMessage<
 export type IMessageCronTrigger = IMessage<
   'cron_trigger',
   {
-    cronJobId: string;
-    cronJobName: string;
-    triggeredAt: number;
+    cron_job_id: string;
+    cron_job_name: string;
+    triggered_at: number;
   }
 >;
 
@@ -383,7 +383,7 @@ export interface IConfirmation<Option extends any = any> {
   id: string;
   action?: string;
   description: string;
-  callId: string;
+  call_id: string;
   options: Array<{
     label: string;
     value: Option;
@@ -393,7 +393,7 @@ export interface IConfirmation<Option extends any = any> {
    * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
    * Used for "always allow" permission memory
    */
-  commandType?: string;
+  command_type?: string;
 }
 
 /**
@@ -538,7 +538,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       break;
     case 'skill_suggest': {
       const suggestData = message.data as {
-        cronJobId: string;
+        cron_job_id: string;
         name: string;
         description: string;
         skillContent: string;
@@ -554,9 +554,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     case 'cron_trigger': {
       const triggerData = message.data as {
-        cronJobId: string;
-        cronJobName: string;
-        triggeredAt: number;
+        cron_job_id: string;
+        cron_job_name: string;
+        triggered_at: number;
       };
       return {
         id: uuid(),
@@ -614,7 +614,7 @@ export const composeMessage = (
   };
 
   if (message.type === 'tool_group') {
-    const remainingToolsMap = new Map(message.content.map((t) => [t.callId, t] as const));
+    const remainingToolsMap = new Map(message.content.map((t) => [t.call_id, t] as const));
     if (remainingToolsMap.size === 0) return list;
 
     const updatesToReport: TMessage[] = [];
@@ -624,17 +624,17 @@ export const composeMessage = (
       if (!existingMessage.content.length) return existingMessage;
 
       let didMergeIntoThisMessage = false;
-      const newContent = existingMessage.content.map((tool) => {
-        const newToolData = remainingToolsMap.get(tool.callId);
+      const new_content = existingMessage.content.map((tool) => {
+        const newToolData = remainingToolsMap.get(tool.call_id);
         if (!newToolData) return tool;
         didMergeIntoThisMessage = true;
-        remainingToolsMap.delete(tool.callId);
+        remainingToolsMap.delete(tool.call_id);
         // Create new object instead of mutating original
         return { ...tool, ...newToolData };
       });
 
       if (!didMergeIntoThisMessage) return existingMessage;
-      const updatedMessage = { ...existingMessage, content: newContent } as TMessage;
+      const updatedMessage = { ...existingMessage, content: new_content } as TMessage;
       updatesToReport.push(updatedMessage);
       return updatedMessage;
     });
@@ -661,7 +661,7 @@ export const composeMessage = (
   if (message.type === 'tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === 'tool_call' && msg.content.callId === message.content.callId) {
+      if (msg.type === 'tool_call' && msg.content.call_id === message.content.call_id) {
         // Create new object instead of mutating original
         return updateMessage(i, { ...msg, content: { ...msg.content, ...message.content } });
       }
@@ -674,7 +674,7 @@ export const composeMessage = (
   if (message.type === 'codex_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
+      if (msg.type === 'codex_tool_call' && msg.content.tool_call_id === message.content.tool_call_id) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });
@@ -688,7 +688,7 @@ export const composeMessage = (
   if (message.type === 'acp_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
+      if (msg.type === 'acp_tool_call' && msg.content.update?.tool_call_id === message.content.update?.tool_call_id) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });
@@ -701,7 +701,7 @@ export const composeMessage = (
   if (message.type === 'plan') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
-      if (msg.type === 'plan' && msg.content.sessionId === message.content.sessionId) {
+      if (msg.type === 'plan' && msg.content.session_id === message.content.session_id) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
         return updateMessage(i, { ...msg, content: merged });

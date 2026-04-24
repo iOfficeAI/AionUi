@@ -24,7 +24,7 @@ export interface IAgentManager {
 
   sendMessage(data: unknown): Promise<void>;
   stop(): Promise<void>;
-  confirm(msgId: string, callId: string, data: unknown): void;
+  confirm(msgId: string, call_id: string, data: unknown): void;
   getConfirmations(): IConfirmation[];
   kill(reason?: AgentKillReason): void;
 }

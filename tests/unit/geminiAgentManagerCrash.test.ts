@@ -114,9 +114,9 @@ import { GeminiAgentManager } from '../../src/process/task/GeminiAgentManager';
 
 const MODEL = {
   name: 'gemini',
-  useModel: 'gemini-2.0-flash',
+  use_model: 'gemini-2.0-flash',
   platform: 'google',
-  baseUrl: '',
+  base_url: '',
 } as Parameters<typeof GeminiAgentManager.prototype.constructor>[1];
 
 function createManager(): GeminiAgentManager {

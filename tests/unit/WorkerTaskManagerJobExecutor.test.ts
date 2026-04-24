@@ -20,7 +20,7 @@ vi.mock('@/process/services/cron/cronSkillFile', () => ({
   readCronSkillContent: vi.fn(async () => null),
   parseCronSkillContent: vi.fn(() => null),
   hasCronSkillFile: vi.fn(async () => false),
-  getCronSkillDir: vi.fn((jobId: string) => `/mock/cronSkills/${jobId}`),
+  getCronSkillDir: vi.fn((job_id: string) => `/mock/cronSkills/${jobId}`),
 }));
 vi.mock('@/process/services/cron/SkillSuggestWatcher', () => ({
   skillSuggestWatcher: {
@@ -49,7 +49,7 @@ function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskMa
   };
 }
 
-function makeJob(conversationId = 'conv-1'): CronJob {
+function makeJob(conversation_id = 'conv-1'): CronJob {
   return {
     id: 'job-1',
     name: 'Test Job',
@@ -57,11 +57,11 @@ function makeJob(conversationId = 'conv-1'): CronJob {
     schedule: { kind: 'every', everyMs: 60000, description: 'every minute' },
     target: { payload: { kind: 'message', text: 'hello' } },
     metadata: {
-      conversationId,
-      agentType: 'acp',
+      conversation_id,
+      agent_type: 'acp',
       createdBy: 'user',
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
+      created_at: Date.now(),
+      updated_at: Date.now(),
     },
     state: { runCount: 0, retryCount: 0, maxRetries: 3 },
   };
@@ -138,7 +138,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       expect.objectContaining({
         content: expect.stringContaining('hello'),
         hidden: true,
-        cronMeta: expect.objectContaining({ cronJobId: 'job-1' }),
+        cronMeta: expect.objectContaining({ cron_job_id: 'job-1' }),
       })
     );
   });
@@ -217,7 +217,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
   });
 
   describe('cronMeta attachment', () => {
-    it('includes cronMeta with source, cronJobId, cronJobName, and triggeredAt', async () => {
+    it('includes cronMeta with source, cron_job_id, cron_job_name, and triggered_at', async () => {
       const task = makeTask('acp');
       const taskManager = makeTaskManager({
         getTask: vi.fn(() => task as any),
@@ -230,10 +230,10 @@ describe('WorkerTaskManagerJobExecutor', () => {
       const sentArg = task.sendMessage.mock.calls[0][0];
       expect(sentArg.cronMeta).toBeDefined();
       expect(sentArg.cronMeta.source).toBe('cron');
-      expect(sentArg.cronMeta.cronJobId).toBe('job-1');
-      expect(sentArg.cronMeta.cronJobName).toBe('Test Job');
-      expect(sentArg.cronMeta.triggeredAt).toBeGreaterThanOrEqual(before);
-      expect(sentArg.cronMeta.triggeredAt).toBeLessThanOrEqual(Date.now());
+      expect(sentArg.cronMeta.cron_job_id).toBe('job-1');
+      expect(sentArg.cronMeta.cron_job_name).toBe('Test Job');
+      expect(sentArg.cronMeta.triggered_at).toBeGreaterThanOrEqual(before);
+      expect(sentArg.cronMeta.triggered_at).toBeLessThanOrEqual(Date.now());
     });
   });
 
@@ -267,8 +267,8 @@ describe('WorkerTaskManagerJobExecutor', () => {
       expect(sentArg.cronMeta).toEqual(
         expect.objectContaining({
           source: 'cron',
-          cronJobId: 'job-1',
-          cronJobName: 'Test Job',
+          cron_job_id: 'job-1',
+          cron_job_name: 'Test Job',
         })
       );
     });

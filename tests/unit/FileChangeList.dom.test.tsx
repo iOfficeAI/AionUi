@@ -61,8 +61,8 @@ describe('FileChangeList', () => {
       <FileChangeList
         t={t as never}
         workspace='/repo'
-        staged={[{ filePath: '/repo/src/b.ts', relativePath: 'src/b.ts', operation: 'create' }]}
-        unstaged={[{ filePath: '/repo/src/a.ts', relativePath: 'src/a.ts', operation: 'modify' }]}
+        staged={[{ file_path: '/repo/src/b.ts', relativePath: 'src/b.ts', operation: 'create' }]}
+        unstaged={[{ file_path: '/repo/src/a.ts', relativePath: 'src/a.ts', operation: 'modify' }]}
         loading={false}
         snapshotInfo={{ mode: 'git-repo', branch: 'main' }}
         onRefresh={vi.fn()}
@@ -88,7 +88,7 @@ describe('FileChangeList', () => {
         t={t as never}
         workspace='/repo'
         staged={[]}
-        unstaged={[{ filePath: '/repo/src/a.ts', relativePath: 'src/a.ts', operation: 'modify' }]}
+        unstaged={[{ file_path: '/repo/src/a.ts', relativePath: 'src/a.ts', operation: 'modify' }]}
         loading={false}
         snapshotInfo={{ mode: 'git-repo', branch: 'main' }}
         onRefresh={vi.fn()}
@@ -110,7 +110,7 @@ describe('FileChangeList', () => {
 
     expect(mockGetBaselineContent).toHaveBeenCalledWith({
       workspace: '/repo',
-      filePath: 'src/a.ts',
+      file_path: 'src/a.ts',
     });
     expect(mockReadFile).toHaveBeenCalledWith({ path: '/repo/src/a.ts' });
   });

@@ -15,7 +15,7 @@ import type { AcpBackendConfig } from '@/common/types/acpTypes';
 type DetectedAgent = {
   backend: string;
   name: string;
-  customAgentId?: string;
+  custom_agent_id?: string;
   isExtension?: boolean;
   avatar?: string;
 };
@@ -47,7 +47,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       extensionAvatar ||
       resolveAgentLogo({
         backend: agent.backend,
-        customAgentId: agent.customAgentId,
+        custom_agent_id: agent.custom_agent_id,
         isExtension: agent.isExtension,
       });
 

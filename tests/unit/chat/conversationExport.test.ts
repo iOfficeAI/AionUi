@@ -19,7 +19,7 @@ const conversation = {
 
 const labels: ExportTranscriptLabels = {
   conversation: 'Conversation',
-  conversationId: 'Conversation ID',
+  conversation_id: 'Conversation ID',
   exportedAt: 'Exported At',
   type: 'Type',
   noMessages: 'No messages',
@@ -53,7 +53,7 @@ describe('conversationExport', () => {
         type: 'tool_call',
         position: 'left',
         content: {
-          callId: 'tool-1',
+          call_id: 'tool-1',
           name: 'search',
           args: {},
         },

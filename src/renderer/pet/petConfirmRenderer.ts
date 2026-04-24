@@ -9,13 +9,13 @@ interface IConfirmation<Option = any> {
   id: string;
   action?: string;
   description: string;
-  callId: string;
+  call_id: string;
   options: Array<{
     label: string;
     value: Option;
     params?: Record<string, string>;
   }>;
-  commandType?: string;
+  command_type?: string;
   conversation_id: string;
 }
 
@@ -91,7 +91,7 @@ function respond(value: any): void {
   window.petConfirmAPI.respond({
     conversation_id: currentConfirmation.conversation_id,
     msg_id: msgId,
-    callId: currentConfirmation.callId,
+    call_id: currentConfirmation.call_id,
     data: value,
   });
 

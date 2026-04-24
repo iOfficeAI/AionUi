@@ -61,7 +61,7 @@ describe('useAcpInitialMessage', () => {
 
     renderHook(() =>
       useAcpInitialMessage({
-        conversationId: 'conv-acp',
+        conversation_id: 'conv-acp',
         backend: 'claude',
         workspacePath: 'C:/workspace',
         setAiProcessing,

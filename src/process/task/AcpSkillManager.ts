@@ -113,8 +113,8 @@ export class AcpSkillManager {
    * 获取单例实例（带 enabledSkills + excludeBuiltinSkills 缓存键）
    * Get singleton instance (with enabledSkills + excludeBuiltinSkills cache key)
    */
-  static getInstance(enabledSkills?: string[], excludeBuiltinSkills?: string[]): AcpSkillManager {
-    const enabledPart = enabledSkills?.toSorted().join(',') || 'all';
+  static getInstance(enabled_skills?: string[], excludeBuiltinSkills?: string[]): AcpSkillManager {
+    const enabledPart = enabled_skills?.toSorted().join(',') || 'all';
     const excludePart = excludeBuiltinSkills?.toSorted().join(',') || '';
     const cacheKey = excludePart ? `${enabledPart}|exclude:${excludePart}` : enabledPart;
 
@@ -177,7 +177,7 @@ export class AcpSkillManager {
    * 从 ExtensionRegistry 加载扩展贡献的 skills
    * Load extension-contributed skills from ExtensionRegistry
    */
-  private async discoverExtensionSkills(enabledSkills?: string[]): Promise<void> {
+  private async discoverExtensionSkills(enabled_skills?: string[]): Promise<void> {
     if (this.extensionInitialized) return;
 
     try {
@@ -190,7 +190,7 @@ export class AcpSkillManager {
       }
 
       for (const extSkill of extSkills) {
-        if (enabledSkills && enabledSkills.length > 0 && !enabledSkills.includes(extSkill.name)) {
+        if (enabled_skills && enabled_skills.length > 0 && !enabled_skills.includes(extSkill.name)) {
           continue;
         }
 
@@ -338,7 +338,7 @@ export class AcpSkillManager {
   private async loadSkillBody(skill: SkillDefinition): Promise<string> {
     try {
       if (skill.source === 'builtin') {
-        const content = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skill.location });
+        const content = await ipcBridge.fs.readBuiltinSkill.invoke({ file_name: skill.location });
         return extractBody(content);
       }
       const content = await fs.readFile(skill.location, 'utf-8');

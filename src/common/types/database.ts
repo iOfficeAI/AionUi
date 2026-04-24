@@ -13,6 +13,6 @@ export interface IMessageSearchResponse {
   items: IMessageSearchItem[];
   total: number;
   page: number;
-  pageSize: number;
+  page_size: number;
   hasMore: boolean;
 }

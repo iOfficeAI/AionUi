@@ -57,14 +57,16 @@ class InMemoryTeamRepository implements ITeamRepository {
     return { ...msg };
   }
 
-  async readUnread(teamId: string, agentId: string): Promise<MailboxMessage[]> {
+  async readUnread(team_id: string, agentId: string): Promise<MailboxMessage[]> {
     // NOT atomic — concurrent calls will return the same unread messages
     // before any markRead call runs. This is the real behavior.
-    return [...this.messages.values()].filter((m) => m.teamId === teamId && m.toAgentId === agentId && !m.read);
+    return [...this.messages.values()].filter((m) => m.team_id === team_id && m.toAgentId === agentId && !m.read);
   }
 
-  async readUnreadAndMark(teamId: string, agentId: string): Promise<MailboxMessage[]> {
-    const unread = [...this.messages.values()].filter((m) => m.teamId === teamId && m.toAgentId === agentId && !m.read);
+  async readUnreadAndMark(team_id: string, agentId: string): Promise<MailboxMessage[]> {
+    const unread = [...this.messages.values()].filter(
+      (m) => m.team_id === team_id && m.toAgentId === agentId && !m.read
+    );
     for (const msg of unread) {
       this.messages.set(msg.id, { ...msg, read: true });
     }
@@ -78,10 +80,10 @@ class InMemoryTeamRepository implements ITeamRepository {
     }
   }
 
-  async getMailboxHistory(teamId: string, agentId: string, limit?: number): Promise<MailboxMessage[]> {
+  async getMailboxHistory(team_id: string, agentId: string, limit?: number): Promise<MailboxMessage[]> {
     const all = [...this.messages.values()]
-      .filter((m) => m.teamId === teamId && m.toAgentId === agentId)
-      .toSorted((a, b) => b.createdAt - a.createdAt);
+      .filter((m) => m.team_id === team_id && m.toAgentId === agentId)
+      .toSorted((a, b) => b.created_at - a.created_at);
     return limit ? all.slice(0, limit) : all;
   }
 
@@ -105,13 +107,13 @@ class InMemoryTeamRepository implements ITeamRepository {
     return { ...updated };
   }
 
-  async findTasksByTeam(teamId: string): Promise<TeamTask[]> {
-    return [...this.tasks.values()].filter((t) => t.teamId === teamId).map((t) => structuredClone(t));
+  async findTasksByTeam(team_id: string): Promise<TeamTask[]> {
+    return [...this.tasks.values()].filter((t) => t.team_id === team_id).map((t) => structuredClone(t));
   }
 
-  async findTasksByOwner(teamId: string, owner: string): Promise<TeamTask[]> {
+  async findTasksByOwner(team_id: string, owner: string): Promise<TeamTask[]> {
     return [...this.tasks.values()]
-      .filter((t) => t.teamId === teamId && t.owner === owner)
+      .filter((t) => t.team_id === team_id && t.owner === owner)
       .map((t) => structuredClone(t));
   }
 
@@ -119,18 +121,18 @@ class InMemoryTeamRepository implements ITeamRepository {
     this.tasks.delete(id);
   }
 
-  async appendToBlocks(taskId: string, blockId: string): Promise<void> {
-    const task = this.tasks.get(taskId);
+  async appendToBlocks(task_id: string, blockId: string): Promise<void> {
+    const task = this.tasks.get(task_id);
     if (task && !task.blocks.includes(blockId)) {
-      this.tasks.set(taskId, { ...task, blocks: [...task.blocks, blockId], updatedAt: Date.now() });
+      this.tasks.set(task_id, { ...task, blocks: [...task.blocks, blockId], updated_at: Date.now() });
     }
   }
 
-  async removeFromBlockedBy(taskId: string, unblockedId: string): Promise<TeamTask> {
-    const task = this.tasks.get(taskId);
-    if (!task) throw new Error(`Task ${taskId} not found`);
-    const updated = { ...task, blockedBy: task.blockedBy.filter((id) => id !== unblockedId), updatedAt: Date.now() };
-    this.tasks.set(taskId, updated);
+  async removeFromBlockedBy(task_id: string, unblockedId: string): Promise<TeamTask> {
+    const task = this.tasks.get(task_id);
+    if (!task) throw new Error(`Task ${task_id} not found`);
+    const updated = { ...task, blockedBy: task.blockedBy.filter((id) => id !== unblockedId), updated_at: Date.now() };
+    this.tasks.set(task_id, updated);
     return { ...updated };
   }
 
@@ -162,15 +164,15 @@ class InMemoryTeamRepository implements ITeamRepository {
     this.teams.delete(id);
   }
 
-  async deleteMailboxByTeam(teamId: string): Promise<void> {
+  async deleteMailboxByTeam(team_id: string): Promise<void> {
     for (const [key, msg] of this.messages) {
-      if (msg.teamId === teamId) this.messages.delete(key);
+      if (msg.team_id === team_id) this.messages.delete(key);
     }
   }
 
-  async deleteTasksByTeam(teamId: string): Promise<void> {
+  async deleteTasksByTeam(team_id: string): Promise<void> {
     for (const [key, task] of this.tasks) {
-      if (task.teamId === teamId) this.tasks.delete(key);
+      if (task.team_id === team_id) this.tasks.delete(key);
     }
   }
 
@@ -189,12 +191,12 @@ class InMemoryTeamRepository implements ITeamRepository {
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: 'slot-1',
-    conversationId: 'conv-1',
+    slot_id: 'slot-1',
+    conversation_id: 'conv-1',
     role: 'leader',
-    agentType: 'acp',
-    agentName: 'Agent',
-    conversationType: 'acp',
+    agent_type: 'acp',
+    agent_name: 'Agent',
+    conversation_type: 'acp',
     status: 'idle',
     ...overrides,
   };
@@ -213,7 +215,7 @@ function makeRealStack(agents: TeamAgent[] = []) {
   const taskManager = new TaskManager(repo);
   const workerTaskManager = makeWorkerTaskManager();
   const mgr = new TeammateManager({
-    teamId: 'team-stress',
+    team_id: 'team-stress',
     agents,
     mailbox,
     taskManager,
@@ -230,12 +232,12 @@ describe('Stress — concurrent agent operations (real Mailbox)', () => {
   it('10 agents sending messages simultaneously: no lost messages', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-flood';
+    const team_id = 'team-flood';
 
     // 10 senders → 1 recipient
     const sends = Array.from({ length: 10 }, (_, i) =>
       mailbox.write({
-        teamId,
+        team_id,
         toAgentId: 'inbox-agent',
         fromAgentId: `sender-${i}`,
         content: `Message from sender ${i}`,
@@ -244,7 +246,7 @@ describe('Stress — concurrent agent operations (real Mailbox)', () => {
 
     await Promise.all(sends);
 
-    const unread = await mailbox.readUnread(teamId, 'inbox-agent');
+    const unread = await mailbox.readUnread(team_id, 'inbox-agent');
     expect(unread).toHaveLength(10);
     // All 10 messages have unique IDs
     const ids = new Set(unread.map((m) => m.id));
@@ -258,12 +260,12 @@ describe('Stress — concurrent agent operations (real Mailbox)', () => {
   it('50 agents broadcasting simultaneously: correct recipient filtering', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-broadcast';
+    const team_id = 'team-broadcast';
 
     // Each agent sends to its specific recipient slot
     const sends = Array.from({ length: 50 }, (_, i) =>
       mailbox.write({
-        teamId,
+        team_id,
         toAgentId: `slot-${i % 5}`, // 5 recipients, 10 messages each
         fromAgentId: `sender-${i}`,
         content: `Msg ${i}`,
@@ -274,7 +276,7 @@ describe('Stress — concurrent agent operations (real Mailbox)', () => {
     // Each of the 5 recipients should have exactly 10 messages
     for (let r = 0; r < 5; r++) {
       // eslint-disable-next-line no-await-in-loop
-      const msgs = await mailbox.readUnread(teamId, `slot-${r}`);
+      const msgs = await mailbox.readUnread(team_id, `slot-${r}`);
       expect(msgs).toHaveLength(10);
     }
   });
@@ -286,18 +288,18 @@ describe('Stress — concurrent agent operations (real Mailbox)', () => {
   it('concurrent readUnread no longer returns duplicates (atomic fix)', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-race';
+    const team_id = 'team-race';
 
     // Write 5 messages
     for (let i = 0; i < 5; i++) {
       // eslint-disable-next-line no-await-in-loop
-      await mailbox.write({ teamId, toAgentId: 'reader', fromAgentId: 'sender', content: `Msg ${i}` });
+      await mailbox.write({ team_id, toAgentId: 'reader', fromAgentId: 'sender', content: `Msg ${i}` });
     }
 
     // Two concurrent readUnread calls
     const [read1, read2] = await Promise.all([
-      mailbox.readUnread(teamId, 'reader'),
-      mailbox.readUnread(teamId, 'reader'),
+      mailbox.readUnread(team_id, 'reader'),
+      mailbox.readUnread(team_id, 'reader'),
     ]);
 
     // FIXED: total should be exactly 5 (no duplicates)
@@ -308,14 +310,14 @@ describe('Stress — concurrent agent operations (real Mailbox)', () => {
   it('markRead is idempotent — calling twice does not corrupt state', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-idempotent';
+    const team_id = 'team-idempotent';
 
-    const msg = await mailbox.write({ teamId, toAgentId: 'agent', fromAgentId: 'sender', content: 'Hello' });
+    const msg = await mailbox.write({ team_id, toAgentId: 'agent', fromAgentId: 'sender', content: 'Hello' });
 
     // Read once (marks as read)
-    await mailbox.readUnread(teamId, 'agent');
+    await mailbox.readUnread(team_id, 'agent');
     // Read again — should return empty
-    const second = await mailbox.readUnread(teamId, 'agent');
+    const second = await mailbox.readUnread(team_id, 'agent');
     expect(second).toHaveLength(0);
 
     // Direct double-markRead should not throw
@@ -330,21 +332,21 @@ describe('Stress — Mailbox flooding', () => {
   it('queue 500 messages: readUnread returns all in correct order', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-flood';
+    const team_id = 'team-flood';
     const count = 500;
 
     for (let i = 0; i < count; i++) {
       // eslint-disable-next-line no-await-in-loop
       await mailbox.write({
-        teamId,
+        team_id,
         toAgentId: 'agent-inbox',
         fromAgentId: 'sender',
         content: `Message ${i}`,
-        // Vary createdAt to ensure ordering is testable
+        // Vary created_at to ensure ordering is testable
       });
     }
 
-    const messages = await mailbox.readUnread(teamId, 'agent-inbox');
+    const messages = await mailbox.readUnread(team_id, 'agent-inbox');
     expect(messages).toHaveLength(count);
 
     // All messages have unique IDs
@@ -352,19 +354,19 @@ describe('Stress — Mailbox flooding', () => {
     expect(ids.size).toBe(count);
 
     // After reading, inbox should be empty
-    const secondRead = await mailbox.readUnread(teamId, 'agent-inbox');
+    const secondRead = await mailbox.readUnread(team_id, 'agent-inbox');
     expect(secondRead).toHaveLength(0);
   });
 
   it('parallel writes from 20 agents to same inbox: no data loss', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-parallel-flood';
+    const team_id = 'team-parallel-flood';
 
     await Promise.all(
       Array.from({ length: 20 }, (_, i) =>
         mailbox.write({
-          teamId,
+          team_id,
           toAgentId: 'shared-inbox',
           fromAgentId: `agent-${i}`,
           content: `From agent ${i}`,
@@ -372,7 +374,7 @@ describe('Stress — Mailbox flooding', () => {
       )
     );
 
-    const messages = await mailbox.readUnread(teamId, 'shared-inbox');
+    const messages = await mailbox.readUnread(team_id, 'shared-inbox');
     expect(messages).toHaveLength(20);
     const senderIds = new Set(messages.map((m) => m.fromAgentId));
     expect(senderIds.size).toBe(20);
@@ -381,17 +383,17 @@ describe('Stress — Mailbox flooding', () => {
   it('getHistory respects limit after flooding', async () => {
     const repo = new InMemoryTeamRepository();
     const mailbox = new Mailbox(repo);
-    const teamId = 'team-history';
+    const team_id = 'team-history';
 
     for (let i = 0; i < 100; i++) {
       // eslint-disable-next-line no-await-in-loop
-      await mailbox.write({ teamId, toAgentId: 'agent', fromAgentId: 'src', content: `Msg ${i}` });
+      await mailbox.write({ team_id, toAgentId: 'agent', fromAgentId: 'src', content: `Msg ${i}` });
     }
 
     // Mark all as read
-    await mailbox.readUnread(teamId, 'agent');
+    await mailbox.readUnread(team_id, 'agent');
 
-    const history = await mailbox.getHistory(teamId, 'agent', 10);
+    const history = await mailbox.getHistory(team_id, 'agent', 10);
     expect(history).toHaveLength(10);
   });
 });
@@ -402,7 +404,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
   it('10-level chain: cascading unblock resolves all tasks', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
-    const teamId = 'team-chain';
+    const team_id = 'team-chain';
     const depth = 10;
 
     // Build a linear chain: task[0] <- task[1] <- ... <- task[9]
@@ -412,7 +414,7 @@ describe('Stress — TaskManager deep dependency chains', () => {
     for (let i = 0; i < depth; i++) {
       // eslint-disable-next-line no-await-in-loop
       const task = await taskManager.create({
-        teamId,
+        team_id,
         subject: `Task ${i}`,
         blockedBy: i > 0 ? [tasks[i - 1].id] : [],
       });
@@ -444,13 +446,13 @@ describe('Stress — TaskManager deep dependency chains', () => {
   it('wide fanout: 1 upstream unblocks 20 downstream tasks', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
-    const teamId = 'team-fanout';
+    const team_id = 'team-fanout';
 
-    const upstream = await taskManager.create({ teamId, subject: 'Gate task' });
+    const upstream = await taskManager.create({ team_id, subject: 'Gate task' });
 
     const downstreamTasks = await Promise.all(
       Array.from({ length: 20 }, (_, i) =>
-        taskManager.create({ teamId, subject: `Downstream ${i}`, blockedBy: [upstream.id] })
+        taskManager.create({ team_id, subject: `Downstream ${i}`, blockedBy: [upstream.id] })
       )
     );
 
@@ -490,14 +492,14 @@ describe('Stress — TaskManager deep dependency chains', () => {
   it('BUG: concurrent create with same blockedBy corrupts upstream.blocks array', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
-    const teamId = 'team-blocks-race';
+    const team_id = 'team-blocks-race';
 
-    const upstream = await taskManager.create({ teamId, subject: 'Upstream' });
+    const upstream = await taskManager.create({ team_id, subject: 'Upstream' });
 
     // Create exactly 2 downstream tasks simultaneously (minimal race)
     const [taskA, taskB] = await Promise.all([
-      taskManager.create({ teamId, subject: 'Task A', blockedBy: [upstream.id] }),
-      taskManager.create({ teamId, subject: 'Task B', blockedBy: [upstream.id] }),
+      taskManager.create({ team_id, subject: 'Task A', blockedBy: [upstream.id] }),
+      taskManager.create({ team_id, subject: 'Task B', blockedBy: [upstream.id] }),
     ]);
 
     const upstreamAfter = await repo.findTaskById(upstream.id);
@@ -524,13 +526,13 @@ describe('Stress — TaskManager deep dependency chains', () => {
   it('circular dependency: A blockedBy B, B blockedBy A — create completes without deadlock', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
-    const teamId = 'team-circular';
+    const team_id = 'team-circular';
 
     // Create A and B without blockedBy first
-    const taskA = await taskManager.create({ teamId, subject: 'Task A' });
-    const taskB = await taskManager.create({ teamId, subject: 'Task B', blockedBy: [taskA.id] });
+    const taskA = await taskManager.create({ team_id, subject: 'Task A' });
+    const taskB = await taskManager.create({ team_id, subject: 'Task B', blockedBy: [taskA.id] });
     // Now "close the loop" by updating A to be blocked by B
-    await repo.updateTask(taskA.id, { blockedBy: [taskB.id], updatedAt: Date.now() });
+    await repo.updateTask(taskA.id, { blockedBy: [taskB.id], updated_at: Date.now() });
 
     // checkUnblocks should not infinite-loop
     await expect(taskManager.checkUnblocks(taskA.id)).resolves.toBeDefined();
@@ -540,12 +542,12 @@ describe('Stress — TaskManager deep dependency chains', () => {
   it('checkUnblocks: complete multiple upstream tasks simultaneously', async () => {
     const repo = new InMemoryTeamRepository();
     const taskManager = new TaskManager(repo);
-    const teamId = 'team-multi-unblock';
+    const team_id = 'team-multi-unblock';
 
-    const gate1 = await taskManager.create({ teamId, subject: 'Gate 1' });
-    const gate2 = await taskManager.create({ teamId, subject: 'Gate 2' });
+    const gate1 = await taskManager.create({ team_id, subject: 'Gate 1' });
+    const gate2 = await taskManager.create({ team_id, subject: 'Gate 2' });
     const dependent = await taskManager.create({
-      teamId,
+      team_id,
       subject: 'Dependent',
       blockedBy: [gate1.id, gate2.id],
     });
@@ -569,7 +571,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
   afterEach(() => vi.clearAllMocks());
 
   it('activeWakes dedup: 10 concurrent wake() calls only executes once', async () => {
-    const agent = makeAgent({ slotId: 'slot-1', status: 'idle' });
+    const agent = makeAgent({ slot_id: 'slot-1', status: 'idle' });
     const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -577,7 +579,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
     } as never);
 
     // Write a message so wake() has something to deliver
-    await mailbox.write({ teamId: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger' });
+    await mailbox.write({ team_id: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger' });
 
     // Fire 10 concurrent wakes
     await Promise.all(Array.from({ length: 10 }, () => mgr.wake('slot-1')));
@@ -593,11 +595,11 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
    * wake() clears activeWakes BEFORE finalizeTurn fires. A second wake() can
    * proceed while the first turn's finish event is in flight.
    *
-   * Fix: wake() now clears finalizedTurns for the agent's conversationId so
+   * Fix: wake() now clears finalizedTurns for the agent's conversation_id so
    * the second turn's finish event is not silently deduped by the 5s window.
    */
   it('second wake after activeWakes cleared: second finalizeTurn processes correctly (regression for finalizedTurns dedup fix)', async () => {
-    const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-1', status: 'idle', role: 'leader' });
+    const agent = makeAgent({ slot_id: 'slot-1', conversation_id: 'conv-1', status: 'idle', role: 'leader' });
     const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -605,7 +607,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
     } as never);
 
     // Write messages so wake() has something to deliver
-    await mailbox.write({ teamId: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger-1' });
+    await mailbox.write({ team_id: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger-1' });
 
     // First wake — sends message, clears activeWakes
     await mgr.wake('slot-1');
@@ -622,7 +624,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
 
     // activeWakes was cleared by wake(), so second wake() proceeds.
     // The fix: wake() also clears finalizedTurns for conv-1.
-    await mailbox.write({ teamId: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger-2' });
+    await mailbox.write({ team_id: 'team-stress', toAgentId: 'slot-1', fromAgentId: 'system', content: 'trigger-2' });
     await mgr.wake('slot-1');
     expect(mockSendMessage).toHaveBeenCalledTimes(2); // Second message sent
 
@@ -637,14 +639,14 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
 
     // FIXED: second finish is processed because wake() cleared finalizedTurns.
     // Agent transitions to 'idle' correctly.
-    const agentStatus = mgr.getAgents().find((a) => a.slotId === 'slot-1')?.status;
+    const agentStatus = mgr.getAgents().find((a) => a.slot_id === 'slot-1')?.status;
     expect(agentStatus).toBe('idle');
 
     mgr.dispose();
   });
 
   it('rapid idle→active→idle transitions: status ends at idle after finish', async () => {
-    const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-rapid', status: 'idle', role: 'leader' });
+    const agent = makeAgent({ slot_id: 'slot-1', conversation_id: 'conv-rapid', status: 'idle', role: 'leader' });
     const { mgr, workerTaskManager } = makeRealStack([agent]);
     const mockSendMessage = vi.fn().mockResolvedValue(undefined);
     vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
@@ -674,7 +676,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
   it('finalizedTurns 5s dedup window: second finish within window is ignored', async () => {
     vi.useFakeTimers();
     try {
-      const agent = makeAgent({ slotId: 'slot-1', conversationId: 'conv-dedup', status: 'active', role: 'leader' });
+      const agent = makeAgent({ slot_id: 'slot-1', conversation_id: 'conv-dedup', status: 'active', role: 'leader' });
       const { mgr, workerTaskManager } = makeRealStack([agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: vi.fn().mockResolvedValue(undefined),
@@ -738,7 +740,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
     const managers: TeammateManager[] = [];
 
     for (let i = 0; i < 100; i++) {
-      const { mgr } = makeRealStack([makeAgent({ slotId: `slot-${i}`, conversationId: `conv-${i}` })]);
+      const { mgr } = makeRealStack([makeAgent({ slot_id: `slot-${i}`, conversation_id: `conv-${i}` })]);
       managers.push(mgr);
     }
 
@@ -759,7 +761,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
       // Sole agent = lead: the watchdog still fires, but there is nobody to notify.
       // Behavior changed from dropping silently to 'idle' (hiding the stall) to
       // marking the agent 'failed' so the team surface reflects the problem.
-      const agent = makeAgent({ slotId: 'slot-timeout', status: 'idle', conversationId: 'conv-timeout' });
+      const agent = makeAgent({ slot_id: 'slot-timeout', status: 'idle', conversation_id: 'conv-timeout' });
       const { mgr, mailbox, workerTaskManager } = makeRealStack([agent]);
       vi.mocked(workerTaskManager.getOrBuildTask).mockResolvedValue({
         sendMessage: vi.fn().mockResolvedValue(undefined),
@@ -767,7 +769,7 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
 
       // Write a message so wake() has something to deliver
       await mailbox.write({
-        teamId: 'team-stress',
+        team_id: 'team-stress',
         toAgentId: 'slot-timeout',
         fromAgentId: 'system',
         content: 'trigger',
@@ -775,14 +777,14 @@ describe('Stress — rapid state transitions in TeammateManager', () => {
       await mgr.wake('slot-timeout');
 
       // Agent is active; no finish event ever arrives
-      const statusAfterWake = mgr.getAgents().find((a) => a.slotId === 'slot-timeout')?.status;
+      const statusAfterWake = mgr.getAgents().find((a) => a.slot_id === 'slot-timeout')?.status;
       expect(statusAfterWake).toBe('active');
 
       // Advance past 60s safety valve
       vi.advanceTimersByTime(61_000);
       await vi.runAllTimersAsync();
 
-      const statusAfterTimeout = mgr.getAgents().find((a) => a.slotId === 'slot-timeout')?.status;
+      const statusAfterTimeout = mgr.getAgents().find((a) => a.slot_id === 'slot-timeout')?.status;
       expect(statusAfterTimeout).toBe('failed');
       mgr.dispose();
     } finally {
@@ -844,14 +846,14 @@ describe('Stress — TeamEventBus saturation', () => {
     const conv1Events: string[] = [];
     const conv2Events: string[] = [];
 
-    const agent1 = makeAgent({ slotId: 'slot-bus-1', conversationId: 'conv-bus-1', role: 'leader' });
-    const agent2 = makeAgent({ slotId: 'slot-bus-2', conversationId: 'conv-bus-2', role: 'leader' });
+    const agent1 = makeAgent({ slot_id: 'slot-bus-1', conversation_id: 'conv-bus-1', role: 'leader' });
+    const agent2 = makeAgent({ slot_id: 'slot-bus-2', conversation_id: 'conv-bus-2', role: 'leader' });
 
     const { mgr: mgr1 } = makeRealStack([agent1]);
     const { mgr: mgr2 } = makeRealStack([agent2]);
 
-    mgr1.on('agentStatusChanged', ({ slotId }: { slotId: string }) => conv1Events.push(slotId));
-    mgr2.on('agentStatusChanged', ({ slotId }: { slotId: string }) => conv2Events.push(slotId));
+    mgr1.on('agentStatusChanged', ({ slot_id }: { slot_id: string }) => conv1Events.push(slot_id));
+    mgr2.on('agentStatusChanged', ({ slot_id }: { slot_id: string }) => conv2Events.push(slot_id));
 
     try {
       // Interleave status changes for both managers

@@ -70,7 +70,7 @@ export interface Settings {
   allowMCPServers?: string[];
   excludeMCPServers?: string[];
   showMemoryUsage?: boolean;
-  contextFileName?: string | string[];
+  context_file_name?: string | string[];
   accessibility?: AccessibilitySettings;
   telemetry?: TelemetrySettings;
   usageStatisticsEnabled?: boolean;
@@ -98,7 +98,7 @@ export interface Settings {
   maxSessionTurns?: number;
 
   // Setting for maximum token limit for conversation history before blocking requests
-  sessionTokenLimit?: number;
+  session_tokenLimit?: number;
 
   // Setting for maximum number of files and folders to show in folder structure
   maxFolderItems?: number;
@@ -126,7 +126,7 @@ export interface Settings {
   dnsResolutionOrder?: DnsResolutionOrder;
   sampling_params?: Record<string, unknown>;
   systemPromptMappings?: Array<{
-    baseUrls: string[];
+    base_urls: string[];
     modelNames: string[];
     template: string;
   }>;

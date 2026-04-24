@@ -140,7 +140,7 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 function createManager(): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: 'conv-test-1',
   };
   const model = data.model as any;
@@ -206,8 +206,8 @@ message: Generate daily report
         expect(mockCronService.addJob).toHaveBeenCalledWith(
           expect.objectContaining({
             name: 'Daily Report',
-            conversationId: 'conv-test-1',
-            agentType: 'aionrs',
+            conversation_id: 'conv-test-1',
+            agent_type: 'aionrs',
           })
         );
       });

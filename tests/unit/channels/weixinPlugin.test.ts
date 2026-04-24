@@ -36,12 +36,12 @@ function createConfig(overrides?: Partial<IChannelPluginConfig['credentials']>):
     credentials: {
       accountId: 'user_test123',
       botToken: 'tok_abc',
-      baseUrl: 'https://ilinkai.weixin.qq.com',
+      base_url: 'https://ilinkai.weixin.qq.com',
       ...overrides,
     },
     status: 'created' as const,
-    createdAt: now,
-    updatedAt: now,
+    created_at: now,
+    updated_at: now,
   };
 }
 
@@ -104,7 +104,7 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    const chatPromise = agent.chat({ conversationId: 'user_abc', text: 'Hello' });
+    const chatPromise = agent.chat({ conversation_id: 'user_abc', text: 'Hello' });
 
     await new Promise((r) => setTimeout(r, 20));
 
@@ -132,7 +132,7 @@ describe('WeixinPlugin — Promise bridge', () => {
 
     await plugin.start();
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    const response = await agent.chat({ conversationId: 'user_abc', text: 'hi' });
+    const response = await agent.chat({ conversation_id: 'user_abc', text: 'hi' });
     expect(response.text).toBe('final complete text');
   });
 
@@ -146,17 +146,17 @@ describe('WeixinPlugin — Promise bridge', () => {
       await plugin.editMessage(msg.chatId, msgId, {
         type: 'text',
         text: '',
-        mediaActions: [{ type: 'file', path: '/tmp/report.pdf', fileName: 'report.pdf' }],
+        mediaActions: [{ type: 'file', path: '/tmp/report.pdf', file_name: 'report.pdf' }],
         replyMarkup: {},
       });
     });
 
     await plugin.start();
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    const response = await agent.chat({ conversationId: 'user_abc', text: 'hi' });
+    const response = await agent.chat({ conversation_id: 'user_abc', text: 'hi' });
 
     expect(response.text).toBeUndefined();
-    expect(response.mediaActions).toEqual([{ type: 'file', path: '/tmp/report.pdf', fileName: 'report.pdf' }]);
+    expect(response.mediaActions).toEqual([{ type: 'file', path: '/tmp/report.pdf', file_name: 'report.pdf' }]);
   });
 
   it('rejects superseded Promise when second chat arrives before first resolves', async () => {
@@ -169,10 +169,10 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    const first = agent.chat({ conversationId: 'user_abc', text: 'first' });
+    const first = agent.chat({ conversation_id: 'user_abc', text: 'first' });
     await new Promise((r) => setTimeout(r, 0));
 
-    const second = agent.chat({ conversationId: 'user_abc', text: 'second' });
+    const second = agent.chat({ conversation_id: 'user_abc', text: 'second' });
     await expect(first).rejects.toThrow('superseded');
 
     const msgId = await plugin.sendMessage('user_abc', { type: 'text' });
@@ -190,7 +190,7 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    const chatPromise = agent.chat({ conversationId: 'user_abc', text: 'hi' });
+    const chatPromise = agent.chat({ conversation_id: 'user_abc', text: 'hi' });
     await new Promise((r) => setTimeout(r, 0));
 
     await plugin.stop();
@@ -208,7 +208,7 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.start();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    const chatPromise = agent.chat({ conversationId: 'user_abc', text: 'hi' });
+    const chatPromise = agent.chat({ conversation_id: 'user_abc', text: 'hi' });
     await Promise.resolve();
 
     const assertion = expect(chatPromise).rejects.toThrow('Response timeout');
@@ -226,7 +226,7 @@ describe('WeixinPlugin — Promise bridge', () => {
     await plugin.stop();
 
     const { agent } = mockStartFn.mock.calls[0][0] as MonitorOptions;
-    await expect(agent.chat({ conversationId: 'u', text: 'hi' })).rejects.toThrow('Plugin stopped');
+    await expect(agent.chat({ conversation_id: 'u', text: 'hi' })).rejects.toThrow('Plugin stopped');
   });
 });
 

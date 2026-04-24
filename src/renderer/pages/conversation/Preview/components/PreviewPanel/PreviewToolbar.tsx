@@ -62,7 +62,7 @@ interface PreviewToolbarProps {
    * 文件名
    * Filename
    */
-  fileName?: string;
+  file_name?: string;
 
   /**
    * 是否显示"在系统中打开"按钮
@@ -183,7 +183,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   isEditMode,
   viewMode,
   isSplitScreenEnabled,
-  fileName,
+  file_name,
   showOpenInSystemButton,
   historyTarget,
   snapshotSaving,

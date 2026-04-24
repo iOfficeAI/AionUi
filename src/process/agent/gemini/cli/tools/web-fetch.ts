@@ -111,10 +111,10 @@ export class WebFetchTool extends BaseDeclarativeTool<WebFetchToolParams, ToolRe
   protected createInvocation(
     params: WebFetchToolParams,
     messageBus: MessageBus,
-    _toolName?: string,
-    _toolDisplayName?: string
+    _tool_name?: string,
+    _tool_display_name?: string
   ): ToolInvocation<WebFetchToolParams, ToolResult> {
-    return new WebFetchInvocation(this.geminiClient, params, messageBus, _toolName, _toolDisplayName);
+    return new WebFetchInvocation(this.geminiClient, params, messageBus, _tool_name, _tool_display_name);
   }
 }
 
@@ -123,10 +123,10 @@ class WebFetchInvocation extends BaseToolInvocation<WebFetchToolParams, ToolResu
     private readonly geminiClient: GeminiClient,
     params: WebFetchToolParams,
     messageBus: MessageBus,
-    _toolName?: string,
-    _toolDisplayName?: string
+    _tool_name?: string,
+    _tool_display_name?: string
   ) {
-    super(params, messageBus, _toolName, _toolDisplayName);
+    super(params, messageBus, _tool_name, _tool_display_name);
   }
 
   getDescription(): string {

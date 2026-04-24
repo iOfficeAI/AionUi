@@ -6,9 +6,9 @@ import { render, screen, fireEvent, act, waitFor } from '@testing-library/react'
 import React from 'react';
 
 const { mockEnablePlugin, mockDisablePlugin, mockGetPluginStatus } = vi.hoisted(() => ({
-  mockEnablePlugin: vi.fn(async () => ({ success: true })),
-  mockDisablePlugin: vi.fn(async () => ({ success: true })),
-  mockGetPluginStatus: vi.fn(async () => ({ success: true, data: [] })),
+  mockEnablePlugin: vi.fn(async () => undefined),
+  mockDisablePlugin: vi.fn(async () => undefined),
+  mockGetPluginStatus: vi.fn(async () => []),
 }));
 
 vi.mock('@arco-design/web-react', async (importOriginal) => {
@@ -54,8 +54,8 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
     disablePlugin: { invoke: mockDisablePlugin },
     getPluginStatus: { invoke: mockGetPluginStatus },
     syncChannelSettings: { invoke: vi.fn(async () => ({ success: true })) },
-    getPendingPairings: { invoke: vi.fn(async () => ({ success: true, data: [] })) },
-    getAuthorizedUsers: { invoke: vi.fn(async () => ({ success: true, data: [] })) },
+    getPendingPairings: { invoke: vi.fn(async () => []) },
+    getAuthorizedUsers: { invoke: vi.fn(async () => []) },
     pairingRequested: { on: vi.fn(() => vi.fn()) },
     userAuthorized: { on: vi.fn(() => vi.fn()) },
   },
@@ -64,8 +64,8 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   },
 }));
 
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: { get: vi.fn(async () => undefined), set: vi.fn(async () => {}) },
+vi.mock('@/common/config/configService', () => ({
+  configService: { get: vi.fn(() => undefined), set: vi.fn(async () => {}) },
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
@@ -77,10 +77,10 @@ vi.mock('qrcode.react', () => ({
 }));
 
 import WeixinConfigForm from '@/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 
 const noopModelSelection = {
-  currentModel: undefined,
+  current_model: undefined,
   isLoading: false,
   onSelectModel: vi.fn(),
 } as any;
@@ -137,7 +137,7 @@ describe('WeixinConfigForm', () => {
   });
 
   it('shows auto-follow label when a non-gemini agent is selected', async () => {
-    vi.mocked(ConfigStorage.get).mockResolvedValueOnce({ backend: 'claude', name: 'Claude' });
+    vi.mocked(configService.get).mockReturnValueOnce({ backend: 'claude', name: 'Claude' });
 
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
@@ -263,10 +263,9 @@ describe('WeixinConfigForm', () => {
   it('uses the WebUI EventSource login flow when electron login bridge is unavailable', async () => {
     const onStatusChange = vi.fn();
     window.electronAPI = {} as typeof window.electronAPI;
-    mockGetPluginStatus.mockResolvedValueOnce({
-      success: true,
-      data: [{ id: 'weixin_default', type: 'weixin', enabled: true, hasToken: true, status: 'running' }],
-    });
+    mockGetPluginStatus.mockReturnValueOnce([
+      { id: 'weixin_default', type: 'weixin', enabled: true, hasToken: true, status: 'running' },
+    ]);
 
     render(
       <WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={onStatusChange} />
@@ -306,7 +305,7 @@ describe('WeixinConfigForm', () => {
 
   it('resets to idle when enableWeixinPlugin fails in WebUI mode', async () => {
     window.electronAPI = {} as typeof window.electronAPI;
-    mockEnablePlugin.mockResolvedValueOnce({ success: false, msg: 'Enable failed' });
+    mockEnablePlugin.mockRejectedValueOnce(new Error('Enable failed'));
 
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 
@@ -376,7 +375,7 @@ describe('WeixinConfigForm', () => {
   });
 
   it('stays connected when handleDisconnect fails', async () => {
-    mockDisablePlugin.mockResolvedValueOnce({ success: false, msg: 'Disable failed' });
+    mockDisablePlugin.mockRejectedValueOnce(new Error('Disable failed'));
 
     const pluginStatus = {
       id: 'weixin_default',

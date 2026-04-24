@@ -21,7 +21,7 @@ export type WeixinAttachment = {
 };
 
 export type WeixinChatRequest = {
-  conversationId: string;
+  conversation_id: string;
   text?: string;
   attachments?: WeixinAttachment[];
 };
@@ -36,7 +36,7 @@ export type WeixinAgent = {
 };
 
 export type MonitorOptions = {
-  baseUrl: string;
+  base_url: string;
   token: string;
   accountId: string;
   /** Directory used to persist get_updates_buf. Pass getPlatformServices().paths.getDataDir(). */
@@ -141,7 +141,7 @@ type GetUploadUrlResp = {
 // ==================== HTTP ====================
 
 async function apiPost<T>(
-  baseUrl: string,
+  base_url: string,
   endpoint: string,
   bodyObj: unknown,
   token: string,
@@ -149,7 +149,7 @@ async function apiPost<T>(
   timeoutMs: number,
   signal?: AbortSignal
 ): Promise<T> {
-  const url = `${baseUrl.replace(/\/$/, '')}/${endpoint}`;
+  const url = `${base_url.replace(/\/$/, '')}/${endpoint}`;
   const body = JSON.stringify(bodyObj);
 
   const controller = new AbortController();
@@ -183,14 +183,14 @@ async function apiPost<T>(
 // ==================== API calls ====================
 
 async function callGetUpdates(
-  baseUrl: string,
+  base_url: string,
   token: string,
   wechatUin: string,
   buf: string,
   signal?: AbortSignal
 ): Promise<GetUpdatesResp> {
   return apiPost<GetUpdatesResp>(
-    baseUrl,
+    base_url,
     'ilink/bot/getupdates',
     { get_updates_buf: buf, base_info: {} },
     token,
@@ -201,7 +201,7 @@ async function callGetUpdates(
 }
 
 async function callSendMessage(
-  baseUrl: string,
+  base_url: string,
   token: string,
   wechatUin: string,
   toUserId: string,
@@ -210,7 +210,7 @@ async function callSendMessage(
 ): Promise<void> {
   const clientId = crypto.randomUUID();
   await apiPost(
-    baseUrl,
+    base_url,
     'ilink/bot/sendmessage',
     {
       msg: {
@@ -232,7 +232,7 @@ async function callSendMessage(
 
 type UploadedWeixinMedia = {
   itemType: typeof IMAGE_ITEM_TYPE | typeof FILE_ITEM_TYPE;
-  fileName: string;
+  file_name: string;
   rawSize: number;
   ciphertextSize: number;
   aesKeyForMessage: string;
@@ -258,7 +258,7 @@ function encryptAesEcb(buffer: Buffer, key: Buffer): Buffer {
 }
 
 async function callGetUploadUrl(
-  baseUrl: string,
+  base_url: string,
   token: string,
   wechatUin: string,
   toUserId: string,
@@ -269,7 +269,7 @@ async function callGetUploadUrl(
   log?: (msg: string) => void
 ): Promise<{ uploadFullUrl?: string; uploadParam?: string }> {
   const data = await apiPost<GetUploadUrlResp>(
-    baseUrl,
+    base_url,
     'ilink/bot/getuploadurl',
     {
       filekey: fileKey,
@@ -291,7 +291,7 @@ async function callGetUploadUrl(
   const uploadUrl = String(data.upload_full_url ?? '').trim();
   if (!uploadUrl && !uploadParam) {
     log?.(
-      `[weixin] getuploadurl missing upload url for ${toUserId}: ${summarizeUploadUrlResponse(data)} metadata=${stringifyLogValue({ type: action.type, fileName: action.fileName || path.basename(action.path), path: action.path, size: fileData.length })}`
+      `[weixin] getuploadurl missing upload url for ${toUserId}: ${summarizeUploadUrlResponse(data)} metadata=${stringifyLogValue({ type: action.type, file_name: action.file_name || path.basename(action.path), path: action.path, size: fileData.length })}`
     );
     throw new Error('getuploadurl missing upload url');
   }
@@ -373,7 +373,7 @@ async function uploadBufferToCdn(
 }
 
 async function uploadMediaAction(
-  baseUrl: string,
+  base_url: string,
   token: string,
   wechatUin: string,
   toUserId: string,
@@ -392,12 +392,22 @@ async function uploadMediaAction(
   const aesKey = crypto.randomBytes(16);
   const aesKeyHex = aesKey.toString('hex');
   const fileKey = crypto.randomBytes(16).toString('hex');
-  const upload = await callGetUploadUrl(baseUrl, token, wechatUin, toUserId, action, fileData, aesKeyHex, fileKey, log);
+  const upload = await callGetUploadUrl(
+    base_url,
+    token,
+    wechatUin,
+    toUserId,
+    action,
+    fileData,
+    aesKeyHex,
+    fileKey,
+    log
+  );
   const uploaded = await uploadBufferToCdn(fileData, upload, fileKey, aesKey, log);
 
   return {
     itemType: getWeixinSendItemType(action),
-    fileName: action.fileName || path.basename(action.path),
+    file_name: action.file_name || path.basename(action.path),
     rawSize: fileData.length,
     ciphertextSize: uploaded.ciphertextSize,
     aesKeyForMessage: Buffer.from(aesKeyHex, 'utf-8').toString('base64'),
@@ -406,7 +416,7 @@ async function uploadMediaAction(
 }
 
 async function callSendMediaMessage(
-  baseUrl: string,
+  base_url: string,
   token: string,
   wechatUin: string,
   toUserId: string,
@@ -434,13 +444,13 @@ async function callSendMediaMessage(
               aes_key: media.aesKeyForMessage,
               encrypt_type: 1,
             },
-            file_name: media.fileName,
+            file_name: media.file_name,
             len: String(media.rawSize),
           },
         };
 
   await apiPost(
-    baseUrl,
+    base_url,
     'ilink/bot/sendmessage',
     {
       msg: {
@@ -534,12 +544,12 @@ async function downloadMediaItem(
   const declaredName = String(itemData?.file_name ?? (item.type === IMAGE_ITEM_TYPE ? 'image' : 'file'));
   const safeName = declaredName.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 64);
   const safeMsgId = msgId.replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 48);
-  const fileName = `${safeMsgId}-${idx}-${safeName}${ext}`;
-  const filePath = path.join(uploadsDir, fileName);
+  const file_name = `${safeMsgId}-${idx}-${safeName}${ext}`;
+  const file_path = path.join(uploadsDir, file_name);
 
   fs.mkdirSync(uploadsDir, { recursive: true });
-  fs.writeFileSync(filePath, resultBuf);
-  return { path: filePath, kind, name: declaredName };
+  fs.writeFileSync(file_path, resultBuf);
+  return { path: file_path, kind, name: declaredName };
 }
 
 function cleanUploads(uploadsDir: string): void {
@@ -589,7 +599,7 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
 }
 
 async function runMonitor(
-  baseUrl: string,
+  base_url: string,
   token: string,
   accountId: string,
   dataDir: string,
@@ -600,13 +610,13 @@ async function runMonitor(
 ): Promise<void> {
   let buf = loadBuf(dataDir, accountId);
   let consecutiveFailures = 0;
-  const typingMgr = new TypingManager({ baseUrl, token, wechatUin, abortSignal: signal, log });
+  const typingMgr = new TypingManager({ base_url, token, wechatUin, abortSignal: signal, log });
 
   // oxlint-disable-next-line eslint/no-unmodified-loop-condition
   while (!signal?.aborted) {
     try {
       // oxlint-disable-next-line eslint/no-await-in-loop
-      const resp = await callGetUpdates(baseUrl, token, wechatUin, buf, signal);
+      const resp = await callGetUpdates(base_url, token, wechatUin, buf, signal);
 
       const isApiError =
         (resp.ret !== undefined && resp.ret !== 0) || (resp.errcode !== undefined && resp.errcode !== 0);
@@ -642,7 +652,7 @@ async function runMonitor(
 
         if (!textItem && voiceTextItems.length === 0 && mediaItems.length === 0) continue;
 
-        const conversationId = msg.from_user_id ?? '';
+        const conversation_id = msg.from_user_id ?? '';
         const text = [textItem?.text_item?.text?.trim(), ...voiceTextItems.map((item) => item.voice_item?.text?.trim())]
           .filter((part): part is string => Boolean(part))
           .join('\n\n');
@@ -657,7 +667,7 @@ async function runMonitor(
               // oxlint-disable-next-line eslint/no-await-in-loop
               attachments.push(await downloadMediaItem(item, msgId, idx, uploadsDir));
             } catch (dlErr) {
-              log(`[weixin] attachment download failed (${conversationId}#${idx}): ${formatError(dlErr)}`);
+              log(`[weixin] attachment download failed (${conversation_id}#${idx}): ${formatError(dlErr)}`);
             }
           }
           if (attachments.length > 0) cleanUploads(uploadsDir);
@@ -666,19 +676,19 @@ async function runMonitor(
         if (!text && attachments.length === 0) continue;
 
         // oxlint-disable-next-line eslint/no-await-in-loop
-        const stopTyping = await typingMgr.startTyping(conversationId, msg.context_token);
+        const stopTyping = await typingMgr.startTyping(conversation_id, msg.context_token);
         let response: WeixinChatResponse | undefined;
         try {
           // oxlint-disable-next-line eslint/no-await-in-loop
           response = await agent.chat({
-            conversationId,
+            conversation_id,
             text,
             attachments: attachments.length > 0 ? attachments : undefined,
           });
         } catch (agentErr) {
           // oxlint-disable-next-line eslint/no-await-in-loop
           await stopTyping();
-          log(`[weixin] agent error for ${conversationId}: ${formatError(agentErr)}`);
+          log(`[weixin] agent error for ${conversation_id}: ${formatError(agentErr)}`);
           continue;
         }
         // oxlint-disable-next-line eslint/no-await-in-loop
@@ -689,16 +699,23 @@ async function runMonitor(
             if (mediaAction.caption) {
               // Match openclaw-weixin ordering: send caption text before media item.
               // oxlint-disable-next-line eslint/no-await-in-loop
-              await callSendMessage(baseUrl, token, wechatUin, conversationId, mediaAction.caption, msg.context_token);
+              await callSendMessage(
+                base_url,
+                token,
+                wechatUin,
+                conversation_id,
+                mediaAction.caption,
+                msg.context_token
+              );
             }
             // oxlint-disable-next-line eslint/no-await-in-loop
-            const uploaded = await uploadMediaAction(baseUrl, token, wechatUin, conversationId, mediaAction, log);
+            const uploaded = await uploadMediaAction(base_url, token, wechatUin, conversation_id, mediaAction, log);
             // oxlint-disable-next-line eslint/no-await-in-loop
-            await callSendMediaMessage(baseUrl, token, wechatUin, conversationId, uploaded, msg.context_token);
+            await callSendMediaMessage(base_url, token, wechatUin, conversation_id, uploaded, msg.context_token);
           } catch (sendErr) {
-            const failedName = mediaAction.fileName || path.basename(mediaAction.path);
+            const failedName = mediaAction.file_name || path.basename(mediaAction.path);
             fallbackNotices.push(i18n.t('settings.channels.mediaSendFailed', { name: failedName }));
-            log(`[weixin] media send error for ${conversationId}: ${formatError(sendErr)}`);
+            log(`[weixin] media send error for ${conversation_id}: ${formatError(sendErr)}`);
           }
         }
 
@@ -706,9 +723,9 @@ async function runMonitor(
         if (finalText) {
           try {
             // oxlint-disable-next-line eslint/no-await-in-loop
-            await callSendMessage(baseUrl, token, wechatUin, conversationId, finalText, msg.context_token);
+            await callSendMessage(base_url, token, wechatUin, conversation_id, finalText, msg.context_token);
           } catch (sendErr) {
-            log(`[weixin] send error for ${conversationId}: ${formatError(sendErr)}`);
+            log(`[weixin] send error for ${conversation_id}: ${formatError(sendErr)}`);
           }
         }
       }
@@ -733,11 +750,11 @@ async function runMonitor(
  * Errors are logged via opts.log. Loop stops when abortSignal fires.
  */
 export function startMonitor(opts: MonitorOptions): void {
-  const { baseUrl, token, accountId, dataDir, agent, abortSignal, log } = opts;
+  const { base_url, token, accountId, dataDir, agent, abortSignal, log } = opts;
   const logFn = log ?? ((_msg: string) => {});
   const wechatUin = crypto.randomBytes(4).toString('base64');
 
-  void runMonitor(baseUrl, token, accountId, dataDir, agent, wechatUin, abortSignal, logFn).catch((err: unknown) => {
+  void runMonitor(base_url, token, accountId, dataDir, agent, wechatUin, abortSignal, logFn).catch((err: unknown) => {
     if (!abortSignal?.aborted) {
       logFn(`[weixin] monitor terminated unexpectedly: ${String(err)}`);
     }

@@ -10,7 +10,7 @@ import React from 'react';
 // --- Mocks ---
 
 const mockWarmupInvoke = vi.fn().mockResolvedValue(undefined);
-const mockUseConversationContextSafe = vi.fn(() => ({ conversationId: 'test-conv-1' }));
+const mockUseConversationContextSafe = vi.fn(() => ({ conversation_id: 'test-conv-1' }));
 const mockUseLayoutContext = vi.fn(() => ({ isMobile: false }));
 const mockUsePreviewContext = vi.fn(() => ({
   setSendBoxHandler: vi.fn(),
@@ -144,7 +144,7 @@ describe('SendBox warmup debounce logic', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.clearAllMocks();
-    mockUseConversationContextSafe.mockReturnValue({ conversationId: 'test-conv-1' });
+    mockUseConversationContextSafe.mockReturnValue({ conversation_id: 'test-conv-1' });
     mockUseLayoutContext.mockReturnValue({ isMobile: false });
   });
 
@@ -236,7 +236,7 @@ describe('SendBox warmup debounce logic', () => {
 
   it('triggers warmup for different conversation', () => {
     // First render with conv-1
-    mockUseConversationContextSafe.mockReturnValue({ conversationId: 'test-conv-1' });
+    mockUseConversationContextSafe.mockReturnValue({ conversation_id: 'test-conv-1' });
     const { container, unmount } = render(
       React.createElement(SendBox, {
         onSend: vi.fn().mockResolvedValue(undefined),
@@ -256,7 +256,7 @@ describe('SendBox warmup debounce logic', () => {
     unmount();
 
     // Remount with conv-2
-    mockUseConversationContextSafe.mockReturnValue({ conversationId: 'test-conv-2' });
+    mockUseConversationContextSafe.mockReturnValue({ conversation_id: 'test-conv-2' });
     const { container: container2 } = render(
       React.createElement(SendBox, {
         onSend: vi.fn().mockResolvedValue(undefined),

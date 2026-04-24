@@ -44,8 +44,8 @@ async function splitAssistantsMigration(configFile: ConfigStore): Promise<void> 
   const currentAssistants =
     ((await configFile.get('assistants').catch((): undefined => undefined)) as AcpBackendConfig[] | undefined) || [];
 
-  const presetsInAssistants = currentAssistants.filter((a) => a.isPreset === true);
-  const customsInAssistants = currentAssistants.filter((a) => a.isPreset !== true);
+  const presetsInAssistants = currentAssistants.filter((a) => a.is_preset === true);
+  const customsInAssistants = currentAssistants.filter((a) => a.is_preset !== true);
 
   const existingCustomIds = new Set(legacyCustomAgents.map((a) => a.id));
   const mergedCustoms = [...legacyCustomAgents, ...customsInAssistants.filter((a) => !existingCustomIds.has(a.id))];
@@ -74,9 +74,9 @@ function makeConfigStore(initial: Record<string, unknown> = {}): ConfigStore & {
 describe('assistants split migration (acp.customAgents ←→ assistants)', () => {
   it('splits mixed entries in assistants back into presets + custom agents', async () => {
     const assistants: AcpBackendConfig[] = [
-      { id: 'builtin-cowork', name: 'Cowork', isPreset: true },
+      { id: 'builtin-cowork', name: 'Cowork', is_preset: true },
       { id: 'xagent', name: 'XAgent', defaultCliPath: 'java -jar xagent.jar' },
-      { id: 'builtin-scholar', name: 'Scholar', isPreset: true },
+      { id: 'builtin-scholar', name: 'Scholar', is_preset: true },
       { id: 'my-cli', name: 'My CLI', defaultCliPath: '/usr/bin/my-cli' },
     ];
     const config = makeConfigStore({ assistants });
@@ -84,8 +84,8 @@ describe('assistants split migration (acp.customAgents ←→ assistants)', () =
     await splitAssistantsMigration(config);
 
     expect(config.store['assistants']).toEqual([
-      { id: 'builtin-cowork', name: 'Cowork', isPreset: true },
-      { id: 'builtin-scholar', name: 'Scholar', isPreset: true },
+      { id: 'builtin-cowork', name: 'Cowork', is_preset: true },
+      { id: 'builtin-scholar', name: 'Scholar', is_preset: true },
     ]);
     expect(config.store['acp.customAgents']).toEqual([
       { id: 'xagent', name: 'XAgent', defaultCliPath: 'java -jar xagent.jar' },
@@ -97,7 +97,7 @@ describe('assistants split migration (acp.customAgents ←→ assistants)', () =
   it('merges existing acp.customAgents with customs extracted from assistants, deduping by id', async () => {
     const legacyCustoms: AcpBackendConfig[] = [{ id: 'xagent', name: 'XAgent (legacy)', defaultCliPath: '/old/path' }];
     const assistants: AcpBackendConfig[] = [
-      { id: 'builtin-cowork', name: 'Cowork', isPreset: true },
+      { id: 'builtin-cowork', name: 'Cowork', is_preset: true },
       // Same id as legacy → legacy wins (dedup)
       { id: 'xagent', name: 'XAgent (duplicate)', defaultCliPath: '/new/path' },
       { id: 'another', name: 'Another', defaultCliPath: '/tmp/another' },
@@ -110,7 +110,7 @@ describe('assistants split migration (acp.customAgents ←→ assistants)', () =
       { id: 'xagent', name: 'XAgent (legacy)', defaultCliPath: '/old/path' },
       { id: 'another', name: 'Another', defaultCliPath: '/tmp/another' },
     ]);
-    expect(config.store['assistants']).toEqual([{ id: 'builtin-cowork', name: 'Cowork', isPreset: true }]);
+    expect(config.store['assistants']).toEqual([{ id: 'builtin-cowork', name: 'Cowork', is_preset: true }]);
   });
 
   it('does nothing when migration flag is already set', async () => {
@@ -139,8 +139,8 @@ describe('assistants split migration (acp.customAgents ←→ assistants)', () =
 
   it('preserves isPreset===true entries in assistants unchanged', async () => {
     const assistants: AcpBackendConfig[] = [
-      { id: 'builtin-a', name: 'A', isPreset: true, enabled: true },
-      { id: 'builtin-b', name: 'B', isPreset: true, enabled: false },
+      { id: 'builtin-a', name: 'A', is_preset: true, enabled: true },
+      { id: 'builtin-b', name: 'B', is_preset: true, enabled: false },
     ];
     const config = makeConfigStore({ assistants });
 

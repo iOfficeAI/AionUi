@@ -21,11 +21,11 @@ interface MessageAgentStatusProps {
  */
 const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const { t } = useTranslation();
-  const { backend, status, agentName } = message.content;
+  const { backend, status, agent_name } = message.content;
 
-  // Resolve display name: agentName (extension/custom) > ACP_BACKENDS_ALL name > capitalized backend
-  const displayName =
-    agentName ||
+  // Resolve display name: agent_name (extension/custom) > ACP_BACKENDS_ALL name > capitalized backend
+  const display_name =
+    agent_name ||
     ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
     backend.charAt(0).toUpperCase() + backend.slice(1);
 
@@ -35,13 +35,13 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const getStatusBadge = () => {
     switch (status) {
       case 'connecting':
-        return <Badge status='processing' text={t('acp.status.connecting', { agent: displayName })} />;
+        return <Badge status='processing' text={t('acp.status.connecting', { agent: display_name })} />;
       case 'connected':
-        return <Badge status='success' text={t('acp.status.connected', { agent: displayName })} />;
+        return <Badge status='success' text={t('acp.status.connected', { agent: display_name })} />;
       case 'authenticated':
-        return <Badge status='success' text={t('acp.status.authenticated', { agent: displayName })} />;
+        return <Badge status='success' text={t('acp.status.authenticated', { agent: display_name })} />;
       case 'session_active':
-        return <Badge status='success' text={t('acp.status.session_active', { agent: displayName })} />;
+        return <Badge status='success' text={t('acp.status.session_active', { agent: display_name })} />;
       case 'error':
         return <Badge status='error' text={t('acp.status.error')} />;
       default:
@@ -67,7 +67,7 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
     >
       <div className='flex items-center gap-2'>
         <Text style={{ fontWeight: 'bold' }} className='capitalize'>
-          {displayName}
+          {display_name}
         </Text>
       </div>
 

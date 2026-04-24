@@ -71,14 +71,14 @@ describe('MessageText attachment paths', () => {
       conversation_id: 'conv-1',
       type: 'text',
       position: 'right',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         content: 'look at this\n\n[[AION_FILES]]\nuploads/photo.png',
       },
     };
 
     render(
-      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+      <ConversationProvider value={{ conversation_id: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
         <MessageText message={message} />
       </ConversationProvider>
     );

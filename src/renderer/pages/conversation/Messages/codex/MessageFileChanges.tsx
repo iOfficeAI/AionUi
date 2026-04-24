@@ -58,8 +58,8 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
 
     // 处理 Gemini WriteFile 结果 / Process Gemini WriteFile results
     for (const change of writeFileChanges) {
-      if (change.fileDiff) {
-        const fileInfo = parseDiff(change.fileDiff, change.fileName);
+      if (change.file_diff) {
+        const fileInfo = parseDiff(change.file_diff, change.file_name);
         filesMap.set(fileInfo.fullPath, fileInfo);
       }
     }
@@ -73,11 +73,11 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
       const fileInfo = fileChanges.find((f) => f.fullPath === file.fullPath);
       if (!fileInfo) return;
 
-      const { contentType, editable, language } = getFileTypeInfo(fileInfo.fileName);
+      const { contentType, editable, language } = getFileTypeInfo(fileInfo.file_name);
 
       void launchPreview({
         relativePath: fileInfo.fullPath,
-        fileName: fileInfo.fileName,
+        file_name: fileInfo.file_name,
         contentType,
         editable,
         language,
@@ -95,7 +95,7 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
       if (!fileInfo) return;
 
       void launchPreview({
-        fileName: fileInfo.fileName,
+        file_name: fileInfo.file_name,
         contentType: 'diff',
         editable: false,
         language: 'diff',

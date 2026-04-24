@@ -16,8 +16,8 @@ type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
  */
 function mapProvider(model: TProviderWithModel): AionrsProvider {
   // Special handling for new-api: respect per-model protocol setting
-  if (model.platform === 'new-api' && model.useModel && model.modelProtocols) {
-    const protocol = model.modelProtocols[model.useModel];
+  if (model.platform === 'new-api' && model.useModel && model.model_protocols) {
+    const protocol = model.model_protocols[model.useModel];
     if (protocol === 'anthropic') return 'anthropic';
   }
 
@@ -42,10 +42,10 @@ const GEMINI_OPENAI_COMPAT_PATH = '/v1beta/openai';
  */
 function resolveOpenAIBaseUrl(model: TProviderWithModel): string {
   if (model.platform === 'gemini') {
-    const raw = (model.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
+    const raw = (model.base_url || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
     return raw.endsWith(GEMINI_OPENAI_COMPAT_PATH) ? raw : `${raw}${GEMINI_OPENAI_COMPAT_PATH}`;
   }
-  return model.baseUrl || '';
+  return model.base_url || '';
 }
 
 /**
@@ -68,7 +68,7 @@ export function buildSpawnConfig(
     maxTurns?: number;
     systemPrompt?: string;
     autoApprove?: boolean;
-    sessionId?: string;
+    session_id?: string;
     resume?: string;
   }
 ): { args: string[]; env: Record<string, string>; projectConfig: string } {
@@ -92,8 +92,8 @@ export function buildSpawnConfig(
   // --resume and --session-id are mutually exclusive
   if (options.resume) {
     args.push('--resume', options.resume);
-  } else if (options.sessionId) {
-    args.push('--session-id', options.sessionId);
+  } else if (options.session_id) {
+    args.push('--session-id', options.session_id);
   }
 
   // Set auth credentials and base URL via CLI args and env vars.
@@ -103,25 +103,25 @@ export function buildSpawnConfig(
   // end with `/v1` (e.g. DashScope) must be stripped to avoid double `/v1`.
   switch (provider) {
     case 'anthropic':
-      if (model.apiKey) env.ANTHROPIC_API_KEY = model.apiKey;
-      if (model.baseUrl) args.push('--base-url', stripTrailingV1(model.baseUrl));
+      if (model.api_key) env.ANTHROPIC_API_KEY = model.api_key;
+      if (model.base_url) args.push('--base-url', stripTrailingV1(model.base_url));
       break;
 
     case 'openai': {
-      if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
-      const baseUrl = resolveOpenAIBaseUrl(model);
-      if (baseUrl) args.push('--base-url', stripTrailingV1(baseUrl));
+      if (model.api_key) env.OPENAI_API_KEY = model.api_key;
+      const base_url = resolveOpenAIBaseUrl(model);
+      if (base_url) args.push('--base-url', stripTrailingV1(base_url));
       break;
     }
 
     case 'bedrock': {
-      const bc = (model as TProviderWithModel & { bedrockConfig?: any }).bedrockConfig;
+      const bc = (model as TProviderWithModel & { bedrock_config?: any }).bedrock_config;
       if (bc) {
         if (bc.region) env.AWS_REGION = bc.region;
-        if (bc.authMethod === 'accessKey') {
-          if (bc.accessKeyId) env.AWS_ACCESS_KEY_ID = bc.accessKeyId;
-          if (bc.secretAccessKey) env.AWS_SECRET_ACCESS_KEY = bc.secretAccessKey;
-        } else if (bc.authMethod === 'profile' && bc.profile) {
+        if (bc.auth_method === 'accessKey') {
+          if (bc.access_key_id) env.AWS_ACCESS_KEY_ID = bc.access_key_id;
+          if (bc.secret_access_key) env.AWS_SECRET_ACCESS_KEY = bc.secret_access_key;
+        } else if (bc.auth_method === 'profile' && bc.profile) {
           env.AWS_PROFILE = bc.profile;
         }
       }
@@ -162,8 +162,8 @@ function buildProjectConfig(model: TProviderWithModel, provider: AionrsProvider)
 
   // OpenAI official API needs max_completion_tokens for newer models.
   // Only apply when the host is actually OpenAI (not Gemini or other providers).
-  const baseUrl = model.baseUrl || '';
-  if (baseUrl && isOpenAIHost(baseUrl)) {
+  const base_url = model.base_url || '';
+  if (base_url && isOpenAIHost(base_url)) {
     overrides.push('max_tokens_field = "max_completion_tokens"');
   }
 

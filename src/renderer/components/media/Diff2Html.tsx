@@ -24,12 +24,12 @@ const Diff2Html = ({
   diff,
   className,
   title,
-  filePath,
+  file_path,
 }: {
   diff: string;
   className?: string;
   title?: string;
-  filePath?: string;
+  file_path?: string;
 }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
@@ -64,14 +64,14 @@ const Diff2Html = ({
   const pathFromDiff = useMemo(() => parseFilePathFromDiff(diff), [diff]);
 
   const resolvedFilePath = useMemo(() => {
-    const trimmed = filePath?.trim();
+    const trimmed = file_path?.trim();
     if (!trimmed) return pathFromDiff || '';
     // If we only get a basename, prefer diff-derived path for subdirectories
     if (!/[\\/]/.test(trimmed)) {
       return pathFromDiff || trimmed;
     }
     return trimmed;
-  }, [filePath, pathFromDiff]);
+  }, [file_path, pathFromDiff]);
 
   const relativePath = useMemo(() => {
     if (resolvedFilePath) {
@@ -80,7 +80,7 @@ const Diff2Html = ({
     return normalizedTitle || '';
   }, [normalizedTitle, resolvedFilePath]);
 
-  const fileName = useMemo(() => {
+  const file_name = useMemo(() => {
     if (relativePath) {
       const parts = relativePath.split(/[\\/]/);
       return parts[parts.length - 1] || relativePath;
@@ -92,8 +92,8 @@ const Diff2Html = ({
     return 'preview.txt';
   }, [relativePath, normalizedTitle]);
 
-  const previewTitle = normalizedTitle || relativePath || title || fileName;
-  const fileTypeInfo = useMemo(() => getFileTypeInfo(fileName), [fileName]);
+  const previewTitle = normalizedTitle || relativePath || title || file_name;
+  const fileTypeInfo = useMemo(() => getFileTypeInfo(file_name), [file_name]);
 
   const handlePreviewClick = useCallback(
     (e: React.MouseEvent<HTMLElement>) => {
@@ -102,8 +102,8 @@ const Diff2Html = ({
       const { contentType, editable, language } = fileTypeInfo;
       void launchPreview({
         relativePath,
-        originalPath: filePath,
-        fileName,
+        originalPath: file_path,
+        file_name,
         title: previewTitle,
         language,
         contentType,
@@ -112,7 +112,7 @@ const Diff2Html = ({
         diffContent: diff,
       });
     },
-    [diff, fileName, filePath, fileTypeInfo, launchPreview, previewTitle, relativePath]
+    [diff, file_name, file_path, fileTypeInfo, launchPreview, previewTitle, relativePath]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);

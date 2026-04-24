@@ -3,7 +3,7 @@
  *
  * Tests based on GAP-2-plan.md acceptance criteria.
  * Validates that AionrsManager persists token usage from stream_end
- * to the conversation's extra.lastTokenUsage in the database.
+ * to the conversation's extra.last_token_usage in the database.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -157,11 +157,11 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 
 const CONV_ID = 'conv-cu-1';
 
-function createManager(conversationId = CONV_ID): AionrsManager {
+function createManager(conversation_id = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
-    conversation_id: conversationId,
+    model: { name: 'test-provider', useModel: 'test-model', base_url: '', platform: 'test' },
+    conversation_id: conversation_id,
   };
   return new AionrsManager(data as any, data.model as any);
 }
@@ -194,7 +194,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
   // ── AC-1: Valid usage data is persisted ───────────────────────────
 
   describe('AC-1: Valid TokenUsage is persisted to DB', () => {
-    it('saves lastTokenUsage on finish with valid usage data', async () => {
+    it('saves last_token_usage on finish with valid usage data', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'hello', msg_id: 'msg-1' });
       emitEvent(manager, {
@@ -209,8 +209,8 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
         CONV_ID,
         expect.objectContaining({
           extra: expect.objectContaining({
-            lastTokenUsage: expect.objectContaining({
-              totalTokens: expect.any(Number),
+            last_token_usage: expect.objectContaining({
+              total_tokens: expect.any(Number),
             }),
           }),
         })
@@ -235,7 +235,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
         CONV_ID,
         expect.objectContaining({
           extra: expect.objectContaining({
-            lastTokenUsage: { totalTokens: 5800 },
+            last_token_usage: { total_tokens: 5800 },
           }),
         })
       );
@@ -261,7 +261,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
         CONV_ID,
         expect.objectContaining({
           extra: expect.objectContaining({
-            lastTokenUsage: { totalTokens: 3500 },
+            last_token_usage: { total_tokens: 3500 },
           }),
         })
       );
@@ -280,9 +280,9 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
       await vi.advanceTimersByTimeAsync(200);
 
       // updateConversation may be called for other reasons (e.g. sendMessage),
-      // but not with lastTokenUsage
+      // but not with last_token_usage
       const usageCalls = mockDb.updateConversation.mock.calls.filter(
-        ([, updates]: [string, any]) => updates?.extra?.lastTokenUsage
+        ([, updates]: [string, any]) => updates?.extra?.last_token_usage
       );
       expect(usageCalls).toHaveLength(0);
     });
@@ -296,7 +296,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
       await vi.advanceTimersByTimeAsync(200);
 
       const usageCalls = mockDb.updateConversation.mock.calls.filter(
-        ([, updates]: [string, any]) => updates?.extra?.lastTokenUsage
+        ([, updates]: [string, any]) => updates?.extra?.last_token_usage
       );
       expect(usageCalls).toHaveLength(0);
     });
@@ -349,7 +349,7 @@ describe('GAP-2: AionrsManager Context Usage Persistence', () => {
       await vi.advanceTimersByTimeAsync(15_000);
 
       const usageCalls = mockDb.updateConversation.mock.calls.filter(
-        ([, updates]: [string, any]) => updates?.extra?.lastTokenUsage
+        ([, updates]: [string, any]) => updates?.extra?.last_token_usage
       );
       expect(usageCalls).toHaveLength(0);
     });

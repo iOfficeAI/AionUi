@@ -29,11 +29,11 @@ describe('deepLink module', () => {
   describe('parseDeepLinkUrl', () => {
     it('should parse simple deep link URL', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
-      const result = parseDeepLinkUrl('aionui://add-provider?baseUrl=http://localhost&apiKey=sk-123');
+      const result = parseDeepLinkUrl('aionui://add-provider?base_url=http://localhost&api_key=sk-123');
 
       expect(result).toEqual({
         action: 'add-provider',
-        params: { baseUrl: 'http://localhost', apiKey: 'sk-123' },
+        params: { base_url: 'http://localhost', api_key: 'sk-123' },
       });
     });
 
@@ -49,12 +49,12 @@ describe('deepLink module', () => {
 
     it('should decode base64 data param and merge into params', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
-      const data = Buffer.from(JSON.stringify({ baseUrl: 'http://test', apiKey: 'key123' })).toString('base64');
+      const data = Buffer.from(JSON.stringify({ base_url: 'http://test', api_key: 'key123' })).toString('base64');
       const result = parseDeepLinkUrl(`aionui://provider/add?v=1&data=${data}`);
 
       expect(result).not.toBeNull();
-      expect(result!.params.baseUrl).toBe('http://test');
-      expect(result!.params.apiKey).toBe('key123');
+      expect(result!.params.base_url).toBe('http://test');
+      expect(result!.params.api_key).toBe('key123');
       expect(result!.params.data).toBeUndefined();
     });
 

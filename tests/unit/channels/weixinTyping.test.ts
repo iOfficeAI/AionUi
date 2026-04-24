@@ -12,7 +12,7 @@ import { TypingManager } from '@process/channels/plugins/weixin/WeixinTyping';
 // ---------------------------------------------------------------------------
 
 const BASE_OPTS = {
-  baseUrl: 'https://test.example.com',
+  base_url: 'https://test.example.com',
   token: 'tok_test',
   wechatUin: 'test-uin',
   log: vi.fn(),

@@ -18,7 +18,7 @@ import styles from '../index.module.css';
 type AgentPillBarProps = {
   availableAgents: AvailableAgent[];
   selectedAgentKey: string;
-  getAgentKey: (agent: { backend: AcpBackend; customAgentId?: string }) => string;
+  getAgentKey: (agent: { backend: AcpBackend; custom_agent_id?: string }) => string;
   onSelectAgent: (key: string) => void;
   suppressSelectionAnimation?: boolean;
 };
@@ -56,7 +56,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
         }}
       >
         {availableAgents
-          .filter((agent) => !agent.isPreset)
+          .filter((agent) => !agent.is_preset)
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
@@ -67,7 +67,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               (!emojiAvatar
                 ? resolveAgentLogo({
                     backend: agent.backend,
-                    customAgentId: agent.customAgentId,
+                    custom_agent_id: agent.custom_agent_id,
                     isExtension: agent.isExtension,
                   })
                 : undefined);

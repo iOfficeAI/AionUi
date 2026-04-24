@@ -7,8 +7,8 @@ import { emitter } from '@/renderer/utils/emitter';
 import { useEffect } from 'react';
 
 type UseGeminiInitialMessageParams = {
-  conversationId: string;
-  currentModelId: string | undefined;
+  conversation_id: string;
+  current_model_id: string | undefined;
   hasNoAuth: boolean;
   setContent: (content: string) => void;
   setActiveMsgId: (msgId: string | null) => void;
@@ -23,8 +23,8 @@ type UseGeminiInitialMessageParams = {
  * from the guide page, which is passed via sessionStorage.
  */
 export const useGeminiInitialMessage = ({
-  conversationId,
-  currentModelId,
+  conversation_id,
+  current_model_id,
   hasNoAuth,
   setContent,
   setActiveMsgId,
@@ -38,7 +38,7 @@ export const useGeminiInitialMessage = ({
   const performFullCheckRef = useLatestRef(performFullCheck);
 
   useEffect(() => {
-    const storageKey = `gemini_initial_message_${conversationId}`;
+    const storageKey = `gemini_initial_message_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) return;
@@ -61,7 +61,7 @@ export const useGeminiInitialMessage = ({
       return;
     }
 
-    if (!currentModelId) return;
+    if (!current_model_id) return;
 
     // Clear immediately to prevent duplicate sends
     sessionStorage.removeItem(storageKey);
@@ -83,21 +83,21 @@ export const useGeminiInitialMessage = ({
             id: msg_id,
             type: 'text',
             position: 'right',
-            conversation_id: conversationId,
+            conversation_id: conversation_id,
             content: {
               content: input,
             },
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
           true
         );
 
         // Send message to backend
-        void checkAndUpdateTitle(conversationId, input);
+        void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.geminiConversation.sendMessage.invoke({
           input,
           msg_id,
-          conversation_id: conversationId,
+          conversation_id: conversation_id,
           files: files || [],
         });
 
@@ -111,5 +111,5 @@ export const useGeminiInitialMessage = ({
     };
 
     void sendInitialMessage();
-  }, [conversationId, currentModelId, hasNoAuth]);
+  }, [conversation_id, current_model_id, hasNoAuth]);
 };

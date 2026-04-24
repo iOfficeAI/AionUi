@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage, type ICssTheme } from '@/common/config/storage.ts';
+import { configService } from '@/common/config/configService';
+import type { ICssTheme } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
@@ -260,14 +261,14 @@ const CssThemeSettings: React.FC = () => {
   useEffect(() => {
     const loadThemes = async () => {
       try {
-        const savedThemes = (await ConfigStorage.get('css.themes')) || [];
+        const savedThemes = configService.get('css.themes') || [];
         const { normalized, updated } = normalizeUserThemes(savedThemes);
-        const activeId = await ConfigStorage.get('css.activeThemeId');
+        const activeId = configService.get('css.activeThemeId');
 
         if (updated) {
-          await ConfigStorage.set(
+          await configService.set(
             'css.themes',
-            normalized.filter((t) => !t.isPreset)
+            normalized.filter((t) => !t.is_preset)
           );
         }
 
@@ -293,7 +294,7 @@ const CssThemeSettings: React.FC = () => {
         // Merge preset, extension, and user themes; deduplicate by ID (first occurrence wins)
         const seenIds = new Set<string>();
         const allThemes: ICssTheme[] = [];
-        for (const theme of [...normalizedPresets, ...extensionThemes, ...normalized.filter((t) => !t.isPreset)]) {
+        for (const theme of [...normalizedPresets, ...extensionThemes, ...normalized.filter((t) => !t.is_preset)]) {
           if (!theme?.id || seenIds.has(theme.id)) continue;
           seenIds.add(theme.id);
           allThemes.push(theme);
@@ -308,21 +309,21 @@ const CssThemeSettings: React.FC = () => {
         if (!activeTheme && resolvedActiveId !== DEFAULT_THEME_ID) {
           effectiveActiveId = DEFAULT_THEME_ID;
           // Persist the fallback so we don't repeat this on every mount
-          await ConfigStorage.set('css.activeThemeId', effectiveActiveId);
+          await configService.set('css.activeThemeId', effectiveActiveId);
         }
 
         const expectedCss = resolveCssByActiveTheme(
           effectiveActiveId,
-          normalized.filter((theme) => !theme.isPreset)
+          normalized.filter((theme) => !theme.is_preset)
         );
 
         setThemes(allThemes);
         setActiveThemeId(effectiveActiveId);
 
         // Self-heal potential split-brain state (activeThemeId != customCss) caused by partial IPC write failures.
-        const savedCustomCss = (await ConfigStorage.get('customCss')) || '';
+        const savedCustomCss = configService.get('customCss') || '';
         if (savedCustomCss !== expectedCss) {
-          await ConfigStorage.set('customCss', expectedCss);
+          await configService.set('customCss', expectedCss);
           // Only dispatch when CSS actually changed to avoid redundant re-renders
           dispatchCustomCssUpdated(expectedCss);
         }
@@ -344,7 +345,7 @@ const CssThemeSettings: React.FC = () => {
       try {
         // Queued Concurrent Writes: Not strictly atomic, but eliminates client-side async interleaving.
         // True atomicity would require a single RPC/key batch in the main process.
-        await Promise.all([ConfigStorage.set('customCss', css), ConfigStorage.set('css.activeThemeId', themeId)]);
+        await Promise.all([configService.set('customCss', css), configService.set('css.activeThemeId', themeId)]);
 
         // Pessimistic UI update to avoid transient flash to previous theme.
         setActiveThemeId(themeId);
@@ -354,8 +355,8 @@ const CssThemeSettings: React.FC = () => {
 
         // Recover state unconditionally from what is actually in storage
         try {
-          const realId = (await ConfigStorage.get('css.activeThemeId')) || DEFAULT_THEME_ID;
-          const realCss = (await ConfigStorage.get('customCss')) || '';
+          const realId = configService.get('css.activeThemeId') || DEFAULT_THEME_ID;
+          const realCss = configService.get('customCss') || '';
 
           // Unconditionally align UI state with the real storage state
           setActiveThemeId(realId);
@@ -378,7 +379,7 @@ const CssThemeSettings: React.FC = () => {
       try {
         const normalizedCss = resolveCssByActiveTheme(
           theme.id,
-          themes.filter((item) => !item.isPreset)
+          themes.filter((item) => !item.is_preset)
         );
         // Use queued, best-effort write function
         await applyThemeCss(normalizedCss, theme.id);
@@ -412,32 +413,32 @@ const CssThemeSettings: React.FC = () => {
    * 保存主题 / Save theme
    */
   const handleSaveTheme = useCallback(
-    async (themeData: Omit<ICssTheme, 'id' | 'createdAt' | 'updatedAt' | 'isPreset'>) => {
+    async (themeData: Omit<ICssTheme, 'id' | 'created_at' | 'updated_at' | 'is_preset'>) => {
       try {
         const now = Date.now();
         let updatedThemes: ICssTheme[];
         const normalizedThemeData = ensureBackgroundCss(themeData);
 
-        if (editingTheme && !editingTheme.isPreset) {
+        if (editingTheme && !editingTheme.is_preset) {
           // 更新现有用户主题 / Update existing user theme
           updatedThemes = themes.map((t) =>
-            t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updatedAt: now } : t
+            t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updated_at: now } : t
           );
         } else {
           // 添加新主题（包括从预设主题编辑创建副本）/ Add new theme (including copy from preset)
           const newTheme: ICssTheme = {
             id: uuid(),
             ...normalizedThemeData,
-            isPreset: false,
-            createdAt: now,
-            updatedAt: now,
+            is_preset: false,
+            created_at: now,
+            updated_at: now,
           };
           updatedThemes = [...themes, newTheme];
         }
 
         // 只保存用户主题 / Only save user themes
-        const userThemes = updatedThemes.filter((t) => !t.isPreset);
-        await ConfigStorage.set('css.themes', userThemes);
+        const userThemes = updatedThemes.filter((t) => !t.is_preset);
+        await configService.set('css.themes', userThemes);
 
         setThemes(updatedThemes);
         setModalVisible(false);
@@ -463,8 +464,8 @@ const CssThemeSettings: React.FC = () => {
         onOk: async () => {
           try {
             const updatedThemes = themes.filter((t) => t.id !== themeId);
-            const userThemes = updatedThemes.filter((t) => !t.isPreset);
-            await ConfigStorage.set('css.themes', userThemes);
+            const userThemes = updatedThemes.filter((t) => !t.is_preset);
+            await configService.set('css.themes', userThemes);
 
             // 如果删除的是当前激活主题，清除激活状态 / If deleting active theme, clear active state
             if (activeThemeId === themeId) {
@@ -567,7 +568,7 @@ const CssThemeSettings: React.FC = () => {
           setEditingTheme(null);
         }}
         onSave={handleSaveTheme}
-        onDelete={editingTheme && !editingTheme.isPreset ? () => handleDeleteTheme(editingTheme.id) : undefined}
+        onDelete={editingTheme && !editingTheme.is_preset ? () => handleDeleteTheme(editingTheme.id) : undefined}
       />
     </div>
   );

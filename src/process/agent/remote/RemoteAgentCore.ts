@@ -18,7 +18,7 @@ import { getDatabase } from '@process/services/database';
 import type { RemoteAgentConfig } from './types';
 
 export interface RemoteAgentCoreConfig {
-  conversationId: string;
+  conversation_id: string;
   remoteConfig: RemoteAgentConfig;
   sessionKey?: string;
   onStreamEvent: (data: IResponseMessage) => void;
@@ -41,7 +41,7 @@ export class RemoteAgentCore {
   private approvalStore = new AcpApprovalStore();
   private pendingPermissions = new Map<
     string,
-    { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }
+    { resolve: (response: { option_id: string }) => void; reject: (error: Error) => void }
   >();
   private statusMessageId: string | null = null;
   private disconnectTipMessageId: string | null = null;
@@ -57,7 +57,7 @@ export class RemoteAgentCore {
   private readonly onSessionKeyUpdate?: (sessionKey: string) => void;
 
   constructor(config: RemoteAgentCoreConfig) {
-    this.id = config.conversationId;
+    this.id = config.conversation_id;
     this.remoteConfig = config.remoteConfig;
     this.resumeKey = config.sessionKey;
     this.onStreamEvent = config.onStreamEvent;
@@ -125,7 +125,7 @@ export class RemoteAgentCore {
 
   async sendMessage(data: { content: string; files?: string[] }): Promise<AcpResult> {
     try {
-      if (!this.connection?.isConnected || !this.connection?.sessionKey) {
+      if (!this.connection?.is_connected || !this.connection?.sessionKey) {
         await this.start();
       }
 
@@ -156,17 +156,17 @@ export class RemoteAgentCore {
     }
   }
 
-  confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
-    const pending = this.pendingPermissions.get(data.callId);
+  confirmMessage(data: { confirm_key: string; call_id: string }): Promise<AcpResult> {
+    const pending = this.pendingPermissions.get(data.call_id);
     if (!pending) {
       return Promise.resolve({
         success: false,
-        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found: ${data.callId}`, false),
+        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found: ${data.call_id}`, false),
       });
     }
 
-    this.pendingPermissions.delete(data.callId);
-    pending.resolve({ optionId: data.confirmKey });
+    this.pendingPermissions.delete(data.call_id);
+    pending.resolve({ option_id: data.confirm_key });
     return Promise.resolve({ success: true, data: null });
   }
 
@@ -178,7 +178,7 @@ export class RemoteAgentCore {
 
   private async waitForConnection(timeoutMs = 30000): Promise<void> {
     const startTime = Date.now();
-    while (!this.connection?.isConnected) {
+    while (!this.connection?.is_connected) {
       if (Date.now() - startTime > timeoutMs) {
         throw new Error('Remote agent connection timeout');
       }
@@ -380,7 +380,7 @@ export class RemoteAgentCore {
         const toolData = event.data as {
           phase?: string;
           name?: string;
-          toolCallId?: string;
+          tool_call_id?: string;
           args?: Record<string, unknown>;
           meta?: string;
           isError?: boolean;
@@ -404,8 +404,8 @@ export class RemoteAgentCore {
             ((toolData.status as 'pending' | 'in_progress' | 'completed' | 'failed') || 'pending');
         }
 
-        const toolName = toolData.name ?? toolData.title ?? '';
-        const kind = this.inferToolKind(toolName) ?? (toolData.kind as 'read' | 'edit' | 'execute') ?? 'execute';
+        const tool_name = toolData.name ?? toolData.title ?? '';
+        const kind = this.inferToolKind(tool_name) ?? (toolData.kind as 'read' | 'edit' | 'execute') ?? 'execute';
 
         let content: ToolCallUpdate['update']['content'];
         if (toolData.content) {
@@ -417,12 +417,12 @@ export class RemoteAgentCore {
         }
 
         const acpUpdate: ToolCallUpdate = {
-          sessionId: this.id,
+          session_id: this.id,
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId: toolData.toolCallId || uuid(),
+            tool_call_id: toolData.tool_call_id || uuid(),
             status,
-            title: toolName || 'Tool Call',
+            title: tool_name || 'Tool Call',
             kind,
             content,
           },
@@ -464,13 +464,13 @@ export class RemoteAgentCore {
     const request = payload as {
       requestId: string;
       toolCall?: {
-        toolCallId?: string;
+        tool_call_id?: string;
         title?: string;
         kind?: string;
         rawInput?: Record<string, unknown>;
       };
       options?: Array<{
-        optionId: string;
+        option_id: string;
         name: string;
         kind: string;
       }>;
@@ -491,12 +491,12 @@ export class RemoteAgentCore {
         conversation_id: this.id,
         msg_id: uuid(),
         data: {
-          sessionId: this.id,
-          toolCall: request.toolCall || { toolCallId: requestId },
+          session_id: this.id,
+          toolCall: request.toolCall || { tool_call_id: requestId },
           options: request.options || [
-            { optionId: 'allow_once', name: 'Allow', kind: 'allow_once' },
-            { optionId: 'allow_always', name: 'Always Allow', kind: 'allow_always' },
-            { optionId: 'reject_once', name: 'Reject', kind: 'reject_once' },
+            { option_id: 'allow_once', name: 'Allow', kind: 'allow_once' },
+            { option_id: 'allow_always', name: 'Always Allow', kind: 'allow_always' },
+            { option_id: 'reject_once', name: 'Reject', kind: 'reject_once' },
           ],
         },
       });
@@ -619,11 +619,11 @@ export class RemoteAgentCore {
       conversation_id: this.id,
       type: 'agent_status',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         backend: 'remote',
         status,
-        agentName: this.remoteConfig.name,
+        agent_name: this.remoteConfig.name,
       },
     };
 
@@ -638,7 +638,7 @@ export class RemoteAgentCore {
       conversation_id: this.id,
       type: 'tips',
       position: 'center',
-      createdAt: Date.now(),
+      created_at: Date.now(),
       content: {
         content: error,
         type: 'error',
@@ -691,11 +691,11 @@ export class RemoteAgentCore {
 
   // ========== Getters ==========
 
-  get isConnected(): boolean {
-    return this.connection?.isConnected ?? false;
+  get is_connected(): boolean {
+    return this.connection?.is_connected ?? false;
   }
 
-  get hasActiveSession(): boolean {
+  get has_active_session(): boolean {
     return !!this.connection?.sessionKey;
   }
 

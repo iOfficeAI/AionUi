@@ -40,7 +40,7 @@ const makeTextMessage = (id: string, content: string): TMessage =>
     type: 'text',
     position: 'left',
     content: { content },
-    createdAt: Date.now(),
+    created_at: Date.now(),
   }) as TMessage;
 
 /**

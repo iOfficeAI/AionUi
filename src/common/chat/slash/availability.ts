@@ -9,7 +9,7 @@
  */
 export interface SlashCommandListAvailabilityInput {
   /** Type of conversation (e.g., 'gemini', 'codex', 'acp') */
-  conversationType?: string;
+  conversation_type?: string;
   /** Current status for Codex conversations */
   codexStatus?: string | null;
 }
@@ -25,7 +25,7 @@ export interface SlashCommandListAvailabilityInput {
  * @returns true if slash commands should be enabled
  */
 export function isSlashCommandListEnabled(input: SlashCommandListAvailabilityInput): boolean {
-  if (input.conversationType !== 'codex') {
+  if (input.conversation_type !== 'codex') {
     return true;
   }
   return input.codexStatus === 'session_active';

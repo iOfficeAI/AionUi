@@ -6,13 +6,13 @@ import type { RequestPermissionRequest } from '@agentclientprotocol/sdk';
 
 function makeRequest(
   toolName = 'read_file',
-  callId = 'call-1',
+  call_id = 'call-1',
   overrides?: { kind?: string; rawInput?: Record<string, unknown> }
 ): RequestPermissionRequest {
   return {
-    sessionId: 'sess-1',
+    session_id: 'sess-1',
     toolCall: {
-      toolCallId: callId,
+      toolCallId: call_id,
       title: toolName,
       kind: overrides?.kind as RequestPermissionRequest['toolCall']['kind'],
       rawInput: overrides?.rawInput,
@@ -108,7 +108,7 @@ describe('PermissionResolver', () => {
     const resolver = new PermissionResolver({ autoApproveAll: false });
     const uiCallback = vi.fn();
     const request: RequestPermissionRequest = {
-      sessionId: 'sess-1',
+      session_id: 'sess-1',
       toolCall: {
         toolCallId: 'c1',
         title: 'Execute Command',

@@ -44,9 +44,9 @@ vi.mock('@/renderer/styles/colors', () => ({
 import type { TChatConversation } from '@/common/config/storage';
 import ConversationSkillsIndicator from '@/renderer/pages/conversation/components/ConversationSkillsIndicator';
 
-const createConversation = (loadedSkills?: Array<{ name: string; description: string }>): TChatConversation =>
+const createConversation = (loaded_skills?: Array<{ name: string; description: string }>): TChatConversation =>
   ({
-    extra: loadedSkills !== undefined ? { loadedSkills } : {},
+    extra: loaded_skills !== undefined ? { loaded_skills } : {},
   }) as unknown as TChatConversation;
 
 describe('ConversationSkillsIndicator', () => {
@@ -55,12 +55,12 @@ describe('ConversationSkillsIndicator', () => {
     expect(container.innerHTML).toBe('');
   });
 
-  it('returns null when loadedSkills is an empty array', () => {
+  it('returns null when loaded_skills is an empty array', () => {
     const { container } = render(<ConversationSkillsIndicator conversation={createConversation([])} />);
     expect(container.innerHTML).toBe('');
   });
 
-  it('returns null when loadedSkills is missing from extra', () => {
+  it('returns null when loaded_skills is missing from extra', () => {
     const { container } = render(<ConversationSkillsIndicator conversation={createConversation()} />);
     expect(container.innerHTML).toBe('');
   });

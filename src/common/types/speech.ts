@@ -7,8 +7,8 @@
 export type SpeechToTextProvider = 'openai' | 'deepgram';
 
 export type OpenAISpeechToTextConfig = {
-  apiKey: string;
-  baseUrl?: string;
+  api_key: string;
+  base_url?: string;
   language?: string;
   model: string;
   prompt?: string;
@@ -16,8 +16,8 @@ export type OpenAISpeechToTextConfig = {
 };
 
 export type DeepgramSpeechToTextConfig = {
-  apiKey: string;
-  baseUrl?: string;
+  api_key: string;
+  base_url?: string;
   detectLanguage?: boolean;
   language?: string;
   model: string;
@@ -37,7 +37,7 @@ export type SpeechToTextAudioBuffer = Uint8Array | number[] | Record<string, num
 
 export type SpeechToTextRequest = {
   audioBuffer: SpeechToTextAudioBuffer;
-  fileName: string;
+  file_name: string;
   languageHint?: string;
   mimeType: string;
 };

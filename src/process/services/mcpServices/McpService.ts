@@ -102,17 +102,17 @@ export class McpService {
 
   /**
    * 根据 agent 配置获取正确的 MCP agent 实例
-   * Fork Gemini (cliPath=undefined) 使用 AionuiMcpAgent
-   * Native Gemini (cliPath='gemini') 使用 GeminiMcpAgent
+   * Fork Gemini (cli_path=undefined) 使用 AionuiMcpAgent
+   * Native Gemini (cli_path='gemini') 使用 GeminiMcpAgent
    *
    * Get the correct MCP agent instance based on agent config.
-   * Fork Gemini (cliPath=undefined) uses AionuiMcpAgent.
-   * Native Gemini (cliPath='gemini') uses GeminiMcpAgent.
+   * Fork Gemini (cli_path=undefined) uses AionuiMcpAgent.
+   * Native Gemini (cli_path='gemini') uses GeminiMcpAgent.
    */
-  private getAgentForConfig(agent: { backend: string; cliPath?: string }): IMcpProtocol | undefined {
+  private getAgentForConfig(agent: { backend: string; cli_path?: string }): IMcpProtocol | undefined {
     // Fork Gemini 使用 AionuiMcpAgent 管理 MCP 配置
     // Fork Gemini uses AionuiMcpAgent to manage MCP config
-    if (agent.backend === 'gemini' && !agent.cliPath) {
+    if (agent.backend === 'gemini' && !agent.cli_path) {
       return this.agents.get('aionui');
     }
     return this.agents.get(agent.backend as McpSource);
@@ -120,15 +120,15 @@ export class McpService {
 
   /**
    * 确保原生 Gemini CLI 在 agent 列表中（如果已安装但不在列表中）
-   * AcpDetector 返回的是 fork Gemini (cliPath=undefined)，但 MCP 操作需要同时处理原生 Gemini CLI
+   * AcpDetector 返回的是 fork Gemini (cli_path=undefined)，但 MCP 操作需要同时处理原生 Gemini CLI
    *
    * Ensure native Gemini CLI is in the agent list (if installed but not present).
-   * AcpDetector returns fork Gemini (cliPath=undefined), but MCP operations need native Gemini CLI too.
+   * AcpDetector returns fork Gemini (cli_path=undefined), but MCP operations need native Gemini CLI too.
    */
   private addNativeGeminiIfNeeded(
-    agents: Array<{ backend: string; name: string; cliPath?: string }>
-  ): Array<{ backend: string; name: string; cliPath?: string }> {
-    const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cliPath === 'gemini');
+    agents: Array<{ backend: string; name: string; cli_path?: string }>
+  ): Array<{ backend: string; name: string; cli_path?: string }> {
+    const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cli_path === 'gemini');
     if (hasNativeGemini) return agents;
 
     try {
@@ -139,7 +139,7 @@ export class McpService {
         {
           backend: 'gemini',
           name: 'Google Gemini CLI',
-          cliPath: 'gemini',
+          cli_path: 'gemini',
         },
       ];
       console.log('[McpService] Added native Gemini CLI to agent list');
@@ -153,12 +153,12 @@ export class McpService {
    * Resolve which MCP agent should be used for config detection and how it
    * should be reported back to the renderer.
    */
-  private getDetectionTarget(agent: { backend: string; cliPath?: string }): {
+  private getDetectionTarget(agent: { backend: string; cli_path?: string }): {
     agentInstance: IMcpProtocol | undefined;
     source: McpSource;
   } {
     const agentInstance = this.getAgentForConfig(agent);
-    const source: McpSource = agent.backend === 'gemini' && !agent.cliPath ? 'gemini' : (agent.backend as McpSource);
+    const source: McpSource = agent.backend === 'gemini' && !agent.cli_path ? 'gemini' : (agent.backend as McpSource);
     return { agentInstance, source };
   }
 
@@ -198,7 +198,7 @@ export class McpService {
     agents: Array<{
       backend: string;
       name: string;
-      cliPath?: string;
+      cli_path?: string;
     }>
   ): Promise<DetectedMcpServer[]> {
     return this.withServiceLock(async () => {
@@ -214,9 +214,9 @@ export class McpService {
             return null;
           }
 
-          const servers = await agentInstance.detectMcpServers(agent.cliPath);
+          const servers = await agentInstance.detectMcpServers(agent.cli_path);
           console.log(
-            `[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cliPath: ${agent.cliPath || 'default'})`
+            `[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cli_path: ${agent.cli_path || 'default'})`
           );
 
           if (servers.length > 0) {
@@ -239,10 +239,10 @@ export class McpService {
 
   /**
    * Get supported transport types for a given agent config.
-   * Fork Gemini (backend='gemini', no cliPath) uses AionuiMcpAgent.
+   * Fork Gemini (backend='gemini', no cli_path) uses AionuiMcpAgent.
    */
-  getSupportedTransportsForAgent(agent: { backend: string; cliPath?: string }): string[] {
-    const agentInstance = this.getAgentForConfig(agent as { backend: string; cliPath?: string });
+  getSupportedTransportsForAgent(agent: { backend: string; cli_path?: string }): string[] {
+    const agentInstance = this.getAgentForConfig(agent as { backend: string; cli_path?: string });
     return agentInstance ? agentInstance.getSupportedTransports() : [];
   }
 
@@ -269,7 +269,7 @@ export class McpService {
     agents: Array<{
       backend: string;
       name: string;
-      cliPath?: string;
+      cli_path?: string;
     }>
   ): Promise<McpSyncResult> {
     // 只同步启用的MCP服务器
@@ -329,7 +329,7 @@ export class McpService {
     agents: Array<{
       backend: string;
       name: string;
-      cliPath?: string;
+      cli_path?: string;
     }>
   ): Promise<McpSyncResult> {
     return this.withServiceLock(async () => {

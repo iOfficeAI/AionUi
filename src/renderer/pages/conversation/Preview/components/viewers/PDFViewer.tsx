@@ -15,7 +15,7 @@ interface PDFPreviewProps {
    * PDF file path (absolute path on disk)
    * PDF 文件路径（磁盘上的绝对路径）
    */
-  filePath?: string;
+  file_path?: string;
   /**
    * PDF content as base64 or blob URL
    * PDF 内容（base64 或 blob URL）
@@ -29,7 +29,7 @@ interface ElectronWebView extends HTMLElement {
   src: string;
 }
 
-const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar = false }) => {
+const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar = false }) => {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -39,25 +39,25 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
   const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
 
   const handleOpenInSystem = useCallback(async () => {
-    if (!filePath) {
+    if (!file_path) {
       messageApi.error(t('preview.errors.openWithoutPath'));
       return;
     }
 
     try {
-      await ipcBridge.shell.openFile.invoke(filePath);
+      await ipcBridge.shell.openFile.invoke(file_path);
       messageApi.success(t('preview.openInSystemSuccess'));
     } catch (err) {
       messageApi.error(t('preview.openInSystemFailed'));
     }
-  }, [filePath, messageApi, t]);
+  }, [file_path, messageApi, t]);
 
   useEffect(() => {
     try {
       setLoading(true);
       setError(null);
 
-      if (!filePath && !content) {
+      if (!file_path && !content) {
         setError(t('preview.pdf.pathMissing'));
         setLoading(false);
         return;
@@ -89,7 +89,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
       setError(`${t('preview.pdf.loadFailed')}: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
     }
-  }, [filePath, content, t]);
+  }, [file_path, content, t]);
 
   // 设置工具栏扩展（必须在所有条件返回之前调用）
   // Set toolbar extras (must be called before any conditional returns)
@@ -109,7 +109,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
 
   // 使用 Electron webview 加载本地 PDF 文件
   // Use Electron webview to load local PDF files
-  const pdfSrc = filePath ? `file://${filePath}` : content || '';
+  const pdfSrc = file_path ? `file://${file_path}` : content || '';
 
   if (error) {
     return (
@@ -141,7 +141,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
             <span className='text-13px text-t-secondary'>📄 {t('preview.pdf.title')}</span>
             <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
           </div>
-          {filePath && (
+          {file_path && (
             <Button size='mini' type='text' onClick={handleOpenInSystem} title={t('preview.openInSystemApp')}>
               <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                 <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />

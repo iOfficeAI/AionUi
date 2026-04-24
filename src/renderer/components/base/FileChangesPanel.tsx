@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
  */
 export interface FileChangeItem {
   /** 文件名 / File name */
-  fileName: string;
+  file_name: string;
   /** 完整路径 / Full path */
   fullPath: string;
   /** 新增行数 / Number of insertions */
@@ -104,7 +104,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
             >
               {/* 文件名 / File name */}
               <div className='flex items-center min-w-0'>
-                <span className='text-14px text-t-primary truncate'>{file.fileName}</span>
+                <span className='text-14px text-t-primary truncate'>{file.file_name}</span>
               </div>
               {/* 变更统计 + 预览按钮 / Change statistics + Preview button */}
               <div className='flex items-center gap-8px shrink-0'>

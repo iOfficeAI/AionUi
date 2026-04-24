@@ -59,39 +59,39 @@ export class SqliteAcpSessionRepository implements IAcpSessionRepository {
     this.stmtDelete = db.prepare('DELETE FROM acp_session WHERE conversation_id = ?');
   }
 
-  getSession(conversationId: string): AcpSessionRow | null {
-    return (this.stmtGet.get(conversationId) as AcpSessionRow) ?? null;
+  getSession(conversation_id: string): AcpSessionRow | null {
+    return (this.stmtGet.get(conversation_id) as AcpSessionRow) ?? null;
   }
 
   upsertSession(session: AcpSessionRow): void {
     this.stmtUpsert.run(session);
   }
 
-  updateSessionId(conversationId: string, sessionId: string): void {
-    this.stmtUpdateSessionId.run(sessionId, Date.now(), conversationId);
+  updateSessionId(conversation_id: string, session_id: string): void {
+    this.stmtUpdateSessionId.run(session_id, Date.now(), conversation_id);
   }
 
   updateStatus(
-    conversationId: string,
+    conversation_id: string,
     status: 'idle' | 'active' | 'suspended' | 'error',
     suspendedAt?: number | null
   ): void {
-    this.stmtUpdateStatus.run(status, suspendedAt ?? null, Date.now(), conversationId);
+    this.stmtUpdateStatus.run(status, suspendedAt ?? null, Date.now(), conversation_id);
   }
 
-  updateSessionConfig(conversationId: string, config: string): void {
-    this.stmtUpdateConfig.run(config, conversationId);
+  updateSessionConfig(conversation_id: string, config: string): void {
+    this.stmtUpdateConfig.run(config, conversation_id);
   }
 
-  touchLastActive(conversationId: string): void {
-    this.stmtTouchActive.run(Date.now(), conversationId);
+  touchLastActive(conversation_id: string): void {
+    this.stmtTouchActive.run(Date.now(), conversation_id);
   }
 
   getSuspendedSessions(): AcpSessionRow[] {
     return this.stmtGetSuspended.all() as AcpSessionRow[];
   }
 
-  deleteSession(conversationId: string): void {
-    this.stmtDelete.run(conversationId);
+  deleteSession(conversation_id: string): void {
+    this.stmtDelete.run(conversation_id);
   }
 }

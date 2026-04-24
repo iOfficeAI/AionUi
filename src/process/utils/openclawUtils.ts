@@ -17,9 +17,9 @@ export const computeOpenClawIdentityHash = async (workspace?: string): Promise<s
   const files = ['IDENTITY.md', 'SOUL.md'];
   const chunks: string[] = [];
   for (const name of files) {
-    const filePath = path.join(workspace, name);
+    const file_path = path.join(workspace, name);
     try {
-      const content = await fs.readFile(filePath, 'utf-8');
+      const content = await fs.readFile(file_path, 'utf-8');
       chunks.push(`${name}\n${content}`);
     } catch {
       // missing file is acceptable

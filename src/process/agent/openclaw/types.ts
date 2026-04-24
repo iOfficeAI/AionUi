@@ -66,7 +66,7 @@ export interface ConnectParams {
   maxProtocol: number;
   client: {
     id: string;
-    displayName?: string;
+    display_name?: string;
     version: string;
     platform: string;
     mode: string;
@@ -127,7 +127,7 @@ export interface Snapshot {
 export interface PresenceEntry {
   connId: string;
   clientId: string;
-  displayName?: string;
+  display_name?: string;
   role: string;
   scopes: string[];
   mode: string;
@@ -164,7 +164,7 @@ export interface ChatEvent {
   message?: unknown;
   errorMessage?: string;
   usage?: unknown;
-  stopReason?: string;
+  stop_reason?: string;
 }
 
 // ========== Agent Types ==========
@@ -181,7 +181,7 @@ export interface AgentEvent {
 
 export interface SessionsResolveParams {
   key?: string;
-  sessionId?: string;
+  session_id?: string;
   label?: string;
   agentId?: string;
   spawnedBy?: string;
@@ -274,7 +274,7 @@ export interface OpenClawGatewayConfig {
   /** Connect to external gateway instead of spawning */
   useExternalGateway?: boolean;
   /** CLI path for spawning gateway (default: openclaw) */
-  cliPath?: string;
+  cli_path?: string;
 }
 
 // ========== Gateway Client Options ==========

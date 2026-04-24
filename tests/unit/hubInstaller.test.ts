@@ -89,7 +89,7 @@ const mockedExistsSync = vi.mocked(fs.existsSync);
 function makeExtInfo(name: string, bundled = false) {
   return {
     name,
-    displayName: name,
+    display_name: name,
     description: 'test',
     author: 'test',
     dist: { tarball: `extensions/${name}.zip`, integrity: 'sha512-abc', unpackedSize: 100 },
@@ -312,7 +312,7 @@ describe('HubInstaller', () => {
           name: 'My Custom',
           kind: 'acp',
           isExtension: true,
-          customAgentId: 'ext:custom-acp-ext:my-custom-agent',
+          custom_agent_id: 'ext:custom-acp-ext:my-custom-agent',
         },
       ];
       mockedExistsSync.mockImplementation((p) => {

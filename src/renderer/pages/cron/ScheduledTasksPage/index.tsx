@@ -25,7 +25,7 @@ function normalizeAgentBackend(agent: string | undefined): AcpBackendAll | undef
 }
 
 function getJobAgentMeta(job: ICronJob): { name?: string; logo?: string | null } {
-  const backend = job.metadata.agentConfig?.backend || normalizeAgentBackend(job.metadata.agentType);
+  const backend = job.metadata.agentConfig?.backend || normalizeAgentBackend(job.metadata.agent_type);
   if (!backend) return {};
 
   return {

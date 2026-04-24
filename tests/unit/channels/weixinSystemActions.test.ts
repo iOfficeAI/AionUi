@@ -169,7 +169,7 @@ describe('SystemActions weixin platform handling', () => {
           {
             id: 'gemini-api',
             platform: 'gemini',
-            apiKey: 'sk-test',
+            api_key: 'sk-test',
             model: ['gemini-2.0-flash', 'gemini-2.5-pro'],
           },
         ]);
@@ -209,23 +209,23 @@ describe('SystemActions weixin platform handling', () => {
     expect(getChannelEnabledSkills('telegram')).toBeUndefined();
   });
 
-  it('builds channel conversation extra with enabledSkills for weixin across backends', () => {
+  it('builds channel conversation extra with enabled_skills for weixin across backends', () => {
     expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'gemini' })).toEqual({
-      enabledSkills: ['weixin-file-send'],
+      enabled_skills: ['weixin-file-send'],
     });
 
     expect(
       buildChannelConversationExtra({
         platform: 'weixin',
         backend: 'claude',
-        customAgentId: 'agent-1',
-        agentName: 'Claude',
+        custom_agent_id: 'agent-1',
+        agent_name: 'Claude',
       })
     ).toEqual({
       backend: 'claude',
-      customAgentId: 'agent-1',
-      agentName: 'Claude',
-      enabledSkills: ['weixin-file-send'],
+      custom_agent_id: 'agent-1',
+      agent_name: 'Claude',
+      enabled_skills: ['weixin-file-send'],
     });
   });
 });

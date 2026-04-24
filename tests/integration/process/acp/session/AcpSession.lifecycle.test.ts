@@ -26,14 +26,14 @@ function createMockClient() {
     }),
     createSession: vi.fn().mockResolvedValue({
       sessionId: 'sess-123',
-      currentModelId: 'claude-3',
-      availableModels: [],
-      currentModeId: 'code',
-      availableModes: [],
+      models: { currentModelId: 'claude-3', availableModels: [] },
+      modes: { currentModeId: 'code', availableModes: [] },
       configOptions: [],
     }),
     loadSession: vi.fn().mockResolvedValue({
-      sessionId: 'sess-123',
+      models: null,
+      modes: null,
+      configOptions: [],
     }),
     prompt: vi.fn().mockResolvedValue({ stopReason: 'end_turn' }),
     cancel: vi.fn().mockResolvedValue(undefined),
@@ -102,7 +102,7 @@ describe('AcpSession lifecycle', () => {
     expect(client.createSession).toHaveBeenCalledOnce();
   });
 
-  it('start() notifies sessionId via callback', async () => {
+  it('start() notifies session_id via callback', async () => {
     const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();
     await vi.waitFor(() => expect(session.status).toBe('active'));

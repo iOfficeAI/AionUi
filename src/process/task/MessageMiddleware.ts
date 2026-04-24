@@ -32,14 +32,14 @@ export interface ProcessResult {
  * 3. Executes detected commands (create/list/delete jobs)
  * 4. Returns cleaned message for UI display
  *
- * @param conversationId - The conversation ID
- * @param agentType - The agent type (gemini, claude, codex, etc.)
+ * @param conversation_id - The conversation ID
+ * @param agent_type - The agent type (gemini, claude, codex, etc.)
  * @param message - The message to process
  * @returns ProcessResult with original message, display message, and system responses
  */
 export async function processAgentResponse(
-  conversationId: string,
-  agentType: AgentBackend,
+  conversation_id: string,
+  agent_type: AgentBackend,
   message: TMessage
 ): Promise<ProcessResult> {
   const systemResponses: string[] = [];
@@ -69,7 +69,7 @@ export async function processAgentResponse(
   const cronCommands = detectCronCommands(displayContent);
   if (cronCommands.length > 0) {
     // Handle detected commands
-    const responses = await handleCronCommands(conversationId, agentType, cronCommands);
+    const responses = await handleCronCommands(conversation_id, agent_type, cronCommands);
     systemResponses.push(...responses);
 
     // Strip cron commands from display
@@ -129,7 +129,7 @@ function extractTextContent(message: TMessage): string | null {
  * Create a display message with modified content
  * Only modifies messages with { content: string } structure
  */
-function createDisplayMessage(original: TMessage, newContent: string): TMessage {
+function createDisplayMessage(original: TMessage, new_content: string): TMessage {
   const content = original.content;
 
   // Only handle the common case: content is { content: string }
@@ -137,10 +137,10 @@ function createDisplayMessage(original: TMessage, newContent: string): TMessage 
     const contentObj = content as { content: string };
     if (typeof contentObj.content === 'string') {
       // Use type assertion to avoid complex union type issues
-      const newContentObj = { ...content, content: newContent };
+      const new_contentObj = { ...content, content: new_content };
       return {
         ...original,
-        content: newContentObj,
+        content: new_contentObj,
       } as TMessage;
     }
   }
@@ -156,25 +156,25 @@ function createDisplayMessage(original: TMessage, newContent: string): TMessage 
  * Usage in AgentManagers:
  * ```typescript
  * if (tMessage.status === 'finish' && hasCronCommands(extractTextFromMessage(tMessage))) {
- *   await processCronInMessage(conversationId, agentType, tMessage, (msg) => {
+ *   await processCronInMessage(conversation_id, agent_type, tMessage, (msg) => {
  *     ipcBridge.xxxConversation.responseStream.emit({ type: 'system', ... });
  *   });
  * }
  * ```
  *
- * @param conversationId - The conversation ID
- * @param agentType - The agent type
+ * @param conversation_id - The conversation ID
+ * @param agent_type - The agent type
  * @param message - The completed message to check for cron commands
  * @param emitSystemResponse - Callback to emit system response messages
  */
 export async function processCronInMessage(
-  conversationId: string,
-  agentType: AgentBackend,
+  conversation_id: string,
+  agent_type: AgentBackend,
   message: TMessage,
   emitSystemResponse: (response: string) => void
 ): Promise<void> {
   try {
-    const result = await processAgentResponse(conversationId, agentType, message);
+    const result = await processAgentResponse(conversation_id, agent_type, message);
 
     // Emit system responses through the provided callback
     for (const sysMsg of result.systemResponses) {
@@ -189,8 +189,8 @@ export async function processCronInMessage(
  * Handle detected cron commands
  */
 async function handleCronCommands(
-  conversationId: string,
-  agentType: AgentBackend,
+  conversation_id: string,
+  agent_type: AgentBackend,
   commands: CronCommand[]
 ): Promise<string[]> {
   const responses: string[] = [];
@@ -203,8 +203,8 @@ async function handleCronCommands(
             name: cmd.name,
             schedule: { kind: 'cron', expr: cmd.schedule, description: cmd.scheduleDescription },
             message: cmd.message,
-            conversationId,
-            agentType,
+            conversation_id,
+            agent_type,
             createdBy: 'agent',
           });
           // Emit event to renderer process for real-time UI update
@@ -214,7 +214,7 @@ async function handleCronCommands(
         }
 
         case 'list': {
-          const jobs = await cronService.listJobsByConversation(conversationId);
+          const jobs = await cronService.listJobsByConversation(conversation_id);
           if (jobs.length === 0) {
             responses.push('📋 No scheduled tasks in this conversation.');
           } else {
@@ -231,12 +231,12 @@ async function handleCronCommands(
         }
 
         case 'update': {
-          const existingJob = await cronService.getJob(cmd.jobId);
+          const existingJob = await cronService.getJob(cmd.job_id);
           if (!existingJob) {
-            responses.push(`❌ Task not found: ${cmd.jobId}`);
+            responses.push(`❌ Task not found: ${cmd.job_id}`);
             break;
           }
-          const updated = await cronService.updateJob(cmd.jobId, {
+          const updated = await cronService.updateJob(cmd.job_id, {
             name: cmd.name,
             schedule: { kind: 'cron', expr: cmd.schedule, description: cmd.scheduleDescription },
             target: {

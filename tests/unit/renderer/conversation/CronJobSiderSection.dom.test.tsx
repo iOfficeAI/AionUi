@@ -44,9 +44,9 @@ describe('CronJobSiderSection', () => {
         },
       },
       metadata: {
-        conversationId: 'conv-123',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        conversation_id: 'conv-123',
+        created_at: Date.now(),
+        updated_at: Date.now(),
       },
       state: {
         lastRunAtMs: 0,
@@ -67,9 +67,9 @@ describe('CronJobSiderSection', () => {
         },
       },
       metadata: {
-        conversationId: 'conv-456',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        conversation_id: 'conv-456',
+        created_at: Date.now(),
+        updated_at: Date.now(),
       },
       state: {
         lastRunAtMs: 0,
@@ -90,9 +90,9 @@ describe('CronJobSiderSection', () => {
         },
       },
       metadata: {
-        conversationId: 'conv-789',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        conversation_id: 'conv-789',
+        created_at: Date.now(),
+        updated_at: Date.now(),
       },
       state: {
         lastRunAtMs: 0,

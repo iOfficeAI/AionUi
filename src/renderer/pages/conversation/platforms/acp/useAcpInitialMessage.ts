@@ -12,11 +12,11 @@ import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
 
 type UseAcpInitialMessageParams = {
-  conversationId: string;
+  conversation_id: string;
   backend: string;
   workspacePath?: string;
   setAiProcessing: (value: boolean) => void;
-  checkAndUpdateTitle: (conversationId: string, input: string) => void;
+  checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
 };
 
@@ -25,7 +25,7 @@ type UseAcpInitialMessageParams = {
  * and sends it when the ACP conversation first mounts.
  */
 export const useAcpInitialMessage = ({
-  conversationId,
+  conversation_id,
   backend,
   workspacePath,
   setAiProcessing,
@@ -33,7 +33,7 @@ export const useAcpInitialMessage = ({
   addOrUpdateMessage,
 }: UseAcpInitialMessageParams): void => {
   useEffect(() => {
-    const storageKey = `acp_initial_message_${conversationId}`;
+    const storageKey = `acp_initial_message_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) return;
@@ -53,30 +53,35 @@ export const useAcpInitialMessage = ({
         setAiProcessing(true);
 
         // Send the message
-        void checkAndUpdateTitle(conversationId, input);
+        void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           msg_id,
-          conversation_id: conversationId,
+          conversation_id: conversation_id,
           files,
         });
 
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        console.error('Error sending initial message:', error);
+        console.error('[useAcpInitialMessage] Error sending initial message:', error);
+        console.error('[useAcpInitialMessage] Error details:', {
+          name: (error as Error)?.name,
+          message: (error as Error)?.message,
+          conversation_id,
+        });
         // Create error message in UI
         const errorMessage: TMessage = {
           id: uuid(),
           msg_id: uuid(),
-          conversation_id: conversationId,
+          conversation_id: conversation_id,
           type: 'tips',
           position: 'center',
           content: {
             content: 'Failed to send message. Please try again.',
             type: 'error',
           },
-          createdAt: Date.now() + 2,
+          created_at: Date.now() + 2,
         };
         addOrUpdateMessage(errorMessage, true);
         setAiProcessing(false); // Stop loading state on error
@@ -86,5 +91,5 @@ export const useAcpInitialMessage = ({
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversationId, setAiProcessing, workspacePath]);
+  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, workspacePath]);
 };

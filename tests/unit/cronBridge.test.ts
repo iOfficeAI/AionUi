@@ -79,11 +79,11 @@ describe('cronBridge', () => {
           schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
           target: { payload: { kind: 'message', text: 'hello' } },
           metadata: {
-            conversationId: 'conv-1',
-            agentType: 'gemini',
+            conversation_id: 'conv-1',
+            agent_type: 'gemini',
             createdBy: 'user',
-            createdAt: 1000,
-            updatedAt: 1000,
+            created_at: 1000,
+            updated_at: 1000,
           },
           state: { runCount: 0, retryCount: 0, maxRetries: 3 },
         },
@@ -117,11 +117,11 @@ describe('cronBridge', () => {
           schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
           target: { payload: { kind: 'message', text: 'hello' } },
           metadata: {
-            conversationId: 'conv-123',
-            agentType: 'gemini',
+            conversation_id: 'conv-123',
+            agent_type: 'gemini',
             createdBy: 'user',
-            createdAt: 1000,
-            updatedAt: 1000,
+            created_at: 1000,
+            updated_at: 1000,
           },
           state: { runCount: 0, retryCount: 0, maxRetries: 3 },
         },
@@ -129,7 +129,7 @@ describe('cronBridge', () => {
       mockCronService.listJobsByConversation.mockResolvedValue(mockJobs);
 
       const handler = providerMap.get('cron.listJobsByConversation');
-      const result = await handler!({ conversationId: 'conv-123' });
+      const result = await handler!({ conversation_id: 'conv-123' });
 
       expect(mockCronService.listJobsByConversation).toHaveBeenCalledWith('conv-123');
       expect(result).toEqual(mockJobs);
@@ -145,18 +145,18 @@ describe('cronBridge', () => {
         schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
         target: { payload: { kind: 'message', text: 'hello' } },
         metadata: {
-          conversationId: 'conv-1',
-          agentType: 'gemini',
+          conversation_id: 'conv-1',
+          agent_type: 'gemini',
           createdBy: 'user',
-          createdAt: 1000,
-          updatedAt: 1000,
+          created_at: 1000,
+          updated_at: 1000,
         },
         state: { runCount: 0, retryCount: 0, maxRetries: 3 },
       };
       mockCronService.getJob.mockResolvedValue(mockJob);
 
       const handler = providerMap.get('cron.getJob');
-      const result = await handler!({ jobId: 'job-1' });
+      const result = await handler!({ job_id: 'job-1' });
 
       expect(mockCronService.getJob).toHaveBeenCalledWith('job-1');
       expect(result).toEqual(mockJob);
@@ -166,7 +166,7 @@ describe('cronBridge', () => {
       mockCronService.getJob.mockResolvedValue(null);
 
       const handler = providerMap.get('cron.getJob');
-      const result = await handler!({ jobId: 'missing-job' });
+      const result = await handler!({ job_id: 'missing-job' });
 
       expect(result).toBeNull();
     });
@@ -178,8 +178,8 @@ describe('cronBridge', () => {
         name: 'New Job',
         schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
         prompt: 'test prompt',
-        conversationId: 'conv-1',
-        agentType: 'gemini',
+        conversation_id: 'conv-1',
+        agent_type: 'gemini',
         createdBy: 'user',
       };
       const mockJob: ICronJob = {
@@ -189,11 +189,11 @@ describe('cronBridge', () => {
         schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
         target: { payload: { kind: 'message', text: 'test prompt' } },
         metadata: {
-          conversationId: 'conv-1',
-          agentType: 'gemini',
+          conversation_id: 'conv-1',
+          agent_type: 'gemini',
           createdBy: 'user',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          created_at: Date.now(),
+          updated_at: Date.now(),
         },
         state: { runCount: 0, retryCount: 0, maxRetries: 3 },
       };
@@ -217,18 +217,18 @@ describe('cronBridge', () => {
         schedule: { kind: 'every', everyMs: 60000, description: 'every 1 min' },
         target: { payload: { kind: 'message', text: 'hello' } },
         metadata: {
-          conversationId: 'conv-1',
-          agentType: 'gemini',
+          conversation_id: 'conv-1',
+          agent_type: 'gemini',
           createdBy: 'user',
-          createdAt: 1000,
-          updatedAt: 2000,
+          created_at: 1000,
+          updated_at: 2000,
         },
         state: { runCount: 0, retryCount: 0, maxRetries: 3 },
       };
       mockCronService.updateJob.mockResolvedValue(updatedJob);
 
       const handler = providerMap.get('cron.updateJob');
-      const result = await handler!({ jobId: 'job-1', updates });
+      const result = await handler!({ job_id: 'job-1', updates });
 
       expect(mockCronService.updateJob).toHaveBeenCalledWith('job-1', updates);
       expect(result).toEqual(updatedJob);
@@ -240,7 +240,7 @@ describe('cronBridge', () => {
       mockCronService.removeJob.mockResolvedValue(undefined);
 
       const handler = providerMap.get('cron.removeJob');
-      await handler!({ jobId: 'job-1' });
+      await handler!({ job_id: 'job-1' });
 
       expect(mockCronService.removeJob).toHaveBeenCalledWith('job-1');
     });
@@ -251,20 +251,20 @@ describe('cronBridge', () => {
       mockCronService.runNow.mockResolvedValue('conv-123');
 
       const handler = providerMap.get('cron.runNow');
-      const result = await handler!({ jobId: 'job-1' });
+      const result = await handler!({ job_id: 'job-1' });
 
       expect(mockCronService.runNow).toHaveBeenCalledWith('job-1');
-      expect(result).toEqual({ conversationId: 'conv-123' });
+      expect(result).toEqual({ conversation_id: 'conv-123' });
     });
 
     it('should wrap conversationId string into object shape', async () => {
       mockCronService.runNow.mockResolvedValue('conv-xyz');
 
       const handler = providerMap.get('cron.runNow');
-      const result = await handler!({ jobId: 'job-2' });
+      const result = await handler!({ job_id: 'job-2' });
 
-      expect(result).toEqual({ conversationId: 'conv-xyz' });
-      expect(typeof result.conversationId).toBe('string');
+      expect(result).toEqual({ conversation_id: 'conv-xyz' });
+      expect(typeof result.conversation_id).toBe('string');
     });
   });
 
@@ -273,7 +273,7 @@ describe('cronBridge', () => {
       mockWriteRawCronSkillFile.mockResolvedValue('/path/to/SKILL.md');
 
       const handler = providerMap.get('cron.saveSkill');
-      await handler!({ jobId: 'job-1', content: '---\nname: test\n---\nContent' });
+      await handler!({ job_id: 'job-1', content: '---\nname: test\n---\nContent' });
 
       expect(mockWriteRawCronSkillFile).toHaveBeenCalledWith('job-1', '---\nname: test\n---\nContent');
     });
@@ -283,7 +283,7 @@ describe('cronBridge', () => {
 
       const handler = providerMap.get('cron.saveSkill');
 
-      await expect(handler!({ jobId: 'job-1', content: 'invalid' })).rejects.toThrow('Invalid SKILL.md');
+      await expect(handler!({ job_id: 'job-1', content: 'invalid' })).rejects.toThrow('Invalid SKILL.md');
     });
   });
 
@@ -292,7 +292,7 @@ describe('cronBridge', () => {
       mockHasCronSkillFile.mockResolvedValue(true);
 
       const handler = providerMap.get('cron.hasSkill');
-      const result = await handler!({ jobId: 'job-1' });
+      const result = await handler!({ job_id: 'job-1' });
 
       expect(mockHasCronSkillFile).toHaveBeenCalledWith('job-1');
       expect(result).toBe(true);
@@ -302,7 +302,7 @@ describe('cronBridge', () => {
       mockHasCronSkillFile.mockResolvedValue(false);
 
       const handler = providerMap.get('cron.hasSkill');
-      const result = await handler!({ jobId: 'job-2' });
+      const result = await handler!({ job_id: 'job-2' });
 
       expect(result).toBe(false);
     });

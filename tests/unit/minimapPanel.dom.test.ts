@@ -30,9 +30,9 @@ vi.mock('../../src/renderer/utils/chat/chatMinimapEvents', () => ({
 import { useMinimapPanel } from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel';
 import type { TurnPreviewItem } from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes';
 
-// Helper: build a fake message array that buildTurnPreview can process
-const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
-  turns.flatMap(({ question, answer }, i) => [
+// Helper: build a paginated response that useMinimapPanel can process
+const makeFakeMessages = (turns: { question: string; answer: string }[]) => {
+  const items = turns.flatMap(({ question, answer }, i) => [
     {
       id: `q${i}`,
       msg_id: `mq${i}`,
@@ -40,7 +40,7 @@ const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
       type: 'text' as const,
       content: { content: question },
       position: 'right' as const,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     },
     {
       id: `a${i}`,
@@ -49,14 +49,16 @@ const makeFakeMessages = (turns: { question: string; answer: string }[]) =>
       type: 'text' as const,
       content: { content: answer },
       position: 'left' as const,
-      createdAt: Date.now(),
+      created_at: Date.now(),
     },
   ]);
+  return { items, total: items.length, hasMore: false };
+};
 
 describe('useMinimapPanel', () => {
   beforeEach(() => {
     vi.useFakeTimers();
-    mocks.getConversationMessages.mockResolvedValue([]);
+    mocks.getConversationMessages.mockResolvedValue({ items: [], total: 0, hasMore: false });
   });
 
   afterEach(() => {
@@ -236,7 +238,7 @@ describe('useMinimapPanel', () => {
     });
 
     expect(mocks.dispatchChatMessageJump).toHaveBeenCalledWith({
-      conversationId: 'conv-1',
+      conversation_id: 'conv-1',
       messageId: 'msg-1',
       msgId: 'msg-id-1',
       align: 'start',
@@ -247,7 +249,7 @@ describe('useMinimapPanel', () => {
 
   // -- Conversation switch resets state -----------------------------------------
 
-  it('should reset state when conversationId changes', async () => {
+  it('should reset state when conversation_id changes', async () => {
     const messages = makeFakeMessages([{ question: 'Hello', answer: 'World' }]);
     mocks.getConversationMessages.mockResolvedValue(messages);
 

@@ -90,7 +90,7 @@ message: Reply with an updated reminder
     expect(commands).toHaveLength(1);
     expect(commands[0]).toEqual({
       kind: 'update',
-      jobId: 'cron_abc123',
+      job_id: 'cron_abc123',
       name: 'Updated Reminder',
       schedule: '0 10 * * *',
       scheduleDescription: 'Every day at 10:00 AM',

@@ -23,7 +23,7 @@ export interface IConversationRepository {
   createConversation(conversation: TChatConversation): Promise<void>;
   updateConversation(id: string, updates: Partial<TChatConversation>): Promise<void>;
   deleteConversation(id: string): Promise<void>;
-  getMessages(id: string, page: number, pageSize: number, order?: 'ASC' | 'DESC'): Promise<PaginatedResult<TMessage>>;
+  getMessages(id: string, page: number, page_size: number, order?: 'ASC' | 'DESC'): Promise<PaginatedResult<TMessage>>;
   insertMessage(message: TMessage): Promise<void>;
   /**
    * If cursor is provided, offset is ignored.
@@ -33,7 +33,7 @@ export interface IConversationRepository {
   /** Returns all conversations without pagination. */
   listAllConversations(): Promise<TChatConversation[]>;
   /** Full-text search across conversation messages. */
-  searchMessages(keyword: string, page: number, pageSize: number): Promise<IMessageSearchResponse>;
+  searchMessages(keyword: string, page: number, page_size: number): Promise<IMessageSearchResponse>;
   /** List conversations spawned by a specific cron job. */
-  getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]>;
+  getConversationsByCronJob(cron_job_id: string): Promise<TChatConversation[]>;
 }

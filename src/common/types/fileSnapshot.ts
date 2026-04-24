@@ -8,7 +8,7 @@ export type FileChangeOperation = 'create' | 'modify' | 'delete';
 
 /** A single file's change status */
 export type FileChangeInfo = {
-  filePath: string;
+  file_path: string;
   relativePath: string;
   operation: FileChangeOperation;
 };

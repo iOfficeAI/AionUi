@@ -69,7 +69,7 @@ const setElectronAPI = (value?: object) => {
 };
 
 const openSearchInput = async () => {
-  render(<ConversationTitleMinimap conversationId='conversation-1' />);
+  render(<ConversationTitleMinimap conversation_id='conversation-1' />);
 
   // Click the trigger (span[role=button]) to open the minimap panel
   const trigger = screen.getByLabelText('Search conversation', { selector: 'span[role="button"]' });
@@ -157,7 +157,7 @@ describe('ConversationTitleMinimap', () => {
   it('does not open the minimap on Cmd/Ctrl+Shift+F', async () => {
     setElectronAPI({});
 
-    render(<ConversationTitleMinimap conversationId='conversation-1' />);
+    render(<ConversationTitleMinimap conversation_id='conversation-1' />);
 
     await act(async () => {
       fireEvent.keyDown(document, { key: 'F', ctrlKey: true, shiftKey: true });
@@ -171,7 +171,7 @@ describe('ConversationTitleMinimap', () => {
   });
 
   it('does not render the trigger button when hideTrigger=true', () => {
-    render(<ConversationTitleMinimap conversationId='conversation-1' hideTrigger />);
+    render(<ConversationTitleMinimap conversation_id='conversation-1' hideTrigger />);
 
     expect(screen.queryByLabelText('Search conversation', { selector: 'span[role="button"]' })).not.toBeInTheDocument();
   });
@@ -179,7 +179,7 @@ describe('ConversationTitleMinimap', () => {
   it('registers Cmd+F listener when hideTrigger=true (no trigger DOM element)', async () => {
     setElectronAPI({});
 
-    render(<ConversationTitleMinimap conversationId='conversation-1' hideTrigger />);
+    render(<ConversationTitleMinimap conversation_id='conversation-1' hideTrigger />);
 
     expect(screen.queryByLabelText('Search conversation', { selector: 'span[role="button"]' })).not.toBeInTheDocument();
 

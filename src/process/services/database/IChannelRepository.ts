@@ -15,6 +15,6 @@ export interface IChannelRepository {
   getChannelPlugins(): Promise<IChannelPluginConfig[]>;
   getPendingPairingRequests(): Promise<IChannelPairingRequest[]>;
   getChannelUsers(): Promise<IChannelUser[]>;
-  deleteChannelUser(userId: string): Promise<void>;
+  deleteChannelUser(user_id: string): Promise<void>;
   getChannelSessions(): Promise<IChannelSession[]>;
 }

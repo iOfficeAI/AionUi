@@ -12,21 +12,21 @@ import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
 
 interface TokenPayload {
-  userId: string;
+  user_id: string;
   username: string;
   tokenId: string;
   iat?: number;
   exp?: number;
 }
 
-type RawTokenPayload = Omit<TokenPayload, 'userId'> & {
-  userId: string | number;
+type RawTokenPayload = Omit<TokenPayload, 'user_id'> & {
+  user_id: string | number;
 };
 
 interface UserCredentials {
   username: string;
   password: string;
-  createdAt: number;
+  created_at: number;
 }
 
 const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
@@ -235,7 +235,7 @@ export class AuthService {
    */
   public static async generateToken(user: Pick<AuthUser, 'id' | 'username'>): Promise<string> {
     const payload: TokenPayload = {
-      userId: user.id,
+      user_id: user.id,
       username: user.username,
       tokenId: crypto.randomUUID(),
     };
@@ -278,7 +278,7 @@ export class AuthService {
 
       return {
         ...decoded,
-        userId: this.normalizeUserId(decoded.userId),
+        user_id: this.normalizeUserId(decoded.user_id),
       };
     } catch (error) {
       if (
@@ -316,7 +316,7 @@ export class AuthService {
 
       return {
         ...decoded,
-        userId: this.normalizeUserId(decoded.userId),
+        user_id: this.normalizeUserId(decoded.user_id),
       };
     } catch (error) {
       // TokenExpiredError is expected when sessions naturally expire (24h TTL).
@@ -363,7 +363,7 @@ export class AuthService {
 
     // 刷新时不重复检查有效期 / Skip expiry check when refreshing token
     return this.generateToken({
-      id: this.normalizeUserId(decoded.userId),
+      id: this.normalizeUserId(decoded.user_id),
       username: decoded.username,
     });
   }
@@ -423,7 +423,7 @@ export class AuthService {
     return {
       username,
       password: this.generateRandomPassword(),
-      createdAt: Date.now(),
+      created_at: Date.now(),
     };
   }
 

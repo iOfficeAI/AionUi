@@ -20,9 +20,9 @@ import { teamEventBus } from '@process/team/teamEventBus';
 export interface NanoBotAgentManagerData {
   conversation_id: string;
   workspace?: string;
-  customWorkspace?: boolean;
-  enabledSkills?: string[];
-  presetAssistantId?: string;
+  custom_workspace?: boolean;
+  enabled_skills?: string[];
+  preset_assistant_id?: string;
   yoloMode?: boolean;
 }
 
@@ -113,7 +113,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
           position: 'right',
           conversation_id: this.conversation_id,
           content: { content: data.content },
-          createdAt: Date.now(),
+          created_at: Date.now(),
           ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);

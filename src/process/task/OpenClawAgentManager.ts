@@ -24,7 +24,7 @@ export interface OpenClawAgentManagerData {
   conversation_id: string;
   workspace?: string;
   backend?: AgentBackend;
-  agentName?: string;
+  agent_name?: string;
   /** Gateway configuration */
   gateway?: {
     host?: string;
@@ -32,7 +32,7 @@ export interface OpenClawAgentManagerData {
     token?: string;
     password?: string;
     useExternalGateway?: boolean;
-    cliPath?: string;
+    cli_path?: string;
   };
   /** Session key for resume */
   sessionKey?: string;
@@ -132,25 +132,25 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Handle permission requests
     if (msg.type === 'acp_permission') {
       const permissionData = msg.data as {
-        sessionId: string;
+        session_id: string;
         toolCall: {
-          toolCallId: string;
+          tool_call_id: string;
           title?: string;
           kind?: string;
           rawInput?: Record<string, unknown>;
         };
-        options: Array<{ optionId: string; name: string; kind: string }>;
+        options: Array<{ option_id: string; name: string; kind: string }>;
       };
 
       // Create confirmation for UI
       const confirmation: IConfirmation = {
-        id: permissionData.toolCall.toolCallId,
-        callId: permissionData.toolCall.toolCallId,
+        id: permissionData.toolCall.tool_call_id,
+        call_id: permissionData.toolCall.tool_call_id,
         title: permissionData.toolCall.title || 'Permission Required',
         description: JSON.stringify(permissionData.toolCall.rawInput || {}),
         options: permissionData.options.map((opt) => ({
           label: opt.name,
-          value: opt.optionId,
+          value: opt.option_id,
         })),
       };
 
@@ -226,7 +226,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
           position: 'right',
           conversation_id: this.conversation_id,
           content: { content: data.content },
-          createdAt: Date.now(),
+          created_at: Date.now(),
           ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
@@ -250,14 +250,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
   }
 
-  async confirm(id: string, callId: string, data: string) {
-    super.confirm(id, callId, data);
+  async confirm(id: string, call_id: string, data: string) {
+    super.confirm(id, call_id, data);
     await this.bootstrap;
 
     // Send confirmation to agent
     await this.agent.confirmMessage({
-      confirmKey: data,
-      callId,
+      confirm_key: data,
+      call_id,
     });
   }
 
@@ -302,13 +302,13 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     return {
       workspace: this.workspace,
       backend: this.options.backend,
-      agentName: this.options.agentName,
-      cliPath: this.options.gateway?.cliPath ?? null,
+      agent_name: this.options.agent_name,
+      cli_path: this.options.gateway?.cli_path ?? null,
       gatewayHost: this.options.gateway?.host ?? null,
       gatewayPort: this.options.gateway?.port ?? 18789,
       conversation_id: this.conversation_id,
-      isConnected: this.agent?.isConnected ?? false,
-      hasActiveSession: this.agent?.hasActiveSession ?? false,
+      is_connected: this.agent?.is_connected ?? false,
+      has_active_session: this.agent?.has_active_session ?? false,
       sessionKey: this.agent?.currentSessionKey ?? null,
     };
   }

@@ -1,4 +1,4 @@
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AgentBadge from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
@@ -40,22 +40,22 @@ const ChatLayout: React.FC<{
   backend?: string;
   /** Preset assistant info — when provided, badge shows assistant identity instead of backend */
   presetAssistant?: PresetAssistantInfo & { id?: string };
-  /** Fallback agent name (used when no presetAssistant, e.g. from conversation.extra.agentName) */
-  agentName?: string;
+  /** Fallback agent name (used when no presetAssistant, e.g. from conversation.extra.agent_name) */
+  agent_name?: string;
   headerExtra?: React.ReactNode;
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
-  conversationId?: string;
+  conversation_id?: string;
   /** Custom tabs slot; when provided, replaces the default ConversationTabs */
   tabsSlot?: React.ReactNode;
   /** Workspace path for opening in external tools */
   workspacePath?: string;
   /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
-  onRenameTitle?: (newName: string) => Promise<boolean>;
+  onRenameTitle?: (new_name: string) => Promise<boolean>;
 }> = (props) => {
-  const { conversationId, workspacePath } = props;
-  const { backend, presetAssistant, agentName, workspaceEnabled = true } = props;
+  const { conversation_id, workspacePath } = props;
+  const { backend, presetAssistant, agent_name, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
@@ -69,7 +69,7 @@ const ChatLayout: React.FC<{
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
     workspaceEnabled,
     isMobile,
-    conversationId,
+    conversation_id,
   });
 
   // --- Hook B: container width ---
@@ -82,21 +82,21 @@ const ChatLayout: React.FC<{
   const { editingTitle, setEditingTitle, titleDraft, setTitleDraft, renameLoading, canRenameTitle, submitTitleRename } =
     useTitleRename({
       title: props.title,
-      conversationId,
+      conversation_id,
       updateTabName,
       onRename: props.onRenameTitle,
     });
 
-  // Fetch custom agents config as fallback when agentName is not provided
-  const needCustomFallback = backend === 'custom' && !presetAssistant && !agentName;
+  // Fetch custom agents config as fallback when agent_name is not provided
+  const needCustomFallback = backend === 'custom' && !presetAssistant && !agent_name;
   const { data: customAgents } = useSWR(needCustomFallback ? 'acp.customAgents' : null, () =>
-    ConfigStorage.get('acp.customAgents')
+    configService.get('acp.customAgents')
   );
 
   // Compute display name with fallback chain
-  const displayName =
+  const display_name =
     presetAssistant?.name ||
-    agentName ||
+    agent_name ||
     (backend === 'custom' && customAgents?.[0]?.name) ||
     ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
     backend;
@@ -196,17 +196,17 @@ const ChatLayout: React.FC<{
               submitTitleRename={submitTitleRename}
               titleAreaMaxWidth={titleAreaMaxWidth}
               title={props.title}
-              conversationId={conversationId}
+              conversation_id={conversation_id}
             />
           )}
-          {(hasTabs || layout?.isMobile) && <ConversationTitleMinimap conversationId={conversationId} hideTrigger />}
+          {(hasTabs || layout?.isMobile) && <ConversationTitleMinimap conversation_id={conversation_id} hideTrigger />}
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
           {(backend || presetAssistant) && (
             <AgentBadge
               backend={backend}
-              agentName={displayName}
+              agent_name={display_name}
               agentLogo={presetAssistant?.logo}
               agentLogoIsEmoji={presetAssistant?.isEmoji}
               assistantId={presetAssistant?.id}

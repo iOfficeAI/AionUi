@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
 
@@ -16,15 +16,10 @@ export const useMcpServers = () => {
   // 加载MCP服务器配置
   useEffect(() => {
     // Load user-configured MCP servers
-    void ConfigStorage.get('mcp.config')
-      .then((data) => {
-        if (data) {
-          setMcpServers(data);
-        }
-      })
-      .catch((error) => {
-        console.error('[useMcpServers] Failed to load MCP config:', error);
-      });
+    const data = configService.get('mcp.config');
+    if (data) {
+      setMcpServers(data);
+    }
 
     // Load extension-contributed MCP servers
     void ipcBridge.extensions.getMcpServers
@@ -38,9 +33,9 @@ export const useMcpServers = () => {
             enabled: s.enabled !== false,
             transport: s.transport as IMcpServer['transport'],
             status: 'connected' as const,
-            createdAt: (s.createdAt as number) || Date.now(),
-            updatedAt: (s.updatedAt as number) || Date.now(),
-            originalJson: String(s.originalJson || '{}'),
+            created_at: (s.created_at as number) || Date.now(),
+            updated_at: (s.updated_at as number) || Date.now(),
+            original_json: String(s.original_json || '{}'),
             _source: 'extension' as const,
             _extensionName: s._extensionName as string | undefined,
           })) as IMcpServer[];
@@ -61,7 +56,8 @@ export const useMcpServers = () => {
 
         // 异步保存到存储（在微任务中执行）
         queueMicrotask(() => {
-          ConfigStorage.set('mcp.config', newServers)
+          configService
+            .set('mcp.config', newServers)
             .then(() => resolve())
             .catch((error) => {
               console.error('Failed to save MCP servers:', error);

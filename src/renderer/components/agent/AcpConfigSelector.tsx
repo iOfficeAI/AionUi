@@ -17,23 +17,23 @@ import MarqueePillLabel from './MarqueePillLabel';
  * Dynamic config option selector for ACP agents.
  *
  * Supports two modes:
- * - **Conversation mode** (conversationId provided): fetches live config from backend,
- *   listens for updates via responseStream, and caches to ConfigStorage.
- * - **Local mode** (no conversationId, e.g. Guid page): renders from initialConfigOptions
- *   (typically loaded from ConfigStorage cache) and notifies parent via onOptionSelect.
+ * - **Conversation mode** (conversation_id provided): fetches live config from backend,
+ *   listens for updates via responseStream, and caches to configService.
+ * - **Local mode** (no conversation_id, e.g. Guid page): renders from initialConfigOptions
+ *   (typically loaded from configService cache) and notifies parent via onOptionSelect.
  */
 const AcpConfigSelector: React.FC<{
-  conversationId?: string;
+  conversation_id?: string;
   backend?: string;
   compact?: boolean;
   buttonClassName?: string;
   leadingIcon?: ReactNode;
-  /** Cached config options for immediate render (from DB or ConfigStorage) */
+  /** Cached config options for immediate render (from DB or configService) */
   initialConfigOptions?: unknown[];
   /** Local mode callback when user selects an option (Guid page) */
-  onOptionSelect?: (configId: string, value: string) => void;
+  onOptionSelect?: (config_id: string, value: string) => void;
 }> = ({
-  conversationId,
+  conversation_id,
   backend,
   compact: _compact = false,
   buttonClassName,
@@ -42,20 +42,20 @@ const AcpConfigSelector: React.FC<{
   onOptionSelect,
 }) => {
   const { t } = useTranslation();
-  const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
+  const [config_options, setConfigOptions] = useState<AcpSessionConfigOption[]>(
     () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
   );
 
   // Fetch config options on mount (conversation mode only)
   useEffect(() => {
-    if (!backend || !conversationId) return;
+    if (!backend || !conversation_id) return;
     let cancelled = false;
     ipcBridge.acpConversation.getConfigOptions
-      .invoke({ conversationId })
+      .invoke({ conversation_id })
       .then((result) => {
         if (cancelled) return;
-        if (result?.configOptions?.length > 0) {
-          setConfigOptions(result.configOptions);
+        if (result?.config_options?.length > 0) {
+          setConfigOptions(result.config_options);
         }
       })
       .catch(() => {});
@@ -63,26 +63,26 @@ const AcpConfigSelector: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [conversationId, backend]);
+  }, [conversation_id, backend]);
 
   // Listen for config_option_update events from responseStream (conversation mode only)
   useEffect(() => {
-    if (!backend || !conversationId) return;
+    if (!backend || !conversation_id) return;
     const handler = (message: IResponseMessage) => {
-      if (message.conversation_id !== conversationId) return;
+      if (message.conversation_id !== conversation_id) return;
       if (message.type === 'acp_model_info') {
         ipcBridge.acpConversation.getConfigOptions
-          .invoke({ conversationId })
+          .invoke({ conversation_id })
           .then((result) => {
-            if (result?.configOptions?.length > 0) {
-              setConfigOptions(result.configOptions);
+            if (result?.config_options?.length > 0) {
+              setConfigOptions(result.config_options);
             }
           })
           .catch(() => {});
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversationId, backend]);
+  }, [conversation_id, backend]);
 
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
   useEffect(() => {
@@ -92,28 +92,28 @@ const AcpConfigSelector: React.FC<{
   }, [initialConfigOptions]);
 
   const handleSelectOption = useCallback(
-    (configId: string, value: string) => {
+    (config_id: string, value: string) => {
       // Optimistically update UI
       setConfigOptions((prev) =>
-        prev.map((opt) => (opt.id === configId ? { ...opt, currentValue: value, selectedValue: value } : opt))
+        prev.map((opt) => (opt.id === config_id ? { ...opt, current_value: value, selected_value: value } : opt))
       );
 
       // Local mode (Guid page): notify parent, no IPC needed
-      if (!conversationId) {
-        onOptionSelect?.(configId, value);
+      if (!conversation_id) {
+        onOptionSelect?.(config_id, value);
         return;
       }
 
       // Conversation mode: send to ACP backend (setConfigOption returns void)
       ipcBridge.acpConversation.setConfigOption
-        .invoke({ conversationId, configId, value })
+        .invoke({ conversation_id, config_id, value })
         .then(() => {
           // Re-fetch config options after successful set
           ipcBridge.acpConversation.getConfigOptions
-            .invoke({ conversationId })
+            .invoke({ conversation_id })
             .then((result) => {
-              if (result?.configOptions?.length > 0) {
-                setConfigOptions(result.configOptions);
+              if (result?.config_options?.length > 0) {
+                setConfigOptions(result.config_options);
               }
             })
             .catch(() => {});
@@ -122,16 +122,16 @@ const AcpConfigSelector: React.FC<{
           console.error('[AcpConfigSelector] Failed to set config option:', error);
           // Revert on error by re-fetching
           ipcBridge.acpConversation.getConfigOptions
-            .invoke({ conversationId })
+            .invoke({ conversation_id })
             .then((result) => {
-              if (result?.configOptions) {
-                setConfigOptions(result.configOptions);
+              if (result?.config_options) {
+                setConfigOptions(result.config_options);
               }
             })
             .catch(() => {});
         });
     },
-    [conversationId, onOptionSelect]
+    [conversation_id, onOptionSelect]
   );
 
   // Don't render when no backend is specified
@@ -139,7 +139,7 @@ const AcpConfigSelector: React.FC<{
 
   // Filter: only show select-type options with multiple choices,
   // exclude mode/model (handled by AgentModeSelector / AcpModelSelector)
-  const selectOptions = configOptions.filter(
+  const selectOptions = config_options.filter(
     (opt) =>
       opt.type === 'select' &&
       opt.options &&
@@ -154,10 +154,10 @@ const AcpConfigSelector: React.FC<{
   return (
     <>
       {selectOptions.map((option) => {
-        const currentValue = option.currentValue || option.selectedValue;
+        const current_value = option.current_value || option.selected_value;
         const currentLabel =
-          option.options?.find((o) => o.value === currentValue)?.name ||
-          currentValue ||
+          option.options?.find((o) => o.value === current_value)?.name ||
+          current_value ||
           t('acp.config.default', { defaultValue: 'Default' });
 
         return (
@@ -170,12 +170,12 @@ const AcpConfigSelector: React.FC<{
                   {option.options?.map((choice) => (
                     <Menu.Item
                       key={choice.value}
-                      className={choice.value === currentValue ? 'bg-2!' : ''}
+                      className={choice.value === current_value ? 'bg-2!' : ''}
                       onClick={() => handleSelectOption(option.id, choice.value)}
                     >
                       <div className='flex items-center gap-8px'>
-                        {choice.value === currentValue && <span className='text-primary'>✓</span>}
-                        <span className={choice.value !== currentValue ? 'ml-16px' : ''}>
+                        {choice.value === current_value && <span className='text-primary'>✓</span>}
+                        <span className={choice.value !== current_value ? 'ml-16px' : ''}>
                           {choice.name || choice.value}
                         </span>
                       </div>

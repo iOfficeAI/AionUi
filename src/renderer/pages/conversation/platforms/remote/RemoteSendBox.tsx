@@ -58,7 +58,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
-  const [agentName, setAgentName] = useState('Remote Agent');
+  const [agent_name, setAgentName] = useState('Remote Agent');
   const [aiProcessing, setAiProcessing] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({ description: '', subject: '' });
@@ -157,8 +157,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   useEffect(() => {
     const handler = (text: string) => {
-      const newContent = content ? `${content}\n${text}` : text;
-      setContentRef.current(newContent);
+      const new_content = content ? `${content}\n${text}` : text;
+      setContentRef.current(new_content);
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
@@ -255,7 +255,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           type: 'text',
           position: 'right',
           content: { content: initialDisplayMessage },
-          createdAt: Date.now(),
+          created_at: Date.now(),
         };
         addOrUpdateMessage(userMessage, true);
         setAiProcessing(true);
@@ -284,8 +284,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
-      const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile((prev) => [...prev, ...filePaths]);
+      const file_paths = pastedFiles.map((file) => file.path);
+      setUploadFile((prev) => [...prev, ...file_paths]);
     },
     [setUploadFile]
   );
@@ -317,7 +317,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         type: 'text',
         position: 'right',
         content: { content: displayMessage },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
 
       addOrUpdateMessage(userMessage, true);
@@ -358,7 +358,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     unlockInteraction,
     resetActiveExecution,
   } = useConversationCommandQueue({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     enabled: true,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
@@ -372,7 +372,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       const currentUploadFile = [...uploadFile];
       setAtPath([]);
       setUploadFile([]);
-      const filePaths = [
+      const file_paths = [
         ...currentUploadFile,
         ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
       ];
@@ -384,11 +384,11 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           hasPendingCommands,
         })
       ) {
-        enqueue({ input: message, files: filePaths });
+        enqueue({ input: message, files: file_paths });
         return;
       }
 
-      await executeCommand({ input: message, files: filePaths });
+      await executeCommand({ input: message, files: file_paths });
     },
     [aiProcessing, atPath, enqueue, executeCommand, hasPendingCommands, setAtPath, setUploadFile, uploadFile]
   );
@@ -455,8 +455,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           aiProcessing
             ? t('conversation.chat.processing')
             : t('acp.sendbox.placeholder', {
-                backend: agentName,
-                defaultValue: `Send message to ${agentName}...`,
+                backend: agent_name,
+                defaultValue: `Send message to ${agent_name}...`,
               })
         }
         onStop={handleStop}

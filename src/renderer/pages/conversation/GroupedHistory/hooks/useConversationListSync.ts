@@ -62,7 +62,7 @@ let isStoreInitialized = false;
 let conversationsState: TChatConversation[] = [];
 let generatingConversationIdsState = new Set<string>();
 let completionUnreadConversationIdsState = new Set<string>();
-let conversationIdsState = new Set<string>();
+let conversation_idsState = new Set<string>();
 let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
   conversations: conversationsState,
@@ -95,72 +95,72 @@ const refreshConversations = () => {
       const items = result?.items;
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
-          const extra = conv.extra as { isHealthCheck?: boolean; teamId?: string } | undefined;
-          return extra?.isHealthCheck !== true && !extra?.teamId;
+          const extra = conv.extra as { is_health_check?: boolean; team_id?: string } | undefined;
+          return extra?.is_health_check !== true && !extra?.team_id;
         });
         conversationsState = filteredData;
         // Use ALL conversation IDs (including team/healthCheck) so the
         // responseStream listener recognises them as known and doesn't
         // trigger an infinite refreshConversations loop.
-        conversationIdsState = new Set(items.map((conversation) => conversation.id));
+        conversation_idsState = new Set(items.map((conversation) => conversation.id));
         emitStoreChange();
         return;
       }
 
       conversationsState = [];
-      conversationIdsState = new Set();
+      conversation_idsState = new Set();
       emitStoreChange();
     })
     .catch((error) => {
       console.error('[WorkspaceGroupedHistory] Failed to load conversations:', error);
       conversationsState = [];
-      conversationIdsState = new Set();
+      conversation_idsState = new Set();
       emitStoreChange();
     });
 };
 
-const markGenerating = (conversationId: string) => {
-  if (generatingConversationIdsState.has(conversationId)) {
+const markGenerating = (conversation_id: string) => {
+  if (generatingConversationIdsState.has(conversation_id)) {
     return;
   }
 
-  generatingConversationIdsState = new Set(generatingConversationIdsState).add(conversationId);
+  generatingConversationIdsState = new Set(generatingConversationIdsState).add(conversation_id);
   emitStoreChange();
 };
 
-const clearGenerating = (conversationId: string) => {
-  if (!generatingConversationIdsState.has(conversationId)) {
+const clearGenerating = (conversation_id: string) => {
+  if (!generatingConversationIdsState.has(conversation_id)) {
     return;
   }
 
   const next = new Set(generatingConversationIdsState);
-  next.delete(conversationId);
+  next.delete(conversation_id);
   generatingConversationIdsState = next;
   emitStoreChange();
 };
 
-const markCompletionUnread = (conversationId: string) => {
-  if (completionUnreadConversationIdsState.has(conversationId)) {
+const markCompletionUnread = (conversation_id: string) => {
+  if (completionUnreadConversationIdsState.has(conversation_id)) {
     return;
   }
 
-  completionUnreadConversationIdsState = new Set(completionUnreadConversationIdsState).add(conversationId);
+  completionUnreadConversationIdsState = new Set(completionUnreadConversationIdsState).add(conversation_id);
   emitStoreChange();
 };
 
-const clearCompletionUnreadState = (conversationId: string) => {
-  if (!completionUnreadConversationIdsState.has(conversationId)) {
+const clearCompletionUnreadState = (conversation_id: string) => {
+  if (!completionUnreadConversationIdsState.has(conversation_id)) {
     return;
   }
 
   const next = new Set(completionUnreadConversationIdsState);
-  next.delete(conversationId);
+  next.delete(conversation_id);
   completionUnreadConversationIdsState = next;
   emitStoreChange();
 };
 
-const setActiveConversationState = (conversationId: string | null) => {
-  activeConversationIdState = conversationId;
+const setActiveConversationState = (conversation_id: string | null) => {
+  activeConversationIdState = conversation_id;
 };
 
 const initializeConversationListSyncStore = () => {
@@ -174,39 +174,39 @@ const initializeConversationListSyncStore = () => {
   addEventListener('chat.history.refresh', refreshConversations);
   ipcBridge.conversation.listChanged.on((event) => {
     if (event.action === 'deleted') {
-      clearGenerating(event.conversationId);
-      clearCompletionUnreadState(event.conversationId);
+      clearGenerating(event.conversation_id);
+      clearCompletionUnreadState(event.conversation_id);
     }
     refreshConversations();
   });
   ipcBridge.conversation.responseStream.on((message) => {
-    const conversationId = message.conversation_id;
-    if (!conversationId) {
+    const conversation_id = message.conversation_id;
+    if (!conversation_id) {
       return;
     }
 
-    if (!conversationIdsState.has(conversationId)) {
+    if (!conversation_idsState.has(conversation_id)) {
       refreshConversations();
     }
 
     if (isTerminalStreamMessage(message)) {
-      const wasGenerating = generatingConversationIdsState.has(conversationId);
-      if (wasGenerating && activeConversationIdState !== conversationId) {
-        markCompletionUnread(conversationId);
+      const wasGenerating = generatingConversationIdsState.has(conversation_id);
+      if (wasGenerating && activeConversationIdState !== conversation_id) {
+        markCompletionUnread(conversation_id);
       }
-      clearGenerating(conversationId);
+      clearGenerating(conversation_id);
       return;
     }
 
     if (isGeneratingStreamMessage(message.type)) {
-      markGenerating(conversationId);
+      markGenerating(conversation_id);
     }
   });
   ipcBridge.conversation.turnCompleted.on((event) => {
-    if (isTerminalTurnState(event.state) && activeConversationIdState !== event.sessionId) {
-      markCompletionUnread(event.sessionId);
+    if (isTerminalTurnState(event.state) && activeConversationIdState !== event.session_id) {
+      markCompletionUnread(event.session_id);
     }
-    clearGenerating(event.sessionId);
+    clearGenerating(event.session_id);
     refreshConversations();
   });
 };
@@ -222,24 +222,24 @@ export const useConversationListSync = () => {
     getConversationListSyncSnapshot
   );
 
-  const clearCompletionUnread = useCallback((conversationId: string) => {
-    clearCompletionUnreadState(conversationId);
+  const clearCompletionUnread = useCallback((conversation_id: string) => {
+    clearCompletionUnreadState(conversation_id);
   }, []);
 
-  const setActiveConversation = useCallback((conversationId: string | null) => {
-    setActiveConversationState(conversationId);
+  const setActiveConversation = useCallback((conversation_id: string | null) => {
+    setActiveConversationState(conversation_id);
   }, []);
 
   const isConversationGenerating = useCallback(
-    (conversationId: string) => {
-      return generatingConversationIds.has(conversationId);
+    (conversation_id: string) => {
+      return generatingConversationIds.has(conversation_id);
     },
     [generatingConversationIds]
   );
 
   const hasCompletionUnread = useCallback(
-    (conversationId: string) => {
-      return completionUnreadConversationIds.has(conversationId);
+    (conversation_id: string) => {
+      return completionUnreadConversationIds.has(conversation_id);
     },
     [completionUnreadConversationIds]
   );

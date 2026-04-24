@@ -34,7 +34,7 @@ export const StatusTag: React.FC<{ status: string }> = ({ status }) => {
 };
 
 interface BaseToolCallDisplayProps {
-  toolCallId: string;
+  tool_call_id: string;
   title: string;
   status: string;
   description?: string | ReactNode;
@@ -44,7 +44,7 @@ interface BaseToolCallDisplayProps {
 }
 
 const BaseToolCallDisplay: React.FC<BaseToolCallDisplayProps> = ({
-  toolCallId,
+  tool_call_id,
   title,
   status,
   description,
@@ -68,7 +68,7 @@ const BaseToolCallDisplay: React.FC<BaseToolCallDisplayProps> = ({
           {/* 特定工具的详细信息 */}
           {children}
 
-          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {toolCallId}</div>
+          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {tool_call_id}</div>
         </div>
       </div>
     </Card>

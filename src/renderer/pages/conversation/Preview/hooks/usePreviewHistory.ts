@@ -25,9 +25,9 @@ interface UsePreviewHistoryOptions {
     content: string;
     title: string;
     metadata?: {
-      filePath?: string;
+      file_path?: string;
       workspace?: string;
-      fileName?: string;
+      file_name?: string;
       title?: string;
       language?: string;
     };
@@ -129,12 +129,12 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
   const historyTarget = useMemo<PreviewHistoryTarget | null>(() => {
     if (!activeTab) return null;
     const meta = activeTab.metadata;
-    const fallbackName = meta?.fileName || meta?.title || activeTab.title;
+    const fallbackName = meta?.file_name || meta?.title || activeTab.title;
     return {
       contentType: activeTab.contentType as import('@/common/types/preview').PreviewContentType,
-      filePath: meta?.filePath,
+      file_path: meta?.file_path,
       workspace: meta?.workspace,
-      fileName: fallbackName,
+      file_name: fallbackName,
       title: meta?.title || activeTab.title,
       language: meta?.language,
     };

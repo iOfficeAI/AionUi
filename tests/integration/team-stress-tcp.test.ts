@@ -123,12 +123,12 @@ async function callToolWithChunkedDelivery(
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: 'slot-lead',
-    conversationId: 'conv-lead',
+    slot_id: 'slot-lead',
+    conversation_id: 'conv-lead',
     role: 'leader',
-    agentType: 'claude',
-    agentName: 'Leader',
-    conversationType: 'acp',
+    agent_type: 'claude',
+    agent_name: 'Leader',
+    conversation_type: 'acp',
     status: 'idle',
     ...overrides,
   };
@@ -137,7 +137,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
 function buildServer(agents: TeamAgent[], wakeAgent = vi.fn().mockResolvedValue(undefined)) {
   const mailbox = { write: vi.fn().mockResolvedValue({ id: 'msg-1' }) } as unknown as Mailbox;
   const taskManager = {
-    create: vi.fn().mockImplementation(async (p: { teamId: string; subject: string }) => ({
+    create: vi.fn().mockImplementation(async (p: { team_id: string; subject: string }) => ({
       id: crypto.randomUUID(),
       subject: p.subject,
       status: 'pending',
@@ -148,7 +148,7 @@ function buildServer(agents: TeamAgent[], wakeAgent = vi.fn().mockResolvedValue(
   } as unknown as TaskManager;
 
   const server = new TeamMcpServer({
-    teamId: 'team-tcp-stress',
+    team_id: 'team-tcp-stress',
     getAgents: () => agents,
     mailbox,
     taskManager,
@@ -271,8 +271,8 @@ describe('Stress — 20 parallel TCP tool calls', () => {
 
   beforeEach(async () => {
     const agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader' }),
-      makeAgent({ slotId: 'slot-worker', agentName: 'Worker', role: 'teammate' }),
+      makeAgent({ slot_id: 'slot-lead', agent_name: 'Leader', role: 'leader' }),
+      makeAgent({ slot_id: 'slot-worker', agent_name: 'Worker', role: 'teammate' }),
     ];
     const built = buildServer(agents);
     server = built.server;

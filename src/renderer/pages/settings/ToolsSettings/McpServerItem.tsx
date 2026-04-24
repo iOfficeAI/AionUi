@@ -9,7 +9,7 @@ interface McpServerItemProps {
   server: IMcpServer;
   isCollapsed: boolean;
   agentInstallStatus: Record<string, string[]>;
-  isServerLoading: (serverName: string) => boolean;
+  isServerLoading: (server_name: string) => boolean;
   isTestingConnection: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;

@@ -45,7 +45,7 @@ export const defaultVisualStyle: MinimapVisualStyle = {
 };
 
 export type ConversationTitleMinimapProps = {
-  conversationId?: string;
+  conversation_id?: string;
   /** When true, hide the trigger button but keep the shortcut listener and panel active. */
   hideTrigger?: boolean;
 };

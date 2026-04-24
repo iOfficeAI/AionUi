@@ -49,36 +49,36 @@ export interface ApiError extends Error {
 export abstract class RotatingApiClient<T> {
   protected apiKeyManager?: ApiKeyManager;
   protected client?: T;
-  protected readonly createClientFn: (apiKey: string) => T;
+  protected readonly createClientFn: (api_key: string) => T;
   protected readonly options: Required<RotatingApiClientOptions>;
   protected readonly originalApiKeys: string;
 
   constructor(
-    apiKeys: string,
+    api_keys: string,
     authType: AuthType,
-    createClientFn: (apiKey: string) => T,
+    createClientFn: (api_key: string) => T,
     options: RotatingApiClientOptions = {}
   ) {
-    this.originalApiKeys = apiKeys;
+    this.originalApiKeys = api_keys;
     this.createClientFn = createClientFn;
     this.options = {
       maxRetries: options.maxRetries ?? DEFAULT_MAX_RETRIES,
       retryDelay: options.retryDelay ?? DEFAULT_RETRY_DELAY,
     };
 
-    if (apiKeys && (apiKeys.includes(',') || apiKeys.includes('\n'))) {
-      this.apiKeyManager = new ApiKeyManager(apiKeys, authType);
+    if (api_keys && (api_keys.includes(',') || api_keys.includes('\n'))) {
+      this.apiKeyManager = new ApiKeyManager(api_keys, authType);
     }
 
     this.initializeClient();
   }
 
   protected initializeClient(): void {
-    const apiKey = this.getCurrentApiKey();
+    const api_key = this.getCurrentApiKey();
 
-    if (apiKey) {
+    if (api_key) {
       try {
-        this.client = this.createClientFn(apiKey);
+        this.client = this.createClientFn(api_key);
       } catch (error) {
         console.error('[RotatingApiClient] Client initialization failed:', error);
         throw error;

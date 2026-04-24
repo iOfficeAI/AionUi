@@ -13,7 +13,7 @@ import type { IProvider } from '../../src/common/config/storage';
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const configStorageMock = vi.hoisted(() => ({
+const configServiceMock = vi.hoisted(() => ({
   get: vi.fn(),
   set: vi.fn().mockResolvedValue(undefined),
 }));
@@ -47,8 +47,8 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/storage', () => ({
-  ConfigStorage: configStorageMock,
+vi.mock('../../src/common/config/configService', () => ({
+  configService: configServiceMock,
 }));
 
 vi.mock('../../src/common/config/presets/assistantPresets', () => ({
@@ -107,14 +107,14 @@ const PRESET_AGENT_ID = 'cowork';
 const AVAILABLE_AGENTS: AvailableAgent[] = [
   { backend: 'gemini', name: 'Gemini' },
   { backend: 'claude', name: 'Claude' },
-  { backend: 'claude', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
+  { backend: 'claude', name: 'Cowork Assistant', custom_agent_id: PRESET_AGENT_ID, is_preset: true },
 ];
 
 const CUSTOM_AGENTS: AcpBackendConfig[] = [
   {
     id: PRESET_AGENT_ID,
     name: 'Cowork Assistant',
-    isPreset: true,
+    is_preset: true,
     enabled: true,
     presetAgentType: 'claude',
   } as AcpBackendConfig,
@@ -122,13 +122,13 @@ const CUSTOM_AGENTS: AcpBackendConfig[] = [
 
 const CLAUDE_CACHED_MODEL: AcpModelInfo = {
   source: 'models',
-  currentModelId: 'claude-sonnet-4-5-20250514',
-  currentModelLabel: 'Claude Sonnet 4.5',
-  availableModels: [
+  current_model_id: 'claude-sonnet-4-5-20250514',
+  current_model_label: 'Claude Sonnet 4.5',
+  available_models: [
     { id: 'claude-sonnet-4-5-20250514', label: 'Claude Sonnet 4.5' },
     { id: 'claude-opus-4-5-20250514', label: 'Claude Opus 4.5' },
   ],
-  canSwitch: true,
+  can_switch: true,
 };
 
 const MODEL_LIST: IProvider[] = [
@@ -136,8 +136,8 @@ const MODEL_LIST: IProvider[] = [
     id: 'p1',
     name: 'Test Provider',
     platform: 'openai',
-    baseUrl: '',
-    apiKey: 'k',
+    base_url: '',
+    api_key: 'k',
     model: ['gpt-4'],
   } as IProvider,
 ];
@@ -155,10 +155,10 @@ function setupMocks(overrides?: {
   const acpConfig = overrides?.acpConfig ?? { claude: { preferredMode: 'bypassPermissions' } };
   const geminiConfig = overrides?.geminiConfig ?? {};
 
-  ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: AVAILABLE_AGENTS });
+  ipcMock.getAvailableAgents.mockResolvedValue(AVAILABLE_AGENTS);
   ipcMock.getAssistants.mockResolvedValue([]);
 
-  configStorageMock.get.mockImplementation(async (key: string) => {
+  configServiceMock.get.mockImplementation((key: string) => {
     switch (key) {
       case 'acp.cachedModels':
         return cachedModels;
@@ -215,14 +215,14 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     // Verify effective agent type resolves to 'claude' (via presetAgentType)
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
-      expect(result.current.currentEffectiveAgentInfo.agentType).toBe('claude');
+      expect(result.current.is_presetAgent).toBe(true);
+      expect(result.current.currentEffectiveAgentInfo.agent_type).toBe('claude');
     });
 
     // Key assertion: cached model info should look up 'claude' key, not 'custom'
     expect(result.current.currentAcpCachedModelInfo).not.toBeNull();
-    expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-sonnet-4-5-20250514');
-    expect(result.current.currentAcpCachedModelInfo?.availableModels).toHaveLength(2);
+    expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('claude-sonnet-4-5-20250514');
+    expect(result.current.currentAcpCachedModelInfo?.available_models).toHaveLength(2);
   });
 
   it('currentAcpCachedModelInfo returns null when cached models have no entry for effective backend', async () => {
@@ -239,7 +239,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
+      expect(result.current.is_presetAgent).toBe(true);
     });
 
     // Preset maps to 'claude', but cache only has 'codex'
@@ -284,7 +284,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     // Wait a tick for mode loading effect
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
+      expect(result.current.is_presetAgent).toBe(true);
     });
 
     expect(result.current.selectedMode).toBe('default');
@@ -303,13 +303,13 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(false);
+      expect(result.current.is_presetAgent).toBe(false);
       expect(result.current.selectedAgent).toBe('claude');
     });
 
     // Should look up acpCachedModels['claude']
     expect(result.current.currentAcpCachedModelInfo).not.toBeNull();
-    expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('claude-sonnet-4-5-20250514');
+    expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('claude-sonnet-4-5-20250514');
   });
 
   it('setSelectedMode saves mode under effective backend for preset agent', async () => {
@@ -324,13 +324,13 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.isPresetAgent).toBe(true);
+      expect(result.current.is_presetAgent).toBe(true);
     });
 
     // Clear mocks to only capture the mode save call
-    configStorageMock.get.mockClear();
-    configStorageMock.set.mockClear();
-    configStorageMock.get.mockResolvedValue({});
+    configServiceMock.get.mockClear();
+    configServiceMock.set.mockClear();
+    configServiceMock.get.mockReturnValue({});
 
     act(() => {
       result.current.setSelectedMode('bypassPermissions');
@@ -338,7 +338,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
 
     // savePreferredMode should be called with 'claude' (effective type), not 'custom'
     await waitFor(() => {
-      const setCalls = configStorageMock.set.mock.calls;
+      const setCalls = configServiceMock.set.mock.calls;
       const acpConfigCall = setCalls.find(([key]: [string]) => key === 'acp.config');
       expect(acpConfigCall).toBeDefined();
       // Should save under the 'claude' key, not 'custom'
@@ -349,7 +349,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
   });
 
   it('resets back to the default agent immediately on new-chat navigation', async () => {
-    configStorageMock.get.mockImplementation(async (key: string) => {
+    configServiceMock.get.mockImplementation((key: string) => {
       switch (key) {
         case 'acp.cachedModels':
           return { claude: CLAUDE_CACHED_MODEL };
@@ -382,7 +382,7 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     rerender({ resetAssistant: true, locationKey: 'new-chat' });
 
     expect(result.current.selectedAgentKey).toBe('gemini');
-    expect(configStorageMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
+    expect(configServiceMock.set).toHaveBeenCalledWith('guid.lastSelectedAgent', 'gemini');
   });
 
   it('uses default codex models when codex has no cached list', async () => {
@@ -400,10 +400,10 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     await waitFor(() => {
-      expect(result.current.currentAcpCachedModelInfo?.currentModelId).toBe('gpt-5');
+      expect(result.current.currentAcpCachedModelInfo?.current_model_id).toBe('gpt-5');
     });
 
-    expect(result.current.currentAcpCachedModelInfo?.availableModels).toEqual([
+    expect(result.current.currentAcpCachedModelInfo?.available_models).toEqual([
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);

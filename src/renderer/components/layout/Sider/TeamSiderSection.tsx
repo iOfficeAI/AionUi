@@ -93,10 +93,10 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   }, [teams, pinnedIds]);
 
   const handleTeamClick = useCallback(
-    (teamId: string) => {
+    (team_id: string) => {
       cleanupSiderTooltips();
       blurActiveElement();
-      Promise.resolve(navigate(`/team/${teamId}`)).catch(console.error);
+      Promise.resolve(navigate(`/team/${team_id}`)).catch(console.error);
       if (onSessionClick) onSessionClick();
     },
     [navigate, onSessionClick]

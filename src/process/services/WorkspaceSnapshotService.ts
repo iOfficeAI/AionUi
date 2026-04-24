@@ -79,7 +79,7 @@ export class WorkspaceSnapshotService {
     return this.compareSnapshot(state);
   }
 
-  async getBaselineContent(workspacePath: string, filePath: string): Promise<string | null> {
+  async getBaselineContent(workspacePath: string, file_path: string): Promise<string | null> {
     const state = this.snapshots.get(workspacePath);
     if (!state) {
       return null;
@@ -87,7 +87,7 @@ export class WorkspaceSnapshotService {
 
     try {
       const gitArgs = state.mode === 'git-repo' ? [] : this.gitArgs(state);
-      const { stdout } = await execFileAsync('git', [...gitArgs, 'show', `HEAD:${filePath}`], {
+      const { stdout } = await execFileAsync('git', [...gitArgs, 'show', `HEAD:${file_path}`], {
         cwd: workspacePath,
         maxBuffer: 50 * 1024 * 1024,
         encoding: 'utf-8',
@@ -122,9 +122,9 @@ export class WorkspaceSnapshotService {
 
   // --- Git operations (git-repo mode only) ---
 
-  async stageFile(workspacePath: string, filePath: string): Promise<void> {
+  async stageFile(workspacePath: string, file_path: string): Promise<void> {
     this.ensureGitRepo(workspacePath);
-    await execFileAsync('git', ['add', '--', filePath], { cwd: workspacePath });
+    await execFileAsync('git', ['add', '--', file_path], { cwd: workspacePath });
   }
 
   async stageAll(workspacePath: string): Promise<void> {
@@ -132,9 +132,9 @@ export class WorkspaceSnapshotService {
     await execFileAsync('git', ['add', '-A'], { cwd: workspacePath, maxBuffer: 10 * 1024 * 1024 });
   }
 
-  async unstageFile(workspacePath: string, filePath: string): Promise<void> {
+  async unstageFile(workspacePath: string, file_path: string): Promise<void> {
     this.ensureGitRepo(workspacePath);
-    await execFileAsync('git', ['restore', '--staged', '--', filePath], { cwd: workspacePath });
+    await execFileAsync('git', ['restore', '--staged', '--', file_path], { cwd: workspacePath });
   }
 
   async unstageAll(workspacePath: string): Promise<void> {
@@ -142,31 +142,31 @@ export class WorkspaceSnapshotService {
     await execFileAsync('git', ['restore', '--staged', '.'], { cwd: workspacePath });
   }
 
-  async discardFile(workspacePath: string, filePath: string, operation: FileChangeInfo['operation']): Promise<void> {
+  async discardFile(workspacePath: string, file_path: string, operation: FileChangeInfo['operation']): Promise<void> {
     this.ensureGitRepo(workspacePath);
 
     if (operation === 'create') {
       // Untracked file — delete it
-      const fullPath = path.join(workspacePath, filePath);
+      const fullPath = path.join(workspacePath, file_path);
       await fs.unlink(fullPath).catch(() => {});
     } else {
       // Modified or deleted — restore from HEAD
-      await execFileAsync('git', ['checkout', 'HEAD', '--', filePath], { cwd: workspacePath });
+      await execFileAsync('git', ['checkout', 'HEAD', '--', file_path], { cwd: workspacePath });
     }
   }
 
   // --- Snapshot mode reset ---
 
-  async resetFile(workspacePath: string, filePath: string, operation: FileChangeInfo['operation']): Promise<void> {
+  async resetFile(workspacePath: string, file_path: string, operation: FileChangeInfo['operation']): Promise<void> {
     const state = this.snapshots.get(workspacePath);
     if (!state || state.mode !== 'snapshot') return;
 
-    const fullPath = path.join(workspacePath, filePath);
+    const fullPath = path.join(workspacePath, file_path);
 
     if (operation === 'create') {
       await fs.unlink(fullPath).catch(() => {});
     } else {
-      const content = await this.getBaselineContent(workspacePath, filePath);
+      const content = await this.getBaselineContent(workspacePath, file_path);
       if (content !== null) {
         await fs.mkdir(path.dirname(fullPath), { recursive: true }).catch(() => {});
         await fs.writeFile(fullPath, content, 'utf-8');
@@ -318,7 +318,7 @@ export class WorkspaceSnapshotService {
 
       const makeInfo = (op: FileChangeInfo['operation']): FileChangeInfo => ({
         relativePath: filepath,
-        filePath: path.join(workspacePath, filepath),
+        file_path: path.join(workspacePath, filepath),
         operation: op,
       });
 
@@ -356,19 +356,19 @@ export class WorkspaceSnapshotService {
       if (status === 'M') {
         changes.push({
           relativePath: filepath,
-          filePath: path.join(state.workspacePath, filepath),
+          file_path: path.join(state.workspacePath, filepath),
           operation: 'modify',
         });
       } else if (status === 'D') {
         changes.push({
           relativePath: filepath,
-          filePath: path.join(state.workspacePath, filepath),
+          file_path: path.join(state.workspacePath, filepath),
           operation: 'delete',
         });
       } else if (status === 'A') {
         changes.push({
           relativePath: filepath,
-          filePath: path.join(state.workspacePath, filepath),
+          file_path: path.join(state.workspacePath, filepath),
           operation: 'create',
         });
       }
@@ -382,7 +382,11 @@ export class WorkspaceSnapshotService {
 
     for (const filepath of untrackedOut.split('\n')) {
       if (!filepath) continue;
-      changes.push({ relativePath: filepath, filePath: path.join(state.workspacePath, filepath), operation: 'create' });
+      changes.push({
+        relativePath: filepath,
+        file_path: path.join(state.workspacePath, filepath),
+        operation: 'create',
+      });
     }
 
     return { staged: [], unstaged: changes };

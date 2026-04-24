@@ -15,17 +15,11 @@ vi.mock('@/common', () => ({
   ipcBridge: {},
 }));
 
-vi.mock('@/common/config/storage', async () => {
-  const actual = await vi.importActual<typeof import('../../src/common/config/storage')>(
-    '../../src/common/config/storage'
-  );
-  return {
-    ...actual,
-    ConfigStorage: {
-      get: configGet,
-    },
-  };
-});
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: configGet,
+  },
+}));
 
 vi.mock('@/common/utils/presetAssistantResources', () => ({
   loadPresetAssistantResources,
@@ -49,15 +43,15 @@ describe('createConversationParams', () => {
     loadPresetAssistantResources.mockResolvedValue({
       rules: 'preset rules',
       skills: '',
-      enabledSkills: ['moltbook'],
+      enabled_skills: ['moltbook'],
     });
-    configGet.mockResolvedValue([
+    configGet.mockReturnValue([
       {
         id: 'provider-1',
         platform: 'openai',
         name: 'Provider',
-        baseUrl: 'https://example.com',
-        apiKey: 'token',
+        base_url: 'https://example.com',
+        api_key: 'token',
         model: ['gpt-4.1'],
         enabled: true,
       },
@@ -67,8 +61,8 @@ describe('createConversationParams', () => {
       {
         backend: 'gemini',
         name: 'Preset Assistant',
-        customAgentId: 'builtin-cowork',
-        isPreset: true,
+        custom_agent_id: 'builtin-cowork',
+        is_preset: true,
         presetAgentType: 'gemini',
       },
       '/tmp/workspace',
@@ -77,27 +71,27 @@ describe('createConversationParams', () => {
 
     expect(resolveLocaleKey('tr')).toBe('tr-TR');
     expect(loadPresetAssistantResources).toHaveBeenCalledWith({
-      customAgentId: 'builtin-cowork',
+      custom_agent_id: 'builtin-cowork',
       localeKey: 'tr-TR',
     });
-    expect(params.extra.presetRules).toBe('preset rules');
-    expect(params.extra.enabledSkills).toEqual(['moltbook']);
+    expect(params.extra.preset_rules).toBe('preset rules');
+    expect(params.extra.enabled_skills).toEqual(['moltbook']);
     expect(params.model.useModel).toBe('gpt-4.1');
   });
 
-  it('maps acp preset assistants to presetContext and backend', async () => {
+  it('maps acp preset assistants to preset_context and backend', async () => {
     loadPresetAssistantResources.mockResolvedValue({
       rules: 'acp preset rules',
       skills: '',
-      enabledSkills: undefined,
+      enabled_skills: undefined,
     });
 
     const params = await buildPresetAssistantParams(
       {
         backend: 'codebuddy',
         name: 'Codebuddy Assistant',
-        customAgentId: 'preset-1',
-        isPreset: true,
+        custom_agent_id: 'preset-1',
+        is_preset: true,
         presetAgentType: 'codebuddy',
       },
       '/tmp/workspace',
@@ -105,7 +99,7 @@ describe('createConversationParams', () => {
     );
 
     expect(params.type).toBe('acp');
-    expect(params.extra.presetContext).toBe('acp preset rules');
+    expect(params.extra.preset_context).toBe('acp preset rules');
     expect(params.extra.backend).toBe('codebuddy');
   });
 
@@ -113,16 +107,16 @@ describe('createConversationParams', () => {
     loadPresetAssistantResources.mockResolvedValue({
       rules: 'gemini preset rules',
       skills: '',
-      enabledSkills: [],
+      enabled_skills: [],
     });
-    configGet.mockResolvedValue([]); // No providers
+    configGet.mockReturnValue([]); // No providers
 
     const params = await buildPresetAssistantParams(
       {
         backend: 'gemini',
         name: 'Gemini Assistant',
-        customAgentId: 'builtin-gemini',
-        isPreset: true,
+        custom_agent_id: 'builtin-gemini',
+        is_preset: true,
         presetAgentType: 'gemini',
       },
       '/tmp/workspace',
@@ -134,7 +128,7 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to gemini-placeholder when no provider configured for gemini (CLI)', async () => {
-    configGet.mockResolvedValue([]); // No providers
+    configGet.mockReturnValue([]); // No providers
 
     const params = await buildCliAgentParams(
       {
@@ -150,13 +144,13 @@ describe('createConversationParams', () => {
   });
 
   it('resolves aionrs model from enabled provider', async () => {
-    configGet.mockResolvedValue([
+    configGet.mockReturnValue([
       {
         id: 'provider-1',
         platform: 'openai',
         name: 'Provider',
-        baseUrl: 'https://example.com',
-        apiKey: 'token',
+        base_url: 'https://example.com',
+        api_key: 'token',
         model: ['gpt-4.1'],
         enabled: true,
       },
@@ -176,7 +170,7 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no provider configured', async () => {
-    configGet.mockResolvedValue([]);
+    configGet.mockReturnValue([]);
 
     await expect(
       buildCliAgentParams(
@@ -203,7 +197,7 @@ describe('createConversationParams', () => {
   });
 
   it('reuses the saved ACP mode and model for workspace conversations', async () => {
-    configGet.mockImplementation(async (key: string) => {
+    configGet.mockImplementation((key: string) => {
       if (key === 'acp.config') {
         return {
           codex: {
@@ -223,12 +217,12 @@ describe('createConversationParams', () => {
       '/tmp/workspace'
     );
 
-    expect(params.extra.sessionMode).toBe('yolo');
-    expect(params.extra.currentModelId).toBe('gpt-5-codex');
+    expect(params.extra.session_mode).toBe('yolo');
+    expect(params.extra.current_model_id).toBe('gpt-5-codex');
   });
 
   it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
-    configGet.mockImplementation(async (key: string) => {
+    configGet.mockImplementation((key: string) => {
       if (key === 'acp.config') {
         return {
           claude: {
@@ -247,12 +241,12 @@ describe('createConversationParams', () => {
       '/tmp/workspace'
     );
 
-    expect(params.extra.sessionMode).toBe('bypassPermissions');
+    expect(params.extra.session_mode).toBe('bypassPermissions');
   });
 
   it('reuses the effective preset backend mode and model for ACP preset assistants', async () => {
-    loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
-    configGet.mockImplementation(async (key: string) => {
+    loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabled_skills: [] });
+    configGet.mockImplementation((key: string) => {
       if (key === 'acp.config') {
         return {
           claude: {
@@ -265,19 +259,19 @@ describe('createConversationParams', () => {
     });
 
     const params = await buildPresetAssistantParams(
-      { backend: 'custom', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
+      { backend: 'custom', name: 'A', custom_agent_id: 'p', is_preset: true, presetAgentType: 'claude' },
       '/tmp',
       'en'
     );
 
     expect(params.extra.backend).toBe('claude');
-    expect(params.extra.sessionMode).toBe('acceptEdits');
-    expect(params.extra.currentModelId).toBe('claude-sonnet-4-5');
+    expect(params.extra.session_mode).toBe('acceptEdits');
+    expect(params.extra.current_model_id).toBe('claude-sonnet-4-5');
   });
 
   it('falls back to default codex model when no cached ACP model exists', async () => {
     defaultCodexModels.push({ id: 'gpt-5', label: 'GPT-5' });
-    configGet.mockImplementation(async (key: string) => {
+    configGet.mockImplementation((key: string) => {
       if (key === 'acp.config') {
         return {};
       }
@@ -295,18 +289,18 @@ describe('createConversationParams', () => {
       '/tmp/workspace'
     );
 
-    expect(params.extra.currentModelId).toBe('gpt-5');
+    expect(params.extra.current_model_id).toBe('gpt-5');
   });
 
   it('throws error for aionrs if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    configGet.mockReturnValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
       'No enabled model provider for Aion CLI'
     );
   });
 
   it('throws error for gemini if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    configGet.mockReturnValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
     // Note: buildCliAgentParams for gemini uses resolveGeminiModel which catches the error
     const params = await buildCliAgentParams({ backend: 'gemini', name: 'Agent' }, '/tmp');
     expect(params.model.id).toBe('gemini-placeholder');
@@ -327,16 +321,16 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to first model if none enabled for aionrs', async () => {
-    configGet.mockResolvedValue([
+    configGet.mockReturnValue([
       {
         id: 'p1',
         platform: 'openai',
         name: 'P1',
-        baseUrl: 'b1',
-        apiKey: 'k1',
+        base_url: 'b1',
+        api_key: 'k1',
         model: ['m1', 'm2'],
         enabled: true,
-        modelEnabled: { m1: false, m2: false },
+        model_enabled: { m1: false, m2: false },
       },
     ]);
 
@@ -344,15 +338,15 @@ describe('createConversationParams', () => {
     expect(params.model.useModel).toBe('m1');
   });
 
-  it('handles missing cliPath for acp backend', async () => {
+  it('handles missing cli_path for acp backend', async () => {
     const params = await buildCliAgentParams({ backend: 'claude', name: 'A' }, '/tmp');
-    expect(params.extra.cliPath).toBeUndefined();
+    expect(params.extra.cli_path).toBeUndefined();
   });
 
   it('sets backend for acp preset assistant', async () => {
-    loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabledSkills: [] });
+    loadPresetAssistantResources.mockResolvedValue({ rules: 'r', skills: '', enabled_skills: [] });
     const params = await buildPresetAssistantParams(
-      { backend: 'claude', name: 'A', customAgentId: 'p', isPreset: true, presetAgentType: 'claude' },
+      { backend: 'claude', name: 'A', custom_agent_id: 'p', is_preset: true, presetAgentType: 'claude' },
       '/tmp',
       'en'
     );

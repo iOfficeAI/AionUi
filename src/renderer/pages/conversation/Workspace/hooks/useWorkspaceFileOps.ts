@@ -396,8 +396,8 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
         // 打开预览面板并传入文件元数据 / Open preview panel with file metadata
         openPreview(content, contentType, {
           title: nodeData.name,
-          fileName: nodeData.name,
-          filePath: nodeData.fullPath,
+          file_name: nodeData.name,
+          file_path: nodeData.fullPath,
           workspace: workspace,
           language: ext,
           // Markdown 和图片文件默认为只读模式

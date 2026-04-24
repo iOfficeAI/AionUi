@@ -6,7 +6,7 @@
  *
  * Usage:
  *   import { mainLog, mainWarn, mainError } from '@process/utils/mainLogger';
- *   mainLog('[AcpAgentManager]', 'session started', { sessionId });
+ *   mainLog('[AcpAgentManager]', 'session started', { session_id });
  */
 
 import { ipcBridge } from '@/common';

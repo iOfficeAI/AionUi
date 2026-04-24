@@ -18,22 +18,22 @@ export type PreviewContentType =
 
 export interface PreviewHistoryTarget {
   contentType: PreviewContentType;
-  filePath?: string;
+  file_path?: string;
   workspace?: string;
-  fileName?: string;
+  file_name?: string;
   title?: string;
   language?: string;
-  conversationId?: string;
+  conversation_id?: string;
 }
 
 export interface PreviewSnapshotInfo {
   id: string;
   label: string;
-  createdAt: number;
+  created_at: number;
   size: number;
   contentType: PreviewContentType;
-  fileName?: string;
-  filePath?: string;
+  file_name?: string;
+  file_path?: string;
 }
 
 export interface RemoteImageFetchRequest {

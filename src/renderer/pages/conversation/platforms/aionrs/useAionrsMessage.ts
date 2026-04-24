@@ -150,13 +150,13 @@ export const useAionrsMessage = (
             const usageData = message.data as TokenUsage | undefined;
             if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
               const newTokenUsage: TokenUsageData = {
-                totalTokens: (usageData.input_tokens || 0) + (usageData.output_tokens || 0),
+                total_tokens: (usageData.input_tokens || 0) + (usageData.output_tokens || 0),
               };
               setTokenUsage(newTokenUsage);
               void ipcBridge.conversation.update.invoke({
                 id: conversation_id,
                 updates: {
-                  extra: { lastTokenUsage: newTokenUsage } as TChatConversation['extra'],
+                  extra: { last_token_usage: newTokenUsage } as TChatConversation['extra'],
                 },
                 mergeExtra: true,
               });
@@ -281,10 +281,10 @@ export const useAionrsMessage = (
       setWaitingResponse(isRunning);
       waitingResponseRef.current = isRunning;
       // Load persisted token usage stats
-      if (res.type === 'aionrs' && res.extra?.lastTokenUsage) {
-        const { lastTokenUsage } = res.extra;
-        if (lastTokenUsage.totalTokens > 0) {
-          setTokenUsage(lastTokenUsage);
+      if (res.type === 'aionrs' && res.extra?.last_token_usage) {
+        const { last_token_usage } = res.extra;
+        if (last_token_usage.total_tokens > 0) {
+          setTokenUsage(last_token_usage);
         }
       }
       setHasHydratedRunningState(true);

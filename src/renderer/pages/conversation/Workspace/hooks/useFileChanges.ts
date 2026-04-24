@@ -20,12 +20,12 @@ type UseFileChangesReturn = {
   snapshotInfo: SnapshotInfo | null;
   branches: string[];
   refreshChanges: () => Promise<void>;
-  stageFile: (filePath: string) => Promise<void>;
+  stageFile: (file_path: string) => Promise<void>;
   stageAll: () => Promise<void>;
-  unstageFile: (filePath: string) => Promise<void>;
+  unstageFile: (file_path: string) => Promise<void>;
   unstageAll: () => Promise<void>;
-  discardFile: (filePath: string, operation: FileChangeInfo['operation']) => Promise<void>;
-  resetFile: (filePath: string, operation: FileChangeInfo['operation']) => Promise<void>;
+  discardFile: (file_path: string, operation: FileChangeInfo['operation']) => Promise<void>;
+  resetFile: (file_path: string, operation: FileChangeInfo['operation']) => Promise<void>;
 };
 
 export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChangesReturn {
@@ -90,9 +90,9 @@ export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChan
   }, [workspace]);
 
   const stageFile = useCallback(
-    async (filePath: string) => {
+    async (file_path: string) => {
       if (!workspace) return;
-      await ipcBridge.fileSnapshot.stageFile.invoke({ workspace, filePath });
+      await ipcBridge.fileSnapshot.stageFile.invoke({ workspace, file_path });
       await silentRefresh();
     },
     [workspace, silentRefresh]
@@ -105,9 +105,9 @@ export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChan
   }, [workspace, silentRefresh]);
 
   const unstageFile = useCallback(
-    async (filePath: string) => {
+    async (file_path: string) => {
       if (!workspace) return;
-      await ipcBridge.fileSnapshot.unstageFile.invoke({ workspace, filePath });
+      await ipcBridge.fileSnapshot.unstageFile.invoke({ workspace, file_path });
       await silentRefresh();
     },
     [workspace, silentRefresh]
@@ -120,18 +120,18 @@ export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChan
   }, [workspace, silentRefresh]);
 
   const discardFile = useCallback(
-    async (filePath: string, operation: FileChangeInfo['operation']) => {
+    async (file_path: string, operation: FileChangeInfo['operation']) => {
       if (!workspace) return;
-      await ipcBridge.fileSnapshot.discardFile.invoke({ workspace, filePath, operation });
+      await ipcBridge.fileSnapshot.discardFile.invoke({ workspace, file_path, operation });
       await silentRefresh();
     },
     [workspace, silentRefresh]
   );
 
   const resetFile = useCallback(
-    async (filePath: string, operation: FileChangeInfo['operation']) => {
+    async (file_path: string, operation: FileChangeInfo['operation']) => {
       if (!workspace) return;
-      await ipcBridge.fileSnapshot.resetFile.invoke({ workspace, filePath, operation });
+      await ipcBridge.fileSnapshot.resetFile.invoke({ workspace, file_path, operation });
       await silentRefresh();
     },
     [workspace, silentRefresh]

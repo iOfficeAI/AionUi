@@ -22,7 +22,7 @@ type GuidModelSelectorProps = {
   // Gemini model state
   isGeminiMode: boolean;
   modelList: IProvider[];
-  currentModel: TProviderWithModel | undefined;
+  current_model: TProviderWithModel | undefined;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
   geminiModeLookup: Map<string, any>;
 
@@ -35,7 +35,7 @@ type GuidModelSelectorProps = {
 const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   isGeminiMode,
   modelList,
-  currentModel,
+  current_model,
   setCurrentModel,
   geminiModeLookup,
   currentAcpCachedModelInfo,
@@ -55,45 +55,45 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }, [modelList]);
 
   const geminiSelectedLabel = React.useMemo(() => {
-    if (!currentModel?.useModel) return '';
-    const isGoogleProvider = currentModel.platform?.toLowerCase().includes('gemini-with-google-auth');
+    if (!current_model?.useModel) return '';
+    const isGoogleProvider = current_model.platform?.toLowerCase().includes('gemini-with-google-auth');
     if (isGoogleProvider) {
-      return geminiModeLookup.get(currentModel.useModel)?.label || currentModel.useModel;
+      return geminiModeLookup.get(current_model.useModel)?.label || current_model.useModel;
     }
-    return currentModel.useModel;
-  }, [currentModel?.platform, currentModel?.useModel, geminiModeLookup]);
+    return current_model.useModel;
+  }, [current_model?.platform, current_model?.useModel, geminiModeLookup]);
 
   const geminiButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
-      selectedValue: currentModel?.useModel,
+      selected_value: current_model?.useModel,
       selectedLabel: geminiSelectedLabel,
       defaultModelLabel,
       fallbackLabel: defaultModelLabel,
     });
-  }, [currentModel?.useModel, defaultModelLabel, geminiSelectedLabel]);
+  }, [current_model?.useModel, defaultModelLabel, geminiSelectedLabel]);
 
   const acpSelectedLabel = React.useMemo(() => {
     return (
-      currentAcpCachedModelInfo?.availableModels?.find((m) => m.id === selectedAcpModel)?.label ||
-      currentAcpCachedModelInfo?.currentModelLabel ||
-      currentAcpCachedModelInfo?.currentModelId ||
+      currentAcpCachedModelInfo?.available_models?.find((m) => m.id === selectedAcpModel)?.label ||
+      currentAcpCachedModelInfo?.current_model_label ||
+      currentAcpCachedModelInfo?.current_model_id ||
       ''
     );
   }, [
-    currentAcpCachedModelInfo?.availableModels,
-    currentAcpCachedModelInfo?.currentModelId,
-    currentAcpCachedModelInfo?.currentModelLabel,
+    currentAcpCachedModelInfo?.available_models,
+    currentAcpCachedModelInfo?.current_model_id,
+    currentAcpCachedModelInfo?.current_model_label,
     selectedAcpModel,
   ]);
 
   const acpButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
-      selectedValue: selectedAcpModel || currentAcpCachedModelInfo?.currentModelId,
+      selected_value: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id,
       selectedLabel: acpSelectedLabel,
       defaultModelLabel,
       fallbackLabel: defaultModelLabel,
     });
-  }, [acpSelectedLabel, currentAcpCachedModelInfo?.currentModelId, defaultModelLabel, selectedAcpModel]);
+  }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
   const acpSourceLabel = React.useMemo(
     () => getAcpModelSourceLabel(currentAcpCachedModelInfo),
     [currentAcpCachedModelInfo]
@@ -108,7 +108,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       <Dropdown
         trigger='hover'
         droplist={
-          <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
+          <Menu selectedKeys={current_model ? [current_model.id + current_model.useModel] : []}>
             {!enabledModelList || enabledModelList.length === 0
               ? [
                   <Menu.Item
@@ -129,17 +129,17 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                 ]
               : [
                   ...(enabledModelList || []).map((provider) => {
-                    const availableModels = getAvailableModels(provider);
-                    if (availableModels.length === 0) return null;
+                    const available_models = getAvailableModels(provider);
+                    if (available_models.length === 0) return null;
                     return (
                       <Menu.ItemGroup title={provider.name} key={provider.id}>
-                        {availableModels.map((modelName) => {
+                        {available_models.map((modelName) => {
                           const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
                           const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
 
                           // 获取模型健康状态
                           const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
-                          const healthStatus = matchedProvider?.modelHealth?.[modelName]?.status || 'unknown';
+                          const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
                           const healthColor =
                             healthStatus === 'healthy'
                               ? 'bg-green-500'
@@ -165,7 +165,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                                   <Menu.Item
                                     key={provider.id + subModel.value}
                                     className={
-                                      currentModel?.id + currentModel?.useModel === provider.id + subModel.value
+                                      current_model?.id + current_model?.useModel === provider.id + subModel.value
                                         ? '!bg-2'
                                         : ''
                                     }
@@ -187,7 +187,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                             <Menu.Item
                               key={provider.id + modelName}
                               className={
-                                currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''
+                                current_model?.id + current_model?.useModel === provider.id + modelName ? '!bg-2' : ''
                               }
                               onClick={() => {
                                 setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
@@ -263,18 +263,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }
 
   // ACP cached model selector
-  if (currentAcpCachedModelInfo && currentAcpCachedModelInfo.availableModels?.length > 0) {
-    if (currentAcpCachedModelInfo.canSwitch) {
+  if (currentAcpCachedModelInfo && currentAcpCachedModelInfo.available_models?.length > 0) {
+    if (currentAcpCachedModelInfo.can_switch) {
       return (
         <Dropdown
           trigger='click'
           droplist={
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
-              {currentAcpCachedModelInfo.availableModels.map((model) => {
+              {currentAcpCachedModelInfo.available_models.map((model) => {
                 // 获取模型健康状态
                 const backend = currentAcpCachedModelInfo.source;
                 const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
-                const healthStatus = providerConfig?.modelHealth?.[model.id]?.status || 'unknown';
+                const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
                 const healthColor =
                   healthStatus === 'healthy'
                     ? 'bg-green-500'

@@ -37,7 +37,7 @@ vi.mock('../../src/renderer/utils/workspace/workspaceHistory', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
-  Message: { info: vi.fn(), error: vi.fn() },
+  Message: { info: vi.fn(), error: vi.fn(), warning: vi.fn() },
 }));
 
 vi.mock('react-i18next', () => ({
@@ -65,21 +65,21 @@ function makeDeps(overrides: Partial<GuidSendDeps> = {}): GuidSendDeps {
     selectedAgent: 'remote',
     selectedAgentKey: 'remote:agent-1',
     selectedAgentInfo: undefined,
-    isPresetAgent: false,
+    is_presetAgent: false,
     selectedMode: 'default',
     selectedAcpModel: null,
-    pendingConfigOptions: {},
-    cachedConfigOptions: [],
-    currentModel: undefined,
+    pending_config_options: {},
+    cached_config_options: [],
+    current_model: undefined,
     findAgentByKey: vi.fn(),
-    getEffectiveAgentType: vi.fn(() => ({ agentType: 'remote', isAvailable: true })),
+    getEffectiveAgentType: vi.fn(() => ({ agent_type: 'remote', isAvailable: true })),
     resolvePresetRulesAndSkills: vi.fn().mockResolvedValue({}),
     resolveEnabledSkills: vi.fn(),
     resolveDisabledBuiltinSkills: vi.fn(),
     guidDisabledBuiltinSkills: [],
     isMainAgentAvailable: vi.fn(() => true),
     getAvailableFallbackAgent: vi.fn(() => null),
-    currentEffectiveAgentInfo: { agentType: 'remote', isAvailable: true },
+    currentEffectiveAgentInfo: { agent_type: 'remote', isAvailable: true },
     isGoogleAuth: false,
     setMentionOpen: vi.fn(),
     setMentionQuery: vi.fn(),

@@ -14,7 +14,7 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton', () => ({
-  default: ({ workspacePath }: { workspacePath: string }) => (
+  default: ({ workspacePath }: { workspace_path: string }) => (
     <div data-testid='workspace-open-button'>{workspacePath}</div>
   ),
 }));

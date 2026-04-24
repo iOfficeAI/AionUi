@@ -11,7 +11,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 interface OneClickImportModalProps {
   visible: boolean;
   onCancel: () => void;
-  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => void;
+  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => void;
 }
 
 const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCancel, onBatchImport }) => {
@@ -135,7 +135,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
           transport: server.transport,
           status: server.status as IMcpServer['status'],
           tools: (server.tools || []) as IMcpTool[], // 保留原始的 tools 信息
-          originalJson: JSON.stringify({ mcpServers: { [server.name]: serverConfig } }, null, 2),
+          original_json: JSON.stringify({ mcpServers: { [server.name]: serverConfig } }, null, 2),
         };
       });
       onBatchImport(serversToImport);

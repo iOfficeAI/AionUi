@@ -287,10 +287,10 @@ vi.mock('@renderer/utils/model/agentModes', () => ({
   getFullAutoMode: () => 'full-auto',
 }));
 
-// Mock ConfigStorage
-vi.mock('@/common/config/storage', () => ({
-  ConfigStorage: {
-    get: vi.fn().mockResolvedValue({}),
+// Mock configService
+vi.mock('@/common/config/configService', () => ({
+  configService: {
+    get: vi.fn().mockReturnValue({}),
   },
 }));
 
@@ -313,12 +313,12 @@ vi.mock('@renderer/pages/guid/components/GuidModelSelector', () => ({
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
   useConversationAgents: () => ({
     cliAgents: [
-      { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
-      { backend: 'openai', name: 'OpenAI', cliPath: '/usr/bin/openai' },
+      { backend: 'claude', name: 'Claude', cli_path: '/usr/bin/claude' },
+      { backend: 'openai', name: 'OpenAI', cli_path: '/usr/bin/openai' },
     ],
     presetAssistants: [
       {
-        customAgentId: 'assistant-1',
+        custom_agent_id: 'assistant-1',
         name: 'Assistant 1',
         backend: 'claude',
         presetAgentType: 'custom',
@@ -365,32 +365,31 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Hourly Task',
       schedule: { kind: 'cron', expr: '0 * * * *', description: 'Every hour' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Hourly check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
     // Trigger the useEffect by setting visible=true
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Since we cannot directly test parseCronExpr (not exported), we verify the component behavior
     // The component should detect hourly frequency from "0 * * * *"
@@ -410,31 +409,30 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Daily Task',
       schedule: { kind: 'cron', expr: '30 9 * * *', description: 'Daily at 09:30' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Daily check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should show time picker for daily frequency
     expect(screen.queryByTestId('mock-time-picker')).toBeInTheDocument();
@@ -446,31 +444,30 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Weekday Task',
       schedule: { kind: 'cron', expr: '0 14 * * MON-FRI', description: 'Weekdays at 14:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Weekday check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should show time picker but not weekday picker for weekdays frequency
     expect(screen.queryByTestId('mock-time-picker')).toBeInTheDocument();
@@ -482,31 +479,30 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Weekly Task',
       schedule: { kind: 'cron', expr: '0 10 * * WED', description: 'Weekly on Wednesday at 10:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Weekly check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should show both time picker and weekday picker for weekly frequency
     expect(screen.queryByTestId('mock-time-picker')).toBeInTheDocument();
@@ -518,31 +514,30 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Invalid Task',
       schedule: { kind: 'cron', expr: '', description: 'Manual' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should default to manual frequency
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -554,31 +549,30 @@ describe('CreateTaskDialog - parseCronExpr utility', () => {
       name: 'Every 4 Hours Task',
       schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Every 4 hours check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should render without errors and recognize it as a custom schedule
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -592,31 +586,30 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Test' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // getAgentKeyFromJob should return "cli:claude"
     // We verify indirectly by checking that the agent field is populated
@@ -629,33 +622,32 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Test' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Assistant 1',
-          isPreset: true,
-          customAgentId: 'assistant-1',
+          is_preset: true,
+          custom_agent_id: 'assistant-1',
           presetAgentType: 'custom',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // getAgentKeyFromJob should return "preset:assistant-1"
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -667,26 +659,25 @@ describe('CreateTaskDialog - getAgentKeyFromJob utility', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Test' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
 
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Should render without errors even when agentConfig is missing
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
@@ -704,27 +695,26 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Existing Mode Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Keep following up' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     expect(
       screen.getByText('Each run continues in the same conversation, so earlier context and results stay available.')
@@ -735,7 +725,7 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     const onClose = vi.fn();
     mockAddJob.mockResolvedValue(undefined);
 
-    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
 
     // The default frequency should be 'manual'
     // Click OK to submit
@@ -757,32 +747,31 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Hourly Task',
       schedule: { kind: 'cron', expr: '0 * * * *', description: 'Every hour' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Hourly check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Submit to verify the schedule is preserved
     fireEvent.click(screen.getByTestId('modal-ok'));
@@ -801,32 +790,31 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Daily Task',
       schedule: { kind: 'cron', expr: '30 9 * * *', description: 'Daily at 09:30' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Daily check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -844,32 +832,31 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Weekdays Task',
       schedule: { kind: 'cron', expr: '0 14 * * MON-FRI', description: 'Weekdays at 14:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Weekday check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -887,32 +874,31 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Weekly Task',
       schedule: { kind: 'cron', expr: '0 10 * * WED', description: 'Weekly on Wednesday at 10:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Weekly check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -930,32 +916,31 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
       name: 'Every 4 Hours Task',
       schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Every 4 hours check' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
     mockUpdateJob.mockResolvedValue(undefined);
 
     const { rerender } = render(
-      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />
+      <CreateTaskDialog visible={false} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />
     );
-    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    rerender(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -978,28 +963,27 @@ describe('CreateTaskDialog - advanced settings workspace picker', () => {
       name: 'Workspace Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Test prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
           workspace: '/tmp/scheduled-workspace',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     const workspaceTrigger = screen.getByTestId('cron-workspace-trigger');
     expect(workspaceTrigger.className).toContain('bg-fill-1');
@@ -1022,27 +1006,26 @@ describe('CreateTaskDialog - custom schedule hint', () => {
       name: 'Custom Task',
       schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Test prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     const hint = screen.getByText(
       "This task has a custom schedule that can't be edited here. Changing the frequency will replace it."
@@ -1062,7 +1045,7 @@ describe('CreateTaskDialog - component behavior', () => {
   });
 
   it('renders in create mode when no editJob is provided', () => {
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversation_id='conv-1' />);
 
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
     expect(screen.getByTestId('mock-form')).toBeInTheDocument();
@@ -1075,27 +1058,26 @@ describe('CreateTaskDialog - component behavior', () => {
       description: 'Stored description',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     expect(screen.getByTestId('modal-wrapper')).toBeInTheDocument();
   });
@@ -1107,27 +1089,26 @@ describe('CreateTaskDialog - component behavior', () => {
       description: 'Stored description',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     await waitFor(() => {
       expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
@@ -1146,27 +1127,26 @@ describe('CreateTaskDialog - component behavior', () => {
       description: undefined,
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     await waitFor(() => {
       expect(mockFormSetFieldsValue).toHaveBeenCalledWith(
@@ -1179,14 +1159,14 @@ describe('CreateTaskDialog - component behavior', () => {
   });
 
   it('does not render when visible is false', () => {
-    render(<CreateTaskDialog visible={false} onClose={vi.fn()} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={false} onClose={vi.fn()} conversation_id='conv-1' />);
 
     expect(screen.queryByTestId('modal-wrapper')).not.toBeInTheDocument();
   });
 
   it('calls onClose when cancel button is clicked', () => {
     const onClose = vi.fn();
-    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-cancel'));
 
@@ -1197,7 +1177,7 @@ describe('CreateTaskDialog - component behavior', () => {
     const onClose = vi.fn();
     mockAddJob.mockResolvedValue(undefined);
 
-    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -1218,27 +1198,26 @@ describe('CreateTaskDialog - component behavior', () => {
       name: 'Existing Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily at 09:00' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'Existing prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible={true} onClose={onClose} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={onClose} editJob={editJob} conversation_id='conv-1' />);
 
     fireEvent.click(screen.getByTestId('modal-ok'));
 
@@ -1263,7 +1242,7 @@ describe('CreateTaskDialog - advanced settings panel', () => {
   });
 
   it('toggles the advanced settings panel open and closed', () => {
-    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversation_id='conv-1' />);
 
     // Workspace picker is hidden initially
     expect(screen.queryByTestId('cron-workspace-trigger')).not.toBeInTheDocument();
@@ -1285,28 +1264,27 @@ describe('CreateTaskDialog - advanced settings panel', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'prompt' },
         executionMode: 'existing',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
           workspace: '/tmp/ws',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     // Advanced open because workspace was set in agentConfig
     const workspaceTrigger = screen.getByTestId('cron-workspace-trigger');
@@ -1327,28 +1305,27 @@ describe('CreateTaskDialog - advanced settings panel', () => {
       name: 'Task',
       schedule: { kind: 'cron', expr: '0 9 * * *', description: 'Daily' },
       target: {
-        kind: 'conversation',
-        conversationId: 'conv-1',
         payload: { kind: 'message', text: 'prompt' },
         executionMode: 'new_conversation',
       },
       metadata: {
-        agentType: 'claude',
+        conversation_id: 'conv-1',
+        agent_type: 'claude',
         createdBy: 'user',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         agentConfig: {
           backend: 'claude',
           name: 'Claude',
-          cliPath: '/usr/bin/claude',
+          cli_path: '/usr/bin/claude',
           workspace: '/projects/my-app',
         },
       },
-      state: 'active',
-      lastExecutionTime: Date.now(),
+      enabled: true,
+      state: { runCount: 0, retryCount: 0, maxRetries: 3 },
     };
 
-    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
+    render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversation_id='conv-1' />);
 
     expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
   });

@@ -46,7 +46,7 @@ export async function showNotification({
 }: {
   title: string;
   body: string;
-  conversationId?: string;
+  conversation_id?: string;
 }): Promise<void> {
   // Check if notification is enabled
   const notificationEnabled = await ProcessConfig.get('system.notificationEnabled');

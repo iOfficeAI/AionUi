@@ -177,8 +177,8 @@ export interface PatchApplyEndData {
 // MCP tool event data interfaces
 export interface McpToolCallBeginData {
   invocation?: McpInvocation;
-  toolName?: string;
-  serverName?: string;
+  tool_name?: string;
+  server_name?: string;
 }
 
 export interface McpToolCallEndData {

@@ -17,9 +17,9 @@ export type WecomStreamRecord = {
   visibleContent: string;
   thinkingContent: string;
   finished: boolean;
-  createdAt: number;
-  updatedAt: number;
-  lastMessageId: string | null;
+  created_at: number;
+  updated_at: number;
+  last_messageId: string | null;
   finalizedAt: number;
 };
 
@@ -47,7 +47,7 @@ export type WecomWebhookSurface = {
 let activePlugin: WecomWebhookSurface | null = null;
 const streamStore = new Map<string, WecomStreamRecord>();
 const eventDeduper = new Map<string, number>();
-const responseUrlStore = new Map<string, { url: string; expiresAt: number; used: boolean; createdAt: number }>();
+const responseUrlStore = new Map<string, { url: string; expiresAt: number; used: boolean; created_at: number }>();
 
 function now(): number {
   return Date.now();
@@ -69,9 +69,9 @@ export function createStream(streamId: string, chatId: string, initialText = DEF
     visibleContent: '',
     thinkingContent: initialText || DEFAULT_THINKING_TEXT,
     finished: false,
-    createdAt: ts,
-    updatedAt: ts,
-    lastMessageId: null,
+    created_at: ts,
+    updated_at: ts,
+    last_messageId: null,
     finalizedAt: 0,
   };
   streamStore.set(streamId, record);
@@ -87,7 +87,7 @@ export function getLatestStreamByChatId(chatId: string): WecomStreamRecord | nul
   let latest: WecomStreamRecord | null = null;
   for (const stream of streamStore.values()) {
     if (stream.chatId !== chatId) continue;
-    if (!latest || stream.updatedAt > latest.updatedAt) {
+    if (!latest || stream.updated_at > latest.updated_at) {
       latest = stream;
     }
   }
@@ -96,7 +96,7 @@ export function getLatestStreamByChatId(chatId: string): WecomStreamRecord | nul
 
 export function upsertStreamContent(
   streamId: string,
-  payload: Partial<Pick<WecomStreamRecord, 'visibleContent' | 'thinkingContent' | 'lastMessageId' | 'finished'>>
+  payload: Partial<Pick<WecomStreamRecord, 'visibleContent' | 'thinkingContent' | 'last_messageId' | 'finished'>>
 ): WecomStreamRecord | null {
   const stream = getStream(streamId);
   if (!stream) return null;
@@ -104,9 +104,9 @@ export function upsertStreamContent(
     ...stream,
     ...(typeof payload.visibleContent === 'string' && { visibleContent: payload.visibleContent }),
     ...(typeof payload.thinkingContent === 'string' && { thinkingContent: payload.thinkingContent }),
-    ...(typeof payload.lastMessageId === 'string' && { lastMessageId: payload.lastMessageId }),
+    ...(typeof payload.last_messageId === 'string' && { last_messageId: payload.last_messageId }),
     ...(payload.finished === true && { finished: true, finalizedAt: now() }),
-    updatedAt: now(),
+    updated_at: now(),
   };
   streamStore.set(streamId, updated);
   return updated;
@@ -135,7 +135,7 @@ export function registerResponseUrl(chatId: string, responseUrl: string): void {
     url: normalizedUrl,
     expiresAt: now() + RESPONSE_URL_TTL_MS,
     used: false,
-    createdAt: now(),
+    created_at: now(),
   });
 }
 
@@ -162,7 +162,7 @@ export function cleanupExpiredRecords(): void {
   }
 
   for (const [streamId, stream] of streamStore.entries()) {
-    const age = current - stream.updatedAt;
+    const age = current - stream.updated_at;
     if (stream.finished) {
       if (age > STREAM_IDLE_MS) {
         streamStore.delete(streamId);

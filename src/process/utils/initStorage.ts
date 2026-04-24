@@ -110,11 +110,11 @@ const migrateLegacyData = async () => {
   return false;
 };
 
-const WriteFile = async (filePath: string, data: string) => {
+const WriteFile = async (file_path: string, data: string) => {
   // Ensure parent directory exists to prevent ENOENT on first write
-  const dir = nodePath.dirname(filePath);
+  const dir = nodePath.dirname(file_path);
   await fs.mkdir(dir, { recursive: true });
-  return fs.writeFile(filePath, data);
+  return fs.writeFile(file_path, data);
 };
 
 /**
@@ -127,7 +127,7 @@ const WriteFile = async (filePath: string, data: string) => {
  *
  * The on-disk format stays base64(encodeURIComponent(JSON)) for backward compat.
  */
-const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: string) => {
+const JsonFileBuilder = <S extends object = Record<string, unknown>>(file_path: string) => {
   // -- encoding helpers (unchanged, keeps backward compat) --
   const encode = (data: unknown) => btoa(encodeURIComponent(String(data)));
   const decode = (base64: string) => decodeURIComponent(atob(base64));
@@ -137,13 +137,13 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
 
   const loadSync = (): S => {
     try {
-      const raw = readFileSync(filePath).toString();
+      const raw = readFileSync(file_path).toString();
       if (!raw || raw.trim() === '') return {} as S;
       const decoded = decode(raw);
       if (!decoded || decoded.trim() === '') return {} as S;
       const parsed = JSON.parse(decoded) as S;
-      if (filePath.includes('chat.txt') && Object.keys(parsed).length === 0) {
-        console.warn(`[Storage] Chat history file appears to be empty: ${filePath}`);
+      if (file_path.includes('chat.txt') && Object.keys(parsed).length === 0) {
+        console.warn(`[Storage] Chat history file appears to be empty: ${file_path}`);
       }
       return parsed;
     } catch {
@@ -166,12 +166,12 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
     const encoded = encode(JSON.stringify(data));
     // Write once, branch the promise: writeChain stays resolved (so one
     // failure doesn't block subsequent writes), callers get the real error.
-    const writeOp = writeChain.then(() => WriteFile(filePath, encoded));
+    const writeOp = writeChain.then(() => WriteFile(file_path, encoded));
     writeChain = writeOp.catch(() => {});
     return writeOp.then(
       () => data,
       (err) => {
-        console.error(`[Storage] Failed to persist ${filePath}:`, err);
+        console.error(`[Storage] Failed to persist ${file_path}:`, err);
         throw err;
       }
     );
@@ -225,7 +225,7 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(filePath: s
         mkdirSync(dir);
       }
       // Backup: copy the file then remove original
-      const doCopy = () => fs.copyFile(filePath, fullName).then(() => fs.rm(filePath, { recursive: true }));
+      const doCopy = () => fs.copyFile(file_path, fullName).then(() => fs.rm(file_path, { recursive: true }));
       const backupOp = writeChain.then(doCopy);
       writeChain = backupOp.catch(() => {});
       return backupOp.then(
@@ -343,7 +343,7 @@ const getSkillsDir = () => {
 
 /**
  * Get the directory for per-cron-job SKILL.md files.
- * Each cron job gets its own subdirectory: {cronSkillsDir}/{jobId}/SKILL.md
+ * Each cron job gets its own subdirectory: {cronSkillsDir}/{job_id}/SKILL.md
  */
 const getCronSkillsDir = () => {
   return path.join(cacheDir, STORAGE_PATH.cronSkills);
@@ -363,6 +363,7 @@ const cleanupLegacyBuiltinSkillsDir = () => {
       /* swallow — cleanup is not critical */
     });
 };
+
 
 /**
  * Ensure user-facing config directories exist. Built-in assistant rules and
@@ -407,9 +408,9 @@ const getDefaultMcpServers = (): IMcpServer[] => {
       command: config.command,
       args: config.args,
     },
-    createdAt: now,
-    updatedAt: now,
-    originalJson: JSON.stringify({ [name]: config }, null, 2),
+    created_at: now,
+    updated_at: now,
+    original_json: JSON.stringify({ [name]: config }, null, 2),
   }));
 };
 
@@ -465,8 +466,8 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       if (!cfg) return {};
       const env: Record<string, string> = {};
       if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
-      if (cfg.baseUrl) env.AIONUI_IMG_BASE_URL = cfg.baseUrl;
-      if (cfg.apiKey) env.AIONUI_IMG_API_KEY = cfg.apiKey;
+      if (cfg.base_url) env.AIONUI_IMG_BASE_URL = cfg.base_url;
+      if (cfg.api_key) env.AIONUI_IMG_API_KEY = cfg.api_key;
       if (cfg.useModel) env.AIONUI_IMG_MODEL = cfg.useModel;
       return env;
     };
@@ -515,15 +516,15 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
         const newOriginalJson =
           needsPathUpdate && updatedTransport.type === 'stdio'
             ? buildOriginalJson(scriptPath, updatedTransport.env ?? {})
-            : existing.originalJson;
+            : existing.original_json;
 
         mcpServers[existingIdx] = {
           ...existing,
           name: needsNameMigration ? BUILTIN_IMAGE_GEN_NAME : existing.name,
           transport: updatedTransport,
-          originalJson: newOriginalJson,
+          original_json: newOriginalJson,
           enabled: needsMigration ? true : existing.enabled,
-          updatedAt: now,
+          updated_at: now,
         };
         changed = true;
       }
@@ -542,9 +543,9 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
           args: [scriptPath],
           env,
         },
-        createdAt: now,
-        updatedAt: now,
-        originalJson: buildOriginalJson(scriptPath, env),
+        created_at: now,
+        updated_at: now,
+        original_json: buildOriginalJson(scriptPath, env),
       };
       mcpServers.push(newServer);
       changed = true;
@@ -572,16 +573,16 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 const cleanupOrphanedHealthCheckConversations = async () => {
   try {
     const db = await getDatabase();
-    const pageSize = 1000;
+    const page_size = 1000;
     const idsToDelete: string[] = [];
     let page = 0;
     let hasMore = true;
 
     while (hasMore) {
-      const result = db.getUserConversations(undefined, page, pageSize);
+      const result = db.getUserConversations(undefined, page, page_size);
       result.data.forEach((conversation) => {
-        const extra = conversation.extra as { isHealthCheck?: boolean } | undefined;
-        if (extra?.isHealthCheck === true) {
+        const extra = conversation.extra as { is_health_check?: boolean } | undefined;
+        if (extra?.is_health_check === true) {
           idsToDelete.push(conversation.id);
         }
       });

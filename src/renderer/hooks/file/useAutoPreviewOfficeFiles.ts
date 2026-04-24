@@ -28,7 +28,7 @@ const OFFICE_OPEN_DELAY_MS = 1000;
  * trees such as repositories containing node_modules.
  */
 export const useAutoPreviewOfficeFiles = (
-  conversation: Pick<ConversationContextValue, 'conversationId' | 'workspace'> | null
+  conversation: Pick<ConversationContextValue, 'conversation_id' | 'workspace'> | null
 ) => {
   const enabled = useAutoPreviewOfficeFilesEnabled();
   const { findPreviewTab, openPreview } = usePreviewContext();
@@ -37,7 +37,7 @@ export const useAutoPreviewOfficeFiles = (
   const openTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const scanRequestIdRef = useRef(0);
   const workspace = conversation?.workspace?.trim() ? conversation.workspace : undefined;
-  const conversationId = conversation?.conversationId;
+  const conversation_id = conversation?.conversation_id;
 
   const clearPendingOpenTimers = useCallback(() => {
     for (const timer of openTimersRef.current.values()) {
@@ -48,7 +48,7 @@ export const useAutoPreviewOfficeFiles = (
 
   const syncOfficeFiles = useCallback(
     async (openNewFiles: boolean) => {
-      if (!enabled || !workspace || !conversationId) return;
+      if (!enabled || !workspace || !conversation_id) return;
 
       const requestId = ++scanRequestIdRef.current;
 
@@ -59,23 +59,23 @@ export const useAutoPreviewOfficeFiles = (
         if (openNewFiles) {
           const newFiles = findNewOfficeFiles(currentFiles, knownOfficeFilesRef.current);
 
-          for (const filePath of newFiles) {
-            if (openTimersRef.current.has(filePath)) {
+          for (const file_path of newFiles) {
+            if (openTimersRef.current.has(file_path)) {
               continue;
             }
 
-            const { contentType } = getFileTypeInfo(filePath);
-            const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+            const { contentType } = getFileTypeInfo(file_path);
+            const file_name = file_path.split(/[\\/]/).pop() ?? file_path;
 
             const timer = setTimeout(() => {
-              openTimersRef.current.delete(filePath);
+              openTimersRef.current.delete(file_path);
 
-              if (!findPreviewTab(contentType, '', { filePath, fileName })) {
-                openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
+              if (!findPreviewTab(contentType, '', { file_path, file_name })) {
+                openPreview('', contentType, { file_path, file_name, title: file_name, workspace, editable: false });
               }
             }, OFFICE_OPEN_DELAY_MS);
 
-            openTimersRef.current.set(filePath, timer);
+            openTimersRef.current.set(file_path, timer);
           }
         }
 
@@ -84,7 +84,7 @@ export const useAutoPreviewOfficeFiles = (
         // Ignore scan failures and keep current baseline unchanged.
       }
     },
-    [conversationId, enabled, findPreviewTab, openPreview, workspace]
+    [conversation_id, enabled, findPreviewTab, openPreview, workspace]
   );
 
   const scheduleOfficeScan = useCallback(() => {
@@ -108,21 +108,21 @@ export const useAutoPreviewOfficeFiles = (
       scanTimerRef.current = null;
     }
 
-    if (!enabled || !workspace || !conversationId) {
+    if (!enabled || !workspace || !conversation_id) {
       return;
     }
 
     void syncOfficeFiles(false);
 
     const unsubscribeResponse = ipcBridge.conversation.responseStream.on((message) => {
-      if (message.conversation_id !== conversationId) return;
+      if (message.conversation_id !== conversation_id) return;
       if (!isOfficeAutoPreviewTriggerMessage(message)) return;
 
       scheduleOfficeScan();
     });
 
     const unsubscribeTurnCompleted = ipcBridge.conversation.turnCompleted.on((event) => {
-      if (event.sessionId !== conversationId) return;
+      if (event.session_id !== conversation_id) return;
       if (event.status !== 'finished') return;
 
       scheduleOfficeScan();
@@ -141,5 +141,5 @@ export const useAutoPreviewOfficeFiles = (
       knownOfficeFilesRef.current.clear();
       scanRequestIdRef.current += 1;
     };
-  }, [clearPendingOpenTimers, conversationId, enabled, scheduleOfficeScan, syncOfficeFiles, workspace]);
+  }, [clearPendingOpenTimers, conversation_id, enabled, scheduleOfficeScan, syncOfficeFiles, workspace]);
 };

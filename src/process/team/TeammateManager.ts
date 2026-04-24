@@ -14,14 +14,14 @@ import { formatMessages } from './prompts/formatHelpers';
 import { agentRegistry } from '@process/agent/AgentRegistry';
 
 type TeammateManagerParams = {
-  teamId: string;
+  team_id: string;
   agents: TeamAgent[];
   mailbox: Mailbox;
   workerTaskManager: IWorkerTaskManager;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
   /** Called after an agent is removed from in-memory list, so the caller can persist the change (e.g. update DB) */
-  onAgentRemoved?: (teamId: string, agents: TeamAgent[]) => void;
+  onAgentRemoved?: (team_id: string, agents: TeamAgent[]) => void;
 };
 
 /**
@@ -29,23 +29,23 @@ type TeammateManagerParams = {
  * and coordinates agent communication via mailbox and task board.
  */
 export class TeammateManager extends EventEmitter {
-  private readonly teamId: string;
+  private readonly team_id: string;
   private agents: TeamAgent[];
   private readonly mailbox: Mailbox;
   private readonly workerTaskManager: IWorkerTaskManager;
-  private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
+  private readonly onAgentRemovedFn?: (team_id: string, agents: TeamAgent[]) => void;
   /** Shared team workspace path (leader's working directory) */
   private readonly teamWorkspace: string | undefined;
 
-  /** Tracks which slotIds currently have an in-progress wake to avoid loops */
+  /** Tracks which slot_ids currently have an in-progress wake to avoid loops */
   private readonly activeWakes = new Set<string>();
-  /** Timeout handles for active wakes, keyed by slotId */
+  /** Timeout handles for active wakes, keyed by slot_id */
   private readonly wakeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
-  /** O(1) lookup set of conversationIds owned by this team, for fast IPC event filtering */
+  /** O(1) lookup set of conversation_ids owned by this team, for fast IPC event filtering */
   private readonly ownedConversationIds = new Set<string>();
-  /** Tracks conversationIds whose turn has already been finalized, to prevent double processing */
+  /** Tracks conversation_ids whose turn has already been finalized, to prevent double processing */
   private readonly finalizedTurns = new Set<string>();
-  /** Maps slotId → original name before rename, for "formerly: X" hints in prompts */
+  /** Maps slot_id → original name before rename, for "formerly: X" hints in prompts */
   private readonly renamedAgents = new Map<string, string>();
 
   /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
@@ -55,7 +55,7 @@ export class TeammateManager extends EventEmitter {
 
   constructor(params: TeammateManagerParams) {
     super();
-    this.teamId = params.teamId;
+    this.team_id = params.team_id;
     this.agents = [...params.agents];
     this.mailbox = params.mailbox;
     this.workerTaskManager = params.workerTaskManager;
@@ -63,7 +63,7 @@ export class TeammateManager extends EventEmitter {
     this.teamWorkspace = params.teamWorkspace;
 
     for (const agent of this.agents) {
-      this.ownedConversationIds.add(agent.conversationId);
+      this.ownedConversationIds.add(agent.conversation_id);
     }
 
     // Listen on teamEventBus instead of ipcBridge: ipcBridge.emit() routes through
@@ -81,9 +81,9 @@ export class TeammateManager extends EventEmitter {
   /** Add a new agent to the team and notify renderer */
   addAgent(agent: TeamAgent): void {
     this.agents = [...this.agents, agent];
-    this.ownedConversationIds.add(agent.conversationId);
+    this.ownedConversationIds.add(agent.conversation_id);
     // Notify renderer so it can refresh team data (tabs, status, etc.)
-    ipcBridge.team.agentSpawned.emit({ teamId: this.teamId, agent });
+    ipcBridge.team.agentSpawned.emit({ team_id: this.team_id, agent });
   }
 
   /**
@@ -91,22 +91,22 @@ export class TeammateManager extends EventEmitter {
    * Sets status to 'active' during API call, 'idle' when done.
    * Skips if the agent's wake is already in progress.
    */
-  async wake(slotId: string): Promise<void> {
-    if (this.activeWakes.has(slotId)) {
-      console.debug(`[TeammateManager] wake(${slotId}): SKIPPED (activeWakes)`);
+  async wake(slot_id: string): Promise<void> {
+    if (this.activeWakes.has(slot_id)) {
+      console.debug(`[TeammateManager] wake(${slot_id}): SKIPPED (activeWakes)`);
       return;
     }
 
-    const agent = this.agents.find((a) => a.slotId === slotId);
+    const agent = this.agents.find((a) => a.slot_id === slot_id);
     if (!agent) return;
 
-    console.log(`[TeammateManager] wake(${agent.agentName}): status=${agent.status}, proceeding`);
+    console.log(`[TeammateManager] wake(${agent.agent_name}): status=${agent.status}, proceeding`);
 
-    this.activeWakes.add(slotId);
+    this.activeWakes.add(slot_id);
     // Clear any stale finalizedTurns entry so a re-woken agent's finish event
     // is not silently dropped by the 5-second dedup window from a prior turn.
-    if (agent.conversationId) {
-      this.finalizedTurns.delete(agent.conversationId);
+    if (agent.conversation_id) {
+      this.finalizedTurns.delete(agent.conversation_id);
     }
     try {
       // Determine if this is the first activation or a crash recovery —
@@ -116,23 +116,23 @@ export class TeammateManager extends EventEmitter {
 
       // Transition pending -> idle on first activation
       if (agent.status === 'pending') {
-        this.setStatus(slotId, 'idle');
+        this.setStatus(slot_id, 'idle');
       }
 
-      this.setStatus(slotId, 'active');
+      this.setStatus(slot_id, 'active');
 
-      const mailboxMessages = await this.mailbox.readUnread(this.teamId, slotId);
-      const teammates = this.agents.filter((a) => a.slotId !== slotId);
+      const mailboxMessages = await this.mailbox.readUnread(this.team_id, slot_id);
+      const teammates = this.agents.filter((a) => a.slot_id !== slot_id);
 
       // Write each mailbox message into agent's conversation as user bubble
       // so the UI shows what triggered this agent's response.
       // Skip for leader: messages are included in the prompt sent to the agent.
-      if (agent.conversationId && mailboxMessages.length > 0 && agent.role !== 'leader') {
+      if (agent.conversation_id && mailboxMessages.length > 0 && agent.role !== 'leader') {
         for (const msg of mailboxMessages) {
           // Skip user messages — already written by TeamSession.sendMessage()
           if (msg.fromAgentId === 'user') continue;
-          const sender = this.agents.find((a) => a.slotId === msg.fromAgentId);
-          const senderName = msg.fromAgentId === 'user' ? 'User' : (sender?.agentName ?? msg.fromAgentId);
+          const sender = this.agents.find((a) => a.slot_id === msg.fromAgentId);
+          const senderName = msg.fromAgentId === 'user' ? 'User' : (sender?.agent_name ?? msg.fromAgentId);
           const displayContent = mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
           const msgId = crypto.randomUUID();
           // All messages written to target conversation are incoming from target's perspective
@@ -141,20 +141,20 @@ export class TeammateManager extends EventEmitter {
             msg_id: msgId,
             type: 'text' as const,
             position: 'left' as const,
-            conversation_id: agent.conversationId,
+            conversation_id: agent.conversation_id,
             content: {
               content: displayContent,
               teammateMessage: true,
               senderName,
-              senderAgentType: sender?.agentType,
-              senderConversationId: sender?.conversationId,
+              senderAgentType: sender?.agent_type,
+              senderConversationId: sender?.conversation_id,
             },
-            createdAt: Date.now(),
+            created_at: Date.now(),
           };
-          addMessage(agent.conversationId, teammateMsg);
+          addMessage(agent.conversation_id, teammateMsg);
           ipcBridge.acpConversation.responseStream.emit({
             type: 'teammate_message',
-            conversation_id: agent.conversationId,
+            conversation_id: agent.conversation_id,
             msg_id: msgId,
             data: teammateMsg,
           });
@@ -170,7 +170,7 @@ export class TeammateManager extends EventEmitter {
         // Compute availableAgentTypes + availableAssistants only for leader's first prompt
         let availableAgentTypes: Array<{ type: string; name: string }> | undefined;
         let availableAssistants:
-          | Array<{ customAgentId: string; name: string; backend: string; description?: string; skills?: string[] }>
+          | Array<{ custom_agent_id: string; name: string; backend: string; description?: string; skills?: string[] }>
           | undefined;
         if (agent.role === 'leader') {
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
@@ -188,7 +188,7 @@ export class TeammateManager extends EventEmitter {
           availableAssistants = assistants
             .filter((a) => a.enabled !== false)
             .map((a) => ({
-              customAgentId: a.id,
+              custom_agent_id: a.id,
               name: a.name,
               backend: a.presetAgentType || 'gemini',
               description: a.description,
@@ -214,18 +214,18 @@ export class TeammateManager extends EventEmitter {
         // Subsequent wakes: just forward the mailbox messages
         if (mailboxMessages.length === 0) {
           // Nothing to send — restore idle status and release wake
-          this.setStatus(slotId, 'idle');
-          this.activeWakes.delete(slotId);
+          this.setStatus(slot_id, 'idle');
+          this.activeWakes.delete(slot_id);
           return;
         }
         message = formatMessages(mailboxMessages, this.agents);
       }
 
       console.log(
-        `[TeammateManager] wake(${agent.agentName}): sendPrompt type=${needsFullPrompt ? 'full' : 'messages-only'}, length=${message.length}, preview=${JSON.stringify(message.slice(0, 200))}`
+        `[TeammateManager] wake(${agent.agent_name}): sendPrompt type=${needsFullPrompt ? 'full' : 'messages-only'}, length=${message.length}, preview=${JSON.stringify(message.slice(0, 200))}`
       );
 
-      const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversationId);
+      const agentTask = await this.workerTaskManager.getOrBuildTask(agent.conversation_id);
       const msgId = crypto.randomUUID();
 
       // Extract files from user messages in this batch
@@ -236,7 +236,7 @@ export class TeammateManager extends EventEmitter {
       // Each AgentManager implementation expects a specific object shape.
       // Gemini uses { input, msg_id }, all others use { content, msg_id }.
       const messageData =
-        agent.conversationType === 'gemini'
+        agent.conversation_type === 'gemini'
           ? { input: message, msg_id: msgId, silent: true, ...(userFiles.length > 0 ? { files: userFiles } : {}) }
           : { content: message, msg_id: msgId, silent: true, ...(userFiles.length > 0 ? { files: userFiles } : {}) };
 
@@ -245,26 +245,26 @@ export class TeammateManager extends EventEmitter {
       // Release wake lock immediately after message is sent.
       // finalizeTurn will also delete it (safe no-op). This prevents permanent
       // deadlock when finish events are lost or finalizeTurn never fires.
-      this.activeWakes.delete(slotId);
+      this.activeWakes.delete(slot_id);
 
       // Arm the inactivity watchdog. Any streaming output from this agent
       // resets it via handleResponseStream → resetWakeTimeout. It only fires
       // when the agent has been silent for WAKE_TIMEOUT_MS with no finish event.
-      this.resetWakeTimeout(slotId);
+      this.resetWakeTimeout(slot_id);
     } catch (error) {
-      console.error(`[TeammateManager] wake(${slotId}) failed:`, error);
-      this.setStatus(slotId, 'failed');
-      this.activeWakes.delete(slotId);
+      console.error(`[TeammateManager] wake(${slot_id}) failed:`, error);
+      this.setStatus(slot_id, 'failed');
+      this.activeWakes.delete(slot_id);
       throw error;
     }
     // activeWakes entry is removed when turnCompleted fires (or by timeout)
   }
 
   /** Set agent status, update the local agents array, and emit IPC event */
-  setStatus(slotId: string, status: TeammateStatus, lastMessage?: string): void {
-    this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, status } : a));
-    ipcBridge.team.agentStatusChanged.emit({ teamId: this.teamId, slotId, status, lastMessage });
-    this.emit('agentStatusChanged', { teamId: this.teamId, slotId, status, lastMessage });
+  setStatus(slot_id: string, status: TeammateStatus, last_message?: string): void {
+    this.agents = this.agents.map((a) => (a.slot_id === slot_id ? { ...a, status } : a));
+    ipcBridge.team.agentStatusChanged.emit({ team_id: this.team_id, slot_id, status, last_message });
+    this.emit('agentStatusChanged', { team_id: this.team_id, slot_id, status, last_message });
   }
 
   /** Clean up all IPC listeners, timers, and EventEmitter handlers */
@@ -286,7 +286,7 @@ export class TeammateManager extends EventEmitter {
     // Fast O(1) check: skip events for conversations not owned by this team
     if (!this.ownedConversationIds.has(msg.conversation_id)) return;
 
-    const agent = this.agents.find((a) => a.conversationId === msg.conversation_id);
+    const agent = this.agents.find((a) => a.conversation_id === msg.conversation_id);
     if (!agent) return;
 
     // Detect agent crash:
@@ -305,7 +305,7 @@ export class TeammateManager extends EventEmitter {
       }
       // Detect quota/rate-limit errors (429) and mark agent as failed
       if (/429|rate.?limit|quota|too many requests/i.test(errorText)) {
-        this.setStatus(agent.slotId, 'failed', errorText.slice(0, 200));
+        this.setStatus(agent.slot_id, 'failed', errorText.slice(0, 200));
         return;
       }
     }
@@ -320,8 +320,8 @@ export class TeammateManager extends EventEmitter {
     // proves the agent is still alive. Reset the inactivity watchdog so a genuinely
     // long-running turn (e.g. Codex emitting extended reasoning before its first
     // team_send_message) isn't prematurely declared dead.
-    if (agent.status === 'active' && this.wakeTimeouts.has(agent.slotId)) {
-      this.resetWakeTimeout(agent.slotId);
+    if (agent.status === 'active' && this.wakeTimeouts.has(agent.slot_id)) {
+      this.resetWakeTimeout(agent.slot_id);
     }
   }
 
@@ -332,18 +332,18 @@ export class TeammateManager extends EventEmitter {
    * for WAKE_TIMEOUT_MS), escalates to handleInactivityTimeout so the leader learns
    * about the stall instead of the agent dropping silently to idle.
    */
-  private resetWakeTimeout(slotId: string): void {
-    const existing = this.wakeTimeouts.get(slotId);
+  private resetWakeTimeout(slot_id: string): void {
+    const existing = this.wakeTimeouts.get(slot_id);
     if (existing) clearTimeout(existing);
 
     const timeoutHandle = setTimeout(() => {
-      this.wakeTimeouts.delete(slotId);
-      const currentAgent = this.agents.find((a) => a.slotId === slotId);
+      this.wakeTimeouts.delete(slot_id);
+      const currentAgent = this.agents.find((a) => a.slot_id === slot_id);
       if (currentAgent?.status === 'active') {
         void this.handleInactivityTimeout(currentAgent);
       }
     }, TeammateManager.WAKE_TIMEOUT_MS);
-    this.wakeTimeouts.set(slotId, timeoutHandle);
+    this.wakeTimeouts.set(slot_id, timeoutHandle);
   }
 
   /**
@@ -352,7 +352,7 @@ export class TeammateManager extends EventEmitter {
    * which hides the problem), write an explanatory message into the leader's mailbox,
    * and wake the leader so it can decide the next move (retry, replace, escalate).
    *
-   * Previously the timeout just setStatus(slotId, 'idle'), which left the leader
+   * Previously the timeout just setStatus(slot_id, 'idle'), which left the leader
    * unaware — it would eventually re-wake on some other signal and guess that
    * the teammate was "空转" (idle) with no concrete evidence.
    */
@@ -360,8 +360,8 @@ export class TeammateManager extends EventEmitter {
     const timeoutSeconds = Math.floor(TeammateManager.WAKE_TIMEOUT_MS / 1000);
     const reason = `stopped responding after ${timeoutSeconds}s without sending any update`;
 
-    console.warn(`[TeammateManager] ${agent.agentName} (${agent.slotId}) ${reason}`);
-    this.setStatus(agent.slotId, 'failed', reason);
+    console.warn(`[TeammateManager] ${agent.agent_name} (${agent.slot_id}) ${reason}`);
+    this.setStatus(agent.slot_id, 'failed', reason);
 
     // Don't escalate to leader if the stuck agent IS the leader — nobody to notify.
     if (agent.role === 'leader') return;
@@ -371,16 +371,16 @@ export class TeammateManager extends EventEmitter {
 
     try {
       await this.mailbox.write({
-        teamId: this.teamId,
-        toAgentId: leadAgent.slotId,
-        fromAgentId: agent.slotId,
+        team_id: this.team_id,
+        toAgentId: leadAgent.slot_id,
+        fromAgentId: agent.slot_id,
         type: 'idle_notification',
         content:
-          `Teammate ${agent.agentName} (${agent.agentType}) ${reason}. ` +
+          `Teammate ${agent.agent_name} (${agent.agent_type}) ${reason}. ` +
           `Their session may be stuck or the model may be generating an overlong silent turn. ` +
           `Decide whether to retry by sending them a fresh message, replace them with another agent, or continue without them.`,
       });
-      await this.wake(leadAgent.slotId);
+      await this.wake(leadAgent.slot_id);
     } catch (err) {
       console.error('[TeammateManager] Failed to notify leader of inactivity timeout:', err);
     }
@@ -392,44 +392,44 @@ export class TeammateManager extends EventEmitter {
    * All agent coordination (send_message, task_create, etc.) is handled via MCP tool calls
    * in TeamMcpServer — this method only needs to manage lifecycle.
    */
-  private async finalizeTurn(conversationId: string): Promise<void> {
+  private async finalizeTurn(conversation_id: string): Promise<void> {
     // Dedup: skip if this turn was already finalized
-    if (this.finalizedTurns.has(conversationId)) return;
-    this.finalizedTurns.add(conversationId);
+    if (this.finalizedTurns.has(conversation_id)) return;
+    this.finalizedTurns.add(conversation_id);
     // Clean up the dedup entry after a short delay so future turns can be processed
-    setTimeout(() => this.finalizedTurns.delete(conversationId), 5000);
+    setTimeout(() => this.finalizedTurns.delete(conversation_id), 5000);
 
-    const agent = this.agents.find((a) => a.conversationId === conversationId);
+    const agent = this.agents.find((a) => a.conversation_id === conversation_id);
     if (!agent) return;
 
-    this.activeWakes.delete(agent.slotId);
+    this.activeWakes.delete(agent.slot_id);
 
     // Clear the wake timeout since the turn completed normally
-    const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+    const timeoutHandle = this.wakeTimeouts.get(agent.slot_id);
     if (timeoutHandle) {
       clearTimeout(timeoutHandle);
-      this.wakeTimeouts.delete(agent.slotId);
+      this.wakeTimeouts.delete(agent.slot_id);
     }
 
     if (agent.status === 'active') {
-      this.setStatus(agent.slotId, 'idle');
+      this.setStatus(agent.slot_id, 'idle');
     }
 
     // Auto-send idle notification to leader.
     // Must run AFTER setStatus(idle) so maybeWakeLeaderWhenAllIdle sees the updated state.
     if (agent.role !== 'leader') {
       const leadAgent = this.agents.find((a) => a.role === 'leader');
-      if (leadAgent && leadAgent.slotId !== agent.slotId) {
+      if (leadAgent && leadAgent.slot_id !== agent.slot_id) {
         await this.mailbox.write({
-          teamId: this.teamId,
-          toAgentId: leadAgent.slotId,
-          fromAgentId: agent.slotId,
+          team_id: this.team_id,
+          toAgentId: leadAgent.slot_id,
+          fromAgentId: agent.slot_id,
           content: 'Turn completed',
           type: 'idle_notification',
         });
         // Only wake leader when ALL non-leader teammates are idle/completed/failed/pending.
         // This prevents death loops where each idle notification triggers a new leader turn.
-        this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
+        this.maybeWakeLeaderWhenAllIdle(leadAgent.slot_id);
       }
     }
   }
@@ -446,7 +446,7 @@ export class TeammateManager extends EventEmitter {
       (a) => a.status === 'idle' || a.status === 'completed' || a.status === 'failed' || a.status === 'pending'
     );
     console.log(
-      `[TeammateManager] maybeWakeLeaderWhenAllIdle: ${nonLeadAgents.map((a) => `${a.agentName}:${a.status}`).join(', ')} → ${allSettled ? 'WAKE' : 'SKIP'}`
+      `[TeammateManager] maybeWakeLeaderWhenAllIdle: ${nonLeadAgents.map((a) => `${a.agent_name}:${a.status}`).join(', ')} → ${allSettled ? 'WAKE' : 'SKIP'}`
     );
     if (allSettled) {
       void this.wake(leadSlotId);
@@ -464,23 +464,23 @@ export class TeammateManager extends EventEmitter {
     // Leader crash: mark as failed so the frontend shows the error, but never auto-remove.
     if (agent.role === 'leader') {
       console.warn(
-        `[TeammateManager] Leader ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Marked as failed (not removed).`
+        `[TeammateManager] Leader ${agent.slot_id} (${agent.agent_name}) crashed: ${errorMessage}. Marked as failed (not removed).`
       );
 
       // Kill the crashed process (clean up residual child process)
-      if (agent.conversationId) {
-        this.workerTaskManager.kill(agent.conversationId);
+      if (agent.conversation_id) {
+        this.workerTaskManager.kill(agent.conversation_id);
       }
 
       // Clear wake locks to prevent future wake() calls from being permanently skipped
-      const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+      const timeoutHandle = this.wakeTimeouts.get(agent.slot_id);
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
-        this.wakeTimeouts.delete(agent.slotId);
+        this.wakeTimeouts.delete(agent.slot_id);
       }
-      this.activeWakes.delete(agent.slotId);
+      this.activeWakes.delete(agent.slot_id);
 
-      this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+      this.setStatus(agent.slot_id, 'failed', errorMessage.slice(0, 200));
       return;
     }
 
@@ -488,98 +488,98 @@ export class TeammateManager extends EventEmitter {
     if (!leadAgent) {
       // No leader to notify — kill process and mark failed, keep the slot
       // 1. Kill the crashed process
-      if (agent.conversationId) {
-        this.workerTaskManager.kill(agent.conversationId);
+      if (agent.conversation_id) {
+        this.workerTaskManager.kill(agent.conversation_id);
       }
 
       // 2. Clear wake locks to prevent deadlock on next wake
-      const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+      const timeoutHandle = this.wakeTimeouts.get(agent.slot_id);
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
-        this.wakeTimeouts.delete(agent.slotId);
+        this.wakeTimeouts.delete(agent.slot_id);
       }
-      this.activeWakes.delete(agent.slotId);
+      this.activeWakes.delete(agent.slot_id);
 
       // 3. Mark as failed (frontend shows error status, tab stays)
-      this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+      this.setStatus(agent.slot_id, 'failed', errorMessage.slice(0, 200));
       return;
     }
 
     const testament =
-      `[System] Member "${agent.agentName}" (${agent.conversationType}) crashed. ` +
+      `[System] Member "${agent.agent_name}" (${agent.conversation_type}) crashed. ` +
       `Error: ${errorMessage}. ` +
       `The member slot is preserved and can be recovered if needed.`;
 
     // 1. Write testament to leader's mailbox
     await this.mailbox.write({
-      teamId: this.teamId,
-      toAgentId: leadAgent.slotId,
-      fromAgentId: agent.slotId,
+      team_id: this.team_id,
+      toAgentId: leadAgent.slot_id,
+      fromAgentId: agent.slot_id,
       content: testament,
       type: 'message',
-      summary: `${agent.agentName} crashed`,
+      summary: `${agent.agent_name} crashed`,
     });
 
     console.warn(
-      `[TeammateManager] Agent ${agent.slotId} (${agent.agentName}) crashed: ${errorMessage}. Testament sent to leader.`
+      `[TeammateManager] Agent ${agent.slot_id} (${agent.agent_name}) crashed: ${errorMessage}. Testament sent to leader.`
     );
 
     // 2. Kill the crashed process (clean up residual child process + remove from taskList cache)
-    if (agent.conversationId) {
-      this.workerTaskManager.kill(agent.conversationId);
+    if (agent.conversation_id) {
+      this.workerTaskManager.kill(agent.conversation_id);
     }
 
     // 3. Clear wake locks to prevent deadlock on next wake
-    const timeoutHandle = this.wakeTimeouts.get(agent.slotId);
+    const timeoutHandle = this.wakeTimeouts.get(agent.slot_id);
     if (timeoutHandle) {
       clearTimeout(timeoutHandle);
-      this.wakeTimeouts.delete(agent.slotId);
+      this.wakeTimeouts.delete(agent.slot_id);
     }
-    this.activeWakes.delete(agent.slotId);
+    this.activeWakes.delete(agent.slot_id);
 
     // 4. Mark as failed (frontend shows error status, tab stays)
-    this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
+    this.setStatus(agent.slot_id, 'failed', errorMessage.slice(0, 200));
 
     // 5. Wake leader to process the testament
-    void this.wake(leadAgent.slotId);
+    void this.wake(leadAgent.slot_id);
   }
 
   /** Remove an agent: kill process, cancel pending wake, clear buffers, remove from in-memory list.
-   *  Leader cannot be removed — callers must not pass leader's slotId. */
-  removeAgent(slotId: string): void {
-    const agent = this.agents.find((a) => a.slotId === slotId);
+   *  Leader cannot be removed — callers must not pass leader's slot_id. */
+  removeAgent(slot_id: string): void {
+    const agent = this.agents.find((a) => a.slot_id === slot_id);
     if (!agent) return;
 
     if (agent.role === 'leader') {
-      console.warn(`[TeammateManager] Attempted to remove leader ${slotId} — blocked.`);
+      console.warn(`[TeammateManager] Attempted to remove leader ${slot_id} — blocked.`);
       return;
     }
 
     // Kill the underlying ACP process
-    if (agent.conversationId) {
-      this.workerTaskManager.kill(agent.conversationId);
+    if (agent.conversation_id) {
+      this.workerTaskManager.kill(agent.conversation_id);
     }
 
     // Cancel any pending wake timeout
-    const timeoutHandle = this.wakeTimeouts.get(slotId);
+    const timeoutHandle = this.wakeTimeouts.get(slot_id);
     if (timeoutHandle) {
       clearTimeout(timeoutHandle);
-      this.wakeTimeouts.delete(slotId);
+      this.wakeTimeouts.delete(slot_id);
     }
-    this.activeWakes.delete(slotId);
+    this.activeWakes.delete(slot_id);
 
     // Clean up owned conversation tracking
-    if (agent.conversationId) {
-      this.ownedConversationIds.delete(agent.conversationId);
-      this.finalizedTurns.delete(agent.conversationId);
+    if (agent.conversation_id) {
+      this.ownedConversationIds.delete(agent.conversation_id);
+      this.finalizedTurns.delete(agent.conversation_id);
     }
 
-    this.agents = this.agents.filter((a) => a.slotId !== slotId);
-    console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
-    ipcBridge.team.agentRemoved.emit({ teamId: this.teamId, slotId });
+    this.agents = this.agents.filter((a) => a.slot_id !== slot_id);
+    console.log(`[TeammateManager] Agent ${slot_id} (${agent.agent_name}) removed`);
+    ipcBridge.team.agentRemoved.emit({ team_id: this.team_id, slot_id });
 
     // Notify upper layer to persist the removal (e.g. update DB)
-    this.onAgentRemovedFn?.(this.teamId, this.agents);
+    this.onAgentRemovedFn?.(this.team_id, this.agents);
   }
 
   /** Normalize agent name for case-insensitive comparison. */
@@ -593,24 +593,26 @@ export class TeammateManager extends EventEmitter {
   }
 
   /** Rename an agent. Updates in-memory state; caller is responsible for persistence. */
-  renameAgent(slotId: string, newName: string): void {
-    const trimmed = newName.trim();
+  renameAgent(slot_id: string, new_name: string): void {
+    const trimmed = new_name.trim();
     if (!trimmed) throw new Error('Agent name cannot be empty');
 
-    const agent = this.agents.find((a) => a.slotId === slotId);
-    if (!agent) throw new Error(`Agent "${slotId}" not found`);
+    const agent = this.agents.find((a) => a.slot_id === slot_id);
+    if (!agent) throw new Error(`Agent "${slot_id}" not found`);
 
     const needle = TeammateManager.normalize(trimmed);
-    const duplicate = this.agents.find((a) => a.slotId !== slotId && TeammateManager.normalize(a.agentName) === needle);
-    if (duplicate) throw new Error(`Agent name "${trimmed}" is already taken by ${duplicate.slotId}`);
+    const duplicate = this.agents.find(
+      (a) => a.slot_id !== slot_id && TeammateManager.normalize(a.agent_name) === needle
+    );
+    if (duplicate) throw new Error(`Agent name "${trimmed}" is already taken by ${duplicate.slot_id}`);
 
-    const oldName = agent.agentName;
+    const old_name = agent.agent_name;
     // Only store the very first original name so multiple renames show the original
-    if (!this.renamedAgents.has(slotId)) {
-      this.renamedAgents.set(slotId, oldName);
+    if (!this.renamedAgents.has(slot_id)) {
+      this.renamedAgents.set(slot_id, old_name);
     }
-    this.agents = this.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: trimmed } : a));
-    console.log(`[TeammateManager] Agent ${slotId} renamed: "${oldName}" → "${trimmed}"`);
-    ipcBridge.team.agentRenamed.emit({ teamId: this.teamId, slotId, oldName, newName: trimmed });
+    this.agents = this.agents.map((a) => (a.slot_id === slot_id ? { ...a, agent_name: trimmed } : a));
+    console.log(`[TeammateManager] Agent ${slot_id} renamed: "${old_name}" → "${trimmed}"`);
+    ipcBridge.team.agentRenamed.emit({ team_id: this.team_id, slot_id, old_name, new_name: trimmed });
   }
 }

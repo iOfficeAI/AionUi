@@ -44,10 +44,10 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
     })
   );
 
-  const persistSortOrder = useCallback(async (conversationId: string, sortOrder: number) => {
+  const persistSortOrder = useCallback(async (conversation_id: string, sortOrder: number) => {
     try {
       await ipcBridge.conversation.update.invoke({
-        id: conversationId,
+        id: conversation_id,
         updates: {
           extra: {
             sortOrder,

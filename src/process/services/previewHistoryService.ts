@@ -61,12 +61,12 @@ class PreviewHistoryService {
   // 根据目标生成稳定的标识和摘要，作为索引/存储路径 / Build stable identity & digest for indexing
   private buildIdentity(target: PreviewHistoryTarget): { identity: string; digest: string } {
     const keyParts = [
-      target.filePath ? `path:${target.filePath}` : '',
+      target.file_path ? `path:${target.file_path}` : '',
       target.workspace ? `workspace:${target.workspace}` : '',
-      target.fileName ? `file:${target.fileName}` : '',
+      target.file_name ? `file:${target.file_name}` : '',
       target.title ? `title:${target.title}` : '',
       target.language ? `lang:${target.language}` : '',
-      target.conversationId ? `conversation:${target.conversationId}` : '',
+      target.conversation_id ? `conversation:${target.conversation_id}` : '',
       `type:${target.contentType}`,
     ].filter(Boolean);
 
@@ -115,19 +115,19 @@ class PreviewHistoryService {
   private createSnapshotInfo(params: {
     snapshotId: string;
     content: string;
-    createdAt: number;
+    created_at: number;
     target: PreviewHistoryTarget;
     relativePath: string;
   }): StoredSnapshot {
-    const { snapshotId, content, createdAt, target, relativePath } = params;
+    const { snapshotId, content, created_at, target, relativePath } = params;
     return {
       id: snapshotId,
-      label: new Date(createdAt).toISOString(),
-      createdAt,
+      label: new Date(created_at).toISOString(),
+      created_at,
       size: Buffer.byteLength(content, 'utf-8'),
       contentType: target.contentType,
-      fileName: target.fileName,
-      filePath: target.filePath,
+      file_name: target.file_name,
+      file_path: target.file_path,
       storagePath: relativePath,
     };
   }
@@ -154,17 +154,17 @@ class PreviewHistoryService {
     const targetDir = path.join(baseDir, digest);
     const index = await this.readIndex(targetDir, identity, target);
 
-    const createdAt = Date.now();
-    const snapshotId = `${createdAt}-${Math.random().toString(36).slice(2, 8)}`;
-    const fileName = this.getSnapshotFileName(snapshotId);
-    const snapshotPath = path.join(targetDir, fileName);
+    const created_at = Date.now();
+    const snapshotId = `${created_at}-${Math.random().toString(36).slice(2, 8)}`;
+    const file_name = this.getSnapshotFileName(snapshotId);
+    const snapshotPath = path.join(targetDir, file_name);
 
     await fs.writeFile(snapshotPath, content, 'utf-8');
 
     const storedSnapshot = this.createSnapshotInfo({
       snapshotId,
       content,
-      createdAt,
+      created_at,
       target,
       relativePath: path.relative(this.getBaseDir(), snapshotPath),
     });

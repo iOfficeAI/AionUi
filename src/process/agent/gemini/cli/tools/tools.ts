@@ -85,7 +85,7 @@ export interface ToolBuilder<TParams extends object, TResult extends ToolResult>
   /**
    * The user-friendly display name of the tool.
    */
-  displayName: string;
+  display_name: string;
 
   /**
    * Description of what the tool does.
@@ -130,7 +130,7 @@ export abstract class DeclarativeTool<TParams extends object, TResult extends To
 > {
   constructor(
     readonly name: string,
-    readonly displayName: string,
+    readonly display_name: string,
     readonly description: string,
     readonly kind: Kind,
     readonly parameterSchema: unknown,
@@ -381,10 +381,10 @@ export function hasCycleInSchema(schema: object): boolean {
 export type ToolResultDisplay = string | FileDiff;
 
 export interface FileDiff {
-  fileDiff: string;
-  fileName: string;
+  file_diff: string;
+  file_name: string;
   originalContent: string | null;
-  newContent: string;
+  new_content: string;
   diffStat?: DiffStat;
 }
 
@@ -399,11 +399,11 @@ export interface ToolEditConfirmationDetails {
   type: 'edit';
   title: string;
   onConfirm: (outcome: ToolConfirmationOutcome, payload?: ToolConfirmationPayload) => Promise<void>;
-  fileName: string;
-  filePath: string;
-  fileDiff: string;
+  file_name: string;
+  file_path: string;
+  file_diff: string;
   originalContent: string | null;
-  newContent: string;
+  new_content: string;
   isModifying?: boolean;
   ideConfirmation?: Promise<DiffUpdateResult>;
 }
@@ -411,7 +411,7 @@ export interface ToolEditConfirmationDetails {
 export interface ToolConfirmationPayload {
   // used to override `modifiedProposedContent` for modifiable tools in the
   // inline modify flow
-  newContent: string;
+  new_content: string;
 }
 
 export interface ToolExecuteConfirmationDetails {
@@ -425,9 +425,9 @@ export interface ToolExecuteConfirmationDetails {
 export interface ToolMcpConfirmationDetails {
   type: 'mcp';
   title: string;
-  serverName: string;
-  toolName: string;
-  toolDisplayName: string;
+  server_name: string;
+  tool_name: string;
+  tool_display_name: string;
   onConfirm: (outcome: ToolConfirmationOutcome) => Promise<void>;
 }
 

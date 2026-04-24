@@ -7,7 +7,7 @@ import type { TeamTask } from '@process/team/types';
 function makeTask(overrides: Partial<TeamTask> = {}): TeamTask {
   return {
     id: 'task-1',
-    teamId: 'team-1',
+    team_id: 'team-1',
     subject: 'Do something',
     description: 'Details here',
     status: 'pending',
@@ -15,8 +15,8 @@ function makeTask(overrides: Partial<TeamTask> = {}): TeamTask {
     blockedBy: [],
     blocks: [],
     metadata: {},
-    createdAt: 1000,
-    updatedAt: 1000,
+    created_at: 1000,
+    updated_at: 1000,
     ...overrides,
   };
 }
@@ -62,7 +62,7 @@ describe('TaskManager', () => {
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
 
       const result = await taskManager.create({
-        teamId: 'team-1',
+        team_id: 'team-1',
         subject: 'Do something',
         description: 'Details here',
       });
@@ -70,7 +70,7 @@ describe('TaskManager', () => {
       expect(repo.createTask).toHaveBeenCalledOnce();
       const arg = vi.mocked(repo.createTask).mock.calls[0][0];
       expect(arg.status).toBe('pending');
-      expect(arg.teamId).toBe('team-1');
+      expect(arg.team_id).toBe('team-1');
       expect(arg.subject).toBe('Do something');
       expect(arg.description).toBe('Details here');
       expect(arg.blockedBy).toEqual([]);
@@ -83,7 +83,7 @@ describe('TaskManager', () => {
       const createdTask = makeTask({ owner: 'slot-1' });
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
 
-      await taskManager.create({ teamId: 'team-1', subject: 'Task', owner: 'slot-1' });
+      await taskManager.create({ team_id: 'team-1', subject: 'Task', owner: 'slot-1' });
 
       const arg = vi.mocked(repo.createTask).mock.calls[0][0];
       expect(arg.owner).toBe('slot-1');
@@ -93,7 +93,7 @@ describe('TaskManager', () => {
       const createdTask = makeTask();
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
 
-      await taskManager.create({ teamId: 'team-1', subject: 'Task' });
+      await taskManager.create({ team_id: 'team-1', subject: 'Task' });
 
       const arg = vi.mocked(repo.createTask).mock.calls[0][0];
       expect(arg.blockedBy).toEqual([]);
@@ -105,7 +105,7 @@ describe('TaskManager', () => {
       vi.mocked(repo.appendToBlocks).mockResolvedValue(undefined);
 
       await taskManager.create({
-        teamId: 'team-1',
+        team_id: 'team-1',
         subject: 'Downstream task',
         blockedBy: ['task-upstream'],
       });
@@ -119,7 +119,7 @@ describe('TaskManager', () => {
       vi.mocked(repo.appendToBlocks).mockResolvedValue(undefined);
 
       await taskManager.create({
-        teamId: 'team-1',
+        team_id: 'team-1',
         subject: 'Task',
         blockedBy: ['task-a', 'task-b'],
       });
@@ -139,7 +139,7 @@ describe('TaskManager', () => {
 
       expect(repo.updateTask).toHaveBeenCalledWith(
         'task-1',
-        expect.objectContaining({ status: 'in_progress', updatedAt: expect.any(Number) })
+        expect.objectContaining({ status: 'in_progress', updated_at: expect.any(Number) })
       );
       expect(result).toBe(updatedTask);
     });
@@ -196,7 +196,7 @@ describe('TaskManager', () => {
     });
 
     it('returns empty array when no tasks depend on the completed task', async () => {
-      const completedTask = makeTask({ id: 'task-1', teamId: 'team-1' });
+      const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
       vi.mocked(repo.findTasksByTeam).mockResolvedValue([makeTask({ id: 'task-2', blockedBy: [] })]);
 
@@ -206,8 +206,8 @@ describe('TaskManager', () => {
       expect(repo.updateTask).not.toHaveBeenCalled();
     });
 
-    it('atomically removes completed taskId from dependents and returns fully unblocked tasks', async () => {
-      const completedTask = makeTask({ id: 'task-1', teamId: 'team-1' });
+    it('atomically removes completed task_id from dependents and returns fully unblocked tasks', async () => {
+      const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
       const dependent = makeTask({ id: 'task-2', blockedBy: ['task-1'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
       vi.mocked(repo.findTasksByTeam).mockResolvedValue([completedTask, dependent]);
@@ -224,7 +224,7 @@ describe('TaskManager', () => {
     });
 
     it('returns only tasks whose blockedBy is now empty (still blocked tasks not returned)', async () => {
-      const completedTask = makeTask({ id: 'task-1', teamId: 'team-1' });
+      const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
       const fullyUnblocked = makeTask({ id: 'task-2', blockedBy: ['task-1'] });
       const stillBlocked = makeTask({ id: 'task-3', blockedBy: ['task-1', 'task-other'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
@@ -241,7 +241,7 @@ describe('TaskManager', () => {
     });
 
     it('handles multiple dependents in parallel', async () => {
-      const completedTask = makeTask({ id: 'task-0', teamId: 'team-1' });
+      const completedTask = makeTask({ id: 'task-0', team_id: 'team-1' });
       const dep1 = makeTask({ id: 'task-1', blockedBy: ['task-0'] });
       const dep2 = makeTask({ id: 'task-2', blockedBy: ['task-0'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
@@ -255,9 +255,9 @@ describe('TaskManager', () => {
     });
 
     it('concurrent checkUnblocks is now safe with atomic removeFromBlockedBy', async () => {
-      const taskA = makeTask({ id: 'task-a', teamId: 'team-1', status: 'completed' });
-      const taskB = makeTask({ id: 'task-b', teamId: 'team-1', status: 'completed' });
-      const taskC = makeTask({ id: 'task-c', teamId: 'team-1', blockedBy: ['task-a', 'task-b'] });
+      const taskA = makeTask({ id: 'task-a', team_id: 'team-1', status: 'completed' });
+      const taskB = makeTask({ id: 'task-b', team_id: 'team-1', status: 'completed' });
+      const taskC = makeTask({ id: 'task-c', team_id: 'team-1', blockedBy: ['task-a', 'task-b'] });
 
       vi.mocked(repo.findTaskById).mockImplementation(async (id) => {
         if (id === 'task-a') return taskA;

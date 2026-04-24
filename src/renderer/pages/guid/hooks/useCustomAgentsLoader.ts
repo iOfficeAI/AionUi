@@ -86,7 +86,7 @@ export const useCustomAgentsLoader = ({
       ]);
       setAssistants(assistantList);
       const filteredCustoms = ((userCustomAgents || []) as AcpBackendConfig[]).filter((a) =>
-        availableCustomAgentIds.has(a.id),
+        availableCustomAgentIds.has(a.id)
       );
       setCustomAgents(filteredCustoms);
     } catch (error) {

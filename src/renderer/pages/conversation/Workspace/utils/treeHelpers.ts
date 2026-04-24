@@ -129,7 +129,7 @@ export function updateChildrenPaths(
 export function updateTreeForRename(
   list: IDirOrFile[],
   oldKey: string,
-  newName: string,
+  new_name: string,
   newFullPath: string
 ): IDirOrFile[] {
   return list.map((node) => {
@@ -137,11 +137,11 @@ export function updateTreeForRename(
       // 找到目标节点，更新它的信息 / Found target node, update its info
       const oldFullPath = node.fullPath;
       const oldRelativePath = node.relativePath || '';
-      const newRelativePath = oldRelativePath.replace(/[^/]+$/, newName);
+      const newRelativePath = oldRelativePath.replace(/[^/]+$/, new_name);
 
       const updatedNode: IDirOrFile = {
         ...node,
-        name: newName,
+        name: new_name,
         fullPath: newFullPath,
         relativePath: newRelativePath,
       };
@@ -170,7 +170,7 @@ export function updateTreeForRename(
     if (node.children && node.children.length > 0) {
       return {
         ...node,
-        children: updateTreeForRename(node.children, oldKey, newName, newFullPath),
+        children: updateTreeForRename(node.children, oldKey, new_name, newFullPath),
       };
     }
 

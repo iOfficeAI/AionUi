@@ -122,7 +122,7 @@ describe('filterTeamSupportedAgents', () => {
     ({
       backend,
       name: backend,
-      conversationType: 'acp',
+      conversation_type: 'acp',
       ...overrides,
     }) as AvailableAgent;
 
@@ -168,14 +168,14 @@ describe('agentKey', () => {
   });
 
   it('returns preset:: prefix for custom agents', () => {
-    expect(agentKey({ backend: 'claude', customAgentId: 'my-agent' } as AvailableAgent)).toBe('preset::my-agent');
+    expect(agentKey({ backend: 'claude', custom_agent_id: 'my-agent' } as AvailableAgent)).toBe('preset::my-agent');
   });
 });
 
 describe('agentFromKey', () => {
   const agents = [
     { backend: 'claude' } as AvailableAgent,
-    { backend: 'claude', customAgentId: 'my-agent' } as AvailableAgent,
+    { backend: 'claude', custom_agent_id: 'my-agent' } as AvailableAgent,
   ];
 
   it('finds CLI agent by key', () => {

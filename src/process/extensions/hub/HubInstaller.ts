@@ -41,14 +41,14 @@ const contributeVerifiers: Partial<Record<keyof HubContributes, (ids: string[]) 
 
     // Build a set of all identifiers that represent a detected adapter:
     // - backend ID for builtin agents (e.g. 'claude', 'qwen')
-    // - adapter ID from customAgentId for extension agents (e.g. 'ext:name:adapterId' → 'adapterId')
+    // - adapter ID from custom_agent_id for extension agents (e.g. 'ext:name:adapterId' → 'adapterId')
     const detectedIds = new Set<string>();
     for (const a of agents) {
       if (a.backend !== 'custom') {
         detectedIds.add(a.backend);
       }
-      if (isAgentKind(a, 'acp') && a.isExtension && a.customAgentId) {
-        const adapterId = a.customAgentId.split(':').pop();
+      if (isAgentKind(a, 'acp') && a.isExtension && a.custom_agent_id) {
+        const adapterId = a.custom_agent_id.split(':').pop();
         if (adapterId) detectedIds.add(adapterId);
       }
     }
@@ -246,8 +246,8 @@ export class HubInstallerImpl {
 
     // Download from remote mirrors (try each in order)
     const cachePath = path.join(this.getCacheDir(), `${name}.zip`);
-    for (const baseUrl of HUB_REMOTE_URLS) {
-      const url = new URL(distTarball, baseUrl).toString();
+    for (const base_url of HUB_REMOTE_URLS) {
+      const url = new URL(distTarball, base_url).toString();
       try {
         await this.downloadFile(url, cachePath);
         return cachePath;
@@ -270,7 +270,7 @@ export class HubInstallerImpl {
     fs.writeFileSync(dest, Buffer.from(arrayBuffer));
   }
 
-  private async verifyIntegrity(filePath: string, expectedSri: string): Promise<void> {
+  private async verifyIntegrity(file_path: string, expectedSri: string): Promise<void> {
     if (!expectedSri.startsWith('sha512-')) {
       console.warn(`[HubInstaller] Unsupported integrity algorithm in ${expectedSri}, skipping check.`);
       return;
@@ -279,7 +279,7 @@ export class HubInstallerImpl {
     const expectedHashBase64 = expectedSri.substring('sha512-'.length);
     const expectedHashHex = Buffer.from(expectedHashBase64, 'base64').toString('hex');
 
-    const fileBuffer = fs.readFileSync(filePath);
+    const fileBuffer = fs.readFileSync(file_path);
     const actualHashHex = crypto.createHash('sha512').update(fileBuffer).digest('hex');
 
     if (actualHashHex !== expectedHashHex) {

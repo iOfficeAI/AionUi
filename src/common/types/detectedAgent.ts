@@ -32,7 +32,7 @@ type KindFields = {
 
   acp: {
     /** Resolved CLI binary path */
-    cliPath?: string;
+    cli_path?: string;
     /** Extra arguments passed to the ACP CLI */
     acpArgs?: string[];
     /** Whether this agent was contributed by an extension */
@@ -40,7 +40,7 @@ type KindFields = {
     /** Name of the contributing extension */
     extensionName?: string;
     /** Extension-contributed custom agent ID (e.g. 'ext:name:adapterId') */
-    customAgentId?: string;
+    custom_agent_id?: string;
   };
 
   remote: {
@@ -56,21 +56,21 @@ type KindFields = {
 
   aionrs: {
     /** Resolved CLI binary path */
-    cliPath?: string;
+    cli_path?: string;
     /** Binary version string */
     version?: string;
   };
 
   'openclaw-gateway': {
     /** Resolved CLI binary path */
-    cliPath?: string;
+    cli_path?: string;
     /** Gateway WebSocket URL */
     gatewayUrl?: string;
   };
 
   nanobot: {
     /** Resolved CLI binary path */
-    cliPath?: string;
+    cli_path?: string;
   };
 };
 

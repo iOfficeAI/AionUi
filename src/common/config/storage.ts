@@ -30,16 +30,16 @@ export interface IConfigStorageRefer {
     preferredModelId?: string;
   };
   'codex.config'?: {
-    cliPath?: string;
+    cli_path?: string;
     yoloMode?: boolean;
     sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
   };
   'acp.config': {
     [backend in AcpBackend]?: {
-      authMethodId?: string;
+      auth_methodId?: string;
       authToken?: string;
       lastAuthTime?: number;
-      cliPath?: string;
+      cli_path?: string;
       yoloMode?: boolean;
       /** Preferred session mode for new conversations / 新会话的默认模式 */
       preferredMode?: string;
@@ -53,14 +53,14 @@ export interface IConfigStorageRefer {
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
-  /** User-defined custom ACP agents (isPreset !== true, require defaultCliPath). */
+  /** User-defined custom ACP agents (is_preset !== true, require defaultCliPath). */
   'acp.customAgents'?: AcpBackendConfig[];
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
   // Cached model lists per ACP backend for Guid page pre-selection
   'acp.cachedModels'?: Record<string, import('@/common/types/acpTypes').AcpModelInfo>;
   // Cached config options per ACP backend for Guid page pre-selection
-  'acp.cachedConfigOptions'?: Record<string, import('@/common/types/acpTypes').AcpSessionConfigOption[]>;
+  'acp.cached_config_options'?: Record<string, import('@/common/types/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector
   'acp.cachedModes'?: Record<string, import('@/common/types/acpTypes').AcpSessionModes>;
   'model.config': IProvider[];
@@ -128,7 +128,7 @@ export interface IConfigStorageRefer {
   // Telegram assistant agent selection / Telegram 助手所使用的 Agent
   'assistant.telegram.agent'?: {
     backend: string;
-    customAgentId?: string;
+    custom_agent_id?: string;
     name?: string;
   };
   // Lark assistant default model / Lark 助手默认模型
@@ -139,7 +139,7 @@ export interface IConfigStorageRefer {
   // Lark assistant agent selection / Lark 助手所使用的 Agent
   'assistant.lark.agent'?: {
     backend: string;
-    customAgentId?: string;
+    custom_agent_id?: string;
     name?: string;
   };
   // DingTalk assistant default model / DingTalk 助手默认模型
@@ -150,7 +150,7 @@ export interface IConfigStorageRefer {
   // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
   'assistant.dingtalk.agent'?: {
     backend: string;
-    customAgentId?: string;
+    custom_agent_id?: string;
     name?: string;
   };
   // WeChat assistant default model / WeChat 助手默认模型
@@ -161,7 +161,7 @@ export interface IConfigStorageRefer {
   // WeChat assistant agent selection / WeChat 助手所使用的 Agent
   'assistant.weixin.agent'?: {
     backend: string;
-    customAgentId?: string;
+    custom_agent_id?: string;
     name?: string;
   };
   // WeCom assistant default model / 企业微信助手默认模型
@@ -172,7 +172,7 @@ export interface IConfigStorageRefer {
   // WeCom assistant agent selection / 企业微信助手所使用的 Agent
   'assistant.wecom.agent'?: {
     backend: string;
-    customAgentId?: string;
+    custom_agent_id?: string;
     name?: string;
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
@@ -202,8 +202,8 @@ export interface IEnvStorageRefer {
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
 
 interface IChatConversation<T, Extra> {
-  createdAt: number;
-  modifiedAt: number;
+  created_at: number;
+  modified_at: number;
   name: string;
   desc?: string;
   id: string;
@@ -214,12 +214,12 @@ interface IChatConversation<T, Extra> {
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
-  channelChatId?: string;
+  channel_chat_id?: string;
 }
 
 // Token 使用统计数据类型
 export interface TokenUsageData {
-  totalTokens: number;
+  total_tokens: number;
 }
 
 export type TChatConversation =
@@ -227,29 +227,29 @@ export type TChatConversation =
       'gemini',
       {
         workspace: string;
-        customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
-        webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
-        lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
-        contextFileName?: string;
+        custom_workspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
+        web_search_engine?: 'google' | 'default'; // 搜索引擎配置
+        last_token_usage?: TokenUsageData; // 上次的 token 使用统计
+        context_file_name?: string;
         contextContent?: string;
         // 系统规则支持 / System rules support
-        presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
+        preset_rules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
         /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-        enabledSkills?: string[];
+        enabled_skills?: string[];
         /** 实际加载的 skills 快照（首次消息时持久化）/ Snapshot of actually loaded skills (persisted on first message) */
-        loadedSkills?: Array<{ name: string; description: string }>;
+        loaded_skills?: Array<{ name: string; description: string }>;
         /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
-        presetAssistantId?: string;
+        preset_assistant_id?: string;
         /** 是否置顶会话 / Whether this conversation is pinned */
         pinned?: boolean;
         /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
-        pinnedAt?: number;
+        pinned_at?: number;
         /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-        sessionMode?: string;
+        session_mode?: string;
         /** Explicit marker for temporary health-check conversations */
-        isHealthCheck?: boolean;
+        is_health_check?: boolean;
         /** Cron job ID that spawned this conversation */
-        cronJobId?: string;
+        cron_job_id?: string;
       }
     >
   | Omit<
@@ -258,45 +258,45 @@ export type TChatConversation =
         {
           workspace?: string;
           backend: AcpBackend;
-          cliPath?: string;
-          customWorkspace?: boolean;
-          agentName?: string;
-          customAgentId?: string; // UUID for identifying specific custom agent
-          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          cli_path?: string;
+          custom_workspace?: boolean;
+          agent_name?: string;
+          custom_agent_id?: string; // UUID for identifying specific custom agent
+          preset_context?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
           /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-          enabledSkills?: string[];
+          enabled_skills?: string[];
           /** 排除的内置自动注入 skills / Builtin auto-injected skills to exclude */
           excludeBuiltinSkills?: string[];
           /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loadedSkills?: Array<{ name: string; description: string }>;
+          loaded_skills?: Array<{ name: string; description: string }>;
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
-          presetAssistantId?: string;
+          preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
-          pinnedAt?: number;
+          pinned_at?: number;
           /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
-          acpSessionId?: string;
+          acp_session_id?: string;
           /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
-          acpSessionConversationId?: string;
+          acp_session_conversation_id?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */
-          acpSessionUpdatedAt?: number;
+          acp_session_updated_at?: number;
           /** Last context usage from usage_update */
-          lastTokenUsage?: TokenUsageData;
+          last_token_usage?: TokenUsageData;
           /** Context window capacity from usage_update */
-          lastContextLimit?: number;
+          last_context_limit?: number;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-          sessionMode?: string;
+          session_mode?: string;
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
-          currentModelId?: string;
+          current_model_id?: string;
           /** Cached config options from ACP backend / 缓存的 ACP 配置选项 */
-          cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+          cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
           /** Pending config option selections from Guid page / Guid 页面待应用的配置选项 */
-          pendingConfigOptions?: Record<string, string>;
+          pending_config_options?: Record<string, string>;
           /** Explicit marker for temporary health-check conversations */
-          isHealthCheck?: boolean;
+          is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
-          cronJobId?: string;
+          cron_job_id?: string;
         }
       >,
       'model'
@@ -306,28 +306,28 @@ export type TChatConversation =
         'codex',
         {
           workspace?: string;
-          cliPath?: string;
-          customWorkspace?: boolean;
+          cli_path?: string;
+          custom_workspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
-          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          preset_context?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
           /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-          enabledSkills?: string[];
+          enabled_skills?: string[];
           /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loadedSkills?: Array<{ name: string; description: string }>;
+          loaded_skills?: Array<{ name: string; description: string }>;
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
-          presetAssistantId?: string;
+          preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
-          pinnedAt?: number;
+          pinned_at?: number;
           /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-          sessionMode?: string;
+          session_mode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
           /** Explicit marker for temporary health-check conversations */
-          isHealthCheck?: boolean;
+          is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
-          cronJobId?: string;
+          cron_job_id?: string;
         }
       >,
       'model'
@@ -338,8 +338,8 @@ export type TChatConversation =
         {
           workspace?: string;
           backend?: AcpBackendAll;
-          agentName?: string;
-          customWorkspace?: boolean;
+          agent_name?: string;
+          custom_workspace?: boolean;
           /** Gateway configuration */
           gateway?: {
             host?: string;
@@ -347,7 +347,7 @@ export type TChatConversation =
             token?: string;
             password?: string;
             useExternalGateway?: boolean;
-            cliPath?: string;
+            cli_path?: string;
           };
           /** Session key for resume */
           sessionKey?: string;
@@ -362,19 +362,19 @@ export type TChatConversation =
             switchedAt?: number;
           };
           /** 启用的 skills 列表 / Enabled skills list */
-          enabledSkills?: string[];
+          enabled_skills?: string[];
           /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loadedSkills?: Array<{ name: string; description: string }>;
+          loaded_skills?: Array<{ name: string; description: string }>;
           /** 预设助手 ID / Preset assistant ID */
-          presetAssistantId?: string;
+          preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
-          pinnedAt?: number;
+          pinned_at?: number;
           /** Explicit marker for temporary health-check conversations */
-          isHealthCheck?: boolean;
+          is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
-          cronJobId?: string;
+          cron_job_id?: string;
         }
       >,
       'model'
@@ -384,21 +384,21 @@ export type TChatConversation =
         'nanobot',
         {
           workspace?: string;
-          customWorkspace?: boolean;
+          custom_workspace?: boolean;
           /** 启用的 skills 列表 / Enabled skills list */
-          enabledSkills?: string[];
+          enabled_skills?: string[];
           /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loadedSkills?: Array<{ name: string; description: string }>;
+          loaded_skills?: Array<{ name: string; description: string }>;
           /** 预设助手 ID / Preset assistant ID */
-          presetAssistantId?: string;
+          preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
-          pinnedAt?: number;
+          pinned_at?: number;
           /** Explicit marker for temporary health-check conversations */
-          isHealthCheck?: boolean;
+          is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
-          cronJobId?: string;
+          cron_job_id?: string;
         }
       >,
       'model'
@@ -408,25 +408,25 @@ export type TChatConversation =
         'remote',
         {
           workspace?: string;
-          customWorkspace?: boolean;
+          custom_workspace?: boolean;
           /** Remote agent config ID (FK to remote_agents table) */
           remoteAgentId: string;
           /** Remote session key for resume */
           sessionKey?: string;
           /** Enabled skills list */
-          enabledSkills?: string[];
+          enabled_skills?: string[];
           /** Snapshot of actually loaded skills */
-          loadedSkills?: Array<{ name: string; description: string }>;
+          loaded_skills?: Array<{ name: string; description: string }>;
           /** Preset assistant ID */
-          presetAssistantId?: string;
+          preset_assistant_id?: string;
           /** Whether this conversation is pinned */
           pinned?: boolean;
           /** Pin timestamp in milliseconds */
-          pinnedAt?: number;
+          pinned_at?: number;
           /** Explicit marker for temporary health-check conversations */
-          isHealthCheck?: boolean;
+          is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
-          cronJobId?: string;
+          cron_job_id?: string;
         }
       >,
       'model'
@@ -435,32 +435,32 @@ export type TChatConversation =
       'aionrs',
       {
         workspace: string;
-        customWorkspace?: boolean;
+        custom_workspace?: boolean;
         proxy?: string;
         /** System rules injected at initialization */
-        presetRules?: string;
+        preset_rules?: string;
         /** Enabled skills list */
-        enabledSkills?: string[];
+        enabled_skills?: string[];
         /** Snapshot of actually loaded skills */
-        loadedSkills?: Array<{ name: string; description: string }>;
+        loaded_skills?: Array<{ name: string; description: string }>;
         /** Preset assistant ID */
-        presetAssistantId?: string;
+        preset_assistant_id?: string;
         /** Whether this conversation is pinned */
         pinned?: boolean;
         /** Pin timestamp in milliseconds */
-        pinnedAt?: number;
+        pinned_at?: number;
         /** Max tokens per response */
         maxTokens?: number;
         /** Max agentic turns */
         maxTurns?: number;
         /** Persisted session mode for resume support */
-        sessionMode?: string;
+        session_mode?: string;
         /** Explicit marker for temporary health-check conversations */
-        isHealthCheck?: boolean;
+        is_health_check?: boolean;
         /** Last token usage stats */
-        lastTokenUsage?: TokenUsageData;
+        last_token_usage?: TokenUsageData;
         /** Cron job ID that spawned this conversation */
-        cronJobId?: string;
+        cron_job_id?: string;
       }
     >;
 
@@ -491,8 +491,8 @@ export interface IProvider {
   id: string;
   platform: string;
   name: string;
-  baseUrl: string;
-  apiKey: string;
+  base_url: string;
+  api_key: string;
   model: string[];
   /**
    * 模型能力标签列表。打了标签就是支持，没打就是不支持
@@ -501,7 +501,7 @@ export interface IProvider {
   /**
    * 上下文token限制，可选字段，只在明确知道时填写
    */
-  contextLimit?: number;
+  context_limit?: number;
   /**
    * 每个模型的协议覆盖配置。映射模型名称到协议字符串。
    * 仅在 platform 为 'new-api' 时使用。
@@ -509,17 +509,17 @@ export interface IProvider {
    * Only used when platform is 'new-api'.
    * e.g. { "gemini-2.5-pro": "gemini", "claude-sonnet-4": "anthropic", "gpt-4o": "openai" }
    */
-  modelProtocols?: Record<string, string>;
+  model_protocols?: Record<string, string>;
   /**
    * AWS Bedrock specific configuration
    * Only used when platform is 'bedrock'
    */
-  bedrockConfig?: {
-    authMethod: 'accessKey' | 'profile';
+  bedrock_config?: {
+    auth_method: 'accessKey' | 'profile';
     region: string;
     // For access key method
-    accessKeyId?: string;
-    secretAccessKey?: string;
+    access_key_id?: string;
+    secret_access_key?: string;
     // For profile method
     profile?: string;
   };
@@ -532,12 +532,12 @@ export interface IProvider {
    * 各个模型的启用状态，默认全部为 true
    * Individual model enabled states, defaults to all true
    */
-  modelEnabled?: Record<string, boolean>;
+  model_enabled?: Record<string, boolean>;
   /**
    * 各个模型的健康检测结果（仅用于 UI 显示，不影响启用状态）
    * Model health check results (for UI display only, does not affect enabled state)
    */
-  modelHealth?: Record<
+  model_health?: Record<
     string,
     {
       status: 'unknown' | 'healthy' | 'unhealthy';
@@ -594,10 +594,10 @@ export interface IMcpServer {
   transport: IMcpServerTransport;
   tools?: IMcpTool[];
   status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 连接状态（同时表示服务可用性）
-  lastConnected?: number;
-  createdAt: number;
-  updatedAt: number;
-  originalJson: string; // 存储原始JSON配置，用于编辑时的准确显示
+  last_connected?: number;
+  created_at: number;
+  updated_at: number;
+  original_json: string; // 存储原始JSON配置，用于编辑时的准确显示
   /** Built-in MCP server managed by AionUi (hide edit/delete in UI) */
   builtin?: boolean;
 }
@@ -608,7 +608,7 @@ export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 export interface IMcpTool {
   name: string;
   description?: string;
-  inputSchema?: unknown;
+  input_schema?: unknown;
   _meta?: Record<string, unknown>;
 }
 
@@ -621,7 +621,7 @@ export interface ICssTheme {
   name: string; // 主题名称 / Theme name
   cover?: string; // 封面图片 base64 或 URL / Cover image base64 or URL
   css: string; // CSS 样式代码 / CSS style code
-  isPreset?: boolean; // 是否为预设主题 / Whether it's a preset theme
-  createdAt: number; // 创建时间 / Creation time
-  updatedAt: number; // 更新时间 / Update time
+  is_preset?: boolean; // 是否为预设主题 / Whether it's a preset theme
+  created_at: number; // 创建时间 / Creation time
+  updated_at: number; // 更新时间 / Update time
 }

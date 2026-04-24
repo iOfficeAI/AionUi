@@ -45,12 +45,12 @@ const unsupportedResult = (to: DocumentConversionTarget, message: string) => ({
  * 检查文件扩展名是否在允许的集合中
  * Check if file extension is in the allowed set
  *
- * @param filePath - 文件路径 / File path
+ * @param file_path - 文件路径 / File path
  * @param allowed - 允许的扩展名集合 / Set of allowed extensions
  * @returns 文件扩展名是否被允许 / Whether the file extension is allowed
  */
-const ensureExtension = (filePath: string, allowed: Set<string>) => {
-  const ext = path.extname(filePath).toLowerCase();
+const ensureExtension = (file_path: string, allowed: Set<string>) => {
+  const ext = path.extname(file_path).toLowerCase();
   return allowed.has(ext);
 };
 
@@ -71,30 +71,30 @@ const ensureExtension = (filePath: string, allowed: Set<string>) => {
  * - PowerPoint → JSON
  */
 export function initDocumentBridge(): void {
-  ipcBridge.document.convert.provider(async ({ filePath, to }) => {
+  ipcBridge.document.convert.provider(async ({ file_path, to }) => {
     switch (to) {
       case 'markdown': {
         // Word 文档转 Markdown / Word document to Markdown
-        if (!ensureExtension(filePath, WORD_EXTENSIONS)) {
+        if (!ensureExtension(file_path, WORD_EXTENSIONS)) {
           return unsupportedResult(to, 'Only Word documents can be converted to markdown');
         }
-        const result = await conversionService.wordToMarkdown(filePath);
+        const result = await conversionService.wordToMarkdown(file_path);
         return { to, result };
       }
       case 'excel-json': {
         // Excel 工作簿转 JSON / Excel workbook to JSON
-        if (!ensureExtension(filePath, EXCEL_EXTENSIONS)) {
+        if (!ensureExtension(file_path, EXCEL_EXTENSIONS)) {
           return unsupportedResult(to, 'Only Excel workbooks can be converted to JSON');
         }
-        const result = await conversionService.excelToJson(filePath);
+        const result = await conversionService.excelToJson(file_path);
         return { to, result };
       }
       case 'ppt-json': {
         // PowerPoint 演示文稿转 JSON / PowerPoint presentation to JSON
-        if (!ensureExtension(filePath, PPT_EXTENSIONS)) {
+        if (!ensureExtension(file_path, PPT_EXTENSIONS)) {
           return unsupportedResult(to, 'Only PowerPoint files can be converted to JSON');
         }
-        const result = await conversionService.pptToJson(filePath);
+        const result = await conversionService.pptToJson(file_path);
         return { to, result };
       }
       default:

@@ -38,8 +38,8 @@ import ConversationSkillsIndicator from './ConversationSkillsIndicator';
 
 /** Check whether a specific skill is loaded for the conversation */
 const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
-  const loadedSkills = (conversation?.extra as { loadedSkills?: Array<{ name: string }> })?.loadedSkills;
-  return loadedSkills?.some((s) => s.name === skillName) ?? false;
+  const loaded_skills = (conversation?.extra as { loaded_skills?: Array<{ name: string }> })?.loaded_skills;
+  return loaded_skills?.some((s) => s.name === skillName) ?? false;
 };
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -105,19 +105,19 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           isCreatingRef.current = true;
           try {
             const id = uuid();
-            // Fetch latest conversation from DB to ensure sessionMode is current
+            // Fetch latest conversation from DB to ensure session_mode is current
             const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
             const source = latest || conversation;
             await ipcBridge.conversation.createWithConversation.invoke({
               conversation: {
                 ...source,
                 id,
-                createdAt: Date.now(),
-                modifiedAt: Date.now(),
+                created_at: Date.now(),
+                modified_at: Date.now(),
                 // Clear ACP session fields to prevent new conversation from inheriting old session context
                 extra:
                   source.type === 'acp'
-                    ? { ...source.extra, acpSessionId: undefined, acpSessionUpdatedAt: undefined }
+                    ? { ...source.extra, acp_session_id: undefined, acp_session_updated_at: undefined }
                     : source.extra,
               } as TChatConversation,
             });
@@ -170,8 +170,8 @@ const GeminiConversationPanel: React.FC<{
       <div className='flex items-center gap-8px'>
         <ConversationSkillsIndicator conversation={conversation} />
         <CronJobManager
-          conversationId={conversation.id}
-          cronJobId={conversation.extra?.cronJobId as string | undefined}
+          conversation_id={conversation.id}
+          cron_job_id={conversation.extra?.cron_job_id as string | undefined}
           hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
       </div>
@@ -182,14 +182,14 @@ const GeminiConversationPanel: React.FC<{
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversationId={conversation.id} workspacePath={conversation.extra.workspace}>
+    <ChatLayout {...chatLayoutProps} conversation_id={conversation.id} workspacePath={conversation.extra.workspace}>
       <GeminiChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
-        cronJobId={conversation.extra?.cronJobId as string | undefined}
+        cron_job_id={conversation.extra?.cron_job_id as string | undefined}
         hideSendBox={hideSendBox}
-        sessionMode={conversation.extra?.sessionMode}
+        session_mode={conversation.extra?.session_mode}
       />
     </ChatLayout>
   );
@@ -229,8 +229,8 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
       <div className='flex items-center gap-8px'>
         <ConversationSkillsIndicator conversation={conversation} />
         <CronJobManager
-          conversationId={conversation.id}
-          cronJobId={conversation.extra?.cronJobId as string | undefined}
+          conversation_id={conversation.id}
+          cron_job_id={conversation.extra?.cron_job_id as string | undefined}
           hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
       </div>
@@ -241,12 +241,12 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversationId={conversation.id}>
+    <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
       <AionrsChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
-        sessionMode={conversation.extra?.sessionMode}
+        session_mode={conversation.extra?.session_mode}
       />
     </ChatLayout>
   );
@@ -269,7 +269,7 @@ const ChatConversation: React.FC<{
   const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(acpConversation);
   const acpAssistantId = acpConversation ? (resolveAssistantConfigId(acpConversation) ?? undefined) : undefined;
 
-  const conversationAgentName = (conversation?.extra as { agentName?: string } | undefined)?.agentName;
+  const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
 
   const conversationNode = useMemo(() => {
@@ -282,10 +282,10 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend={conversation.extra?.backend || 'claude'}
-            sessionMode={conversation.extra?.sessionMode}
-            cachedConfigOptions={conversation.extra?.cachedConfigOptions}
-            agentName={assistantDisplayName}
-            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
+            session_mode={conversation.extra?.session_mode}
+            cached_config_options={conversation.extra?.cached_config_options}
+            agent_name={assistantDisplayName}
+            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             hideSendBox={hideSendBox}
           ></AcpChat>
         );
@@ -296,13 +296,13 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend='codex'
-            agentName={assistantDisplayName}
-            cachedConfigOptions={
+            agent_name={assistantDisplayName}
+            cached_config_options={
               (
                 conversation.extra as {
-                  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+                  cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
                 }
-              )?.cachedConfigOptions
+              )?.cached_config_options
             }
             hideSendBox={hideSendBox}
           />
@@ -313,7 +313,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
+            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
           />
         );
       case 'nanobot':
@@ -322,7 +322,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
+            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
           />
         );
       case 'remote':
@@ -331,7 +331,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
+            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
           />
         );
       default:
@@ -353,17 +353,17 @@ const ChatConversation: React.FC<{
   const modelSelector = useMemo(() => {
     if (!conversation || isGeminiConversation || isAionrsConversation) return undefined;
     if (conversation.type === 'acp') {
-      const extra = conversation.extra as { backend?: string; currentModelId?: string };
+      const extra = conversation.extra as { backend?: string; current_model_id?: string };
       return (
         <AcpModelSelector
-          conversationId={conversation.id}
+          conversation_id={conversation.id}
           backend={extra.backend}
-          initialModelId={extra.currentModelId}
+          initialModelId={extra.current_model_id}
         />
       );
     }
     if (conversation.type === 'codex') {
-      return <AcpModelSelector conversationId={conversation.id} />;
+      return <AcpModelSelector conversation_id={conversation.id} />;
     }
     return <GeminiModelSelector disabled={true} />;
   }, [conversation, isGeminiConversation, isAionrsConversation]);
@@ -408,7 +408,7 @@ const ChatConversation: React.FC<{
                       : conversation?.type === 'remote'
                         ? 'remote'
                         : undefined,
-          agentName: conversationAgentName,
+          agent_name: conversationAgentName,
         };
 
   const headerExtraNode = (
@@ -416,7 +416,7 @@ const ChatConversation: React.FC<{
       {conversation?.type === 'openclaw-gateway' && (
         <div className='shrink-0'>
           <StarOfficeMonitorCard
-            conversationId={conversation.id}
+            conversation_id={conversation.id}
             onOpenUrl={(url, metadata) => {
               openPreview(url, 'url', metadata);
             }}
@@ -427,8 +427,8 @@ const ChatConversation: React.FC<{
       {conversation && (
         <div className='shrink-0'>
           <CronJobManager
-            conversationId={conversation.id}
-            cronJobId={conversation.extra?.cronJobId as string | undefined}
+            conversation_id={conversation.id}
+            cron_job_id={conversation.extra?.cron_job_id as string | undefined}
             hasCronSkill={hasLoadedSkill(conversation, 'cron')}
           />
         </div>
@@ -446,7 +446,7 @@ const ChatConversation: React.FC<{
       sider={<ChatSider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
       workspacePath={conversation?.extra?.workspace}
-      conversationId={conversation?.id}
+      conversation_id={conversation?.id}
     >
       {conversationNode}
     </ChatLayout>

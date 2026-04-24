@@ -91,7 +91,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('initial', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -109,7 +109,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('initial', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -136,7 +136,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('initial', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -163,7 +163,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('initial', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -198,7 +198,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('initial-base64', 'image', {
-        filePath: '/workspace/photo.png',
+        file_path: '/workspace/photo.png',
       });
     });
 
@@ -225,7 +225,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('stable content', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -252,7 +252,7 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
 
     act(() => {
       result.current.openPreview('stable content', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -295,7 +295,7 @@ describe('PreviewContext — closeTab clears fileMtimeRef', () => {
     // Open a tab and run two polls so last-known mtime is 2000
     act(() => {
       result.current.openPreview('initial', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });
@@ -331,7 +331,7 @@ describe('PreviewContext — closeTab clears fileMtimeRef', () => {
 
     act(() => {
       result.current.openPreview('initial', 'code', {
-        filePath: '/workspace/file.ts',
+        file_path: '/workspace/file.ts',
         language: 'typescript',
       });
     });

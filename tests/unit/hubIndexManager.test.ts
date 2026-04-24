@@ -34,7 +34,7 @@ import type { IHubExtension } from '@/common/types/hub';
 
 function makeExt(overrides: Partial<IHubExtension> & { name: string }): IHubExtension {
   return {
-    displayName: overrides.name,
+    display_name: overrides.name,
     description: 'test',
     author: 'test',
     dist: { tarball: `${overrides.name}.zip`, integrity: 'sha512-abc', unpackedSize: 100 },

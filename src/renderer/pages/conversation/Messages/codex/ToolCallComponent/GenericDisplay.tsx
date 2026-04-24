@@ -48,7 +48,7 @@ const getKindIcon = (kind: string) => {
 };
 
 const GenericDisplay: React.FC<{ content: GenericUpdate }> = ({ content }) => {
-  const { toolCallId, kind, title, status, description, content: contentArray, data } = content;
+  const { tool_call_id, kind, title, status, description, content: contentArray, data } = content;
 
   const getDisplayTitle = () => {
     if (title) return title;
@@ -111,7 +111,7 @@ const GenericDisplay: React.FC<{ content: GenericUpdate }> = ({ content }) => {
             </div>
           )}
 
-          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {toolCallId}</div>
+          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {tool_call_id}</div>
         </div>
       </div>
     </Card>

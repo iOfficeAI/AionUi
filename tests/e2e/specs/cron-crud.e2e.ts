@@ -22,7 +22,7 @@ interface CronJob {
   enabled: boolean;
   schedule: { kind: string; expr?: string; description?: string };
   target: { payload: { kind: string; text: string }; executionMode?: string };
-  metadata: { conversationId: string; [key: string]: unknown };
+  metadata: { conversation_id: string; [key: string]: unknown };
 }
 
 // ── Bridge helpers ──────────────────────────────────────────────────────────
@@ -31,11 +31,11 @@ async function listCronJobs(page: import('@playwright/test').Page): Promise<Cron
   return invokeBridge<CronJob[]>(page, 'cron.list-jobs', undefined, 10_000);
 }
 
-async function getCronJob(page: import('@playwright/test').Page, jobId: string): Promise<CronJob | null> {
+async function getCronJob(page: import('@playwright/test').Page, job_id: string): Promise<CronJob | null> {
   return invokeBridge<CronJob | null>(page, 'cron.get-job', { jobId }, 10_000);
 }
 
-async function removeCronJob(page: import('@playwright/test').Page, jobId: string): Promise<void> {
+async function removeCronJob(page: import('@playwright/test').Page, job_id: string): Promise<void> {
   return invokeBridge<void>(page, 'cron.remove-job', { jobId }, 10_000);
 }
 
@@ -91,13 +91,13 @@ async function sendFollowUpMessage(page: import('@playwright/test').Page, messag
  */
 async function waitForCronJobCreated(
   page: import('@playwright/test').Page,
-  conversationId: string,
+  conversation_id: string,
   timeoutMs = 120_000
 ): Promise<CronJob> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     const jobs = await listCronJobs(page);
-    const found = jobs.find((j) => j.metadata.conversationId === conversationId);
+    const found = jobs.find((j) => j.metadata.conversation_id === conversationId);
     if (found) return found;
     await page.waitForTimeout(2_000);
   }
@@ -110,7 +110,7 @@ async function waitForCronJobCreated(
  */
 async function waitForCronJobUpdated(
   page: import('@playwright/test').Page,
-  jobId: string,
+  job_id: string,
   originalName: string,
   timeoutMs = 120_000
 ): Promise<CronJob> {
@@ -144,7 +144,7 @@ test.describe('Cron via AI conversation', () => {
   test.describe.configure({ timeout: 300_000 });
 
   let createdJobId: string | null = null;
-  let conversationId: string | null = null;
+  let conversation_id: string | null = null;
   let stopAutoApprove: (() => void) | null = null;
 
   test.afterEach(async ({ page }) => {

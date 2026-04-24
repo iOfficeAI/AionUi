@@ -7,7 +7,7 @@ import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { transformMessage } from '@/common/chat/chatLib';
-import type { IConfigStorageRefer } from '@/common/config/storage';
+import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
@@ -48,36 +48,36 @@ import { ConversationTurnCompletionService } from './ConversationTurnCompletionS
 interface AcpAgentManagerData {
   workspace?: string;
   backend: AcpBackend;
-  cliPath?: string;
-  customWorkspace?: boolean;
+  cli_path?: string;
+  custom_workspace?: boolean;
   conversation_id: string;
-  customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
+  custom_agent_id?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
   /** Preset assistant id (builtin or custom) shown in the conversation header / 预设助手 ID */
-  presetAssistantId?: string;
+  preset_assistant_id?: string;
   /** Display name for the agent (from extension or custom config) / Agent 显示名称（来自扩展或自定义配置） */
-  agentName?: string;
-  presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+  agent_name?: string;
+  preset_context?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
   /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-  enabledSkills?: string[];
+  enabled_skills?: string[];
   /** 排除的内置自动注入 skills / Builtin auto-injected skills to exclude */
   excludeBuiltinSkills?: string[];
   /** Force yolo mode (auto-approve) - used by CronService for scheduled tasks */
   yoloMode?: boolean;
   /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
-  acpSessionId?: string;
+  acp_session_id?: string;
   /** Last update time of ACP session / ACP session 最后更新时间 */
-  acpSessionUpdatedAt?: number;
+  acp_session_updated_at?: number;
   /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-  sessionMode?: string;
+  session_mode?: string;
   /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
-  currentModelId?: string;
+  current_model_id?: string;
   sandboxMode?: CodexSandboxMode;
   /** Pending config option selections from Guid page (applied after session creation) */
-  pendingConfigOptions?: Record<string, string>;
+  pending_config_options?: Record<string, string>;
 }
 
 type BufferedStreamTextMessage = {
-  conversationId: string;
+  conversation_id: string;
   backend: AcpBackend;
   message: Extract<TMessage, { type: 'text' }>;
   timer: ReturnType<typeof setTimeout>;
@@ -92,7 +92,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private bootstrapping: boolean = false;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
-  private currentMode: string = 'default';
+  private current_mode: string = 'default';
   private persistedModelId: string | null = null;
   // Track current message for cron detection (accumulated from streaming chunks)
   private currentMsgId: string | null = null;
@@ -121,11 +121,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
-    this.currentMode = data.sessionMode || 'default';
-    this.persistedModelId = data.currentModelId || null;
+    this.current_mode = data.session_mode || 'default';
+    this.persistedModelId = data.current_model_id || null;
     this.status = 'pending';
-    // Sync yoloMode from sessionMode so addConfirmation auto-approves when Full Auto is selected
-    this.yoloMode = this.yoloMode || this.isYoloMode(this.currentMode);
+    // Sync yoloMode from session_mode so addConfirmation auto-approves when Full Auto is selected
+    this.yoloMode = this.yoloMode || this.isYoloMode(this.current_mode);
   }
 
   private makeStreamBufferKey(message: Extract<TMessage, { type: 'text' }>): string {
@@ -158,7 +158,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }, this.streamDbFlushIntervalMs);
 
     this.bufferedStreamTextMessages.set(key, {
-      conversationId: message.conversation_id,
+      conversation_id: message.conversation_id,
       backend,
       message: bufferedMessage,
       timer,
@@ -171,7 +171,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
     clearTimeout(buffered.timer);
     this.bufferedStreamTextMessages.delete(key);
-    addOrUpdateMessage(buffered.conversationId, buffered.message, buffered.backend);
+    addOrUpdateMessage(buffered.conversation_id, buffered.message, buffered.backend);
   }
 
   private flushBufferedStreamTextMessages(): void {
@@ -322,7 +322,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         conversation_id: this.conversation_id,
         content: { content: this.currentMsgContent },
         status: 'finish',
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
       const collectedResponses: string[] = [];
       await processCronInMessage(this.conversation_id, backend, cronMessage, (sysMsg) => {
@@ -358,7 +358,7 @@ ${collectedResponses.join('\n')}`;
       workspace: this.workspace,
       backend: this.options.backend,
       pendingConfirmations: this.getConfirmations().length,
-      modelId: this.persistedModelId ?? this.agent?.getModelInfo?.()?.currentModelId ?? undefined,
+      model_id: this.persistedModelId ?? this.agent?.getModelInfo?.()?.current_model_id ?? undefined,
     });
   }
 
@@ -407,9 +407,9 @@ ${collectedResponses.join('\n')}`;
     if (hasNativeSkillSupport(this.options.backend)) return true;
 
     // For extension agents (backend: 'custom'), check the adapter's skillsDirs
-    if (this.options.backend === 'custom' && this.options.customAgentId?.startsWith('ext:')) {
+    if (this.options.backend === 'custom' && this.options.custom_agent_id?.startsWith('ext:')) {
       try {
-        const [, extensionName, ...idParts] = this.options.customAgentId.split(':');
+        const [, extensionName, ...idParts] = this.options.custom_agent_id.split(':');
         const adapterId = idParts.join(':');
         const adapter = ExtensionRegistry.getInstance()
           .getAcpAdapters()
@@ -435,12 +435,12 @@ ${collectedResponses.join('\n')}`;
    * Dispatches to custom or built-in resolution.
    */
   private async resolveAgentCliConfig(data: AcpAgentManagerData): Promise<{
-    cliPath?: string;
+    cli_path?: string;
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
   }> {
-    if (data.customAgentId) {
+    if (data.custom_agent_id) {
       return this.resolveCustomAgentCliConfig(data);
     }
     return this.resolveBuiltinBackendConfig(data);
@@ -451,18 +451,18 @@ ${collectedResponses.join('\n')}`;
    * Looks up assistants config by UUID, falling back to extension-contributed adapters.
    */
   private async resolveCustomAgentCliConfig(data: AcpAgentManagerData): Promise<{
-    cliPath?: string;
+    cli_path?: string;
     customArgs?: string[];
     customEnv?: Record<string, string>;
   }> {
     const customAgents = await ProcessConfig.get('acp.customAgents');
     let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
-      (agent) => agent.id === data.customAgentId
+      (agent) => agent.id === data.custom_agent_id
     );
 
-    // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
-    if (!customAgentConfig && data.customAgentId!.startsWith('ext:')) {
-      const [, extensionName, ...idParts] = data.customAgentId!.split(':');
+    // Fallback: extension adapter (custom_agent_id format: ext:{extensionName}:{adapterId})
+    if (!customAgentConfig && data.custom_agent_id!.startsWith('ext:')) {
+      const [, extensionName, ...idParts] = data.custom_agent_id!.split(':');
       const adapterId = idParts.join(':');
       const adapter = ExtensionRegistry.getInstance()
         .getAcpAdapters()
@@ -473,8 +473,8 @@ ${collectedResponses.join('\n')}`;
 
       if (adapter) {
         customAgentConfig = {
-          id: data.customAgentId,
-          name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
+          id: data.custom_agent_id,
+          name: typeof adapter.name === 'string' ? adapter.name : data.custom_agent_id,
           defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
           acpArgs: Array.isArray(adapter.acpArgs)
             ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
@@ -485,11 +485,11 @@ ${collectedResponses.join('\n')}`;
     }
 
     if (!customAgentConfig?.defaultCliPath) {
-      return { cliPath: data.cliPath };
+      return { cli_path: data.cli_path };
     }
 
     return {
-      cliPath: customAgentConfig.defaultCliPath.trim(),
+      cli_path: customAgentConfig.defaultCliPath.trim(),
       customArgs: customAgentConfig.acpArgs,
       customEnv: customAgentConfig.env,
     };
@@ -500,43 +500,43 @@ ${collectedResponses.join('\n')}`;
    * Also handles yoloMode migration and codex sandbox mode.
    */
   private async resolveBuiltinBackendConfig(data: AcpAgentManagerData): Promise<{
-    cliPath?: string;
+    cli_path?: string;
     customArgs?: string[];
     yoloMode?: boolean;
   }> {
     const config = await ProcessConfig.get('acp.config');
     const codexConfig = data.backend === 'codex' ? await ProcessConfig.get('codex.config') : undefined;
 
-    let cliPath = data.cliPath;
-    if (!cliPath && config?.[data.backend]?.cliPath) {
-      cliPath = config[data.backend].cliPath;
+    let cli_path = data.cli_path;
+    if (!cli_path && config?.[data.backend]?.cli_path) {
+      cli_path = config[data.backend].cli_path;
     }
 
     // yoloMode priority: data.yoloMode (from CronService) > config setting
     const legacyYoloMode = data.yoloMode ?? config?.[data.backend]?.yoloMode;
 
-    // Migrate legacy yoloMode config (from SecurityModalContent) to currentMode.
+    // Migrate legacy yoloMode config (from SecurityModalContent) to current_mode.
     // Maps to each backend's native yolo mode value for correct protocol behavior.
-    // Skip when sessionMode was explicitly provided (user made a choice on Guid page).
-    if (legacyYoloMode && this.currentMode === 'default' && !data.sessionMode) {
+    // Skip when session_mode was explicitly provided (user made a choice on Guid page).
+    if (legacyYoloMode && this.current_mode === 'default' && !data.session_mode) {
       const yoloModeValues: Record<string, string> = {
         claude: 'bypassPermissions',
         qwen: 'yolo',
         codex: 'yolo',
       };
-      this.currentMode = yoloModeValues[data.backend] || 'yolo';
+      this.current_mode = yoloModeValues[data.backend] || 'yolo';
       this.yoloMode = true;
     }
 
     // When legacy config has yoloMode=true but user explicitly chose a non-yolo mode
     // on the Guid page, clear the legacy config so it won't re-activate next time.
-    if (legacyYoloMode && data.sessionMode && !this.isYoloMode(data.sessionMode)) {
+    if (legacyYoloMode && data.session_mode && !this.isYoloMode(data.session_mode)) {
       void this.clearLegacyYoloConfig();
     }
 
-    // Derive effective yoloMode from currentMode so that the agent respects
+    // Derive effective yoloMode from current_mode so that the agent respects
     // the user's explicit mode choice. data.yoloMode (cron jobs) always takes priority.
-    const yoloMode = data.yoloMode ?? this.isYoloMode(this.currentMode);
+    const yoloMode = data.yoloMode ?? this.isYoloMode(this.current_mode);
 
     // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
     const backendConfig = ACP_BACKENDS_ALL[data.backend];
@@ -545,21 +545,21 @@ ${collectedResponses.join('\n')}`;
       customArgs = backendConfig.acpArgs;
     }
 
-    // If cliPath is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
-    if (!cliPath && backendConfig?.cliCommand) {
-      cliPath = backendConfig.cliCommand;
+    // If cli_path is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
+    if (!cli_path && backendConfig?.cliCommand) {
+      cli_path = backendConfig.cliCommand;
     }
 
     if (data.backend === 'codex') {
       const sandboxMode = getCodexSandboxModeForSessionMode(
-        data.sessionMode || this.currentMode,
+        data.session_mode || this.current_mode,
         data.sandboxMode || codexConfig?.sandboxMode || 'workspace-write'
       ) as CodexSandboxMode;
       await writeCodexSandboxMode(sandboxMode);
       data.sandboxMode = sandboxMode;
     }
 
-    return { cliPath, customArgs, yoloMode };
+    return { cli_path, customArgs, yoloMode };
   }
 
   // ── initAgent callback handlers ──────────────────────────────────────
@@ -613,7 +613,7 @@ ${collectedResponses.join('\n')}`;
 
     this.markTrackedTurnRuntimeActivity();
 
-    const pipelineStart = Date.now();
+    const pipeline_start = Date.now();
 
     // Reduce status noise: show full lifecycle only for the first turn.
     // After first turn, only keep failure statuses to avoid reconnect chatter.
@@ -634,17 +634,17 @@ ${collectedResponses.join('\n')}`;
 
     // Emit request trace on each model generation start
     if (message.type === 'start') {
-      const modelInfo = this.agent?.getModelInfo();
+      const model_info = this.agent?.getModelInfo();
       ipcBridge.acpConversation.responseStream.emit({
         type: 'request_trace',
         conversation_id: this.conversation_id,
         msg_id: uuid(),
         data: {
-          agentType: 'acp' as const,
+          agent_type: 'acp' as const,
           backend,
-          modelId: modelInfo?.currentModelId || this.persistedModelId || 'unknown',
-          cliPath: this.options?.cliPath,
-          sessionMode: this.currentMode,
+          model_id: model_info?.current_model_id || this.persistedModelId || 'unknown',
+          cli_path: this.options?.cli_path,
+          session_mode: this.current_mode,
           timestamp: Date.now(),
         },
       });
@@ -652,9 +652,9 @@ ${collectedResponses.join('\n')}`;
 
     // Persist config options to DB so AcpConfigSelector can render from cache
     if (message.type === 'acp_model_info') {
-      const configOptions = this.getConfigOptions();
-      if (configOptions.length > 0) {
-        void this.saveConfigOptions(configOptions);
+      const config_options = this.getConfigOptions();
+      if (config_options.length > 0) {
+        void this.saveConfigOptions(config_options);
       }
     }
 
@@ -748,7 +748,7 @@ ${collectedResponses.join('\n')}`;
       conversation_id: this.conversation_id,
     });
 
-    const totalDuration = Date.now() - pipelineStart;
+    const totalDuration = Date.now() - pipeline_start;
     if (totalDuration > 10) {
       console.log(
         `[ACP-PERF] stream: onStreamEvent pipeline ${totalDuration}ms (emit=${emitDuration}ms) type=${processedMessage.type}`
@@ -769,10 +769,10 @@ ${collectedResponses.join('\n')}`;
       const { toolCall, options } = v.data as AcpPermissionRequest;
 
       // Auto-approve ALL tools when in yolo/bypassPermissions mode.
-      if (this.isYoloMode(this.currentMode) && options.length > 0) {
+      if (this.isYoloMode(this.current_mode) && options.length > 0) {
         const autoOption = options[0];
         setTimeout(() => {
-          void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+          void this.confirm(v.msg_id, toolCall.tool_call_id || v.msg_id, autoOption);
         }, 50);
         return;
       }
@@ -782,7 +782,7 @@ ${collectedResponses.join('\n')}`;
       if (toolTitle.includes('aionui-team') && options.length > 0) {
         const autoOption = options[0];
         setTimeout(() => {
-          void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);
+          void this.confirm(v.msg_id, toolCall.tool_call_id || v.msg_id, autoOption);
         }, 50);
         return;
       }
@@ -792,7 +792,7 @@ ${collectedResponses.join('\n')}`;
         action: 'messages.command',
         id: v.msg_id,
         description: toolCall.rawInput?.description || 'messages.agentRequestingPermission',
-        callId: toolCall.toolCallId || v.msg_id,
+        call_id: toolCall.tool_call_id || v.msg_id,
         options: options.map((option) => ({
           label: option.name,
           value: option,
@@ -826,21 +826,21 @@ ${collectedResponses.join('\n')}`;
    * Also caches the model list for Guid page pre-selection.
    */
   private async restorePersistedState(): Promise<void> {
-    if (this.currentMode && this.currentMode !== 'default') {
+    if (this.current_mode && this.current_mode !== 'default') {
       try {
-        await this.agent.setMode(this.currentMode);
+        await this.agent.setMode(this.current_mode);
       } catch (error) {
-        mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.currentMode}`, error);
+        mainWarn('[AcpAgentManager]', `Failed to re-apply mode ${this.current_mode}`, error);
       }
     }
 
     if (this.persistedModelId) {
       const currentInfo = this.agent.getModelInfo();
-      const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
+      const isModelAvailable = currentInfo?.available_models?.some((m) => m.id === this.persistedModelId);
       if (!isModelAvailable) {
         mainWarn('[AcpAgentManager]', `Persisted model ${this.persistedModelId} is not in available models, clearing`);
         this.persistedModelId = null;
-      } else if (currentInfo?.currentModelId !== this.persistedModelId) {
+      } else if (currentInfo?.current_model_id !== this.persistedModelId) {
         try {
           await this.agent.setModelByConfigOption(this.persistedModelId);
         } catch (error) {
@@ -872,38 +872,38 @@ ${collectedResponses.join('\n')}`;
 
     this.bootstrapping = true;
     this.bootstrap = (async () => {
-      const { cliPath, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
+      const { cli_path, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
 
       const agentConfig = {
         id: data.conversation_id,
         backend: data.backend,
-        cliPath: cliPath,
+        cli_path: cli_path,
         workingDir: data.workspace,
         customArgs: customArgs,
         customEnv: customEnv,
         extra: {
           workspace: data.workspace,
           backend: data.backend,
-          cliPath: cliPath,
-          customWorkspace: data.customWorkspace,
+          cli_path: cli_path,
+          custom_workspace: data.custom_workspace,
           customArgs: customArgs,
           customEnv: customEnv,
           yoloMode: yoloMode,
-          agentName: data.agentName,
-          acpSessionId: data.acpSessionId,
-          acpSessionUpdatedAt: data.acpSessionUpdatedAt,
-          currentModelId: this.persistedModelId ?? undefined,
-          sessionMode: this.currentMode,
-          pendingConfigOptions: data.pendingConfigOptions,
+          agent_name: data.agent_name,
+          acp_session_id: data.acp_session_id,
+          acp_session_updated_at: data.acp_session_updated_at,
+          current_model_id: this.persistedModelId ?? undefined,
+          session_mode: this.current_mode,
+          pending_config_options: data.pending_config_options,
           // Forward team MCP stdio config so AcpAgent.loadBuiltinSessionMcpServers() can inject it
           teamMcpStdioConfig: (data as unknown as Record<string, unknown>).teamMcpStdioConfig as
             | { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> }
             | undefined,
         },
-        onSessionIdUpdate: (sessionId: string) => {
+        onSessionIdUpdate: (session_id: string) => {
           // Save ACP session ID to database for resume support
           // 保存 ACP session ID 到数据库以支持会话恢复
-          this.saveAcpSessionId(sessionId);
+          this.saveAcpSessionId(session_id);
         },
         onAvailableCommandsUpdate: (commands: Array<{ name: string; description?: string; hint?: string }>) => {
           this.handleAvailableCommandsUpdate(commands);
@@ -962,7 +962,7 @@ ${collectedResponses.join('\n')}`;
             content: data.content,
             ...(data.cronMeta && { cronMeta: data.cronMeta }),
           },
-          createdAt: Date.now(),
+          created_at: Date.now(),
           ...(data.hidden && { hidden: true }),
         };
         addMessage(this.conversation_id, userMessage);
@@ -1001,18 +1001,18 @@ ${collectedResponses.join('\n')}`;
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
           const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
-          const useNativeSkills = this.resolveNativeSkillSupport() && !this.options.customWorkspace;
+          const useNativeSkills = this.resolveNativeSkillSupport() && !this.options.custom_workspace;
           if (useNativeSkills) {
             // Native skill discovery via workspace symlinks — inject preset rules + team guide
             const parts: string[] = [];
-            if (this.options.presetContext) parts.push(this.options.presetContext);
+            if (this.options.preset_context) parts.push(this.options.preset_context);
             if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
               const [{ getTeamGuidePrompt }, { resolveLeaderAssistantLabel }] = await Promise.all([
                 import('@process/team/prompts/teamGuidePrompt.ts'),
                 import('@process/team/prompts/teamGuideAssistant.ts'),
               ]);
               const leaderLabel = await resolveLeaderAssistantLabel(
-                this.options.presetAssistantId || this.options.customAgentId
+                this.options.preset_assistant_id || this.options.custom_agent_id
               );
               parts.push(getTeamGuidePrompt({ backend: this.options.backend, leaderLabel }));
             }
@@ -1024,12 +1024,12 @@ ${collectedResponses.join('\n')}`;
           } else {
             // Custom workspace or no native support — inject rules + skills via prompt
             const { content: injectedContent } = await prepareFirstMessageWithSkillsIndex(contentToSend, {
-              presetContext: this.options.presetContext,
-              enabledSkills: this.options.enabledSkills,
+              preset_context: this.options.preset_context,
+              enabled_skills: this.options.enabled_skills,
               excludeBuiltinSkills: this.options.excludeBuiltinSkills,
               enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
               backend: this.options.backend,
-              presetAssistantId: this.options.presetAssistantId || this.options.customAgentId,
+              preset_assistant_id: this.options.preset_assistant_id || this.options.custom_agent_id,
             });
             contentToSend = injectedContent;
           }
@@ -1039,7 +1039,7 @@ ${collectedResponses.join('\n')}`;
           ...data,
           content: contentToSend,
         });
-        // 首条消息发送后标记，无论是否有 presetContext
+        // 首条消息发送后标记，无论是否有 preset_context
         if (this.isFirstMessage) {
           this.isFirstMessage = false;
         }
@@ -1147,13 +1147,13 @@ ${collectedResponses.join('\n')}`;
     });
   }
 
-  async confirm(id: string, callId: string, data: AcpPermissionOption) {
-    super.confirm(id, callId, data);
+  async confirm(id: string, call_id: string, data: AcpPermissionOption) {
+    super.confirm(id, call_id, data);
     await this.bootstrap;
     void this.agent.confirmMessage({
-      confirmKey: data.optionId,
+      confirm_key: data.option_id,
       // msg_id: dat;
-      callId: callId,
+      call_id: call_id,
     });
   }
 
@@ -1213,7 +1213,7 @@ ${collectedResponses.join('\n')}`;
         duration,
         status,
       },
-      createdAt: this.thinkingStartTime || Date.now(),
+      created_at: this.thinkingStartTime || Date.now(),
     };
     addOrUpdateMessage(this.conversation_id, tMessage, this.options.backend);
   }
@@ -1228,7 +1228,7 @@ ${collectedResponses.join('\n')}`;
       return true;
     }
     this.options.yoloMode = true;
-    if (this.agent?.isConnected && this.agent?.hasActiveSession) {
+    if (this.agent?.is_connected && this.agent?.has_active_session) {
       try {
         await this.agent.enableYoloMode();
         return true;
@@ -1258,7 +1258,7 @@ ${collectedResponses.join('\n')}`;
    * @returns Object with current mode and whether agent is initialized
    */
   getMode(): { mode: string; initialized: boolean } {
-    return { mode: this.currentMode, initialized: !!this.agent };
+    return { mode: this.current_mode, initialized: !!this.agent };
   }
 
   /**
@@ -1271,11 +1271,11 @@ ${collectedResponses.join('\n')}`;
       if (this.persistedModelId) {
         return {
           source: 'models',
-          sourceDetail: 'persisted-model',
-          currentModelId: this.persistedModelId,
-          currentModelLabel: this.persistedModelId,
-          canSwitch: false,
-          availableModels: [],
+          source_detail: 'persisted-model',
+          current_model_id: this.persistedModelId,
+          current_model_label: this.persistedModelId,
+          can_switch: false,
+          available_models: [],
         };
       }
       return null;
@@ -1287,7 +1287,7 @@ ${collectedResponses.join('\n')}`;
    * Switch model for the underlying ACP agent.
    * Persists the model ID to database for resume support.
    */
-  async setModel(modelId: string): Promise<AcpModelInfo | null> {
+  async setModel(model_id: string): Promise<AcpModelInfo | null> {
     if (!this.agent) {
       try {
         await this.initAgent(this.options);
@@ -1296,12 +1296,12 @@ ${collectedResponses.join('\n')}`;
       }
     }
     if (!this.agent) return null;
-    const result = await this.agent.setModelByConfigOption(modelId);
+    const result = await this.agent.setModelByConfigOption(model_id);
     if (result) {
-      this.persistedModelId = result.currentModelId;
-      this.saveModelId(result.currentModelId);
+      this.persistedModelId = result.current_model_id;
+      this.saveModelId(result.current_model_id);
       // Update cached models so Guid page defaults to the newly selected model
-      if (result.availableModels?.length > 0) {
+      if (result.available_models?.length > 0) {
         void this.cacheModelList(result);
       }
     }
@@ -1321,7 +1321,7 @@ ${collectedResponses.join('\n')}`;
    * Set a config option value on the underlying ACP agent.
    * Used for reasoning effort and other non-model config options.
    */
-  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+  async setConfigOption(config_id: string, value: string): Promise<AcpSessionConfigOption[]> {
     if (!this.agent) {
       try {
         await this.initAgent(this.options);
@@ -1330,7 +1330,7 @@ ${collectedResponses.join('\n')}`;
       }
     }
     if (!this.agent) return [];
-    const updated = await this.agent.setConfigOption(configId, value);
+    const updated = await this.agent.setConfigOption(config_id, value);
     if (updated.length > 0) {
       void this.saveConfigOptions(updated);
     }
@@ -1352,8 +1352,8 @@ ${collectedResponses.join('\n')}`;
     // and manages approval at the Manager layer. Update local state only to avoid
     // "Invalid params" JSON-RPC error from the bridge.
     if (this.options.backend === 'codex') {
-      const prev = this.currentMode;
-      this.currentMode = mode;
+      const prev = this.current_mode;
+      this.current_mode = mode;
       this.yoloMode = this.isYoloMode(mode);
       const sandboxMode = getCodexSandboxModeForSessionMode(mode, this.options.sandboxMode);
       this.options.sandboxMode = sandboxMode;
@@ -1363,21 +1363,21 @@ ${collectedResponses.join('\n')}`;
       if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
         void this.clearLegacyYoloConfig();
       }
-      return { success: true, data: { mode: this.currentMode } };
+      return { success: true, data: { mode: this.current_mode } };
     }
 
     // Snow CLI does not support ACP session/set_mode — it returns "Method not found".
     // Like Codex, manage mode at the Manager layer only.
     if (this.options.backend === 'snow') {
-      const prev = this.currentMode;
-      this.currentMode = mode;
+      const prev = this.current_mode;
+      this.current_mode = mode;
       this.yoloMode = this.isYoloMode(mode);
       this.saveSessionMode(mode);
 
       if (this.isYoloMode(prev) && !this.isYoloMode(mode)) {
         void this.clearLegacyYoloConfig();
       }
-      return { success: true, data: { mode: this.currentMode } };
+      return { success: true, data: { mode: this.current_mode } };
     }
 
     // If agent is not initialized, try to initialize it first
@@ -1401,8 +1401,8 @@ ${collectedResponses.join('\n')}`;
 
     const result = await this.agent.setMode(mode);
     if (result.success) {
-      const prev = this.currentMode;
-      this.currentMode = mode;
+      const prev = this.current_mode;
+      this.current_mode = mode;
       this.yoloMode = this.isYoloMode(mode);
       this.saveSessionMode(mode);
 
@@ -1415,7 +1415,7 @@ ${collectedResponses.join('\n')}`;
     return {
       success: result.success,
       msg: result.error,
-      data: { mode: this.currentMode },
+      data: { mode: this.current_mode },
     };
   }
 
@@ -1437,7 +1437,7 @@ ${collectedResponses.join('\n')}`;
         await ProcessConfig.set('acp.config', {
           ...config,
           [this.options.backend]: { ...backendConfig, yoloMode: false },
-        } as IConfigStorageRefer['acp.config']);
+        } as ConfigKeyMap['acp.config']);
       }
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to clear legacy yoloMode config', error);
@@ -1448,7 +1448,7 @@ ${collectedResponses.join('\n')}`;
    * Save model ID to database for resume support.
    * 保存模型 ID 到数据库以支持恢复。
    */
-  private async saveModelId(modelId: string): Promise<void> {
+  private async saveModelId(model_id: string): Promise<void> {
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
@@ -1456,7 +1456,7 @@ ${collectedResponses.join('\n')}`;
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
-          currentModelId: modelId,
+          current_model_id: model_id,
         };
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
@@ -1484,8 +1484,8 @@ ${collectedResponses.join('\n')}`;
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
-          lastTokenUsage: { totalTokens: usage.used },
-          lastContextLimit: usage.size,
+          last_token_usage: { total_tokens: usage.used },
+          last_context_limit: usage.size,
         };
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
@@ -1508,7 +1508,7 @@ ${collectedResponses.join('\n')}`;
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
-          sessionMode: mode,
+          session_mode: mode,
         };
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,
@@ -1524,14 +1524,14 @@ ${collectedResponses.join('\n')}`;
    * Allows AcpConfigSelector to render immediately from cached data
    * even when the ACP session has expired.
    */
-  private async saveConfigOptions(configOptions: AcpSessionConfigOption[]): Promise<void> {
+  private async saveConfigOptions(config_options: AcpSessionConfigOption[]): Promise<void> {
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
         db.updateConversation(this.conversation_id, {
-          extra: { ...conversation.extra, cachedConfigOptions: configOptions },
+          extra: { ...conversation.extra, cached_config_options: config_options },
         } as Partial<typeof conversation>);
       }
     } catch (error) {
@@ -1593,16 +1593,16 @@ ${collectedResponses.join('\n')}`;
    * Cache model list to storage for Guid page pre-selection.
    * Keyed by backend name (e.g., 'claude', 'qwen').
    */
-  private async cacheModelList(modelInfo: AcpModelInfo): Promise<void> {
+  private async cacheModelList(model_info: AcpModelInfo): Promise<void> {
     try {
       const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
       const nextCachedInfo = {
-        ...modelInfo,
+        ...model_info,
         // Keep the original default from initial session, not from user switches
-        currentModelId: cached[this.options.backend]?.currentModelId ?? modelInfo.currentModelId,
-        currentModelLabel: cached[this.options.backend]?.currentModelLabel ?? modelInfo.currentModelLabel,
+        current_model_id: cached[this.options.backend]?.current_model_id ?? model_info.current_model_id,
+        current_model_label: cached[this.options.backend]?.current_model_label ?? model_info.current_model_label,
       };
-      // Cache the available model list only. Don't overwrite currentModelId from
+      // Cache the available model list only. Don't overwrite current_model_id from
       // session-level switches — that should not affect the Guid page default.
       // The Guid page default is managed separately via acp.config[backend].preferredModelId.
       await ProcessConfig.set('acp.cachedModels', {
@@ -1618,7 +1618,7 @@ ${collectedResponses.join('\n')}`;
    * Save ACP session ID to database for resume support.
    * 保存 ACP session ID 到数据库以支持会话恢复。
    */
-  private async saveAcpSessionId(sessionId: string): Promise<void> {
+  private async saveAcpSessionId(session_id: string): Promise<void> {
     try {
       const db = await getDatabase();
       const result = db.getConversation(this.conversation_id);
@@ -1626,9 +1626,9 @@ ${collectedResponses.join('\n')}`;
         const conversation = result.data;
         const updatedExtra = {
           ...conversation.extra,
-          acpSessionId: sessionId,
-          acpSessionConversationId: this.conversation_id,
-          acpSessionUpdatedAt: Date.now(),
+          acp_session_id: session_id,
+          acp_session_conversation_id: this.conversation_id,
+          acp_session_updated_at: Date.now(),
         };
         db.updateConversation(this.conversation_id, {
           extra: updatedExtra,

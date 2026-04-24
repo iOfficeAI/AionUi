@@ -23,23 +23,25 @@ const formatValue = (value: unknown): string => {
   }
 };
 
-const getResultDisplayText = (resultDisplay: IMessageToolGroup['content'][0]['resultDisplay']): string | undefined => {
-  if (!resultDisplay) return undefined;
-  if (typeof resultDisplay === 'string') return resultDisplay;
-  if ('fileDiff' in resultDisplay) return resultDisplay.fileDiff;
-  if ('img_url' in resultDisplay) return resultDisplay.relative_path || resultDisplay.img_url;
+const getResultDisplayText = (
+  result_display: IMessageToolGroup['content'][0]['result_display']
+): string | undefined => {
+  if (!result_display) return undefined;
+  if (typeof result_display === 'string') return result_display;
+  if ('file_diff' in result_display) return result_display.file_diff;
+  if ('img_url' in result_display) return result_display.relative_path || result_display.img_url;
   return undefined;
 };
 
 const ToolGroupMapper = (m: IMessageToolGroup): ToolItem[] => {
   if (!Array.isArray(m.content)) return [];
-  return m.content.map(({ name, callId, description, confirmationDetails, status, resultDisplay }) => {
+  return m.content.map(({ name, call_id, description, confirmationDetails, status, result_display }) => {
     let desc = typeof description === 'string' ? description.slice(0, 100) : '';
     const type = confirmationDetails?.type;
-    if (type === 'edit') desc = confirmationDetails.fileName;
+    if (type === 'edit') desc = confirmationDetails.file_name;
     if (type === 'exec') desc = confirmationDetails.command;
     if (type === 'info') desc = confirmationDetails.urls?.join(';') || confirmationDetails.title;
-    if (type === 'mcp') desc = confirmationDetails.serverName + ':' + confirmationDetails.toolName;
+    if (type === 'mcp') desc = confirmationDetails.server_name + ':' + confirmationDetails.tool_name;
 
     // Input: use full description (for error it's JSON.stringify(args), for success it's invocation description)
     // When confirmationDetails exists (Confirming state), use structured details instead
@@ -51,11 +53,11 @@ const ToolGroupMapper = (m: IMessageToolGroup): ToolItem[] => {
       input = description;
     }
 
-    // Output: from resultDisplay (available for success/error/executing states)
-    const output = getResultDisplayText(resultDisplay);
+    // Output: from result_display (available for success/error/executing states)
+    const output = getResultDisplayText(result_display);
 
     return {
-      key: callId,
+      key: call_id,
       name,
       desc,
       status: (status === 'Success'
@@ -80,7 +82,7 @@ const buildParamSummary = (kind: string, rawInput?: Record<string, unknown>): st
   if (!rawInput) return undefined;
 
   if (kind === 'read' || kind === 'edit') {
-    return (rawInput.file_path as string) || (rawInput.path as string) || (rawInput.fileName as string);
+    return (rawInput.file_path as string) || (rawInput.path as string) || (rawInput.file_name as string);
   }
   if (kind === 'execute') {
     return rawInput.command as string;
@@ -132,7 +134,7 @@ const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
   const keyParam = buildParamSummary(update.kind, update.rawInput);
 
   return {
-    key: update.toolCallId,
+    key: update.tool_call_id,
     name: update.title,
     desc: keyParam || (update.rawInput?.command as string) || update.kind,
     status:

@@ -53,7 +53,7 @@ export class ToolRegistry {
     this.registerBuiltinTool({
       id: 'shell_exec',
       name: 'Shell',
-      displayNameKey: 'tools.shell.displayName',
+      displayNameKey: 'tools.shell.display_name',
       category: ToolCategory.EXECUTION,
       priority: 10,
       availability: {
@@ -79,7 +79,7 @@ export class ToolRegistry {
     this.registerBuiltinTool({
       id: 'file_operations',
       name: 'FileOps',
-      displayNameKey: 'tools.fileOps.displayName',
+      displayNameKey: 'tools.fileOps.display_name',
       category: ToolCategory.FILE_OPS,
       priority: 20,
       availability: {
@@ -105,7 +105,7 @@ export class ToolRegistry {
     this.registerBuiltinTool({
       id: 'web_search',
       name: 'WebSearch',
-      displayNameKey: 'tools.webSearch.displayName',
+      displayNameKey: 'tools.webSearch.display_name',
       category: ToolCategory.SEARCH,
       priority: 30,
       availability: {
@@ -157,23 +157,23 @@ export class ToolRegistry {
    * 将MCP工具适配为标准工具定义
    */
   private adaptMcpTool(mcpTool: McpToolInfo): ToolDefinition {
-    const fullyQualifiedName = `${mcpTool.serverName}/${mcpTool.name}`;
+    const fullyQualifiedName = `${mcpTool.server_name}/${mcpTool.name}`;
 
     return {
       id: fullyQualifiedName,
       name: mcpTool.name,
-      displayNameKey: `tools.mcp.${mcpTool.serverName}.${mcpTool.name}.displayName`,
+      displayNameKey: `tools.mcp.${mcpTool.server_name}.${mcpTool.name}.display_name`,
       category: this.inferCategory(mcpTool),
       priority: 100, // MCP工具优先级较低
       availability: {
         platforms: ['darwin', 'linux', 'win32'],
         experimental: true,
       },
-      capabilities: this.inferCapabilities(mcpTool.inputSchema),
+      capabilities: this.inferCapabilities(mcpTool.input_schema),
       renderer: this.selectRenderer(mcpTool),
       icon: this.getIconForCategory(this.inferCategory(mcpTool)),
-      descriptionKey: `tools.mcp.${mcpTool.serverName}.${mcpTool.name}.description`,
-      schema: mcpTool.inputSchema,
+      descriptionKey: `tools.mcp.${mcpTool.server_name}.${mcpTool.name}.description`,
+      schema: mcpTool.input_schema,
     };
   }
 
@@ -206,9 +206,9 @@ export class ToolRegistry {
   /**
    * 推断工具能力
    */
-  private inferCapabilities(inputSchema?: Record<string, unknown>): ToolCapabilities {
+  private inferCapabilities(input_schema?: Record<string, unknown>): ToolCapabilities {
     // 基于Schema推断能力
-    const properties = inputSchema?.properties as Record<string, unknown> | undefined;
+    const properties = input_schema?.properties as Record<string, unknown> | undefined;
     const hasStreamParam = properties?.stream !== undefined;
     const hasImageParam = properties?.image !== undefined || properties?.img !== undefined;
 
@@ -337,7 +337,7 @@ export class ToolRegistry {
     return {
       id: `generic_mcp_${method}`,
       name: method,
-      displayNameKey: 'tools.mcp.generic.displayName',
+      displayNameKey: 'tools.mcp.generic.display_name',
       category: ToolCategory.CUSTOM,
       priority: 200,
       availability: {
@@ -376,7 +376,7 @@ export class ToolRegistry {
     return {
       id: 'unknown',
       name: 'Unknown',
-      displayNameKey: 'tools.unknown.displayName',
+      displayNameKey: 'tools.unknown.display_name',
       category: ToolCategory.CUSTOM,
       priority: 999,
       availability: {
@@ -457,9 +457,9 @@ export class ToolRegistry {
    */
   getMcpToolI18nParams(tool: ToolDefinition): Record<string, string> {
     if (tool.id.includes('/')) {
-      const [serverName, toolName] = tool.id.split('/');
-      return { toolName, serverName };
+      const [server_name, tool_name] = tool.id.split('/');
+      return { tool_name, server_name };
     }
-    return { toolName: tool.name };
+    return { tool_name: tool.name };
   }
 }

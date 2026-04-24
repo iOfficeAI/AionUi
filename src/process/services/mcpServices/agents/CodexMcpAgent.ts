@@ -70,27 +70,27 @@ export function parseCodexMcpListOutput(result: string): IMcpServer[] {
       return [];
     }
 
-    const displayName =
+    const display_name =
       isBuiltinImageGenName(entry.name) || isBuiltinImageGenTransport(entry.transport)
         ? BUILTIN_IMAGE_GEN_NAME
         : entry.name;
     const env = normalizeCodexEnv(entry.transport);
-    const transportType = entry.transport.type;
+    const transport_type = entry.transport.type;
     let transport: IMcpServer['transport'] | null = null;
 
-    if (transportType === 'stdio' && entry.transport.command) {
+    if (transport_type === 'stdio' && entry.transport.command) {
       transport = {
         type: 'stdio',
         command: entry.transport.command,
         args: entry.transport.args || [],
         env,
       };
-    } else if ((transportType === 'http' || transportType === 'streamable_http') && entry.transport.url) {
+    } else if ((transport_type === 'http' || transport_type === 'streamable_http') && entry.transport.url) {
       transport = {
         type: 'http',
         url: entry.transport.url,
       };
-    } else if (transportType === 'sse' && entry.transport.url) {
+    } else if (transport_type === 'sse' && entry.transport.url) {
       transport = {
         type: 'sse',
         url: entry.transport.url,
@@ -104,15 +104,15 @@ export function parseCodexMcpListOutput(result: string): IMcpServer[] {
     return [
       {
         id: `codex_${entry.name}`,
-        name: displayName,
+        name: display_name,
         transport,
         tools: [] as Array<{ name: string; description?: string }>,
         enabled: entry.enabled ?? true,
         status: 'connected' as const,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
+        created_at: Date.now(),
+        updated_at: Date.now(),
         description: '',
-        originalJson: JSON.stringify({ mcpServers: { [displayName]: transport } }, null, 2),
+        original_json: JSON.stringify({ mcpServers: { [display_name]: transport } }, null, 2),
       },
     ];
   });
@@ -157,7 +157,7 @@ export class CodexMcpAgent extends AbstractMcpAgent {
   /**
    * 检测 Codex CLI 的 MCP 配置
    */
-  detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(_cli_path?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       try {
         const { stdout: result } = await safeExecFile('codex', ['mcp', 'list', '--json'], {

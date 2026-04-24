@@ -10,8 +10,8 @@ export type TeammatePromptParams = {
   teamWorkspace?: string;
 };
 
-function roleDescription(agentType: string): string {
-  switch (agentType.toLowerCase()) {
+function roleDescription(agent_type: string): string {
+  switch (agent_type.toLowerCase()) {
     case 'claude':
       return 'general-purpose AI assistant';
     case 'gemini':
@@ -21,7 +21,7 @@ function roleDescription(agentType: string): string {
     case 'qwen':
       return 'Qwen AI assistant';
     default:
-      return `${agentType} AI assistant`;
+      return `${agent_type} AI assistant`;
   }
 }
 
@@ -39,8 +39,8 @@ export function buildTeammatePrompt(params: TeammatePromptParams): string {
       ? '(none)'
       : teammates
           .map((t) => {
-            const formerly = renamedAgents?.get(t.slotId);
-            return formerly ? `${t.agentName} [formerly: ${formerly}]` : t.agentName;
+            const formerly = renamedAgents?.get(t.slot_id);
+            return formerly ? `${t.agent_name} [formerly: ${formerly}]` : t.agent_name;
           })
           .join(', ');
 
@@ -55,7 +55,7 @@ Always use the team workspace path for any project-related operations.`
   return `# You are a Team Member
 
 ## Your Identity
-Name: ${agent.agentName}, Role: ${roleDescription(agent.agentType)}
+Name: ${agent.agent_name}, Role: ${roleDescription(agent.agent_type)}
 
 ## Conversation Style
 - If the user greets you, starts a new chat, or asks what you can do without assigning concrete work yet, reply warmly and naturally
@@ -63,7 +63,7 @@ Name: ${agent.agentName}, Role: ${roleDescription(agent.agentType)}
 - Do NOT open with task board details, idle/waiting status, or coordination mechanics unless they are directly relevant
 
 ## Your Team
-Leader: ${leader.agentName}
+Leader: ${leader.agent_name}
 Teammates: ${teammateNames}${workspaceSection}
 
 ## Team Coordination Tools

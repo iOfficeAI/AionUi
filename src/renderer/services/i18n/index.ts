@@ -1,7 +1,7 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import i18nConfig from '@/common/config/i18n-config.json';
 import {
@@ -72,7 +72,7 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
 // Electron renderer, so the detector would read the wrong (or missing) value
 // and fall back to navigator.language, causing a language mismatch (Issue #1176).
 // Instead, we use localStorage only as a hint for the initial render and let
-// ConfigStorage (which bridges to the main process) be the single source of truth.
+// configService (which bridges to the backend) be the single source of truth.
 i18n
   .use(initReactI18next)
   .init({
@@ -90,10 +90,10 @@ i18n
     console.error('Failed to initialize i18n:', error);
   });
 
-// Load initial language from ConfigStorage (single source of truth)
+// Load initial language from configService (single source of truth)
 async function initLanguage(): Promise<void> {
   try {
-    const savedLanguage = await ConfigStorage.get('language');
+    const savedLanguage = configService.get('language');
     const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
     await ensureAndSwitch(i18n, language, loadLocaleModules);
     // Sync to localStorage so next page load can use it as a fast hint
@@ -140,7 +140,7 @@ ipcBridge.systemSettings.languageChanged.on(async ({ language }) => {
 export async function changeLanguage(lang: string): Promise<void> {
   await ensureAndSwitch(i18n, lang, loadLocaleModules);
   const normalized = normalizeLanguageCode(lang);
-  await ConfigStorage.set('language', normalized);
+  await configService.set('language', normalized);
   // Keep localStorage in sync so WebUI can use it as a fast hint on next load
   if (typeof localStorage !== 'undefined') {
     localStorage.setItem('i18nextLng', normalized);

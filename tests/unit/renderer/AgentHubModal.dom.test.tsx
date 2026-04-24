@@ -67,7 +67,7 @@ vi.mock('@/renderer/utils/platform', () => ({
 
 const createAgent = (overrides: Partial<IHubAgentItem>): IHubAgentItem => ({
   name: 'claude-code',
-  displayName: 'Claude Code',
+  display_name: 'Claude Code',
   description: 'Integrates Anthropic Claude Code as an ACP adapter in AionUi.',
   author: 'Anthropic',
   dist: {
@@ -99,9 +99,9 @@ describe('AgentHubModal', () => {
   it('renders agents as cards and wires install/update actions', () => {
     mockUseHubAgents.mockReturnValue({
       agents: [
-        createAgent({ name: 'claude-code', displayName: 'Claude Code', status: 'installed' }),
-        createAgent({ name: 'github-copilot', displayName: 'GitHub Copilot', status: 'not_installed' }),
-        createAgent({ name: 'google-cli', displayName: 'Google CLI', status: 'update_available' }),
+        createAgent({ name: 'claude-code', display_name: 'Claude Code', status: 'installed' }),
+        createAgent({ name: 'github-copilot', display_name: 'GitHub Copilot', status: 'not_installed' }),
+        createAgent({ name: 'google-cli', display_name: 'Google CLI', status: 'update_available' }),
       ],
       loading: false,
       error: undefined,
@@ -129,7 +129,7 @@ describe('AgentHubModal', () => {
       agents: [
         createAgent({
           name: 'goose',
-          displayName: 'Goose',
+          display_name: 'Goose',
           status: 'install_failed',
           installError: 'download failed',
         }),

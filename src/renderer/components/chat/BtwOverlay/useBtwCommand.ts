@@ -17,10 +17,10 @@ const INITIAL_STATE: BtwCommandState = {
   question: '',
 };
 
-export function useBtwCommand(conversationId?: string, enabled = true) {
+export function useBtwCommand(conversation_id?: string, enabled = true) {
   const { t } = useTranslation();
   const requestIdRef = useRef(0);
-  const previousConversationIdRef = useRef(conversationId);
+  const previousConversationIdRef = useRef(conversation_id);
   const previousEnabledRef = useRef(enabled);
   const [state, setState] = useState<BtwCommandState>(INITIAL_STATE);
 
@@ -30,17 +30,17 @@ export function useBtwCommand(conversationId?: string, enabled = true) {
   }, []);
 
   useEffect(() => {
-    const conversationChanged = previousConversationIdRef.current !== conversationId;
+    const conversationChanged = previousConversationIdRef.current !== conversation_id;
     const eligibilityDisabled = previousEnabledRef.current && !enabled;
 
-    previousConversationIdRef.current = conversationId;
+    previousConversationIdRef.current = conversation_id;
     previousEnabledRef.current = enabled;
 
     if ((conversationChanged || eligibilityDisabled) && state.isOpen) {
       requestIdRef.current += 1;
       setState(INITIAL_STATE);
     }
-  }, [conversationId, enabled, state.isOpen]);
+  }, [conversation_id, enabled, state.isOpen]);
 
   const ask = useCallback(
     async (question: string) => {
@@ -53,7 +53,7 @@ export function useBtwCommand(conversationId?: string, enabled = true) {
         question,
       });
 
-      if (!conversationId) {
+      if (!conversation_id) {
         Message.warning(t('conversation.sideQuestion.unsupported'));
         setState({
           answer: t('conversation.sideQuestion.unsupported'),
@@ -66,7 +66,7 @@ export function useBtwCommand(conversationId?: string, enabled = true) {
 
       try {
         const response = await ipcBridge.conversation.askSideQuestion.invoke({
-          conversation_id: conversationId,
+          conversation_id: conversation_id,
           question,
         });
 
@@ -116,7 +116,7 @@ export function useBtwCommand(conversationId?: string, enabled = true) {
         });
       }
     },
-    [conversationId, t]
+    [conversation_id, t]
   );
 
   return {

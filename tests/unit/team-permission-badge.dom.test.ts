@@ -37,23 +37,23 @@ function writePendingCounts(counts: Record<string, number>): void {
 }
 
 /** Increment pending count for a team */
-function incrementPendingCount(teamId: string): void {
+function incrementPendingCount(team_id: string): void {
   const counts = readPendingCounts();
-  counts[teamId] = (counts[teamId] ?? 0) + 1;
+  counts[team_id] = (counts[team_id] ?? 0) + 1;
   writePendingCounts(counts);
 }
 
 /** Decrement pending count for a team (floor at 0) */
-function decrementPendingCount(teamId: string): void {
+function decrementPendingCount(team_id: string): void {
   const counts = readPendingCounts();
-  counts[teamId] = Math.max(0, (counts[teamId] ?? 0) - 1);
+  counts[team_id] = Math.max(0, (counts[team_id] ?? 0) - 1);
   writePendingCounts(counts);
 }
 
 /** Clear pending count for a team */
-function clearPendingCount(teamId: string): void {
+function clearPendingCount(team_id: string): void {
   const counts = readPendingCounts();
-  delete counts[teamId];
+  delete counts[team_id];
   writePendingCounts(counts);
 }
 

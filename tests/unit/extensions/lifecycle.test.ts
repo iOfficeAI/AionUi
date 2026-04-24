@@ -57,7 +57,7 @@ function createExtension(dir: string, overrides?: Partial<LoadedExtension['manif
     directory: dir,
     manifest: {
       name: 'test-ext',
-      displayName: 'Test Extension',
+      display_name: 'Test Extension',
       version: '1.0.0',
       lifecycle: {
         onInstall: 'scripts/install.js',

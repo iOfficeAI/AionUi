@@ -17,7 +17,7 @@ const TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
 type RawChannelMediaAction = {
   type: 'image' | 'file';
   path: string;
-  fileName?: string;
+  file_name?: string;
   caption?: string;
 };
 
@@ -31,7 +31,7 @@ export type ChannelSendRejectReason =
 export type RejectedChannelMediaAction = {
   type: 'image' | 'file';
   path: string;
-  fileName?: string;
+  file_name?: string;
   reason: ChannelSendRejectReason;
 };
 
@@ -51,7 +51,9 @@ function parseRawChannelMediaAction(jsonText: string): RawChannelMediaAction | n
     return {
       type,
       path: actionPath.trim(),
-      ...(typeof parsed.fileName === 'string' && parsed.fileName.trim() ? { fileName: parsed.fileName.trim() } : {}),
+      ...(typeof parsed.file_name === 'string' && parsed.file_name.trim()
+        ? { file_name: parsed.file_name.trim() }
+        : {}),
       ...(typeof parsed.caption === 'string' && parsed.caption.trim() ? { caption: parsed.caption.trim() } : {}),
     };
   } catch {
@@ -129,7 +131,7 @@ export function extractChannelSendProtocol(content: string): {
 
 export async function resolveChannelSendProtocol(
   content: string,
-  conversationId: string
+  conversation_id: string
 ): Promise<{
   visibleText: string;
   mediaActions: IChannelMediaAction[];
@@ -149,14 +151,14 @@ export async function resolveChannelSendProtocol(
       rejectedActions: extracted.actions.map((action) => ({
         type: action.type,
         path: action.path,
-        fileName: action.fileName,
+        file_name: action.file_name,
         reason,
       })),
     };
   };
 
   const db = await getDatabase();
-  const conversation = db.getConversation(conversationId);
+  const conversation = db.getConversation(conversation_id);
   const workspace = conversation.success ? conversation.data?.extra?.workspace : undefined;
   if (!workspace || !existsSync(workspace)) {
     return rejectAll('workspace_unavailable');
@@ -181,7 +183,7 @@ export async function resolveChannelSendProtocol(
       rejectedActions.push({
         type: action.type,
         path: action.path,
-        fileName: action.fileName,
+        file_name: action.file_name,
         reason: 'not_found',
       });
       continue;
@@ -194,7 +196,7 @@ export async function resolveChannelSendProtocol(
         rejectedActions.push({
           type: action.type,
           path: action.path,
-          fileName: action.fileName,
+          file_name: action.file_name,
           reason: 'outside_allowed',
         });
         continue;
@@ -205,7 +207,7 @@ export async function resolveChannelSendProtocol(
         rejectedActions.push({
           type: action.type,
           path: action.path,
-          fileName: action.fileName,
+          file_name: action.file_name,
           reason: 'not_file',
         });
         continue;
@@ -214,7 +216,7 @@ export async function resolveChannelSendProtocol(
         rejectedActions.push({
           type: action.type,
           path: action.path,
-          fileName: action.fileName,
+          file_name: action.file_name,
           reason: 'too_large',
         });
         continue;

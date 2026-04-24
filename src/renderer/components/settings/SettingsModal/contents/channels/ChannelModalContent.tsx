@@ -7,7 +7,7 @@
 import type { IChannelPluginStatus } from '@process/channels/types';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -48,7 +48,7 @@ type ExtensionFieldValues = Record<string, Record<string, string | number | bool
 const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
+ * Internal hook: wraps useGeminiModelSelection with configService persistence
  * for a specific channel config key (e.g. 'assistant.telegram.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
@@ -76,7 +76,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
 
     const restore = async () => {
       try {
-        const saved = (await ConfigStorage.get(configKey)) as { id: string; useModel: string } | undefined;
+        const saved = configService.get(configKey) as { id: string; useModel: string } | undefined;
         if (!saved?.id || !saved?.useModel) {
           // Nothing saved — mark restored so we don't keep retrying
           setRestored(true);
@@ -120,7 +120,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
     async (provider: IProvider, modelName: string) => {
       try {
         const modelRef = { id: provider.id, useModel: modelName };
-        await ConfigStorage.set(configKey, modelRef);
+        await configService.set(configKey, modelRef);
 
         // Derive platform from configKey and sync to channel system
         const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
@@ -130,13 +130,13 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
           | 'weixin'
           | 'wecom';
         const agentKey = `assistant.${platform}.agent` as const;
-        const currentAgent = await ConfigStorage.get(agentKey);
+        const currentAgent = configService.get(agentKey);
         await channel.syncChannelSettings
           .invoke({
             platform,
             agent: (currentAgent as {
               backend: string;
-              customAgentId?: string;
+              custom_agent_id?: string;
               name?: string;
             }) || {
               backend: 'gemini',
@@ -200,7 +200,7 @@ const ChannelModalContent: React.FC = () => {
     wecom: true,
   });
 
-  // Model selection state — uses unified hook with ConfigStorage persistence
+  // Model selection state — uses unified hook with configService persistence
   const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
   const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
   const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
@@ -661,9 +661,9 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: pluginStatus?.enabled || false,
       disabled: enableLoading,
-      isConnected: pluginStatus?.connected || false,
+      is_connected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
-      defaultModel: telegramModelSelection.currentModel?.useModel,
+      defaultModel: telegramModelSelection.current_model?.useModel,
       content: (
         <TelegramConfigForm
           pluginStatus={pluginStatus}
@@ -683,8 +683,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
-      isConnected: larkPluginStatus?.connected || false,
-      defaultModel: larkModelSelection.currentModel?.useModel,
+      is_connected: larkPluginStatus?.connected || false,
+      defaultModel: larkModelSelection.current_model?.useModel,
       content: (
         <LarkConfigForm
           pluginStatus={larkPluginStatus}
@@ -701,8 +701,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
-      isConnected: dingtalkPluginStatus?.connected || false,
-      defaultModel: dingtalkModelSelection.currentModel?.useModel,
+      is_connected: dingtalkPluginStatus?.connected || false,
+      defaultModel: dingtalkModelSelection.current_model?.useModel,
       content: (
         <DingTalkConfigForm
           pluginStatus={dingtalkPluginStatus}
@@ -719,8 +719,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
-      isConnected: weixinPluginStatus?.connected || false,
-      defaultModel: weixinModelSelection.currentModel?.useModel,
+      is_connected: weixinPluginStatus?.connected || false,
+      defaultModel: weixinModelSelection.current_model?.useModel,
       content: (
         <WeixinConfigForm
           pluginStatus={weixinPluginStatus}
@@ -737,8 +737,8 @@ const ChannelModalContent: React.FC = () => {
       status: 'active',
       enabled: wecomPluginStatus?.enabled || false,
       disabled: wecomEnableLoading,
-      isConnected: wecomPluginStatus?.connected || false,
-      defaultModel: wecomModelSelection.currentModel?.useModel,
+      is_connected: wecomPluginStatus?.connected || false,
+      defaultModel: wecomModelSelection.current_model?.useModel,
       content: (
         <WecomConfigForm
           pluginStatus={wecomPluginStatus}
@@ -762,7 +762,7 @@ const ChannelModalContent: React.FC = () => {
         status: 'active',
         enabled: status.enabled || false,
         disabled: extensionLoadingMap[status.type] || false,
-        isConnected: status.connected || false,
+        is_connected: status.connected || false,
         icon: status.extensionMeta?.icon,
         isExtension: true,
         content: renderExtensionConfigForm(status),

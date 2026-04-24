@@ -21,9 +21,9 @@ import { ProcessConfig } from '@process/utils/initStorage';
  *   3. Returns undefined when no match is found (caller keeps backend-only cell).
  */
 export async function resolveLeaderAssistantLabel(
-  presetAssistantId: string | undefined | null
+  preset_assistant_id: string | undefined | null
 ): Promise<string | undefined> {
-  if (!presetAssistantId) return undefined;
+  if (!preset_assistant_id) return undefined;
 
   let assistants;
   try {
@@ -32,12 +32,12 @@ export async function resolveLeaderAssistantLabel(
     return undefined;
   }
 
-  const bareId = presetAssistantId.startsWith('builtin-')
-    ? presetAssistantId.slice('builtin-'.length)
-    : presetAssistantId;
+  const bareId = preset_assistant_id.startsWith('builtin-')
+    ? preset_assistant_id.slice('builtin-'.length)
+    : preset_assistant_id;
 
   const match =
-    assistants.find((a) => a.id === presetAssistantId) ?? assistants.find((a) => a.id === `builtin-${bareId}`);
+    assistants.find((a) => a.id === preset_assistant_id) ?? assistants.find((a) => a.id === `builtin-${bareId}`);
   if (!match) return undefined;
 
   const userLanguage = (await ProcessConfig.get('language').catch((): null => null)) as string | null;

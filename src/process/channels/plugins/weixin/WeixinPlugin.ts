@@ -29,7 +29,7 @@ export class WeixinPlugin extends BasePlugin {
 
   private accountId = '';
   private botToken = '';
-  private baseUrl = 'https://ilinkai.weixin.qq.com';
+  private base_url = 'https://ilinkai.weixin.qq.com';
   private abortController: AbortController | null = null;
   private _stopping = false;
   private pendingResponses = new Map<string, PendingResponse>();
@@ -38,20 +38,20 @@ export class WeixinPlugin extends BasePlugin {
   // ==================== Lifecycle ====================
 
   protected async onInitialize(config: IChannelPluginConfig): Promise<void> {
-    const { accountId, botToken, baseUrl } = config.credentials ?? {};
+    const { accountId, botToken, base_url } = config.credentials ?? {};
     if (!accountId || !botToken) {
       throw new Error('WeChat accountId and botToken are required');
     }
     this.accountId = accountId as string;
     this.botToken = botToken as string;
-    this.baseUrl = (baseUrl as string | undefined) ?? 'https://ilinkai.weixin.qq.com';
+    this.base_url = (base_url as string | undefined) ?? 'https://ilinkai.weixin.qq.com';
   }
 
   protected async onStart(): Promise<void> {
     this._stopping = false;
     this.abortController = new AbortController();
     startMonitor({
-      baseUrl: this.baseUrl,
+      base_url: this.base_url,
       token: this.botToken,
       accountId: this.accountId,
       dataDir: getPlatformServices().paths.getDataDir(),
@@ -110,8 +110,8 @@ export class WeixinPlugin extends BasePlugin {
     return this.activeUsers.size;
   }
 
-  getBotInfo(): { username?: string; displayName?: string } | null {
-    return { displayName: 'Aion Assistant' };
+  getBotInfo(): { username?: string; display_name?: string } | null {
+    return { display_name: 'Aion Assistant' };
   }
 
   // ==================== Promise bridge ====================
@@ -121,23 +121,23 @@ export class WeixinPlugin extends BasePlugin {
       return Promise.reject(new Error('Plugin stopped'));
     }
 
-    const { conversationId } = request;
-    this.activeUsers.add(conversationId);
+    const { conversation_id } = request;
+    this.activeUsers.add(conversation_id);
 
-    const existing = this.pendingResponses.get(conversationId);
+    const existing = this.pendingResponses.get(conversation_id);
     if (existing) {
       clearTimeout(existing.timer);
       existing.reject(new Error('superseded'));
-      this.pendingResponses.delete(conversationId);
+      this.pendingResponses.delete(conversation_id);
     }
 
     return new Promise<WeixinChatResponse>((resolve, reject) => {
       const timer = setTimeout(() => {
-        this.pendingResponses.delete(conversationId);
+        this.pendingResponses.delete(conversation_id);
         reject(new Error('Response timeout'));
       }, RESPONSE_TIMEOUT_MS);
 
-      this.pendingResponses.set(conversationId, {
+      this.pendingResponses.set(conversation_id, {
         resolve,
         reject,
         accumulatedText: '',
@@ -163,10 +163,10 @@ export class WeixinPlugin extends BasePlugin {
 
       this.emitMessage(unified)
         .then(() => {
-          const pending = this.pendingResponses.get(conversationId);
+          const pending = this.pendingResponses.get(conversation_id);
           if (pending) {
             clearTimeout(pending.timer);
-            this.pendingResponses.delete(conversationId);
+            this.pendingResponses.delete(conversation_id);
             pending.resolve({
               text: pending.accumulatedText || undefined,
               mediaActions: pending.mediaActions,
@@ -175,7 +175,7 @@ export class WeixinPlugin extends BasePlugin {
         })
         .catch((error: unknown) => {
           clearTimeout(timer);
-          this.pendingResponses.delete(conversationId);
+          this.pendingResponses.delete(conversation_id);
           reject(error instanceof Error ? error : new Error(String(error)));
         });
     });

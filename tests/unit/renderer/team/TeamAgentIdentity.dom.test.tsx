@@ -31,7 +31,7 @@ describe('TeamAgentIdentity', () => {
   });
 
   it('shows a crown next to the leader name', () => {
-    render(<TeamAgentIdentity agentName='alice' agentType='gemini' isLeader />);
+    render(<TeamAgentIdentity agent_name='alice' agent_type='gemini' isLeader />);
 
     expect(screen.getByText('alice')).toBeTruthy();
     expect(screen.getByTestId('team-leader-crown')).toBeTruthy();
@@ -41,14 +41,14 @@ describe('TeamAgentIdentity', () => {
   });
 
   it('does not render the crown for teammates', () => {
-    render(<TeamAgentIdentity agentName='bob' agentType='gemini' />);
+    render(<TeamAgentIdentity agent_name='bob' agent_type='gemini' />);
 
     expect(screen.getByText('bob')).toBeTruthy();
     expect(screen.queryByTestId('team-leader-crown')).toBeNull();
   });
 
   it('falls back to the backend logo when no preset info is available', () => {
-    render(<TeamAgentIdentity agentName='carol' agentType='gemini' conversationId='c-1' />);
+    render(<TeamAgentIdentity agent_name='carol' agent_type='gemini' conversation_id='c-1' />);
 
     const logo = screen.getByAltText('gemini') as HTMLImageElement;
     expect(logo.src).toContain('/logo.svg');
@@ -57,7 +57,7 @@ describe('TeamAgentIdentity', () => {
   it('renders the preset emoji avatar instead of the backend logo', () => {
     mockPresetInfo.value = { name: 'Word Creator', logo: '📝', isEmoji: true };
 
-    render(<TeamAgentIdentity agentName='Leader' agentType='gemini' conversationId='c-2' />);
+    render(<TeamAgentIdentity agent_name='Leader' agent_type='gemini' conversation_id='c-2' />);
 
     expect(screen.getByText('📝')).toBeTruthy();
     // Backend logo must not render when preset info is present
@@ -67,14 +67,14 @@ describe('TeamAgentIdentity', () => {
   it('renders the preset image avatar when the preset provides a non-emoji logo', () => {
     mockPresetInfo.value = { name: 'Cowork', logo: '/assets/cowork.svg', isEmoji: false };
 
-    render(<TeamAgentIdentity agentName='Assistant' agentType='gemini' conversationId='c-3' />);
+    render(<TeamAgentIdentity agent_name='Assistant' agent_type='gemini' conversation_id='c-3' />);
 
     const avatar = screen.getByAltText('Cowork') as HTMLImageElement;
     expect(avatar.src).toContain('/assets/cowork.svg');
   });
 
   it('falls back to the first-letter circle when no preset and no backend logo exist', () => {
-    render(<TeamAgentIdentity agentName='dave' agentType='no-logo' />);
+    render(<TeamAgentIdentity agent_name='dave' agent_type='no-logo' />);
 
     expect(screen.getByText('D')).toBeTruthy();
     expect(screen.queryByAltText('no-logo')).toBeNull();

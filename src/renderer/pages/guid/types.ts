@@ -14,9 +14,9 @@ import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
 export type AvailableAgent = {
   backend: string;
   name: string;
-  cliPath?: string;
-  customAgentId?: string;
-  isPreset?: boolean;
+  cli_path?: string;
+  custom_agent_id?: string;
+  is_preset?: boolean;
   context?: string;
   avatar?: string;
   presetAgentType?: string;
@@ -41,7 +41,7 @@ export type MentionOption = {
  * Effective agent type info used for UI display and send logic.
  */
 export type EffectiveAgentInfo = {
-  agentType: string;
+  agent_type: string;
   isFallback: boolean;
   originalType: string;
   isAvailable: boolean;

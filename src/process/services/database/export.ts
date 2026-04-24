@@ -26,7 +26,6 @@ export type {
   // Business types (re-exported for convenience)
   TChatConversation,
   TMessage,
-  IConfigStorageRefer,
   // Database row types (for advanced usage)
   IConversationRow,
   IMessageRow,

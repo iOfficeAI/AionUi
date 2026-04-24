@@ -45,7 +45,7 @@ export const IdeDiffAcceptedNotificationSchema = z.object({
   jsonrpc: z.literal('2.0'),
   method: z.literal('ide/diffAccepted'),
   params: z.object({
-    filePath: z.string(),
+    file_path: z.string(),
     content: z.string(),
   }),
 });
@@ -54,7 +54,7 @@ export const IdeDiffClosedNotificationSchema = z.object({
   jsonrpc: z.literal('2.0'),
   method: z.literal('ide/diffClosed'),
   params: z.object({
-    filePath: z.string(),
+    file_path: z.string(),
     content: z.string().optional(),
   }),
 });

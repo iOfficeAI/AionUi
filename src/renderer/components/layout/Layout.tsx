@@ -6,7 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
-import { ConfigStorage, type ICssTheme } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
+import type { ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
@@ -115,9 +116,9 @@ const Layout: React.FC<{
   const loadAndHealCustomCss = useCallback(async () => {
     try {
       const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([
-        ConfigStorage.get('customCss'),
-        ConfigStorage.get('css.activeThemeId'),
-        ConfigStorage.get('css.themes'),
+        configService.get('customCss'),
+        configService.get('css.activeThemeId'),
+        configService.get('css.themes'),
       ]);
 
       const decision = computeCssSyncDecision({
@@ -141,13 +142,13 @@ const Layout: React.FC<{
         effectiveCss = defaultCss;
         // Persist the fallback so Layout doesn't keep retrying
         await Promise.all([
-          ConfigStorage.set('css.activeThemeId', 'default-theme'),
-          ConfigStorage.set('customCss', effectiveCss),
+          configService.set('css.activeThemeId', 'default-theme'),
+          configService.set('customCss', effectiveCss),
         ]).catch((error) => {
           console.warn('Failed to persist theme fallback:', error);
         });
       } else if (decision.shouldHealStorage) {
-        await ConfigStorage.set('customCss', effectiveCss).catch((error) => {
+        await configService.set('customCss', effectiveCss).catch((error) => {
           console.warn('Failed to heal custom CSS from active theme:', error);
         });
       }
@@ -298,8 +299,8 @@ const Layout: React.FC<{
     };
 
     // Navigate to conversation when requested from tray / 托盘请求导航到对话页面
-    const handleNavigateToConversation = (event: CustomEvent<{ conversationId: string }>) => {
-      void navigate(`/conversation/${event.detail.conversationId}`);
+    const handleNavigateToConversation = (event: CustomEvent<{ conversation_id: string }>) => {
+      void navigate(`/conversation/${event.detail.conversation_id}`);
     };
 
     // Open about dialog when requested from tray / 托盘请求打开关于对话框

@@ -29,7 +29,7 @@ function toolCallMsg(): TMessage {
     id: `tc-${Math.random().toString(36).slice(2, 8)}`,
     conversation_id: 'conv-1',
     type: 'tool_call' as const,
-    content: { callId: 'call-1', name: 'search', args: {} },
+    content: { call_id: 'call-1', name: 'search', args: {} },
     position: 'left',
   };
 }
@@ -93,7 +93,7 @@ describe('buildTurnPreview', () => {
       id: 'img-1',
       conversation_id: 'conv-1',
       type: 'tool_group' as const,
-      content: [{ callId: 'c1', description: 'img', name: 'gen', renderOutputAsMarkdown: false }],
+      content: [{ call_id: 'c1', description: 'img', name: 'gen', renderOutputAsMarkdown: false }],
       position: 'left',
     };
     const msgs = [textMsg('User question', 'right'), imageOnlyMsg];

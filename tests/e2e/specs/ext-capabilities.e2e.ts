@@ -19,7 +19,7 @@ test.describe('Extension: Complete Capabilities', () => {
     const agentIds = snapshot.agents.map((item) => item.id);
     expect(agentIds).toEqual(expect.arrayContaining(['ext-hello-coder', 'ext-hello-researcher']));
 
-    const mcpServerNames = snapshot.mcpServers.map((item) => item.name);
+    const mcpServerNames = snapshot.mcp_servers.map((item) => item.name);
     expect(mcpServerNames).toEqual(expect.arrayContaining(['e2e-echo-server', 'hello-echo-mcp']));
 
     const skillNames = snapshot.skills.map((item) => item.name);

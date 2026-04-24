@@ -93,32 +93,34 @@ export class ChannelManager {
 
       // Set confirm handler for tool confirmations
       // 设置工具确认处理器
-      this.pluginManager.setConfirmHandler(async (userId: string, platform: string, callId: string, value: string) => {
-        // 查找用户
-        // Find user
-        const db = await getDatabase();
-        const userResult = db.getChannelUserByPlatform(userId, platform as PluginType);
-        if (!userResult.data) {
-          console.error(`[ChannelManager] User not found: ${userId}@${platform}`);
-          return;
-        }
+      this.pluginManager.setConfirmHandler(
+        async (user_id: string, platform: string, call_id: string, value: string) => {
+          // 查找用户
+          // Find user
+          const db = await getDatabase();
+          const userResult = db.getChannelUserByPlatform(user_id, platform as PluginType);
+          if (!userResult.data) {
+            console.error(`[ChannelManager] User not found: ${user_id}@${platform}`);
+            return;
+          }
 
-        // 查找 session 获取 conversationId
-        // Find session to get conversationId
-        const session = this.sessionManager?.getSession(userResult.data.id);
-        if (!session?.conversationId) {
-          console.error(`[ChannelManager] Session not found for user: ${userResult.data.id}`);
-          return;
-        }
+          // 查找 session 获取 conversation_id
+          // Find session to get conversation_id
+          const session = this.sessionManager?.getSession(userResult.data.id);
+          if (!session?.conversation_id) {
+            console.error(`[ChannelManager] Session not found for user: ${userResult.data.id}`);
+            return;
+          }
 
-        // 调用 confirm
-        // Call confirm
-        try {
-          await getChannelMessageService().confirm(session.conversationId, callId, value);
-        } catch (error) {
-          console.error(`[ChannelManager] Tool confirmation failed:`, error);
+          // 调用 confirm
+          // Call confirm
+          try {
+            await getChannelMessageService().confirm(session.conversation_id, call_id, value);
+          } catch (error) {
+            console.error(`[ChannelManager] Tool confirmation failed:`, error);
+          }
         }
-      });
+      );
 
       // Load and start enabled plugins from database
       await this.loadEnabledPlugins();
@@ -201,7 +203,7 @@ export class ChannelManager {
           ...plugin,
           enabled: false,
           status: 'stopped',
-          updatedAt: Date.now(),
+          updated_at: Date.now(),
         };
         db.upsertChannelPlugin(nextConfig);
         continue;
@@ -353,8 +355,8 @@ export class ChannelManager {
       credentials,
       config: pluginRuntimeConfig,
       status: 'created',
-      createdAt: existing?.createdAt || Date.now(),
-      updatedAt: Date.now(),
+      created_at: existing?.created_at || Date.now(),
+      updated_at: Date.now(),
     };
 
     const saveResult = db.upsertChannelPlugin(pluginConfig);
@@ -387,7 +389,7 @@ export class ChannelManager {
           ...existingResult.data,
           enabled: false,
           status: 'stopped',
-          updatedAt: Date.now(),
+          updated_at: Date.now(),
         };
         db.upsertChannelPlugin(updated);
       }
@@ -530,7 +532,7 @@ export class ChannelManager {
    */
   async syncChannelSettings(
     platform: ChannelPlatform,
-    agent: { backend: string; customAgentId?: string; name?: string },
+    agent: { backend: string; custom_agent_id?: string; name?: string },
     model?: { id: string; useModel: string }
   ): Promise<{ success: boolean; error?: string }> {
     if (!this.initialized || !this.sessionManager) {
@@ -574,10 +576,10 @@ export class ChannelManager {
    *
    * 当会话被删除时清理相关资源（用于 telegram 等非 AionUI 来源的会话）
    *
-   * @param conversationId - The ID of the conversation being deleted
+   * @param conversation_id - The ID of the conversation being deleted
    * @returns true if cleanup was performed, false if no resources to clean
    */
-  async cleanupConversation(conversationId: string): Promise<boolean> {
+  async cleanupConversation(conversation_id: string): Promise<boolean> {
     if (!this.initialized) {
       console.warn('[ChannelManager] Not initialized, skipping cleanup');
       return false;
@@ -586,7 +588,7 @@ export class ChannelManager {
     let cleanedUp = false;
 
     // 1. Clear session associated with this conversation
-    const clearedSession = await this.sessionManager?.clearSessionByConversationId(conversationId);
+    const clearedSession = await this.sessionManager?.clearSessionByConversationId(conversation_id);
     if (clearedSession) {
       cleanedUp = true;
 

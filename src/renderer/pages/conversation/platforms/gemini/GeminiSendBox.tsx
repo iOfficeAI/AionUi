@@ -85,10 +85,10 @@ const useSendBoxDraft = (conversation_id: string) => {
 const GeminiSendBox: React.FC<{
   conversation_id: string;
   modelSelection: GeminiModelSelection;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
-  sessionMode?: string;
-}> = ({ conversation_id, modelSelection, teamId, agentSlotId, sessionMode }) => {
+  session_mode?: string;
+}> = ({ conversation_id, modelSelection, team_id, agentSlotId, session_mode }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -102,7 +102,7 @@ const GeminiSendBox: React.FC<{
   const [isNewConversation, setIsNewConversation] = useState(true);
   const autoSwitchTriggeredRef = useRef(false);
 
-  const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } =
+  const { current_model, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } =
     modelSelection;
 
   // Check if no auth (no Google login AND no API key configured)
@@ -119,12 +119,12 @@ const GeminiSendBox: React.FC<{
     performFullCheck,
     reset: resetAgentCheck,
   } = useAgentReadinessCheck({
-    conversationType: 'gemini',
+    conversation_type: 'gemini',
     autoCheck: false,
   });
 
   const { handleGeminiError } = useGeminiQuotaFallback({
-    currentModel,
+    current_model,
     providers,
     geminiModeLookup,
     getAvailableModels,
@@ -145,8 +145,8 @@ const GeminiSendBox: React.FC<{
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
   useGeminiInitialMessage({
-    conversationId: conversation_id,
-    currentModelId: currentModel?.useModel,
+    conversation_id: conversation_id,
+    current_model_id: current_model?.useModel,
     hasNoAuth,
     setContent,
     setActiveMsgId,
@@ -171,7 +171,7 @@ const GeminiSendBox: React.FC<{
     resetAgentCheck();
 
     void ipcBridge.database.getConversationMessages
-      .invoke({ conversation_id, page: 0, pageSize: 1 })
+      .invoke({ conversation_id, page: 0, page_size: 1 })
       .then((messages) => {
         const hasMessages = messages && messages.items.length > 0;
         setIsNewConversation(!hasMessages);
@@ -188,7 +188,7 @@ const GeminiSendBox: React.FC<{
     void performFullCheck();
   }, [performFullCheck]);
 
-  const slashCommands = useSlashCommands(conversation_id);
+  const slash_commands = useSlashCommands(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
@@ -202,8 +202,8 @@ const GeminiSendBox: React.FC<{
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
     const handler = (text: string) => {
-      const newContent = content ? `${content}\n${text}` : text;
-      setContentRef.current(newContent);
+      const new_content = content ? `${content}\n${text}` : text;
+      setContentRef.current(new_content);
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
@@ -227,7 +227,7 @@ const GeminiSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      if (!currentModel?.useModel) {
+      if (!current_model?.useModel) {
         Message.warning(t('conversation.chat.noModelSelected'));
         throw new Error('No model selected');
       }
@@ -240,7 +240,7 @@ const GeminiSendBox: React.FC<{
 
       // In team mode, the backend writes the user message via IPC stream.
       // Adding it here too would produce a duplicate bubble.
-      if (!teamId) {
+      if (!team_id) {
         addOrUpdateMessage(
           {
             id: msg_id,
@@ -250,7 +250,7 @@ const GeminiSendBox: React.FC<{
             content: {
               content: displayMessage,
             },
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
           true
         );
@@ -258,11 +258,11 @@ const GeminiSendBox: React.FC<{
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        if (teamId) {
+        if (team_id) {
           if (agentSlotId) {
             const result = await ipcBridge.team.sendMessageToAgent.invoke({
-              teamId,
-              slotId: agentSlotId,
+              team_id,
+              slot_id: agentSlotId,
               content: displayMessage,
               files,
             });
@@ -271,7 +271,7 @@ const GeminiSendBox: React.FC<{
               throw new Error(maybeError.message || 'Failed to send message to agent');
             }
           } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ teamId, content: displayMessage, files });
+            const result = await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
             const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
             if (maybeError.__bridgeError) {
               throw new Error(maybeError.message || 'Failed to send message to team');
@@ -299,11 +299,11 @@ const GeminiSendBox: React.FC<{
       agentSlotId,
       checkAndUpdateTitle,
       conversation_id,
-      currentModel?.useModel,
+      current_model?.useModel,
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
-      teamId,
+      team_id,
       workspacePath,
     ]
   );
@@ -323,7 +323,7 @@ const GeminiSendBox: React.FC<{
     unlockInteraction,
     resetActiveExecution,
   } = useConversationCommandQueue({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     enabled: true,
     isBusy,
     isHydrated: hasHydratedRunningState,
@@ -394,7 +394,7 @@ const GeminiSendBox: React.FC<{
       {/* Agent Setup Card - only show for new conversation + no auth, auto-switch to available agent */}
       {showSetupCard && isNewConversation && hasNoAuth && (
         <AgentSetupCard
-          conversationId={conversation_id}
+          conversation_id={conversation_id}
           currentAgent={currentAgent}
           error={agentError}
           isChecking={agentIsChecking}
@@ -436,10 +436,10 @@ const GeminiSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={isBusy}
-        disabled={!currentModel?.useModel}
+        disabled={!current_model?.useModel}
         placeholder={
-          currentModel?.useModel
-            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) })
+          current_model?.useModel
+            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.useModel) })
             : t('conversation.chat.noModelSelected')
         }
         onStop={handleStop}
@@ -455,9 +455,9 @@ const GeminiSendBox: React.FC<{
             {showModeSelector && (
               <AgentModeSelector
                 backend='gemini'
-                conversationId={conversation_id}
+                conversation_id={conversation_id}
                 compact
-                initialMode={sessionMode}
+                initialMode={session_mode}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.permission')}
@@ -470,7 +470,7 @@ const GeminiSendBox: React.FC<{
         sendButtonPrefix={
           <ContextUsageIndicator
             tokenUsage={tokenUsage}
-            contextLimit={getModelContextLimit(currentModel?.useModel)}
+            context_limit={getModelContextLimit(current_model?.useModel)}
             size={24}
           />
         }
@@ -514,7 +514,7 @@ const GeminiSendBox: React.FC<{
           </>
         }
         onSend={onSendHandler}
-        slashCommands={slashCommands}
+        slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
       ></SendBox>

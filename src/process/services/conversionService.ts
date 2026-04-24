@@ -30,9 +30,9 @@ class ConversionService {
    * Word (.docx) -> Markdown
    * 将 Word 文档转换为 Markdown
    */
-  public async wordToMarkdown(filePath: string): Promise<ConversionResult<string>> {
+  public async wordToMarkdown(file_path: string): Promise<ConversionResult<string>> {
     try {
-      const buffer = await fs.readFile(filePath);
+      const buffer = await fs.readFile(file_path);
       const result = await mammoth.convertToHtml({ buffer });
       const html = result.value;
       const markdown = this.turndownService.turndown(html);
@@ -91,9 +91,9 @@ class ConversionService {
    * Excel (.xlsx) -> JSON
    * 将 Excel 文件转换为 JSON 数据
    */
-  public async excelToJson(filePath: string): Promise<ConversionResult<ExcelWorkbookData>> {
+  public async excelToJson(file_path: string): Promise<ConversionResult<ExcelWorkbookData>> {
     try {
-      const buffer = await fs.readFile(filePath);
+      const buffer = await fs.readFile(file_path);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
       const sheetImages = await this.extractExcelImages(buffer);
 
@@ -151,10 +151,10 @@ class ConversionService {
    * 将 PowerPoint 文件转换为 JSON 结构
    * Converts PowerPoint file to JSON structure including slides, images, and layouts
    */
-  public async pptToJson(filePath: string): Promise<ConversionResult<PPTJsonData>> {
+  public async pptToJson(file_path: string): Promise<ConversionResult<PPTJsonData>> {
     try {
       const pptx2json = new PPTX2Json();
-      const json = await pptx2json.toJson(filePath);
+      const json = await pptx2json.toJson(file_path);
 
       console.log('[ConversionService] pptx2json raw result keys:', Object.keys(json));
 
@@ -431,8 +431,8 @@ class ConversionService {
         });
 
         zip.on('entry', (entry) => {
-          const normalizedPath = this.normalizeZipPath(entry.fileName);
-          if (!this.shouldKeepZipEntry(normalizedPath) || entry.fileName.endsWith('/')) {
+          const normalizedPath = this.normalizeZipPath(entry.file_name);
+          if (!this.shouldKeepZipEntry(normalizedPath) || entry.file_name.endsWith('/')) {
             zip.readEntry();
             return;
           }
@@ -471,8 +471,8 @@ class ConversionService {
     );
   }
 
-  private normalizeZipPath(filePath: string): string {
-    const cleaned = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+  private normalizeZipPath(file_path: string): string {
+    const cleaned = file_path.replace(/\\/g, '/').replace(/^\/+/, '');
     const parts = cleaned.split('/');
     const stack: string[] = [];
     parts.forEach((part) => {
@@ -532,8 +532,8 @@ class ConversionService {
     return map;
   }
 
-  private getMimeTypeFromName(fileName: string): string {
-    const lower = fileName.toLowerCase();
+  private getMimeTypeFromName(file_name: string): string {
+    const lower = file_name.toLowerCase();
     if (lower.endsWith('.png')) return 'image/png';
     if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
     if (lower.endsWith('.gif')) return 'image/gif';

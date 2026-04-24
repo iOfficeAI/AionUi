@@ -45,7 +45,7 @@ describe('ChannelMessageService', () => {
       msg_id: 'msg-1',
       data: [
         {
-          callId: 'tool-1',
+          call_id: 'tool-1',
           description: 'Searching the web for: test',
           name: 'google_web_search',
           renderOutputAsMarkdown: false,

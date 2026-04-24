@@ -95,8 +95,8 @@ describe('Sider team entry visibility', () => {
         workspaceMode: 'shared',
         leaderAgentId: 'lead-1',
         agents: [],
-        createdAt: 1,
-        updatedAt: 1,
+        created_at: 1,
+        updated_at: 1,
       },
     ];
     mockUseTeamList.mockReturnValue({ teams, mutate: vi.fn(), removeTeam: vi.fn() });

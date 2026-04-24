@@ -221,13 +221,13 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
             .filter(
               (item) =>
                 item.name === 'WriteFile' &&
-                item.resultDisplay &&
-                typeof item.resultDisplay === 'object' &&
-                'fileDiff' in item.resultDisplay
+                item.result_display &&
+                typeof item.result_display === 'object' &&
+                'file_diff' in item.result_display
             )
-            .map((item) => item.resultDisplay as WriteFileResult);
-          if (writeFileResults.length && writeFileResults[0].fileDiff) {
-            pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName), message.id);
+            .map((item) => item.result_display as WriteFileResult);
+          if (writeFileResults.length && writeFileResults[0].file_diff) {
+            pushFileDffChanges(parseDiff(writeFileResults[0].file_diff, writeFileResults[0].file_name), message.id);
             continue;
           }
         }
@@ -299,8 +299,9 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   useEffect(() => {
     const handleMessageJump = (event: Event) => {
       const detail = (event as CustomEvent<ChatMessageJumpDetail>).detail;
-      if (!detail || !detail.conversationId) return;
-      if (!conversationContext?.conversationId || detail.conversationId !== conversationContext.conversationId) return;
+      if (!detail || !detail.conversation_id) return;
+      if (!conversationContext?.conversation_id || detail.conversation_id !== conversationContext.conversation_id)
+        return;
 
       const targetIndex = processedList.findIndex((item) => {
         if (
@@ -330,7 +331,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     return () => {
       window.removeEventListener(CHAT_MESSAGE_JUMP_EVENT, handleMessageJump);
     };
-  }, [conversationContext?.conversationId, hideScrollButton, processedList, virtuosoRef]);
+  }, [conversationContext?.conversation_id, hideScrollButton, processedList, virtuosoRef]);
 
   // Click scroll button
   const handleScrollButtonClick = () => {

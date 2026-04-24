@@ -8,7 +8,7 @@ type BuildRolePromptParams = {
   /** Only needed for leader prompts */
   availableAgentTypes?: Array<{ type: string; name: string }>;
   /** Only needed for leader prompts — preset assistants spawnable via custom_agent_id */
-  availableAssistants?: Array<{ customAgentId: string; name: string; backend: string; description?: string }>;
+  availableAssistants?: Array<{ custom_agent_id: string; name: string; backend: string; description?: string }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
 };

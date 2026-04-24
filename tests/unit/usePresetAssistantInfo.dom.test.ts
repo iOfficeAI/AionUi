@@ -40,8 +40,8 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/storage', () => ({
-  ConfigStorage: { get: vi.fn().mockResolvedValue([]) },
+vi.mock('../../src/common/config/configService', () => ({
+  configService: { get: vi.fn().mockReturnValue([]) },
 }));
 
 vi.mock('../../src/common/config/presets/assistantPresets', () => ({
@@ -68,8 +68,8 @@ function makeConversation(overrides: Partial<TChatConversation> = {}): TChatConv
     extra: {},
     model: '',
     status: 'finished',
-    createdAt: 0,
-    updatedAt: 0,
+    created_at: 0,
+    updated_at: 0,
     user_id: 'u1',
     ...overrides,
   } as TChatConversation;

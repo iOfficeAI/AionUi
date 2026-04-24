@@ -9,7 +9,7 @@ const closePreviewMock = vi.fn();
 const conversationGetMock = vi.fn();
 const syncTitleFromHistoryMock = vi.fn();
 let listChangedHandler:
-  | ((event: { conversationId: string; action: 'created' | 'updated' | 'deleted' }) => void)
+  | ((event: { conversation_id: string; action: 'created' | 'updated' | 'deleted' }) => void)
   | undefined;
 
 vi.mock('@/common', () => ({
@@ -91,7 +91,7 @@ describe('ChatConversationIndex', () => {
     expect(syncTitleFromHistoryMock).toHaveBeenCalledWith('conv-1');
 
     act(() => {
-      listChangedHandler?.({ conversationId: 'conv-1', action: 'updated' });
+      listChangedHandler?.({ conversation_id: 'conv-1', action: 'updated' });
     });
 
     await waitFor(() => {
@@ -109,7 +109,7 @@ describe('ChatConversationIndex', () => {
     expect(await screen.findByText('New Chat')).toBeInTheDocument();
 
     act(() => {
-      listChangedHandler?.({ conversationId: 'conv-2', action: 'updated' });
+      listChangedHandler?.({ conversation_id: 'conv-2', action: 'updated' });
     });
 
     await waitFor(() => {

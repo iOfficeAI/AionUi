@@ -19,7 +19,7 @@ const createItem = (id: string): ConversationCommandQueueItem => ({
   id,
   input: `command-${id}`,
   files: [],
-  createdAt: 0,
+  created_at: 0,
 });
 
 describe('conversation command queue helpers', () => {
@@ -120,7 +120,7 @@ describe('conversation command queue helpers', () => {
   it('drops malformed queue items during normalization', () => {
     expect(
       normalizeQueueState({
-        items: [createItem('1'), { id: 'bad', input: 'oops', files: 'broken', createdAt: 0 }],
+        items: [createItem('1'), { id: 'bad', input: 'oops', files: 'broken', created_at: 0 }],
         isPaused: true,
       }).items.map((item) => item.id)
     ).toEqual(['1']);
@@ -134,13 +134,13 @@ describe('conversation command queue helpers', () => {
           id: 'too-long',
           input: 'x'.repeat(MAX_QUEUED_COMMAND_INPUT_LENGTH + 1),
           files: [],
-          createdAt: 0,
+          created_at: 0,
         },
         {
           id: 'too-many-files',
           input: 'hello',
           files: Array.from({ length: MAX_QUEUED_COMMAND_FILES + 1 }, (_, index) => `${index}.txt`),
-          createdAt: 0,
+          created_at: 0,
         },
       ],
       isPaused: true,
@@ -169,7 +169,7 @@ describe('conversation command queue helpers', () => {
         id: String(index),
         input: oversizedInput,
         files: [],
-        createdAt: index,
+        created_at: index,
       })),
       isPaused: true,
     });

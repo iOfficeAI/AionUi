@@ -47,7 +47,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const [searchQuery, setSearchQuery] = useState('');
+  const [search_query, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<AssistantListFilter>('all');
   const [searchExpanded, setSearchExpanded] = useState(false);
   const [highlightedId, setHighlightedId] = useState<string | null>(null);
@@ -80,8 +80,8 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
   }, [highlightId, assistants, onHighlightConsumed]);
 
   const filteredAssistants = useMemo(
-    () => filterAssistants(assistants, searchQuery, activeFilter, localeKey),
-    [activeFilter, assistants, localeKey, searchQuery]
+    () => filterAssistants(assistants, search_query, activeFilter, localeKey),
+    [activeFilter, assistants, localeKey, search_query]
   );
   const { enabledAssistants, disabledAssistants } = useMemo(
     () => groupAssistantsByEnabled(filteredAssistants),
@@ -188,7 +188,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
     );
   };
 
-  const isSearchVisible = searchExpanded || searchQuery.length > 0;
+  const isSearchVisible = searchExpanded || search_query.length > 0;
 
   return (
     <div className='py-2'>
@@ -251,7 +251,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
             <Input
               allowClear
               autoFocus
-              value={searchQuery}
+              value={search_query}
               onChange={setSearchQuery}
               data-testid='input-search-assistant'
               className='!bg-[var(--color-bg-2)]'

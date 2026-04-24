@@ -97,8 +97,8 @@ const useConfirmationButtons = (
       default: {
         const mcpProps = confirmationDetails;
         question = t('messages.confirmation.allowMCPTool', {
-          toolName: mcpProps.toolName,
-          serverName: mcpProps.serverName,
+          tool_name: mcpProps.tool_name,
+          server_name: mcpProps.server_name,
         });
         options.push(
           {
@@ -107,14 +107,14 @@ const useConfirmationButtons = (
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowTool', {
-              toolName: mcpProps.toolName,
-              serverName: mcpProps.serverName,
+              tool_name: mcpProps.tool_name,
+              server_name: mcpProps.server_name,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
-              serverName: mcpProps.serverName,
+              server_name: mcpProps.server_name,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
           },
@@ -129,17 +129,17 @@ const useConfirmationButtons = (
   }, [confirmationDetails, t]);
 };
 
-const EditConfirmationDiff: React.FC<{ diff: string; fileName: string; title: string }> = ({
+const EditConfirmationDiff: React.FC<{ diff: string; file_name: string; title: string }> = ({
   diff,
-  fileName,
+  file_name,
   title,
 }) => {
-  const fileInfo = useMemo(() => parseDiff(diff, fileName), [diff, fileName]);
-  const displayName = fileName.split(/[/\\]/).pop() || fileName;
+  const fileInfo = useMemo(() => parseDiff(diff, file_name), [diff, file_name]);
+  const display_name = file_name.split(/[/\\]/).pop() || file_name;
   const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({
     diffText: diff,
-    displayName,
-    filePath: fileName,
+    display_name,
+    file_path: file_name,
     title,
   });
 
@@ -177,7 +177,7 @@ const ConfirmationDetails: React.FC<{
       case 'info':
         return <span className='text-t-primary'>{confirmationDetails.prompt}</span>;
       case 'mcp':
-        return <span className='text-t-primary'>{confirmationDetails.toolDisplayName}</span>;
+        return <span className='text-t-primary'>{confirmationDetails.tool_display_name}</span>;
     }
   }, [confirmationDetails]);
 
@@ -191,8 +191,8 @@ const ConfirmationDetails: React.FC<{
     <div>
       {confirmationDetails.type === 'edit' ? (
         <EditConfirmationDiff
-          diff={confirmationDetails?.fileDiff || ''}
-          fileName={confirmationDetails.fileName}
+          diff={confirmationDetails?.file_diff || ''}
+          file_name={confirmationDetails.file_name}
           title={isConfirm ? confirmationDetails.title : content.description}
         />
       ) : (
@@ -325,13 +325,13 @@ const ImageDisplay: React.FC<{
   const handleDownload = useCallback(async () => {
     try {
       const blob = await getImageBlob();
-      const fileName = relativePath?.split(/[\\/]/).pop() || 'image.png';
+      const file_name = relativePath?.split(/[\\/]/).pop() || 'image.png';
 
       // 创建下载链接 Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = fileName;
+      a.download = file_name;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -413,11 +413,11 @@ const ImageDisplay: React.FC<{
 const ToolResultDisplay: React.FC<{
   content: IMessageToolGroupProps['message']['content'][number];
 }> = ({ content }) => {
-  const { resultDisplay, name } = content;
+  const { result_display, name } = content;
 
   // 图片生成特殊处理 Special handling for image generation
-  if (name === 'ImageGeneration' && typeof resultDisplay === 'object') {
-    const result = resultDisplay as ImageGenerationResult;
+  if (name === 'ImageGeneration' && typeof result_display === 'object') {
+    const result = result_display as ImageGenerationResult;
     // 如果有 img_url 才显示图片，否则显示错误信息
     if (result.img_url) {
       return (
@@ -432,7 +432,7 @@ const ToolResultDisplay: React.FC<{
   }
 
   // 将结果转换为字符串 Convert result to string
-  const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay, null, 2);
+  const display = typeof result_display === 'string' ? result_display : JSON.stringify(result_display, null, 2);
 
   // 使用 CollapsibleContent 包装长内容
   // Wrap long content with CollapsibleContent
@@ -457,11 +457,11 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
       .filter(
         (item) =>
           item.name === 'WriteFile' &&
-          item.resultDisplay &&
-          typeof item.resultDisplay === 'object' &&
-          'fileDiff' in item.resultDisplay
+          item.result_display &&
+          typeof item.result_display === 'object' &&
+          'file_diff' in item.result_display
       )
-      .map((item) => item.resultDisplay as WriteFileResult);
+      .map((item) => item.result_display as WriteFileResult);
   }, [message.content]);
 
   // 找到第一个 WriteFile 的索引 / Find the index of first WriteFile
@@ -469,29 +469,29 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
     return message.content.findIndex(
       (item) =>
         item.name === 'WriteFile' &&
-        item.resultDisplay &&
-        typeof item.resultDisplay === 'object' &&
-        'fileDiff' in item.resultDisplay
+        item.result_display &&
+        typeof item.result_display === 'object' &&
+        'file_diff' in item.result_display
     );
   }, [message.content]);
 
   return (
     <div>
       {message.content.map((content, index) => {
-        const { status, callId, name, description, resultDisplay, confirmationDetails } = content;
+        const { status, call_id, name, description, result_display, confirmationDetails } = content;
         const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
         // status === "Confirming" &&
         if (confirmationDetails) {
           return (
             <ConfirmationDetails
-              key={callId}
+              key={call_id}
               content={content}
               onConfirm={(outcome) => {
                 ipcBridge.geminiConversation.confirmMessage
                   .invoke({
-                    confirmKey: outcome,
+                    confirm_key: outcome,
                     msg_id: message.id,
-                    callId: callId,
+                    call_id: call_id,
                     conversation_id: message.conversation_id,
                   })
                   .then(() => {
@@ -506,12 +506,12 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         }
 
         // WriteFile 特殊处理：使用 MessageFileChanges 汇总显示 / WriteFile special handling: use MessageFileChanges for summary display
-        if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
-          if (resultDisplay && typeof resultDisplay === 'object' && 'fileDiff' in resultDisplay) {
+        if (name === 'WriteFile' && typeof result_display !== 'string') {
+          if (result_display && typeof result_display === 'object' && 'file_diff' in result_display) {
             // 只在第一个 WriteFile 位置显示汇总组件 / Only show summary component at first WriteFile position
             if (index === firstWriteFileIndex && writeFileResults.length > 0) {
               return (
-                <div className='w-full min-w-0' key={callId}>
+                <div className='w-full min-w-0' key={call_id}>
                   <MessageFileChanges writeFileChanges={writeFileResults} />
                 </div>
               );
@@ -522,17 +522,17 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         }
 
         // ImageGeneration 特殊处理：单独展示图片，不用 Alert 包裹 Special handling for ImageGeneration: display image separately without Alert wrapper
-        if (name === 'ImageGeneration' && typeof resultDisplay === 'object') {
-          const result = resultDisplay as ImageGenerationResult;
+        if (name === 'ImageGeneration' && typeof result_display === 'object') {
+          const result = result_display as ImageGenerationResult;
           if (result.img_url) {
-            return <ImageDisplay key={callId} imgUrl={result.img_url} relativePath={result.relative_path} />;
+            return <ImageDisplay key={call_id} imgUrl={result.img_url} relativePath={result.relative_path} />;
           }
         }
 
         // 通用工具调用展示 Generic tool call display
         // 将可展开的长内容放在 Alert 下方，保持 Alert 仅展示头部信息
         return (
-          <div key={callId}>
+          <div key={call_id}>
             <Alert
               className={ALERT_CLASSES}
               type={
@@ -559,7 +559,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               }
             />
 
-            {(description || resultDisplay || status === 'Error') && (
+            {(description || result_display || status === 'Error') && (
               <div className='mt-8px'>
                 {description && (
                   <div
@@ -568,7 +568,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                     {description}
                   </div>
                 )}
-                {resultDisplay && (
+                {result_display && (
                   <div>
                     {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
                     {/* ToolResultDisplay 内部已包含 CollapsibleContent，避免嵌套 */}

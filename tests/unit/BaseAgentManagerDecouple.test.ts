@@ -53,14 +53,14 @@ describe('BaseAgentManager with injected emitter', () => {
 
   it('addConfirmation calls emitter.emitConfirmationAdd', () => {
     const { agent, emitter } = makeAgent('gemini');
-    const confirmation = { id: 'conf1', callId: 'call1', options: [] };
+    const confirmation = { id: 'conf1', call_id: 'call1', options: [] };
     agent.testAdd(confirmation);
     expect(emitter.emitConfirmationAdd).toHaveBeenCalledWith('conv-gemini', confirmation);
   });
 
   it('addConfirmation calls emitter.emitConfirmationUpdate when confirmation already exists', () => {
     const { agent, emitter } = makeAgent('acp');
-    const confirmation = { id: 'conf1', callId: 'call1', options: [] };
+    const confirmation = { id: 'conf1', call_id: 'call1', options: [] };
     agent.testAdd(confirmation);
     agent.testAdd(confirmation);
     expect(emitter.emitConfirmationUpdate).toHaveBeenCalledWith('conv-acp', confirmation);
@@ -68,13 +68,13 @@ describe('BaseAgentManager with injected emitter', () => {
 
   it('addConfirmation works for nanobot agent type', () => {
     const { agent, emitter } = makeAgent('nanobot');
-    agent.testAdd({ id: 'conf2', callId: 'call2', options: [] });
+    agent.testAdd({ id: 'conf2', call_id: 'call2', options: [] });
     expect(emitter.emitConfirmationAdd).toHaveBeenCalledOnce();
   });
 
   it('addConfirmation works for openclaw-gateway agent type', () => {
     const { agent, emitter } = makeAgent('openclaw-gateway');
-    agent.testAdd({ id: 'conf3', callId: 'call3', options: [] });
+    agent.testAdd({ id: 'conf3', call_id: 'call3', options: [] });
     expect(emitter.emitConfirmationAdd).toHaveBeenCalledOnce();
   });
 
@@ -96,7 +96,7 @@ describe('BaseAgentManager with injected emitter', () => {
     const confirmSpy = vi.spyOn(agent, 'confirm');
     agent.testAdd({
       id: 'conf1',
-      callId: 'call1',
+      call_id: 'call1',
       options: [{ value: 'proceed' }],
     });
     // Confirmation should NOT be added to the list
@@ -108,7 +108,7 @@ describe('BaseAgentManager with injected emitter', () => {
 
   it('addConfirmation does NOT auto-confirm in yoloMode when options is empty', () => {
     const { agent, emitter } = makeAgent('gemini', { yoloMode: true });
-    agent.testAdd({ id: 'conf1', callId: 'call1', options: [] });
+    agent.testAdd({ id: 'conf1', call_id: 'call1', options: [] });
     // Empty options → falls through to normal add
     expect(emitter.emitConfirmationAdd).toHaveBeenCalledOnce();
   });
@@ -117,7 +117,7 @@ describe('BaseAgentManager with injected emitter', () => {
 
   it('confirm calls emitter.emitConfirmationRemove', () => {
     const { agent, emitter } = makeAgent('openclaw-gateway');
-    const confirmation = { id: 'conf1', callId: 'call1', options: [] };
+    const confirmation = { id: 'conf1', call_id: 'call1', options: [] };
     agent.testAdd(confirmation);
     agent.confirm('', 'call1', 'proceed');
     expect(emitter.emitConfirmationRemove).toHaveBeenCalledWith('conv-openclaw-gateway', 'conf1');
@@ -125,7 +125,7 @@ describe('BaseAgentManager with injected emitter', () => {
 
   it('confirm with unknown callId does not call emitConfirmationRemove', () => {
     const { agent, emitter } = makeAgent('gemini');
-    agent.testAdd({ id: 'conf1', callId: 'call1', options: [] });
+    agent.testAdd({ id: 'conf1', call_id: 'call1', options: [] });
     agent.confirm('', 'unknown-call', 'proceed');
     expect(emitter.emitConfirmationRemove).not.toHaveBeenCalled();
   });
@@ -135,8 +135,8 @@ describe('BaseAgentManager with injected emitter', () => {
   it('getConfirmations returns current list', () => {
     const { agent } = makeAgent('acp');
     expect(agent.getConfirmations()).toHaveLength(0);
-    agent.testAdd({ id: 'c1', callId: 'k1', options: [] });
-    agent.testAdd({ id: 'c2', callId: 'k2', options: [] });
+    agent.testAdd({ id: 'c1', call_id: 'k1', options: [] });
+    agent.testAdd({ id: 'c2', call_id: 'k2', options: [] });
     expect(agent.getConfirmations()).toHaveLength(2);
   });
 

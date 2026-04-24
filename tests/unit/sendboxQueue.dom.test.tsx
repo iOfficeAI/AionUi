@@ -20,7 +20,7 @@ const mockRemoveDomSnippet = vi.fn();
 const mockClearDomSnippets = vi.fn();
 
 let layoutState = { isMobile: false };
-let conversationState: { conversationId?: string } = { conversationId: 'conversation-1' };
+let conversationState: { conversation_id?: string } = { conversation_id: 'conversation-1' };
 let previewState: {
   domSnippets: Array<{ id: string; tag: string; html: string }>;
   setSendBoxHandler: typeof mockSetSendBoxHandler;
@@ -53,7 +53,7 @@ let slashControllerState = {
 };
 let pasteServiceArgs: {
   onTextPaste?: (text: string) => void;
-  conversationId?: string;
+  conversation_id?: string;
 } | null = null;
 
 vi.mock('@/common', () => ({
@@ -307,7 +307,7 @@ describe('SendBox queue and interaction behaviors', () => {
     vi.useRealTimers();
 
     layoutState = { isMobile: false };
-    conversationState = { conversationId: 'conversation-1' };
+    conversationState = { conversation_id: 'conversation-1' };
     previewState = {
       domSnippets: [],
       setSendBoxHandler: mockSetSendBoxHandler,
@@ -465,7 +465,7 @@ describe('SendBox queue and interaction behaviors', () => {
     };
 
     renderControlledSendBox({
-      slashCommands: [
+      slash_commands: [
         { name: 'open', description: 'Duplicate builtin', kind: 'builtin', source: 'custom' },
         { name: 'plan', description: 'Plan next step', kind: 'template', source: 'custom' },
       ],
@@ -489,7 +489,7 @@ describe('SendBox queue and interaction behaviors', () => {
     const onSlashBuiltinCommand = vi.fn();
     renderControlledSendBox({
       initialValue: 'draft command',
-      slashCommands: [{ name: 'review', description: 'Review code', kind: 'template', source: 'custom' }],
+      slash_commands: [{ name: 'review', description: 'Review code', kind: 'template', source: 'custom' }],
       onSlashBuiltinCommand,
     });
 

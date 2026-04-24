@@ -44,7 +44,7 @@ export const ExtensionMetaSchema = z
       .refine(validateExtensionName, {
         message: `Extension name cannot start with reserved prefixes: ${RESERVED_NAME_PREFIXES.join(', ')}`,
       }),
-    displayName: z.string().min(1, 'Display name is required'),
+    display_name: z.string().min(1, 'Display name is required'),
     version: z.string().regex(/^\d+\.\d+\.\d+(-[\w.]+)?$/, 'Version must be semver format (e.g., 1.0.0)'),
     description: z.string().optional(),
     author: z.string().optional(),
@@ -176,11 +176,11 @@ export const ExtAcpAdapterSchema = z
      * Values entered by the user are injected into the adapter's env when spawning.
      * Example: [{ key: "ANTHROPIC_API_KEY", label: "API Key", type: "password", required: true }]
      */
-    apiKeyFields: z.array(ExtFieldSchema).optional(),
+    api_keyFields: z.array(ExtFieldSchema).optional(),
     yoloMode: z
       .object({
         type: z.enum(['session', 'global']),
-        sessionMode: z.string().optional(),
+        session_mode: z.string().optional(),
       })
       .optional(),
     healthCheck: z
@@ -252,7 +252,7 @@ export const ExtAssistantSchema = z.object({
   ]),
   contextFile: z.string().min(1, 'contextFile is required'),
   models: z.array(z.string()).optional(),
-  enabledSkills: z.array(z.string()).optional(),
+  enabled_skills: z.array(z.string()).optional(),
   prompts: z.array(z.string()).optional(),
 });
 
@@ -335,7 +335,7 @@ export const ExtModelProviderSchema = z.object({
   /** Display name */
   name: z.string().min(1, 'Provider name is required'),
   /** API base URL */
-  baseUrl: z.string().optional(),
+  base_url: z.string().optional(),
   /** Default models provided by this provider */
   models: z.array(z.string()).optional(),
   /** Logo file relative to extension directory */

@@ -38,7 +38,7 @@ describe('loadPresetAssistantResources', () => {
     ).resolves.toEqual({
       rules: 'fallback rules',
       skills: '',
-      enabledSkills: undefined,
+      enabled_skills: undefined,
       disabledBuiltinSkills: undefined,
     });
   });
@@ -53,7 +53,7 @@ describe('loadPresetAssistantResources', () => {
     await expect(
       loadPresetAssistantResources(
         {
-          customAgentId: 'assistant-1',
+          custom_agent_id: 'assistant-1',
           localeKey: 'zh-CN',
           fallbackRules: 'fallback rules',
         },
@@ -62,7 +62,7 @@ describe('loadPresetAssistantResources', () => {
     ).resolves.toEqual({
       rules: 'user rules',
       skills: 'user skills',
-      enabledSkills: ['pptx', 'xlsx'],
+      enabled_skills: ['pptx', 'xlsx'],
       disabledBuiltinSkills: undefined,
     });
   });
@@ -82,7 +82,7 @@ describe('loadPresetAssistantResources', () => {
 
     const result = await loadPresetAssistantResources(
       {
-        customAgentId: 'builtin-cowork',
+        custom_agent_id: 'builtin-cowork',
         localeKey: 'zh-CN',
         fallbackRules: 'fallback rules',
       },
@@ -92,7 +92,7 @@ describe('loadPresetAssistantResources', () => {
     expect(result).toEqual({
       rules: 'builtin rules',
       skills: 'builtin skills',
-      enabledSkills: ['moltbook'],
+      enabled_skills: ['moltbook'],
       disabledBuiltinSkills: undefined,
     });
     expect(deps.readBuiltinRule).toHaveBeenCalledOnce();

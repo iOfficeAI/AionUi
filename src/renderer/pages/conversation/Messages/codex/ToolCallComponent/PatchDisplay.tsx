@@ -13,7 +13,7 @@ import BaseToolCallDisplay from './BaseToolCallDisplay';
 type PatchUpdate = Extract<CodexToolCallUpdate, { subtype: 'patch_apply_begin' | 'patch_apply_end' }>;
 
 const PatchDisplay: React.FC<{ content: PatchUpdate }> = ({ content }) => {
-  const { toolCallId, title, status, description, subtype, data } = content;
+  const { tool_call_id, title, status, description, subtype, data } = content;
   const { t } = useTranslation();
 
   const getDisplayTitle = () => {
@@ -65,7 +65,7 @@ const PatchDisplay: React.FC<{ content: PatchUpdate }> = ({ content }) => {
 
   return (
     <BaseToolCallDisplay
-      toolCallId={toolCallId}
+      tool_call_id={tool_call_id}
       title={getDisplayTitle()}
       status={status}
       description={description}

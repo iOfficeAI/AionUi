@@ -238,7 +238,7 @@ export class WecomPlugin extends BasePlugin {
       chatId,
       user: {
         id: fromUserId,
-        displayName: fromName,
+        display_name: fromName,
       },
       content: {
         type: msgType === 'command' ? 'command' : 'text',
@@ -293,7 +293,7 @@ export class WecomPlugin extends BasePlugin {
     upsertStreamContent(stream.streamId, {
       visibleContent: isThinking ? '' : text,
       thinkingContent: isThinking ? text : '',
-      lastMessageId: `wecom-msg-${Date.now()}`,
+      last_messageId: `wecom-msg-${Date.now()}`,
       finished: !!message.replyMarkup,
     });
     if (message.replyMarkup) {
@@ -333,8 +333,8 @@ export class WecomPlugin extends BasePlugin {
     return this.mode === 'websocket' ? this.wsActiveUsers.size : this.activeUsers.size;
   }
 
-  getBotInfo(): { username?: string; displayName: string } | null {
-    return { displayName: this.mode === 'websocket' ? 'WeCom (WS)' : 'WeCom' };
+  getBotInfo(): { username?: string; display_name: string } | null {
+    return { display_name: this.mode === 'websocket' ? 'WeCom (WS)' : 'WeCom' };
   }
 
   private async startWebsocket(): Promise<void> {

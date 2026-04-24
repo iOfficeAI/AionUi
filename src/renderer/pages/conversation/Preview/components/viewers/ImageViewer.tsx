@@ -10,15 +10,15 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface ImagePreviewProps {
-  filePath?: string;
+  file_path?: string;
   content?: string;
-  fileName?: string;
+  file_name?: string;
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_name }) => {
   const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState<string>(content || '');
-  const [loading, setLoading] = useState<boolean>(!!filePath && !content);
+  const [loading, setLoading] = useState<boolean>(!!file_path && !content);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,7 +32,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName
         return;
       }
 
-      if (!filePath) {
+      if (!file_path) {
         setImageSrc('');
         setLoading(false);
         return;
@@ -41,7 +41,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName
       try {
         setLoading(true);
         setError(null);
-        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: filePath });
+        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: file_path });
         if (!isMounted) return;
         setImageSrc(base64);
       } catch (err) {
@@ -60,7 +60,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName
     return () => {
       isMounted = false;
     };
-  }, [content, filePath, t]);
+  }, [content, file_path, t]);
 
   const renderStatus = () => {
     if (loading) {
@@ -71,7 +71,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName
       return (
         <div className='text-center text-14px text-t-secondary'>
           <div>{error}</div>
-          {filePath && <div className='text-12px'>{filePath}</div>}
+          {file_path && <div className='text-12px'>{file_path}</div>}
         </div>
       );
     }
@@ -79,7 +79,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName
     return (
       <Image
         src={imageSrc}
-        alt={fileName || filePath || 'Image preview'}
+        alt={file_name || file_path || 'Image preview'}
         className='w-full h-full flex items-center justify-center [&_.arco-image-img]:w-full [&_.arco-image-img]:h-full [&_.arco-image-img]:object-contain'
         preview={!!imageSrc}
       />

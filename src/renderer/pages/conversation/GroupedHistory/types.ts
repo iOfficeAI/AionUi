@@ -8,7 +8,7 @@ import type { TChatConversation } from '@/common/config/storage';
 
 export type WorkspaceGroup = {
   workspace: string;
-  displayName: string;
+  display_name: string;
   conversations: TChatConversation[];
 };
 
@@ -37,7 +37,7 @@ export type ExportZipFile = {
 
 export type ExportTask =
   | { mode: 'single'; conversation: TChatConversation }
-  | { mode: 'batch'; conversationIds: string[] }
+  | { mode: 'batch'; conversation_ids: string[] }
   | null;
 
 export type ConversationRowProps = {
@@ -53,12 +53,12 @@ export type ConversationRowProps = {
   onToggleChecked: (conversation: TChatConversation) => void;
   onConversationClick: (conversation: TChatConversation) => void;
   onOpenMenu: (conversation: TChatConversation) => void;
-  onMenuVisibleChange: (conversationId: string, visible: boolean) => void;
+  onMenuVisibleChange: (conversation_id: string, visible: boolean) => void;
   onEditStart: (conversation: TChatConversation) => void;
-  onDelete: (conversationId: string) => void;
+  onDelete: (conversation_id: string) => void;
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
-  getJobStatus: (conversationId: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
+  getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
 };
 
 export type WorkspaceGroupedHistoryProps = {

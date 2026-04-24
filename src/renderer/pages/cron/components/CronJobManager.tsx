@@ -17,9 +17,9 @@ import { useCronJobs } from '../useCronJobs';
 import { getJobStatusFlags } from '../cronUtils';
 
 interface CronJobManagerProps {
-  conversationId: string;
-  /** When provided (e.g. from conversation.extra.cronJobId), fetch the job directly */
-  cronJobId?: string;
+  conversation_id: string;
+  /** When provided (e.g. from conversation.extra.cron_job_id), fetch the job directly */
+  cron_job_id?: string;
   /** Whether the cron skill is loaded for this conversation. When false and no jobs exist, the component is hidden. */
   hasCronSkill?: boolean;
 }
@@ -28,30 +28,30 @@ interface CronJobManagerProps {
  * Cron job manager component for ChatLayout headerExtra
  * Shows a single job per conversation with navigation to task detail
  */
-const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJobId, hasCronSkill = true }) => {
+const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_job_id, hasCronSkill = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
   // For child conversations spawned by a cron job, fetch the job directly by ID
   const [directJob, setDirectJob] = useState<ICronJob | null>(null);
-  const [directLoading, setDirectLoading] = useState(!!cronJobId);
+  const [directLoading, setDirectLoading] = useState(!!cron_job_id);
 
   useEffect(() => {
-    if (!cronJobId) return;
+    if (!cron_job_id) return;
     setDirectLoading(true);
     ipcBridge.cron.getJob
-      .invoke({ jobId: cronJobId })
+      .invoke({ job_id: cron_job_id })
       .then((job) => setDirectJob(job ?? null))
       .catch(() => setDirectJob(null))
       .finally(() => setDirectLoading(false));
-  }, [cronJobId]);
+  }, [cron_job_id]);
 
   // For regular conversations, use the existing hook
-  const { jobs, loading: listLoading, hasJobs } = useCronJobs(cronJobId ? undefined : conversationId);
+  const { jobs, loading: listLoading, hasJobs } = useCronJobs(cron_job_id ? undefined : conversation_id);
 
-  const job = cronJobId ? directJob : (jobs[0] ?? null);
-  const loading = cronJobId ? directLoading : listLoading;
-  const found = cronJobId ? !!directJob : hasJobs;
+  const job = cron_job_id ? directJob : (jobs[0] ?? null);
+  const loading = cron_job_id ? directLoading : listLoading;
+  const found = cron_job_id ? !!directJob : hasJobs;
 
   // Handle unconfigured state (no jobs)
   // If cron skill is not loaded for this conversation, hide entirely

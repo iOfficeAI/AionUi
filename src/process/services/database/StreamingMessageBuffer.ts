@@ -24,7 +24,7 @@ import { getDatabase } from './index';
 
 interface StreamBuffer {
   messageId: string;
-  conversationId: string;
+  conversation_id: string;
   currentContent: string;
   chunkCount: number;
   lastDbUpdate: number;
@@ -58,20 +58,20 @@ export class StreamingMessageBuffer {
    *
    * @param id
    * @param messageId - 合并消息唯一 ID
-   * @param conversationId - 会话 ID
+   * @param conversation_id - 会话 ID
    * @param chunk - 文本片段
    *
    * 性能优化：批量写入而非每个 chunk 都写数据库
    * @param mode
    */
-  append(id: string, messageId: string, conversationId: string, chunk: string, mode: 'accumulate' | 'replace'): void {
+  append(id: string, messageId: string, conversation_id: string, chunk: string, mode: 'accumulate' | 'replace'): void {
     let buffer = this.buffers.get(messageId);
 
     if (!buffer) {
       // 首次 chunk，初始化缓冲区（存储 mode 到 buffer 而非实例）
       buffer = {
         messageId,
-        conversationId,
+        conversation_id,
         currentContent: chunk,
         chunkCount: 1,
         lastDbUpdate: Date.now(),
@@ -127,16 +127,16 @@ export class StreamingMessageBuffer {
       const message: TMessage = {
         id: id,
         msg_id: messageId,
-        conversation_id: buffer.conversationId,
+        conversation_id: buffer.conversation_id,
         type: 'text',
         content: { content: buffer.currentContent },
         status: 'pending',
         position: 'left',
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
 
       // Check if message exists in database
-      const existing = db.getMessageByMsgId(buffer.conversationId, messageId, 'text');
+      const existing = db.getMessageByMsgId(buffer.conversation_id, messageId, 'text');
 
       if (existing.success && existing.data) {
         // Message exists - update it

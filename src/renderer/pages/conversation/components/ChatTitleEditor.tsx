@@ -14,7 +14,7 @@ type ChatTitleEditorProps = {
   submitTitleRename: () => Promise<void>;
   titleAreaMaxWidth: number;
   title: React.ReactNode;
-  conversationId?: string;
+  conversation_id?: string;
 };
 
 // Inline title display with double-click-to-edit rename support
@@ -28,7 +28,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   submitTitleRename,
   titleAreaMaxWidth,
   title,
-  conversationId,
+  conversation_id,
 }) => {
   const { t } = useTranslation();
 
@@ -102,7 +102,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
         <div className='w-0 flex items-center overflow-hidden opacity-0 transition-all duration-180 group-hover:w-40px group-hover:opacity-100 group-focus-within:w-40px group-focus-within:opacity-100'>
           <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_44%,transparent)]' />
           <div className='ml-4px mr-4px flex items-center justify-center'>
-            <ConversationTitleMinimap conversationId={conversationId} />
+            <ConversationTitleMinimap conversation_id={conversation_id} />
           </div>
         </div>
       )}

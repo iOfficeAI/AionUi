@@ -22,13 +22,13 @@ import { ipcBridge } from '@/common';
 export type PresetAssistantResourceDeps = {
   readAssistantRule: (args: { assistantId: string; locale: string }) => Promise<string>;
   readAssistantSkill: (args: { assistantId: string; locale: string }) => Promise<string>;
-  getEnabledSkills: (customAgentId: string) => Promise<string[] | undefined>;
-  getDisabledBuiltinSkills: (customAgentId: string) => Promise<string[] | undefined>;
+  getEnabledSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
+  getDisabledBuiltinSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
 };
 
 export type LoadPresetAssistantResourcesOptions = {
-  customAgentId?: string;
+  custom_agent_id?: string;
   localeKey: string;
   fallbackRules?: string;
 };
@@ -36,25 +36,25 @@ export type LoadPresetAssistantResourcesOptions = {
 export type PresetAssistantResources = {
   rules?: string;
   skills: string;
-  enabledSkills?: string[];
+  enabled_skills?: string[];
   disabledBuiltinSkills?: string[];
 };
 
 const defaultDeps: PresetAssistantResourceDeps = {
   readAssistantRule: (args) => ipcBridge.fs.readAssistantRule.invoke(args),
   readAssistantSkill: (args) => ipcBridge.fs.readAssistantSkill.invoke(args),
-  getEnabledSkills: async (customAgentId) => {
+  getEnabledSkills: async (custom_agent_id) => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
-      return list.find((a) => a.id === customAgentId)?.enabledSkills;
+      return list.find((a) => a.id === custom_agent_id)?.enabledSkills;
     } catch {
       return undefined;
     }
   },
-  getDisabledBuiltinSkills: async (customAgentId) => {
+  getDisabledBuiltinSkills: async (custom_agent_id) => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
-      return list.find((a) => a.id === customAgentId)?.disabledBuiltinSkills;
+      return list.find((a) => a.id === custom_agent_id)?.disabledBuiltinSkills;
     } catch {
       return undefined;
     }
@@ -68,13 +68,13 @@ export async function loadPresetAssistantResources(
   options: LoadPresetAssistantResourcesOptions,
   deps: PresetAssistantResourceDeps = defaultDeps
 ): Promise<PresetAssistantResources> {
-  const { customAgentId, localeKey, fallbackRules } = options;
+  const { custom_agent_id, localeKey, fallbackRules } = options;
 
-  if (!customAgentId) {
+  if (!custom_agent_id) {
     return {
       rules: fallbackRules,
       skills: '',
-      enabledSkills: undefined,
+      enabled_skills: undefined,
       disabledBuiltinSkills: undefined,
     };
   }
@@ -83,21 +83,21 @@ export async function loadPresetAssistantResources(
   let skills = '';
 
   try {
-    rules = (await deps.readAssistantRule({ assistantId: customAgentId, locale: localeKey })) || '';
+    rules = (await deps.readAssistantRule({ assistantId: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
-    deps.warn(`[presetAssistantResources] Failed to load rules for ${customAgentId}`, error);
+    deps.warn(`[presetAssistantResources] Failed to load rules for ${custom_agent_id}`, error);
   }
 
   try {
-    skills = (await deps.readAssistantSkill({ assistantId: customAgentId, locale: localeKey })) || '';
+    skills = (await deps.readAssistantSkill({ assistantId: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
-    deps.warn(`[presetAssistantResources] Failed to load skills for ${customAgentId}`, error);
+    deps.warn(`[presetAssistantResources] Failed to load skills for ${custom_agent_id}`, error);
   }
 
   return {
     rules: rules || fallbackRules,
     skills,
-    enabledSkills: await deps.getEnabledSkills(customAgentId),
-    disabledBuiltinSkills: await deps.getDisabledBuiltinSkills(customAgentId),
+    enabled_skills: await deps.getEnabledSkills(custom_agent_id),
+    disabledBuiltinSkills: await deps.getDisabledBuiltinSkills(custom_agent_id),
   };
 }

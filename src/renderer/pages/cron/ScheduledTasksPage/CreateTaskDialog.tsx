@@ -18,7 +18,7 @@ import dayjs from 'dayjs';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
@@ -34,9 +34,9 @@ interface CreateTaskDialogProps {
   onClose: () => void;
   /** When provided, the dialog operates in edit mode */
   editJob?: ICronJob;
-  conversationId?: string;
+  conversation_id?: string;
   conversationTitle?: string;
-  agentType?: string;
+  agent_type?: string;
 }
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
@@ -119,11 +119,11 @@ function getDescriptionInitialValue(job: ICronJob): string {
 function getAgentKeyFromJob(job: ICronJob): string | undefined {
   const config = job.metadata.agentConfig;
   if (config) {
-    if (config.isPreset && config.customAgentId) return `preset:${config.customAgentId}`;
+    if (config.is_preset && config.custom_agent_id) return `preset:${config.custom_agent_id}`;
     return `cli:${config.backend}`;
   }
   // Fallback for legacy jobs without agentConfig
-  if (job.metadata.agentType) return `cli:${job.metadata.agentType}`;
+  if (job.metadata.agent_type) return `cli:${job.metadata.agent_type}`;
   return undefined;
 }
 
@@ -131,9 +131,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   visible,
   onClose,
   editJob,
-  conversationId: _conversationId,
+  conversation_id: _conversation_id,
   conversationTitle,
-  agentType,
+  agent_type,
 }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -150,10 +150,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Advanced settings state
-  const [modelId, setModelId] = useState<string | undefined>(undefined);
-  const [configOptions, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
+  const [model_id, setModelId] = useState<string | undefined>(undefined);
+  const [config_options, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
-  const [cachedConfigOptions, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
+  const [cached_config_options, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
   const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
 
@@ -170,10 +170,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setExecutionMode(editJob.target.executionMode || 'existing');
       setAdvancedOpen(
         Boolean(
-          editJob.metadata.agentConfig?.modelId ||
+          editJob.metadata.agentConfig?.model_id ||
           editJob.metadata.agentConfig?.workspace ||
-          (editJob.metadata.agentConfig?.configOptions &&
-            Object.keys(editJob.metadata.agentConfig.configOptions).length > 0)
+          (editJob.metadata.agentConfig?.config_options &&
+            Object.keys(editJob.metadata.agentConfig.config_options).length > 0)
         )
       );
       const agentKey = getAgentKeyFromJob(editJob);
@@ -185,8 +185,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agent: agentKey,
       });
       // Populate advanced settings from editJob
-      setModelId(editJob.metadata.agentConfig?.modelId);
-      setConfigOptions(editJob.metadata.agentConfig?.configOptions);
+      setModelId(editJob.metadata.agentConfig?.model_id);
+      setConfigOptions(editJob.metadata.agentConfig?.config_options);
       setWorkspace(editJob.metadata.agentConfig?.workspace);
     } else {
       form.resetFields();
@@ -211,7 +211,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     const agentId = selectedAgent.substring(colonIdx + 1);
 
     if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.customAgentId === agentId);
+      const agent = presetAssistants.find((a) => a.custom_agent_id === agentId);
       return agent?.backend;
     }
     // CLI agent: agentId is the backend
@@ -225,19 +225,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       return;
     }
 
-    ConfigStorage.get('acp.cachedConfigOptions')
-      .then((cached) => {
-        if (cached && cached[resolvedBackend]) {
-          // Filter out model/mode categories — those are handled by dedicated selectors
-          const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
-            (opt) => opt.category !== 'model' && opt.category !== 'mode'
-          );
-          setCachedConfigOptions(filtered as unknown[]);
-        } else {
-          setCachedConfigOptions(undefined);
-        }
-      })
-      .catch(() => setCachedConfigOptions(undefined));
+    const cached = configService.get('acp.cached_config_options');
+    if (cached && cached[resolvedBackend]) {
+      const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
+        (opt) => opt.category !== 'model' && opt.category !== 'mode'
+      );
+      setCachedConfigOptions(filtered as unknown[]);
+    } else {
+      setCachedConfigOptions(undefined);
+    }
   }, [resolvedBackend]);
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
@@ -251,16 +247,16 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     [resolvedBackend, providers]
   );
 
-  // Build Gemini currentModel from modelId for GuidModelSelector
+  // Build Gemini current_model from model_id for GuidModelSelector
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
-    if ((resolvedBackend !== 'gemini' && resolvedBackend !== 'aionrs') || !modelId) return undefined;
+    if ((resolvedBackend !== 'gemini' && resolvedBackend !== 'aionrs') || !model_id) return undefined;
     for (const p of filteredProviders) {
-      if (getAvailableModels(p).includes(modelId)) {
-        return { ...p, useModel: modelId } as TProviderWithModel;
+      if (getAvailableModels(p).includes(model_id)) {
+        return { ...p, useModel: model_id } as TProviderWithModel;
       }
     }
     return undefined;
-  }, [resolvedBackend, modelId, filteredProviders, getAvailableModels]);
+  }, [resolvedBackend, model_id, filteredProviders, getAvailableModels]);
 
   const handleGeminiModelSelect = useCallback(async (model: TProviderWithModel) => {
     setModelId(model.useModel);
@@ -282,32 +278,23 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setAcpCachedModelInfo(null);
       return;
     }
-    ConfigStorage.get('acp.cachedModels')
-      .then((cached) => {
-        const info = cached?.[resolvedBackend];
-        setAcpCachedModelInfo(info?.availableModels?.length ? info : null);
-      })
-      .catch(() => setAcpCachedModelInfo(null));
+    const cached = configService.get('acp.cachedModels');
+    const info = cached?.[resolvedBackend];
+    setAcpCachedModelInfo(info?.available_models?.length ? info : null);
   }, [resolvedBackend]);
 
-  // Set default modelId from user preferences when backend changes
+  // Set default model_id from user preferences when backend changes
   useEffect(() => {
-    if (!resolvedBackend || modelId) return;
+    if (!resolvedBackend || model_id) return;
     if (resolvedBackend === 'gemini') {
-      ConfigStorage.get('gemini.defaultModel')
-        .then((saved) => {
-          const preferred = typeof saved === 'string' ? saved : saved?.useModel;
-          if (preferred) setModelId(preferred);
-        })
-        .catch(() => {});
+      const saved = configService.get('gemini.defaultModel');
+      const preferred = typeof saved === 'string' ? saved : saved?.useModel;
+      if (preferred) setModelId(preferred);
     } else if (resolvedBackend === 'aionrs') {
-      ConfigStorage.get('aionrs.defaultModel')
-        .then((saved) => {
-          if (saved?.useModel) setModelId(saved.useModel);
-        })
-        .catch(() => {});
+      const saved = configService.get('aionrs.defaultModel');
+      if (saved?.useModel) setModelId(saved.useModel);
     }
-  }, [resolvedBackend, modelId]);
+  }, [resolvedBackend, model_id]);
 
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';
@@ -369,7 +356,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleAgentChange = useCallback((value: string) => {
     setSelectedAgent(value);
-    // Reset model and configOptions when agent changes
+    // Reset model and config_options when agent changes
     setModelId(undefined);
     setConfigOptions(undefined);
     // Workspace remains unchanged (agent-agnostic)
@@ -379,8 +366,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setWorkspace(undefined);
   }, []);
 
-  const handleConfigOptionSelect = useCallback((configId: string, value: string) => {
-    setConfigOptions((prev) => ({ ...prev, [configId]: value }));
+  const handleConfigOptionSelect = useCallback((config_id: string, value: string) => {
+    setConfigOptions((prev) => ({ ...prev, [config_id]: value }));
   }, []);
 
   const resolveAgentConfig = (agentValue: string) => {
@@ -390,18 +377,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
     // Merge cached config option defaults with user overrides
     const mergedConfigOptions = (() => {
-      if (!Array.isArray(cachedConfigOptions) || cachedConfigOptions.length === 0) return configOptions;
+      if (!Array.isArray(cached_config_options) || cached_config_options.length === 0) return config_options;
       const defaults: Record<string, string> = {};
-      for (const opt of cachedConfigOptions as AcpSessionConfigOption[]) {
-        const val = opt.currentValue || opt.selectedValue;
+      for (const opt of cached_config_options as AcpSessionConfigOption[]) {
+        const val = opt.current_value || opt.selected_value;
         if (opt.id && val) defaults[opt.id] = val;
       }
-      return Object.keys(defaults).length > 0 ? { ...defaults, ...configOptions } : configOptions;
+      return Object.keys(defaults).length > 0 ? { ...defaults, ...config_options } : config_options;
     })();
 
     let agentConfig: ICronAgentConfig | undefined;
-    let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
-      'claude') as ICreateCronJobParams['agentType'];
+    let resolvedAgentType: ICreateCronJobParams['agent_type'] = (agent_type ||
+      'claude') as ICreateCronJobParams['agent_type'];
 
     if (agentKind === 'cli') {
       const agent = cliAgents.find((a) => a.backend === agentId);
@@ -410,26 +397,26 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         agentConfig = {
           backend: agent.backend as AgentBackend,
           name: agent.name,
-          cliPath: agent.cliPath,
+          cli_path: agent.cli_path,
           mode: getFullAutoMode(agent.backend),
-          modelId,
-          configOptions: mergedConfigOptions,
+          model_id,
+          config_options: mergedConfigOptions,
           workspace,
         };
       }
     } else if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.customAgentId === agentId);
+      const agent = presetAssistants.find((a) => a.custom_agent_id === agentId);
       if (agent) {
         resolvedAgentType = agent.backend as AcpBackendAll;
         agentConfig = {
           backend: agent.backend as AgentBackend,
           name: agent.name,
-          isPreset: true,
-          customAgentId: agent.customAgentId,
+          is_preset: true,
+          custom_agent_id: agent.custom_agent_id,
           presetAgentType: agent.presetAgentType,
           mode: getFullAutoMode(agent.backend),
-          modelId,
-          configOptions: mergedConfigOptions,
+          model_id,
+          config_options: mergedConfigOptions,
           workspace,
         };
       }
@@ -451,7 +438,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       if (isEditMode) {
         // Edit mode: update existing job
         await ipcBridge.cron.updateJob.invoke({
-          jobId: editJob!.id,
+          job_id: editJob!.id,
           updates: {
             name: values.name,
             description: values.description,
@@ -463,9 +450,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             },
             metadata: {
               ...editJob!.metadata,
-              agentType: resolvedAgentType,
+              agent_type: resolvedAgentType,
               agentConfig,
-              updatedAt: Date.now(),
+              updated_at: Date.now(),
             },
           },
         });
@@ -477,9 +464,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: values.description,
           schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
           prompt: values.prompt,
-          conversationId: '',
+          conversation_id: '',
           conversationTitle,
-          agentType: resolvedAgentType,
+          agent_type: resolvedAgentType,
           createdBy: 'user',
           executionMode,
           agentConfig,
@@ -553,7 +540,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     }
                   }
                 } else if (type === 'preset') {
-                  const agent = presetAssistants.find((a) => a.customAgentId === id);
+                  const agent = presetAssistants.find((a) => a.custom_agent_id === id);
                   if (agent) {
                     name = agent.name;
                     const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
@@ -598,7 +585,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
                     const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
                     return (
-                      <Option key={`preset:${agent.customAgentId}`} value={`preset:${agent.customAgentId}`}>
+                      <Option key={`preset:${agent.custom_agent_id}`} value={`preset:${agent.custom_agent_id}`}>
                         <div className='flex items-center gap-8px'>
                           {avatarImage ? (
                             <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />
@@ -721,11 +708,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     <GuidModelSelector
                       isGeminiMode={isGeminiMode}
                       modelList={filteredProviders}
-                      currentModel={geminiCurrentModel}
+                      current_model={geminiCurrentModel}
                       setCurrentModel={handleGeminiModelSelect}
                       geminiModeLookup={geminiModeLookup}
                       currentAcpCachedModelInfo={acpCachedModelInfo}
-                      selectedAcpModel={modelId ?? null}
+                      selectedAcpModel={model_id ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}
                     />
                   </div>
@@ -739,7 +726,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     <AcpConfigSelector
                       backend={resolvedBackend}
                       compact={false}
-                      initialConfigOptions={cachedConfigOptions}
+                      initialConfigOptions={cached_config_options}
                       onOptionSelect={handleConfigOptionSelect}
                     />
                   </div>
@@ -754,7 +741,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     onChange={(next) => setWorkspace(next || undefined)}
                     onClear={handleWorkspaceClear}
                     placeholder={t('cron.page.form.selectFolder')}
-                    inputPlaceholder={t('cron.page.form.workspacePlaceholder')}
+                    input_placeholder={t('cron.page.form.workspacePlaceholder')}
                     recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
                     chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                       defaultValue: 'Choose a different folder',

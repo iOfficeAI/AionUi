@@ -152,16 +152,16 @@ function createManager(
     backend?: string;
     customWorkspace?: boolean;
     presetContext?: string;
-    enabledSkills?: string[];
+    enabled_skills?: string[];
   } = {}
 ) {
   const data = {
     conversation_id: 'test-conv',
     backend: overrides.backend ?? 'claude',
     workspace: '/tmp/test-workspace',
-    customWorkspace: overrides.customWorkspace,
-    presetContext: overrides.presetContext,
-    enabledSkills: overrides.enabledSkills,
+    custom_workspace: overrides.custom_workspace,
+    preset_context: overrides.preset_context,
+    enabled_skills: overrides.enabled_skills,
   };
   // @ts-expect-error - backend type narrowing
   const manager = new AcpAgentManager(data);
@@ -193,9 +193,9 @@ describe('AcpAgentManager — first-message skill injection', () => {
   it('uses native skills (no prompt injection) for supported backend without customWorkspace', async () => {
     const manager = createManager({
       backend: 'claude',
-      customWorkspace: false,
-      presetContext: 'You are helpful.',
-      enabledSkills: ['pptx'],
+      custom_workspace: false,
+      preset_context: 'You are helpful.',
+      enabled_skills: ['pptx'],
     });
 
     await sendFirstMessage(manager);
@@ -211,16 +211,16 @@ describe('AcpAgentManager — first-message skill injection', () => {
   it('falls back to prompt injection for supported backend WITH customWorkspace', async () => {
     const manager = createManager({
       backend: 'claude',
-      customWorkspace: true,
-      presetContext: 'You are helpful.',
-      enabledSkills: ['pptx'],
+      custom_workspace: true,
+      preset_context: 'You are helpful.',
+      enabled_skills: ['pptx'],
     });
 
     await sendFirstMessage(manager);
 
     expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
-      presetContext: 'You are helpful.',
-      enabledSkills: ['pptx'],
+      preset_context: 'You are helpful.',
+      enabled_skills: ['pptx'],
       enableTeamGuide: true,
       backend: 'claude',
     });
@@ -229,16 +229,16 @@ describe('AcpAgentManager — first-message skill injection', () => {
   it('falls back to prompt injection for unsupported backend regardless of customWorkspace', async () => {
     const manager = createManager({
       backend: 'auggie',
-      customWorkspace: false,
-      presetContext: 'Some rules',
-      enabledSkills: ['pdf'],
+      custom_workspace: false,
+      preset_context: 'Some rules',
+      enabled_skills: ['pdf'],
     });
 
     await sendFirstMessage(manager);
 
     expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
-      presetContext: 'Some rules',
-      enabledSkills: ['pdf'],
+      preset_context: 'Some rules',
+      enabled_skills: ['pdf'],
       enableTeamGuide: false,
       backend: 'auggie',
     });
@@ -247,7 +247,7 @@ describe('AcpAgentManager — first-message skill injection', () => {
   it('injects team guide prompt even when presetContext is undefined (native path, whitelisted backend)', async () => {
     const manager = createManager({
       backend: 'claude',
-      customWorkspace: false,
+      custom_workspace: false,
     });
 
     await sendFirstMessage(manager, 'Test message');

@@ -75,7 +75,7 @@ This ensures the main process stays responsive while heavy computation runs in p
 
 const TOOL_CALL_RESULT = {
   type: 'tool_result' as const,
-  toolCallId: 'call_abc123def456',
+  tool_call_id: 'call_abc123def456',
   status: 'completed' as const,
   title: 'Read src/process/services/database/index.ts',
   kind: 'read' as const,
@@ -106,7 +106,7 @@ function makeImageBlock() {
 function makeToolResultBlock(index: number) {
   return {
     ...TOOL_CALL_RESULT,
-    toolCallId: `call_${index}_${Date.now()}`,
+    tool_call_id: `call_${index}_${Date.now()}`,
     content: [
       {
         type: 'content' as const,

@@ -26,7 +26,7 @@ interface WatchSession {
   aborted: boolean;
 }
 
-// Track sessions by filePath — process is tracked immediately after spawn
+// Track sessions by file_path — process is tracked immediately after spawn
 const sessions = new Map<string, WatchSession>();
 // Pending kill timers — delayed stop allows Strict Mode re-mount to reuse sessions
 const pendingKills = new Map<string, ReturnType<typeof setTimeout>>();
@@ -83,12 +83,12 @@ function waitForPort(port: number, maxRetries = 20, interval = 100): Promise<voi
 /**
  * Kill an existing session and remove it from the map.
  */
-function killSession(filePath: string): void {
-  const session = sessions.get(filePath);
+function killSession(file_path: string): void {
+  const session = sessions.get(file_path);
   if (session) {
     session.aborted = true;
     session.process.kill();
-    sessions.delete(filePath);
+    sessions.delete(file_path);
   }
 }
 
@@ -157,30 +157,30 @@ function installOfficecli(): boolean {
  * Reuses an existing healthy session if one is already running.
  * Auto-installs officecli on first use if not found.
  */
-async function startWatch(filePath: string, retry = false): Promise<string> {
+async function startWatch(file_path: string, retry = false): Promise<string> {
   // Resolve symlinks so the pipe name matches what officecli commands compute
   try {
-    filePath = fs.realpathSync(filePath);
+    file_path = fs.realpathSync(file_path);
   } catch {
     // If realpath fails, use original path
   }
 
   // Cancel any pending delayed kill (Strict Mode re-mount)
-  const pendingTimer = pendingKills.get(filePath);
+  const pendingTimer = pendingKills.get(file_path);
   if (pendingTimer) {
     clearTimeout(pendingTimer);
-    pendingKills.delete(filePath);
+    pendingKills.delete(file_path);
   }
 
   // Reuse existing session if process is still alive
-  const existing = sessions.get(filePath);
+  const existing = sessions.get(file_path);
   if (existing && !existing.aborted && existing.process.exitCode === null) {
     const url = `http://localhost:${existing.port}`;
     return url;
   }
 
   // Kill any existing/pending session for this file first
-  killSession(filePath);
+  killSession(file_path);
 
   // Lazy update check: once per session on first actual use
   if (!updateChecked) {
@@ -192,21 +192,21 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
 
   ipcBridge.pptPreview.status.emit({ state: 'starting' });
 
-  const child = spawn('officecli', ['watch', filePath, '--port', String(port)], {
+  const child = spawn('officecli', ['watch', file_path, '--port', String(port)], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: getEnhancedEnv(),
   });
 
   // Track session immediately so stop can kill it
   const session: WatchSession = { process: child, port, aborted: false };
-  sessions.set(filePath, session);
+  sessions.set(file_path, session);
 
   return new Promise<string>((resolve, reject) => {
     let settled = false;
     const timeout = setTimeout(() => {
       if (!settled) {
         settled = true;
-        killSession(filePath);
+        killSession(file_path);
         reject(new Error('officecli watch timed out'));
       }
     }, 15000);
@@ -241,7 +241,7 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
           })
           .catch(() => {
             settle(new Error('officecli watch server did not become ready'));
-            killSession(filePath);
+            killSession(file_path);
           });
       }
     });
@@ -252,14 +252,14 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
 
     child.on('error', (err) => {
       console.error('[pptPreview] spawn error:', err.message);
-      sessions.delete(filePath);
+      sessions.delete(file_path);
       if ((err as NodeJS.ErrnoException).code === 'ENOENT' && !retry) {
         // officecli not found — try auto-install then retry once.
         // Clear timeout before potentially long sync install.
         clearTimeout(timeout);
         if (installOfficecli()) {
           settled = true;
-          startWatch(filePath, true).then(resolve, reject);
+          startWatch(file_path, true).then(resolve, reject);
         } else {
           settle(new Error('officecli is not installed and auto-install failed'));
         }
@@ -269,7 +269,7 @@ async function startWatch(filePath: string, retry = false): Promise<string> {
     });
 
     child.on('exit', (code, signal) => {
-      sessions.delete(filePath);
+      sessions.delete(file_path);
       if (session.aborted) {
         settle();
         return;
@@ -297,18 +297,18 @@ export function isActivePreviewPort(port: number): boolean {
  * Stop all running watch processes (called on app shutdown).
  */
 export function stopAllWatchSessions(): void {
-  for (const [filePath] of sessions) {
-    killSession(filePath);
+  for (const [file_path] of sessions) {
+    killSession(file_path);
   }
 }
 
 export function initPptPreviewBridge(): void {
-  ipcBridge.pptPreview.start.provider(async ({ filePath }) => {
+  ipcBridge.pptPreview.start.provider(async ({ file_path }) => {
     // Attach .catch() synchronously on the promise to ensure the rejection
     // handler is registered before microtask processing. The bridge framework's
     // internal promise chain does not propagate await's handlers, so bare
     // await/try-catch leaves rejections unhandled (Sentry ELECTRON-CW, ELECTRON-CT).
-    const result = await startWatch(filePath)
+    const result = await startWatch(file_path)
       .then((url) => ({ url }))
       .catch((err: unknown) => {
         console.error('[pptPreview] start failed:', err);
@@ -317,15 +317,15 @@ export function initPptPreviewBridge(): void {
     return result;
   });
 
-  ipcBridge.pptPreview.stop.provider(async ({ filePath }) => {
+  ipcBridge.pptPreview.stop.provider(async ({ file_path }) => {
     try {
-      filePath = fs.realpathSync(filePath);
+      file_path = fs.realpathSync(file_path);
     } catch {}
     // Delay kill to allow Strict Mode re-mount to reuse the session
     const timer = setTimeout(() => {
-      pendingKills.delete(filePath);
-      killSession(filePath);
+      pendingKills.delete(file_path);
+      killSession(file_path);
     }, 500);
-    pendingKills.set(filePath, timer);
+    pendingKills.set(file_path, timer);
   });
 }

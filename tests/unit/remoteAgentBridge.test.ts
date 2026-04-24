@@ -14,7 +14,15 @@ const providerMap = vi.hoisted(() => new Map<string, (...args: unknown[]) => unk
 
 const mockDb = vi.hoisted(() => ({
   getRemoteAgents: vi.fn(() => [
-    { id: 'a1', name: 'Agent1', protocol: 'openclaw', url: 'wss://a1', authType: 'bearer', createdAt: 0, updatedAt: 0 },
+    {
+      id: 'a1',
+      name: 'Agent1',
+      protocol: 'openclaw',
+      url: 'wss://a1',
+      authType: 'bearer',
+      created_at: 0,
+      updated_at: 0,
+    },
   ]),
   getRemoteAgent: vi.fn((id: string) =>
     id === 'a1'
@@ -24,8 +32,8 @@ const mockDb = vi.hoisted(() => ({
           protocol: 'openclaw',
           url: 'wss://a1',
           authType: 'bearer',
-          createdAt: 0,
-          updatedAt: 0,
+          created_at: 0,
+          updated_at: 0,
         }
       : null
   ),
@@ -349,8 +357,8 @@ describe('remoteAgentBridge', () => {
         protocol: 'acp',
         url: 'wss://acp',
         authType: 'none',
-        createdAt: 0,
-        updatedAt: 0,
+        created_at: 0,
+        updated_at: 0,
       });
 
       const handler = providerMap.get('handshake')!;

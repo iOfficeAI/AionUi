@@ -141,10 +141,10 @@ export class AcpRuntime {
     await session.sendMessage(text, files);
   }
 
-  confirmPermission(convId: string, callId: string, optionId: string): void {
+  confirmPermission(convId: string, call_id: string, option_id: string): void {
     const entry = this.sessions.get(convId);
     if (!entry) return;
-    (entry.session as AcpSession).confirmPermission(callId, optionId);
+    (entry.session as AcpSession).confirmPermission(call_id, option_id);
   }
 
   cancelPrompt(convId: string): void {
@@ -159,16 +159,16 @@ export class AcpRuntime {
     (entry.session as AcpSession).cancelAll();
   }
 
-  setModel(convId: string, modelId: string): void {
+  setModel(convId: string, model_id: string): void {
     const entry = this.sessions.get(convId);
     if (!entry) return;
-    (entry.session as AcpSession).setModel(modelId);
+    (entry.session as AcpSession).setModel(model_id);
   }
 
-  setMode(convId: string, modeId: string): void {
+  setMode(convId: string, mode_id: string): void {
     const entry = this.sessions.get(convId);
     if (!entry) return;
-    (entry.session as AcpSession).setMode(modeId);
+    (entry.session as AcpSession).setMode(mode_id);
   }
 
   setConfigOption(convId: string, id: string, value: string | boolean): void {
@@ -213,9 +213,9 @@ export class AcpRuntime {
       onMessage: (message) => {
         this.onStreamEvent(convId, message);
       },
-      onSessionId: (_sessionId) => {
+      onSessionId: (_session_id) => {
         // TODO(ACP Discovery): Re-enable after fixing agent_id.
-        // this.acpSessionRepo.updateSessionId(convId, sessionId);
+        // this.acpSessionRepo.updateSessionId(convId, session_id);
       },
       onStatusChange: (status) => {
         // TODO(ACP Discovery): Re-enable after fixing agent_id.

@@ -200,7 +200,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         const result = await ipcBridge.database.searchConversationMessages.invoke({
           keyword: debouncedKeyword,
           page: pageToLoad,
-          pageSize: PAGE_SIZE,
+          page_size: PAGE_SIZE,
         });
 
         setItems((prev) => (append ? [...prev, ...result.items] : result.items));
@@ -278,12 +278,12 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
       onConversationSelect?.();
 
-      const customWorkspace = item.conversation.extra?.customWorkspace;
+      const custom_workspace = item.conversation.extra?.custom_workspace;
       const newWorkspace = item.conversation.extra?.workspace;
 
       if (conversationTabs) {
         const { closeAllTabs, openTab, activeTab } = conversationTabs;
-        if (!customWorkspace) {
+        if (!custom_workspace) {
           closeAllTabs();
         } else {
           const currentWorkspace = activeTab?.workspace;

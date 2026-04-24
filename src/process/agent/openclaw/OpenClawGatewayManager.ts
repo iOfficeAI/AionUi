@@ -13,7 +13,7 @@ import { execFileSync } from 'node:child_process';
 
 interface GatewayManagerConfig {
   /** Path to openclaw CLI (default: 'openclaw') */
-  cliPath?: string;
+  cli_path?: string;
   /** Gateway port (default: 18789) */
   port?: number;
   /** Custom environment variables */
@@ -41,7 +41,7 @@ interface GatewayManagerEvents {
  */
 export class OpenClawGatewayManager extends EventEmitter {
   private process: ChildProcess | null = null;
-  private readonly cliPath: string;
+  private readonly cli_path: string;
   private readonly port: number;
   private readonly customEnv?: Record<string, string>;
   private isStarting = false;
@@ -51,7 +51,7 @@ export class OpenClawGatewayManager extends EventEmitter {
 
   constructor(config: GatewayManagerConfig = {}) {
     super();
-    this.cliPath = config.cliPath || 'openclaw';
+    this.cli_path = config.cli_path || 'openclaw';
     this.port = config.port || 18789;
     this.customEnv = config.customEnv;
   }
@@ -189,12 +189,12 @@ export class OpenClawGatewayManager extends EventEmitter {
 
       const isWindows = process.platform === 'win32';
 
-      const resolvedCli = this.resolveCommandPath(this.cliPath, env.PATH);
+      const resolvedCli = this.resolveCommandPath(this.cli_path, env.PATH);
       if (!resolvedCli) {
         reject(
           new Error(
-            `[OpenClawGatewayManager] CLI not found: "${this.cliPath}". ` +
-              'Please install openclaw or set the correct cliPath.'
+            `[OpenClawGatewayManager] CLI not found: "${this.cli_path}". ` +
+              'Please install openclaw or set the correct cli_path.'
           )
         );
         return;

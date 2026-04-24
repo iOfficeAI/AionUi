@@ -14,7 +14,7 @@ import { AcpAgent } from '../../src/process/agent/acp/index';
 function makeConnection(): AcpConnection {
   const conn = new AcpConnection();
   // Set up internal state to simulate an active session
-  (conn as any).sessionId = 'test-session';
+  (conn as any).session_id = 'test-session';
   (conn as any).backend = 'claude';
   (conn as any).child = {
     stdin: { write: vi.fn() },
@@ -57,7 +57,7 @@ describe('AcpConnection.cancelPrompt', () => {
     expect(writeFn).toHaveBeenCalledTimes(1);
     const written = JSON.parse(writeFn.mock.calls[0][0].replace(/\r?\n$/, ''));
     expect(written.method).toBe('session/cancel');
-    expect(written.params.sessionId).toBe('test-session');
+    expect(written.params.session_id).toBe('test-session');
   });
 
   it('should resolve and clear all pending session/prompt requests', () => {
@@ -450,7 +450,7 @@ describe('AcpAgent file operation presentation', () => {
     (agent as any).handleFileOperation({
       method: 'fs/read_text_file',
       path: '/tmp/example.md',
-      sessionId: 'session-1',
+      session_id: 'session-1',
     });
 
     expect(onStreamEvent).toHaveBeenCalledWith(

@@ -29,22 +29,22 @@ const GeminiModelSelector: React.FC<{
   const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
 
   // 获取当前模型的健康状态 (must be called before any early return to keep hooks count stable)
-  const currentModel = selection?.currentModel;
-  const currentModelHealth = React.useMemo(() => {
-    if (!currentModel || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
-    const matchedProvider = modelConfig.find((p) => p.id === currentModel.id);
-    const healthStatus = matchedProvider?.modelHealth?.[currentModel.useModel]?.status || 'unknown';
+  const current_model = selection?.current_model;
+  const current_modelHealth = React.useMemo(() => {
+    if (!current_model || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
+    const matchedProvider = modelConfig.find((p) => p.id === current_model.id);
+    const healthStatus = matchedProvider?.model_health?.[current_model.useModel]?.status || 'unknown';
     const healthColor =
       healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
     return { status: healthStatus, color: healthColor };
-  }, [currentModel, modelConfig]);
+  }, [current_model, modelConfig]);
 
   // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
   if (disabled || !selection) {
-    const displayLabel = customLabel || t('conversation.welcome.useCliModel');
+    const display_label = customLabel || t('conversation.welcome.useCliModel');
 
     if (variant === 'settings') {
-      return <div className='text-14px text-t-secondary min-w-160px'>{displayLabel}</div>;
+      return <div className='text-14px text-t-secondary min-w-160px'>{display_label}</div>;
     }
 
     return (
@@ -60,7 +60,7 @@ const GeminiModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0'>
-            <span className={compact ? 'block truncate' : undefined}>{displayLabel}</span>
+            <span className={compact ? 'block truncate' : undefined}>{display_label}</span>
           </span>
         </Button>
       </Tooltip>
@@ -71,11 +71,11 @@ const GeminiModelSelector: React.FC<{
 
   // formatModelLabel returns the friendly label for known modes (e.g. 'Auto (Gemini 3)')
   // and falls back to the raw model name for manual sub-model selections.
-  const rawLabel = currentModel ? formatModelLabel(currentModel, currentModel.useModel) : '';
+  const rawLabel = current_model ? formatModelLabel(current_model, current_model.useModel) : '';
   const label =
     customLabel ||
     getModelDisplayLabel({
-      selectedValue: currentModel?.useModel,
+      selected_value: current_model?.useModel,
       selectedLabel: rawLabel,
       defaultModelLabel,
       fallbackLabel: t('conversation.welcome.selectModel'),
@@ -85,8 +85,8 @@ const GeminiModelSelector: React.FC<{
     variant === 'settings' ? (
       <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
         <div className='flex items-center gap-8px min-w-0'>
-          {currentModelHealth.status !== 'unknown' && (
-            <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
+          {current_modelHealth.status !== 'unknown' && (
+            <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
           )}
           <span className='truncate'>{label}</span>
         </div>
@@ -104,8 +104,8 @@ const GeminiModelSelector: React.FC<{
         data-testid='chat-model-selector'
       >
         <span className='flex items-center gap-6px min-w-0'>
-          {currentModelHealth.status !== 'unknown' && (
-            <div className={`w-6px h-6px rounded-full shrink-0 ${currentModelHealth.color}`} />
+          {current_modelHealth.status !== 'unknown' && (
+            <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
           )}
           <span className={compact ? 'block truncate' : undefined}>{label}</span>
           <Down theme='outline' size={12} className='shrink-0' />
@@ -144,7 +144,9 @@ const GeminiModelSelector: React.FC<{
                           <Menu.Item
                             key={`${provider.id}-${subModel.value}`}
                             className={
-                              currentModel?.id + currentModel?.useModel === provider.id + subModel.value ? '!bg-2' : ''
+                              current_model?.id + current_model?.useModel === provider.id + subModel.value
+                                ? '!bg-2'
+                                : ''
                             }
                             onClick={() => void handleSelectModel(provider, subModel.value)}
                           >
@@ -164,7 +166,7 @@ const GeminiModelSelector: React.FC<{
                       {(() => {
                         // 获取模型健康状态
                         const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
-                        const healthStatus = matchedProvider?.modelHealth?.[modelName]?.status || 'unknown';
+                        const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
                         const healthColor =
                           healthStatus === 'healthy'
                             ? 'bg-green-500'

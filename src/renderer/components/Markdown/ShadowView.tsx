@@ -8,6 +8,7 @@ import { theme } from '@office-ai/platform';
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
+import { configService } from '@/common/config/configService';
 
 /**
  * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
@@ -200,23 +201,13 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
   const [customCss, setCustomCss] = useState<string>('');
 
-  // Load custom CSS from ConfigStorage
   React.useEffect(() => {
-    void import('@/common/config/storage').then(({ ConfigStorage }) => {
-      ConfigStorage.get('customCss')
-        .then((css) => {
-          if (css) {
-            // Use unified utility to auto-add !important
-            const processedCss = addImportantToAll(css);
-            setCustomCss(processedCss);
-          } else {
-            setCustomCss('');
-          }
-        })
-        .catch((error: unknown) => {
-          console.error('Failed to load custom CSS:', error);
-        });
-    });
+    const css = configService.get('customCss');
+    if (css) {
+      setCustomCss(addImportantToAll(css));
+    } else {
+      setCustomCss('');
+    }
 
     // Listen to custom CSS update events
     const handleCustomCssUpdate = (e: CustomEvent) => {

@@ -13,7 +13,7 @@ const mockBtwState = {
   question: '',
 };
 
-const mockUseConversationContextSafe = vi.fn(() => ({ conversationId: 'conv-1' }));
+const mockUseConversationContextSafe = vi.fn(() => ({ conversation_id: 'conv-1' }));
 const mockUseLayoutContext = vi.fn(() => ({ isMobile: false }));
 const mockUseSlashCommandController = vi.fn(() => ({
   isOpen: false,

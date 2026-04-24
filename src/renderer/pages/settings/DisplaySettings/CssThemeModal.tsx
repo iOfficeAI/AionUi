@@ -38,7 +38,7 @@ interface CssThemeModalProps {
   visible: boolean;
   theme: ICssTheme | null;
   onClose: () => void;
-  onSave: (theme: Omit<ICssTheme, 'id' | 'createdAt' | 'updatedAt' | 'isPreset'>) => void;
+  onSave: (theme: Omit<ICssTheme, 'id' | 'created_at' | 'updated_at' | 'is_preset'>) => void;
   onDelete?: () => void;
 }
 

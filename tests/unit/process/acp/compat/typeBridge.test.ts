@@ -37,12 +37,12 @@ describe('typeBridge', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'custom-agent',
         backend: 'custom',
-        cliPath: '/custom/path/agent',
+        cli_path: '/custom/path/agent',
         workingDir: '/workspace/custom',
         onStreamEvent: () => {},
         extra: {
           backend: 'custom',
-          cliPath: '/custom/path/agent',
+          cli_path: '/custom/path/agent',
         },
       };
 
@@ -96,7 +96,7 @@ describe('typeBridge', () => {
         onStreamEvent: () => {},
         extra: {
           backend: 'claude',
-          acpSessionId: 'session-123',
+          acp_session_id: 'session-123',
         },
       };
 
@@ -142,14 +142,14 @@ describe('typeBridge', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'test-agent',
         backend: 'claude',
-        cliPath: '/root/path',
+        cli_path: '/root/path',
         workingDir: '/workspace',
         customArgs: ['--root'],
         customEnv: { ROOT: 'true' },
         onStreamEvent: () => {},
         extra: {
           backend: 'claude',
-          cliPath: '/extra/path',
+          cli_path: '/extra/path',
           customArgs: ['--extra'],
           customEnv: { EXTRA: 'true' },
         },
@@ -179,47 +179,47 @@ describe('typeBridge', () => {
   describe('toAcpModelInfo', () => {
     it('should convert ModelSnapshot with current model', () => {
       const snapshot: ModelSnapshot = {
-        currentModelId: 'gpt-4',
-        availableModels: [
-          { modelId: 'gpt-4', name: 'GPT-4' },
-          { modelId: 'gpt-3.5', name: 'GPT-3.5' },
+        current_model_id: 'gpt-4',
+        available_models: [
+          { model_id: 'gpt-4', name: 'GPT-4' },
+          { model_id: 'gpt-3.5', name: 'GPT-3.5' },
         ],
       };
 
       const result = toAcpModelInfo(snapshot);
 
-      expect(result.currentModelId).toBe('gpt-4');
-      expect(result.currentModelLabel).toBe('GPT-4');
-      expect(result.availableModels).toEqual([
+      expect(result.current_model_id).toBe('gpt-4');
+      expect(result.current_model_label).toBe('GPT-4');
+      expect(result.available_models).toEqual([
         { id: 'gpt-4', label: 'GPT-4' },
         { id: 'gpt-3.5', label: 'GPT-3.5' },
       ]);
-      expect(result.canSwitch).toBe(true);
+      expect(result.can_switch).toBe(true);
       expect(result.source).toBe('models');
     });
 
     it('should handle null current model', () => {
       const snapshot: ModelSnapshot = {
-        currentModelId: null,
-        availableModels: [{ modelId: 'gpt-4', name: 'GPT-4' }],
+        current_model_id: null,
+        available_models: [{ model_id: 'gpt-4', name: 'GPT-4' }],
       };
 
       const result = toAcpModelInfo(snapshot);
 
-      expect(result.currentModelId).toBeNull();
-      expect(result.currentModelLabel).toBeNull();
+      expect(result.current_model_id).toBeNull();
+      expect(result.current_model_label).toBeNull();
     });
 
     it('should handle empty available models', () => {
       const snapshot: ModelSnapshot = {
-        currentModelId: 'gpt-4',
-        availableModels: [],
+        current_model_id: 'gpt-4',
+        available_models: [],
       };
 
       const result = toAcpModelInfo(snapshot);
 
-      expect(result.availableModels).toEqual([]);
-      expect(result.canSwitch).toBe(false);
+      expect(result.available_models).toEqual([]);
+      expect(result.can_switch).toBe(false);
     });
   });
 
@@ -232,7 +232,7 @@ describe('typeBridge', () => {
           type: 'select',
           category: 'model',
           description: 'Select model',
-          currentValue: 'gpt-4',
+          current_value: 'gpt-4',
           options: [
             { id: 'gpt-4', name: 'GPT-4' },
             { id: 'gpt-3.5', name: 'GPT-3.5' },
@@ -250,8 +250,8 @@ describe('typeBridge', () => {
           type: 'select',
           category: 'model',
           description: 'Select model',
-          currentValue: 'gpt-4',
-          selectedValue: 'gpt-4',
+          current_value: 'gpt-4',
+          selected_value: 'gpt-4',
           options: [
             { value: 'gpt-4', name: 'GPT-4', label: 'GPT-4' },
             { value: 'gpt-3.5', name: 'GPT-3.5', label: 'GPT-3.5' },
@@ -266,7 +266,7 @@ describe('typeBridge', () => {
           id: 'auto-approve',
           name: 'Auto Approve',
           type: 'boolean',
-          currentValue: true,
+          current_value: true,
         },
       ];
 
@@ -278,8 +278,8 @@ describe('typeBridge', () => {
           name: 'Auto Approve',
           label: 'Auto Approve',
           type: 'boolean',
-          currentValue: 'true',
-          selectedValue: 'true',
+          current_value: 'true',
+          selected_value: 'true',
         },
       ]);
     });
@@ -290,7 +290,7 @@ describe('typeBridge', () => {
           id: 'simple-option',
           name: 'Simple',
           type: 'select',
-          currentValue: 'value1',
+          current_value: 'value1',
         },
       ];
 
@@ -301,13 +301,13 @@ describe('typeBridge', () => {
   });
 
   describe('toResponseMessage', () => {
-    const conversationId = 'conv-123';
+    const conversation_id = 'conv-123';
 
     it('should convert text message', () => {
       const message: TMessage = {
         id: 'msg-1',
         msg_id: 'msg-1',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         position: 'left',
         content: {
@@ -315,18 +315,18 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('content');
       expect(result.data).toBe('Hello world');
-      expect(result.conversation_id).toBe(conversationId);
+      expect(result.conversation_id).toBe(conversation_id);
     });
 
     it('should convert thinking message', () => {
       const message: TMessage = {
         id: 'msg-2',
         msg_id: 'msg-2',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'thinking',
         position: 'left',
         content: {
@@ -335,7 +335,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('thought');
       expect(result.data).toEqual({
@@ -348,14 +348,14 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-3',
         msg_id: 'msg-3',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'acp_tool_call',
         position: 'left',
         content: {
-          sessionId: 'session-1',
+          session_id: 'session-1',
           update: {
             sessionUpdate: 'tool_call',
-            toolCallId: 'tool-1',
+            tool_call_id: 'tool-1',
             status: 'pending',
             title: 'Read File',
             kind: 'read',
@@ -363,7 +363,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('acp_tool_call');
       expect(result.data).toEqual(message.content);
@@ -373,11 +373,11 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-4',
         msg_id: 'msg-4',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'plan',
         position: 'left',
         content: {
-          sessionId: 'session-1',
+          session_id: 'session-1',
           entries: [
             { content: 'Step 1', status: 'completed' },
             { content: 'Step 2', status: 'pending' },
@@ -385,7 +385,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('plan');
       expect(result.data).toEqual(message.content);
@@ -395,7 +395,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-5',
         msg_id: 'msg-5',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'tips',
         position: 'center',
         content: {
@@ -404,7 +404,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('thought');
       expect(result.data).toEqual({
@@ -417,7 +417,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-6',
         msg_id: 'msg-6',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'tips',
         position: 'center',
         content: {
@@ -426,7 +426,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('error');
       expect(result.data).toBe('An error occurred');
@@ -436,14 +436,14 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-7',
         msg_id: 'msg-7',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'available_commands',
         content: {
           commands: [{ name: '/help', description: 'Show help' }],
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('');
       expect(result.data).toBeNull();
@@ -453,14 +453,14 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-8',
         msg_id: 'msg-8',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         content: {
           content: 'Unknown format',
         },
       } as TMessage;
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.type).toBe('content');
       expect(typeof result.data).toBe('string');
@@ -470,7 +470,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'msg-9',
         msg_id: 'msg-9',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         position: 'left',
         content: {
@@ -479,7 +479,7 @@ describe('typeBridge', () => {
         hidden: true,
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.hidden).toBe(true);
     });
@@ -488,7 +488,7 @@ describe('typeBridge', () => {
       const message: TMessage = {
         id: 'internal-id',
         msg_id: 'external-id',
-        conversation_id: conversationId,
+        conversation_id: conversation_id,
         type: 'text',
         position: 'left',
         content: {
@@ -496,7 +496,7 @@ describe('typeBridge', () => {
         },
       };
 
-      const result = toResponseMessage(message, conversationId);
+      const result = toResponseMessage(message, conversation_id);
 
       expect(result.msg_id).toBe('external-id');
     });

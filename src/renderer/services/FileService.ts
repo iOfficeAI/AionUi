@@ -16,13 +16,13 @@ import { isElectronDesktop } from '@/renderer/utils/platform';
  */
 export async function uploadFileViaHttp(
   file: File,
-  conversationId?: string,
+  conversation_id?: string,
   onProgress?: (percent: number) => void
 ): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
-  if (conversationId) {
-    formData.append('conversationId', conversationId);
+  if (conversation_id) {
+    formData.append('conversation_id', conversation_id);
   }
 
   return new Promise<string>((resolve, reject) => {
@@ -137,36 +137,36 @@ export interface FileMetadata {
  * 注意：当前实现为预先设计的架构，支持所有文件类型
  * supportedExts 参数预留给将来的文件类型过滤功能
  *
- * @param _fileName 文件名（预留参数）
+ * @param _file_name 文件名（预留参数）
  * @param _supportedExts 支持的文件扩展名数组（预留参数）
  * @returns 总是返回 true，表示支持所有文件类型
  */
-export function isSupportedFile(_fileName: string, _supportedExts: string[]): boolean {
+export function isSupportedFile(_file_name: string, _supportedExts: string[]): boolean {
   return true; // 预先设计：当前支持所有文件类型
 }
 
 // 获取文件扩展名
-export function getFileExtension(fileName: string): string {
-  const lastDotIndex = fileName.lastIndexOf('.');
-  return lastDotIndex > -1 ? fileName.substring(lastDotIndex).toLowerCase() : '';
+export function getFileExtension(file_name: string): string {
+  const lastDotIndex = file_name.lastIndexOf('.');
+  return lastDotIndex > -1 ? file_name.substring(lastDotIndex).toLowerCase() : '';
 }
 
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/config/constants';
 
 // 清理AionUI时间戳后缀，返回原始文件名
-export function cleanAionUITimestamp(fileName: string): string {
-  return fileName.replace(AIONUI_TIMESTAMP_REGEX, '$1');
+export function cleanAionUITimestamp(file_name: string): string {
+  return file_name.replace(AIONUI_TIMESTAMP_REGEX, '$1');
 }
 
 // 从文件路径获取清理后的文件名（用于UI显示）
-export function getCleanFileName(filePath: string): string {
-  const fileName = filePath.split(/[\\/]/).pop() || '';
-  return cleanAionUITimestamp(fileName);
+export function getCleanFileName(file_path: string): string {
+  const file_name = file_path.split(/[\\/]/).pop() || '';
+  return cleanAionUITimestamp(file_name);
 }
 
 // 从文件路径数组获取清理后的文件名数组（用于消息格式化）
-export function getCleanFileNames(filePaths: string[]): string[] {
-  return filePaths.map(getCleanFileName);
+export function getCleanFileNames(file_paths: string[]): string[] {
+  return file_paths.map(getCleanFileName);
 }
 
 /**
@@ -223,8 +223,8 @@ export function formatFileSize(bytes: number): string {
  * 预先设计的架构，为将来的文件类型判断功能预留
  * 当前未被使用，保留供将来扩展
  */
-export function isImageFile(fileName: string): boolean {
-  return isSupportedFile(fileName, imageExts);
+export function isImageFile(file_name: string): boolean {
+  return isSupportedFile(file_name, imageExts);
 }
 
 /**
@@ -233,8 +233,8 @@ export function isImageFile(fileName: string): boolean {
  * 预先设计的架构，为将来的文件类型判断功能预留
  * 当前未被使用，保留供将来扩展
  */
-export function isDocumentFile(fileName: string): boolean {
-  return isSupportedFile(fileName, documentExts);
+export function isDocumentFile(file_name: string): boolean {
+  return isSupportedFile(file_name, documentExts);
 }
 
 /**
@@ -243,8 +243,8 @@ export function isDocumentFile(fileName: string): boolean {
  * 预先设计的架构，为将来的文件类型判断功能预留
  * 当前未被使用，保留供将来扩展
  */
-export function isTextFile(fileName: string): boolean {
-  return isSupportedFile(fileName, textExts);
+export function isTextFile(file_name: string): boolean {
+  return isSupportedFile(file_name, textExts);
 }
 
 class FileServiceClass {
@@ -254,7 +254,7 @@ class FileServiceClass {
    */
   async processDroppedFiles(
     files: FileList,
-    conversationId?: string,
+    conversation_id?: string,
     source: UploadSource = 'sendbox'
   ): Promise<FileMetadata[]> {
     const processedFiles: FileMetadata[] = [];
@@ -264,16 +264,16 @@ class FileServiceClass {
       // In Electron environment, dragged files have additional path property
       const electronFile = file as File & { path?: string };
 
-      let filePath = electronFile.path || '';
+      let file_path = electronFile.path || '';
 
       // If no valid path (WebUI or some dragged files may not have paths), create temporary file
-      if (!filePath) {
+      if (!file_path) {
         try {
           if (!isElectronDesktop()) {
             // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
             const tracker = trackUpload(file.size, source);
             try {
-              filePath = await uploadFileViaHttp(file, conversationId || '', tracker.onProgress);
+              file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress);
             } finally {
               tracker.finish();
             }
@@ -281,10 +281,10 @@ class FileServiceClass {
             // Electron: use IPC to create upload file (respects saveToWorkspace setting)
             const arrayBuffer = await file.arrayBuffer();
             const uint8Array = new Uint8Array(arrayBuffer);
-            const uploadPath = await ipcBridge.fs.createUploadFile.invoke({ fileName: file.name, conversationId });
+            const uploadPath = await ipcBridge.fs.createUploadFile.invoke({ file_name: file.name, conversation_id });
             if (uploadPath) {
               await ipcBridge.fs.writeFile.invoke({ path: uploadPath, data: uint8Array });
-              filePath = uploadPath;
+              file_path = uploadPath;
             }
           }
         } catch (error) {
@@ -299,7 +299,7 @@ class FileServiceClass {
 
       processedFiles.push({
         name: file.name,
-        path: filePath,
+        path: file_path,
         size: file.size,
         type: file.type,
         lastModified: file.lastModified,

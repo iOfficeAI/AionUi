@@ -67,7 +67,7 @@ describe('PptViewer', () => {
   it('shows loading spinner initially', () => {
     startInvokeMock.mockReturnValue(new Promise(() => {})); // never resolves
 
-    render(<PptViewer filePath='/test/file.pptx' />);
+    render(<PptViewer file_path='/test/file.pptx' />);
 
     expect(screen.getByTestId('spin')).toBeInTheDocument();
     expect(screen.getByText('preview.ppt.loading')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('PptViewer', () => {
     startInvokeMock.mockResolvedValue({ url: 'http://localhost:12345' });
 
     await act(async () => {
-      render(<PptViewer filePath='/test/file.pptx' />);
+      render(<PptViewer file_path='/test/file.pptx' />);
     });
 
     // Wait for the 300ms delay
@@ -100,7 +100,7 @@ describe('PptViewer', () => {
     startInvokeMock.mockRejectedValue(new Error('spawn failed'));
 
     await act(async () => {
-      render(<PptViewer filePath='/test/file.pptx' />);
+      render(<PptViewer file_path='/test/file.pptx' />);
     });
 
     expect(screen.getByText('spawn failed')).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('PptViewer', () => {
   it('subscribes to status emitter and unsubscribes on unmount', async () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    const { unmount } = render(<PptViewer filePath='/test/file.pptx' />);
+    const { unmount } = render(<PptViewer file_path='/test/file.pptx' />);
 
     expect(statusOnMock).toHaveBeenCalledTimes(1);
     expect(statusOnMock).toHaveBeenCalledWith(expect.any(Function));
@@ -123,17 +123,17 @@ describe('PptViewer', () => {
   it('calls stop on unmount', async () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    const { unmount } = render(<PptViewer filePath='/test/file.pptx' />);
+    const { unmount } = render(<PptViewer file_path='/test/file.pptx' />);
 
     unmount();
 
-    expect(stopInvokeMock).toHaveBeenCalledWith({ filePath: '/test/file.pptx' });
+    expect(stopInvokeMock).toHaveBeenCalledWith({ file_path: '/test/file.pptx' });
   });
 
   it('shows installing text when status emitter fires installing', async () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    render(<PptViewer filePath='/test/file.pptx' />);
+    render(<PptViewer file_path='/test/file.pptx' />);
 
     // Initially shows loading
     expect(screen.getByText('preview.ppt.loading')).toBeInTheDocument();
@@ -151,7 +151,7 @@ describe('PptViewer', () => {
   it('reverts to loading text when status emitter fires starting', async () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    render(<PptViewer filePath='/test/file.pptx' />);
+    render(<PptViewer file_path='/test/file.pptx' />);
 
     const statusHandler = statusOnMock.mock.calls[0][0];
 
@@ -171,7 +171,7 @@ describe('PptViewer', () => {
   it('does not update status after unmount (cancelled)', async () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    const { unmount } = render(<PptViewer filePath='/test/file.pptx' />);
+    const { unmount } = render(<PptViewer file_path='/test/file.pptx' />);
 
     const statusHandler = statusOnMock.mock.calls[0][0];
 

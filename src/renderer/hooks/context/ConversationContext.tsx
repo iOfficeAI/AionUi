@@ -15,7 +15,7 @@ export interface ConversationContextValue {
    * Conversation ID
    * 会话 ID
    */
-  conversationId: string;
+  conversation_id: string;
 
   /**
    * Workspace directory path
@@ -32,7 +32,7 @@ export interface ConversationContextValue {
   /**
    * Cron job ID (if this conversation was created by a scheduled task)
    */
-  cronJobId?: string;
+  cron_job_id?: string;
 
   /**
    * When true, platform chat components should hide the SendBox (e.g. sub-agents in team mode)

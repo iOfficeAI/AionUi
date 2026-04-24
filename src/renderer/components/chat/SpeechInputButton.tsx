@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -131,7 +131,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
 
     const syncSpeechToTextEnabled = async () => {
       try {
-        const config = await ConfigStorage.get('tools.speechToText');
+        const config = configService.get('tools.speechToText');
         if (cancelled) {
           return;
         }

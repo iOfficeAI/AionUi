@@ -39,8 +39,8 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
   );
 
   ipcBridge.team.list.provider(
-    safeProvider(async ({ userId }) => {
-      return teamSessionService.listTeams(userId);
+    safeProvider(async ({ user_id }) => {
+      return teamSessionService.listTeams(user_id);
     })
   );
 
@@ -57,20 +57,20 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
   );
 
   ipcBridge.team.addAgent.provider(
-    safeProvider(async ({ teamId, agent }) => {
-      return teamSessionService.addAgent(teamId, agent);
+    safeProvider(async ({ team_id, agent }) => {
+      return teamSessionService.addAgent(team_id, agent);
     })
   );
 
   ipcBridge.team.removeAgent.provider(
-    safeProvider(async ({ teamId, slotId }) => {
-      await teamSessionService.removeAgent(teamId, slotId);
+    safeProvider(async ({ team_id, slot_id }) => {
+      await teamSessionService.removeAgent(team_id, slot_id);
     })
   );
 
   ipcBridge.team.renameAgent.provider(
-    safeProvider(async ({ teamId, slotId, newName }) => {
-      await teamSessionService.renameAgent(teamId, slotId, newName);
+    safeProvider(async ({ team_id, slot_id, new_name }) => {
+      await teamSessionService.renameAgent(team_id, slot_id, new_name);
     })
   );
 
@@ -81,40 +81,40 @@ export function initTeamBridge(teamSessionService: TeamSessionService): void {
   );
 
   ipcBridge.team.setSessionMode.provider(
-    safeProvider(async ({ teamId, sessionMode }) => {
-      await teamSessionService.setSessionMode(teamId, sessionMode);
+    safeProvider(async ({ team_id, session_mode }) => {
+      await teamSessionService.setSessionMode(team_id, session_mode);
     })
   );
 
   ipcBridge.team.updateWorkspace.provider(
-    safeProvider(async ({ teamId, workspace }) => {
-      await teamSessionService.updateWorkspace(teamId, workspace);
+    safeProvider(async ({ team_id, workspace }) => {
+      await teamSessionService.updateWorkspace(team_id, workspace);
     })
   );
 
   ipcBridge.team.sendMessage.provider(
-    safeProvider(async ({ teamId, content, files }) => {
-      const session = await teamSessionService.getOrStartSession(teamId);
+    safeProvider(async ({ team_id, content, files }) => {
+      const session = await teamSessionService.getOrStartSession(team_id);
       await session.sendMessage(content, files);
     })
   );
 
   ipcBridge.team.sendMessageToAgent.provider(
-    safeProvider(async ({ teamId, slotId, content, files }) => {
-      const session = await teamSessionService.getOrStartSession(teamId);
-      await session.sendMessageToAgent(slotId, content, { files });
+    safeProvider(async ({ team_id, slot_id, content, files }) => {
+      const session = await teamSessionService.getOrStartSession(team_id);
+      await session.sendMessageToAgent(slot_id, content, { files });
     })
   );
 
   ipcBridge.team.stop.provider(
-    safeProvider(async ({ teamId }) => {
-      await teamSessionService.stopSession(teamId);
+    safeProvider(async ({ team_id }) => {
+      await teamSessionService.stopSession(team_id);
     })
   );
 
   ipcBridge.team.ensureSession.provider(
-    safeProvider(async ({ teamId }) => {
-      await teamSessionService.getOrStartSession(teamId);
+    safeProvider(async ({ team_id }) => {
+      await teamSessionService.getOrStartSession(team_id);
     })
   );
 }

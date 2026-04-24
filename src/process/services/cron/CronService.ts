@@ -30,9 +30,9 @@ export type CreateCronJobParams = {
   /** New UI system uses `prompt`; old skill system uses `message` */
   prompt?: string;
   message?: string;
-  conversationId: string;
+  conversation_id: string;
   conversationTitle?: string;
-  agentType: import('@/common/types/acpTypes').AgentBackend;
+  agent_type: import('@/common/types/acpTypes').AgentBackend;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';
   agentConfig?: import('./CronStore').CronJob['metadata']['agentConfig'];
@@ -94,14 +94,14 @@ export class CronService {
       const allJobs = await this.repo.listAll();
       for (const job of allJobs) {
         // new_conversation mode jobs are not bound to a single conversation — skip orphan check.
-        // Also skip when conversationId is empty (legacy jobs created before execution_mode existed).
-        if (job.target.executionMode === 'new_conversation' || !job.metadata.conversationId) {
+        // Also skip when conversation_id is empty (legacy jobs created before execution_mode existed).
+        if (job.target.executionMode === 'new_conversation' || !job.metadata.conversation_id) {
           continue;
         }
-        const conversation = await this.conversationRepo.getConversation(job.metadata.conversationId);
+        const conversation = await this.conversationRepo.getConversation(job.metadata.conversation_id);
         if (!conversation) {
-          // Double-check: if the job has child conversations (via cronJobId), it's not truly orphaned.
-          // This can happen when a job's original conversationId is stale but it has produced executions.
+          // Double-check: if the job has child conversations (via cron_job_id), it's not truly orphaned.
+          // This can happen when a job's original conversation_id is stale but it has produced executions.
           const childConversations = await this.conversationRepo.getConversationsByCronJob(job.id);
           if (childConversations.length > 0) {
             console.log(
@@ -110,7 +110,7 @@ export class CronService {
             continue;
           }
           console.log(
-            `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversationId} not found`
+            `[CronService] Removing orphan job "${job.name}" (${job.id}): conversation ${job.metadata.conversation_id} not found`
           );
           this.stopTimer(job.id);
           await this.repo.delete(job.id);
@@ -128,24 +128,24 @@ export class CronService {
   }
 
   /**
-   * Backfill cronJobId into conversation.extra and agentConfig into job.metadata
+   * Backfill cron_job_id into conversation.extra and agentConfig into job.metadata
    * for existing jobs that predate these fields.
    */
   private async backfillCronJobIdOnConversations(): Promise<void> {
     try {
       const allJobs = await this.repo.listAll();
       for (const job of allJobs) {
-        if (job.target.executionMode === 'new_conversation' || !job.metadata.conversationId) {
+        if (job.target.executionMode === 'new_conversation' || !job.metadata.conversation_id) {
           continue;
         }
-        const conv = await this.conversationRepo.getConversation(job.metadata.conversationId);
+        const conv = await this.conversationRepo.getConversation(job.metadata.conversation_id);
         if (!conv) continue;
 
-        // Backfill cronJobId on conversation extra
+        // Backfill cron_job_id on conversation extra
         const extra = (conv.extra ?? {}) as Record<string, unknown>;
-        if (extra.cronJobId !== job.id) {
-          extra.cronJobId = job.id;
-          await this.conversationRepo.updateConversation(job.metadata.conversationId, {
+        if (extra.cron_job_id !== job.id) {
+          extra.cron_job_id = job.id;
+          await this.conversationRepo.updateConversation(job.metadata.conversation_id, {
             extra: extra as TChatConversation['extra'],
           });
         }
@@ -180,15 +180,15 @@ export class CronService {
     job: CronJob
   ): CronJob['metadata']['agentConfig'] | null {
     const extra = (conv.extra ?? {}) as Record<string, unknown>;
-    const backend = (extra.backend as string) || job.metadata.agentType;
+    const backend = (extra.backend as string) || job.metadata.agent_type;
     if (!backend) return null;
 
     return {
       backend: backend as import('@/common/types/acpTypes').AcpBackendAll,
-      name: (extra.agentName as string) || job.name,
-      cliPath: extra.cliPath as string | undefined,
-      isPreset: !!extra.presetAssistantId,
-      customAgentId: (extra.presetAssistantId as string) || (extra.customAgentId as string) || undefined,
+      name: (extra.agent_name as string) || job.name,
+      cli_path: extra.cli_path as string | undefined,
+      is_preset: !!extra.preset_assistant_id,
+      custom_agent_id: (extra.preset_assistant_id as string) || (extra.custom_agent_id as string) || undefined,
     };
   }
 
@@ -199,8 +199,8 @@ export class CronService {
   async addJob(params: CreateCronJobParams): Promise<CronJob> {
     // Check if conversation already has a cron job (one job per conversation limit)
     // Skip for new_conversation mode since each execution creates a new conversation
-    if (params.executionMode !== 'new_conversation' && params.conversationId) {
-      const existingJobs = await this.repo.listByConversation(params.conversationId);
+    if (params.executionMode !== 'new_conversation' && params.conversation_id) {
+      const existingJobs = await this.repo.listByConversation(params.conversation_id);
       if (existingJobs.length > 0) {
         const existingJob = existingJobs[0];
         throw new Error(
@@ -213,10 +213,10 @@ export class CronService {
     }
 
     const now = Date.now();
-    const jobId = `cron_${uuid()}`;
+    const job_id = `cron_${uuid()}`;
 
     const job: CronJob = {
-      id: jobId,
+      id: job_id,
       name: params.name,
       description: params.description?.trim() || undefined,
       enabled: true,
@@ -226,12 +226,12 @@ export class CronService {
         executionMode: params.executionMode ?? 'existing',
       },
       metadata: {
-        conversationId: params.conversationId,
+        conversation_id: params.conversation_id,
         conversationTitle: params.conversationTitle,
-        agentType: params.agentType,
+        agent_type: params.agent_type,
         createdBy: params.createdBy,
-        createdAt: now,
-        updatedAt: now,
+        created_at: now,
+        updated_at: now,
         agentConfig: params.agentConfig,
       },
       state: {
@@ -247,18 +247,18 @@ export class CronService {
     // Save to database
     await this.repo.insert(job);
 
-    // Tag the conversation with cronJobId so it appears under the scheduled tasks tab
-    // and update modifiedAt so it appears at the top of the list (skip for new_conversation mode)
-    if (params.executionMode !== 'new_conversation' && params.conversationId) {
+    // Tag the conversation with cron_job_id so it appears under the scheduled tasks tab
+    // and update modified_at so it appears at the top of the list (skip for new_conversation mode)
+    if (params.executionMode !== 'new_conversation' && params.conversation_id) {
       try {
-        const conv = await this.conversationRepo.getConversation(params.conversationId);
+        const conv = await this.conversationRepo.getConversation(params.conversation_id);
         const existingExtra = (conv?.extra ?? {}) as Record<string, unknown>;
-        await this.conversationRepo.updateConversation(params.conversationId, {
-          modifiedAt: now,
-          extra: { ...existingExtra, cronJobId: jobId } as TChatConversation['extra'],
+        await this.conversationRepo.updateConversation(params.conversation_id, {
+          modified_at: now,
+          extra: { ...existingExtra, cron_job_id: job_id } as TChatConversation['extra'],
         });
       } catch (err) {
-        console.warn('[CronService] Failed to update conversation with cronJobId:', err);
+        console.warn('[CronService] Failed to update conversation with cron_job_id:', err);
       }
     }
 
@@ -275,25 +275,25 @@ export class CronService {
   /**
    * Update an existing cron job
    */
-  async updateJob(jobId: string, updates: Partial<CronJob>): Promise<CronJob> {
-    const existing = await this.repo.getById(jobId);
+  async updateJob(job_id: string, updates: Partial<CronJob>): Promise<CronJob> {
+    const existing = await this.repo.getById(job_id);
     if (!existing) {
-      throw new Error(`Job not found: ${jobId}`);
+      throw new Error(`Job not found: ${job_id}`);
     }
 
     // Stop existing timer
-    this.stopTimer(jobId);
+    this.stopTimer(job_id);
 
     // Update in database
-    await this.repo.update(jobId, updates);
+    await this.repo.update(job_id, updates);
 
     // Get updated job
-    const updated = (await this.repo.getById(jobId))!;
+    const updated = (await this.repo.getById(job_id))!;
 
     // Recalculate next run time if schedule changed or job is being enabled
     if (updates.schedule || (updates.enabled === true && !existing.enabled)) {
       this.updateNextRunTime(updated);
-      await this.repo.update(jobId, { state: updated.state });
+      await this.repo.update(job_id, { state: updated.state });
     }
 
     // Restart timer if enabled
@@ -312,19 +312,19 @@ export class CronService {
   /**
    * Remove a cron job
    */
-  async removeJob(jobId: string): Promise<void> {
-    // Get job before deletion to access conversationId
-    const job = await this.repo.getById(jobId);
+  async removeJob(job_id: string): Promise<void> {
+    // Get job before deletion to access conversation_id
+    const job = await this.repo.getById(job_id);
 
     // Stop timer
-    this.stopTimer(jobId);
+    this.stopTimer(job_id);
 
     // Delete from database
-    await this.repo.delete(jobId);
+    await this.repo.delete(job_id);
 
     // Clean up SKILL.md file
     try {
-      await deleteCronSkillFile(jobId);
+      await deleteCronSkillFile(job_id);
     } catch (err) {
       console.warn('[CronService] Failed to delete SKILL.md:', err);
     }
@@ -336,25 +336,25 @@ export class CronService {
       try {
         if (job.target.executionMode === 'new_conversation') {
           // Delete all child conversations created by this cron job
-          const childConversations = await this.conversationRepo.getConversationsByCronJob(jobId);
+          const childConversations = await this.conversationRepo.getConversationsByCronJob(job_id);
           for (const conv of childConversations) {
             await this.conversationRepo.deleteConversation(conv.id);
             ipcBridge.conversation.listChanged.emit({
-              conversationId: conv.id,
+              conversation_id: conv.id,
               action: 'deleted',
               source: conv.source || 'aionui',
             });
           }
           if (childConversations.length > 0) {
-            console.log(`[CronService] Deleted ${childConversations.length} child conversations for job ${jobId}`);
+            console.log(`[CronService] Deleted ${childConversations.length} child conversations for job ${job_id}`);
           }
-        } else if (job.metadata.conversationId) {
-          // Remove cronJobId from the associated conversation's extra
-          const conv = await this.conversationRepo.getConversation(job.metadata.conversationId);
+        } else if (job.metadata.conversation_id) {
+          // Remove cron_job_id from the associated conversation's extra
+          const conv = await this.conversationRepo.getConversation(job.metadata.conversation_id);
           if (conv) {
             const existingExtra = (conv.extra ?? {}) as Record<string, unknown>;
-            delete existingExtra.cronJobId;
-            await this.conversationRepo.updateConversation(job.metadata.conversationId, {
+            delete existingExtra.cron_job_id;
+            await this.conversationRepo.updateConversation(job.metadata.conversation_id, {
               extra: existingExtra as TChatConversation['extra'],
             });
           }
@@ -367,34 +367,34 @@ export class CronService {
     await this.updatePowerBlocker();
 
     // Emit event to notify frontend
-    this.emitter.emitJobRemoved(jobId);
+    this.emitter.emitJobRemoved(job_id);
   }
 
   /**
    * Trigger a job to execute immediately (blocks until complete).
    * Used by scheduled timer execution.
    */
-  async triggerJob(jobId: string): Promise<void> {
-    const job = await this.repo.getById(jobId);
+  async triggerJob(job_id: string): Promise<void> {
+    const job = await this.repo.getById(job_id);
     if (!job) {
-      throw new Error(`Job not found: ${jobId}`);
+      throw new Error(`Job not found: ${job_id}`);
     }
     await this.executeJob(job);
   }
 
   /**
    * Run a job now: create the conversation (if needed), then execute in background.
-   * Returns the conversationId immediately so the frontend can navigate to it.
+   * Returns the conversation_id immediately so the frontend can navigate to it.
    */
-  async runNow(jobId: string): Promise<string> {
-    const job = await this.repo.getById(jobId);
+  async runNow(job_id: string): Promise<string> {
+    const job = await this.repo.getById(job_id);
     if (!job) {
-      throw new Error(`Job not found: ${jobId}`);
+      throw new Error(`Job not found: ${job_id}`);
     }
-    const conversationId = await this.executor.prepareConversation(job);
-    // Fire-and-forget: execute in background, pass the prepared conversationId to skip re-creation
-    void this.executeJob(job, conversationId);
-    return conversationId;
+    const conversation_id = await this.executor.prepareConversation(job);
+    // Fire-and-forget: execute in background, pass the prepared conversation_id to skip re-creation
+    void this.executeJob(job, conversation_id);
+    return conversation_id;
   }
 
   /**
@@ -407,15 +407,15 @@ export class CronService {
   /**
    * List cron jobs by conversation
    */
-  async listJobsByConversation(conversationId: string): Promise<CronJob[]> {
-    return this.repo.listByConversation(conversationId);
+  async listJobsByConversation(conversation_id: string): Promise<CronJob[]> {
+    return this.repo.listByConversation(conversation_id);
   }
 
   /**
    * Get a specific job
    */
-  async getJob(jobId: string): Promise<CronJob | null> {
-    return this.repo.getById(jobId);
+  async getJob(job_id: string): Promise<CronJob | null> {
+    return this.repo.getById(job_id);
   }
 
   /**
@@ -512,8 +512,8 @@ export class CronService {
    * Stop timer for a job
    * Also clears associated retry timers
    */
-  private stopTimer(jobId: string): void {
-    const timer = this.timers.get(jobId);
+  private stopTimer(job_id: string): void {
+    const timer = this.timers.get(job_id);
     if (timer) {
       if (timer instanceof Cron) {
         timer.stop();
@@ -521,18 +521,18 @@ export class CronService {
         clearTimeout(timer);
         clearInterval(timer);
       }
-      this.timers.delete(jobId);
+      this.timers.delete(job_id);
     }
 
     // Also clear any retry timers
-    const retryTimer = this.retryTimers.get(jobId);
+    const retryTimer = this.retryTimers.get(job_id);
     if (retryTimer) {
       clearTimeout(retryTimer);
-      this.retryTimers.delete(jobId);
+      this.retryTimers.delete(job_id);
     }
 
     // Clear retry count for this job
-    this.retryCounts.delete(jobId);
+    this.retryCounts.delete(job_id);
   }
 
   /**
@@ -540,10 +540,10 @@ export class CronService {
    * Handles conversation busy state with retries and power management
    */
   private async executeJob(job: CronJob, preparedConversationId?: string): Promise<void> {
-    const conversationId = preparedConversationId ?? job.metadata.conversationId;
+    const conversation_id = preparedConversationId ?? job.metadata.conversation_id;
 
     // Check if conversation is busy
-    const isBusy = this.executor.isConversationBusy(conversationId);
+    const isBusy = this.executor.isConversationBusy(conversation_id);
     if (isBusy) {
       const currentRetry = (this.retryCounts.get(job.id) ?? 0) + 1;
       this.retryCounts.set(job.id, currentRetry);
@@ -594,11 +594,11 @@ export class CronService {
         preparedConversationId
       );
 
-      // For "existing" mode: persist the newly created conversationId so subsequent executions reuse it
+      // For "existing" mode: persist the newly created conversation_id so subsequent executions reuse it
       if (newConversationId && job.target.executionMode === 'existing') {
-        job.metadata.conversationId = newConversationId;
+        job.metadata.conversation_id = newConversationId;
         await this.repo.update(job.id, {
-          metadata: { ...job.metadata, conversationId: newConversationId },
+          metadata: { ...job.metadata, conversation_id: newConversationId },
         });
       }
 
@@ -607,14 +607,14 @@ export class CronService {
       lastStatus = 'ok';
       lastError = undefined;
 
-      // Update conversation modifiedAt so it appears at the top of the list
-      const activeConversationId = newConversationId || conversationId;
+      // Update conversation modified_at so it appears at the top of the list
+      const activeConversationId = newConversationId || conversation_id;
       try {
         await this.conversationRepo.updateConversation(activeConversationId, {
-          modifiedAt: Date.now(),
+          modified_at: Date.now(),
         });
       } catch (err) {
-        console.warn('[CronService] Failed to update conversation modifiedAt after execution:', err);
+        console.warn('[CronService] Failed to update conversation modified_at after execution:', err);
       }
     } catch (error) {
       // Error
@@ -648,9 +648,9 @@ export class CronService {
    * Must be called BEFORE sendMessage to avoid race conditions.
    */
   private registerCompletionNotification(job: CronJob): void {
-    const { conversationId } = job.metadata;
+    const { conversation_id } = job.metadata;
 
-    this.executor.onceIdle(conversationId, async () => {
+    this.executor.onceIdle(conversation_id, async () => {
       // Check if cron notification is enabled
       const cronNotificationEnabled = await ProcessConfig.get('system.cronNotificationEnabled');
       if (!cronNotificationEnabled) return;
@@ -662,7 +662,7 @@ export class CronService {
       });
       const body = i18n.t('cron.notification.taskDone');
 
-      this.emitter.showNotification({ title, body, conversationId }).catch((err) => {
+      this.emitter.showNotification({ title, body, conversation_id }).catch((err) => {
         console.warn('[CronService] Failed to show notification:', err);
       });
     });
@@ -746,7 +746,7 @@ export class CronService {
    * about a missed scheduled task execution.
    */
   private insertMissedJobMessage(job: CronJob, scheduledAtMs: number): void {
-    const { conversationId } = job.metadata;
+    const { conversation_id } = job.metadata;
     const scheduledTime = new Date(scheduledAtMs).toLocaleString();
     const msgId = uuid();
     const content = i18n.t('cron:error.missedJob', {
@@ -760,17 +760,17 @@ export class CronService {
       msg_id: msgId,
       type: 'tips',
       position: 'center',
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
       content: { content, type: 'warning' as const },
-      createdAt: Date.now(),
+      created_at: Date.now(),
       status: 'finish',
     };
-    addMessage(conversationId, message);
+    addMessage(conversation_id, message);
 
     // Emit to frontend so it shows immediately if conversation is open
     ipcBridge.conversation.responseStream.emit({
       type: 'tips',
-      conversation_id: conversationId,
+      conversation_id: conversation_id,
       msg_id: msgId,
       data: { content, type: 'warning' },
     });
@@ -808,8 +808,8 @@ export class CronService {
    * Called on service shutdown
    */
   private cleanup(): void {
-    for (const jobId of this.timers.keys()) {
-      this.stopTimer(jobId);
+    for (const job_id of this.timers.keys()) {
+      this.stopTimer(job_id);
     }
     this.timers.clear();
     this.retryTimers.clear();

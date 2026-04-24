@@ -16,7 +16,7 @@ import { AUTH_CONFIG } from '../../config/constants';
  * Token payload interface
  */
 export interface TokenPayload {
-  userId: string;
+  user_id: string;
   username: string;
 }
 
@@ -148,7 +148,7 @@ export const createAuthMiddleware = (type: 'json' | 'html' = 'json') => {
     }
 
     // 3. 查找用户 / Find user
-    const user = await UserRepository.findById(decoded.userId);
+    const user = await UserRepository.findById(decoded.user_id);
     if (!user) {
       strategy.handleUnauthorized(res);
       return;

@@ -57,10 +57,10 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
     setIsResponding(true);
     try {
       const invokeData = {
-        confirmKey: selected,
+        confirm_key: selected,
         msg_id: message.id,
         conversation_id: message.conversation_id,
-        callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
+        call_id: toolCall?.tool_call_id || message.id, // 使用 tool_call_id 或 message.id 作为 fallback
       };
 
       await conversation.confirmMessage.invoke(invokeData);
@@ -100,9 +100,9 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
               {options && options.length > 0 ? (
                 options.map((option, index) => {
                   const optionName = option?.name || `${t('messages.option')} ${index + 1}`;
-                  const optionId = option?.optionId || `option_${index}`;
+                  const option_id = option?.option_id || `option_${index}`;
                   return (
-                    <Radio key={optionId} value={optionId}>
+                    <Radio key={option_id} value={option_id}>
                       {optionName}
                     </Radio>
                   );

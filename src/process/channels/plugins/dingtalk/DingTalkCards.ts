@@ -182,7 +182,7 @@ export function createAgentSelectionCard(
   const agentButtons: DingTalkButton[] = availableAgents.map((agent) => {
     const label =
       currentAgent === agent.type ? `[Current] ${agent.emoji} ${agent.name}` : `${agent.emoji} ${agent.name}`;
-    return btn(label, 'agent.select', { agentType: agent.type });
+    return btn(label, 'agent.select', { agent_type: agent.type });
   });
 
   return {
@@ -204,8 +204,8 @@ export function createAgentSelectionCard(
  */
 export function createSessionStatusCard(session?: {
   id: string;
-  agentType: ChannelAgentType;
-  createdAt: number;
+  agent_type: ChannelAgentType;
+  created_at: number;
   lastActivity: number;
 }): DingTalkCard {
   if (!session) {
@@ -222,7 +222,7 @@ export function createSessionStatusCard(session?: {
     };
   }
 
-  const duration = Math.floor((Date.now() - session.createdAt) / 1000 / 60);
+  const duration = Math.floor((Date.now() - session.created_at) / 1000 / 60);
   const lastActivity = Math.floor((Date.now() - session.lastActivity) / 1000);
 
   return {
@@ -230,7 +230,7 @@ export function createSessionStatusCard(session?: {
     text: [
       '### Session Status',
       '',
-      `- **Agent:** ${session.agentType}`,
+      `- **Agent:** ${session.agent_type}`,
       `- **Duration:** ${duration} min`,
       `- **Last activity:** ${lastActivity} sec ago`,
       `- **Session ID:** \`${session.id.slice(-8)}\``,
@@ -368,13 +368,13 @@ export function createErrorRecoveryCard(errorMessage?: string): DingTalkCard {
  * Create tool confirmation card
  */
 export function createToolConfirmationCard(
-  callId: string,
+  call_id: string,
   title: string,
   description: string,
   options: Array<{ label: string; value: string }>
 ): DingTalkCard {
   const buttons: DingTalkButton[] = options.map((opt) =>
-    btn(opt.label, 'system.confirm', { callId, value: opt.value })
+    btn(opt.label, 'system.confirm', { call_id, value: opt.value })
   );
 
   return {

@@ -4,12 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
-  ConfigStorage,
-  type IConfigStorageRefer,
-  type IMcpServer,
-  BUILTIN_IMAGE_GEN_ID,
-} from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
+import type { ConfigKeyMap } from '@/common/config/configKeys';
+import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
@@ -42,14 +39,14 @@ const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
   provider: 'openai',
   openai: {
-    apiKey: '',
-    baseUrl: '',
+    api_key: '',
+    base_url: '',
     language: '',
     model: 'whisper-1',
   },
   deepgram: {
-    apiKey: '',
-    baseUrl: '',
+    api_key: '',
+    base_url: '',
     detectLanguage: true,
     language: '',
     model: 'nova-2',
@@ -156,13 +153,13 @@ const SpeechToTextSettingsSection: React.FC<{
           <>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
               <Input.Password
-                value={config.openai?.apiKey}
+                value={config.openai?.api_key}
                 visibilityToggle
-                onChange={(value) => handleOpenAIChange('apiKey', value)}
+                onChange={(value) => handleOpenAIChange('api_key', value)}
               />
             </Form.Item>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
-              <Input value={config.openai?.baseUrl} onChange={(value) => handleOpenAIChange('baseUrl', value)} />
+              <Input value={config.openai?.base_url} onChange={(value) => handleOpenAIChange('base_url', value)} />
             </Form.Item>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
               <Input value={config.openai?.model} onChange={(value) => handleOpenAIChange('model', value)} />
@@ -175,13 +172,13 @@ const SpeechToTextSettingsSection: React.FC<{
           <>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
               <Input.Password
-                value={config.deepgram?.apiKey}
+                value={config.deepgram?.api_key}
                 visibilityToggle
-                onChange={(value) => handleDeepgramChange('apiKey', value)}
+                onChange={(value) => handleDeepgramChange('api_key', value)}
               />
             </Form.Item>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
-              <Input value={config.deepgram?.baseUrl} onChange={(value) => handleDeepgramChange('baseUrl', value)} />
+              <Input value={config.deepgram?.base_url} onChange={(value) => handleDeepgramChange('base_url', value)} />
             </Form.Item>
             <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
               <Input value={config.deepgram?.model} onChange={(value) => handleDeepgramChange('model', value)} />
@@ -287,7 +284,7 @@ const ModalMcpManagementSection: React.FC<{
   );
 
   const wrappedHandleAddMcpServer = useCallback(
-    async (serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => {
+    async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const addedServer = await handleAddMcpServer(serverData);
       if (addedServer) {
         void handleTestMcpConnection(addedServer);
@@ -303,7 +300,7 @@ const ModalMcpManagementSection: React.FC<{
   );
 
   const wrappedHandleEditMcpServer = useCallback(
-    async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => {
+    async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const updatedServer = await handleEditMcpServer(serverToEdit, serverData);
       if (updatedServer) {
         void handleTestMcpConnection(updatedServer);
@@ -319,7 +316,7 @@ const ModalMcpManagementSection: React.FC<{
   );
 
   const wrappedHandleBatchImportMcpServers = useCallback(
-    async (serversData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => {
+    async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
       const addedServers = await handleBatchImportMcpServers(serversData);
       if (addedServers && addedServers.length > 0) {
         addedServers.forEach((server) => {
@@ -514,7 +511,7 @@ const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<
-    IConfigStorageRefer['tools.imageGenerationModel'] | undefined
+    ConfigKeyMap['tools.imageGenerationModel'] | undefined
   >();
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
@@ -550,8 +547,8 @@ const ToolsModalContent: React.FC = () => {
   useEffect(() => {
     const loadConfigs = async () => {
       try {
-        const storedModel = await ConfigStorage.get('tools.imageGenerationModel');
-        const storedSpeechToTextConfig = await ConfigStorage.get('tools.speechToText');
+        const storedModel = configService.get('tools.imageGenerationModel');
+        const storedSpeechToTextConfig = configService.get('tools.speechToText');
         if (storedModel) {
           setImageGenerationModel(storedModel);
         }
@@ -567,7 +564,7 @@ const ToolsModalContent: React.FC = () => {
   const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setSpeechToTextConfig((current) => {
       const next = normalizeSpeechToTextConfig(updater(current));
-      ConfigStorage.set('tools.speechToText', next).catch((error) => {
+      configService.set('tools.speechToText', next).catch((error) => {
         console.error('Failed to save speech-to-text config:', error);
       });
       if (typeof window !== 'undefined') {
@@ -587,11 +584,11 @@ const ToolsModalContent: React.FC = () => {
   }, [builtinImageGenServer?.enabled, builtinImageGenServer?.name, checkSingleServerInstallStatus]);
 
   const clearImageGenerationAgentStatus = useCallback(
-    (serverName: string) => {
+    (server_name: string) => {
       const updated = { ...agentInstallStatus };
-      delete updated[serverName];
+      delete updated[server_name];
       setAgentInstallStatus(updated);
-      void ConfigStorage.set('mcp.agentInstallStatus', updated).catch((error) => {
+      void configService.set('mcp.agentInstallStatus', updated).catch((error) => {
         console.error('Failed to clear image generation agent install status:', error);
       });
     },
@@ -600,7 +597,7 @@ const ToolsModalContent: React.FC = () => {
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
-    async (model: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+    async (model: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
@@ -610,13 +607,13 @@ const ToolsModalContent: React.FC = () => {
       } else {
         delete env.AIONUI_IMG_PLATFORM;
       }
-      if (model.baseUrl) {
-        env.AIONUI_IMG_BASE_URL = model.baseUrl;
+      if (model.base_url) {
+        env.AIONUI_IMG_BASE_URL = model.base_url;
       } else {
         delete env.AIONUI_IMG_BASE_URL;
       }
-      if (model.apiKey) {
-        env.AIONUI_IMG_API_KEY = model.apiKey;
+      if (model.api_key) {
+        env.AIONUI_IMG_API_KEY = model.api_key;
       } else {
         delete env.AIONUI_IMG_API_KEY;
       }
@@ -629,7 +626,7 @@ const ToolsModalContent: React.FC = () => {
       const updatedServer: IMcpServer = {
         ...builtinServer,
         transport: { ...builtinServer.transport, env },
-        updatedAt: Date.now(),
+        updated_at: Date.now(),
       };
 
       const updatedServers = mcpServers.map((s) => (s.id === BUILTIN_IMAGE_GEN_ID ? updatedServer : s));
@@ -641,37 +638,37 @@ const ToolsModalContent: React.FC = () => {
     [mcpServers, saveMcpServers, syncMcpToAgents]
   );
 
-  // Sync imageGenerationModel apiKey when provider apiKey changes
+  // Sync imageGenerationModel api_key when provider api_key changes
   useEffect(() => {
     if (!imageGenerationModel || !data) return;
 
     const currentProvider = data.find((p) => p.id === imageGenerationModel.id);
 
-    if (currentProvider && currentProvider.apiKey !== imageGenerationModel.apiKey) {
+    if (currentProvider && currentProvider.api_key !== imageGenerationModel.api_key) {
       const updatedModel = {
         ...imageGenerationModel,
-        apiKey: currentProvider.apiKey,
+        api_key: currentProvider.api_key,
       };
 
       setImageGenerationModel(updatedModel);
-      ConfigStorage.set('tools.imageGenerationModel', updatedModel).catch((error) => {
+      configService.set('tools.imageGenerationModel', updatedModel).catch((error) => {
         console.error('Failed to save image generation model config:', error);
       });
       void syncMcpServerEnv(updatedModel);
     } else if (!currentProvider) {
       setImageGenerationModel(undefined);
-      ConfigStorage.remove('tools.imageGenerationModel').catch((error) => {
+      configService.remove('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
       void syncMcpServerEnv({});
     }
-  }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey, syncMcpServerEnv]);
+  }, [data, imageGenerationModel?.id, imageGenerationModel?.api_key, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
-    (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
+    (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
       setImageGenerationModel((prev) => {
         const newImageGenerationModel = { ...prev, ...value };
-        ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });
         // Sync env vars to the built-in MCP server
@@ -689,7 +686,7 @@ const ToolsModalContent: React.FC = () => {
       const updatedServer: IMcpServer = {
         ...builtinImageGenServer,
         enabled: checked,
-        updatedAt: Date.now(),
+        updated_at: Date.now(),
       };
 
       setIsUpdatingImageGeneration(true);
@@ -702,7 +699,7 @@ const ToolsModalContent: React.FC = () => {
         setImageGenerationModel((prev) => {
           if (!prev) return prev;
           const next = { ...prev, switch: checked };
-          ConfigStorage.set('tools.imageGenerationModel', next).catch((error) => {
+          configService.set('tools.imageGenerationModel', next).catch((error) => {
             console.error('Failed to sync image generation switch state:', error);
           });
           return next;
@@ -770,7 +767,7 @@ const ToolsModalContent: React.FC = () => {
               <div className='flex items-center gap-8px'>
                 {builtinImageGenServer?.enabled && builtinImageGenServer.name && (
                   <McpAgentStatusDisplay
-                    serverName={builtinImageGenServer.name}
+                    server_name={builtinImageGenServer.name}
                     agentInstallStatus={agentInstallStatus}
                     isLoadingAgentStatus={
                       isServerLoading(builtinImageGenServer.name) && imageGenerationInstalledAgents.length === 0

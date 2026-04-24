@@ -12,9 +12,9 @@ const STORAGE_KEY_PREFIX = 'team-pending-permissions-';
  * Subscribes to live IPC events to stay up to date.
  */
 export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
-  const readFromStorage = (teamId: string): number => {
+  const readFromStorage = (team_id: string): number => {
     try {
-      const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${teamId}`);
+      const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${team_id}`);
       if (!raw) return 0;
       const counts = JSON.parse(raw) as Record<string, number>;
       return Object.values(counts).reduce((sum, n) => sum + n, 0);
@@ -34,24 +34,24 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
   const [counts, setCounts] = useState<Map<string, number>>(initCounts);
 
   useEffect(() => {
-    // Build conversationId → teamId lookup
+    // Build conversation_id → team_id lookup
     const cidToTeamId = new Map<string, string>();
     for (const team of teams) {
       for (const agent of team.agents) {
-        if (agent.conversationId) {
-          cidToTeamId.set(agent.conversationId, team.id);
+        if (agent.conversation_id) {
+          cidToTeamId.set(agent.conversation_id, team.id);
         }
       }
     }
 
     if (cidToTeamId.size === 0) return;
 
-    const updateCount = (conversationId: string, delta: number) => {
-      const teamId = cidToTeamId.get(conversationId);
-      if (!teamId) return;
+    const updateCount = (conversation_id: string, delta: number) => {
+      const team_id = cidToTeamId.get(conversation_id);
+      if (!team_id) return;
       setCounts((prev) => {
         const next = new Map(prev);
-        next.set(teamId, Math.max(0, (next.get(teamId) ?? 0) + delta));
+        next.set(team_id, Math.max(0, (next.get(team_id) ?? 0) + delta));
         return next;
       });
     };
@@ -62,28 +62,28 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
     const fetchCurrent = async () => {
       const teamCounts = new Map<string, number>();
       const teamFailed = new Set<string>();
-      for (const [, teamId] of cidToTeamId) {
-        if (!teamCounts.has(teamId)) teamCounts.set(teamId, 0);
+      for (const [, team_id] of cidToTeamId) {
+        if (!teamCounts.has(team_id)) teamCounts.set(team_id, 0);
       }
       await Promise.allSettled(
-        Array.from(cidToTeamId.entries()).map(async ([cid, teamId]) => {
+        Array.from(cidToTeamId.entries()).map(async ([cid, team_id]) => {
           try {
             const data = await ipcBridge.conversation.confirmation.list.invoke({ conversation_id: cid });
-            teamCounts.set(teamId, (teamCounts.get(teamId) ?? 0) + data.length);
+            teamCounts.set(team_id, (teamCounts.get(team_id) ?? 0) + data.length);
           } catch {
-            teamFailed.add(teamId);
+            teamFailed.add(team_id);
           }
         })
       );
       // For teams where ALL cid queries failed, keep the localStorage fallback
       setCounts((prev) => {
         const next = new Map<string, number>();
-        for (const [teamId, fetched] of teamCounts) {
-          if (fetched === 0 && teamFailed.has(teamId)) {
+        for (const [team_id, fetched] of teamCounts) {
+          if (fetched === 0 && teamFailed.has(team_id)) {
             // All queries for this team failed — keep previous (localStorage-seeded) value
-            next.set(teamId, prev.get(teamId) ?? readFromStorage(teamId));
+            next.set(team_id, prev.get(team_id) ?? readFromStorage(team_id));
           } else {
-            next.set(teamId, fetched);
+            next.set(team_id, fetched);
           }
         }
         return next;
@@ -100,9 +100,9 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
         updateCount(data.conversation_id, -1);
       })
     );
-    // Include agent conversationIds in deps so the effect re-runs when agents spawn
-    // and receive their conversationId (initially undefined until spawn completes).
-  }, [teams.map((t) => `${t.id}:${t.agents.map((a) => a.conversationId || '').join(',')}`).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Include agent conversation_ids in deps so the effect re-runs when agents spawn
+    // and receive their conversation_id (initially undefined until spawn completes).
+  }, [teams.map((t) => `${t.id}:${t.agents.map((a) => a.conversation_id || '').join(',')}`).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return counts;
 }

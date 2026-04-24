@@ -17,7 +17,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
     const [model, setModel] = useState('');
     const [modelProtocol, setModelProtocol] = useState<string>('openai');
     const isNewApi = isNewApiPlatform(data?.platform ?? '');
-    const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey);
+    const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.base_url, data?.api_key);
     const existingModels = data?.model || [];
     const optionsList = useMemo(() => {
       // 处理新的数据格式，可能包含 fix_base_url
@@ -37,7 +37,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
 
       // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
       if (isNewApi) {
-        updatedData.modelProtocols = { ...data?.modelProtocols, [model]: modelProtocol };
+        updatedData.model_protocols = { ...data?.model_protocols, [model]: modelProtocol };
       }
 
       onSubmit(updatedData);
@@ -93,7 +93,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
           )}
 
           <div className='space-y-8px'>
-            {/* <div className='text-13px font-500 text-t-secondary'>{t('settings.currentModelsLabel')}</div>
+            {/* <div className='text-13px font-500 text-t-secondary'>{t('settings.current_modelsLabel')}</div>
           {existingModels.length === 0 ? (
             <div className='text-13px text-t-secondary bg-fill-1 rd-8px px-12px py-14px border border-dashed border-border-2'>{t('settings.addModelNoExisting')}</div>
           ) : (

@@ -196,11 +196,11 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
 const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => string) => {
   // 如果有 i18nKey 且提供了翻译函数，使用翻译后的名称；否则使用原始名称
   // If i18nKey exists and t function is provided, use translated name; otherwise use original name
-  const displayName = platform.i18nKey && t ? t(platform.i18nKey) : platform.name;
+  const display_name = platform.i18nKey && t ? t(platform.i18nKey) : platform.name;
   return (
     <div className='flex items-center gap-8px'>
-      <ProviderLogo logo={platform.logo} name={displayName} size={18} />
-      <span>{displayName}</span>
+      <ProviderLogo logo={platform.logo} name={display_name} size={18} />
+      <span>{display_name}</span>
     </div>
   );
 };
@@ -212,14 +212,14 @@ const AddPlatformModal = ModalHOC<{
   const [message, messageContext] = Message.useMessage();
   const { t } = useTranslation();
   const [form] = Form.useForm();
-  const [apiKeyEditorVisible, setApiKeyEditorVisible] = useState(false);
+  const [api_keyEditorVisible, setApiKeyEditorVisible] = useState(false);
   // 用于追踪上次检测时的输入值，避免重复检测
   // Track last detection input to avoid redundant detection
-  const [lastDetectionInput, setLastDetectionInput] = useState<{ baseUrl: string; apiKey: string } | null>(null);
+  const [lastDetectionInput, setLastDetectionInput] = useState<{ base_url: string; api_key: string } | null>(null);
 
   const platformValue = Form.useWatch('platform', form);
-  const baseUrl = Form.useWatch('baseUrl', form);
-  const apiKey = Form.useWatch('apiKey', form);
+  const base_url = Form.useWatch('base_url', form);
+  const api_key = Form.useWatch('api_key', form);
   const modelValue = Form.useWatch('model', form);
   const bedrockAuthMethod = Form.useWatch('bedrockAuthMethod', form);
   const _bedrockRegion = Form.useWatch('bedrockRegion', form);
@@ -228,7 +228,7 @@ const AddPlatformModal = ModalHOC<{
   const selectedPlatform = useMemo(() => getPlatformByValue(platformValue), [platformValue]);
 
   const platform = selectedPlatform?.platform ?? 'gemini';
-  // 判断是否为"自定义"选项（没有预设 baseUrl） / Check if "Custom" option (no preset baseUrl)
+  // 判断是否为"自定义"选项（没有预设 base_url） / Check if "Custom" option (no preset base_url)
   const isCustom = isCustomOption(platformValue);
   const isBedrock = platform === 'bedrock';
   const isGemini = isGeminiPlatform(platform);
@@ -244,16 +244,16 @@ const AddPlatformModal = ModalHOC<{
     }
   }, [modelValue, isNewApi]);
 
-  // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
-  // Calculate actual baseUrl (prefer user input, fallback to platform preset)
+  // 计算实际使用的 base_url（优先使用用户输入，否则使用平台预设）
+  // Calculate actual base_url (prefer user input, fallback to platform preset)
   const actualBaseUrl = useMemo(() => {
-    if (baseUrl) return baseUrl;
-    return selectedPlatform?.baseUrl || '';
-  }, [baseUrl, selectedPlatform?.baseUrl]);
+    if (base_url) return base_url;
+    return selectedPlatform?.base_url || '';
+  }, [base_url, selectedPlatform?.base_url]);
 
-  // For Bedrock, don't pass bedrockConfig to avoid auto-refresh on input changes
+  // For Bedrock, don't pass bedrock_config to avoid auto-refresh on input changes
   // We'll build it dynamically in onFocus
-  const modelListState = useModeModeList(platform, actualBaseUrl, apiKey, true, undefined);
+  const modelListState = useModeModeList(platform, actualBaseUrl, api_key, true, undefined);
 
   // 协议检测 Hook / Protocol detection hook
   // 启用检测的条件：
@@ -262,15 +262,15 @@ const AddPlatformModal = ModalHOC<{
   // Enable detection when:
   // 1. Custom platform OR user entered a custom base URL (non-official, like local proxy)
   // 2. Input values differ from last "accepted suggestion" (avoid redundant detection after platform switch)
-  const isNonOfficialBaseUrl = baseUrl && !isGoogleApisHost(baseUrl);
+  const isNonOfficialBaseUrl = base_url && !isGoogleApisHost(base_url);
   const shouldEnableDetection = isCustom || isNonOfficialBaseUrl;
   // 只有在用户修改了输入值（相对于上次采纳建议时）才触发检测
   // Only trigger detection when input changed since last accepted suggestion
   const inputChangedSinceLastSwitch =
-    !lastDetectionInput || lastDetectionInput.baseUrl !== actualBaseUrl || lastDetectionInput.apiKey !== apiKey;
+    !lastDetectionInput || lastDetectionInput.base_url !== actualBaseUrl || lastDetectionInput.api_key !== api_key;
   const protocolDetection = useProtocolDetection(
     shouldEnableDetection && inputChangedSinceLastSwitch ? actualBaseUrl : '',
-    shouldEnableDetection && inputChangedSinceLastSwitch ? apiKey : '',
+    shouldEnableDetection && inputChangedSinceLastSwitch ? api_key : '',
     {
       debounceMs: 1000,
       autoDetect: true,
@@ -292,7 +292,7 @@ const AddPlatformModal = ModalHOC<{
       protocolDetection.reset();
       // 记录当前输入，防止切换后重复检测
       // Record current input to prevent redundant detection after switch
-      setLastDetectionInput({ baseUrl: actualBaseUrl, apiKey });
+      setLastDetectionInput({ base_url: actualBaseUrl, api_key });
       message.success(t('settings.platformSwitched', { platform: targetPlatform.name }));
     }
   };
@@ -308,11 +308,11 @@ const AddPlatformModal = ModalHOC<{
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
 
       // Pre-fill from deep link data (aionui:// protocol)
-      if (deepLinkData?.baseUrl || deepLinkData?.apiKey) {
+      if (deepLinkData?.base_url || deepLinkData?.api_key) {
         // Default to new-api platform for deep links (typical one-api/new-api usage)
         form.setFieldValue('platform', deepLinkData.platform || 'new-api');
-        if (deepLinkData.baseUrl) form.setFieldValue('baseUrl', deepLinkData.baseUrl);
-        if (deepLinkData.apiKey) form.setFieldValue('apiKey', deepLinkData.apiKey);
+        if (deepLinkData.base_url) form.setFieldValue('base_url', deepLinkData.base_url);
+        if (deepLinkData.api_key) form.setFieldValue('api_key', deepLinkData.api_key);
       } else {
         form.setFieldValue('platform', 'gemini');
       }
@@ -328,8 +328,8 @@ const AddPlatformModal = ModalHOC<{
   // 处理自动修复的 base_url / Handle auto-fixed base_url
   useEffect(() => {
     if (modelListState.data?.fix_base_url) {
-      form.setFieldValue('baseUrl', modelListState.data.fix_base_url);
-      message.info(t('settings.baseUrlAutoFix', { base_url: modelListState.data.fix_base_url }));
+      form.setFieldValue('base_url', modelListState.data.fix_base_url);
+      message.info(t('settings.base_urlAutoFix', { base_url: modelListState.data.fix_base_url }));
     }
   }, [modelListState.data?.fix_base_url, form]);
 
@@ -346,22 +346,22 @@ const AddPlatformModal = ModalHOC<{
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
           name,
-          // 优先使用用户输入的 baseUrl，否则使用平台预设值
-          // Prefer user input baseUrl, fallback to platform preset
-          baseUrl: isBedrock ? '' : values.baseUrl || selectedPlatform?.baseUrl || '',
-          apiKey: isBedrock ? '' : values.apiKey,
+          // 优先使用用户输入的 base_url，否则使用平台预设值
+          // Prefer user input base_url, fallback to platform preset
+          base_url: isBedrock ? '' : values.base_url || selectedPlatform?.base_url || '',
+          api_key: isBedrock ? '' : values.api_key,
           model: [values.model],
         };
 
         // Add Bedrock configuration if platform is Bedrock
         if (isBedrock) {
-          provider.bedrockConfig = {
-            authMethod: values.bedrockAuthMethod,
+          provider.bedrock_config = {
+            auth_method: values.bedrockAuthMethod,
             region: values.bedrockRegion,
             ...(values.bedrockAuthMethod === 'accessKey'
               ? {
-                  accessKeyId: values.bedrockAccessKeyId,
-                  secretAccessKey: values.bedrockSecretAccessKey,
+                  access_key_id: values.bedrockAccessKeyId,
+                  secret_access_key: values.bedrockSecretAccessKey,
                 }
               : {
                   profile: values.bedrockProfile,
@@ -371,7 +371,7 @@ const AddPlatformModal = ModalHOC<{
 
         // new-api 平台：保存每模型协议配置 / new-api platform: save per-model protocol config
         if (isNewApi && values.model) {
-          provider.modelProtocols = { [values.model]: modelProtocol };
+          provider.model_protocols = { [values.model]: modelProtocol };
         }
 
         onSubmit(provider);
@@ -441,13 +441,13 @@ const AddPlatformModal = ModalHOC<{
           {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
           <Form.Item
             hidden={isBedrock || (!isCustom && !isNewApi && platformValue !== 'gemini')}
-            label={t('settings.baseUrl')}
-            field={'baseUrl'}
+            label={t('settings.base_url')}
+            field={'base_url'}
             required={isCustom || isNewApi}
             rules={[{ required: isCustom || isNewApi }]}
           >
             <Input
-              placeholder={isNewApi ? 'https://your-newapi-instance.com' : selectedPlatform?.baseUrl || ''}
+              placeholder={isNewApi ? 'https://your-newapi-instance.com' : selectedPlatform?.base_url || ''}
               onBlur={() => {
                 void modelListState.mutate();
               }}
@@ -457,10 +457,10 @@ const AddPlatformModal = ModalHOC<{
           {/* API Key */}
           <Form.Item
             hidden={isBedrock}
-            label={t('settings.apiKey')}
+            label={t('settings.api_key')}
             required={!isBedrock}
             rules={[{ required: !isBedrock }]}
-            field={'apiKey'}
+            field={'api_key'}
             extra={
               <div className='space-y-2px'>
                 <div className='text-11px text-t-secondary mt-2 leading-4'>{t('settings.multiApiKeyTip')}</div>
@@ -494,15 +494,15 @@ const AddPlatformModal = ModalHOC<{
           {/* AWS Bedrock Authentication Method */}
           <Form.Item
             hidden={!isBedrock}
-            label={t('settings.bedrock.authMethod')}
+            label={t('settings.bedrock.auth_method')}
             field={'bedrockAuthMethod'}
             initialValue='accessKey'
             required={isBedrock}
             rules={[{ required: isBedrock }]}
           >
             <Select>
-              <Select.Option value='accessKey'>{t('settings.bedrock.authMethodAccessKey')}</Select.Option>
-              <Select.Option value='profile'>{t('settings.bedrock.authMethodProfile')}</Select.Option>
+              <Select.Option value='accessKey'>{t('settings.bedrock.auth_methodAccessKey')}</Select.Option>
+              <Select.Option value='profile'>{t('settings.bedrock.auth_methodProfile')}</Select.Option>
             </Select>
           </Form.Item>
 
@@ -531,7 +531,7 @@ const AddPlatformModal = ModalHOC<{
           {/* Access Key ID */}
           <Form.Item
             hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-            label={t('settings.bedrock.accessKeyId')}
+            label={t('settings.bedrock.access_key_id')}
             field={'bedrockAccessKeyId'}
             required={isBedrock && bedrockAuthMethod === 'accessKey'}
             rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}
@@ -542,7 +542,7 @@ const AddPlatformModal = ModalHOC<{
           {/* Secret Access Key */}
           <Form.Item
             hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-            label={t('settings.bedrock.secretAccessKey')}
+            label={t('settings.bedrock.secret_access_key')}
             field={'bedrockSecretAccessKey'}
             required={isBedrock && bedrockAuthMethod === 'accessKey'}
             rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}
@@ -579,11 +579,11 @@ const AddPlatformModal = ModalHOC<{
                 <Search
                   onClick={async (e) => {
                     e.stopPropagation();
-                    if ((isCustom || isNewApi) && !baseUrl) {
+                    if ((isCustom || isNewApi) && !base_url) {
                       message.warning(t('settings.pleaseEnterBaseUrl'));
                       return;
                     }
-                    // For Bedrock, build bedrockConfig from current form values and fetch models
+                    // For Bedrock, build bedrock_config from current form values and fetch models
                     if (isBedrock) {
                       const values = form.getFields();
                       if (!values.bedrockAuthMethod || !values.bedrockRegion) {
@@ -601,14 +601,14 @@ const AddPlatformModal = ModalHOC<{
                         message.warning(t('settings.bedrock.fillRequiredFields'));
                         return;
                       }
-                      // Build bedrockConfig and fetch models manually
-                      const bedrockConfig = {
-                        authMethod: values.bedrockAuthMethod,
+                      // Build bedrock_config and fetch models manually
+                      const bedrock_config = {
+                        auth_method: values.bedrockAuthMethod,
                         region: values.bedrockRegion,
                         ...(values.bedrockAuthMethod === 'accessKey'
                           ? {
-                              accessKeyId: values.bedrockAccessKeyId,
-                              secretAccessKey: values.bedrockSecretAccessKey,
+                              access_key_id: values.bedrockAccessKeyId,
+                              secret_access_key: values.bedrockSecretAccessKey,
                             }
                           : {
                               profile: values.bedrockProfile,
@@ -618,7 +618,7 @@ const AddPlatformModal = ModalHOC<{
                         const res = await ipcBridge.mode.fetchModelList.invoke({
                           platform,
                           api_key: '',
-                          bedrockConfig,
+                          bedrock_config,
                         });
                         const models =
                           res.mode.map((v) => {
@@ -635,8 +635,8 @@ const AddPlatformModal = ModalHOC<{
                       }
                       return;
                     }
-                    // For Gemini, no apiKey check needed
-                    if (!isGemini && !apiKey) {
+                    // For Gemini, no api_key check needed
+                    if (!isGemini && !api_key) {
                       message.warning(t('settings.pleaseEnterApiKey'));
                       return;
                     }
@@ -665,11 +665,11 @@ const AddPlatformModal = ModalHOC<{
 
       {/* API Key 编辑器弹窗 / API Key Editor Modal */}
       <ApiKeyEditorModal
-        visible={apiKeyEditorVisible}
-        apiKeys={apiKey || ''}
+        visible={api_keyEditorVisible}
+        api_keys={api_key || ''}
         onClose={() => setApiKeyEditorVisible(false)}
         onSave={(keys) => {
-          form.setFieldValue('apiKey', keys);
+          form.setFieldValue('api_key', keys);
           void modelListState.mutate();
         }}
         onTestKey={async (key) => {

@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -24,7 +24,7 @@ export interface GeminiGoogleAuthModelResult {
 
 export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
   const { t } = useTranslation();
-  const { data: geminiConfig } = useSWR('gemini.config', () => ConfigStorage.get('gemini.config'));
+  const { data: geminiConfig } = useSWR('gemini.config', () => configService.get('gemini.config'));
   const proxyKey = geminiConfig?.proxy || '';
 
   // 先通过 Google Auth 状态判断是否可用原生 Gemini。Check whether Google Auth CLI is ready.

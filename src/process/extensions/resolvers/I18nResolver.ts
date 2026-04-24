@@ -15,8 +15,8 @@
  * Translations are namespaced under `ext.{extensionName}` to avoid key collisions
  * with the core app or other extensions.
  *
- * Example: `i18n/zh-CN/extension.json` with `{ "displayName": "你好世界" }`
- * becomes accessible as `ext.hello-world.extension.displayName` in i18next.
+ * Example: `i18n/zh-CN/extension.json` with `{ "display_name": "你好世界" }`
+ * becomes accessible as `ext.hello-world.extension.display_name` in i18next.
  */
 
 import fs from 'fs/promises';
@@ -89,8 +89,8 @@ export async function loadExtensionLocales(ext: LoadedExtension): Promise<Extens
  * Load all JSON module files from a single locale directory.
  * Returns a flat object mapping `moduleName.key` → value.
  *
- * For example, `extension.json` containing `{ "displayName": "Hello" }`
- * returns `{ "extension": { "displayName": "Hello" } }`.
+ * For example, `extension.json` containing `{ "display_name": "Hello" }`
+ * returns `{ "extension": { "display_name": "Hello" } }`.
  */
 async function loadLocaleDir(localeDir: string): Promise<Record<string, unknown>> {
   const modules: Record<string, unknown> = {};
@@ -105,15 +105,15 @@ async function loadLocaleDir(localeDir: string): Promise<Record<string, unknown>
       if (ext !== '.json' && ext !== '.jsonc') continue;
 
       const moduleName = path.basename(file.name, ext); // e.g. 'extension', 'assistants'
-      const filePath = path.resolve(localeDir, file.name);
+      const file_path = path.resolve(localeDir, file.name);
 
       try {
-        const content = await fs.readFile(filePath, 'utf-8');
+        const content = await fs.readFile(file_path, 'utf-8');
         const stripped = stripJsonComments(content);
         const parsed = JSON.parse(stripped);
         modules[moduleName] = parsed;
       } catch (err) {
-        console.warn(`[Extensions] Failed to parse i18n file ${filePath}:`, err instanceof Error ? err.message : err);
+        console.warn(`[Extensions] Failed to parse i18n file ${file_path}:`, err instanceof Error ? err.message : err);
       }
     }
   } catch (error) {
@@ -133,10 +133,10 @@ async function loadLocaleDir(localeDir: string): Promise<Record<string, unknown>
  * ```
  * {
  *   "en-US": {
- *     "ext.hello-world": { "extension": { "displayName": "Hello World" }, ... }
+ *     "ext.hello-world": { "extension": { "display_name": "Hello World" }, ... }
  *   },
  *   "zh-CN": {
- *     "ext.hello-world": { "extension": { "displayName": "你好世界" }, ... }
+ *     "ext.hello-world": { "extension": { "display_name": "你好世界" }, ... }
  *   }
  * }
  * ```

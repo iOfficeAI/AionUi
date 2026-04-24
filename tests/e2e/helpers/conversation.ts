@@ -139,7 +139,7 @@ export async function waitForSessionActive(page: Page, timeoutMs = 120_000): Pro
  *
  * Requires the conversation to be visible in the sidebar history.
  */
-export async function deleteConversation(page: Page, conversationId: string): Promise<boolean> {
+export async function deleteConversation(page: Page, conversation_id: string): Promise<boolean> {
   const row = page.locator(`#c-${conversationId}`);
   await row.waitFor({ state: 'visible', timeout: 10_000 });
 
@@ -230,7 +230,7 @@ export async function runConversationCycle(
   backend: string,
   message: string,
   model?: string
-): Promise<{ conversationId: string; durationMs: number }> {
+): Promise<{ conversation_id: string; durationMs: number }> {
   await goToGuid(page);
   await selectAgent(page, backend, model);
   const wallStart = Date.now();

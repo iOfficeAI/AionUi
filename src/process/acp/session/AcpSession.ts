@@ -221,31 +221,31 @@ export class AcpSession {
     this.promptExecutor.cancelAll();
   }
 
-  setModel(modelId: string): void {
+  setModel(model_id: string): void {
     if (this._status === 'idle' || this._status === 'error') {
       throw new AcpError('INVALID_STATE', `Cannot set model in ${this._status}`);
     }
-    this.configTracker.setDesiredModel(modelId);
+    this.configTracker.setDesiredModel(model_id);
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
       client
-        .setModel(sessionId, modelId)
-        .then(() => this.configTracker.setCurrentModel(modelId))
+        .setModel(sessionId, model_id)
+        .then(() => this.configTracker.setCurrentModel(model_id))
         .then(() => this.callbacks.onModelUpdate(this.configTracker.modelSnapshot()))
         .catch((err) => console.warn('[AcpSession] setModel failed:', err));
     }
   }
 
-  setMode(modeId: string): void {
+  setMode(mode_id: string): void {
     if (this._status === 'idle' || this._status === 'error') {
       throw new AcpError('INVALID_STATE', `Cannot set mode in ${this._status}`);
     }
-    this.configTracker.setDesiredMode(modeId);
+    this.configTracker.setDesiredMode(mode_id);
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
       client
-        .setMode(sessionId, modeId)
-        .then(() => this.configTracker.setCurrentMode(modeId))
+        .setMode(sessionId, mode_id)
+        .then(() => this.configTracker.setCurrentMode(mode_id))
         .then(() => this.callbacks.onModeUpdate(this.configTracker.modeSnapshot()))
         .catch((err) => console.warn('[AcpSession] setMode failed:', err));
     }
@@ -263,11 +263,11 @@ export class AcpSession {
   }
 
   getConfigOptions() {
-    return this.configTracker.configSnapshot().configOptions;
+    return this.configTracker.configSnapshot().config_options;
   }
 
-  confirmPermission(callId: string, optionId: string): void {
-    this.permissionResolver.resolve(callId, optionId);
+  confirmPermission(call_id: string, optionId: string): void {
+    this.permissionResolver.resolve(call_id, optionId);
   }
 
   // ─── Path validation ────────────────────────────────────────
@@ -276,14 +276,14 @@ export class AcpSession {
    * Verify that an agent-requested file path is within the allowed directories
    * (cwd + additionalDirectories). Prevents path traversal attacks.
    */
-  private assertPathAllowed(filePath: string): void {
-    const resolved = path.resolve(filePath);
+  private assertPathAllowed(file_path: string): void {
+    const resolved = path.resolve(file_path);
     const allowedRoots = [this.agentConfig.cwd, ...(this.agentConfig.additionalDirectories ?? [])];
     const withinAllowed = allowedRoots.some(
       (root) => resolved.startsWith(path.resolve(root) + path.sep) || resolved === path.resolve(root)
     );
     if (!withinAllowed) {
-      throw new Error(`Path not allowed: ${filePath} is outside permitted directories`);
+      throw new Error(`Path not allowed: ${file_path} is outside permitted directories`);
     }
   }
 

@@ -38,7 +38,7 @@ export function useWorkspaceModals() {
   // Paste confirmation modal state (粘贴确认弹窗状态)
   const [pasteConfirm, setPasteConfirm] = useState<PasteConfirmState>({
     visible: false,
-    fileName: '',
+    file_name: '',
     filesToPaste: [],
     doNotAsk: false,
     targetFolder: null,
@@ -84,7 +84,7 @@ export function useWorkspaceModals() {
   const closePasteConfirm = useCallback(() => {
     setPasteConfirm({
       visible: false,
-      fileName: '',
+      file_name: '',
       filesToPaste: [],
       doNotAsk: false,
       targetFolder: null,

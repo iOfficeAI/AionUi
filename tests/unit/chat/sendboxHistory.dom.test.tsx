@@ -195,7 +195,7 @@ function createUserMessage(id: string, content: string): TMessage {
     type: 'text',
     position: 'right',
     content: { content },
-    createdAt: Date.now(),
+    created_at: Date.now(),
   };
 }
 
@@ -212,7 +212,7 @@ const SendBoxHarness: React.FC<{ initialValue?: string; messages?: TMessage[] }>
 
   return (
     <MessageListProvider value={messages}>
-      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+      <ConversationProvider value={{ conversation_id: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
         <SendBox value={value} onChange={setValue} onSend={vi.fn().mockResolvedValue(undefined)} />
       </ConversationProvider>
     </MessageListProvider>
@@ -239,7 +239,7 @@ describe('SendBox history navigation', () => {
       const [value, setValue] = useState('');
       return (
         <MessageListProvider value={historyMessages}>
-          <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+          <ConversationProvider value={{ conversation_id: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
             <SendBox value={value} onChange={setValue} onSend={onSend} />
           </ConversationProvider>
         </MessageListProvider>

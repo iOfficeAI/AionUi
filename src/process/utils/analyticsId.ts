@@ -19,10 +19,10 @@ type AnalyticsData = { id: string };
  * No personal data is collected — the ID is a random UUID.
  */
 export function getOrCreateAnalyticsId(): string {
-  const filePath = path.join(app.getPath('userData'), FILE_NAME);
+  const file_path = path.join(app.getPath('userData'), FILE_NAME);
   try {
-    if (fs.existsSync(filePath)) {
-      const data = JSON.parse(fs.readFileSync(filePath, 'utf8')) as AnalyticsData;
+    if (fs.existsSync(file_path)) {
+      const data = JSON.parse(fs.readFileSync(file_path, 'utf8')) as AnalyticsData;
       if (typeof data?.id === 'string' && data.id.length > 0) {
         return data.id;
       }
@@ -33,7 +33,7 @@ export function getOrCreateAnalyticsId(): string {
 
   const id = crypto.randomUUID();
   try {
-    fs.writeFileSync(filePath, JSON.stringify({ id }), { mode: 0o600 });
+    fs.writeFileSync(file_path, JSON.stringify({ id }), { mode: 0o600 });
   } catch {
     // best-effort — if write fails, the ID won't persist but won't throw either
   }

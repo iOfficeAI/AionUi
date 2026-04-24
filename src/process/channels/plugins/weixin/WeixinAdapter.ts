@@ -15,7 +15,7 @@ import type { IUnifiedIncomingMessage } from '../../types';
  * agent can read them with its file-read tools.
  */
 export function toUnifiedIncomingMessage(request: WeixinChatRequest): IUnifiedIncomingMessage {
-  const { conversationId, text, attachments } = request;
+  const { conversation_id, text, attachments } = request;
 
   let fullText = text ?? '';
   if (attachments && attachments.length > 0) {
@@ -26,12 +26,12 @@ export function toUnifiedIncomingMessage(request: WeixinChatRequest): IUnifiedIn
   }
 
   return {
-    id: conversationId,
+    id: conversation_id,
     platform: 'weixin',
-    chatId: conversationId,
+    chatId: conversation_id,
     user: {
-      id: conversationId,
-      displayName: conversationId.slice(-6),
+      id: conversation_id,
+      display_name: conversation_id.slice(-6),
     },
     content: {
       type: 'text',

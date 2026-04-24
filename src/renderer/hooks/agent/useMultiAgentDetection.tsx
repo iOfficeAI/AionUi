@@ -18,7 +18,7 @@ export const useMultiAgentDetection = () => {
         if (Array.isArray(agents)) {
           // 检测是否有多个ACP智能体（不包括内置的Gemini）
           const acpAgents = agents.filter(
-            (agent: { backend: string; name: string; cliPath?: string }) => agent.backend !== 'gemini'
+            (agent: { backend: string; name: string; cli_path?: string }) => agent.backend !== 'gemini'
           );
           if (acpAgents.length > 1) {
             // message.success({

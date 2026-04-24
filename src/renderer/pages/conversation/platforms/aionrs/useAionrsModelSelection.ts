@@ -9,7 +9,7 @@ import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderLis
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 export type AionrsModelSelection = {
-  currentModel?: TProviderWithModel;
+  current_model?: TProviderWithModel;
   providers: IProvider[];
   getAvailableModels: (provider: IProvider) => string[];
   handleSelectModel: (provider: IProvider, modelName: string) => Promise<void>;
@@ -25,7 +25,7 @@ export const useAionrsModelSelection = ({
   initialModel,
   onSelectModel,
 }: UseAionrsModelSelectionOptions): AionrsModelSelection => {
-  const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
+  const [current_model, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
 
   useEffect(() => {
     setCurrentModel(initialModel);
@@ -56,15 +56,15 @@ export const useAionrsModelSelection = ({
   const getDisplayModelName = useCallback(
     (modelName?: string) => {
       if (!modelName) return '';
-      const label = formatModelLabel(currentModel, modelName);
+      const label = formatModelLabel(current_model, modelName);
       const maxLength = 20;
       return label.length > maxLength ? `${label.slice(0, maxLength)}...` : label;
     },
-    [currentModel, formatModelLabel]
+    [current_model, formatModelLabel]
   );
 
   return {
-    currentModel,
+    current_model,
     providers,
     getAvailableModels,
     handleSelectModel,

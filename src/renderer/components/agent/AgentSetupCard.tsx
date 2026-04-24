@@ -48,7 +48,7 @@ const AGENT_LOGOS: Partial<Record<AgentBackend, string>> = {
 };
 
 type AgentSetupCardProps = {
-  conversationId: string;
+  conversation_id: string;
   currentAgent: AgentBackend | null;
   error?: string;
   isChecking: boolean;
@@ -64,7 +64,7 @@ type AgentSetupCardProps = {
 };
 
 const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
-  conversationId,
+  conversation_id,
   currentAgent: _currentAgent,
   error: _error,
   isChecking,
@@ -91,7 +91,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
 
       try {
         // Get current conversation info
-        const conversation = await ipcBridge.conversation.get.invoke({ id: conversationId });
+        const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
         if (!conversation) {
           Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
           switchingRef.current = false;
@@ -103,38 +103,38 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         // Codex uses 'codex' type, Gemini uses 'gemini' type, others use 'acp' type
         const isGemini = agent.backend === 'gemini';
         const isCodex = agent.backend === 'codex';
-        const conversationType = isGemini ? 'gemini' : isCodex ? 'codex' : 'acp';
+        const conversation_type = isGemini ? 'gemini' : isCodex ? 'codex' : 'acp';
         const defaultConversationName = t('conversation.welcome.newConversation');
 
         // Get current conversation's model info (if gemini type)
-        const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
+        const current_model = conversation.type === 'gemini' ? conversation.model : undefined;
         const createParams: ICreateConversationParams = {
-          type: conversationType,
-          model: currentModel || {
+          type: conversation_type,
+          model: current_model || {
             id: 'default',
             name: 'Default',
             useModel: 'default',
             platform: 'custom',
-            baseUrl: '',
-            apiKey: '',
+            base_url: '',
+            api_key: '',
           },
           extra: {
             workspace: conversation.extra?.workspace || '',
-            customWorkspace: conversation.extra?.customWorkspace || false,
+            custom_workspace: conversation.extra?.custom_workspace || false,
             ...(isGemini
               ? {
-                  presetRules: ((conversation.extra as Record<string, unknown>)?.presetRules ||
-                    (conversation.extra as Record<string, unknown>)?.presetContext) as string,
-                  enabledSkills: conversation.extra?.enabledSkills,
-                  presetAssistantId: conversation.extra?.presetAssistantId,
+                  preset_rules: ((conversation.extra as Record<string, unknown>)?.preset_rules ||
+                    (conversation.extra as Record<string, unknown>)?.preset_context) as string,
+                  enabled_skills: conversation.extra?.enabled_skills,
+                  preset_assistant_id: conversation.extra?.preset_assistant_id,
                 }
               : {
                   backend: agent.backend,
-                  cliPath: agent.cliPath,
-                  presetContext: ((conversation.extra as Record<string, unknown>)?.presetRules ||
-                    (conversation.extra as Record<string, unknown>)?.presetContext) as string,
-                  enabledSkills: conversation.extra?.enabledSkills,
-                  presetAssistantId: conversation.extra?.presetAssistantId,
+                  cli_path: agent.cli_path,
+                  preset_context: ((conversation.extra as Record<string, unknown>)?.preset_rules ||
+                    (conversation.extra as Record<string, unknown>)?.preset_context) as string,
+                  enabled_skills: conversation.extra?.enabled_skills,
+                  preset_assistant_id: conversation.extra?.preset_assistant_id,
                 }),
           },
         };
@@ -181,7 +181,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         setSwitching(false);
       }
     },
-    [conversationId, navigate, t, initialMessage]
+    [conversation_id, navigate, t, initialMessage]
   );
 
   const availableCount = availableAgents.filter((a) => a.available).length;
@@ -203,7 +203,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
   useEffect(() => {
     autoSwitchTriggeredRef.current = false;
     switchingRef.current = false;
-  }, [conversationId]);
+  }, [conversation_id]);
 
   // 是否有可用的 agent 且正在切换 / Has available agent and is switching
   const hasAvailableAndSwitching = !isChecking && availableCount > 0 && (switching || (autoSwitch && bestAgent));

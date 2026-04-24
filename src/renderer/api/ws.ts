@@ -12,154 +12,148 @@
  */
 
 type WsMessage = {
-  event: string
-  payload: unknown
-}
+  event: string;
+  payload: unknown;
+};
 
-type EventHandler = (payload: unknown) => void
+type EventHandler = (payload: unknown) => void;
 
 type WebSocketClient = {
   /** Subscribe to an event. Returns an unsubscribe function. */
-  on: (event: string, handler: EventHandler) => () => void
+  on: (event: string, handler: EventHandler) => () => void;
   /** Send a typed event with payload. */
-  send: (event: string, payload: unknown) => void
+  send: (event: string, payload: unknown) => void;
   /** Gracefully close the connection (no reconnect). */
-  close: () => void
-}
+  close: () => void;
+};
 
 type WebSocketClientOptions = {
   /** Maximum number of reconnect attempts before giving up (default: Infinity). */
-  maxReconnectAttempts?: number
+  maxReconnectAttempts?: number;
   /** Initial reconnect delay in ms (default: 1000). Doubles each attempt. */
-  initialReconnectDelayMs?: number
+  initialReconnectDelayMs?: number;
   /** Maximum reconnect delay in ms (default: 30000). */
-  maxReconnectDelayMs?: number
+  maxReconnectDelayMs?: number;
   /** Heartbeat ping interval in ms (default: 30000). */
-  heartbeatIntervalMs?: number
-}
+  heartbeatIntervalMs?: number;
+};
 
 const DEFAULT_OPTIONS: Required<WebSocketClientOptions> = {
   maxReconnectAttempts: Infinity,
   initialReconnectDelayMs: 1000,
   maxReconnectDelayMs: 30_000,
   heartbeatIntervalMs: 30_000,
-}
+};
 
-export function createWebSocketClient(
-  url: string,
-  options?: WebSocketClientOptions,
-): WebSocketClient {
-  const opts = { ...DEFAULT_OPTIONS, ...options }
-  const listeners = new Map<string, Set<EventHandler>>()
+export function createWebSocketClient(url: string, options?: WebSocketClientOptions): WebSocketClient {
+  const opts = { ...DEFAULT_OPTIONS, ...options };
+  const listeners = new Map<string, Set<EventHandler>>();
 
-  let ws: WebSocket | null = null
-  let closed = false
-  let reconnectAttempt = 0
-  let reconnectTimer: ReturnType<typeof setTimeout> | null = null
-  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+  let ws: WebSocket | null = null;
+  let closed = false;
+  let reconnectAttempt = 0;
+  let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null;
 
   function connect(): void {
-    if (closed) return
+    if (closed) return;
 
-    ws = new WebSocket(url)
+    ws = new WebSocket(url);
 
     ws.addEventListener('open', () => {
-      reconnectAttempt = 0
-      startHeartbeat()
-    })
+      reconnectAttempt = 0;
+      startHeartbeat();
+    });
 
     ws.addEventListener('message', (evt) => {
       try {
-        const msg = JSON.parse(String(evt.data)) as WsMessage
-        const handlers = listeners.get(msg.event)
+        const msg = JSON.parse(String(evt.data)) as WsMessage;
+        const handlers = listeners.get(msg.event);
         if (handlers) {
           for (const handler of handlers) {
-            handler(msg.payload)
+            handler(msg.payload);
           }
         }
       } catch {
         // Ignore malformed messages
       }
-    })
+    });
 
     ws.addEventListener('close', () => {
-      stopHeartbeat()
-      if (!closed) scheduleReconnect()
-    })
+      stopHeartbeat();
+      if (!closed) scheduleReconnect();
+    });
 
     ws.addEventListener('error', () => {
       // The 'close' event fires after 'error', which triggers reconnect.
-    })
+    });
   }
 
   function scheduleReconnect(): void {
-    if (closed) return
-    if (reconnectAttempt >= opts.maxReconnectAttempts) return
+    if (closed) return;
+    if (reconnectAttempt >= opts.maxReconnectAttempts) return;
 
-    const delay = Math.min(
-      opts.initialReconnectDelayMs * Math.pow(2, reconnectAttempt),
-      opts.maxReconnectDelayMs,
-    )
-    reconnectAttempt++
+    const delay = Math.min(opts.initialReconnectDelayMs * Math.pow(2, reconnectAttempt), opts.maxReconnectDelayMs);
+    reconnectAttempt++;
 
     reconnectTimer = setTimeout(() => {
-      reconnectTimer = null
-      connect()
-    }, delay)
+      reconnectTimer = null;
+      connect();
+    }, delay);
   }
 
   function startHeartbeat(): void {
-    stopHeartbeat()
+    stopHeartbeat();
     heartbeatTimer = setInterval(() => {
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ event: 'ping', payload: null }))
+        ws.send(JSON.stringify({ event: 'ping', payload: null }));
       }
-    }, opts.heartbeatIntervalMs)
+    }, opts.heartbeatIntervalMs);
   }
 
   function stopHeartbeat(): void {
     if (heartbeatTimer !== null) {
-      clearInterval(heartbeatTimer)
-      heartbeatTimer = null
+      clearInterval(heartbeatTimer);
+      heartbeatTimer = null;
     }
   }
 
   // Kick off the initial connection
-  connect()
+  connect();
 
   return {
     on(event: string, handler: EventHandler): () => void {
-      let handlers = listeners.get(event)
+      let handlers = listeners.get(event);
       if (!handlers) {
-        handlers = new Set()
-        listeners.set(event, handlers)
+        handlers = new Set();
+        listeners.set(event, handlers);
       }
-      handlers.add(handler)
+      handlers.add(handler);
 
       return () => {
-        handlers!.delete(handler)
-        if (handlers!.size === 0) listeners.delete(event)
-      }
+        handlers!.delete(handler);
+        if (handlers!.size === 0) listeners.delete(event);
+      };
     },
 
     send(event: string, payload: unknown): void {
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ event, payload }))
+        ws.send(JSON.stringify({ event, payload }));
       }
     },
 
     close(): void {
-      closed = true
+      closed = true;
       if (reconnectTimer !== null) {
-        clearTimeout(reconnectTimer)
-        reconnectTimer = null
+        clearTimeout(reconnectTimer);
+        reconnectTimer = null;
       }
-      stopHeartbeat()
+      stopHeartbeat();
       if (ws) {
-        ws.close()
-        ws = null
+        ws.close();
+        ws = null;
       }
-      listeners.clear()
+      listeners.clear();
     },
-  }
+  };
 }

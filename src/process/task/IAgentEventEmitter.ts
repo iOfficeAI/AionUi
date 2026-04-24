@@ -16,8 +16,8 @@ export type AgentMessageEvent =
   | { type: string; data: unknown }; // agent-specific extensions
 
 export interface IAgentEventEmitter {
-  emitConfirmationAdd(conversationId: string, data: IConfirmation): void;
-  emitConfirmationUpdate(conversationId: string, data: IConfirmation): void;
-  emitConfirmationRemove(conversationId: string, confirmationId: string): void;
-  emitMessage(conversationId: string, event: AgentMessageEvent): void;
+  emitConfirmationAdd(conversation_id: string, data: IConfirmation): void;
+  emitConfirmationUpdate(conversation_id: string, data: IConfirmation): void;
+  emitConfirmationRemove(conversation_id: string, confirmationId: string): void;
+  emitMessage(conversation_id: string, event: AgentMessageEvent): void;
 }

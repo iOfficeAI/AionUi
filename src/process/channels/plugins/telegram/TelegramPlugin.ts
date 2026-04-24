@@ -117,7 +117,7 @@ export class TelegramPlugin extends BasePlugin {
     return {
       id: this.botInfo.id.toString(),
       username: this.botInfo.username,
-      displayName: this.botInfo.first_name,
+      display_name: this.botInfo.first_name,
     };
   }
 
@@ -133,7 +133,7 @@ export class TelegramPlugin extends BasePlugin {
 
     // Handle long messages by splitting
     const chunks = splitMessage(text, TELEGRAM_MESSAGE_LIMIT);
-    let lastMessageId = '';
+    let last_messageId = '';
 
     for (let i = 0; i < chunks.length; i++) {
       const isLastChunk = i === chunks.length - 1;
@@ -141,14 +141,14 @@ export class TelegramPlugin extends BasePlugin {
 
       try {
         const result = await this.bot.api.sendMessage(chatId, chunks[i], chunkOptions);
-        lastMessageId = result.message_id.toString();
+        last_messageId = result.message_id.toString();
       } catch (error) {
         console.error(`[TelegramPlugin] Failed to send message chunk ${i + 1}/${chunks.length}:`, error);
         throw error;
       }
     }
 
-    return lastMessageId;
+    return last_messageId;
   }
 
   /**
@@ -237,11 +237,11 @@ export class TelegramPlugin extends BasePlugin {
    * This initiates the pairing flow for new users
    */
   private async handleStartCommand(ctx: Context): Promise<void> {
-    const userId = ctx.from?.id.toString();
-    if (!userId) return;
+    const user_id = ctx.from?.id.toString();
+    if (!user_id) return;
 
     // Track user
-    this.activeUsers.add(userId);
+    this.activeUsers.add(user_id);
 
     // Convert to unified message and forward to handler (non-blocking)
     const unifiedMessage = toUnifiedIncomingMessage(ctx);
@@ -260,13 +260,13 @@ export class TelegramPlugin extends BasePlugin {
    * Handle text messages
    */
   private async handleTextMessage(ctx: Context): Promise<void> {
-    const userId = ctx.from?.id.toString();
+    const user_id = ctx.from?.id.toString();
     const text = ctx.message?.text;
 
-    if (!userId || !text) return;
+    if (!user_id || !text) return;
 
     // Track user
-    this.activeUsers.add(userId);
+    this.activeUsers.add(user_id);
 
     try {
       // Check for button text commands
@@ -337,11 +337,11 @@ export class TelegramPlugin extends BasePlugin {
    * Handle media messages (photos, documents, voice)
    */
   private async handleMediaMessage(ctx: Context): Promise<void> {
-    const userId = ctx.from?.id.toString();
-    if (!userId) return;
+    const user_id = ctx.from?.id.toString();
+    if (!user_id) return;
 
     // Track user
-    this.activeUsers.add(userId);
+    this.activeUsers.add(user_id);
 
     // Convert to unified message and forward to handler (non-blocking)
     const unifiedMessage = toUnifiedIncomingMessage(ctx);
@@ -360,11 +360,11 @@ export class TelegramPlugin extends BasePlugin {
     const data = ctx.callbackQuery?.data;
     if (!data) return;
 
-    const userId = ctx.from?.id.toString();
-    if (!userId) return;
+    const user_id = ctx.from?.id.toString();
+    if (!user_id) return;
 
     // Track user
-    this.activeUsers.add(userId);
+    this.activeUsers.add(user_id);
 
     // Answer callback to remove loading state (don't await to avoid blocking)
     // 不等待 answerCallbackQuery 完成，避免阻塞
@@ -375,16 +375,16 @@ export class TelegramPlugin extends BasePlugin {
     // Parse callback data
     const category = extractCategory(data);
 
-    // 处理工具确认回调，格式: confirm:{callId}:{value}
-    // Handle tool confirmation callback, format: confirm:{callId}:{value}
+    // 处理工具确认回调，格式: confirm:{call_id}:{value}
+    // Handle tool confirmation callback, format: confirm:{call_id}:{value}
     if (category === 'confirm') {
       const parts = data.split(':');
       if (parts.length >= 3 && this.confirmHandler) {
-        const callId = parts[1];
+        const call_id = parts[1];
         const value = parts.slice(2).join(':'); // value 可能包含冒号
         // 直接调用 confirmHandler，不通过 messageHandler
         // Call confirmHandler directly, not through messageHandler
-        void this.confirmHandler(userId, 'telegram', callId, value)
+        void this.confirmHandler(user_id, 'telegram', call_id, value)
           .then(async () => {
             // 确认成功后移除按钮
             // Remove buttons after confirmation success
@@ -403,10 +403,10 @@ export class TelegramPlugin extends BasePlugin {
       return;
     }
 
-    // 处理 agent 选择回调，格式: agent:{agentType}
-    // Handle agent selection callback, format: agent:{agentType}
+    // 处理 agent 选择回调，格式: agent:{agent_type}
+    // Handle agent selection callback, format: agent:{agent_type}
     if (category === 'agent') {
-      const agentType = extractAction(data); // gemini, acp, codex
+      const agent_type = extractAction(data); // gemini, acp, codex
       const unifiedMessage = toUnifiedIncomingMessage(ctx);
       if (unifiedMessage && this.messageHandler) {
         unifiedMessage.content.type = 'action';
@@ -414,7 +414,7 @@ export class TelegramPlugin extends BasePlugin {
         unifiedMessage.action = {
           type: 'system',
           name: 'agent.select',
-          params: { agentType },
+          params: { agent_type },
         };
         // Don't await - process in background
         void this.messageHandler(unifiedMessage)
@@ -643,7 +643,7 @@ export class TelegramPlugin extends BasePlugin {
         botInfo: {
           id: me.id.toString(),
           username: me.username,
-          displayName: me.first_name,
+          display_name: me.first_name,
         },
       };
     } catch (error: any) {

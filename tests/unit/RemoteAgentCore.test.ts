@@ -15,7 +15,7 @@ import type { RemoteAgentCoreConfig } from '../../src/process/agent/remote/Remot
 const mockConnection = vi.hoisted(() => ({
   start: vi.fn(),
   stop: vi.fn(),
-  isConnected: false,
+  is_connected: false,
   sessionKey: null as string | null,
   chatSend: vi.fn().mockResolvedValue(undefined),
   chatHistory: vi.fn().mockResolvedValue({ messages: [] }),
@@ -89,7 +89,7 @@ import { RemoteAgentCore } from '../../src/process/agent/remote/RemoteAgentCore'
 
 function makeConfig(overrides?: Partial<RemoteAgentCoreConfig>): RemoteAgentCoreConfig {
   return {
-    conversationId: 'conv-1',
+    conversation_id: 'conv-1',
     remoteConfig: {
       id: 'agent-1',
       name: 'Test Agent',
@@ -97,8 +97,8 @@ function makeConfig(overrides?: Partial<RemoteAgentCoreConfig>): RemoteAgentCore
       url: 'wss://example.com',
       authType: 'bearer',
       authToken: 'tok',
-      createdAt: 0,
-      updatedAt: 0,
+      created_at: 0,
+      updated_at: 0,
     },
     onStreamEvent: vi.fn(),
     onSignalEvent: vi.fn(),
@@ -111,7 +111,7 @@ function createConnectedCore(config?: ReturnType<typeof makeConfig>) {
   const cfg = config ?? makeConfig();
   const core = new RemoteAgentCore(cfg);
   // Simulate connected state
-  mockConnection.isConnected = true;
+  mockConnection.is_connected = true;
   mockConnection.sessionKey = 'session-1';
   return { core, config: cfg };
 }
@@ -123,7 +123,7 @@ function createConnectedCore(config?: ReturnType<typeof makeConfig>) {
 describe('RemoteAgentCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockConnection.isConnected = false;
+    mockConnection.is_connected = false;
     mockConnection.sessionKey = null;
     capturedCallbacks.onEvent = null;
     capturedCallbacks.onHelloOk = null;
@@ -449,16 +449,16 @@ describe('RemoteAgentCore', () => {
       const resolveFn = vi.fn();
       core['pendingPermissions'].set('call-1', { resolve: resolveFn, reject: vi.fn() });
 
-      const result = core.confirmMessage({ confirmKey: 'allow_once', callId: 'call-1' });
+      const result = core.confirmMessage({ confirm_key: 'allow_once', call_id: 'call-1' });
 
       expect(result).resolves.toEqual({ success: true, data: null });
-      expect(resolveFn).toHaveBeenCalledWith({ optionId: 'allow_once' });
+      expect(resolveFn).toHaveBeenCalledWith({ option_id: 'allow_once' });
       expect(core['pendingPermissions'].has('call-1')).toBe(false);
     });
 
     it('returns error when permission not found', async () => {
       const core = new RemoteAgentCore(makeConfig());
-      const result = await core.confirmMessage({ confirmKey: 'allow', callId: 'missing' });
+      const result = await core.confirmMessage({ confirm_key: 'allow', call_id: 'missing' });
       expect(result.success).toBe(false);
     });
   });
@@ -480,8 +480,8 @@ describe('RemoteAgentCore', () => {
     it('returns error result on connection failure', async () => {
       const core = new RemoteAgentCore(makeConfig());
       // connection is null, start will fail
-      mockConnection.isConnected = false;
-      core['connection'] = { ...mockConnection, isConnected: false } as never;
+      mockConnection.is_connected = false;
+      core['connection'] = { ...mockConnection, is_connected: false } as never;
 
       // Force start to throw
       mockConnection.start.mockImplementationOnce(() => {
@@ -519,7 +519,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig({ sessionKey: 'old-key' });
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
 
       await core['resolveSession']();
 
@@ -531,7 +531,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig({ sessionKey: 'old-key' });
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
       mockConnection.sessionsResolve.mockRejectedValueOnce(new Error('expired'));
 
       await core['resolveSession']();
@@ -544,7 +544,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig();
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
 
       await core['resolveSession']();
 
@@ -558,20 +558,20 @@ describe('RemoteAgentCore', () => {
   });
 
   describe('getters', () => {
-    it('isConnected returns false when no connection', () => {
+    it('is_connected returns false when no connection', () => {
       const core = new RemoteAgentCore(makeConfig());
-      expect(core.isConnected).toBe(false);
+      expect(core.is_connected).toBe(false);
     });
 
-    it('isConnected returns connection state', () => {
+    it('is_connected returns connection state', () => {
       const { core } = createConnectedCore();
       core['connection'] = mockConnection as never;
-      expect(core.isConnected).toBe(true);
+      expect(core.is_connected).toBe(true);
     });
 
-    it('hasActiveSession returns false without session key', () => {
+    it('has_active_session returns false without session key', () => {
       const core = new RemoteAgentCore(makeConfig());
-      expect(core.hasActiveSession).toBe(false);
+      expect(core.has_active_session).toBe(false);
     });
 
     it('currentSessionKey returns null without connection', () => {
@@ -590,7 +590,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'text',
         position: 'left',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { content: 'hello' },
       } as never);
 
@@ -606,7 +606,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'agent_status',
         position: 'center',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { backend: 'remote', status: 'connected' },
       } as never);
 
@@ -622,7 +622,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'tips',
         position: 'center',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { content: 'something went wrong', type: 'error' },
       } as never);
 
@@ -640,7 +640,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'unknown_type',
         position: 'center',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: {},
       } as never);
 
@@ -661,8 +661,8 @@ describe('RemoteAgentCore', () => {
           type: 'acp_permission',
           data: expect.objectContaining({
             options: expect.arrayContaining([
-              expect.objectContaining({ optionId: 'allow_once' }),
-              expect.objectContaining({ optionId: 'reject_once' }),
+              expect.objectContaining({ option_id: 'allow_once' }),
+              expect.objectContaining({ option_id: 'reject_once' }),
             ]),
           }),
         })
@@ -673,11 +673,11 @@ describe('RemoteAgentCore', () => {
       const { core, config } = createConnectedCore();
       core['connection'] = mockConnection as never;
 
-      const customOptions = [{ optionId: 'custom', name: 'Custom', kind: 'custom' }];
+      const customOptions = [{ option_id: 'custom', name: 'Custom', kind: 'custom' }];
       core['handleApprovalRequest']({
         requestId: 'req-99',
         options: customOptions,
-        toolCall: { toolCallId: 'tc-1', title: 'Bash' },
+        toolCall: { tool_call_id: 'tc-1', title: 'Bash' },
       });
 
       expect(config.onSignalEvent).toHaveBeenCalledWith(
@@ -832,7 +832,7 @@ describe('RemoteAgentCore', () => {
           conversation_id: 'conv-1',
           type: 'acp_tool_call',
           position: 'left',
-          createdAt: Date.now(),
+          created_at: Date.now(),
           content: { title: 'ReadFile', status: 'in_progress' },
         },
       ];
@@ -843,7 +843,7 @@ describe('RemoteAgentCore', () => {
         event: 'agent',
         payload: {
           stream: 'tool_call',
-          data: { phase: 'start', name: 'ReadFile', toolCallId: 'tc-1' },
+          data: { phase: 'start', name: 'ReadFile', tool_call_id: 'tc-1' },
           sessionKey: 'session-1',
         },
       });
@@ -861,7 +861,7 @@ describe('RemoteAgentCore', () => {
         event: 'agent',
         payload: {
           stream: 'tool',
-          data: { phase: 'result', name: 'Bash', isError: true, toolCallId: 'tc-2' },
+          data: { phase: 'result', name: 'Bash', isError: true, tool_call_id: 'tc-2' },
           sessionKey: 'session-1',
         },
       });
@@ -880,7 +880,7 @@ describe('RemoteAgentCore', () => {
         event: 'agent',
         payload: {
           stream: 'tool',
-          data: { phase: 'result', name: 'ReadFile', isError: false, toolCallId: 'tc-3' },
+          data: { phase: 'result', name: 'ReadFile', isError: false, tool_call_id: 'tc-3' },
           sessionKey: 'session-1',
         },
       });
@@ -899,7 +899,7 @@ describe('RemoteAgentCore', () => {
         event: 'agent',
         payload: {
           stream: 'tool',
-          data: { phase: 'start', name: 'Bash', meta: 'ls -la', toolCallId: 'tc-4' },
+          data: { phase: 'start', name: 'Bash', meta: 'ls -la', tool_call_id: 'tc-4' },
           sessionKey: 'session-1',
         },
       });
@@ -918,7 +918,7 @@ describe('RemoteAgentCore', () => {
         event: 'agent',
         payload: {
           stream: 'tool',
-          data: { phase: 'start', name: 'Edit', args: { file: 'a.ts' }, toolCallId: 'tc-5' },
+          data: { phase: 'start', name: 'Edit', args: { file: 'a.ts' }, tool_call_id: 'tc-5' },
           sessionKey: 'session-1',
         },
       });
@@ -1030,7 +1030,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'acp_tool_call',
         position: 'left',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { title: 'Bash', status: 'in_progress' },
       } as never);
 
@@ -1046,7 +1046,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'plan',
         position: 'left',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { steps: [] },
       } as never);
 
@@ -1062,7 +1062,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'tool_group',
         position: 'left',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { tools: [] },
       } as never);
 
@@ -1078,7 +1078,7 @@ describe('RemoteAgentCore', () => {
         conversation_id: 'conv-1',
         type: 'text',
         position: 'left',
-        createdAt: Date.now(),
+        created_at: Date.now(),
         content: { content: 'test' },
       } as never);
 
@@ -1245,7 +1245,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig();
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
       // No resumeKey → goes to reset path
       mockConnection.sessionsReset.mockRejectedValueOnce(new Error('reset failed'));
       mockConnection.sessionsResolve.mockResolvedValueOnce({ key: 'fallback-resolve-key' });
@@ -1259,7 +1259,7 @@ describe('RemoteAgentCore', () => {
       const cfg = makeConfig();
       const core = new RemoteAgentCore(cfg);
       core['connection'] = mockConnection as never;
-      mockConnection.isConnected = true;
+      mockConnection.is_connected = true;
       mockConnection.sessionsReset.mockRejectedValueOnce(new Error('reset failed'));
       mockConnection.sessionsResolve.mockRejectedValueOnce(new Error('resolve failed'));
 

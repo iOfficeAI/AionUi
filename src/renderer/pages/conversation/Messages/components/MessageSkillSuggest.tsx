@@ -9,11 +9,11 @@ import React from 'react';
 import SkillSuggestCard from './SkillSuggestCard';
 
 const MessageSkillSuggest: React.FC<{ message: IMessageSkillSuggest }> = ({ message }) => {
-  const { cronJobId, name, description, skillContent } = message.content;
+  const { cron_job_id, name, description, skillContent } = message.content;
 
   return (
     <div className='max-w-780px w-full mx-auto'>
-      <SkillSuggestCard suggestion={{ name, description, content: skillContent }} cronJobId={cronJobId} />
+      <SkillSuggestCard suggestion={{ name, description, content: skillContent }} cron_job_id={cron_job_id} />
     </div>
   );
 };

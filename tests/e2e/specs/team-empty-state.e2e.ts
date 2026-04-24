@@ -12,10 +12,10 @@
 import { test, expect } from '../fixtures';
 import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../helpers';
 
-const AGENT_TYPE_MAP: Record<string, { agentType: string; conversationType: string }> = {
-  gemini: { agentType: 'gemini', conversationType: 'gemini' },
-  claude: { agentType: 'claude', conversationType: 'acp' },
-  codex: { agentType: 'codex', conversationType: 'acp' },
+const AGENT_TYPE_MAP: Record<string, { agent_type: string; conversation_type: string }> = {
+  gemini: { agent_type: 'gemini', conversation_type: 'gemini' },
+  claude: { agent_type: 'claude', conversation_type: 'acp' },
+  codex: { agent_type: 'codex', conversation_type: 'acp' },
 };
 
 const SUGGESTION_KEYS = ['debate', 'interview', 'expert_review'] as const;
@@ -50,12 +50,12 @@ for (const leaderType of TEAM_SUPPORTED_BACKENDS) {
       workspaceMode: 'shared',
       agents: [
         {
-          slotId: 'slot-lead',
-          conversationId: '',
+          slot_id: 'slot-lead',
+          conversation_id: '',
           role: 'leader',
-          agentType: meta.agentType,
-          agentName: 'Leader',
-          conversationType: meta.conversationType,
+          agent_type: meta.agent_type,
+          agent_name: 'Leader',
+          conversation_type: meta.conversation_type,
           status: 'pending',
         },
       ],

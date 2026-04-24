@@ -91,14 +91,14 @@ function createInMemoryRepo(): ITeamRepository {
     async delete(id: string) {
       teams.delete(id);
     },
-    async deleteMailboxByTeam(teamId: string) {
+    async deleteMailboxByTeam(team_id: string) {
       for (const [id, msg] of messages) {
-        if (msg.teamId === teamId) messages.delete(id);
+        if (msg.team_id === team_id) messages.delete(id);
       }
     },
-    async deleteTasksByTeam(teamId: string) {
+    async deleteTasksByTeam(team_id: string) {
       for (const [id, task] of tasks) {
-        if (task.teamId === teamId) tasks.delete(id);
+        if (task.team_id === team_id) tasks.delete(id);
       }
     },
 
@@ -107,15 +107,15 @@ function createInMemoryRepo(): ITeamRepository {
       messages.set(message.id, { ...message });
       return messages.get(message.id)!;
     },
-    async readUnread(teamId: string, toAgentId: string) {
+    async readUnread(team_id: string, toAgentId: string) {
       return [...messages.values()]
-        .filter((m) => m.teamId === teamId && m.toAgentId === toAgentId && !m.read)
-        .toSorted((a, b) => a.createdAt - b.createdAt);
+        .filter((m) => m.team_id === team_id && m.toAgentId === toAgentId && !m.read)
+        .toSorted((a, b) => a.created_at - b.created_at);
     },
-    async readUnreadAndMark(teamId: string, toAgentId: string) {
+    async readUnreadAndMark(team_id: string, toAgentId: string) {
       const unread = [...messages.values()]
-        .filter((m) => m.teamId === teamId && m.toAgentId === toAgentId && !m.read)
-        .toSorted((a, b) => a.createdAt - b.createdAt);
+        .filter((m) => m.team_id === team_id && m.toAgentId === toAgentId && !m.read)
+        .toSorted((a, b) => a.created_at - b.created_at);
       for (const msg of unread) {
         messages.set(msg.id, { ...msg, read: true });
       }
@@ -125,10 +125,10 @@ function createInMemoryRepo(): ITeamRepository {
       const msg = messages.get(messageId);
       if (msg) messages.set(messageId, { ...msg, read: true });
     },
-    async getMailboxHistory(teamId: string, toAgentId: string, limit?: number) {
+    async getMailboxHistory(team_id: string, toAgentId: string, limit?: number) {
       const all = [...messages.values()]
-        .filter((m) => m.teamId === teamId && m.toAgentId === toAgentId)
-        .toSorted((a, b) => b.createdAt - a.createdAt);
+        .filter((m) => m.team_id === team_id && m.toAgentId === toAgentId)
+        .toSorted((a, b) => b.created_at - a.created_at);
       return limit != null ? all.slice(0, limit) : all;
     },
 
@@ -147,26 +147,26 @@ function createInMemoryRepo(): ITeamRepository {
       tasks.set(id, updated);
       return updated;
     },
-    async findTasksByTeam(teamId: string) {
-      return [...tasks.values()].filter((t) => t.teamId === teamId);
+    async findTasksByTeam(team_id: string) {
+      return [...tasks.values()].filter((t) => t.team_id === team_id);
     },
-    async findTasksByOwner(teamId: string, owner: string) {
-      return [...tasks.values()].filter((t) => t.teamId === teamId && t.owner === owner);
+    async findTasksByOwner(team_id: string, owner: string) {
+      return [...tasks.values()].filter((t) => t.team_id === team_id && t.owner === owner);
     },
     async deleteTask(id: string) {
       tasks.delete(id);
     },
-    async appendToBlocks(taskId: string, blockId: string) {
-      const task = tasks.get(taskId);
+    async appendToBlocks(task_id: string, blockId: string) {
+      const task = tasks.get(task_id);
       if (task && !task.blocks.includes(blockId)) {
-        tasks.set(taskId, { ...task, blocks: [...task.blocks, blockId], updatedAt: Date.now() });
+        tasks.set(task_id, { ...task, blocks: [...task.blocks, blockId], updated_at: Date.now() });
       }
     },
-    async removeFromBlockedBy(taskId: string, unblockedId: string) {
-      const task = tasks.get(taskId);
-      if (!task) throw new Error(`Task ${taskId} not found`);
-      const updated = { ...task, blockedBy: task.blockedBy.filter((id) => id !== unblockedId), updatedAt: Date.now() };
-      tasks.set(taskId, updated);
+    async removeFromBlockedBy(task_id: string, unblockedId: string) {
+      const task = tasks.get(task_id);
+      if (!task) throw new Error(`Task ${task_id} not found`);
+      const updated = { ...task, blockedBy: task.blockedBy.filter((id) => id !== unblockedId), updated_at: Date.now() };
+      tasks.set(task_id, updated);
       return updated;
     },
   };
@@ -178,12 +178,12 @@ function createInMemoryRepo(): ITeamRepository {
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: 'slot-lead',
-    conversationId: 'conv-lead',
+    slot_id: 'slot-lead',
+    conversation_id: 'conv-lead',
     role: 'leader',
-    agentType: 'claude',
-    agentName: 'Leader',
-    conversationType: 'acp',
+    agent_type: 'claude',
+    agent_name: 'Leader',
+    conversation_type: 'acp',
     status: 'idle',
     ...overrides,
   };
@@ -255,7 +255,7 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
 
   it('writes a message and reads it back as unread', async () => {
     const msg = await mailbox.write({
-      teamId: 'team-1',
+      team_id: 'team-1',
       toAgentId: 'slot-B',
       fromAgentId: 'slot-A',
       content: 'Hello from A',
@@ -271,7 +271,7 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
   });
 
   it('marks messages as read after readUnread', async () => {
-    await mailbox.write({ teamId: 't', toAgentId: 'B', fromAgentId: 'A', content: 'msg1' });
+    await mailbox.write({ team_id: 't', toAgentId: 'B', fromAgentId: 'A', content: 'msg1' });
 
     const first = await mailbox.readUnread('t', 'B');
     expect(first).toHaveLength(1);
@@ -281,38 +281,38 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
     expect(second).toHaveLength(0);
   });
 
-  it('preserves message ordering by createdAt (FIFO)', async () => {
+  it('preserves message ordering by created_at (FIFO)', async () => {
     // Write 3 messages with explicit timestamps to test ordering
     const base = Date.now();
     await repo.writeMessage({
       id: crypto.randomUUID(),
-      teamId: 't',
+      team_id: 't',
       toAgentId: 'B',
       fromAgentId: 'A',
       type: 'message',
       content: 'first',
       read: false,
-      createdAt: base,
+      created_at: base,
     });
     await repo.writeMessage({
       id: crypto.randomUUID(),
-      teamId: 't',
+      team_id: 't',
       toAgentId: 'B',
       fromAgentId: 'A',
       type: 'message',
       content: 'second',
       read: false,
-      createdAt: base + 1,
+      created_at: base + 1,
     });
     await repo.writeMessage({
       id: crypto.randomUUID(),
-      teamId: 't',
+      team_id: 't',
       toAgentId: 'B',
       fromAgentId: 'A',
       type: 'message',
       content: 'third',
       read: false,
-      createdAt: base + 2,
+      created_at: base + 2,
     });
 
     const unread = await mailbox.readUnread('t', 'B');
@@ -320,8 +320,8 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
   });
 
   it('isolates messages between agents: Agent A does not read Agent B messages', async () => {
-    await mailbox.write({ teamId: 't', toAgentId: 'A', fromAgentId: 'X', content: 'for A' });
-    await mailbox.write({ teamId: 't', toAgentId: 'B', fromAgentId: 'X', content: 'for B' });
+    await mailbox.write({ team_id: 't', toAgentId: 'A', fromAgentId: 'X', content: 'for A' });
+    await mailbox.write({ team_id: 't', toAgentId: 'B', fromAgentId: 'X', content: 'for B' });
 
     const aMessages = await mailbox.readUnread('t', 'A');
     const bMessages = await mailbox.readUnread('t', 'B');
@@ -333,8 +333,8 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
   });
 
   it('isolates messages between teams', async () => {
-    await mailbox.write({ teamId: 'team-1', toAgentId: 'A', fromAgentId: 'X', content: 'team1' });
-    await mailbox.write({ teamId: 'team-2', toAgentId: 'A', fromAgentId: 'X', content: 'team2' });
+    await mailbox.write({ team_id: 'team-1', toAgentId: 'A', fromAgentId: 'X', content: 'team1' });
+    await mailbox.write({ team_id: 'team-2', toAgentId: 'A', fromAgentId: 'X', content: 'team2' });
 
     const team1 = await mailbox.readUnread('team-1', 'A');
     const team2 = await mailbox.readUnread('team-2', 'A');
@@ -347,7 +347,7 @@ describe('Real Mailbox — in-memory storage round-trip', () => {
 
   it('supports idle_notification type messages', async () => {
     const msg = await mailbox.write({
-      teamId: 't',
+      team_id: 't',
       toAgentId: 'leader',
       fromAgentId: 'member',
       content: 'Task done',
@@ -374,7 +374,7 @@ describe('Real TaskManager — dependency graph resolution', () => {
   });
 
   it('creates a task with default pending status', async () => {
-    const task = await taskManager.create({ teamId: 't', subject: 'Build feature' });
+    const task = await taskManager.create({ team_id: 't', subject: 'Build feature' });
     expect(task.status).toBe('pending');
     expect(task.blockedBy).toEqual([]);
     expect(task.blocks).toEqual([]);
@@ -382,8 +382,8 @@ describe('Real TaskManager — dependency graph resolution', () => {
   });
 
   it('bidirectional links: creating B with blockedBy A updates A.blocks', async () => {
-    const taskA = await taskManager.create({ teamId: 't', subject: 'Task A' });
-    const taskB = await taskManager.create({ teamId: 't', subject: 'Task B', blockedBy: [taskA.id] });
+    const taskA = await taskManager.create({ team_id: 't', subject: 'Task A' });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'Task B', blockedBy: [taskA.id] });
 
     expect(taskB.blockedBy).toContain(taskA.id);
 
@@ -392,10 +392,10 @@ describe('Real TaskManager — dependency graph resolution', () => {
     expect(updatedA?.blocks).toContain(taskB.id);
   });
 
-  it('checkUnblocks removes taskId from dependents blockedBy array', async () => {
-    const taskA = await taskManager.create({ teamId: 't', subject: 'Task A' });
-    const taskB = await taskManager.create({ teamId: 't', subject: 'Task B', blockedBy: [taskA.id] });
-    const taskC = await taskManager.create({ teamId: 't', subject: 'Task C', blockedBy: [taskA.id] });
+  it('checkUnblocks removes task_id from dependents blockedBy array', async () => {
+    const taskA = await taskManager.create({ team_id: 't', subject: 'Task A' });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'Task B', blockedBy: [taskA.id] });
+    const taskC = await taskManager.create({ team_id: 't', subject: 'Task C', blockedBy: [taskA.id] });
 
     // Complete task A
     await taskManager.update(taskA.id, { status: 'completed' });
@@ -415,7 +415,7 @@ describe('Real TaskManager — dependency graph resolution', () => {
   });
 
   it('checkUnblocks returns empty for tasks with no dependents', async () => {
-    const task = await taskManager.create({ teamId: 't', subject: 'Standalone task' });
+    const task = await taskManager.create({ team_id: 't', subject: 'Standalone task' });
     await taskManager.update(task.id, { status: 'completed' });
 
     const unblocked = await taskManager.checkUnblocks(task.id);
@@ -423,10 +423,10 @@ describe('Real TaskManager — dependency graph resolution', () => {
   });
 
   it('checkUnblocks returns only fully unblocked tasks (not partially blocked)', async () => {
-    const taskA = await taskManager.create({ teamId: 't', subject: 'A' });
-    const taskB = await taskManager.create({ teamId: 't', subject: 'B' });
+    const taskA = await taskManager.create({ team_id: 't', subject: 'A' });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'B' });
     // Task C depends on BOTH A and B
-    const taskC = await taskManager.create({ teamId: 't', subject: 'C', blockedBy: [taskA.id, taskB.id] });
+    const taskC = await taskManager.create({ team_id: 't', subject: 'C', blockedBy: [taskA.id, taskB.id] });
 
     await taskManager.update(taskA.id, { status: 'completed' });
     const partialUnblock = await taskManager.checkUnblocks(taskA.id);
@@ -441,8 +441,8 @@ describe('Real TaskManager — dependency graph resolution', () => {
   });
 
   it('FIXED: checkUnblocks now clears blocks array on the completed task', async () => {
-    const taskA = await taskManager.create({ teamId: 't', subject: 'A' });
-    const taskB = await taskManager.create({ teamId: 't', subject: 'B', blockedBy: [taskA.id] });
+    const taskA = await taskManager.create({ team_id: 't', subject: 'A' });
+    const taskB = await taskManager.create({ team_id: 't', subject: 'B', blockedBy: [taskA.id] });
 
     await taskManager.update(taskA.id, { status: 'completed' });
     await taskManager.checkUnblocks(taskA.id);
@@ -456,9 +456,9 @@ describe('Real TaskManager — dependency graph resolution', () => {
   });
 
   it('list returns all tasks for a team', async () => {
-    await taskManager.create({ teamId: 't', subject: 'Alpha' });
-    await taskManager.create({ teamId: 't', subject: 'Beta' });
-    await taskManager.create({ teamId: 'other', subject: 'Gamma' });
+    await taskManager.create({ team_id: 't', subject: 'Alpha' });
+    await taskManager.create({ team_id: 't', subject: 'Beta' });
+    await taskManager.create({ team_id: 'other', subject: 'Gamma' });
 
     const tasks = await taskManager.list('t');
     expect(tasks).toHaveLength(2);
@@ -478,17 +478,17 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
   let mockSendMessage: ReturnType<typeof vi.fn>;
   let mgr: TeammateManager;
 
-  const leadAgent = makeAgent({
-    slotId: 'slot-lead',
-    conversationId: 'conv-lead',
+  const lead_agent = makeAgent({
+    slot_id: 'slot-lead',
+    conversation_id: 'conv-lead',
     role: 'leader',
-    agentName: 'Leader',
+    agent_name: 'Leader',
   });
   const memberAgent = makeAgent({
-    slotId: 'slot-member',
-    conversationId: 'conv-member',
+    slot_id: 'slot-member',
+    conversation_id: 'conv-member',
     role: 'teammate',
-    agentName: 'Worker',
+    agent_name: 'Worker',
     status: 'idle',
   });
 
@@ -500,8 +500,8 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     mockSendMessage = vi.fn().mockResolvedValue(undefined);
     workerTM = makeWorkerTaskManager(mockSendMessage);
     mgr = new TeammateManager({
-      teamId: 'team-1',
-      agents: [leadAgent, memberAgent],
+      team_id: 'team-1',
+      agents: [lead_agent, memberAgent],
       mailbox,
       taskManager,
       workerTaskManager: workerTM,
@@ -529,10 +529,10 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
 
   it('state transition: wake() changes agent status pending→idle→active via real events', async () => {
     const pendingMember = makeAgent({
-      slotId: 'slot-pending',
-      conversationId: 'conv-pending',
+      slot_id: 'slot-pending',
+      conversation_id: 'conv-pending',
       role: 'teammate',
-      agentName: 'Pending Worker',
+      agent_name: 'Pending Worker',
       status: 'pending',
     });
 
@@ -542,7 +542,7 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     const sendMsg2 = vi.fn().mockResolvedValue(undefined);
     const workerTM2 = makeWorkerTaskManager(sendMsg2);
     const mgr2 = new TeammateManager({
-      teamId: 'team-2',
+      team_id: 'team-2',
       agents: [pendingMember],
       mailbox: mailbox2,
       taskManager: taskManager2,
@@ -584,10 +584,10 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
 
   it('maybeWakeLeaderWhenAllIdle: leader woken only when ALL members settled', async () => {
     const member2 = makeAgent({
-      slotId: 'slot-member2',
-      conversationId: 'conv-member2',
+      slot_id: 'slot-member2',
+      conversation_id: 'conv-member2',
       role: 'teammate',
-      agentName: 'Worker2',
+      agent_name: 'Worker2',
       status: 'active',
     });
 
@@ -597,20 +597,20 @@ describe('Real TeammateManager with real Mailbox + TaskManager', () => {
     const sendMsg2 = vi.fn().mockResolvedValue(undefined);
     const workerTM2 = makeWorkerTaskManager(sendMsg2);
     const mgr2 = new TeammateManager({
-      teamId: 'team-2',
+      team_id: 'team-2',
       agents: [
         makeAgent({
-          slotId: 'lead2',
-          conversationId: 'conv-lead2',
+          slot_id: 'lead2',
+          conversation_id: 'conv-lead2',
           role: 'leader',
-          agentName: 'Lead2',
+          agent_name: 'Lead2',
           status: 'idle',
         }),
         makeAgent({
-          slotId: 'slot-m1',
-          conversationId: 'conv-m1',
+          slot_id: 'slot-m1',
+          conversation_id: 'conv-m1',
           role: 'teammate',
-          agentName: 'M1',
+          agent_name: 'M1',
           status: 'active',
         }),
         member2,
@@ -658,19 +658,25 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     mockWakeAgent = vi.fn().mockResolvedValue(undefined);
 
     agents = [
-      makeAgent({ slotId: 'slot-lead', agentName: 'Leader', role: 'leader', conversationType: 'acp', status: 'idle' }),
       makeAgent({
-        slotId: 'slot-worker',
-        agentName: 'Worker',
-        role: 'teammate',
-        conversationType: 'acp',
+        slot_id: 'slot-lead',
+        agent_name: 'Leader',
+        role: 'leader',
+        conversation_type: 'acp',
         status: 'idle',
-        conversationId: 'conv-worker',
+      }),
+      makeAgent({
+        slot_id: 'slot-worker',
+        agent_name: 'Worker',
+        role: 'teammate',
+        conversation_type: 'acp',
+        status: 'idle',
+        conversation_id: 'conv-worker',
       }),
     ];
 
     mcpServer = new TeamMcpServer({
-      teamId: 'team-1',
+      team_id: 'team-1',
       getAgents: () => agents,
       mailbox,
       taskManager,
@@ -761,8 +767,8 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
   });
 
   it('team_task_list returns real tasks from TaskManager', async () => {
-    await taskManager.create({ teamId: 'team-1', subject: 'Task Alpha', owner: 'slot-worker' });
-    await taskManager.create({ teamId: 'team-1', subject: 'Task Beta' });
+    await taskManager.create({ team_id: 'team-1', subject: 'Task Alpha', owner: 'slot-worker' });
+    await taskManager.create({ team_id: 'team-1', subject: 'Task Beta' });
 
     const response = await tcpCall(port, {
       tool: 'team_task_list',
@@ -775,7 +781,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
   });
 
   it('team_task_update changes task status in real store', async () => {
-    const task = await taskManager.create({ teamId: 'team-1', subject: 'Deploy' });
+    const task = await taskManager.create({ team_id: 'team-1', subject: 'Deploy' });
 
     const response = await tcpCall(port, {
       tool: 'team_task_update',
@@ -790,7 +796,7 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
   });
 
   it('team_task_update with invalid status returns error', async () => {
-    const task = await taskManager.create({ teamId: 'team-1', subject: 'Deploy' });
+    const task = await taskManager.create({ team_id: 'team-1', subject: 'Deploy' });
 
     const response = await tcpCall(port, {
       tool: 'team_task_update',
@@ -825,16 +831,16 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
     const agentsCopy = [...agents];
 
     const server2 = new TeamMcpServer({
-      teamId: 'team-1',
+      team_id: 'team-1',
       getAgents: () => agentsCopy,
       mailbox: mailbox2,
       taskManager: taskManager2,
       wakeAgent: vi.fn().mockResolvedValue(undefined),
-      renameAgent: (slotId: string, newName: string) => {
-        renamedSlotId = slotId;
-        renamedName = newName;
-        const agent = agentsCopy.find((a) => a.slotId === slotId);
-        if (agent) agent.agentName = newName;
+      renameAgent: (slot_id: string, new_name: string) => {
+        renamedSlotId = slot_id;
+        renamedName = new_name;
+        const agent = agentsCopy.find((a) => a.slot_id === slot_id);
+        if (agent) agent.agent_name = new_name;
       },
     });
 
@@ -913,8 +919,8 @@ describe('Real TeamMcpServer — TCP transport with real stores', () => {
   });
 
   it('team_task_update with completed status triggers checkUnblocks', async () => {
-    const taskA = await taskManager.create({ teamId: 'team-1', subject: 'A' });
-    const taskB = await taskManager.create({ teamId: 'team-1', subject: 'B', blockedBy: [taskA.id] });
+    const taskA = await taskManager.create({ team_id: 'team-1', subject: 'A' });
+    const taskB = await taskManager.create({ team_id: 'team-1', subject: 'B', blockedBy: [taskA.id] });
 
     await tcpCall(port, {
       tool: 'team_task_update',
@@ -941,24 +947,24 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
   let mgr: TeammateManager;
 
   const leader = makeAgent({
-    slotId: 'leader',
-    conversationId: 'conv-lead',
+    slot_id: 'leader',
+    conversation_id: 'conv-lead',
     role: 'leader',
-    agentName: 'Leader',
+    agent_name: 'Leader',
     status: 'idle',
   });
   const m1 = makeAgent({
-    slotId: 'm1',
-    conversationId: 'conv-m1',
+    slot_id: 'm1',
+    conversation_id: 'conv-m1',
     role: 'teammate',
-    agentName: 'M1',
+    agent_name: 'M1',
     status: 'active',
   });
   const m2 = makeAgent({
-    slotId: 'm2',
-    conversationId: 'conv-m2',
+    slot_id: 'm2',
+    conversation_id: 'conv-m2',
     role: 'teammate',
-    agentName: 'M2',
+    agent_name: 'M2',
     status: 'active',
   });
 
@@ -970,7 +976,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     mockSendMessage = vi.fn().mockResolvedValue(undefined);
     workerTM = makeWorkerTaskManager(mockSendMessage);
     mgr = new TeammateManager({
-      teamId: 'team-1',
+      team_id: 'team-1',
       agents: [leader, m1, m2],
       mailbox,
       taskManager,
@@ -1019,8 +1025,8 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
     expect(idleNotifs.length).toBeGreaterThanOrEqual(2);
   });
 
-  it('teamEventBus isolates events: unowned conversationId does not affect manager', async () => {
-    const preAgents = mgr.getAgents().map((a) => ({ slotId: a.slotId, status: a.status }));
+  it('teamEventBus isolates events: unowned conversation_id does not affect manager', async () => {
+    const preAgents = mgr.getAgents().map((a) => ({ slot_id: a.slot_id, status: a.status }));
 
     teamEventBus.emit('responseStream', {
       type: 'finish',
@@ -1031,7 +1037,7 @@ describe('Cross-component event flow: teamEventBus → TeammateManager → real 
 
     await new Promise((r) => setTimeout(r, 50));
 
-    const postAgents = mgr.getAgents().map((a) => ({ slotId: a.slotId, status: a.status }));
+    const postAgents = mgr.getAgents().map((a) => ({ slot_id: a.slot_id, status: a.status }));
     expect(postAgents).toEqual(preAgents);
 
     // No messages written to any agent in this team

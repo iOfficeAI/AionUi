@@ -34,7 +34,7 @@ const t = (key: string, options?: Record<string, unknown>) => {
     return `saved:${options?.path ?? ''}`;
   }
   if (key === 'messages.export.conversationLabel') return 'Conversation';
-  if (key === 'messages.export.conversationIdLabel') return 'Conversation ID';
+  if (key === 'messages.export.conversation_idLabel') return 'Conversation ID';
   if (key === 'messages.export.exportedAtLabel') return 'Exported At';
   if (key === 'messages.export.typeLabel') return 'Type';
   if (key === 'messages.export.noMessages') return 'No messages';
@@ -61,15 +61,17 @@ describe('useConversationExport', () => {
       name: 'Current chat',
       type: 'gemini',
     });
-    mockMessagesGet.mockResolvedValue([
-      {
-        id: 'msg-1',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'right',
-        content: { content: 'hello export' },
-      },
-    ]);
+    mockMessagesGet.mockResolvedValue({
+      items: [
+        {
+          id: 'msg-1',
+          conversation_id: 'conv-1',
+          type: 'text',
+          position: 'right',
+          content: { content: 'hello export' },
+        },
+      ],
+    });
     mockWriteFile.mockResolvedValue(true);
     mockCopyText.mockResolvedValue(undefined);
   });
@@ -80,7 +82,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },
@@ -151,7 +153,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success: vi.fn(), error },
@@ -171,7 +173,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },
@@ -201,7 +203,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },
@@ -226,7 +228,7 @@ describe('useConversationExport', () => {
   it('navigates menu items with ArrowDown and wraps around with ArrowUp', async () => {
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success: vi.fn(), error: vi.fn() },
@@ -274,7 +276,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },
@@ -308,7 +310,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },
@@ -346,7 +348,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },
@@ -383,7 +385,7 @@ describe('useConversationExport', () => {
 
     const { result } = renderHook(() =>
       useConversationExport({
-        conversationId: 'conv-1',
+        conversation_id: 'conv-1',
         workspace: '/workspace',
         t,
         messageApi: { success, error },

@@ -67,7 +67,7 @@ describe('OfficeDocViewer', () => {
   it('shows loading spinner initially', () => {
     startInvokeMock.mockReturnValue(new Promise(() => {})); // never resolves
 
-    render(<OfficeDocPreview filePath='/test/file.docx' />);
+    render(<OfficeDocPreview file_path='/test/file.docx' />);
 
     expect(screen.getByTestId('spin')).toBeInTheDocument();
     expect(screen.getByText('preview.word.watch.loading')).toBeInTheDocument();
@@ -83,7 +83,7 @@ describe('OfficeDocViewer', () => {
     startInvokeMock.mockResolvedValue({ url: 'http://localhost:12345' });
 
     await act(async () => {
-      render(<OfficeDocPreview filePath='/test/file.docx' />);
+      render(<OfficeDocPreview file_path='/test/file.docx' />);
     });
 
     // Wait for the 300ms delay
@@ -100,7 +100,7 @@ describe('OfficeDocViewer', () => {
     startInvokeMock.mockRejectedValue(new Error('spawn failed'));
 
     await act(async () => {
-      render(<OfficeDocPreview filePath='/test/file.docx' />);
+      render(<OfficeDocPreview file_path='/test/file.docx' />);
     });
 
     expect(screen.getByText('spawn failed')).toBeInTheDocument();
@@ -110,7 +110,7 @@ describe('OfficeDocViewer', () => {
   it('subscribes to status emitter and unsubscribes on unmount', () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    const { unmount } = render(<OfficeDocPreview filePath='/test/file.docx' />);
+    const { unmount } = render(<OfficeDocPreview file_path='/test/file.docx' />);
 
     expect(statusOnMock).toHaveBeenCalledTimes(1);
     expect(statusOnMock).toHaveBeenCalledWith(expect.any(Function));
@@ -123,17 +123,17 @@ describe('OfficeDocViewer', () => {
   it('calls stop on unmount', () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    const { unmount } = render(<OfficeDocPreview filePath='/test/file.docx' />);
+    const { unmount } = render(<OfficeDocPreview file_path='/test/file.docx' />);
 
     unmount();
 
-    expect(stopInvokeMock).toHaveBeenCalledWith({ filePath: '/test/file.docx' });
+    expect(stopInvokeMock).toHaveBeenCalledWith({ file_path: '/test/file.docx' });
   });
 
   it('shows installing text when status emitter fires installing', () => {
     startInvokeMock.mockReturnValue(new Promise(() => {}));
 
-    render(<OfficeDocPreview filePath='/test/file.docx' />);
+    render(<OfficeDocPreview file_path='/test/file.docx' />);
 
     expect(screen.getByText('preview.word.watch.loading')).toBeInTheDocument();
 

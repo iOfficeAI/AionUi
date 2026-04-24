@@ -15,7 +15,7 @@ import type { AvailableAgent } from '../../../../src/renderer/utils/model/agentT
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const configStorageMock = vi.hoisted(() => ({
+const configServiceMock = vi.hoisted(() => ({
   get: vi.fn(),
   set: vi.fn().mockResolvedValue(undefined),
 }));
@@ -36,8 +36,8 @@ vi.mock('../../../../src/common', () => ({
   },
 }));
 
-vi.mock('../../../../src/common/config/storage', () => ({
-  ConfigStorage: configStorageMock,
+vi.mock('../../../../src/common/config/configService', () => ({
+  configService: configServiceMock,
 }));
 
 // SWR mock: uses React state to trigger re-renders when async data resolves.
@@ -98,7 +98,7 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
   return {
     id: 'my-assistant',
     name: 'My Assistant',
-    isPreset: true,
+    is_preset: true,
     enabled: true,
     ...overrides,
   } as AcpBackendConfig;
@@ -109,8 +109,8 @@ function makePresetConfig(overrides: Partial<AcpBackendConfig> = {}): AcpBackend
 // ---------------------------------------------------------------------------
 
 function setupMocks(presetConfigs: AcpBackendConfig[] = []) {
-  ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: CLI_AGENTS });
-  configStorageMock.get.mockImplementation(async (key: string) => {
+  ipcMock.getAvailableAgents.mockResolvedValue(CLI_AGENTS);
+  configServiceMock.get.mockImplementation((key: string) => {
     if (key === 'assistants') {
       return presetConfigs;
     }
@@ -168,7 +168,7 @@ describe('useConversationAgents', () => {
       expect(result.current.presetAssistants[0].backend).toBe('gemini');
     });
 
-    it('sets isPreset to true for all preset assistants', async () => {
+    it('sets is_preset to true for all preset assistants', async () => {
       setupMocks([
         makePresetConfig({ id: 'a1', name: 'A1', presetAgentType: 'claude' }),
         makePresetConfig({ id: 'a2', name: 'A2', presetAgentType: 'codex' }),
@@ -181,11 +181,11 @@ describe('useConversationAgents', () => {
       });
 
       for (const agent of result.current.presetAssistants) {
-        expect(agent.isPreset).toBe(true);
+        expect(agent.is_preset).toBe(true);
       }
     });
 
-    it('passes through customAgentId, name, avatar, and context', async () => {
+    it('passes through custom_agent_id, name, avatar, and context', async () => {
       setupMocks([
         makePresetConfig({
           id: 'custom-1',
@@ -203,7 +203,7 @@ describe('useConversationAgents', () => {
       });
 
       const agent = result.current.presetAssistants[0];
-      expect(agent.customAgentId).toBe('custom-1');
+      expect(agent.custom_agent_id).toBe('custom-1');
       expect(agent.name).toBe('Writer Bot');
       expect(agent.avatar).toBe('🖊️');
       expect(agent.context).toBe('You are a creative writer.');
@@ -276,7 +276,7 @@ describe('useConversationAgents', () => {
       expect(result.current.presetAssistants[0].name).toBe('Enabled');
     });
 
-    it('filters out non-preset configs (isPreset !== true)', async () => {
+    it('filters out non-preset configs (is_preset !== true)', async () => {
       const agents: AcpBackendConfig[] = [
         makePresetConfig({ id: 'preset', name: 'Preset One' }),
         { id: 'cli-agent', name: 'CLI Agent', enabled: true } as AcpBackendConfig,
@@ -289,12 +289,12 @@ describe('useConversationAgents', () => {
         expect(result.current.presetAssistants.length).toBe(1);
       });
 
-      expect(result.current.presetAssistants[0].customAgentId).toBe('preset');
+      expect(result.current.presetAssistants[0].custom_agent_id).toBe('preset');
     });
 
     it('returns empty arrays when ConfigStorage returns null', async () => {
       ipcMock.getAvailableAgents.mockResolvedValue({ success: true, data: [] });
-      configStorageMock.get.mockResolvedValue(null);
+      configServiceMock.get.mockReturnValue(null);
 
       const { result } = renderHook(() => useConversationAgents());
 

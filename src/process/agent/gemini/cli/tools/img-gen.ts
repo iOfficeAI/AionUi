@@ -163,8 +163,8 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
   protected createInvocation(
     params: ImageGenerationToolParams,
     messageBus: MessageBus,
-    _toolName?: string,
-    _toolDisplayName?: string
+    _tool_name?: string,
+    _tool_display_name?: string
   ): ToolInvocation<ImageGenerationToolParams, ToolResult> {
     return new ImageGenerationInvocation(
       this.config,
@@ -172,8 +172,8 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
       params,
       this.proxy,
       messageBus,
-      _toolName,
-      _toolDisplayName
+      _tool_name,
+      _tool_display_name
     );
   }
 }
@@ -185,10 +185,10 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     params: ImageGenerationToolParams,
     private readonly proxy: string | undefined,
     messageBus: MessageBus,
-    _toolName?: string,
-    _toolDisplayName?: string
+    _tool_name?: string,
+    _tool_display_name?: string
   ) {
-    super(params, messageBus, _toolName, _toolDisplayName);
+    super(params, messageBus, _tool_name, _tool_display_name);
   }
 
   private getImageUris(): string[] {

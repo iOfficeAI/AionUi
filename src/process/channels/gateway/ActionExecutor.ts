@@ -67,23 +67,23 @@ function getResponseActionsMarkup(platform: PluginType, text?: string) {
  */
 function getToolConfirmationMarkup(
   platform: PluginType,
-  callId: string,
+  call_id: string,
   options: Array<{ label: string; value: string }>,
   title?: string,
   description?: string
 ) {
   if (platform === 'lark') {
-    return createToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
+    return createToolConfirmationCard(call_id, title || 'Confirmation', description || 'Please confirm', options);
   }
   if (platform === 'dingtalk') {
     return createDingTalkToolConfirmationCard(
-      callId,
+      call_id,
       title || 'Confirmation',
       description || 'Please confirm',
       options
     );
   }
-  return createToolConfirmationKeyboard(callId, options);
+  return createToolConfirmationKeyboard(call_id, options);
 }
 
 /**
@@ -119,10 +119,10 @@ function formatTextForPlatform(text: string, platform: PluginType): string {
 }
 
 function buildRejectedChannelSendNotices(
-  rejectedActions: Array<{ path: string; fileName?: string; reason: string }>
+  rejectedActions: Array<{ path: string; file_name?: string; reason: string }>
 ): string[] {
   return rejectedActions.map((action) => {
-    const name = action.fileName || path.basename(action.path);
+    const name = action.file_name || path.basename(action.path);
     if (action.reason === 'outside_allowed') {
       return i18n.t('settings.channels.mediaPathNotAllowed', { name });
     }
@@ -174,11 +174,11 @@ function getConfirmationPrompt(details: { type: string; title?: string; [key: st
 
   switch (details.type) {
     case 'edit':
-      return `📝 <b>Edit File Confirmation</b>\nFile: <code>${escapeHtml(details.fileName || 'Unknown file')}</code>\n\nAllow editing this file?`;
+      return `📝 <b>Edit File Confirmation</b>\nFile: <code>${escapeHtml(details.file_name || 'Unknown file')}</code>\n\nAllow editing this file?`;
     case 'exec':
       return `⚡ <b>Execute Command Confirmation</b>\nCommand: <code>${escapeHtml(details.command || 'Unknown command')}</code>\n\nAllow executing this command?`;
     case 'mcp':
-      return `🔧 <b>MCP Tool Confirmation</b>\nTool: <code>${escapeHtml(details.toolDisplayName || details.toolName || 'Unknown tool')}</code>\nServer: <code>${escapeHtml(details.serverName || 'Unknown server')}</code>\n\nAllow calling this tool?`;
+      return `🔧 <b>MCP Tool Confirmation</b>\nTool: <code>${escapeHtml(details.tool_display_name || details.tool_name || 'Unknown tool')}</code>\nServer: <code>${escapeHtml(details.server_name || 'Unknown server')}</code>\n\nAllow calling this tool?`;
     case 'info':
       return `ℹ️ <b>Information Confirmation</b>\n${escapeHtml(details.prompt || '')}\n\nContinue?`;
     default:
@@ -262,7 +262,7 @@ function convertTMessageToOutgoing(
           parseMode: 'HTML',
           replyMarkup: getToolConfirmationMarkup(
             platform,
-            confirmingTool.callId,
+            confirmingTool.call_id,
             options,
             'Tool Confirmation',
             confirmText
@@ -359,9 +359,9 @@ export class ActionExecutor {
     const context: IActionContext = {
       platform,
       pluginId: `${platform}_default`, // TODO: Get actual plugin ID
-      userId: user.id,
+      user_id: user.id,
       chatId,
-      displayName: user.displayName,
+      display_name: user.display_name,
       originalMessage: message,
       originalMessageId: message.id,
       sendMessage: async (msg) => plugin.sendMessage(chatId, msg),
@@ -410,7 +410,7 @@ export class ActionExecutor {
 
       // Get or create session (scoped by chatId for per-chat isolation)
       let session = this.sessionManager.getSession(channelUser.id, chatId);
-      if (!session || !session.conversationId) {
+      if (!session || !session.conversation_id) {
         const source = platform;
 
         // Read selected agent for this platform (defaults to Gemini)
@@ -427,11 +427,11 @@ export class ActionExecutor {
             ? (savedAgent as any).backend
             : 'gemini'
         ) as string;
-        const customAgentId =
+        const custom_agent_id =
           savedAgent && typeof savedAgent === 'object'
-            ? ((savedAgent as any).customAgentId as string | undefined)
+            ? ((savedAgent as any).custom_agent_id as string | undefined)
             : undefined;
-        const agentName =
+        const agent_name =
           savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
 
         // Always resolve a provider model (required by ICreateConversationParams typing; ignored by ACP/Codex)
@@ -443,8 +443,8 @@ export class ActionExecutor {
         const conversationExtra = buildChannelConversationExtra({
           platform,
           backend,
-          customAgentId,
-          agentName,
+          custom_agent_id,
+          agent_name,
         });
 
         // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
@@ -461,7 +461,7 @@ export class ActionExecutor {
                 model,
                 name: conversationName,
                 source,
-                channelChatId: chatId,
+                channel_chat_id: chatId,
                 extra: conversationExtra,
               });
             } else if (backend === 'aionrs') {
@@ -470,7 +470,7 @@ export class ActionExecutor {
                 model,
                 name: conversationName,
                 source,
-                channelChatId: chatId,
+                channel_chat_id: chatId,
                 extra: conversationExtra,
               });
             } else if (backend === 'codex') {
@@ -479,7 +479,7 @@ export class ActionExecutor {
                 model,
                 name: conversationName,
                 source,
-                channelChatId: chatId,
+                channel_chat_id: chatId,
                 extra: { ...conversationExtra, backend: 'codex' },
               });
             } else if (backend === 'openclaw-gateway') {
@@ -488,7 +488,7 @@ export class ActionExecutor {
                 model,
                 name: conversationName,
                 source,
-                channelChatId: chatId,
+                channel_chat_id: chatId,
                 extra: conversationExtra,
               });
             } else {
@@ -497,7 +497,7 @@ export class ActionExecutor {
                 model,
                 name: conversationName,
                 source,
-                channelChatId: chatId,
+                channel_chat_id: chatId,
                 extra: conversationExtra,
               });
             }
@@ -513,18 +513,18 @@ export class ActionExecutor {
         }
 
         if (sessionConversation) {
-          const { convType: agentType } = resolveChannelConvType(backend);
+          const { convType: agent_type } = resolveChannelConvType(backend);
           session = await this.sessionManager.createSessionWithConversation(
             channelUser,
             sessionConversation.id,
-            agentType as ChannelAgentType,
+            agent_type as ChannelAgentType,
             undefined,
             chatId
           );
         }
       }
-      context.sessionId = session.id;
-      context.conversationId = session.conversationId;
+      context.session_id = session.id;
+      context.conversation_id = session.conversation_id;
 
       // Route based on action or content
       if (action) {
@@ -609,10 +609,10 @@ export class ActionExecutor {
     });
 
     try {
-      const sessionId = context.sessionId;
-      const conversationId = context.conversationId;
+      const session_id = context.session_id;
+      const conversation_id = context.conversation_id;
 
-      if (!sessionId || !conversationId) {
+      if (!session_id || !conversation_id) {
         throw new Error('Session not initialized');
       }
 
@@ -631,7 +631,7 @@ export class ActionExecutor {
 
       // 跟踪最后一条消息内容，用于流结束后添加操作按钮
       // Track last message content for adding action buttons after stream ends
-      let lastMessageContent: IUnifiedOutgoingMessage | null = null;
+      let last_messageContent: IUnifiedOutgoingMessage | null = null;
 
       // 执行消息编辑的函数
       // Function to perform message edit
@@ -648,8 +648,8 @@ export class ActionExecutor {
       // 发送消息
       // Send message
       await messageService.sendMessage(
-        sessionId,
-        conversationId,
+        session_id,
+        conversation_id,
         text,
         async (message: TMessage, isInsert: boolean) => {
           const now = Date.now();
@@ -669,7 +669,7 @@ export class ActionExecutor {
 
           // 保存最后一条消息内容（不含 replyMarkup，最终消息会单独添加）
           // Save last message content (without replyMarkup, final message adds it separately)
-          lastMessageContent = streamOutgoing;
+          last_messageContent = streamOutgoing;
 
           // IMPORTANT: Always treat first streaming message as update to thinking message
           // This prevents async race condition where first insert's sendMessage takes time
@@ -763,23 +763,23 @@ export class ActionExecutor {
       const lastMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
       try {
         const finalizedMessage =
-          context.platform === 'weixin' && context.conversationId && lastMessageContent?.text !== undefined
-            ? await resolveChannelSendProtocol(lastMessageContent.text, context.conversationId)
+          context.platform === 'weixin' && context.conversation_id && last_messageContent?.text !== undefined
+            ? await resolveChannelSendProtocol(last_messageContent.text, context.conversation_id)
             : null;
         const finalVisibleText = finalizedMessage
           ? [finalizedMessage.visibleText, ...buildRejectedChannelSendNotices(finalizedMessage.rejectedActions)]
               .filter(Boolean)
               .join('\n\n')
-          : lastMessageContent?.text;
+          : last_messageContent?.text;
 
         // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
         // Use actual content of last message, add action buttons (based on platform)
         const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, finalVisibleText);
         const finalReplyMarkup =
           responseMarkup ?? (context.platform === 'wecom' ? ({ __aionuiFinal: true } as unknown) : undefined);
-        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent
+        const finalMessage: IUnifiedOutgoingMessage = last_messageContent
           ? {
-              ...lastMessageContent,
+              ...last_messageContent,
               ...(finalizedMessage
                 ? {
                     text: finalVisibleText,

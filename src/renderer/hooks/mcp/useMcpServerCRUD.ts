@@ -2,7 +2,7 @@ import type React from 'react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 
 /**
@@ -13,15 +13,15 @@ export const useMcpServerCRUD = (
   mcpServers: IMcpServer[],
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>,
   syncMcpToAgents: (server: IMcpServer, skipRecheck?: boolean) => Promise<void>,
-  removeMcpFromAgents: (serverName: string, successMessage?: string, transportType?: string) => Promise<void>,
-  checkSingleServerInstallStatus: (serverName: string) => Promise<void>,
+  removeMcpFromAgents: (server_name: string, successMessage?: string, transport_type?: string) => Promise<void>,
+  checkSingleServerInstallStatus: (server_name: string) => Promise<void>,
   setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>
 ) => {
   const { t } = useTranslation();
 
   // 添加MCP服务器
   const handleAddMcpServer = useCallback(
-    async (serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>) => {
+    async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const now = Date.now();
       let serverToSync: IMcpServer | null = null;
 
@@ -35,7 +35,7 @@ export const useMcpServerCRUD = (
           updatedServers[existingServerIndex] = {
             ...updatedServers[existingServerIndex],
             ...serverData,
-            updatedAt: now,
+            updated_at: now,
           };
           serverToSync = updatedServers[existingServerIndex];
           return updatedServers;
@@ -44,8 +44,8 @@ export const useMcpServerCRUD = (
           const newServer: IMcpServer = {
             ...serverData,
             id: `mcp_${now}`,
-            createdAt: now,
-            updatedAt: now,
+            created_at: now,
+            updated_at: now,
           };
           serverToSync = newServer;
           return [...prevServers, newServer];
@@ -65,7 +65,7 @@ export const useMcpServerCRUD = (
 
   // 批量导入MCP服务器
   const handleBatchImportMcpServers = useCallback(
-    async (serversData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => {
+    async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
       const now = Date.now();
       const addedServers: IMcpServer[] = [];
 
@@ -81,15 +81,15 @@ export const useMcpServerCRUD = (
             updatedServers[existingServerIndex] = {
               ...updatedServers[existingServerIndex],
               ...serverData,
-              updatedAt: now,
+              updated_at: now,
             };
           } else {
             // 如果不存在同名服务器，添加新服务器
             const newServer: IMcpServer = {
               ...serverData,
               id: `mcp_${now}_${index}`,
-              createdAt: now,
-              updatedAt: now,
+              created_at: now,
+              updated_at: now,
             };
             updatedServers.push(newServer);
             addedServers.push(newServer);
@@ -116,7 +116,7 @@ export const useMcpServerCRUD = (
   const handleEditMcpServer = useCallback(
     async (
       editingMcpServer: IMcpServer | undefined,
-      serverData: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>
+      serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>
     ): Promise<IMcpServer | undefined> => {
       if (!editingMcpServer) return undefined;
 
@@ -127,7 +127,7 @@ export const useMcpServerCRUD = (
         updatedServer = {
           ...editingMcpServer,
           ...serverData,
-          updatedAt: Date.now(),
+          updated_at: Date.now(),
         };
 
         return prevServers.map((server) => (server.id === editingMcpServer.id ? updatedServer : server));
@@ -163,7 +163,7 @@ export const useMcpServerCRUD = (
         const updated = { ...prev };
         delete updated[targetServer.name];
         // 同时更新本地存储
-        void ConfigStorage.set('mcp.agentInstallStatus', updated).catch(() => {
+        void configService.set('mcp.agentInstallStatus', updated).catch(() => {
           // Handle storage error silently
         });
         return updated;
@@ -200,7 +200,7 @@ export const useMcpServerCRUD = (
 
         return prevServers.map((server) => {
           if (server.id === serverId) {
-            updatedTargetServer = { ...server, enabled, updatedAt: Date.now() };
+            updatedTargetServer = { ...server, enabled, updated_at: Date.now() };
             return updatedTargetServer;
           }
           return server;
@@ -223,7 +223,7 @@ export const useMcpServerCRUD = (
             const updated = { ...prev };
             delete updated[targetServer.name];
             // 同时更新本地存储
-            void ConfigStorage.set('mcp.agentInstallStatus', updated).catch(() => {
+            void configService.set('mcp.agentInstallStatus', updated).catch(() => {
               // Handle storage error silently
             });
             return updated;

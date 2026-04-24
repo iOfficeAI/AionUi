@@ -220,7 +220,7 @@ export class OpencodeMcpAgent extends AbstractMcpAgent {
     fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf-8');
   }
 
-  detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
+  detectMcpServers(_cli_path?: string): Promise<IMcpServer[]> {
     const detectOperation = async () => {
       const config = this.readConfig();
       if (!config?.mcp) {
@@ -262,10 +262,10 @@ export class OpencodeMcpAgent extends AbstractMcpAgent {
           tools,
           enabled,
           status,
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          created_at: Date.now(),
+          updated_at: Date.now(),
           description: '',
-          originalJson: getOriginalJson(name, entry),
+          original_json: getOriginalJson(name, entry),
         });
       }
 

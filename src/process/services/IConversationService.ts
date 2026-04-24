@@ -16,23 +16,23 @@ export interface CreateConversationParams {
   name?: string;
   model: TProviderWithModel;
   source?: ConversationSource;
-  channelChatId?: string;
+  channel_chat_id?: string;
   extra: {
     workspace?: string;
-    customWorkspace?: boolean;
+    custom_workspace?: boolean;
     defaultFiles?: string[];
     backend?: AgentBackend;
-    cliPath?: string;
-    webSearchEngine?: 'google' | 'default';
-    agentName?: string;
-    contextFileName?: string;
-    presetRules?: string;
-    enabledSkills?: string[];
+    cli_path?: string;
+    web_search_engine?: 'google' | 'default';
+    agent_name?: string;
+    context_file_name?: string;
+    preset_rules?: string;
+    enabled_skills?: string[];
     extraSkillPaths?: string[];
     excludeBuiltinSkills?: string[];
-    presetAssistantId?: string;
-    sessionMode?: string;
-    isHealthCheck?: boolean;
+    preset_assistant_id?: string;
+    session_mode?: string;
+    is_health_check?: boolean;
     [key: string]: unknown;
   };
 }
@@ -52,5 +52,5 @@ export interface IConversationService {
   /** Returns all conversations without pagination. */
   listAllConversations(): Promise<TChatConversation[]>;
   /** List conversations spawned by a specific cron job. */
-  getConversationsByCronJob(cronJobId: string): Promise<TChatConversation[]>;
+  getConversationsByCronJob(cron_job_id: string): Promise<TChatConversation[]>;
 }

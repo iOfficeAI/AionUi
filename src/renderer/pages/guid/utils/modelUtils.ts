@@ -10,27 +10,27 @@ import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabili
 /**
  * Cache for provider available models to avoid repeated computation.
  */
-const availableModelsCache = new Map<string, string[]>();
+const available_modelsCache = new Map<string, string[]>();
 
 /**
  * Get all available primary models for a provider (with cache).
- * Filters out disabled models based on modelEnabled state.
+ * Filters out disabled models based on model_enabled state.
  * @param provider - Provider configuration
  * @returns Array of available primary model names
  */
 export const getAvailableModels = (provider: IProvider): string[] => {
-  // 包含 modelEnabled 状态到缓存 key 中
-  const modelEnabledKey = provider.modelEnabled ? JSON.stringify(provider.modelEnabled) : 'all-enabled';
-  const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${modelEnabledKey}`;
+  // 包含 model_enabled 状态到缓存 key 中
+  const model_enabledKey = provider.model_enabled ? JSON.stringify(provider.model_enabled) : 'all-enabled';
+  const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${model_enabledKey}`;
 
-  if (availableModelsCache.has(cacheKey)) {
-    return availableModelsCache.get(cacheKey)!;
+  if (available_modelsCache.has(cacheKey)) {
+    return available_modelsCache.get(cacheKey)!;
   }
 
   const result: string[] = [];
   for (const modelName of provider.model || []) {
     // 检查模型是否被禁用（默认为启用）
-    const isModelEnabled = provider.modelEnabled?.[modelName] !== false;
+    const isModelEnabled = provider.model_enabled?.[modelName] !== false;
     if (!isModelEnabled) continue;
 
     const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
@@ -41,7 +41,7 @@ export const getAvailableModels = (provider: IProvider): string[] => {
     }
   }
 
-  availableModelsCache.set(cacheKey, result);
+  available_modelsCache.set(cacheKey, result);
   return result;
 };
 

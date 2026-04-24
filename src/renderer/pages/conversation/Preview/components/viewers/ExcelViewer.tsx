@@ -8,7 +8,7 @@ import React from 'react';
 import OfficeWatchViewer from './OfficeWatchViewer';
 
 interface ExcelPreviewProps {
-  filePath?: string;
+  file_path?: string;
   content?: string;
 }
 

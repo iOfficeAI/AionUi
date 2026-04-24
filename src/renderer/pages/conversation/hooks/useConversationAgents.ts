@@ -29,8 +29,8 @@ function assistantToAvailableAgent(assistant: Assistant): AvailableAgent {
   return {
     backend: assistant.presetAgentType || 'gemini',
     name: assistant.name,
-    customAgentId: assistant.id,
-    isPreset: true,
+    custom_agent_id: assistant.id,
+    is_preset: true,
     context: assistant.context,
     avatar: assistant.avatar,
     presetAgentType: assistant.presetAgentType,

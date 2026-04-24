@@ -7,7 +7,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/assistantTypes';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
@@ -24,7 +24,7 @@ type AssistantLike = {
   name?: string;
   nameI18n?: Record<string, string>;
   avatar?: string;
-  enabledSkills?: string[];
+  enabled_skills?: string[];
 };
 
 /**
@@ -32,9 +32,9 @@ type AssistantLike = {
  * Resolve preset assistant ID from conversation extra
  *
  * 处理向后兼容：
- * - presetAssistantId: 新格式 'builtin-xxx'
- * - customAgentId: ACP 会话的旧格式
- * - enabledSkills: Gemini Cowork 会话的旧格式
+ * - preset_assistant_id: 新格式 'builtin-xxx'
+ * - custom_agent_id: ACP 会话的旧格式
+ * - enabled_skills: Gemini Cowork 会话的旧格式
  */
 /**
  * Resolve the assistant config ID (preserving original prefix like 'builtin-').
@@ -43,43 +43,43 @@ type AssistantLike = {
  */
 export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
-    presetAssistantId?: unknown;
-    customAgentId?: unknown;
+    preset_assistant_id?: unknown;
+    custom_agent_id?: unknown;
   };
-  const presetAssistantId = typeof extra?.presetAssistantId === 'string' ? extra.presetAssistantId.trim() : '';
-  const customAgentId = typeof extra?.customAgentId === 'string' ? extra.customAgentId.trim() : '';
-  return presetAssistantId || customAgentId || null;
+  const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
+  const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
+  return preset_assistant_id || custom_agent_id || null;
 }
 
 export function resolvePresetId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
-    presetAssistantId?: unknown;
-    customAgentId?: unknown;
-    enabledSkills?: unknown;
+    preset_assistant_id?: unknown;
+    custom_agent_id?: unknown;
+    enabled_skills?: unknown;
   };
-  const presetAssistantId = typeof extra?.presetAssistantId === 'string' ? extra.presetAssistantId.trim() : '';
-  const customAgentId = typeof extra?.customAgentId === 'string' ? extra.customAgentId.trim() : '';
-  const enabledSkills = Array.isArray(extra?.enabledSkills) ? extra.enabledSkills : [];
+  const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
+  const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
+  const enabled_skills = Array.isArray(extra?.enabled_skills) ? extra.enabled_skills : [];
 
-  // 1. 优先使用 presetAssistantId（新会话）
-  // Priority: use presetAssistantId (new conversations)
-  if (presetAssistantId) {
-    const resolved = presetAssistantId.replace('builtin-', '');
+  // 1. 优先使用 preset_assistant_id（新会话）
+  // Priority: use preset_assistant_id (new conversations)
+  if (preset_assistant_id) {
+    const resolved = preset_assistant_id.replace('builtin-', '');
     return resolved;
   }
 
-  // 2. 向后兼容：customAgentId（ACP/Codex 旧会话）
-  // Backward compatible: customAgentId (ACP/Codex old conversations)
-  if (customAgentId) {
-    const resolved = customAgentId.replace('builtin-', '');
+  // 2. 向后兼容：custom_agent_id（ACP/Codex 旧会话）
+  // Backward compatible: custom_agent_id (ACP/Codex old conversations)
+  if (custom_agent_id) {
+    const resolved = custom_agent_id.replace('builtin-', '');
     return resolved;
   }
 
-  // 3. 向后兼容：enabledSkills 存在说明是 Cowork 会话（Gemini 旧会话）
-  // Backward compatible: enabledSkills means Cowork conversation (Gemini old conversations)
-  // 只有在既没有 presetAssistantId 也没有 customAgentId 时才使用此逻辑
-  // Only use this logic when both presetAssistantId and customAgentId are absent (including empty strings)
-  if (conversation.type === 'gemini' && !presetAssistantId && !customAgentId && enabledSkills.length > 0) {
+  // 3. 向后兼容：enabled_skills 存在说明是 Cowork 会话（Gemini 旧会话）
+  // Backward compatible: enabled_skills means Cowork conversation (Gemini old conversations)
+  // 只有在既没有 preset_assistant_id 也没有 custom_agent_id 时才使用此逻辑
+  // Only use this logic when both preset_assistant_id and custom_agent_id are absent (including empty strings)
+  if (conversation.type === 'gemini' && !preset_assistant_id && !custom_agent_id && enabled_skills.length > 0) {
     return 'cowork';
   }
 
@@ -124,24 +124,24 @@ function normalizeAssistantLabel(value: string | undefined): string {
 
 function extractLegacyPresetPayload(conversation: TChatConversation): {
   rules: string;
-  enabledSkills: string[];
+  enabled_skills: string[];
   hasPayload: boolean;
 } {
   const extra = conversation.extra as {
-    presetContext?: unknown;
-    presetRules?: unknown;
-    enabledSkills?: unknown;
+    preset_context?: unknown;
+    preset_rules?: unknown;
+    enabled_skills?: unknown;
   };
-  const presetContext = typeof extra?.presetContext === 'string' ? extra.presetContext.trim() : '';
-  const presetRules = typeof extra?.presetRules === 'string' ? extra.presetRules.trim() : '';
-  const enabledSkills = Array.isArray(extra?.enabledSkills)
-    ? extra.enabledSkills.filter((skill): skill is string => typeof skill === 'string' && skill.trim().length > 0)
+  const preset_context = typeof extra?.preset_context === 'string' ? extra.preset_context.trim() : '';
+  const preset_rules = typeof extra?.preset_rules === 'string' ? extra.preset_rules.trim() : '';
+  const enabled_skills = Array.isArray(extra?.enabled_skills)
+    ? extra.enabled_skills.filter((skill): skill is string => typeof skill === 'string' && skill.trim().length > 0)
     : [];
 
   return {
-    rules: presetContext || presetRules,
-    enabledSkills,
-    hasPayload: Boolean(presetContext || presetRules || enabledSkills.length > 0),
+    rules: preset_context || preset_rules,
+    enabled_skills,
+    hasPayload: Boolean(preset_context || preset_rules || enabled_skills.length > 0),
   };
 }
 
@@ -168,10 +168,10 @@ function matchesAssistantName(candidate: string | null, names: Array<string | un
   return names.some((name) => normalizeAssistantLabel(name) === normalizedCandidate);
 }
 
-function hasMatchingEnabledSkills(candidateSkills: string[] | undefined, enabledSkills: string[]): boolean {
-  if (!candidateSkills?.length || !enabledSkills.length) return false;
+function hasMatchingEnabledSkills(candidateSkills: string[] | undefined, enabled_skills: string[]): boolean {
+  if (!candidateSkills?.length || !enabled_skills.length) return false;
   const normalizedCandidate = [...candidateSkills].map((skill) => skill.trim()).toSorted();
-  const normalizedEnabled = [...enabledSkills].map((skill) => skill.trim()).toSorted();
+  const normalizedEnabled = [...enabled_skills].map((skill) => skill.trim()).toSorted();
   if (normalizedCandidate.length !== normalizedEnabled.length) return false;
   return normalizedCandidate.every((skill, index) => skill === normalizedEnabled[index]);
 }
@@ -210,7 +210,7 @@ function inferLegacyAssistantInfo(
   assistants?: Assistant[] | null,
   customAgents?: AssistantLike[] | null
 ): PresetAssistantInfo | null {
-  const { rules, enabledSkills } = extractLegacyPresetPayload(conversation);
+  const { rules, enabled_skills } = extractLegacyPresetPayload(conversation);
   const extractedName = extractAssistantNameFromRules(rules);
 
   const byName = assistants?.find((assistant) =>
@@ -224,7 +224,7 @@ function inferLegacyAssistantInfo(
   if (byName) return buildPresetInfoFromAssistant(byName, locale);
 
   const bySkills = assistants?.filter((assistant) =>
-    hasMatchingEnabledSkills(assistant.enabledSkills, enabledSkills)
+    hasMatchingEnabledSkills(assistant.enabledSkills, enabled_skills)
   );
   if (bySkills?.length === 1) return buildPresetInfoFromAssistant(bySkills[0], locale);
 
@@ -234,7 +234,7 @@ function inferLegacyAssistantInfo(
   if (customByName) return buildCustomAgentInfo(customByName, locale);
 
   const customBySkills = customAgents?.filter((agent) =>
-    hasMatchingEnabledSkills(agent.enabledSkills, enabledSkills)
+    hasMatchingEnabledSkills(agent.enabled_skills, enabled_skills)
   );
   if (customBySkills?.length === 1) return buildCustomAgentInfo(customBySkills[0], locale);
 
@@ -261,7 +261,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 
   // User-defined ACP custom agents (still in ConfigStorage — separate from assistants)
   const { data: userCustomAgentsList, isLoading: isLoadingUserCustomAgents } = useSWR('acp.customAgents', () =>
-    ConfigStorage.get('acp.customAgents')
+    configService.get('acp.customAgents')
   );
   const customAgents = useMemo(
     () => (userCustomAgentsList as AssistantLike[] | undefined) ?? [],
@@ -330,7 +330,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       if (customAgent) return { info: buildCustomAgentInfo(customAgent, locale), isLoading: false };
     }
 
-    // Extension ACP adapters (customAgentId like ext:{extensionName}:{adapterId})
+    // Extension ACP adapters (custom_agent_id like ext:{extensionName}:{adapterId})
     if (presetId.startsWith('ext:') && extensionAcpAdapters && Array.isArray(extensionAcpAdapters)) {
       const parts = presetId.split(':');
       if (parts.length >= 3) {

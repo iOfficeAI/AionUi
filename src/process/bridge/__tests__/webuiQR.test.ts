@@ -26,7 +26,7 @@ describe('verifyQRTokenDirect', () => {
     const token = new URL(qrUrl).searchParams.get('token')!;
     const result = await verifyQRTokenDirect(token, '127.0.0.1');
     expect(result.success).toBe(true);
-    expect(result.data?.sessionToken).toBeTruthy();
+    expect(result.data?.session_token).toBeTruthy();
   });
 
   it('rejects a token used twice', async () => {

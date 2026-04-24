@@ -15,14 +15,14 @@ import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/model/modelContextLimits
 
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
-  contextLimit?: number;
+  context_limit?: number;
   className?: string;
   size?: number;
 }
 
 const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   tokenUsage,
-  contextLimit = DEFAULT_CONTEXT_LIMIT,
+  context_limit = DEFAULT_CONTEXT_LIMIT,
   className = '',
   size = 24,
 }) => {
@@ -33,23 +33,23 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       return {
         percentage: 0,
         displayTotal: '0',
-        displayLimit: formatTokenCount(contextLimit, true),
+        displayLimit: formatTokenCount(context_limit, true),
         isWarning: false,
         isDanger: false,
       };
     }
 
-    const total = tokenUsage.totalTokens;
-    const pct = (total / contextLimit) * 100;
+    const total = tokenUsage.total_tokens;
+    const pct = (total / context_limit) * 100;
 
     return {
       percentage: pct,
       displayTotal: formatTokenCount(total),
-      displayLimit: formatTokenCount(contextLimit, true),
+      displayLimit: formatTokenCount(context_limit, true),
       isWarning: pct > 70,
       isDanger: pct > 90,
     };
-  }, [tokenUsage, contextLimit]);
+  }, [tokenUsage, context_limit]);
 
   // 如果没有 token 数据，不显示
   if (!tokenUsage) {
@@ -78,7 +78,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
     <div className='p-8px min-w-160px'>
       <div className='text-14px font-medium text-t-primary'>
         {percentage.toFixed(1)}% · {displayTotal} / {displayLimit}{' '}
-        {t('conversation.contextUsage.contextUsed', 'context used')}
+        {t('conversation.context_usage.contextUsed', 'context used')}
       </div>
     </div>
   );

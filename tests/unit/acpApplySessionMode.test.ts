@@ -16,16 +16,20 @@ const { mockConnect, mockSetSessionMode, mockSetModel, mockDisconnect, mockGetIn
 
 vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
-    hasActiveSession = true;
-    isConnected = true;
+    has_active_session = true;
+    is_connected = true;
     connect = mockConnect;
     setSessionMode = mockSetSessionMode;
     setModel = mockSetModel;
     disconnect = mockDisconnect;
     getInitializeResponse = mockGetInitializeResponse;
+    getInitializeResult = mockGetInitializeResponse;
+    newSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
+    resumeSession = vi.fn().mockResolvedValue({ session_id: 'mock-session' });
     getConfigOptions = vi.fn().mockReturnValue(null);
     getModels = vi.fn().mockReturnValue(null);
     getModes = vi.fn().mockReturnValue(null);
+    getAgentCapabilities = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;
@@ -109,12 +113,12 @@ describe('AcpAgent.start() — applySessionMode', () => {
     mockGetInitializeResponse.mockReturnValue(null);
   });
 
-  it('applies non-default sessionMode when yoloMode is off', async () => {
+  it('applies non-default session_mode when yoloMode is off', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'acceptEdits',
+        session_mode: 'acceptEdits',
       },
     });
 
@@ -124,12 +128,12 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).toHaveBeenCalledWith('acceptEdits');
   });
 
-  it('applies "auto" sessionMode', async () => {
+  it('applies "auto" session_mode', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'auto',
+        session_mode: 'auto',
       },
     });
 
@@ -139,12 +143,12 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).toHaveBeenCalledWith('auto');
   });
 
-  it('applies "dontAsk" sessionMode', async () => {
+  it('applies "dontAsk" session_mode', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'dontAsk',
+        session_mode: 'dontAsk',
       },
     });
 
@@ -154,12 +158,12 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).toHaveBeenCalledWith('dontAsk');
   });
 
-  it('applies "plan" sessionMode', async () => {
+  it('applies "plan" session_mode', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'plan',
+        session_mode: 'plan',
       },
     });
 
@@ -169,12 +173,12 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).toHaveBeenCalledWith('plan');
   });
 
-  it('does not apply sessionMode when value is "default"', async () => {
+  it('does not apply session_mode when value is "default"', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'default',
+        session_mode: 'default',
       },
     });
 
@@ -183,7 +187,7 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).not.toHaveBeenCalled();
   });
 
-  it('does not apply sessionMode when value is undefined', async () => {
+  it('does not apply session_mode when value is undefined', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
@@ -196,14 +200,14 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).not.toHaveBeenCalled();
   });
 
-  it('does not throw when non-YOLO sessionMode fails (fatal=false)', async () => {
+  it('does not throw when non-YOLO session_mode fails (fatal=false)', async () => {
     mockSetSessionMode.mockRejectedValue(new Error('mode not supported'));
 
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
-        sessionMode: 'acceptEdits',
+        session_mode: 'acceptEdits',
       },
     });
 
@@ -211,19 +215,19 @@ describe('AcpAgent.start() — applySessionMode', () => {
     expect(mockSetSessionMode).toHaveBeenCalledOnce();
   });
 
-  it('prefers YOLO mode over sessionMode when both are set', async () => {
+  it('prefers YOLO mode over session_mode when both are set', async () => {
     const agent = new AcpAgent({
       ...baseConfig,
       extra: {
         backend: 'claude',
         yoloMode: true,
-        sessionMode: 'acceptEdits',
+        session_mode: 'acceptEdits',
       },
     });
 
     await agent.start();
 
-    // Should apply YOLO mode (bypassPermissions), not the sessionMode
+    // Should apply YOLO mode (bypassPermissions), not the session_mode
     expect(mockSetSessionMode).toHaveBeenCalledOnce();
     expect(mockSetSessionMode).toHaveBeenCalledWith('bypassPermissions');
   });

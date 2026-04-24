@@ -191,7 +191,7 @@ export interface AcpBackendConfig {
    * User-entered values are injected as environment variables when spawning the process.
    * Example: [{ key: "MY_API_KEY", label: "API Key", type: "password", required: true }]
    */
-  apiKeyFields?: Array<{
+  api_keyFields?: Array<{
     key: string;
     label: string;
     type: 'text' | 'password' | 'select' | 'number' | 'boolean';
@@ -228,7 +228,7 @@ export interface AcpBackendConfig {
   skillsDirs?: string[];
 
   /** 是否为基于提示词的预设（无需 CLI 二进制文件）/ Whether this is a prompt-based preset (no CLI binary required) */
-  isPreset?: boolean;
+  is_preset?: boolean;
 
   /** 此预设的系统提示词或规则上下文 / The system prompt or rule context for this preset */
   context?: string;
@@ -243,7 +243,7 @@ export interface AcpBackendConfig {
   promptsI18n?: Record<string, string[]>;
 
   /**
-   * 此预设的主 Agent 类型（仅 isPreset=true 时生效）
+   * 此预设的主 Agent 类型（仅 is_preset=true 时生效）
    * 决定选择此预设时创建哪种类型的对话
    * - 'gemini': 创建 Gemini 对话
    * - 'claude': 创建使用 Claude 后端的 ACP 对话
@@ -251,7 +251,7 @@ export interface AcpBackendConfig {
    * - 任意字符串: 扩展贡献的 ACP 适配器 ID（如 'ext-buddy'）
    * 为向后兼容默认为 'gemini'
    *
-   * The primary agent type for this preset (only applies when isPreset=true).
+   * The primary agent type for this preset (only applies when is_preset=true).
    * Determines which conversation type to create when selecting this preset.
    * - 'gemini': Creates a Gemini conversation
    * - 'claude': Creates an ACP conversation with Claude backend
@@ -262,10 +262,10 @@ export interface AcpBackendConfig {
   presetAgentType?: string;
 
   /**
-   * 此助手可用的模型列表（仅 isPreset=true 时生效）
+   * 此助手可用的模型列表（仅 is_preset=true 时生效）
    * 如果未指定，将使用系统默认的模型列表
    *
-   * Available models for this assistant (only applies when isPreset=true).
+   * Available models for this assistant (only applies when is_preset=true).
    * If not specified, system default models will be used.
    */
   models?: string[];
@@ -274,29 +274,29 @@ export interface AcpBackendConfig {
   isBuiltin?: boolean;
 
   /**
-   * 此助手启用的 skills 列表（仅 isPreset=true 时生效）
+   * 此助手启用的 skills 列表（仅 is_preset=true 时生效）
    * 如果未指定或为空数组，将加载所有可用 skills
    *
-   * Enabled skills for this assistant (only applies when isPreset=true).
+   * Enabled skills for this assistant (only applies when is_preset=true).
    * If not specified or empty array, all available skills will be loaded.
    */
-  enabledSkills?: string[];
+  enabled_skills?: string[];
 
   /**
-   * 通过 "Add Skills" 添加的自定义 skills 名称列表（仅 isPreset=true 时生效）
+   * 通过 "Add Skills" 添加的自定义 skills 名称列表（仅 is_preset=true 时生效）
    * 这些 skills 会显示在 Custom Skills 区域，即使已经被导入
    *
-   * List of custom skill names added via "Add Skills" button (only applies when isPreset=true).
+   * List of custom skill names added via "Add Skills" button (only applies when is_preset=true).
    * These skills will be displayed in the Custom Skills section even after being imported.
    */
   customSkillNames?: string[];
 
   /**
-   * 禁用的内置自动注入 skills 列表（仅 isPreset=true 时生效）
-   * 内置 skills（auto-inject/ 目录下）默认自动注入所有对话，此列表中的 skills 将被排除
+   * 禁用的内置自动注入 skills 列表（仅 is_preset=true 时生效）
+   * 内置 skills（_builtin/ 目录下）默认自动注入所有对话，此列表中的 skills 将被排除
    *
-   * Disabled builtin auto-injected skills (only applies when isPreset=true).
-   * Builtin skills (in auto-inject/ directory) are auto-injected by default; skills in this list will be excluded.
+   * Disabled builtin auto-injected skills (only applies when is_preset=true).
+   * Builtin skills (in _builtin/ directory) are auto-injected by default; skills in this list will be excluded.
    */
   disabledBuiltinSkills?: string[];
 }
@@ -504,11 +504,11 @@ const NON_ACP_SKILLS_DIRS: Record<string, string[]> = {
  * Check if a given agent type/backend supports native skill discovery.
  * When false, callers should fallback to prompt injection for skills.
  */
-export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): boolean {
-  if (!agentTypeOrBackend) return false;
-  const acpConfig = ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll];
+export function hasNativeSkillSupport(agent_typeOrBackend: string | undefined): boolean {
+  if (!agent_typeOrBackend) return false;
+  const acpConfig = ACP_BACKENDS_ALL[agent_typeOrBackend as AcpBackendAll];
   if (acpConfig?.skillsDirs?.length) return true;
-  return !!NON_ACP_SKILLS_DIRS[agentTypeOrBackend]?.length;
+  return !!NON_ACP_SKILLS_DIRS[agent_typeOrBackend]?.length;
 }
 
 /**
@@ -516,9 +516,9 @@ export function hasNativeSkillSupport(agentTypeOrBackend: string | undefined): b
  * Get native skill directories for a given backend.
  * Returns undefined if the backend does not support native skill discovery.
  */
-export function getSkillsDirsForBackend(agentTypeOrBackend: string | undefined): string[] | undefined {
-  if (!agentTypeOrBackend) return undefined;
-  return ACP_BACKENDS_ALL[agentTypeOrBackend as AcpBackendAll]?.skillsDirs ?? NON_ACP_SKILLS_DIRS[agentTypeOrBackend];
+export function getSkillsDirsForBackend(agent_typeOrBackend: string | undefined): string[] | undefined {
+  if (!agent_typeOrBackend) return undefined;
+  return ACP_BACKENDS_ALL[agent_typeOrBackend as AcpBackendAll]?.skillsDirs ?? NON_ACP_SKILLS_DIRS[agent_typeOrBackend];
 }
 
 // ACP 错误类型系统 - 优雅的错误处理 / ACP Error Type System - Elegant error handling
@@ -678,7 +678,7 @@ export type AcpInitializeResult = {
   protocolVersion: number;
   capabilities: AcpAgentCapabilities;
   agentInfo: AcpAgentInfo | null;
-  authMethods: AcpAuthMethod[];
+  auth_methods: AcpAuthMethod[];
 };
 
 function isRecord(v: unknown): v is Record<string, unknown> {
@@ -753,7 +753,7 @@ export function parseInitializeResult(raw: unknown): AcpInitializeResult {
     protocolVersion: typeof result?.protocolVersion === 'number' ? result.protocolVersion : 0,
     capabilities: parseAgentCapabilitiesObject(result?.agentCapabilities),
     agentInfo: parseAgentInfo(result?.agentInfo),
-    authMethods: parseAuthMethods(result?.authMethods),
+    auth_methods: parseAuthMethods(result?.auth_methods),
   };
 }
 
@@ -768,7 +768,7 @@ export function parseAgentCapabilities(raw: unknown): AcpAgentCapabilities {
 
 // 所有会话更新的基础接口 / Base interface for all session updates
 export interface BaseSessionUpdate {
-  sessionId: string;
+  session_id: string;
 }
 
 // Agent 消息块更新 / Agent message chunk update
@@ -806,8 +806,8 @@ export interface ToolCallContentItem {
     text: string;
   };
   path?: string;
-  oldText?: string | null;
-  newText?: string;
+  old_text?: string | null;
+  new_text?: string;
 }
 
 /** Tool call 位置项类型 / Tool call location item type */
@@ -819,7 +819,7 @@ export interface ToolCallLocationItem {
 export interface ToolCallUpdate extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'tool_call';
-    toolCallId: string;
+    tool_call_id: string;
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
     title: string;
     kind: 'read' | 'edit' | 'execute';
@@ -833,7 +833,7 @@ export interface ToolCallUpdate extends BaseSessionUpdate {
 export interface ToolCallUpdateStatus extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'tool_call_update';
-    toolCallId: string;
+    tool_call_id: string;
     status: 'completed' | 'failed';
     // rawInput may arrive in tool_call_update with complete data (after streaming completes)
     // This happens when input_json_delta finishes and the full input is available
@@ -905,8 +905,8 @@ export interface AcpSessionConfigOption {
   description?: string;
   category?: string;
   type: 'select' | 'boolean' | 'string';
-  currentValue?: string;
-  selectedValue?: string; // Some agents may use selectedValue instead of currentValue
+  current_value?: string;
+  selected_value?: string; // Some agents may use selected_value instead of current_value
   options?: AcpConfigSelectOption[];
 }
 
@@ -914,7 +914,7 @@ export interface AcpSessionConfigOption {
 export interface ConfigOptionsUpdatePayload extends BaseSessionUpdate {
   update: {
     sessionUpdate: 'config_option_update';
-    configOptions: AcpSessionConfigOption[];
+    config_options: AcpSessionConfigOption[];
   };
 }
 
@@ -941,7 +941,7 @@ export interface AcpPromptResponseUsage {
   /** Total output tokens for this turn */
   outputTokens: number;
   /** Sum of all token types */
-  totalTokens: number;
+  total_tokens: number;
   /** Tokens read from cache */
   cachedReadTokens?: number | null;
   /** Tokens written to cache */
@@ -955,14 +955,14 @@ export interface AcpPromptResponseUsage {
 /** An available model returned by session/new (unstable API) */
 export interface AcpAvailableModel {
   id?: string;
-  modelId?: string; // OpenCode uses modelId instead of id
+  model_id?: string; // OpenCode uses model_id instead of id
   name?: string;
 }
 
 /** Models info returned by session/new (unstable API) */
 export interface AcpSessionModels {
-  currentModelId?: string;
-  availableModels?: AcpAvailableModel[];
+  current_model_id?: string;
+  available_models?: AcpAvailableModel[];
 }
 
 /** Mode entry in the top-level `modes` object of session/new response */
@@ -974,8 +974,8 @@ export interface AcpAvailableMode {
 
 /** Modes info returned by session/new (used by qoder, opencode, etc.) */
 export interface AcpSessionModes {
-  currentModeId?: string;
-  availableModes?: AcpAvailableMode[];
+  current_mode_id?: string;
+  available_modes?: AcpAvailableMode[];
 }
 
 // ===== Unified model info for UI =====
@@ -990,19 +990,19 @@ export type AcpModelInfoSourceDetail =
 
 export interface AcpModelInfo {
   /** Currently active model ID */
-  currentModelId: string | null;
+  current_model_id: string | null;
   /** Display label for the current model */
-  currentModelLabel: string | null;
+  current_model_label: string | null;
   /** Available models for switching */
-  availableModels: Array<{ id: string; label: string }>;
+  available_models: Array<{ id: string; label: string }>;
   /** Whether the user can switch models */
-  canSwitch: boolean;
+  can_switch: boolean;
   /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
   source: 'configOption' | 'models';
   /** More specific source detail for UI diagnostics */
-  sourceDetail?: AcpModelInfoSourceDetail;
+  source_detail?: AcpModelInfoSourceDetail;
   /** Config option ID (only when source is 'configOption') */
-  configOptionId?: string;
+  config_option_id?: string;
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates
@@ -1019,15 +1019,15 @@ export type AcpSessionUpdate =
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
 export interface AcpPermissionOption {
-  optionId: string;
+  option_id: string;
   name: string;
   kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
 }
 export interface AcpPermissionRequest {
-  sessionId: string;
+  session_id: string;
   options: Array<AcpPermissionOption>;
   toolCall: {
-    toolCallId: string;
+    tool_call_id: string;
     rawInput?: {
       command?: string;
       description?: string;
@@ -1045,14 +1045,14 @@ export interface AcpPermissionRequest {
 export interface LegacyAcpPermissionData extends Record<string, unknown> {
   // 可能的旧版本字段 / Possible old version fields
   options?: Array<{
-    optionId?: string;
+    option_id?: string;
     name?: string;
     kind?: string;
     // 兼容可能的其他字段 / Compatible with other possible fields
     [key: string]: unknown;
   }>;
   toolCall?: {
-    toolCallId?: string;
+    tool_call_id?: string;
     rawInput?: unknown;
     title?: string;
     kind?: string;
@@ -1070,7 +1070,7 @@ export type AcpMessage = AcpRequest | AcpNotification | AcpResponse | AcpSession
 export interface AcpFileWriteRequest extends AcpRequest {
   method: 'fs/write_text_file';
   params: {
-    sessionId: string;
+    session_id: string;
     path: string;
     content: string;
   };
@@ -1079,7 +1079,7 @@ export interface AcpFileWriteRequest extends AcpRequest {
 export interface AcpFileReadRequest extends AcpRequest {
   method: 'fs/read_text_file';
   params: {
-    sessionId: string;
+    session_id: string;
     path: string;
   };
 }
@@ -1126,7 +1126,7 @@ export interface AcpFileReadMessage {
   method: typeof ACP_METHODS.READ_TEXT_FILE;
   params: {
     path: string;
-    sessionId?: string;
+    session_id?: string;
   };
 }
 
@@ -1138,7 +1138,7 @@ export interface AcpFileWriteMessage {
   params: {
     path: string;
     content: string;
-    sessionId?: string;
+    session_id?: string;
   };
 }
 

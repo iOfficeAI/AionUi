@@ -18,7 +18,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const [loadError, setLoadError] = useState<string | null>(null);
   const { t } = useTranslation();
   const conversationContext = useConversationContextSafe();
-  const agentType = conversationContext?.type || 'unknown';
+  const agent_type = conversationContext?.type || 'unknown';
 
   // Each agent's ConversationChatConfirm handles only its own conversation_id.
   // In team mode this gives per-agent in-slot confirmation dialogs (TeamConfirmOverlay removed).
@@ -34,9 +34,9 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const checkAndAutoConfirm = useCallback(
     async (confirmation: StoredConfirmation): Promise<boolean> => {
       // Only check agent types that have approval store
-      if (agentType !== 'gemini' && agentType !== 'aionrs') return false;
+      if (agent_type !== 'gemini' && agent_type !== 'aionrs') return false;
 
-      const { action, commandType } = confirmation;
+      const { action, command_type } = confirmation;
       // Skip if no action (backend will return false for empty keys)
       if (!action) return false;
 
@@ -44,7 +44,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
         const isApproved = await ipcBridge.conversation.approval.check.invoke({
           conversation_id: confirmation.conversation_id,
           action,
-          commandType,
+          command_type,
         });
 
         if (isApproved) {
@@ -55,7 +55,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
           if (allowOption) {
             void ipcBridge.conversation.confirmation.confirm.invoke({
               conversation_id: confirmation.conversation_id,
-              callId: confirmation.callId,
+              call_id: confirmation.call_id,
               msg_id: confirmation.id,
               data: allowOption.value,
             });
@@ -68,7 +68,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
 
       return false;
     },
-    [agentType]
+    [agent_type]
   );
 
   useEffect(() => {
@@ -143,7 +143,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       setConfirmations((prev) => prev.filter((p) => p.id !== confirmation.id));
       void ipcBridge.conversation.confirmation.confirm.invoke({
         conversation_id: confirmation.conversation_id,
-        callId: confirmation.callId,
+        call_id: confirmation.call_id,
         msg_id: confirmation.id,
         data: option.value,
       });
@@ -296,7 +296,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
                     setConfirmations((prev) => prev.filter((p) => p.id !== confirmation.id));
                     void ipcBridge.conversation.confirmation.confirm.invoke({
                       conversation_id: confirmation.conversation_id,
-                      callId: confirmation.callId,
+                      call_id: confirmation.call_id,
                       msg_id: confirmation.id,
                       data: option.value,
                     });

@@ -55,8 +55,8 @@ const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw-gateway', {
  * Validate that the OpenClaw runtime matches the expected configuration.
  * Returns true if validation passes, false otherwise (with user-facing error).
  */
-const validateRuntimeMismatch = async (conversationId: string): Promise<boolean> => {
-  const runtimeResult = await ipcBridge.openclawConversation.getRuntime.invoke({ conversation_id: conversationId });
+const validateRuntimeMismatch = async (conversation_id: string): Promise<boolean> => {
+  const runtimeResult = await ipcBridge.openclawConversation.getRuntime.invoke({ conversation_id: conversation_id });
   if (!runtimeResult) {
     Message.error('Failed to validate agent runtime');
     return false;
@@ -80,15 +80,15 @@ const validateRuntimeMismatch = async (conversationId: string): Promise<boolean>
   }
   if (
     expected.expectedAgentName &&
-    normalizeRuntimeValue(expected.expectedAgentName) !== normalizeRuntimeValue(runtime.agentName)
+    normalizeRuntimeValue(expected.expectedAgentName) !== normalizeRuntimeValue(runtime.agent_name)
   ) {
-    mismatches.push(`agent: expected=${expected.expectedAgentName || '-'} actual=${runtime.agentName || '-'}`);
+    mismatches.push(`agent: expected=${expected.expectedAgentName || '-'} actual=${runtime.agent_name || '-'}`);
   }
   if (
     expected.expectedCliPath &&
-    normalizeRuntimeValue(expected.expectedCliPath) !== normalizeRuntimeValue(runtime.cliPath)
+    normalizeRuntimeValue(expected.expectedCliPath) !== normalizeRuntimeValue(runtime.cli_path)
   ) {
-    mismatches.push(`cliPath: expected=${expected.expectedCliPath || '-'} actual=${runtime.cliPath || '-'}`);
+    mismatches.push(`cli_path: expected=${expected.expectedCliPath || '-'} actual=${runtime.cli_path || '-'}`);
   }
   if (
     expected.expectedModel &&
@@ -116,7 +116,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const slashCommands = useSlashCommands(conversation_id);
+  const slash_commands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
@@ -249,7 +249,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     void ipcBridge.openclawConversation.getRuntime
       .invoke({ conversation_id })
       .then((res) => {
-        if (res?.runtime?.hasActiveSession) {
+        if (res?.runtime?.has_active_session) {
           setOpenClawStatus('session_active');
         }
       })
@@ -264,8 +264,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   useEffect(() => {
     const handler = (text: string) => {
-      const newContent = content ? `${content}\n${text}` : text;
-      setContentRef.current(newContent);
+      const new_content = content ? `${content}\n${text}` : text;
+      setContentRef.current(new_content);
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
@@ -304,7 +304,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
             // Notify StarOfficeMonitorCard to re-detect and auto-open panel
             if (starOfficeInstallInFlightRef.current) {
               starOfficeInstallInFlightRef.current = false;
-              emitter.emit('staroffice.install.finished', { conversationId: conversation_id });
+              emitter.emit('staroffice.install.finished', { conversation_id: conversation_id });
             }
             hasContentInTurnRef.current = false;
           }
@@ -354,8 +354,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   useAddEventListener(
     'staroffice.install.request',
-    ({ conversationId, text }) => {
-      if (conversationId !== conversation_id) return;
+    ({ conversation_id, text }) => {
+      if (conversation_id !== conversation_id) return;
       // Show the simplified prompt to user, inject star-office-helper skill via main process
       const msg_id = uuid();
       const userMessage: TMessage = {
@@ -365,7 +365,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         type: 'text',
         position: 'right',
         content: { content: text },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
@@ -373,7 +373,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       starOfficeInstallInFlightRef.current = true;
       void checkAndUpdateTitle(conversation_id, text);
       ipcBridge.openclawConversation.sendMessage
-        .invoke({ input: text, msg_id, conversation_id, injectSkills: ['star-office-helper'] })
+        .invoke({ input: text, msg_id, conversation_id, inject_skills: ['star-office-helper'] })
         .then(() => {
           emitter.emit('chat.history.refresh');
         })
@@ -388,8 +388,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
-      const filePaths = pastedFiles.map((file) => file.path);
-      setUploadFile((prev) => [...prev, ...filePaths]);
+      const file_paths = pastedFiles.map((file) => file.path);
+      setUploadFile((prev) => [...prev, ...file_paths]);
     },
     [setUploadFile]
   );
@@ -426,7 +426,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         type: 'text',
         position: 'right',
         content: { content: displayMessage },
-        createdAt: Date.now(),
+        created_at: Date.now(),
       };
       addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
@@ -465,7 +465,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     unlockInteraction,
     resetActiveExecution,
   } = useConversationCommandQueue({
-    conversationId: conversation_id,
+    conversation_id: conversation_id,
     enabled: true,
     isBusy: aiProcessing,
     isHydrated: hasHydratedRunningState,
@@ -474,7 +474,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const onSendHandler = async (message: string) => {
     emitter.emit('openclaw-gateway.selected.file.clear');
-    const filePaths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
+    const file_paths = [...uploadFile, ...atPath.map((item) => (typeof item === 'string' ? item : item.path))];
     setAtPath([]);
     setUploadFile([]);
 
@@ -485,11 +485,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         hasPendingCommands,
       })
     ) {
-      enqueue({ input: message, files: filePaths });
+      enqueue({ input: message, files: file_paths });
       return;
     }
 
-    await executeCommand({ input: message, files: filePaths });
+    await executeCommand({ input: message, files: file_paths });
   };
 
   const handleEditQueuedCommand = useCallback(
@@ -552,7 +552,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           type: 'text',
           position: 'right',
           content: { content: initialDisplayMessage },
-          createdAt: Date.now(),
+          created_at: Date.now(),
         };
         // Reset AI reply for new turn
         // 重置 AI 回复用于新一轮
@@ -682,7 +682,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           </>
         }
         onSend={onSendHandler}
-        slashCommands={slashCommands}
+        slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
       ></SendBox>

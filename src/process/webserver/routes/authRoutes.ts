@@ -350,18 +350,18 @@ export function registerAuthRoutes(app: Express): void {
   // 为 WebSocket token 端点添加速率限制
   app.get('/api/ws-token', apiRateLimiter, authenticatedActionLimiter, async (req: Request, res: Response, next) => {
     try {
-      const sessionToken = TokenUtils.extractFromRequest(req);
+      const session_token = TokenUtils.extractFromRequest(req);
 
-      if (!sessionToken) {
+      if (!session_token) {
         return next(createAppError('Unauthorized: Invalid or missing session', 401, 'unauthorized'));
       }
 
-      const decoded = await AuthService.verifyToken(sessionToken);
+      const decoded = await AuthService.verifyToken(session_token);
       if (!decoded) {
         return next(createAppError('Unauthorized: Invalid session token', 401, 'unauthorized'));
       }
 
-      const user = await UserRepository.findById(decoded.userId);
+      const user = await UserRepository.findById(decoded.user_id);
       if (!user) {
         return next(createAppError('Unauthorized: User not found', 401, 'unauthorized'));
       }
@@ -369,7 +369,7 @@ export function registerAuthRoutes(app: Express): void {
       // 直接返回主 token，不再生成单独的 WebSocket token
       res.json({
         success: true,
-        wsToken: sessionToken, // 复用主 token
+        wsToken: session_token, // 复用主 token
         expiresIn: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE, // 使用主 token 的过期时间
       });
     } catch (error) {
@@ -410,7 +410,7 @@ export function registerAuthRoutes(app: Express): void {
 
       // 设置 session cookie（远程模式下启用 secure 标志）
       // Set session cookie (enable secure flag in remote mode)
-      res.cookie(AUTH_CONFIG.COOKIE.NAME, result.data.sessionToken, {
+      res.cookie(AUTH_CONFIG.COOKIE.NAME, result.data.session_token, {
         ...getCookieOptions(req),
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
@@ -418,7 +418,7 @@ export function registerAuthRoutes(app: Express): void {
       res.json({
         success: true,
         user: { username: result.data.username },
-        token: result.data.sessionToken,
+        token: result.data.session_token,
       });
     } catch (error) {
       console.error('QR login error:', error);

@@ -37,8 +37,8 @@ agentFactory.register('acp', (conv, opts) => {
     conversation_id: c.id,
     yoloMode: opts?.yoloMode,
     // Only gemini ACP conversations use conversation.model as a backend-aligned model
-    // fallback. Other ACP backends persist their own CLI model IDs in extra.currentModelId.
-    currentModelId: c.extra?.currentModelId ?? (c.extra?.backend === 'gemini' ? c.model?.useModel : undefined),
+    // fallback. Other ACP backends persist their own CLI model IDs in extra.current_model_id.
+    current_model_id: c.extra?.current_model_id ?? (c.extra?.backend === 'gemini' ? c.model?.useModel : undefined),
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

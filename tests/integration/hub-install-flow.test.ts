@@ -326,7 +326,7 @@ describe('L1 Hub Install Flow — Integration', () => {
         jsonrpc: JSONRPC_VERSION,
         id: 2,
         method: 'session/new',
-        params: { cwd: os.tmpdir(), mcpServers: [] },
+        params: { cwd: os.tmpdir(), mcp_servers: [] },
       });
 
       const response = await waitForJsonRpcResponse(child, (msg) => msg.id === 2);
@@ -354,7 +354,7 @@ describe('L1 Hub Install Flow — Integration', () => {
         jsonrpc: JSONRPC_VERSION,
         id: 2,
         method: 'session/new',
-        params: { cwd: '.', mcpServers: [] },
+        params: { cwd: '.', mcp_servers: [] },
       });
       const sessionResponse = await waitForJsonRpcResponse(child, (msg) => msg.id === 2);
       const sessionId = (sessionResponse.result as Record<string, unknown>).sessionId as string;
@@ -459,7 +459,7 @@ describe('L1 Hub Install Flow — Integration', () => {
         jsonrpc: JSONRPC_VERSION,
         id: 2,
         method: 'session/new',
-        params: { cwd: '.', mcpServers: [] },
+        params: { cwd: '.', mcp_servers: [] },
       });
 
       const sessionResponse = await waitForJsonRpcResponse(child, (msg) => msg.id === 2);

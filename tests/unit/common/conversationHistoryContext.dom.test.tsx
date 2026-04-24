@@ -45,10 +45,10 @@ const createConversation = (id: string): TChatConversation => ({
   model: {
     id: 'model-1',
     name: 'Gemini',
-    useModel: 'gemini-2.0-flash',
+    use_model: 'gemini-2.0-flash',
     platform: 'gemini',
-    baseUrl: '',
-    apiKey: '',
+    base_url: '',
+    api_key: '',
   } as TChatConversation['model'],
 });
 

@@ -42,7 +42,7 @@ export class PairingService {
   async generatePairingCode(
     platformUserId: string,
     platformType: PluginType,
-    displayName?: string
+    display_name?: string
   ): Promise<{ code: string; expiresAt: number }> {
     const db = await getDatabase();
 
@@ -72,7 +72,7 @@ export class PairingService {
       code,
       platformUserId,
       platformType,
-      displayName,
+      display_name,
       requestedAt: now,
       expiresAt,
       status: 'pending',
@@ -95,7 +95,7 @@ export class PairingService {
   async refreshPairingCode(
     platformUserId: string,
     platformType: PluginType,
-    displayName?: string
+    display_name?: string
   ): Promise<{ code: string; expiresAt: number }> {
     const db = await getDatabase();
 
@@ -114,7 +114,7 @@ export class PairingService {
     }
 
     // Generate new code
-    return this.generatePairingCode(platformUserId, platformType, displayName);
+    return this.generatePairingCode(platformUserId, platformType, display_name);
   }
 
   /**
@@ -194,12 +194,12 @@ export class PairingService {
     }
 
     // Create authorized user
-    const userId = `assistant_user_${Date.now()}_${crypto.randomBytes(4).toString('hex').slice(0, 6)}`;
+    const user_id = `assistant_user_${Date.now()}_${crypto.randomBytes(4).toString('hex').slice(0, 6)}`;
     const user: IChannelUser = {
-      id: userId,
+      id: user_id,
       platformUserId: request.platformUserId,
       platformType: request.platformType,
-      displayName: request.displayName,
+      display_name: request.display_name,
       authorizedAt: Date.now(),
     };
 

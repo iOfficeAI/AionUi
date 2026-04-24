@@ -4,7 +4,7 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
@@ -43,15 +43,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
   useEffect(() => {
     if (!visible) return;
-    let active = true;
-    ConfigStorage.get('acp.cachedInitializeResult')
-      .then((data) => {
-        if (active) setCachedInitResults(data ?? null);
-      })
-      .catch(() => {});
-    return () => {
-      active = false;
-    };
+    const data = configService.get('acp.cachedInitializeResult');
+    setCachedInitResults(data ?? null);
   }, [visible]);
 
   const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants], cachedInitResults);
@@ -87,7 +80,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       Message.warning(t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' }));
       return;
     }
-    const userId = user?.id ?? 'system_default_user';
+    const user_id = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
       const agents: TeamAgent[] = [];
@@ -95,22 +88,22 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
       const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
       agents.push({
-        slotId: '',
-        conversationId: '',
+        slot_id: '',
+        conversation_id: '',
         role: 'leader',
         status: 'pending',
-        agentType: dispatchAgentType,
-        agentName: 'Leader',
-        conversationType: resolveConversationType(dispatchAgentType),
-        cliPath: dispatchAgent?.cliPath,
-        customAgentId: dispatchAgent?.customAgentId,
+        agent_type: dispatchAgentType,
+        agent_name: 'Leader',
+        conversation_type: resolveConversationType(dispatchAgentType),
+        cli_path: dispatchAgent?.cli_path,
+        custom_agent_id: dispatchAgent?.custom_agent_id,
       });
 
       const team = await ipcBridge.team.create.invoke({
-        userId,
+        user_id,
         name,
         workspace,
-        workspaceMode: 'shared',
+        workspace_mode: 'shared',
         agents,
       });
 
@@ -270,7 +263,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               value={workspace}
               onChange={setWorkspace}
               placeholder={t('team.create.selectFolder', { defaultValue: 'Select folder' })}
-              inputPlaceholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
+              input_placeholder={t('team.create.workspacePlaceholder', { defaultValue: 'Workspace path (optional)' })}
               recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
               chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                 defaultValue: 'Choose a different folder',

@@ -137,20 +137,20 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 
 // ── Helpers ────────────────────────────────────────────────────────
 
-function createManager(sessionMode: string): AionrsManager {
+function createManager(session_mode: string): AionrsManager {
   const data = {
     workspace: '/test',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: 'conv-1',
-    sessionMode,
+    session_mode,
   };
   const model = data.model as any;
   return new AionrsManager(data as any, model);
 }
 
-function makeContent(type: 'edit' | 'info' | 'exec', callId = 'call-1') {
+function makeContent(type: 'edit' | 'info' | 'exec', call_id = 'call-1') {
   return {
-    callId,
+    call_id,
     status: 'Confirming' as const,
     confirmationDetails: { type, title: `${type} action` },
   };
@@ -298,7 +298,7 @@ describe('AionrsManager.setMode', () => {
 
     const result = await manager.setMode('yolo');
 
-    expect((manager as any).currentMode).toBe('yolo');
+    expect((manager as any).current_mode).toBe('yolo');
     expect(result).toEqual({ success: true, data: { mode: 'yolo' } });
   });
 

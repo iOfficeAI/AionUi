@@ -51,7 +51,7 @@ const makeProvider = (id: string): IProvider =>
   }) as unknown as IProvider;
 
 const defaultParams = () => ({
-  currentModel: { id: 'p1', useModel: 'gemini-1.5-flash' } as { id: string; useModel: string },
+  current_model: { id: 'p1', use_model: 'gemini-1.5-flash' } as { id: string; use_model: string },
   providers: [makeProvider('p1')],
   geminiModeLookup: new Map(),
   getAvailableModels: vi.fn(() => ['gemini-1.5-flash', 'gemini-1.5-pro']),

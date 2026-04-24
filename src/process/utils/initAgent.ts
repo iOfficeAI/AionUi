@@ -56,23 +56,20 @@ export async function setupAssistantWorkspace(
   workspace: string,
   options: {
     conversationId: string;
-    agentType?: string;
+    agent_type?: string;
     backend?: string;
-    enabledSkills?: string[];
+    enabled_skills?: string[];
     /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
     excludeBuiltinSkills?: string[];
     /** Absolute paths to extra skill directories to symlink (e.g. cron job skill dirs) */
     extraSkillPaths?: string[];
   }
 ): Promise<void> {
-  const key = options.backend || options.agentType || '';
+  const key = options.backend || options.agent_type || '';
   const skillsDirs = getSkillsDirsForBackend(key);
   if (!skillsDirs) return;
 
-  const materializedDir = await materializeAgentSkillsDir(
-    options.conversationId,
-    options.enabledSkills ?? []
-  );
+  const materializedDir = await materializeAgentSkillsDir(options.conversationId, options.enabled_skills ?? []);
 
   let materializedSkillNames: string[] = [];
   if (materializedDir) {
@@ -145,8 +142,8 @@ const buildWorkspaceWidthFiles = async (
   _defaultFiles?: string[],
   providedCustomWorkspace?: boolean
 ) => {
-  // 使用前端提供的customWorkspace标志，如果没有则根据workspace参数判断
-  const customWorkspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
+  // 使用前端提供的custom_workspace标志，如果没有则根据workspace参数判断
+  const custom_workspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
 
   if (!workspace) {
     const tempPath = getSystemDir().workDir;
@@ -157,29 +154,29 @@ const buildWorkspaceWidthFiles = async (
     workspace = path.resolve(workspace);
   }
 
-  return { workspace, customWorkspace };
+  return { workspace, custom_workspace };
 };
 
 export const createGeminiAgent = async (
   model: TProviderWithModel,
   workspace?: string,
   defaultFiles?: string[],
-  webSearchEngine?: 'google' | 'default',
-  customWorkspace?: boolean,
-  contextFileName?: string,
-  presetRules?: string,
-  enabledSkills?: string[],
-  presetAssistantId?: string,
-  sessionMode?: string,
-  isHealthCheck?: boolean,
+  web_search_engine?: 'google' | 'default',
+  custom_workspace?: boolean,
+  context_file_name?: string,
+  preset_rules?: string,
+  enabled_skills?: string[],
+  preset_assistant_id?: string,
+  session_mode?: string,
+  is_health_check?: boolean,
   extraSkillPaths?: string[],
   excludeBuiltinSkills?: string[]
 ): Promise<TChatConversation> => {
-  const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(
+  const { workspace: newWorkspace, custom_workspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(
     `gemini-temp-${Date.now()}`,
     workspace,
     defaultFiles,
-    customWorkspace
+    custom_workspace
   );
 
   const conversationId = uuid();
@@ -189,8 +186,8 @@ export const createGeminiAgent = async (
   if (!finalCustomWorkspace) {
     await setupAssistantWorkspace(newWorkspace, {
       conversationId,
-      agentType: 'gemini',
-      enabledSkills,
+      agent_type: 'gemini',
+      enabled_skills,
       extraSkillPaths,
       excludeBuiltinSkills,
     });
@@ -201,26 +198,26 @@ export const createGeminiAgent = async (
     model,
     extra: {
       workspace: newWorkspace,
-      customWorkspace: finalCustomWorkspace,
-      webSearchEngine,
-      contextFileName,
+      custom_workspace: finalCustomWorkspace,
+      web_search_engine,
+      context_file_name,
       // 系统规则 / System rules
-      presetRules,
+      preset_rules,
       // 向后兼容：contextContent 保存 rules / Backward compatible: contextContent stores rules
-      contextContent: presetRules,
+      contextContent: preset_rules,
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
-      enabledSkills,
+      enabled_skills,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
-      presetAssistantId,
+      preset_assistant_id,
       // Initial session mode from Guid page mode selector
-      sessionMode,
+      session_mode,
       // Explicit marker for temporary health-check conversations
-      isHealthCheck,
+      is_health_check,
     },
     desc: finalCustomWorkspace ? newWorkspace : '',
-    createdAt: Date.now(),
-    modifiedAt: Date.now(),
+    created_at: Date.now(),
+    modified_at: Date.now(),
     name: newWorkspace,
     id: conversationId,
   };
@@ -228,21 +225,21 @@ export const createGeminiAgent = async (
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+  const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `${extra.backend}-temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
-    extra.customWorkspace
+    extra.custom_workspace
   );
 
   const conversationId = uuid();
 
   // 对 temp workspace 设置 skill symlinks（原生发现）
-  if (!customWorkspace) {
+  if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
       backend: extra.backend,
-      enabledSkills: extra.enabledSkills,
+      enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
@@ -252,30 +249,30 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     type: 'acp',
     extra: {
       workspace: workspace,
-      customWorkspace,
+      custom_workspace,
       backend: extra.backend as AcpBackend,
-      cliPath: extra.cliPath,
-      agentName: extra.agentName,
-      customAgentId: extra.customAgentId, // 同时用于标识预设助手 / Also used to identify preset assistant
-      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
+      cli_path: extra.cli_path,
+      agent_name: extra.agent_name,
+      custom_agent_id: extra.custom_agent_id, // 同时用于标识预设助手 / Also used to identify preset assistant
+      preset_context: extra.preset_context, // 智能助手的预设规则/提示词
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
-      enabledSkills: extra.enabledSkills,
+      enabled_skills: extra.enabled_skills,
       // 排除的内置自动注入 skills / Builtin auto-injected skills to exclude
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
-      presetAssistantId: extra.presetAssistantId,
+      preset_assistant_id: extra.preset_assistant_id,
       // Initial session mode selected on Guid page (from AgentModeSelector)
-      sessionMode: extra.sessionMode,
+      session_mode: extra.session_mode,
       // Pre-selected model from Guid page (cached model list)
-      currentModelId: extra.currentModelId,
+      current_model_id: extra.current_model_id,
       // Explicit marker for temporary health-check conversations
-      isHealthCheck: extra.isHealthCheck,
+      is_health_check: extra.is_health_check,
       // Team ownership — used by sidebar filter to hide team-owned conversations
-      ...(extra.teamId ? { teamId: extra.teamId } : {}),
+      ...(extra.team_id ? { team_id: extra.team_id } : {}),
     },
-    createdAt: Date.now(),
-    modifiedAt: Date.now(),
+    created_at: Date.now(),
+    modified_at: Date.now(),
     name: workspace,
     id: conversationId,
   };
@@ -283,21 +280,21 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
 
 export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+  const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `nanobot-temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
-    extra.customWorkspace
+    extra.custom_workspace
   );
 
   const conversationId = uuid();
 
   // 对 temp workspace 设置 skill symlinks
-  if (!customWorkspace) {
+  if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
-      agentType: 'nanobot',
-      enabledSkills: extra.enabledSkills,
+      agent_type: 'nanobot',
+      enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
@@ -307,12 +304,12 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     type: 'nanobot',
     extra: {
       workspace: workspace,
-      customWorkspace,
-      enabledSkills: extra.enabledSkills,
-      presetAssistantId: extra.presetAssistantId,
+      custom_workspace,
+      enabled_skills: extra.enabled_skills,
+      preset_assistant_id: extra.preset_assistant_id,
     },
-    createdAt: Date.now(),
-    modifiedAt: Date.now(),
+    created_at: Date.now(),
+    modified_at: Date.now(),
     name: workspace,
     id: conversationId,
   };
@@ -320,19 +317,19 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
 
 export const createRemoteAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+  const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `remote-temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
-    extra.customWorkspace
+    extra.custom_workspace
   );
 
   const conversationId = uuid();
 
-  if (!customWorkspace) {
+  if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
-      enabledSkills: extra.enabledSkills,
+      enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
@@ -342,13 +339,13 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
     type: 'remote',
     extra: {
       workspace,
-      customWorkspace,
+      custom_workspace,
       remoteAgentId: extra.remoteAgentId!,
-      enabledSkills: extra.enabledSkills,
-      presetAssistantId: extra.presetAssistantId,
+      enabled_skills: extra.enabled_skills,
+      preset_assistant_id: extra.preset_assistant_id,
     },
-    createdAt: Date.now(),
-    modifiedAt: Date.now(),
+    created_at: Date.now(),
+    modified_at: Date.now(),
     name: workspace,
     id: conversationId,
   };
@@ -356,21 +353,21 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
 
 export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+  const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `aionrs-temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
-    extra.customWorkspace
+    extra.custom_workspace
   );
 
   const conversationId = uuid();
 
   // Set up skill symlinks for native discovery by aionrs CLI
-  if (!customWorkspace) {
+  if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
-      agentType: 'aionrs',
-      enabledSkills: extra.enabledSkills,
+      agent_type: 'aionrs',
+      enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
@@ -381,15 +378,15 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
     model: options.model,
     extra: {
       workspace,
-      customWorkspace,
-      presetRules: extra.presetRules,
-      enabledSkills: extra.enabledSkills,
-      presetAssistantId: extra.presetAssistantId,
-      sessionMode: extra.sessionMode,
+      custom_workspace,
+      preset_rules: extra.preset_rules,
+      enabled_skills: extra.enabled_skills,
+      preset_assistant_id: extra.preset_assistant_id,
+      session_mode: extra.session_mode,
     },
-    desc: customWorkspace ? workspace : '',
-    createdAt: Date.now(),
-    modifiedAt: Date.now(),
+    desc: custom_workspace ? workspace : '',
+    created_at: Date.now(),
+    modified_at: Date.now(),
     name: workspace,
     id: conversationId,
   };
@@ -397,20 +394,20 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
 
 export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+  const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `openclaw-temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
-    extra.customWorkspace
+    extra.custom_workspace
   );
 
   const conversationId = uuid();
 
   // 对 temp workspace 设置 skill symlinks
-  if (!customWorkspace) {
+  if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
-      enabledSkills: extra.enabledSkills,
+      enabled_skills: extra.enabled_skills,
       extraSkillPaths: extra.extraSkillPaths,
       excludeBuiltinSkills: extra.excludeBuiltinSkills,
     });
@@ -422,28 +419,28 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     extra: {
       workspace: workspace,
       backend: extra.backend as AcpBackendAll,
-      agentName: extra.agentName,
-      customWorkspace,
+      agent_name: extra.agent_name,
+      custom_workspace,
       gateway: {
-        cliPath: extra.cliPath,
+        cli_path: extra.cli_path,
       },
       runtimeValidation: {
         expectedWorkspace: workspace,
         expectedBackend: extra.backend,
-        expectedAgentName: extra.agentName,
-        expectedCliPath: extra.cliPath,
+        expectedAgentName: extra.agent_name,
+        expectedCliPath: extra.cli_path,
         // Note: model is not used by openclaw-gateway, so skip expectedModel to avoid
         // validation mismatch (conversation object doesn't store model for this type)
         expectedIdentityHash,
         switchedAt: extra.runtimeValidation?.switchedAt ?? Date.now(),
       },
       // Enabled skills list (loaded via SkillManager)
-      enabledSkills: extra.enabledSkills,
+      enabled_skills: extra.enabled_skills,
       // Preset assistant ID for displaying name and avatar in conversation panel
-      presetAssistantId: extra.presetAssistantId,
+      preset_assistant_id: extra.preset_assistant_id,
     },
-    createdAt: Date.now(),
-    modifiedAt: Date.now(),
+    created_at: Date.now(),
+    modified_at: Date.now(),
     name: workspace,
     id: conversationId,
   };

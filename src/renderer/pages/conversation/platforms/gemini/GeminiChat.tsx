@@ -22,21 +22,21 @@ const GeminiChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: GeminiModelSelection;
-  cronJobId?: string;
+  cron_job_id?: string;
   hideSendBox?: boolean;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
-  sessionMode?: string;
+  session_mode?: string;
   emptySlot?: React.ReactNode;
 }> = ({
   conversation_id,
   workspace,
   modelSelection,
-  cronJobId,
+  cron_job_id,
   hideSendBox,
-  teamId,
+  team_id,
   agentSlotId,
-  sessionMode,
+  session_mode,
   emptySlot,
 }) => {
   useMessageLstCache(conversation_id);
@@ -45,8 +45,8 @@ const GeminiChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversationId: conversation_id, workspace, type: 'gemini', cronJobId, hideSendBox };
-  }, [conversation_id, workspace, cronJobId, hideSendBox]);
+    return { conversation_id: conversation_id, workspace, type: 'gemini', cron_job_id, hideSendBox };
+  }, [conversation_id, workspace, cron_job_id, hideSendBox]);
 
   return (
     <ConversationProvider value={conversationValue}>
@@ -59,9 +59,9 @@ const GeminiChat: React.FC<{
             <GeminiSendBox
               conversation_id={conversation_id}
               modelSelection={modelSelection}
-              teamId={teamId}
+              team_id={team_id}
               agentSlotId={agentSlotId}
-              sessionMode={sessionMode}
+              session_mode={session_mode}
             ></GeminiSendBox>
           </ConversationChatConfirm>
         )}

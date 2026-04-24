@@ -8,10 +8,10 @@ import { useTranslation } from 'react-i18next';
 
 type UseTitleRenameParams = {
   title?: React.ReactNode;
-  conversationId?: string;
+  conversation_id?: string;
   updateTabName: (id: string, name: string) => void;
   /** When provided, replaces the default conversation.update call. Return true on success. */
-  onRename?: (newName: string) => Promise<boolean>;
+  onRename?: (new_name: string) => Promise<boolean>;
 };
 
 type UseTitleRenameReturn = {
@@ -29,7 +29,7 @@ type UseTitleRenameReturn = {
  */
 export function useTitleRename({
   title,
-  conversationId,
+  conversation_id,
   updateTabName,
   onRename,
 }: UseTitleRenameParams): UseTitleRenameReturn {
@@ -45,7 +45,7 @@ export function useTitleRename({
     }
   }, [title]);
 
-  const canRenameTitle = typeof title === 'string' && (!!conversationId || !!onRename);
+  const canRenameTitle = typeof title === 'string' && (!!conversation_id || !!onRename);
 
   const submitTitleRename = async () => {
     if (!canRenameTitle) return;
@@ -70,13 +70,13 @@ export function useTitleRename({
         success = await onRename(nextTitle);
       } else {
         const result = await ipcBridge.conversation.update.invoke({
-          id: conversationId!,
+          id: conversation_id!,
           updates: { name: nextTitle },
         });
         success = Boolean(result);
         if (success) {
-          await refreshConversationCache(conversationId!);
-          updateTabName(conversationId!, nextTitle);
+          await refreshConversationCache(conversation_id!);
+          updateTabName(conversation_id!, nextTitle);
           emitter.emit('chat.history.refresh');
         }
       }

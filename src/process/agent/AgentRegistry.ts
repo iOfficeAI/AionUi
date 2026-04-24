@@ -83,7 +83,7 @@ class AgentRegistry {
         kind: 'openclaw-gateway',
         available: true,
         backend: 'openclaw-gateway',
-        cliPath: 'openclaw',
+        cli_path: 'openclaw',
       } satisfies OpenClawDetectedAgent);
     }
 
@@ -94,7 +94,7 @@ class AgentRegistry {
         kind: 'nanobot',
         available: true,
         backend: 'nanobot',
-        cliPath: 'nanobot',
+        cli_path: 'nanobot',
       } satisfies NanobotDetectedAgent);
     }
 

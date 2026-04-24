@@ -20,10 +20,10 @@ type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
 const GeminiTeamChat: React.FC<{
   conversation: GeminiConversation;
   hideSendBox?: boolean;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
   emptySlot?: React.ReactNode;
-}> = ({ conversation, hideSendBox, teamId, agentSlotId, emptySlot }) => {
+}> = ({ conversation, hideSendBox, team_id, agentSlotId, emptySlot }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -41,7 +41,7 @@ const GeminiTeamChat: React.FC<{
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
       hideSendBox={hideSendBox}
-      teamId={teamId}
+      team_id={team_id}
       agentSlotId={agentSlotId}
       emptySlot={emptySlot}
     />
@@ -54,10 +54,10 @@ type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 /** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
-  teamId?: string;
+  team_id?: string;
   agentSlotId?: string;
   emptySlot?: React.ReactNode;
-}> = ({ conversation, teamId, agentSlotId, emptySlot }) => {
+}> = ({ conversation, team_id, agentSlotId, emptySlot }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
@@ -74,7 +74,7 @@ const AionrsTeamChat: React.FC<{
       conversation_id={conversation.id}
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
-      teamId={teamId}
+      team_id={team_id}
       agentSlotId={agentSlotId}
       emptySlot={emptySlot}
     />
@@ -85,21 +85,21 @@ type TeamChatViewProps = {
   conversation: TChatConversation;
   hideSendBox?: boolean;
   /** When set, the SendBox routes messages through team.sendMessage instead of direct conversation send */
-  teamId?: string;
-  /** When set alongside teamId, routes messages to a specific agent via team.sendMessageToAgent */
+  team_id?: string;
+  /** When set alongside team_id, routes messages to a specific agent via team.sendMessageToAgent */
   agentSlotId?: string;
-  agentName?: string;
+  agent_name?: string;
 };
 
 /**
  * Routes to the correct platform chat component based on conversation type.
  * Does NOT wrap in ChatLayout — that is done by the parent TeamPage.
  */
-const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, teamId, agentSlotId, agentName }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, team_id, agentSlotId, agent_name }) => {
   // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
-  // to MessageList; the empty state itself reads teamId / backend / preset info from the
+  // to MessageList; the empty state itself reads team_id / backend / preset info from the
   // shared SWR-cached conversation record, so none of that needs to flow through props.
-  const emptySlot = teamId ? <TeamChatEmptyState conversationId={conversation.id} /> : undefined;
+  const emptySlot = team_id ? <TeamChatEmptyState conversation_id={conversation.id} /> : undefined;
   const content = (() => {
     switch (conversation.type) {
       case 'acp':
@@ -109,10 +109,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend={conversation.extra?.backend || 'claude'}
-            sessionMode={conversation.extra?.sessionMode}
-            agentName={agentName ?? (conversation.extra as { agentName?: string })?.agentName}
+            session_mode={conversation.extra?.session_mode}
+            agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={hideSendBox}
-            teamId={teamId}
+            team_id={team_id}
             agentSlotId={agentSlotId}
             emptySlot={emptySlot}
           />
@@ -124,9 +124,9 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend='codex'
-            agentName={agentName ?? (conversation.extra as { agentName?: string })?.agentName}
+            agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={hideSendBox}
-            teamId={teamId}
+            team_id={team_id}
             agentSlotId={agentSlotId}
             emptySlot={emptySlot}
           />
@@ -136,7 +136,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
           <AionrsTeamChat
             key={conversation.id}
             conversation={conversation as AionrsConversation}
-            teamId={teamId}
+            team_id={team_id}
             agentSlotId={agentSlotId}
             emptySlot={emptySlot}
           />
@@ -147,7 +147,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, 
             key={conversation.id}
             conversation={conversation}
             hideSendBox={hideSendBox}
-            teamId={teamId}
+            team_id={team_id}
             agentSlotId={agentSlotId}
             emptySlot={emptySlot}
           />

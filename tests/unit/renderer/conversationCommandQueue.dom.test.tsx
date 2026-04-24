@@ -65,7 +65,7 @@ const createQueueItem = (overrides: Partial<ConversationCommandQueueItem> = {}):
   id: overrides.id ?? `command-${Math.random().toString(36).slice(2)}`,
   input: overrides.input ?? 'echo hello',
   files: overrides.files ?? [],
-  createdAt: overrides.createdAt ?? Date.now(),
+  created_at: overrides.created_at ?? Date.now(),
 });
 
 describe('useConversationCommandQueue', () => {
@@ -79,13 +79,13 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('automatically executes the next queued command when the conversation becomes idle', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const storageKey = `conversation-command-queue/${conversation_id}`;
     const { result, rerender } = renderHook(
       ({ isBusy }) =>
         useConversationCommandQueue({
-          conversationId,
+          conversation_id,
           isBusy,
           onExecute,
         }),
@@ -129,9 +129,9 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('clears persisted queue state when the feature is disabled', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const storageKey = `conversation-command-queue/${conversation_id}`;
 
     window.sessionStorage.setItem(
       storageKey,
@@ -142,7 +142,7 @@ describe('useConversationCommandQueue', () => {
             id: 'queued-1',
             input: 'stale queued command',
             files: [],
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
         ],
       })
@@ -150,7 +150,7 @@ describe('useConversationCommandQueue', () => {
 
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         enabled: false,
         isBusy: false,
         onExecute,
@@ -167,11 +167,11 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('waits for the conversation runtime status to hydrate before auto-dequeuing restored commands', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
 
     window.sessionStorage.setItem(
-      `conversation-command-queue/${conversationId}`,
+      `conversation-command-queue/${conversation_id}`,
       JSON.stringify({
         isPaused: false,
         items: [
@@ -179,7 +179,7 @@ describe('useConversationCommandQueue', () => {
             id: 'queued-1',
             input: 'restored queued command',
             files: [],
-            createdAt: Date.now(),
+            created_at: Date.now(),
           },
         ],
       })
@@ -188,7 +188,7 @@ describe('useConversationCommandQueue', () => {
     const { result, rerender } = renderHook(
       ({ isBusy, isHydrated }) =>
         useConversationCommandQueue({
-          conversationId,
+          conversation_id,
           isBusy,
           isHydrated,
           onExecute,
@@ -217,12 +217,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('keeps queued commands paused until resumed', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result, rerender } = renderHook(
       ({ isBusy }) =>
         useConversationCommandQueue({
-          conversationId,
+          conversation_id,
           isBusy,
           onExecute,
         }),
@@ -267,15 +267,15 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('restores the failed command to the front of the queue and pauses execution', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockRejectedValue(new Error('send failed'));
     const warningSpy = vi.mocked(Message.warning);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const storageKey = `conversation-command-queue/${conversation_id}`;
     const { result, rerender } = renderHook(
       ({ isBusy }) =>
         useConversationCommandQueue({
-          conversationId,
+          conversation_id,
           isBusy,
           onExecute,
         }),
@@ -321,11 +321,11 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('resumes a paused queue after the blocked command is edited', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -359,11 +359,11 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('reorders queued commands and clears the paused state', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -397,12 +397,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('waits for an active drag interaction to finish before dequeuing the next command', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result, rerender } = renderHook(
       ({ isBusy }) =>
         useConversationCommandQueue({
-          conversationId,
+          conversation_id,
           isBusy,
           onExecute,
         }),
@@ -446,12 +446,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('dequeues only one queued command per busy-idle cycle', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result, rerender } = renderHook(
       ({ isBusy }) =>
         useConversationCommandQueue({
-          conversationId,
+          conversation_id,
           isBusy,
           onExecute,
         }),
@@ -509,11 +509,11 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('releases a pending execution gate after stop so the next queued command can start', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: false,
         onExecute,
       })
@@ -550,11 +550,11 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('ignores stop resets when there is no pending execution gate to release', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -571,11 +571,11 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('removes a blocked queued command and clears the paused state', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -608,12 +608,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('clears persisted queue state when the conversation is deleted', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const storageKey = `conversation-command-queue/${conversation_id}`;
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -632,7 +632,7 @@ describe('useConversationCommandQueue', () => {
     expect(window.sessionStorage.getItem(storageKey)).not.toBeNull();
 
     act(() => {
-      emitter.emit('conversation.deleted', conversationId);
+      emitter.emit('conversation.deleted', conversation_id);
     });
 
     await waitFor(() => {
@@ -643,12 +643,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('clears a paused queue and drops persisted state immediately', async () => {
-    const conversationId = createConversationId();
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const conversation_id = createConversationId();
+    const storageKey = `conversation-command-queue/${conversation_id}`;
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -680,12 +680,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('rejects rapid enqueue operations that would exceed queue limits', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const warningSpy = vi.spyOn(Message, 'warning').mockImplementation(vi.fn());
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -708,12 +708,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('updates a queued command and persists the edited input', async () => {
-    const conversationId = createConversationId();
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const conversation_id = createConversationId();
+    const storageKey = `conversation-command-queue/${conversation_id}`;
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -754,12 +754,12 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('rejects blank queued command edits and keeps the original command intact', async () => {
-    const conversationId = createConversationId();
+    const conversation_id = createConversationId();
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const warningSpy = vi.mocked(Message.warning);
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })
@@ -791,8 +791,8 @@ describe('useConversationCommandQueue', () => {
   });
 
   it('ignores unsafe persisted queue entries before auto-execution can start', async () => {
-    const conversationId = createConversationId();
-    const storageKey = `conversation-command-queue/${conversationId}`;
+    const conversation_id = createConversationId();
+    const storageKey = `conversation-command-queue/${conversation_id}`;
     const onExecute = vi.fn().mockResolvedValue(undefined);
 
     window.sessionStorage.setItem(
@@ -803,19 +803,19 @@ describe('useConversationCommandQueue', () => {
             id: 'valid',
             input: 'safe command',
             files: ['a.txt', 'a.txt'],
-            createdAt: 1,
+            created_at: 1,
           },
           {
             id: 'oversized-input',
             input: 'x'.repeat(MAX_QUEUED_COMMAND_INPUT_LENGTH + 1),
             files: [],
-            createdAt: 2,
+            created_at: 2,
           },
           {
             id: 'too-many-files',
             input: 'unsafe',
             files: Array.from({ length: MAX_QUEUED_COMMAND_FILES + 1 }, (_, index) => `${index}.txt`),
-            createdAt: 3,
+            created_at: 3,
           },
         ],
         isPaused: false,
@@ -824,7 +824,7 @@ describe('useConversationCommandQueue', () => {
 
     const { result } = renderHook(() =>
       useConversationCommandQueue({
-        conversationId,
+        conversation_id,
         isBusy: true,
         onExecute,
       })

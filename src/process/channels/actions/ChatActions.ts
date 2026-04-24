@@ -84,16 +84,16 @@ export const handleCopy: ActionHandler = async (context, params) => {
 
 /**
  * Handle tool confirmation from Telegram buttons
- * Callback data format: confirm:{callId}:{value}
+ * Callback data format: confirm:{call_id}:{value}
  */
 export const handleToolConfirm: ActionHandler = async (context, params) => {
-  const callId = params?.callId;
+  const call_id = params?.call_id;
   const value = params?.value;
-  const conversationId = context.conversationId;
+  const conversation_id = context.conversation_id;
 
-  if (!callId || !value || !conversationId) {
+  if (!call_id || !value || !conversation_id) {
     console.error(
-      `[ChatActions] Missing params - callId: ${callId}, value: ${value}, conversationId: ${conversationId}`
+      `[ChatActions] Missing params - call_id: ${call_id}, value: ${value}, conversation_id: ${conversation_id}`
     );
     return createErrorResponse('Missing confirmation parameters');
   }
@@ -101,7 +101,7 @@ export const handleToolConfirm: ActionHandler = async (context, params) => {
   try {
     // 只调用 confirm，不发送消息
     // Only call confirm, don't send message - agent will continue and send updates
-    await getChannelMessageService().confirm(conversationId, callId, value);
+    await getChannelMessageService().confirm(conversation_id, call_id, value);
 
     // 返回成功但不带消息，agent 会继续执行并通过流回调更新消息
     // Return success without message, agent will continue and update via stream callback

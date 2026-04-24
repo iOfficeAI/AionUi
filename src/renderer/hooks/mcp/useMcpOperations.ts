@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
 
@@ -74,15 +74,10 @@ export const useMcpOperations = (
 
         // 然后更新UI状态
         if (!skipRecheck) {
-          void ConfigStorage.get('mcp.config')
-            .then((latestServers) => {
-              if (latestServers) {
-                // 这里可以触发状态检查，但需要在使用的地方提供回调
-              }
-            })
-            .catch(() => {
-              // Handle loading error silently
-            });
+          const latestServers = configService.get('mcp.config');
+          if (latestServers) {
+            // Can trigger status check here, but needs callback from the caller
+          }
         }
       } else {
         const failedKey = operation === 'sync' ? 'mcpSyncFailed' : 'mcpRemoveFailed';
@@ -97,12 +92,12 @@ export const useMcpOperations = (
 
   // 从agents中删除MCP配置
   const removeMcpFromAgents = useCallback(
-    async (serverName: string, successMessage?: string, transportType?: string) => {
+    async (server_name: string, successMessage?: string, transport_type?: string) => {
       const agents = await acpConversation.getAvailableAgents.invoke();
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support if transport type is known
-        const compatibleCount = transportType
-          ? agents.filter((a) => a.supportedTransports?.includes(transportType)).length
+        const compatibleCount = transport_type
+          ? agents.filter((a) => a.supportedTransports?.includes(transport_type)).length
           : agents.length;
 
         // 显示开始移除的消息（通过队列）
@@ -111,7 +106,7 @@ export const useMcpOperations = (
         });
 
         const removeResponse = await mcpService.removeMcpFromAgents.invoke({
-          mcpServerName: serverName,
+          mcpServerName: server_name,
           agents,
         });
         await handleMcpOperationResult(removeResponse, 'remove', successMessage, true); // 跳过重新检测
@@ -126,9 +121,7 @@ export const useMcpOperations = (
       const agents = await acpConversation.getAvailableAgents.invoke();
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support to show accurate count
-        const compatibleCount = agents.filter((a) =>
-          a.supportedTransports?.includes(server.transport.type)
-        ).length;
+        const compatibleCount = agents.filter((a) => a.supportedTransports?.includes(server.transport.type)).length;
 
         // 显示开始同步的消息（通过队列）
         await globalMessageQueue.add(() => {

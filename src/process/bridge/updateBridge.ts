@@ -290,7 +290,7 @@ const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
 
 type DownloadState = {
   abortController: AbortController;
-  filePath: string;
+  file_path: string;
 };
 
 const downloads = new Map<string, DownloadState>();
@@ -321,7 +321,7 @@ const emitProgress = (evt: UpdateDownloadProgressEvent) => {
 const startDownloadInBackground = async (
   downloadId: string,
   url: string,
-  filePath: string,
+  file_path: string,
   abortController: AbortController
 ) => {
   let receivedBytes = 0;
@@ -347,7 +347,7 @@ const startDownloadInBackground = async (
       totalBytes,
       percent,
       bytesPerSecond,
-      filePath: status === 'completed' ? filePath : undefined,
+      file_path: status === 'completed' ? file_path : undefined,
     });
   };
 
@@ -373,7 +373,7 @@ const startDownloadInBackground = async (
       throw new Error((await getI18n()).t('update.errors.downloadNoBody'));
     }
 
-    stream = fs.createWriteStream(filePath);
+    stream = fs.createWriteStream(file_path);
     const reader = res.body.getReader();
 
     let doneReading = false;
@@ -415,8 +415,8 @@ const startDownloadInBackground = async (
 
     // Remove partial file
     try {
-      if (fs.existsSync(filePath)) {
-        fs.rmSync(filePath, { force: true });
+      if (fs.existsSync(file_path)) {
+        fs.rmSync(file_path, { force: true });
       }
     } catch {
       // ignore
@@ -520,15 +520,15 @@ export function initUpdateBridge(): void {
         const downloadsDir = app.getPath('downloads');
         const urlObj = new URL(params.url);
         const urlName = path.basename(urlObj.pathname);
-        const baseName = sanitizeFileName(params.fileName || urlName);
+        const baseName = sanitizeFileName(params.file_name || urlName);
 
         const targetPath = ensureUniquePath(path.join(downloadsDir, baseName));
-        downloads.set(downloadId, { abortController, filePath: targetPath });
+        downloads.set(downloadId, { abortController, file_path: targetPath });
 
         // Start background download, but return immediately so the UI stays responsive.
         void startDownloadInBackground(downloadId, params.url, targetPath, abortController);
 
-        return Promise.resolve({ success: true, data: { downloadId, filePath: targetPath } });
+        return Promise.resolve({ success: true, data: { downloadId, file_path: targetPath } });
       } catch (err: unknown) {
         return Promise.resolve({ success: false, msg: err instanceof Error ? err.message : String(err) });
       }

@@ -20,12 +20,12 @@ export type PluginMessageHandler = (message: IUnifiedIncomingMessage) => Promise
 /**
  * Tool confirmation handler type
  * 工具确认处理器类型
- * @param userId - Platform user ID
+ * @param user_id - Platform user ID
  * @param platform - Platform type (telegram, etc.)
- * @param callId - Tool call ID
+ * @param call_id - Tool call ID
  * @param value - Confirmation value
  */
-export type PluginConfirmHandler = (userId: string, platform: string, callId: string, value: string) => Promise<void>;
+export type PluginConfirmHandler = (user_id: string, platform: string, call_id: string, value: string) => Promise<void>;
 
 /**
  * BasePlugin - Abstract base class for all platform plugins
@@ -236,7 +236,7 @@ export abstract class BasePlugin {
    * Get bot information (username, etc.)
    * May return null if not connected
    */
-  abstract getBotInfo(): { username?: string; displayName?: string } | null;
+  abstract getBotInfo(): { username?: string; display_name?: string } | null;
 
   // ==================== Static Methods ====================
 

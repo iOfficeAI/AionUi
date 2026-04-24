@@ -39,7 +39,7 @@ function makeAcpAgent(opts: {
     kind: 'acp',
     available: true,
     backend: opts.backend,
-    cliPath: opts.cliPath ?? opts.id,
+    cli_path: opts.cli_path ?? opts.id,
     acpArgs: opts.acpArgs ?? ['--acp'],
     isExtension: opts.isExtension,
     extensionName: opts.extensionName,
@@ -68,10 +68,10 @@ describe('AgentRegistry', () => {
           id: 'claude',
           name: 'Claude Code',
           backend: 'claude',
-          cliPath: 'claude',
+          cli_path: 'claude',
           acpArgs: ['--experimental-acp'],
         }),
-        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cli_path: 'qwen' }),
       ]);
 
       const registry = await createFreshRegistry();
@@ -82,13 +82,13 @@ describe('AgentRegistry', () => {
       expect(agents).toHaveLength(4);
       expect(agents[0].backend).toBe('aionrs');
       expect(agents[1].backend).toBe('gemini');
-      expect(agents[2]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
-      expect(agents[3]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
+      expect(agents[2]).toMatchObject({ backend: 'claude', cli_path: 'claude' });
+      expect(agents[3]).toMatchObject({ backend: 'qwen', cli_path: 'qwen' });
     });
 
     it('should skip built-in CLIs that are not available', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
-        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cli_path: 'claude' }),
       ]);
 
       const registry = await createFreshRegistry();
@@ -116,7 +116,7 @@ describe('AgentRegistry', () => {
           id: 'goose',
           name: 'Goose',
           backend: 'custom',
-          cliPath: 'goose',
+          cli_path: 'goose',
           isExtension: true,
           extensionName: 'aionext-goose',
         }),
@@ -126,7 +126,7 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      const gooseAgent = agents.find((a) => a.kind === 'acp' && a.cliPath === 'goose');
+      const gooseAgent = agents.find((a) => a.kind === 'acp' && a.cli_path === 'goose');
       expect(gooseAgent).toBeDefined();
     });
 
@@ -143,7 +143,7 @@ describe('AgentRegistry', () => {
 
     it('should not run twice (isDetected guard)', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
-        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cli_path: 'claude' }),
       ]);
 
       const registry = await createFreshRegistry();
@@ -162,14 +162,14 @@ describe('AgentRegistry', () => {
   describe('deduplicate', () => {
     it('should deduplicate by backend — builtin wins over extension with same backend', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
-        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cli_path: 'qwen' }),
       ]);
       mockDetectExtensionAgents.mockResolvedValue([
         makeAcpAgent({
           id: 'qwen-ext',
           name: 'Qwen Code',
           backend: 'qwen',
-          cliPath: 'bunx @qwen/qwen',
+          cli_path: 'bunx @qwen/qwen',
           isExtension: true,
           extensionName: 'aionext-qwen',
         }),
@@ -181,7 +181,7 @@ describe('AgentRegistry', () => {
 
       const qwenAgents = agents.filter((a) => a.backend === 'qwen');
       expect(qwenAgents).toHaveLength(1);
-      expect(qwenAgents[0].cliPath).toBe('qwen'); // builtin wins
+      expect(qwenAgents[0].cli_path).toBe('qwen'); // builtin wins
       expect(qwenAgents[0].isExtension).toBeUndefined();
     });
 
@@ -191,7 +191,7 @@ describe('AgentRegistry', () => {
           id: 'unique',
           name: 'Unique Agent',
           backend: 'unique',
-          cliPath: 'custom-cli',
+          cli_path: 'custom-cli',
           isExtension: true,
           extensionName: 'ext-unique',
         }),
@@ -220,7 +220,7 @@ describe('AgentRegistry', () => {
   describe('refreshExtensionAgents', () => {
     it('should remove old extension agents and add newly detected ones', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
-        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cli_path: 'claude' }),
       ]);
 
       const registry = await createFreshRegistry();
@@ -234,7 +234,7 @@ describe('AgentRegistry', () => {
           id: 'new',
           name: 'New Ext',
           backend: 'custom',
-          cliPath: 'new-ext-cli',
+          cli_path: 'new-ext-cli',
           isExtension: true,
           extensionName: 'ext-new',
         }),
@@ -243,7 +243,7 @@ describe('AgentRegistry', () => {
       await registry.refreshExtensionAgents();
       const agents = registry.getDetectedAgents();
 
-      const extAgent = agents.find((a) => a.kind === 'acp' && a.cliPath === 'new-ext-cli');
+      const extAgent = agents.find((a) => a.kind === 'acp' && a.cli_path === 'new-ext-cli');
       expect(extAgent).toBeDefined();
       expect(extAgent!.isExtension).toBe(true);
     });
@@ -254,7 +254,7 @@ describe('AgentRegistry', () => {
           id: 'temp',
           name: 'Temp',
           backend: 'custom',
-          cliPath: 'ext-cli',
+          cli_path: 'ext-cli',
           isExtension: true,
           extensionName: 'ext-temp',
         }),
@@ -262,18 +262,18 @@ describe('AgentRegistry', () => {
 
       const registry = await createFreshRegistry();
       await registry.initialize();
-      expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cliPath === 'ext-cli')).toBeDefined();
+      expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cli_path === 'ext-cli')).toBeDefined();
 
       // CLI removed — detectExtensionAgents returns empty
       mockDetectExtensionAgents.mockResolvedValue([]);
       await registry.refreshExtensionAgents();
 
-      expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cliPath === 'ext-cli')).toBeUndefined();
+      expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cli_path === 'ext-cli')).toBeUndefined();
     });
 
     it('should deduplicate by backend after refresh — builtin wins', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
-        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cli_path: 'qwen' }),
       ]);
 
       const registry = await createFreshRegistry();
@@ -285,7 +285,7 @@ describe('AgentRegistry', () => {
           id: 'qwen-ext',
           name: 'Qwen Ext',
           backend: 'qwen',
-          cliPath: 'bunx @qwen/qwen',
+          cli_path: 'bunx @qwen/qwen',
           isExtension: true,
           extensionName: 'aionext-qwen',
         }),
@@ -294,15 +294,15 @@ describe('AgentRegistry', () => {
       await registry.refreshExtensionAgents();
       const qwenAgents = registry.getDetectedAgents().filter((a) => a.backend === 'qwen');
       expect(qwenAgents).toHaveLength(1);
-      expect(qwenAgents[0].cliPath).toBe('qwen'); // builtin wins
+      expect(qwenAgents[0].cli_path).toBe('qwen'); // builtin wins
     });
   });
 
   describe('refreshBuiltinAgents', () => {
     it('should keep Aionrs and Gemini ahead of builtin agents after refresh', async () => {
       mockDetectBuiltinAgents.mockResolvedValue([
-        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
-        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cli_path: 'claude' }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cli_path: 'qwen' }),
       ]);
 
       const registry = await createFreshRegistry();

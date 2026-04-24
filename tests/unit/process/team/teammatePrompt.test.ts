@@ -4,12 +4,12 @@ import type { TeamAgent } from '@process/team/types';
 
 function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
   return {
-    slotId: 'slot-1',
-    conversationId: 'conv-1',
+    slot_id: 'slot-1',
+    conversation_id: 'conv-1',
     role: 'teammate',
-    agentType: 'gemini',
-    agentName: 'Researcher',
-    conversationType: 'gemini',
+    agent_type: 'gemini',
+    agent_name: 'Researcher',
+    conversation_type: 'gemini',
     status: 'idle',
     ...overrides,
   };
@@ -19,7 +19,7 @@ describe('buildTeammatePrompt', () => {
   it('keeps greeting replies friendly and focused on role introduction', () => {
     const prompt = buildTeammatePrompt({
       agent: makeAgent(),
-      leader: makeAgent({ slotId: 'slot-lead', role: 'leader', agentName: 'Leader', agentType: 'claude' }),
+      leader: makeAgent({ slot_id: 'slot-lead', role: 'leader', agent_name: 'Leader', agent_type: 'claude' }),
       teammates: [],
       assignedTasks: [],
       unreadMessages: [],

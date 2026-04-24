@@ -184,7 +184,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await emitWatchReady(child);
 
       const result = await promise;
@@ -197,7 +197,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await flush();
 
       expect(spawnMock).toHaveBeenCalledWith(
@@ -216,11 +216,11 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise1 = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise1 = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await emitWatchReady(child);
       const url1 = await promise1;
 
-      const result2 = await wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const result2 = await wordStartHandler.fn!({ file_path: '/test/file.docx' });
 
       expect(spawnMock).toHaveBeenCalledTimes(1);
       expect(url1).toEqual(result2);
@@ -232,7 +232,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await flush();
       child.emit('exit', 1, null);
 
@@ -247,7 +247,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await emitWatchReady(child);
 
       const result = await promise;
@@ -260,7 +260,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await flush();
 
       expect(spawnMock).toHaveBeenCalledWith(
@@ -279,11 +279,11 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise1 = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise1 = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await emitWatchReady(child);
       const url1 = await promise1;
 
-      const result2 = await excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const result2 = await excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
 
       expect(spawnMock).toHaveBeenCalledTimes(1);
       expect(url1).toEqual(result2);
@@ -295,7 +295,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await flush();
       child.emit('exit', null, 'SIGKILL');
 
@@ -311,13 +311,13 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await vi.advanceTimersByTimeAsync(0);
       child.stdout.emit('data', Buffer.from('Watch: started'));
       await vi.advanceTimersByTimeAsync(0);
       await promise;
 
-      await wordStopHandler.fn!({ filePath: '/test/file.docx' });
+      await wordStopHandler.fn!({ file_path: '/test/file.docx' });
 
       expect(child.kill).not.toHaveBeenCalled();
 
@@ -335,13 +335,13 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await vi.advanceTimersByTimeAsync(0);
       child.stdout.emit('data', Buffer.from('Watch: started'));
       await vi.advanceTimersByTimeAsync(0);
       await promise;
 
-      await excelStopHandler.fn!({ filePath: '/test/file.xlsx' });
+      await excelStopHandler.fn!({ file_path: '/test/file.xlsx' });
 
       expect(child.kill).not.toHaveBeenCalled();
 
@@ -359,14 +359,14 @@ describe('officeWatchBridge', () => {
       const wordChild = createMockChildProcess();
       spawnMock.mockReturnValueOnce(wordChild);
       fakePort.value = 55555;
-      const p1 = wordStartHandler.fn!({ filePath: '/test/a.docx' });
+      const p1 = wordStartHandler.fn!({ file_path: '/test/a.docx' });
       await emitWatchReady(wordChild);
       await p1;
 
       const excelChild = createMockChildProcess();
       spawnMock.mockReturnValueOnce(excelChild);
       fakePort.value = 55556;
-      const p2 = excelStartHandler.fn!({ filePath: '/test/b.xlsx' });
+      const p2 = excelStartHandler.fn!({ file_path: '/test/b.xlsx' });
       await emitWatchReady(excelChild);
       await p2;
 
@@ -388,7 +388,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await emitWatchReady(child);
       await promise;
 
@@ -400,7 +400,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await emitWatchReady(child);
       await promise;
 
@@ -412,7 +412,7 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await emitWatchReady(child);
       await promise;
 
@@ -427,12 +427,12 @@ describe('officeWatchBridge', () => {
       spawnMock.mockReturnValueOnce(wordChild).mockReturnValueOnce(excelChild);
       fakePort.value = 55555;
 
-      const wordPromise = wordStartHandler.fn!({ filePath: '/test/file' });
+      const wordPromise = wordStartHandler.fn!({ file_path: '/test/file' });
       await emitWatchReady(wordChild);
       await wordPromise;
 
       fakePort.value = 55556;
-      const excelPromise = excelStartHandler.fn!({ filePath: '/test/file' });
+      const excelPromise = excelStartHandler.fn!({ file_path: '/test/file' });
       await emitWatchReady(excelChild);
       await excelPromise;
 
@@ -451,13 +451,13 @@ describe('officeWatchBridge', () => {
       const child = createMockChildProcess();
       spawnMock.mockReturnValue(child);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await vi.advanceTimersByTimeAsync(0);
       child.stdout.emit('data', Buffer.from('Watch: started'));
       await vi.advanceTimersByTimeAsync(0);
       await promise;
 
-      await wordStopHandler.fn!({ filePath: '/test/file.docx' });
+      await wordStopHandler.fn!({ file_path: '/test/file.docx' });
       await vi.advanceTimersByTimeAsync(600);
 
       expect(isActiveOfficeWatchPort(55555)).toBe(false);
@@ -476,7 +476,7 @@ describe('officeWatchBridge', () => {
       const child2 = createMockChildProcess();
       spawnMock.mockReturnValueOnce(child2);
 
-      const promise = wordStartHandler.fn!({ filePath: '/test/file.docx' });
+      const promise = wordStartHandler.fn!({ file_path: '/test/file.docx' });
       await flush();
 
       const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });
@@ -499,7 +499,7 @@ describe('officeWatchBridge', () => {
         throw new Error('install failed');
       });
 
-      const promise = excelStartHandler.fn!({ filePath: '/test/file.xlsx' });
+      const promise = excelStartHandler.fn!({ file_path: '/test/file.xlsx' });
       await flush();
 
       const enoentErr = Object.assign(new Error('spawn officecli ENOENT'), { code: 'ENOENT' });

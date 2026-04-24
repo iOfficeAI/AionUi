@@ -21,16 +21,16 @@ export interface IActionContext {
   pluginId: string;
 
   // User information (from message)
-  userId: string;
+  user_id: string;
   chatId: string;
-  displayName?: string;
+  display_name?: string;
 
   // Authorized assistant user (set if user is authorized)
   channelUser?: IChannelUser;
 
   // Session information
-  sessionId?: string;
-  conversationId?: string;
+  session_id?: string;
+  conversation_id?: string;
 
   // Original message
   originalMessage: IUnifiedIncomingMessage;

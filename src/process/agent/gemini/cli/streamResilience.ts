@@ -296,41 +296,41 @@ export class ToolCallGuard {
    * Protect a tool call from being cancelled
    * 保护一个工具调用，防止被取消
    */
-  protect(callId: string): void {
-    this.protectedCallIds.add(callId);
+  protect(call_id: string): void {
+    this.protectedCallIds.add(call_id);
   }
 
   /**
    * Check if a tool call is protected
    * 检查工具调用是否受保护
    */
-  isProtected(callId: string): boolean {
-    return this.protectedCallIds.has(callId);
+  isProtected(call_id: string): boolean {
+    return this.protectedCallIds.has(call_id);
   }
 
   /**
    * Mark a tool call as completed
    * 标记工具调用完成
    */
-  complete(callId: string): void {
-    this.protectedCallIds.delete(callId);
-    this.completedCallIds.add(callId);
+  complete(call_id: string): void {
+    this.protectedCallIds.delete(call_id);
+    this.completedCallIds.add(call_id);
   }
 
   /**
    * Check if a tool call is completed
    * 检查工具调用是否已完成
    */
-  isCompleted(callId: string): boolean {
-    return this.completedCallIds.has(callId);
+  isCompleted(call_id: string): boolean {
+    return this.completedCallIds.has(call_id);
   }
 
   /**
    * Remove protection
    * 移除保护
    */
-  unprotect(callId: string): void {
-    this.protectedCallIds.delete(callId);
+  unprotect(call_id: string): void {
+    this.protectedCallIds.delete(call_id);
   }
 
   /**

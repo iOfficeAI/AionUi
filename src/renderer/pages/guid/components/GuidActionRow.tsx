@@ -38,7 +38,7 @@ type GuidActionRowProps = {
   onModeSelect: (mode: string) => void;
 
   // Preset agent tag
-  isPresetAgent: boolean;
+  is_presetAgent: boolean;
   selectedAgentInfo: AvailableAgent | undefined;
   /**
    * Backend-merged preset catalog — drives the preset tag label lookup. Not
@@ -53,9 +53,9 @@ type GuidActionRowProps = {
   hidePresetTag?: boolean;
 
   // Config options (ACP)
-  configOptionsBackend?: AcpBackend;
-  cachedConfigOptions?: AcpSessionConfigOption[];
-  onConfigOptionSelect?: (configId: string, value: string) => void;
+  config_optionsBackend?: AcpBackend;
+  cached_config_options?: AcpSessionConfigOption[];
+  onConfigOptionSelect?: (config_id: string, value: string) => void;
 
   // Skills management
   builtinAutoSkills: Array<{ name: string; description: string }>;
@@ -78,7 +78,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   effectiveModeAgent,
   selectedMode,
   onModeSelect,
-  isPresetAgent,
+  is_presetAgent,
   selectedAgentInfo,
   assistants,
   localeKey,
@@ -86,8 +86,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   agentLogo,
   agentSwitcherItems,
   onAgentSwitch,
-  configOptionsBackend,
-  cachedConfigOptions,
+  config_optionsBackend,
+  cached_config_options,
   onConfigOptionSelect,
   builtinAutoSkills,
   disabledBuiltinSkills,
@@ -294,15 +294,15 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             />
           )}
           <AcpConfigSelector
-            backend={configOptionsBackend}
+            backend={config_optionsBackend}
             buttonClassName='guid-config-btn'
-            initialConfigOptions={cachedConfigOptions}
+            initialConfigOptions={cached_config_options}
             leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
             onOptionSelect={onConfigOptionSelect}
           />
         </div>
 
-        {!hidePresetTag && isPresetAgent && selectedAgentInfo && (
+        {!hidePresetTag && is_presetAgent && selectedAgentInfo && (
           <div className={styles.actionPresetAgent}>
             <PresetAgentTag
               agentInfo={selectedAgentInfo}

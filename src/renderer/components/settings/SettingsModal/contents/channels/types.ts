@@ -15,7 +15,7 @@ export interface ChannelConfig {
   status: ChannelStatus;
   enabled: boolean;
   disabled?: boolean;
-  isConnected?: boolean;
+  is_connected?: boolean;
   botUsername?: string;
   defaultModel?: string;
   /** Icon URL for the channel (resolved for current runtime) */

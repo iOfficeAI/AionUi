@@ -184,11 +184,11 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     // Team mode: show team name
     if (TEAM_MODE_ENABLED) {
       const teamMatch = location.pathname.match(/^\/team\/([^/]+)/);
-      const teamId = teamMatch?.[1];
-      if (teamId) {
+      const team_id = teamMatch?.[1];
+      if (team_id) {
         let cancelled = false;
         void ipcBridge.team.get
-          .invoke({ id: teamId })
+          .invoke({ id: team_id })
           .then((team) => {
             if (cancelled) return;
             setMobileCenterTitle(team?.name || appTitle);
@@ -205,15 +205,15 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
 
     // Single agent mode: show conversation name
     const match = location.pathname.match(/^\/conversation\/([^/]+)/);
-    const conversationId = match?.[1];
-    if (!conversationId) {
+    const conversation_id = match?.[1];
+    if (!conversation_id) {
       setMobileCenterTitle(appTitle);
       return;
     }
 
     let cancelled = false;
     void ipcBridge.conversation.get
-      .invoke({ id: conversationId })
+      .invoke({ id: conversation_id })
       .then((conversation) => {
         if (cancelled) return;
         setMobileCenterTitle(conversation?.name || appTitle);

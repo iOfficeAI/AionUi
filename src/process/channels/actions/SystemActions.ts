@@ -60,12 +60,12 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
 
     // Helper: check whether a provider has valid authentication credentials
     const hasProviderAuth = (provider: IProvider): boolean => {
-      if (provider.apiKey) return true;
-      // Bedrock uses bedrockConfig (access key or profile) instead of apiKey
-      if (provider.bedrockConfig) {
-        const bc = provider.bedrockConfig;
-        if (bc.authMethod === 'accessKey') return !!(bc.accessKeyId && bc.secretAccessKey && bc.region);
-        if (bc.authMethod === 'profile') return !!(bc.profile && bc.region);
+      if (provider.api_key) return true;
+      // Bedrock uses bedrock_config (access key or profile) instead of api_key
+      if (provider.bedrock_config) {
+        const bc = provider.bedrock_config;
+        if (bc.auth_method === 'accessKey') return !!(bc.access_key_id && bc.secret_access_key && bc.region);
+        if (bc.auth_method === 'profile') return !!(bc.profile && bc.region);
       }
       return false;
     };
@@ -114,8 +114,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
             id: GOOGLE_AUTH_PROVIDER_ID,
             name: 'Gemini Google Auth',
             platform: 'gemini-with-google-auth',
-            baseUrl: '',
-            apiKey: '',
+            base_url: '',
+            api_key: '',
             model: [savedModel.useModel],
             useModel: savedModel.useModel,
             enabled: true,
@@ -175,8 +175,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           id: GOOGLE_AUTH_PROVIDER_ID,
           name: 'Gemini Google Auth',
           platform: 'gemini-with-google-auth',
-          baseUrl: '',
-          apiKey: '',
+          base_url: '',
+          api_key: '',
           model: ['gemini-2.0-flash'],
           useModel: 'gemini-2.0-flash',
           enabled: true,
@@ -195,8 +195,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     id: 'gemini_default',
     platform: 'gemini',
     name: 'Gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com',
-    apiKey: '',
+    base_url: 'https://generativelanguage.googleapis.com',
+    api_key: '',
     useModel: 'gemini-2.0-flash',
   };
 }
@@ -231,9 +231,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
     await messageService.clearContext(existingSession.id);
 
     // Kill the worker for the old conversation
-    if (existingSession.conversationId) {
+    if (existingSession.conversation_id) {
       try {
-        workerTaskManager.kill(existingSession.conversationId);
+        workerTaskManager.kill(existingSession.conversation_id);
       } catch (err) {
         console.warn(`[SystemActions] Failed to kill old conversation:`, err);
       }
@@ -273,25 +273,25 @@ export const handleSessionNew: ActionHandler = async (context) => {
       ? (savedAgent as any).backend
       : 'gemini'
   ) as string;
-  const customAgentId =
+  const custom_agent_id =
     savedAgent && typeof savedAgent === 'object'
-      ? ((savedAgent as any).customAgentId as string | undefined)
+      ? ((savedAgent as any).custom_agent_id as string | undefined)
       : undefined;
-  const agentName =
+  const agent_name =
     savedAgent && typeof savedAgent === 'object' ? ((savedAgent as any).name as string | undefined) : undefined;
 
   // Provider model is required by typing; ACP/Codex will ignore it.
   const model = await getChannelDefaultModel(platform);
 
   // Always create a NEW conversation for "session.new" (scoped by chatId)
-  const channelChatId = context.chatId;
+  const channel_chat_id = context.chatId;
   const { convType, convBackend } = resolveChannelConvType(backend);
-  const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
+  const name = getChannelConversationName(platform, convType, convBackend, channel_chat_id);
   const conversationExtra = buildChannelConversationExtra({
     platform,
     backend,
-    customAgentId,
-    agentName,
+    custom_agent_id,
+    agent_name,
   });
 
   let newConversation: TChatConversation;
@@ -302,7 +302,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         model,
         source,
         name,
-        channelChatId,
+        channel_chat_id,
         extra: conversationExtra,
       });
     } else if (backend === 'aionrs') {
@@ -311,7 +311,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         model,
         source,
         name,
-        channelChatId,
+        channel_chat_id,
         extra: conversationExtra,
       });
     } else if (backend === 'codex') {
@@ -320,7 +320,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         model,
         source,
         name,
-        channelChatId,
+        channel_chat_id,
         extra: { ...conversationExtra, backend: 'codex' },
       });
     } else if (backend === 'openclaw-gateway') {
@@ -329,7 +329,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         model,
         source,
         name,
-        channelChatId,
+        channel_chat_id,
         extra: conversationExtra,
       });
     } else {
@@ -338,7 +338,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
         model,
         source,
         name,
-        channelChatId,
+        channel_chat_id,
         extra: conversationExtra,
       });
     }
@@ -347,13 +347,13 @@ export const handleSessionNew: ActionHandler = async (context) => {
   }
 
   // Create session with the new conversation ID (scoped by chatId)
-  const agentType = convType as ChannelAgentType;
+  const agent_type = convType as ChannelAgentType;
   const session = await sessionManager.createSessionWithConversation(
     context.channelUser,
     newConversation.id,
-    agentType,
+    agent_type,
     undefined,
-    channelChatId
+    channel_chat_id
   );
 
   const markup =
@@ -381,16 +381,16 @@ export const handleSessionStatus: ActionHandler = async (context) => {
     return createErrorResponse('Session manager not available');
   }
 
-  const userId = context.channelUser?.id;
-  const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
+  const user_id = context.channelUser?.id;
+  const session = user_id ? sessionManager.getSession(user_id, context.chatId) : null;
 
   // Use platform-specific markup
   if (context.platform === 'lark') {
     const sessionData = session
       ? {
           id: session.id,
-          agentType: session.agentType,
-          createdAt: session.createdAt,
+          agent_type: session.agent_type,
+          created_at: session.created_at,
           lastActivity: session.lastActivity,
         }
       : undefined;
@@ -405,8 +405,8 @@ export const handleSessionStatus: ActionHandler = async (context) => {
     const sessionData = session
       ? {
           id: session.id,
-          agentType: session.agentType,
-          createdAt: session.createdAt,
+          agent_type: session.agent_type,
+          created_at: session.created_at,
           lastActivity: session.lastActivity,
         }
       : undefined;
@@ -426,7 +426,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
     });
   }
 
-  const duration = Math.floor((Date.now() - session.createdAt) / 1000 / 60);
+  const duration = Math.floor((Date.now() - session.created_at) / 1000 / 60);
   const lastActivity = Math.floor((Date.now() - session.lastActivity) / 1000);
 
   return createSuccessResponse({
@@ -434,7 +434,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
     text: [
       '📊 <b>Session Status</b>',
       '',
-      `🤖 Agent: <code>${session.agentType}</code>`,
+      `🤖 Agent: <code>${session.agent_type}</code>`,
       `⏱ Duration: ${duration} min`,
       `📝 Last activity: ${lastActivity} sec ago`,
       `🔖 Session ID: <code>${session.id.slice(-8)}</code>`,
@@ -645,9 +645,9 @@ export const handleAgentShow: ActionHandler = async (context) => {
   }
 
   // Get current agent type from session (scoped by chatId)
-  const userId = context.channelUser?.id;
-  const session = userId ? sessionManager.getSession(userId, context.chatId) : null;
-  const currentAgent = session?.agentType || 'gemini';
+  const user_id = context.channelUser?.id;
+  const session = user_id ? sessionManager.getSession(user_id, context.chatId) : null;
+  const currentAgent = session?.agent_type || 'gemini';
 
   // Get available agents dynamically
   const availableAgents = getAvailableChannelAgents();
@@ -702,7 +702,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
     return createErrorResponse('User not authorized');
   }
 
-  const newAgentType = params?.agentType as ChannelAgentType;
+  const newAgentType = params?.agent_type as ChannelAgentType;
 
   // Validate agent type is available
   const availableAgents = getAvailableChannelAgents();
@@ -715,7 +715,7 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
   const existingSession = sessionManager.getSession(context.channelUser.id, context.chatId);
 
   // If same agent, no need to switch
-  if (existingSession?.agentType === newAgentType) {
+  if (existingSession?.agent_type === newAgentType) {
     const markup =
       context.platform === 'lark'
         ? createMainMenuCard()
@@ -735,9 +735,9 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
     const messageService = getChannelMessageService();
     await messageService.clearContext(existingSession.id);
 
-    if (existingSession.conversationId) {
+    if (existingSession.conversation_id) {
       try {
-        workerTaskManager.kill(existingSession.conversationId);
+        workerTaskManager.kill(existingSession.conversation_id);
       } catch (err) {
         console.warn(`[SystemActions] Failed to kill old conversation:`, err);
       }
@@ -771,14 +771,14 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
 /**
  * Get display name for agent type
  */
-function getAgentDisplayName(agentType: ChannelAgentType): string {
+function getAgentDisplayName(agent_type: ChannelAgentType): string {
   const names: Record<ChannelAgentType, string> = {
     gemini: '🤖 Gemini',
     acp: '🧠 Claude',
     codex: '⚡ Codex',
     'openclaw-gateway': '🦞 OpenClaw',
   };
-  return names[agentType] || agentType;
+  return names[agent_type] || agent_type;
 }
 
 /**
