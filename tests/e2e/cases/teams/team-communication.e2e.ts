@@ -25,7 +25,11 @@ test.describe('Team Communication', () => {
             name: 'Leader',
             role: 'lead',
             backend: 'gemini',
-            model: 'gemini',
+            // Send a real gemini model alias. 'auto' maps to aioncli-core
+            // PREVIEW_GEMINI_MODEL_AUTO (gemini-3.1-pro-preview). Sending just
+            // "gemini" (the backend type) persists as use_model: null and
+            // disables the sendbox. See mnemo #297.
+            model: 'auto',
           },
         ],
       });
