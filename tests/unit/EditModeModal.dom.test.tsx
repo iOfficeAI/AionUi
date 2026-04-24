@@ -158,7 +158,7 @@ describe('EditModeModal', () => {
     name: 'Test Provider',
     base_url: 'https://api.example.com/v1',
     api_key: 'test-key',
-    model: ['gpt-4'],
+    models: ['gpt-4'],
     use_model: 'gpt-4',
   };
 
@@ -211,7 +211,7 @@ describe('EditModeModal', () => {
       expect.objectContaining({
         id: 'test-id',
         api_key: 'new-key',
-        model: ['gpt-4'],
+        models: ['gpt-4'],
       })
     );
   });

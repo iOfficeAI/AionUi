@@ -76,9 +76,9 @@ export function getTeamAvailableModels(
 
     // ALL enabled providers' models with capability filtering
     // Mirrors useModelProviderList(): every enabled provider is included
-    const enabledProviders = (providers || []).filter((p) => p.enabled !== false && p.model?.length);
+    const enabledProviders = (providers || []).filter((p) => p.enabled !== false && p.models?.length);
     for (const p of enabledProviders) {
-      for (const m of p.model || []) {
+      for (const m of p.models || []) {
         if (p.model_enabled?.[m] !== false && passesCapabilityFilter(p, m)) {
           addModel(m);
         }
@@ -93,10 +93,10 @@ export function getTeamAvailableModels(
     const seen = new Set<string>();
     const result: TeamAvailableModel[] = [];
     const enabledProviders = (providers || []).filter(
-      (p) => p.enabled !== false && p.model?.length && !p.platform?.includes('gemini-with-google-auth')
+      (p) => p.enabled !== false && p.models?.length && !p.platform?.includes('gemini-with-google-auth')
     );
     for (const provider of enabledProviders) {
-      for (const m of provider.model) {
+      for (const m of provider.models) {
         if (provider.model_enabled?.[m] !== false && !seen.has(m) && passesCapabilityFilter(provider, m)) {
           seen.add(m);
           result.push({ id: m, label: m });

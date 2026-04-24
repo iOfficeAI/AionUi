@@ -99,7 +99,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
         // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
         // 'gemini-2.5-flash' are also valid — skip strict membership check.
         const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-        if (isGoogleAuth || provider.model?.includes(saved.useModel)) {
+        if (isGoogleAuth || provider.models?.includes(saved.useModel)) {
           setResolvedInitialModel({
             ...provider,
             useModel: saved.useModel,

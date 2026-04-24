@@ -10,10 +10,11 @@ import type { IConversationService } from '../../../src/process/services/IConver
 import type { ITeamRepository } from '../../../src/process/team/repository/ITeamRepository';
 import type { TTeam, TeamAgent } from '../../../src/common/types/teamTypes';
 
-const { mockConfigGet, mockReadFile, mockAssistantsList } = vi.hoisted(() => ({
+const { mockConfigGet, mockReadFile, mockAssistantsList, mockListProviders } = vi.hoisted(() => ({
   mockConfigGet: vi.fn(),
   mockReadFile: vi.fn(),
   mockAssistantsList: vi.fn(async () => [] as Array<Record<string, unknown>>),
+  mockListProviders: vi.fn(async () => [] as Array<Record<string, unknown>>),
 }));
 
 vi.mock('../../../src/process/utils/initStorage', () => ({
@@ -31,6 +32,9 @@ vi.mock('../../../src/common', () => ({
   ipcBridge: {
     assistants: {
       list: { invoke: mockAssistantsList },
+    },
+    mode: {
+      listProviders: { invoke: mockListProviders },
     },
     team: {
       listChanged: { emit: vi.fn() },
@@ -146,22 +150,18 @@ describe('TeamSessionService', () => {
   });
 
   it('uses configured gemini provider model when available', async () => {
-    mockConfigGet.mockImplementation(async (key: string) => {
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-gemini',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'test-key',
-            base_url: 'https://generativelanguage.googleapis.com',
-            model: ['gemini-2.5-pro'],
-            enabled: true,
-          },
-        ];
-      }
-      return undefined;
-    });
+    mockConfigGet.mockResolvedValue(undefined);
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-gemini',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'test-key',
+        base_url: 'https://generativelanguage.googleapis.com',
+        models: ['gemini-2.5-pro'],
+        enabled: true,
+      },
+    ]);
     mockReadFile.mockRejectedValue(new Error('ENOENT'));
 
     const repo = makeRepo();
@@ -192,22 +192,20 @@ describe('TeamSessionService', () => {
   });
 
   it('uses preferred ACP model when creating qwen team conversations', async () => {
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'key',
+        base_url: 'https://example.com',
+        models: ['gemini-2.0-flash'],
+        enabled: true,
+      },
+    ]);
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'gemini.defaultModel') {
         return undefined;
-      }
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-1',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'key',
-            base_url: 'https://example.com',
-            model: ['gemini-2.0-flash'],
-            enabled: true,
-          },
-        ];
       }
       if (key === 'acp.config') {
         return {
@@ -283,22 +281,20 @@ describe('TeamSessionService', () => {
   });
 
   it('creates preset gemini team conversations with preset rules and enabled skills', async () => {
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'key',
+        base_url: 'https://example.com',
+        models: ['gemini-2.0-flash'],
+        enabled: true,
+      },
+    ]);
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'language') {
         return 'en-US';
-      }
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-1',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'key',
-            base_url: 'https://example.com',
-            model: ['gemini-2.0-flash'],
-            enabled: true,
-          },
-        ];
       }
       if (key === 'assistants') {
         return [{ id: 'assistant-1', enabled_skills: ['skill-a'] }];
@@ -357,22 +353,20 @@ describe('TeamSessionService', () => {
   });
 
   it('preserves preset assistant identity and only inherits session mode when adding teammates', async () => {
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'gemini',
+        name: 'Gemini API',
+        api_key: 'key',
+        base_url: 'https://example.com',
+        models: ['gemini-2.0-flash'],
+        enabled: true,
+      },
+    ]);
     mockConfigGet.mockImplementation(async (key: string) => {
       if (key === 'gemini.defaultModel') {
         return undefined;
-      }
-      if (key === 'model.config') {
-        return [
-          {
-            id: 'provider-1',
-            platform: 'gemini',
-            name: 'Gemini API',
-            api_key: 'key',
-            base_url: 'https://example.com',
-            model: ['gemini-2.0-flash'],
-            enabled: true,
-          },
-        ];
       }
       if (key === 'acp.config') {
         return {

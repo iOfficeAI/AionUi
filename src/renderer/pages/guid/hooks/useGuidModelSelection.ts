@@ -27,8 +27,8 @@ const buildModelKey = (providerId?: string, modelName?: string) => {
 const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
   if (!key || !providers || providers.length === 0) return false;
   return providers.some((provider) => {
-    if (!provider.id || !provider.model?.length) return false;
-    return provider.model.some((modelName) => buildModelKey(provider.id, modelName) === key);
+    if (!provider.id || !provider.models?.length) return false;
+    return provider.models.some((modelName) => buildModelKey(provider.id, modelName) === key);
   });
 };
 
@@ -58,8 +58,8 @@ export type GuidModelSelectionResult = {
 export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): GuidModelSelectionResult => {
   const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.welcome', () => {
-    return ipcBridge.mode.getModelConfig.invoke().then((data) => {
-      return (data || []).filter((platform) => !!platform.model.length);
+    return ipcBridge.mode.listProviders.invoke().then((data) => {
+      return (data || []).filter((platform) => !!platform.models.length);
     });
   });
 
@@ -79,7 +79,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         platform: 'gemini-with-google-auth',
         base_url: '',
         api_key: '',
-        model: geminiModelValues,
+        models: geminiModelValues,
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       };
       allProviders = [geminiProvider, ...(modelConfig || [])];
@@ -155,19 +155,19 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
       if (isNewFormat) {
         const { id, useModel } = savedModel;
         const exactMatch = modelList.find((m) => m.id === id);
-        if (exactMatch && exactMatch.model.includes(useModel)) {
+        if (exactMatch && exactMatch.models.includes(useModel)) {
           defaultModel = exactMatch;
           resolvedUseModel = useModel;
         } else {
           defaultModel = modelList[0];
-          resolvedUseModel = defaultModel?.model[0] ?? '';
+          resolvedUseModel = defaultModel?.models[0] ?? '';
         }
       } else if (typeof savedModel === 'string') {
-        defaultModel = modelList.find((m) => m.model.includes(savedModel)) || modelList[0];
-        resolvedUseModel = defaultModel?.model.includes(savedModel) ? savedModel : (defaultModel?.model[0] ?? '');
+        defaultModel = modelList.find((m) => m.models.includes(savedModel)) || modelList[0];
+        resolvedUseModel = defaultModel?.models.includes(savedModel) ? savedModel : (defaultModel?.models[0] ?? '');
       } else {
         defaultModel = modelList[0];
-        resolvedUseModel = defaultModel?.model[0] ?? '';
+        resolvedUseModel = defaultModel?.models[0] ?? '';
       }
 
       if (!defaultModel || !resolvedUseModel) return;

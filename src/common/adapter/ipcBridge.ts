@@ -29,6 +29,12 @@ import type {
   AutoUpdateStatus,
 } from '../update/updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
+import type {
+  CreateProviderRequest,
+  FetchModelsAnonymousRequest,
+  FetchModelsResponse,
+  UpdateProviderRequest,
+} from '../types/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
 import type {
   Assistant,
@@ -516,27 +522,28 @@ export const bedrock = {
 // ---------------------------------------------------------------------------
 
 export const mode = {
-  fetchModelList: httpPost<
-    { mode: Array<string | { id: string; name: string }>; fix_base_url?: string },
-    {
-      base_url?: string;
-      api_key: string;
-      try_fix?: boolean;
-      platform?: string;
-      bedrockConfig?: {
-        authMethod: 'accessKey' | 'profile';
-        region: string;
-        accessKeyId?: string;
-        secretAccessKey?: string;
-        profile?: string;
-      };
+  listProviders: httpGet<IProvider[], void>('/api/providers'),
+  createProvider: httpPost<IProvider, CreateProviderRequest>('/api/providers'),
+  updateProvider: httpPut<IProvider, { id: string } & UpdateProviderRequest>(
+    (p) => `/api/providers/${p.id}`,
+    (p) => {
+      const { id: _id, ...body } = p;
+      return body;
     }
-  >('/api/providers/fetch-models'),
-  saveModelConfig: httpPost<void, IProvider[]>('/api/providers/batch'),
-  getModelConfig: httpGet<IProvider[], void>('/api/providers'),
-  detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>(
-    '/api/providers/detect-protocol',
   ),
+  deleteProvider: httpDelete<void, { id: string }>((p) => `/api/providers/${p.id}`),
+  fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
+    (p) => `/api/providers/${p.id}/models`,
+    (p) => ({ try_fix: p.try_fix })
+  ),
+  /**
+   * Pre-create form preview — anonymous fetch-models (T1b).
+   * Takes credentials in the body, no provider row required. Used by
+   * AddPlatformModal / EditModeModal / ApiKeyEditorModal while the
+   * dropdown is still being populated.
+   */
+  fetchModelList: httpPost<FetchModelsResponse, FetchModelsAnonymousRequest>('/api/providers/fetch-models'),
+  detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>('/api/providers/detect-protocol'),
 };
 
 // ---------------------------------------------------------------------------

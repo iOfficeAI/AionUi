@@ -15,7 +15,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import type { AgentBackend } from '@/common/types/acpTypes';
-import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
 import { TeamSession } from './TeamSession';
@@ -54,7 +54,6 @@ export class TeamSessionService {
       platform: 'gemini-with-google-auth',
       base_url: '',
       api_key: '',
-      model: [useModel],
       useModel,
       enabled: true,
     } as TProviderWithModel;
@@ -71,14 +70,22 @@ export class TeamSessionService {
     } as TProviderWithModel;
   }
 
+  private async loadProviders(): Promise<IProvider[]> {
+    try {
+      const list = await ipcBridge.mode.listProviders.invoke();
+      return Array.isArray(list) ? list : [];
+    } catch (error) {
+      console.warn('[TeamSessionService] Failed to load providers from backend:', error);
+      return [];
+    }
+  }
+
   private async resolveDefaultGeminiModel(): Promise<TProviderWithModel> {
     const savedGeminiModel = await ProcessConfig.get('gemini.defaultModel');
-    const configuredProviders = await ProcessConfig.get('model.config');
-    const providers = Array.isArray(configuredProviders)
-      ? configuredProviders.filter((provider) => provider.enabled !== false)
-      : [];
+    const configuredProviders = await this.loadProviders();
+    const providers = configuredProviders.filter((provider) => provider.enabled !== false);
 
-    const buildProviderModel = (provider: (typeof providers)[number], useModel: string): TProviderWithModel => {
+    const buildProviderModel = (provider: IProvider, useModel: string): TProviderWithModel => {
       return {
         ...provider,
         useModel,
@@ -96,7 +103,7 @@ export class TeamSessionService {
       }
 
       const matchedProvider = providers.find(
-        (provider) => provider.id === savedGeminiModel.id && provider.model?.includes(savedGeminiModel.useModel)
+        (provider) => provider.id === savedGeminiModel.id && provider.models?.includes(savedGeminiModel.useModel)
       );
       if (matchedProvider) {
         return buildProviderModel(matchedProvider, savedGeminiModel.useModel);
@@ -104,16 +111,16 @@ export class TeamSessionService {
     }
 
     if (typeof savedGeminiModel === 'string') {
-      const matchedProvider = providers.find((provider) => provider.model?.includes(savedGeminiModel));
+      const matchedProvider = providers.find((provider) => provider.models?.includes(savedGeminiModel));
       if (matchedProvider) {
         return buildProviderModel(matchedProvider, savedGeminiModel);
       }
     }
 
-    const geminiProvider = providers.find((provider) => provider.platform === 'gemini' && provider.model?.length);
+    const geminiProvider = providers.find((provider) => provider.platform === 'gemini' && provider.models?.length);
     if (geminiProvider) {
-      const enabledModel = geminiProvider.model.find((model) => geminiProvider.model_enabled?.[model] !== false);
-      return buildProviderModel(geminiProvider, enabledModel || geminiProvider.model[0]);
+      const enabledModel = geminiProvider.models.find((model) => geminiProvider.model_enabled?.[model] !== false);
+      return buildProviderModel(geminiProvider, enabledModel || geminiProvider.models[0]);
     }
 
     if (await hasGeminiOauthCreds()) {
@@ -126,28 +133,28 @@ export class TeamSessionService {
       return this.createGoogleAuthGeminiModel(oauthModel);
     }
 
-    const fallbackProvider = providers.find((provider) => provider.model?.length);
+    const fallbackProvider = providers.find((provider) => provider.models?.length);
     if (fallbackProvider) {
-      const enabledModel = fallbackProvider.model.find((model) => fallbackProvider.model_enabled?.[model] !== false);
-      return buildProviderModel(fallbackProvider, enabledModel || fallbackProvider.model[0]);
+      const enabledModel = fallbackProvider.models.find((model) => fallbackProvider.model_enabled?.[model] !== false);
+      return buildProviderModel(fallbackProvider, enabledModel || fallbackProvider.models[0]);
     }
 
     return this.createGoogleAuthGeminiModel('gemini-2.0-flash');
   }
 
   private async resolveDefaultAionrsModel(): Promise<TProviderWithModel> {
-    const configuredProviders = await ProcessConfig.get('model.config');
-    const providers = Array.isArray(configuredProviders) ? configuredProviders.filter((p) => p.enabled !== false) : [];
+    const configuredProviders = await this.loadProviders();
+    const providers = configuredProviders.filter((p) => p.enabled !== false);
 
     const provider = providers[0];
     if (!provider) {
       throw new Error('No enabled model provider for Aion CLI');
     }
 
-    const enabledModel = provider.model?.find((m: string) => provider.model_enabled?.[m] !== false);
+    const enabledModel = provider.models?.find((m: string) => provider.model_enabled?.[m] !== false);
     return {
       ...provider,
-      useModel: enabledModel || provider.model?.[0],
+      useModel: enabledModel || provider.models?.[0],
     } as TProviderWithModel;
   }
 

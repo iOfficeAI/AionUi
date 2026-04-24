@@ -59,12 +59,12 @@ const useModeModeList = (
       if (api_key || base_url || bedrock_config) {
         const res = await ipcBridge.mode.fetchModelList.invoke({
           base_url,
-          api_key,
+          api_key: api_key ?? '',
           try_fix,
           platform,
           bedrock_config,
         });
-        let modelList = res.mode.map((v) => {
+        let modelList = res.models.map((v) => {
           // Handle both string and object formats (Bedrock returns objects with id and name)
           if (typeof v === 'string') {
             return { label: v, value: v };
@@ -79,10 +79,10 @@ const useModeModeList = (
         }
 
         // 如果返回了修复的 base_url，将其添加到结果中
-        if (res.fix_base_url) {
+        if (res.fixed_base_url) {
           return {
             models: modelList,
-            fix_base_url: res.fix_base_url,
+            fix_base_url: res.fixed_base_url,
           };
         }
 

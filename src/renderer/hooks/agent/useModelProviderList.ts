@@ -27,7 +27,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
     return lookup;
   }, [geminiModeOptions]);
 
-  const { data: modelConfig } = useSWR('model.config.shared', () => ipcBridge.mode.getModelConfig.invoke());
+  const { data: modelConfig } = useSWR('providers', () => ipcBridge.mode.listProviders.invoke());
 
   // Mutable cache for available-model filtering
   const available_modelsCacheRef = useRef(new Map<string, string[]>());
@@ -40,13 +40,13 @@ export const useModelProviderList = (): ModelProviderListResult => {
   const getAvailableModels = useCallback((provider: IProvider): string[] => {
     // 包含 model_enabled 状态到缓存 key 中
     const model_enabledKey = provider.model_enabled ? JSON.stringify(provider.model_enabled) : 'all-enabled';
-    const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${model_enabledKey}`;
+    const cacheKey = `${provider.id}-${(provider.models || []).join(',')}-${model_enabledKey}`;
     const cache = available_modelsCacheRef.current;
     if (cache.has(cacheKey)) {
       return cache.get(cacheKey)!;
     }
     const result: string[] = [];
-    for (const modelName of provider.model || []) {
+    for (const modelName of provider.models || []) {
       // 检查模型是否被禁用（默认为启用）
       const isModelEnabled = provider.model_enabled?.[modelName] !== false;
       if (!isModelEnabled) continue;

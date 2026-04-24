@@ -535,12 +535,12 @@ const ToolsModalContent: React.FC = () => {
     };
     return (data || [])
       .filter((v) => {
-        const filteredModels = v.model.filter(isImageModel);
+        const filteredModels = v.models.filter(isImageModel);
         return filteredModels.length > 0;
       })
       .map((v) => {
-        const filteredModels = v.model.filter(isImageModel);
-        return Object.assign({}, v, { model: filteredModels });
+        const filteredModels = v.models.filter(isImageModel);
+        return Object.assign({}, v, { models: filteredModels });
       });
   }, [data]);
 
@@ -810,9 +810,9 @@ const ToolsModalContent: React.FC = () => {
                       }
                     }}
                   >
-                    {imageGenerationModelList.map(({ model, ...platform }) => (
+                    {imageGenerationModelList.map(({ models, ...platform }) => (
                       <AionSelect.OptGroup label={platform.name} key={platform.id}>
-                        {model.map((modelName) => (
+                        {models.map((modelName) => (
                           <AionSelect.Option key={platform.id + modelName} value={platform.id + '|' + modelName}>
                             {modelName}
                           </AionSelect.Option>

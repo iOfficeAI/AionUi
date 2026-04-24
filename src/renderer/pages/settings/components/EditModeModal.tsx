@@ -128,7 +128,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         form.setFieldsValue({
           ...data,
           model:
-            data.model && data.model.length > 0 ? (data.model.length === 1 ? data.model[0] : data.model) : undefined,
+            data.models && data.models.length > 0 ? (data.models.length === 1 ? data.models[0] : data.models) : undefined,
           bedrockAuthMethod: data.bedrock_config?.auth_method || 'accessKey',
           bedrockRegion: data.bedrock_config?.region || 'us-east-1',
           bedrockAccessKeyId: data.bedrock_config?.access_key_id || '',
@@ -156,8 +156,8 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             const updatedProvider: IProvider = {
               ...data,
               ...values,
-              // Ensure model is always an array
-              model: Array.isArray(values.model) ? values.model : [values.model],
+              // Ensure models is always an array
+              models: Array.isArray(values.model) ? values.model : [values.model],
             };
 
             // Add Bedrock configuration if platform is Bedrock
@@ -308,7 +308,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                 loading={modelListState.isLoading}
                 showSearch
                 allowCreate
-                mode={data?.model && data.model.length > 1 ? 'multiple' : undefined}
+                mode={data?.models && data.models.length > 1 ? 'multiple' : undefined}
                 onFocus={async () => {
                   // For Bedrock, build bedrock_config from current form values and fetch models
                   if (isBedrock) {
@@ -348,7 +348,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                         bedrock_config,
                       });
                       const models =
-                        res.mode.map((v) => {
+                        res.models.map((v) => {
                           if (typeof v === 'string') {
                             return { label: v, value: v };
                           } else {

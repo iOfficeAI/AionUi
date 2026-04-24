@@ -46,7 +46,7 @@ describe('JsonFileBuilder in-memory cache behavior', () => {
     it('should roundtrip nested objects and arrays', () => {
       const data = {
         'mcp.config': [{ id: 'server1', name: 'test', enabled: true }],
-        'model.config': [{ id: 'p1', platform: 'openai', model: ['gpt-4'] }],
+        'model.config': [{ id: 'p1', platform: 'openai', models: ['gpt-4'] }],
       };
       const encoded = encode(JSON.stringify(data));
       const decoded = JSON.parse(decode(encoded));

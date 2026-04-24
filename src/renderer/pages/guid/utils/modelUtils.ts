@@ -21,14 +21,14 @@ const available_modelsCache = new Map<string, string[]>();
 export const getAvailableModels = (provider: IProvider): string[] => {
   // 包含 model_enabled 状态到缓存 key 中
   const model_enabledKey = provider.model_enabled ? JSON.stringify(provider.model_enabled) : 'all-enabled';
-  const cacheKey = `${provider.id}-${(provider.model || []).join(',')}-${model_enabledKey}`;
+  const cacheKey = `${provider.id}-${(provider.models || []).join(',')}-${model_enabledKey}`;
 
   if (available_modelsCache.has(cacheKey)) {
     return available_modelsCache.get(cacheKey)!;
   }
 
   const result: string[] = [];
-  for (const modelName of provider.model || []) {
+  for (const modelName of provider.models || []) {
     // 检查模型是否被禁用（默认为启用）
     const isModelEnabled = provider.model_enabled?.[modelName] !== false;
     if (!isModelEnabled) continue;

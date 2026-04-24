@@ -173,7 +173,7 @@ const MODEL_LIST: IProvider[] = [
     platform: 'openai',
     base_url: '',
     api_key: 'k',
-    model: ['gpt-4'],
+    models: ['gpt-4'],
   } as IProvider,
 ];
 

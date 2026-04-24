@@ -73,7 +73,7 @@ const getProviderState = (platform: IProvider): { checked: boolean; indeterminat
     return { checked: true, indeterminate: false };
   }
 
-  const models = platform.model ?? [];
+  const models = platform.models ?? [];
   const enabledCount = models.filter((model) => platform.model_enabled?.[model] !== false).length;
   const totalCount = models.length;
 
@@ -97,49 +97,76 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
 
+const SWR_KEY = 'providers';
+
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
-  const { data, mutate } = useSWR('model.config', () => {
-    return ipcBridge.mode.getModelConfig.invoke().then((data) => {
+  const { data, mutate } = useSWR(SWR_KEY, () => {
+    return ipcBridge.mode.listProviders.invoke().then((data) => {
       if (!data) return [];
       return data;
     });
   });
   const [message, messageContext] = Message.useMessage();
 
-  const saveModelConfig = (newData: IProvider[], success?: () => void) => {
-    // 乐观更新：立即更新 UI
-    void mutate(newData, false);
-
-    ipcBridge.mode.saveModelConfig
-      .invoke(newData)
-      .then(() => {
-        void mutate();
-        success?.();
-      })
-      .catch((error) => {
-        void mutate();
-        console.error('Failed to save model config:', error);
-        message.error(t('settings.saveModelConfigFailed'));
-      });
+  /**
+   * Create when the provider id is new, update otherwise.
+   * The caller is expected to have mutated the id-bearing record already.
+   */
+  const persistPlatform = async (platform: IProvider): Promise<void> => {
+    const existing = (data || []).some((item) => item.id === platform.id);
+    if (existing) {
+      const { id, ...body } = platform;
+      await ipcBridge.mode.updateProvider.invoke({ id, ...body });
+    } else {
+      await ipcBridge.mode.createProvider.invoke(platform);
+    }
   };
 
   const updatePlatform = (platform: IProvider, success: () => void) => {
-    const newData = (data || []).map((item) => (item.id === platform.id ? { ...item, ...platform } : item));
-    // 如果是新平台，添加到列表
-    if (!newData.find((item) => item.id === platform.id)) {
-      newData.push(platform);
-    }
-    saveModelConfig(newData, success);
+    const existing = (data || []).find((item) => item.id === platform.id);
+    const nextArray = existing
+      ? (data || []).map((item) => (item.id === platform.id ? { ...item, ...platform } : item))
+      : [...(data || []), platform];
+
+    // Optimistic update
+    void mutate(nextArray, false);
+
+    persistPlatform(platform)
+      .then(() => {
+        void mutate();
+        success();
+      })
+      .catch((error) => {
+        void mutate();
+        console.error('Failed to save provider:', error);
+        // 409 Conflict — duplicate id (rare pre-launch); different toast
+        const msg = error instanceof Error ? error.message : String(error);
+        if (msg.includes('409')) {
+          message.error(t('settings.providerIdConflict', { defaultValue: 'Provider id already exists, retry.' }));
+        } else {
+          message.error(t('settings.saveModelConfigFailed'));
+        }
+      });
   };
 
   const removePlatform = (id: string) => {
-    const newData = (data ?? []).filter((item: IProvider) => item.id !== id);
-    saveModelConfig(newData);
+    const nextArray = (data ?? []).filter((item: IProvider) => item.id !== id);
+    void mutate(nextArray, false);
+    ipcBridge.mode.deleteProvider
+      .invoke({ id })
+      .then(() => {
+        void mutate();
+      })
+      .catch((error) => {
+        void mutate();
+        console.error('Failed to delete provider:', error);
+        message.error(t('settings.saveModelConfigFailed'));
+      });
   };
 
   // 切换供应商启用状态（全选 ↔ 全不选）
@@ -149,7 +176,7 @@ const ModelModalContent: React.FC = () => {
 
     // 批量更新所有模型状态
     const model_enabled: Record<string, boolean> = {};
-    (platform.model ?? []).forEach((model) => {
+    (platform.models ?? []).forEach((model) => {
       model_enabled[model] = newState;
     });
 
@@ -309,28 +336,22 @@ const ModelModalContent: React.FC = () => {
       // 4. 等待响应
       const result = await responsePromise;
 
-      // 5. 更新健康状态
+      // 5. 更新健康状态 — 只 PATCH model_health，不要重发整个 provider
       const latency = result.latency;
 
-      // 直接保存，不使用乐观更新，避免并发时互相覆盖
       try {
         // 先获取最新的数据，确保不会覆盖其他并发的更新
-        const latestData = await ipcBridge.mode.getModelConfig.invoke();
-        const newData = (latestData || []).map((item) => {
-          if (item.id === platform.id) {
-            const model_health = { ...item.model_health };
-            model_health[modelName] = {
-              status: result.success ? 'healthy' : 'unhealthy',
-              lastCheck: Date.now(),
-              latency,
-              error: result.error,
-            };
-            return { ...item, model_health };
-          }
-          return item;
-        });
+        const latestData = await ipcBridge.mode.listProviders.invoke();
+        const latestPlatform = (latestData || []).find((item) => item.id === platform.id);
+        const model_health = { ...latestPlatform?.model_health };
+        model_health[modelName] = {
+          status: result.success ? 'healthy' : 'unhealthy',
+          last_check: Date.now(),
+          latency,
+          error: result.error,
+        };
 
-        await ipcBridge.mode.saveModelConfig.invoke(newData);
+        await ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health });
         await mutate();
         if (result.success) {
           Message.success({
@@ -358,25 +379,19 @@ const ModelModalContent: React.FC = () => {
         duration: 5000,
       });
 
-      // 直接保存，不使用乐观更新
       try {
         // 先获取最新的数据，确保不会覆盖其他并发的更新
-        const latestData = await ipcBridge.mode.getModelConfig.invoke();
-        const newData = (latestData || []).map((item) => {
-          if (item.id === platform.id) {
-            const model_health = { ...item.model_health };
-            model_health[modelName] = {
-              status: 'unhealthy',
-              lastCheck: Date.now(),
-              latency,
-              error: errorMessage,
-            };
-            return { ...item, model_health };
-          }
-          return item;
-        });
+        const latestData = await ipcBridge.mode.listProviders.invoke();
+        const latestPlatform = (latestData || []).find((item) => item.id === platform.id);
+        const model_health = { ...latestPlatform?.model_health };
+        model_health[modelName] = {
+          status: 'unhealthy',
+          last_check: Date.now(),
+          latency,
+          error: errorMessage,
+        };
 
-        await ipcBridge.mode.saveModelConfig.invoke(newData);
+        await ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health });
         await mutate();
       } catch (saveError) {
         console.error('Failed to save health check result:', saveError);
@@ -397,16 +412,29 @@ const ModelModalContent: React.FC = () => {
 
   const clearAllHealthData = () => {
     if (!data) return;
-    const newData: IProvider[] = data.map((platform: IProvider) => ({
+    const nextArray: IProvider[] = data.map((platform: IProvider) => ({
       ...platform,
       model_health: undefined as IProvider['model_health'],
     }));
-    saveModelConfig(newData, () => {
-      Message.success({
-        content: t('settings.healthStatusCleared'),
-        duration: 2000,
+    void mutate(nextArray, false);
+
+    Promise.all(
+      (data || []).map((platform) =>
+        ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: undefined })
+      )
+    )
+      .then(() => {
+        void mutate();
+        Message.success({
+          content: t('settings.healthStatusCleared'),
+          duration: 2000,
+        });
+      })
+      .catch((error) => {
+        void mutate();
+        console.error('Failed to clear health status:', error);
+        message.error(t('settings.saveModelConfigFailed'));
       });
-    });
   };
 
   const [addPlatformModalCtrl, addPlatformModalContext] = AddPlatformModal.useModal({
@@ -545,7 +573,7 @@ const ModelModalContent: React.FC = () => {
                               className='cursor-pointer hover:text-t-primary transition-colors'
                               onClick={() => setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }))}
                             >
-                              {t('settings.modelCount')}（{(platform.model ?? []).length}）
+                              {t('settings.modelCount')}（{(platform.models ?? []).length}）
                             </span>
                             <span className='mx-6px'>|</span>
                             <span
@@ -556,7 +584,7 @@ const ModelModalContent: React.FC = () => {
                             </span>
                           </span>
                           <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
-                            {(platform.model ?? []).length} / {getApiKeyCount(platform.api_key)}
+                            {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
                           <Switch
@@ -592,7 +620,7 @@ const ModelModalContent: React.FC = () => {
                       </div>
                     }
                   >
-                    {(platform.model ?? []).map((model: string, index: number, arr: string[]) => {
+                    {(platform.models ?? []).map((model: string, index: number, arr: string[]) => {
                       const isNewApiProvider = isNewApiPlatform(platform.platform);
                       const modelProtocol = platform.model_protocols?.[model] || 'openai';
                       const model_health = platform.model_health?.[model];
@@ -621,9 +649,9 @@ const ModelModalContent: React.FC = () => {
                                       {model_health?.error && (
                                         <div className='text-12px mt-4px'>{model_health.error}</div>
                                       )}
-                                      {model_health?.lastCheck && (
+                                      {model_health?.last_check && (
                                         <div className='text-12px mt-4px'>
-                                          {t('mcp.lastCheck')}: {new Date(model_health.lastCheck).toLocaleString()}
+                                          {t('mcp.lastCheck')}: {new Date(model_health.last_check).toLocaleString()}
                                         </div>
                                       )}
                                     </div>
@@ -677,7 +705,7 @@ const ModelModalContent: React.FC = () => {
                               <Popconfirm
                                 title={t('settings.deleteModelConfirm')}
                                 onOk={() => {
-                                  const newModels = platform.model.filter((item: string) => item !== model);
+                                  const newModels = platform.models.filter((item: string) => item !== model);
                                   // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
                                   // Clean all per-model state to avoid stale state on re-add.
                                   const newProtocols = { ...platform.model_protocols };
@@ -690,7 +718,7 @@ const ModelModalContent: React.FC = () => {
                                   updatePlatform(
                                     {
                                       ...platform,
-                                      model: newModels,
+                                      models: newModels,
                                       model_protocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
                                       model_enabled:
                                         Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,

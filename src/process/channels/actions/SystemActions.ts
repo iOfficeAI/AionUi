@@ -8,6 +8,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { agentRegistry } from '@process/agent/AgentRegistry';
+import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
@@ -55,8 +56,13 @@ import { buildChannelConversationExtra } from '../utils';
 
 export async function getChannelDefaultModel(platform: PluginType): Promise<TProviderWithModel> {
   try {
-    const providers = await ProcessConfig.get('model.config');
-    const providerList = providers && Array.isArray(providers) ? providers : [];
+    let providerList: IProvider[] = [];
+    try {
+      const list = await ipcBridge.mode.listProviders.invoke();
+      providerList = Array.isArray(list) ? list : [];
+    } catch (loadError) {
+      console.warn('[SystemActions] Failed to load providers from backend:', loadError);
+    }
 
     // Helper: check whether a provider has valid authentication credentials
     const hasProviderAuth = (provider: IProvider): boolean => {
@@ -73,7 +79,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     // Helper: find a provider with valid credentials and the specified model
     const findProviderWithApiKey = (providerId: string, modelName: string): TProviderWithModel | null => {
       const provider = providerList.find((p) => p.id === providerId);
-      if (provider && hasProviderAuth(provider) && provider.model?.includes(modelName)) {
+      if (provider && hasProviderAuth(provider) && provider.models?.includes(modelName)) {
         return { ...provider, useModel: modelName } as TProviderWithModel;
       }
       return null;
@@ -107,7 +113,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
 
         if (hasLocalCreds) {
           // The google-auth-gemini provider is a frontend-only synthetic provider — it is NOT
-          // stored in model.config. Construct it directly with platform='gemini-with-google-auth'
+          // persisted in /api/providers. Construct it directly with platform='gemini-with-google-auth'
           // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes
           // GeminiAgentManager read oauth_creds.json and use OAuth instead of an empty API key.
           return {
@@ -116,7 +122,6 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
             platform: 'gemini-with-google-auth',
             base_url: '',
             api_key: '',
-            model: [savedModel.useModel],
             useModel: savedModel.useModel,
             enabled: true,
           } as TProviderWithModel;
@@ -127,7 +132,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           `[SystemActions] Google Auth oauth_creds.json missing or empty for channel mode (${platform}), falling back to API key provider`
         );
         const fallback = providerList.find(
-          (p) => p.platform === 'gemini' && hasProviderAuth(p) && p.model?.includes(savedModel.useModel)
+          (p) => p.platform === 'gemini' && hasProviderAuth(p) && p.models?.includes(savedModel.useModel)
         );
         if (fallback) {
           return {
@@ -144,21 +149,21 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     }
 
     // Fallback: try to get any Gemini provider with valid credentials
-    const geminiProvider = providerList.find((p) => p.platform === 'gemini' && hasProviderAuth(p) && p.model?.length);
+    const geminiProvider = providerList.find((p) => p.platform === 'gemini' && hasProviderAuth(p) && p.models?.length);
     if (geminiProvider) {
       return {
         ...geminiProvider,
-        useModel: geminiProvider.model[0],
+        useModel: geminiProvider.models[0],
       } as TProviderWithModel;
     }
 
     // Last resort: any provider with valid credentials
-    const anyProvider = providerList.find((p) => hasProviderAuth(p) && p.model?.length);
+    const anyProvider = providerList.find((p) => hasProviderAuth(p) && p.models?.length);
     if (anyProvider) {
       console.warn(`[SystemActions] No Gemini provider with API key, using ${anyProvider.platform} provider`);
       return {
         ...anyProvider,
-        useModel: anyProvider.model[0],
+        useModel: anyProvider.models[0],
       } as TProviderWithModel;
     }
 
@@ -177,7 +182,6 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           platform: 'gemini-with-google-auth',
           base_url: '',
           api_key: '',
-          model: ['gemini-2.0-flash'],
           useModel: 'gemini-2.0-flash',
           enabled: true,
         } as TProviderWithModel;

@@ -9,9 +9,18 @@ import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import { getChannelDefaultModel } from '@process/channels/actions/SystemActions';
 import { buildChannelConversationExtra, getChannelEnabledSkills } from '@process/channels/utils';
 
-const { mockGet, mockGetDetectedAgents } = vi.hoisted(() => ({
+const { mockGet, mockGetDetectedAgents, mockListProviders } = vi.hoisted(() => ({
   mockGet: vi.fn(),
   mockGetDetectedAgents: vi.fn(() => []),
+  mockListProviders: vi.fn(async () => [] as unknown[]),
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    mode: {
+      listProviders: { invoke: mockListProviders },
+    },
+  },
 }));
 
 vi.mock('electron', () => ({
@@ -97,6 +106,7 @@ describe('SystemActions weixin platform handling', () => {
     vi.clearAllMocks();
     mockGet.mockResolvedValue(undefined);
     mockGetDetectedAgents.mockReturnValue([]);
+    mockListProviders.mockResolvedValue([]);
   });
 
   it('getChannelDefaultModel reads assistant.weixin.defaultModel for weixin platform', async () => {
@@ -164,21 +174,19 @@ describe('SystemActions weixin platform handling', () => {
 
   it('falls back to a Gemini API-key provider when Google Auth is selected but local creds are missing', async () => {
     mockGet.mockImplementation((key: string) => {
-      if (key === 'model.config') {
-        return Promise.resolve([
-          {
-            id: 'gemini-api',
-            platform: 'gemini',
-            api_key: 'sk-test',
-            model: ['gemini-2.0-flash', 'gemini-2.5-pro'],
-          },
-        ]);
-      }
       if (key === 'assistant.weixin.defaultModel') {
         return Promise.resolve({ id: GOOGLE_AUTH_PROVIDER_ID, useModel: 'gemini-2.5-pro' });
       }
       return Promise.resolve(undefined);
     });
+    mockListProviders.mockResolvedValue([
+      {
+        id: 'gemini-api',
+        platform: 'gemini',
+        api_key: 'sk-test',
+        models: ['gemini-2.0-flash', 'gemini-2.5-pro'],
+      },
+    ]);
     vi.spyOn(os, 'homedir').mockReturnValue('/tmp/test-home');
     vi.spyOn(fs.promises, 'readFile').mockRejectedValue(new Error('missing creds'));
 

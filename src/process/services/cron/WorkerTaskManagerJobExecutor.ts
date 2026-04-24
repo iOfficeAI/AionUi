@@ -366,8 +366,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Reads preferredModelId from user settings to match guid page behavior.
    */
   private async resolveModelForBackend(backend: string): Promise<TProviderWithModel> {
-    const providers = await ProcessConfig.get('model.config');
-    const providerList = (providers && Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
+    let providers: Awaited<ReturnType<typeof ipcBridge.mode.listProviders.invoke>> = [];
+    try {
+      providers = await ipcBridge.mode.listProviders.invoke();
+    } catch (error) {
+      console.warn('[WorkerTaskManagerJobExecutor] Failed to load providers from backend:', error);
+    }
+    const providerList = (Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
 
     // Read preferred model ID from user config.
     // Gemini stores its default model in 'gemini.defaultModel' (set by Guid page).

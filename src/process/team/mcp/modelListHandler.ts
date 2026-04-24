@@ -9,6 +9,7 @@
  * Used by both TeamMcpServer (team_list_models) and TeamGuideMcpServer (aion_list_models).
  */
 
+import { ipcBridge } from '@/common';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { getTeamAvailableModels } from '@/common/utils/teamModelUtils';
 import type { IProvider } from '@/common/config/storage';
@@ -19,7 +20,7 @@ import { v4 as uuid } from 'uuid';
 
 async function getMergedModelProviders(): Promise<IProvider[]> {
   try {
-    const data = await ProcessConfig.get('model.config');
+    const data = await ipcBridge.mode.listProviders.invoke();
     const sourceList = Array.isArray(data) ? data : [];
     return sourceList.map((v) => ({
       ...v,

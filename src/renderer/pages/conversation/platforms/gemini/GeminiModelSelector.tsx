@@ -26,7 +26,7 @@ const GeminiModelSelector: React.FC<{
   const defaultModelLabel = t('common.defaultModel');
 
   // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
+  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
 
   // 获取当前模型的健康状态 (must be called before any early return to keep hooks count stable)
   const current_model = selection?.current_model;
