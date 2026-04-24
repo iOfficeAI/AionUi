@@ -143,7 +143,7 @@ export const conversation = {
   sendMessage: httpPost<void, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
     (p) => ({
-      input: p.input,
+      content: p.input,
       msg_id: p.msg_id,
       files: p.files,
       loading_id: p.loading_id,
