@@ -73,6 +73,8 @@ interface AcpAgentManagerData {
   /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
   currentModelId?: string;
   sandboxMode?: CodexSandboxMode;
+  /** Persisted config option values for resume support / 持久化的配置项值，用于恢复 */
+  configOptionValues?: Record<string, string>;
   /** Pending config option selections from Guid page (applied after session creation) */
   pendingConfigOptions?: Record<string, string>;
 }
@@ -197,6 +199,16 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return this.getFallbackConfigOptions().map((option) =>
       option.id === configId ? { ...option, currentValue: value, selectedValue: value } : option
     );
+  }
+
+  private getConfigOptionValues(configOptions: AcpSessionConfigOption[]): Record<string, string> {
+    return configOptions.reduce<Record<string, string>>((acc, option) => {
+      const value = option.currentValue ?? option.selectedValue;
+      if (option.id && value !== undefined && value !== null) {
+        acc[option.id] = String(value);
+      }
+      return acc;
+    }, {});
   }
 
   private emitBootstrapReadyState(backend: AcpBackend): void {
@@ -694,12 +706,6 @@ ${collectedResponses.join('\n')}`;
     // Handle preview_open event (chrome-devtools navigation interception)
     if (handlePreviewOpenEvent(message)) return;
 
-    // Mark as finished when content is output (visible to user)
-    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
-    if (contentTypes.includes(message.type)) {
-      this.status = 'finished';
-    }
-
     // Emit request trace on each model generation start
     if (message.type === 'start') {
       const modelInfo = this.agent?.getModelInfo();
@@ -962,6 +968,7 @@ ${collectedResponses.join('\n')}`;
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
           currentModelId: this.persistedModelId ?? undefined,
           sessionMode: this.currentMode,
+          configOptionValues: data.configOptionValues,
           pendingConfigOptions: data.pendingConfigOptions,
           // Forward team MCP stdio config so AcpAgent.loadBuiltinSessionMcpServers() can inject it
           teamMcpStdioConfig: (data as unknown as Record<string, unknown>).teamMcpStdioConfig as
@@ -1611,8 +1618,14 @@ ${collectedResponses.join('\n')}`;
       const result = db.getConversation(this.conversation_id);
       if (result.success && result.data && result.data.type === 'acp') {
         const conversation = result.data;
+        const configOptionValues = this.getConfigOptionValues(configOptions);
         db.updateConversation(this.conversation_id, {
-          extra: { ...conversation.extra, cachedConfigOptions: configOptions },
+          extra: {
+            ...conversation.extra,
+            cachedConfigOptions: configOptions,
+            ...(Object.keys(configOptionValues).length > 0 ? { configOptionValues } : {}),
+            pendingConfigOptions: undefined,
+          },
         } as Partial<typeof conversation>);
       }
     } catch (error) {

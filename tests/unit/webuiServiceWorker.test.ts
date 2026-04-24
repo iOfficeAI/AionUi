@@ -20,6 +20,10 @@ type ServiceWorkerModule = {
   shouldHandleRequest: (request: ServiceWorkerRequest) => boolean;
   networkFirst: (request: ServiceWorkerRequest) => Promise<ServiceWorkerResponse>;
   staleWhileRevalidate: (request: ServiceWorkerRequest) => Promise<ServiceWorkerResponse>;
+  handleNotificationClick: (event: {
+    notification: { close: () => void; data?: { url?: string } };
+    waitUntil: (promise: Promise<unknown>) => void;
+  }) => void;
 };
 
 function createResponse(status: number): ServiceWorkerResponse {
@@ -34,6 +38,8 @@ function loadServiceWorker(fetchImpl: (request: ServiceWorkerRequest) => Promise
   const put = vi.fn();
   const match = vi.fn().mockResolvedValue(undefined);
   const cache = { match, put };
+  const openWindow = vi.fn();
+  const matchAll = vi.fn().mockResolvedValue([]);
   const context = vm.createContext({
     URL,
     Response: { error: vi.fn() },
@@ -45,20 +51,21 @@ function loadServiceWorker(fetchImpl: (request: ServiceWorkerRequest) => Promise
     fetch: fetchImpl,
     self: {
       addEventListener: vi.fn(),
-      clients: { claim: vi.fn() },
-      location: { href: 'https://example.com/webui/' },
+      clients: { claim: vi.fn(), matchAll, openWindow },
+      location: { href: 'https://example.com/webui/', origin: 'https://example.com' },
       skipWaiting: vi.fn(),
     },
   });
 
   const serviceWorkerSource =
     fs.readFileSync(path.resolve(__dirname, '../../public/sw.js'), 'utf8') +
-    '\n;globalThis.__sw_exports = { shouldHandleRequest, networkFirst, staleWhileRevalidate };';
+    '\n;globalThis.__sw_exports = { shouldHandleRequest, networkFirst, staleWhileRevalidate, handleNotificationClick };';
 
   vm.runInContext(serviceWorkerSource, context, { filename: 'public/sw.js' });
 
   return {
     cache,
+    clients: { matchAll, openWindow },
     serviceWorker: (context as typeof context & { __sw_exports: ServiceWorkerModule }).__sw_exports,
   };
 }
@@ -107,5 +114,24 @@ describe('webui service worker caching', () => {
 
     expect(response).toBe(cachedResponse);
     expect(cache.put).not.toHaveBeenCalled();
+  });
+
+  it('opens the target conversation when a browser notification is clicked', async () => {
+    const { clients, serviceWorker } = loadServiceWorker(vi.fn());
+    const waitUntilPromises: Promise<unknown>[] = [];
+    const close = vi.fn();
+
+    serviceWorker.handleNotificationClick({
+      notification: {
+        close,
+        data: { url: 'https://example.com/webui/#/conversation/conv-1' },
+      },
+      waitUntil: (promise) => waitUntilPromises.push(promise),
+    });
+
+    await Promise.all(waitUntilPromises);
+
+    expect(close).toHaveBeenCalled();
+    expect(clients.openWindow).toHaveBeenCalledWith('https://example.com/webui/#/conversation/conv-1');
   });
 });

@@ -9,7 +9,7 @@ import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
 import type { ConfigTracker } from '@process/acp/session/ConfigTracker';
 import { McpConfig } from '@process/acp/session/McpConfig';
 import type { MessageTranslator } from '@process/acp/session/MessageTranslator';
-import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
+import type { AgentConfig, ConfigOption, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
 
 // ─── YOLO mode resolution ──────────────────────────────────────
 
@@ -22,6 +22,68 @@ import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } f
 function resolveYoloModeId(backend: string, availableModes: ReadonlyArray<{ id: string }>): string | null {
   const candidate = getFullAutoMode(backend);
   return availableModes.some((m) => m.id === candidate) ? candidate : null;
+}
+
+type RawSessionConfigOption = NonNullable<NewSessionResponse['configOptions']>[number];
+type RawSessionConfigChoice = {
+  value?: string;
+  id?: string;
+  name?: string;
+  description?: string | null;
+};
+type RawSessionConfigGroup = {
+  options?: RawSessionConfigChoice[];
+};
+
+function isRawSessionConfigGroup(
+  entry: RawSessionConfigChoice | RawSessionConfigGroup
+): entry is RawSessionConfigGroup {
+  return 'options' in entry && Array.isArray(entry.options);
+}
+
+function normalizeSessionConfigChoices(options: unknown): ConfigOption['options'] {
+  if (!Array.isArray(options)) return undefined;
+
+  return options.flatMap((entry: RawSessionConfigChoice | RawSessionConfigGroup) => {
+    if (isRawSessionConfigGroup(entry)) {
+      return normalizeSessionConfigChoices(entry.options) ?? [];
+    }
+
+    const id = entry.value ?? entry.id;
+    if (!id) return [];
+
+    return [
+      {
+        id,
+        name: entry.name ?? id,
+        description: entry.description ?? undefined,
+      },
+    ];
+  });
+}
+
+function normalizeSessionConfigOption(option: RawSessionConfigOption): ConfigOption {
+  const base = {
+    id: option.id,
+    name: option.name,
+    category: option.category ?? undefined,
+    description: option.description ?? undefined,
+  };
+
+  if (option.type === 'boolean') {
+    return {
+      ...base,
+      type: 'boolean',
+      currentValue: option.currentValue,
+    };
+  }
+
+  return {
+    ...base,
+    type: 'select',
+    currentValue: option.currentValue,
+    options: normalizeSessionConfigChoices(option.options),
+  };
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -248,12 +310,7 @@ export class SessionLifecycle {
         name: m.name,
         description: m.description ?? undefined,
       })),
-      configOptions: sessionResult.configOptions?.map((opt) => ({
-        id: opt.id,
-        name: opt.name,
-        type: opt.type,
-        currentValue: opt.currentValue,
-      })),
+      configOptions: sessionResult.configOptions?.map(normalizeSessionConfigOption),
       cwd: this.host.agentConfig.cwd,
       additionalDirectories: this.host.agentConfig.additionalDirectories,
     });

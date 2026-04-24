@@ -24,6 +24,7 @@ import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingl
 import { waitForMcpReady } from '@/process/team/mcpReadiness';
 import { shouldInjectTeamGuideMcp } from '@/process/team/prompts/teamGuideCapability';
 import type { McpServer } from '@agentclientprotocol/sdk';
+import { buildAcpModelInfo } from '@process/agent/acp/modelInfo';
 import type {
   AgentConfig,
   ConfigSnapshot,
@@ -104,6 +105,7 @@ export class AcpAgentV2 {
 
   // Cached state from callbacks
   private cachedModelInfo: AcpModelInfo | null = null;
+  private cachedModelSnapshot: ModelSnapshot | null = null;
   private cachedConfigOptions: AcpSessionConfigOption[] = [];
   private cachedModes: ModeSnapshot | null = null;
   private lastSessionId: string | null = null;
@@ -286,7 +288,8 @@ export class AcpAgentV2 {
       },
 
       onModelUpdate: (model: ModelSnapshot) => {
-        this.cachedModelInfo = toAcpModelInfo(model);
+        this.cachedModelSnapshot = model;
+        this.rebuildCachedModelInfo();
 
         // Resolve modelOp if pending
         if (this.modelOp) {
@@ -319,11 +322,16 @@ export class AcpAgentV2 {
 
       onConfigUpdate: (config: ConfigSnapshot) => {
         this.cachedConfigOptions = toAcpConfigOptions(config.configOptions);
+        this.rebuildCachedModelInfo();
 
         // Resolve configOp if pending
         if (this.configOp) {
           this.resolveOp(this.configOp, this.cachedConfigOptions);
           this.configOp = null;
+        }
+        if (this.modelOp && this.cachedModelInfo?.source === 'configOption') {
+          this.resolveOp(this.modelOp, this.cachedModelInfo);
+          this.modelOp = null;
         }
 
         // Forward availableCommands to old callback
@@ -735,12 +743,24 @@ export class AcpAgentV2 {
     return this.cachedConfigOptions.filter((opt) => opt.category !== 'model' && opt.category !== 'mode');
   }
 
+  private rebuildCachedModelInfo(): AcpModelInfo | null {
+    const hasModelConfigOption = this.cachedConfigOptions.some((opt) => opt.category === 'model');
+    this.cachedModelInfo = hasModelConfigOption
+      ? buildAcpModelInfo(this.cachedConfigOptions, this.cachedModelSnapshot)
+      : this.cachedModelSnapshot
+        ? toAcpModelInfo(this.cachedModelSnapshot)
+        : null;
+    return this.cachedModelInfo;
+  }
+
   async setModelByConfigOption(modelId: string): Promise<AcpModelInfo | null> {
     this.userModelOverride = modelId;
     // Queue model switch notice for Claude (ACP set_model is silent, AI doesn't know)
     if (this.agentConfig.agentBackend === 'claude') {
       this.pendingModelSwitchNotice = modelId;
     }
+    const modelInfo = this.getModelInfo();
+    const configOptionId = modelInfo?.source === 'configOption' ? modelInfo.configOptionId : undefined;
     return new Promise<AcpModelInfo | null>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.modelOp = null;
@@ -748,7 +768,11 @@ export class AcpAgentV2 {
         resolve(this.cachedModelInfo);
       }, 10_000);
       this.modelOp = { resolve, reject, timer };
-      this.session!.setModel(modelId);
+      if (configOptionId) {
+        this.session!.setConfigOption(configOptionId, modelId);
+      } else {
+        this.session!.setModel(modelId);
+      }
     });
   }
 

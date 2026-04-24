@@ -37,6 +37,7 @@ export type OldAcpAgentConfig = {
     acpSessionUpdatedAt?: number;
     currentModelId?: string;
     sessionMode?: string;
+    configOptionValues?: Record<string, string>;
     teamMcpStdioConfig?: {
       name: string;
       command: string;
@@ -83,8 +84,12 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
   const initialDesired: InitialDesiredConfig = {};
   if (old.extra?.currentModelId) initialDesired.model = old.extra.currentModelId;
   if (old.extra?.sessionMode) initialDesired.mode = old.extra.sessionMode;
-  if (old.extra?.pendingConfigOptions && Object.keys(old.extra.pendingConfigOptions).length > 0) {
-    initialDesired.configOptions = old.extra.pendingConfigOptions;
+  const configOptions = {
+    ...old.extra?.configOptionValues,
+    ...old.extra?.pendingConfigOptions,
+  };
+  if (Object.keys(configOptions).length > 0) {
+    initialDesired.configOptions = configOptions;
   }
   const hasInitialDesired = Object.keys(initialDesired).length > 0;
 

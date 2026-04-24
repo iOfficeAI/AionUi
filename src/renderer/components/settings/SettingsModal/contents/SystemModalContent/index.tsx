@@ -10,6 +10,11 @@ import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
+import {
+  getBrowserNotificationPermission,
+  requestBrowserNotificationPermission,
+  type BrowserNotificationPermission,
+} from '@/renderer/hooks/system/useBrowserNotifications';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
@@ -47,6 +52,8 @@ const SystemModalContent: React.FC = () => {
   const [closeToTray, setCloseToTray] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+  const [browserNotificationPermission, setBrowserNotificationPermission] =
+    useState<BrowserNotificationPermission>('unsupported');
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
@@ -87,6 +94,15 @@ const SystemModalContent: React.FC = () => {
       .then((enabled) => setCronNotificationEnabled(enabled))
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setBrowserNotificationPermission('unsupported');
+      return;
+    }
+
+    setBrowserNotificationPermission(getBrowserNotificationPermission());
+  }, [isDesktop]);
 
   useEffect(() => {
     ConfigStorage.get('acp.promptTimeout')
@@ -163,6 +179,23 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleBrowserNotificationPermission = useCallback(async () => {
+    const permission = await requestBrowserNotificationPermission();
+    setBrowserNotificationPermission(permission);
+
+    if (permission === 'granted') {
+      Message.success(t('settings.browserNotificationAllowed'));
+      return;
+    }
+
+    if (permission === 'denied') {
+      Message.error(t('settings.browserNotificationBlocked'));
+      return;
+    }
+
+    Message.error(t('settings.browserNotificationUnsupported'));
+  }, [t]);
+
   const handlePromptTimeoutChange = useCallback((val: number | undefined) => {
     setPromptTimeout(val as number);
   }, []);
@@ -202,6 +235,20 @@ const SystemModalContent: React.FC = () => {
       });
     });
   }, []);
+
+  const browserNotificationButtonLabel =
+    browserNotificationPermission === 'granted'
+      ? t('settings.browserNotificationAllowed')
+      : browserNotificationPermission === 'denied'
+        ? t('settings.browserNotificationBlocked')
+        : browserNotificationPermission === 'unsupported'
+          ? t('settings.browserNotificationUnsupported')
+          : t('settings.browserNotificationEnable');
+  const browserNotificationButtonDisabled =
+    !notificationEnabled ||
+    browserNotificationPermission === 'granted' ||
+    browserNotificationPermission === 'denied' ||
+    browserNotificationPermission === 'unsupported';
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
@@ -371,6 +418,21 @@ const SystemModalContent: React.FC = () => {
                       onChange={handleCronNotificationEnabledChange}
                     />
                   </PreferenceRow>
+                  {!isDesktop && (
+                    <PreferenceRow
+                      label={t('settings.browserNotification')}
+                      description={t('settings.browserNotificationDesc')}
+                    >
+                      <Button
+                        size='small'
+                        type={browserNotificationPermission === 'default' ? 'primary' : 'secondary'}
+                        disabled={browserNotificationButtonDisabled}
+                        onClick={handleBrowserNotificationPermission}
+                      >
+                        {browserNotificationButtonLabel}
+                      </Button>
+                    </PreferenceRow>
+                  )}
                 </div>
               </Collapse.Item>
             </Collapse>

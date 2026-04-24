@@ -15,6 +15,8 @@ const acpAgentStart = vi.fn<() => Promise<void>>();
 const acpAgentGetModelInfo = vi.fn<() => AcpModelInfo | null>();
 const acpAgentGetConfigOptions = vi.fn<() => AcpSessionConfigOption[]>();
 const acpAgentSetConfigOption = vi.fn<(configId: string, value: string) => Promise<AcpSessionConfigOption[]>>();
+const dbGetConversation = vi.fn();
+const dbUpdateConversation = vi.fn();
 
 class MockAcpAgentV2 {
   private readonly config: { onStreamEvent?: (message: IResponseMessage) => void };
@@ -101,7 +103,8 @@ vi.mock('@process/extensions', () => ({
 
 vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn(async () => ({
-    updateConversation: vi.fn(),
+    getConversation: dbGetConversation,
+    updateConversation: dbUpdateConversation,
   })),
   getDatabaseSync: vi.fn(() => ({
     recordConversationTokenUsage: vi.fn(() => ({ success: true })),
@@ -214,6 +217,24 @@ describe('AcpAgentManager codex UX state', () => {
     acpAgentGetConfigOptions.mockReturnValue([]);
     acpAgentSetConfigOption.mockReset();
     acpAgentSetConfigOption.mockResolvedValue([]);
+    dbGetConversation.mockReset();
+    dbGetConversation.mockReturnValue({
+      success: true,
+      data: {
+        id: 'session-1',
+        type: 'acp',
+        extra: {
+          backend: 'codex',
+          configOptionValues: {
+            reasoning_effort: 'xhigh',
+          },
+          pendingConfigOptions: {
+            reasoning_effort: 'xhigh',
+          },
+        },
+      },
+    });
+    dbUpdateConversation.mockReset();
     vi.resetModules();
   });
 
@@ -255,5 +276,49 @@ describe('AcpAgentManager codex UX state', () => {
         },
       })
     );
+  });
+
+  it('persists selected config option values used by the next ACP startup', async () => {
+    const updatedOptions: AcpSessionConfigOption[] = [
+      {
+        id: 'reasoning_effort',
+        category: 'reasoning',
+        type: 'select',
+        currentValue: 'medium',
+        selectedValue: 'medium',
+        options: [
+          { value: 'medium', name: 'Medium' },
+          { value: 'xhigh', name: 'Xhigh' },
+        ],
+      },
+    ];
+    acpAgentGetConfigOptions.mockReturnValue(updatedOptions);
+    acpAgentSetConfigOption.mockResolvedValue(updatedOptions);
+    const manager = await createManager({
+      configOptionValues: {
+        reasoning_effort: 'xhigh',
+      },
+      pendingConfigOptions: {
+        reasoning_effort: 'xhigh',
+      },
+    });
+
+    await manager.initAgent();
+    await manager.setConfigOption('reasoning_effort', 'medium');
+
+    await vi.waitFor(() => {
+      expect(dbUpdateConversation).toHaveBeenCalledWith(
+        'session-1',
+        expect.objectContaining({
+          extra: expect.objectContaining({
+            cachedConfigOptions: updatedOptions,
+            configOptionValues: {
+              reasoning_effort: 'medium',
+            },
+            pendingConfigOptions: undefined,
+          }),
+        })
+      );
+    });
   });
 });

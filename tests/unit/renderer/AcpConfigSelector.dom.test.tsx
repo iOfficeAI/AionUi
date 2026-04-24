@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const acpConfigSelectorMocks = vi.hoisted(() => ({
   getConfigOptions: vi.fn(),
@@ -57,6 +57,27 @@ vi.mock('@/renderer/components/agent/MarqueePillLabel', () => ({
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 
 describe('AcpConfigSelector', () => {
+  beforeEach(() => {
+    acpConfigSelectorMocks.getConfigOptions.mockReset();
+    acpConfigSelectorMocks.setConfigOption.mockReset();
+    acpConfigSelectorMocks.responseStreamOn.mockReset();
+    acpConfigSelectorMocks.responseStreamOn.mockReturnValue(() => {});
+  });
+
+  it('shows the default Codex reasoning selector before live config options load', async () => {
+    acpConfigSelectorMocks.getConfigOptions.mockResolvedValue({
+      success: true,
+      data: { configOptions: [] },
+    });
+
+    render(<AcpConfigSelector backend='codex' conversationId='conv-codex' />);
+
+    expect(screen.getByRole('button')).toHaveTextContent('Medium');
+    await waitFor(() => {
+      expect(acpConfigSelectorMocks.getConfigOptions).toHaveBeenCalledWith({ conversationId: 'conv-codex' });
+    });
+  });
+
   it('applies custom Guid button styling and leading icon for local config options', () => {
     render(
       <AcpConfigSelector

@@ -75,6 +75,7 @@ describe('useAcpMessage — conversation hydration', () => {
 
     expect(result.current.aiProcessing).toBe(true);
     expect(result.current.running).toBe(true);
+    expect(result.current.activity).toEqual({ phase: 'recovering' });
   });
 
   it('clears aiProcessing when conversation.get returns null', async () => {

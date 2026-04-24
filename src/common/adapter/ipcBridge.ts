@@ -874,6 +874,7 @@ export type INotificationOptions = {
 export const notification = {
   show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
   clicked: bridge.buildEmitter<{ conversationId?: string }>('notification.clicked'),
+  received: bridge.buildEmitter<INotificationOptions>('notification.received'),
 };
 
 // 任务管理接口 / Task management API

@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { normalizeCodexConfigOptions, normalizeCodexConfigOptionValues } from '@/common/types/codex/codexConfigOptions';
@@ -87,6 +87,87 @@ type AcpConfigSelection = {
   cachedConfigOptions?: AcpSessionConfigOption[];
   configOptionValues?: Record<string, string>;
 };
+
+type ConversationAcpConfigExtra = {
+  workspace?: string;
+  backend?: string;
+  configOptionValues?: Record<string, string>;
+  cachedConfigOptions?: AcpSessionConfigOption[];
+};
+
+function getConversationAcpBackend(conversation: TChatConversation): string | undefined {
+  if (conversation.type === 'codex') {
+    return 'codex';
+  }
+  if (conversation.type !== 'acp') {
+    return undefined;
+  }
+  const extra = conversation.extra as ConversationAcpConfigExtra | undefined;
+  return extra?.backend;
+}
+
+function cloneConfigOptions(options: AcpSessionConfigOption[]): AcpSessionConfigOption[] {
+  return options.map((option) => ({
+    ...option,
+    options: option.options?.map((choice) => ({ ...choice })),
+  }));
+}
+
+function extractConfigOptionValues(options?: AcpSessionConfigOption[]): Record<string, string> {
+  if (!Array.isArray(options)) {
+    return {};
+  }
+  return options.reduce<Record<string, string>>((acc, option) => {
+    const value = option.currentValue ?? option.selectedValue;
+    if (option.id && value !== undefined && value !== null) {
+      acc[option.id] = String(value);
+    }
+    return acc;
+  }, {});
+}
+
+export function applyWorkspaceConversationConfigDefaults(
+  params: ICreateConversationParams,
+  sourceConversation: TChatConversation | null | undefined,
+  backend: string
+): ICreateConversationParams {
+  if (!sourceConversation || params.type !== 'acp') {
+    return params;
+  }
+
+  const sourceExtra = sourceConversation.extra as ConversationAcpConfigExtra | undefined;
+  const targetWorkspace = params.extra?.workspace;
+  if (!targetWorkspace || sourceExtra?.workspace !== targetWorkspace) {
+    return params;
+  }
+
+  if (getConversationAcpBackend(sourceConversation) !== backend) {
+    return params;
+  }
+
+  const cachedConfigOptions = Array.isArray(sourceExtra.cachedConfigOptions)
+    ? cloneConfigOptions(sourceExtra.cachedConfigOptions)
+    : undefined;
+  const configOptionValues = {
+    ...sourceExtra.configOptionValues,
+    ...extractConfigOptionValues(cachedConfigOptions),
+  };
+  const hasConfigOptionValues = Object.keys(configOptionValues).length > 0;
+
+  if (!cachedConfigOptions?.length && !hasConfigOptionValues) {
+    return params;
+  }
+
+  return {
+    ...params,
+    extra: {
+      ...params.extra,
+      ...(cachedConfigOptions?.length ? { cachedConfigOptions } : {}),
+      ...(hasConfigOptionValues ? { configOptionValues } : {}),
+      pendingConfigOptions: undefined,
+    },
+  };
+}
 
 async function resolvePreferredAcpConfigSelection(backend: string): Promise<AcpConfigSelection> {
   const [acpConfig, cachedConfigOptions] = await Promise.all([

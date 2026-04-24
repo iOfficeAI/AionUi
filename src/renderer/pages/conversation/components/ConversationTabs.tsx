@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { emitter } from '@/renderer/utils/emitter';
@@ -18,7 +19,11 @@ import { useNavigate } from 'react-router-dom';
 import { useConversationTabs } from '../hooks/ConversationTabsContext';
 import { useConversationAgents } from '../hooks/useConversationAgents';
 import { applyDefaultConversationName } from '../utils/newConversationName';
-import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
+import {
+  applyWorkspaceConversationConfigDefaults,
+  buildCliAgentParams,
+  buildPresetAssistantParams,
+} from '../utils/createConversationParams';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 
@@ -211,10 +216,15 @@ const ConversationTabs: React.FC = () => {
 
       try {
         // [BUG-3] Build params inside try block: getDefaultGeminiModel() may throw if no model configured
-        let params;
+        let params: ICreateConversationParams;
+        let effectiveBackend: string | undefined;
+        const sourceConversation = await ipcBridge.conversation.get
+          .invoke({ id: currentTab.id })
+          .catch((): null => null);
 
         if (key.startsWith('cli:')) {
           const backend = key.slice(4);
+          effectiveBackend = backend;
           // [BUG-6] Null check: find() may return undefined
           const agent = cliAgents.find((a) => a.backend === backend);
           if (!agent) {
@@ -230,9 +240,14 @@ const ConversationTabs: React.FC = () => {
             Message.error(t('conversation.createFailed'));
             return;
           }
+          effectiveBackend = agent.presetAgentType || agent.backend;
           params = await buildPresetAssistantParams(agent, workspace, i18n.language);
         } else {
           return;
+        }
+
+        if (effectiveBackend) {
+          params = applyWorkspaceConversationConfigDefaults(params, sourceConversation, effectiveBackend);
         }
 
         // Use conversation.create (calls ConversationService) not createWithConversation (direct DB insert)

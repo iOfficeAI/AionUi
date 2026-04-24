@@ -98,6 +98,8 @@ export interface AcpAgentConfig {
     sessionMode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
     teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+    /** Persisted/default config option values to apply at session start */
+    configOptionValues?: Record<string, string>;
     /** Pending config option selections from Guid page (applied after session creation) */
     pendingConfigOptions?: Record<string, string>;
   };
@@ -134,6 +136,8 @@ export class AcpAgent {
     sessionMode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
     teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+    /** Persisted/default config option values to apply at session start */
+    configOptionValues?: Record<string, string>;
     /** Pending config option selections from Guid page (applied after session creation) */
     pendingConfigOptions?: Record<string, string>;
   };
@@ -388,10 +392,16 @@ export class AcpAgent {
         }
       }
 
-      // Apply pending config options from Guid page selection (e.g., reasoning_effort)
-      if (this.extra.pendingConfigOptions) {
+      // Apply config options selected before the first prompt (e.g., Codex reasoning_effort).
+      // `configOptionValues` comes from saved/default Guid selections; `pendingConfigOptions`
+      // contains fresh local changes and should win when both are present.
+      const initialConfigOptions = {
+        ...this.extra.configOptionValues,
+        ...this.extra.pendingConfigOptions,
+      };
+      if (Object.keys(initialConfigOptions).length > 0) {
         await Promise.all(
-          Object.entries(this.extra.pendingConfigOptions).map(async ([configId, value]) => {
+          Object.entries(initialConfigOptions).map(async ([configId, value]) => {
             try {
               await this.connection.setConfigOption(configId, value);
             } catch (error) {

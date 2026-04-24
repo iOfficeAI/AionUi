@@ -15,6 +15,15 @@
     "error": "Bağlantı hatası",
     "unknown": "Bilinmeyen durum"
   },
+  "activity": {
+    "recovering": "Etkin çalışma geri yükleniyor...",
+    "waiting": "{{agent}} yanıtı bekleniyor...",
+    "thinking": "{{agent}} düşünüyor...",
+    "streaming": "{{agent}} yanıtlıyor...",
+    "permission": "İzin onayı bekleniyor...",
+    "tool": "Araç çalıştırılıyor...",
+    "toolWithName": "Araç çalıştırılıyor: {{tool}}"
+  },
   "config": {
     "reasoning_effort": "Akıl Yürütme Çabası",
     "default": "Varsayılan"

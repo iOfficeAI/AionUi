@@ -18,6 +18,23 @@ describe('InputPreprocessor', () => {
     expect(result[1]).toEqual({ type: 'text', text: '[File: /foo/bar.ts]\ncontent of /foo/bar.ts' });
   });
 
+  it('sends uploaded image files as resource links without reading binary content', () => {
+    const readFile = vi.fn(() => '\u0000PNG\r\n\u001a\nbinary image bytes');
+    const pp = new InputPreprocessor(readFile);
+    const result = pp.process('look at this image', ['/tmp/photo.png']);
+
+    expect(readFile).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      { type: 'text', text: 'look at this image' },
+      {
+        type: 'resource_link',
+        uri: 'file:///tmp/photo.png',
+        name: 'photo.png',
+        mimeType: 'image/png',
+      },
+    ]);
+  });
+
   it('resolves @file references in text', () => {
     const readFile = vi.fn((path: string) => `content of ${path}`);
     const pp = new InputPreprocessor(readFile);

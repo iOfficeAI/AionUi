@@ -15,6 +15,15 @@
     "error": "連線錯誤",
     "unknown": "未知狀態"
   },
+  "activity": {
+    "recovering": "正在恢復執行狀態...",
+    "waiting": "正在等待 {{agent}} 回應...",
+    "thinking": "{{agent}} 正在思考...",
+    "streaming": "{{agent}} 正在輸出...",
+    "permission": "等待權限確認...",
+    "tool": "正在執行工具...",
+    "toolWithName": "正在執行工具：{{tool}}"
+  },
   "config": {
     "reasoning_effort": "推理深度",
     "default": "預設"

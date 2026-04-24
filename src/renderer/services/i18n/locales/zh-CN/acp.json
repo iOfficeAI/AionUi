@@ -15,6 +15,15 @@
     "error": "连接错误",
     "unknown": "未知状态"
   },
+  "activity": {
+    "recovering": "正在恢复运行状态...",
+    "waiting": "正在等待 {{agent}} 响应...",
+    "thinking": "{{agent}} 正在思考...",
+    "streaming": "{{agent}} 正在输出...",
+    "permission": "等待权限确认...",
+    "tool": "正在执行工具...",
+    "toolWithName": "正在执行工具：{{tool}}"
+  },
   "config": {
     "reasoning_effort": "推理深度",
     "default": "默认"

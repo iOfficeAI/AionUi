@@ -409,7 +409,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={aiProcessing} />
 
       <SendBox
         value={content}

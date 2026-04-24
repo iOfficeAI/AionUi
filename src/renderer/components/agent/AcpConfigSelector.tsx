@@ -6,12 +6,20 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
+
+function resolveInitialConfigOptions(options: unknown[] | undefined, backend?: string): AcpSessionConfigOption[] {
+  if (Array.isArray(options) && options.length > 0) {
+    return options as AcpSessionConfigOption[];
+  }
+  return getDefaultAcpConfigOptions(backend as AcpBackend | 'custom' | undefined);
+}
 
 /**
  * Dynamic config option selector for ACP agents.
@@ -43,8 +51,8 @@ const AcpConfigSelector: React.FC<{
   onOptionSelect,
 }) => {
   const { t } = useTranslation();
-  const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
-    () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
+  const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(() =>
+    resolveInitialConfigOptions(initialConfigOptions, backend)
   );
   const shouldSyncWithAcpConversation = Boolean(backend && conversationId && !onOptionSelect);
 
@@ -88,10 +96,8 @@ const AcpConfigSelector: React.FC<{
 
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
   useEffect(() => {
-    if (Array.isArray(initialConfigOptions)) {
-      setConfigOptions(initialConfigOptions as AcpSessionConfigOption[]);
-    }
-  }, [initialConfigOptions]);
+    setConfigOptions(resolveInitialConfigOptions(initialConfigOptions, backend));
+  }, [backend, initialConfigOptions]);
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {

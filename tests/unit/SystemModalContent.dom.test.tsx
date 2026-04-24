@@ -93,6 +93,21 @@ const mockUpdateSystemInfo = vi.fn();
 const mockGetStartOnBootStatus = vi.fn();
 const mockSetStartOnBoot = vi.fn();
 
+function installNotificationMock(
+  permission: NotificationPermission,
+  requestResult: NotificationPermission = permission
+) {
+  const requestPermission = vi.fn().mockResolvedValue(requestResult);
+  Object.defineProperty(globalThis, 'Notification', {
+    configurable: true,
+    value: {
+      permission,
+      requestPermission,
+    },
+  });
+  return requestPermission;
+}
+
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
     get: vi.fn().mockResolvedValue(undefined),
@@ -317,6 +332,27 @@ describe('SystemModalContent', () => {
     });
 
     expect(mockGetStartOnBootStatus).not.toHaveBeenCalled();
+  });
+
+  it('should let WebUI users enable browser notification permission', async () => {
+    mockIsElectronDesktop.mockReturnValue(false);
+    const requestPermission = installNotificationMock('default', 'granted');
+    const { Message } = await import('@arco-design/web-react');
+
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.browserNotification')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('settings.browserNotificationEnable'));
+    });
+
+    await waitFor(() => {
+      expect(requestPermission).toHaveBeenCalled();
+      expect(Message.success).toHaveBeenCalledWith('settings.browserNotificationAllowed');
+    });
   });
 
   it('should show the backend error and revert the switch when updating start on boot fails', async () => {

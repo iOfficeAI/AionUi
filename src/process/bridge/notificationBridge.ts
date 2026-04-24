@@ -43,6 +43,7 @@ const getNotificationIcon = (): string | undefined => {
 export async function showNotification({
   title,
   body,
+  conversationId,
 }: {
   title: string;
   body: string;
@@ -55,6 +56,7 @@ export async function showNotification({
   }
 
   const iconPath = getNotificationIcon();
+  ipcBridge.notification.received.emit({ title, body, conversationId });
 
   try {
     getPlatformServices().notification.send({ title, body, icon: iconPath });

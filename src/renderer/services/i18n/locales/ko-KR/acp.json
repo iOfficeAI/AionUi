@@ -15,6 +15,15 @@
     "error": "연결 오류",
     "unknown": "알 수 없는 상태"
   },
+  "activity": {
+    "recovering": "실행 상태 복원 중...",
+    "waiting": "{{agent}} 응답 대기 중...",
+    "thinking": "{{agent}}가 생각 중...",
+    "streaming": "{{agent}}가 응답 중...",
+    "permission": "권한 확인 대기 중...",
+    "tool": "도구 실행 중...",
+    "toolWithName": "도구 실행 중: {{tool}}"
+  },
   "config": {
     "reasoning_effort": "추론 깊이",
     "default": "기본값"

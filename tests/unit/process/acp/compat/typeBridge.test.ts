@@ -105,6 +105,32 @@ describe('typeBridge', () => {
       expect(result.resumeSessionId).toBe('session-123');
     });
 
+    it('should merge persisted and pending config options into initial desired config', () => {
+      const oldConfig: OldAcpAgentConfig = {
+        id: 'codex-agent',
+        backend: 'codex',
+        workingDir: '/workspace',
+        onStreamEvent: () => {},
+        extra: {
+          backend: 'codex',
+          configOptionValues: {
+            reasoning_effort: 'medium',
+            output_format: 'text',
+          },
+          pendingConfigOptions: {
+            reasoning_effort: 'high',
+          },
+        },
+      };
+
+      const result = toAgentConfig(oldConfig);
+
+      expect(result.initialDesired?.configOptions).toEqual({
+        reasoning_effort: 'high',
+        output_format: 'text',
+      });
+    });
+
     it('should convert teamMcpStdioConfig to teamMcpConfig', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'team-agent',

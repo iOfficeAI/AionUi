@@ -23,7 +23,7 @@ import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMent
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
+import { ArrowUp, CloseSmall, Quote, Square } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -1289,6 +1289,8 @@ const SendBox: React.FC<{
     [latestInputRef, setInputRef]
   );
   const speechLocale = i18n?.language || 'en-US';
+  const sendLabel = t('common.send', { defaultValue: 'Send' });
+  const stopLabel = t('common.stop', { defaultValue: 'Stop' });
 
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
 
@@ -1298,11 +1300,13 @@ const SendBox: React.FC<{
   // Reusable send button component
   const sendButton = (
     <Button
+      aria-label={sendLabel}
       shape='circle'
       type='primary'
       disabled={isButtonDisabled}
       className='send-button-custom'
       icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+      title={sendLabel}
       onClick={() => {
         sendMessageHandler();
       }}
@@ -1311,10 +1315,12 @@ const SendBox: React.FC<{
 
   const stopButton = (
     <Button
+      aria-label={stopLabel}
       shape='circle'
       type='secondary'
       className='bg-animate sendbox-stop-button'
-      icon={<div className='mx-auto size-12px bg-6'></div>}
+      icon={<Square theme='filled' size='12' fill='currentColor' />}
+      title={stopLabel}
       onClick={stopHandler}
     ></Button>
   );

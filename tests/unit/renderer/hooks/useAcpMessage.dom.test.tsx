@@ -147,4 +147,94 @@ describe('useAcpMessage', () => {
 
     expect(result.current.running).toBe(false);
   });
+
+  it('keeps ACP busy when session_active arrives during an active streamed turn', async () => {
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      responseHandler?.({
+        conversation_id: 'conv-1',
+        type: 'start',
+        msg_id: 'start-1',
+        data: null,
+      });
+    });
+    expect(result.current.running).toBe(true);
+
+    act(() => {
+      responseHandler?.({
+        conversation_id: 'conv-1',
+        type: 'content',
+        msg_id: 'content-1',
+        data: 'partial answer',
+      });
+    });
+    expect(result.current.running).toBe(true);
+    expect(result.current.hasStreamingContent).toBe(true);
+
+    act(() => {
+      responseHandler?.({
+        conversation_id: 'conv-1',
+        type: 'agent_status',
+        msg_id: 'status-1',
+        data: { status: 'session_active', backend: 'codex' },
+      });
+    });
+
+    expect(result.current.running).toBe(true);
+    expect(result.current.hasStreamingContent).toBe(true);
+  });
+
+  it('reports active ACP tool activity while a tool call is running', async () => {
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      responseHandler?.({
+        conversation_id: 'conv-1',
+        type: 'acp_tool_call',
+        msg_id: 'tool-1',
+        data: {
+          update: {
+            title: 'Run npm test',
+            status: 'in_progress',
+          },
+        },
+      });
+    });
+
+    expect(result.current.running).toBe(true);
+    expect(result.current.activity).toEqual({
+      phase: 'tool',
+      title: 'Run npm test',
+      status: 'in_progress',
+    });
+  });
+
+  it('does not turn an idle session_active status into a running turn', async () => {
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    act(() => {
+      responseHandler?.({
+        conversation_id: 'conv-1',
+        type: 'agent_status',
+        msg_id: 'status-1',
+        data: { status: 'session_active', backend: 'codex' },
+      });
+    });
+
+    expect(result.current.running).toBe(false);
+    expect(result.current.aiProcessing).toBe(false);
+  });
 });

@@ -1,9 +1,19 @@
 // src/process/acp/session/InputPreprocessor.ts
 import type { PromptContent } from '@process/acp/types';
 import type { ContentBlock } from '@agentclientprotocol/sdk';
+import path from 'node:path';
 
 // Match @path or @"path with spaces" (quoted form)
 const AT_FILE_REGEX = /@(?:"([^"]+)"|(\S+\.\w+))/g;
+const IMAGE_MIME_BY_EXTENSION: Record<string, string> = {
+  '.bmp': 'image/bmp',
+  '.gif': 'image/gif',
+  '.jpeg': 'image/jpeg',
+  '.jpg': 'image/jpeg',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+};
 
 export class InputPreprocessor {
   constructor(private readonly readFile: (path: string) => string) {}
@@ -18,7 +28,7 @@ export class InputPreprocessor {
     if (files) {
       for (const filePath of files) {
         if (readPaths.has(filePath)) continue;
-        const item = this.tryReadFile(filePath);
+        const item = this.createResourceLinkIfImage(filePath) ?? this.tryReadFile(filePath);
         if (item) {
           items.push(item);
           readPaths.add(filePath);
@@ -38,13 +48,49 @@ export class InputPreprocessor {
         continue;
       }
 
-      const item = this.tryReadFile(filePath);
+      const item = this.createResourceLinkIfImage(filePath) ?? this.tryReadFile(filePath);
       if (item) {
         items.push(item);
         readPaths.add(filePath);
       }
     }
     return items;
+  }
+
+  private createResourceLinkIfImage(filePath: string): ContentBlock | null {
+    const mimeType = this.getImageMimeType(filePath);
+    if (!mimeType) return null;
+
+    return {
+      type: 'resource_link',
+      uri: this.toFileUri(filePath),
+      name: this.getBaseName(filePath),
+      mimeType,
+    };
+  }
+
+  private getImageMimeType(filePath: string): string | null {
+    const ext = path.extname(filePath).toLowerCase();
+    return IMAGE_MIME_BY_EXTENSION[ext] ?? null;
+  }
+
+  private getBaseName(filePath: string): string {
+    return filePath.split(/[\\/]/).pop() || filePath;
+  }
+
+  private toFileUri(filePath: string): string {
+    if (/^[A-Za-z][A-Za-z0-9+.-]*:\/\//.test(filePath)) {
+      return filePath;
+    }
+
+    const normalized = filePath.replace(/\\/g, '/');
+    if (/^[A-Za-z]:\//.test(normalized)) {
+      return `file:///${normalized}`;
+    }
+    if (normalized.startsWith('/')) {
+      return `file://${normalized}`;
+    }
+    return `file://${path.resolve(normalized).replace(/\\/g, '/')}`;
   }
 
   private tryReadFile(filePath: string): ContentBlock | null {

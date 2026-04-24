@@ -33,11 +33,11 @@ import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
-import { useAcpMessage, type UseAcpMessageReturn } from './useAcpMessage';
+import { useAcpMessage, type AcpActivity, type UseAcpMessageReturn } from './useAcpMessage';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -90,6 +90,43 @@ const useSendBoxDraft = (conversation_id: string) => {
   };
 };
 
+const formatAcpActivityText = (
+  activity: AcpActivity | null,
+  agentLabel: string,
+  t: ReturnType<typeof useTranslation>['t']
+): string | undefined => {
+  if (!activity) return undefined;
+
+  switch (activity.phase) {
+    case 'recovering':
+      return t('acp.activity.recovering', { defaultValue: 'Restoring active run...' });
+    case 'waiting':
+      return t('acp.activity.waiting', {
+        agent: agentLabel,
+        defaultValue: `Waiting for ${agentLabel}...`,
+      });
+    case 'thinking':
+      return t('acp.activity.thinking', {
+        agent: agentLabel,
+        defaultValue: `${agentLabel} is thinking...`,
+      });
+    case 'streaming':
+      return t('acp.activity.streaming', {
+        agent: agentLabel,
+        defaultValue: `${agentLabel} is responding...`,
+      });
+    case 'permission':
+      return t('acp.activity.permission', { defaultValue: 'Waiting for permission confirmation...' });
+    case 'tool':
+      return activity.title
+        ? t('acp.activity.toolWithName', {
+            tool: activity.title,
+            defaultValue: `Running tool: ${activity.title}`,
+          })
+        : t('acp.activity.tool', { defaultValue: 'Running tool...' });
+  }
+};
+
 type AcpSendBoxBaseProps = {
   conversation_id: string;
   backend: AcpBackend;
@@ -126,8 +163,8 @@ const AcpSendBoxInner: React.FC<AcpSendBoxBaseProps & { messageState: UseAcpMess
     tokenUsage,
     contextLimit,
     hasThinkingMessage,
-    hasStreamingContent,
     thought,
+    activity,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -153,7 +190,11 @@ const AcpSendBoxInner: React.FC<AcpSendBoxBaseProps & { messageState: UseAcpMess
     setUploadFile,
   });
   const isBusy = running || aiProcessing;
-  const showProcessingIndicator = isBusy && !hasStreamingContent;
+  const showProcessingIndicator = isBusy;
+  const activityText = useMemo(
+    () => formatAcpActivityText(activity, agentName || backend, t),
+    [activity, agentName, backend, t]
+  );
 
   useEffect(() => {
     const handler = (text: string) => {
@@ -354,7 +395,7 @@ Please check your local CLI tool authentication status`,
       <ThoughtDisplay
         running={showProcessingIndicator}
         thought={hasThinkingMessage ? undefined : thought}
-        onStop={handleStop}
+        statusText={activityText}
       />
 
       <SendBox

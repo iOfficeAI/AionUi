@@ -15,6 +15,15 @@
     "error": "接続エラー",
     "unknown": "不明な状態"
   },
+  "activity": {
+    "recovering": "実行状態を復元中...",
+    "waiting": "{{agent}} の応答を待機中...",
+    "thinking": "{{agent}} が思考中...",
+    "streaming": "{{agent}} が応答中...",
+    "permission": "権限確認を待機中...",
+    "tool": "ツールを実行中...",
+    "toolWithName": "ツールを実行中: {{tool}}"
+  },
   "config": {
     "reasoning_effort": "推論の深さ",
     "default": "デフォルト"

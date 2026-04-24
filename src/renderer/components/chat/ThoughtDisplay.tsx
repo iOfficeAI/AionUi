@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Tag, Spin } from '@arco-design/web-react';
+import { Spin, Tag } from '@arco-design/web-react';
 import React, { useMemo, useEffect, useState, useRef } from 'react';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { useTranslation } from 'react-i18next';
@@ -18,19 +18,14 @@ interface ThoughtDisplayProps {
   thought?: ThoughtData;
   style?: 'default' | 'compact';
   running?: boolean;
-  onStop?: () => void;
+  statusText?: string;
 }
 
 // Background gradient constants
 const GRADIENT_DARK = 'linear-gradient(135deg, #464767 0%, #323232 100%)';
 const GRADIENT_LIGHT = 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)';
 
-const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
-  thought,
-  style = 'default',
-  running = false,
-  onStop: _onStop,
-}) => {
+const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'default', running = false, statusText }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
 
@@ -99,8 +94,8 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
         style={containerStyle}
       >
         <Spin size={14} />
-        <span className='text-t-secondary'>
-          {t('conversation.chat.processing')}
+        <span className='flex-1 min-w-0 text-t-secondary'>
+          {statusText || t('conversation.chat.processing')}
           <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>
         </span>
       </div>

@@ -84,6 +84,54 @@ async function staleWhileRevalidate(request) {
   return (await networkFetch) || Response.error();
 }
 
+function normalizeNotificationTargetUrl(rawUrl) {
+  if (!rawUrl) {
+    return null;
+  }
+
+  try {
+    const url = new URL(rawUrl, self.location.href);
+    if (url.origin !== self.location.origin) {
+      return null;
+    }
+    return url.toString();
+  } catch {
+    return null;
+  }
+}
+
+async function openNotificationTarget(targetUrl) {
+  const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+
+  for (const client of clients) {
+    if (typeof client.navigate === 'function') {
+      const navigated = await client.navigate(targetUrl);
+      if (navigated && typeof navigated.focus === 'function') {
+        return navigated.focus();
+      }
+    }
+
+    if (typeof client.focus === 'function') {
+      return client.focus();
+    }
+  }
+
+  if (typeof self.clients.openWindow === 'function') {
+    return self.clients.openWindow(targetUrl);
+  }
+  return undefined;
+}
+
+function handleNotificationClick(event) {
+  event.notification.close();
+  const targetUrl = normalizeNotificationTargetUrl(event.notification.data && event.notification.data.url);
+  if (!targetUrl) {
+    return;
+  }
+
+  event.waitUntil(openNotificationTarget(targetUrl));
+}
+
 self.addEventListener('fetch', (event) => {
   if (!shouldHandleRequest(event.request)) {
     return;
@@ -101,3 +149,5 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(staleWhileRevalidate(event.request));
   }
 });
+
+self.addEventListener('notificationclick', handleNotificationClick);

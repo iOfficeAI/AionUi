@@ -618,7 +618,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={aiProcessing} />
 
       <SendBox
         value={content}

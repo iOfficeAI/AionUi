@@ -21,6 +21,7 @@ const acpAgentGetModelInfo = vi.fn(() => null);
 const acpAgentSetModelByConfigOption = vi.fn(async () => null);
 const acpAgentGetConfigOptions = vi.fn(() => []);
 const acpAgentSetConfigOption = vi.fn(async () => []);
+let capturedAcpAgentV2Config: Record<string, unknown> | null = null;
 
 vi.mock('@process/agent/acp', () => ({
   AcpAgent: class MockAcpAgent {
@@ -36,6 +37,10 @@ vi.mock('@process/agent/acp', () => ({
 
 vi.mock('@process/acp/compat', () => ({
   AcpAgentV2: class MockAcpAgentV2 {
+    constructor(config: Record<string, unknown>) {
+      capturedAcpAgentV2Config = config;
+    }
+
     start = acpAgentStart;
     setMode = acpAgentSetMode;
     getModelInfo = acpAgentGetModelInfo;
@@ -244,6 +249,7 @@ describe('AcpAgentManager turn completion fallback', () => {
     acpAgentGetConfigOptions.mockReturnValue([]);
     acpAgentSetConfigOption.mockReset();
     acpAgentSetConfigOption.mockResolvedValue([]);
+    capturedAcpAgentV2Config = null;
     vi.resetModules();
   });
 
@@ -275,6 +281,31 @@ describe('AcpAgentManager turn completion fallback', () => {
 
     expect(acpAgentStart).toHaveBeenCalledTimes(1);
     expect(acpAgentSetMode).not.toHaveBeenCalled();
+  });
+
+  it('forwards persisted and pending config options to ACP V2 startup', async () => {
+    const manager = await createManager({
+      backend: 'codex',
+      configOptionValues: {
+        reasoning_effort: 'medium',
+      },
+      pendingConfigOptions: {
+        output_format: 'text',
+      },
+    });
+
+    await manager.initAgent();
+
+    expect(capturedAcpAgentV2Config?.extra).toEqual(
+      expect.objectContaining({
+        configOptionValues: {
+          reasoning_effort: 'medium',
+        },
+        pendingConfigOptions: {
+          output_format: 'text',
+        },
+      })
+    );
   });
 
   it('emits acp_model_info after warmup completes so selectors can refresh without remounting', async () => {
@@ -346,6 +377,31 @@ describe('AcpAgentManager turn completion fallback', () => {
     expect(manager.persistCurrentTurnTokenUsage).not.toHaveBeenCalled();
     expect(manager.status).toBe('running');
     expect(manager.missingFinishFallbackTimer).not.toBeNull();
+  });
+
+  it('keeps ACP runtime marked running while tool calls are still in progress', async () => {
+    const manager = await createManager({ backend: 'codex' });
+    manager.status = 'running';
+
+    manager.handleStreamEvent(
+      {
+        type: 'acp_tool_call',
+        conversation_id: 'session-1',
+        msg_id: 'tool-1',
+        data: {
+          update: {
+            sessionUpdate: 'tool_call',
+            toolCallId: 'tool-1',
+            title: 'Run npm test',
+            status: 'in_progress',
+            kind: 'execute',
+          },
+        },
+      },
+      'codex'
+    );
+
+    expect(manager.status).toBe('running');
   });
 
   it('does not synthesize a second finish when the backend already emitted one', async () => {

@@ -434,11 +434,7 @@ const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseG
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay
-        thought={hasThinkingMessage ? undefined : thought}
-        running={running && !hasThinkingMessage}
-        onStop={handleStop}
-      />
+      <ThoughtDisplay thought={hasThinkingMessage ? undefined : thought} running={running && !hasThinkingMessage} />
 
       <SendBox
         value={content}

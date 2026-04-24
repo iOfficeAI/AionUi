@@ -15,6 +15,15 @@
     "error": "Connection error",
     "unknown": "Unknown status"
   },
+  "activity": {
+    "recovering": "Restoring active run...",
+    "waiting": "Waiting for {{agent}}...",
+    "thinking": "{{agent}} is thinking...",
+    "streaming": "{{agent}} is responding...",
+    "permission": "Waiting for permission confirmation...",
+    "tool": "Running tool...",
+    "toolWithName": "Running tool: {{tool}}"
+  },
   "config": {
     "reasoning_effort": "Reasoning Effort",
     "default": "Default"

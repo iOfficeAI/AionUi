@@ -77,6 +77,67 @@ export function buildCrashMessage(info?: DisconnectInfo): string | null {
   return `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
 }
 
+export const ACP_TEXT_FILE_READ_MAX_BYTES = 8 * 1024;
+
+const ACP_TEXT_FILE_READ_TRUNCATION_NOTICE =
+  '\n\n[Content truncated by AionUi ACP client. Request a smaller line/limit range to continue.]\n';
+
+function splitLineSegments(content: string): string[] {
+  if (content.length === 0) return [];
+  return content.match(/[^\r\n]*(?:\r\n|\n|\r)|[^\r\n]+$/g) ?? [];
+}
+
+function byteLength(content: string): number {
+  return Buffer.byteLength(content, 'utf-8');
+}
+
+function truncateUtf8(content: string, maxBytes: number): string {
+  if (maxBytes <= 0) return '';
+  const buffer = Buffer.from(content, 'utf-8');
+  if (buffer.byteLength <= maxBytes) return content;
+  return buffer
+    .subarray(0, maxBytes)
+    .toString('utf-8')
+    .replace(/\ufffd$/, '');
+}
+
+function capReadTextFileContent(content: string): string {
+  if (byteLength(content) <= ACP_TEXT_FILE_READ_MAX_BYTES) {
+    return content;
+  }
+
+  const noticeBytes = byteLength(ACP_TEXT_FILE_READ_TRUNCATION_NOTICE);
+  const contentBudget = Math.max(0, ACP_TEXT_FILE_READ_MAX_BYTES - noticeBytes);
+  let capped = '';
+
+  for (const segment of splitLineSegments(content)) {
+    const next = capped + segment;
+    if (byteLength(next) > contentBudget) {
+      break;
+    }
+    capped = next;
+  }
+
+  if (!capped && contentBudget > 0) {
+    capped = truncateUtf8(content, contentBudget);
+  }
+
+  return capped + ACP_TEXT_FILE_READ_TRUNCATION_NOTICE;
+}
+
+export function sliceReadTextFileContent(content: string, line?: number | null, limit?: number | null): string {
+  const lines = splitLineSegments(content);
+  const startLine = line == null ? 1 : Math.max(1, Math.floor(line));
+  const startIndex = startLine - 1;
+
+  if (limit == null) {
+    return capReadTextFileContent(lines.slice(startIndex).join(''));
+  }
+
+  const lineCount = Math.max(0, Math.floor(limit));
+  return capReadTextFileContent(lines.slice(startIndex, startIndex + lineCount).join(''));
+}
+
 export class AcpSession {
   private _status: SessionStatus = 'idle';
 
@@ -254,6 +315,7 @@ export class AcpSession {
       client
         .setConfigOption(sessionId, id, value)
         .then(() => this.configTracker.setCurrentConfigOption(id, value))
+        .then(() => this.callbacks.onConfigUpdate(this.configTracker.configSnapshot()))
         .catch((err) => console.warn('[AcpSession] setConfigOption failed:', err));
     }
   }
@@ -293,7 +355,7 @@ export class AcpSession {
         this.assertPathAllowed(req.path);
         try {
           const content = fs.readFileSync(req.path, 'utf-8');
-          return { content };
+          return { content: sliceReadTextFileContent(content, req.line, req.limit) };
         } catch {
           throw new Error(`File not found: ${req.path}`);
         }

@@ -380,7 +380,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={running} />
 
       <SendBox
         value={content}

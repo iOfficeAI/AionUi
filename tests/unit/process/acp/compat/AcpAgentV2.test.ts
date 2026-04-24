@@ -688,6 +688,78 @@ describe('AcpAgentV2 - Config/Model/Mode Methods', () => {
 
       expect(agent.getModelInfo()?.currentModelId).toBe('claude-4');
     });
+
+    it('should prefer stable model config options over Codex reasoning variant models', async () => {
+      const agent = await createStartedAgent({ backend: 'codex' });
+
+      capturedCallbacks.onConfigUpdate({
+        configOptions: [
+          {
+            id: 'model',
+            name: 'Model',
+            category: 'model',
+            description: 'Choose which model Codex should use',
+            type: 'select',
+            currentValue: 'gpt-5.5',
+            options: [
+              { id: 'gpt-5.5', name: 'GPT-5.5' },
+              { id: 'gpt-5.4', name: 'gpt-5.4' },
+            ],
+          },
+          {
+            id: 'reasoning_effort',
+            name: 'Reasoning Effort',
+            category: 'thought_level',
+            description: 'Choose how much reasoning effort the model should use',
+            type: 'select',
+            currentValue: 'xhigh',
+            options: [
+              { id: 'low', name: 'Low' },
+              { id: 'xhigh', name: 'Xhigh' },
+            ],
+          },
+        ],
+        availableCommands: [],
+        cwd: '/workspace/test',
+      });
+      capturedCallbacks.onModelUpdate({
+        currentModelId: 'gpt-5.5/xhigh',
+        availableModels: [
+          { modelId: 'gpt-5.5/low', name: 'GPT-5.5 (low)' },
+          { modelId: 'gpt-5.5/xhigh', name: 'GPT-5.5 (xhigh)' },
+          { modelId: 'gpt-5.4/low', name: 'gpt-5.4 (low)' },
+        ],
+      });
+
+      expect(agent.getModelInfo()).toEqual({
+        currentModelId: 'gpt-5.5',
+        currentModelLabel: 'GPT-5.5',
+        availableModels: [
+          { id: 'gpt-5.5', label: 'GPT-5.5' },
+          { id: 'gpt-5.4', label: 'gpt-5.4' },
+        ],
+        canSwitch: true,
+        source: 'configOption',
+        sourceDetail: 'acp-config-option',
+        configOptionId: 'model',
+      });
+      expect(agent.getConfigOptions()).toEqual([
+        {
+          id: 'reasoning_effort',
+          name: 'Reasoning Effort',
+          label: 'Reasoning Effort',
+          type: 'select',
+          category: 'thought_level',
+          description: 'Choose how much reasoning effort the model should use',
+          currentValue: 'xhigh',
+          selectedValue: 'xhigh',
+          options: [
+            { value: 'low', name: 'Low', label: 'Low' },
+            { value: 'xhigh', name: 'Xhigh', label: 'Xhigh' },
+          ],
+        },
+      ]);
+    });
   });
 
   describe('getConfigOptions()', () => {

@@ -42,7 +42,7 @@ vi.mock('@/common/types/codex/codexModels', () => ({
   DEFAULT_CODEX_MODELS: defaultCodexModels,
 }));
 
-const { buildPresetAssistantParams, buildCliAgentParams } =
+const { buildPresetAssistantParams, buildCliAgentParams, applyWorkspaceConversationConfigDefaults } =
   await import('../../src/renderer/pages/conversation/utils/createConversationParams');
 
 describe('createConversationParams', () => {
@@ -354,6 +354,101 @@ describe('createConversationParams', () => {
         selectedValue: 'high',
       }),
     ]);
+  });
+
+  it('inherits ACP config options from the active workspace conversation over global defaults', () => {
+    const params = {
+      type: 'acp',
+      model: {},
+      name: 'New Chat',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        backend: 'codex',
+        configOptionValues: {
+          reasoning_effort: 'xhigh',
+        },
+        cachedConfigOptions: [
+          {
+            id: 'reasoning_effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'xhigh',
+            selectedValue: 'xhigh',
+          },
+        ],
+      },
+    } as any;
+    const sourceConversation = {
+      id: 'conv-active',
+      type: 'acp',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        backend: 'codex',
+        configOptionValues: {
+          reasoning_effort: 'high',
+        },
+        cachedConfigOptions: [
+          {
+            id: 'reasoning_effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'medium',
+            selectedValue: 'medium',
+          },
+        ],
+        pendingConfigOptions: {
+          reasoning_effort: 'xhigh',
+        },
+      },
+    } as any;
+
+    const next = applyWorkspaceConversationConfigDefaults(params, sourceConversation, 'codex');
+
+    expect(next.extra.configOptionValues).toEqual({
+      reasoning_effort: 'medium',
+    });
+    expect(next.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'reasoning_effort',
+        currentValue: 'medium',
+        selectedValue: 'medium',
+      }),
+    ]);
+    expect(next.extra.pendingConfigOptions).toBeUndefined();
+  });
+
+  it('does not inherit workspace config options from a different ACP backend', () => {
+    const params = {
+      type: 'acp',
+      model: {},
+      name: 'New Chat',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        backend: 'codex',
+        configOptionValues: {
+          reasoning_effort: 'xhigh',
+        },
+      },
+    } as any;
+    const sourceConversation = {
+      id: 'conv-active',
+      type: 'acp',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        backend: 'qwen',
+        configOptionValues: {
+          reasoning_effort: 'medium',
+        },
+      },
+    } as any;
+
+    const next = applyWorkspaceConversationConfigDefaults(params, sourceConversation, 'codex');
+
+    expect(next).toBe(params);
   });
 
   it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
