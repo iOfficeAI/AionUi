@@ -16,10 +16,14 @@ single-provider CRUD instead of the batch `saveModelConfig` shim;
 accepts optional `id` + per-model fields on create and returns plaintext
 `api_key`.
 
-**Team size:** 1 coordinator + 2 teammates (backend-dev, frontend-dev).
-No e2e-tester — frontend-dev self-tests against local backend; Playwright
-re-run is a smoke, not a new scenario. No testers — both tasks are
-small and devs self-gate.
+**Team size:** 1 coordinator + 3 teammates (backend-dev, frontend-dev,
+frontend-tester). Backend changes are small (3 schema tweaks + service
+glue) — backend-dev self-gates via `cargo test`. Frontend touches ~14
+consumer sites + IProvider-wide type flip + process-side HTTP rewiring,
+which is exactly the shape of the 2026-04-23 "Migration work needs
+real-user-data dry-run" lesson — dev self-test misses cross-site
+regressions, so a dedicated frontend-tester is mandatory. No backend-
+tester.
 
 ---
 
@@ -29,6 +33,7 @@ small and devs self-gate.
 | --- | --- | --- | --- |
 | coordinator | `/Users/zhoukai/Documents/github/AionUi` (primary) | `feat/backend-migration-coordinator` | (existing) |
 | frontend-dev | `/Users/zhoukai/Documents/worktrees/aionui-model-sync-fe` | `feat/model-sync-fe` | `origin/feat/backend-migration-coordinator` |
+| frontend-tester | `/Users/zhoukai/Documents/worktrees/aionui-model-sync-fe` (same worktree, after frontend-dev push) | `feat/model-sync-fe` | (pulls after T2) |
 | backend-dev | `/Users/zhoukai/Documents/worktrees/aionui-backend-model-sync-be` | `feat/model-sync-be` | `origin/feat/builtin-skills` |
 
 Worktrees already created.
@@ -47,12 +52,16 @@ T1 backend-dev (soften provider API)
 T2 frontend-dev (rewrite to CRUD, drop model.config)
   │
   ▼
+T2.5 frontend-tester (vitest baseline + new coverage + e2e smoke + regression)
+  │
+  ▼
 T3 coordinator closure (smoke + handoff)
 ```
 
-Critical path: T0 → T1 → T2 → T3. T2 strictly depends on T1 — posting
-IProvider with new optional fields before backend accepts them returns
-400 on every save.
+Critical path: T0 → T1 → T2 → T2.5 → T3. T2 strictly depends on T1 —
+posting IProvider with new optional fields before backend accepts them
+returns 400 on every save. T2.5 strictly depends on T2 — nothing to test
+until the rewrite lands. T3 waits for T2.5 green.
 
 ---
 
@@ -116,6 +125,51 @@ Gates (per spec §Definition of Done):
 Commit message: `refactor(model-config): migrate IProvider to /api/providers CRUD; drop local model.config store`
 
 Push + SendMessage team-lead with SHA + smoke transcript.
+
+Progress reporting every ~10 min.
+
+---
+
+## Task 2.5 — Frontend testing
+
+Owner: frontend-tester. Worktree: `aionui-model-sync-fe` (pulls T2's commit). Depends on T2.
+
+**Scope:**
+
+1. **Vitest baseline diff.** Pre-T2 baseline (on `origin/feat/backend-migration-coordinator`): run `bun run test --run`, capture pass/fail/skip counts. Post-T2: rerun, diff. Any NEW failure vs baseline = regression, route back to frontend-dev with file:line.
+
+2. **New Vitest coverage** for the rewrite (write these, they did not exist before):
+   - `tests/unit/ipcBridge.providers.test.ts` — unit test the 6 new `mode.*` bridge entries (create, update, delete, list, fetchModelList, detectProtocol) hit the right URL + method + body shape. Mock `fetch`.
+   - `tests/unit/ModelModalContent.crud.test.tsx` — add, remove, update, toggle-model-enable, toggle-protocol each call the expected single CRUD endpoint with the expected payload. Mock `ipcBridge.mode.*`. Important scenarios:
+     * Adding a new platform sends `createProvider` with a UUID v4 id.
+     * Toggling `model_enabled` sends `updateProvider` with ONLY `model_enabled` in the body (partial update), not the whole IProvider.
+     * Deleting sends `deleteProvider` by id only.
+     * Health check result persists via `updateProvider` with only `model_health`.
+   - `tests/unit/createConversationParams.providers.test.ts` — verifies the new provider lookup path (not `configService.get('model.config')`).
+   - `tests/unit/configMigration.noModelConfig.test.ts` — regression: `ALL_LEGACY_KEYS` does NOT contain `'model.config'`, and migrating a legacy store containing a `model.config` entry does NOT push it to the backend (important — this is the observed bug).
+
+3. **Playwright e2e smoke.** Run `tests/e2e/features/**` suites that touch model selection or settings. Expected: baseline green. If a provider-related scenario exists, rerun it against the real backend built from `feat/model-sync-be` (launch backend manually, or per existing e2e harness).
+
+4. **Integration regression probe** (MANDATORY — this is the whole point of the migration, lesson from 2026-04-23):
+   - Launch backend (`cd /Users/zhoukai/Documents/worktrees/aionui-backend-model-sync-be && cargo run --release -- --local --port 25910 --data-dir "$(mktemp -d)"`)
+   - Launch the Electron app (or use a Vitest-based HTTP test with `fetch`) pointing at `127.0.0.1:25910`
+   - Add a provider via the UI (or POST)
+   - `curl http://127.0.0.1:25910/api/settings/client | jq 'keys'` → must NOT contain `"model.config"`
+   - `curl http://127.0.0.1:25910/api/providers | jq '.data[0].id'` → must equal what the frontend sent
+   - Restart app → provider list still populated (persistence check)
+
+**Gates:**
+- Baseline Vitest diff: no new failures.
+- New Vitest tests: all green.
+- Playwright: baseline or better.
+- Integration regression probe: all 3 checks pass.
+
+**Deliverables:**
+- Commit new Vitest files under `tests/unit/`, message: `test(model-config): coverage for /api/providers CRUD migration`
+- Append a "T2.5 test report" section to `docs/backend-migration/e2e-reports/2026-04-24-model-config-migration.md` (new file): baseline diff, new test results, probe transcript.
+- Push + SendMessage team-lead with SHA and summary.
+
+**If you find regressions:** route back to frontend-dev with specific file:line and expected vs actual. Do not claim T2.5 complete until everything is green.
 
 Progress reporting every ~10 min.
 
