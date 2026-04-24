@@ -1,5 +1,19 @@
 # Assistant Module — Backend Migration Verification Log
 
+> **2026-04-24 update** — wire contract renamed to snake_case across the
+> assistant surface by the assistant-snake-case-realignment pilot.
+> Original endpoint paths unchanged. Request/response **field names**
+> changed: `assistantId` → `assistant_id`, `nameI18n` → `name_i18n`,
+> `sortOrder` → `sort_order`, `presetAgentType` → `preset_agent_type`,
+> etc. The DELETE endpoints' URL-path segment stayed `{id}` agnostic but
+> the TypeScript client signature field name was also flipped for
+> consistency. See
+> [`handoffs/coordinator-assistant-snake-case-2026-04-24.md`](../handoffs/coordinator-assistant-snake-case-2026-04-24.md)
+> for full scope + 6 followups.
+>
+> Sections below describe the 2026-04-23 verification run and still
+> reflect the endpoint shape accurately — only field-name casing changed.
+
 Branch: `feat/backend-migration-assistant-verify`
 Date: 2026-04-23
 Agent: frontend-dev (verification track)

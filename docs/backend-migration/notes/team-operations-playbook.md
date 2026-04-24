@@ -3,6 +3,62 @@
 Practical lessons for running team-mode migrations in this codebase.
 Append new lessons as they happen; newest on top.
 
+## 2026-04-24 — Worktree base + PR target convention (MANDATORY)
+
+All team-mode pilots MUST follow this worktree + PR convention from now on:
+
+### aionui-backend
+
+- **Worktree base**: `origin/main`
+- **Coordinator branch**: created off `origin/main`, local-only during the pilot
+- **Feature / fix branches**: created off the coordinator branch
+- **Pilot close**: coordinator raises a **PR from coord branch → `main`**.
+  Do NOT merge coord branch directly into `main` via `git merge` — always
+  go through GitHub PR for review + CI.
+- Worktree path convention: `/Users/zhoukai/Documents/worktrees/aionui-backend-<topic>/`
+
+### AionUi
+
+- **Worktree base**: `origin/feat/backend-migration`
+- **Coordinator branch**: created off `origin/feat/backend-migration`,
+  local-only during the pilot
+- **Feature / fix branches**: created off the coordinator branch
+- **Pilot close**: coordinator raises a **PR from coord branch →
+  `feat/backend-migration`**. Do NOT merge directly.
+- Worktree path convention: `/Users/zhoukai/Documents/worktrees/aionui-<topic>/`
+
+### Rationale
+
+- `main` / `feat/backend-migration` are the integration points that other
+  consumers (dev sessions, downstream pilots) expect to be green.
+- PR gates give reviewable diff + CI before merge. Direct merges during a
+  team pilot can bypass review and break downstream consumers.
+- Starting from `origin/<base>` instead of whatever a previous pilot's
+  coord branch happened to be avoids carrying stale state or cross-pilot
+  conflicts.
+
+### What this replaces
+
+Previous pilots (snake-case realignment, builtin-skill-migration,
+assistant-user-data) all branched off another pilot's in-flight coord
+branch and merged directly back. That worked because pilots were
+serially owned, but as concurrent pilots became common, cross-pilot
+state collision became a real problem (observed during 2026-04-24
+assistant-snake-case-realignment where `model-sync-be` pilot was
+running in parallel). Basing all new pilots on `origin/<base>` +
+PR-closing is the coordination rule.
+
+### Coordinator closure checklist (updated)
+
+After T3 green:
+1. Push coord branch to origin.
+2. `gh pr create --base main` (backend) or `gh pr create --base feat/backend-migration` (AionUi).
+3. PR body should reference the handoff doc.
+4. Do NOT click "Squash and merge" yourself unless user directs — wait
+   for user or reviewer.
+5. Merge-back of coord branch to local `main` / `feat/backend-migration`
+   happens AFTER PR merge on GitHub, via `git pull`.
+
 ## 2026-04-23 — Zombie teammate detection and replacement
 
 **Symptom:** Teammate sends idle notification then goes silent. Messages sent
