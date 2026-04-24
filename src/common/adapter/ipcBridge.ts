@@ -586,7 +586,7 @@ export const acpConversation = {
     { conversationId: string; modelId: string }
   >(
     (p) => `/api/conversations/${p.conversationId}/acp/model`,
-    (p) => ({ modelId: p.modelId }),
+    (p) => ({ model_id: p.modelId }),
   ),
   getConfigOptions: httpGet<
     { configOptions: import('../types/acpTypes').AcpSessionConfigOption[] },
