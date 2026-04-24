@@ -172,3 +172,13 @@ If the endpoints return populated data, the binary is genuinely self-contained.
 If not, packaging bug exists even if dev builds "work."
 
 Run this as part of T4 coordinator closure for any pilot touching asset delivery.
+
+## 2026-04-24 — Migration checklist must include "delete stale frontend source"
+
+**Symptom:** User spotted that `src/process/resources/assistant/` was still 1 MB in the tree, even though its contents had been moved to backend `assets/builtin-assistants/` during the assistant-user-data pilot. The frontend-dev of that pilot implemented the delete of TypeScript files (`assistantPresets.ts`) but missed the resource directory because the plan didn't enumerate it.
+
+**Root cause:** The assistant pilot's T3a step list focused on `.ts` files and didn't explicitly include "delete the resource directory." Zero code references (grep clean), but the directory kept its last-modified date and stayed 1 MB of dead weight.
+
+**Fix going forward:** Every migration-class plan must include an explicit "delete the migrated resource directory" step in the frontend refactor task, AND a DoD verification: `find src/process/resources -type d` post-migration returns only currently-active directories. The builtin-skill pilot did this correctly (step 2.2: `git rm -r src/process/resources/skills`) because the lesson had been learned once.
+
+**Action:** Cleaned up at commit `e409eb6a7` on `feat/backend-migration-coordinator` (93 files / 12,750 lines removed). Next pilot: add this as an explicit T2 checklist item.
