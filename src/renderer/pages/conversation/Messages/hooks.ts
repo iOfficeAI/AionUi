@@ -37,7 +37,13 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
-    if (msg.msg_id) msgIdIndex.set(msg.msg_id, i);
+    if (msg.msg_id) {
+      if (msg.type === 'thinking') {
+        msgIdIndex.set(`thinking:${msg.msg_id}`, i);
+      } else {
+        msgIdIndex.set(msg.msg_id, i);
+      }
+    }
     if (msg.type === 'tool_call' && msg.content?.call_id) {
       call_idIndex.set(msg.content.call_id, i);
     }
@@ -193,14 +199,15 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
   }
 
   // thinking message: accumulate content chunks by msg_id (same logic as composeMessage)
+  // Uses "thinking:${msg_id}" key to avoid collision with text messages sharing the same msg_id
   if (message.type === 'thinking' && message.msg_id) {
-    const existingIdx = index.msgIdIndex.get(message.msg_id);
+    const thinkingKey = `thinking:${message.msg_id}`;
+    const existingIdx = index.msgIdIndex.get(thinkingKey);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'thinking') {
         const newList = list.slice();
         if (message.content.status === 'done') {
-          // Keep accumulated content, update status and duration
           newList[existingIdx] = {
             ...existingMsg,
             content: {
@@ -210,7 +217,6 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
             },
           };
         } else {
-          // Append content chunk
           newList[existingIdx] = {
             ...existingMsg,
             content: {
@@ -225,7 +231,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     }
     // First thinking message — add and index
     const newIdx = list.length;
-    index.msgIdIndex.set(message.msg_id, newIdx);
+    index.msgIdIndex.set(thinkingKey, newIdx);
     return list.concat(message);
   }
 

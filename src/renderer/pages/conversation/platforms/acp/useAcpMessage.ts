@@ -173,6 +173,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             }
           }
           break;
+        case 'text':
         case 'content': {
           // First content token — AI has started responding, clear processing indicator
           if (!hasContentInTurnRef.current) {

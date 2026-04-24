@@ -151,11 +151,10 @@ const AcpModelSelector: React.FC<{
 
   useEffect(() => {
     if (backend !== 'claude') return;
+    if (model_info) return;
 
     const refresh = () => {
-      void reloadModelInfo().catch(() => {
-        // loadCachedModelInfo is already handled inside reloadModelInfo
-      });
+      void reloadModelInfo().catch(() => {});
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
@@ -165,14 +164,14 @@ const AcpModelSelector: React.FC<{
 
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    const intervalId = window.setInterval(refresh, 1500);
+    const intervalId = window.setInterval(refresh, 5000);
 
     return () => {
       window.removeEventListener('focus', refresh);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(intervalId);
     };
-  }, [backend, reloadModelInfo]);
+  }, [backend, model_info, reloadModelInfo]);
 
   // Listen for acp_model_info / codex_model_info events from responseStream
   useEffect(() => {

@@ -274,6 +274,21 @@ export function wsEmitter<Params = undefined>(eventName: string): EmitterLike<Pa
   };
 }
 
+export function wsMappedEmitter<Params = undefined>(
+  eventName: string,
+  transform: (raw: unknown) => Params
+): EmitterLike<Params> {
+  const inner = wsEmitter<unknown>(eventName);
+  return {
+    on: (callback: (params: Params) => void) => {
+      return inner.on((raw) => {
+        callback(transform(raw));
+      });
+    },
+    emit: (() => {}) as EmitterLike<Params>['emit'],
+  };
+}
+
 /**
  * Stub emitter for events not yet implemented in the backend.
  */
