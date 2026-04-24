@@ -15,9 +15,9 @@ import LocalImageView from '@renderer/components/media/LocalImageView';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsCapabilities } from '@/process/agent/aionrs/protocol';
-import type { AionrsModelSelection } from './useAionrsModelSelection';
 import type { AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useAddEventListener } from '@/renderer/utils/emitter';
+import type { AionrsModelSelection } from './useAionrsModelSelection';
 
 const AionrsChat: React.FC<{
   conversation_id: string;
@@ -25,13 +25,12 @@ const AionrsChat: React.FC<{
   modelSelection: AionrsModelSelection;
   teamId?: string;
   agentSlotId?: string;
-  agentName?: string;
-  agentType?: string;
   sessionMode?: string;
   capabilities?: AionrsCapabilities | null;
   dynamicModes?: AgentModeOption[];
   initialContextLimit?: number;
   initialEffort?: string;
+  emptySlot?: React.ReactNode;
 }> = ({
   conversation_id,
   workspace,
@@ -43,6 +42,7 @@ const AionrsChat: React.FC<{
   dynamicModes,
   initialContextLimit,
   initialEffort,
+  emptySlot,
 }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
@@ -65,19 +65,14 @@ const AionrsChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return {
-      conversationId: conversation_id,
-      workspace,
-      type: 'aionrs',
-      isStreamingContent,
-    };
+    return { conversationId: conversation_id, workspace, type: 'aionrs', isStreamingContent };
   }, [conversation_id, isStreamingContent, workspace]);
 
   return (
     <ConversationProvider value={conversationValue}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
-          <MessageList className='flex-1' />
+          <MessageList className='flex-1' emptySlot={emptySlot} />
         </FlexFullContainer>
         <ConversationChatConfirm conversation_id={conversation_id}>
           <AionrsSendBox

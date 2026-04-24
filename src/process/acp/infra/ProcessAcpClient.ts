@@ -376,6 +376,16 @@ export class ProcessAcpClient implements AcpClient {
   ): void {
     if (this._lastExit) return;
 
+    if (signal) {
+      console.warn(
+        `[ACP ${this.options.backend}] Process killed by signal: ${signal}` +
+          (exitCode !== null ? ` (exit code: ${exitCode})` : '') +
+          ` [reason: ${reason}]`
+      );
+    } else if (exitCode !== null && exitCode !== 0) {
+      console.warn(`[ACP ${this.options.backend}] Process exited with code ${exitCode} [reason: ${reason}]`);
+    }
+
     this._lastExit = {
       exitCode,
       signal: signal ? String(signal) : null,

@@ -220,6 +220,48 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
   });
 });
 
+// ─── parseInitializeResult: top-level modes ─────────────────────────────────
+
+describe('parseInitializeResult (top-level modes)', () => {
+  it('extracts availableModes advertised at initialize time (qwen-code)', () => {
+    const result = parseInitializeResult({
+      protocolVersion: 1,
+      modes: {
+        currentModeId: 'default',
+        availableModes: [
+          { id: 'plan', name: 'Plan', description: 'Analyze only' },
+          { id: 'default', name: 'Default' },
+          { id: 'auto-edit', name: 'Auto Edit' },
+          { id: 'yolo', name: 'YOLO' },
+        ],
+      },
+    });
+    expect(result.modes).not.toBeNull();
+    expect(result.modes?.currentModeId).toBe('default');
+    expect(result.modes?.availableModes?.map((m) => m.id)).toEqual(['plan', 'default', 'auto-edit', 'yolo']);
+  });
+
+  it('returns null modes when the field is absent', () => {
+    const result = parseInitializeResult({ protocolVersion: 1 });
+    expect(result.modes).toBeNull();
+  });
+
+  it('returns null modes when availableModes is empty', () => {
+    const result = parseInitializeResult({ protocolVersion: 1, modes: { availableModes: [] } });
+    expect(result.modes).toBeNull();
+  });
+
+  it('filters out malformed entries without an id', () => {
+    const result = parseInitializeResult({
+      protocolVersion: 1,
+      modes: {
+        availableModes: [{ id: 'plan' }, { name: 'no-id' }, { id: 'yolo', name: 'YOLO' }],
+      },
+    });
+    expect(result.modes?.availableModes?.map((m) => m.id)).toEqual(['plan', 'yolo']);
+  });
+});
+
 describe('AcpConnection.resumeSession capability routing', () => {
   /** Set parsed initializeResult on a connection (mirrors what initialize() does). */
   function setInitializeResponse(conn: AcpConnection, response: Record<string, unknown>): void {

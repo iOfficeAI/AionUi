@@ -13,7 +13,7 @@ import { teamEventBus } from '@process/team/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
-import { AionrsAgent } from '@process/agent/aionrs';
+import { AionrsAgent, type StdioMcpOption } from '@process/agent/aionrs';
 import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
@@ -27,7 +27,6 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
-import { ProcessConfig } from '@process/utils/initStorage';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -66,32 +65,15 @@ type AionrsManagerData = {
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
-  reasoningEffort?: string;
   sessionId?: string;
   resume?: string;
+  teamMcpStdioConfig?: {
+    name: string;
+    command: string;
+    args: string[];
+    env: Array<{ name: string; value: string }>;
+  };
 };
-
-type ResolvedAionrsRuntime = {
-  model: TProviderWithModel;
-  proxy?: string;
-  proxySource: 'conversation-extra' | 'provider-config' | 'conversation-model' | 'none';
-  providerSynced: boolean;
-};
-
-function summarizeProxyForLog(proxy?: string): string {
-  if (!proxy) {
-    return 'disabled';
-  }
-
-  try {
-    const parsed = new URL(proxy);
-    const hasCredentials = parsed.username.length > 0 || parsed.password.length > 0;
-    const authPrefix = hasCredentials ? '***:***@' : '';
-    return `${parsed.protocol}//${authPrefix}${parsed.host}`;
-  } catch {
-    return 'configured';
-  }
-}
 
 export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   workspace: string;
@@ -155,37 +137,76 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
 
     const mergedData = { ...this.data.data, ...sessionArgs };
-    const runtime = await this.resolveRuntimeConfig();
-    this.model = runtime.model;
 
-    mainLog(
-      '[AionrsManager]',
-      `bootstrapping agent: conversation_id=${this.conversation_id} session_mode=${this.currentMode} session_strategy=${sessionArgs.resume ? 'resume' : 'new'} model=${runtime.model.useModel} provider=${runtime.model.platform} proxy=${summarizeProxyForLog(runtime.proxy)} proxy_source=${runtime.proxySource} provider_sync=${runtime.providerSynced}`
-    );
+    // Collect stdio MCP servers to inject. In-team sessions get the team_*
+    // coordination MCP (with slot handshake). Solo sessions get the team-guide
+    // MCP so aion_create_team / aion_list_models are available. Mirrors
+    // GeminiAgentManager's solo branch.
+    const stdioMcpServers: StdioMcpOption[] = [];
+    if (mergedData.teamMcpStdioConfig) {
+      stdioMcpServers.push({ ...mergedData.teamMcpStdioConfig, awaitReady: true });
+    } else {
+      const teamGuide = await this.buildTeamGuideMcpStdioConfig();
+      if (teamGuide) stdioMcpServers.push(teamGuide);
+    }
 
     const agent = new AionrsAgent({
       workspace: mergedData.workspace,
-      model: runtime.model,
-      proxy: runtime.proxy,
+      model: mergedData.model,
+      proxy: mergedData.proxy,
       yoloMode: mergedData.yoloMode,
       presetRules: mergedData.presetRules,
       maxTokens: mergedData.maxTokens,
       maxTurns: mergedData.maxTurns,
       sessionId: mergedData.sessionId,
       resume: mergedData.resume,
+      stdioMcpServers,
       onStreamEvent: (event) => this.emit('aionrs.message', event),
     });
 
     await agent.start();
-    if (mergedData.reasoningEffort) {
-      agent.setConfig({ effort: mergedData.reasoningEffort });
-    }
     this.agent = agent;
-    if (agent.capabilities) {
-      this.emitCapabilitiesChanged(agent.capabilities);
-      return;
+    this._capabilities = agent.capabilities ?? null;
+
+    if (this.data.data.teamMcpStdioConfig) {
+      const { notifyMcpReady } = await import('@process/team/mcpReadiness');
+      const slotId = this.data.data.teamMcpStdioConfig.env?.find((e) => e.name === 'TEAM_AGENT_SLOT_ID')?.value;
+      if (slotId) {
+        notifyMcpReady(slotId);
+      }
     }
-    this._capabilities = null;
+  }
+
+  async waitUntilReady(): Promise<void> {
+    await this.agentReady;
+  }
+
+  /**
+   * Build the team-guide MCP stdio config for a solo aionrs session, or return
+   * undefined when the agent is in a team (team_* MCP takes precedence) or when
+   * the team-guide service hasn't started.
+   */
+  private async buildTeamGuideMcpStdioConfig(): Promise<
+    { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> } | undefined
+  > {
+    if (this.data.data.teamMcpStdioConfig) return undefined;
+    const [{ shouldInjectTeamGuideMcp }, { getTeamGuideStdioConfig }] = await Promise.all([
+      import('@process/team/prompts/teamGuideCapability'),
+      import('@process/team/mcp/guide/teamGuideSingleton'),
+    ]);
+    if (!(await shouldInjectTeamGuideMcp('aionrs'))) return undefined;
+    const base = getTeamGuideStdioConfig();
+    if (!base) return undefined;
+    return {
+      name: base.name,
+      command: base.command,
+      args: base.args,
+      env: [
+        ...base.env,
+        { name: 'AION_MCP_BACKEND', value: 'aionrs' },
+        { name: 'AION_MCP_CONVERSATION_ID', value: this.conversation_id },
+      ],
+    };
   }
 
   async stop() {
@@ -198,17 +219,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  async waitUntilReady(): Promise<void> {
-    await this.agentReady;
-  }
-
-  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
+  async sendMessage(data: { content: string; msg_id: string; files?: string[] }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
       position: 'right',
       conversation_id: this.conversation_id,
-      content: { content: data.input },
+      content: { content: data.content },
     };
     addMessage(this.conversation_id, message);
     try {
@@ -219,69 +236,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     this._lastActivityAt = Date.now();
-    const fileCount = data.files?.length ?? 0;
-    mainLog(
-      '[AionrsManager]',
-      `send requested: msg_id=${data.msg_id} chars=${data.input.length} files=${fileCount} status=${this.status} active_msg_id=${this.currentMsgId ?? 'none'}`
-    );
-    if (this.currentMsgId) {
-      mainWarn(
-        '[AionrsManager]',
-        `new send requested while a turn is still active: active_msg_id=${this.currentMsgId} new_msg_id=${data.msg_id}`
-      );
-    }
     // Wait for agent bootstrap to complete before sending
-    const readyWaitStartedAt = Date.now();
     await this.agentReady;
-    mainLog('[AionrsManager]', `agent ready for send: msg_id=${data.msg_id} wait=${Date.now() - readyWaitStartedAt}ms`);
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
     if (this.agent) {
-      await this.agent.send(data.input, data.msg_id, data.files);
+      await this.agent.send(data.content, data.msg_id, data.files);
     }
-  }
-
-  private async resolveRuntimeConfig(): Promise<ResolvedAionrsRuntime> {
-    let configuredProvider: TProviderWithModel | undefined;
-
-    try {
-      const configuredProviders = await ProcessConfig.get('model.config');
-      if (Array.isArray(configuredProviders)) {
-        const matchedProvider = configuredProviders.find((provider) => provider?.id === this.model.id);
-        if (matchedProvider) {
-          configuredProvider = {
-            ...matchedProvider,
-            useModel: this.model.useModel,
-          } as TProviderWithModel;
-        }
-      }
-    } catch (error) {
-      mainWarn(
-        '[AionrsManager]',
-        `failed to read latest provider config before spawn: ${error instanceof Error ? error.message : String(error)}`
-      );
-    }
-
-    const runtimeModel = configuredProvider || this.model;
-
-    const explicitProxy = typeof this.data.data.proxy === 'string' ? this.data.data.proxy.trim() : '';
-    const providerProxy = typeof configuredProvider?.proxy === 'string' ? configuredProvider.proxy.trim() : '';
-    const conversationProxy = typeof this.model.proxy === 'string' ? this.model.proxy.trim() : '';
-    const proxy = explicitProxy || providerProxy || conversationProxy || undefined;
-    const proxySource = explicitProxy
-      ? 'conversation-extra'
-      : providerProxy
-        ? 'provider-config'
-        : conversationProxy
-          ? 'conversation-model'
-          : 'none';
-
-    return {
-      model: proxy ? { ...runtimeModel, proxy } : runtimeModel,
-      proxy,
-      proxySource,
-      providerSynced: Boolean(configuredProvider),
-    };
   }
 
   /**
@@ -492,60 +453,6 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     })();
   }
 
-  private saveCapabilitiesSnapshot(capabilities: AionrsCapabilities): void {
-    const contextLimit = capabilities.context_limit || capabilities.compaction?.context_window;
-    if (!contextLimit || contextLimit <= 0) {
-      return;
-    }
-
-    void (async () => {
-      try {
-        const db = await getDatabase();
-        const result = db.getConversation(this.conversation_id);
-        if (result.success && result.data && result.data.type === 'aionrs') {
-          const conversation = result.data;
-          db.updateConversation(this.conversation_id, {
-            extra: {
-              ...conversation.extra,
-              lastContextLimit: contextLimit,
-            },
-          } as Partial<typeof conversation>);
-        }
-      } catch {
-        // Non-critical metadata, silently ignore errors
-      }
-    })();
-  }
-
-  private emitCapabilitiesChanged(capabilities: AionrsCapabilities): void {
-    this._capabilities = capabilities;
-    this.saveCapabilitiesSnapshot(capabilities);
-    ipcBridge.conversation.responseStream.emit({
-      type: 'config_changed',
-      conversation_id: this.conversation_id,
-      msg_id: '',
-      data: capabilities,
-    });
-  }
-
-  private async saveReasoningEffort(effort: string): Promise<void> {
-    try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'aionrs') {
-        const conversation = result.data;
-        db.updateConversation(this.conversation_id, {
-          extra: {
-            ...conversation.extra,
-            reasoningEffort: effort,
-          },
-        } as Partial<typeof conversation>);
-      }
-    } catch (error) {
-      mainError('[AionrsManager]', 'Failed to save reasoning effort', error);
-    }
-  }
-
   private scheduleMissingFinishFallback(): void {
     this.clearMissingFinishFallback();
     this.missingFinishFallbackTimer = setTimeout(() => {
@@ -592,7 +499,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         const elapsed = this._configSentAt ? `${Date.now() - this._configSentAt}ms` : 'n/a';
         mainLog('[AionrsManager]', `config_changed received (${elapsed})`, data.data);
         this._configSentAt = null;
-        this.emitCapabilitiesChanged(data.data as AionrsCapabilities);
+        this._capabilities = data.data as AionrsCapabilities;
+        ipcBridge.conversation.responseStream.emit({
+          type: 'config_changed',
+          conversation_id: this.conversation_id,
+          msg_id: '',
+          data: data.data,
+        });
         return;
       }
 
@@ -600,13 +513,6 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (data.type === 'info') {
         const elapsed = this._configSentAt ? ` (${Date.now() - this._configSentAt}ms since command)` : '';
         mainLog('[AionrsManager]', `info: ${data.data}${elapsed}`);
-      }
-
-      if (data.type === 'error') {
-        mainWarn(
-          '[AionrsManager]',
-          `stream_error: msg_id=${data.msg_id || this.currentMsgId || 'none'} message=${String(data.data)}`
-        );
       }
 
       // System-level events (empty msg_id) are not part of a conversation turn.
@@ -799,7 +705,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (collectedResponses.length > 0) {
         const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
         await this.sendMessage({
-          input: feedbackMessage,
+          content: feedbackMessage,
           msg_id: uuid(),
         });
       }
@@ -812,17 +718,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     return this._capabilities;
   }
 
-  async setConfig(config: {
-    model?: string;
-    thinking?: string;
-    thinking_budget?: number;
-    effort?: string;
-  }): Promise<void> {
+  setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
     if (this.agent) {
       this.agent.setConfig(config);
-    }
-    if (config.effort) {
-      await this.saveReasoningEffort(config.effort);
     }
   }
 

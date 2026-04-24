@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-0413.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-6.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -42,6 +42,7 @@
 ## 📋 快速导航
 
 <p align="center">
+
 [✨ Cowork 演示](#-cowork-演示) ·
 [🤔 为什么选择 AionUi？](#-为什么选择-aionui-而非-claude-cowork) ·
 [🚀 快速开始](#-快速开始) ·
@@ -657,7 +658,7 @@ brew install aionui
 - [报告问题](https://github.com/iOfficeAI/AionUi/issues) — 遇到 bug 或有新功能想法？告诉我们
 - [发布更新](https://github.com/iOfficeAI/AionUi/releases) — 获取最新版本
 - [Discord 社区](https://discord.gg/2QAwJn7Egx) — 英语社区
-- [微信群](../../resources/wx-0413.png) — 中文社区
+- [微信群](../../resources/wx-6.png) — 中文社区
 
 ### 贡献
 

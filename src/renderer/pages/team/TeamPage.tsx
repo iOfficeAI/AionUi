@@ -1,5 +1,5 @@
-import { Button, Message, Modal, Spin } from '@arco-design/web-react';
-import { CloseOne, CloseSmall, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
+import { Message, Modal, Spin } from '@arco-design/web-react';
+import { CloseSmall, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -10,7 +10,6 @@ import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
-import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
@@ -19,7 +18,6 @@ import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
-import { agentFromKey, resolveConversationType, resolveTeamAgentType } from './components/agentSelectUtils';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
@@ -31,7 +29,6 @@ type Props = {
 
 type TeamPageContentProps = {
   team: TTeam;
-  onAddAgent: (data: { agentName: string; agentKey: string }) => void;
   onRenameTeam: (newName: string) => Promise<boolean>;
 };
 
@@ -58,10 +55,9 @@ const AgentChatSlot: React.FC<{
   teamId: string;
   isLeader: boolean;
   isFullscreen?: boolean;
-  runtimeStatus?: string;
   onToggleFullscreen?: () => void;
   onRemove?: () => void;
-}> = ({ agent, teamId, isLeader, isFullscreen = false, runtimeStatus, onToggleFullscreen, onRemove }) => {
+}> = ({ agent, teamId, isLeader, isFullscreen = false, onToggleFullscreen, onRemove }) => {
   const { data: conversation } = useSWR(agent.conversationId ? ['team-conversation', agent.conversationId] : null, () =>
     ipcBridge.conversation.get.invoke({ id: agent.conversationId })
   );
@@ -109,6 +105,7 @@ const AgentChatSlot: React.FC<{
         <TeamAgentIdentity
           agentName={agent.agentName}
           agentType={agent.agentType}
+          conversationId={agent.conversationId}
           isLeader={isLeader}
           className='min-w-0'
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
@@ -161,20 +158,10 @@ const AgentChatSlot: React.FC<{
             teamId={teamId}
             agentSlotId={isLeader ? undefined : agent.slotId}
             agentName={agent.agentName}
-            agentType={agent.agentType}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
             <Spin loading />
-          </div>
-        )}
-        {(runtimeStatus ?? agent.status) === 'failed' && !isLeader && onRemove && (
-          <div className='absolute inset-0 z-10 flex flex-col items-center justify-center gap-12px bg-[color:var(--color-bg-1)]/80'>
-            <CloseOne theme='filled' size='32' fill='var(--color-danger-6)' />
-            <span className='text-14px text-[color:var(--color-text-2)]'>Agent failed to start</span>
-            <Button type='primary' status='danger' size='small' onClick={onRemove}>
-              Remove
-            </Button>
           </div>
         )}
       </div>
@@ -183,7 +170,7 @@ const AgentChatSlot: React.FC<{
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
-const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onRenameTeam }) => {
+const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
   const { t } = useTranslation();
   const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
@@ -363,8 +350,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
   }, [agents, pendingCounts]);
 
   const tabsSlot = useMemo(
-    () => <TeamTabs onAddAgent={onAddAgent} onTabClick={handleTabClick} pendingCounts={slotPendingCounts} />,
-    [onAddAgent, handleTabClick, slotPendingCounts]
+    () => <TeamTabs onTabClick={handleTabClick} pendingCounts={slotPendingCounts} />,
+    [handleTabClick, slotPendingCounts]
   );
 
   return (
@@ -400,7 +387,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                     teamId={team.id}
                     isLeader={isLeaderSlot}
                     isFullscreen
-                    runtimeStatus={statusMap.get(agent.slotId)?.status}
                     onToggleFullscreen={() => setFullscreenSlotId(null)}
                     onRemove={() => handleRemoveAgent(agent.slotId)}
                   />
@@ -453,7 +439,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
                         agent={agent}
                         teamId={team.id}
                         isLeader={isLeaderSlot}
-                        runtimeStatus={statusMap.get(agent.slotId)?.status}
                         onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
                         onRemove={() => handleRemoveAgent(agent.slotId)}
                       />
@@ -485,10 +470,9 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onAddAgent, onR
 
 const TeamPage: React.FC<Props> = ({ team }) => {
   const { t } = useTranslation();
-  const { statusMap, addAgent, renameAgent, removeAgent, mutateTeam } = useTeamSession(team);
+  const { statusMap, renameAgent, removeAgent, mutateTeam } = useTeamSession(team);
   const { user } = useAuth();
   const { mutate: globalMutate } = useSWRConfig();
-  const { cliAgents, presetAssistants } = useConversationAgents();
   const defaultSlotId = team.agents[0]?.slotId ?? '';
 
   const handleRemoveAgentWithConfirm = useCallback(
@@ -515,25 +499,6 @@ const TeamPage: React.FC<Props> = ({ team }) => {
     [statusMap, removeAgent, t]
   );
 
-  const handleAddAgent = useCallback(
-    async (data: { agentName: string; agentKey: string }) => {
-      const allAgents = [...cliAgents, ...presetAssistants];
-      const agent = agentFromKey(data.agentKey, allAgents);
-      const backend = resolveTeamAgentType(agent, 'claude');
-      await addAgent({
-        conversationId: '',
-        role: 'teammate',
-        agentType: backend,
-        agentName: data.agentName,
-        status: 'pending',
-        conversationType: resolveConversationType(backend),
-        cliPath: agent?.cliPath,
-        customAgentId: agent?.customAgentId,
-      });
-    },
-    [addAgent, cliAgents, presetAssistants]
-  );
-
   const handleRenameTeam = useCallback(
     async (newName: string): Promise<boolean> => {
       try {
@@ -558,7 +523,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       renameAgent={renameAgent}
       removeAgent={handleRemoveAgentWithConfirm}
     >
-      <TeamPageContent team={team} onAddAgent={handleAddAgent} onRenameTeam={handleRenameTeam} />
+      <TeamPageContent team={team} onRenameTeam={handleRenameTeam} />
     </TeamTabsProvider>
   );
 };

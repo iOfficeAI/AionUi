@@ -111,7 +111,13 @@ createTeamTool(
       .string()
       .optional()
       .describe(
-        'Agent type/backend to use for the new teammate. Must be one of the types listed in "Available Agent Types for Spawning". Defaults to the leader type when omitted.'
+        'Agent type/backend to use for the new teammate. Must be one of the types listed in "Available Agent Types for Spawning". Defaults to the leader type when omitted. Ignored when custom_agent_id is set.'
+      ),
+    custom_agent_id: z
+      .string()
+      .optional()
+      .describe(
+        'Preset assistant ID from "Available Preset Assistants for Spawning" (e.g., "builtin-word-creator"). When set, the teammate inherits that preset\'s rules and skills; agent_type is derived from the preset.'
       ),
     model: z
       .string()
@@ -222,6 +228,32 @@ The teammate will receive a shutdown request and respond with approval or reject
 You will be notified of the result either way.`,
   {
     agent: z.string().describe('Teammate name to request shutdown'),
+  },
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
+);
+
+// ---- team_describe_assistant ----
+createTeamTool(
+  server,
+  'team_describe_assistant',
+  `Get detailed information about a preset assistant before spawning it as a teammate.
+
+Returns the preset's full description, enabled skills, and example tasks so you can
+judge whether it fits the user's request. Use this when two or more presets look
+relevant from the one-line catalog in your system prompt.
+
+Only works on preset assistants listed in "Available Preset Assistants for Spawning".
+After confirming a match, call team_spawn_agent with the same custom_agent_id.`,
+  {
+    custom_agent_id: z
+      .string()
+      .describe('The preset assistant ID from the "Available Preset Assistants" catalog (e.g., "word-creator").'),
+    locale: z
+      .string()
+      .optional()
+      .describe('Locale like "zh-CN" or "en-US". Defaults to the user\'s current UI language when omitted.'),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

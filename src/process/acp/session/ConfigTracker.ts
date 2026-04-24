@@ -92,6 +92,29 @@ export class ConfigTracker {
     if (result.availableCommands) this.availableCommands = result.availableCommands;
   }
 
+  /**
+   * Seed modes from the initialize response. Some agents (e.g. qwen-code) only
+   * advertise availableModes at initialize time and omit them from session/new,
+   * so we preload them here. Later session responses can still override via
+   * syncFromSessionResult when present.
+   */
+  syncFromInitializeResult(
+    modes: {
+      currentModeId?: string;
+      availableModes?: Array<{ id: string; name?: string; description?: string }>;
+    } | null
+  ): void {
+    if (!modes) return;
+    if (modes.currentModeId !== undefined) this.currentModeId = modes.currentModeId;
+    if (modes.availableModes && modes.availableModes.length > 0) {
+      this.availableModes = modes.availableModes.map((m) => ({
+        id: m.id,
+        name: m.name ?? m.id,
+        description: m.description,
+      }));
+    }
+  }
+
   getPendingChanges(): PendingChanges {
     return {
       model: this.desiredModelId,

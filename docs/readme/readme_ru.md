@@ -42,6 +42,7 @@
 ## 📋 Быстрая навигация
 
 <p align="center">
+
 [✨ Cowork в действии](#-cowork-in-action) ·
 [🤔 Почему AionUi?](#-why-choose-aionui-over-claude-cowork) ·
 [🚀 Быстрый старт](#-quick-start) ·

@@ -75,7 +75,7 @@ describe('isTeamCapableBackend', () => {
   const cached = makeCachedInit(['claude', 'codex']);
 
   it('returns true for known team-capable backends regardless of cached data', () => {
-    for (const backend of ['gemini', 'claude', 'codex', 'snow']) {
+    for (const backend of ['gemini', 'claude', 'codex', 'aionrs']) {
       expect(isTeamCapableBackend(backend, null)).toBe(true);
       expect(isTeamCapableBackend(backend, undefined)).toBe(true);
       expect(isTeamCapableBackend(backend, {})).toBe(true);

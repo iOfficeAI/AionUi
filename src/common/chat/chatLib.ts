@@ -140,6 +140,8 @@ export type IMessageText = IMessage<
     teammateMessage?: boolean;
     senderName?: string;
     senderAgentType?: string;
+    /** Sender teammate's conversation id — lets the renderer resolve preset avatars via their conversation extras. */
+    senderConversationId?: string;
   }
 >;
 

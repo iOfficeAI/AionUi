@@ -110,6 +110,26 @@ describe('AionUIDatabase.create recovery', () => {
     await expect(AionUIDatabase.create('/tmp/test.db')).rejects.toThrow('dlopen');
   });
 
+  it('does not replace the database when initialization fails without corruption markers', async () => {
+    const failedDriver = createMockDriver();
+
+    vi.mocked(createDriver).mockResolvedValueOnce(failedDriver);
+
+    vi.mocked(initSchema).mockImplementationOnce(() => {
+      throw new Error('SQLITE_CANTOPEN: unable to open database file');
+    });
+
+    vi.spyOn(fs, 'existsSync').mockReturnValue(true);
+    const renameSpy = vi.spyOn(fs, 'renameSync').mockImplementation(() => undefined as never);
+    const unlinkSpy = vi.spyOn(fs, 'unlinkSync').mockImplementation(() => undefined as never);
+
+    await expect(AionUIDatabase.create('/tmp/test.db')).rejects.toThrow('SQLITE_CANTOPEN');
+
+    expect(failedDriver.close).toHaveBeenCalledOnce();
+    expect(renameSpy).not.toHaveBeenCalled();
+    expect(unlinkSpy).not.toHaveBeenCalled();
+  });
+
   it('throws when corrupted file cannot be renamed or deleted', async () => {
     const failedDriver = createMockDriver();
 

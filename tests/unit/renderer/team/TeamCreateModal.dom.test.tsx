@@ -26,6 +26,16 @@ const cliAgents: AvailableAgent[] = [
   { backend: 'claude', name: 'Claude Code', cliPath: '/usr/bin/claude' },
 ];
 
+const presetAssistants: AvailableAgent[] = [
+  {
+    backend: 'gemini',
+    name: 'Writing Buddy',
+    customAgentId: 'builtin-writing-buddy',
+    isPreset: true,
+    presetAgentType: 'gemini',
+  },
+];
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
@@ -52,7 +62,7 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 }));
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({ cliAgents }),
+  useConversationAgents: () => ({ cliAgents, presetAssistants }),
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({
@@ -134,22 +144,78 @@ describe('TeamCreateModal', () => {
     expect(screen.getByTestId('team-create-modal-shell')).toHaveAttribute('data-background', 'var(--dialog-fill-0)');
   });
 
-  it('uses brighter surface tokens for leader cards and workspace picker', () => {
+  const openLeaderDropdown = () => {
+    const selectWrapper = screen.getByTestId('team-create-leader-select');
+    const view = selectWrapper.querySelector('.arco-select-view') as HTMLElement;
+    expect(view).toBeTruthy();
+    fireEvent.click(view);
+  };
+
+  it('renders grouped options for CLI and preset agents', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    openLeaderDropdown();
+
+    expect(screen.getByText('CLI Agents')).toBeInTheDocument();
+    expect(screen.getByText('Preset Assistants')).toBeInTheDocument();
+    expect(screen.getByText('Gemini CLI')).toBeInTheDocument();
+    expect(screen.getByText('Writing Buddy')).toBeInTheDocument();
+  });
+
+  it('filters options by typed query against agent names', () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    openLeaderDropdown();
+
+    const input = document.querySelector('.arco-select-view-input') as HTMLInputElement;
+    expect(input).toBeTruthy();
+    fireEvent.change(input, { target: { value: 'writing' } });
+
+    const visibleOptions = Array.from(document.querySelectorAll('.arco-select-option:not(.arco-select-option-hidden)'));
+    const labels = visibleOptions.map((node) => node.textContent?.trim());
+    expect(labels.some((label) => label?.includes('Writing Buddy'))).toBe(true);
+    expect(labels.some((label) => label?.includes('Gemini CLI'))).toBe(false);
+  });
+
+  it('creates a team with the preset customAgentId and presetAgentType-derived backend', async () => {
+    mockCreateTeam.mockResolvedValue({ id: 'team-created' });
+    const onCreated = vi.fn();
+
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={onCreated} />);
+
+    openLeaderDropdown();
+    const option = document.querySelector(
+      '[data-testid="team-create-agent-option-preset::builtin-writing-buddy"]'
+    ) as HTMLElement;
+    expect(option).toBeTruthy();
+    fireEvent.click(option);
+
+    const nameInput = screen.getByPlaceholderText('Team name');
+    fireEvent.change(nameInput, { target: { value: 'Writers' } });
+
+    const submitButton = screen.getByRole('button', { name: 'Create Team' });
+    fireEvent.click(submitButton);
+
+    await vi.waitFor(() => {
+      expect(mockCreateTeam).toHaveBeenCalledTimes(1);
+    });
+
+    const [payload] = mockCreateTeam.mock.calls[0];
+    expect(payload.name).toBe('Writers');
+    expect(payload.agents).toHaveLength(1);
+    expect(payload.agents[0]).toMatchObject({
+      role: 'leader',
+      agentType: 'gemini',
+      conversationType: 'gemini',
+      customAgentId: 'builtin-writing-buddy',
+    });
+    expect(onCreated).toHaveBeenCalledWith({ id: 'team-created' });
+  });
+
+  it('uses brighter surface tokens for workspace picker', () => {
     localStorage.setItem('aionui:recent-workspaces', JSON.stringify(['/tmp/workspace-one']));
 
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
-
-    const geminiCard = screen.getByTestId('team-create-agent-card-cli::gemini');
-    expect(geminiCard.className).toContain('bg-fill-1');
-    expect(geminiCard.className).toContain('border-border-2');
-
-    fireEvent.click(geminiCard);
-
-    expect(geminiCard.className).toContain('relative');
-    expect(geminiCard.className).toContain('bg-fill-2');
-    expect(geminiCard.className).toContain('border-2');
-    expect(geminiCard.className).toContain('border-primary-5');
-    expect(screen.getByTestId('team-create-agent-selected-badge-cli::gemini')).toBeInTheDocument();
 
     const workspaceTrigger = screen.getByTestId('team-create-workspace-trigger');
     expect(workspaceTrigger.className).toContain('bg-fill-1');

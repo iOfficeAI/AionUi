@@ -105,10 +105,6 @@ vi.mock('@/renderer/styles/colors', () => ({
 }));
 
 // Stub child components not under test
-vi.mock('@/renderer/pages/team/components/AddAgentModal', () => ({
-  default: () => null,
-}));
-
 vi.mock('@/renderer/pages/team/components/AgentStatusBadge', () => ({
   default: ({ status }: { status: string }) => React.createElement('span', { 'data-testid': 'status-badge' }, status),
 }));
@@ -325,7 +321,7 @@ describe('TeamTabsContext', () => {
           defaultActiveSlotId: 'slot-lead',
           teamId: 'team-1',
         },
-        React.createElement(TeamTabs, { onAddAgent: vi.fn() })
+        React.createElement(TeamTabs, {})
       )
     );
 
@@ -407,7 +403,7 @@ describe('TeamTabs close button', () => {
           teamId: 'team-1',
           removeAgent: mockRemove,
         },
-        React.createElement(TeamTabs, { onAddAgent: vi.fn() })
+        React.createElement(TeamTabs, {})
       )
     );
 
@@ -429,7 +425,7 @@ describe('TeamTabs close button', () => {
           teamId: 'team-1',
           removeAgent: mockRemove,
         },
-        React.createElement(TeamTabs, { onAddAgent: vi.fn() })
+        React.createElement(TeamTabs, {})
       )
     );
 
@@ -454,7 +450,7 @@ describe('TeamTabs close button', () => {
           teamId: 'team-1',
           removeAgent: mockRemove,
         },
-        React.createElement(TeamTabs, { onAddAgent: vi.fn() })
+        React.createElement(TeamTabs, {})
       )
     );
 
@@ -478,7 +474,7 @@ describe('TeamTabs close button', () => {
           defaultActiveSlotId: 'slot-lead',
           teamId: 'team-1',
         },
-        React.createElement(TeamTabs, { onAddAgent: vi.fn() })
+        React.createElement(TeamTabs, {})
       )
     );
 

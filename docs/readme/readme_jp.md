@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-0413.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-6.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -42,6 +42,7 @@
 ## 📋 クイックナビゲーション
 
 <p align="center">
+
 [✨ Cowork の実演](#-cowork-の実演) ·
 [🤔 なぜ AionUi を選ぶのか？](#-なぜ-aionui-を-claude-cowork-より選ぶのか) ·
 [🚀 クイックスタート](#-クイックスタート) ·
@@ -616,7 +617,7 @@ brew install aionui
 - [問題を報告](https://github.com/iOfficeAI/AionUi/issues) — バグと機能リクエスト
 - [リリース更新](https://github.com/iOfficeAI/AionUi/releases) — 最新版を取得
 - [Discord コミュニティ](https://discord.gg/2QAwJn7Egx) — 英語コミュニティ
-- [WeChat グループ](../../resources/wx-0413.png) — 中国語コミュニティ
+- [WeChat グループ](../../resources/wx-6.png) — 中国語コミュニティ
 
 ### 貢献
 

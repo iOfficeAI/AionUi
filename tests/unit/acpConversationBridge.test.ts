@@ -15,22 +15,29 @@ function makeChannel(name: string) {
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
-    acpConversation: new Proxy({} as Record<string, ReturnType<typeof makeChannel>>, {
-      get(target, prop) {
-        if (typeof prop !== 'string') {
-          return undefined;
-        }
-
-        target[prop] ??= makeChannel(prop);
-        return target[prop];
-      },
-    }),
+    acpConversation: {
+      checkEnv: makeChannel('checkEnv'),
+      detectCliPath: makeChannel('detectCliPath'),
+      getAvailableAgents: makeChannel('getAvailableAgents'),
+      refreshCustomAgents: makeChannel('refreshCustomAgents'),
+      testCustomAgent: makeChannel('testCustomAgent'),
+      checkAgentHealth: makeChannel('checkAgentHealth'),
+      getMode: makeChannel('getMode'),
+      getCapabilities: makeChannel('getCapabilities'),
+      getModelInfo: makeChannel('getModelInfo'),
+      probeModelInfo: makeChannel('probeModelInfo'),
+      setModel: makeChannel('setModel'),
+      setMode: makeChannel('setMode'),
+      getConfigOptions: makeChannel('getConfigOptions'),
+      setConfigOption: makeChannel('setConfigOption'),
+    },
   },
 }));
 
 vi.mock('../../src/process/agent/AgentRegistry', () => ({
   agentRegistry: {
     getDetectedAgents: vi.fn(() => []),
+    refreshCustomAgents: vi.fn(async () => {}),
   },
 }));
 
@@ -49,7 +56,6 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
 }));
 vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));
 vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
-vi.mock('../../src/process/task/AionrsManager', () => ({ AionrsManager: class AionrsManager {} }));
 
 vi.mock('../../src/process/services/mcpServices/McpService', () => ({
   mcpService: { getSupportedTransportsForAgent: vi.fn(() => []) },
@@ -110,74 +116,29 @@ describe('acpConversationBridge', () => {
     expect(taskManager.getTask).toHaveBeenCalledWith('c1');
   });
 
-  // --- getCapabilities ---
-
-  it('getCapabilities returns { initialized: false } when no Aionrs task exists', async () => {
-    vi.mocked(taskManager.getTask).mockReturnValue(undefined);
-
-    const result = await handlers['getCapabilities']({ conversationId: 'missing' });
-
-    expect(result).toEqual({
-      success: true,
-      data: { capabilities: null, initialized: false },
-    });
-  });
-
-  it('getCapabilities returns capabilities after the Aionrs task becomes ready', async () => {
-    const { AionrsManager } = await import('../../src/process/task/AionrsManager');
-    const capabilities = { canResume: true };
-    const task = Object.assign(new AionrsManager(), {
-      waitUntilReady: vi.fn(async () => {}),
-      getCapabilities: vi.fn(() => capabilities),
-    });
-    vi.mocked(taskManager.getTask).mockReturnValue(task as never);
-
-    const result = await handlers['getCapabilities']({ conversationId: 'c1' });
-
-    expect(task.waitUntilReady).toHaveBeenCalledOnce();
-    expect(result).toEqual({
-      success: true,
-      data: { capabilities, initialized: true },
-    });
-  });
-
-  it('getCapabilities returns an error when waiting for the Aionrs task fails', async () => {
-    const { AionrsManager } = await import('../../src/process/task/AionrsManager');
-    const task = Object.assign(new AionrsManager(), {
-      waitUntilReady: vi.fn(async () => {
-        throw new Error('ready failed');
-      }),
-      getCapabilities: vi.fn(),
-    });
-    vi.mocked(taskManager.getTask).mockReturnValue(task as never);
-
-    const result = await handlers['getCapabilities']({ conversationId: 'c1' });
-
-    expect(result).toEqual({ success: false, msg: 'ready failed' });
-    expect(task.getCapabilities).not.toHaveBeenCalled();
-  });
-
   // --- refreshCustomAgents ---
 
-  it('refreshCustomAgents remains a backward-compatible no-op', async () => {
+  it('refreshCustomAgents delegates to agentRegistry and returns success', async () => {
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     const result = await handlers['refreshCustomAgents']();
     expect(result).toEqual({ success: true });
+    expect(agentRegistry.refreshCustomAgents).toHaveBeenCalledTimes(1);
+  });
+
+  it('refreshCustomAgents can be called multiple times', async () => {
+    const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
+    await handlers['refreshCustomAgents']();
+    const result = await handlers['refreshCustomAgents']();
+    expect(result).toEqual({ success: true });
+    expect(agentRegistry.refreshCustomAgents).toHaveBeenCalledTimes(2);
   });
 
   // --- getAvailableAgents ---
 
-  it('getAvailableAgents returns enriched agent list from the registry', async () => {
+  it('getAvailableAgents returns enriched agent list', async () => {
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([
-      {
-        id: 'claude',
-        name: 'Claude',
-        kind: 'acp',
-        available: true,
-        backend: 'claude',
-        cliPath: '/usr/bin/claude',
-        acpArgs: ['--experimental-acp'],
-      },
+      { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
     ] as any);
 
     const { mcpService } = await import('../../src/process/services/mcpServices/McpService');
@@ -189,13 +150,7 @@ describe('acpConversationBridge', () => {
     expect(result.data[0].supportedTransports).toEqual(['stdio']);
   });
 
-  it('getAvailableAgents returns an empty list when nothing is registered', async () => {
-    const result = await handlers['getAvailableAgents']();
-    expect(result.success).toBe(true);
-    expect(result.data).toEqual([]);
-  });
-
-  it('getAvailableAgents returns error when the registry throws', async () => {
+  it('getAvailableAgents returns error when registry throws', async () => {
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockImplementation(() => {
       throw new Error('detection failed');

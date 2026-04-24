@@ -760,7 +760,7 @@ export class TeamSessionService {
     const team = await this.getTeam(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
     let session!: TeamSession;
-    const spawnAgent = async (agentName: string, agentType?: string, model?: string) => {
+    const spawnAgent = async (agentName: string, agentType?: string, model?: string, customAgentId?: string) => {
       // Default to the leader's agent type instead of hardcoding 'claude'
       const leadAgent = team.agents.find((a) => a.role === 'leader');
       const resolvedType = agentType || leadAgent?.agentType || 'claude';
@@ -772,6 +772,7 @@ export class TeamSessionService {
         status: 'pending',
         conversationType: this.resolveConversationType(resolvedType) as 'acp',
         model,
+        customAgentId,
       });
       // Inject team MCP stdio config into the new agent's conversation (with agent identity)
       const stdioConfig = session?.getStdioConfig(newAgent.slotId);

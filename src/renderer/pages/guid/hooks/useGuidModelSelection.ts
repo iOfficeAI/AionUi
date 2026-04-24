@@ -68,7 +68,11 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
   const modelList = useMemo(() => {
     let allProviders: IProvider[] = [];
 
-    if (isGoogleAuth) {
+    // Only expose the Gemini Google Auth provider when the current agent is
+    // 'gemini'. Other provider-based agents (e.g. aionrs) do not support
+    // Google login, so surfacing this provider would make the default-model
+    // fallback pick a Gemini auto model by mistake.
+    if (isGoogleAuth && agentKey === 'gemini') {
       const geminiProvider: IProvider = {
         id: uuid(),
         name: 'Gemini Google Auth',
@@ -84,7 +88,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     }
 
     return allProviders.filter(hasAvailableModels);
-  }, [geminiModelValues, isGoogleAuth, modelConfig]);
+  }, [agentKey, geminiModelValues, isGoogleAuth, modelConfig]);
 
   const geminiModeLookup = useMemo(() => {
     const lookup = new Map<string, (typeof geminiModeOptions)[number]>();

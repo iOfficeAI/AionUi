@@ -68,6 +68,8 @@ type UseGuidAgentSelectionOptions = {
   currentModel?: TProviderWithModel;
   isGoogleAuth: boolean;
   localeKey: string;
+  resetAssistant?: boolean;
+  locationKey?: string;
 };
 
 /**

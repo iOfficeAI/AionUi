@@ -1,221 +1,356 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const mockSafeExec = vi.hoisted(() => vi.fn());
-const mockSafeExecFile = vi.hoisted(() => vi.fn());
-const mockGetEnhancedEnv = vi.hoisted(() => vi.fn(() => ({ PATH: '/usr/bin' })));
-const mockGetAcpAdapters = vi.hoisted(() => vi.fn((): Record<string, unknown>[] => []));
+// ---------------------------------------------------------------------------
+// Mocks — must be declared before importing the module under test
+// ---------------------------------------------------------------------------
 
-vi.mock('@/common/types/acpTypes', () => ({
-  POTENTIAL_ACP_CLIS: [
-    { cmd: 'claude', name: 'Claude Code', backendId: 'claude', args: ['--experimental-acp'] },
-    { cmd: 'qwen', name: 'Qwen Code', backendId: 'qwen', args: ['--acp'] },
-    { cmd: 'auggie', name: 'Augment Code', backendId: 'auggie', args: ['--acp'] },
-  ],
-}));
+// Mock the AcpDetector that AgentRegistry delegates to
+const mockDetectBuiltinAgents = vi.fn(async () => []);
+const mockDetectExtensionAgents = vi.fn(async () => []);
+const mockDetectCustomAgents = vi.fn(async () => []);
+const mockClearEnvCache = vi.fn();
+const mockIsCliAvailable = vi.fn(() => false);
 
-vi.mock('@process/extensions', () => ({
-  ExtensionRegistry: {
-    getInstance: () => ({
-      getAcpAdapters: mockGetAcpAdapters,
-    }),
+vi.mock('@process/agent/acp/AcpDetector', () => ({
+  acpDetector: {
+    detectBuiltinAgents: (...args: unknown[]) => mockDetectBuiltinAgents(...args),
+    detectExtensionAgents: (...args: unknown[]) => mockDetectExtensionAgents(...args),
+    detectCustomAgents: (...args: unknown[]) => mockDetectCustomAgents(...args),
+    clearEnvCache: (...args: unknown[]) => mockClearEnvCache(...args),
+    isCliAvailable: (...args: unknown[]) => mockIsCliAvailable(...args),
   },
 }));
 
-vi.mock('@process/utils/safeExec', () => ({
-  safeExec: (...args: unknown[]) => mockSafeExec(...args),
-  safeExecFile: (...args: unknown[]) => mockSafeExecFile(...args),
-}));
+import type { AcpDetectedAgent } from '../../src/common/types/detectedAgent';
 
-vi.mock('@process/utils/shellEnv', () => ({
-  getEnhancedEnv: (...args: unknown[]) => mockGetEnhancedEnv(...args),
-}));
-
-async function createFreshDetector() {
-  vi.resetModules();
-  const mod = await import('@process/agent/acp/AcpDetector');
-  return mod.acpDetector;
-}
-
-function makeExtAdapter(opts: {
+// Helper: create a mock ACP detected agent
+function makeAcpAgent(opts: {
   id: string;
   name: string;
-  cliCommand?: string;
-  defaultCliPath?: string;
-  extensionName: string;
+  backend: string;
+  cliPath?: string;
   acpArgs?: string[];
-  connectionType?: string;
-}) {
+  isExtension?: boolean;
+  extensionName?: string;
+}): AcpDetectedAgent {
   return {
     id: opts.id,
     name: opts.name,
-    cliCommand: opts.cliCommand,
-    defaultCliPath: opts.defaultCliPath,
-    connectionType: opts.connectionType ?? 'cli',
+    kind: 'acp',
+    available: true,
+    backend: opts.backend,
+    cliPath: opts.cliPath ?? opts.id,
     acpArgs: opts.acpArgs ?? ['--acp'],
-    _extensionName: opts.extensionName,
+    isExtension: opts.isExtension,
+    extensionName: opts.extensionName,
   };
 }
 
-describe('AcpDetector', () => {
-  let originalPlatform: PropertyDescriptor | undefined;
+async function createFreshRegistry() {
+  vi.resetModules();
+  const mod = await import('@process/agent/AgentRegistry');
+  return mod.agentRegistry;
+}
 
+describe('AgentRegistry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetEnhancedEnv.mockReturnValue({ PATH: '/usr/bin' });
-    mockGetAcpAdapters.mockReturnValue([]);
-    originalPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
+    mockDetectBuiltinAgents.mockResolvedValue([]);
+    mockDetectExtensionAgents.mockResolvedValue([]);
+    mockDetectCustomAgents.mockResolvedValue([]);
+    mockIsCliAvailable.mockReturnValue(false);
   });
 
-  afterEach(() => {
-    if (originalPlatform) {
-      Object.defineProperty(process, 'platform', originalPlatform);
-    }
-  });
+  describe('initialize', () => {
+    it('should detect built-in CLIs that are available on PATH', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'claude',
+          name: 'Claude Code',
+          backend: 'claude',
+          cliPath: 'claude',
+          acpArgs: ['--experimental-acp'],
+        }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+      ]);
 
-  it('detects builtin CLI agents on POSIX via a single batch shell command', async () => {
-    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-    mockSafeExec.mockResolvedValue({ stdout: 'claude\nqwen\n', stderr: '' });
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
 
-    const detector = await createFreshDetector();
-    const agents = await detector.detectBuiltinAgents();
-
-    expect(agents).toEqual([
-      expect.objectContaining({ backend: 'claude', cliPath: 'claude', acpArgs: ['--experimental-acp'] }),
-      expect.objectContaining({ backend: 'qwen', cliPath: 'qwen', acpArgs: ['--acp'] }),
-    ]);
-    expect(mockSafeExec).toHaveBeenCalledTimes(1);
-    expect(mockGetEnhancedEnv).toHaveBeenCalledTimes(1);
-  });
-
-  it('detects builtin CLI agents on Windows with where and PowerShell fallback', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-    mockSafeExecFile.mockImplementation(async (command: string, args: string[]) => {
-      if (command === 'where' && args[0] === 'claude') {
-        return { stdout: 'C:\\Tools\\claude.exe', stderr: '' };
-      }
-      if (command === 'where' && args[0] === 'qwen') {
-        throw new Error('not found');
-      }
-      if (command === 'powershell' && args[3]?.includes('Get-Command -All qwen')) {
-        return { stdout: '', stderr: '' };
-      }
-      throw new Error('not found');
+      // Aionrs always first, Gemini always second, then ACP agents
+      expect(agents).toHaveLength(4);
+      expect(agents[0].backend).toBe('aionrs');
+      expect(agents[1].backend).toBe('gemini');
+      expect(agents[2]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
+      expect(agents[3]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
     });
 
-    const detector = await createFreshDetector();
-    const agents = await detector.detectBuiltinAgents();
+    it('should skip built-in CLIs that are not available', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      ]);
 
-    expect(agents).toEqual([
-      expect.objectContaining({ backend: 'claude', cliPath: 'claude' }),
-      expect.objectContaining({ backend: 'qwen', cliPath: 'qwen' }),
-    ]);
-    expect(mockSafeExecFile).toHaveBeenCalled();
-    expect(mockGetEnhancedEnv).toHaveBeenCalledTimes(1);
-  });
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
 
-  it('reuses the cached environment across repeated async CLI checks', async () => {
-    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-    mockSafeExec.mockResolvedValue({ stdout: 'claude\n', stderr: '' });
-
-    const detector = await createFreshDetector();
-
-    await expect(detector.batchCheckCliAvailability(['claude'])).resolves.toEqual(new Set(['claude']));
-    await expect(detector.batchCheckCliAvailability(['claude'])).resolves.toEqual(new Set(['claude']));
-    expect(mockGetEnhancedEnv).toHaveBeenCalledTimes(1);
-  });
-
-  it('clears the cached environment when clearEnvCache is called', async () => {
-    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-    mockSafeExec.mockResolvedValue({ stdout: 'qwen\n', stderr: '' });
-
-    const detector = await createFreshDetector();
-
-    await expect(detector.batchCheckCliAvailability(['qwen'])).resolves.toEqual(new Set(['qwen']));
-    detector.clearEnvCache();
-    await expect(detector.batchCheckCliAvailability(['qwen'])).resolves.toEqual(new Set(['qwen']));
-    expect(mockGetEnhancedEnv).toHaveBeenCalledTimes(2);
-  });
-
-  it('returns extension-contributed CLI adapters without requiring PATH detection', async () => {
-    mockGetAcpAdapters.mockReturnValue([
-      makeExtAdapter({
-        id: 'goose',
-        name: 'Goose',
-        cliCommand: 'goose',
-        defaultCliPath: 'bunx @block/goose',
-        extensionName: 'aionext-goose',
-      }),
-      makeExtAdapter({
-        id: 'copilot',
-        name: 'Copilot',
-        cliCommand: 'copilot',
-        connectionType: 'stdio',
-        extensionName: 'aionext-copilot',
-      }),
-    ]);
-
-    const detector = await createFreshDetector();
-    const agents = await detector.detectExtensionAgents();
-
-    expect(agents).toEqual([
-      expect.objectContaining({
-        backend: 'goose',
-        cliPath: 'bunx @block/goose',
-        isExtension: true,
-        extensionName: 'aionext-goose',
-      }),
-      expect.objectContaining({
-        backend: 'copilot',
-        cliPath: 'copilot',
-        isExtension: true,
-        extensionName: 'aionext-copilot',
-      }),
-    ]);
-    expect(mockSafeExec).not.toHaveBeenCalled();
-    expect(mockSafeExecFile).not.toHaveBeenCalled();
-  });
-
-  it('skips adapters with unsupported connection types or missing cliCommand', async () => {
-    mockGetAcpAdapters.mockReturnValue([
-      makeExtAdapter({
-        id: 'http-agent',
-        name: 'HTTP Agent',
-        cliCommand: 'http-agent',
-        connectionType: 'http',
-        extensionName: 'ext-http',
-      }),
-      makeExtAdapter({
-        id: 'missing-cli',
-        name: 'Missing CLI',
-        extensionName: 'ext-missing',
-      }),
-      makeExtAdapter({
-        id: 'valid',
-        name: 'Valid Agent',
-        cliCommand: 'valid-agent',
-        extensionName: 'ext-valid',
-      }),
-    ]);
-
-    const detector = await createFreshDetector();
-    const agents = await detector.detectExtensionAgents();
-
-    expect(agents).toEqual([
-      expect.objectContaining({
-        backend: 'valid',
-        cliPath: 'valid-agent',
-        isExtension: true,
-      }),
-    ]);
-  });
-
-  it('returns an empty extension list when the extension registry throws', async () => {
-    mockGetAcpAdapters.mockImplementation(() => {
-      throw new Error('registry failed');
+      expect(agents).toHaveLength(3); // gemini + aionrs + claude
+      expect(agents.find((a) => a.backend === 'qwen')).toBeUndefined();
+      expect(agents.find((a) => a.backend === 'auggie')).toBeUndefined();
     });
 
-    const detector = await createFreshDetector();
+    it('should always include Aionrs first and Gemini second', async () => {
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
 
-    await expect(detector.detectExtensionAgents()).resolves.toEqual([]);
+      expect(agents).toHaveLength(2); // aionrs + gemini
+      expect(agents[0]).toMatchObject({ backend: 'aionrs', name: 'Aion CLI' });
+      expect(agents[1]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
+    });
+
+    it('should detect extension-contributed agents when CLI is available', async () => {
+      mockDetectExtensionAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'goose',
+          name: 'Goose',
+          backend: 'custom',
+          cliPath: 'goose',
+          isExtension: true,
+          extensionName: 'aionext-goose',
+        }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
+
+      const gooseAgent = agents.find((a) => a.kind === 'acp' && a.cliPath === 'goose');
+      expect(gooseAgent).toBeDefined();
+    });
+
+    it('should skip extension agents whose CLI is not available', async () => {
+      // detectExtensionAgents returns empty when CLI not available
+      mockDetectExtensionAgents.mockResolvedValue([]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
+
+      expect(agents).toHaveLength(2); // gemini + aionrs
+    });
+
+    it('should not run twice (isDetected guard)', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      await registry.initialize(); // second call — should be no-op
+
+      // detectBuiltinAgents called only during first init
+      expect(mockDetectBuiltinAgents).toHaveBeenCalledTimes(1);
+      expect(mockDetectExtensionAgents).toHaveBeenCalledTimes(1);
+
+      await registry.initialize(); // third call — still no-op
+      expect(mockDetectBuiltinAgents).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('deduplicate', () => {
+    it('should deduplicate by backend — builtin wins over extension with same backend', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+      ]);
+      mockDetectExtensionAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'qwen-ext',
+          name: 'Qwen Code',
+          backend: 'qwen',
+          cliPath: 'bunx @qwen/qwen',
+          isExtension: true,
+          extensionName: 'aionext-qwen',
+        }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
+
+      const qwenAgents = agents.filter((a) => a.backend === 'qwen');
+      expect(qwenAgents).toHaveLength(1);
+      expect(qwenAgents[0].cliPath).toBe('qwen'); // builtin wins
+      expect(qwenAgents[0].isExtension).toBeUndefined();
+    });
+
+    it('should keep extension agent when no builtin has the same backend', async () => {
+      mockDetectExtensionAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'unique',
+          name: 'Unique Agent',
+          backend: 'unique',
+          cliPath: 'custom-cli',
+          isExtension: true,
+          extensionName: 'ext-unique',
+        }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
+
+      const agent = agents.find((a) => a.backend === 'unique');
+      expect(agent).toBeDefined();
+      expect(agent!.isExtension).toBe(true);
+    });
+
+    it('should always include aionrs and gemini', async () => {
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
+
+      expect(agents).toHaveLength(2);
+      expect(agents[0].backend).toBe('aionrs');
+      expect(agents[1].backend).toBe('gemini');
+    });
+  });
+
+  describe('refreshExtensionAgents', () => {
+    it('should remove old extension agents and add newly detected ones', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+
+      expect(registry.getDetectedAgents().find((a) => a.isExtension)).toBeUndefined();
+
+      // Now an extension is installed that contributes a new CLI
+      mockDetectExtensionAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'new',
+          name: 'New Ext',
+          backend: 'custom',
+          cliPath: 'new-ext-cli',
+          isExtension: true,
+          extensionName: 'ext-new',
+        }),
+      ]);
+
+      await registry.refreshExtensionAgents();
+      const agents = registry.getDetectedAgents();
+
+      const extAgent = agents.find((a) => a.kind === 'acp' && a.cliPath === 'new-ext-cli');
+      expect(extAgent).toBeDefined();
+      expect(extAgent!.isExtension).toBe(true);
+    });
+
+    it('should remove extension agents whose CLI is no longer available', async () => {
+      mockDetectExtensionAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'temp',
+          name: 'Temp',
+          backend: 'custom',
+          cliPath: 'ext-cli',
+          isExtension: true,
+          extensionName: 'ext-temp',
+        }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cliPath === 'ext-cli')).toBeDefined();
+
+      // CLI removed — detectExtensionAgents returns empty
+      mockDetectExtensionAgents.mockResolvedValue([]);
+      await registry.refreshExtensionAgents();
+
+      expect(registry.getDetectedAgents().find((a) => a.kind === 'acp' && a.cliPath === 'ext-cli')).toBeUndefined();
+    });
+
+    it('should deduplicate by backend after refresh — builtin wins', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+
+      // Extension contributes same backend as builtin
+      mockDetectExtensionAgents.mockResolvedValue([
+        makeAcpAgent({
+          id: 'qwen-ext',
+          name: 'Qwen Ext',
+          backend: 'qwen',
+          cliPath: 'bunx @qwen/qwen',
+          isExtension: true,
+          extensionName: 'aionext-qwen',
+        }),
+      ]);
+
+      await registry.refreshExtensionAgents();
+      const qwenAgents = registry.getDetectedAgents().filter((a) => a.backend === 'qwen');
+      expect(qwenAgents).toHaveLength(1);
+      expect(qwenAgents[0].cliPath).toBe('qwen'); // builtin wins
+    });
+  });
+
+  describe('refreshBuiltinAgents', () => {
+    it('should keep Aionrs and Gemini ahead of builtin agents after refresh', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+
+      await registry.refreshBuiltinAgents();
+      const agents = registry.getDetectedAgents();
+
+      expect(agents[0].backend).toBe('aionrs');
+      expect(agents[1].backend).toBe('gemini');
+      expect(agents.slice(2).map((agent) => agent.backend)).toEqual(['claude', 'qwen']);
+    });
+
+    it('should clear env cache before re-detecting', async () => {
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+
+      await registry.refreshBuiltinAgents();
+      expect(mockClearEnvCache).toHaveBeenCalled();
+    });
+  });
+
+  describe('hasAgents', () => {
+    it('should return true after initialization (Gemini is always present)', async () => {
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      expect(registry.hasAgents()).toBe(true);
+    });
+
+    it('should return false before initialization', async () => {
+      const registry = await createFreshRegistry();
+      expect(registry.hasAgents()).toBe(false);
+    });
+  });
+
+  describe('refreshAll', () => {
+    it('should re-run all detection paths', async () => {
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+
+      mockDetectBuiltinAgents.mockClear();
+      mockDetectExtensionAgents.mockClear();
+
+      await registry.refreshAll();
+
+      expect(mockClearEnvCache).toHaveBeenCalled();
+      expect(mockDetectBuiltinAgents).toHaveBeenCalledTimes(1);
+      expect(mockDetectExtensionAgents).toHaveBeenCalledTimes(1);
+    });
   });
 });

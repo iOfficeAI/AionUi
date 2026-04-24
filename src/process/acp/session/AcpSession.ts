@@ -72,6 +72,11 @@ function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
   return wrapped as SessionCallbacks;
 }
 
+export function buildCrashMessage(info?: DisconnectInfo): string | null {
+  if (!info) return null;
+  return `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
+}
+
 export class AcpSession {
   private _status: SessionStatus = 'idle';
 
@@ -217,10 +222,8 @@ export class AcpSession {
   }
 
   setModel(modelId: string): void {
-    if (this._status === 'idle' || this._status === 'error') {
-      throw new AcpError('INVALID_STATE', `Cannot set model in ${this._status}`);
-    }
     this.configTracker.setDesiredModel(modelId);
+    if (this._status === 'idle' || this._status === 'error') return;
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
       client
@@ -232,10 +235,8 @@ export class AcpSession {
   }
 
   setMode(modeId: string): void {
-    if (this._status === 'idle' || this._status === 'error') {
-      throw new AcpError('INVALID_STATE', `Cannot set mode in ${this._status}`);
-    }
     this.configTracker.setDesiredMode(modeId);
+    if (this._status === 'idle' || this._status === 'error') return;
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
       client
@@ -384,7 +385,20 @@ export class AcpSession {
         return;
       }
 
+      case 'active': {
+        // Process exited while idle (no prompt in flight).  This is a normal
+        // lifecycle event — e.g. the agent bridge (codex-acp) may shut down
+        // after an inactivity timeout.  Silently transition to "suspended" so
+        // the next sendMessage triggers a fresh spawn.  Do NOT emit a crash
+        // signal: the user would see a scary "process exited unexpectedly"
+        // error even though the conversation completed normally.
+        this.lifecycle.clearClient();
+        this.setStatus('suspended');
+        return;
+      }
+
       default: {
+        // starting / resuming — process died during bootstrap, treat as crash
         this.lifecycle.clearClient();
         this.emitCrashSignalIfProcessDied(info);
         this.setStatus('suspended');
@@ -394,8 +408,8 @@ export class AcpSession {
 
   /** Emit error signal with exit info so TeammateManager can detect agent crash. */
   private emitCrashSignalIfProcessDied(info?: DisconnectInfo): void {
-    if (info?.reason !== 'process_exit' && info?.reason !== 'process_close') return;
-    const msg = `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
+    const msg = buildCrashMessage(info);
+    if (!msg) return;
     this.callbacks.onSignal({ type: 'error', message: msg, recoverable: true });
   }
 

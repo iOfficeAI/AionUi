@@ -26,14 +26,6 @@ export function useTeamList() {
     async (id: string) => {
       await ipcBridge.team.remove.invoke({ id });
       localStorage.removeItem(`team-active-slot-${id}`);
-      // Clean up failed-agents record for this team
-      try {
-        const stored = JSON.parse(localStorage.getItem('team-failed-agents') ?? '{}') as Record<string, string[]>;
-        delete stored[id];
-        localStorage.setItem('team-failed-agents', JSON.stringify(stored));
-      } catch {
-        // ignore
-      }
       await mutate();
     },
     [mutate]

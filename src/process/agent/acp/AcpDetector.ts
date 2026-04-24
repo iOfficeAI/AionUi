@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/common/types/acpTypes';
 import type { AcpDetectedAgent } from '@/common/types/detectedAgent';
 import { ExtensionRegistry } from '@process/extensions';
 import { safeExec, safeExecFile } from '@process/utils/safeExec';
+import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 /**
@@ -19,6 +21,9 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
  * **Extension agents** — Contributed by installed extensions via
  * `contributes.acpAdapters` in the extension manifest. Discovered from
  * ExtensionRegistry at runtime. Verified via CLI availability before inclusion.
+ *
+ * **Custom agents** — User-defined ACP CLIs from ConfigStorage 'assistants'.
+ * No CLI availability check — the user is responsible for the path they provide.
  *
  * This class is a pure detection module — it does NOT own state or coordinate
  * multiple detectors. State management and orchestration live in AgentRegistry.
@@ -72,10 +77,10 @@ class AcpDetector {
     const results = await Promise.allSettled(
       safe.map(async (cmd): Promise<string | null> => {
         try {
-          await safeExecFile('where', [cmd], { timeout: 1000, env: this.enhancedEnv });
+          await safeExecFile('where', [cmd], { timeout: 3000, env: this.enhancedEnv });
           return cmd;
-        } catch {
-          /* where failed, try PowerShell */
+        } catch (err) {
+          console.warn(`[AcpDetector] 'where ${cmd}' failed, trying PowerShell:`, (err as Error).message);
         }
         try {
           await safeExecFile(
@@ -86,10 +91,11 @@ class AcpDetector {
               '-Command',
               `Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null`,
             ],
-            { timeout: 1000, env: this.enhancedEnv }
+            { timeout: 5000, env: this.enhancedEnv }
           );
           return cmd;
-        } catch {
+        } catch (err) {
+          console.warn(`[AcpDetector] PowerShell Get-Command '${cmd}' also failed:`, (err as Error).message);
           return null;
         }
       })
@@ -121,20 +127,21 @@ class AcpDetector {
 
     for (const cmd of safe) {
       try {
-        execSync(`${whichCommand} ${cmd}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv });
+        execSync(`${whichCommand} ${cmd}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 3000, env: this.enhancedEnv });
         found.add(cmd);
         continue;
-      } catch {
+      } catch (err) {
         if (!isWindows) continue;
+        console.warn(`[AcpDetector] sync 'where ${cmd}' failed:`, (err as Error).message);
       }
       try {
         execSync(
           `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cmd} | Select-Object -First 1 | Out-Null"`,
-          { encoding: 'utf-8', stdio: 'pipe', timeout: 1000, env: this.enhancedEnv }
+          { encoding: 'utf-8', stdio: 'pipe', timeout: 5000, env: this.enhancedEnv }
         );
         found.add(cmd);
-      } catch {
-        /* not found */
+      } catch (err) {
+        console.warn(`[AcpDetector] sync PowerShell '${cmd}' failed:`, (err as Error).message);
       }
     }
     return found;
@@ -144,7 +151,17 @@ class AcpDetector {
    * Detect built-in ACP CLI agents via async batch CLI availability check.
    */
   async detectBuiltinAgents(): Promise<AcpDetectedAgent[]> {
-    const available = await this.batchCheckCliAvailability(POTENTIAL_ACP_CLIS.map((cli) => cli.cmd));
+    const allCmds = POTENTIAL_ACP_CLIS.map((cli) => cli.cmd);
+    const available = await this.batchCheckCliAvailability(allCmds);
+    const missing = allCmds.filter((cmd) => !available.has(cmd));
+
+    if (missing.length > 0) {
+      const envPath = this.enhancedEnv?.PATH ?? process.env.PATH ?? '(empty)';
+      console.info(
+        `[AcpDetector] CLI not found: [${missing.join(', ')}]. ` +
+          `PATH(${envPath.length} chars): ${envPath.substring(0, 500)}`
+      );
+    }
 
     return POTENTIAL_ACP_CLIS.filter((cli) => available.has(cli.cmd)).map((cli) => ({
       id: cli.backendId,
@@ -203,6 +220,36 @@ class AcpDetector {
       return candidates.map((c) => c.agent);
     } catch (error) {
       console.warn('[AcpDetector] Failed to load extension ACP adapters:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Detect user-defined custom ACP agents from ConfigStorage 'acp.customAgents'.
+   * No CLI availability check — user is responsible for the path they provide.
+   */
+  async detectCustomAgents(): Promise<AcpDetectedAgent[]> {
+    try {
+      const customAgents = (await ProcessConfig.get('acp.customAgents')) as AcpBackendConfig[] | undefined;
+      if (!customAgents?.length) return [];
+
+      return customAgents
+        .filter((a) => a.enabled !== false && !a.isPreset && a.defaultCliPath)
+        .map((a) => ({
+          id: `custom:${a.id}`,
+          name: a.name || 'Custom Agent',
+          kind: 'acp' as const,
+          available: true,
+          backend: 'custom',
+          cliPath: a.defaultCliPath,
+          acpArgs: a.acpArgs,
+          customAgentId: a.id,
+        }));
+    } catch (error) {
+      if (error instanceof Error && (error.message.includes('ENOENT') || error.message.includes('not found'))) {
+        return [];
+      }
+      console.warn('[AcpDetector] Unexpected error loading custom agents:', error);
       return [];
     }
   }

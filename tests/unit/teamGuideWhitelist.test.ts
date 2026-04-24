@@ -93,6 +93,20 @@ describe('team guide MCP injection capability check', () => {
       expect(prompt).not.toContain('Task spans multiple files, modules, or domains');
     });
 
+    it('labels the Leader row with the preset assistant name when one is active', () => {
+      const prompt = getTeamGuidePrompt({ backend: 'gemini', leaderLabel: 'Word Creator' });
+
+      expect(prompt).toContain('| Leader | Coordinate and review | Word Creator (gemini) |');
+      // Other roles keep backend-only labels so the leader stays visually distinct.
+      expect(prompt).toContain('| Developer | Implement features | gemini |');
+      expect(prompt).toContain('| Tester | Write and run tests | gemini |');
+    });
+
+    it('accepts a legacy string backend for backward compatibility', () => {
+      const prompt = getTeamGuidePrompt('claude');
+      expect(prompt).toContain('| Leader | Coordinate and review | claude |');
+    });
+
     it('requires explicit user intent or explicit approval before creating a team', () => {
       const toolDescription = getCreateTeamToolDescription();
 

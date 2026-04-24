@@ -1,4 +1,5 @@
 import { getFullAutoMode } from '@/common/types/agentModes';
+import { parseInitializeResult } from '@/common/types/acpTypes';
 import type { AuthMethod, LoadSessionResponse, McpServer, NewSessionResponse } from '@agentclientprotocol/sdk';
 import { normalizeError } from '@process/acp/errors/errorNormalize';
 import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
@@ -97,6 +98,7 @@ export class SessionLifecycle {
       const sessionResult = await this.establishSession();
       if (!sessionResult) return; // auth-required, already handled
       this.applySessionResult(sessionResult);
+      await this.reassertConfig();
       this.host.flushPendingPrompt();
     } catch (err) {
       this.handleStartError(err);
@@ -114,6 +116,14 @@ export class SessionLifecycle {
 
     if (initResult.authMethods && initResult.authMethods.length > 0) {
       this.cachedAuthMethods = initResult.authMethods;
+    }
+
+    // Seed modes advertised at initialize time (qwen-code exposes availableModes
+    // here rather than in session/new). applySessionResult still overwrites when
+    // session/new returns its own modes.
+    const parsed = parseInitializeResult(initResult);
+    if (parsed.modes) {
+      this.host.configTracker.syncFromInitializeResult(parsed.modes);
     }
 
     this.host.callbacks.onInitialize?.(initResult);

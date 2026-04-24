@@ -17,14 +17,6 @@
     "renameSuccess": "团队已重命名",
     "deleteSuccess": "团队已删除"
   },
-  "addAgent": {
-    "title": "添加 Agent",
-    "name": "Agent 名称",
-    "namePlaceholder": "输入 Agent 名称",
-    "type": "Agent 类型",
-    "typePlaceholder": "选择 Agent 类型",
-    "confirm": "添加"
-  },
   "newAgent": "新成员",
   "noMessages": "暂无消息。",
   "agentNotConfigured": "Agent 尚未配置。",

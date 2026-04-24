@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AcpSession } from '@process/acp/session/AcpSession';
-import type { AcpClient, ClientFactory } from '@process/acp/infra/IAcpClient';
+import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
 import type { AgentConfig, SessionCallbacks, SessionStatus } from '@process/acp/types';
 import type { SessionOptions } from '@process/acp/session/AcpSession';
 
@@ -179,5 +179,60 @@ describe('AcpSession lifecycle', () => {
     for (const t of transitions) {
       expect(VALID_TRANSITIONS.has(t), `Invalid transition: ${t}`).toBe(true);
     }
+  });
+
+  it('disconnect in active state does NOT emit crash signal (idle exit)', async () => {
+    // Capture the disconnect handler registered by SessionLifecycle
+    let disconnectHandler: ((info: DisconnectInfo) => void) | null = null;
+    (client.onDisconnect as ReturnType<typeof vi.fn>).mockImplementation((handler: (info: DisconnectInfo) => void) => {
+      disconnectHandler = handler;
+    });
+
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
+    session.start();
+    await vi.waitFor(() => expect(session.status).toBe('active'));
+
+    // Simulate process exit while session is idle (active, no prompt in flight)
+    disconnectHandler!({ reason: 'process_exit', exitCode: 1, signal: null, stderr: '' });
+
+    expect(session.status).toBe('suspended');
+    // onSignal should NOT have been called with an error crash message
+    const signalCalls = (callbacks.onSignal as ReturnType<typeof vi.fn>).mock.calls;
+    const crashSignals = signalCalls.filter(
+      ([sig]: [{ type: string; message?: string }]) =>
+        sig.type === 'error' && sig.message?.includes('process exited unexpectedly')
+    );
+    expect(crashSignals).toHaveLength(0);
+  });
+
+  it('disconnect in prompting state DOES emit crash signal', async () => {
+    let disconnectHandler: ((info: DisconnectInfo) => void) | null = null;
+    (client.onDisconnect as ReturnType<typeof vi.fn>).mockImplementation((handler: (info: DisconnectInfo) => void) => {
+      disconnectHandler = handler;
+    });
+
+    // Make prompt() hang forever so we stay in 'prompting' state
+    (client.prompt as ReturnType<typeof vi.fn>).mockReturnValue(new Promise(() => {}));
+    // Make loadSession resolve so resume works
+    (client.loadSession as ReturnType<typeof vi.fn>).mockResolvedValue({ sessionId: 'sess-123' });
+
+    const session = new AcpSession(baseConfig, clientFactory, callbacks);
+    session.start();
+    await vi.waitFor(() => expect(session.status).toBe('active'));
+
+    // Start a prompt (will hang, keeping status in 'prompting')
+    void session.sendMessage('hello');
+    await vi.waitFor(() => expect(session.status).toBe('prompting'));
+
+    // Simulate process crash during prompting
+    disconnectHandler!({ reason: 'process_exit', exitCode: 1, signal: null, stderr: '' });
+
+    // onSignal SHOULD have been called with a crash error
+    const signalCalls = (callbacks.onSignal as ReturnType<typeof vi.fn>).mock.calls;
+    const crashSignals = signalCalls.filter(
+      ([sig]: [{ type: string; message?: string }]) =>
+        sig.type === 'error' && sig.message?.includes('process exited unexpectedly')
+    );
+    expect(crashSignals.length).toBeGreaterThan(0);
   });
 });

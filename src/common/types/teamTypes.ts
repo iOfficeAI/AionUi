@@ -14,6 +14,7 @@ import type { AcpInitializeResult } from './acpTypes';
  * after the first user conversation.
  */
 export const TEAM_SUPPORTED_BACKENDS: ReadonlySet<string> = new Set(['gemini', 'claude', 'codex', 'snow', 'aionrs']);
+const KNOWN_TEAM_CAPABLE_BACKENDS = TEAM_SUPPORTED_BACKENDS;
 
 /**
  * Check if an agent backend is team-capable.
@@ -24,7 +25,7 @@ export function isTeamCapableBackend(
   backend: string,
   cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
 ): boolean {
-  if (TEAM_SUPPORTED_BACKENDS.has(backend)) return true;
+  if (KNOWN_TEAM_CAPABLE_BACKENDS.has(backend)) return true;
   const initResult = cachedInitResults?.[backend];
   return initResult?.capabilities.mcpCapabilities.stdio === true;
 }

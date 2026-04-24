@@ -12,6 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockDetectBuiltinAgents = vi.fn(async () => []);
 const mockDetectExtensionAgents = vi.fn(async () => []);
+const mockDetectCustomAgents = vi.fn(async () => []);
 const mockClearEnvCache = vi.fn();
 const mockIsCliAvailable = vi.fn(() => false);
 const mockGetRemoteAgents = vi.fn(() => []);
@@ -20,6 +21,7 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: {
     detectBuiltinAgents: (...args: unknown[]) => mockDetectBuiltinAgents(...args),
     detectExtensionAgents: (...args: unknown[]) => mockDetectExtensionAgents(...args),
+    detectCustomAgents: (...args: unknown[]) => mockDetectCustomAgents(...args),
     clearEnvCache: (...args: unknown[]) => mockClearEnvCache(...args),
     isCliAvailable: (...args: unknown[]) => mockIsCliAvailable(...args),
   },
@@ -83,6 +85,7 @@ describe('AgentRegistry.deduplicate', () => {
     vi.clearAllMocks();
     mockDetectBuiltinAgents.mockResolvedValue([]);
     mockDetectExtensionAgents.mockResolvedValue([]);
+    mockDetectCustomAgents.mockResolvedValue([]);
     mockIsCliAvailable.mockReturnValue(false);
     mockGetRemoteAgents.mockReturnValue([]);
   });

@@ -12,9 +12,6 @@ import type { IMessageText } from '@/common/chat/chatLib';
 const markdownViewMock = vi.hoisted(() =>
   vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid='markdown-view'>{children}</div>)
 );
-const streamingMarkdownViewMock = vi.hoisted(() =>
-  vi.fn(({ children }: { children: React.ReactNode }) => <div data-testid='streaming-markdown-view'>{children}</div>)
-);
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -50,20 +47,33 @@ vi.mock('@renderer/components/Markdown', () => ({
   default: markdownViewMock,
 }));
 
-vi.mock('@renderer/components/Markdown/StreamingMarkdownView', () => ({
-  default: streamingMarkdownViewMock,
-}));
-
 vi.mock('@/renderer/utils/ui/clipboard', () => ({
   copyText: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
-  getAgentLogo: vi.fn(() => null),
+  getAgentLogo: vi.fn((type?: string) => (type ? '/backend-logo.svg' : null)),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageCronBadge', () => ({
   default: () => <div data-testid='message-cron-badge' />,
+}));
+
+const mockPresetInfo = vi.hoisted(() => ({ value: null as { name: string; logo: string; isEmoji: boolean } | null }));
+vi.mock('@renderer/hooks/agent/usePresetAssistantInfo', () => ({
+  usePresetAssistantInfo: () => ({ info: mockPresetInfo.value, isLoading: false }),
+}));
+
+vi.mock('swr', () => ({
+  default: () => ({ data: undefined, error: undefined, isLoading: false, mutate: vi.fn() }),
+}));
+
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      get: { invoke: vi.fn(async () => null) },
+    },
+  },
 }));
 
 import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
@@ -82,7 +92,7 @@ const createMessage = (overrides?: Partial<IMessageText>): IMessageText => ({
 
 describe('MessageText', () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    mockPresetInfo.value = null;
   });
 
   it('renders user-authored markdown-looking text as plain text instead of using MarkdownView', () => {
@@ -118,21 +128,48 @@ describe('MessageText', () => {
     expect(markdownViewMock).toHaveBeenCalledOnce();
   });
 
-  it('uses streaming markdown rendering for assistant messages while streaming', () => {
+  it('shows the preset emoji instead of the backend logo for teammate messages from preset senders', () => {
+    mockPresetInfo.value = { name: 'Word Creator', logo: '📝', isEmoji: true };
+
     render(
       <MessageText
-        isStreaming
         message={createMessage({
           position: 'left',
           content: {
-            content: '~tilde~ **bold** `code`',
+            content: 'hello from preset',
+            teammateMessage: true,
+            senderName: 'Writer',
+            senderAgentType: 'gemini',
+            senderConversationId: 'conv-preset',
           },
         })}
       />
     );
 
-    expect(screen.getByTestId('streaming-markdown-view')).toBeInTheDocument();
-    expect(streamingMarkdownViewMock).toHaveBeenCalledOnce();
-    expect(markdownViewMock).not.toHaveBeenCalled();
+    expect(screen.getByText('📝')).toBeInTheDocument();
+    // Backend logo must not render when a preset avatar is available
+    expect(screen.queryByAltText('Writer')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the backend logo for teammate messages from non-preset senders', () => {
+    mockPresetInfo.value = null;
+
+    render(
+      <MessageText
+        message={createMessage({
+          position: 'left',
+          content: {
+            content: 'hello from cli agent',
+            teammateMessage: true,
+            senderName: 'Coder',
+            senderAgentType: 'claude',
+            senderConversationId: 'conv-cli',
+          },
+        })}
+      />
+    );
+
+    const logo = screen.getByAltText('Coder') as HTMLImageElement;
+    expect(logo.src).toContain('/backend-logo.svg');
   });
 });
