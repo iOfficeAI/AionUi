@@ -170,6 +170,7 @@ export function initModelBridge(): void {
       const minimaxModels = [
         // Text/Chat Models - For conversational AI use
         'MiniMax-M2.7',
+        'MiniMax-M2.7-highspeed', // Same performance, faster and more agile
         'MiniMax-M2.5',
         'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
         'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)

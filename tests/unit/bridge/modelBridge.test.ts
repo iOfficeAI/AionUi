@@ -113,7 +113,15 @@ describe('modelBridge fetchModelList', () => {
     expect(result).toEqual({
       success: true,
       data: {
-        mode: ['MiniMax-M2.7', 'MiniMax-M2.5', 'MiniMax-M2.1', 'MiniMax-M2.1-lightning', 'MiniMax-M2', 'M2-her'],
+        mode: [
+          'MiniMax-M2.7',
+          'MiniMax-M2.7-highspeed',
+          'MiniMax-M2.5',
+          'MiniMax-M2.1',
+          'MiniMax-M2.1-lightning',
+          'MiniMax-M2',
+          'M2-her',
+        ],
       },
     });
     expect(mockModelsList).not.toHaveBeenCalled();
