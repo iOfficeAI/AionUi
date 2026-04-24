@@ -62,11 +62,7 @@ test.describe('Team Delete', () => {
     await deleteTeamBySiderMenu(page, teamName);
 
     // [assert-ui] URL should no longer contain the deleted teamId
-    await page.waitForFunction(
-      (id) => !window.location.hash.includes(id),
-      teamId,
-      { timeout: 10_000 }
-    );
+    await page.waitForFunction((id) => !window.location.hash.includes(id), teamId, { timeout: 10_000 });
 
     await page.screenshot({ path: 'tests/e2e/results/team-delete-04-navigated-away.png' });
 

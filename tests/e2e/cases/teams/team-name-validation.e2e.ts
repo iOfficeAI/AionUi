@@ -17,7 +17,10 @@ async function openCreateModal(page: import('@playwright/test').Page): Promise<M
   await expect(createBtn).toBeVisible({ timeout: 10_000 });
   await createBtn.click();
 
-  const modal = page.locator('.arco-modal').filter({ hasText: /Create Team|创建团队/ }).first();
+  const modal = page
+    .locator('.arco-modal')
+    .filter({ hasText: /Create Team|创建团队/ })
+    .first();
   await expect(modal).toBeVisible({ timeout: 5_000 });
 
   const nameInput = modal.locator('input').first();

@@ -99,9 +99,7 @@ test.describe('Team Agent Whitelist', () => {
     if (present.length === 0) {
       // CLI agents surfaced but none match TEAM_SUPPORTED_BACKENDS — test-infra backends
       // not installed in this env. Skip gracefully.
-      console.log(
-        `[E2E] No TEAM_SUPPORTED_BACKENDS present in dropdown — found [${cliBackends.join(', ')}], skipping`
-      );
+      console.log(`[E2E] No TEAM_SUPPORTED_BACKENDS present in dropdown — found [${cliBackends.join(', ')}], skipping`);
       await page.keyboard.press('Escape').catch(() => {});
       await page.locator('.arco-modal .arco-btn-text').first().click();
       await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });

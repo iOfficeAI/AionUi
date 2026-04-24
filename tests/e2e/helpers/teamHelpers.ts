@@ -69,7 +69,10 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
 
 async function pickLeaderOption(page: Page, leaderType?: string): Promise<Locator | null> {
   const options = page.locator('[data-testid^="team-create-agent-option-"]');
-  await options.first().waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+  await options
+    .first()
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .catch(() => {});
 
   if (!leaderType) {
     const first = options.first();
@@ -87,11 +90,18 @@ async function pickLeaderOption(page: Page, leaderType?: string): Promise<Locato
 }
 
 async function closeModal(page: Page, modal: Locator): Promise<void> {
-  const cancel = modal.locator('.arco-btn').filter({ hasText: /Cancel|取消/i }).first();
+  const cancel = modal
+    .locator('.arco-btn')
+    .filter({ hasText: /Cancel|取消/i })
+    .first();
   if ((await cancel.count().catch(() => 0)) > 0) {
     await cancel.click({ force: true }).catch(() => {});
   }
-  await page.locator('.arco-modal').last().waitFor({ state: 'hidden', timeout: 5_000 }).catch(() => {});
+  await page
+    .locator('.arco-modal')
+    .last()
+    .waitFor({ state: 'hidden', timeout: 5_000 })
+    .catch(() => {});
 }
 
 /**

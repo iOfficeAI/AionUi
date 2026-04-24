@@ -50,7 +50,10 @@ test.describe('Workspace Files — backend API', () => {
     const entries = await invokeBridge<IDirOrFile[]>(page, 'fs.dir', { dir: workspace, root: workspace });
     expect(Array.isArray(entries)).toBe(true);
 
-    const names = entries.map((e) => e.name).slice().sort();
+    const names = entries
+      .map((e) => e.name)
+      .slice()
+      .toSorted();
     expect(names).toContain('a.txt');
     expect(names).toContain('notes');
 
@@ -62,7 +65,10 @@ test.describe('Workspace Files — backend API', () => {
 
   test('fs.list returns a flat listing with relative paths', async ({ page }) => {
     const flat = await invokeBridge<IWorkspaceFlatFile[]>(page, 'fs.list', { root: workspace });
-    const relPaths = flat.map((f) => f.relativePath).slice().sort();
+    const relPaths = flat
+      .map((f) => f.relativePath)
+      .slice()
+      .toSorted();
     expect(relPaths).toContain('a.txt');
     // Either forward or platform separator — normalise before comparison.
     const normalized = relPaths.map((p) => p.split('\\').join('/'));

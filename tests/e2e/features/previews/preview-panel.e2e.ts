@@ -74,7 +74,9 @@ test.describe('Preview panel & office documents', () => {
     // Preview panel container is rendered inside every conversation layout,
     // even when collapsed. We only assert the mount point exists — opening a
     // tab requires a live agent, which is out of scope for this suite.
-    const previewRoot = page.locator('[data-testid="preview-panel"], [class*="preview-panel"], [class*="PreviewPanel"]');
+    const previewRoot = page.locator(
+      '[data-testid="preview-panel"], [class*="preview-panel"], [class*="PreviewPanel"]'
+    );
     const count = await previewRoot.count();
     expect(count).toBeGreaterThanOrEqual(0);
 

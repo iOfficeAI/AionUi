@@ -148,7 +148,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试的入口 selector，不得删除或重命名。
                 如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
             <div
-              data-testid="team-create-btn"
+              data-testid='team-create-btn'
               className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
               onClick={() => setCreateTeamVisible(true)}
             >

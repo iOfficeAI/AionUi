@@ -48,12 +48,12 @@ test.describe('Team Create', () => {
     const nameInput = modal.getByRole('textbox').first();
     await expect(nameInput).toBeVisible();
 
-    // Verify agent card grid exists (agent selection uses cards, not a select dropdown)
-    const agentCardGrid = page.locator('[data-testid^="team-create-agent-card-"]').first();
+    // Verify the leader AionSelect trigger exists (agent picker is a searchable dropdown)
+    const leaderSelect = page.locator('[data-testid="team-create-leader-select"]');
     const noAgentsMsg = page.locator('.arco-modal').getByText(/No supported agents installed|没有支持的 agent/i);
-    const hasCards = await agentCardGrid.isVisible({ timeout: 3000 }).catch(() => false);
+    const hasSelect = await leaderSelect.isVisible({ timeout: 3000 }).catch(() => false);
     const hasNoAgentsMsg = await noAgentsMsg.isVisible({ timeout: 1000 }).catch(() => false);
-    expect(hasCards || hasNoAgentsMsg).toBeTruthy();
+    expect(hasSelect || hasNoAgentsMsg).toBeTruthy();
 
     // Verify Create button exists (disabled until agent is selected and name is filled)
     const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
@@ -79,15 +79,20 @@ test.describe('Team Create', () => {
     const nameInput = modal.getByRole('textbox').first();
     await nameInput.fill('E2E Test Team');
 
-    // Select first agent card (new UI uses card grid, not a select dropdown)
-    const firstCard = page.locator('[data-testid^="team-create-agent-card-"]').first();
-    const hasCard = await firstCard.isVisible({ timeout: 3000 }).catch(() => false);
+    // Open the leader select dropdown (AionSelect portals to document.body)
+    const leaderSelect = modal.locator('[data-testid="team-create-leader-select"]');
+    const hasSelect = await leaderSelect.isVisible({ timeout: 3000 }).catch(() => false);
 
-    // Screenshot: agent cards
+    // Screenshot: select trigger visible
     await page.screenshot({ path: 'tests/e2e/results/team-03-agent-dropdown.png' });
 
-    if (hasCard) {
-      await firstCard.click();
+    if (hasSelect) {
+      await leaderSelect.click();
+
+      // Options are portaled to document.body — query at page scope
+      const firstOption = page.locator('[data-testid^="team-create-agent-option-"]').first();
+      await expect(firstOption).toBeVisible({ timeout: 5000 });
+      await firstOption.click();
 
       // Wait for select value to reflect the chosen option (Create btn becomes enabled)
       const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
@@ -143,24 +148,33 @@ async function createTeamWithAgent(
   const nameInput = modal.getByRole('textbox').first();
   await nameInput.fill(teamName);
 
+  // Open the leader select dropdown (AionSelect portals options to document.body)
+  const leaderSelect = modal.locator('[data-testid="team-create-leader-select"]');
+  await expect(leaderSelect).toBeVisible({ timeout: 5000 });
+  await leaderSelect.click();
+
   await page.screenshot({ path: `tests/e2e/results/${screenshotPrefix}-dropdown.png` });
 
-  // Find the agent card matching the text pattern (new UI uses card grid, not a select dropdown)
-  const allCards = page.locator('[data-testid^="team-create-agent-card-"]');
-  const cardCount = await allCards.count().catch(() => 0);
+  // Find the agent option matching the text pattern (options are at page scope, not inside .arco-modal)
+  const allOptions = page.locator('[data-testid^="team-create-agent-option-"]');
+  await expect(allOptions.first())
+    .toBeVisible({ timeout: 5000 })
+    .catch(() => {});
+  const optionCount = await allOptions.count().catch(() => 0);
 
-  let matchingCard: import('@playwright/test').Locator | null = null;
-  for (let i = 0; i < cardCount; i++) {
-    const card = allCards.nth(i);
-    const text = await card.textContent().catch(() => '');
+  let matchingOption: import('@playwright/test').Locator | null = null;
+  for (let i = 0; i < optionCount; i++) {
+    const option = allOptions.nth(i);
+    const text = await option.textContent().catch(() => '');
     if (agentTextPattern.test(text ?? '')) {
-      matchingCard = card;
+      matchingOption = option;
       break;
     }
   }
 
-  if (!matchingCard) {
-    // Agent not installed — close modal, skip test
+  if (!matchingOption) {
+    // Agent not installed — close dropdown and modal, skip test
+    await page.keyboard.press('Escape').catch(() => {});
     await page.locator('.arco-modal .arco-btn-text').first().click({ force: true });
     await expect(page.locator('.arco-modal')).toBeHidden({ timeout: 5000 });
     console.log(`[E2E] Agent matching ${agentTextPattern} not found — skipping`);
@@ -168,7 +182,7 @@ async function createTeamWithAgent(
     return;
   }
 
-  await matchingCard.click();
+  await matchingOption.click();
 
   // Wait for Create button to become enabled (select value applied)
   const confirmBtn = page.locator('.arco-modal .arco-btn-primary');
