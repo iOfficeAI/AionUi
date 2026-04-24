@@ -20,8 +20,8 @@ import { ipcBridge } from '@/common';
  */
 
 export type PresetAssistantResourceDeps = {
-  readAssistantRule: (args: { assistantId: string; locale: string }) => Promise<string>;
-  readAssistantSkill: (args: { assistantId: string; locale: string }) => Promise<string>;
+  readAssistantRule: (args: { assistant_id: string; locale: string }) => Promise<string>;
+  readAssistantSkill: (args: { assistant_id: string; locale: string }) => Promise<string>;
   getEnabledSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   getDisabledBuiltinSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
@@ -83,13 +83,13 @@ export async function loadPresetAssistantResources(
   let skills = '';
 
   try {
-    rules = (await deps.readAssistantRule({ assistantId: custom_agent_id, locale: localeKey })) || '';
+    rules = (await deps.readAssistantRule({ assistant_id: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
     deps.warn(`[presetAssistantResources] Failed to load rules for ${custom_agent_id}`, error);
   }
 
   try {
-    skills = (await deps.readAssistantSkill({ assistantId: custom_agent_id, locale: localeKey })) || '';
+    skills = (await deps.readAssistantSkill({ assistant_id: custom_agent_id, locale: localeKey })) || '';
   } catch (error) {
     deps.warn(`[presetAssistantResources] Failed to load skills for ${custom_agent_id}`, error);
   }

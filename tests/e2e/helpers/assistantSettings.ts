@@ -14,7 +14,7 @@ export async function goToAssistantSettings(page: Page): Promise<void> {
 
 /** Open the assistant edit drawer by clicking on an assistant card. */
 export async function openAssistantDrawer(page: Page, assistant_id: string): Promise<void> {
-  const card = page.locator(`[data-testid="assistant-card-${assistantId}"]`);
+  const card = page.locator(`[data-testid="assistant-card-${assistant_id}"]`);
   await card.click();
   await page.locator('[data-testid="assistant-edit-drawer"]').waitFor({ state: 'visible', timeout: 5_000 });
 }
@@ -63,16 +63,16 @@ export async function deleteAssistant(page: Page): Promise<void> {
 
 /** Click the Duplicate link for an assistant. */
 export async function duplicateAssistant(page: Page, assistant_id: string): Promise<void> {
-  const card = page.locator(`[data-testid="assistant-card-${assistantId}"]`);
+  const card = page.locator(`[data-testid="assistant-card-${assistant_id}"]`);
   await card.hover();
-  const dupBtn = page.locator(`[data-testid="btn-duplicate-${assistantId}"]`);
+  const dupBtn = page.locator(`[data-testid="btn-duplicate-${assistant_id}"]`);
   await dupBtn.click();
   await page.locator('[data-testid="assistant-edit-drawer"]').waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 /** Toggle the enabled/disabled switch for an assistant. */
 export async function toggleAssistantEnabled(page: Page, assistant_id: string): Promise<void> {
-  const sw = page.locator(`[data-testid="switch-enabled-${assistantId}"]`);
+  const sw = page.locator(`[data-testid="switch-enabled-${assistant_id}"]`);
   await sw.click();
 }
 

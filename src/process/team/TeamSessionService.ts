@@ -252,8 +252,8 @@ export class TeamSessionService {
     const language = await ProcessConfig.get('language');
     const localeKey = resolveLocaleKey(language || 'en-US');
     const deps: PresetAssistantResourceDeps = {
-      readAssistantRule: ({ assistantId, locale }) => this.readAssistantResource('rules', assistantId, locale),
-      readAssistantSkill: ({ assistantId, locale }) => this.readAssistantResource('skills', assistantId, locale),
+      readAssistantRule: ({ assistant_id, locale }) => this.readAssistantResource('rules', assistant_id, locale),
+      readAssistantSkill: ({ assistant_id, locale }) => this.readAssistantResource('skills', assistant_id, locale),
       getEnabledSkills: async (assistantId) => {
         try {
           const list = await ipcBridge.assistants.list.invoke();

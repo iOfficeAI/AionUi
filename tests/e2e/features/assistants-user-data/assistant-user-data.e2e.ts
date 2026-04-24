@@ -108,7 +108,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     expect(ids).toContain(BUILTIN_PROBE_ID);
     // Every built-in must resolve a rule file via the dispatch endpoint.
     const ruleContent = await httpPost<string>(page, '/api/skills/assistant-rule/read', {
-      assistantId: BUILTIN_PROBE_ID,
+      assistant_id: BUILTIN_PROBE_ID,
       locale: 'en-US',
     });
     expect(typeof ruleContent).toBe('string');
@@ -168,12 +168,12 @@ test.describe('Assistant User Data Migration (T5)', () => {
 
     // Write a user-owned rule.
     await httpPost(page, '/api/skills/assistant-rule/write', {
-      assistantId: created.id,
+      assistant_id: created.id,
       locale: 'en-US',
       content: ruleBody,
     });
     const readBack = await httpPost<string>(page, '/api/skills/assistant-rule/read', {
-      assistantId: created.id,
+      assistant_id: created.id,
       locale: 'en-US',
     });
     expect(readBack).toBe(ruleBody);
@@ -194,7 +194,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
       preset_agent_type: 'gemini',
     });
     await httpPost(page, '/api/skills/assistant-rule/write', {
-      assistantId: created.id,
+      assistant_id: created.id,
       locale: 'en-US',
       content: `# to-be-deleted ${stamp}`,
     });
@@ -203,7 +203,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     const before = await httpGet<Assistant[]>(page, '/api/assistants');
     expect(before.some((a) => a.id === created.id)).toBe(true);
     const ruleBefore = await httpPost<string>(page, '/api/skills/assistant-rule/read', {
-      assistantId: created.id,
+      assistant_id: created.id,
       locale: 'en-US',
     });
     expect(ruleBefore.length).toBeGreaterThan(0);
@@ -214,7 +214,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     expect(after.some((a) => a.id === created.id)).toBe(false);
     // After delete, read should resolve to empty string (user file gone).
     const ruleAfter = await httpPost<string>(page, '/api/skills/assistant-rule/read', {
-      assistantId: created.id,
+      assistant_id: created.id,
       locale: 'en-US',
     });
     expect(ruleAfter).toBe('');
@@ -244,7 +244,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
     // Rule write on a built-in is rejected.
     await expect(
       httpPost(page, '/api/skills/assistant-rule/write', {
-        assistantId: BUILTIN_PROBE_ID,
+        assistant_id: BUILTIN_PROBE_ID,
         locale: 'en-US',
         content: 'nope',
       })
@@ -289,7 +289,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
 
     await expect(
       httpPost(page, '/api/skills/assistant-rule/write', {
-        assistantId: ext.id,
+        assistant_id: ext.id,
         locale: 'en-US',
         content: 'nope',
       })

@@ -272,7 +272,7 @@ Requirements:
       // (backend spec §6.4); the Assistant row doesn't carry inline context.
       if (content.trim()) {
         await ipcBridge.fs.writeAssistantRule.invoke({
-          assistantId: created.id,
+          assistant_id: created.id,
           content,
         });
       }

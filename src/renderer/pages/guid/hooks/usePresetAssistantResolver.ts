@@ -61,7 +61,7 @@ export const usePresetAssistantResolver = ({
 
       try {
         rules = await ipcBridge.fs.readAssistantRule.invoke({
-          assistantId: custom_agent_id,
+          assistant_id: custom_agent_id,
           locale: localeKey,
         });
       } catch (error) {
@@ -70,7 +70,7 @@ export const usePresetAssistantResolver = ({
 
       try {
         skills = await ipcBridge.fs.readAssistantSkill.invoke({
-          assistantId: custom_agent_id,
+          assistant_id: custom_agent_id,
           locale: localeKey,
         });
       } catch (_error) {
