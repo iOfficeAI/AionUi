@@ -137,7 +137,12 @@ export default defineConfig(({ mode }) => {
     },
 
     preload: {
-      plugins: [externalizeDepsPlugin()],
+      // Bundle @sentry/electron/preload so its hookupIpc() runs in the preload
+      // context. Externalized dependencies leave a runtime require('...') in
+      // the output, which Electron's sandbox-mode preload cannot resolve from
+      // node_modules (→ "module not found"). Bundling inlines the few hundred
+      // bytes of IPC wiring we actually need.
+      plugins: [externalizeDepsPlugin({ exclude: ['@sentry/electron'] })],
       resolve: {
         alias: { '@': resolve('src'), '@common': resolve('src/common') },
         extensions: ['.ts', '.tsx', '.js', '.json'],
