@@ -18,6 +18,23 @@ describe('InputPreprocessor', () => {
     expect(result[1]).toEqual({ type: 'text', text: '[File: /foo/bar.ts]\ncontent of /foo/bar.ts' });
   });
 
+  it('keeps image uploads as resource links instead of inlining them', () => {
+    const readFile = vi.fn();
+    const pp = new InputPreprocessor(readFile);
+    const result = pp.process('what is this image', ['/foo/demo.jpg']);
+
+    expect(readFile).not.toHaveBeenCalled();
+    expect(result).toEqual([
+      { type: 'text', text: 'what is this image' },
+      {
+        type: 'resource_link',
+        name: 'demo.jpg',
+        uri: 'file:///foo/demo.jpg',
+        mimeType: 'image/jpeg',
+      },
+    ]);
+  });
+
   it('resolves @file references in text', () => {
     const readFile = vi.fn((path: string) => `content of ${path}`);
     const pp = new InputPreprocessor(readFile);
@@ -34,6 +51,22 @@ describe('InputPreprocessor', () => {
     const result = pp.process('check this', ['/nonexistent.ts']);
     expect(result).toHaveLength(1);
     expect(result[0].type).toBe('text');
+  });
+
+  it('falls back to a resource link when a file content looks binary', () => {
+    const readFile = vi.fn(() => '\u0000\u0001binary');
+    const pp = new InputPreprocessor(readFile);
+    const result = pp.process('check this', ['/foo/blob.bin']);
+
+    expect(readFile).toHaveBeenCalledTimes(1);
+    expect(result).toEqual([
+      { type: 'text', text: 'check this' },
+      {
+        type: 'resource_link',
+        name: 'blob.bin',
+        uri: 'file:///foo/blob.bin',
+      },
+    ]);
   });
 
   it('deduplicates uploaded files from @references', () => {

@@ -22,11 +22,11 @@ describe('buildDisplayMessage', () => {
     expect(result).toContain(`${workspace}/uploads/subdir/doc.pdf`);
   });
 
-  it('stores absolute paths outside workspace using workspace basename prefix', () => {
+  it('keeps absolute paths outside workspace unchanged', () => {
     const files = ['/other/path/external.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
-    expect(result).toContain(`${workspace}/external.txt`);
-    expect(result).not.toContain('/other/path');
+    expect(result).toContain('/other/path/external.txt');
+    expect(result).not.toContain(`${workspace}/external.txt`);
   });
 
   it('converts relative paths into workspace-prefixed paths', () => {

@@ -541,6 +541,29 @@ export function initConversationBridge(
       workspaceFiles = (files ?? []).filter((f) => path.isAbsolute(f));
     }
 
+    if (workspaceFiles.length > 0) {
+      const resolvedWorkspace = path.resolve(task.workspace);
+      const resolvedCacheTempDir = path.resolve(path.join(getSystemDir().cacheDir, 'temp'));
+      let workspaceCount = 0;
+      let cacheTempCount = 0;
+      let externalCount = 0;
+
+      for (const filePath of workspaceFiles) {
+        const resolvedFile = path.resolve(filePath);
+        if (resolvedFile.startsWith(resolvedWorkspace + path.sep)) {
+          workspaceCount++;
+        } else if (resolvedFile.startsWith(resolvedCacheTempDir + path.sep)) {
+          cacheTempCount++;
+        } else {
+          externalCount++;
+        }
+      }
+
+      console.log(
+        `[conversationBridge] sendMessage files (${conversation_id}): workspace=${workspaceCount}, cacheTemp=${cacheTempCount}, external=${externalCount}`
+      );
+    }
+
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,
     // because the CLI may not proactively read SKILL.md files the way ACP agents do.

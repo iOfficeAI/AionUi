@@ -54,6 +54,7 @@ vi.mock('../../src/common', () => ({
 vi.mock('../../src/process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(async () => []) },
   getSkillsDir: vi.fn(() => '/skills'),
+  getSystemDir: vi.fn(() => ({ cacheDir: '/tmp/cache' })),
   ProcessConfig: { get: vi.fn(async () => []) },
 }));
 

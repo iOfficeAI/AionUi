@@ -24,10 +24,9 @@ export const buildDisplayMessage = (input: string, files: string[], workspacePat
         const relativePath = normalizedFile.slice(normalizedWorkspaceWithForwardSlash.length + 1);
         return `${normalizedWorkspace}/${relativePath.replace(AIONUI_TIMESTAMP_REGEX, '$1')}`;
       }
-      // External file outside workspace: use basename only so the marker stays tied to this workspace
-      const parts = sanitizedPath.split(/[\\/]/);
-      const fileName = parts[parts.length - 1] || sanitizedPath;
-      return `${normalizedWorkspace}/${fileName}`;
+      // Keep external absolute paths unchanged so preview and metadata lookups
+      // continue to read the real file instead of a non-existent workspace path.
+      return sanitizedPath;
     }
     return `${normalizedWorkspace}/${sanitizedPath}`;
   });

@@ -85,4 +85,26 @@ describe('MessageText attachment paths', () => {
 
     expect(screen.getByTestId('file-preview')).toHaveTextContent('/workspace/demo/uploads/photo.png');
   });
+
+  it('keeps absolute attachment paths unchanged before previewing', () => {
+    const message: IMessageText = {
+      id: 'msg-2',
+      msg_id: 'msg-2',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'right',
+      createdAt: Date.now(),
+      content: {
+        content: 'look at this\n\n[[AION_FILES]]\n/Users/demo/Desktop/photo.png',
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={message} />
+      </ConversationProvider>
+    );
+
+    expect(screen.getByTestId('file-preview')).toHaveTextContent('/Users/demo/Desktop/photo.png');
+  });
 });
