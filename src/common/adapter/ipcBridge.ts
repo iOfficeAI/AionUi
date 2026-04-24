@@ -598,26 +598,26 @@ export const acpConversation = {
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: AgentBackend }>(
     '/api/acp/health-check'
   ),
-  setMode: httpPut<void, { conversationId: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversationId}/acp/mode`,
+  setMode: httpPut<void, { conversation_id: string; mode: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/acp/mode`,
     (p) => ({ mode: p.mode })
   ),
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversationId: string }>(
-    (p) => `/api/conversations/${p.conversationId}/acp/mode`
+  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/acp/mode`
   ),
-  getModelInfo: httpGet<{ modelInfo: AcpModelInfo | null }, { conversationId: string }>(
-    (p) => `/api/conversations/${p.conversationId}/acp/model`
+  getModelInfo: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/acp/model`
   ),
-  setModel: httpPut<void, { conversationId: string; modelId: string }>(
-    (p) => `/api/conversations/${p.conversationId}/acp/model`,
-    (p) => ({ model_id: p.modelId })
+  setModel: httpPut<void, { conversation_id: string; model_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/acp/model`,
+    (p) => ({ model_id: p.model_id })
   ),
   getConfigOptions: httpGet<
-    { configOptions: import('../types/acpTypes').AcpSessionConfigOption[] },
-    { conversationId: string }
-  >((p) => `/api/conversations/${p.conversationId}/acp/config`),
-  setConfigOption: httpPut<void, { conversationId: string; configId: string; value: string }>(
-    (p) => `/api/conversations/${p.conversationId}/acp/config/${p.configId}`,
+    { config_options: import('../types/acpTypes').AcpSessionConfigOption[] },
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/acp/config`),
+  setConfigOption: httpPut<void, { conversation_id: string; config_id: string; value: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/acp/config/${p.config_id}`,
     (p) => ({ value: p.value })
   ),
 };
