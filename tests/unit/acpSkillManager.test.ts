@@ -12,8 +12,8 @@ type AvailableSkill = {
   name: string;
   description: string;
   location: string;
-  relativeLocation?: string;
-  isCustom: boolean;
+  relative_location?: string;
+  is_custom: boolean;
   source: 'builtin' | 'custom' | 'extension';
 };
 
@@ -134,7 +134,7 @@ describe('AcpSkillManager', () => {
         name: 'my-skill',
         description: 'user skill',
         location: '/home/user/skills/my-skill/SKILL.md',
-        isCustom: true,
+        is_custom: true,
         source: 'custom',
       },
     ]);

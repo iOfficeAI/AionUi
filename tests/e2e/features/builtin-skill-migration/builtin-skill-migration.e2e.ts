@@ -254,10 +254,10 @@ test.describe('Built-in Skill Migration (T3)', () => {
       expect(entry.location.endsWith(path.join('SKILL.md'))).toBe(true);
       expect(fs.existsSync(entry.location)).toBe(true);
 
-      // relativeLocation must be present for builtins and point under the
+      // relative_location must be present for builtins and point under the
       // embedded corpus (auto-inject or top-level).
-      expect(entry.relativeLocation).toBeTruthy();
-      expect(entry.relativeLocation!).toMatch(/^(auto-inject\/)?[^/]+\/SKILL\.md$/);
+      expect(entry.relative_location).toBeTruthy();
+      expect(entry.relative_location!).toMatch(/^(auto-inject\/)?[^/]+\/SKILL\.md$/);
     }
 
     // Sample one entry and perform an end-to-end export via

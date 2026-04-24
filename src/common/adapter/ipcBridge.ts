@@ -346,8 +346,8 @@ export const fs = {
       name: string;
       description: string;
       location: string;
-      relativeLocation?: string;
-      isCustom: boolean;
+      relative_location?: string;
+      is_custom: boolean;
       source: 'builtin' | 'custom' | 'extension';
     }>,
     void
@@ -357,8 +357,8 @@ export const fs = {
     void
   >('/api/skills/builtin-auto'),
   materializeSkillsForAgent: httpPost<
-    { dirPath: string },
-    { conversationId: string; enabledSkills: string[] }
+    { dir_path: string },
+    { conversation_id: string; enabled_skills: string[] }
   >('/api/skills/materialize-for-agent'),
   cleanupSkillsForAgent: httpDelete<void, { conversationId: string }>(
     (p) => `/api/skills/materialize-for-agent/${encodeURIComponent(p.conversationId)}`,

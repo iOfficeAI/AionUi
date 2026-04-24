@@ -16,8 +16,8 @@ interface SkillInfo {
    * `auto-inject/cron/SKILL.md`). Present only for `source=builtin`; the
    * export-to-external-source flow still uses absolute `location` paths.
    */
-  relativeLocation?: string;
-  isCustom: boolean;
+  relative_location?: string;
+  is_custom: boolean;
   source?: 'builtin' | 'custom' | 'extension';
 }
 

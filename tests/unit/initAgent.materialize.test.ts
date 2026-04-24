@@ -18,7 +18,7 @@ const {
   readdirResults,
   reset,
 } = vi.hoisted(() => {
-  const materializeMock = vi.fn<(args: { conversationId: string; enabledSkills: string[] }) => Promise<{ dirPath: string }>>();
+  const materializeMock = vi.fn<(args: { conversation_id: string; enabled_skills: string[] }) => Promise<{ dir_path: string }>>();
   const cleanupMock = vi.fn<(args: { conversationId: string }) => Promise<void>>();
   const mk: string[] = [];
   const links: Array<{ source: string; target: string; type: string }> = [];
@@ -105,7 +105,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
 
   it('materializes via backend and symlinks each skill subdir into the native skills dir', async () => {
     const dirPath = '/mock/data/agent-skills/conv-1';
-    materializeInvoke.mockResolvedValueOnce({ dirPath });
+    materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
     readdirResults[dirPath] = ['cron', 'office-cli', 'pptx'];
 
     await setupAssistantWorkspace('/tmp/ws', {
@@ -115,8 +115,8 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     });
 
     expect(materializeInvoke).toHaveBeenCalledWith({
-      conversationId: 'conv-1',
-      enabledSkills: ['pptx'],
+      conversation_id: 'conv-1',
+      enabled_skills: ['pptx'],
     });
     expect(mkdirCalls).toContain('/tmp/ws/.claude/skills');
     expect(symlinkCalls).toHaveLength(3);
@@ -130,7 +130,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
 
   it('skips skills listed in excludeBuiltinSkills', async () => {
     const dirPath = '/mock/data/agent-skills/conv-2';
-    materializeInvoke.mockResolvedValueOnce({ dirPath });
+    materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
     readdirResults[dirPath] = ['cron', 'office-cli'];
 
     await setupAssistantWorkspace('/tmp/ws', {
@@ -168,7 +168,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
 
   it('still wires extra skill paths that live outside the backend corpus', async () => {
     const dirPath = '/mock/data/agent-skills/conv-5';
-    materializeInvoke.mockResolvedValueOnce({ dirPath });
+    materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
     readdirResults[dirPath] = [];
     statResults['/cron-jobs/job-1'] = true;
 
