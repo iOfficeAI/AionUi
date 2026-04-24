@@ -208,7 +208,7 @@ vi.mock('@/renderer/hooks/agent/useConfigModelListWithImage', () => ({
         api_key: 'key',
         platform: 'new-api',
         base_url: 'https://example.com',
-        model: ['grok-imagine-1.0'],
+        models: ['grok-imagine-1.0'],
       },
     ],
   }),
@@ -307,7 +307,7 @@ describe('ToolsModalContent image generation status refresh', () => {
           platform: 'new-api',
           base_url: 'https://example.com',
           useModel: 'grok-imagine-1.0',
-          model: ['grok-imagine-1.0'],
+          models: ['grok-imagine-1.0'],
         };
       }
 

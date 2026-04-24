@@ -27,7 +27,7 @@ const AionrsModelSelector: React.FC<{
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
 
-  const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
+  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
 
   const current_model = selection?.current_model;
   const current_modelHealth = useMemo(() => {

@@ -47,7 +47,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   const defaultModelLabel = t('common.defaultModel');
 
   // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useSWR<IProvider[]>('model.config', () => ipcBridge.mode.getModelConfig.invoke());
+  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
 
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {

@@ -9,13 +9,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 
 const ipcMock = vi.hoisted(() => ({
-  getModelConfig: vi.fn().mockResolvedValue([]),
+  listProviders: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
     mode: {
-      getModelConfig: { invoke: ipcMock.getModelConfig },
+      listProviders: { invoke: ipcMock.listProviders },
     },
   },
 }));
@@ -39,7 +39,7 @@ import GuidModelSelector from '../../src/renderer/pages/guid/components/GuidMode
 describe('GuidModelSelector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    ipcMock.getModelConfig.mockResolvedValue([]);
+    ipcMock.listProviders.mockResolvedValue([]);
   });
 
   it('shows the model source for read-only ACP model info', () => {

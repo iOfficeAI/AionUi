@@ -5,6 +5,7 @@
  */
 
 import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
@@ -86,7 +87,7 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
  * Throws if no compatible provider is configured.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
-  const providers = configService.get('model.config');
+  const providers = await ipcBridge.mode.listProviders.invoke();
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
@@ -98,7 +99,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
-  const enabledModel = provider.model.find((m) => provider.model_enabled?.[m] !== false);
+  const enabledModel = provider.models.find((m) => provider.model_enabled?.[m] !== false);
 
   return {
     id: provider.id,
@@ -106,7 +107,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     name: provider.name,
     base_url: provider.base_url,
     api_key: provider.api_key,
-    useModel: enabledModel || provider.model[0],
+    useModel: enabledModel || provider.models[0],
     capabilities: provider.capabilities,
     context_limit: provider.context_limit,
     model_protocols: provider.model_protocols,
@@ -123,7 +124,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
  * [BUG-3 fix]: callers must call this inside a try block
  */
 export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
-  const providers = configService.get('model.config');
+  const providers = await ipcBridge.mode.listProviders.invoke();
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
@@ -134,7 +135,7 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
     throw new Error('No enabled model provider');
   }
 
-  const enabledModel = enabledProvider.model.find((m) => enabledProvider.model_enabled?.[m] !== false);
+  const enabledModel = enabledProvider.models.find((m) => enabledProvider.model_enabled?.[m] !== false);
 
   return {
     id: enabledProvider.id,
@@ -142,7 +143,7 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
     name: enabledProvider.name,
     base_url: enabledProvider.base_url,
     api_key: enabledProvider.api_key,
-    useModel: enabledModel || enabledProvider.model[0],
+    useModel: enabledModel || enabledProvider.models[0],
     capabilities: enabledProvider.capabilities,
     context_limit: enabledProvider.context_limit,
     model_protocols: enabledProvider.model_protocols,
