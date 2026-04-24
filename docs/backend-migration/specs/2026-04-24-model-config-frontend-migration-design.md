@@ -124,7 +124,7 @@ export const mode = {
     try_fix?: boolean;
   }>('/api/providers/fetch-models'),
   // By-id refresh: provider already persisted, refresh its model list.
-  fetchModelsForProvider: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
+  fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
     (p) => `/api/providers/${p.id}/models`,
   ),
   detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>(
