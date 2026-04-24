@@ -271,14 +271,14 @@ describe('GAP-8: AionrsManager Multi EventBus Emission', () => {
     });
   });
 
-  // ── AC-3: fallback finish emits to team + channel buses ─────────
+  // ── AC-3: process exit finish emits to team + channel buses ──────
 
-  describe('AC-3: fallback finish emits to teamEventBus and channelEventBus', () => {
-    it('fallback finish emits to teamEventBus', () => {
+  describe('AC-3: process exit finish emits to teamEventBus and channelEventBus', () => {
+    it('process exit finish emits to teamEventBus', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });
 
-      vi.advanceTimersByTime(FALLBACK_DELAY_MS);
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-1');
 
       const teamCalls = findTeamEmissions();
       const finishCalls = teamCalls.filter(([, data]: [string, any]) => data.type === 'finish');
@@ -289,11 +289,11 @@ describe('GAP-8: AionrsManager Multi EventBus Emission', () => {
       expect(payload.conversation_id).toBe(CONV_ID);
     });
 
-    it('fallback finish emits to channelEventBus', () => {
+    it('process exit finish emits to channelEventBus', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });
 
-      vi.advanceTimersByTime(FALLBACK_DELAY_MS);
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-1');
 
       const channelCalls = findChannelEmissions();
       const finishCalls = channelCalls.filter(([, data]: [string, any]) => data.type === 'finish');

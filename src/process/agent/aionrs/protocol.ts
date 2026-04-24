@@ -77,7 +77,8 @@ export type AionrsEvent =
     }
   | { type: 'info'; msg_id: string; message: string }
   | { type: 'config_changed'; capabilities: AionrsCapabilities }
-  | { type: 'mcp_ready'; name: string; tools: string[] };
+  | { type: 'mcp_ready'; name: string; tools: string[] }
+  | { type: 'pong' };
 
 // ============================================
 // Client -> Agent Commands (stdin)
@@ -106,4 +107,5 @@ export type AionrsCommand =
       env?: Record<string, string>;
       url?: string;
       headers?: Record<string, string>;
-    };
+    }
+  | { type: 'ping' };

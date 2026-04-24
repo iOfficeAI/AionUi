@@ -50,6 +50,8 @@ export type AionrsAgentOptions = {
    */
   stdioMcpServers?: StdioMcpOption[];
   onStreamEvent: StreamEventHandler;
+  onProcessExit?: (code: number | null, activeMsgId: string) => void;
+  onPong?: () => void;
 };
 
 export class AionrsAgent {
@@ -59,6 +61,8 @@ export class AionrsAgent {
   private readyResolve!: () => void;
   private readyReject!: (err: Error) => void;
   private onStreamEvent: StreamEventHandler;
+  private _onProcessExit: AionrsAgentOptions['onProcessExit'];
+  private _onPong: AionrsAgentOptions['onPong'];
   private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
   private configBackup: { path: string; content: string | null } | null = null;
@@ -70,6 +74,8 @@ export class AionrsAgent {
   constructor(options: AionrsAgentOptions) {
     this.options = options;
     this.onStreamEvent = options.onStreamEvent;
+    this._onProcessExit = options.onProcessExit;
+    this._onPong = options.onPong;
     this.readyPromise = new Promise((resolve, reject) => {
       this.readyResolve = resolve;
       this.readyReject = reject;
@@ -131,6 +137,10 @@ export class AionrsAgent {
       if (!this.ready) {
         this.readyReject(new Error(`aionrs exited with code ${code} during init`));
       }
+      if (this.activeMsgId && this._onProcessExit) {
+        this._onProcessExit(code, this.activeMsgId);
+      }
+      this.activeMsgId = null;
       this.childProcess = null;
     });
 
@@ -319,6 +329,10 @@ export class AionrsAgent {
       case 'mcp_ready':
         this.mcpReadyResolve();
         break;
+
+      case 'pong':
+        this._onPong?.();
+        break;
     }
   }
 
@@ -399,6 +413,14 @@ export class AionrsAgent {
 
   setMode(mode: 'default' | 'auto_edit' | 'yolo'): void {
     this.sendCommand({ type: 'set_mode', mode });
+  }
+
+  ping(): void {
+    this.sendCommand({ type: 'ping' });
+  }
+
+  get isAlive(): boolean {
+    return this.childProcess !== null;
   }
 
   kill(): void {

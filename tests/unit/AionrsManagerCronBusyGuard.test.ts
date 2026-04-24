@@ -232,14 +232,15 @@ describe('GAP-5: AionrsManager CronBusyGuard', () => {
     });
   });
 
-  // ── AC-3: Fallback finish clears guard ───────────────────────────
+  // ── AC-3: Process exit clears guard ──────────────────────────────
 
-  describe('AC-3: Fallback finish clears guard', () => {
-    it('calls setProcessing(id, false) on fallback timeout', async () => {
+  describe('AC-3: Process exit clears guard', () => {
+    it('calls setProcessing(id, false) on process exit during active turn', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });
 
-      await vi.advanceTimersByTimeAsync(FALLBACK_DELAY_MS);
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-1');
+      await vi.advanceTimersByTimeAsync(200);
 
       expect(mockSetProcessing).toHaveBeenCalledWith(CONV_ID, false);
     });

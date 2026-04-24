@@ -215,15 +215,15 @@ describe('GAP-6: AionrsManager Skill Suggest Watcher', () => {
     });
   });
 
-  // ── AC-2: Fallback finish triggers onFinish ───────────────────────
+  // ── AC-2: Process exit triggers onFinish ──────────────────────────
 
-  describe('AC-2: Fallback finish triggers skillSuggestWatcher.onFinish', () => {
-    it('calls onFinish when fallback timeout fires', async () => {
+  describe('AC-2: Process exit triggers skillSuggestWatcher.onFinish', () => {
+    it('calls onFinish when process exits during active turn', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });
 
-      // No finish event — wait for fallback
-      await vi.advanceTimersByTimeAsync(FALLBACK_DELAY_MS);
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-1');
+      await vi.advanceTimersByTimeAsync(200);
 
       expect(mockOnFinish).toHaveBeenCalledWith(CONV_ID);
     });

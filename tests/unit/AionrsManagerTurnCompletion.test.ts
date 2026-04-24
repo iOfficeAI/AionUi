@@ -233,24 +233,25 @@ describe('GAP-9: AionrsManager Turn Completion Service', () => {
     });
   });
 
-  // ── AC-2: Fallback finish calls notifyPotentialCompletion ────────
+  // ── AC-2: Process exit calls notifyPotentialCompletion ───────────
 
-  describe('AC-2: Fallback finish triggers notifyPotentialCompletion', () => {
-    it('calls notifyPotentialCompletion on fallback timeout', async () => {
+  describe('AC-2: Process exit triggers notifyPotentialCompletion', () => {
+    it('calls notifyPotentialCompletion on process exit during active turn', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });
 
-      // No finish event — trigger fallback
-      await vi.advanceTimersByTimeAsync(FALLBACK_DELAY_MS);
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-1');
+      await vi.advanceTimersByTimeAsync(200);
 
       expect(mockNotifyPotentialCompletion).toHaveBeenCalledTimes(1);
     });
 
-    it('fallback passes correct context fields', async () => {
+    it('process exit passes correct context fields', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });
 
-      await vi.advanceTimersByTimeAsync(FALLBACK_DELAY_MS);
+      (manager as Record<string, (...args: unknown[]) => void>)['handleProcessExit'](1, 'msg-1');
+      await vi.advanceTimersByTimeAsync(200);
 
       expect(mockNotifyPotentialCompletion).toHaveBeenCalledWith(
         CONV_ID,
