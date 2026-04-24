@@ -194,7 +194,7 @@ function convertTMessageToOutgoing(
   message: TMessage,
   platform: PluginType,
   isComplete = false
-): IUnifiedOutgoingMessage {
+): IUnifiedOutgoingMessage | null {
   switch (message.type) {
     case 'text': {
       // 根据平台格式化文本
@@ -299,13 +299,19 @@ function convertTMessageToOutgoing(
     }
 
     default:
-      // 其他类型暂不支持，显示通用消息
-      // Other types not supported yet, show generic message
-      return {
-        type: 'text',
-        text: '⏳ Processing...',
-        parseMode: 'HTML',
-      };
+      // Unsupported/invisible intermediate types (agent_status, plan,
+      // thinking, codex_tool_call, acp_tool_call, skill_suggest,
+      // cron_trigger, etc.) should not be rendered to channel platforms.
+      //
+      // Returning a '⏳ Processing...' placeholder here overwrites the
+      // actual assistant reply on platforms that rely on editMessage
+      // (Telegram/Lark): the stream often ends with an intermediate
+      // status event after the final `text` content, so the final
+      // editMessage ends up showing only the placeholder even though
+      // the desktop UI displays the full reply correctly.
+      //
+      // Callers must treat `null` as "skip this streaming event".
+      return null;
   }
 }
 
@@ -657,6 +663,12 @@ export class ActionExecutor {
           // 转换消息格式（根据平台）
           // Convert message format (based on platform)
           const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
+
+          // Skip invisible/intermediate message types (agent_status, plan,
+          // thinking, *_tool_call, etc.). Otherwise a trailing intermediate
+          // event would overwrite the actual assistant reply with a generic
+          // placeholder on platforms that use editMessage (Telegram/Lark).
+          if (!outgoingMessage) return;
 
           // Strip replyMarkup during streaming to prevent premature card finalization.
           // Tool confirmation cards set replyMarkup (e.g., for Confirming status),
