@@ -308,8 +308,8 @@ export const fs = {
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string, { path: string }>('/api/fs/read'),
   readFileBuffer: httpPost<ArrayBuffer, { path: string }>('/api/fs/read-buffer'),
-  createTempFile: httpPost<string, { fileName: string }>('/api/fs/temp'),
-  createUploadFile: httpPost<string, { fileName: string; conversationId?: string }>('/api/fs/temp'),
+  createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
+  createUploadFile: httpPost<string, { file_name: string; conversation_id?: string }>('/api/fs/temp'),
   writeFile: httpPost<boolean, { path: string; data: Uint8Array | string }>('/api/fs/write'),
   createZip: httpPost<
     boolean,
@@ -332,7 +332,7 @@ export const fs = {
   removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
   renameEntry: httpPost<{ newPath: string }, { path: string; newName: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { fileName: string }>('/api/skills/builtin-rule'),
-  readBuiltinSkill: httpPost<string, { fileName: string }>('/api/skills/builtin-skill'),
+  readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistantId: string; locale?: string }>('/api/skills/assistant-rule/read'),
   writeAssistantRule: httpPost<boolean, { assistantId: string; content: string; locale?: string }>(
     '/api/skills/assistant-rule/write',
@@ -593,7 +593,7 @@ export const acpConversation = {
     { conversationId: string; modelId: string }
   >(
     (p) => `/api/conversations/${p.conversationId}/acp/model`,
-    (p) => ({ modelId: p.modelId }),
+    (p) => ({ model_id: p.modelId }),
   ),
   getConfigOptions: httpGet<
     { configOptions: import('../types/acpTypes').AcpSessionConfigOption[] },

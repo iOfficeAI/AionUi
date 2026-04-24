@@ -185,24 +185,24 @@ describe('usePresetAssistantResolver', () => {
   const makeAssistant = (overrides: Partial<Assistant> & { id: string }): Assistant => ({
     source: 'user',
     name: overrides.id,
-    nameI18n: {},
-    descriptionI18n: {},
+    name_i18n: {},
+    description_i18n: {},
     enabled: true,
-    sortOrder: 0,
-    presetAgentType: 'gemini',
-    enabledSkills: [],
-    customSkillNames: [],
-    disabledBuiltinSkills: [],
-    contextI18n: {},
+    sort_order: 0,
+    preset_agent_type: 'gemini',
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
     prompts: [],
-    promptsI18n: {},
+    prompts_i18n: {},
     models: [],
     ...overrides,
   });
 
   const assistants: Assistant[] = [
-    makeAssistant({ id: 'agent-alpha', presetAgentType: 'claude', enabledSkills: ['code-review', 'testing'] }),
-    makeAssistant({ id: 'agent-beta', presetAgentType: 'qwen' }),
+    makeAssistant({ id: 'agent-alpha', preset_agent_type: 'claude', enabled_skills: ['code-review', 'testing'] }),
+    makeAssistant({ id: 'agent-beta', preset_agent_type: 'qwen' }),
   ];
 
   beforeEach(() => {

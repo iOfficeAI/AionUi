@@ -181,7 +181,7 @@ function hasMatchingEnabledSkills(candidateSkills: string[] | undefined, enabled
  */
 function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): PresetAssistantInfo {
   const localeKey = locale.startsWith('zh') ? 'zh-CN' : 'en-US';
-  const name = assistant.nameI18n?.[localeKey] || assistant.nameI18n?.[locale] || assistant.name || assistant.id;
+  const name = assistant.name_i18n?.[localeKey] || assistant.name_i18n?.[locale] || assistant.name || assistant.id;
   const avatar = typeof assistant.avatar === 'string' ? assistant.avatar : '';
   const normalized = normalizeAvatar(avatar);
   return { name, logo: normalized.logo, isEmoji: normalized.isEmoji };
@@ -217,14 +217,14 @@ function inferLegacyAssistantInfo(
     matchesAssistantName(extractedName, [
       assistant.id,
       assistant.name,
-      assistant.nameI18n?.['zh-CN'],
-      assistant.nameI18n?.['en-US'],
+      assistant.name_i18n?.['zh-CN'],
+      assistant.name_i18n?.['en-US'],
     ])
   );
   if (byName) return buildPresetInfoFromAssistant(byName, locale);
 
   const bySkills = assistants?.filter((assistant) =>
-    hasMatchingEnabledSkills(assistant.enabledSkills, enabled_skills)
+    hasMatchingEnabledSkills(assistant.enabled_skills, enabled_skills)
   );
   if (bySkills?.length === 1) return buildPresetInfoFromAssistant(bySkills[0], locale);
 

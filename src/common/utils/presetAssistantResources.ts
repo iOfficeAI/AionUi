@@ -46,7 +46,7 @@ const defaultDeps: PresetAssistantResourceDeps = {
   getEnabledSkills: async (custom_agent_id) => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
-      return list.find((a) => a.id === custom_agent_id)?.enabledSkills;
+      return list.find((a) => a.id === custom_agent_id)?.enabled_skills;
     } catch {
       return undefined;
     }
@@ -54,7 +54,7 @@ const defaultDeps: PresetAssistantResourceDeps = {
   getDisabledBuiltinSkills: async (custom_agent_id) => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
-      return list.find((a) => a.id === custom_agent_id)?.disabledBuiltinSkills;
+      return list.find((a) => a.id === custom_agent_id)?.disabled_builtin_skills;
     } catch {
       return undefined;
     }

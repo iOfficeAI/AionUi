@@ -189,6 +189,7 @@
     "oxfmt": "^0.41.0",
     "oxlint": "^1.56.0",
     "patch-package": "^8.0.0",
+    "ts-morph": "^28.0.0",
     "ts-node": "^10.9.2",
     "tsx": "^4.19.1",
     "typescript": "^5.8.3",

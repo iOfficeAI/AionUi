@@ -148,7 +148,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-3',
       backend: 'claude',
-      enabledSkills: ['pptx'],
+      enabled_skills: ['pptx'],
     });
 
     expect(mkdirCalls).toContain('/tmp/ws/.claude/skills');

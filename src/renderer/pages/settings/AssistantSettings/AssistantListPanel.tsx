@@ -129,11 +129,11 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           <AssistantAvatar assistant={assistant} size={28} avatarImageMap={avatarImageMap} />
           <div className='min-w-0 flex-1'>
             <div className='font-medium text-t-primary min-w-0 flex items-center gap-10px'>
-              <span className='truncate'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
+              <span className='truncate'>{assistant.name_i18n?.[localeKey] || assistant.name}</span>
               <div className='flex items-center gap-6px flex-shrink-0'>{renderSourceTag(assistant)}</div>
             </div>
             <div className='text-12px text-t-secondary truncate'>
-              {assistant.descriptionI18n?.[localeKey] || assistant.description || ''}
+              {assistant.description_i18n?.[localeKey] || assistant.description || ''}
             </div>
           </div>
         </div>

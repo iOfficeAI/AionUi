@@ -25,7 +25,10 @@ vi.mock('@/process/utils/initStorage', () => ({
   ProcessConfig: {},
 }));
 
-import { migrateAssistantsToBackend } from '@/process/utils/migrateAssistants';
+import {
+  legacyAssistantToCreateRequest,
+  migrateAssistantsToBackend,
+} from '@/process/utils/migrateAssistants';
 import { ipcBridge } from '@/common';
 
 type Store = Map<string, unknown>;
@@ -176,17 +179,17 @@ describe('migrateAssistantsToBackend', () => {
     const sent = call.assistants[0];
     expect(sent.id).toBe('custom-full');
     expect(sent.name).toBe('Full');
-    expect(sent.presetAgentType).toBe('claude');
-    expect(sent.enabledSkills).toEqual(['pptx', 'xlsx']);
-    expect(sent.nameI18n).toEqual({ 'zh-CN': 'Zh', 'en-US': 'En' });
-    expect(sent.promptsI18n).toEqual({ 'en-US': ['p1', 'p2'] });
+    expect(sent.preset_agent_type).toBe('claude');
+    expect(sent.enabled_skills).toEqual(['pptx', 'xlsx']);
+    expect(sent.name_i18n).toEqual({ 'zh-CN': 'Zh', 'en-US': 'En' });
+    expect(sent.prompts_i18n).toEqual({ 'en-US': ['p1', 'p2'] });
     // CLI-specific legacy fields must not leak into the backend contract.
     expect('cliCommand' in sent).toBe(false);
     expect('defaultCliPath' in sent).toBe(false);
     expect('isPreset' in sent).toBe(false);
   });
 
-  it('defaults presetAgentType to gemini and name to "Untitled" when missing', async () => {
+  it('defaults preset_agent_type to gemini and name to "Untitled" when missing', async () => {
     const cf = makeConfigFile({
       'migration.electronConfigImported': false,
       assistants: [{ id: 'custom-bare' }],
@@ -197,7 +200,7 @@ describe('migrateAssistantsToBackend', () => {
 
     const [call] = importInvokeMock.mock.calls[0];
     expect(call.assistants[0].name).toBe('Untitled');
-    expect(call.assistants[0].presetAgentType).toBe('gemini');
+    expect(call.assistants[0].preset_agent_type).toBe('gemini');
   });
 
   // H3: preserve user-set enabled=false state on legacy built-ins by replaying
@@ -246,6 +249,18 @@ describe('migrateAssistantsToBackend', () => {
       expect(cf.set).not.toHaveBeenCalledWith('migration.electronConfigImported', true);
     });
 
+    it('is also exercised directly via the exported mapper', async () => {
+      const out = legacyAssistantToCreateRequest({
+        id: 'custom-direct',
+        name: 'Direct',
+        presetAgentType: 'qwen',
+        enabledSkills: ['a'],
+      });
+      expect(out.id).toBe('custom-direct');
+      expect(out.preset_agent_type).toBe('qwen');
+      expect(out.enabled_skills).toEqual(['a']);
+    });
+
     it('sets the flag immediately when there are no user imports and no overrides', async () => {
       const cf = makeConfigFile({
         'migration.electronConfigImported': false,
@@ -262,5 +277,54 @@ describe('migrateAssistantsToBackend', () => {
       expect(setStateInvokeMock).not.toHaveBeenCalled();
       expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
     });
+  });
+});
+
+describe('legacyAssistantToCreateRequest', () => {
+  it('maps camelCase legacy fields to snake_case CreateAssistantRequest', () => {
+    const legacy = {
+      id: 'a1',
+      name: 'X',
+      nameI18n: { 'en-US': 'X-en' },
+      description: 'desc',
+      descriptionI18n: { 'en-US': 'desc-en' },
+      avatar: 'robot',
+      presetAgentType: 'gemini',
+      enabledSkills: ['s1'],
+      customSkillNames: [],
+      disabledBuiltinSkills: ['b1'],
+      prompts: ['p'],
+      promptsI18n: { 'en-US': ['p-en'] },
+      models: ['gemini-pro'],
+    };
+    const out = legacyAssistantToCreateRequest(legacy);
+    expect(out.id).toBe('a1');
+    expect(out.name).toBe('X');
+    expect(out.name_i18n).toEqual({ 'en-US': 'X-en' });
+    expect(out.description).toBe('desc');
+    expect(out.description_i18n).toEqual({ 'en-US': 'desc-en' });
+    expect(out.avatar).toBe('robot');
+    expect(out.preset_agent_type).toBe('gemini');
+    expect(out.enabled_skills).toEqual(['s1']);
+    // customSkillNames was empty → asStringArray returns undefined
+    expect(out.custom_skill_names).toBeUndefined();
+    expect(out.disabled_builtin_skills).toEqual(['b1']);
+    expect(out.prompts).toEqual(['p']);
+    expect(out.prompts_i18n).toEqual({ 'en-US': ['p-en'] });
+    expect(out.models).toEqual(['gemini-pro']);
+  });
+
+  it('handles missing optional fields without crashing and applies defaults', () => {
+    const out = legacyAssistantToCreateRequest({ id: 'min', name: 'M' });
+    expect(out.id).toBe('min');
+    expect(out.name).toBe('M');
+    // Missing presetAgentType defaults to 'gemini' (backward-compat for legacy rows)
+    expect(out.preset_agent_type).toBe('gemini');
+    expect(out.enabled_skills).toBeUndefined();
+    expect(out.custom_skill_names).toBeUndefined();
+    expect(out.disabled_builtin_skills).toBeUndefined();
+    expect(out.name_i18n).toBeUndefined();
+    expect(out.description_i18n).toBeUndefined();
+    expect(out.prompts_i18n).toBeUndefined();
   });
 });
