@@ -8,8 +8,9 @@ import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
+import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import { Tabs } from '@arco-design/web-react';
 import { Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
@@ -136,7 +137,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const [activeTab, setActiveTab] = useState<SettingTab>(defaultTab);
   const [isMobile, setIsMobile] = useState(false);
   const resizeTimerRef = useRef<number | undefined>(undefined);
-  const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
+  const extensionTabs = useExtensionSettingsTabs();
 
   /**
    * 处理窗口尺寸变化，更新移动端状态
@@ -167,19 +168,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       }
     };
   }, [handleResize]);
-
-  // Fetch extension-contributed settings tabs when modal opens
-  useEffect(() => {
-    if (!visible) return;
-    void extensionsIpc.getSettingsTabs
-      .invoke()
-      .then((tabs) => {
-        setExtensionTabs(tabs ?? []);
-      })
-      .catch((err) => {
-        console.error('[SettingsModal] Failed to load extension settings tabs:', err);
-      });
-  }, [visible]);
 
   // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
   const isDesktop = isElectronDesktop();

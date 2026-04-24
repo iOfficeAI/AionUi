@@ -1,9 +1,10 @@
 import classNames from 'classnames';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import {
   Cat,
   Communication,
@@ -83,14 +84,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   const { t } = useTranslation();
   const isDesktop = isElectronDesktop();
 
-  const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
-
-  useEffect(() => {
-    void extensionsIpc.getSettingsTabs
-      .invoke()
-      .then((tabs) => setExtensionTabs(tabs ?? []))
-      .catch((err) => console.error('[SettingsPageWrapper] Failed to load extension tabs:', err));
-  }, []);
+  const extensionTabs = useExtensionSettingsTabs();
 
   const { resolveExtTabName } = useExtI18n();
 
