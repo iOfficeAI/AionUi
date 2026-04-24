@@ -72,11 +72,11 @@ import type { AvailableAgent } from '../../src/renderer/pages/guid/types';
 // Helpers
 // ---------------------------------------------------------------------------
 
-const getAgentKey = (agent: { backend: string; customAgentId?: string }) =>
-  agent.custom_agent_id ? `${agent.backend}:${agent.custom_agent_id}` : agent.backend;
+const getAgentKey = (agent: { agent_type: string; backend?: string; custom_agent_id?: string }) =>
+  agent.custom_agent_id ? `${agent.backend || agent.agent_type}:${agent.custom_agent_id}` : agent.backend || agent.agent_type;
 
-const makeAgent = (overrides: Partial<AvailableAgent> & { backend: AvailableAgent['backend'] }): AvailableAgent => ({
-  name: overrides.backend,
+const makeAgent = (overrides: Partial<AvailableAgent> & { agent_type: string }): AvailableAgent => ({
+  name: overrides.backend || overrides.agent_type,
   ...overrides,
 });
 
@@ -93,8 +93,8 @@ const defaultProps = {
 describe('AgentPillBar', () => {
   it('renders agent pills', () => {
     const agents: AvailableAgent[] = [
-      makeAgent({ backend: 'claude', name: 'Claude' }),
-      makeAgent({ backend: 'gemini', name: 'Gemini' }),
+      makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' }),
+      makeAgent({ agent_type: 'acp', backend: 'gemini', name: 'Gemini' }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     expect(screen.getByText('Claude')).toBeTruthy();
@@ -104,8 +104,8 @@ describe('AgentPillBar', () => {
   it('calls onSelectAgent when pill clicked', () => {
     const onSelectAgent = vi.fn();
     const agents: AvailableAgent[] = [
-      makeAgent({ backend: 'claude', name: 'Claude' }),
-      makeAgent({ backend: 'gemini', name: 'Gemini' }),
+      makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' }),
+      makeAgent({ agent_type: 'acp', backend: 'gemini', name: 'Gemini' }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} onSelectAgent={onSelectAgent} />);
     const pill = screen.getByText('Gemini').closest('[data-agent-pill]') as HTMLElement;
@@ -116,8 +116,8 @@ describe('AgentPillBar', () => {
 
   it('marks selected agent with data attribute', () => {
     const agents: AvailableAgent[] = [
-      makeAgent({ backend: 'claude', name: 'Claude' }),
-      makeAgent({ backend: 'gemini', name: 'Gemini' }),
+      makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' }),
+      makeAgent({ agent_type: 'acp', backend: 'gemini', name: 'Gemini' }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='claude' />);
     const claudePill = screen.getByText('Claude').closest('[data-agent-pill]') as HTMLElement;
@@ -127,7 +127,7 @@ describe('AgentPillBar', () => {
   });
 
   it('renders agent logo when available', () => {
-    const agents: AvailableAgent[] = [makeAgent({ backend: 'claude', name: 'Claude' })];
+    const agents: AvailableAgent[] = [makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' })];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     const img = screen.getByAltText('claude logo') as HTMLImageElement;
     expect(img).toBeTruthy();
@@ -135,24 +135,24 @@ describe('AgentPillBar', () => {
   });
 
   it('renders Robot icon when no logo available', () => {
-    const agents: AvailableAgent[] = [makeAgent({ backend: 'remote', name: 'Unknown' })];
+    const agents: AvailableAgent[] = [makeAgent({ agent_type: 'remote', name: 'Unknown' })];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='remote' />);
     expect(screen.getByTestId('icon-robot')).toBeTruthy();
   });
 
   it('renders emoji avatar for remote agents', () => {
-    const agents: AvailableAgent[] = [makeAgent({ backend: 'remote', name: 'Remote', avatar: '🤖' })];
+    const agents: AvailableAgent[] = [makeAgent({ agent_type: 'remote', name: 'Remote', avatar: '🤖' })];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='remote' />);
     expect(screen.getByText('🤖')).toBeTruthy();
   });
 
   it('filters out preset assistants', () => {
     const agents: AvailableAgent[] = [
-      makeAgent({ backend: 'claude', name: 'Claude' }),
+      makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' }),
       // preset assistant → filtered out
-      makeAgent({ backend: 'claude', name: 'Hidden Preset', custom_agent_id: 'preset-1', is_preset: true }),
+      makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Hidden Preset', custom_agent_id: 'preset-1', is_preset: true }),
       // non-preset custom agent → shown
-      makeAgent({ backend: 'custom', name: 'Visible Custom', custom_agent_id: 'my-agent', is_preset: false }),
+      makeAgent({ agent_type: 'acp', backend: 'custom', name: 'Visible Custom', custom_agent_id: 'my-agent', is_preset: false }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     expect(screen.getByText('Claude')).toBeTruthy();
@@ -161,7 +161,7 @@ describe('AgentPillBar', () => {
   });
 
   it('navigates to /settings/agent?tab=local when + clicked', () => {
-    const agents: AvailableAgent[] = [makeAgent({ backend: 'claude', name: 'Claude' })];
+    const agents: AvailableAgent[] = [makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' })];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     const plusIcon = screen.getByTestId('icon-plus');
     const plusDiv = plusIcon.closest('div') as HTMLElement;
@@ -171,7 +171,7 @@ describe('AgentPillBar', () => {
   });
 
   it('suppresses the selected pill pop animation when requested', () => {
-    const agents: AvailableAgent[] = [makeAgent({ backend: 'claude', name: 'Claude' })];
+    const agents: AvailableAgent[] = [makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' })];
     render(
       <AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='claude' suppressSelectionAnimation />
     );
@@ -182,8 +182,8 @@ describe('AgentPillBar', () => {
 
   it('renders separator dividers between agents on desktop', () => {
     const agents: AvailableAgent[] = [
-      makeAgent({ backend: 'claude', name: 'Claude' }),
-      makeAgent({ backend: 'gemini', name: 'Gemini' }),
+      makeAgent({ agent_type: 'acp', backend: 'claude', name: 'Claude' }),
+      makeAgent({ agent_type: 'acp', backend: 'gemini', name: 'Gemini' }),
     ];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
     // One separator between the two agents plus one before the + button = 2 total

@@ -7,7 +7,7 @@
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import type { AcpBackend, AvailableAgent } from '../types';
+import type { AvailableAgent } from '../types';
 import { Plus, Robot } from '@icon-park/react';
 import { Tooltip } from '@arco-design/web-react';
 import React from 'react';
@@ -18,7 +18,7 @@ import styles from '../index.module.css';
 type AgentPillBarProps = {
   availableAgents: AvailableAgent[];
   selectedAgentKey: string;
-  getAgentKey: (agent: { backend: AcpBackend; custom_agent_id?: string }) => string;
+  getAgentKey: (agent: { agent_type: string; backend?: string; custom_agent_id?: string }) => string;
   onSelectAgent: (key: string) => void;
   suppressSelectionAnimation?: boolean;
 };
@@ -61,12 +61,12 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
             // Remote agents use emoji avatars — not image URLs
-            const emojiAvatar = agent.backend === 'remote' && agent.avatar ? agent.avatar : undefined;
+            const emojiAvatar = agent.agent_type === 'remote' && agent.avatar ? agent.avatar : undefined;
             const logoSrc =
               extensionAvatar ||
               (!emojiAvatar
                 ? resolveAgentLogo({
-                    backend: agent.backend,
+                    backend: agent.backend || agent.agent_type,
                     custom_agent_id: agent.custom_agent_id,
                     isExtension: agent.isExtension,
                   })
@@ -78,7 +78,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                 <div
                   data-agent-pill='true'
                   data-agent-key={getAgentKey(agent)}
-                  data-agent-backend={agent.backend}
+                  data-agent-type={agent.agent_type}
                   data-agent-selected={isSelected ? 'true' : 'false'}
                   className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
                   style={
@@ -96,7 +96,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                   ) : logoSrc ? (
                     <img
                       src={logoSrc}
-                      alt={`${agent.backend} logo`}
+                      alt={`${agent.backend || agent.agent_type} logo`}
                       width={20}
                       height={20}
                       style={{ objectFit: 'contain', flexShrink: 0 }}

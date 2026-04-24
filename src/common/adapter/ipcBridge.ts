@@ -508,9 +508,15 @@ export const acpConversation = {
     Array<{
       id: string;
       name: string;
-      backend: string;
+      agent_type: string;
+      backend?: string;
       available: boolean;
       source: 'internal' | 'builtin' | 'extension' | 'custom';
+      cli_path?: string;
+      custom_agent_id?: string;
+      is_preset?: boolean;
+      isExtension?: boolean;
+      supportedTransports?: string[];
     }>,
     void
   >('/api/agents'),
@@ -555,7 +561,7 @@ export const acpConversation = {
 export const mcpService = {
   getAgentMcpConfigs: httpGet<
     Array<{ source: McpSource; servers: IMcpServer[] }>,
-    Array<{ backend: string; name: string; cli_path?: string }>
+    Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
     {
@@ -570,11 +576,14 @@ export const mcpService = {
   >('/api/mcp/test-connection'),
   syncMcpToAgents: httpPost<
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { mcpServers: IMcpServer[]; agents: Array<{ backend: string; name: string; cli_path?: string }> }
+    {
+      mcpServers: IMcpServer[];
+      agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>;
+    }
   >('/api/mcp/sync-to-agents'),
   removeMcpFromAgents: httpPost<
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { mcpServerName: string; agents: Array<{ backend: string; name: string; cli_path?: string }> }
+    { mcpServerName: string; agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }> }
   >('/api/mcp/remove-from-agents'),
   checkOAuthStatus: httpPost<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }, IMcpServer>(
     '/api/mcp/oauth/check-status'

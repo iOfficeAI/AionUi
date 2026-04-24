@@ -99,18 +99,16 @@ describe('AcpModelSelector', () => {
   });
 
   it('fetches model info via focus polling when initial load returns null', async () => {
-    ipcMock.getModelInfo
-      .mockResolvedValueOnce({ model_info: null })
-      .mockResolvedValueOnce({
-        model_info: {
-          current_model_id: 'claude-sonnet-4-5',
-          current_model_label: 'Claude Sonnet 4.5',
-          available_models: [{ id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' }],
-          can_switch: false,
-          source: 'models',
-          source_detail: 'cc-switch',
-        },
-      });
+    ipcMock.getModelInfo.mockResolvedValueOnce({ model_info: null }).mockResolvedValueOnce({
+      model_info: {
+        current_model_id: 'claude-sonnet-4-5',
+        current_model_label: 'Claude Sonnet 4.5',
+        available_models: [{ id: 'claude-sonnet-4-5', label: 'Claude Sonnet 4.5' }],
+        can_switch: false,
+        source: 'models',
+        source_detail: 'cc-switch',
+      },
+    });
 
     render(<AcpModelSelector conversation_id='conv-1' backend='claude' />);
 

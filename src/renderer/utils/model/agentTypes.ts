@@ -11,12 +11,13 @@ export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
 
 /**
  * Available agent entry returned by the backend.
- * `backend` is typed as `string` because the IPC layer returns plain strings
- * and the superset includes non-ACP values like `'remote'` and `'aionrs'`.
+ * `agent_type` is the top-level discriminant (acp, aionrs, nanobot, etc.).
+ * `backend` is only present when `agent_type === 'acp'` (claude, qwen, codex, …).
  */
 export type AvailableAgent = {
   id?: string;
-  backend: string;
+  agent_type: string;
+  backend?: string;
   name: string;
   cli_path?: string;
   custom_agent_id?: string;

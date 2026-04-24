@@ -5,20 +5,22 @@
  */
 
 import type { IProvider } from '@/common/config/storage';
-import type { AcpBackend, AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { AvailableAgent, EffectiveAgentInfo } from '../types';
 import { useCallback } from 'react';
 
 type UseAgentAvailabilityOptions = {
   modelList: IProvider[];
   isGoogleAuth: boolean;
   availableAgents: AvailableAgent[] | undefined;
-  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined) => string;
+  resolvePresetAgentType: (
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+  ) => string;
 };
 
 type UseAgentAvailabilityResult = {
   isMainAgentAvailable: (agent_type: string) => boolean;
   getEffectiveAgentType: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => EffectiveAgentInfo;
 };
 
@@ -37,13 +39,13 @@ export const useAgentAvailability = ({
       if (agent_type === 'gemini') {
         return isGoogleAuth || (modelList != null && modelList.length > 0);
       }
-      return availableAgents?.some((agent) => agent.backend === agent_type) ?? false;
+      return availableAgents?.some((agent) => agent.agent_type === agent_type || agent.backend === agent_type) ?? false;
     },
     [modelList, availableAgents, isGoogleAuth]
   );
 
   const getEffectiveAgentType = useCallback(
-    (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined): EffectiveAgentInfo => {
+    (agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined): EffectiveAgentInfo => {
       const originalType = resolvePresetAgentType(agentInfo);
       const isAvailable = isMainAgentAvailable(originalType);
       return { agent_type: originalType, isFallback: false, originalType, isAvailable };

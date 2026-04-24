@@ -62,7 +62,7 @@ export const useGuidMention = ({
     const agents = availableAgents || [];
     return agents.map((agent) => {
       const key = getAgentKey(agent);
-      const label = agent.name || agent.backend;
+      const label = agent.name || agent.backend || agent.agent_type;
       const avatarValue = agent.custom_agent_id
         ? agent.avatar || customAgentAvatarMap.get(agent.custom_agent_id)
         : undefined;
@@ -72,7 +72,10 @@ export const useGuidMention = ({
       tokens.add(normalizedLabel);
       tokens.add(normalizedLabel.replace(/\s+/g, '-'));
       tokens.add(normalizedLabel.replace(/\s+/g, ''));
-      tokens.add(agent.backend.toLowerCase());
+      tokens.add(agent.agent_type.toLowerCase());
+      if (agent.backend) {
+        tokens.add(agent.backend.toLowerCase());
+      }
       if (agent.custom_agent_id) {
         tokens.add(agent.custom_agent_id.toLowerCase());
       }
@@ -85,7 +88,7 @@ export const useGuidMention = ({
         tokens,
         avatar,
         avatarImage,
-        logo: getAgentLogo(agent.backend) || undefined,
+        logo: getAgentLogo(agent.backend || agent.agent_type) || undefined,
         isExtension: agent.isExtension,
       };
     });

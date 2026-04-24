@@ -38,24 +38,26 @@ export type GuidAgentSelectionResult = {
   cached_config_options: AcpSessionConfigOption[];
   pending_config_options: Record<string, string>;
   setPendingConfigOption: (config_id: string, value: string) => void;
-  getAgentKey: (agent: { backend: AcpBackend; custom_agent_id?: string }) => string;
+  getAgentKey: (agent: { agent_type: string; backend?: string; custom_agent_id?: string }) => string;
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   resolvePresetRulesAndSkills: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<{ rules?: string; skills?: string }>;
   resolvePresetContext: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<string | undefined>;
-  resolvePresetAgentType: (agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined) => string;
+  resolvePresetAgentType: (
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+  ) => string;
   resolveEnabledSkills: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   isMainAgentAvailable: (agent_type: string) => boolean;
   getEffectiveAgentType: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => EffectiveAgentInfo;
   refreshCustomAgents: () => Promise<void>;
   customAgentAvatarMap: Map<string, string | undefined>;
@@ -175,6 +177,7 @@ export const useGuidAgentSelection = ({
       const assistant = customAgents.find((a) => a.id === custom_agent_id);
       if (assistant) {
         return {
+          agent_type: assistant.presetAgentType || 'gemini',
           backend: assistant.presetAgentType || 'gemini',
           name: assistant.name,
           custom_agent_id: assistant.id,
@@ -187,9 +190,9 @@ export const useGuidAgentSelection = ({
     }
     if (key.startsWith('remote:')) {
       const remoteId = key.slice(7);
-      return availableAgents?.find((a) => a.backend === 'remote' && a.custom_agent_id === remoteId);
+      return availableAgents?.find((a) => a.agent_type === 'remote' && a.custom_agent_id === remoteId);
     }
-    return availableAgents?.find((a) => a.backend === key);
+    return availableAgents?.find((a) => a.backend === key || a.agent_type === key);
   };
 
   // Derived state
@@ -212,7 +215,7 @@ export const useGuidAgentSelection = ({
   useEffect(() => {
     if (!availableAgentsData) return;
     const remoteAsAvailable: AvailableAgent[] = (remoteAgentsData || []).map((ra) => ({
-      backend: 'remote',
+      agent_type: 'remote',
       name: ra.name,
       custom_agent_id: ra.id,
       avatar: ra.avatar,

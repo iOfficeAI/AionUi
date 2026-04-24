@@ -144,14 +144,24 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
 
       // Filter out current agent and custom agents
       const agentsToCheck = agentsList
-        .filter((agent) => !agent.is_preset && agent.backend !== 'remote' && agent.backend !== currentAgentBackend)
-        .map((agent) => ({
-          backend: agent.backend as AgentBackend,
-          name: AGENT_NAMES[agent.backend as AgentBackend] || agent.name,
-          available: false,
-          checking: true,
-          cli_path: agent.cli_path,
-        }));
+        .filter(
+          (agent) =>
+            !agent.is_preset &&
+            agent.agent_type !== 'remote' &&
+            agent.backend !== 'remote' &&
+            agent.backend !== currentAgentBackend &&
+            agent.agent_type !== currentAgentBackend
+        )
+        .map((agent) => {
+          const backendKey = (agent.backend || agent.agent_type) as AgentBackend;
+          return {
+            backend: backendKey,
+            name: AGENT_NAMES[backendKey] || agent.name,
+            available: false,
+            checking: true,
+            cli_path: agent.cli_path,
+          };
+        });
 
       if (agentsToCheck.length === 0) {
         setState((prev) => ({

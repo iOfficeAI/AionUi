@@ -15,7 +15,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
-import type { AcpBackend, AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { AvailableAgent, EffectiveAgentInfo } from '../types';
 
 export type GuidSendDeps = {
   // Input state
@@ -42,16 +42,16 @@ export type GuidSendDeps = {
   // Agent helpers
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   getEffectiveAgentType: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => EffectiveAgentInfo;
   resolvePresetRulesAndSkills: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string; context?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<{ rules?: string; skills?: string }>;
   resolveEnabledSkills: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { backend: AcpBackend; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   guidDisabledBuiltinSkills: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;

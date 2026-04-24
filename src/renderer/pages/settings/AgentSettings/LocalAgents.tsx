@@ -27,7 +27,7 @@ const LocalAgents: React.FC = () => {
   const { data: detectedAgents } = useSWR('acp.agents.available.settings', async () => {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents.filter((agent) => agent.backend !== 'remote' && agent.backend !== 'custom' && !agent.is_preset);
+      return agents.filter((agent) => agent.agent_type !== 'remote' && agent.backend !== 'custom' && !agent.is_preset);
     }
     return [];
   });
@@ -78,9 +78,12 @@ const LocalAgents: React.FC = () => {
   );
 
   // Aion CLI and Gemini CLI first among detected agents
-  const aionrsAgent = detectedAgents?.find((a) => a.backend === 'aionrs');
-  const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
-  const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aionrs') ?? [];
+  const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
+  const geminiAgent = detectedAgents?.find((a) => a.agent_type === 'gemini' || a.backend === 'gemini');
+  const otherDetected =
+    detectedAgents?.filter(
+      (a) => a.agent_type !== 'gemini' && a.agent_type !== 'aionrs' && a.backend !== 'gemini' && a.backend !== 'aionrs'
+    ) ?? [];
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
@@ -157,7 +160,7 @@ const LocalAgents: React.FC = () => {
           />
         )}
         {otherDetected.map((agent) => (
-          <AgentCard key={agent.backend} type='detected' agent={agent} variant='grid' />
+          <AgentCard key={agent.backend || agent.agent_type} type='detected' agent={agent} variant='grid' />
         ))}
       </div>
       {(!detectedAgents || detectedAgents.length === 0) && (
