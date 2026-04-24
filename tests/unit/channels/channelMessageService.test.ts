@@ -20,6 +20,62 @@ describe('ChannelMessageService', () => {
     vi.useRealTimers();
   });
 
+  it('sends input payloads only for gemini tasks', async () => {
+    const service = new ChannelMessageService();
+
+    vi.spyOn(databaseModule, 'getDatabase').mockResolvedValue({
+      getConversation: () => ({ success: false }),
+    } as any);
+
+    const sendTaskMessage = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(workerTaskManager, 'getOrBuildTask').mockResolvedValue({
+      type: 'gemini',
+      sendMessage: sendTaskMessage,
+    } as any);
+
+    const streamPromise = service.sendMessage('session-1', 'conv-gemini', 'hello gemini', vi.fn());
+    await flushMicrotasks();
+
+    expect(sendTaskMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: 'hello gemini',
+        msg_id: expect.stringContaining('channel_msg_'),
+      })
+    );
+    expect(sendTaskMessage).not.toHaveBeenCalledWith(expect.objectContaining({ content: 'hello gemini' }));
+
+    service.clearStreamByConversationId('conv-gemini');
+    await expect(streamPromise).resolves.toContain('channel_msg_');
+  });
+
+  it('sends content payloads for aionrs tasks', async () => {
+    const service = new ChannelMessageService();
+
+    vi.spyOn(databaseModule, 'getDatabase').mockResolvedValue({
+      getConversation: () => ({ success: false }),
+    } as any);
+
+    const sendTaskMessage = vi.fn().mockResolvedValue(undefined);
+    vi.spyOn(workerTaskManager, 'getOrBuildTask').mockResolvedValue({
+      type: 'aionrs',
+      sendMessage: sendTaskMessage,
+    } as any);
+
+    const streamPromise = service.sendMessage('session-1', 'conv-aionrs', 'hello aionrs', vi.fn());
+    await flushMicrotasks();
+
+    expect(sendTaskMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        content: 'hello aionrs',
+        msg_id: expect.stringContaining('channel_msg_'),
+      })
+    );
+    expect(sendTaskMessage).not.toHaveBeenCalledWith(expect.objectContaining({ input: 'hello aionrs' }));
+
+    service.clearStreamByConversationId('conv-aionrs');
+    await expect(streamPromise).resolves.toContain('channel_msg_');
+  });
+
   it('waits for Gemini continuation after a tool-only finish', async () => {
     const service = new ChannelMessageService() as any;
     const callback = vi.fn();
