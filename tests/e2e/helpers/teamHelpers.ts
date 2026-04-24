@@ -42,6 +42,12 @@ export async function createTeam(page: Page, name: string, leaderType?: string):
     agents: [{ name: 'Leader', role: 'lead', backend, model }],
   });
 
+  // HTTP-based creation bypasses the UI's onCreated→refreshTeams callback.
+  // Reload page to force SWR to refetch the team list from backend.
+  const currentUrl = page.url();
+  await page.goto(currentUrl, { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(2_000);
+
   return result.id;
 }
 
@@ -68,13 +74,24 @@ export async function deleteTeam(page: Page, id: string): Promise<void> {
 
 /**
  * Remove all teams whose name matches `name`. Useful for pre-test cleanup.
+ *
+ * After deleting matches, reload the page so SWR refetches the sidebar team
+ * list from the backend — otherwise stale rows from the previous render can
+ * linger and cause Modal.confirm.onOk to target a dead teamId.
  */
 export async function cleanupTeamsByName(page: Page, name: string): Promise<void> {
   const teams = await invokeBridge<TeamRecord[]>(page, 'team.list', {
     user_id: 'system_default_user',
   }).catch(() => [] as TeamRecord[]);
 
-  for (const t of teams.filter((t) => t.name === name)) {
+  const matches = teams.filter((t) => t.name === name);
+  for (const t of matches) {
     await invokeBridge(page, 'team.remove', { id: t.id }).catch(() => {});
+  }
+
+  if (matches.length > 0) {
+    const url = page.url();
+    await page.goto(url, { waitUntil: 'domcontentloaded' });
+    await page.waitForTimeout(2_000);
   }
 }
