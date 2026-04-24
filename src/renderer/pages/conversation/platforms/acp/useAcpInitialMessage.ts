@@ -64,7 +64,12 @@ export const useAcpInitialMessage = ({
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        console.error('Error sending initial message:', error);
+        console.error('[useAcpInitialMessage] Error sending initial message:', error);
+        console.error('[useAcpInitialMessage] Error details:', {
+          name: (error as Error)?.name,
+          message: (error as Error)?.message,
+          conversation_id,
+        });
         // Create error message in UI
         const errorMessage: TMessage = {
           id: uuid(),

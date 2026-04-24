@@ -15,6 +15,7 @@ export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
  * and the superset includes non-ACP values like `'remote'` and `'aionrs'`.
  */
 export type AvailableAgent = {
+  id?: string;
   backend: string;
   name: string;
   cli_path?: string;

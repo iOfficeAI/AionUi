@@ -198,6 +198,7 @@ export async function buildCliAgentParams(
   return buildAgentConversationParams({
     backend: agent.backend,
     name: agent.name,
+    agent_id: agent.id,
     agent_name: agent.name,
     workspace,
     cli_path: agent.cli_path,
