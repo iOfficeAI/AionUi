@@ -30,7 +30,17 @@ import type {
 } from '../update/updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
-import { httpGet, httpPost, httpPut, httpPatch, httpDelete, wsEmitter, stubProvider, stubEmitter } from './httpBridge';
+import {
+  httpGet,
+  httpPost,
+  httpPut,
+  httpPatch,
+  httpDelete,
+  wsEmitter,
+  wsMappedEmitter,
+  stubProvider,
+  stubEmitter,
+} from './httpBridge';
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -66,7 +76,7 @@ export const conversation = {
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
-    (p) => ({ updates: p.updates, mergeExtra: p.mergeExtra })
+    (p) => ({ ...p.updates })
   ),
   reset: httpPost<void, IResetConversationParams>(
     (p) => `/api/conversations/${p.id}/reset`,
@@ -96,7 +106,28 @@ export const conversation = {
     (p) => ({ confirm_key: p.confirm_key, msg_id: p.msg_id })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
-  turnCompleted: wsEmitter<IConversationTurnCompletedEvent>('turn.completed'),
+  turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
+    const r = raw as Record<string, unknown>;
+    return {
+      session_id: (r.session_id ?? r.conversation_id ?? '') as string,
+      status: (r.status ?? 'finished') as IConversationTurnCompletedEvent['status'],
+      state: (r.state ??
+        (r.status === 'finished' ? 'ai_waiting_input' : 'unknown')) as IConversationTurnCompletedEvent['state'],
+      detail: (r.detail ?? '') as string,
+      canSendMessage: (r.canSendMessage ?? r.status === 'finished') as boolean,
+      runtime: (r.runtime ?? {
+        hasTask: false,
+        isProcessing: false,
+        pendingConfirmations: 0,
+      }) as IConversationTurnCompletedEvent['runtime'],
+      workspace: (r.workspace ?? '') as string,
+      model: (r.model ?? { platform: '', name: '', useModel: '' }) as IConversationTurnCompletedEvent['model'],
+      last_message: (r.last_message ?? {
+        content: null,
+        created_at: Date.now(),
+      }) as IConversationTurnCompletedEvent['last_message'],
+    };
+  }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
   getWorkspace: httpGet<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>(
     (p) =>

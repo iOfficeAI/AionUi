@@ -49,8 +49,20 @@ export const useAcpInitialMessage = ({
         const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
         const msg_id = uuid();
 
-        // Start AI processing loading state (user message will be added via backend response)
         setAiProcessing(true);
+
+        addOrUpdateMessage(
+          {
+            id: msg_id,
+            msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: { content: displayMessage },
+            created_at: Date.now(),
+          },
+          true
+        );
 
         // Send the message
         void checkAndUpdateTitle(conversation_id, input);

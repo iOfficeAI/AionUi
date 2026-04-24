@@ -38,7 +38,10 @@ async function httpRequest<T>(method: string, path: string, body?: unknown): Pro
     headers['Content-Type'] = 'application/json';
   }
 
-  console.debug(`[httpBridge] ${method} ${path}`, body !== undefined ? JSON.stringify(body).slice(0, 500) : '(no body)');
+  console.debug(
+    `[httpBridge] ${method} ${path}`,
+    body !== undefined ? JSON.stringify(body).slice(0, 500) : '(no body)'
+  );
 
   const response = await fetch(url, {
     method,
@@ -269,6 +272,21 @@ export function wsEmitter<Params = undefined>(eventName: string): EmitterLike<Pa
       return () => {
         wsListeners.get(eventName)?.delete(cb);
       };
+    },
+    emit: (() => {}) as EmitterLike<Params>['emit'],
+  };
+}
+
+export function wsMappedEmitter<Params = undefined>(
+  eventName: string,
+  transform: (raw: unknown) => Params
+): EmitterLike<Params> {
+  const inner = wsEmitter<unknown>(eventName);
+  return {
+    on: (callback: (params: Params) => void) => {
+      return inner.on((raw) => {
+        callback(transform(raw));
+      });
     },
     emit: (() => {}) as EmitterLike<Params>['emit'],
   };

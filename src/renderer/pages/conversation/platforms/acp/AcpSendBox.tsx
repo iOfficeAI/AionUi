@@ -180,6 +180,21 @@ const AcpSendBox: React.FC<{
 
       setAiProcessing(true);
 
+      if (!team_id) {
+        addOrUpdateMessageRef.current(
+          {
+            id: msg_id,
+            msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: { content: displayMessage },
+            created_at: Date.now(),
+          },
+          true
+        );
+      }
+
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (team_id) {

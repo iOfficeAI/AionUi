@@ -414,6 +414,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         },
       };
     }
+    case 'text':
     case 'content':
     case 'user_content': {
       const data = message.data;
@@ -422,7 +423,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: message.type === 'content' ? 'left' : 'right',
+        position: message.type === 'user_content' ? 'right' : 'left',
         conversation_id: message.conversation_id,
         content: isRichData
           ? {
