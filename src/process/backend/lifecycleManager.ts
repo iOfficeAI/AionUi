@@ -18,7 +18,8 @@ type SpawnConfig = {
 };
 
 export function buildSpawnArgs(config: SpawnConfig): string[] {
-  const args = ['--port', String(config.port), '--data-dir', config.dbPath];
+  const logLevel = process.env.AIONUI_LOG_LEVEL || 'info';
+  const args = ['--port', String(config.port), '--data-dir', config.dbPath, '--log-level', logLevel];
   if (config.local) args.push('--local');
   return args;
 }
@@ -90,11 +91,15 @@ export class BackendLifecycleManager {
     });
 
     this.childProcess.stdout?.on('data', (data: Buffer) => {
-      console.log(`[aionui-backend] ${data.toString().trimEnd()}`);
+      for (const line of data.toString().split('\n')) {
+        if (line.trim()) console.log(`[aionui-backend] ${line}`);
+      }
     });
 
     this.childProcess.stderr?.on('data', (data: Buffer) => {
-      console.error(`[aionui-backend] ${data.toString().trimEnd()}`);
+      for (const line of data.toString().split('\n')) {
+        if (line.trim()) console.error(`[aionui-backend] ${line}`);
+      }
     });
 
     const ready = await this.waitForHealth(this._port);

@@ -25,10 +25,12 @@ const getRecentLogPaths = (logsDir: string, days: number): string[] => {
   for (let i = 0; i < days; i++) {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
-    const filename = `${date.toISOString().slice(0, 10)}.log`;
-    const file_path = path.join(logsDir, filename);
-    if (fs.existsSync(file_path)) {
-      paths.push(file_path);
+    const dateStr = date.toISOString().slice(0, 10);
+    for (const filename of [`${dateStr}.log`, `${dateStr}.backend.log`]) {
+      const filePath = path.join(logsDir, filename);
+      if (fs.existsSync(filePath)) {
+        paths.push(filePath);
+      }
     }
   }
 
