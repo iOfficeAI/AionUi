@@ -9,22 +9,37 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 // ── Hoisted mocks ──────────────────────────────────────────────────
 
-const { emitResponseStream, emitConfirmationAdd, emitConfirmationUpdate, emitConfirmationRemove, mockDb } = vi.hoisted(
-  () => ({
-    emitResponseStream: vi.fn(),
-    emitConfirmationAdd: vi.fn(),
-    emitConfirmationUpdate: vi.fn(),
-    emitConfirmationRemove: vi.fn(),
-    mockDb: {
-      getConversationMessages: vi.fn(() => ({ data: [] })),
-      getConversation: vi.fn(() => ({ success: false })),
-      updateConversation: vi.fn(),
-      createConversation: vi.fn(() => ({ success: true })),
-      insertMessage: vi.fn(),
-      updateMessage: vi.fn(),
-    },
-  })
-);
+const {
+  emitResponseStream,
+  emitConfirmationAdd,
+  emitConfirmationUpdate,
+  emitConfirmationRemove,
+  mockDb,
+  mockAionrsInstances,
+} = vi.hoisted(() => ({
+  emitResponseStream: vi.fn(),
+  emitConfirmationAdd: vi.fn(),
+  emitConfirmationUpdate: vi.fn(),
+  emitConfirmationRemove: vi.fn(),
+  mockDb: {
+    getConversationMessages: vi.fn(() => ({ data: [] })),
+    getConversation: vi.fn(() => ({ success: false })),
+    updateConversation: vi.fn(),
+    createConversation: vi.fn(() => ({ success: true })),
+    insertMessage: vi.fn(),
+    updateMessage: vi.fn(),
+  },
+  mockAionrsInstances: [] as Array<{
+    start: ReturnType<typeof vi.fn>;
+    stop: ReturnType<typeof vi.fn>;
+    kill: ReturnType<typeof vi.fn>;
+    send: ReturnType<typeof vi.fn>;
+    approveTool: ReturnType<typeof vi.fn>;
+    denyTool: ReturnType<typeof vi.fn>;
+    injectConversationHistory: ReturnType<typeof vi.fn>;
+    isRunning: ReturnType<typeof vi.fn>;
+  }>,
+}));
 
 // ── Module mocks ───────────────────────────────────────────────────
 
@@ -72,6 +87,10 @@ vi.mock('@process/services/database/export', () => ({
 
 vi.mock('@process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(() => Promise.resolve([])) },
+  ProcessConfig: {
+    get: vi.fn(() => Promise.resolve(undefined)),
+    set: vi.fn(() => Promise.resolve(undefined)),
+  },
 }));
 
 const mockAddOrUpdateMessage = vi.hoisted(() => vi.fn());
@@ -105,33 +124,49 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
   },
 }));
 
+vi.mock('@process/team/prompts/teamGuideCapability', () => ({
+  shouldInjectTeamGuideMcp: vi.fn(async () => false),
+}));
+
+vi.mock('@process/team/mcp/guide/teamGuideSingleton', () => ({
+  getTeamGuideStdioConfig: vi.fn(() => undefined),
+}));
+
 vi.mock('@process/agent/aionrs', () => ({
-  AionrsAgent: vi.fn().mockImplementation(() => ({
-    start: vi.fn().mockResolvedValue(undefined),
-    stop: vi.fn(),
-    kill: vi.fn(),
-    send: vi.fn().mockResolvedValue(undefined),
-    approveTool: vi.fn(),
-    denyTool: vi.fn(),
-    injectConversationHistory: vi.fn().mockResolvedValue(undefined),
-    get bootstrap() {
-      return Promise.resolve();
-    },
-  })),
+  AionrsAgent: vi.fn().mockImplementation(function MockAionrsAgent() {
+    const instance = {
+      start: vi.fn().mockResolvedValue(undefined),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn().mockResolvedValue(undefined),
+      approveTool: vi.fn(),
+      denyTool: vi.fn(),
+      injectConversationHistory: vi.fn().mockResolvedValue(undefined),
+      isRunning: vi.fn(() => true),
+      get bootstrap() {
+        return Promise.resolve();
+      },
+    };
+    mockAionrsInstances.push(instance);
+    return instance;
+  }),
 }));
 
 // ── Import under test ──────────────────────────────────────────────
 
-import { AionrsManager } from '@/process/task/AionrsManager';
+import { AionrsManager, resetAionrsRequestThrottleForTests } from '@/process/task/AionrsManager';
 
 // ── Helpers ────────────────────────────────────────────────────────
 
 const FALLBACK_DELAY_MS = 15_000;
 
-function createManager(conversationId = 'conv-fb-1'): AionrsManager {
+function createManager(
+  conversationId = 'conv-fb-1',
+  model = { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' }
+): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model,
     conversation_id: conversationId,
   };
   return new AionrsManager(data as any, data.model as any);
@@ -152,6 +187,8 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAionrsInstances.length = 0;
+    resetAionrsRequestThrottleForTests();
     vi.useFakeTimers();
     manager = createManager();
     vi.spyOn(manager as any, 'postMessagePromise').mockResolvedValue(undefined);
@@ -170,6 +207,24 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
       emitEvent(manager, { type: 'content', data: 'hello', msg_id: 'msg-1' });
 
       expect((manager as any).missingFinishFallbackTimer).not.toBeNull();
+    });
+
+    it('keeps manager status running while a turn has streamed content but no finish', () => {
+      emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
+      emitEvent(manager, { type: 'content', data: 'hello', msg_id: 'msg-1' });
+
+      expect(manager.status).toBe('running');
+    });
+
+    it('keeps manager status running while a turn has tool updates but no finish', () => {
+      emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
+      emitEvent(manager, {
+        type: 'tool_group',
+        data: [{ name: 'Bash', status: 'Success', callId: 'call-1' }],
+        msg_id: 'msg-1',
+      });
+
+      expect(manager.status).toBe('running');
     });
 
     it('schedules fallback timer on start event', () => {
@@ -374,6 +429,76 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
 
       const finishEmissions = findEmissions('finish');
       expect(finishEmissions).toHaveLength(0);
+    });
+  });
+
+  describe('AC-6b: dead agent recovery', () => {
+    it('restarts a dead aionrs process before sending the next message', async () => {
+      await vi.waitFor(() => {
+        expect(mockAionrsInstances.length).toBeGreaterThan(0);
+      });
+      const firstAgent = mockAionrsInstances[0];
+      firstAgent.isRunning.mockReturnValue(false);
+
+      await manager.sendMessage({ content: 'continue', msg_id: 'msg-recover' });
+
+      expect(mockAionrsInstances.length).toBeGreaterThanOrEqual(2);
+      const restartedAgent = mockAionrsInstances.at(-1);
+      expect(restartedAgent?.send).toHaveBeenCalledWith('continue', 'msg-recover', undefined);
+    });
+  });
+
+  describe('AC-6c: request pacing', () => {
+    it('does not delay concurrent sends by default', async () => {
+      const manager2 = createManager('conv-fb-2');
+      await vi.waitFor(() => {
+        expect(mockAionrsInstances.length).toBeGreaterThanOrEqual(2);
+      });
+
+      const [agent1, agent2] = mockAionrsInstances;
+      const first = manager.sendMessage({ content: 'first', msg_id: 'msg-first' });
+      const second = manager2.sendMessage({ content: 'second', msg_id: 'msg-second' });
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.all([first, second]);
+
+      expect(agent1.send).toHaveBeenCalledWith('first', 'msg-first', undefined);
+      expect(agent2.send).toHaveBeenCalledWith('second', 'msg-second', undefined);
+    });
+
+    it('spaces concurrent sends for the same provider and model by the configured interval', async () => {
+      const throttledModel = {
+        name: 'test-provider',
+        useModel: 'test-model',
+        baseUrl: '',
+        platform: 'test',
+        requestIntervalMs: 2000,
+      };
+      const manager1 = createManager('conv-fb-throttle-1', throttledModel);
+      const manager2 = createManager('conv-fb-throttle-2', throttledModel);
+      await vi.waitFor(() => {
+        expect(mockAionrsInstances.length).toBeGreaterThanOrEqual(2);
+      });
+
+      const first = manager1.sendMessage({ content: 'first', msg_id: 'msg-first' });
+      const second = manager2.sendMessage({ content: 'second', msg_id: 'msg-second' });
+
+      await first;
+      await vi.advanceTimersByTimeAsync(0);
+
+      const callsBeforeDelay = mockAionrsInstances.flatMap((agent) => agent.send.mock.calls);
+      expect(callsBeforeDelay).toContainEqual(['first', 'msg-first', undefined]);
+      expect(callsBeforeDelay).not.toContainEqual(['second', 'msg-second', undefined]);
+
+      await vi.advanceTimersByTimeAsync(1999);
+      const callsBeforeFullInterval = mockAionrsInstances.flatMap((agent) => agent.send.mock.calls);
+      expect(callsBeforeFullInterval).not.toContainEqual(['second', 'msg-second', undefined]);
+
+      await vi.advanceTimersByTimeAsync(1);
+      await second;
+
+      const callsAfterInterval = mockAionrsInstances.flatMap((agent) => agent.send.mock.calls);
+      expect(callsAfterInterval).toContainEqual(['second', 'msg-second', undefined]);
     });
   });
 

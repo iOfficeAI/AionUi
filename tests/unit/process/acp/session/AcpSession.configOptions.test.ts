@@ -13,6 +13,9 @@ import type {
   SessionStatus,
 } from '@process/acp/types';
 
+const serializeReadTextFileResponse = (content: string): string =>
+  `${JSON.stringify({ jsonrpc: '2.0', id: 1, result: { content } })}\n`;
+
 const createClient = (sessionResponse: NewSessionResponse): AcpClient => ({
   start: vi.fn(async () => ({}) as InitializeResponse),
   createSession: vi.fn(async () => sessionResponse),
@@ -219,6 +222,9 @@ describe('AcpSession file access handlers', () => {
       expect(response?.content).toContain('export const value0');
       expect(response?.content).not.toContain('export const value699');
       expect(Buffer.byteLength(response?.content ?? '', 'utf-8')).toBeLessThanOrEqual(ACP_TEXT_FILE_READ_MAX_BYTES);
+      expect(Buffer.byteLength(serializeReadTextFileResponse(response?.content ?? ''), 'utf-8')).toBeLessThanOrEqual(
+        ACP_TEXT_FILE_READ_MAX_BYTES
+      );
     } finally {
       fs.rmSync(workspace, { recursive: true, force: true });
     }

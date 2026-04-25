@@ -88,6 +88,7 @@ vi.mock('@process/services/database/export', () => ({
 
 vi.mock('@process/utils/initStorage', () => ({
   ProcessChat: { get: vi.fn(() => Promise.resolve([])) },
+  ProcessConfig: { get: vi.fn(() => Promise.resolve({})) },
 }));
 
 vi.mock('@process/utils/message', () => ({
@@ -320,6 +321,34 @@ describe('AionrsManager.setMode', () => {
 
     expect((manager as any).currentMode).toBe('yolo');
     expect(result).toEqual({ success: true, data: { mode: 'yolo' } });
+  });
+
+  it('should persist reasoning effort changes to conversation extra', async () => {
+    mockDb.getConversation.mockReturnValue({
+      success: true,
+      data: {
+        id: 'conv-1',
+        type: 'aionrs',
+        extra: {
+          workspace: '/test',
+          reasoningEffort: 'medium',
+        },
+      },
+    });
+    const manager = createManager('default');
+    (manager as any).agent = {
+      setConfig: mockSetConfig,
+    };
+
+    await manager.setConfig({ effort: 'high' });
+
+    expect(mockSetConfig).toHaveBeenCalledWith({ effort: 'high' });
+    expect(mockDb.updateConversation).toHaveBeenCalledWith('conv-1', {
+      extra: {
+        workspace: '/test',
+        reasoningEffort: 'high',
+      },
+    });
   });
 
   it('should not throw if agent is null', async () => {

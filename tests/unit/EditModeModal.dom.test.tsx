@@ -195,6 +195,7 @@ describe('EditModeModal', () => {
       name: 'Test Provider',
       baseUrl: 'https://api.example.com/v1',
       apiKey: 'new-key',
+      requestIntervalMs: '1500',
       model: 'gpt-4',
     });
 
@@ -211,7 +212,20 @@ describe('EditModeModal', () => {
       expect.objectContaining({
         id: 'test-id',
         apiKey: 'new-key',
+        requestIntervalMs: 1500,
         model: ['gpt-4'],
+      })
+    );
+  });
+
+  it('renders request interval field and defaults missing provider value to 0', () => {
+    const onChange = vi.fn();
+    render(<EditModeModal data={defaultData} onChange={onChange} />);
+
+    expect(screen.getByTestId('form-item-settings.requestIntervalMs')).toBeInTheDocument();
+    expect(mockSetFieldsValue).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestIntervalMs: 0,
       })
     );
   });

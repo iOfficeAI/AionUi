@@ -66,6 +66,7 @@ describe('createConversationParams', () => {
         name: 'Provider',
         baseUrl: 'https://example.com',
         apiKey: 'token',
+        requestIntervalMs: 1500,
         model: ['gpt-4.1'],
         enabled: true,
       },
@@ -165,6 +166,7 @@ describe('createConversationParams', () => {
         name: 'Provider',
         baseUrl: 'https://example.com',
         apiKey: 'token',
+        requestIntervalMs: 1500,
         model: ['gpt-4.1'],
         enabled: true,
       },
@@ -181,6 +183,43 @@ describe('createConversationParams', () => {
     expect(params.type).toBe('aionrs');
     expect(params.model.id).toBe('provider-1');
     expect(params.model.useModel).toBe('gpt-4.1');
+    expect(params.model.requestIntervalMs).toBe(1500);
+  });
+
+  it('hydrates preferred aionrs reasoning effort for new workspace conversations', async () => {
+    getModelConfigInvoke.mockResolvedValue([
+      {
+        id: 'provider-1',
+        platform: 'chatgpt',
+        name: 'ChatGPT',
+        baseUrl: 'https://chatgpt.com/backend-api/codex',
+        apiKey: '',
+        model: ['gpt-5.5'],
+        enabled: true,
+      },
+    ]);
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'aionrs.config') {
+        return {
+          preferredMode: 'auto_edit',
+          preferredConfigOptions: {
+            reasoning_effort: 'high',
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'aionrs',
+        name: 'Aion CLI Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBe('auto_edit');
+    expect(params.extra.reasoningEffort).toBe('high');
   });
 
   it('prefers the saved aionrs default provider and model when still available', async () => {
@@ -449,6 +488,35 @@ describe('createConversationParams', () => {
     const next = applyWorkspaceConversationConfigDefaults(params, sourceConversation, 'codex');
 
     expect(next).toBe(params);
+  });
+
+  it('inherits aionrs reasoning effort and mode from the active workspace conversation', () => {
+    const params = {
+      type: 'aionrs',
+      model: {},
+      name: 'New Chat',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        sessionMode: 'default',
+        reasoningEffort: 'medium',
+      },
+    } as any;
+    const sourceConversation = {
+      id: 'conv-active',
+      type: 'aionrs',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        sessionMode: 'yolo',
+        reasoningEffort: 'high',
+      },
+    } as any;
+
+    const next = applyWorkspaceConversationConfigDefaults(params, sourceConversation, 'aionrs');
+
+    expect(next.extra.sessionMode).toBe('yolo');
+    expect(next.extra.reasoningEffort).toBe('high');
   });
 
   it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
