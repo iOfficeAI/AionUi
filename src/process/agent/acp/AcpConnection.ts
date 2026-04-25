@@ -15,6 +15,7 @@ import type {
   AcpPromptResponseUsage,
   AcpRequest,
   AcpResponse,
+  AcpAvailableModel,
   AcpSessionConfigOption,
   AcpSessionModes,
   AcpSessionModels,
@@ -908,8 +909,12 @@ export class AcpConnection {
     // 2. Load Model Providers from AionUi configuration
     const modelProviders = await this.loadModelProviders();
 
-    // 3. Merge CLI models with Model Providers
-    this.models = this.mergeModelLists(cliModels, modelProviders);
+    // 3. Merge: if providers have extra models, merge them in; otherwise preserve original
+    if (modelProviders.length > 0) {
+      this.models = this.mergeModelLists(cliModels, modelProviders);
+    } else {
+      this.models = cliModels;
+    }
   }
 
   /**
@@ -936,39 +941,30 @@ export class AcpConnection {
     cliModels: AcpSessionModels | null,
     providers: Array<{ id: string; name: string; platform?: string; model: string[] }>
   ): AcpSessionModels {
-    const availableModels: Array<{ id: string; name: string }> = [];
     const seenModelIds = new Set<string>();
+    const availableModels: AcpAvailableModel[] = [];
 
-    // 1. Add CLI-returned models first (higher priority)
+    // 1. Preserve CLI-returned models as-is (keep original shape)
     if (cliModels?.availableModels) {
       for (const model of cliModels.availableModels) {
         const modelId = typeof model === 'string' ? model : model.id || model.modelId || '';
-        const modelName = typeof model === 'string' ? model : model.name || modelId;
-
         if (modelId && !seenModelIds.has(modelId)) {
-          availableModels.push({
-            id: modelId,
-            name: modelName,
-          });
+          availableModels.push(typeof model === 'string' ? { id: model } : model);
           seenModelIds.add(modelId);
         }
       }
     }
 
-    // 2. Add Model Providers' models (avoid duplicates)
+    // 2. Append Model Providers' models (avoid duplicates)
     for (const provider of providers) {
       for (const modelId of provider.model || []) {
         if (!seenModelIds.has(modelId)) {
-          availableModels.push({
-            id: modelId,
-            name: `${modelId} (${provider.name})`,
-          });
+          availableModels.push({ id: modelId, name: `${modelId} (${provider.name})` });
           seenModelIds.add(modelId);
         }
       }
     }
 
-    // 3. Return merged result
     return {
       currentModelId: cliModels?.currentModelId || availableModels[0]?.id || null,
       availableModels,
