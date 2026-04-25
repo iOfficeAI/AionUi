@@ -84,8 +84,8 @@ const ACP_TEXT_FILE_READ_CONTENT_JSON_MAX_BYTES = Math.max(
   0,
   ACP_TEXT_FILE_READ_MAX_BYTES - ACP_TEXT_FILE_READ_RESPONSE_OVERHEAD_BYTES
 );
-const ACP_TEXT_FILE_READ_TRUNCATION_NOTICE =
-  '\n\n[Content truncated by AionUi ACP client. Request a smaller line/limit range to continue.]\n';
+const ACP_TEXT_FILE_READ_TOO_LARGE_MESSAGE =
+  'File is too large for a full ACP text read. Request a smaller line/limit range.';
 
 function splitLineSegments(content: string): string[] {
   if (content.length === 0) return [];
@@ -104,50 +104,12 @@ function fitsReadTextFileResponseBudget(content: string): boolean {
   return jsonStringByteLength(content) <= ACP_TEXT_FILE_READ_CONTENT_JSON_MAX_BYTES;
 }
 
-function trimDanglingHighSurrogate(content: string): string {
-  if (content.length === 0) return content;
-
-  const lastCodeUnit = content.charCodeAt(content.length - 1);
-  return lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff ? content.slice(0, -1) : content;
-}
-
-function truncateReadTextFilePrefixForJsonBudget(content: string, suffix: string): string {
-  let low = 0;
-  let high = content.length;
-
-  while (low < high) {
-    const mid = Math.ceil((low + high) / 2);
-    const prefix = trimDanglingHighSurrogate(content.slice(0, mid));
-    if (fitsReadTextFileResponseBudget(prefix + suffix)) {
-      low = mid;
-    } else {
-      high = mid - 1;
-    }
-  }
-
-  return trimDanglingHighSurrogate(content.slice(0, low));
-}
-
-function capReadTextFileContent(content: string): string {
+function assertReadTextFileResponseBudget(content: string): string {
   if (fitsReadTextFileResponseBudget(content)) {
     return content;
   }
 
-  let capped = '';
-
-  for (const segment of splitLineSegments(content)) {
-    const next = capped + segment;
-    if (!fitsReadTextFileResponseBudget(next + ACP_TEXT_FILE_READ_TRUNCATION_NOTICE)) {
-      break;
-    }
-    capped = next;
-  }
-
-  if (!capped) {
-    capped = truncateReadTextFilePrefixForJsonBudget(content, ACP_TEXT_FILE_READ_TRUNCATION_NOTICE);
-  }
-
-  return capped + ACP_TEXT_FILE_READ_TRUNCATION_NOTICE;
+  throw new Error(ACP_TEXT_FILE_READ_TOO_LARGE_MESSAGE);
 }
 
 export function sliceReadTextFileContent(content: string, line?: number | null, limit?: number | null): string {
@@ -156,11 +118,11 @@ export function sliceReadTextFileContent(content: string, line?: number | null, 
   const startIndex = startLine - 1;
 
   if (limit == null) {
-    return capReadTextFileContent(lines.slice(startIndex).join(''));
+    return assertReadTextFileResponseBudget(lines.slice(startIndex).join(''));
   }
 
   const lineCount = Math.max(0, Math.floor(limit));
-  return capReadTextFileContent(lines.slice(startIndex, startIndex + lineCount).join(''));
+  return assertReadTextFileResponseBudget(lines.slice(startIndex, startIndex + lineCount).join(''));
 }
 
 export class AcpSession {
@@ -378,12 +340,13 @@ export class AcpSession {
       onRequestPermission: (request) => this.handlePermissionRequest(request),
       onReadTextFile: async (req) => {
         this.assertPathAllowed(req.path);
+        let content: string;
         try {
-          const content = fs.readFileSync(req.path, 'utf-8');
-          return { content: sliceReadTextFileContent(content, req.line, req.limit) };
+          content = fs.readFileSync(req.path, 'utf-8');
         } catch {
           throw new Error(`File not found: ${req.path}`);
         }
+        return { content: sliceReadTextFileContent(content, req.line, req.limit) };
       },
       onWriteTextFile: async (req) => {
         this.assertPathAllowed(req.path);

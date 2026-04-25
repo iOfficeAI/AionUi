@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { ACP_TEXT_FILE_READ_MAX_BYTES, AcpSession } from '@process/acp/session/AcpSession';
+import { AcpSession } from '@process/acp/session/AcpSession';
 import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
 import type {
   AgentConfig,
@@ -12,9 +12,6 @@ import type {
   SessionCallbacks,
   SessionStatus,
 } from '@process/acp/types';
-
-const serializeReadTextFileResponse = (content: string): string =>
-  `${JSON.stringify({ jsonrpc: '2.0', id: 1, result: { content } })}\n`;
 
 const createClient = (sessionResponse: NewSessionResponse): AcpClient => ({
   start: vi.fn(async () => ({}) as InitializeResponse),
@@ -166,7 +163,7 @@ describe('AcpSession file access handlers', () => {
     }
   });
 
-  it('caps ACP text read responses so old codex-acp does not receive oversized NDJSON lines', async () => {
+  it('rejects oversized full ACP text reads so agents must request a line range', async () => {
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-acp-read-'));
     const filePath = path.join(workspace, 'large.ts');
     const content = Array.from({ length: 700 }, (_, index) => `export const value${index} = '${'x'.repeat(40)}';`).join(
@@ -213,17 +210,13 @@ describe('AcpSession file access handlers', () => {
       session.start();
       await active;
 
-      const response = await capturedHandlers?.onReadTextFile({
-        path: filePath,
-        sessionId: 'session-1',
-      });
-
-      expect(response?.content).toContain('Content truncated by AionUi ACP client');
-      expect(response?.content).toContain('export const value0');
-      expect(response?.content).not.toContain('export const value699');
-      expect(Buffer.byteLength(response?.content ?? '', 'utf-8')).toBeLessThanOrEqual(ACP_TEXT_FILE_READ_MAX_BYTES);
-      expect(Buffer.byteLength(serializeReadTextFileResponse(response?.content ?? ''), 'utf-8')).toBeLessThanOrEqual(
-        ACP_TEXT_FILE_READ_MAX_BYTES
+      await expect(
+        capturedHandlers!.onReadTextFile({
+          path: filePath,
+          sessionId: 'session-1',
+        })
+      ).rejects.toThrow(
+        'File is too large for a full ACP text read. Request a smaller line/limit range.'
       );
     } finally {
       fs.rmSync(workspace, { recursive: true, force: true });
