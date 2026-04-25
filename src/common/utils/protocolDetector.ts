@@ -334,13 +334,19 @@ export const API_PATH_SUFFIXES = [
   '/v1beta/models',
   '/v1/models',
   '/models',
-  // OpenAI 路径
+  // OpenAI 标准路径
   '/v1/chat/completions',
   '/chat/completions',
   '/v1/completions',
   '/completions',
   '/v1/embeddings',
   '/embeddings',
+  // 非 /v1 版本路径的完整端点
+  // Non-/v1 version path endpoints
+  '/v2/chat/completions',
+  '/v3/chat/completions',
+  '/api/v3/chat/completions',
+  '/api/paas/v4/chat/completions',
   // Anthropic 路径
   '/v1/messages',
   '/messages',

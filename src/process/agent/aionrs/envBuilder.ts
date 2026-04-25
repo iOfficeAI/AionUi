@@ -10,6 +10,35 @@ import { isOpenAIHost } from '@/common/utils/urlValidation';
 type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
 
 /**
+ * 需要 api_path 覆盖的非 /v1 API 路径模式
+ * Non-/v1 API path patterns that need api_path override
+ *
+ * aionrs CLI 内部会添加 /v1/chat/completions，但这些路径已经包含版本号
+ * 所以需要通过 api_path = "/chat/completions" 覆盖默认行为
+ * aionrs CLI adds /v1/chat/completions internally, but these paths already contain version
+ * So we need api_path = "/chat/completions" to override the default behavior
+ */
+const NON_V1_API_PATHS = [
+  '/v2', // 百度千帆 / Baidu Qianfan
+  '/v3', // 腾讯云 Coding / Tencent Coding
+  '/api/v3', // 火山引擎 Ark / Volcengine Ark
+  '/api/paas/v4', // 智谱 / Zhipu
+];
+
+/**
+ * 检查 baseUrl 是否需要 api_path 覆盖
+ * Check if baseUrl needs api_path override
+ *
+ * @param baseUrl 要检查的 base URL / Base URL to check
+ * @returns 是否需要覆盖 / Whether override is needed
+ */
+function needsApiPathOverride(baseUrl: string): boolean {
+  if (!baseUrl) return false;
+  const normalizedUrl = baseUrl.replace(/\/+$/, '');
+  return NON_V1_API_PATHS.some((path) => normalizedUrl.endsWith(path));
+}
+
+/**
  * Map AionUi platform name to aionrs provider name.
  *
  * AionUi PlatformType values: 'custom' | 'new-api' | 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'bedrock'
@@ -146,6 +175,8 @@ export function buildSpawnConfig(
  * - Gemini's OpenAI-compatible endpoint already includes version in the base URL
  *   (`/v1beta/openai`), so we override api_path to `/chat/completions` to avoid
  *   the default `/v1/chat/completions` which would produce a 404.
+ * - Non-/v1 API paths (e.g., /v2, /v3, /api/v3) also need api_path override
+ *   because aionrs internally adds /v1/chat/completions.
  * - OpenAI official API requires `max_completion_tokens` instead of `max_tokens`
  *   for newer models (gpt-5.x, o-series, etc.).
  */
@@ -160,9 +191,16 @@ function buildProjectConfig(model: TProviderWithModel, provider: AionrsProvider)
     overrides.push('api_path = "/chat/completions"');
   }
 
+  // Non-/v1 API paths need api_path override (e.g., /v2, /v3, /api/v3)
+  // aionrs internally adds /v1/chat/completions, which would produce incorrect paths
+  // like /v3/v1/chat/completions instead of /v3/chat/completions
+  const baseUrl = model.baseUrl || '';
+  if (model.platform !== 'gemini' && needsApiPathOverride(baseUrl)) {
+    overrides.push('api_path = "/chat/completions"');
+  }
+
   // OpenAI official API needs max_completion_tokens for newer models.
   // Only apply when the host is actually OpenAI (not Gemini or other providers).
-  const baseUrl = model.baseUrl || '';
   if (baseUrl && isOpenAIHost(baseUrl)) {
     overrides.push('max_tokens_field = "max_completion_tokens"');
   }
