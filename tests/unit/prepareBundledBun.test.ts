@@ -99,7 +99,7 @@ describe('prepareBundledBun', () => {
     }
 
     seedCache(runtimeKey, 'default');
-    if (process.arch === 'x64') {
+    if (process.platform === 'linux' && process.arch === 'x64') {
       seedCache(`${runtimeKey}-baseline`, 'baseline');
     }
 
@@ -139,7 +139,7 @@ describe('prepareBundledBun', () => {
   });
 
   it('prepares baseline variant for x64 platforms', () => {
-    if (process.arch !== 'x64') return;
+    if (process.platform !== 'linux' || process.arch !== 'x64') return;
 
     const version = 'test-baseline-version';
     const { runtimeFileName } = setupCacheAndBackup(version);
