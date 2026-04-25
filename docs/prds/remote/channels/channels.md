@@ -22,16 +22,16 @@
 
 **渠道列表与排序**：
 
-| 顺序 | 渠道 | pluginId | 状态 |
-|------|------|----------|------|
-| 1 | Telegram | `telegram_default` | active |
-| 2 | Lark / Feishu | `lark_default` | active |
-| 3 | DingTalk | `dingtalk_default` | active |
-| 4 | WeChat | `weixin_default` | active |
-| 5 | WeCom | `wecom_default` | active |
-| 6+ | 扩展渠道 | 动态（`extensionMeta`） | active |
-| 末尾 | Slack | - | coming_soon |
-| 末尾 | Discord | - | coming_soon |
+| 顺序 | 渠道          | pluginId                | 状态        |
+| ---- | ------------- | ----------------------- | ----------- |
+| 1    | Telegram      | `telegram_default`      | active      |
+| 2    | Lark / Feishu | `lark_default`          | active      |
+| 3    | DingTalk      | `dingtalk_default`      | active      |
+| 4    | WeChat        | `weixin_default`        | active      |
+| 5    | WeCom         | `wecom_default`         | active      |
+| 6+   | 扩展渠道      | 动态（`extensionMeta`） | active      |
+| 末尾 | Slack         | -                       | coming_soon |
+| 末尾 | Discord       | -                       | coming_soon |
 
 **说明**：Slack/Discord 若已被扩展渠道实现（`extensionTypeSet` 包含 `slack`/`discord`），则隐藏对应 coming_soon 占位卡片。
 
@@ -379,13 +379,13 @@ idle → loading_qr → showing_qr → scanned → connected
 
 **支持的字段类型**：
 
-| 类型 | 渲染组件 | 说明 |
-|------|---------|------|
-| `text` | `Input` | 普通文本输入 |
-| `password` | `Input[type=password]` | 密码输入 |
-| `select` | `Select` | 下拉选择，options 来自 schema |
-| `number` | `InputNumber` | 数值输入 |
-| `boolean` | `Switch` | 开关切换 |
+| 类型       | 渲染组件               | 说明                          |
+| ---------- | ---------------------- | ----------------------------- |
+| `text`     | `Input`                | 普通文本输入                  |
+| `password` | `Input[type=password]` | 密码输入                      |
+| `select`   | `Select`               | 下拉选择，options 来自 schema |
+| `number`   | `InputNumber`          | 数值输入                      |
+| `boolean`  | `Switch`               | 开关切换                      |
 
 **启用前校验**：遍历 `credentialFields` 中 `required: true` 的字段，若有未填写的（空字符串或 undefined），warning toast 提示"Please fill required field: {fieldLabel}"
 
@@ -443,35 +443,35 @@ idle → loading_qr → showing_qr → scanned → connected
 
 ## 附录 B：Toast 通知汇总
 
-| 触发操作 | Toast 类型 | i18n Key |
-|---------|-----------|---------|
-| 渠道插件启用成功 | success | `settings.assistant.pluginEnabled` / `settings.{platform}.pluginEnabled` |
-| 渠道插件禁用成功 | success | `settings.assistant.pluginDisabled` / `settings.{platform}.pluginDisabled` |
-| 渠道插件启用/禁用失败 | error | `settings.assistant.enableFailed` / `settings.{platform}.enableFailed` |
-| 连接测试成功 | success | `settings.assistant.connectionSuccess` / `settings.lark.connectionSuccess` |
-| 连接测试失败 | error | `settings.assistant.connectionFailed` / 后端错误信息 |
-| Token 为空测试 | warning | `settings.assistant.tokenRequired` |
-| 凭据为空（Lark/DingTalk/WeCom） | warning | `settings.{platform}.credentialsRequired` |
-| 配对批准成功 | success | `settings.assistant.pairingApproved` |
-| 配对拒绝 | info | `settings.assistant.pairingRejected` |
-| 用户撤销成功 | success | `settings.assistant.userRevoked` |
-| Agent 切换成功 | success | `settings.assistant.agentSwitched` |
-| 模型切换成功 | success | `settings.assistant.modelSwitched` |
-| 模型保存失败 | error | `settings.assistant.modelSaveFailed` |
-| WeChat 登录过期 | warning | `settings.weixin.loginExpired` |
-| WeChat 登录失败 | error | `settings.weixin.loginError` |
-| WeCom 保存启用成功 | success | `settings.wecom.pluginEnabled` |
+| 触发操作                        | Toast 类型 | i18n Key                                                                   |
+| ------------------------------- | ---------- | -------------------------------------------------------------------------- |
+| 渠道插件启用成功                | success    | `settings.assistant.pluginEnabled` / `settings.{platform}.pluginEnabled`   |
+| 渠道插件禁用成功                | success    | `settings.assistant.pluginDisabled` / `settings.{platform}.pluginDisabled` |
+| 渠道插件启用/禁用失败           | error      | `settings.assistant.enableFailed` / `settings.{platform}.enableFailed`     |
+| 连接测试成功                    | success    | `settings.assistant.connectionSuccess` / `settings.lark.connectionSuccess` |
+| 连接测试失败                    | error      | `settings.assistant.connectionFailed` / 后端错误信息                       |
+| Token 为空测试                  | warning    | `settings.assistant.tokenRequired`                                         |
+| 凭据为空（Lark/DingTalk/WeCom） | warning    | `settings.{platform}.credentialsRequired`                                  |
+| 配对批准成功                    | success    | `settings.assistant.pairingApproved`                                       |
+| 配对拒绝                        | info       | `settings.assistant.pairingRejected`                                       |
+| 用户撤销成功                    | success    | `settings.assistant.userRevoked`                                           |
+| Agent 切换成功                  | success    | `settings.assistant.agentSwitched`                                         |
+| 模型切换成功                    | success    | `settings.assistant.modelSwitched`                                         |
+| 模型保存失败                    | error      | `settings.assistant.modelSaveFailed`                                       |
+| WeChat 登录过期                 | warning    | `settings.weixin.loginExpired`                                             |
+| WeChat 登录失败                 | error      | `settings.weixin.loginError`                                               |
+| WeCom 保存启用成功              | success    | `settings.wecom.pluginEnabled`                                             |
 
 ---
 
 ## 附录 C：已知局限汇总
 
-| # | 功能点 | 局限描述 | 来源 |
-|---|--------|----------|------|
-| 1 | F-WEBUI-13 | Telegram Token 锁定机制依赖 `authorizedUsers.length > 0`，如果后端授权数据丢失但 Token 实际在用中，用户可能误修改 Token 导致断连 | R2 初稿 |
-| 2 | F-WEBUI-16 | WeChat 扫码登录的 EventSource（WebUI 模式）在组件卸载时关闭，但 Electron IPC 模式中 `weixinLoginStart` 是 await Promise，组件卸载不会取消该 Promise | R2 初稿 |
-| 3 | F-WEBUI-18 | Agent 列表通过 `acpConversation.getAvailableAgents.invoke()` 加载，每个渠道独立调用，无缓存共享（5 个渠道 = 5 次相同 IPC 调用） | R2 初稿 |
-| 4 | F-WEBUI-19 | `useChannelModelSelection` 恢复保存的 provider 时最多重试 5 次，provider 被删除后静默降级为默认模型，无用户提示 | R2 初稿 |
-| 5 | F-WEBUI-20 | 配对请求的 `expiresAt` 由后端生成，UI 显示剩余时间为 `Math.ceil((expiresAt - Date.now()) / 60000)`，无自动倒计时刷新（显示值仅在组件渲染时计算） | R2 初稿 |
-| 6 | F-WEBUI-17 | WeCom "Save & Enable" 按钮 warning 提示 "Please save Token and EncodingAESKey first" 与实际字段名 (Bot ID / Secret) 不一致 | R2 初稿 |
-| 7 | F-WEBUI-21 | 扩展渠道字段值存储在组件 state（`extensionFieldValues`），页面离开后丢失；已启用的扩展字段值不从后端恢复显示 | R2 初稿 |
+| #   | 功能点     | 局限描述                                                                                                                                            | 来源    |
+| --- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| 1   | F-WEBUI-13 | Telegram Token 锁定机制依赖 `authorizedUsers.length > 0`，如果后端授权数据丢失但 Token 实际在用中，用户可能误修改 Token 导致断连                    | R2 初稿 |
+| 2   | F-WEBUI-16 | WeChat 扫码登录的 EventSource（WebUI 模式）在组件卸载时关闭，但 Electron IPC 模式中 `weixinLoginStart` 是 await Promise，组件卸载不会取消该 Promise | R2 初稿 |
+| 3   | F-WEBUI-18 | Agent 列表通过 `acpConversation.getAvailableAgents.invoke()` 加载，每个渠道独立调用，无缓存共享（5 个渠道 = 5 次相同 IPC 调用）                     | R2 初稿 |
+| 4   | F-WEBUI-19 | `useChannelModelSelection` 恢复保存的 provider 时最多重试 5 次，provider 被删除后静默降级为默认模型，无用户提示                                     | R2 初稿 |
+| 5   | F-WEBUI-20 | 配对请求的 `expiresAt` 由后端生成，UI 显示剩余时间为 `Math.ceil((expiresAt - Date.now()) / 60000)`，无自动倒计时刷新（显示值仅在组件渲染时计算）    | R2 初稿 |
+| 6   | F-WEBUI-17 | WeCom "Save & Enable" 按钮 warning 提示 "Please save Token and EncodingAESKey first" 与实际字段名 (Bot ID / Secret) 不一致                          | R2 初稿 |
+| 7   | F-WEBUI-21 | 扩展渠道字段值存储在组件 state（`extensionFieldValues`），页面离开后丢失；已启用的扩展字段值不从后端恢复显示                                        | R2 初稿 |
