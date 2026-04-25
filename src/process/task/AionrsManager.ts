@@ -38,6 +38,57 @@ function isValidCommandName(name: string): boolean {
   return /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name);
 }
 
+const aionrsRequestThrottleChains = new Map<string, Promise<void>>();
+const aionrsRequestNextAvailableAt = new Map<string, number>();
+
+function resolveAionrsRequestThrottleKey(model: TProviderWithModel): string {
+  return [model.platform, model.name, model.baseUrl ?? '', model.useModel].join('\u0000');
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function resolveAionrsRequestIntervalMs(model: TProviderWithModel): number {
+  const value = model.requestIntervalMs;
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) {
+    return 0;
+  }
+  return Math.floor(value);
+}
+
+async function waitForAionrsRequestSlot(model: TProviderWithModel): Promise<void> {
+  const intervalMs = resolveAionrsRequestIntervalMs(model);
+  if (intervalMs <= 0) {
+    return;
+  }
+
+  const key = resolveAionrsRequestThrottleKey(model);
+  const previous = aionrsRequestThrottleChains.get(key) ?? Promise.resolve();
+  const current = previous
+    .catch((): undefined => undefined)
+    .then(async (): Promise<void> => {
+      const nextAvailableAt = aionrsRequestNextAvailableAt.get(key) ?? 0;
+      const waitMs = Math.max(0, nextAvailableAt - Date.now());
+      if (waitMs > 0) {
+        await wait(waitMs);
+      }
+      aionrsRequestNextAvailableAt.set(key, Date.now() + intervalMs);
+    });
+
+  aionrsRequestThrottleChains.set(key, current);
+  await current;
+
+  if (aionrsRequestThrottleChains.get(key) === current) {
+    aionrsRequestThrottleChains.delete(key);
+  }
+}
+
+export function resetAionrsRequestThrottleForTests(): void {
+  aionrsRequestThrottleChains.clear();
+  aionrsRequestNextAvailableAt.clear();
+}
+
 export class AionrsApprovalStore extends BaseApprovalStore<AionrsApprovalKey> {
   static createKeysFromConfirmation(action: string, commandType?: string): AionrsApprovalKey[] {
     if (action === 'exec' && commandType) {
@@ -65,6 +116,7 @@ type AionrsManagerData = {
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
+  reasoningEffort?: string;
   sessionId?: string;
   resume?: string;
   teamMcpStdioConfig?: {
@@ -87,6 +139,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private _messageSentAt: number | null = null;
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+  private agentStartError: Error | null = null;
 
   // Finish fallback state
   private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -116,7 +169,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.init();
 
     // Start the agent bootstrap — store promise so sendMessage can await it
-    this.agentReady = this.start().catch(() => {});
+    this.agentReady = this.start().catch((error: unknown) => {
+      this.agentStartError = error instanceof Error ? error : new Error(String(error));
+    });
   }
 
   /**
@@ -166,7 +221,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     await agent.start();
     this.agent = agent;
+    this.agentStartError = null;
     this._capabilities = agent.capabilities ?? null;
+
+    if (mergedData.reasoningEffort) {
+      this._configSentAt = Date.now();
+      mainLog('[AionrsManager]', `initial effort sent: effort=${mergedData.reasoningEffort}`);
+      agent.setConfig({ effort: mergedData.reasoningEffort });
+    }
 
     if (this.data.data.teamMcpStdioConfig) {
       const { notifyMcpReady } = await import('@process/team/mcpReadiness');
@@ -238,11 +300,55 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this._lastActivityAt = Date.now();
     // Wait for agent bootstrap to complete before sending
     await this.agentReady;
+    if (this.agentStartError) {
+      this.emitTerminalError(data.msg_id, this.agentStartError);
+      return;
+    }
+    try {
+      await this.ensureAgentRunning();
+    } catch (error) {
+      this.emitTerminalError(data.msg_id, error);
+      return;
+    }
+    await waitForAionrsRequestSlot(this.model);
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
-    if (this.agent) {
-      await this.agent.send(data.content, data.msg_id, data.files);
+    if (!this.agent) {
+      this.emitTerminalError(data.msg_id, new Error('aionrs process is not available'));
+      return;
     }
+    try {
+      await this.agent.send(data.content, data.msg_id, data.files);
+    } catch (error) {
+      this.emitTerminalError(data.msg_id, error);
+    }
+  }
+
+  private async ensureAgentRunning(): Promise<void> {
+    if (this.agent && this.isAgentRunning(this.agent)) {
+      return;
+    }
+    mainWarn('[AionrsManager]', `aionrs process is not running; restarting for ${this.conversation_id}`);
+    await this.start();
+  }
+
+  private isAgentRunning(agent: AionrsAgent): boolean {
+    const maybeAgent = agent as AionrsAgent & { isRunning?: () => boolean };
+    return typeof maybeAgent.isRunning !== 'function' || maybeAgent.isRunning();
+  }
+
+  private emitTerminalError(msgId: string, error: unknown): void {
+    const message = error instanceof Error ? error.message : String(error);
+    this.emit('aionrs.message', {
+      type: 'error',
+      data: message,
+      msg_id: msgId,
+    });
+    this.emit('aionrs.message', {
+      type: 'finish',
+      data: '',
+      msg_id: msgId,
+    });
   }
 
   /**
@@ -487,6 +593,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: null,
+      turnPhase: 'finalizing',
+      completionSource: 'synthetic',
     };
     ipcBridge.conversation.responseStream.emit(fallbackFinish);
     this.emitToEventBuses(fallbackFinish);
@@ -524,9 +632,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         this.scheduleMissingFinishFallback();
       }
 
-      const contentTypes = ['content', 'tool_group'];
-      if (contentTypes.includes(data.type)) {
-        this.status = 'finished';
+      if (data.type !== 'finish' && data.type !== 'error') {
+        this.status = 'running';
       }
 
       if (data.type === 'start') {
@@ -597,8 +704,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         const total = this._messageSentAt ? `${Date.now() - this._messageSentAt}ms` : 'n/a';
         mainLog('[AionrsManager]', `stream_end: msg_id=${processedData.msg_id}, total=${total}`, processedData.data);
         this._messageSentAt = null;
+        this.status = 'finished';
         this.clearMissingFinishFallback();
         this.saveContextUsage(processedData.data);
+        processedData = {
+          ...processedData,
+          turnPhase: processedData.turnPhase ?? 'finalizing',
+          completionSource: processedData.completionSource ?? 'finish_signal',
+        };
         void this.handleTurnEnd();
       }
 
@@ -718,9 +831,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     return this._capabilities;
   }
 
-  setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
+  async setConfig(config: {
+    model?: string;
+    thinking?: string;
+    thinking_budget?: number;
+    effort?: string;
+  }): Promise<void> {
     if (this.agent) {
       this.agent.setConfig(config);
+    }
+    if (config.effort) {
+      await this.saveReasoningEffort(config.effort);
     }
   }
 
@@ -751,6 +872,21 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       }
     } catch (error) {
       mainError('[AionrsManager]', 'Failed to save session mode', error);
+    }
+  }
+
+  private async saveReasoningEffort(effort: string): Promise<void> {
+    try {
+      const db = await getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'aionrs') {
+        const conversation = result.data;
+        db.updateConversation(this.conversation_id, {
+          extra: { ...conversation.extra, reasoningEffort: effort },
+        } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      mainError('[AionrsManager]', 'Failed to save reasoning effort', error);
     }
   }
 

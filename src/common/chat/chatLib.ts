@@ -571,6 +571,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'finish':
     case 'thought':
     case 'info': // Stream retry notifications and similar transient agent updates
+    case 'provider_retry': // Transient retry status handled by platform hooks
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
     case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector

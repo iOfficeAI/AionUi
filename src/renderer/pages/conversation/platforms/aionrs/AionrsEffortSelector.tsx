@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/config/storage';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import {
@@ -19,6 +20,17 @@ import { useTranslation } from 'react-i18next';
 import type { AionrsRuntimeModelInfo } from './useAionrsModelSelection';
 
 const formatEffortLabel = (effort: string) => effort.charAt(0).toUpperCase() + effort.slice(1);
+
+async function savePreferredAionrsEffort(effort: string): Promise<void> {
+  const config = await ConfigStorage.get('aionrs.config');
+  await ConfigStorage.set('aionrs.config', {
+    ...config,
+    preferredConfigOptions: {
+      ...config?.preferredConfigOptions,
+      reasoning_effort: effort,
+    },
+  });
+}
 
 const AionrsEffortSelector: React.FC<{
   conversationId: string;
@@ -119,6 +131,9 @@ const AionrsEffortSelector: React.FC<{
         }
 
         setCurrentEffort(effort);
+        void savePreferredAionrsEffort(effort).catch(() => {
+          // Best effort only. The per-conversation config already changed.
+        });
         return true;
       } catch (error) {
         console.error('[AionrsEffortSelector] Failed to update reasoning effort:', error);

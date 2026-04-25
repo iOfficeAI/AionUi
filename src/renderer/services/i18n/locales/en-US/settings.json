@@ -48,6 +48,8 @@
   "googleLogout": "Logout",
   "openai": "OpenAI",
   "proxyConfig": "Proxy",
+  "requestIntervalMs": "Request interval (ms)",
+  "requestIntervalMsTip": "Delay before each Aion CLI request for this provider/model. 0 disables pacing.",
   "yoloMode": "YOLO (Auto Allow)",
   "claudeYoloMode": "Claude YOLO (Skip Permissions)",
   "claudeYoloModeDesc": "Bypass all Claude Code permission checks (equivalent to --dangerously-skip-permissions).",

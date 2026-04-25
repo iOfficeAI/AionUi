@@ -185,6 +185,14 @@ export type AionrsEvent =
       error: { code: string; message: string; retryable: boolean };
     }
   | { type: 'info'; msg_id: string; message: string }
+  | {
+      type: 'provider_retry';
+      msg_id: string;
+      attempt: number;
+      max_retries: number;
+      delay_ms: number;
+      error: string;
+    }
   | { type: 'config_changed'; capabilities: AionrsCapabilities }
   | { type: 'mcp_ready'; name: string; tools: string[] };
 

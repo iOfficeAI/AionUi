@@ -525,6 +525,11 @@ export interface IProvider {
   baseUrl: string;
   apiKey: string;
   proxy?: string;
+  /**
+   * Minimum interval between Aion CLI requests for the same provider/model.
+   * 0 or undefined disables request pacing.
+   */
+  requestIntervalMs?: number;
   model: string[];
   /**
    * 模型能力标签列表。打了标签就是支持，没打就是不支持

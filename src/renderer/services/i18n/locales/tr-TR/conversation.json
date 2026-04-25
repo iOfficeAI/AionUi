@@ -280,7 +280,9 @@
     "usageLimitWindow": "{{name}}: {{used}}% / {{window}}m",
     "reasoningEffort": "Reasoning",
     "reasoningEffortDefault": "Default",
-    "reasoningUpdateFailed": "Failed to update reasoning effort"
+    "reasoningUpdateFailed": "Failed to update reasoning effort",
+    "retrying": "Retrying",
+    "retryingDescription": "Attempt {{attempt}}/{{maxRetries}}, retrying in {{delaySeconds}}s"
   },
   "skill_generator": {
     "title": "Yetenek/Kural Oluştur",

@@ -48,6 +48,8 @@
   "googleLogout": "ログアウト",
   "openai": "OpenAI",
   "proxyConfig": "プロキシ",
+  "requestIntervalMs": "リクエスト間隔（ms）",
+  "requestIntervalMsTip": "このプロバイダー/モデルの各 Aion CLI リクエスト前の待機時間です。0 で無効になります。",
   "yoloMode": "YOLO (Auto Allow)",
   "claudeYoloMode": "Claude YOLO（権限をスキップ）",
   "claudeYoloModeDesc": "Claude Code の権限確認をすべてバイパスします（--dangerously-skip-permissions 相当）。",

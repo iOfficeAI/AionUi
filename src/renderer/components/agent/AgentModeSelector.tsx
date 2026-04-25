@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/config/storage';
-import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getSelectableAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
@@ -28,6 +28,29 @@ function extractModesFromConfigOptions(configOptions: AcpSessionConfigOption[]):
     value: opt.value,
     label: opt.name || opt.label || opt.value,
   }));
+}
+
+async function savePreferredMode(backend: string | undefined, mode: string): Promise<void> {
+  if (!backend || backend === 'custom') return;
+
+  if (backend === 'gemini') {
+    const config = await ConfigStorage.get('gemini.config');
+    await ConfigStorage.set('gemini.config', { ...config, preferredMode: mode });
+    return;
+  }
+
+  if (backend === 'aionrs') {
+    const config = await ConfigStorage.get('aionrs.config');
+    await ConfigStorage.set('aionrs.config', { ...config, preferredMode: mode });
+    return;
+  }
+
+  const config = await ConfigStorage.get('acp.config');
+  const backendConfig = config?.[backend as AcpBackend] || {};
+  await ConfigStorage.set('acp.config', {
+    ...config,
+    [backend]: { ...backendConfig, preferredMode: mode },
+  });
 }
 
 export interface AgentModeSelectorProps {
@@ -222,22 +245,26 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         });
 
         if (result.success) {
-          setCurrentMode(result.data?.mode ?? mode);
-          onModeChanged?.(result.data?.mode ?? mode);
-          Message.success('Mode switched');
+          const nextMode = result.data?.mode ?? mode;
+          setCurrentMode(nextMode);
+          onModeChanged?.(nextMode);
+          void savePreferredMode(backend, nextMode).catch(() => {
+            // Best effort only. The current conversation mode already changed.
+          });
+          Message.success(t('agentMode.switchSuccess'));
         } else {
-          const errorMsg = result.msg || 'Switch failed';
+          const errorMsg = result.msg || t('agentMode.switchFailed');
           console.warn('[AgentModeSelector] Mode switch failed:', errorMsg);
           Message.warning(errorMsg);
         }
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
-        Message.error('Switch failed');
+        Message.error(t('agentMode.switchFailed'));
       } finally {
         setIsLoading(false);
       }
     },
-    [conversationId, currentMode, onModeSelect]
+    [backend, conversationId, currentMode, onModeChanged, onModeSelect, t]
   );
 
   const renderLogo = () => (

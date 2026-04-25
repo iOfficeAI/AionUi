@@ -5,17 +5,25 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IConversationTurnCompletedEvent, IResponseMessage } from '@/common/adapter/ipcBridge';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type TokenUsage = {
   input_tokens?: number;
   output_tokens?: number;
+};
+
+type ProviderRetryData = {
+  attempt?: number;
+  maxRetries?: number;
+  delayMs?: number;
+  error?: string;
 };
 
 export type UseAionrsMessageReturn = {
@@ -37,10 +45,12 @@ export const useAionrsMessage = (
     onConfigChanged?: (capabilities: Record<string, unknown>) => void;
   }
 ): UseAionrsMessageReturn => {
+  const { t } = useTranslation();
   const onError = options?.onError;
   const onConfigChangedRef = useRef(options?.onConfigChanged);
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false);
+  const [turnRunning, setTurnRunning] = useState(false);
   const [hasActiveTools, setHasActiveTools] = useState(false);
   const [waitingResponse, setWaitingResponse] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
@@ -53,15 +63,21 @@ export const useAionrsMessage = (
   const hasStreamingContentRef = useRef(false);
 
   const activeMsgIdRef = useRef<string | null>(null);
+  const turnRunningRef = useRef(turnRunning);
   const hasActiveToolsRef = useRef(hasActiveTools);
   const streamRunningRef = useRef(streamRunning);
   const waitingResponseRef = useRef(waitingResponse);
   const hasContentInTurnRef = useRef(false);
+  const providerRetryActiveRef = useRef(false);
   const waitingResponseClearFrameRef = useRef<number | null>(null);
 
   useEffect(() => {
     onConfigChangedRef.current = options?.onConfigChanged;
   }, [options?.onConfigChanged]);
+
+  useEffect(() => {
+    turnRunningRef.current = turnRunning;
+  }, [turnRunning]);
 
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
@@ -111,6 +127,26 @@ export const useAionrsMessage = (
     });
   }, [cancelWaitingResponseClear]);
 
+  const setTurnRunningState = useCallback((nextValue: boolean) => {
+    turnRunningRef.current = nextValue;
+    setTurnRunning(nextValue);
+  }, []);
+
+  const clearRuntimeState = useCallback(() => {
+    cancelWaitingResponseClear();
+    setTurnRunningState(false);
+    setStreamRunning(false);
+    streamRunningRef.current = false;
+    setHasActiveTools(false);
+    hasActiveToolsRef.current = false;
+    setWaitingResponse(false);
+    waitingResponseRef.current = false;
+    setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
+    providerRetryActiveRef.current = false;
+    setStreamingContent(false);
+  }, [cancelWaitingResponseClear, setStreamingContent, setTurnRunningState]);
+
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
     pending: ThoughtData | null;
@@ -159,7 +195,7 @@ export const useAionrsMessage = (
     };
   }, [cancelWaitingResponseClear]);
 
-  const running = waitingResponse || streamRunning || hasActiveTools;
+  const running = turnRunning || waitingResponse || streamRunning || hasActiveTools;
 
   const setActiveMsgId = useCallback((msgId: string | null) => {
     activeMsgIdRef.current = msgId;
@@ -179,6 +215,9 @@ export const useAionrsMessage = (
 
       switch (message.type) {
         case 'thought':
+          if (!turnRunningRef.current) {
+            setTurnRunningState(true);
+          }
           if (!streamRunningRef.current) {
             setStreamRunning(true);
             streamRunningRef.current = true;
@@ -188,12 +227,37 @@ export const useAionrsMessage = (
         case 'start':
           cancelWaitingResponseClear();
           hasContentInTurnRef.current = false;
+          providerRetryActiveRef.current = false;
           setStreamingContent(false);
+          setTurnRunningState(true);
           setStreamRunning(true);
           streamRunningRef.current = true;
           break;
+        case 'provider_retry': {
+          cancelWaitingResponseClear();
+          const retryData = message.data as ProviderRetryData;
+          const attempt = retryData.attempt ?? 1;
+          const maxRetries = retryData.maxRetries ?? attempt;
+          const delaySeconds = Math.max(0, Math.ceil((retryData.delayMs ?? 0) / 1000));
+          providerRetryActiveRef.current = true;
+          setTurnRunningState(true);
+          setStreamRunning(true);
+          streamRunningRef.current = true;
+          setWaitingResponse(true);
+          waitingResponseRef.current = true;
+          throttledSetThought({
+            subject: t('conversation.aionrs.retrying'),
+            description: t('conversation.aionrs.retryingDescription', {
+              attempt,
+              maxRetries,
+              delaySeconds,
+            }),
+          });
+          break;
+        }
         case 'finish': {
           cancelWaitingResponseClear();
+          const isFinalizing = message.turnPhase === 'finalizing';
           const usageData = message.data as TokenUsage | undefined;
           if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
             const newTokenUsage: TokenUsageData = {
@@ -210,14 +274,23 @@ export const useAionrsMessage = (
           }
           setStreamRunning(false);
           streamRunningRef.current = false;
-          setWaitingResponse(false);
-          waitingResponseRef.current = false;
+          setHasActiveTools(false);
+          hasActiveToolsRef.current = false;
+          setWaitingResponse(isFinalizing);
+          waitingResponseRef.current = isFinalizing;
           setThought({ subject: '', description: '' });
-          hasContentInTurnRef.current = false;
+          if (!isFinalizing) {
+            hasContentInTurnRef.current = false;
+          }
+          providerRetryActiveRef.current = false;
+          setTurnRunningState(isFinalizing);
           setStreamingContent(false);
           break;
         }
         case 'tool_group': {
+          if (!turnRunningRef.current) {
+            setTurnRunningState(true);
+          }
           hasContentInTurnRef.current = true;
 
           if (!streamRunningRef.current) {
@@ -265,13 +338,17 @@ export const useAionrsMessage = (
         default: {
           const transformedMessage = transformMessage(message);
           if (message.type === 'error') {
-            cancelWaitingResponseClear();
-            setWaitingResponse(false);
-            waitingResponseRef.current = false;
-            setStreamingContent(false);
+            clearRuntimeState();
             onError?.(message as IResponseMessage);
           } else {
             if (message.type === 'content') {
+              if (!turnRunningRef.current) {
+                setTurnRunningState(true);
+              }
+              if (providerRetryActiveRef.current) {
+                providerRetryActiveRef.current = false;
+                setThought({ subject: '', description: '' });
+              }
               const isFirstContentChunk = !hasContentInTurnRef.current;
               hasContentInTurnRef.current = true;
               setStreamingContent(true);
@@ -293,11 +370,25 @@ export const useAionrsMessage = (
     addOrUpdateMessage,
     cancelWaitingResponseClear,
     clearWaitingResponseAfterPaint,
+    clearRuntimeState,
     conversation_id,
     onError,
     setStreamingContent,
+    setTurnRunningState,
+    t,
     throttledSetThought,
   ]);
+
+  useEffect(() => {
+    const handleTurnCompleted = (event: IConversationTurnCompletedEvent) => {
+      if (event.sessionId !== conversation_id) {
+        return;
+      }
+      clearRuntimeState();
+    };
+
+    return ipcBridge.conversation.turnCompleted?.on?.(handleTurnCompleted) || (() => {});
+  }, [clearRuntimeState, conversation_id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -305,6 +396,7 @@ export const useAionrsMessage = (
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
+    providerRetryActiveRef.current = false;
     setStreamingContent(false);
     setHasHydratedRunningState(false);
     cancelWaitingResponseClear();
@@ -317,6 +409,7 @@ export const useAionrsMessage = (
       if (!res) {
         setStreamRunning(false);
         streamRunningRef.current = false;
+        setTurnRunningState(false);
         setHasActiveTools(false);
         hasActiveToolsRef.current = false;
         setWaitingResponse(false);
@@ -329,6 +422,7 @@ export const useAionrsMessage = (
       const isRunning = res.status === 'running';
       setStreamRunning(isRunning);
       streamRunningRef.current = isRunning;
+      setTurnRunningState(isRunning);
       setHasActiveTools(false);
       hasActiveToolsRef.current = false;
       setWaitingResponse(isRunning);
@@ -351,21 +445,12 @@ export const useAionrsMessage = (
         isStreaming: false,
       });
     };
-  }, [conversation_id, setStreamingContent]);
+  }, [cancelWaitingResponseClear, conversation_id, setStreamingContent, setTurnRunningState]);
 
   const resetState = useCallback(() => {
-    setWaitingResponse(false);
-    waitingResponseRef.current = false;
-    setStreamRunning(false);
-    streamRunningRef.current = false;
-    setHasActiveTools(false);
-    hasActiveToolsRef.current = false;
-    setThought({ subject: '', description: '' });
-    hasContentInTurnRef.current = false;
-    setStreamingContent(false);
+    clearRuntimeState();
     activeMsgIdRef.current = null;
-    cancelWaitingResponseClear();
-  }, [cancelWaitingResponseClear, setStreamingContent]);
+  }, [clearRuntimeState]);
 
   return {
     thought,

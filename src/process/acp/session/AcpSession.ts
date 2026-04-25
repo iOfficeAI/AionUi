@@ -79,6 +79,11 @@ export function buildCrashMessage(info?: DisconnectInfo): string | null {
 
 export const ACP_TEXT_FILE_READ_MAX_BYTES = 8 * 1024;
 
+const ACP_TEXT_FILE_READ_RESPONSE_OVERHEAD_BYTES = 1024;
+const ACP_TEXT_FILE_READ_CONTENT_JSON_MAX_BYTES = Math.max(
+  0,
+  ACP_TEXT_FILE_READ_MAX_BYTES - ACP_TEXT_FILE_READ_RESPONSE_OVERHEAD_BYTES
+);
 const ACP_TEXT_FILE_READ_TRUNCATION_NOTICE =
   '\n\n[Content truncated by AionUi ACP client. Request a smaller line/limit range to continue.]\n';
 
@@ -91,35 +96,55 @@ function byteLength(content: string): number {
   return Buffer.byteLength(content, 'utf-8');
 }
 
-function truncateUtf8(content: string, maxBytes: number): string {
-  if (maxBytes <= 0) return '';
-  const buffer = Buffer.from(content, 'utf-8');
-  if (buffer.byteLength <= maxBytes) return content;
-  return buffer
-    .subarray(0, maxBytes)
-    .toString('utf-8')
-    .replace(/\ufffd$/, '');
+function jsonStringByteLength(content: string): number {
+  return byteLength(JSON.stringify(content));
+}
+
+function fitsReadTextFileResponseBudget(content: string): boolean {
+  return jsonStringByteLength(content) <= ACP_TEXT_FILE_READ_CONTENT_JSON_MAX_BYTES;
+}
+
+function trimDanglingHighSurrogate(content: string): string {
+  if (content.length === 0) return content;
+
+  const lastCodeUnit = content.charCodeAt(content.length - 1);
+  return lastCodeUnit >= 0xd800 && lastCodeUnit <= 0xdbff ? content.slice(0, -1) : content;
+}
+
+function truncateReadTextFilePrefixForJsonBudget(content: string, suffix: string): string {
+  let low = 0;
+  let high = content.length;
+
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const prefix = trimDanglingHighSurrogate(content.slice(0, mid));
+    if (fitsReadTextFileResponseBudget(prefix + suffix)) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return trimDanglingHighSurrogate(content.slice(0, low));
 }
 
 function capReadTextFileContent(content: string): string {
-  if (byteLength(content) <= ACP_TEXT_FILE_READ_MAX_BYTES) {
+  if (fitsReadTextFileResponseBudget(content)) {
     return content;
   }
 
-  const noticeBytes = byteLength(ACP_TEXT_FILE_READ_TRUNCATION_NOTICE);
-  const contentBudget = Math.max(0, ACP_TEXT_FILE_READ_MAX_BYTES - noticeBytes);
   let capped = '';
 
   for (const segment of splitLineSegments(content)) {
     const next = capped + segment;
-    if (byteLength(next) > contentBudget) {
+    if (!fitsReadTextFileResponseBudget(next + ACP_TEXT_FILE_READ_TRUNCATION_NOTICE)) {
       break;
     }
     capped = next;
   }
 
-  if (!capped && contentBudget > 0) {
-    capped = truncateUtf8(content, contentBudget);
+  if (!capped) {
+    capped = truncateReadTextFilePrefixForJsonBudget(content, ACP_TEXT_FILE_READ_TRUNCATION_NOTICE);
   }
 
   return capped + ACP_TEXT_FILE_READ_TRUNCATION_NOTICE;

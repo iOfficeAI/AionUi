@@ -285,7 +285,9 @@
     "usageLimitWindow": "{{name}}：{{used}}% / {{window}} 分鐘",
     "reasoningEffort": "推理強度",
     "reasoningEffortDefault": "預設",
-    "reasoningUpdateFailed": "更新推理強度失敗"
+    "reasoningUpdateFailed": "更新推理強度失敗",
+    "retrying": "正在重試",
+    "retryingDescription": "第 {{attempt}}/{{maxRetries}} 次，{{delaySeconds}} 秒後重試"
   },
   "skill_generator": {
     "title": "Generate Skill/Rule",

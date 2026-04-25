@@ -95,6 +95,12 @@ type ConversationAcpConfigExtra = {
   cachedConfigOptions?: AcpSessionConfigOption[];
 };
 
+type ConversationAionrsConfigExtra = {
+  workspace?: string;
+  sessionMode?: string;
+  reasoningEffort?: string;
+};
+
 function getConversationAcpBackend(conversation: TChatConversation): string | undefined {
   if (conversation.type === 'codex') {
     return 'codex';
@@ -131,7 +137,36 @@ export function applyWorkspaceConversationConfigDefaults(
   sourceConversation: TChatConversation | null | undefined,
   backend: string
 ): ICreateConversationParams {
-  if (!sourceConversation || params.type !== 'acp') {
+  if (!sourceConversation) {
+    return params;
+  }
+
+  if (params.type === 'aionrs') {
+    if (backend !== 'aionrs' || sourceConversation.type !== 'aionrs') {
+      return params;
+    }
+
+    const sourceExtra = sourceConversation.extra as ConversationAionrsConfigExtra | undefined;
+    const targetWorkspace = params.extra?.workspace;
+    if (!targetWorkspace || sourceExtra?.workspace !== targetWorkspace) {
+      return params;
+    }
+
+    if (!sourceExtra.sessionMode && !sourceExtra.reasoningEffort) {
+      return params;
+    }
+
+    return {
+      ...params,
+      extra: {
+        ...params.extra,
+        ...(sourceExtra.sessionMode ? { sessionMode: sourceExtra.sessionMode } : {}),
+        ...(sourceExtra.reasoningEffort ? { reasoningEffort: sourceExtra.reasoningEffort } : {}),
+      },
+    };
+  }
+
+  if (params.type !== 'acp') {
     return params;
   }
 
@@ -200,6 +235,12 @@ async function resolvePreferredAcpConfigSelection(backend: string): Promise<AcpC
   };
 }
 
+async function resolvePreferredAionrsConfigSelection(): Promise<Partial<ICreateConversationParams['extra']>> {
+  const config = await ConfigStorage.get('aionrs.config');
+  const reasoningEffort = config?.preferredConfigOptions?.reasoning_effort;
+  return reasoningEffort ? { reasoningEffort } : {};
+}
+
 /**
  * Get a model from configured providers that is compatible with aionrs.
  * aionrs supports all platforms via OpenAI-compatible protocol.
@@ -232,6 +273,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     baseUrl: provider.baseUrl,
     apiKey: provider.apiKey,
     proxy: provider.proxy,
+    requestIntervalMs: provider.requestIntervalMs,
     useModel,
     capabilities: provider.capabilities,
     contextLimit: provider.contextLimit,
@@ -269,6 +311,7 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
     baseUrl: enabledProvider.baseUrl,
     apiKey: enabledProvider.apiKey,
     proxy: enabledProvider.proxy,
+    requestIntervalMs: enabledProvider.requestIntervalMs,
     useModel: enabledModel || enabledProvider.model[0],
     capabilities: enabledProvider.capabilities,
     contextLimit: enabledProvider.contextLimit,
@@ -313,6 +356,7 @@ export async function buildCliAgentParams(
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
   const preferredAcpConfigSelection =
     type === 'acp' ? await resolvePreferredAcpConfigSelection(agent.backend) : undefined;
+  const preferredAionrsConfigSelection = type === 'aionrs' ? await resolvePreferredAionrsConfigSelection() : undefined;
 
   let model: TProviderWithModel;
   if (type === 'gemini') {
@@ -334,7 +378,7 @@ export async function buildCliAgentParams(
     model,
     sessionMode: preferredMode,
     currentModelId: preferredAcpModelId,
-    extra: preferredAcpConfigSelection,
+    extra: preferredAionrsConfigSelection || preferredAcpConfigSelection,
   });
 }
 

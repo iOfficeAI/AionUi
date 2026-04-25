@@ -48,6 +48,8 @@
   "googleLogout": "登出",
   "openai": "OpenAI",
   "proxyConfig": "代理",
+  "requestIntervalMs": "請求間隔（毫秒）",
+  "requestIntervalMsTip": "此供應商/模型每次 Aion CLI 請求前的等待時間。0 表示不限制。",
   "yoloMode": "YOLO (Auto Allow)",
   "claudeYoloMode": "Claude 自動允許",
   "claudeYoloModeDesc": "跳過 Claude Code 的所有權限確認（等同於 --dangerously-skip-permissions）。",

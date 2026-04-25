@@ -48,6 +48,8 @@
   "googleLogout": "Выйти",
   "openai": "OpenAI",
   "proxyConfig": "Прокси",
+  "requestIntervalMs": "Интервал запросов (мс)",
+  "requestIntervalMsTip": "Задержка перед каждым запросом Aion CLI для этого провайдера/модели. 0 отключает ограничение.",
   "yoloMode": "Автоматическое разрешение (YOLO)",
   "claudeYoloMode": "Claude YOLO (пропуск разрешений)",
   "claudeYoloModeDesc": "Пропустить все проверки разрешений Claude Code (эквивалентно --dangerously-skip-permissions).",

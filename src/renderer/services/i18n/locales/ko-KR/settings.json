@@ -48,6 +48,8 @@
   "googleLogout": "로그아웃",
   "openai": "OpenAI",
   "proxyConfig": "프록시",
+  "requestIntervalMs": "요청 간격(ms)",
+  "requestIntervalMsTip": "이 공급자/모델의 각 Aion CLI 요청 전에 대기할 시간입니다. 0이면 비활성화됩니다.",
   "yoloMode": "YOLO (자동 허용)",
   "claudeYoloMode": "Claude YOLO (권한 건너뛰기)",
   "claudeYoloModeDesc": "Claude Code의 모든 권한 확인을 건너뜁니다 (--dangerously-skip-permissions와 동일).",

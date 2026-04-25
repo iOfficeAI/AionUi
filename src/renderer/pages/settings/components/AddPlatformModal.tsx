@@ -4,7 +4,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Button, Form, Input, Message, Select, Tag } from '@arco-design/web-react';
+import { Button, Form, Input, InputNumber, Message, Select, Tag } from '@arco-design/web-react';
 import { LinkCloud, Edit, Search, Loading } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -249,6 +249,14 @@ const shouldShowBaseUrlField = (platform: PlatformConfig | undefined): boolean =
     platform.platform === 'gemini' ||
     platform.editableBaseUrl === true
   );
+};
+
+const normalizeRequestIntervalMs = (value: unknown): number => {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return 0;
+  }
+  return Math.floor(numericValue);
 };
 
 const AddPlatformModal = ModalHOC<{
@@ -507,6 +515,7 @@ const AddPlatformModal = ModalHOC<{
           baseUrl: isBedrock ? '' : values.baseUrl || selectedPlatform?.baseUrl || '',
           apiKey: isBedrock || isAionrsLoginPlatform ? '' : values.apiKey,
           proxy: typeof values.proxy === 'string' && values.proxy.trim() ? values.proxy.trim() : undefined,
+          requestIntervalMs: normalizeRequestIntervalMs(values.requestIntervalMs),
           model: [values.model],
         };
 
@@ -659,6 +668,15 @@ const AddPlatformModal = ModalHOC<{
             rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}
           >
             <Input placeholder={t('settings.proxyHttpOnly')} />
+          </Form.Item>
+
+          <Form.Item
+            label={t('settings.requestIntervalMs')}
+            field={'requestIntervalMs'}
+            initialValue={0}
+            extra={t('settings.requestIntervalMsTip')}
+          >
+            <InputNumber min={0} step={100} precision={0} style={{ width: '100%' }} placeholder='0' />
           </Form.Item>
 
           {isAionrsLoginPlatform && loginPlatformKey && (

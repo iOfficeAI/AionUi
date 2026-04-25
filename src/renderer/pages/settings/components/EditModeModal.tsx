@@ -4,7 +4,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
 import { isAionrsOnlyPlatform } from '@/renderer/utils/model/modelPlatforms';
-import { Button, Form, Input, Message, Select, Tag } from '@arco-design/web-react';
+import { Button, Form, Input, InputNumber, Message, Select, Tag } from '@arco-design/web-react';
 import { LinkCloud } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -91,6 +91,14 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
     return <img src={logo} alt={name} className='object-contain shrink-0' style={{ width: size, height: size }} />;
   }
   return <LinkCloud theme='outline' size={size} className='text-t-secondary flex shrink-0' />;
+};
+
+const normalizeRequestIntervalMs = (value: unknown): number => {
+  const numericValue = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(numericValue) || numericValue <= 0) {
+    return 0;
+  }
+  return Math.floor(numericValue);
 };
 
 type AionrsLoginStatus = {
@@ -236,6 +244,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
       form.setFieldsValue({
         ...data,
         apiKey: isAionrsOnlyPlatform(data.platform) ? '' : data.apiKey,
+        requestIntervalMs: data.requestIntervalMs ?? 0,
         model: data.model && data.model.length > 0 ? (data.model.length === 1 ? data.model[0] : data.model) : undefined,
         bedrockAuthMethod: data.bedrockConfig?.authMethod || 'accessKey',
         bedrockRegion: data.bedrockConfig?.region || 'us-east-1',
@@ -272,6 +281,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               ...values,
               apiKey: isBedrock || isAionrsLoginPlatform ? '' : values.apiKey,
               proxy: typeof values.proxy === 'string' && values.proxy.trim() ? values.proxy.trim() : undefined,
+              requestIntervalMs: normalizeRequestIntervalMs(values.requestIntervalMs),
               model: Array.isArray(values.model) ? values.model : [values.model],
             };
 
@@ -345,6 +355,14 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}
             >
               <Input placeholder={t('settings.proxyHttpOnly')} />
+            </Form.Item>
+
+            <Form.Item
+              label={t('settings.requestIntervalMs')}
+              field={'requestIntervalMs'}
+              extra={t('settings.requestIntervalMsTip')}
+            >
+              <InputNumber min={0} step={100} precision={0} style={{ width: '100%' }} placeholder='0' />
             </Form.Item>
 
             {isAionrsLoginPlatform && loginPlatformKey && (

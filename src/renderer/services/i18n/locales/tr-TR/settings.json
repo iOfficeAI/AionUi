@@ -48,6 +48,8 @@
   "googleLogout": "Çıkış Yap",
   "openai": "OpenAI",
   "proxyConfig": "Proxy",
+  "requestIntervalMs": "İstek aralığı (ms)",
+  "requestIntervalMsTip": "Bu sağlayıcı/model için her Aion CLI isteğinden önce beklenecek süre. 0 gecikmeyi kapatır.",
   "yoloMode": "YOLO (Otomatik İzin)",
   "claudeYoloMode": "Claude YOLO (İzinleri Atla)",
   "claudeYoloModeDesc": "Tüm Claude Code izin kontrollerini atla (--dangerously-skip-permissions ile eşdeğer).",

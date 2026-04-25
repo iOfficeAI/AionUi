@@ -55,12 +55,15 @@ export type AionrsAgentOptions = {
 export class AionrsAgent {
   private childProcess: ChildProcess | null = null;
   private ready = false;
+  private exited = false;
+  private requestedStop = false;
   private readyPromise: Promise<void>;
   private readyResolve!: () => void;
   private readyReject!: (err: Error) => void;
   private onStreamEvent: StreamEventHandler;
   private options: AionrsAgentOptions;
   private activeMsgId: string | null = null;
+  private stderrTail = '';
   private configBackup: { path: string; content: string | null } | null = null;
   private mcpReadyPromise: Promise<void>;
   private mcpReadyResolve!: () => void;
@@ -108,6 +111,9 @@ export class AionrsAgent {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: this.options.workspace,
     });
+    this.exited = false;
+    this.requestedStop = false;
+    this.stderrTail = '';
 
     // Parse stdout JSON Lines
     const rl = createInterface({ input: this.childProcess.stdout! });
@@ -122,15 +128,29 @@ export class AionrsAgent {
 
     // Log stderr as diagnostics
     this.childProcess.stderr?.on('data', (chunk: Buffer) => {
-      console.error('[aionrs]', chunk.toString());
+      const text = chunk.toString();
+      this.appendStderr(text);
+      console.error('[aionrs]', text);
+    });
+
+    this.childProcess.on('error', (error) => {
+      this.handleProcessFailure(error);
     });
 
     // Handle process exit
-    this.childProcess.on('exit', (code) => {
+    this.childProcess.on('exit', (code, signal) => {
       this.restoreProjectConfig();
+      this.exited = true;
+      const activeMsgId = this.activeMsgId;
       if (!this.ready) {
         this.readyReject(new Error(`aionrs exited with code ${code} during init`));
+      } else if (activeMsgId) {
+        if (!this.requestedStop) {
+          this.emitRuntimeError(this.formatExitMessage(code, signal), activeMsgId);
+        }
+        this.onStreamEvent({ type: 'finish', data: '', msg_id: activeMsgId });
       }
+      this.activeMsgId = null;
       this.childProcess = null;
     });
 
@@ -307,6 +327,19 @@ export class AionrsAgent {
         });
         break;
 
+      case 'provider_retry':
+        this.onStreamEvent({
+          type: 'provider_retry',
+          data: {
+            attempt: event.attempt,
+            maxRetries: event.max_retries,
+            delayMs: event.delay_ms,
+            error: event.error,
+          },
+          msg_id: event.msg_id,
+        });
+        break;
+
       case 'config_changed':
         this.capabilities = event.capabilities;
         this.onStreamEvent({
@@ -368,6 +401,9 @@ export class AionrsAgent {
 
   async send(content: string, msgId: string, files?: string[]): Promise<void> {
     await this.readyPromise;
+    if (!this.isRunning()) {
+      throw new Error('aionrs process is not running');
+    }
     this.sendCommand({
       type: 'message',
       msg_id: msgId,
@@ -382,6 +418,7 @@ export class AionrsAgent {
   }
 
   stop(): void {
+    this.requestedStop = true;
     this.sendCommand({ type: 'stop' });
   }
 
@@ -403,10 +440,50 @@ export class AionrsAgent {
 
   kill(): void {
     this.restoreProjectConfig();
+    this.requestedStop = true;
     if (this.childProcess) {
       this.childProcess.kill('SIGTERM');
       this.childProcess = null;
     }
+  }
+
+  isRunning(): boolean {
+    return Boolean(this.childProcess && !this.exited && this.childProcess.stdin?.writable);
+  }
+
+  private appendStderr(text: string): void {
+    this.stderrTail = `${this.stderrTail}${text}`;
+    if (this.stderrTail.length > 4000) {
+      this.stderrTail = this.stderrTail.slice(-4000);
+    }
+  }
+
+  private formatExitMessage(code: number | null, signal: NodeJS.Signals | null): string {
+    const reason = signal ? `signal ${signal}` : `code ${code ?? 'unknown'}`;
+    const details = this.stderrTail.trim();
+    return details ? `aionrs exited unexpectedly (${reason}): ${details}` : `aionrs exited unexpectedly (${reason})`;
+  }
+
+  private handleProcessFailure(error: Error): void {
+    this.restoreProjectConfig();
+    if (!this.ready) {
+      this.readyReject(error);
+      return;
+    }
+    const activeMsgId = this.activeMsgId;
+    if (activeMsgId) {
+      this.emitRuntimeError(error.message, activeMsgId);
+      this.onStreamEvent({ type: 'finish', data: '', msg_id: activeMsgId });
+      this.activeMsgId = null;
+    }
+  }
+
+  private emitRuntimeError(message: string, msgId: string): void {
+    this.onStreamEvent({
+      type: 'error',
+      data: message,
+      msg_id: msgId,
+    });
   }
 
   /**
