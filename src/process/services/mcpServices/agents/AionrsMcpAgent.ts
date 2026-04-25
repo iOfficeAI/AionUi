@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 import { promises as fs } from 'fs';
 import { dirname } from 'path';
 import { parse, stringify } from 'smol-toml';
@@ -42,11 +42,11 @@ let cachedConfigPath: string | null = null;
  * Get the aionrs global config path via `aionrs --config-path`.
  * The result is cached because the path does not change at runtime.
  */
-function getAionrsConfigPath(cliPath?: string): string {
+export function resolveAionrsConfigPath(cliPath?: string): string {
   if (cachedConfigPath) return cachedConfigPath;
 
-  const cmd = cliPath || 'aionrs';
-  const result = execSync(`${cmd} --config-path`, {
+  const binaryPath = cliPath || 'aionrs';
+  const result = execFileSync(binaryPath, ['--config-path'], {
     encoding: 'utf-8',
     timeout: 3000,
     env: getEnhancedEnv(),
@@ -161,7 +161,7 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
    */
   private async readConfig(cliPath?: string): Promise<AionrsConfigFile> {
     try {
-      const content = await fs.readFile(getAionrsConfigPath(cliPath), 'utf-8');
+      const content = await fs.readFile(resolveAionrsConfigPath(cliPath), 'utf-8');
       return parse(content) as AionrsConfigFile;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
@@ -176,7 +176,7 @@ export class AionrsMcpAgent extends AbstractMcpAgent {
    */
   private async writeConfig(config: AionrsConfigFile): Promise<void> {
     // Ensure directory exists
-    const configPath = getAionrsConfigPath(this.resolvedCliPath);
+    const configPath = resolveAionrsConfigPath(this.resolvedCliPath);
     await fs.mkdir(dirname(configPath), { recursive: true });
     await fs.writeFile(configPath, stringify(config), 'utf-8');
   }
