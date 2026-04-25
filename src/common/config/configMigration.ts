@@ -1,3 +1,6 @@
+import { ipcBridge } from '@/common';
+import type { CreateProviderRequest } from '@/common/types/providerApi';
+
 import type { ConfigKey } from './configKeys';
 import { configService } from './configService';
 import { ConfigStorage, type IConfigStorageRefer } from './storage';
@@ -84,4 +87,127 @@ export async function migrateConfigStorage(): Promise<void> {
 
   entries[MIGRATION_FLAG] = true;
   await configService.setBatch(entries as Parameters<typeof configService.setBatch>[0]);
+  console.info('[Migration] configStorage migration completed, migrated %d keys', Object.keys(entries).length - 1);
+}
+
+// ---------------------------------------------------------------------------
+// Provider migration — reads legacy `model.config` from old ConfigStorage
+// and writes each entry to the backend via `POST /api/providers`.
+// ---------------------------------------------------------------------------
+
+const PROVIDERS_MIGRATION_FLAG: ConfigKey = 'migration.providersImported';
+
+type LegacyModelHealth = Record<
+  string,
+  {
+    status: 'unknown' | 'healthy' | 'unhealthy';
+    lastCheck?: number;
+    latency?: number;
+    error?: string;
+  }
+>;
+
+type LegacyBedrockConfig = {
+  authMethod: 'accessKey' | 'profile';
+  region: string;
+  accessKeyId?: string;
+  secretAccessKey?: string;
+  profile?: string;
+};
+
+type LegacyProvider = {
+  id: string;
+  platform: string;
+  name: string;
+  baseUrl: string;
+  apiKey: string;
+  model: string[];
+  enabled?: boolean;
+  capabilities?: CreateProviderRequest['capabilities'];
+  contextLimit?: number;
+  modelProtocols?: Record<string, string>;
+  modelEnabled?: Record<string, boolean>;
+  modelHealth?: LegacyModelHealth;
+  bedrockConfig?: LegacyBedrockConfig;
+};
+
+function transformModelHealth(health: LegacyModelHealth): CreateProviderRequest['model_health'] {
+  const result: NonNullable<CreateProviderRequest['model_health']> = {};
+  for (const [key, value] of Object.entries(health)) {
+    result[key] = {
+      status: value.status,
+      last_check: value.lastCheck,
+      latency: value.latency,
+      error: value.error,
+    };
+  }
+  return result;
+}
+
+export async function migrateProviders(): Promise<void> {
+  if (configService.get(PROVIDERS_MIGRATION_FLAG)) {
+    return;
+  }
+
+  const existing = await ipcBridge.mode.listProviders.invoke();
+  if (existing && existing.length > 0) {
+    console.info('[Migration] providers migration skipped — backend already has %d providers', existing.length);
+    await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+    return;
+  }
+
+  let legacyProviders: LegacyProvider[];
+  try {
+    legacyProviders = (await ConfigStorage.get(
+      'model.config' as keyof IConfigStorageRefer
+    )) as unknown as LegacyProvider[];
+  } catch (err) {
+    console.info('[Migration] providers migration skipped — no model.config in legacy storage', err);
+    await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+    return;
+  }
+
+  if (!legacyProviders || !Array.isArray(legacyProviders) || legacyProviders.length === 0) {
+    console.info('[Migration] providers migration skipped — model.config is empty or invalid');
+    await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+    return;
+  }
+
+  console.info('[Migration] found %d legacy providers to migrate', legacyProviders.length);
+
+  let migrated = 0;
+  for (const legacy of legacyProviders) {
+    try {
+      const req: CreateProviderRequest = {
+        id: legacy.id,
+        platform: legacy.platform,
+        name: legacy.name,
+        base_url: legacy.baseUrl,
+        api_key: legacy.apiKey,
+        models: legacy.model,
+        enabled: legacy.enabled ?? true,
+        capabilities: legacy.capabilities,
+        context_limit: legacy.contextLimit,
+        model_protocols: legacy.modelProtocols,
+        model_enabled: legacy.modelEnabled,
+        model_health: legacy.modelHealth ? transformModelHealth(legacy.modelHealth) : undefined,
+        bedrock_config: legacy.bedrockConfig
+          ? {
+              auth_method: legacy.bedrockConfig.authMethod,
+              region: legacy.bedrockConfig.region,
+              access_key_id: legacy.bedrockConfig.accessKeyId,
+              secret_access_key: legacy.bedrockConfig.secretAccessKey,
+              profile: legacy.bedrockConfig.profile,
+            }
+          : undefined,
+      };
+      await ipcBridge.mode.createProvider.invoke(req);
+      migrated++;
+    } catch (err) {
+      console.warn('[Migration] failed to create provider %s:', legacy.id, err);
+    }
+  }
+
+  await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+  console.info('[Migration] providers migration completed, migrated %d/%d providers', migrated, legacyProviders.length);
 }

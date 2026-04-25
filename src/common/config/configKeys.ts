@@ -90,6 +90,7 @@ export type ConfigKeyMap = {
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
   'migration.configStorageImported': boolean;
+  'migration.providersImported': boolean | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;
