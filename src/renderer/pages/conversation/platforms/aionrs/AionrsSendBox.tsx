@@ -254,9 +254,9 @@ const AionrsSendBox: React.FC<{
     onExecute: executeCommand,
   });
 
-  // Handle initial message from Guid page
+  // Handle initial message from Guid page — wait until model is ready
   useEffect(() => {
-    if (!conversation_id) return;
+    if (!conversation_id || !current_model?.useModel) return;
 
     const storageKey = `aionrs_initial_message_${conversation_id}`;
     const processedKey = `aionrs_initial_processed_${conversation_id}`;
@@ -279,7 +279,7 @@ const AionrsSendBox: React.FC<{
     };
 
     void processInitialMessage();
-  }, [conversation_id, executeCommand]);
+  }, [conversation_id, current_model?.useModel, executeCommand]);
 
   const onSendHandler = async (message: string) => {
     if (!team_id && isBusy) {
