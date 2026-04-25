@@ -62,7 +62,7 @@ function getCacheRootDir() {
   return path.join(xdgCacheHome, 'AionUi', 'bundled-bun');
 }
 
-function getPlatformAsset(platform, arch) {
+function getPlatformAsset(platform, arch, variant = 'default') {
   const archMap = {
     x64: 'x64',
     arm64: 'aarch64',
@@ -78,7 +78,12 @@ function getPlatformAsset(platform, arch) {
   const normalizedPlatform = platformMap[platform];
   if (!normalizedPlatform) return null;
 
-  return `bun-${normalizedPlatform}-${normalizedArch}.zip`;
+  const suffix = variant === 'baseline' ? '-baseline' : '';
+  return `bun-${normalizedPlatform}-${normalizedArch}${suffix}.zip`;
+}
+
+function needsBaselineVariant(platform, arch) {
+  return platform === 'linux' && arch === 'x64';
 }
 
 function getDownloadUrl(assetName, version) {
@@ -181,7 +186,7 @@ function writeCacheMeta(cacheRuntimeDir, meta) {
   writeJson(getCacheMetaPath(cacheRuntimeDir), meta);
 }
 
-function isCachedRuntimeValid(cacheRuntimeDir, platform, arch, version) {
+function isCachedRuntimeValid(cacheRuntimeDir, platform, arch, version, variant = 'default') {
   const requiredFiles = getRequiredRuntimeFiles(platform);
   const filesOk = requiredFiles.every((fileName) => fs.existsSync(path.join(cacheRuntimeDir, fileName)));
   if (!filesOk) return false;
@@ -189,7 +194,14 @@ function isCachedRuntimeValid(cacheRuntimeDir, platform, arch, version) {
   const meta = readCacheMeta(cacheRuntimeDir);
   if (!meta) return false;
 
-  return meta.platform === platform && meta.arch === arch && meta.version === version && meta.sourceType === 'download';
+  const metaVariant = meta.variant || 'default';
+  return (
+    meta.platform === platform &&
+    meta.arch === arch &&
+    meta.version === version &&
+    metaVariant === variant &&
+    meta.sourceType === 'download'
+  );
 }
 
 function writeManifest(outputDir, manifest) {
@@ -211,14 +223,14 @@ function copyRuntimeFromDirectory(sourceDir, targetDir, platform) {
   return copied;
 }
 
-function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
-  const assetName = getPlatformAsset(platform, arch);
+function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version, variant = 'default') {
+  const assetName = getPlatformAsset(platform, arch, variant);
   if (!assetName) {
-    throw new Error(`Unsupported bun runtime target: ${platform}-${arch}`);
+    throw new Error(`Unsupported bun runtime target: ${platform}-${arch} (variant: ${variant})`);
   }
 
   const downloadUrl = getDownloadUrl(assetName, version);
-  const tempRoot = path.join(os.tmpdir(), 'aionui-bundled-bun', version, `${platform}-${arch}`);
+  const tempRoot = path.join(os.tmpdir(), 'aionui-bundled-bun', version, `${platform}-${arch}-${variant}`);
   const tempZipPath = path.join(tempRoot, assetName);
   const extractedDir = path.join(tempRoot, 'extracted');
 
@@ -242,6 +254,7 @@ function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
     platform,
     arch,
     version,
+    variant,
     sourceType: 'download',
     source: {
       url: downloadUrl,
@@ -261,73 +274,89 @@ function downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, version) {
   };
 }
 
+function prepareVariant(projectRoot, platform, arch, runtimeVersion, variant) {
+  const cacheRootDir = getCacheRootDir();
+  const runtimeKey = `${platform}-${arch}`;
+  const variantSuffix = variant === 'baseline' ? '-baseline' : '';
+  const targetDir = path.join(projectRoot, 'resources', 'bundled-bun', `${runtimeKey}${variantSuffix}`);
+  const cacheRuntimeDir = path.join(cacheRootDir, runtimeVersion, `${runtimeKey}${variantSuffix}`);
+
+  removeDirectorySafe(targetDir);
+  ensureDirectory(targetDir);
+  ensureDirectory(cacheRuntimeDir);
+
+  let prepareResult = null;
+  let cacheMeta = null;
+
+  if (isCachedRuntimeValid(cacheRuntimeDir, platform, arch, runtimeVersion, variant)) {
+    cacheMeta = readCacheMeta(cacheRuntimeDir);
+    prepareResult = {
+      sourceType: 'cache',
+      source: {
+        dir: cacheRuntimeDir,
+        origin: cacheMeta?.source || {},
+      },
+      files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+    };
+  } else {
+    const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion, variant);
+    cacheMeta = downloadResult.cacheMeta;
+    prepareResult = {
+      sourceType: downloadResult.sourceType,
+      source: downloadResult.source,
+      files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
+    };
+  }
+
+  const manifest = {
+    platform,
+    arch,
+    variant,
+    version: runtimeVersion,
+    generatedAt: new Date().toISOString(),
+    sourceType: prepareResult.sourceType,
+    cacheDir: cacheRuntimeDir,
+    cacheMeta,
+    source: prepareResult.source,
+    files: prepareResult.files,
+    skipped: false,
+  };
+
+  writeManifest(targetDir, manifest);
+  console.log(
+    `Bundled bun runtime prepared: ${path.relative(projectRoot, targetDir)} (${prepareResult.files.join(', ')}) [variant=${variant}, source=${prepareResult.sourceType}]`
+  );
+
+  return { prepared: true, dir: targetDir, files: prepareResult.files, sourceType: prepareResult.sourceType };
+}
+
 function prepareBundledBun() {
   const projectRoot = path.resolve(__dirname, '..');
   const platform = process.platform;
-  // Support cross-compilation: npm_config_target_arch > process.arch
   const arch = process.env.npm_config_target_arch || process.arch;
   const runtimeKey = `${platform}-${arch}`;
   const runtimeVersion = getRuntimeVersion();
 
   console.log(`Preparing bundled bun for ${runtimeKey} (version: ${runtimeVersion})`);
 
-  const targetDir = path.join(projectRoot, 'resources', 'bundled-bun', runtimeKey);
-  const cacheRootDir = getCacheRootDir();
-  const cacheRuntimeDir = path.join(cacheRootDir, runtimeVersion, runtimeKey);
-
-  removeDirectorySafe(targetDir);
-  ensureDirectory(targetDir);
-  ensureDirectory(cacheRuntimeDir);
-
   try {
-    let prepareResult = null;
-    let cacheMeta = null;
+    const result = prepareVariant(projectRoot, platform, arch, runtimeVersion, 'default');
 
-    if (isCachedRuntimeValid(cacheRuntimeDir, platform, arch, runtimeVersion)) {
-      cacheMeta = readCacheMeta(cacheRuntimeDir);
-      prepareResult = {
-        sourceType: 'cache',
-        source: {
-          dir: cacheRuntimeDir,
-          origin: cacheMeta?.source || {},
-        },
-        files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
-      };
-    } else {
-      // Strict policy: packaging should only read from cache.
-      // If cache is missing/invalid, refresh cache via network download first.
-      const downloadResult = downloadRuntimeIntoCache(cacheRuntimeDir, platform, arch, runtimeVersion);
-      cacheMeta = downloadResult.cacheMeta;
-      prepareResult = {
-        sourceType: downloadResult.sourceType,
-        source: downloadResult.source,
-        files: copyRuntimeFromDirectory(cacheRuntimeDir, targetDir, platform),
-      };
+    if (needsBaselineVariant(platform, arch)) {
+      console.log(`Preparing baseline variant for ${runtimeKey} (AVX2-free fallback)`);
+      prepareVariant(projectRoot, platform, arch, runtimeVersion, 'baseline');
     }
 
-    const manifest = {
-      platform,
-      arch,
-      version: runtimeVersion,
-      generatedAt: new Date().toISOString(),
-      sourceType: prepareResult.sourceType,
-      cacheDir: cacheRuntimeDir,
-      cacheMeta,
-      source: prepareResult.source,
-      files: prepareResult.files,
-      skipped: false,
-    };
-
-    writeManifest(targetDir, manifest);
-    console.log(
-      `Bundled bun runtime prepared: ${path.relative(projectRoot, targetDir)} (${prepareResult.files.join(', ')}) [source=${prepareResult.sourceType}]`
-    );
-
-    return { prepared: true, dir: targetDir, files: prepareResult.files, sourceType: prepareResult.sourceType };
+    return result;
   } catch (error) {
+    const targetDir = path.join(projectRoot, 'resources', 'bundled-bun', runtimeKey);
+    const cacheRuntimeDir = path.join(getCacheRootDir(), runtimeVersion, runtimeKey);
+
+    ensureDirectory(targetDir);
     const manifest = {
       platform,
       arch,
+      variant: 'default',
       version: runtimeVersion,
       generatedAt: new Date().toISOString(),
       sourceType: 'none',

@@ -15,7 +15,7 @@
 
 import { getPlatformServices } from '@/common/platform';
 import { execFile, execFileSync, spawn } from 'child_process';
-import { accessSync, existsSync, readdirSync } from 'fs';
+import { accessSync, existsSync, readFileSync, readdirSync } from 'fs';
 import os from 'os';
 import path from 'path';
 
@@ -26,10 +26,35 @@ const PERF_LOG = process.env.ACP_PERF === '1';
 // Bundled bun runtime
 // ---------------------------------------------------------------------------
 
+// Bun's standard linux-x64 build requires AVX2. Older CPUs (e.g. AMD FX-8350,
+// Piledriver ~2012) only have AVX1 and crash with SIGILL. We read /proc/cpuinfo
+// once on first call and cache the result for the process lifetime — subsequent
+// calls from getBundledBunDir() / resolveNpxPath() hit this cache only.
+let _hasAvx2: boolean | null = null;
+
+function detectAvx2(): boolean {
+  if (_hasAvx2 !== null) return _hasAvx2;
+
+  if (process.platform !== 'linux' || process.arch !== 'x64') {
+    _hasAvx2 = true;
+    return true;
+  }
+
+  try {
+    const cpuinfo = readFileSync('/proc/cpuinfo', 'utf-8');
+    _hasAvx2 = cpuinfo.includes('avx2');
+  } catch {
+    _hasAvx2 = true;
+  }
+
+  return _hasAvx2;
+}
+
 /**
  * Get the directory containing the bundled bun binary.
- * Returns the path to `resources/bundled-bun/<platform>-<arch>/` which contains
- * the bun executable. Returns null if the directory doesn't exist.
+ *
+ * On x64 platforms, checks for AVX2 support. CPUs without AVX2 (e.g. AMD FX-8350)
+ * cannot run the standard bun build, so the baseline variant is used instead.
  */
 export function getBundledBunDir(): string | null {
   const resourcesPath = getPlatformServices().paths.isPackaged()
@@ -37,6 +62,14 @@ export function getBundledBunDir(): string | null {
     : path.join(process.cwd(), 'resources');
   const platform = process.platform === 'win32' ? 'win32' : process.platform;
   const arch = process.arch;
+  const needsBaseline = arch === 'x64' && !detectAvx2();
+
+  if (needsBaseline) {
+    const baselineDir = path.join(resourcesPath, 'bundled-bun', `${platform}-${arch}-baseline`);
+    // No baseline → return null. Falling through to the standard build would SIGILL.
+    return existsSync(baselineDir) ? baselineDir : null;
+  }
+
   const bunDir = path.join(resourcesPath, 'bundled-bun', `${platform}-${arch}`);
   return existsSync(bunDir) ? bunDir : null;
 }

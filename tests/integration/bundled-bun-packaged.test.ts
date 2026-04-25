@@ -54,6 +54,7 @@ function resolveResourcesDir(): string | null {
 type BundledBunManifest = {
   platform: string;
   arch: string;
+  variant?: string;
   version: string;
   generatedAt: string;
   sourceType: 'cache' | 'download' | 'none';
@@ -62,6 +63,7 @@ type BundledBunManifest = {
     platform: string;
     arch: string;
     version: string;
+    variant?: string;
     sourceType: 'download';
     source: Record<string, string>;
     updatedAt: string;
@@ -101,8 +103,11 @@ describe('Packaged bundled bun resources integrity', () => {
       expect(manifest.skipped).not.toBe(true);
       expect(['cache', 'download']).toContain(manifest.sourceType);
 
+      if (manifest.variant) {
+        expect(['default', 'baseline']).toContain(manifest.variant);
+      }
+
       if (manifest.sourceType === 'cache') {
-        // Backward compatible: old packaged manifests may miss cacheMeta.
         if (manifest.cacheMeta) {
           expect(manifest.cacheMeta.sourceType).toBe('download');
         } else {
@@ -118,6 +123,29 @@ describe('Packaged bundled bun resources integrity', () => {
       for (const file of manifest.files) {
         expect(fs.existsSync(path.join(platformDir, file))).toBe(true);
       }
+    }
+  });
+
+  runOrSkip('should include baseline variant for x64 platforms', () => {
+    const bundledRoot = path.join(resourcesDir as string, 'bundled-bun');
+    if (!fs.existsSync(bundledRoot)) return;
+
+    const dirNames = fs
+      .readdirSync(bundledRoot, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+
+    const x64Dirs = dirNames.filter((name) => name.endsWith('-x64') && !name.includes('baseline'));
+    for (const x64Dir of x64Dirs) {
+      const baselineName = `${x64Dir}-baseline`;
+      expect(dirNames).toContain(baselineName);
+
+      const baselineManifestPath = path.join(bundledRoot, baselineName, 'manifest.json');
+      expect(fs.existsSync(baselineManifestPath)).toBe(true);
+
+      const manifest = JSON.parse(fs.readFileSync(baselineManifestPath, 'utf8')) as BundledBunManifest;
+      expect(manifest.variant).toBe('baseline');
+      expect(manifest.skipped).not.toBe(true);
     }
   });
 });
