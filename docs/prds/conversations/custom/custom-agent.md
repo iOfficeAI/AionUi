@@ -217,12 +217,12 @@
 
 **按钮禁用逻辑**（`InlineAgentEditor.tsx:221-222`）：
 
-| 条件 | 保存按钮 | 测试连接按钮 |
-|---|---|---|
-| 名称为空 AND 命令为空 | disabled | disabled |
-| 名称有值 AND 命令为空 | disabled | disabled |
-| 名称为空 AND 命令有值 | disabled | enabled |
-| 名称有值 AND 命令有值 | **enabled** | enabled |
+| 条件                  | 保存按钮    | 测试连接按钮 |
+| --------------------- | ----------- | ------------ |
+| 名称为空 AND 命令为空 | disabled    | disabled     |
+| 名称有值 AND 命令为空 | disabled    | disabled     |
+| 名称为空 AND 命令有值 | disabled    | enabled      |
+| 名称有值 AND 命令有值 | **enabled** | enabled      |
 
 **异常情况**：
 
@@ -361,11 +361,11 @@
    - **Step 2 — ACP 连接**：通过 `ProcessAcpClient.start()` 启动并连接 CLI 进程（内部包含进程 spawn 和 ACP 协议初始化），成功后调用 `client.close()` 清理
 4. 结果以 Alert 显示在按钮下方（`role="alert"` + `aria-live="assertive"`）：
 
-| 结果 | Alert 类型 | 图标 | i18n Key | 当前中文参考 |
-|---|---|---|---|---|
-| 成功 | success（绿色） | CheckOne | `settings.testConnectionSuccess` | 连接成功！CLI 存在且 ACP 协议正常工作。 |
-| CLI 未找到 | error（红色） | CloseOne | `settings.testConnectionFailCli` | 未找到命令。请确保已安装并在 PATH 中。 |
-| ACP 初始化失败 | warning（黄色） | CloseOne | `settings.testConnectionFailAcp` | 找到 CLI 但 ACP 初始化失败。 |
+| 结果           | Alert 类型      | 图标     | i18n Key                         | 当前中文参考                            |
+| -------------- | --------------- | -------- | -------------------------------- | --------------------------------------- |
+| 成功           | success（绿色） | CheckOne | `settings.testConnectionSuccess` | 连接成功！CLI 存在且 ACP 协议正常工作。 |
+| CLI 未找到     | error（红色）   | CloseOne | `settings.testConnectionFailCli` | 未找到命令。请确保已安装并在 PATH 中。  |
+| ACP 初始化失败 | warning（黄色） | CloseOne | `settings.testConnectionFailAcp` | 找到 CLI 但 ACP 初始化失败。            |
 
 5. 测试完成后可再次点击重新测试
 
@@ -552,6 +552,7 @@
 **技术说明（两次加载机制）**：
 
 `useCustomAgentsLoader` 内部有两个独立的 useEffect：
+
 1. **Initial load**（`useCustomAgentsLoader.ts:73-75`）：仅读 ConfigStorage + extensions，触发条件为 `loadCustomAgents` 引用变化
 2. **Refresh**（`useCustomAgentsLoader.ts:88-90`）：调用 IPC `refreshCustomAgents.invoke()` → SWR mutate(`DETECTED_AGENTS_SWR_KEY`) → 重新读 ConfigStorage。触发条件为 `refreshCustomAgents` 引用变化
 
@@ -614,29 +615,29 @@
 
 > 以 i18n key 为权威列，中文文案为当前参考（以 i18n 翻译文件为准）
 
-| 场景 | 组件 | 类型 | i18n Key | 当前中文参考 |
-|---|---|---|---|---|
-| 连接测试成功 | Alert (success) | 绿色 | `settings.testConnectionSuccess` | 连接成功！CLI 存在且 ACP 协议正常工作。 |
-| CLI 检测失败 | Alert (error) | 红色 | `settings.testConnectionFailCli` | 未找到命令。请确保已安装并在 PATH 中。 |
-| ACP 初始化失败 | Alert (warning) | 黄色 | `settings.testConnectionFailAcp` | 找到 CLI 但 ACP 初始化失败。 |
-| JSON 解析失败 | 内联文本 | 红色 | **硬编码** | "Invalid JSON"（未 i18n） |
+| 场景           | 组件            | 类型 | i18n Key                         | 当前中文参考                            |
+| -------------- | --------------- | ---- | -------------------------------- | --------------------------------------- |
+| 连接测试成功   | Alert (success) | 绿色 | `settings.testConnectionSuccess` | 连接成功！CLI 存在且 ACP 协议正常工作。 |
+| CLI 检测失败   | Alert (error)   | 红色 | `settings.testConnectionFailCli` | 未找到命令。请确保已安装并在 PATH 中。  |
+| ACP 初始化失败 | Alert (warning) | 黄色 | `settings.testConnectionFailAcp` | 找到 CLI 但 ACP 初始化失败。            |
+| JSON 解析失败  | 内联文本        | 红色 | **硬编码**                       | "Invalid JSON"（未 i18n）               |
 
 ---
 
 ## 附录 C：已知局限汇总
 
-| # | 功能点 | 局限描述 |
-|---|---|---|
-| 1 | F-CAGENT-13 | 删除无确认对话框，不可撤销，存在误操作风险 |
-| 2 | F-CAGENT-11 | ACP 连接步骤（Step 2）无超时机制，CLI 进程 hang 时测试永远不返回 |
-| 3 | F-CAGENT-11 | 测试进行中关闭弹窗，后台进程不会被取消（设计约束，非 bug） |
-| 4 | F-CAGENT-10 | "Invalid JSON" 错误信息未 i18n |
-| 5 | F-CAGENT-10 | handleSubmit 重建对象时丢弃 JSON 高级编辑器中的额外字段（详见附录 D） |
-| 6 | F-CAGENT-12 | ConfigStorage 读写操作无 try-catch，失败时弹窗可能异常 |
-| 7 | F-CAGENT-07 | 名称和命令字段无最大长度限制 |
-| 8 | F-CAGENT-09 | 环境变量无数量限制，无 Key/Value 格式校验 |
-| 9 | F-CAGENT-08 | 未闭合引号静默处理，可能导致参数解析不符合用户预期 |
-| 10 | F-CAGENT-16 | useEffect 双重加载（initial + refresh）可能导致列表短暂闪烁 |
+| #   | 功能点      | 局限描述                                                              |
+| --- | ----------- | --------------------------------------------------------------------- |
+| 1   | F-CAGENT-13 | 删除无确认对话框，不可撤销，存在误操作风险                            |
+| 2   | F-CAGENT-11 | ACP 连接步骤（Step 2）无超时机制，CLI 进程 hang 时测试永远不返回      |
+| 3   | F-CAGENT-11 | 测试进行中关闭弹窗，后台进程不会被取消（设计约束，非 bug）            |
+| 4   | F-CAGENT-10 | "Invalid JSON" 错误信息未 i18n                                        |
+| 5   | F-CAGENT-10 | handleSubmit 重建对象时丢弃 JSON 高级编辑器中的额外字段（详见附录 D） |
+| 6   | F-CAGENT-12 | ConfigStorage 读写操作无 try-catch，失败时弹窗可能异常                |
+| 7   | F-CAGENT-07 | 名称和命令字段无最大长度限制                                          |
+| 8   | F-CAGENT-09 | 环境变量无数量限制，无 Key/Value 格式校验                             |
+| 9   | F-CAGENT-08 | 未闭合引号静默处理，可能导致参数解析不符合用户预期                    |
+| 10  | F-CAGENT-16 | useEffect 双重加载（initial + refresh）可能导致列表短暂闪烁           |
 
 ---
 
@@ -646,15 +647,16 @@
 
 `AcpBackendConfig` 接口（`acpTypes.ts:124-302`）包含 30+ 字段，但 Custom Agent 编辑器（InlineAgentEditor）仅暴露以下 5 个字段供用户配置：
 
-| 表单字段 | AcpBackendConfig 字段 | 说明 |
-|---------|---------------------|------|
-| 显示名称 | `name` | 必填 |
-| Avatar | `avatar` | emoji，仅通过 EmojiPicker 设置（不在 JSON 中） |
-| 命令 | `defaultCliPath` | 必填 |
-| 参数 | `acpArgs` | 可选，空格分隔解析为数组 |
-| 环境变量 | `env` | 可选，key-value 对 |
+| 表单字段 | AcpBackendConfig 字段 | 说明                                           |
+| -------- | --------------------- | ---------------------------------------------- |
+| 显示名称 | `name`                | 必填                                           |
+| Avatar   | `avatar`              | emoji，仅通过 EmojiPicker 设置（不在 JSON 中） |
+| 命令     | `defaultCliPath`      | 必填                                           |
+| 参数     | `acpArgs`             | 可选，空格分隔解析为数组                       |
+| 环境变量 | `env`                 | 可选，key-value 对                             |
 
 以下字段由系统自动管理，不在编辑器中暴露：
+
 - `id`：新建时自动生成 uuid，编辑时保留原值
 - `enabled`：通过列表中的 Switch 控制
 

@@ -33,11 +33,11 @@
 
 颜色映射（`statusColor` 函数）：
 
-| status 值 | 颜色 |
-|---|---|
-| `'connected'` | green |
-| `'pending'` | orange |
-| `'error'` | red |
+| status 值                           | 颜色                   |
+| ----------------------------------- | ---------------------- |
+| `'connected'`                       | green                  |
+| `'pending'`                         | orange                 |
+| `'error'`                           | red                    |
 | 其他（含 `'unknown'`, `undefined`） | gray（但渲染层不渲染） |
 
 **空列表状态**：
@@ -144,15 +144,15 @@ UI 当前不暴露协议选择器，新建 Agent 硬编码为 `'openclaw'` 协�
 
 Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefined` 的字段）：
 
-| 前端字段 | DB 列名 | 说明 |
-|---|---|---|
-| `name` | `name` | |
-| `protocol` | `protocol` | |
-| `url` | `url` | |
-| `authType` | `auth_type` | |
-| `authToken` | `auth_token` | |
-| `avatar` | `avatar` | |
-| `description` | `description` | |
+| 前端字段        | DB 列名          | 说明          |
+| --------------- | ---------------- | ------------- |
+| `name`          | `name`           |               |
+| `protocol`      | `protocol`       |               |
+| `url`           | `url`            |               |
+| `authType`      | `auth_type`      |               |
+| `authToken`     | `auth_token`     |               |
+| `avatar`        | `avatar`         |               |
+| `description`   | `description`    |               |
 | `allowInsecure` | `allow_insecure` | boolean → 0/1 |
 
 **异常情况**：
@@ -307,6 +307,7 @@ Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefine
 **设备认证签名**：
 
 使用 Ed25519 私钥对管道分隔字符串签名：
+
 - **v1 格式**（无 nonce，750ms 超时强制 connect 时）: `"v1|{deviceId}|{clientId}|{clientMode}|{role}|{scopes_csv}|{signedAtMs}|{token}"`
 - **v2 格式**（有 nonce，收到 challenge 后）: `"v2|{deviceId}|{clientId}|{clientMode}|{role}|{scopes_csv}|{signedAtMs}|{token}|{nonce}"`
 
@@ -314,15 +315,15 @@ Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefine
 
 **Connect 请求参数**：
 
-| 参数 | 值 |
-|---|---|
-| `minProtocol` / `maxProtocol` | 3 |
-| `client.id` | `'gateway-client'` |
-| `client.displayName` | `'AionUI'` |
-| `client.mode` | `'backend'` |
-| `caps` | `['tool-events']`（必须声明以接收 tool call 事件） |
-| `role` | `'operator'` |
-| `scopes` | `['operator.admin']` |
+| 参数                          | 值                                                 |
+| ----------------------------- | -------------------------------------------------- |
+| `minProtocol` / `maxProtocol` | 3                                                  |
+| `client.id`                   | `'gateway-client'`                                 |
+| `client.displayName`          | `'AionUI'`                                         |
+| `client.mode`                 | `'backend'`                                        |
+| `caps`                        | `['tool-events']`（必须声明以接收 tool call 事件） |
+| `role`                        | `'operator'`                                       |
+| `scopes`                      | `['operator.admin']`                               |
 
 **技术说明**: password 认证路径在 Bridge 层（`remoteAgentBridge.ts:184`）和 Connection 层（`OpenClawGatewayConnection.ts:263`）已实现，但当前 UI 不暴露 password 选项。如果通过直接修改 DB 将 `auth_type` 改为 `'password'`，握手流程会正确使用 password 认证。
 
@@ -648,13 +649,13 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 **连接状态更新到 DB**：
 
-| 触发点 | 状态 |
-|---|---|
-| `RemoteAgentManager.initCore()` 成功 | `connected` |
-| `RemoteAgentManager.initCore()` 失败 | `error` |
-| handshake `onHelloOk` | `connected` |
-| handshake `onConnectError` (pairing required) | `pending` |
-| handshake `onConnectError` (other) | `error` |
+| 触发点                                        | 状态        |
+| --------------------------------------------- | ----------- |
+| `RemoteAgentManager.initCore()` 成功          | `connected` |
+| `RemoteAgentManager.initCore()` 失败          | `error`     |
+| handshake `onHelloOk`                         | `connected` |
+| handshake `onConnectError` (pairing required) | `pending`   |
+| handshake `onConnectError` (other)            | `error`     |
 
 **验收标准**：
 
@@ -717,75 +718,75 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 ## 附录 B：Toast/Alert 消息汇总
 
-| 场景 | 类型 | i18n Key / 文案 |
-|---|---|---|
-| URL 为空时测试连接 | warning | `settings.remoteAgent.urlRequired` |
-| 连接测试成功 | success | `settings.remoteAgent.testSuccess` |
-| 连接测试失败（result） | error | `settings.remoteAgent.testFailed` (参数 `{ error }`) |
-| 连接测试异常（catch） | error | `settings.remoteAgent.testError` (参数 `{ error }`) |
-| 创建成功 | success | `settings.remoteAgent.created` |
-| 编辑成功 | success | `settings.remoteAgent.updated` |
-| 握手失败但已保存 | warning | 拼接: `created`/`updated` + error |
-| 配对成功 | success | `settings.remoteAgent.created`（固定，不区分创建/编辑） |
-| 删除成功 | success | `settings.remoteAgent.deleted` |
-| 远程连接错误 | error (tips) | 直接文案 `Connection error: {msg}`（非 i18n） |
-| 远程 Agent 启动失败 | error | 直接文案 `Failed to start remote agent: {msg}`（非 i18n） |
-| 远程消息发送失败 | error | 直接文案 `Failed to send message: {msg}`（非 i18n） |
+| 场景                   | 类型         | i18n Key / 文案                                           |
+| ---------------------- | ------------ | --------------------------------------------------------- |
+| URL 为空时测试连接     | warning      | `settings.remoteAgent.urlRequired`                        |
+| 连接测试成功           | success      | `settings.remoteAgent.testSuccess`                        |
+| 连接测试失败（result） | error        | `settings.remoteAgent.testFailed` (参数 `{ error }`)      |
+| 连接测试异常（catch）  | error        | `settings.remoteAgent.testError` (参数 `{ error }`)       |
+| 创建成功               | success      | `settings.remoteAgent.created`                            |
+| 编辑成功               | success      | `settings.remoteAgent.updated`                            |
+| 握手失败但已保存       | warning      | 拼接: `created`/`updated` + error                         |
+| 配对成功               | success      | `settings.remoteAgent.created`（固定，不区分创建/编辑）   |
+| 删除成功               | success      | `settings.remoteAgent.deleted`                            |
+| 远程连接错误           | error (tips) | 直接文案 `Connection error: {msg}`（非 i18n）             |
+| 远程 Agent 启动失败    | error        | 直接文案 `Failed to start remote agent: {msg}`（非 i18n） |
+| 远程消息发送失败       | error        | 直接文案 `Failed to send message: {msg}`（非 i18n）       |
 
 ---
 
 ## 附录 C：超时常量汇总
 
-| 超时 | 位置 | 用途 | 备注 |
-|---|---|---|---|
-| 5,000 ms | UI 配对轮询间隔 | handshake 轮询 | 常量 `PAIRING_POLL_INTERVAL` |
-| 300,000 ms (5min) | UI 配对总超时 | 配对等待上限 | 常量 `PAIRING_TIMEOUT` |
-| 10,000 ms | Bridge testConnection | WebSocket 连接测试超时 | 含 handshakeTimeout |
-| 15,000 ms | Bridge handshake | 握手超时 | |
-| 30,000 ms | RemoteAgentCore.waitForConnection | 等待连接建立超时 | 默认参数值 |
-| 70,000 ms | RemoteAgentCore.handleApprovalRequest | 权限请求超时 | 硬编码 |
-| 750 ms | OpenClawGatewayConnection.queueConnect | connect challenge 等待 | |
-| 1s → 30s | OpenClawGatewayConnection 重连退避 | 指数退避 | 每次翻倍 |
-| 10 次 | OpenClawGatewayConnection 最大重连 | 重连上限 | |
-| 30,000 ms | OpenClawGatewayConnection tick | 默认心跳间隔 | 可由 HelloOk.policy 覆盖 |
+| 超时              | 位置                                   | 用途                   | 备注                         |
+| ----------------- | -------------------------------------- | ---------------------- | ---------------------------- |
+| 5,000 ms          | UI 配对轮询间隔                        | handshake 轮询         | 常量 `PAIRING_POLL_INTERVAL` |
+| 300,000 ms (5min) | UI 配对总超时                          | 配对等待上限           | 常量 `PAIRING_TIMEOUT`       |
+| 10,000 ms         | Bridge testConnection                  | WebSocket 连接测试超时 | 含 handshakeTimeout          |
+| 15,000 ms         | Bridge handshake                       | 握手超时               |                              |
+| 30,000 ms         | RemoteAgentCore.waitForConnection      | 等待连接建立超时       | 默认参数值                   |
+| 70,000 ms         | RemoteAgentCore.handleApprovalRequest  | 权限请求超时           | 硬编码                       |
+| 750 ms            | OpenClawGatewayConnection.queueConnect | connect challenge 等待 |                              |
+| 1s → 30s          | OpenClawGatewayConnection 重连退避     | 指数退避               | 每次翻倍                     |
+| 10 次             | OpenClawGatewayConnection 最大重连     | 重连上限               |                              |
+| 30,000 ms         | OpenClawGatewayConnection tick         | 默认心跳间隔           | 可由 HelloOk.policy 覆盖     |
 
 ---
 
 ## 附录 D：已知局限汇总
 
-| # | 功能点 | 局限描述 |
-|---|---|---|
-| 1 | F-RAGENT-02 | 协议默认硬编码 `'openclaw'`，UI 无协议选择器。类型支持三种协议但用户无法选择 |
-| 2 | F-RAGENT-02 | 认证方式仅 none/bearer 两个选项，缺少 password（Bridge/Connection 层已实现 password 路径，但 UI 不暴露） |
-| 3 | F-RAGENT-02/03 | 保存时 catch 块为空（无用户提示），finally 块恢复 saving 状态 |
-| 4 | F-RAGENT-05 | `allowInsecure` 开关仅在 URL 以 `wss://` 开头时显示 |
-| 5 | F-RAGENT-05 | 测试连接按钮 loading 状态待验证：源码传了 `loading` prop 但动态分析未观察到 spinner 效果 |
-| 6 | F-RAGENT-07 | 配对轮询中 handshake 异常完全忽略 (`catch {}`)，用户无错误反馈 |
-| 7 | F-RAGENT-07 | 取消配对后无"重试配对"独立入口，需通过编辑再保存触发 |
-| 8 | F-RAGENT-07 | 配对成功 toast 固定使用 `settings.remoteAgent.created` key（不区分创建/编辑场景） |
-| 9 | F-RAGENT-08 | `waitForConnection` 使用 100ms 轮询检测状态（busy-wait），非事件驱动 |
-| 10 | F-RAGENT-09 | `sendMessage` 在连接断开时自动重新 `start()`，可能导致意外重连和会话重置 |
-| 11 | F-RAGENT-10 | 工具类型推断基于子串匹配而非单词边界，组合命名的工具可能误判（如 'Breadcrumb' 匹配 'read'） |
-| 12 | F-RAGENT-11 | **权限审批的用户选择可能未实际传回 Gateway**：`pendingPermissions` 中 resolve 为空函数，未找到 `exec.approval.respond` 调用 |
-| 13 | F-RAGENT-11 | 权限请求超时 70 秒硬编码，超时后自动 reject 无用户可见提示 |
-| 14 | F-RAGENT-12 | 事件序列 gap 仅打印 warn，不做重新同步 |
+| #   | 功能点         | 局限描述                                                                                                                    |
+| --- | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 1   | F-RAGENT-02    | 协议默认硬编码 `'openclaw'`，UI 无协议选择器。类型支持三种协议但用户无法选择                                                |
+| 2   | F-RAGENT-02    | 认证方式仅 none/bearer 两个选项，缺少 password（Bridge/Connection 层已实现 password 路径，但 UI 不暴露）                    |
+| 3   | F-RAGENT-02/03 | 保存时 catch 块为空（无用户提示），finally 块恢复 saving 状态                                                               |
+| 4   | F-RAGENT-05    | `allowInsecure` 开关仅在 URL 以 `wss://` 开头时显示                                                                         |
+| 5   | F-RAGENT-05    | 测试连接按钮 loading 状态待验证：源码传了 `loading` prop 但动态分析未观察到 spinner 效果                                    |
+| 6   | F-RAGENT-07    | 配对轮询中 handshake 异常完全忽略 (`catch {}`)，用户无错误反馈                                                              |
+| 7   | F-RAGENT-07    | 取消配对后无"重试配对"独立入口，需通过编辑再保存触发                                                                        |
+| 8   | F-RAGENT-07    | 配对成功 toast 固定使用 `settings.remoteAgent.created` key（不区分创建/编辑场景）                                           |
+| 9   | F-RAGENT-08    | `waitForConnection` 使用 100ms 轮询检测状态（busy-wait），非事件驱动                                                        |
+| 10  | F-RAGENT-09    | `sendMessage` 在连接断开时自动重新 `start()`，可能导致意外重连和会话重置                                                    |
+| 11  | F-RAGENT-10    | 工具类型推断基于子串匹配而非单词边界，组合命名的工具可能误判（如 'Breadcrumb' 匹配 'read'）                                 |
+| 12  | F-RAGENT-11    | **权限审批的用户选择可能未实际传回 Gateway**：`pendingPermissions` 中 resolve 为空函数，未找到 `exec.approval.respond` 调用 |
+| 13  | F-RAGENT-11    | 权限请求超时 70 秒硬编码，超时后自动 reject 无用户可见提示                                                                  |
+| 14  | F-RAGENT-12    | 事件序列 gap 仅打印 warn，不做重新同步                                                                                      |
 
 ---
 
 ## 附录 E：设计约束
 
-| # | 约束 | 说明 |
-|---|---|---|
-| 1 | OpenClaw 协议版本 | 固定 v3 (`OPENCLAW_PROTOCOL_VERSION = 3`) |
-| 2 | 设备密钥算法 | Ed25519，密钥对随 Agent 创建一次性生成 |
-| 3 | 设备认证签名格式 | 管道分隔字符串，v1（无 nonce）/ v2（含 nonce）两种版本 |
-| 4 | WebSocket 最大 payload | 25MB (`maxPayload: 25 * 1024 * 1024`) |
-| 5 | 默认 Gateway 端口 | 18789 |
-| 6 | 客户端标识 | `gateway-client` / backend / operator / operator.admin |
-| 7 | Capabilities | `caps: ['tool-events']` — 必须声明以接收 tool call 事件 |
-| 8 | DB 存储 | SQLite `remote_agents` 表，字段 snake_case |
-| 9 | 数据加载 | 使用 SWR（key: `'remote-agents.list'`），支持自动重验证 |
-| 10 | 弹窗组件 | 创建/编辑使用 AionModal 封装，删除确认使用 Arco 原生 Modal.confirm |
+| #   | 约束                   | 说明                                                               |
+| --- | ---------------------- | ------------------------------------------------------------------ |
+| 1   | OpenClaw 协议版本      | 固定 v3 (`OPENCLAW_PROTOCOL_VERSION = 3`)                          |
+| 2   | 设备密钥算法           | Ed25519，密钥对随 Agent 创建一次性生成                             |
+| 3   | 设备认证签名格式       | 管道分隔字符串，v1（无 nonce）/ v2（含 nonce）两种版本             |
+| 4   | WebSocket 最大 payload | 25MB (`maxPayload: 25 * 1024 * 1024`)                              |
+| 5   | 默认 Gateway 端口      | 18789                                                              |
+| 6   | 客户端标识             | `gateway-client` / backend / operator / operator.admin             |
+| 7   | Capabilities           | `caps: ['tool-events']` — 必须声明以接收 tool call 事件            |
+| 8   | DB 存储                | SQLite `remote_agents` 表，字段 snake_case                         |
+| 9   | 数据加载               | 使用 SWR（key: `'remote-agents.list'`），支持自动重验证            |
+| 10  | 弹窗组件               | 创建/编辑使用 AionModal 封装，删除确认使用 Arco 原生 Modal.confirm |
 
 ---
 

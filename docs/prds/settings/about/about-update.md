@@ -109,10 +109,10 @@
 
 系统使用两种方式检查更新，**串行执行**（路径 A 先于路径 B），路径 B 始终执行：
 
-| 路径 | 方式 | 用途 | 执行条件 |
-|---|---|---|---|
-| A. Auto-update | electron-updater（查询 GitHub Release yml） | 支持应用内自动下载安装 | 先执行，失败静默跳过 |
-| B. Manual check | GitHub REST API `GET /repos/{owner}/{repo}/releases` | 获取版本信息、release notes、下载资产 | 始终执行 |
+| 路径            | 方式                                                 | 用途                                  | 执行条件             |
+| --------------- | ---------------------------------------------------- | ------------------------------------- | -------------------- |
+| A. Auto-update  | electron-updater（查询 GitHub Release yml）          | 支持应用内自动下载安装                | 先执行，失败静默跳过 |
+| B. Manual check | GitHub REST API `GET /repos/{owner}/{repo}/releases` | 获取版本信息、release notes、下载资产 | 始终执行             |
 
 **版本比较**：使用 semver 语义化版本比较（`semver.gt`），当前版本来自 `app.getVersion()`。
 
@@ -204,14 +204,14 @@
 
 **平台 Channel 映射**（electron-updater 根据平台+架构选择对应 yml）：
 
-| 平台 + 架构 | Channel 文件 |
-|---|---|
-| macOS arm64 | `latest-arm64-mac.yml` |
-| macOS x64 | `latest-mac.yml` |
-| Windows arm64 | `latest-win-arm64.yml` |
-| Windows x64 | `latest.yml` |
-| Linux x64 | `latest-linux.yml` |
-| Linux arm64 | `latest-linux-arm64.yml` |
+| 平台 + 架构   | Channel 文件             |
+| ------------- | ------------------------ |
+| macOS arm64   | `latest-arm64-mac.yml`   |
+| macOS x64     | `latest-mac.yml`         |
+| Windows arm64 | `latest-win-arm64.yml`   |
+| Windows x64   | `latest.yml`             |
+| Linux x64     | `latest-linux.yml`       |
+| Linux arm64   | `latest-linux-arm64.yml` |
 
 **异常情况**：
 
@@ -292,17 +292,17 @@
 
 **错误类型汇总**：
 
-| 阶段 | 错误场景 | 用户可见信息 |
-|---|---|---|
-| 检查 | GitHub API 网络超时（30s） | 超时错误提示 |
-| 检查 | GitHub API HTTP 错误 | API 错误 + 状态码 |
-| 检查 | API 返回格式异常 | 格式错误提示 |
-| 下载 | URL 不在允许列表 | 域名不允许 |
-| 下载 | 非 HTTPS 协议 | 仅支持 HTTPS |
-| 下载 | 重定向次数过多 | 重定向错误 |
-| 下载 | 服务器返回错误 | 下载失败 + 状态码 |
-| 下载 | 网络中断/取消 | 下载失败/已取消 |
-| 安装 | quitAndInstall 失败 | Toast 提示（不影响弹窗） |
+| 阶段 | 错误场景                   | 用户可见信息             |
+| ---- | -------------------------- | ------------------------ |
+| 检查 | GitHub API 网络超时（30s） | 超时错误提示             |
+| 检查 | GitHub API HTTP 错误       | API 错误 + 状态码        |
+| 检查 | API 返回格式异常           | 格式错误提示             |
+| 下载 | URL 不在允许列表           | 域名不允许               |
+| 下载 | 非 HTTPS 协议              | 仅支持 HTTPS             |
+| 下载 | 重定向次数过多             | 重定向错误               |
+| 下载 | 服务器返回错误             | 下载失败 + 状态码        |
+| 下载 | 网络中断/取消              | 下载失败/已取消          |
+| 安装 | quitAndInstall 失败        | Toast 提示（不影响弹窗） |
 
 **验收标准**：
 
@@ -340,21 +340,23 @@
 
 **各状态 UI 表现**：
 
-| 状态 | 图标 | 弹窗尺寸 | 主要内容 |
-|---|---|---|---|
-| checking | 旋转动画 | small | "正在检查更新..." |
-| upToDate | 绿色对勾 | small | "已是最新版本" + 当前版本号 |
-| available | 蓝色下载 | medium, 内容高度 420px | 版本对比 + release notes + 操作按钮 |
-| downloading | 弹跳下载 | small | 进度条 + 速度 + 大小 |
-| downloaded | 绿色对勾 | small | "准备安装" + 安装按钮（auto-update 路径） |
-| success | 绿色对勾 | small | 下载路径 + 打开/显示按钮（manual 路径） |
-| error | 红色叉号 | small | 错误信息 + 重试 + 前往 Release |
+| 状态        | 图标     | 弹窗尺寸               | 主要内容                                  |
+| ----------- | -------- | ---------------------- | ----------------------------------------- |
+| checking    | 旋转动画 | small                  | "正在检查更新..."                         |
+| upToDate    | 绿色对勾 | small                  | "已是最新版本" + 当前版本号               |
+| available   | 蓝色下载 | medium, 内容高度 420px | 版本对比 + release notes + 操作按钮       |
+| downloading | 弹跳下载 | small                  | 进度条 + 速度 + 大小                      |
+| downloaded  | 绿色对勾 | small                  | "准备安装" + 安装按钮（auto-update 路径） |
+| success     | 绿色对勾 | small                  | 下载路径 + 打开/显示按钮（manual 路径）   |
+| error       | 红色叉号 | small                  | 错误信息 + 重试 + 前往 Release            |
 
 **关键区分**：
+
 - `downloaded`：auto-update 路径专用，用户点击"立即安装"后应用退出并安装
 - `success`：manual 路径专用，用户点击"打开文件"或"在文件夹中显示"后手动安装
 
 **已知局限**：
+
 - downloading 状态关闭弹窗：下载继续在后台运行，无取消机制。重新打开弹窗时所有状态被重置，之前的下载进度和 downloadId 丢失
 
 **验收标准**：
@@ -379,14 +381,14 @@
 
 **链接列表**：
 
-| 序号 | 标题 | 行为 | 目标 |
-|---|---|---|---|
-| 1 | 帮助文档 | 打开外部链接 | `https://github.com/iOfficeAI/AionUi/wiki` |
-| 2 | 更新日志 | 打开外部链接 | `https://github.com/iOfficeAI/AionUi/releases` |
-| 3 | 意见反馈 | 打开外部链接 | `https://github.com/iOfficeAI/AionUi/issues` |
-| 4 | 问题报告 | **打开应用内弹窗** | FeedbackReportModal（见 F-ABOUT-11） |
-| 5 | 联系我 | 打开外部链接 | `https://x.com/WailiVery` |
-| 6 | 官网 | 打开外部链接 | `https://www.aionui.com` |
+| 序号 | 标题     | 行为               | 目标                                           |
+| ---- | -------- | ------------------ | ---------------------------------------------- |
+| 1    | 帮助文档 | 打开外部链接       | `https://github.com/iOfficeAI/AionUi/wiki`     |
+| 2    | 更新日志 | 打开外部链接       | `https://github.com/iOfficeAI/AionUi/releases` |
+| 3    | 意见反馈 | 打开外部链接       | `https://github.com/iOfficeAI/AionUi/issues`   |
+| 4    | 问题报告 | **打开应用内弹窗** | FeedbackReportModal（见 F-ABOUT-11）           |
+| 5    | 联系我   | 打开外部链接       | `https://x.com/WailiVery`                      |
+| 6    | 官网     | 打开外部链接       | `https://www.aionui.com`                       |
 
 **打开机制**：
 
@@ -434,23 +436,23 @@
 
 **反馈模块列表**（15 个）：
 
-| 模块名称 | Sentry Tag |
-|---|---|
-| Agent 检测与连接 | agent-detection |
-| 助手与预设 | assistant-preset |
-| 模型与认证 | model-auth |
-| MCP 与工具 | mcp-tools |
-| 技能与插件 | skills-plugin |
-| 频道接入 | channel |
-| 对话与会话 | conversation-session |
-| 搜索与历史 | search-history |
-| 工作区、文件与预览 | workspace-preview |
-| WebUI 与远程连接 | webui-remote |
-| 定时任务 | scheduled-task |
-| 团队协作 | agent-team |
-| 显示与桌宠 | display-desktop |
-| 系统设置 | system-settings |
-| 其他 | other |
+| 模块名称           | Sentry Tag           |
+| ------------------ | -------------------- |
+| Agent 检测与连接   | agent-detection      |
+| 助手与预设         | assistant-preset     |
+| 模型与认证         | model-auth           |
+| MCP 与工具         | mcp-tools            |
+| 技能与插件         | skills-plugin        |
+| 频道接入           | channel              |
+| 对话与会话         | conversation-session |
+| 搜索与历史         | search-history       |
+| 工作区、文件与预览 | workspace-preview    |
+| WebUI 与远程连接   | webui-remote         |
+| 定时任务           | scheduled-task       |
+| 团队协作           | agent-team           |
+| 显示与桌宠         | display-desktop      |
+| 系统设置           | system-settings      |
+| 其他               | other                |
 
 **异常情况**：
 
@@ -481,11 +483,11 @@
 
 **触发方式汇总**：
 
-| 触发方式 | 机制 | 备注 |
-|---|---|---|
-| 关于页面按钮 | 渲染进程 CustomEvent | 见 F-ABOUT-02 |
-| 应用菜单 | IPC `ipcBridge.update.open.emit({ source: 'menu' })` | 主进程 → 渲染进程 |
-| 启动时自动检查 | `autoUpdater.checkForUpdatesAndNotify()` | 非阻塞，不影响启动 |
+| 触发方式       | 机制                                                 | 备注               |
+| -------------- | ---------------------------------------------------- | ------------------ |
+| 关于页面按钮   | 渲染进程 CustomEvent                                 | 见 F-ABOUT-02      |
+| 应用菜单       | IPC `ipcBridge.update.open.emit({ source: 'menu' })` | 主进程 → 渲染进程  |
+| 启动时自动检查 | `autoUpdater.checkForUpdatesAndNotify()`             | 非阻塞，不影响启动 |
 
 **启动时自动检查**：
 
@@ -560,13 +562,13 @@
 
 ## 附录 B：已知局限汇总
 
-| # | 功能点 | 局限描述 |
-|---|---|---|
-| 1 | F-ABOUT-03 | 弹窗已打开时修改预发布开关不会立即生效（useMemo 缓存） |
-| 2 | F-ABOUT-04 | 当前版本非法 semver 时静默返回"已是最新"，可能隐藏真实更新 |
-| 3 | F-ABOUT-04 | 双路径串行执行，路径 A 超时会导致总耗时超过 60 秒 |
-| 4 | F-ABOUT-06/07 | 下载中关闭弹窗无取消机制，重开后进度丢失 |
-| 5 | F-ABOUT-07 | 服务器未返回 Content-Length 时进度条显示 0% |
-| 6 | F-ABOUT-10 | "问题报告"与外部链接视觉无差异；链接打开失败无用户提示 |
-| 7 | F-ABOUT-11 | 截图无文件大小限制，超大文件可能导致内存压力或 Sentry 拒绝 |
-| 8 | F-ABOUT-12 | 启动自动检查与手动检查并发时事件可能互相干扰 |
+| #   | 功能点        | 局限描述                                                   |
+| --- | ------------- | ---------------------------------------------------------- |
+| 1   | F-ABOUT-03    | 弹窗已打开时修改预发布开关不会立即生效（useMemo 缓存）     |
+| 2   | F-ABOUT-04    | 当前版本非法 semver 时静默返回"已是最新"，可能隐藏真实更新 |
+| 3   | F-ABOUT-04    | 双路径串行执行，路径 A 超时会导致总耗时超过 60 秒          |
+| 4   | F-ABOUT-06/07 | 下载中关闭弹窗无取消机制，重开后进度丢失                   |
+| 5   | F-ABOUT-07    | 服务器未返回 Content-Length 时进度条显示 0%                |
+| 6   | F-ABOUT-10    | "问题报告"与外部链接视觉无差异；链接打开失败无用户提示     |
+| 7   | F-ABOUT-11    | 截图无文件大小限制，超大文件可能导致内存压力或 Sentry 拒绝 |
+| 8   | F-ABOUT-12    | 启动自动检查与手动检查并发时事件可能互相干扰               |
