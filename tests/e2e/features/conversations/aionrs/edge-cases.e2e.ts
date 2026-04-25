@@ -126,7 +126,6 @@ test.describe('Aionrs Chat - Edge Cases (P2)', () => {
         // If conversation created, try to trigger file access
         await sendAionrsMessage(page, conversationId, `Read the file: ${largeFilePath}`);
         await page.waitForTimeout(2000); // Wait for potential error
-
       } catch (error) {
         errorOccurred = true;
         console.log(`[TC-A-14] Expected error occurred: ${error}`);
@@ -145,7 +144,6 @@ test.describe('Aionrs Chat - Edge Cases (P2)', () => {
       // This test primarily documents the 100MB boundary behavior
 
       console.log(`[TC-A-14] Error occurred: ${errorOccurred}`);
-
     } finally {
       await tempWorkspace.cleanup();
     }
@@ -194,7 +192,6 @@ test.describe('Aionrs Chat - Edge Cases (P2)', () => {
 
         // If creation succeeded, folder path may be accepted but inaccessible
         console.log(`[TC-A-15] Conversation created: ${conversationId}, folder may be validated later`);
-
       } catch (error) {
         errorOccurred = true;
         errorMessage = error instanceof Error ? error.message : String(error);
@@ -214,7 +211,6 @@ test.describe('Aionrs Chat - Edge Cases (P2)', () => {
       // This test documents the non-existent folder error handling behavior
 
       console.log(`[TC-A-15] Error occurred: ${errorOccurred}, message: ${errorMessage}`);
-
     } finally {
       await tempWorkspace.cleanup();
     }

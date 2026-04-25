@@ -13,11 +13,11 @@ Apr 22 23:22 2026 — post Skill-pilot source-field fix).
 
 ## Scope
 
-| Test file | Test count | Endpoints exercised (via UI) |
-| --- | --- | --- |
-| `core-interactions.e2e.ts` | 6 (P0-1…P0-6) | `GET /api/extensions/assistants`, `DELETE` rule/skill, skills modal |
-| `ui-states.e2e.ts` | 26 (P1-1…P1-27 mixed) | list, drawer, rule read/write, auto-injected skills, summary count tags |
-| `edge-cases.e2e.ts` | 5 (P2-1…P2-5) | highlight animation, search+filter combo, custom path dialog |
+| Test file                  | Test count            | Endpoints exercised (via UI)                                            |
+| -------------------------- | --------------------- | ----------------------------------------------------------------------- |
+| `core-interactions.e2e.ts` | 6 (P0-1…P0-6)         | `GET /api/extensions/assistants`, `DELETE` rule/skill, skills modal     |
+| `ui-states.e2e.ts`         | 26 (P1-1…P1-27 mixed) | list, drawer, rule read/write, auto-injected skills, summary count tags |
+| `edge-cases.e2e.ts`        | 5 (P2-1…P2-5)         | highlight animation, search+filter combo, custom path dialog            |
 
 **Total:** 37 tests. Plan estimated ~50; actual surface is 37.
 
@@ -47,7 +47,7 @@ below.
   width responsiveness, and mobile stacked layout are all **rendering
   and interactive** against live backend data.
 - Write/delete persistence is covered by the backend probe transcript in
-  `docs/backend-migration/modules/assistant.md` (Probes 3/4/5/6*). The
+  `docs/backend-migration/modules/assistant.md` (Probes 3/4/5/6\*). The
   e2e UI layer did not explicitly round-trip a rule edit, but the
   drawer's edit/preview tabs rendered against real rule content in P1-10
   and P1-11.
@@ -64,13 +64,13 @@ and expose `provider: () => {}` as a no-op — no WebSocket `subscribe-*`
 handler is installed. Any test that calls `invokeBridge(page, <key>)`
 to seed state for a migrated endpoint therefore hits a 10 s timeout.
 
-| # | Test | Symptom | Class | Notes |
-| - | - | - | - | - |
-| 1 | `edge-cases.e2e.ts::P2-3 skill delete button visible on hover` | `Bridge invoke timeout: add-custom-external-path` | **E** (test-infra) | Setup helper seeds a temp external skill source |
-| 2 | `ui-states.e2e.ts::P1-18 auto-injected section shows when configured` | `.arco-collapse-item` with "Auto-injected Skills" text not visible | **B** (fixture assumption) | Section only renders when `builtinAutoSkills.length > 0`; e2e hits the user's real `~/.aionui/skills/builtin-auto` dir (empty) — see §Caveats |
-| 3 | `ui-states.e2e.ts::P1-23 session storage intent opens assistant editor` | `Bridge invoke timeout: extensions.get-assistants` | **E** (test-infra) | Test uses `invokeBridge` **only to pre-fetch a valid assistantId**; the UI flow itself works — P0-4 `highlight assistant card via query param` tests the same guid intent pattern via URL and passes |
-| 4 | `ui-states.e2e.ts::P1-20 skills modal source pills render and switch` | `Bridge invoke timeout: add-custom-external-path` | **E** (test-infra) | Same setup bridge call as P2-3 |
-| 5 | `ui-states.e2e.ts::P1-21 skills modal shows added skills as disabled` | `Bridge invoke timeout: add-custom-external-path` | **E** (test-infra) | Same setup bridge call as P2-3 |
+| #   | Test                                                                    | Symptom                                                            | Class                      | Notes                                                                                                                                                                                                |
+| --- | ----------------------------------------------------------------------- | ------------------------------------------------------------------ | -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `edge-cases.e2e.ts::P2-3 skill delete button visible on hover`          | `Bridge invoke timeout: add-custom-external-path`                  | **E** (test-infra)         | Setup helper seeds a temp external skill source                                                                                                                                                      |
+| 2   | `ui-states.e2e.ts::P1-18 auto-injected section shows when configured`   | `.arco-collapse-item` with "Auto-injected Skills" text not visible | **B** (fixture assumption) | Section only renders when `builtinAutoSkills.length > 0`; e2e hits the user's real `~/.aionui/skills/builtin-auto` dir (empty) — see §Caveats                                                        |
+| 3   | `ui-states.e2e.ts::P1-23 session storage intent opens assistant editor` | `Bridge invoke timeout: extensions.get-assistants`                 | **E** (test-infra)         | Test uses `invokeBridge` **only to pre-fetch a valid assistantId**; the UI flow itself works — P0-4 `highlight assistant card via query param` tests the same guid intent pattern via URL and passes |
+| 4   | `ui-states.e2e.ts::P1-20 skills modal source pills render and switch`   | `Bridge invoke timeout: add-custom-external-path`                  | **E** (test-infra)         | Same setup bridge call as P2-3                                                                                                                                                                       |
+| 5   | `ui-states.e2e.ts::P1-21 skills modal shows added skills as disabled`   | `Bridge invoke timeout: add-custom-external-path`                  | **E** (test-infra)         | Same setup bridge call as P2-3                                                                                                                                                                       |
 
 ### Curl-probe confirmation (Skill-pilot rubric)
 

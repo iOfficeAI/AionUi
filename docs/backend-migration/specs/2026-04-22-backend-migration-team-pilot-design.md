@@ -52,14 +52,14 @@ resolvers/SkillResolver.ts}`.
 
 These are split into **6 capability-area subtasks**, executed one at a time:
 
-| # | Module                    | Endpoints (renderer-side)                                                                                        | Notes                      |
-| - | ------------------------- | ---------------------------------------------------------------------------------------------------------------- | -------------------------- |
-| 1 | **Skill-Library** (pilot) | `listAvailableSkills`, `listBuiltinAutoSkills`, `readBuiltinRule`, `readBuiltinSkill`, `readSkillInfo`           | Pure read; no side effects |
-| 2 | Assistant-CRUD            | `getAssistants` (+ any sibling CRUD)                                                                             | Pure read                  |
-| 3 | Assistant-Editor-Content  | `readAssistantRule/Skill`, `writeAssistantRule/Skill`, `deleteAssistantRule/Skill`                               | Read/write                 |
-| 4 | Skill-Import-Export       | `importSkill`, `importSkillWithSymlink`, `exportSkillWithSymlink`, `deleteSkill`                                 | Destructive                |
-| 5 | Skill-External-Paths      | `getSkillPaths`, `detectAndCountExternalSkills`, `detectExternalSkills`, `addCustomExternalPath`, `scanSkills`   | FS-heavy                   |
-| 6 | Assistant-Skill-Binding   | Binding flows in `useAssistantSkills` (composes endpoints from #1, #2, #3)                                       | Integration                |
+| #   | Module                    | Endpoints (renderer-side)                                                                                      | Notes                      |
+| --- | ------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| 1   | **Skill-Library** (pilot) | `listAvailableSkills`, `listBuiltinAutoSkills`, `readBuiltinRule`, `readBuiltinSkill`, `readSkillInfo`         | Pure read; no side effects |
+| 2   | Assistant-CRUD            | `getAssistants` (+ any sibling CRUD)                                                                           | Pure read                  |
+| 3   | Assistant-Editor-Content  | `readAssistantRule/Skill`, `writeAssistantRule/Skill`, `deleteAssistantRule/Skill`                             | Read/write                 |
+| 4   | Skill-Import-Export       | `importSkill`, `importSkillWithSymlink`, `exportSkillWithSymlink`, `deleteSkill`                               | Destructive                |
+| 5   | Skill-External-Paths      | `getSkillPaths`, `detectAndCountExternalSkills`, `detectExternalSkills`, `addCustomExternalPath`, `scanSkills` | FS-heavy                   |
+| 6   | Assistant-Skill-Binding   | Binding flows in `useAssistantSkills` (composes endpoints from #1, #2, #3)                                     | Integration                |
 
 Execution order after the pilot is driven by endpoint dependencies, not this
 numbering — a later module may start whenever all endpoints it depends on are
@@ -69,12 +69,12 @@ green.
 
 ### 4.1 Roles
 
-| Role                  | Count | Responsibility                                                                                                                                   |
-| --------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Coordinator** (me)  | 1     | Schedule modules, assign tasks, sync branches, resolve branch conflicts, replace unresponsive teammates. **Does not write production code.**     |
-| **Backend dev**       | 1     | Implement endpoints in `aionui-backend`, keep `docs/api-spec/13-extension.md` authoritative and up-to-date per module.                           |
-| **Frontend dev**      | 1     | Replace `ipcBridge` calls in renderer to hit the new HTTP endpoints, preserve existing UX behavior against the TS baseline.                      |
-| **E2E tester**        | 1     | Run the e2e suite from `kaizhou-lab/test/e2e-coverage` against the frontend dev branch for each module.                                          |
+| Role                 | Count | Responsibility                                                                                                                               |
+| -------------------- | ----- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Coordinator** (me) | 1     | Schedule modules, assign tasks, sync branches, resolve branch conflicts, replace unresponsive teammates. **Does not write production code.** |
+| **Backend dev**      | 1     | Implement endpoints in `aionui-backend`, keep `docs/api-spec/13-extension.md` authoritative and up-to-date per module.                       |
+| **Frontend dev**     | 1     | Replace `ipcBridge` calls in renderer to hit the new HTTP endpoints, preserve existing UX behavior against the TS baseline.                  |
+| **E2E tester**       | 1     | Run the e2e suite from `kaizhou-lab/test/e2e-coverage` against the frontend dev branch for each module.                                      |
 
 One teammate per role — a single dev owns the currently active module end to
 end. Because the two repos are independent, **backend-dev (in aionui-backend)
@@ -92,12 +92,12 @@ next AionUi-side teammate. Nested refs are avoided (flat names) because git
 cannot have both `feat/backend-migration` and
 `feat/backend-migration/<child>`.
 
-| Branch                                        | Repo             | Base                              | Owner         |
-| --------------------------------------------- | ---------------- | --------------------------------- | ------------- |
-| `feat/backend-migration-coordinator`          | AionUi           | `origin/feat/backend-migration`   | coordinator   |
-| `feat/backend-migration-fe-skill-library`     | AionUi           | `origin/feat/backend-migration`   | frontend-dev  |
-| `feat/extension-skill-library`                | aionui-backend   | `origin/feat/backend-migration`   | backend-dev   |
-| `feat/backend-migration-e2e-skill-library`    | AionUi           | `feat/backend-migration-fe-skill-library` (then merge `origin/kaizhou-lab/test/e2e-coverage`) | e2e-tester |
+| Branch                                     | Repo           | Base                                                                                          | Owner        |
+| ------------------------------------------ | -------------- | --------------------------------------------------------------------------------------------- | ------------ |
+| `feat/backend-migration-coordinator`       | AionUi         | `origin/feat/backend-migration`                                                               | coordinator  |
+| `feat/backend-migration-fe-skill-library`  | AionUi         | `origin/feat/backend-migration`                                                               | frontend-dev |
+| `feat/extension-skill-library`             | aionui-backend | `origin/feat/backend-migration`                                                               | backend-dev  |
+| `feat/backend-migration-e2e-skill-library` | AionUi         | `feat/backend-migration-fe-skill-library` (then merge `origin/kaizhou-lab/test/e2e-coverage`) | e2e-tester   |
 
 **Rule:** `feat/backend-migration` in BOTH repos (AionUi and aionui-backend)
 is the integration base — **nobody commits to it directly during the pilot**.
@@ -110,6 +110,7 @@ user-approved step after the pilot closes; it is not part of this pilot.
 No periodic sync loop. Instead, per repo:
 
 **aionui-backend (backend-dev — runs in parallel with AionUi work):**
+
 - Coordinator checks out `feat/extension-skill-library` once, at the start of
   backend-dev's task, after fetching `origin/feat/backend-migration` and
   merging it in if needed.
@@ -117,6 +118,7 @@ No periodic sync loop. Instead, per repo:
   this repo while backend-dev is active.
 
 **AionUi (coordinator / frontend-dev / e2e-tester — serialized):**
+
 - Before each AionUi-side teammate starts: `git fetch origin`, then
   `git checkout <teammate-branch>`. If the teammate's branch has fallen
   behind `origin/feat/backend-migration`, the coordinator merges the base in
@@ -127,6 +129,7 @@ No periodic sync loop. Instead, per repo:
   teammate is activated.
 
 Conflict policy unchanged:
+
 - Conflicts with no business semantics: coordinator resolves.
 - Conflicts with business semantics: coordinator escalates to the owning dev.
 
@@ -168,15 +171,15 @@ Conflict policy unchanged:
 
 Three persistence layers, each with a specific purpose:
 
-| Layer                           | Location                                                                                | Owner              | Purpose                                                                 |
-| ------------------------------- | --------------------------------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------- |
-| Git history                     | Each role's branch                                                                      | All                | Atomic code changes                                                     |
-| TaskList (team tasks)           | `~/.claude/tasks/aionui-backend-migration/`                                             | All                | Task status, owner changes, blocked reasons, per-task discussion        |
-| Per-module migration log        | `docs/backend-migration/modules/<module>.md`                                            | Frontend dev       | Completion record of each module (endpoints, caller refactors, notes)   |
-| Incident log                    | `docs/backend-migration/incidents/YYYY-MM-DD-<slug>.md`                                 | Discoverer or me   | Cross-role incidents: interface mismatch, behavior drift, decisions     |
-| Backend API contract            | `aionui-backend/docs/api-spec/13-extension.md`                                          | Backend dev        | Living spec, updated per module                                         |
-| E2E reports                     | `docs/backend-migration/e2e-reports/YYYY-MM-DD-<module>.md`                             | E2E tester         | Cases run, pass/fail, repro steps when failing                          |
-| **Handoff doc (on exit)**       | `docs/backend-migration/handoffs/<role>-<module>-<date>.md` in the role's own repo     | Exiting teammate   | What's done, what's mid-flight, known issues, next steps for successor  |
+| Layer                     | Location                                                                           | Owner            | Purpose                                                                |
+| ------------------------- | ---------------------------------------------------------------------------------- | ---------------- | ---------------------------------------------------------------------- |
+| Git history               | Each role's branch                                                                 | All              | Atomic code changes                                                    |
+| TaskList (team tasks)     | `~/.claude/tasks/aionui-backend-migration/`                                        | All              | Task status, owner changes, blocked reasons, per-task discussion       |
+| Per-module migration log  | `docs/backend-migration/modules/<module>.md`                                       | Frontend dev     | Completion record of each module (endpoints, caller refactors, notes)  |
+| Incident log              | `docs/backend-migration/incidents/YYYY-MM-DD-<slug>.md`                            | Discoverer or me | Cross-role incidents: interface mismatch, behavior drift, decisions    |
+| Backend API contract      | `aionui-backend/docs/api-spec/13-extension.md`                                     | Backend dev      | Living spec, updated per module                                        |
+| E2E reports               | `docs/backend-migration/e2e-reports/YYYY-MM-DD-<module>.md`                        | E2E tester       | Cases run, pass/fail, repro steps when failing                         |
+| **Handoff doc (on exit)** | `docs/backend-migration/handoffs/<role>-<module>-<date>.md` in the role's own repo | Exiting teammate | What's done, what's mid-flight, known issues, next steps for successor |
 
 Handoff files live in whichever repo the role works in: backend-dev's
 handoff goes in `aionui-backend/docs/backend-migration/handoffs/`;
@@ -237,13 +240,13 @@ writes `docs/backend-migration/handoffs/<role>-<module>-<date>.md`:
 All are renderer→backend, HTTP, read-only. Reference paths live in
 `src/common/adapter/ipcBridge.ts`:
 
-| Renderer API                              | Backend path (current spec declaration)       |
-| ----------------------------------------- | --------------------------------------------- |
-| `ipcBridge.fs.listAvailableSkills`        | `GET /api/skills` (inferred)                  |
-| `ipcBridge.fs.listBuiltinAutoSkills`      | `GET /api/skills/builtin-auto`                |
-| `ipcBridge.fs.readBuiltinRule`            | `POST /api/skills/builtin-rule`               |
-| `ipcBridge.fs.readBuiltinSkill`           | `POST /api/skills/builtin-skill`              |
-| `ipcBridge.fs.readSkillInfo`              | `POST /api/skills/info`                       |
+| Renderer API                         | Backend path (current spec declaration) |
+| ------------------------------------ | --------------------------------------- |
+| `ipcBridge.fs.listAvailableSkills`   | `GET /api/skills` (inferred)            |
+| `ipcBridge.fs.listBuiltinAutoSkills` | `GET /api/skills/builtin-auto`          |
+| `ipcBridge.fs.readBuiltinRule`       | `POST /api/skills/builtin-rule`         |
+| `ipcBridge.fs.readBuiltinSkill`      | `POST /api/skills/builtin-skill`        |
+| `ipcBridge.fs.readSkillInfo`         | `POST /api/skills/info`                 |
 
 Backend dev confirms/corrects these against current aionui-backend
 implementation and updates `13-extension.md` per-endpoint. Frontend dev
@@ -275,12 +278,12 @@ covers.
 
 ## 7. Risks & Mitigations
 
-| Risk                                                                        | Mitigation                                                                                           |
-| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
-| aionui-backend is unstable and endpoint returns wrong shape                 | Treat spec as draft (Q2 option B); incident log captures every mismatch; backend dev owns the fix    |
-| Teammate goes silent for hours                                              | Coordinator swaps them out (Q4); branch/commits are preserved, new teammate continues from last push |
-| Branch drift during serial stage handoff                                    | Coordinator rebases/merges base into teammate branch before handing control; conflicts per §4.3      |
-| Pilot reveals the workflow itself is wrong (e.g., wrong granularity)        | Pilot is explicitly a learning round; update this spec (or write a follow-up) before module #2       |
+| Risk                                                                 | Mitigation                                                                                           |
+| -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| aionui-backend is unstable and endpoint returns wrong shape          | Treat spec as draft (Q2 option B); incident log captures every mismatch; backend dev owns the fix    |
+| Teammate goes silent for hours                                       | Coordinator swaps them out (Q4); branch/commits are preserved, new teammate continues from last push |
+| Branch drift during serial stage handoff                             | Coordinator rebases/merges base into teammate branch before handing control; conflicts per §4.3      |
+| Pilot reveals the workflow itself is wrong (e.g., wrong granularity) | Pilot is explicitly a learning round; update this spec (or write a follow-up) before module #2       |
 
 ## 8. Open items for future specs
 

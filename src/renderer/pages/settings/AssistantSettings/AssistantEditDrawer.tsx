@@ -130,9 +130,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   // All non-extension assistants expose a skills panel: user/custom can edit,
   // builtins show a read-only toggle list. The backend has already filtered
   // extension assistants into their own source class.
-  const showSkills =
-    isCreating ||
-    (activeAssistant !== null && activeAssistant.source !== 'extension');
+  const showSkills = isCreating || (activeAssistant !== null && activeAssistant.source !== 'extension');
 
   const agentOptions = availableBackends;
 

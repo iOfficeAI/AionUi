@@ -9,15 +9,15 @@
 
 ## Environment
 
-| Item | Value |
-|---|---|
-| Mode | Dev (electron-vite + `electron .`) |
-| Workers | 1 (Playwright singleton Electron app per worker) |
-| Backend binary | `~/.cargo/bin/aionui-backend` (symlink → `target/debug/aionui-backend`) |
-| Backend binary timestamp | Apr 23 20:33 (rebuilt after pull for fresh `include_dir`) |
-| Renderer bundle | `out/renderer/index.html` rebuilt via `bunx electron-vite build` |
-| Sibling backend port (scenarios 8-10) | 25902 |
-| Total wall clock | ~16s across 10 tests |
+| Item                                  | Value                                                                   |
+| ------------------------------------- | ----------------------------------------------------------------------- |
+| Mode                                  | Dev (electron-vite + `electron .`)                                      |
+| Workers                               | 1 (Playwright singleton Electron app per worker)                        |
+| Backend binary                        | `~/.cargo/bin/aionui-backend` (symlink → `target/debug/aionui-backend`) |
+| Backend binary timestamp              | Apr 23 20:33 (rebuilt after pull for fresh `include_dir`)               |
+| Renderer bundle                       | `out/renderer/index.html` rebuilt via `bunx electron-vite build`        |
+| Sibling backend port (scenarios 8-10) | 25902                                                                   |
+| Total wall clock                      | ~16s across 10 tests                                                    |
 
 Commands run:
 
@@ -40,9 +40,9 @@ to express inside the shared fixture without tearing down the worker.
 
 **Chosen split:**
 
-| Scenarios | Drive | Rationale |
-|---|---|---|
-| 1-7 (first-launch, CRUD, rejects, toggle) | Real Electron UI + `httpBridge` probes against the app's own backend | Exercises the full stack (renderer → preload → backend → SQLite). |
+| Scenarios                                  | Drive                                                                                                                                             | Rationale                                                                                                                                                                                                    |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1-7 (first-launch, CRUD, rejects, toggle)  | Real Electron UI + `httpBridge` probes against the app's own backend                                                                              | Exercises the full stack (renderer → preload → backend → SQLite).                                                                                                                                            |
 | 8-10 (migration happy / retry / collision) | Sibling `aionui-backend` process on port 25902 against a fresh `mktemp` data-dir + `sqlite3` CLI + raw `fetch()` against `/api/assistants/import` | Validates the **backend import contract** — which is the only piece not already covered by T4's `migrateAssistants.test.ts` (the Electron-side filter/rename logic) or T2's in-crate HTTP integration tests. |
 
 Together the three layers form a fence: T4 Vitest owns the renderer
@@ -56,18 +56,18 @@ the fewest Class-A flakes and the highest Class-D signal.
 
 ## Per-scenario matrix
 
-| # | Scenario | Verdict | Duration | Notes |
-|---|---|---|---|---|
-| S1 | First-launch list returns built-ins + rule dispatch | PASS | 12.0s | 20 built-ins present, `word-creator` rule content non-empty. |
-| S2 | Create user assistant (UI → backend row) | PASS | 0.77s | UI-created row appears in `/api/assistants` with `source=user`. |
-| S3 | Edit name + write rule md | PASS | 30ms | PUT + `assistant-rule/write` + read-back round-trip. |
-| S4 | Delete clears row + rule md | PASS | 51ms | Post-delete read returns empty string (user file removed). |
-| S5 | Built-in edit rejected (POST/PUT/rule write all 4xx; UI delete disabled) | PASS | 0.87s | Three backend rejects assert; UI delete button hidden/disabled. |
-| S6 | Extension edit rejected | PASS | 19ms | Extension assistant opt-in: when no extensions loaded, scenario annotates and continues (backend reject path is covered by T2 anyway). |
-| S7 | Toggle built-in persists via `assistant_overrides` | PASS | 0.56s | UI toggle → backend PATCH; two consecutive GETs return identical state. Restores original state for downstream determinism. |
-| S8 | Migration happy path (3 user rows imported, built-ins filtered) | PASS | 0.37s | HTTP import + sqlite3 CLI row count cross-check. |
-| S9 | Retry import is idempotent | PASS | 0.36s | Second call: imported=0, skipped=2, failed=0; sqlite row count stable. |
-| S10 | Collision rename preserves data | PASS | 0.27s | Payload containing `word-creator` + `custom-migrated-*` id: built-in is skipped, renamed row imports; built-in `word-creator` still resolves as built-in post-import. |
+| #   | Scenario                                                                 | Verdict | Duration | Notes                                                                                                                                                                 |
+| --- | ------------------------------------------------------------------------ | ------- | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | First-launch list returns built-ins + rule dispatch                      | PASS    | 12.0s    | 20 built-ins present, `word-creator` rule content non-empty.                                                                                                          |
+| S2  | Create user assistant (UI → backend row)                                 | PASS    | 0.77s    | UI-created row appears in `/api/assistants` with `source=user`.                                                                                                       |
+| S3  | Edit name + write rule md                                                | PASS    | 30ms     | PUT + `assistant-rule/write` + read-back round-trip.                                                                                                                  |
+| S4  | Delete clears row + rule md                                              | PASS    | 51ms     | Post-delete read returns empty string (user file removed).                                                                                                            |
+| S5  | Built-in edit rejected (POST/PUT/rule write all 4xx; UI delete disabled) | PASS    | 0.87s    | Three backend rejects assert; UI delete button hidden/disabled.                                                                                                       |
+| S6  | Extension edit rejected                                                  | PASS    | 19ms     | Extension assistant opt-in: when no extensions loaded, scenario annotates and continues (backend reject path is covered by T2 anyway).                                |
+| S7  | Toggle built-in persists via `assistant_overrides`                       | PASS    | 0.56s    | UI toggle → backend PATCH; two consecutive GETs return identical state. Restores original state for downstream determinism.                                           |
+| S8  | Migration happy path (3 user rows imported, built-ins filtered)          | PASS    | 0.37s    | HTTP import + sqlite3 CLI row count cross-check.                                                                                                                      |
+| S9  | Retry import is idempotent                                               | PASS    | 0.36s    | Second call: imported=0, skipped=2, failed=0; sqlite row count stable.                                                                                                |
+| S10 | Collision rename preserves data                                          | PASS    | 0.27s    | Payload containing `word-creator` + `custom-migrated-*` id: built-in is skipped, renamed row imports; built-in `word-creator` still resolves as built-in post-import. |
 
 ## Test file
 
@@ -76,10 +76,12 @@ the fewest Class-A flakes and the highest Class-D signal.
 ## Helper extensions
 
 None. All helpers already exist under `tests/e2e/helpers/`:
+
 - `goToAssistantSettings`, `openAssistantDrawer`, `clickCreateAssistant`, `fillAssistantName`, `fillAssistantDescription`, `saveAssistant`, `closeDrawer`, `toggleAssistantEnabled`, `waitForDrawerClose` (from `assistantSettings.ts`)
 - `httpGet`, `httpPost`, `httpDelete`, `httpInvoke` (from `httpBridge.ts`)
 
 Two new in-file helpers (kept local to the spec):
+
 - `resolveBackendBinary()` — reads `AIONUI_BACKEND_BINARY` env or falls back to `~/.cargo/bin/aionui-backend`.
 - `querySqliteIds(dataDir, sql)` — shells out to the system `sqlite3` CLI (avoids `better-sqlite3` native ABI mismatch between Electron's Node and the Playwright worker's Node).
 
@@ -128,12 +130,11 @@ Documented so the next run can skip them.
 1. **Wrong health endpoint** — initially polled `/api/system/version`;
    backend exposes `/api/system/info`. The old path returned 404 and
    wedged the startup loop. Fixed in `waitForHealthy`.
-2. **`better-sqlite3` ABI mismatch** — `NODE_MODULE_VERSION 136` (Electron
-   36) vs `141` (Playwright Node 22). Replaced native binding with the
+2. **`better-sqlite3` ABI mismatch** — `NODE_MODULE_VERSION 136` (Electron 36) vs `141` (Playwright Node 22). Replaced native binding with the
    system `sqlite3` CLI via `execFileSync`. No `npm rebuild` needed.
 3. **Cargo no-op after `git pull`** — `cargo build` reported 0 crates
    compiled after pulling H2 (`include_dir`). `cargo` only recompiles
-   when it sees a modified source *it tracks*; a freshly-added `use`
+   when it sees a modified source _it tracks_; a freshly-added `use`
    site inside a package it already has cached may not invalidate.
    Worked around by `touch crates/aionui-app/src/main.rs` + rebuild.
    Flag for coordinator: might warrant a `cargo clean -p aionui-app`
@@ -141,12 +142,12 @@ Documented so the next run can skip them.
 
 ## Failure classification — Skill-Library rubric
 
-| Class | Count | Notes |
-|---|---|---|
-| D — backend response shape mismatch | 0 | — |
-| F — backend contract gap | 0 | — |
-| A — stateful / scale flakes | 0 | Two consecutive full runs (20.2s, 20.4s, 16.1s) green. |
-| B / C / E — test-authoring | 0 | — |
+| Class                               | Count | Notes                                                  |
+| ----------------------------------- | ----- | ------------------------------------------------------ |
+| D — backend response shape mismatch | 0     | —                                                      |
+| F — backend contract gap            | 0     | —                                                      |
+| A — stateful / scale flakes         | 0     | Two consecutive full runs (20.2s, 20.4s, 16.1s) green. |
+| B / C / E — test-authoring          | 0     | —                                                      |
 
 ## Outcome
 

@@ -3,6 +3,7 @@
 > **Team mode** — coordinator + parallel teammates. Each teammate owns a numbered task on their own branch. Pattern reused from the assistant pilot; lessons captured in `docs/backend-migration/notes/team-operations-playbook.md`.
 >
 > **Companion specs:**
+>
 > - [`AionUi/docs/backend-migration/specs/2026-04-23-builtin-skill-migration-design.md`](../specs/2026-04-23-builtin-skill-migration-design.md)
 > - [`aionui-backend/docs/backend-migration/specs/2026-04-23-builtin-skill-migration-design.md`](../../../../aionui-backend/docs/backend-migration/specs/2026-04-23-builtin-skill-migration-design.md)
 
@@ -18,11 +19,11 @@
 
 ## Branches
 
-| Branch | Repo | Base | Owner(s) |
-| --- | --- | --- | --- |
-| `feat/backend-migration-coordinator` | AionUi | (existing) | coordinator |
-| `feat/backend-migration-builtin-skills` | AionUi | `origin/feat/backend-migration-coordinator` | frontend-dev, e2e-tester |
-| `feat/builtin-skills` | aionui-backend | `origin/feat/assistant-user-data` | backend-dev |
+| Branch                                  | Repo           | Base                                        | Owner(s)                 |
+| --------------------------------------- | -------------- | ------------------------------------------- | ------------------------ |
+| `feat/backend-migration-coordinator`    | AionUi         | (existing)                                  | coordinator              |
+| `feat/backend-migration-builtin-skills` | AionUi         | `origin/feat/backend-migration-coordinator` | frontend-dev, e2e-tester |
+| `feat/builtin-skills`                   | aionui-backend | `origin/feat/assistant-user-data`           | backend-dev              |
 
 **Coexistence note:** aionui-backend branch is based on `feat/assistant-user-data` (previous pilot, not yet merged to archive). If that branch gets rebased before merge, this branch's commits must be replayed — coordinator handles in T5.
 
@@ -125,6 +126,7 @@ No backend-tester: T1 owner writes both unit + HTTP integration tests + runs `ca
 ### Step 1.5 — Add BUILTIN_SKILLS static + refactor skill_service
 
 - [ ] In `crates/aionui-extension/src/skill_service.rs`, near top:
+
   ```rust
   use include_dir::{Dir, include_dir};
 
@@ -132,6 +134,7 @@ No backend-tester: T1 owner writes both unit + HTTP integration tests + runs `ca
       "$CARGO_MANIFEST_DIR/../aionui-app/assets/builtin-skills"
   );
   ```
+
 - [ ] Change `SkillPaths.builtin_skills_dir` from `PathBuf` to `Option<PathBuf>`; add `data_dir: PathBuf` field.
 - [ ] Update `resolve_skill_paths` to accept `data_dir` param; read `AIONUI_BUILTIN_SKILLS_PATH` env var into `builtin_skills_dir`.
 - [ ] Rewrite `read_builtin_skill`: if env override set, read disk; else `BUILTIN_SKILLS.get_file(file_name).and_then(|f| f.contents_utf8())`; return empty string on missing; keep `validate_filename` for path traversal.
@@ -143,6 +146,7 @@ No backend-tester: T1 owner writes both unit + HTTP integration tests + runs `ca
 ### Step 1.6 — Update response types in aionui-api-types
 
 - [ ] In `crates/aionui-api-types/src/extension.rs` (or whichever file holds the skill types):
+
   ```rust
   #[derive(Debug, Clone, Serialize, Deserialize)]
   pub struct BuiltinAutoSkill {
@@ -254,6 +258,7 @@ No backend-tester: T1 owner writes both unit + HTTP integration tests + runs `ca
 ### Step 2.3 — Update ipcBridge
 
 - [ ] In `src/common/adapter/ipcBridge.ts`, add:
+
   ```ts
   materializeSkillsForAgent: httpPost<
     { dirPath: string },

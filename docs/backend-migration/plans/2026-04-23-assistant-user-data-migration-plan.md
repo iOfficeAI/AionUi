@@ -6,10 +6,12 @@
 > syntax for tracking.
 >
 > **Companion specs:**
+>
 > - [`AionUi/docs/backend-migration/specs/2026-04-23-assistant-user-data-migration-design.md`](../specs/2026-04-23-assistant-user-data-migration-design.md)
 > - [`aionui-backend/docs/backend-migration/specs/2026-04-23-assistant-user-data-migration-design.md`](../../../../aionui-backend/docs/backend-migration/specs/2026-04-23-assistant-user-data-migration-design.md)
 >
 > **Reference plans (pattern reuse):**
+>
 > - [`2026-04-22-skill-library-pilot-plan.md`](./2026-04-22-skill-library-pilot-plan.md) — team coordination patterns
 > - [`2026-04-23-assistant-module-verification-plan.md`](./2026-04-23-assistant-module-verification-plan.md) — hand-off discipline
 
@@ -36,11 +38,11 @@ frontend-dev, frontend-tester, e2e-tester — 5 teammates, 6 with coordinator).
 
 ## Branches
 
-| Branch                                              | Repo            | Base                              | Owner(s)                     |
-| --------------------------------------------------- | --------------- | --------------------------------- | ---------------------------- |
-| `feat/backend-migration-coordinator`                | AionUi          | (reused from earlier pilots)      | coordinator                  |
-| `feat/backend-migration-assistant-user-data`        | AionUi          | `origin/feat/backend-migration-coordinator`       | frontend-dev, frontend-tester, e2e-tester |
-| `feat/assistant-user-data`                          | aionui-backend  | `origin/archive/skill-library-pilot-2026-04-23`   | backend-dev, backend-tester  |
+| Branch                                       | Repo           | Base                                            | Owner(s)                                  |
+| -------------------------------------------- | -------------- | ----------------------------------------------- | ----------------------------------------- |
+| `feat/backend-migration-coordinator`         | AionUi         | (reused from earlier pilots)                    | coordinator                               |
+| `feat/backend-migration-assistant-user-data` | AionUi         | `origin/feat/backend-migration-coordinator`     | frontend-dev, frontend-tester, e2e-tester |
+| `feat/assistant-user-data`                   | aionui-backend | `origin/archive/skill-library-pilot-2026-04-23` | backend-dev, backend-tester               |
 
 ---
 
@@ -107,16 +109,18 @@ Expected: branch exists on remote at `origin/feat/backend-migration` tip.
 ### Step 0.4 — Verify current migration count
 
 - [ ] Run:
+
   ```bash
   ls /Users/zhoukai/Documents/github/aionui-backend/crates/aionui-db/migrations/ | sort
   ```
 
 - [ ] Note the highest number prefix (e.g. `002_...sql`). The new migration
-  created in T1a.2 uses the next number.
+      created in T1a.2 uses the next number.
 
 ### Step 0.5 — Create team + tasks
 
 - [ ] Via TeamCreate:
+
   ```
   TeamCreate { team_name: "aionui-assistant-migration",
                description: "Migrate user-authored assistants from Electron config to backend DB" }
@@ -125,12 +129,12 @@ Expected: branch exists on remote at `origin/feat/backend-migration` tip.
 - [ ] Register tasks with owners:
   - Task 1a — backend-dev
   - Task 1b — backend-dev
-  - Task 2  — backend-tester
+  - Task 2 — backend-tester
   - Task 3a — frontend-dev
   - Task 3b — frontend-dev
-  - Task 4  — frontend-tester
-  - Task 5  — e2e-tester
-  - Task 6  — coordinator
+  - Task 4 — frontend-tester
+  - Task 5 — e2e-tester
+  - Task 6 — coordinator
 
 - [ ] Set `addBlockedBy`:
   - 1b blocks on 1a
@@ -144,6 +148,7 @@ Expected: branch exists on remote at `origin/feat/backend-migration` tip.
 ### Step 0.6 — Commit plan + specs to coordinator branch
 
 - [ ] Run:
+
   ```bash
   cd /Users/zhoukai/Documents/github/AionUi
   git checkout feat/backend-migration-coordinator
@@ -227,7 +232,7 @@ migration file + empty crate shell) so T3a can start in parallel.
   ```
 
 - [ ] Create empty module files `builtin.rs`, `routes.rs`, `service.rs`,
-  `state.rs` (each with a one-line doc comment).
+      `state.rs` (each with a one-line doc comment).
 
 - [ ] Edit `/Users/zhoukai/Documents/github/aionui-backend/Cargo.toml`:
 
@@ -240,6 +245,7 @@ migration file + empty crate shell) so T3a can start in parallel.
   ```
 
 - [ ] Run:
+
   ```bash
   cd /Users/zhoukai/Documents/github/aionui-backend
   cargo build --workspace
@@ -250,7 +256,7 @@ migration file + empty crate shell) so T3a can start in parallel.
 ### Step 1a.2 — SQLite migration
 
 - [ ] Determine next migration number: `ls crates/aionui-db/migrations/ | sort | tail -1`
-  → use N+1 (example: `003_assistants.sql`).
+      → use N+1 (example: `003_assistants.sql`).
 
 - [ ] Create `crates/aionui-db/migrations/NNN_assistants.sql`:
 
@@ -285,6 +291,7 @@ migration file + empty crate shell) so T3a can start in parallel.
   ```
 
 - [ ] Run:
+
   ```bash
   cargo test --package aionui-db
   ```
@@ -295,27 +302,29 @@ migration file + empty crate shell) so T3a can start in parallel.
 ### Step 1a.3 — Repository traits + row models
 
 - [ ] Create `crates/aionui-db/src/models/assistant.rs` per backend spec §3.3
-  (`AssistantRow`, `AssistantOverrideRow`, `CreateAssistantParams`,
-  `UpdateAssistantParams`, `UpsertOverrideParams` — copy from spec verbatim).
+      (`AssistantRow`, `AssistantOverrideRow`, `CreateAssistantParams`,
+      `UpdateAssistantParams`, `UpsertOverrideParams` — copy from spec verbatim).
 
 - [ ] Add to `crates/aionui-db/src/models/mod.rs`:
+
   ```rust
   pub mod assistant;
   pub use assistant::*;
   ```
 
 - [ ] Create `crates/aionui-db/src/repository/assistant.rs` with
-  `IAssistantRepository` and `IAssistantOverrideRepository` traits per spec
-  §3.4. Include `async_trait`.
+      `IAssistantRepository` and `IAssistantOverrideRepository` traits per spec
+      §3.4. Include `async_trait`.
 
 - [ ] Create `crates/aionui-db/src/repository/sqlite_assistant.rs` with
-  skeleton `SqliteAssistantRepository` and `SqliteAssistantOverrideRepository`.
-  **For this task, return `unimplemented!()` in each method body** — T1b
-  fills in actual SQL.
+      skeleton `SqliteAssistantRepository` and `SqliteAssistantOverrideRepository`.
+      **For this task, return `unimplemented!()` in each method body** — T1b
+      fills in actual SQL.
 
 - [ ] Wire into `crates/aionui-db/src/repository/mod.rs`.
 
 - [ ] Run:
+
   ```bash
   cargo build --workspace
   ```
@@ -325,7 +334,7 @@ migration file + empty crate shell) so T3a can start in parallel.
 ### Step 1a.4 — HTTP contract types in `aionui-api-types`
 
 - [ ] Create `crates/aionui-api-types/src/assistant.rs` with exactly the types
-  from backend spec §3.1 and §6.2:
+      from backend spec §3.1 and §6.2:
   - `AssistantResponse` + `AssistantSource`
   - `CreateAssistantRequest`
   - `UpdateAssistantRequest`
@@ -337,6 +346,7 @@ migration file + empty crate shell) so T3a can start in parallel.
   All `#[serde(rename_all = "camelCase")]`.
 
 - [ ] Add to `crates/aionui-api-types/src/lib.rs`:
+
   ```rust
   pub mod assistant;
   pub use assistant::*;
@@ -364,13 +374,13 @@ migration file + empty crate shell) so T3a can start in parallel.
   ```
 
 - [ ] In `crates/aionui-assistant/src/routes.rs`, scaffold the full route table
-  per backend spec §6.1, with each handler returning
-  `Err(AppError::Internal("not implemented".into()))`.
+      per backend spec §6.1, with each handler returning
+      `Err(AppError::Internal("not implemented".into()))`.
 
 - [ ] Wire into `aionui-app` just enough to compile: add
-  `aionui-assistant = { workspace = true }` to `crates/aionui-app/Cargo.toml`,
-  and merge `assistant_routes(...)` in `create_router` guarded behind a
-  compile-time `if true` block (no auth yet — T1b completes wiring).
+      `aionui-assistant = { workspace = true }` to `crates/aionui-app/Cargo.toml`,
+      and merge `assistant_routes(...)` in `create_router` guarded behind a
+      compile-time `if true` block (no auth yet — T1b completes wiring).
 
 - [ ] Run:
   ```bash
@@ -381,6 +391,7 @@ migration file + empty crate shell) so T3a can start in parallel.
 ### Step 1a.6 — Commit + hand off
 
 - [ ] Run:
+
   ```bash
   cd /Users/zhoukai/Documents/github/aionui-backend
   git add crates/aionui-assistant crates/aionui-db crates/aionui-api-types crates/aionui-app Cargo.toml Cargo.lock
@@ -401,7 +412,7 @@ migration file + empty crate shell) so T3a can start in parallel.
 - [ ] Record exact SHA: `git rev-parse HEAD` → store for hand-off.
 
 - [ ] SendMessage to coordinator:
-  `"T1a complete at SHA <hex>. Frontend-dev unblocked. Starting T1b."`
+      `"T1a complete at SHA <hex>. Frontend-dev unblocked. Starting T1b."`
 
 - [ ] TaskUpdate T1a status=completed, T1b status=in_progress.
 
@@ -412,10 +423,12 @@ migration file + empty crate shell) so T3a can start in parallel.
 **Owner:** backend-dev. **Depends on:** T1a.
 
 **Goal:** Implement `AssistantService::list/create/update/delete/set_state/import`
-+ rule-md dispatch + `BuiltinAssistantRegistry` loader + repository SQL +
-in-crate unit tests. Leave HTTP E2E testing to T2.
+
+- rule-md dispatch + `BuiltinAssistantRegistry` loader + repository SQL +
+  in-crate unit tests. Leave HTTP E2E testing to T2.
 
 **Files:**
+
 - `crates/aionui-db/src/repository/sqlite_assistant.rs` (fill in SQL)
 - `crates/aionui-assistant/src/builtin.rs`
 - `crates/aionui-assistant/src/service.rs`
@@ -428,7 +441,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
 ### Step 1b.1 — Implement repository SQL
 
 - [ ] In `sqlite_assistant.rs`, implement all methods on both traits using
-  the same sqlx patterns as `sqlite_settings.rs`. Key queries:
+      the same sqlx patterns as `sqlite_settings.rs`. Key queries:
 
   ```rust
   // IAssistantRepository::list
@@ -443,8 +456,8 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] Inline test each public method in `#[cfg(test)]` with
-  `init_database_memory()` fixture. Aim ≥ 2 cases per method (happy + at
-  least one edge).
+      `init_database_memory()` fixture. Aim ≥ 2 cases per method (happy + at
+      least one edge).
 
 ### Step 1b.2 — `BuiltinAssistantRegistry`
 
@@ -591,13 +604,13 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] Inline tests in `#[cfg(test)]`: happy load / missing dir / malformed
-  JSON / empty list / path resolution with `{locale}`.
+      JSON / empty list / path resolution with `{locale}`.
 
 ### Step 1b.3 — `AssistantService`
 
 - [ ] Implement per backend spec §5 — `list/get/create/update/delete/set_state/import`
-  and rule/skill dispatch helpers (`read_rule`, `write_rule`, `delete_rule`,
-  same for `_skill`, `classify`).
+      and rule/skill dispatch helpers (`read_rule`, `write_rule`, `delete_rule`,
+      same for `_skill`, `classify`).
 
 - [ ] Implement `AssistantSource` classification using:
   1. `BuiltinAssistantRegistry::has`
@@ -606,6 +619,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   3. Fallback `AssistantSource::User`
 
 - [ ] **Critical `import` implementation** — insert-only per backend spec §6.3:
+
   ```rust
   pub async fn import(&self, req: ImportAssistantsRequest) -> Result<ImportAssistantsResult, AppError> {
       let mut result = ImportAssistantsResult::default();
@@ -636,16 +650,16 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] Merge logic in `list()` per spec §5.1 — preserve sort order correctly
-  (sort_order asc, last_used_at desc fallback).
+      (sort_order asc, last_used_at desc fallback).
 
 - [ ] Inline tests per backend spec §9.1 — every behavior row mapped to a
-  named test.
+      named test.
 
 ### Step 1b.3a — Extend `ExtensionRegistry`
 
 - [ ] If `ExtensionRegistry::has_assistant(id)` and
-  `get_assistant_by_id(id)` don't exist, add them to
-  `crates/aionui-extension/src/registry.rs`:
+      `get_assistant_by_id(id)` don't exist, add them to
+      `crates/aionui-extension/src/registry.rs`:
 
   ```rust
   pub async fn has_assistant(&self, id: &str) -> bool {
@@ -658,7 +672,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] No new test file needed — existing `get_assistants` tests cover the
-  lookup primitive.
+      lookup primitive.
 
 ### Step 1b.4 — Rule-md + skill-md dispatch in `aionui-extension`
 
@@ -671,8 +685,8 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   - `DELETE /api/skills/assistant-skill/{assistantId}`
 
 - [ ] Each handler calls into `AssistantClassifier::classify` — define this
-  trait in `aionui-common::traits` (or `aionui-extension`'s own module; pick
-  wherever keeps dep graph cleanest):
+      trait in `aionui-common::traits` (or `aionui-extension`'s own module; pick
+      wherever keeps dep graph cleanest):
 
   ```rust
   #[async_trait::async_trait]
@@ -693,29 +707,29 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   - `delete` → same 400 rule.
 
 - [ ] Preserve existing 7 endpoints' response shapes (regression must stay
-  green — see `modules/assistant.md`).
+      green — see `modules/assistant.md`).
 
 - [ ] Add integration tests to `crates/aionui-extension/tests/` covering
-  the three dispatch paths for both `rule` and `skill`.
+      the three dispatch paths for both `rule` and `skill`.
 
 ### Step 1b.5 — Built-in asset files
 
 - [ ] Create `crates/aionui-app/assets/builtin-assistants/assistants.json`.
-  Content source: take the existing frontend
-  `src/common/config/presets/assistantPresets.ts` array (from the AionUi
-  repo), translate each entry to the manifest schema (§4.2 of backend spec).
-  Keep the full PRESET_ID_WHITELIST in sync — **both the backend manifest
-  and the T3b whitelist must list the same ids**.
+      Content source: take the existing frontend
+      `src/common/config/presets/assistantPresets.ts` array (from the AionUi
+      repo), translate each entry to the manifest schema (§4.2 of backend spec).
+      Keep the full PRESET_ID_WHITELIST in sync — **both the backend manifest
+      and the T3b whitelist must list the same ids**.
 
 - [ ] For each entry with a rule file, copy the existing md files under
-  `~/Library/Application Support/AionUi-Dev/config/assistants/*.md` (or
-  equivalent in the repo at frontend `src/...` if committed there) into
-  `crates/aionui-app/assets/builtin-assistants/rules/{id}.{locale}.md`.
+      `~/Library/Application Support/AionUi-Dev/config/assistants/*.md` (or
+      equivalent in the repo at frontend `src/...` if committed there) into
+      `crates/aionui-app/assets/builtin-assistants/rules/{id}.{locale}.md`.
 
 - [ ] Commit the PRESET_ID_WHITELIST list separately as a JSON fixture at
-  `crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json` for
-  the frontend migration hook to read (or mirror in frontend code — T3b
-  decides).
+      `crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json` for
+      the frontend migration hook to read (or mirror in frontend code — T3b
+      decides).
 
 ### Step 1b.6 — Build-time asset placement (build.rs)
 
@@ -763,6 +777,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] Run:
+
   ```bash
   cargo build --workspace
   ls target/debug/assets/builtin-assistants/
@@ -793,7 +808,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] In `create_router`, merge `assistant_routes(...)` behind auth middleware
-  (follow the `system_authenticated` pattern):
+      (follow the `system_authenticated` pattern):
 
   ```rust
   let assistant_authenticated =
@@ -809,6 +824,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
 ### Step 1b.8 — Run full test suite
 
 - [ ] Run:
+
   ```bash
   cargo fmt --all
   cargo clippy --workspace -- -D warnings
@@ -820,6 +836,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
 ### Step 1b.9 — Commit + hand off
 
 - [ ] Run:
+
   ```bash
   git add -A
   git commit -m "feat(assistant): implement AssistantService, builtin loader, rule/skill dispatch
@@ -840,9 +857,10 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] SendMessage to coordinator + backend-tester:
-  `"T1b complete at SHA <hex>. backend-tester unblocked."`
+      `"T1b complete at SHA <hex>. backend-tester unblocked."`
 
 - [ ] Install binary for E2E reuse:
+
   ```bash
   cargo install --path crates/aionui-app
   ls -la ~/.cargo/bin/aionui-backend  # verify fresh timestamp
@@ -876,8 +894,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
 ### Step 2.2 — Integration test file
 
 - [ ] Create `crates/aionui-app/tests/assistants_e2e.rs` with fixture helpers
-  mirroring `crates/aionui-app/tests/system_version_e2e.rs`:
-
+      mirroring `crates/aionui-app/tests/system_version_e2e.rs`:
   - Start in-memory DB
   - Register a test user + issue JWT via auth bootstrap
   - Point `AIONUI_BUILTIN_ASSISTANTS_PATH` to a temp dir seeded with a
@@ -900,6 +917,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
 ### Step 2.3 — Run & debug
 
 - [ ] Run:
+
   ```bash
   cargo test --test assistants_e2e --nocapture
   ```
@@ -909,24 +927,27 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
 ### Step 2.4 — Cross-platform asset validation (per backend spec §12 DoD)
 
 - [ ] On this dev machine (macOS) run `cargo build --release` + start
-  `~/.cargo/bin/aionui-backend --local --port 25900`, then:
+      `~/.cargo/bin/aionui-backend --local --port 25900`, then:
+
   ```bash
   curl -s http://127.0.0.1:25900/api/assistants | jq '.data | length'
   ```
+
   Expected: >= 2 (built-ins loaded).
 
 - [ ] If access to Linux/Windows CI runners: run same probe there. If no
-  access, SendMessage coordinator: `"Cross-platform validation for L/W
-  pending CI runner access; spec §12 DoD gate"` — coordinator decides
-  whether to block or scope as follow-up.
+      access, SendMessage coordinator: `"Cross-platform validation for L/W
+pending CI runner access; spec §12 DoD gate"` — coordinator decides
+      whether to block or scope as follow-up.
 
 ### Step 2.5 — Write hand-off
 
 - [ ] Create `docs/backend-migration/handoffs/backend-tester-assistant-user-data-2026-04-23.md`
-  with: test file path, all probe commands + outputs, per-endpoint
-  pass/fail summary, cross-platform status, open gaps.
+      with: test file path, all probe commands + outputs, per-endpoint
+      pass/fail summary, cross-platform status, open gaps.
 
 - [ ] Commit + push:
+
   ```bash
   git add crates/aionui-app/tests/assistants_e2e.rs docs/backend-migration/handoffs/backend-tester-assistant-user-data-2026-04-23.md
   git commit -m "test(assistant): HTTP integration suite for /api/assistants/* and rule/skill dispatch"
@@ -934,7 +955,7 @@ in-crate unit tests. Leave HTTP E2E testing to T2.
   ```
 
 - [ ] SendMessage coordinator: `"T2 complete. Probe transcript in handoff.
-  <N>/<N> tests green."`
+<N>/<N> tests green."`
 
 - [ ] TaskUpdate T2 status=completed.
 
@@ -1055,18 +1076,10 @@ onto `ipcBridge.assistants.*`. No main-process migration yet (that's 3b).
   export const assistants = {
     list: httpGet<Assistant[], void>('/api/assistants'),
     create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
-    update: httpPut<Assistant, UpdateAssistantRequest>(
-      (p) => `/api/assistants/${p.id}`,
-    ),
-    delete: httpDelete<void, { id: string }>(
-      (p) => `/api/assistants/${p.id}`,
-    ),
-    setState: httpPatch<Assistant, SetAssistantStateRequest>(
-      (p) => `/api/assistants/${p.id}/state`,
-    ),
-    import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>(
-      '/api/assistants/import',
-    ),
+    update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+    delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
+    setState: httpPatch<Assistant, SetAssistantStateRequest>((p) => `/api/assistants/${p.id}/state`),
+    import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
   };
   ```
 
@@ -1104,7 +1117,9 @@ onto `ipcBridge.assistants.*`. No main-process migration yet (that's 3b).
       }
     }, []);
 
-    useEffect(() => { void loadAssistants(); }, [loadAssistants]);
+    useEffect(() => {
+      void loadAssistants();
+    }, [loadAssistants]);
 
     const activeAssistant = assistants.find((a) => a.id === activeAssistantId) ?? null;
 
@@ -1137,21 +1152,21 @@ onto `ipcBridge.assistants.*`. No main-process migration yet (that's 3b).
 ### Step 3a.6 — Rewrite `useAssistantEditor`
 
 - [ ] Edit `src/renderer/hooks/assistant/useAssistantEditor.ts` — replace
-  all 4 `ConfigStorage.get/set('assistants')` sites:
+      all 4 `ConfigStorage.get/set('assistants')` sites:
   - Create → `ipcBridge.assistants.create.invoke({ ... })`
   - Update → `ipcBridge.assistants.update.invoke({ id, ...changes })`
   - Delete → `ipcBridge.assistants.delete.invoke({ id })`
   - toggleEnabled → `ipcBridge.assistants.setState.invoke({ id, enabled })`
 
 - [ ] Replace `activeAssistant?.isBuiltin` checks with
-  `activeAssistant?.source === 'builtin'`.
+      `activeAssistant?.source === 'builtin'`.
 
 - [ ] Replace `isExtensionAssistant(activeAssistant)` with
-  `activeAssistant?.source === 'extension'`.
+      `activeAssistant?.source === 'extension'`.
 
 - [ ] Rule-md read/write calls stay unchanged (existing
-  `ipcBridge.fs.readAssistantRule` / `writeAssistantRule` — their dispatch
-  change is transparent to the frontend).
+      `ipcBridge.fs.readAssistantRule` / `writeAssistantRule` — their dispatch
+      change is transparent to the frontend).
 
 ### Step 3a.7 — Update remaining 8 consumers
 
@@ -1168,13 +1183,14 @@ Edit each to swap `ConfigStorage.get('assistants')` for
 ### Step 3a.8 — Audit `ASSISTANT_PRESETS` consumers (init-order compliance)
 
 - [ ] Run:
+
   ```bash
   grep -rn "ASSISTANT_PRESETS\|assistantPresets" src/ | grep -v __tests__
   ```
 
 - [ ] For each site, confirm the consumer already runs inside `useEffect` or
-  an async function (renderer) OR restructure the init order (main process)
-  to await `ipcBridge.assistants.list` before use. Target files per spec §7.6:
+      an async function (renderer) OR restructure the init order (main process)
+      to await `ipcBridge.assistants.list` before use. Target files per spec §7.6:
   - `src/process/team/mcp/team/TeamMcpServer.ts`
   - `src/process/team/prompts/teamGuideAssistant.ts`
   - `src/common/utils/presetAssistantResources.ts`
@@ -1184,8 +1200,8 @@ Edit each to swap `ConfigStorage.get('assistants')` for
 - [ ] Delete `src/common/config/presets/assistantPresets.ts`.
 
 - [ ] Delete `src/common/utils/presetAssistantResources.ts` (or reduce to a
-  thin pass-through if any non-assistant code still imports it — check with
-  grep first).
+      thin pass-through if any non-assistant code still imports it — check with
+      grep first).
 
 - [ ] Run:
   ```bash
@@ -1196,6 +1212,7 @@ Edit each to swap `ConfigStorage.get('assistants')` for
 ### Step 3a.10 — Lint + typecheck
 
 - [ ] Run:
+
   ```bash
   bunx tsc --noEmit
   bun run lint --quiet
@@ -1206,6 +1223,7 @@ Edit each to swap `ConfigStorage.get('assistants')` for
 ### Step 3a.11 — Commit + hand off
 
 - [ ] Run:
+
   ```bash
   git add -A
   git commit -m "refactor(assistant): swap ConfigStorage reads/writes for ipcBridge.assistants.*
@@ -1227,7 +1245,7 @@ Edit each to swap `ConfigStorage.get('assistants')` for
   ```
 
 - [ ] SendMessage coordinator + frontend-tester + e2e-tester:
-  `"T3a complete. SHA <hex>. frontend-tester unblocked."`
+      `"T3a complete. SHA <hex>. frontend-tester unblocked."`
 
 - [ ] TaskUpdate T3a status=completed, T3b status=in_progress.
 
@@ -1266,59 +1284,44 @@ backend after backend is healthy.
 
   function generateCollisionId(): string {
     const ms = Date.now();
-    const hex = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
+    const hex = Math.floor(Math.random() * 0xffff)
+      .toString(16)
+      .padStart(4, '0');
     return `custom-migrated-${ms}-${hex}`;
   }
 
-  function toBackendShape(
-    legacy: Record<string, unknown>,
-  ): CreateAssistantRequest {
+  function toBackendShape(legacy: Record<string, unknown>): CreateAssistantRequest {
     const legacyId = typeof legacy.id === 'string' ? legacy.id : '';
     // Rename colliding user-authored ids to preserve data (spec §8.1)
-    const id = PRESET_ID_WHITELIST.has(legacyId)
-      ? generateCollisionId()
-      : legacyId;
+    const id = PRESET_ID_WHITELIST.has(legacyId) ? generateCollisionId() : legacyId;
 
     return {
       id,
       name: (legacy.name as string) ?? 'Untitled',
       description: legacy.description as string | undefined,
       avatar: legacy.avatar as string | undefined,
-      presetAgentType:
-        typeof legacy.presetAgentType === 'string'
-          ? (legacy.presetAgentType as string)
-          : 'gemini',
+      presetAgentType: typeof legacy.presetAgentType === 'string' ? (legacy.presetAgentType as string) : 'gemini',
       enabledSkills: (legacy.enabledSkills as string[]) ?? [],
       customSkillNames: (legacy.customSkillNames as string[]) ?? [],
       disabledBuiltinSkills: (legacy.disabledBuiltinSkills as string[]) ?? [],
       prompts: (legacy.prompts as string[]) ?? [],
       models: (legacy.models as string[]) ?? [],
       nameI18n: (legacy.nameI18n as Record<string, string>) ?? {},
-      descriptionI18n:
-        (legacy.descriptionI18n as Record<string, string>) ?? {},
-      promptsI18n:
-        (legacy.promptsI18n as Record<string, string[]>) ?? {},
+      descriptionI18n: (legacy.descriptionI18n as Record<string, string>) ?? {},
+      promptsI18n: (legacy.promptsI18n as Record<string, string[]>) ?? {},
     };
   }
 
-  export async function migrateAssistantsToBackend(
-    configFile: ProcessConfig,
-  ): Promise<void> {
+  export async function migrateAssistantsToBackend(configFile: ProcessConfig): Promise<void> {
     if (process.env.AIONUI_SKIP_ELECTRON_MIGRATION === '1') {
       console.log('[AionUi] Assistant migration skipped (env flag set)');
       return;
     }
 
-    const imported = await configFile
-      .get('migration.electronConfigImported')
-      .catch(() => false);
+    const imported = await configFile.get('migration.electronConfigImported').catch(() => false);
     if (imported) return;
 
-    const legacy =
-      ((await configFile.get('assistants').catch(() => [])) as Record<
-        string,
-        unknown
-      >[]) ?? [];
+    const legacy = ((await configFile.get('assistants').catch(() => [])) as Record<string, unknown>[]) ?? [];
 
     const userAssistants = legacy.filter((a) => !isLegacyBuiltin(a));
     if (userAssistants.length === 0) {
@@ -1332,14 +1335,9 @@ backend after backend is healthy.
       });
       if (result.failed === 0) {
         await configFile.set('migration.electronConfigImported', true);
-        console.log(
-          `[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`,
-        );
+        console.log(`[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`);
       } else {
-        console.error(
-          `[AionUi] Assistant migration partial: ${result.failed} failed`,
-          result.errors,
-        );
+        console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
       }
     } catch (error) {
       console.error('[AionUi] Assistant migration failed:', error);
@@ -1350,11 +1348,11 @@ backend after backend is healthy.
 ### Step 3b.2 — Wire into `initStorage.ts`
 
 - [ ] Edit `src/process/utils/initStorage.ts` to call
-  `migrateAssistantsToBackend(configFile)` after `ConfigStorage.interceptor`
-  setup AND after backend readiness is confirmed by the caller.
+      `migrateAssistantsToBackend(configFile)` after `ConfigStorage.interceptor`
+      setup AND after backend readiness is confirmed by the caller.
 
 - [ ] The backend-ready gate lives in `src/index.ts` (main process startup).
-  Add after `backendManager.start()` resolves:
+      Add after `backendManager.start()` resolves:
 
   ```typescript
   // src/index.ts (in whichever function owns backend bootstrap)
@@ -1372,7 +1370,7 @@ backend after backend is healthy.
 ### Step 3b.3 — Populate PRESET_ID_WHITELIST
 
 - [ ] Read `crates/aionui-app/assets/builtin-assistants/assistants.json`
-  (committed by T1b.5). Extract all `id` values.
+      (committed by T1b.5). Extract all `id` values.
 
 - [ ] Paste them into `PRESET_ID_WHITELIST` in `migrateAssistants.ts`.
 
@@ -1405,7 +1403,9 @@ backend after backend is healthy.
     const store = new Map(Object.entries(initial));
     return {
       get: vi.fn(async (k: string) => store.get(k)),
-      set: vi.fn(async (k: string, v: unknown) => { store.set(k, v); }),
+      set: vi.fn(async (k: string, v: unknown) => {
+        store.set(k, v);
+      }),
     };
   }
 
@@ -1428,18 +1428,17 @@ backend after backend is healthy.
       });
       const { ipcBridge } = await import('@/common');
       (ipcBridge.assistants.import.invoke as any).mockResolvedValue({
-        imported: 1, skipped: 0, failed: 0, errors: [],
+        imported: 1,
+        skipped: 0,
+        failed: 0,
+        errors: [],
       });
       await migrateAssistantsToBackend(cf as any);
       expect(ipcBridge.assistants.import.invoke).toHaveBeenCalledWith({
-        assistants: expect.arrayContaining([
-          expect.objectContaining({ id: 'custom-123' }),
-        ]),
+        assistants: expect.arrayContaining([expect.objectContaining({ id: 'custom-123' })]),
       });
       expect(ipcBridge.assistants.import.invoke).toHaveBeenCalledWith({
-        assistants: expect.not.arrayContaining([
-          expect.objectContaining({ id: 'builtin-office' }),
-        ]),
+        assistants: expect.not.arrayContaining([expect.objectContaining({ id: 'builtin-office' })]),
       });
     });
 
@@ -1450,25 +1449,22 @@ backend after backend is healthy.
       });
       const { ipcBridge } = await import('@/common');
       (ipcBridge.assistants.import.invoke as any).mockResolvedValue({
-        imported: 0, skipped: 0, failed: 1, errors: [{ id: 'a', error: '...' }],
+        imported: 0,
+        skipped: 0,
+        failed: 1,
+        errors: [{ id: 'a', error: '...' }],
       });
       await migrateAssistantsToBackend(cf as any);
-      expect(cf.set).not.toHaveBeenCalledWith(
-        'migration.electronConfigImported',
-        true,
-      );
+      expect(cf.set).not.toHaveBeenCalledWith('migration.electronConfigImported', true);
     });
 
     it('sets flag when nothing to migrate', async () => {
       const cf = makeConfigFile({
         'migration.electronConfigImported': false,
-        assistants: [{ id: 'builtin-office', name: 'Office' }],  // all filtered
+        assistants: [{ id: 'builtin-office', name: 'Office' }], // all filtered
       });
       await migrateAssistantsToBackend(cf as any);
-      expect(cf.set).toHaveBeenCalledWith(
-        'migration.electronConfigImported',
-        true,
-      );
+      expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
     });
 
     it('respects AIONUI_SKIP_ELECTRON_MIGRATION=1', async () => {
@@ -1492,6 +1488,7 @@ backend after backend is healthy.
   ```
 
 - [ ] Run:
+
   ```bash
   bun run test --run tests/unit/migrateAssistants.test.ts
   ```
@@ -1501,6 +1498,7 @@ backend after backend is healthy.
 ### Step 3b.5 — Commit + hand off
 
 - [ ] Run:
+
   ```bash
   git add -A
   git commit -m "feat(assistant): main-process one-shot migration from ConfigStorage to backend
@@ -1518,7 +1516,7 @@ backend after backend is healthy.
   ```
 
 - [ ] SendMessage coordinator + e2e-tester:
-  `"T3b complete. SHA <hex>. e2e-tester still blocked on T2 + T4."`
+      `"T3b complete. SHA <hex>. e2e-tester still blocked on T2 + T4."`
 
 - [ ] TaskUpdate T3b status=completed.
 
@@ -1544,26 +1542,27 @@ independently testable).
 ### Step 4.2 — Write / update Vitest suites
 
 - [ ] **New: `tests/unit/assistantsBridge.test.ts`** — mock `fetch`, exercise
-  all 6 bridge methods (`list/create/update/delete/setState/import`). Verify:
+      all 6 bridge methods (`list/create/update/delete/setState/import`). Verify:
   - HTTP method + path
   - Request body shape
   - Response unwrapping (from `{success,data}` envelope)
   - Error propagation (4xx → throws)
 
 - [ ] **Update: `tests/unit/assistantHooks.dom.test.ts`** — swap the old
-  `ConfigStorage` mocks for `ipcBridge.assistants.*` mocks. Cover:
+      `ConfigStorage` mocks for `ipcBridge.assistants.*` mocks. Cover:
   - `useAssistantList` loads from `ipcBridge.assistants.list`
   - `useAssistantEditor` create/update/delete/toggle call correct bridge
   - `source === 'user'` gates edit/delete buttons
   - `source === 'builtin'` / `'extension'` disables edit UI
 
 - [ ] **Prune: `tests/unit/assistantUtils.test.ts`** — remove
-  `isExtensionAssistant` / `getAssistantSource` tests; keep `isEmoji` /
-  `resolveAvatarImageSrc` / simplified `sortAssistants`.
+      `isExtensionAssistant` / `getAssistantSource` tests; keep `isEmoji` /
+      `resolveAvatarImageSrc` / simplified `sortAssistants`.
 
 ### Step 4.3 — Run suite
 
 - [ ] Run:
+
   ```bash
   bun run test --run tests/unit/assistants*.test.ts tests/unit/assistantHooks.dom.test.ts tests/unit/migrateAssistants.test.ts
   ```
@@ -1573,6 +1572,7 @@ independently testable).
 ### Step 4.4 — Gate commands
 
 - [ ] Run:
+
   ```bash
   bunx tsc --noEmit
   bun run lint --quiet
@@ -1585,11 +1585,12 @@ independently testable).
 ### Step 4.5 — Hand-off
 
 - [ ] Create
-  `docs/backend-migration/handoffs/frontend-tester-assistant-user-data-2026-04-23.md`
-  with: per-suite pass/fail counts, new test file list, lint/tsc diff
-  (before/after), anything surfaced.
+      `docs/backend-migration/handoffs/frontend-tester-assistant-user-data-2026-04-23.md`
+      with: per-suite pass/fail counts, new test file list, lint/tsc diff
+      (before/after), anything surfaced.
 
 - [ ] Commit + push:
+
   ```bash
   git add tests/unit/*assistants* tests/unit/migrateAssistants.test.ts \
           tests/unit/assistantHooks.dom.test.ts tests/unit/assistantUtils.test.ts \
@@ -1599,7 +1600,7 @@ independently testable).
   ```
 
 - [ ] SendMessage coordinator + e2e-tester:
-  `"T4 complete at SHA <hex>."`
+      `"T4 complete at SHA <hex>."`
 
 - [ ] TaskUpdate T4 status=completed.
 
@@ -1630,8 +1631,7 @@ independently testable).
 ### Step 5.2 — Feature directory
 
 - [ ] Create `tests/e2e/features/assistants-user-data/` with a single file
-  `assistant-user-data.e2e.ts` covering:
-
+      `assistant-user-data.e2e.ts` covering:
   1. **First-launch empty** — fresh userData dir, no legacy file; launch →
      list shows only built-ins (from backend manifest)
   2. **Create user assistant** — UI flow → SQLite row verification via
@@ -1644,8 +1644,8 @@ independently testable).
   7. **Toggle builtin enabled** — UI toggles → `assistant_overrides` row
      inserted; restart backend → toggle persists
   8. **Migration happy path** — seed legacy `aionui-config.txt` with 3 user
-     + 2 builtin rows → launch AionUi → backend has 3 user rows + migration
-     flag = true
+     - 2 builtin rows → launch AionUi → backend has 3 user rows + migration
+       flag = true
   9. **Migration retry** — start AionUi without backend (kill before launch),
      launch, observe flag NOT set, log line visible; restart backend;
      relaunch; verify flag now true and no duplicates
@@ -1654,12 +1654,13 @@ independently testable).
       content preserved
 
 - [ ] Reuse `tests/e2e/helpers/` fixtures; if `assistantSettings.ts` helper
-  exists from prior assistant-verification pilot, extend it rather than
-  forking.
+      exists from prior assistant-verification pilot, extend it rather than
+      forking.
 
 ### Step 5.3 — Run the suite
 
 - [ ] Run:
+
   ```bash
   bun run test:e2e tests/e2e/features/assistants-user-data/
   ```
@@ -1678,24 +1679,24 @@ Use the Skill-Library pilot rubric:
 ### Step 5.5 — Report
 
 - [ ] Create
-  `docs/backend-migration/e2e-reports/2026-04-23-assistant-user-data.md`
-  with: pass/fail matrix, classifications, `curl` backend probes used for
-  Class D/F hypotheses, verdict per scenario.
+      `docs/backend-migration/e2e-reports/2026-04-23-assistant-user-data.md`
+      with: pass/fail matrix, classifications, `curl` backend probes used for
+      Class D/F hypotheses, verdict per scenario.
 
 - [ ] Create
-  `docs/backend-migration/handoffs/e2e-tester-assistant-user-data-2026-04-23.md`
-  summarizing routing decisions.
+      `docs/backend-migration/handoffs/e2e-tester-assistant-user-data-2026-04-23.md`
+      summarizing routing decisions.
 
 - [ ] Commit + push both.
 
 ### Step 5.6 — Outcome routing
 
 - [ ] **All green or only Class B/C/E:** SendMessage coordinator:
-  `"T5 clean. No Class D/F."` TaskUpdate completed.
+      `"T5 clean. No Class D/F."` TaskUpdate completed.
 
 - [ ] **Class D/F present:** SendMessage coordinator with per-failure
-  routing. Coordinator spawns an ad-hoc backend-dev or frontend-dev
-  re-engagement for targeted fixes; T5 re-runs after fix lands.
+      routing. Coordinator spawns an ad-hoc backend-dev or frontend-dev
+      re-engagement for targeted fixes; T5 re-runs after fix lands.
 
 ---
 
@@ -1723,10 +1724,10 @@ pilot.
 ### Step 6.3 — Write closure hand-off
 
 - [ ] Create
-  `docs/backend-migration/handoffs/coordinator-assistant-user-data-2026-04-23.md`
-  with: outcomes, lessons (esp. team-mode coordination across two repos),
-  open follow-ups (pending follow-up specs: `acp.customAgents` migration,
-  built-in-skill migration, other `ConfigStorage.*` dual-write residuals).
+      `docs/backend-migration/handoffs/coordinator-assistant-user-data-2026-04-23.md`
+      with: outcomes, lessons (esp. team-mode coordination across two repos),
+      open follow-ups (pending follow-up specs: `acp.customAgents` migration,
+      built-in-skill migration, other `ConfigStorage.*` dual-write residuals).
 
 - [ ] Commit + push.
 
@@ -1734,7 +1735,7 @@ pilot.
 
 - [ ] Append to `docs/backend-migration/modules/assistant.md`:
   - Section "User Data Migration — 2026-04-23"
-  - Final endpoint list (new /api/assistants/* + rule/skill dispatch)
+  - Final endpoint list (new /api/assistants/\* + rule/skill dispatch)
   - Migration flag status
   - Reference to the feature branches on both remotes (no PR links)
 

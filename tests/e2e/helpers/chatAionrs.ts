@@ -74,12 +74,7 @@ export async function getAionrsTestModels(page: Page): Promise<AionrsTestModels 
     };
 
     const candidates = providers.filter(
-      (p) =>
-        p.enabled !== false &&
-        Array.isArray(p.model) &&
-        p.model.length > 0 &&
-        p.apiKey &&
-        isAionrsCompatible(p)
+      (p) => p.enabled !== false && Array.isArray(p.model) && p.model.length > 0 && p.apiKey && isAionrsCompatible(p)
     );
 
     if (candidates.length === 0) return null;
@@ -87,11 +82,11 @@ export async function getAionrsTestModels(page: Page): Promise<AionrsTestModels 
     // Prefer more reliable aionrs-compatible platforms first.
     // Gemini via OpenAI-compat can silently hang on preview models, so it's last.
     const platformPriority: Record<string, number> = {
-      'custom': 0,       // Prefer user-configured OpenAI-compat endpoints (e.g. official OpenAI) first
-      'anthropic': 1,
-      'gemini': 2,
-      'new-api': 3,      // Often uses relay gateways with rotating tokens — deprioritize
-      'bedrock': 4,
+      custom: 0, // Prefer user-configured OpenAI-compat endpoints (e.g. official OpenAI) first
+      anthropic: 1,
+      gemini: 2,
+      'new-api': 3, // Often uses relay gateways with rotating tokens — deprioritize
+      bedrock: 4,
       'gemini-vertex-ai': 5,
     };
     candidates.sort((a, b) => {
@@ -218,7 +213,7 @@ export async function waitForAionrsReply(page: Page, conversationId: string, tim
       // content is already an object (rowToMessage does JSON.parse)
       const currentText =
         typeof last.content === 'object' && last.content !== null
-          ? (last.content as { content?: string }).content ?? ''
+          ? ((last.content as { content?: string }).content ?? '')
           : String(last.content ?? '');
 
       // Primary signal: conv.status === 'finished' + has AI text + content stable for 2s
@@ -249,7 +244,9 @@ export async function waitForAionrsReply(page: Page, conversationId: string, tim
   for (const m of finalMsgs) {
     const c = typeof m.content === 'object' ? (m.content as any)?.content : String(m.content);
     const preview = typeof c === 'string' ? c.slice(0, 120) : JSON.stringify(m.content).slice(0, 120);
-    console.error(`[waitForAionrsReply TIMEOUT]   - pos=${m.position} type=${m.type} status=${m.status} preview="${preview}"`);
+    console.error(
+      `[waitForAionrsReply TIMEOUT]   - pos=${m.position} type=${m.type} status=${m.status} preview="${preview}"`
+    );
   }
   throw new Error(`Aionrs reply timeout after ${timeoutMs}ms for conversation ${conversationId}`);
 }

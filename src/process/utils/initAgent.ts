@@ -77,10 +77,7 @@ export async function setupAssistantWorkspace(
       const entries = await fs.readdir(materializedDir, { withFileTypes: true });
       materializedSkillNames = entries.filter((e) => e.isDirectory()).map((e) => e.name);
     } catch (error) {
-      console.warn(
-        `[setupAssistantWorkspace] Failed to enumerate materialized skills dir ${materializedDir}:`,
-        error
-      );
+      console.warn(`[setupAssistantWorkspace] Failed to enumerate materialized skills dir ${materializedDir}:`, error);
     }
   }
 

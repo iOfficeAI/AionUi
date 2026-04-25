@@ -134,9 +134,9 @@ pilot scope.
 
 ### Failure classification
 
-| Class | Count | Tests                                             | Category                                  |
-| :---: | :---: | ------------------------------------------------- | ----------------------------------------- |
-|   D   |   0   | (5 cleared: TC-S-10, 14, 16, 09, 12)              | Transport/migration ✓ **CLEAN**           |
+| Class | Count | Tests                                             | Category                                 |
+| :---: | :---: | ------------------------------------------------- | ---------------------------------------- |
+|   D   |   0   | (5 cleared: TC-S-10, 14, 16, 09, 12)              | Transport/migration ✓ **CLEAN**          |
 |   A   |   1   | TC-S-25 (bulk import at N=20)                     | Test-infra state-interaction / pollution |
 |   F   |   1   | TC-S-17 (duplicate-path modal)                    | Pre-existing TS contract gap (inherited) |
 |   B   |   2   | TC-S-27, TC-S-28 (conditional sections)           | Test-authoring — fixture assumptions     |
@@ -230,17 +230,17 @@ Scope: move built-in skill resources from AionUi frontend (`src/process/resource
 
 **Feature branches (no PRs raised per user instruction):**
 
-| Branch | Repo | Final SHA |
-|---|---|---|
-| `feat/backend-migration-builtin-skills` | AionUi | `ff5290db5` |
-| `feat/builtin-skills` | aionui-backend | `04f1537` |
+| Branch                                  | Repo           | Final SHA   |
+| --------------------------------------- | -------------- | ----------- |
+| `feat/backend-migration-builtin-skills` | AionUi         | `ff5290db5` |
+| `feat/builtin-skills`                   | aionui-backend | `04f1537`   |
 
 ### Endpoints added
 
-| Method | Path | Behavior |
-|---|---|---|
-| POST | `/api/skills/materialize-for-agent` | Write a conversation's skill bundle to `{data_dir}/agent-skills/{conversationId}/`, return absolute dir path. Flat layout: `{target}/{name}/SKILL.md`, auto-inject unconditional, opt-in overwrites on collision. |
-| DELETE | `/api/skills/materialize-for-agent/{conversationId}` | Idempotent cleanup. |
+| Method | Path                                                 | Behavior                                                                                                                                                                                                          |
+| ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/skills/materialize-for-agent`                  | Write a conversation's skill bundle to `{data_dir}/agent-skills/{conversationId}/`, return absolute dir path. Flat layout: `{target}/{name}/SKILL.md`, auto-inject unconditional, opt-in overwrites on collision. |
+| DELETE | `/api/skills/materialize-for-agent/{conversationId}` | Idempotent cleanup.                                                                                                                                                                                               |
 
 ### Endpoints modified (contract additions)
 
@@ -268,13 +268,13 @@ Scope: move built-in skill resources from AionUi frontend (`src/process/resource
 
 ### Tests
 
-| Suite | Count | Location |
-|---|---|---|
-| Rust inline unit (aionui-extension::skill_service) | +13 new | `crates/aionui-extension/src/skill_service.rs` |
-| Rust HTTP integration | +14 new | `crates/aionui-app/tests/skills_builtin_e2e.rs` |
-| Rust wire-shape regression (camelCase + snake-case rejection) | +multiple per type | `crates/aionui-api-types/src/skill.rs` |
-| Frontend Vitest | +11 new | `tests/unit/acpSkillManager.test.ts`, `tests/unit/initAgent.materialize.test.ts` |
-| Playwright E2E | 8 scenarios | `tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts` |
+| Suite                                                         | Count              | Location                                                                         |
+| ------------------------------------------------------------- | ------------------ | -------------------------------------------------------------------------------- |
+| Rust inline unit (aionui-extension::skill_service)            | +13 new            | `crates/aionui-extension/src/skill_service.rs`                                   |
+| Rust HTTP integration                                         | +14 new            | `crates/aionui-app/tests/skills_builtin_e2e.rs`                                  |
+| Rust wire-shape regression (camelCase + snake-case rejection) | +multiple per type | `crates/aionui-api-types/src/skill.rs`                                           |
+| Frontend Vitest                                               | +11 new            | `tests/unit/acpSkillManager.test.ts`, `tests/unit/initAgent.materialize.test.ts` |
+| Playwright E2E                                                | 8 scenarios        | `tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts`      |
 
 ### Hotfix in flight
 
@@ -294,10 +294,10 @@ Scope: revert H1's directional mistake. The builtin-skill pilot (2026-04-23) lan
 
 **Feature branches (no PRs raised per user instruction):**
 
-| Branch | Repo | Final SHA |
-|---|---|---|
-| `feat/backend-migration-builtin-skills` | AionUi | `64bddde5c` |
-| `feat/builtin-skills` | aionui-backend | `326e228` |
+| Branch                                  | Repo           | Final SHA   |
+| --------------------------------------- | -------------- | ----------- |
+| `feat/backend-migration-builtin-skills` | AionUi         | `64bddde5c` |
+| `feat/builtin-skills`                   | aionui-backend | `326e228`   |
 
 ### Changes
 
@@ -313,26 +313,26 @@ Scope: revert H1's directional mistake. The builtin-skill pilot (2026-04-23) lan
 
 ### Wire format (final)
 
-| Endpoint | Request body | Response |
-|---|---|---|
-| `GET /api/skills/builtin-auto` | — | `[{name, description, location}]` (all snake lowercase) |
-| `POST /api/skills/builtin-skill` | `{file_name}` | string |
-| `GET /api/skills` | — | `[{name, description, location, relative_location?, is_custom, source}]` |
-| `POST /api/skills/materialize-for-agent` | `{conversation_id, enabled_skills}` | `{dir_path}` |
-| `DELETE /api/skills/materialize-for-agent/{id}` | path param only | `{success: true}` |
+| Endpoint                                        | Request body                        | Response                                                                 |
+| ----------------------------------------------- | ----------------------------------- | ------------------------------------------------------------------------ |
+| `GET /api/skills/builtin-auto`                  | —                                   | `[{name, description, location}]` (all snake lowercase)                  |
+| `POST /api/skills/builtin-skill`                | `{file_name}`                       | string                                                                   |
+| `GET /api/skills`                               | —                                   | `[{name, description, location, relative_location?, is_custom, source}]` |
+| `POST /api/skills/materialize-for-agent`        | `{conversation_id, enabled_skills}` | `{dir_path}`                                                             |
+| `DELETE /api/skills/materialize-for-agent/{id}` | path param only                     | `{success: true}`                                                        |
 
 ### Tests
 
-| Suite | Result |
-|---|---|
-| `cargo test -p aionui-api-types` | 421/421 (18 flipped tests included) |
-| `cargo test --test skills_builtin_e2e` | 14/14 |
-| `cargo test --test assistants_e2e` | 44/44 (regression clean) |
-| `cargo clippy --workspace -- -D warnings` | same baseline (pre-existing debt) |
-| `bun run test --run` | baseline unchanged |
-| `bunx tsc --noEmit` | clean |
-| Playwright `builtin-skill-migration` | 8/8 on run 3 (13.1s, 0 flakes) |
-| Packaging smoke (release binary + tempdir) | all green |
+| Suite                                      | Result                              |
+| ------------------------------------------ | ----------------------------------- |
+| `cargo test -p aionui-api-types`           | 421/421 (18 flipped tests included) |
+| `cargo test --test skills_builtin_e2e`     | 14/14                               |
+| `cargo test --test assistants_e2e`         | 44/44 (regression clean)            |
+| `cargo clippy --workspace -- -D warnings`  | same baseline (pre-existing debt)   |
+| `bun run test --run`                       | baseline unchanged                  |
+| `bunx tsc --noEmit`                        | clean                               |
+| Playwright `builtin-skill-migration`       | 8/8 on run 3 (13.1s, 0 flakes)      |
+| Packaging smoke (release binary + tempdir) | all green                           |
 
 ### Lesson
 

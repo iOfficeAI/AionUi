@@ -22,18 +22,18 @@ All 10 files under `tests/e2e/features/settings/skills/` exercise the Skill Libr
 surface. Coverage of the pilot's E1–E5 endpoints, plus every other `/api/skills/*`
 route the renderer touches, mapped via `tests/e2e/helpers/skillsHub.ts`:
 
-| Test file                      | # tests | E1 `GET /api/skills`            | E2 `GET /api/skills/builtin-auto` | E3 `POST /api/skills/builtin-rule` | E4 `POST /api/skills/builtin-skill` | E5 `POST /api/skills/info` | Other skill routes in play                                                                                                 |
-| ------------------------------ | ------: | :------------------------------ | :-------------------------------- | :---------------------------------: | :---------------------------------: | :------------------------: | -------------------------------------------------------------------------------------------------------------------------- |
-| `batch-import.e2e.ts`          |       1 | via `getMySkills` (setup)       | on page mount                     |                 no                  |                 no                  |             no             | `detect-external`, `external-paths`, `import-symlink`, `{name}` delete                                                      |
-| `boards-rendering.e2e.ts`      |       2 | via `getMySkills`               | via `getAutoSkills` direct call   |                 no                  |                 no                  |             no             | none                                                                                                                        |
-| `core-ui.e2e.ts`               |       7 | yes (list render + assertions)  | on page mount                     |                 no                  |                 no                  |             no             | `detect-external`, `external-paths`, `import-symlink`, `{name}` delete, `export-symlink`                                    |
-| `edge-cases.e2e.ts`            |       3 | yes                              | on page mount                     |                 no                  |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                                                         |
-| `manual-import.e2e.ts`         |       1 | via `getMySkills`               | on page mount                     |                 no                  |                 no                  |             no             | `/api/skills/scan`, `/api/skills/import` (manual-import dialog flow)                                                         |
-| `path-export.e2e.ts`           |       4 | yes                              | on page mount                     |                 no                  |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete, `export-symlink`                                                       |
-| `refresh-empty-tabs.e2e.ts`    |       3 | yes                              | on page mount                     |                 no                  |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                                                         |
-| `search.e2e.ts`                |       4 | yes                              | on page mount                     |                 no                  |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                                                         |
-| `special-cases.e2e.ts`         |       3 | yes                              | on page mount                     |                 no                  |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                                                         |
-| `url-highlight.e2e.ts`         |       1 | yes                              | on page mount                     |                 no                  |                 no                  |             no             | `import-symlink`, `{name}` delete                                                                                           |
+| Test file                   | # tests | E1 `GET /api/skills`           | E2 `GET /api/skills/builtin-auto` | E3 `POST /api/skills/builtin-rule` | E4 `POST /api/skills/builtin-skill` | E5 `POST /api/skills/info` | Other skill routes in play                                                               |
+| --------------------------- | ------: | :----------------------------- | :-------------------------------- | :--------------------------------: | :---------------------------------: | :------------------------: | ---------------------------------------------------------------------------------------- |
+| `batch-import.e2e.ts`       |       1 | via `getMySkills` (setup)      | on page mount                     |                 no                 |                 no                  |             no             | `detect-external`, `external-paths`, `import-symlink`, `{name}` delete                   |
+| `boards-rendering.e2e.ts`   |       2 | via `getMySkills`              | via `getAutoSkills` direct call   |                 no                 |                 no                  |             no             | none                                                                                     |
+| `core-ui.e2e.ts`            |       7 | yes (list render + assertions) | on page mount                     |                 no                 |                 no                  |             no             | `detect-external`, `external-paths`, `import-symlink`, `{name}` delete, `export-symlink` |
+| `edge-cases.e2e.ts`         |       3 | yes                            | on page mount                     |                 no                 |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                      |
+| `manual-import.e2e.ts`      |       1 | via `getMySkills`              | on page mount                     |                 no                 |                 no                  |             no             | `/api/skills/scan`, `/api/skills/import` (manual-import dialog flow)                     |
+| `path-export.e2e.ts`        |       4 | yes                            | on page mount                     |                 no                 |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete, `export-symlink`                    |
+| `refresh-empty-tabs.e2e.ts` |       3 | yes                            | on page mount                     |                 no                 |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                      |
+| `search.e2e.ts`             |       4 | yes                            | on page mount                     |                 no                 |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                      |
+| `special-cases.e2e.ts`      |       3 | yes                            | on page mount                     |                 no                 |                 no                  |             no             | `external-paths`, `import-symlink`, `{name}` delete                                      |
+| `url-highlight.e2e.ts`      |       1 | yes                            | on page mount                     |                 no                 |                 no                  |             no             | `import-symlink`, `{name}` delete                                                        |
 
 - **E1 / E2** are exercised by every test — the SkillsHub page mounts them in its
   `fetchData` effect (`SkillsHubSettings.tsx:87,101`) and the helpers read them via
@@ -59,37 +59,37 @@ All 29 cases FAIL at the same point in `beforeEach` (`goToSkillsHub` →
 progressed past page-level setup, so there is no per-case distinction in the
 result.
 
-| Case                                                                   | Status |
-| ---------------------------------------------------------------------- | :----: |
-| TC-S-11 (batch-import) — batch import / skip existing                   |  FAIL  |
-| TC-S-27 (boards-rendering) — Extension Skills board structure           |  FAIL  |
-| TC-S-28 (boards-rendering) — Auto-injected Skills board structure       |  FAIL  |
-| TC-S-01 (core-ui) — render My Skills with builtin+custom                |  FAIL  |
-| TC-S-05 (core-ui) — delete custom skill via UI                          |  FAIL  |
-| TC-S-06 (core-ui) — builtin skill has no delete button                  |  FAIL  |
-| TC-S-08 (core-ui) — render external skills with custom source           |  FAIL  |
-| TC-S-10 (core-ui) — import external skill via UI click                  |  FAIL  |
-| TC-S-16 (core-ui) — add custom external path via UI                     |  FAIL  |
-| TC-S-19 (core-ui) — export skill to external source via UI              |  FAIL  |
-| TC-S-15 (edge-cases) — no custom tabs when no custom paths              |  FAIL  |
-| TC-S-21 (edge-cases) — export shows only builtin targets w/ no custom   |  FAIL  |
-| TC-S-23 (edge-cases) — URL highlight referencing nonexistent skill      |  FAIL  |
-| TC-S-29 (manual-import) — import skill from folder via mocked dialog    |  FAIL  |
-| TC-S-14 (path-export) — refresh external and show newly added           |  FAIL  |
-| TC-S-17 (path-export) — error on duplicate custom path                  |  FAIL  |
-| TC-S-18 (path-export) — disable Confirm when fields empty               |  FAIL  |
-| TC-S-20 (path-export) — error when exporting to existing target         |  FAIL  |
-| TC-S-04 (refresh-empty-tabs) — refresh My Skills                        |  FAIL  |
-| TC-S-07 (refresh-empty-tabs) — empty state when no skills               |  FAIL  |
-| TC-S-09 (refresh-empty-tabs) — switch tabs shows correct external       |  FAIL  |
-| TC-S-02 (search) — filter My Skills by keyword                          |  FAIL  |
-| TC-S-03 (search) — empty state when search has no match                 |  FAIL  |
-| TC-S-12 (search) — filter external skills by keyword                    |  FAIL  |
-| TC-S-13 (search) — empty state when external search has no match        |  FAIL  |
-| TC-S-24 (special-cases) — skills with special characters                |  FAIL  |
-| TC-S-25 (special-cases) — render 20 skills without perf issues          |  FAIL  |
-| TC-S-26 (special-cases) — rapid refresh clicks without crashing         |  FAIL  |
-| TC-S-22 (url-highlight) — highlight skill + scroll via URL param        |  FAIL  |
+| Case                                                                  | Status |
+| --------------------------------------------------------------------- | :----: |
+| TC-S-11 (batch-import) — batch import / skip existing                 |  FAIL  |
+| TC-S-27 (boards-rendering) — Extension Skills board structure         |  FAIL  |
+| TC-S-28 (boards-rendering) — Auto-injected Skills board structure     |  FAIL  |
+| TC-S-01 (core-ui) — render My Skills with builtin+custom              |  FAIL  |
+| TC-S-05 (core-ui) — delete custom skill via UI                        |  FAIL  |
+| TC-S-06 (core-ui) — builtin skill has no delete button                |  FAIL  |
+| TC-S-08 (core-ui) — render external skills with custom source         |  FAIL  |
+| TC-S-10 (core-ui) — import external skill via UI click                |  FAIL  |
+| TC-S-16 (core-ui) — add custom external path via UI                   |  FAIL  |
+| TC-S-19 (core-ui) — export skill to external source via UI            |  FAIL  |
+| TC-S-15 (edge-cases) — no custom tabs when no custom paths            |  FAIL  |
+| TC-S-21 (edge-cases) — export shows only builtin targets w/ no custom |  FAIL  |
+| TC-S-23 (edge-cases) — URL highlight referencing nonexistent skill    |  FAIL  |
+| TC-S-29 (manual-import) — import skill from folder via mocked dialog  |  FAIL  |
+| TC-S-14 (path-export) — refresh external and show newly added         |  FAIL  |
+| TC-S-17 (path-export) — error on duplicate custom path                |  FAIL  |
+| TC-S-18 (path-export) — disable Confirm when fields empty             |  FAIL  |
+| TC-S-20 (path-export) — error when exporting to existing target       |  FAIL  |
+| TC-S-04 (refresh-empty-tabs) — refresh My Skills                      |  FAIL  |
+| TC-S-07 (refresh-empty-tabs) — empty state when no skills             |  FAIL  |
+| TC-S-09 (refresh-empty-tabs) — switch tabs shows correct external     |  FAIL  |
+| TC-S-02 (search) — filter My Skills by keyword                        |  FAIL  |
+| TC-S-03 (search) — empty state when search has no match               |  FAIL  |
+| TC-S-12 (search) — filter external skills by keyword                  |  FAIL  |
+| TC-S-13 (search) — empty state when external search has no match      |  FAIL  |
+| TC-S-24 (special-cases) — skills with special characters              |  FAIL  |
+| TC-S-25 (special-cases) — render 20 skills without perf issues        |  FAIL  |
+| TC-S-26 (special-cases) — rapid refresh clicks without crashing       |  FAIL  |
+| TC-S-22 (url-highlight) — highlight skill + scroll via URL param      |  FAIL  |
 
 **Totals:** 29 cases / **0 PASS** / **29 FAIL** / 0 skipped.
 
@@ -158,12 +158,12 @@ the element would be present on the first render.
 This e2e branch is the first point at which two streams meet:
 
 1. **Renderer migration to HTTP bridge** — commit `5c4b010f5` (`fix: adapt
-   renderer callers to HTTP bridge auto-unwrap and remove dead IPC code`, on
+renderer callers to HTTP bridge auto-unwrap and remove dead IPC code`, on
    `feat/backend-migration`). This commit deleted `src/process/bridge/fsBridge.ts`
    (1821 lines) and other legacy IPC bridge modules, migrating skill calls to
    `httpBridge.ts` against `/api/skills/*`.
 2. **E2E coverage commit** — `73eedf7f4` (`test(e2e): assistant + skills hub
-   coverage (66 cases, 264 screenshots)` on `kaizhou-lab/test/e2e-coverage`).
+coverage (66 cases, 264 screenshots)` on `kaizhou-lab/test/e2e-coverage`).
    Authored against the pre-migration tree — the helpers drive I/O via
    `invokeBridge` which emits `subscribe-<key>` events to `window.electronAPI`
    (see `tests/e2e/helpers/bridge.ts:20-68`), using legacy IPC handler keys
@@ -185,18 +185,17 @@ was configured with `screenshot: 'only-on-failure'` but no artifacts were
 retained because artifact-write paths were empty on the file system after the
 run):
 
-  a. The page navigation didn't actually land on `CapabilitiesSettings` — perhaps
-     because the app is still mid-boot at the time of navigation. `goToSkillsHub`
-     calls `navigateTo(page, '#/settings/capabilities')` then
-     `waitForTimeout(500)` then waits for the section. 500ms may be too short
-     for the HTTP-backed renderer's first mount (backend boot + HTTP handshake
-     + React mount), especially since this is the first test after app launch.
-  b. A React error boundary is catching an exception during mount, producing a
-     fallback UI that lacks the testid.
-  c. The merge introduced an unintended renderer-level incompatibility between
-     the e2e-coverage data-testid additions and the HTTP-migration-era
-     component tree. Merge commit `3fd28d23a` brought in e2e-coverage changes
-     that may not all have been applied cleanly.
+a. The page navigation didn't actually land on `CapabilitiesSettings` — perhaps
+because the app is still mid-boot at the time of navigation. `goToSkillsHub`
+calls `navigateTo(page, '#/settings/capabilities')` then
+`waitForTimeout(500)` then waits for the section. 500ms may be too short
+for the HTTP-backed renderer's first mount (backend boot + HTTP handshake + React mount), especially since this is the first test after app launch.
+b. A React error boundary is catching an exception during mount, producing a
+fallback UI that lacks the testid.
+c. The merge introduced an unintended renderer-level incompatibility between
+the e2e-coverage data-testid additions and the HTTP-migration-era
+component tree. Merge commit `3fd28d23a` brought in e2e-coverage changes
+that may not all have been applied cleanly.
 
 Confirming which of (a/b/c) applies requires an interactive Electron session
 with DevTools, which is outside the scope a timeout-limited e2e run can
@@ -273,21 +272,22 @@ requirement.
 
 **Rerun commits pulled:**
 
-| Commit      | Subject                                                           |
-| ----------- | ----------------------------------------------------------------- |
+| Commit      | Subject                                                                    |
+| ----------- | -------------------------------------------------------------------------- |
 | `000676801` | `test(e2e/helpers): migrate skills helpers from legacy IPC to HTTP bridge` |
-| `cfdec9655` | `chore(e2e): gate trace retention behind E2E_TRACE env var`       |
-| `aa8042fa3` | `docs(e2e): note aionui-backend must be on PATH for tests`        |
-| `21cf93c6b` | `docs(backend-migration): frontend-dev handoff for e2e helper fix` |
+| `cfdec9655` | `chore(e2e): gate trace retention behind E2E_TRACE env var`                |
+| `aa8042fa3` | `docs(e2e): note aionui-backend must be on PATH for tests`                 |
+| `21cf93c6b` | `docs(backend-migration): frontend-dev handoff for e2e helper fix`         |
 
 **Frontend commit (rerun):** `21cf93c6b`
 **Backend commit (rerun):** `229b6e04` (unchanged since the first run)
 **Pre-run steps executed by e2e-tester:**
+
 - `git pull --ff-only` on `feat/backend-migration-e2e-skill-library` → up to date.
 - `bunx electron-vite build` → renderer rebuilt in 22.05s (out/ bundle refreshed).
 - `export PATH="$HOME/.cargo/bin:$PATH"` → `which aionui-backend` resolved.
 - `bun run test:e2e tests/e2e/features/settings/skills/` → full 29-test suite.
-**Wall clock:** 5.6 min (full run). No hang, no aborted app launch.
+  **Wall clock:** 5.6 min (full run). No hang, no aborted app launch.
 
 ### Rerun results
 
@@ -297,37 +297,37 @@ distributed across specific behaviours, not concentrated in setup.
 
 Pass / fail matrix (unchanged from the first run's scope):
 
-| Case     | First run | Rerun | Notes                                                                                 |
-| -------- | :-------: | :---: | ------------------------------------------------------------------------------------- |
-| TC-S-11  | FAIL      | FAIL  | Batch import succeeded for 1 of 3 skills; expected 3. See failure class (A).          |
-| TC-S-27  | FAIL      | FAIL  | `extension-skills-section` not visible. See failure class (B).                         |
-| TC-S-28  | FAIL      | FAIL  | `auto-skills-section` not visible. See failure class (B).                              |
-| TC-S-01  | FAIL      | **PASS** (13.5s)                                                                               |
-| TC-S-05  | FAIL      | **PASS** (4.7s)                                                                                |
-| TC-S-06  | FAIL      | FAIL  | No builtin skills in sandbox → `builtinSkills.length === 0`. See failure class (C).    |
-| TC-S-08  | FAIL      | FAIL  | Strict-mode violation: two `E2E Test Source` buttons (TC-S-11 state leakage). See (E). |
-| TC-S-10  | FAIL      | FAIL  | `external-skill-card-E2E-Test-Import-Single` not visible. See failure class (D).       |
-| TC-S-16  | FAIL      | FAIL  | `external-skill-card-E2E-Test-Custom-Path-Skill` not visible. See failure class (D).   |
-| TC-S-19  | FAIL      | **PASS** (18.5s)                                                                               |
-| TC-S-15  | FAIL      | **PASS** (3.4s)                                                                                |
-| TC-S-21  | FAIL      | **PASS** (5.0s)                                                                                |
-| TC-S-23  | FAIL      | **PASS** (4.3s)                                                                                |
-| TC-S-29  | FAIL      | **PASS** (4.1s)                                                                                |
-| TC-S-14  | FAIL      | FAIL  | `external-skill-card-E2E-Test-External-Initial` not visible. See failure class (D).    |
-| TC-S-17  | FAIL      | FAIL  | Duplicate-path modal hidden when expected visible. See failure class (F).              |
-| TC-S-18  | FAIL      | **PASS** (13.5s)                                                                               |
-| TC-S-20  | FAIL      | **PASS** (3.7s)                                                                                |
-| TC-S-04  | FAIL      | **PASS** (2.4s)                                                                                |
-| TC-S-07  | FAIL      | **PASS** (1.7s)                                                                                |
-| TC-S-09  | FAIL      | FAIL  | `external-skill-card-E2E-Test-SourceA-Skill1` not visible. See failure class (D).      |
-| TC-S-02  | FAIL      | **PASS** (14.4s)                                                                               |
-| TC-S-03  | FAIL      | **PASS** (2.1s)                                                                                |
-| TC-S-12  | FAIL      | FAIL  | `external-skill-card-E2E-Test-External-Search-Target` not visible. See (D).            |
-| TC-S-13  | FAIL      | **PASS** (14.4s)                                                                               |
-| TC-S-24  | FAIL      | **PASS** (1.9s)                                                                                |
-| TC-S-25  | FAIL      | FAIL  | Expected >=20 cards, got 3 — imports did not materialise. See failure class (A).       |
-| TC-S-26  | FAIL      | **PASS** (15.1s)                                                                               |
-| TC-S-22  | FAIL      | **PASS** (4.9s)                                                                                |
+| Case    | First run |      Rerun       | Notes                                                                                  |
+| ------- | :-------: | :--------------: | -------------------------------------------------------------------------------------- |
+| TC-S-11 |   FAIL    |       FAIL       | Batch import succeeded for 1 of 3 skills; expected 3. See failure class (A).           |
+| TC-S-27 |   FAIL    |       FAIL       | `extension-skills-section` not visible. See failure class (B).                         |
+| TC-S-28 |   FAIL    |       FAIL       | `auto-skills-section` not visible. See failure class (B).                              |
+| TC-S-01 |   FAIL    | **PASS** (13.5s) |
+| TC-S-05 |   FAIL    | **PASS** (4.7s)  |
+| TC-S-06 |   FAIL    |       FAIL       | No builtin skills in sandbox → `builtinSkills.length === 0`. See failure class (C).    |
+| TC-S-08 |   FAIL    |       FAIL       | Strict-mode violation: two `E2E Test Source` buttons (TC-S-11 state leakage). See (E). |
+| TC-S-10 |   FAIL    |       FAIL       | `external-skill-card-E2E-Test-Import-Single` not visible. See failure class (D).       |
+| TC-S-16 |   FAIL    |       FAIL       | `external-skill-card-E2E-Test-Custom-Path-Skill` not visible. See failure class (D).   |
+| TC-S-19 |   FAIL    | **PASS** (18.5s) |
+| TC-S-15 |   FAIL    | **PASS** (3.4s)  |
+| TC-S-21 |   FAIL    | **PASS** (5.0s)  |
+| TC-S-23 |   FAIL    | **PASS** (4.3s)  |
+| TC-S-29 |   FAIL    | **PASS** (4.1s)  |
+| TC-S-14 |   FAIL    |       FAIL       | `external-skill-card-E2E-Test-External-Initial` not visible. See failure class (D).    |
+| TC-S-17 |   FAIL    |       FAIL       | Duplicate-path modal hidden when expected visible. See failure class (F).              |
+| TC-S-18 |   FAIL    | **PASS** (13.5s) |
+| TC-S-20 |   FAIL    | **PASS** (3.7s)  |
+| TC-S-04 |   FAIL    | **PASS** (2.4s)  |
+| TC-S-07 |   FAIL    | **PASS** (1.7s)  |
+| TC-S-09 |   FAIL    |       FAIL       | `external-skill-card-E2E-Test-SourceA-Skill1` not visible. See failure class (D).      |
+| TC-S-02 |   FAIL    | **PASS** (14.4s) |
+| TC-S-03 |   FAIL    | **PASS** (2.1s)  |
+| TC-S-12 |   FAIL    |       FAIL       | `external-skill-card-E2E-Test-External-Search-Target` not visible. See (D).            |
+| TC-S-13 |   FAIL    | **PASS** (14.4s) |
+| TC-S-24 |   FAIL    | **PASS** (1.9s)  |
+| TC-S-25 |   FAIL    |       FAIL       | Expected >=20 cards, got 3 — imports did not materialise. See failure class (A).       |
+| TC-S-26 |   FAIL    | **PASS** (15.1s) |
+| TC-S-22 |   FAIL    | **PASS** (4.9s)  |
 
 **Totals:** 17 PASS / 12 FAIL / 0 skip. Pass rate ~59%.
 
@@ -358,8 +358,8 @@ backend-dev's or frontend-dev's pilot work; each is either a backend-contract
 gap that precedes the pilot, a test-body assumption, or a cross-test isolation
 issue.
 
-**(A) Post-import list did not update with all imported skills.** *(TC-S-11,
-TC-S-25)* — Bulk-import flow (`importAllSkills`, `importAllViaBridge` etc.)
+**(A) Post-import list did not update with all imported skills.** _(TC-S-11,
+TC-S-25)_ — Bulk-import flow (`importAllSkills`, `importAllViaBridge` etc.)
 reports success but downstream `getMySkills` / card count returns a fraction
 of the expected number. Likely a race between symlink creation and the next
 `/api/skills` read (the backend's `list_skills` may not re-scan synchronously
@@ -367,7 +367,7 @@ after `import-symlink`). Needs backend-side investigation; not a migration
 regression because these tests have never been run against the HTTP stack
 before, so there's no prior-green baseline.
 
-**(B) Conditionally rendered sections.** *(TC-S-27, TC-S-28)* — The
+**(B) Conditionally rendered sections.** _(TC-S-27, TC-S-28)_ — The
 `extension-skills-section` and `auto-skills-section` are rendered only when
 their underlying data arrays are non-empty. Fresh sandbox has no extension
 contributions and no `_builtin/` dir (backend-dev handoff §"Known issues" #1
@@ -376,13 +376,13 @@ should either (i) seed the relevant dirs before navigating, or (ii) assert
 presence only when data is known to exist. Backend is correct; this is a
 test-authoring assumption that doesn't hold on fresh sandboxes.
 
-**(C) Builtin-skill assumption.** *(TC-S-06)* — `builtinSkills.length === 0`
+**(C) Builtin-skill assumption.** _(TC-S-06)_ — `builtinSkills.length === 0`
 on a fresh sandbox. Same root cause as (B). fe-dev called this one out in
 their ping. Test-body fix: seed a builtin skill before the test, or skip the
 assertion when no builtins exist.
 
-**(D) External-skill-card not rendered.** *(TC-S-10, TC-S-14, TC-S-16, TC-S-09,
-TC-S-12)* — Tests add a custom external path, expect the UI's source tab to
+**(D) External-skill-card not rendered.** _(TC-S-10, TC-S-14, TC-S-16, TC-S-09,
+TC-S-12)_ — Tests add a custom external path, expect the UI's source tab to
 light up with the seeded skill's card, but the card is never rendered. **Root
 cause identified:** the backend's `ExternalSkillSourceResponse`
 (`aionui-backend/crates/aionui-api-types/src/skill.rs:116`) omits the `source`
@@ -399,15 +399,15 @@ but it blocks the external-skill UI flow and needs a one-field addition to
 `ExternalSkillSourceResponse` (likely derived from the path or name,
 e.g. `format!("custom-{}", path)` to match the TS baseline's convention).
 
-**(E) Cross-test state leakage.** *(TC-S-08)* — Strict-mode violation:
+**(E) Cross-test state leakage.** _(TC-S-08)_ — Strict-mode violation:
 `button:has-text("E2E Test Source")` matches two buttons because `TC-S-11`'s
 cleanup either didn't complete in `afterEach`, or leaked a source named
 `E2E Test Source TC11` into `externalSources` that still matches the substring
 `"E2E Test Source"`. Test-body robustness: prefer exact-match text filters,
 or add a `getByRole('button', { name: 'E2E Test Source', exact: true })`.
 
-**(F) Modal lifecycle mismatch.** *(TC-S-17)* — Test expects the
-duplicate-path modal to *stay open* after the user clicks Confirm on an
+**(F) Modal lifecycle mismatch.** _(TC-S-17)_ — Test expects the
+duplicate-path modal to _stay open_ after the user clicks Confirm on an
 already-existing path. Actual behaviour: the modal closes. Either the renderer
 closes the modal before showing the error toast (new behaviour vs pre-migration),
 or the error path isn't being triggered at all. Requires an incident-grade
@@ -454,6 +454,7 @@ Binary rebuilt + installed to `~/.cargo/bin/aionui-backend` at 23:22.
 **Backend commit (Phase B):** `3a86d58`
 **Frontend commit (Phase B):** `497999516` (unchanged from prior rerun)
 **Pre-run steps:**
+
 - `git pull --ff-only` on `feat/backend-migration-e2e-skill-library` (no drift).
 - `bunx electron-vite build` (16.02s renderer rebuild).
 - `export PATH="$HOME/.cargo/bin:$PATH"`.
@@ -472,6 +473,7 @@ isolates `extension-states.json`; `custom-skill-paths.json` writes straight
 to the real `~/.aionui/` path via the backend's `external_paths_manager`.
 
 Mitigations applied before the retry:
+
 - `echo '[]' > ~/.aionui/custom-skill-paths.json`
 - `rm -rf /var/folders/_s/.../aionui-e2e-external-*` (89 leftover temp dirs).
 
@@ -485,37 +487,37 @@ survived across most tests once setup stopped crashing).
 
 Per-case matrix (vs. the two prior runs):
 
-| Case     | Run 1 | Helper-fix rerun | Phase B (clean state) | Notes                                                                |
-| -------- | :---: | :--------------: | :-------------------: | -------------------------------------------------------------------- |
-| TC-S-11  | FAIL  | FAIL             | **PASS** (16.2s)      | Class A cleared; batch-import race resolved under clean state.       |
-| TC-S-27  | FAIL  | FAIL             | FAIL (10.7s)          | Class B deferred: `extension-skills-section` conditional render.     |
-| TC-S-28  | FAIL  | FAIL             | FAIL (22.3s)          | Class B deferred: `auto-skills-section` conditional render.          |
-| TC-S-01  | FAIL  | PASS             | **PASS** (13.0s)      |                                                                      |
-| TC-S-05  | FAIL  | PASS             | **PASS** (5.0s)       |                                                                      |
-| TC-S-06  | FAIL  | FAIL             | FAIL (1.3s)           | Class C deferred: no builtin skills in sandbox.                      |
-| TC-S-08  | FAIL  | FAIL             | FAIL (13.2s)          | Class E deferred: `button:has-text("E2E Test Source")` matches TC-S-11 leftover "E2E Test Source TC11" in within-run state. |
-| TC-S-10  | FAIL  | FAIL             | **PASS** (16.3s)      | Class D fixed by backend source-field patch.                         |
-| TC-S-16  | FAIL  | FAIL             | **PASS** (4.2s)       | Class D fixed.                                                       |
-| TC-S-19  | FAIL  | PASS             | **PASS** (6.3s)       |                                                                      |
-| TC-S-15  | FAIL  | PASS             | FAIL (3.2s)           | 5 residual custom tabs from within-run failed-cleanup. Class E variant — cleanup regression exposed now that more tests progress past setup. |
-| TC-S-21  | FAIL  | PASS             | **PASS** (16.7s)      |                                                                      |
-| TC-S-23  | FAIL  | PASS             | **PASS** (4.3s)       |                                                                      |
-| TC-S-29  | FAIL  | PASS             | **PASS** (4.1s)       |                                                                      |
-| TC-S-14  | FAIL  | FAIL             | **PASS** (3.4s)       | Class D fixed.                                                       |
-| TC-S-17  | FAIL  | FAIL             | FAIL (13.0s)          | Class F cross-stack: duplicate-path modal closes when should stay open. |
-| TC-S-18  | FAIL  | PASS             | **PASS** (13.4s)      |                                                                      |
-| TC-S-20  | FAIL  | PASS             | **PASS** (3.6s)       |                                                                      |
-| TC-S-04  | FAIL  | PASS             | **PASS** (2.3s)       |                                                                      |
-| TC-S-07  | FAIL  | PASS             | **PASS** (1.7s)       |                                                                      |
-| TC-S-09  | FAIL  | FAIL             | **PASS** (2.6s)       | Class D fixed.                                                       |
-| TC-S-02  | FAIL  | PASS             | **PASS** (2.3s)       |                                                                      |
-| TC-S-03  | FAIL  | PASS             | **PASS** (2.1s)       |                                                                      |
-| TC-S-12  | FAIL  | FAIL             | **PASS** (2.4s)       | Class D fixed.                                                       |
-| TC-S-13  | FAIL  | PASS             | **PASS** (2.4s)       |                                                                      |
-| TC-S-24  | FAIL  | PASS             | **PASS** (1.9s)       |                                                                      |
-| TC-S-25  | FAIL  | FAIL             | FAIL (2.5s)           | Class A cross-stack: rendered 3 of 20 skills — bulk-import race at higher N. |
-| TC-S-26  | FAIL  | PASS             | **PASS** (14.7s)      |                                                                      |
-| TC-S-22  | FAIL  | PASS             | **PASS** (4.8s)       |                                                                      |
+| Case    | Run 1 | Helper-fix rerun | Phase B (clean state) | Notes                                                                                                                                        |
+| ------- | :---: | :--------------: | :-------------------: | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| TC-S-11 | FAIL  |       FAIL       |   **PASS** (16.2s)    | Class A cleared; batch-import race resolved under clean state.                                                                               |
+| TC-S-27 | FAIL  |       FAIL       |     FAIL (10.7s)      | Class B deferred: `extension-skills-section` conditional render.                                                                             |
+| TC-S-28 | FAIL  |       FAIL       |     FAIL (22.3s)      | Class B deferred: `auto-skills-section` conditional render.                                                                                  |
+| TC-S-01 | FAIL  |       PASS       |   **PASS** (13.0s)    |                                                                                                                                              |
+| TC-S-05 | FAIL  |       PASS       |    **PASS** (5.0s)    |                                                                                                                                              |
+| TC-S-06 | FAIL  |       FAIL       |      FAIL (1.3s)      | Class C deferred: no builtin skills in sandbox.                                                                                              |
+| TC-S-08 | FAIL  |       FAIL       |     FAIL (13.2s)      | Class E deferred: `button:has-text("E2E Test Source")` matches TC-S-11 leftover "E2E Test Source TC11" in within-run state.                  |
+| TC-S-10 | FAIL  |       FAIL       |   **PASS** (16.3s)    | Class D fixed by backend source-field patch.                                                                                                 |
+| TC-S-16 | FAIL  |       FAIL       |    **PASS** (4.2s)    | Class D fixed.                                                                                                                               |
+| TC-S-19 | FAIL  |       PASS       |    **PASS** (6.3s)    |                                                                                                                                              |
+| TC-S-15 | FAIL  |       PASS       |      FAIL (3.2s)      | 5 residual custom tabs from within-run failed-cleanup. Class E variant — cleanup regression exposed now that more tests progress past setup. |
+| TC-S-21 | FAIL  |       PASS       |   **PASS** (16.7s)    |                                                                                                                                              |
+| TC-S-23 | FAIL  |       PASS       |    **PASS** (4.3s)    |                                                                                                                                              |
+| TC-S-29 | FAIL  |       PASS       |    **PASS** (4.1s)    |                                                                                                                                              |
+| TC-S-14 | FAIL  |       FAIL       |    **PASS** (3.4s)    | Class D fixed.                                                                                                                               |
+| TC-S-17 | FAIL  |       FAIL       |     FAIL (13.0s)      | Class F cross-stack: duplicate-path modal closes when should stay open.                                                                      |
+| TC-S-18 | FAIL  |       PASS       |   **PASS** (13.4s)    |                                                                                                                                              |
+| TC-S-20 | FAIL  |       PASS       |    **PASS** (3.6s)    |                                                                                                                                              |
+| TC-S-04 | FAIL  |       PASS       |    **PASS** (2.3s)    |                                                                                                                                              |
+| TC-S-07 | FAIL  |       PASS       |    **PASS** (1.7s)    |                                                                                                                                              |
+| TC-S-09 | FAIL  |       FAIL       |    **PASS** (2.6s)    | Class D fixed.                                                                                                                               |
+| TC-S-02 | FAIL  |       PASS       |    **PASS** (2.3s)    |                                                                                                                                              |
+| TC-S-03 | FAIL  |       PASS       |    **PASS** (2.1s)    |                                                                                                                                              |
+| TC-S-12 | FAIL  |       FAIL       |    **PASS** (2.4s)    | Class D fixed.                                                                                                                               |
+| TC-S-13 | FAIL  |       PASS       |    **PASS** (2.4s)    |                                                                                                                                              |
+| TC-S-24 | FAIL  |       PASS       |    **PASS** (1.9s)    |                                                                                                                                              |
+| TC-S-25 | FAIL  |       FAIL       |      FAIL (2.5s)      | Class A cross-stack: rendered 3 of 20 skills — bulk-import race at higher N.                                                                 |
+| TC-S-26 | FAIL  |       PASS       |   **PASS** (14.7s)    |                                                                                                                                              |
+| TC-S-22 | FAIL  |       PASS       |    **PASS** (4.8s)    |                                                                                                                                              |
 
 **Deltas from helper-fix rerun (17 → 22 pass, 12 → 7 fail):**
 
@@ -524,7 +526,7 @@ Per-case matrix (vs. the two prior runs):
   now succeeds with 3/3 imports — the first-rerun failure was a combination
   of dirty-state and setup timing; clean state resolves it).
 - **Newly failing (1):** TC-S-15 — previously passing but now fails because
-  *within-run* state leakage is visible. Five residual custom-source tabs
+  _within-run_ state leakage is visible. Five residual custom-source tabs
   accumulate from earlier tests' failed `afterEach`. This is a test-infra
   issue exposed by the fact that more tests now reach real interaction.
 - **Still failing (6):** TC-S-27, TC-S-28, TC-S-06, TC-S-08, TC-S-17, TC-S-25.

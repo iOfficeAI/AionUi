@@ -4,7 +4,14 @@
  * Edge case and boundary validations for the Assistant Settings page.
  */
 import { test, expect } from '../../fixtures';
-import { goToAssistantSettings, takeScreenshot, clickCreateAssistant, closeDrawer, httpPost, httpInvoke } from '../../helpers';
+import {
+  goToAssistantSettings,
+  takeScreenshot,
+  clickCreateAssistant,
+  closeDrawer,
+  httpPost,
+  httpInvoke,
+} from '../../helpers';
 
 test.describe('Assistant Settings Edge Cases (P2)', () => {
   test.setTimeout(90_000);

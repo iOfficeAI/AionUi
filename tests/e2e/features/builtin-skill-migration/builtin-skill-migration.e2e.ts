@@ -352,19 +352,15 @@ test.describe('Built-in Skill Migration (T3)', () => {
       delete parentEnv.AIONUI_E2E_TEST;
       delete parentEnv.AIONUI_CDP_PORT;
       delete parentEnv.AIONUI_BUILTIN_SKILLS_PATH;
-      backend = spawn(
-        bin,
-        ['--local', '--port', String(SIBLING_BACKEND_PORT), '--data-dir', dataDir],
-        { stdio: ['ignore', logFd, logFd], env: { ...parentEnv, RUST_LOG: 'warn' } }
-      );
+      backend = spawn(bin, ['--local', '--port', String(SIBLING_BACKEND_PORT), '--data-dir', dataDir], {
+        stdio: ['ignore', logFd, logFd],
+        env: { ...parentEnv, RUST_LOG: 'warn' },
+      });
       try {
         await waitForHealthy();
       } catch (err) {
         const tail = fs.existsSync(logPath) ? fs.readFileSync(logPath, 'utf8').slice(-2000) : '(no log)';
-        throw new Error(
-          `${(err as Error).message}\n--- sibling backend log tail ---\n${tail}`,
-          { cause: err }
-        );
+        throw new Error(`${(err as Error).message}\n--- sibling backend log tail ---\n${tail}`, { cause: err });
       }
     }
 

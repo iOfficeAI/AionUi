@@ -6,17 +6,17 @@
 
 ## Headline numbers
 
-| Metric                                              | Value                    |
-| --------------------------------------------------- | ------------------------ |
-| Original Skill-Library pilot e2e (2026-04-22)       | 22 / 29                  |
-| Assistant verification e2e (2026-04-23 morning)     | 32 / 37                  |
-| **Final Skill-Library e2e (2026-04-23 ~12:50)**     | **23 / 29 + 1 skip**     |
-| **Final Assistant e2e (2026-04-23 12:32)**          | **36 / 37**              |
-| **Combined transport-migration pass rate**          | **59 / 66 (89%)**        |
-| Class D (transport/migration) failures              | **0**                    |
-| Class F (backend contract gaps) failures            | **0** on migrated surface|
-| Unit tests (Skill + Assistant scope)                | **406 / 406 green** (Rust 405 + TS Vitest 106/106 assistant hooks + related) |
-| Backend Rust tests                                  | 405 api-types + 325 extension-unit + 39 extension-e2e = 769 green |
+| Metric                                          | Value                                                                        |
+| ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| Original Skill-Library pilot e2e (2026-04-22)   | 22 / 29                                                                      |
+| Assistant verification e2e (2026-04-23 morning) | 32 / 37                                                                      |
+| **Final Skill-Library e2e (2026-04-23 ~12:50)** | **23 / 29 + 1 skip**                                                         |
+| **Final Assistant e2e (2026-04-23 12:32)**      | **36 / 37**                                                                  |
+| **Combined transport-migration pass rate**      | **59 / 66 (89%)**                                                            |
+| Class D (transport/migration) failures          | **0**                                                                        |
+| Class F (backend contract gaps) failures        | **0** on migrated surface                                                    |
+| Unit tests (Skill + Assistant scope)            | **406 / 406 green** (Rust 405 + TS Vitest 106/106 assistant hooks + related) |
+| Backend Rust tests                              | 405 api-types + 325 extension-unit + 39 extension-e2e = 769 green            |
 
 ## What was delivered
 
@@ -55,13 +55,13 @@ complete on `feat/backend-migration` base). Test-layer changes only:
 
 All test-layer fixes, no renderer source code touched:
 
-| Fix              | Target                                  | Effect                            |
-| ---------------- | --------------------------------------- | --------------------------------- |
-| P1-A1            | 7 assistant `invokeBridge` → HTTP       | Unblocked P2-3/P1-20/P1-21        |
-| P1-A1 follow-up  | DELETE external-paths use JSON body     | Fixed body/query mismatch         |
-| P1-2             | TC-S-08 stable testid                   | FAIL → PASS                       |
-| P1-1             | TC-S-06 env-gate                        | FAIL → SKIP (correct behavior)    |
-| P1-A3            | TC-P1-23 id harvest from DOM            | FAIL → PASS                       |
+| Fix             | Target                              | Effect                         |
+| --------------- | ----------------------------------- | ------------------------------ |
+| P1-A1           | 7 assistant `invokeBridge` → HTTP   | Unblocked P2-3/P1-20/P1-21     |
+| P1-A1 follow-up | DELETE external-paths use JSON body | Fixed body/query mismatch      |
+| P1-2            | TC-S-08 stable testid               | FAIL → PASS                    |
+| P1-1            | TC-S-06 env-gate                    | FAIL → SKIP (correct behavior) |
+| P1-A3           | TC-P1-23 id harvest from DOM        | FAIL → PASS                    |
 
 New reusable helper: `tests/e2e/helpers/httpBridge.ts` (`httpGet`/`httpPost`/
 `httpDelete`/`httpInvoke`) for future e2e migrations.
@@ -71,14 +71,14 @@ New reusable helper: `tests/e2e/helpers/httpBridge.ts` (`httpGet`/`httpPost`/
 Six remaining e2e failures (3 Skill + 1 Assistant + unique patterns) are
 **gated on items outside Phase 1 scope**:
 
-| Test    | Remaining cause                         | Gate                                               |
-| ------- | --------------------------------------- | -------------------------------------------------- |
-| TC-S-17 | Backend duplicate-path rejection        | **P0-1 product decision** (reject vs upsert vs split function) |
-| TC-S-15 | Custom paths state leakage              | **P0-2 test-infra sandbox** (backend `--data-dir` + fixtures.ts) |
-| TC-S-25 | Bulk import at N=20                     | **P0-2** + potentially scale investigation         |
-| TC-S-28 | Auto-injected skills board              | **P0-2** fixture seeding                           |
-| TC-S-27 | Extension Skills board                  | Long-term extension registry integration (out of scope) |
-| P1-18   | Assistant auto-injected section         | **P0-2** fixture seeding (same root as TC-S-28)   |
+| Test    | Remaining cause                  | Gate                                                             |
+| ------- | -------------------------------- | ---------------------------------------------------------------- |
+| TC-S-17 | Backend duplicate-path rejection | **P0-1 product decision** (reject vs upsert vs split function)   |
+| TC-S-15 | Custom paths state leakage       | **P0-2 test-infra sandbox** (backend `--data-dir` + fixtures.ts) |
+| TC-S-25 | Bulk import at N=20              | **P0-2** + potentially scale investigation                       |
+| TC-S-28 | Auto-injected skills board       | **P0-2** fixture seeding                                         |
+| TC-S-27 | Extension Skills board           | Long-term extension registry integration (out of scope)          |
+| P1-18   | Assistant auto-injected section  | **P0-2** fixture seeding (same root as TC-S-28)                  |
 
 ## Workflow lessons (captured for next-module authors)
 
@@ -115,10 +115,10 @@ todo list.
 
 ## Deliverable branches
 
-| Branch                                          | Repo           | Contains                                                             |
-| ----------------------------------------------- | -------------- | -------------------------------------------------------------------- |
-| `feat/backend-migration-coordinator`            | AionUi         | All docs (specs, plans, handoffs, reports, post-pilot lists, this file) + merged test fixes from fe/e2e branches + P1 e2e fixes |
-| `archive/skill-library-pilot-2026-04-23`        | aionui-backend | Backend pilot work (10 commits, SHA `274f8ab`): E1–E5 impl + source-field fix + handoff |
+| Branch                                   | Repo           | Contains                                                                                                                        |
+| ---------------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `feat/backend-migration-coordinator`     | AionUi         | All docs (specs, plans, handoffs, reports, post-pilot lists, this file) + merged test fixes from fe/e2e branches + P1 e2e fixes |
+| `archive/skill-library-pilot-2026-04-23` | aionui-backend | Backend pilot work (10 commits, SHA `274f8ab`): E1–E5 impl + source-field fix + handoff                                         |
 
 All pilot working branches (`feat/backend-migration-fe-skill-library`,
 `feat/backend-migration-e2e-skill-library`, `feat/backend-migration-assistant-verify`,

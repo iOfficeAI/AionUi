@@ -50,7 +50,9 @@ function isLegacyBuiltin(a: Record<string, unknown>): boolean {
 
 function generateCollisionId(): string {
   const ms = Date.now();
-  const hex = Math.floor(Math.random() * 0xffff).toString(16).padStart(4, '0');
+  const hex = Math.floor(Math.random() * 0xffff)
+    .toString(16)
+    .padStart(4, '0');
   return `custom-migrated-${ms}-${hex}`;
 }
 
@@ -91,9 +93,7 @@ function asStringArray(value: unknown): string[] | undefined {
  * its historical camelCase shape; output matches the backend snake_case wire
  * contract.
  */
-export function legacyAssistantToCreateRequest(
-  legacy: Record<string, unknown>,
-): CreateAssistantRequest {
+export function legacyAssistantToCreateRequest(legacy: Record<string, unknown>): CreateAssistantRequest {
   const legacyId = typeof legacy.id === 'string' ? legacy.id : '';
 
   // Rename colliding user-authored ids to preserve data (spec §8.1).
@@ -102,8 +102,7 @@ export function legacyAssistantToCreateRequest(
   const name = typeof legacy.name === 'string' && legacy.name.trim().length > 0 ? legacy.name : 'Untitled';
   const description = typeof legacy.description === 'string' ? legacy.description : undefined;
   const avatar = typeof legacy.avatar === 'string' ? legacy.avatar : undefined;
-  const preset_agent_type =
-    typeof legacy.presetAgentType === 'string' ? legacy.presetAgentType : 'gemini';
+  const preset_agent_type = typeof legacy.presetAgentType === 'string' ? legacy.presetAgentType : 'gemini';
 
   return {
     id,
@@ -158,9 +157,7 @@ function collectBuiltinOverrides(legacy: Record<string, unknown>[]): BuiltinOver
 async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<number> {
   if (overrides.length === 0) return 0;
   const results = await Promise.allSettled(
-    overrides.map((ov) =>
-      ipcBridge.assistants.setState.invoke({ id: ov.id, enabled: ov.enabled }),
-    ),
+    overrides.map((ov) => ipcBridge.assistants.setState.invoke({ id: ov.id, enabled: ov.enabled }))
   );
   let failed = 0;
   results.forEach((r, i) => {
@@ -172,9 +169,7 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
   if (failed === 0) {
     console.log(`[AionUi] Applied ${overrides.length} builtin disabled-state override(s)`);
   } else {
-    console.error(
-      `[AionUi] Builtin override partial: ${failed}/${overrides.length} failed`,
-    );
+    console.error(`[AionUi] Builtin override partial: ${failed}/${overrides.length} failed`);
   }
   return failed;
 }
@@ -230,17 +225,12 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
         assistants: userAssistants.map(legacyAssistantToCreateRequest),
       });
       if (result.failed !== 0) {
-        console.error(
-          `[AionUi] Assistant migration partial: ${result.failed} failed`,
-          result.errors,
-        );
+        console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
         // Keep flag false; next launch retries. Insert-only on backend so
         // already-imported rows will skip rather than clobber.
         return;
       }
-      console.log(
-        `[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`,
-      );
+      console.log(`[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`);
     } catch (error) {
       console.error('[AionUi] Assistant migration failed:', error);
       return;

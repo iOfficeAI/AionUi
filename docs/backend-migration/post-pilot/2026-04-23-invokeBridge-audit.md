@@ -9,8 +9,8 @@
 > migration tracks, not by this one**.
 >
 > Any commit that modifies files outside `tests/e2e/{features/assistants,
-> features/settings/skills, helpers/skillsHub.ts, helpers/httpBridge.ts,
-> helpers/index.ts}` overreaches this track's charter and should be reverted.
+features/settings/skills, helpers/skillsHub.ts, helpers/httpBridge.ts,
+helpers/index.ts}` overreaches this track's charter and should be reverted.
 > Two such commits (cron-crud + extensions migration) were landed then
 > reverted (`e61e07c38`, `c2d4af05a`) because they crossed into team / cron /
 > extensions territory.
@@ -18,8 +18,6 @@
 > This file remains checked in **as a forward-reference for whoever owns
 > those domains later** — it tells them what needs to change and where the
 > breakage patterns are. It is **not a todo list for this coordinator**.
-
-
 
 **Scope:** Find all remaining e2e call sites that use `invokeBridge()` after
 the Skill-pilot + Assistant-verify work, determine which keys still have
@@ -103,15 +101,15 @@ intentionally broken test inputs and don't need migration.)
 
 Every business key maps to an HTTP route. Representative sample:
 
-| IPC key | `ipcBridge.ts` line | HTTP equivalent |
-|---|---|---|
-| `team.list` | 1357 | `GET /api/teams?userId=<>` |
-| `team.create` | 1356 | `POST /api/teams` |
-| `team.get` | 1360 | `GET /api/teams/:id` |
-| `team.remove` | 1361 | `DELETE /api/teams/:id` |
-| `team.ensure-session` | 1378 | `POST /api/teams/:id/session` |
-| `conversation.warmup` | 84 | `POST /api/conversations/:id/warmup` |
-| `extensions.enable` | 361 (partial — `enableSkillsMarket`) | `POST /api/skills/market/enable` |
+| IPC key               | `ipcBridge.ts` line                  | HTTP equivalent                      |
+| --------------------- | ------------------------------------ | ------------------------------------ |
+| `team.list`           | 1357                                 | `GET /api/teams?userId=<>`           |
+| `team.create`         | 1356                                 | `POST /api/teams`                    |
+| `team.get`            | 1360                                 | `GET /api/teams/:id`                 |
+| `team.remove`         | 1361                                 | `DELETE /api/teams/:id`              |
+| `team.ensure-session` | 1378                                 | `POST /api/teams/:id/session`        |
+| `conversation.warmup` | 84                                   | `POST /api/conversations/:id/warmup` |
+| `extensions.enable`   | 361 (partial — `enableSkillsMarket`) | `POST /api/skills/market/enable`     |
 
 The other `extensions.get-*` keys don't directly map: the renderer uses
 `ipcBridge.extensions.getAssistants` etc. which point at

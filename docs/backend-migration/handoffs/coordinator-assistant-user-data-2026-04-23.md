@@ -11,33 +11,34 @@
 Migrated user-authored assistant definitions from Electron's
 `ConfigStorage.get('assistants')` into the Rust backend as the single source
 of truth. New `aionui-assistant` crate; `GET /api/assistants` merges built-in
-+ user + extension server-side; one-shot Electron migration hook; insert-only
-import endpoint for idempotent retries.
+
+- user + extension server-side; one-shot Electron migration hook; insert-only
+  import endpoint for idempotent retries.
 
 ### Role deliverables (all branches pushed)
 
-| Role             | Deliverable                                               | Last SHA (branch)                             |
-|------------------|-----------------------------------------------------------|-----------------------------------------------|
-| coordinator      | spec, plan, playbook, handoffs, branch merges, module log | this commit on `feat/backend-migration-coordinator` |
-| backend-dev      | T1a scaffolding, T1b service + dispatch, H1 canonicalize, H2 include_dir embed | `0a970ee` (aionui-backend `feat/assistant-user-data`) |
-| backend-tester   | T2 HTTP integration suite (44 tests)                      | `77e41b4` (same branch)                       |
-| frontend-dev     | T3a refactor, T3b migration hook, H3 disabled-builtin state, H4 main-process port, H5 naming split | `f3207451e` (AionUi `feat/backend-migration-assistant-user-data`) |
-| frontend-tester  | T4 unit coverage (70 tests) + bridge port decoupling      | `bf152c581` (same branch)                     |
-| e2e-tester       | T5 Playwright suite (10 scenarios) + report + handoff     | `d801a6deb` (same branch)                     |
+| Role            | Deliverable                                                                                        | Last SHA (branch)                                                 |
+| --------------- | -------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
+| coordinator     | spec, plan, playbook, handoffs, branch merges, module log                                          | this commit on `feat/backend-migration-coordinator`               |
+| backend-dev     | T1a scaffolding, T1b service + dispatch, H1 canonicalize, H2 include_dir embed                     | `0a970ee` (aionui-backend `feat/assistant-user-data`)             |
+| backend-tester  | T2 HTTP integration suite (44 tests)                                                               | `77e41b4` (same branch)                                           |
+| frontend-dev    | T3a refactor, T3b migration hook, H3 disabled-builtin state, H4 main-process port, H5 naming split | `f3207451e` (AionUi `feat/backend-migration-assistant-user-data`) |
+| frontend-tester | T4 unit coverage (70 tests) + bridge port decoupling                                               | `bf152c581` (same branch)                                         |
+| e2e-tester      | T5 Playwright suite (10 scenarios) + report + handoff                                              | `d801a6deb` (same branch)                                         |
 
 ### Final endpoints (summary)
 
-| Method | Path | Source |
-|--------|------|--------|
-| GET    | `/api/assistants` | Merged: builtin (embedded) + user (SQLite) + extension |
-| POST   | `/api/assistants` | User — create |
-| PUT    | `/api/assistants/{id}` | User — update (403 on builtin/extension) |
-| DELETE | `/api/assistants/{id}` | User — delete + cascade fs |
-| PATCH  | `/api/assistants/{id}/state` | enabled/sort_order/last_used_at (400 on extension) |
-| POST   | `/api/assistants/import` | Insert-only bulk import (migration path) |
-| GET    | `/api/assistants/{id}/avatar` | Serves bytes for builtin + user |
-| POST   | `/api/skills/assistant-rule/{read,write,delete}` | Source-dispatched |
-| POST   | `/api/skills/assistant-skill/{read,write,delete}` | Source-dispatched |
+| Method | Path                                              | Source                                                 |
+| ------ | ------------------------------------------------- | ------------------------------------------------------ |
+| GET    | `/api/assistants`                                 | Merged: builtin (embedded) + user (SQLite) + extension |
+| POST   | `/api/assistants`                                 | User — create                                          |
+| PUT    | `/api/assistants/{id}`                            | User — update (403 on builtin/extension)               |
+| DELETE | `/api/assistants/{id}`                            | User — delete + cascade fs                             |
+| PATCH  | `/api/assistants/{id}/state`                      | enabled/sort_order/last_used_at (400 on extension)     |
+| POST   | `/api/assistants/import`                          | Insert-only bulk import (migration path)               |
+| GET    | `/api/assistants/{id}/avatar`                     | Serves bytes for builtin + user                        |
+| POST   | `/api/skills/assistant-rule/{read,write,delete}`  | Source-dispatched                                      |
+| POST   | `/api/skills/assistant-skill/{read,write,delete}` | Source-dispatched                                      |
 
 ### Migration invariant
 
@@ -64,6 +65,7 @@ runs). Full frontend Vitest regression suite matches pre-pilot baseline
 (103 pre-existing failures unchanged — all T3a/T3b fallout owned by T4).
 
 User manually confirmed post-migration backend state:
+
 - 20 built-in assistants present
 - 11 user-authored assistants migrated from legacy file
 - Disabled-builtin state preserved via overrides
@@ -73,13 +75,13 @@ User manually confirmed post-migration backend state:
 Five hotfixes were filed mid-pilot as user-driven bug reports surfaced
 issues the plan's test matrix missed:
 
-| Hotfix | Problem | Fix | Commit |
-|--------|---------|-----|--------|
-| H1 | `GET /api/assistants` returned `[]` in dev because `current_exe()` doesn't follow macOS symlinks | canonicalize in `BuiltinAssistantRegistry` | `3d4502f` |
-| H2 | `current_exe()` + sibling-assets assumption was fragile for packaging (`prepareAionuiBackend.js` only ships the binary, not assets) | embed assets into binary via `include_dir` crate | `0a970ee` |
-| H3 | User-disabled built-ins lost their `enabled=false` state during migration | migrate overrides as a second phase via `PATCH /api/assistants/{id}/state` | `63ab47530` |
-| H4 | Main-process calls to `ipcBridge.assistants.*` silently failed because `getBaseUrl()` only reads `window.__backendPort` (renderer), falling back to hardcoded 13400 | `getBackendPort()` resolves `globalThis.__backendPort` (main) → `window.__backendPort` (renderer) → fallback | `ffff7b48b` |
-| H5 | Guid `AssistantSelectionArea` prop named `customAgents` collided with unrelated `acp.customAgents`; consumers filtered on dead `isPreset` flag | split `useCustomAgentsLoader` return into `assistants: Assistant[]` + `customAgents: AcpBackendConfig[]` | `f3207451e` |
+| Hotfix | Problem                                                                                                                                                             | Fix                                                                                                          | Commit      |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ----------- |
+| H1     | `GET /api/assistants` returned `[]` in dev because `current_exe()` doesn't follow macOS symlinks                                                                    | canonicalize in `BuiltinAssistantRegistry`                                                                   | `3d4502f`   |
+| H2     | `current_exe()` + sibling-assets assumption was fragile for packaging (`prepareAionuiBackend.js` only ships the binary, not assets)                                 | embed assets into binary via `include_dir` crate                                                             | `0a970ee`   |
+| H3     | User-disabled built-ins lost their `enabled=false` state during migration                                                                                           | migrate overrides as a second phase via `PATCH /api/assistants/{id}/state`                                   | `63ab47530` |
+| H4     | Main-process calls to `ipcBridge.assistants.*` silently failed because `getBaseUrl()` only reads `window.__backendPort` (renderer), falling back to hardcoded 13400 | `getBackendPort()` resolves `globalThis.__backendPort` (main) → `window.__backendPort` (renderer) → fallback | `ffff7b48b` |
+| H5     | Guid `AssistantSelectionArea` prop named `customAgents` collided with unrelated `acp.customAgents`; consumers filtered on dead `isPreset` flag                      | split `useCustomAgentsLoader` return into `assistants: Assistant[]` + `customAgents: AcpBackendConfig[]`     | `f3207451e` |
 
 Each hotfix is a lesson — see playbook notes for generalized rules.
 
@@ -126,11 +128,11 @@ Appended to `docs/backend-migration/notes/team-operations-playbook.md`:
 
 ## Branch tips at closure
 
-| Branch | Repo | SHA |
-|--------|------|-----|
-| `feat/backend-migration-coordinator` | AionUi | this commit (merged feat back + adds plan/playbook/module log) |
-| `feat/backend-migration-assistant-user-data` | AionUi | `f3207451e` |
-| `feat/assistant-user-data` | aionui-backend | `0a970ee` |
+| Branch                                       | Repo           | SHA                                                            |
+| -------------------------------------------- | -------------- | -------------------------------------------------------------- |
+| `feat/backend-migration-coordinator`         | AionUi         | this commit (merged feat back + adds plan/playbook/module log) |
+| `feat/backend-migration-assistant-user-data` | AionUi         | `f3207451e`                                                    |
+| `feat/assistant-user-data`                   | aionui-backend | `0a970ee`                                                      |
 
 Per user instruction, **no PRs are raised**. Merging feature branches to
 main is out of scope of this pilot.

@@ -9,12 +9,12 @@ Next owners: team-lead (coordinator closure), e2e-tester (Task #8 / T5)
 
 All T4 gates satisfied.
 
-| Gate | Result |
-| - | - |
-| Scoped Vitest (plan §4.3) | **70 / 70 passed** |
-| Full Vitest (plan §4.4) | 4309 / 4479 — 103 pre-existing failures across 37 files; zero new, two fixed |
-| `bunx tsc --noEmit` | **clean** |
-| `bun run lint --quiet` | **1800 warnings + 1 error** — identical to T3a baseline; zero new |
+| Gate                      | Result                                                                       |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| Scoped Vitest (plan §4.3) | **70 / 70 passed**                                                           |
+| Full Vitest (plan §4.4)   | 4309 / 4479 — 103 pre-existing failures across 37 files; zero new, two fixed |
+| `bunx tsc --noEmit`       | **clean**                                                                    |
+| `bun run lint --quiet`    | **1800 warnings + 1 error** — identical to T3a baseline; zero new            |
 
 ## Scoped suite breakdown
 
@@ -26,13 +26,13 @@ bun run test --run \
   tests/unit/migrateAssistants.test.ts
 ```
 
-| File | Tests | Owner |
-| - | - | - |
-| `tests/unit/assistantsBridge.test.ts` | **15 new** | frontend-tester (this task) |
-| `tests/unit/assistantUtils.test.ts` | **23** (rewritten) | frontend-tester (this task) |
-| `tests/unit/assistantHooks.dom.test.ts` | **23** (rewritten) | frontend-tester (this task) |
-| `tests/unit/migrateAssistants.test.ts` | **9** (landed with T3b @ `26cccd2b9`) | frontend-dev |
-| **Total** | **70** | |
+| File                                    | Tests                                 | Owner                       |
+| --------------------------------------- | ------------------------------------- | --------------------------- |
+| `tests/unit/assistantsBridge.test.ts`   | **15 new**                            | frontend-tester (this task) |
+| `tests/unit/assistantUtils.test.ts`     | **23** (rewritten)                    | frontend-tester (this task) |
+| `tests/unit/assistantHooks.dom.test.ts` | **23** (rewritten)                    | frontend-tester (this task) |
+| `tests/unit/migrateAssistants.test.ts`  | **9** (landed with T3b @ `26cccd2b9`) | frontend-dev                |
+| **Total**                               | **70**                                |                             |
 
 ## New file: `tests/unit/assistantsBridge.test.ts`
 

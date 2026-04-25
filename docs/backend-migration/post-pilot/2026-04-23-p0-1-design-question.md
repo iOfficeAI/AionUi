@@ -14,8 +14,8 @@ so the renderer's `handleAddCustomPath` keeps the Add-Path modal open.
 Inspection of `aionui-backend/crates/aionui-extension/src/external_paths.rs`
 reveals the current Rust implementation is **designed as upsert**:
 
-- Line 66 doc: *"If a path with the same value already exists, it is updated
-  with the new name."*
+- Line 66 doc: _"If a path with the same value already exists, it is updated
+  with the new name."_
 - Function body (lines 75-82): `find(|p| p.path == path)` → update `name`;
   else append.
 - Existing test `add_duplicate_path_updates_name` (line 194-209) **asserts
@@ -32,6 +32,7 @@ the skills-market enable flow.
 What SHOULD the contract be?
 
 **Option A — Preserve upsert, make e2e reflect reality.**
+
 - Keep `add_custom_external_path` as upsert.
 - Update TC-S-17 to expect the modal to close and the entry's name to
   update silently. UI changes: none.
@@ -42,6 +43,7 @@ What SHOULD the contract be?
 
 **Option B — Reject on duplicate for user-driven adds, keep upsert for
 internal callers.**
+
 - Split the function: `add_custom_external_path_strict(name, path)` →
   returns `DuplicatePath` error; kept existing `add_custom_external_path`
   for `enable_skills_market` internal use.
@@ -56,6 +58,7 @@ internal callers.**
 - Costs: ~30 lines of Rust + 2 tests + a thin renderer toast update.
 
 **Option C — Reject globally, refactor market enable to check-first.**
+
 - Make the only `add_custom_external_path` reject duplicates.
 - Rewrite `enable_skills_market` to `if !already_enabled { add... }`.
 - Breaks the existing `enable_market_idempotent` test assertion that
@@ -96,8 +99,9 @@ Three reasons:
 ## What needs decision from user
 
 Pick A / B / C above (or a 4th option), then re-spawn a small backend-dev
-+ frontend-dev team to land it (~1 hour) and e2e-tester to confirm TC-S-17
-flips to PASS.
+
+- frontend-dev team to land it (~1 hour) and e2e-tester to confirm TC-S-17
+  flips to PASS.
 
 ## Pointers
 

@@ -130,9 +130,8 @@ test.describe('Aionrs Chat - Permission Modes (P0 + P1)', () => {
       expect(conversation).toBeDefined();
 
       // 2. Verify mode from conversation.extra.sessionMode (aionrs doesn't use ACP bridge)
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(extra.sessionMode).toBe('yolo');
 
       // 3. Verify messages exist
@@ -213,9 +212,8 @@ test.describe('Aionrs Chat - Permission Modes (P0 + P1)', () => {
 
       // 1. Verify mode switched to yolo
       const conversation = await getAionrsConversationDB(page, conversationId);
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(extra.sessionMode).toBe('yolo');
 
       // 2. Verify message count (at least 4: user1, ai1, user2, ai2)

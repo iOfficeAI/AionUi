@@ -115,11 +115,9 @@ export class GeminiAgentManager extends BaseAgentManager<
    */
   kill() {
     if (this.conversation_id) {
-      ipcBridge.fs.cleanupSkillsForAgent
-        .invoke({ conversationId: this.conversation_id })
-        .catch((err: unknown) => {
-          mainWarn('[GeminiAgentManager]', `Failed to cleanup skills for ${this.conversation_id}:`, err);
-        });
+      ipcBridge.fs.cleanupSkillsForAgent.invoke({ conversationId: this.conversation_id }).catch((err: unknown) => {
+        mainWarn('[GeminiAgentManager]', `Failed to cleanup skills for ${this.conversation_id}:`, err);
+      });
     }
     super.kill();
   }

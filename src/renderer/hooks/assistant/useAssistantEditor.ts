@@ -20,8 +20,7 @@ type UseAssistantEditorParams = {
   message: ReturnType<typeof Message.useMessage>[0];
 };
 
-const isBuiltinAssistant = (assistant: Assistant | null | undefined): boolean =>
-  assistant?.source === 'builtin';
+const isBuiltinAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'builtin';
 
 /**
  * Manages all assistant editing state and handlers:

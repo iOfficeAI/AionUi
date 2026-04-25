@@ -27,14 +27,15 @@ This doc is the verification summary that closes submodules 4–6.
 
 **Endpoints (all live in `aionui-backend/crates/aionui-extension/src/skill_routes.rs`):**
 
-| Renderer API | HTTP Route | Status |
-|---|---|---|
-| `ipcBridge.fs.importSkill` | `POST /api/skills/import` | ✅ implemented (Skill pilot) |
+| Renderer API                          | HTTP Route                        | Status                                                                       |
+| ------------------------------------- | --------------------------------- | ---------------------------------------------------------------------------- |
+| `ipcBridge.fs.importSkill`            | `POST /api/skills/import`         | ✅ implemented (Skill pilot)                                                 |
 | `ipcBridge.fs.importSkillWithSymlink` | `POST /api/skills/import-symlink` | ✅ implemented + exercised by `manual-import.e2e.ts` + `batch-import.e2e.ts` |
-| `ipcBridge.fs.exportSkillWithSymlink` | `POST /api/skills/export-symlink` | ✅ implemented + exercised by `path-export.e2e.ts` |
-| `ipcBridge.fs.deleteSkill` | `DELETE /api/skills/{name}` | ✅ implemented + exercised by `core-ui.e2e.ts` TC-S-05 (PASS) |
+| `ipcBridge.fs.exportSkillWithSymlink` | `POST /api/skills/export-symlink` | ✅ implemented + exercised by `path-export.e2e.ts`                           |
+| `ipcBridge.fs.deleteSkill`            | `DELETE /api/skills/{name}`       | ✅ implemented + exercised by `core-ui.e2e.ts` TC-S-05 (PASS)                |
 
 **E2E evidence (from Skill pilot's 22/29 final):**
+
 - TC-S-05 (delete): PASS in Phase B.
 - TC-S-11 (import at N=3 via symlink): PASS in Phase B.
 - TC-S-19 (export): PASS (in the 22 that passed after backend source-field fix).
@@ -49,17 +50,18 @@ dangling symlinks from prior runs), not a migration bug.
 
 **Endpoints:**
 
-| Renderer API | HTTP Route | Status |
-|---|---|---|
-| `ipcBridge.fs.getSkillPaths` | `GET /api/skills/paths` | ✅ implemented |
-| `ipcBridge.fs.detectCommonSkillPaths` | `GET /api/skills/detect-paths` | ✅ implemented |
-| `ipcBridge.fs.detectAndCountExternalSkills` | `GET /api/skills/detect-external` | ✅ implemented (backend `source` field added in Skill pilot Phase B) |
-| `ipcBridge.fs.scanForSkills` | `POST /api/skills/scan` | ✅ implemented |
-| `ipcBridge.fs.getCustomExternalPaths` | `GET /api/skills/external-paths` | ✅ implemented |
-| `ipcBridge.fs.addCustomExternalPath` | `POST /api/skills/external-paths` | ✅ implemented — known gap: does not reject duplicates (tracked as Skill post-pilot P0-1) |
-| `ipcBridge.fs.removeCustomExternalPath` | `DELETE /api/skills/external-paths?path=…` | ✅ implemented — known backend quirk: requires `Content-Type: application/json` header even with no body (tracked as Skill post-pilot P2) |
+| Renderer API                                | HTTP Route                                 | Status                                                                                                                                    |
+| ------------------------------------------- | ------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| `ipcBridge.fs.getSkillPaths`                | `GET /api/skills/paths`                    | ✅ implemented                                                                                                                            |
+| `ipcBridge.fs.detectCommonSkillPaths`       | `GET /api/skills/detect-paths`             | ✅ implemented                                                                                                                            |
+| `ipcBridge.fs.detectAndCountExternalSkills` | `GET /api/skills/detect-external`          | ✅ implemented (backend `source` field added in Skill pilot Phase B)                                                                      |
+| `ipcBridge.fs.scanForSkills`                | `POST /api/skills/scan`                    | ✅ implemented                                                                                                                            |
+| `ipcBridge.fs.getCustomExternalPaths`       | `GET /api/skills/external-paths`           | ✅ implemented                                                                                                                            |
+| `ipcBridge.fs.addCustomExternalPath`        | `POST /api/skills/external-paths`          | ✅ implemented — known gap: does not reject duplicates (tracked as Skill post-pilot P0-1)                                                 |
+| `ipcBridge.fs.removeCustomExternalPath`     | `DELETE /api/skills/external-paths?path=…` | ✅ implemented — known backend quirk: requires `Content-Type: application/json` header even with no body (tracked as Skill post-pilot P2) |
 
 **E2E evidence:**
+
 - TC-S-09/10/12/14/16 (source-tab rendering, external skill counts): PASS in
   Phase B after `source` field fix.
 - TC-S-17 (duplicate path rejection): FAIL — documented as pre-existing TS-gap
@@ -72,7 +74,7 @@ user-facing shipping of this module.
 
 ## Submodule 6 — Assistant-Skill-Binding
 
-This submodule was defined in the spec as *composed flows*, not standalone
+This submodule was defined in the spec as _composed flows_, not standalone
 endpoints. It uses:
 
 - Skill-Library endpoints (E1, E2) — verified in Skill pilot
@@ -84,6 +86,7 @@ endpoints. It uses:
 calls from here go through Submodule 5's endpoints.
 
 **E2E evidence (from Assistant verification's 32/37):**
+
 - All 6 P0 core-interactions in `core-interactions.e2e.ts` PASS — this
   includes the skills modal and "Add Skill" flow that exercise this
   composition.
@@ -98,14 +101,14 @@ real Electron + real DOM in the Assistant track.
 
 ## Combined verdict for all 6 submodules
 
-| Submodule | Track that closed it | Transport verdict |
-|---|---|---|
-| 1. Skill-Library | Skill pilot (2026-04-22) | CLEAN |
-| 2. Assistant-CRUD | Assistant verify (2026-04-23) | CLEAN |
-| 3. Assistant-Editor-Content | Assistant verify (2026-04-23) | CLEAN |
-| 4. Skill-Import-Export | this doc | CLEAN (1 state edge case deferred) |
-| 5. Skill-External-Paths | this doc | CLEAN (1 pre-existing contract gap deferred) |
-| 6. Assistant-Skill-Binding | Assistant verify (2026-04-23) + this doc | CLEAN |
+| Submodule                   | Track that closed it                     | Transport verdict                            |
+| --------------------------- | ---------------------------------------- | -------------------------------------------- |
+| 1. Skill-Library            | Skill pilot (2026-04-22)                 | CLEAN                                        |
+| 2. Assistant-CRUD           | Assistant verify (2026-04-23)            | CLEAN                                        |
+| 3. Assistant-Editor-Content | Assistant verify (2026-04-23)            | CLEAN                                        |
+| 4. Skill-Import-Export      | this doc                                 | CLEAN (1 state edge case deferred)           |
+| 5. Skill-External-Paths     | this doc                                 | CLEAN (1 pre-existing contract gap deferred) |
+| 6. Assistant-Skill-Binding  | Assistant verify (2026-04-23) + this doc | CLEAN                                        |
 
 **Phase 1 of the AionUi backend migration is complete for the
 Skill/Assistant surface.** All 6 submodules' transport layers are verified

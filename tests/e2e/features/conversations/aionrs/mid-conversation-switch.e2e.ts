@@ -109,9 +109,7 @@ test.describe('Aionrs Chat - Mid-Conversation Switch (P1)', () => {
       await modelSelector.click();
       await page.waitForTimeout(500);
 
-      const secondModel = page.locator(
-        `[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`
-      );
+      const secondModel = page.locator(`[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`);
       await secondModel.waitFor({ state: 'visible', timeout: 5000 });
       await secondModel.click();
       await page.waitForTimeout(1000);
@@ -137,9 +135,7 @@ test.describe('Aionrs Chat - Mid-Conversation Switch (P1)', () => {
       await modelSelector.click();
       await page.waitForTimeout(500);
 
-      const firstModel = page.locator(
-        `[data-testid="aionrs-model-option-${preconditions.models!.modelA.useModel}"]`
-      );
+      const firstModel = page.locator(`[data-testid="aionrs-model-option-${preconditions.models!.modelA.useModel}"]`);
       await firstModel.waitFor({ state: 'visible', timeout: 5000 });
       await firstModel.click();
       await page.waitForTimeout(1000);
@@ -160,9 +156,8 @@ test.describe('Aionrs Chat - Mid-Conversation Switch (P1)', () => {
 
       // 1. Verify final mode is yolo
       const conversation = await getAionrsConversationDB(page, conversationId);
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(extra.sessionMode).toBe('yolo');
 
       // 2. Verify message count (at least 4: initial user/ai + final user/ai)
@@ -219,9 +214,7 @@ test.describe('Aionrs Chat - Mid-Conversation Switch (P1)', () => {
       await modelSelector.click();
       await page.waitForTimeout(500);
 
-      const secondModel = page.locator(
-        `[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`
-      );
+      const secondModel = page.locator(`[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`);
       await secondModel.waitFor({ state: 'visible', timeout: 5000 });
       await secondModel.click();
       await page.waitForTimeout(1000);

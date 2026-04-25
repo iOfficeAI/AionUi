@@ -30,12 +30,12 @@ reverts H1 and realigns; this spec covers the frontend-side flips.
 
 ### `src/common/adapter/ipcBridge.ts`
 
-| Signature | Current | Target |
-|---|---|---|
-| `listAvailableSkills` response row | `relativeLocation?: string; isCustom: boolean` | `relative_location?: string; is_custom: boolean` |
-| `materializeSkillsForAgent` request | `{ conversationId, enabledSkills }` | `{ conversation_id, enabled_skills }` |
-| `materializeSkillsForAgent` response | `{ dirPath }` | `{ dir_path }` |
-| `cleanupSkillsForAgent` — URL path construction | `p.conversationId` | Same name in TypeScript, but URL template unchanged. Electron caller passes `conversationId`; the bridge builds the path. No backend body — URL path names are backend-internal. |
+| Signature                                       | Current                                        | Target                                                                                                                                                                           |
+| ----------------------------------------------- | ---------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `listAvailableSkills` response row              | `relativeLocation?: string; isCustom: boolean` | `relative_location?: string; is_custom: boolean`                                                                                                                                 |
+| `materializeSkillsForAgent` request             | `{ conversationId, enabledSkills }`            | `{ conversation_id, enabled_skills }`                                                                                                                                            |
+| `materializeSkillsForAgent` response            | `{ dirPath }`                                  | `{ dir_path }`                                                                                                                                                                   |
+| `cleanupSkillsForAgent` — URL path construction | `p.conversationId`                             | Same name in TypeScript, but URL template unchanged. Electron caller passes `conversationId`; the bridge builds the path. No backend body — URL path names are backend-internal. |
 
 `readBuiltinRule` and `readBuiltinSkill` already correctly send
 `file_name` (merge got this right). Leave alone.

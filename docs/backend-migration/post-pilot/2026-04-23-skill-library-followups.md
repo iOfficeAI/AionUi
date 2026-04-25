@@ -7,6 +7,7 @@ CLEAN. These are the items pilot surfaced but doesn't own — deferred
 per coordinator's Phase D ruling.
 
 References:
+
 - Module record: `docs/backend-migration/modules/skill-library.md` →
   "Final pilot outcome (post-Phase-D)".
 - E2E report: `docs/backend-migration/e2e-reports/2026-04-22-skill-library.md`.
@@ -72,9 +73,11 @@ straight through to the real user dir via
 1. **Backend: honor `--data-dir` for skill paths.**
    `aionui-extension::resolve_skill_paths` at
    `crates/aionui-extension/src/skill_service.rs:37–50` currently does:
+
    ```rust
    let data_dir = dirs::home_dir().unwrap_or_else(|| PathBuf::from(".")).join(".aionui");
    ```
+
    It should accept a `data_dir: &Path` argument and use that.
    Similarly, `aionui-app::build_extension_states` at
    `crates/aionui-app/src/lib.rs:529–554` hardcodes
@@ -199,6 +202,7 @@ imports returned 23 total skills against the same data-dir). So the
 backend is not racing or de-duping in isolation.
 
 Precondition for useful investigation:
+
 - P0-2 must land first — the ambient `~/.aionui/skills/` had
   125 dangling symlinks from prior runs. That environment may
   interact with `scan_skill_dirs` at volume in ways that don't repro

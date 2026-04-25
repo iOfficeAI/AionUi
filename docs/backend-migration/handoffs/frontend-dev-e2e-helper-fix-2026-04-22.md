@@ -16,11 +16,11 @@ this branch.
 
 ## Commits (atomic)
 
-| SHA | Scope |
-| --- | --- |
-| `cfdec9655` | `chore(e2e): gate trace retention behind E2E_TRACE env var` — opt-in trace capture for future diagnostics without noising CI. |
+| SHA         | Scope                                                                                                                                                                                         |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cfdec9655` | `chore(e2e): gate trace retention behind E2E_TRACE env var` — opt-in trace capture for future diagnostics without noising CI.                                                                 |
 | `000676801` | `test(e2e/helpers): migrate skills helpers from legacy IPC to HTTP bridge` — new `tests/e2e/helpers/httpBridge.ts`, full rewrite of `skillsHub.ts`, fix to `edge-cases.e2e.ts` stale IPC key. |
-| `aa8042fa3` | `docs(e2e): note aionui-backend must be on PATH for tests` — operational requirement surfaced by the diagnostic run. |
+| `aa8042fa3` | `docs(e2e): note aionui-backend must be on PATH for tests` — operational requirement surfaced by the diagnostic run.                                                                          |
 
 All commits pushed to origin.
 
@@ -61,17 +61,17 @@ wasted time per test, compounding the proximate timeout.
 - Rewrote every skills helper against the HTTP routes defined in
   `src/common/adapter/ipcBridge.ts:268-363`:
 
-  | Legacy key | HTTP route |
-  | --- | --- |
-  | `list-available-skills` | `GET /api/skills` |
-  | `list-builtin-auto-skills` | `GET /api/skills/builtin-auto` |
-  | `get-skill-paths` | `GET /api/skills/paths` |
-  | `detect-and-count-external-skills` | `GET /api/skills/detect-external` |
-  | `import-skill-with-symlink` | `POST /api/skills/import-symlink` |
-  | `delete-skill` | `DELETE /api/skills/{skillName}` |
-  | `add-custom-external-path` | `POST /api/skills/external-paths` |
-  | `remove-custom-external-path` | `DELETE /api/skills/external-paths?path=...` |
-  | `get-custom-external-paths` | `GET /api/skills/external-paths` |
+  | Legacy key                         | HTTP route                                   |
+  | ---------------------------------- | -------------------------------------------- |
+  | `list-available-skills`            | `GET /api/skills`                            |
+  | `list-builtin-auto-skills`         | `GET /api/skills/builtin-auto`               |
+  | `get-skill-paths`                  | `GET /api/skills/paths`                      |
+  | `detect-and-count-external-skills` | `GET /api/skills/detect-external`            |
+  | `import-skill-with-symlink`        | `POST /api/skills/import-symlink`            |
+  | `delete-skill`                     | `DELETE /api/skills/{skillName}`             |
+  | `add-custom-external-path`         | `POST /api/skills/external-paths`            |
+  | `remove-custom-external-path`      | `DELETE /api/skills/external-paths?path=...` |
+  | `get-custom-external-paths`        | `GET /api/skills/external-paths`             |
 
 - Preserved the `{ success: boolean; msg?: string }` return shape on
   mutation helpers so existing `expect(importResult.success).toBe(true)`

@@ -216,9 +216,7 @@ describe('useAssistantList', () => {
     });
 
     // Second load returns a different set.
-    assistantsListInvoke.mockResolvedValueOnce([
-      makeAssistant({ id: 'fresh', name: 'Fresh', sort_order: 0 }),
-    ]);
+    assistantsListInvoke.mockResolvedValueOnce([makeAssistant({ id: 'fresh', name: 'Fresh', sort_order: 0 })]);
     await act(async () => {
       await result.current.loadAssistants();
     });
@@ -229,15 +227,11 @@ describe('useAssistantList', () => {
   it('identifies extension-sourced assistants via isExtensionAssistant', async () => {
     const { result } = renderHook(() => useAssistantList());
 
-    expect(
-      result.current.isExtensionAssistant(makeAssistant({ id: 'ext', name: 'Ext', source: 'extension' }))
-    ).toBe(true);
-    expect(
-      result.current.isExtensionAssistant(makeAssistant({ id: 'custom', name: 'C', source: 'user' }))
-    ).toBe(false);
-    expect(
-      result.current.isExtensionAssistant(makeAssistant({ id: 'b', name: 'B', source: 'builtin' }))
-    ).toBe(false);
+    expect(result.current.isExtensionAssistant(makeAssistant({ id: 'ext', name: 'Ext', source: 'extension' }))).toBe(
+      true
+    );
+    expect(result.current.isExtensionAssistant(makeAssistant({ id: 'custom', name: 'C', source: 'user' }))).toBe(false);
+    expect(result.current.isExtensionAssistant(makeAssistant({ id: 'b', name: 'B', source: 'builtin' }))).toBe(false);
     expect(result.current.isExtensionAssistant(null)).toBe(false);
     expect(result.current.isExtensionAssistant(undefined)).toBe(false);
   });

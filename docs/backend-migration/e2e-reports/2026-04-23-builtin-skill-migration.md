@@ -9,15 +9,15 @@
 
 ## Environment
 
-| Item | Value |
-|---|---|
-| Mode | Dev (electron-vite + `electron .`) |
-| Workers | 1 (Playwright singleton Electron app per worker) |
-| Backend binary | `~/.cargo/bin/aionui-backend` (symlink → `target/debug/aionui-backend`) |
-| Backend binary timestamp | Apr 23 18:41:45 2026 |
-| Renderer bundle | `out/renderer/index.html` rebuilt via `bunx electron-vite build` pre-run |
-| Sibling backend port (S6, S8) | 25903 |
-| Total wall clock | ~38s across 8 tests |
+| Item                          | Value                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| Mode                          | Dev (electron-vite + `electron .`)                                       |
+| Workers                       | 1 (Playwright singleton Electron app per worker)                         |
+| Backend binary                | `~/.cargo/bin/aionui-backend` (symlink → `target/debug/aionui-backend`)  |
+| Backend binary timestamp      | Apr 23 18:41:45 2026                                                     |
+| Renderer bundle               | `out/renderer/index.html` rebuilt via `bunx electron-vite build` pre-run |
+| Sibling backend port (S6, S8) | 25903                                                                    |
+| Total wall clock              | ~38s across 8 tests                                                      |
 
 Commands run:
 
@@ -33,25 +33,25 @@ bun run test:e2e tests/e2e/features/builtin-skill-migration/
 
 Identical pattern to the assistant-user-data pilot's T5:
 
-| Scenarios | Driver | Why |
-|---|---|---|
-| S1-S5, S7 | Live Electron app + `httpBridge` probes | Exercises the full renderer → backend stack; shared singleton fixture is sufficient. |
-| S6, S8 | Sibling `aionui-backend` process on port 25903 against a tmp data-dir | Requires pre-seeded on-disk state (orphan agent-skills dirs / legacy cache dirs) + a fresh boot. The shared Electron fixture cannot be cold-restarted from within a spec. |
+| Scenarios | Driver                                                                | Why                                                                                                                                                                       |
+| --------- | --------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1-S5, S7 | Live Electron app + `httpBridge` probes                               | Exercises the full renderer → backend stack; shared singleton fixture is sufficient.                                                                                      |
+| S6, S8    | Sibling `aionui-backend` process on port 25903 against a tmp data-dir | Requires pre-seeded on-disk state (orphan agent-skills dirs / legacy cache dirs) + a fresh boot. The shared Electron fixture cannot be cold-restarted from within a spec. |
 
 S6 (orphan sweep) seeds `{tmp}/agent-skills/<id>/` before the sibling backend starts, then asserts the startup task removes those dirs because the empty conversations table has no matching rows. S8 verifies the backend does NOT touch `{data_dir}/builtin-skills/` (that cleanup is Electron-main-process territory) and annotates whether any legacy dirs survive under the live cache — authoritative assertion deferred to T4's packaging smoke.
 
 ## Per-scenario matrix (run 2 — after H1 fix)
 
-| # | Scenario | Run 1 | Run 2 | Notes |
-|---|---|---|---|---|
-| S1 | `GET /api/skills/builtin-auto` non-empty + round-trip body read | FAIL (Class F) | **PASS (11.7s)** | Run 1: 400 on `{fileName}` — `ReadBuiltinResourceRequest` missing camelCase rename. Run 2: round-trip works; frontmatter + name assertions green. |
-| S2 | AcpSkillManager data-source (list + body round-trip) | FAIL (Class F) | **PASS (213ms)** | Run 1: same root cause as S1. Run 2: every auto-inject body fetched successfully — ACP runtime data-source is healthy. |
-| S3 | `materialize-for-agent` writes opt-in skills into the dir | PASS | **PASS (20ms)** | `mermaid/SKILL.md` present; auto-inject dirs flattened; all body files readable. |
-| S4 | Materialized dir structure suits gemini `--extensions` | PASS | **PASS (15ms)** | Every top-level entry is a dir with a `SKILL.md`. |
-| S5 | DELETE cleanup + idempotency | PASS | **PASS (31ms)** | First DELETE removes dir; second DELETE succeeds (no 404). |
-| S6 | Startup orphan sweep for unknown conversation ids | PASS | **PASS (280ms)** | Seeded orphan dirs (`orphan-conv-1`, `orphan-conv-2`) removed within 5s of boot; parent `agent-skills/` survives; `/api/skills/builtin-auto` still serves. |
-| S7 | `/api/skills` builtin rows expose absolute `location` + `relativeLocation` for export | FAIL (Class D) | **PASS (152ms)** | Run 1: `relativeLocation` always undefined — `SkillListItemResponse` missing camelCase rename. Run 2: `relativeLocation` populated for every builtin row; export-symlink round-trip lands a readable `SKILL.md` in a throw-away tempdir. |
-| S8 | Legacy `{cacheDir}/builtin-skills/` lifecycle | PASS (annotated) | **PASS (259ms)** | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling backend stays healthy. Annotation reports whether live `~/.aionui-config*/builtin-skills` is present. Full cold-restart coverage: T4 packaging smoke. |
+| #   | Scenario                                                                              | Run 1            | Run 2            | Notes                                                                                                                                                                                                                                    |
+| --- | ------------------------------------------------------------------------------------- | ---------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | `GET /api/skills/builtin-auto` non-empty + round-trip body read                       | FAIL (Class F)   | **PASS (11.7s)** | Run 1: 400 on `{fileName}` — `ReadBuiltinResourceRequest` missing camelCase rename. Run 2: round-trip works; frontmatter + name assertions green.                                                                                        |
+| S2  | AcpSkillManager data-source (list + body round-trip)                                  | FAIL (Class F)   | **PASS (213ms)** | Run 1: same root cause as S1. Run 2: every auto-inject body fetched successfully — ACP runtime data-source is healthy.                                                                                                                   |
+| S3  | `materialize-for-agent` writes opt-in skills into the dir                             | PASS             | **PASS (20ms)**  | `mermaid/SKILL.md` present; auto-inject dirs flattened; all body files readable.                                                                                                                                                         |
+| S4  | Materialized dir structure suits gemini `--extensions`                                | PASS             | **PASS (15ms)**  | Every top-level entry is a dir with a `SKILL.md`.                                                                                                                                                                                        |
+| S5  | DELETE cleanup + idempotency                                                          | PASS             | **PASS (31ms)**  | First DELETE removes dir; second DELETE succeeds (no 404).                                                                                                                                                                               |
+| S6  | Startup orphan sweep for unknown conversation ids                                     | PASS             | **PASS (280ms)** | Seeded orphan dirs (`orphan-conv-1`, `orphan-conv-2`) removed within 5s of boot; parent `agent-skills/` survives; `/api/skills/builtin-auto` still serves.                                                                               |
+| S7  | `/api/skills` builtin rows expose absolute `location` + `relativeLocation` for export | FAIL (Class D)   | **PASS (152ms)** | Run 1: `relativeLocation` always undefined — `SkillListItemResponse` missing camelCase rename. Run 2: `relativeLocation` populated for every builtin row; export-symlink round-trip lands a readable `SKILL.md` in a throw-away tempdir. |
+| S8  | Legacy `{cacheDir}/builtin-skills/` lifecycle                                         | PASS (annotated) | **PASS (259ms)** | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling backend stays healthy. Annotation reports whether live `~/.aionui-config*/builtin-skills` is present. Full cold-restart coverage: T4 packaging smoke.                 |
 
 **Run 2 total wall clock:** 13.5s (down from 38s — no retries, fewer ~10s Electron boots needed).
 
@@ -88,7 +88,7 @@ $ curl -sX POST http://127.0.0.1:25904/api/skills/builtin-skill \
 {"success":true,"data":"---\nname: cron\n..."}
 ```
 
-**Impact:** ACP conversations cannot load *any* builtin skill body — the auto-inject flow degrades silently (`AcpSkillManager.loadSkillBody` catches and returns `''`), so conversations start without the builtin skill injection that is the whole point of this migration.
+**Impact:** ACP conversations cannot load _any_ builtin skill body — the auto-inject flow degrades silently (`AcpSkillManager.loadSkillBody` catches and returns `''`), so conversations start without the builtin skill injection that is the whole point of this migration.
 
 **Fix:** add `#[serde(rename_all = "camelCase")]` above the struct. Same change likely also needed on `ReadBuiltinResourceRequest` consumers — a quick audit of all `aionui-api-types/src/skill.rs` request structs against the frontend's camelCase wire format is warranted:
 
@@ -141,6 +141,7 @@ After fixing, rerun `cargo test --test skills_builtin_e2e` — the existing inte
 ### D3 — scope of audit — RESOLVED
 
 Recommend a single follow-up pass over `aionui-api-types/src/skill.rs` adding `#[serde(rename_all = "camelCase")]` to every request/response type that currently relies on the default snake-case mapping. Candidates to verify:
+
 - `ReadSkillInfoRequest` / `ReadSkillInfoResponse`
 - `ImportSkillRequest` / `ImportSkillResponse`
 - `ExportSkillRequest` (→ `targetDir`)
@@ -207,12 +208,12 @@ probe GET /api/skills/builtin-auto     → non-empty
 
 ## Failure classification — Skill-Library pilot rubric
 
-| Class | Run 1 | Run 2 | Notes |
-|---|---|---|---|
-| D — backend response shape mismatch | 1 | 0 | Run 1: S7 (SkillListItemResponse snake_case). Fixed in H1. |
-| F — backend contract gap | 1 | 0 | Run 1: S1 + S2 (ReadBuiltinResourceRequest rejects fileName). Fixed in H1. |
-| A — stateful / scale flakes | 0 | 0 | Two clean runs at 38s and 13.5s; no flakes. |
-| B / C / E — test-authoring | 0 | 0 | Run 1 pre-report had one Class B (frontmatter-name assumption) — self-fixed before submission. |
+| Class                               | Run 1 | Run 2 | Notes                                                                                          |
+| ----------------------------------- | ----- | ----- | ---------------------------------------------------------------------------------------------- |
+| D — backend response shape mismatch | 1     | 0     | Run 1: S7 (SkillListItemResponse snake_case). Fixed in H1.                                     |
+| F — backend contract gap            | 1     | 0     | Run 1: S1 + S2 (ReadBuiltinResourceRequest rejects fileName). Fixed in H1.                     |
+| A — stateful / scale flakes         | 0     | 0     | Two clean runs at 38s and 13.5s; no flakes.                                                    |
+| B / C / E — test-authoring          | 0     | 0     | Run 1 pre-report had one Class B (frontmatter-name assumption) — self-fixed before submission. |
 
 ## Outcome per plan §3.5
 
@@ -240,42 +241,42 @@ Run 3 verifies the full stack is coherent after both flips.
 
 After the realign, `tests/e2e/features/builtin-skill-migration/builtin-skill-migration.e2e.ts` still had camelCase residue in both response assertions and request bodies. All flipped under T3:
 
-| Site | Before | After |
-|---|---|---|
-| `interface SkillInfo` field (L67-68) | `relativeLocation`, `isCustom` | `relative_location`, `is_custom` |
-| `interface MaterializeResponse` (L73) | `dirPath` | `dir_path` |
-| All `resp.dirPath` readers (S3/S4/S5) | `resp.dirPath` | `resp.dir_path` |
-| S3/S4/S5 POST body keys | `{ conversationId, enabledSkills }` | `{ conversation_id, enabled_skills }` |
-| S1/S2 `POST /api/skills/builtin-skill` body | `{ fileName }` | `{ file_name }` |
-| S7 `POST /api/skills/export-symlink` body | `{ skillPath, targetDir }` | `{ skill_path, target_dir }` |
-| S7 assertion (already flipped by frontend-dev) | `entry.relativeLocation` | `entry.relative_location` |
+| Site                                           | Before                              | After                                 |
+| ---------------------------------------------- | ----------------------------------- | ------------------------------------- |
+| `interface SkillInfo` field (L67-68)           | `relativeLocation`, `isCustom`      | `relative_location`, `is_custom`      |
+| `interface MaterializeResponse` (L73)          | `dirPath`                           | `dir_path`                            |
+| All `resp.dirPath` readers (S3/S4/S5)          | `resp.dirPath`                      | `resp.dir_path`                       |
+| S3/S4/S5 POST body keys                        | `{ conversationId, enabledSkills }` | `{ conversation_id, enabled_skills }` |
+| S1/S2 `POST /api/skills/builtin-skill` body    | `{ fileName }`                      | `{ file_name }`                       |
+| S7 `POST /api/skills/export-symlink` body      | `{ skillPath, targetDir }`          | `{ skill_path, target_dir }`          |
+| S7 assertion (already flipped by frontend-dev) | `entry.relativeLocation`            | `entry.relative_location`             |
 
 Local TS variable names (`conversationId`, `skillPath`, `targetDir`) are retained — they're not wire-carried fields. The URL-path interpolation `/${conversationId}` is a path segment, not a body field, and stays as-is.
 
 ### Per-scenario matrix — run 3
 
-| # | Scenario | Run 3 | Notes |
-|---|---|---|---|
-| S1 | `GET /api/skills/builtin-auto` non-empty + round-trip body read | **PASS (11.3s)** | `{file_name}` round-trip with snake_case body; frontmatter + name assertions green. |
-| S2 | AcpSkillManager data-source (list + body round-trip) | **PASS (95ms)** | All auto-inject bodies fetch successfully over snake_case wire. |
-| S3 | `materialize-for-agent` writes opt-in skills into the dir | **PASS (19ms)** | `resp.dir_path` present; `mermaid/SKILL.md` and flattened auto-inject dirs all materialized. |
-| S4 | Materialized dir structure suits gemini `--extensions` | **PASS (20ms)** | Every top-level entry is a dir with a `SKILL.md`. |
-| S5 | DELETE cleanup + idempotency | **PASS (28ms)** | First DELETE removes dir; second DELETE succeeds. |
-| S7 | `/api/skills` exposes absolute `location` + `relative_location` for export | **PASS (187ms)** | `relative_location` populated on every builtin row; export-symlink round-trip with `{skill_path, target_dir}` lands a readable `SKILL.md`. |
-| S6 | Startup orphan sweep for unknown conversation ids | **PASS (274ms)** | Seeded `orphan-conv-1/2` removed within 5s of sibling backend boot. |
-| S8 | Legacy `{cacheDir}/builtin-skills/` lifecycle | **PASS (261ms)** | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling stays healthy. |
+| #   | Scenario                                                                   | Run 3            | Notes                                                                                                                                      |
+| --- | -------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| S1  | `GET /api/skills/builtin-auto` non-empty + round-trip body read            | **PASS (11.3s)** | `{file_name}` round-trip with snake_case body; frontmatter + name assertions green.                                                        |
+| S2  | AcpSkillManager data-source (list + body round-trip)                       | **PASS (95ms)**  | All auto-inject bodies fetch successfully over snake_case wire.                                                                            |
+| S3  | `materialize-for-agent` writes opt-in skills into the dir                  | **PASS (19ms)**  | `resp.dir_path` present; `mermaid/SKILL.md` and flattened auto-inject dirs all materialized.                                               |
+| S4  | Materialized dir structure suits gemini `--extensions`                     | **PASS (20ms)**  | Every top-level entry is a dir with a `SKILL.md`.                                                                                          |
+| S5  | DELETE cleanup + idempotency                                               | **PASS (28ms)**  | First DELETE removes dir; second DELETE succeeds.                                                                                          |
+| S7  | `/api/skills` exposes absolute `location` + `relative_location` for export | **PASS (187ms)** | `relative_location` populated on every builtin row; export-symlink round-trip with `{skill_path, target_dir}` lands a readable `SKILL.md`. |
+| S6  | Startup orphan sweep for unknown conversation ids                          | **PASS (274ms)** | Seeded `orphan-conv-1/2` removed within 5s of sibling backend boot.                                                                        |
+| S8  | Legacy `{cacheDir}/builtin-skills/` lifecycle                              | **PASS (261ms)** | Backend does NOT touch stray `{data_dir}/builtin-skills/`; sibling stays healthy.                                                          |
 
 **Run 3 total wall clock:** 13.1s. No retries, no flakes.
 
 ### Failure classification — run 3
 
-| Class | Count | Notes |
-|---|---|---|
-| A — stateful / scale flakes | 0 | Clean single-pass run. |
-| B — test-authoring | 0 | Straight-through. |
-| C — test/fixture mismatch | 0 at final run | Intermediate run (3a) had 3 Class C failures (S1/S2/S7 sending `{fileName, skillPath, targetDir}` camelCase bodies the audit pattern missed). Re-audited, flipped, re-ran — all green. |
-| D / F — backend contract | 0 | Wire format matches snake_case spec. |
-| E — infra | 0 | |
+| Class                       | Count          | Notes                                                                                                                                                                                  |
+| --------------------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A — stateful / scale flakes | 0              | Clean single-pass run.                                                                                                                                                                 |
+| B — test-authoring          | 0              | Straight-through.                                                                                                                                                                      |
+| C — test/fixture mismatch   | 0 at final run | Intermediate run (3a) had 3 Class C failures (S1/S2/S7 sending `{fileName, skillPath, targetDir}` camelCase bodies the audit pattern missed). Re-audited, flipped, re-ran — all green. |
+| D / F — backend contract    | 0              | Wire format matches snake_case spec.                                                                                                                                                   |
+| E — infra                   | 0              |                                                                                                                                                                                        |
 
 ### Outcome
 

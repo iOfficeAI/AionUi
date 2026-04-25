@@ -68,12 +68,15 @@ export interface IProvider {
   context_limit?: number;
   model_protocols?: Record<string, string>;
   model_enabled?: Record<string, boolean>;
-  model_health?: Record<string, {
-    status: 'unknown' | 'healthy' | 'unhealthy';
-    last_check?: number;
-    latency?: number;
-    error?: string;
-  }>;
+  model_health?: Record<
+    string,
+    {
+      status: 'unknown' | 'healthy' | 'unhealthy';
+      last_check?: number;
+      latency?: number;
+      error?: string;
+    }
+  >;
   bedrock_config?: {
     auth_method: 'accessKey' | 'profile';
     region: string;
@@ -108,28 +111,25 @@ fetch-models entries — anonymous pre-create vs by-id refresh. New surface:
 export const mode = {
   listProviders: httpGet<IProvider[], void>('/api/providers'),
   createProvider: httpPost<IProvider, CreateProviderRequest>('/api/providers'),
-  updateProvider: httpPut<IProvider, { id: string } & UpdateProviderRequest>(
-    (p) => `/api/providers/${p.id}`,
-  ),
-  deleteProvider: httpDelete<void, { id: string }>(
-    (p) => `/api/providers/${p.id}`,
-  ),
+  updateProvider: httpPut<IProvider, { id: string } & UpdateProviderRequest>((p) => `/api/providers/${p.id}`),
+  deleteProvider: httpDelete<void, { id: string }>((p) => `/api/providers/${p.id}`),
   // Anonymous pre-create: user fills AddPlatformModal, clicks "Fetch Models"
   // before the provider row exists. Credentials in body, no id.
-  fetchModelList: httpPost<FetchModelsResponse, {
-    platform: string;
-    base_url: string;
-    api_key: string;
-    bedrock_config?: BedrockConfig;
-    try_fix?: boolean;
-  }>('/api/providers/fetch-models'),
+  fetchModelList: httpPost<
+    FetchModelsResponse,
+    {
+      platform: string;
+      base_url: string;
+      api_key: string;
+      bedrock_config?: BedrockConfig;
+      try_fix?: boolean;
+    }
+  >('/api/providers/fetch-models'),
   // By-id refresh: provider already persisted, refresh its model list.
   fetchProviderModels: httpPost<FetchModelsResponse, { id: string; try_fix?: boolean }>(
-    (p) => `/api/providers/${p.id}/models`,
+    (p) => `/api/providers/${p.id}/models`
   ),
-  detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>(
-    '/api/providers/detect-protocol',
-  ),
+  detectProtocol: httpPost<ProtocolDetectionResponse, ProtocolDetectionRequest>('/api/providers/detect-protocol'),
 };
 ```
 
@@ -144,8 +144,8 @@ mirror of the Rust request/response types).
 
 Two kinds of rewrite, don't conflate them:
 
-- **Data-source rewrite** (only for sites that *write* or *load from
-  config*): replace `getModelConfig` / `saveModelConfig` with the new
+- **Data-source rewrite** (only for sites that _write_ or _load from
+  config_): replace `getModelConfig` / `saveModelConfig` with the new
   single-provider CRUD.
 - **Field rename** (for every site that touches `.model` array or
   `.model_health[x].lastCheck`): `.model` → `.models`, `.lastCheck` →

@@ -5,6 +5,7 @@
 > 3 constraints to make the frontend rewrite clean.
 >
 > **Companion specs:**
+>
 > - Backend: `aionui-backend/docs/backend-migration/specs/2026-04-24-model-config-backend-migration-design.md`
 > - Frontend: `AionUi/docs/backend-migration/specs/2026-04-24-model-config-frontend-migration-design.md`
 
@@ -29,12 +30,12 @@ tester.
 
 ## Branches & worktrees
 
-| Role | Worktree | Branch | Base |
-| --- | --- | --- | --- |
-| coordinator | `/Users/zhoukai/Documents/github/AionUi` (primary) | `feat/backend-migration-coordinator` | (existing) |
-| frontend-dev | `/Users/zhoukai/Documents/worktrees/aionui-model-sync-fe` | `feat/model-sync-fe` | `origin/feat/backend-migration-coordinator` |
-| frontend-tester | `/Users/zhoukai/Documents/worktrees/aionui-model-sync-fe` (same worktree, after frontend-dev push) | `feat/model-sync-fe` | (pulls after T2) |
-| backend-dev | `/Users/zhoukai/Documents/worktrees/aionui-backend-model-sync-be` | `feat/model-sync-be` | `origin/feat/builtin-skills` |
+| Role            | Worktree                                                                                           | Branch                               | Base                                        |
+| --------------- | -------------------------------------------------------------------------------------------------- | ------------------------------------ | ------------------------------------------- |
+| coordinator     | `/Users/zhoukai/Documents/github/AionUi` (primary)                                                 | `feat/backend-migration-coordinator` | (existing)                                  |
+| frontend-dev    | `/Users/zhoukai/Documents/worktrees/aionui-model-sync-fe`                                          | `feat/model-sync-fe`                 | `origin/feat/backend-migration-coordinator` |
+| frontend-tester | `/Users/zhoukai/Documents/worktrees/aionui-model-sync-fe` (same worktree, after frontend-dev push) | `feat/model-sync-fe`                 | (pulls after T2)                            |
+| backend-dev     | `/Users/zhoukai/Documents/worktrees/aionui-backend-model-sync-be`                                  | `feat/model-sync-be`                 | `origin/feat/builtin-skills`                |
 
 Worktrees already created.
 
@@ -88,6 +89,7 @@ See backend spec §Changes 1–3. In short:
 - Flip/add tests per spec §Tests.
 
 Gates (per spec §Definition of Done):
+
 - `cargo fmt --all -- --check` clean
 - `cargo test -p aionui-api-types -p aionui-system` green
 - `cargo clippy --workspace -- -D warnings` baseline
@@ -116,6 +118,7 @@ See frontend spec §File Changes. In short:
 4. Flip Vitest fixtures.
 
 Gates (per spec §Definition of Done):
+
 - grep checks clean
 - `bunx tsc --noEmit` clean
 - `bun run lint --quiet` baseline
@@ -141,10 +144,10 @@ Owner: frontend-tester. Worktree: `aionui-model-sync-fe` (pulls T2's commit). De
 2. **New Vitest coverage** for the rewrite (write these, they did not exist before):
    - `tests/unit/ipcBridge.providers.test.ts` — unit test the 6 new `mode.*` bridge entries (create, update, delete, list, fetchModelList, detectProtocol) hit the right URL + method + body shape. Mock `fetch`.
    - `tests/unit/ModelModalContent.crud.test.tsx` — add, remove, update, toggle-model-enable, toggle-protocol each call the expected single CRUD endpoint with the expected payload. Mock `ipcBridge.mode.*`. Important scenarios:
-     * Adding a new platform sends `createProvider` with a UUID v4 id.
-     * Toggling `model_enabled` sends `updateProvider` with ONLY `model_enabled` in the body (partial update), not the whole IProvider.
-     * Deleting sends `deleteProvider` by id only.
-     * Health check result persists via `updateProvider` with only `model_health`.
+     - Adding a new platform sends `createProvider` with a UUID v4 id.
+     - Toggling `model_enabled` sends `updateProvider` with ONLY `model_enabled` in the body (partial update), not the whole IProvider.
+     - Deleting sends `deleteProvider` by id only.
+     - Health check result persists via `updateProvider` with only `model_health`.
    - `tests/unit/createConversationParams.providers.test.ts` — verifies the new provider lookup path (not `configService.get('model.config')`).
    - `tests/unit/configMigration.noModelConfig.test.ts` — regression: `ALL_LEGACY_KEYS` does NOT contain `'model.config'`, and migrating a legacy store containing a `model.config` entry does NOT push it to the backend (important — this is the observed bug).
 
@@ -159,12 +162,14 @@ Owner: frontend-tester. Worktree: `aionui-model-sync-fe` (pulls T2's commit). De
    - Restart app → provider list still populated (persistence check)
 
 **Gates:**
+
 - Baseline Vitest diff: no new failures.
 - New Vitest tests: all green.
 - Playwright: baseline or better.
 - Integration regression probe: all 3 checks pass.
 
 **Deliverables:**
+
 - Commit new Vitest files under `tests/unit/`, message: `test(model-config): coverage for /api/providers CRUD migration`
 - Append a "T2.5 test report" section to `docs/backend-migration/e2e-reports/2026-04-24-model-config-migration.md` (new file): baseline diff, new test results, probe transcript.
 - Push + SendMessage team-lead with SHA and summary.

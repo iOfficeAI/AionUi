@@ -419,9 +419,7 @@ const ModelModalContent: React.FC = () => {
     void mutate(nextArray, false);
 
     Promise.all(
-      (data || []).map((platform) =>
-        ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: undefined })
-      )
+      (data || []).map((platform) => ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: undefined }))
     )
       .then(() => {
         void mutate();

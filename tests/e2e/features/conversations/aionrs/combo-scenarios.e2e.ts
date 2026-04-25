@@ -127,9 +127,8 @@ test.describe('Aionrs Chat - Combo Scenarios (P1)', () => {
 
       // 1. Verify conversation has workspace
       const conversation = await getAionrsConversationDB(page, conversationId);
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(extra.workspace).toContain('test-folder');
 
       // 2. Verify mode is yolo (read from conversation.extra.sessionMode)
@@ -182,9 +181,7 @@ test.describe('Aionrs Chat - Combo Scenarios (P1)', () => {
       await modelSelector.click();
       await page.waitForTimeout(500);
 
-      const secondModel = page.locator(
-        `[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`
-      );
+      const secondModel = page.locator(`[data-testid="aionrs-model-option-${preconditions.models!.modelB.useModel}"]`);
       await secondModel.waitFor({ state: 'visible', timeout: 5000 });
       await secondModel.click();
       await page.waitForTimeout(1000);
@@ -205,9 +202,8 @@ test.describe('Aionrs Chat - Combo Scenarios (P1)', () => {
 
       // 1. Verify conversation has workspace
       const conversation = await getAionrsConversationDB(page, conversationId);
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(extra.workspace).toBe(tempWorkspace.path);
 
       // 2. Verify mode is default (from conversation.extra.sessionMode, aionrs doesn't use ACP bridge)
@@ -285,9 +281,8 @@ test.describe('Aionrs Chat - Combo Scenarios (P1)', () => {
 
       // 1. Verify conversation has workspace
       const conversation = await getAionrsConversationDB(page, conversationId);
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(extra.workspace).toContain('combo-folder');
 
       // 2. Verify mode is yolo (from conversation.extra.sessionMode, aionrs doesn't use ACP bridge)

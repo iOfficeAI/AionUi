@@ -944,7 +944,6 @@ test.describe('Assistant Settings UI States (P1)', () => {
     await page.locator('[data-testid^="assistant-card-"]').first().waitFor({ state: 'visible', timeout: 10000 });
     await takeScreenshot(page, 'assistants/p1-23/03-page-loaded.png');
 
-
     // 6. Verify drawer automatically opened
     const drawer = page.locator('[data-testid="assistant-edit-drawer"]');
     await expect(drawer).toBeVisible({ timeout: 10000 });

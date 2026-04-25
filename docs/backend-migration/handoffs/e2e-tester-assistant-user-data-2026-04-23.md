@@ -39,11 +39,11 @@ validating the `/api/assistants/import` contract end-to-end.
 
 This split is intentional and covered by three layers:
 
-| Layer | Owner | Scope |
-|---|---|---|
-| T4 Vitest (`tests/unit/migrateAssistants.test.ts`) | frontend-tester | Renderer filter + rename + flag logic |
-| T2 Rust (`crates/aionui-app/tests/assistants_e2e.rs`) | backend-tester | Every HTTP handler |
-| T5 Playwright (this suite) | e2e-tester | Real UI → backend glue + migration contract invariants |
+| Layer                                                 | Owner           | Scope                                                  |
+| ----------------------------------------------------- | --------------- | ------------------------------------------------------ |
+| T4 Vitest (`tests/unit/migrateAssistants.test.ts`)    | frontend-tester | Renderer filter + rename + flag logic                  |
+| T2 Rust (`crates/aionui-app/tests/assistants_e2e.rs`) | backend-tester  | Every HTTP handler                                     |
+| T5 Playwright (this suite)                            | e2e-tester      | Real UI → backend glue + migration contract invariants |
 
 If a future iteration needs an actual "cold Electron restart against
 pre-seeded `userData`" test, it requires either splitting the singleton
@@ -69,11 +69,11 @@ fixture or a separate spec with its own launch path.
 
 ## Files touched
 
-| Path | Action |
-|---|---|
-| `tests/e2e/features/assistants-user-data/assistant-user-data.e2e.ts` | New (~560 lines) |
-| `docs/backend-migration/e2e-reports/2026-04-23-assistant-user-data.md` | New |
-| `docs/backend-migration/handoffs/e2e-tester-assistant-user-data-2026-04-23.md` | New (this file) |
+| Path                                                                           | Action           |
+| ------------------------------------------------------------------------------ | ---------------- |
+| `tests/e2e/features/assistants-user-data/assistant-user-data.e2e.ts`           | New (~560 lines) |
+| `docs/backend-migration/e2e-reports/2026-04-23-assistant-user-data.md`         | New              |
+| `docs/backend-migration/handoffs/e2e-tester-assistant-user-data-2026-04-23.md` | New (this file)  |
 
 No changes to existing helpers, fixtures, or production code.
 

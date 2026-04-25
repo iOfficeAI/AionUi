@@ -33,7 +33,7 @@ off the legacy local `model.config` key and onto `/api/providers/*`.
     table (631 lines + 16 tests, idempotent, non-fatal failure).
 - Frontend (`AionUi feat/model-sync-fe → feat/backend-migration-coordinator`
   @ `dc8b11754`): IProvider `model → models` + `lastCheck →
-  last_check`; ipcBridge.mode rewritten to single-provider CRUD;
+last_check`; ipcBridge.mode rewritten to single-provider CRUD;
   `model.config` removed from ConfigKeyMap + legacy migration; ~30
   consumer sites rewired; 29 new Vitest tests.
 
@@ -50,9 +50,10 @@ off the legacy local `model.config` key and onto `/api/providers/*`.
 
 **Symptom**: Coordinator initially ruled "strict UUID validation" for
 provider id, then within 3 minutes flipped to "lenient (1..=128 chars
-+ charset)" based on backend-dev's finding that frontend `uuid()`
-returns 8-char hex by default. Spec fix `2a63132` pushed. Coordinator
-sent a new arbitration message.
+
+- charset)" based on backend-dev's finding that frontend `uuid()`
+  returns 8-char hex by default. Spec fix `2a63132` pushed. Coordinator
+  sent a new arbitration message.
 
 Backend-dev then spent ~4 rounds re-confirming whether the lenient
 impl should stay or revert to strict. His inbox held BOTH arbitration
@@ -62,7 +63,7 @@ tell which was authoritative just from chronological order.
 **Fix (playbook rule)**: When flipping a decision mid-stream, always:
 
 1. Prefix the new message with `**SUPERSEDES earlier "X" arbitration.
-   That directive is void.**` — explicit, not just implied by
+That directive is void.**` — explicit, not just implied by
    timestamp order.
 2. If the earlier message is still in the teammate's inbox, follow up
    with a tiny "disregard stale message" nudge.
@@ -101,15 +102,16 @@ said no migration → skip it entirely". Wrong interpretation.
 
 **Why I got it wrong**: "pre-launch" ambiguous between
 (a) "no production rollout concerns, no need to handle v1-to-v2
-    drift across N user installs",
+drift across N user installs",
 (b) "my own dev state is disposable, greenfield is fine".
 User meant (a). I assumed (b). The gap costs a full re-pilot day
 (T4 added after closure, plus re-merge, plus re-handoff update).
 
 **Fix (playbook rule)**: When scoping any "pre-launch, no migration"
 task, ALWAYS verify:
+
 1. `sqlite3 <user-data-dir>/aionui.db "SELECT COUNT(*) FROM
-   <relevant_table>;"` — is the relevant table actually empty in
+<relevant_table>;"` — is the relevant table actually empty in
    user's dev env?
 2. If non-empty: ask explicitly "do you want your existing dev data
    migrated, or are you OK losing it?". Don't infer.
@@ -148,6 +150,7 @@ Model Settings. Pure coverage-irrelevant burn.
 
 **Fix (playbook rule)**: when recommending smoke suites at closure,
 grep for the migration's touch points FIRST:
+
 - `grep -l <migrated-module-name>` across tests/e2e/
 - Only suites whose source references the migrated symbol(s) are
   valid coverage.

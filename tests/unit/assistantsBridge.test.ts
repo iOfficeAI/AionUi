@@ -127,11 +127,12 @@ describe('ipcBridge.assistants.list', () => {
 
   it('unwraps the { success, data } envelope', async () => {
     const list = [makeAssistant({ id: 'x' })];
-    installFetch(async () =>
-      new Response(JSON.stringify({ success: true, data: list, extra: 'ignored' }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      }),
+    installFetch(
+      async () =>
+        new Response(JSON.stringify({ success: true, data: list, extra: 'ignored' }), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        })
     );
 
     const result = await assistants.list.invoke();
@@ -215,9 +216,7 @@ describe('ipcBridge.assistants.create', () => {
   it('propagates 4xx errors from the backend', async () => {
     installFetch(async () => errorResponse(400, { success: false, msg: 'name required' }));
 
-    await expect(assistants.create.invoke({ name: '' })).rejects.toThrow(
-      /POST \/api\/assistants failed \(400\)/,
-    );
+    await expect(assistants.create.invoke({ name: '' })).rejects.toThrow(/POST \/api\/assistants failed \(400\)/);
   });
 });
 
@@ -249,7 +248,7 @@ describe('ipcBridge.assistants.update', () => {
     installFetch(async () => errorResponse(404, { success: false, msg: 'not found' }));
 
     await expect(assistants.update.invoke({ id: 'missing' })).rejects.toThrow(
-      /PUT \/api\/assistants\/missing failed \(404\)/,
+      /PUT \/api\/assistants\/missing failed \(404\)/
     );
   });
 });
@@ -274,7 +273,7 @@ describe('ipcBridge.assistants.delete', () => {
     installFetch(async () => errorResponse(409, { success: false, msg: 'builtin immutable' }));
 
     await expect(assistants.delete.invoke({ id: 'builtin-office' })).rejects.toThrow(
-      /DELETE \/api\/assistants\/builtin-office failed \(409\)/,
+      /DELETE \/api\/assistants\/builtin-office failed \(409\)/
     );
   });
 });
@@ -307,7 +306,7 @@ describe('ipcBridge.assistants.setState', () => {
     installFetch(async () => errorResponse(400));
 
     await expect(assistants.setState.invoke({ id: 'custom-1' })).rejects.toThrow(
-      /PATCH \/api\/assistants\/custom-1\/state failed \(400\)/,
+      /PATCH \/api\/assistants\/custom-1\/state failed \(400\)/
     );
   });
 });
@@ -319,10 +318,7 @@ describe('ipcBridge.assistants.setState', () => {
 describe('ipcBridge.assistants.import', () => {
   it('issues POST /api/assistants/import with the full ImportAssistantsRequest body', async () => {
     const request: ImportAssistantsRequest = {
-      assistants: [
-        { name: 'A' },
-        { name: 'B', preset_agent_type: 'claude' },
-      ],
+      assistants: [{ name: 'A' }, { name: 'B', preset_agent_type: 'claude' }],
     };
     const response: ImportAssistantsResult = {
       imported: 2,
@@ -361,8 +357,8 @@ describe('ipcBridge.assistants.import', () => {
   it('propagates 500 from the import endpoint', async () => {
     installFetch(async () => errorResponse(500));
 
-    await expect(
-      assistants.import.invoke({ assistants: [{ name: 'x' }] }),
-    ).rejects.toThrow(/POST \/api\/assistants\/import failed \(500\)/);
+    await expect(assistants.import.invoke({ assistants: [{ name: 'x' }] })).rejects.toThrow(
+      /POST \/api\/assistants\/import failed \(500\)/
+    );
   });
 });

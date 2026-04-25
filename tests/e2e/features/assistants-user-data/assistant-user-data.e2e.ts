@@ -51,7 +51,10 @@ const MIGRATION_BACKEND_PORT = 25902;
 function querySqliteIds(dataDir: string, sql: string): string[] {
   const dbPath = path.join(dataDir, 'aionui.db');
   const out = execFileSync('sqlite3', ['-readonly', dbPath, sql], { encoding: 'utf8' });
-  return out.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
+  return out
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
 }
 
 /** Backend binary resolved from PATH / cargo bin. */
@@ -63,7 +66,9 @@ function resolveBackendBinary(): string {
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error(`aionui-backend binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aionui-backend.`);
+  throw new Error(
+    `aionui-backend binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aionui-backend.`
+  );
 }
 
 // ── Backend HTTP contract (shared with renderer httpBridge) ──────────────────
@@ -399,11 +404,10 @@ test.describe('Assistant User Data Migration (T5)', () => {
       delete parentEnv.AIONUI_EXTENSION_STATES_FILE;
       delete parentEnv.AIONUI_E2E_TEST;
       delete parentEnv.AIONUI_CDP_PORT;
-      backend = spawn(
-        bin,
-        ['--local', '--port', String(MIGRATION_BACKEND_PORT), '--data-dir', dataDir],
-        { stdio: ['ignore', logFd, logFd], env: { ...parentEnv, RUST_LOG: 'warn' } }
-      );
+      backend = spawn(bin, ['--local', '--port', String(MIGRATION_BACKEND_PORT), '--data-dir', dataDir], {
+        stdio: ['ignore', logFd, logFd],
+        env: { ...parentEnv, RUST_LOG: 'warn' },
+      });
       try {
         await waitForHealthy();
       } catch (err) {
@@ -444,11 +448,14 @@ test.describe('Assistant User Data Migration (T5)', () => {
       expect(result.failed).toBe(0);
 
       const list = await httpJson<Assistant[]>('GET', '/api/assistants');
-      const userIds = list.filter((a) => a.source === 'user').map((a) => a.id).toSorted();
+      const userIds = list
+        .filter((a) => a.source === 'user')
+        .map((a) => a.id)
+        .toSorted();
       expect(userIds).toEqual(['custom-s8-alpha', 'custom-s8-beta', 'custom-s8-gamma']);
 
       // SQLite row verification via the sqlite3 CLI (no native bindings required).
-      const ids = querySqliteIds(dataDir, "SELECT id FROM assistants ORDER BY id");
+      const ids = querySqliteIds(dataDir, 'SELECT id FROM assistants ORDER BY id');
       expect(ids).toEqual(['custom-s8-alpha', 'custom-s8-beta', 'custom-s8-gamma']);
     });
 

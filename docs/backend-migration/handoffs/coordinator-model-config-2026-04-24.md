@@ -27,10 +27,10 @@ per-model fields on create, plaintext api_key).
 
 ## Merged branches
 
-| Repo | Branch | Final SHA | Merged into |
-| --- | --- | --- | --- |
-| AionUi | `feat/model-sync-fe` | `140ec6950` (tip) | `feat/backend-migration-coordinator` via merges `e39b47f77` (initial) + `dc8b11754` (docs follow-ups) |
-| aionui-backend | `feat/model-sync-be` | `7b09985` (tip) | `feat/builtin-skills` via merges `8dcccc8` (T1/T1b) + `d08255e` (T4) |
+| Repo           | Branch               | Final SHA         | Merged into                                                                                           |
+| -------------- | -------------------- | ----------------- | ----------------------------------------------------------------------------------------------------- |
+| AionUi         | `feat/model-sync-fe` | `140ec6950` (tip) | `feat/backend-migration-coordinator` via merges `e39b47f77` (initial) + `dc8b11754` (docs follow-ups) |
+| aionui-backend | `feat/model-sync-be` | `7b09985` (tip)   | `feat/builtin-skills` via merges `8dcccc8` (T1/T1b) + `d08255e` (T4)                                  |
 
 No PRs per project convention.
 
@@ -39,10 +39,10 @@ No PRs per project convention.
 Backend (see `aionui-backend` spec `2026-04-24-model-config-backend-migration-design.md`):
 
 - T1: `CreateProviderRequest` accepts optional `id` + `model_protocols`
-  + `model_enabled` + `model_health`. Service `create()` uses provided
-  id if set (lenient validation: 1..=128 chars, `[A-Za-z0-9_-]`,
-  duplicate → 409 Conflict) else generates UUID. Per-model JSON
-  fields persist at create time.
+  - `model_enabled` + `model_health`. Service `create()` uses provided
+    id if set (lenient validation: 1..=128 chars, `[A-Za-z0-9_-]`,
+    duplicate → 409 Conflict) else generates UUID. Per-model JSON
+    fields persist at create time.
 - T1: `ProviderResponse.api_key` is decrypted to plaintext on
   response. Mask helper retained only for protocol-detection
   multi-key diagnostics (`KeyTestResult.masked_key`).
@@ -64,7 +64,7 @@ migration reversal" below):
 - 3 idempotency guards: providers-non-empty skip, KV-key-absent
   skip, post-success KV delete.
 - Translation handles nested `modelHealth[m].lastCheck →
-  last_check`, bedrock 3-branch (nested object / flat `bedrock*`
+last_check`, bedrock 3-branch (nested object / flat `bedrock*`
   on bedrock platform only / drop as stale), `useModel` drop,
   `enabled` default-true.
 - Non-fatal failure mode — any translate/insert error leaves KV
@@ -77,7 +77,7 @@ migration reversal" below):
 Frontend (see spec `2026-04-24-model-config-frontend-migration-design.md`):
 
 - T2: `IProvider.model → models` (plural). `model_health[x].lastCheck →
-  last_check`. Other snake_case fields were already flipped pre-pilot.
+last_check`. Other snake_case fields were already flipped pre-pilot.
 - T2: `ipcBridge.mode` rewritten. Old batch shim (`saveModelConfig` /
   `getModelConfig`) removed. New surface: `listProviders`,
   `createProvider`, `updateProvider`, `deleteProvider`,
@@ -163,6 +163,7 @@ model_health.last_check timestamps.
 ## Gates at closure
 
 **Backend** (`feat/builtin-skills` tip `d08255e`):
+
 - cargo fmt ✓, test ✓ (touched crates 1142+/0 after T4 adds 16), clippy ✓ (no new warnings).
 - Final coordinator live probe (release binary, fresh data-dir, port 25912):
   - POST provider with 8-char hex id + model_enabled → 201, plaintext api_key, field persisted ✓
@@ -172,6 +173,7 @@ model_health.last_check timestamps.
   - 4 legacy providers migrated, ids preserved, KV key deleted, original api_key decrypts back to plaintext ✓
 
 **Frontend** (`feat/backend-migration-coordinator` tip `e39b47f77`):
+
 - `bunx tsc --noEmit` → 267 errors, ALL pre-existing on coordinator
   branch (see Deviation #4). Merge net -3.
 - `bun run lint --quiet` → 1727 warnings / 1 error (baseline 1728/1, -1 warning).
@@ -202,4 +204,4 @@ playbook. Key items:
   can be removed once other session activity confirms nothing else is
   using them.
 - `~/.cargo/bin/aionui-backend` symlink restored to `aionui-backend-
-  assistant-camel/target/release/aionui-backend` (pre-pilot target).
+assistant-camel/target/release/aionui-backend` (pre-pilot target).

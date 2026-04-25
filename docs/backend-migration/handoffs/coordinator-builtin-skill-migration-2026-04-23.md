@@ -12,22 +12,22 @@ Moved built-in skill resources from `AionUi/src/process/resources/skills/` into 
 
 ### Role deliverables
 
-| Role | Final SHA | Deliverable |
-|---|---|---|
-| coordinator | this commit | spec, plan, 2 hotfixes routed, merge, module log, handoff |
-| backend-dev | `04f1537` (aionui-backend) | T1 + H1: corpus import, include_dir embed, rename, `materialize-for-agent` + cleanup + orphan sweep, camelCase audit of skill.rs (3 → 21 rename_all), 27 new Rust tests |
-| frontend-dev | `2e2bda33d` (AionUi) | T2: delete `resources/skills/`, `AcpSkillManager` HTTP, `initAgent.setupAssistantWorkspace` materialize hook, GeminiAgentManager + ConversationServiceImpl cleanup hooks, initStorage legacy cleanup, 11 new Vitest |
-| e2e-tester | `ff5290db5` (AionUi) | T3: 8-scenario Playwright suite + report (run-1 → 5/8 found D1/D2/D3; run-2 post-H1 → 8/8 in 13.5s) |
+| Role         | Final SHA                  | Deliverable                                                                                                                                                                                                         |
+| ------------ | -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| coordinator  | this commit                | spec, plan, 2 hotfixes routed, merge, module log, handoff                                                                                                                                                           |
+| backend-dev  | `04f1537` (aionui-backend) | T1 + H1: corpus import, include_dir embed, rename, `materialize-for-agent` + cleanup + orphan sweep, camelCase audit of skill.rs (3 → 21 rename_all), 27 new Rust tests                                             |
+| frontend-dev | `2e2bda33d` (AionUi)       | T2: delete `resources/skills/`, `AcpSkillManager` HTTP, `initAgent.setupAssistantWorkspace` materialize hook, GeminiAgentManager + ConversationServiceImpl cleanup hooks, initStorage legacy cleanup, 11 new Vitest |
+| e2e-tester   | `ff5290db5` (AionUi)       | T3: 8-scenario Playwright suite + report (run-1 → 5/8 found D1/D2/D3; run-2 post-H1 → 8/8 in 13.5s)                                                                                                                 |
 
 ### Final endpoints (summary)
 
-| Method | Path | Behavior |
-|---|---|---|
-| GET | `/api/skills/builtin-auto` | Auto-inject skills with `{name, description, location: "auto-inject/{name}/SKILL.md"}` — NEW `location` field |
-| POST | `/api/skills/builtin-skill` | Read skill body by relative path (`auto-inject/.../SKILL.md` or `{name}/SKILL.md`); `fileName` camelCase enforced |
-| GET | `/api/skills` | Merged list; `source=builtin` rows carry NEW `relativeLocation` (for HTTP body reads) + stable `location` (for SkillsHubSettings export-symlink flow — synthesized absolute path under `{data_dir}/builtin-skills-view/`) |
-| POST | `/api/skills/materialize-for-agent` | Write conversation skill bundle to `{data_dir}/agent-skills/{conversationId}/`, flat `{name}/SKILL.md` layout; auto-inject unconditional, opt-in overwrites on collision |
-| DELETE | `/api/skills/materialize-for-agent/{id}` | Idempotent cleanup |
+| Method | Path                                     | Behavior                                                                                                                                                                                                                  |
+| ------ | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| GET    | `/api/skills/builtin-auto`               | Auto-inject skills with `{name, description, location: "auto-inject/{name}/SKILL.md"}` — NEW `location` field                                                                                                             |
+| POST   | `/api/skills/builtin-skill`              | Read skill body by relative path (`auto-inject/.../SKILL.md` or `{name}/SKILL.md`); `fileName` camelCase enforced                                                                                                         |
+| GET    | `/api/skills`                            | Merged list; `source=builtin` rows carry NEW `relativeLocation` (for HTTP body reads) + stable `location` (for SkillsHubSettings export-symlink flow — synthesized absolute path under `{data_dir}/builtin-skills-view/`) |
+| POST   | `/api/skills/materialize-for-agent`      | Write conversation skill bundle to `{data_dir}/agent-skills/{conversationId}/`, flat `{name}/SKILL.md` layout; auto-inject unconditional, opt-in overwrites on collision                                                  |
+| DELETE | `/api/skills/materialize-for-agent/{id}` | Idempotent cleanup                                                                                                                                                                                                        |
 
 ## Verdict
 
@@ -59,10 +59,10 @@ Appended to `docs/backend-migration/notes/team-operations-playbook.md` (new §):
 
 ## Branch tips at closure
 
-| Branch | Repo | SHA |
-|---|---|---|
-| `feat/backend-migration-coordinator` | AionUi | this commit (merged feature back + this handoff + playbook updates) |
-| `feat/backend-migration-builtin-skills` | AionUi | `ff5290db5` |
-| `feat/builtin-skills` | aionui-backend | `04f1537` |
+| Branch                                  | Repo           | SHA                                                                 |
+| --------------------------------------- | -------------- | ------------------------------------------------------------------- |
+| `feat/backend-migration-coordinator`    | AionUi         | this commit (merged feature back + this handoff + playbook updates) |
+| `feat/backend-migration-builtin-skills` | AionUi         | `ff5290db5`                                                         |
+| `feat/builtin-skills`                   | aionui-backend | `04f1537`                                                           |
 
 Per user instruction, **no PRs are raised**. Merging feature branches to main is out of scope of this pilot.

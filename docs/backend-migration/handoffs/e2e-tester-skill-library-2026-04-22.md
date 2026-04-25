@@ -153,6 +153,7 @@ and TC-S-17 and probed backend directly. Full detail in the e2e report's
 **Coordinator-rubric call (time-box ~23:55 local, deadline 10:00 tmr):**
 **Recommended (b) — close pilot at 22/29.** Rationale in the e2e report;
 briefly:
+
 - Transport/migration success criterion met (class D cleared).
 - Remaining failures are NOT pilot regressions; TC-S-17 is a pre-existing
   behavior gap the migration inherited; TC-S-25 is a test-infra
@@ -192,7 +193,7 @@ The helper-fix rerun results (17 PASS / 12 FAIL — see the e2e report's
 across three owners:
 
 1. **Backend fix (blocks class (D) failures — 5 tests).** Add a `source:
-   String` field to `ExternalSkillSourceResponse` in
+String` field to `ExternalSkillSourceResponse` in
    `aionui-backend/crates/aionui-api-types/src/skill.rs:116` and populate it
    in `skill_routes.rs:260–277`. The renderer uses `source.source` at
    `SkillsHubSettings.tsx:289` as both the React `key` and the

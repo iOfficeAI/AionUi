@@ -20,11 +20,11 @@ working tree. backend-dev only spawned if Class D/F failures surface.
 
 ## Branches
 
-| Branch                                       | Repo           | Base                             | Owner         |
-| -------------------------------------------- | -------------- | -------------------------------- | ------------- |
-| `feat/backend-migration-coordinator`         | AionUi         | (reused from Skill pilot)        | coordinator   |
-| `feat/backend-migration-assistant-verify`    | AionUi         | `origin/feat/backend-migration`  | fe + e2e      |
-| `feat/extension-assistant-fix` (on demand)   | aionui-backend | `origin/feat/backend-migration`  | backend-dev   |
+| Branch                                     | Repo           | Base                            | Owner       |
+| ------------------------------------------ | -------------- | ------------------------------- | ----------- |
+| `feat/backend-migration-coordinator`       | AionUi         | (reused from Skill pilot)       | coordinator |
+| `feat/backend-migration-assistant-verify`  | AionUi         | `origin/feat/backend-migration` | fe + e2e    |
+| `feat/extension-assistant-fix` (on demand) | aionui-backend | `origin/feat/backend-migration` | backend-dev |
 
 ---
 
@@ -53,12 +53,14 @@ for `src/` paths), commit, push.
 - [ ] **Step 0.3: Pre-flight endpoint mapping sanity check**
 
 Read-only verification:
+
 ```bash
 grep -n "assistant" /Users/zhoukai/Documents/github/AionUi/src/common/adapter/ipcBridge.ts | head -15
 grep -n "assistant-rule\|assistant-skill\|assistants" /Users/zhoukai/Documents/github/aionui-backend/crates/aionui-extension/src/routes.rs /Users/zhoukai/Documents/github/aionui-backend/crates/aionui-extension/src/skill_routes.rs 2>/dev/null | head -15
 ```
 
 Expected — 7 endpoint pairs match:
+
 - `ipcBridge.extensions.getAssistants` ↔ `GET /api/extensions/assistants`
 - `ipcBridge.fs.readAssistantRule` ↔ `POST /api/skills/assistant-rule/read`
 - `ipcBridge.fs.writeAssistantRule` ↔ `POST /api/skills/assistant-rule/write`
@@ -79,6 +81,7 @@ stat -f "%Sm" ~/.cargo/bin/aionui-backend     # must post-date any recent backen
 ```
 
 If missing or stale:
+
 ```bash
 cargo install --path crates/aionui-app
 ```
@@ -100,6 +103,7 @@ TeamCreate { team_name: "aionui-assistant-verify", description: "Assistant modul
 ```
 
 Register tasks:
+
 - Task A: frontend-dev — Vitest + manual UI spot-check
 - Task B: e2e-tester — run assistant e2e suite + classify + report
 - Task C: coordinator closure
@@ -124,11 +128,13 @@ git push
 **Owner:** frontend-dev. **Depends on:** Task 0 complete.
 
 **Files (to be touched only if Vitest flags issues):**
+
 - `tests/unit/assistantHooks.dom.test.ts` (likely needs auto-unwrap mock fix, same as SkillsHub)
 - `tests/unit/assistantUtils.test.ts`
 - `tests/unit/assistantPresets.i18n.test.ts`
 
 Pre-activation (coordinator):
+
 ```bash
 cd /Users/zhoukai/Documents/github/AionUi
 git checkout feat/backend-migration-assistant-verify
@@ -194,12 +200,15 @@ Create `docs/backend-migration/modules/assistant.md`:
 ## Status: Migration complete (pre-existing, via Skill-Library pilot)
 
 ## Endpoints migrated
+
 <7 endpoints with backend commit SHAs>
 
 ## Renderer touched (this verification)
+
 <files changed, if any>
 
 ## Known caveats
+
 <anything surfaced>
 ```
 
@@ -224,10 +233,12 @@ SendMessage `coordinator`: `"Task A complete. Branch <sha>. Released working tre
 **Owner:** e2e-tester. **Depends on:** Task A complete.
 
 **Files (only doc writes):**
+
 - `docs/backend-migration/e2e-reports/2026-04-23-assistant.md` (create)
 - `docs/backend-migration/handoffs/e2e-tester-assistant-verify-2026-04-23.md` (create)
 
 Pre-activation (coordinator):
+
 - Verify Task A pushed + ack'd.
 - AionUi already on the same verification branch.
 - Re-confirm backend binary + renderer bundle still current (quick `stat` check).
@@ -286,6 +297,7 @@ Same categories:
 ### Step B.5 — Write the report
 
 `docs/backend-migration/e2e-reports/2026-04-23-assistant.md` with:
+
 - Pass/fail matrix per test
 - Classification per failure
 - Direct backend probes via `curl` for Class D/F hypotheses
@@ -314,6 +326,7 @@ Same pattern. Commit + push.
 Spawned only if Task B reveals Class D or Class F failures.
 
 Brief to backend-dev:
+
 - Read the failing e2e case + backend probe results from Task B report.
 - Write a failing test at the right level (HTTP integration or unit).
 - Implement fix.

@@ -8,42 +8,35 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const norm = (p: string) => p.replace(/\\/g, '/');
 
-const {
-  materializeInvoke,
-  cleanupInvoke,
-  mkdirCalls,
-  symlinkCalls,
-  lstatResults,
-  statResults,
-  readdirResults,
-  reset,
-} = vi.hoisted(() => {
-  const materializeMock = vi.fn<(args: { conversation_id: string; enabled_skills: string[] }) => Promise<{ dir_path: string }>>();
-  const cleanupMock = vi.fn<(args: { conversationId: string }) => Promise<void>>();
-  const mk: string[] = [];
-  const links: Array<{ source: string; target: string; type: string }> = [];
-  const ls: Record<string, boolean> = {};
-  const st: Record<string, boolean> = {};
-  const rd: Record<string, string[]> = {};
-  return {
-    materializeInvoke: materializeMock,
-    cleanupInvoke: cleanupMock,
-    mkdirCalls: mk,
-    symlinkCalls: links,
-    lstatResults: ls,
-    statResults: st,
-    readdirResults: rd,
-    reset: () => {
-      materializeMock.mockReset();
-      cleanupMock.mockReset();
-      mk.length = 0;
-      links.length = 0;
-      for (const k of Object.keys(ls)) delete ls[k];
-      for (const k of Object.keys(st)) delete st[k];
-      for (const k of Object.keys(rd)) delete rd[k];
-    },
-  };
-});
+const { materializeInvoke, cleanupInvoke, mkdirCalls, symlinkCalls, lstatResults, statResults, readdirResults, reset } =
+  vi.hoisted(() => {
+    const materializeMock =
+      vi.fn<(args: { conversation_id: string; enabled_skills: string[] }) => Promise<{ dir_path: string }>>();
+    const cleanupMock = vi.fn<(args: { conversationId: string }) => Promise<void>>();
+    const mk: string[] = [];
+    const links: Array<{ source: string; target: string; type: string }> = [];
+    const ls: Record<string, boolean> = {};
+    const st: Record<string, boolean> = {};
+    const rd: Record<string, string[]> = {};
+    return {
+      materializeInvoke: materializeMock,
+      cleanupInvoke: cleanupMock,
+      mkdirCalls: mk,
+      symlinkCalls: links,
+      lstatResults: ls,
+      statResults: st,
+      readdirResults: rd,
+      reset: () => {
+        materializeMock.mockReset();
+        cleanupMock.mockReset();
+        mk.length = 0;
+        links.length = 0;
+        for (const k of Object.keys(ls)) delete ls[k];
+        for (const k of Object.keys(st)) delete st[k];
+        for (const k of Object.keys(rd)) delete rd[k];
+      },
+    };
+  });
 
 vi.mock('@/common', () => ({
   ipcBridge: {

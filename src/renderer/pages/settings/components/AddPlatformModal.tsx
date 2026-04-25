@@ -569,7 +569,13 @@ const AddPlatformModal = ModalHOC<{
             required
             rules={[{ required: true }]}
             validateStatus={modelListState.error ? 'error' : 'success'}
-            help={modelListState.error instanceof Error ? modelListState.error.message : modelListState.error ? String(modelListState.error) : undefined}
+            help={
+              modelListState.error instanceof Error
+                ? modelListState.error.message
+                : modelListState.error
+                  ? String(modelListState.error)
+                  : undefined
+            }
           >
             <Select
               loading={modelListState.isLoading}

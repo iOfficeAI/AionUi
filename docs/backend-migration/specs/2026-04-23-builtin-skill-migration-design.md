@@ -174,18 +174,18 @@ See the backend-side spec §6 for request/response types and error codes.
 
 ### 6.1 Existing endpoints — contract refinements
 
-| Endpoint | Change |
-|---|---|
-| `GET /api/skills/builtin-auto` | Response adds a `location` field per entry: `{name, description, location}`. `location` is a relative path like `"auto-inject/cron/SKILL.md"`. Clients pass this into `readBuiltinSkill`. |
-| `POST /api/skills/builtin-skill` | `fileName` accepts relative paths under `builtin-skills/`. `"auto-inject/cron/SKILL.md"` and `"mermaid/SKILL.md"` are both valid. `validate_filename` rejects `../` traversal. |
-| `GET /api/skills` | For `source=builtin` rows, `location` is a relative path (no longer an absolute filesystem path). For `custom`/`extension`, semantics unchanged. |
+| Endpoint                         | Change                                                                                                                                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/skills/builtin-auto`   | Response adds a `location` field per entry: `{name, description, location}`. `location` is a relative path like `"auto-inject/cron/SKILL.md"`. Clients pass this into `readBuiltinSkill`. |
+| `POST /api/skills/builtin-skill` | `fileName` accepts relative paths under `builtin-skills/`. `"auto-inject/cron/SKILL.md"` and `"mermaid/SKILL.md"` are both valid. `validate_filename` rejects `../` traversal.            |
+| `GET /api/skills`                | For `source=builtin` rows, `location` is a relative path (no longer an absolute filesystem path). For `custom`/`extension`, semantics unchanged.                                          |
 
 ### 6.2 New endpoints for gemini materialization
 
-| Method | Path | Purpose |
-|---|---|---|
-| POST | `/api/skills/materialize-for-agent` | Write the conversation's required skills to `{data_dir}/agent-skills/{conversationId}/`, return the absolute path |
-| DELETE | `/api/skills/materialize-for-agent/{conversationId}` | Remove that directory (idempotent) |
+| Method | Path                                                 | Purpose                                                                                                           |
+| ------ | ---------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| POST   | `/api/skills/materialize-for-agent`                  | Write the conversation's required skills to `{data_dir}/agent-skills/{conversationId}/`, return the absolute path |
+| DELETE | `/api/skills/materialize-for-agent/{conversationId}` | Remove that directory (idempotent)                                                                                |
 
 Request / response shapes are in the backend spec §6.2.
 
@@ -193,34 +193,34 @@ Request / response shapes are in the backend spec §6.2.
 
 ### 7.1 Files deleted
 
-| Path | Reason |
-|---|---|
+| Path                                               | Reason           |
+| -------------------------------------------------- | ---------------- |
 | `src/process/resources/skills/` (entire directory) | Moved to backend |
 
 ### 7.2 Files modified
 
-| File | Change |
-|---|---|
-| `src/process/utils/initStorage.ts` | Drop `getBuiltinSkillsCopyDir`, `getAutoSkillsDir`, `STORAGE_PATH.builtinSkills`, the resource-copy logic, and the stale-entry pruner. Add a best-effort legacy cleanup: `fs.rm(cacheDir/builtin-skills/, {recursive, force}).catch(() => {})`. |
-| `src/process/task/AcpSkillManager.ts` | Drop `autoSkillsDir` / `skillsDir` fields. Inside `discoverAutoSkills` and `loadSkillByName`, replace `fs.readFile` with `ipcBridge.fs.listBuiltinAutoSkills.invoke()` + `ipcBridge.fs.readBuiltinSkill.invoke({fileName})`. Keep the singleton pattern, frontmatter parser, and lazy-load cache as-is. On HTTP failure, log and return empty list (graceful degrade). |
-| `src/process/utils/initAgent.ts` | Drop the symlink + builtin-path logic (L54, L92-93). Replace with a call to `ipcBridge.fs.materializeSkillsForAgent.invoke({conversationId, enabledSkills})` that returns `{dirPath}`. Pass `dirPath` to the caller (gemini manager) instead of constructing paths locally. |
-| `src/process/task/agentUtils.ts` | Drop `getBuiltinSkillsCopyDir` usage at L137. Materialize logic now fully lives in the backend call path set up by `initAgent.ts`. |
-| `src/process/agent/gemini/cli/config.ts` | Remove the L125 `{skillsDir}/_builtin` read (semantically wrong — skillsDir is the user skills dir, `_builtin` was a misplaced lookup). gemini's skills now arrive pre-materialized via the `materializeSkillsForAgent` path. |
-| `src/process/task/GeminiAgentManager.ts` | On conversation start, call `materializeSkillsForAgent` and pass the returned `dirPath` to gemini CLI. On conversation end/teardown, call `cleanupSkillsForAgent` (fire-and-forget). |
-| `src/common/types/acpTypes.ts` | Update the comments at L296-299 from `_builtin/` to `auto-inject/`. |
-| `src/common/adapter/ipcBridge.ts` | Add two new methods: `materializeSkillsForAgent` and `cleanupSkillsForAgent`, mirroring the new backend endpoints. |
+| File                                     | Change                                                                                                                                                                                                                                                                                                                                                                 |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/process/utils/initStorage.ts`       | Drop `getBuiltinSkillsCopyDir`, `getAutoSkillsDir`, `STORAGE_PATH.builtinSkills`, the resource-copy logic, and the stale-entry pruner. Add a best-effort legacy cleanup: `fs.rm(cacheDir/builtin-skills/, {recursive, force}).catch(() => {})`.                                                                                                                        |
+| `src/process/task/AcpSkillManager.ts`    | Drop `autoSkillsDir` / `skillsDir` fields. Inside `discoverAutoSkills` and `loadSkillByName`, replace `fs.readFile` with `ipcBridge.fs.listBuiltinAutoSkills.invoke()` + `ipcBridge.fs.readBuiltinSkill.invoke({fileName})`. Keep the singleton pattern, frontmatter parser, and lazy-load cache as-is. On HTTP failure, log and return empty list (graceful degrade). |
+| `src/process/utils/initAgent.ts`         | Drop the symlink + builtin-path logic (L54, L92-93). Replace with a call to `ipcBridge.fs.materializeSkillsForAgent.invoke({conversationId, enabledSkills})` that returns `{dirPath}`. Pass `dirPath` to the caller (gemini manager) instead of constructing paths locally.                                                                                            |
+| `src/process/task/agentUtils.ts`         | Drop `getBuiltinSkillsCopyDir` usage at L137. Materialize logic now fully lives in the backend call path set up by `initAgent.ts`.                                                                                                                                                                                                                                     |
+| `src/process/agent/gemini/cli/config.ts` | Remove the L125 `{skillsDir}/_builtin` read (semantically wrong — skillsDir is the user skills dir, `_builtin` was a misplaced lookup). gemini's skills now arrive pre-materialized via the `materializeSkillsForAgent` path.                                                                                                                                          |
+| `src/process/task/GeminiAgentManager.ts` | On conversation start, call `materializeSkillsForAgent` and pass the returned `dirPath` to gemini CLI. On conversation end/teardown, call `cleanupSkillsForAgent` (fire-and-forget).                                                                                                                                                                                   |
+| `src/common/types/acpTypes.ts`           | Update the comments at L296-299 from `_builtin/` to `auto-inject/`.                                                                                                                                                                                                                                                                                                    |
+| `src/common/adapter/ipcBridge.ts`        | Add two new methods: `materializeSkillsForAgent` and `cleanupSkillsForAgent`, mirroring the new backend endpoints.                                                                                                                                                                                                                                                     |
 
 ### 7.3 Files NOT modified
 
-| File | Why |
-|---|---|
-| `src/process/extensions/*` | Extension skill integration unchanged. |
+| File                         | Why                                                                                                                                                 |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/process/extensions/*`   | Extension skill integration unchanged.                                                                                                              |
 | `tests/e2e/features/skills/` | Existing Skill-Library pilot tests still exercise `/api/skills/*`. Location-field assertion may need loosening, done reactively if any test breaks. |
 
 ### 7.3a Files modified incidentally
 
-| File | Change |
-|---|---|
+| File                                                | Change                                                                                                                                                                                                                                                                                                |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `src/renderer/pages/settings/SkillsHubSettings.tsx` | Type `SkillInfo` gains optional `relativeLocation` field. Display unchanged; `location` still works for the export-to-external-source flow (lines 518-523) because the backend synthesizes an absolute path for builtin skills (see backend §6.1). No behavior change; type import may need touching. |
 
 ### 7.4 File count
@@ -233,6 +233,7 @@ has ~5 files modified + 1 new assets dir + 1 new Cargo dep.
 ### 8.1 Resource migration (one-shot git operation)
 
 **backend-dev commits first** (backend feature branch):
+
 ```bash
 mkdir -p crates/aionui-app/assets/builtin-skills
 cp -R /Users/zhoukai/Documents/github/AionUi/src/process/resources/skills/. \
@@ -244,6 +245,7 @@ git commit -m "feat(skill): import builtin skills (rename _builtin → auto-inje
 ```
 
 **frontend-dev follows** (frontend feature branch):
+
 ```bash
 git rm -r src/process/resources/skills
 git commit -m "refactor(skill): drop local builtin skills (moved to backend)"
@@ -264,7 +266,9 @@ const legacyDir = path.join(cacheDir, 'builtin-skills');
 if (existsSync(legacyDir)) {
   fs.rm(legacyDir, { recursive: true, force: true })
     .then(() => console.log('[AionUi] Cleaned up legacy builtin-skills cache'))
-    .catch(() => { /* swallow — not critical */ });
+    .catch(() => {
+      /* swallow — not critical */
+    });
 }
 ```
 
@@ -292,12 +296,12 @@ DELETE path.
 
 Failure modes degrade gracefully:
 
-| Failure | User impact |
-|---|---|
-| `AcpSkillManager` HTTP call returns 5xx | Auto-inject skill list empty; ACP conversation starts without auto-injection. User might see AI not using skills it normally would. Logs loud. |
-| `materializeSkillsForAgent` returns 5xx | Gemini starts without builtin skills (`--extensions` flag omitted). Degraded capability but conversation functions. |
-| Cleanup DELETE fails | Orphan dir on disk; backend's startup cleanup mops up next launch. |
-| Backend `include_dir` missing a file (corrupt build) | Same as above — empty list. Frontend logs. |
+| Failure                                              | User impact                                                                                                                                    |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AcpSkillManager` HTTP call returns 5xx              | Auto-inject skill list empty; ACP conversation starts without auto-injection. User might see AI not using skills it normally would. Logs loud. |
+| `materializeSkillsForAgent` returns 5xx              | Gemini starts without builtin skills (`--extensions` flag omitted). Degraded capability but conversation functions.                            |
+| Cleanup DELETE fails                                 | Orphan dir on disk; backend's startup cleanup mops up next launch.                                                                             |
+| Backend `include_dir` missing a file (corrupt build) | Same as above — empty list. Frontend logs.                                                                                                     |
 
 None are blocking failures.
 
@@ -311,13 +315,13 @@ None are blocking failures.
 
 See §9 of the backend spec for the full matrix. Frontend-side summary:
 
-| Role | Scope |
-|---|---|
-| backend-dev | Rust unit tests (embedded loading, materialize/cleanup) + HTTP integration (`tests/skills_builtin_e2e.rs`). Backend-tester role is NOT separately allocated this pilot — scope is too small. |
-| frontend-dev | Self-tests the hooks they change (acpSkillManager HTTP swap, initAgent materialize flow). |
-| frontend-tester | Vitest: `acpSkillManager.test.ts` (new or updated), `initAgent.materialize.test.ts` (new). TSC + lint gates. Prune dead tests referencing deleted functions. |
-| e2e-tester | Playwright: 8 scenarios in `tests/e2e/features/builtin-skill-migration/`: (1) packaged app's `GET /api/skills/builtin-auto` returns non-empty; (2) ACP conversation auto-injects auto-inject skills; (3) opt-in via `enabledSkills` materialized; (4) gemini conversation receives materialized dir; (5) DELETE cleanup on conversation end; (6) orphan cleanup on next startup after crash; (7) SkillsHubSettings export-to-external-source still works for `source=builtin` skills (the critical regression path); (8) legacy `{cacheDir}/builtin-skills/` dir is removed on upgrade. |
-| coordinator | Manual packaging smoke test (the main motivating bug class): `bun run build` → packaged app → `/api/skills/builtin-auto` returns non-empty, conversations start, gemini gets skills. |
+| Role            | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| backend-dev     | Rust unit tests (embedded loading, materialize/cleanup) + HTTP integration (`tests/skills_builtin_e2e.rs`). Backend-tester role is NOT separately allocated this pilot — scope is too small.                                                                                                                                                                                                                                                                                                                                                                                            |
+| frontend-dev    | Self-tests the hooks they change (acpSkillManager HTTP swap, initAgent materialize flow).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| frontend-tester | Vitest: `acpSkillManager.test.ts` (new or updated), `initAgent.materialize.test.ts` (new). TSC + lint gates. Prune dead tests referencing deleted functions.                                                                                                                                                                                                                                                                                                                                                                                                                            |
+| e2e-tester      | Playwright: 8 scenarios in `tests/e2e/features/builtin-skill-migration/`: (1) packaged app's `GET /api/skills/builtin-auto` returns non-empty; (2) ACP conversation auto-injects auto-inject skills; (3) opt-in via `enabledSkills` materialized; (4) gemini conversation receives materialized dir; (5) DELETE cleanup on conversation end; (6) orphan cleanup on next startup after crash; (7) SkillsHubSettings export-to-external-source still works for `source=builtin` skills (the critical regression path); (8) legacy `{cacheDir}/builtin-skills/` dir is removed on upgrade. |
+| coordinator     | Manual packaging smoke test (the main motivating bug class): `bun run build` → packaged app → `/api/skills/builtin-auto` returns non-empty, conversations start, gemini gets skills.                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 Regression suites that must stay green:
 
@@ -333,11 +337,11 @@ because the scope is smaller.**
 
 ### 10.1 Branches
 
-| Branch | Repo | Base | Owner(s) |
-| --- | --- | --- | --- |
-| `feat/backend-migration-coordinator` | AionUi | (existing) | coordinator |
-| `feat/backend-migration-builtin-skills` | AionUi | `origin/feat/backend-migration-coordinator` | frontend-dev, frontend-tester, e2e-tester |
-| `feat/builtin-skills` | aionui-backend | `origin/feat/assistant-user-data` | backend-dev |
+| Branch                                  | Repo           | Base                                        | Owner(s)                                  |
+| --------------------------------------- | -------------- | ------------------------------------------- | ----------------------------------------- |
+| `feat/backend-migration-coordinator`    | AionUi         | (existing)                                  | coordinator                               |
+| `feat/backend-migration-builtin-skills` | AionUi         | `origin/feat/backend-migration-coordinator` | frontend-dev, frontend-tester, e2e-tester |
+| `feat/builtin-skills`                   | aionui-backend | `origin/feat/assistant-user-data`           | backend-dev                               |
 
 Note: the aionui-backend feature branch bases on **`feat/assistant-user-data`**
 (the previous pilot), not the archive branch, so this work can coexist with

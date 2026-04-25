@@ -8,8 +8,7 @@ export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | '
  */
 export const isEmoji = (str: string): boolean => {
   if (!str) return false;
-  const emojiRegex =
-    /^(?:\p{Emoji_Presentation}|\p{Emoji}️)(?:‍(?:\p{Emoji_Presentation}|\p{Emoji}️))*$/u;
+  const emojiRegex = /^(?:\p{Emoji_Presentation}|\p{Emoji}️)(?:‍(?:\p{Emoji_Presentation}|\p{Emoji}️))*$/u;
   return emojiRegex.test(str);
 };
 
@@ -37,7 +36,7 @@ export const resolveAvatarImageSrc = (
  * is a deterministic fallback for local reorder operations.
  */
 export const sortAssistants = (list: AssistantListItem[]): AssistantListItem[] =>
-  [...list].sort((a, b) => a.sort_order - b.sort_order);
+  [...list].toSorted((a, b) => a.sort_order - b.sort_order);
 
 /**
  * Apply search and management filter to assistant list.

@@ -16,7 +16,7 @@ Three branches, one team sequence:
 1. **`feat/assistant-snake-case`** (AionUi) — bulk rename `Assistant`
    type + ~209 access sites across 43 files to snake_case. Paired with
    `aionui-backend` branch of same name that removes 7 `rename_all =
-   "camelCase"` from `api-types/assistant.rs`, removes 1 from
+"camelCase"` from `api-types/assistant.rs`, removes 1 from
    `aionui-assistant/src/builtin.rs`, and rewrites 20 entries in
    `assets/builtin-assistants/assistants.json`.
 

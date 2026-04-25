@@ -25,10 +25,7 @@ vi.mock('@/process/utils/initStorage', () => ({
   ProcessConfig: {},
 }));
 
-import {
-  legacyAssistantToCreateRequest,
-  migrateAssistantsToBackend,
-} from '@/process/utils/migrateAssistants';
+import { legacyAssistantToCreateRequest, migrateAssistantsToBackend } from '@/process/utils/migrateAssistants';
 import { ipcBridge } from '@/common';
 
 type Store = Map<string, unknown>;
@@ -226,9 +223,7 @@ describe('migrateAssistantsToBackend', () => {
       expect(setStateInvokeMock).toHaveBeenCalledWith({ id: 'word-creator', enabled: false });
       expect(setStateInvokeMock).toHaveBeenCalledWith({ id: 'openclaw-setup', enabled: false });
       // Cowork was enabled — must not appear.
-      expect(setStateInvokeMock).not.toHaveBeenCalledWith(
-        expect.objectContaining({ id: 'cowork' }),
-      );
+      expect(setStateInvokeMock).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'cowork' }));
       // Flag flips true after both phases succeed.
       expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
     });

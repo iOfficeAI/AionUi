@@ -128,7 +128,11 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         form.setFieldsValue({
           ...data,
           model:
-            data.models && data.models.length > 0 ? (data.models.length === 1 ? data.models[0] : data.models) : undefined,
+            data.models && data.models.length > 0
+              ? data.models.length === 1
+                ? data.models[0]
+                : data.models
+              : undefined,
           bedrockAuthMethod: data.bedrock_config?.auth_method || 'accessKey',
           bedrockRegion: data.bedrock_config?.region || 'us-east-1',
           bedrockAccessKeyId: data.bedrock_config?.access_key_id || '',
@@ -302,7 +306,13 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               required
               rules={[{ required: true }]}
               validateStatus={modelListState.error ? 'error' : undefined}
-              help={modelListState.error instanceof Error ? modelListState.error.message : modelListState.error ? String(modelListState.error) : undefined}
+              help={
+                modelListState.error instanceof Error
+                  ? modelListState.error.message
+                  : modelListState.error
+                    ? String(modelListState.error)
+                    : undefined
+              }
             >
               <Select
                 loading={modelListState.isLoading}

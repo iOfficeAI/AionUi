@@ -231,22 +231,22 @@ Scope: migrate user-authored assistants from Electron `ConfigStorage.get('assist
 
 **Feature branches (no PRs raised per user instruction):**
 
-| Branch | Repo | Final SHA |
-|--------|------|-----------|
-| `feat/backend-migration-assistant-user-data` | AionUi | `f3207451e` |
-| `feat/assistant-user-data` | aionui-backend | `0a970ee` |
+| Branch                                       | Repo           | Final SHA   |
+| -------------------------------------------- | -------------- | ----------- |
+| `feat/backend-migration-assistant-user-data` | AionUi         | `f3207451e` |
+| `feat/assistant-user-data`                   | aionui-backend | `0a970ee`   |
 
 ### Endpoints added
 
-| Method | Path | Behavior |
-|--------|------|----------|
-| GET    | `/api/assistants` | Merged catalog: builtin (embedded) + user (SQLite) + extension |
-| POST   | `/api/assistants` | Create user-authored |
-| PUT    | `/api/assistants/{id}` | Update user (403 on builtin/extension) |
-| DELETE | `/api/assistants/{id}` | Delete user + cascade fs (rule md, skill md, avatar) |
-| PATCH  | `/api/assistants/{id}/state` | Upsert `enabled` / `sort_order` / `last_used_at` into `assistant_overrides` |
-| POST   | `/api/assistants/import` | **Insert-only** bulk import (Electron migration entry) |
-| GET    | `/api/assistants/{id}/avatar` | Serve avatar bytes for builtin + user |
+| Method | Path                          | Behavior                                                                    |
+| ------ | ----------------------------- | --------------------------------------------------------------------------- |
+| GET    | `/api/assistants`             | Merged catalog: builtin (embedded) + user (SQLite) + extension              |
+| POST   | `/api/assistants`             | Create user-authored                                                        |
+| PUT    | `/api/assistants/{id}`        | Update user (403 on builtin/extension)                                      |
+| DELETE | `/api/assistants/{id}`        | Delete user + cascade fs (rule md, skill md, avatar)                        |
+| PATCH  | `/api/assistants/{id}/state`  | Upsert `enabled` / `sort_order` / `last_used_at` into `assistant_overrides` |
+| POST   | `/api/assistants/import`      | **Insert-only** bulk import (Electron migration entry)                      |
+| GET    | `/api/assistants/{id}/avatar` | Serve avatar bytes for builtin + user                                       |
 
 ### Endpoints modified (rule-md + skill-md source dispatch)
 
@@ -256,6 +256,7 @@ Scope: migrate user-authored assistants from Electron `ConfigStorage.get('assist
 ### Migration flag
 
 `migration.electronConfigImported` in `aionui-config.txt`:
+
 - Defaults `undefined` (legacy userData)
 - Set to `true` only when the whole migration (user-row import + disabled-builtin overrides) succeeds
 - Insert-only backend import makes retries idempotent
@@ -274,13 +275,13 @@ After migration, `grep -rn "ConfigStorage.*'assistants'" src/ --exclude __tests_
 
 ### Tests
 
-| Suite | Count | Location |
-|-------|-------|----------|
-| Rust inline unit (aionui-assistant) | 33 | `crates/aionui-assistant/src/**/*.rs` |
-| Rust HTTP integration | 44 | `crates/aionui-app/tests/assistants_e2e.rs` |
-| Rust dispatch (aionui-extension) | 10 | `crates/aionui-extension/tests/assistant_dispatch_test.rs` |
-| Frontend Vitest (new)              | 37 | `tests/unit/assistants*.test.ts` + `tests/unit/migrateAssistants.test.ts` |
-| Playwright E2E                     | 10 | `tests/e2e/features/assistants-user-data/` |
+| Suite                               | Count | Location                                                                  |
+| ----------------------------------- | ----- | ------------------------------------------------------------------------- |
+| Rust inline unit (aionui-assistant) | 33    | `crates/aionui-assistant/src/**/*.rs`                                     |
+| Rust HTTP integration               | 44    | `crates/aionui-app/tests/assistants_e2e.rs`                               |
+| Rust dispatch (aionui-extension)    | 10    | `crates/aionui-extension/tests/assistant_dispatch_test.rs`                |
+| Frontend Vitest (new)               | 37    | `tests/unit/assistants*.test.ts` + `tests/unit/migrateAssistants.test.ts` |
+| Playwright E2E                      | 10    | `tests/e2e/features/assistants-user-data/`                                |
 
 ### Lessons (brief)
 

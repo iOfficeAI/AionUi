@@ -5,6 +5,7 @@
 > camelCase wire fields, no new features.
 >
 > **Companion specs:**
+>
 > - [`aionui-backend/docs/backend-migration/specs/2026-04-24-snake-case-wire-realignment-design.md`](../../../../aionui-backend/docs/backend-migration/specs/2026-04-24-snake-case-wire-realignment-design.md) — authoritative contract
 > - [`AionUi/docs/backend-migration/specs/2026-04-24-snake-case-wire-realignment-design.md`](../specs/2026-04-24-snake-case-wire-realignment-design.md) — frontend changes
 
@@ -21,11 +22,11 @@ naming flips, devs self-test.
 
 ## Branches
 
-| Branch | Repo | Base | Owner(s) |
-| --- | --- | --- | --- |
-| `feat/backend-migration-coordinator` | AionUi | (existing) | coordinator |
-| `feat/backend-migration-builtin-skills` | AionUi | current tip (has merge 259505156) | frontend-dev, e2e-tester |
-| `feat/builtin-skills` | aionui-backend | current tip (has merge 0fbccd6) | backend-dev |
+| Branch                                  | Repo           | Base                              | Owner(s)                 |
+| --------------------------------------- | -------------- | --------------------------------- | ------------------------ |
+| `feat/backend-migration-coordinator`    | AionUi         | (existing)                        | coordinator              |
+| `feat/backend-migration-builtin-skills` | AionUi         | current tip (has merge 259505156) | frontend-dev, e2e-tester |
+| `feat/builtin-skills`                   | aionui-backend | current tip (has merge 0fbccd6)   | backend-dev              |
 
 No new branches — extend existing ones.
 

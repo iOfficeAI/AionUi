@@ -1,6 +1,7 @@
 # Coordinator Handoff — Assistant Snake-Case Realignment — 2026-04-24
 
 **Coordinator branches:**
+
 - aionui-backend `feat/backend-migration-coordinator-assistant-camel` @ `6f00110` (merged back to `feat/builtin-skills` @ `bba32dd`)
 - AionUi `feat/backend-migration-coordinator-assistant-camel` @ `1c1d1c1e4` (merged back to `feat/backend-migration-coordinator` @ `5c0154b96`, then further to `feat/backend-migration` @ `bc22bad5d` per user directive)
 
@@ -15,6 +16,7 @@ followups, plus two more bug classes that only surfaced once E2E
 exercised the full contract end-to-end.
 
 **Backend** (`feat/assistant-snake-case` @ `6f00110`, 2-commit stack):
+
 - Removed 7 `rename_all = "camelCase"` from
   `crates/aionui-api-types/src/assistant.rs`.
 - Removed 1 `rename_all = "camelCase"` from
@@ -34,6 +36,7 @@ exercised the full contract end-to-end.
   camel is silently ignored).
 
 **Frontend assistant bulk** (`feat/assistant-snake-case` @ `513be5162`):
+
 - `src/common/types/assistantTypes.ts` — 7 interfaces × 10 fields
   flipped.
 - `scripts/codemods/assistantSnakeCase.ts` — ts-morph codemod
@@ -41,7 +44,7 @@ exercised the full contract end-to-end.
   access + 14 object literal + 0 destructure).
 - Wave 2 manual for ~30-50 tsc residual errors.
 - `src/process/utils/migrateAssistants.ts` — split out
-  `legacyAssistantToCreateRequest` mapper (legacy camel →  new snake),
+  `legacyAssistantToCreateRequest` mapper (legacy camel → new snake),
   unit-tested with real legacy-config fixture.
 - `{ snake_name: camelName } = x` destructure pattern preserved
   downstream local variable idioms.
@@ -50,6 +53,7 @@ exercised the full contract end-to-end.
   4377 → 4380.
 
 **Frontend hotfixes**:
+
 - `fix/acp-camelcase-hotfix` @ `e1cb21a7c` — `setModel` body
   `{modelId}` → `{model_id}`.
 - `fix/fs-temp-camelcase-hotfix` @ `ec126ee40` — type-sig flip for
@@ -70,6 +74,7 @@ exercised the full contract end-to-end.
     sending camelCase bodies. Fixed in H2.
 
 **Test matrix (final state)**:
+
 - `cargo test --workspace` assistant-related: all green.
   - `aionui-api-types`: 423/423 (includes new regression test).
   - `aionui-assistant`: 33/33.
@@ -99,17 +104,17 @@ work, saved 45 min of mid-pilot scrambling. Captured as playbook
 lesson.
 
 User also explicitly asked this pilot include the two skill-pilot
-handoff followups (ACP `setModel` + fs `createTempFile`) —  both
+handoff followups (ACP `setModel` + fs `createTempFile`) — both
 confirmed runtime-broken on independent probe, now fixed.
 
 ## Role deliverables
 
-| Role | Final SHA | Deliverable |
-|---|---|---|
-| coordinator | this commit | spec, plan, merge-back, packaging smoke, this handoff |
-| backend-dev | `6f00110` | T1 — api-types + builtin.rs + assistants.json jq walk + test flips + regression test (option B) |
-| frontend-dev | `513be5162` / `e1cb21a7c` / `ec126ee40` / `7dbf493a4` (3-commit stack H1+H2) | T2a bulk + T2b acp + T2c fs+readBuiltinSkill + H1 (7 ipcBridge + 3 helper) + H2 (8 test-body lines) |
-| e2e-tester | `1c1d1c1e4` | T3 integration — 3 Playwright runs (40→42→45), skill regression 8/8, final run report with 6 followups |
+| Role         | Final SHA                                                                    | Deliverable                                                                                            |
+| ------------ | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------ |
+| coordinator  | this commit                                                                  | spec, plan, merge-back, packaging smoke, this handoff                                                  |
+| backend-dev  | `6f00110`                                                                    | T1 — api-types + builtin.rs + assistants.json jq walk + test flips + regression test (option B)        |
+| frontend-dev | `513be5162` / `e1cb21a7c` / `ec126ee40` / `7dbf493a4` (3-commit stack H1+H2) | T2a bulk + T2b acp + T2c fs+readBuiltinSkill + H1 (7 ipcBridge + 3 helper) + H2 (8 test-body lines)    |
+| e2e-tester   | `1c1d1c1e4`                                                                  | T3 integration — 3 Playwright runs (40→42→45), skill regression 8/8, final run report with 6 followups |
 
 ## Merge conflicts during T4
 
@@ -158,7 +163,7 @@ order per spec §6.7). Further merges coord-camel → feat/backend-migration-coo
 
 5. **"out-of-scope" scope narrowing by teammate.** frontend-dev's H1
    first commit wrote "still pending — out of H1 scope" in its commit
-   message for write/delete endpoints that *were* in the amended H1
+   message for write/delete endpoints that _were_ in the amended H1
    scope (which he had read). Messaging crossed: he'd applied my
    amendment but the commit message from the first commit was stale.
    No rework needed (he had already completed the full scope), but
@@ -232,20 +237,21 @@ order per spec §6.7). Further merges coord-camel → feat/backend-migration-coo
 
 ## Branch state after close
 
-| Repo | Branch | HEAD | Meaning |
-|---|---|---|---|
-| aionui-backend | `feat/builtin-skills` | `bba32dd` | coord branch merged back, all pilot work present |
-| aionui-backend | `feat/assistant-snake-case` | `6f00110` | feature branch, kept for history |
-| aionui-backend | `feat/backend-migration-coordinator-assistant-camel` | `6f00110` | coordinator branch, kept |
-| AionUi | `feat/backend-migration` | `bc22bad5d` | final downstream merge per user directive |
-| AionUi | `feat/backend-migration-coordinator` | `5c0154b96` | coord merged |
-| AionUi | `feat/backend-migration-coordinator-assistant-camel` | `1c1d1c1e4` | pilot coord branch |
-| AionUi | `feat/assistant-snake-case` | `513be5162` | feature branch, kept |
-| AionUi | `fix/acp-camelcase-hotfix` | `e1cb21a7c` | kept |
-| AionUi | `fix/fs-temp-camelcase-hotfix` | `ec126ee40` | kept |
-| AionUi | `fix/more-camelcase-hotfix` | `7dbf493a4` | H1+H2 3-commit stack, kept |
+| Repo           | Branch                                               | HEAD        | Meaning                                          |
+| -------------- | ---------------------------------------------------- | ----------- | ------------------------------------------------ |
+| aionui-backend | `feat/builtin-skills`                                | `bba32dd`   | coord branch merged back, all pilot work present |
+| aionui-backend | `feat/assistant-snake-case`                          | `6f00110`   | feature branch, kept for history                 |
+| aionui-backend | `feat/backend-migration-coordinator-assistant-camel` | `6f00110`   | coordinator branch, kept                         |
+| AionUi         | `feat/backend-migration`                             | `bc22bad5d` | final downstream merge per user directive        |
+| AionUi         | `feat/backend-migration-coordinator`                 | `5c0154b96` | coord merged                                     |
+| AionUi         | `feat/backend-migration-coordinator-assistant-camel` | `1c1d1c1e4` | pilot coord branch                               |
+| AionUi         | `feat/assistant-snake-case`                          | `513be5162` | feature branch, kept                             |
+| AionUi         | `fix/acp-camelcase-hotfix`                           | `e1cb21a7c` | kept                                             |
+| AionUi         | `fix/fs-temp-camelcase-hotfix`                       | `ec126ee40` | kept                                             |
+| AionUi         | `fix/more-camelcase-hotfix`                          | `7dbf493a4` | H1+H2 3-commit stack, kept                       |
 
 Worktrees:
+
 - `/Users/zhoukai/Documents/worktrees/aionui-backend-assistant-camel`
   — kept for now (user can `git worktree remove` later).
 - `/Users/zhoukai/Documents/worktrees/aionui-assistant-camel` — kept.

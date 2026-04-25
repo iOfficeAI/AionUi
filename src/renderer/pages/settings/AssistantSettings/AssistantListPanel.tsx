@@ -2,11 +2,7 @@
  * AssistantListPanel — Renders the collapsible list of assistants
  * with avatar, name, enabled switch, and edit/duplicate actions.
  */
-import {
-  filterAssistants,
-  groupAssistantsByEnabled,
-  type AssistantListFilter,
-} from './assistantUtils';
+import { filterAssistants, groupAssistantsByEnabled, type AssistantListFilter } from './assistantUtils';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AssistantListItem } from './types';
 import AssistantAvatar from './AssistantAvatar';

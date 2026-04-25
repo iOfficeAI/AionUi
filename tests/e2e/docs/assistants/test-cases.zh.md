@@ -1563,6 +1563,7 @@ await expect(drawer).toBeHidden({ timeout: 3000 });
    ```
 
 4. **点击切换到第二个源（如有）**
+
    ```typescript
    if (pillCount > 1) {
      const secondPill = pills.nth(1);

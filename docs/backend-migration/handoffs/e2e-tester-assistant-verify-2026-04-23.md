@@ -46,11 +46,11 @@ Recommending **Task B → completed, Task C → start**.
 All 5 failures are test-infra or fixture issues owned by the
 **e2e-coverage track**, not the Assistant migration track.
 
-| Test | Class | Root cause |
-| - | - | - |
-| P2-3, P1-20, P1-21 | E | `invokeBridge(page, 'add-custom-external-path', ...)` times out because the HTTP-migrated bridge has no `subscribe-*` handler. |
-| P1-23 | E | `invokeBridge(page, 'extensions.get-assistants', ...)` — same root cause. |
-| P1-18 | B | Asserts "Auto-injected Skills" section visible, but `GET /api/skills/builtin-auto` returns `[]` on a FS without seeded builtin auto-skills. |
+| Test               | Class | Root cause                                                                                                                                  |
+| ------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| P2-3, P1-20, P1-21 | E     | `invokeBridge(page, 'add-custom-external-path', ...)` times out because the HTTP-migrated bridge has no `subscribe-*` handler.              |
+| P1-23              | E     | `invokeBridge(page, 'extensions.get-assistants', ...)` — same root cause.                                                                   |
+| P1-18              | B     | Asserts "Auto-injected Skills" section visible, but `GET /api/skills/builtin-auto` returns `[]` on a FS without seeded builtin auto-skills. |
 
 See the report for curl-probe confirmation and routing recommendations.
 

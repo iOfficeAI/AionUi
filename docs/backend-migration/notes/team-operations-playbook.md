@@ -51,6 +51,7 @@ PR-closing is the coordination rule.
 ### Coordinator closure checklist (updated)
 
 After T3 green:
+
 1. Push coord branch to origin.
 2. `gh pr create --base main` (backend) or `gh pr create --base feat/backend-migration` (AionUi).
 3. PR body should reference the handoff doc.
@@ -78,6 +79,7 @@ marked read. Do not wait longer.
    it just wastes minutes.
 
 **Spawn prompt discipline (to avoid repeat zombies):**
+
 - One task per spawn. Do not combine "fix clippy + start T1b" — that was a
   trigger in this incident.
 - Include "If stuck 5+ minutes, SendMessage team-lead immediately" as an
@@ -173,8 +175,8 @@ tested against their own production `aionui-config.txt`:
 **Fix going forward (add to every migration-class plan from now on):**
 
 1. **spec-level:** enumerate every legacy state that could carry user
-   intent (not just "user data" — *per-item state that user set
-   intentionally*, like `enabled=false` on built-ins, sort_order, last_used_at
+   intent (not just "user data" — _per-item state that user set
+   intentionally_, like `enabled=false` on built-ins, sort_order, last_used_at
    per-item). For each, decide: preserve, drop explicitly, or document.
 2. **plan-level:** Add a Task that requires a **real legacy file dry-run**
    before T5 E2E. Pipeline:
@@ -187,6 +189,7 @@ tested against their own production `aionui-config.txt`:
    hand-crafted minimal one.
 
 **Action on current pilot:**
+
 - H3 task created for Bug B
 - Bug A pending main-process log diagnosis
 - Mention this lesson in coordinator handoff (T6) with the explicit
@@ -197,6 +200,7 @@ tested against their own production `aionui-config.txt`:
 **Symptom:** e2e-tester during T3 rerun nearly reported the `~/.cargo/bin/aionui-backend` as stale because `stat -f "%Sm"` returned the symlink's own mtime (Apr 23 18:41), not the target binary mtime (Apr 24 03:11).
 
 **Fix (runbook-level):** When checking whether a symlink's target is fresh, use one of:
+
 - `stat -Lf "%Sm" <symlink>` — `-L` follows links
 - `ls -laL <symlink>` — same
 - `readlink <symlink>` + `stat` on the result
@@ -213,9 +217,10 @@ Cited in `cmd` / runbook docs going forward. Not a playbook-for-coordinators iss
 
 ## 2026-04-23 — Packaging smoke as standalone acceptance step
 
-**Symptom (motivation):** When a pilot's entire motivation is "kill the binary + sibling assets/" assumption (builtin-skill pilot was, and so was assistant pilot's H2), verifying the fix actually requires running the binary *in a state where no sibling assets/ exist*. A dev-machine `cargo run` always has the sibling via `target/debug/assets/`; packaging via `bun run build` is expensive (~15 min for Electron).
+**Symptom (motivation):** When a pilot's entire motivation is "kill the binary + sibling assets/" assumption (builtin-skill pilot was, and so was assistant pilot's H2), verifying the fix actually requires running the binary _in a state where no sibling assets/ exist_. A dev-machine `cargo run` always has the sibling via `target/debug/assets/`; packaging via `bun run build` is expensive (~15 min for Electron).
 
 **Fix:** A mid-fidelity smoke that takes 2 minutes:
+
 ```bash
 cargo build --release
 TMPDIR=$(mktemp -d)
@@ -224,6 +229,7 @@ cp target/release/aionui-backend "$TMPDIR/"
 "$TMPDIR/aionui-backend" --local --port 25905 --data-dir "$TMPDIR/data" &
 # ... curl checks
 ```
+
 If the endpoints return populated data, the binary is genuinely self-contained.
 If not, packaging bug exists even if dev builds "work."
 
@@ -241,7 +247,7 @@ Run this as part of T4 coordinator closure for any pilot touching asset delivery
 
 ## 2026-04-24 — Wire-format fix direction needs an oracle
 
-**Symptom:** During builtin-skill pilot T3 run-1, the frontend sent camelCase bodies and the backend rejected them (400). I mis-diagnosed the fix as "make backend accept camelCase" and landed H1 (`04f1537`), which added 21 `#[serde(rename_all = "camelCase")]` to `skill.rs`. H1 passed its tests and T3 run-2 went green against a now-camelCase contract. Subsequent main→builtin-skills merge (`10cd7b0`) brought in `dae96f8`'s *"refactor: remove camelCase serde rename from all aionui-api-types structs"* without reverting H1, leaving a camelCase island inside a snake_case project. Frontend's own merge from `feat/backend-migration` flipped most fields to snake_case but kept camelCase on pilot-new fields. Net: broken end-to-end contract that user spotted via probe.
+**Symptom:** During builtin-skill pilot T3 run-1, the frontend sent camelCase bodies and the backend rejected them (400). I mis-diagnosed the fix as "make backend accept camelCase" and landed H1 (`04f1537`), which added 21 `#[serde(rename_all = "camelCase")]` to `skill.rs`. H1 passed its tests and T3 run-2 went green against a now-camelCase contract. Subsequent main→builtin-skills merge (`10cd7b0`) brought in `dae96f8`'s _"refactor: remove camelCase serde rename from all aionui-api-types structs"_ without reverting H1, leaving a camelCase island inside a snake_case project. Frontend's own merge from `feat/backend-migration` flipped most fields to snake_case but kept camelCase on pilot-new fields. Net: broken end-to-end contract that user spotted via probe.
 
 **Root cause:** I didn't check the project-wide convention before choosing the fix direction.
 

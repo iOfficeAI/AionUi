@@ -112,9 +112,8 @@ test.describe('Aionrs Chat - Model Selection (P0 + P1)', () => {
       const conversation = await getAionrsConversationDB(page, conversationId);
       expect(conversation).toBeDefined();
 
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       const actualModelUse = String(extra.model?.useModel || '');
       expect(actualModelUse).toBe(preconditions.models!.modelB.useModel);
 
@@ -202,9 +201,8 @@ test.describe('Aionrs Chat - Model Selection (P0 + P1)', () => {
 
       // 1. Verify model switched to modelB in DB
       const conversation = await getAionrsConversationDB(page, conversationId);
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       const currentModel = extra.model?.useModel;
       expect(currentModel).toBe(preconditions.models!.modelB.useModel);
 

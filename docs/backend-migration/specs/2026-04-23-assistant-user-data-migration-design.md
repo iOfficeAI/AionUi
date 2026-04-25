@@ -22,11 +22,11 @@ Rust backend as the single source of truth.
 
 Assistants in AionUi today flow through three sources:
 
-| Source                   | Where it lives today                                            |
-| ------------------------ | --------------------------------------------------------------- |
-| Built-in presets         | Hard-coded in `src/common/config/presets/assistantPresets.ts`   |
-| User-authored presets    | `ConfigStorage.get('assistants')` → `aionui-config.txt`         |
-| Extension-contributed    | Resolved by backend from `contributes.assistants[]`             |
+| Source                | Where it lives today                                          |
+| --------------------- | ------------------------------------------------------------- |
+| Built-in presets      | Hard-coded in `src/common/config/presets/assistantPresets.ts` |
+| User-authored presets | `ConfigStorage.get('assistants')` → `aionui-config.txt`       |
+| Extension-contributed | Resolved by backend from `contributes.assistants[]`           |
 
 The backend already serves **only** extension-contributed assistants via
 `GET /api/extensions/assistants`. Built-ins and user-authored presets never
@@ -114,14 +114,14 @@ export type Assistant = {
   nameI18n: Record<string, string>;
   description?: string;
   descriptionI18n: Record<string, string>;
-  avatar?: string;                    // emoji | full URL | aion-asset:// URL
-  enabled: boolean;                    // from overrides; extension is always true
-  sortOrder: number;                   // from overrides; extension is always 0
-  presetAgentType: string;             // 'gemini' | 'claude' | extension adapter id
+  avatar?: string; // emoji | full URL | aion-asset:// URL
+  enabled: boolean; // from overrides; extension is always true
+  sortOrder: number; // from overrides; extension is always 0
+  presetAgentType: string; // 'gemini' | 'claude' | extension adapter id
   enabledSkills: string[];
   customSkillNames: string[];
   disabledBuiltinSkills: string[];
-  context?: string;                    // inline rule content (extension-only)
+  context?: string; // inline rule content (extension-only)
   contextI18n: Record<string, string>;
   prompts: string[];
   promptsI18n: Record<string, string[]>;
@@ -210,23 +210,23 @@ built-in (resolved in memory), user (in `assistants`), or be a zombie
 
 See the backend-side spec for request/response bodies and error codes.
 
-| Method | Path                                      | Purpose                                        |
-| ------ | ----------------------------------------- | ---------------------------------------------- |
-| GET    | `/api/assistants`                         | List all (built-in + user + extension, merged) |
-| POST   | `/api/assistants`                         | Create user-authored assistant                 |
-| PUT    | `/api/assistants/{id}`                    | Update user-authored assistant definition      |
-| DELETE | `/api/assistants/{id}`                    | Delete user-authored assistant + cascade fs    |
-| PATCH  | `/api/assistants/{id}/state`              | Update `enabled` / `sortOrder` overrides       |
-| POST   | `/api/assistants/import`                  | Batch insert-only (Electron migration entry point; skip on id collision) |
-| GET    | `/api/assistants/{id}/avatar`             | Serve avatar file (built-in / user)            |
-| POST   | `/api/assistants/{id}/avatar`             | Upload avatar (user only)                      |
-| POST   | `/api/skills/assistant-rule/read`         | Source-dispatched rule md read                 |
-| POST   | `/api/skills/assistant-rule/write`        | User-only rule md write (400 for built-in/ext) |
-| DELETE | `/api/skills/assistant-rule/{assistantId}`| User-only rule md delete                       |
-| POST   | `/api/skills/assistant-skill/read`        | Source-dispatched skill md read                |
-| POST   | `/api/skills/assistant-skill/write`       | User-only skill md write (400 for built-in/ext)|
-| DELETE | `/api/skills/assistant-skill/{assistantId}`| User-only skill md delete                     |
-| GET    | `/api/extensions/assistants`              | Existing — stays unchanged                     |
+| Method | Path                                        | Purpose                                                                  |
+| ------ | ------------------------------------------- | ------------------------------------------------------------------------ |
+| GET    | `/api/assistants`                           | List all (built-in + user + extension, merged)                           |
+| POST   | `/api/assistants`                           | Create user-authored assistant                                           |
+| PUT    | `/api/assistants/{id}`                      | Update user-authored assistant definition                                |
+| DELETE | `/api/assistants/{id}`                      | Delete user-authored assistant + cascade fs                              |
+| PATCH  | `/api/assistants/{id}/state`                | Update `enabled` / `sortOrder` overrides                                 |
+| POST   | `/api/assistants/import`                    | Batch insert-only (Electron migration entry point; skip on id collision) |
+| GET    | `/api/assistants/{id}/avatar`               | Serve avatar file (built-in / user)                                      |
+| POST   | `/api/assistants/{id}/avatar`               | Upload avatar (user only)                                                |
+| POST   | `/api/skills/assistant-rule/read`           | Source-dispatched rule md read                                           |
+| POST   | `/api/skills/assistant-rule/write`          | User-only rule md write (400 for built-in/ext)                           |
+| DELETE | `/api/skills/assistant-rule/{assistantId}`  | User-only rule md delete                                                 |
+| POST   | `/api/skills/assistant-skill/read`          | Source-dispatched skill md read                                          |
+| POST   | `/api/skills/assistant-skill/write`         | User-only skill md write (400 for built-in/ext)                          |
+| DELETE | `/api/skills/assistant-skill/{assistantId}` | User-only skill md delete                                                |
+| GET    | `/api/extensions/assistants`                | Existing — stays unchanged                                               |
 
 ## 7. Frontend Refactor Scope
 
@@ -235,12 +235,12 @@ Grep identified **14 files** that touch `ConfigStorage.*assistants` or
 
 ### 7.1 Type layer
 
-| File | Action |
-| --- | --- |
-| `src/common/config/storage.ts` | Remove `assistants?: AcpBackendConfig[]` from `IConfigStorageRefer`. Keep `migration.electronConfigImported` flag (used by migration). |
-| `src/common/types/assistantTypes.ts` | **New** — defines `Assistant`, `AssistantSource`, `CreateAssistantRequest`, `UpdateAssistantRequest`, `SetAssistantStateRequest`, `ImportAssistantsRequest`, `ImportAssistantsResult`, `ImportError`. All shapes must mirror the Rust serde types defined in `aionui-api-types` — changes on either side require a same-PR update on the other. |
-| `src/renderer/pages/settings/AssistantSettings/types.ts` | Replace `AssistantListItem = AcpBackendConfig & {...}` with `import type { Assistant } from '@/common/types/assistantTypes'`. |
-| `src/renderer/pages/settings/AssistantSettings/assistantUtils.ts` | Drop `normalizeExtensionAssistants`, `isExtensionAssistant`, `getAssistantSource`. Simplify `sortAssistants` (backend returns sorted). Keep `isEmoji`, `resolveAvatarImageSrc`. |
+| File                                                              | Action                                                                                                                                                                                                                                                                                                                                          |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `src/common/config/storage.ts`                                    | Remove `assistants?: AcpBackendConfig[]` from `IConfigStorageRefer`. Keep `migration.electronConfigImported` flag (used by migration).                                                                                                                                                                                                          |
+| `src/common/types/assistantTypes.ts`                              | **New** — defines `Assistant`, `AssistantSource`, `CreateAssistantRequest`, `UpdateAssistantRequest`, `SetAssistantStateRequest`, `ImportAssistantsRequest`, `ImportAssistantsResult`, `ImportError`. All shapes must mirror the Rust serde types defined in `aionui-api-types` — changes on either side require a same-PR update on the other. |
+| `src/renderer/pages/settings/AssistantSettings/types.ts`          | Replace `AssistantListItem = AcpBackendConfig & {...}` with `import type { Assistant } from '@/common/types/assistantTypes'`.                                                                                                                                                                                                                   |
+| `src/renderer/pages/settings/AssistantSettings/assistantUtils.ts` | Drop `normalizeExtensionAssistants`, `isExtensionAssistant`, `getAssistantSource`. Simplify `sortAssistants` (backend returns sorted). Keep `isEmoji`, `resolveAvatarImageSrc`.                                                                                                                                                                 |
 
 ### 7.2 IPC bridge additions
 
@@ -250,31 +250,23 @@ Grep identified **14 files** that touch `ConfigStorage.*assistants` or
 export const assistants = {
   list: httpGet<Assistant[], void>('/api/assistants'),
   create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
-  update: httpPut<Assistant, UpdateAssistantRequest>(
-    (p) => `/api/assistants/${p.id}`,
-  ),
-  delete: httpDelete<void, { id: string }>(
-    (p) => `/api/assistants/${p.id}`,
-  ),
-  setState: httpPatch<Assistant, SetAssistantStateRequest>(
-    (p) => `/api/assistants/${p.id}/state`,
-  ),
-  import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>(
-    '/api/assistants/import',
-  ),
+  update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
+  delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
+  setState: httpPatch<Assistant, SetAssistantStateRequest>((p) => `/api/assistants/${p.id}/state`),
+  import: httpPost<ImportAssistantsResult, ImportAssistantsRequest>('/api/assistants/import'),
 };
 ```
 
 ### 7.3 Hook rewrites
 
-| File | Change |
-| --- | --- |
-| `renderer/hooks/assistant/useAssistantList.ts` | Single `ipcBridge.assistants.list.invoke()`; drop merge logic. |
-| `renderer/hooks/assistant/useAssistantEditor.ts` | 4 call sites (create/update/delete/toggle) → backend API. Rule md writes keep calling existing `ipcBridge.fs.writeAssistantRule`. |
-| `renderer/hooks/agent/usePresetAssistantInfo.ts` | Replace `ConfigStorage.get('assistants')`; leave `acp.customAgents` alone. |
-| `renderer/pages/conversation/hooks/useConversationAgents.ts` | Same. |
-| `renderer/pages/guid/hooks/useCustomAgentsLoader.ts` | Replace first arm of `Promise.all`. |
-| `renderer/pages/guid/hooks/usePresetAssistantResolver.ts` | Same. |
+| File                                                         | Change                                                                                                                            |
+| ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
+| `renderer/hooks/assistant/useAssistantList.ts`               | Single `ipcBridge.assistants.list.invoke()`; drop merge logic.                                                                    |
+| `renderer/hooks/assistant/useAssistantEditor.ts`             | 4 call sites (create/update/delete/toggle) → backend API. Rule md writes keep calling existing `ipcBridge.fs.writeAssistantRule`. |
+| `renderer/hooks/agent/usePresetAssistantInfo.ts`             | Replace `ConfigStorage.get('assistants')`; leave `acp.customAgents` alone.                                                        |
+| `renderer/pages/conversation/hooks/useConversationAgents.ts` | Same.                                                                                                                             |
+| `renderer/pages/guid/hooks/useCustomAgentsLoader.ts`         | Replace first arm of `Promise.all`.                                                                                               |
+| `renderer/pages/guid/hooks/usePresetAssistantResolver.ts`    | Same.                                                                                                                             |
 
 ### 7.4 UI component changes
 
@@ -284,10 +276,10 @@ export const assistants = {
 
 ### 7.5 Deletions
 
-| File | Reason |
-| --- | --- |
-| `src/common/config/presets/assistantPresets.ts` | Built-in list moves to backend `assets/builtin-assistants/assistants.json`. |
-| `src/common/utils/presetAssistantResources.ts` | Its merge logic is now in the backend. Delete or reduce to trivial pass-through. |
+| File                                            | Reason                                                                           |
+| ----------------------------------------------- | -------------------------------------------------------------------------------- |
+| `src/common/config/presets/assistantPresets.ts` | Built-in list moves to backend `assets/builtin-assistants/assistants.json`.      |
+| `src/common/utils/presetAssistantResources.ts`  | Its merge logic is now in the backend. Delete or reduce to trivial pass-through. |
 
 ### 7.6 Main-process changes
 
@@ -337,8 +329,7 @@ async function migrateAssistantsToBackend() {
     // file is deleted.
   ]);
   const isLegacyBuiltin = (a) =>
-    typeof a.id === 'string' &&
-    (a.id.startsWith(BUILTIN_ID_PREFIX) || PRESET_ID_WHITELIST.has(a.id));
+    typeof a.id === 'string' && (a.id.startsWith(BUILTIN_ID_PREFIX) || PRESET_ID_WHITELIST.has(a.id));
 
   const userAssistants = legacy.filter((a) => !isLegacyBuiltin(a));
 
@@ -395,12 +386,12 @@ rejected.
 
 ### 8.3 Failure & rollback
 
-| Scenario | Behavior |
-| --- | --- |
-| Backend down at migration time | Flag not set; retries next launch. |
-| `POST /api/assistants/import` partial success | Flag not set; retries next launch. Imports are insert-only so retries skip already-imported rows without clobbering any post-migration user edits. |
-| Backend DB corruption | User resets flag manually; re-migration runs from legacy file. |
-| User downgrades to old AionUi | Old AionUi reads `aionui-config.txt` directly; short-term data divergence is accepted (downgrade is an explicit user action, not guaranteed lossless). |
+| Scenario                                      | Behavior                                                                                                                                               |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Backend down at migration time                | Flag not set; retries next launch.                                                                                                                     |
+| `POST /api/assistants/import` partial success | Flag not set; retries next launch. Imports are insert-only so retries skip already-imported rows without clobbering any post-migration user edits.     |
+| Backend DB corruption                         | User resets flag manually; re-migration runs from legacy file.                                                                                         |
+| User downgrades to old AionUi                 | Old AionUi reads `aionui-config.txt` directly; short-term data divergence is accepted (downgrade is an explicit user action, not guaranteed lossless). |
 
 ### 8.4 Dev/E2E overrides
 
@@ -417,23 +408,23 @@ rejected.
 
 ### 9.1 Team split
 
-| Role | Coverage |
-| --- | --- |
-| backend-dev | Rust unit tests in `aionui-assistant` + HTTP integration in `aionui-app/tests/assistants_e2e.rs` |
-| backend-tester | Probe HTTP endpoints + verify DB side effects (no UI) |
-| frontend-dev | Vitest on hooks + bridge; inline migration test |
-| frontend-tester | Vitest assistantsBridge + migration; `bun run lint --quiet`; `bunx tsc --noEmit` |
-| e2e-tester | Playwright against real Electron on the verification branch |
-| coordinator | Smoke-link E2E, cross-repo PR coordination |
+| Role            | Coverage                                                                                         |
+| --------------- | ------------------------------------------------------------------------------------------------ |
+| backend-dev     | Rust unit tests in `aionui-assistant` + HTTP integration in `aionui-app/tests/assistants_e2e.rs` |
+| backend-tester  | Probe HTTP endpoints + verify DB side effects (no UI)                                            |
+| frontend-dev    | Vitest on hooks + bridge; inline migration test                                                  |
+| frontend-tester | Vitest assistantsBridge + migration; `bun run lint --quiet`; `bunx tsc --noEmit`                 |
+| e2e-tester      | Playwright against real Electron on the verification branch                                      |
+| coordinator     | Smoke-link E2E, cross-repo PR coordination                                                       |
 
 ### 9.2 Frontend test matrix
 
-| File | Scope |
-| --- | --- |
-| `tests/unit/assistantsBridge.test.ts` (new) | 5 bridge methods HTTP-mocked |
-| `tests/unit/assistantHooks.dom.test.ts` (update) | `useAssistantList`, `useAssistantEditor` against the new bridge |
-| `tests/unit/assistantUtils.test.ts` (prune) | Remove `isExtensionAssistant` / `getAssistantSource` tests; keep `isEmoji` |
-| `tests/unit/initStorage.migrate.test.ts` (new) | Migration hook; flag set/not-set; idempotency |
+| File                                             | Scope                                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------------------- |
+| `tests/unit/assistantsBridge.test.ts` (new)      | 5 bridge methods HTTP-mocked                                               |
+| `tests/unit/assistantHooks.dom.test.ts` (update) | `useAssistantList`, `useAssistantEditor` against the new bridge            |
+| `tests/unit/assistantUtils.test.ts` (prune)      | Remove `isExtensionAssistant` / `getAssistantSource` tests; keep `isEmoji` |
+| `tests/unit/initStorage.migrate.test.ts` (new)   | Migration hook; flag set/not-set; idempotency                              |
 
 Gates: `bun run test --run` green; `bunx tsc --noEmit` clean;
 `bun run lint --quiet` no new warnings.
@@ -461,11 +452,11 @@ teammate runs on their own branch and communicates via the coordinator.
 
 ### 10.1 Branches
 
-| Branch | Repo | Base | Owner |
-| --- | --- | --- | --- |
-| `feat/backend-migration-coordinator` | AionUi | (reuse from earlier pilots) | coordinator |
-| `feat/backend-migration-assistant-user-data` | AionUi | current `feat/backend-migration` tip | frontend-dev + frontend-tester + e2e-tester |
-| `feat/assistant-user-data` | aionui-backend | `main` | backend-dev + backend-tester |
+| Branch                                       | Repo           | Base                                 | Owner                                       |
+| -------------------------------------------- | -------------- | ------------------------------------ | ------------------------------------------- |
+| `feat/backend-migration-coordinator`         | AionUi         | (reuse from earlier pilots)          | coordinator                                 |
+| `feat/backend-migration-assistant-user-data` | AionUi         | current `feat/backend-migration` tip | frontend-dev + frontend-tester + e2e-tester |
+| `feat/assistant-user-data`                   | aionui-backend | `main`                               | backend-dev + backend-tester                |
 
 ### 10.2 Task dependency graph
 
@@ -482,7 +473,7 @@ T2a + T4 + T3b → T5 (e2e-tester: Playwright)
 T5 → T6 (coordinator closure + merge)
 ```
 
-**Parallelization rule.** `T3a/T3b` only need the *contract* (types + route
+**Parallelization rule.** `T3a/T3b` only need the _contract_ (types + route
 table produced in T1a), not the Rust implementation. They can proceed on
 the frontend branch while `T1b` runs on the backend branch. `T2a` and `T4`
 test their respective sides independently and run in parallel. Only `T5`

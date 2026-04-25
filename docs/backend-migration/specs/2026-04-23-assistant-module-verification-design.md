@@ -16,15 +16,15 @@ Post-pilot inspection reveals that **the Assistant endpoints were already
 implemented during the Skill-Library pilot** because they share file and code
 paths with skill routes (`skill_routes.rs`, `skill_service.rs`). Specifically:
 
-| Endpoint                                          | Backend status                           | Renderer status                                    |
-| ------------------------------------------------- | ---------------------------------------- | -------------------------------------------------- |
-| `GET /api/extensions/assistants`                  | ✅ `aionui-extension/src/routes.rs:41`    | ✅ `ipcBridge.extensions.getAssistants` declared    |
-| `POST /api/skills/assistant-rule/read`            | ✅ `skill_routes.rs:68`                   | ✅ `ipcBridge.fs.readAssistantRule`                 |
-| `POST /api/skills/assistant-rule/write`           | ✅ `skill_routes.rs:70`                   | ✅ `ipcBridge.fs.writeAssistantRule`                |
-| `DELETE /api/skills/assistant-rule/{id}`          | ✅ `skill_routes.rs:74`                   | ✅ `ipcBridge.fs.deleteAssistantRule`               |
-| `POST /api/skills/assistant-skill/read`           | ✅ `skill_routes.rs:79`                   | ✅ `ipcBridge.fs.readAssistantSkill`                |
-| `POST /api/skills/assistant-skill/write`          | ✅ `skill_routes.rs:83`                   | ✅ `ipcBridge.fs.writeAssistantSkill`               |
-| `DELETE /api/skills/assistant-skill/{id}`         | ✅ `skill_routes.rs:87`                   | ✅ `ipcBridge.fs.deleteAssistantSkill`              |
+| Endpoint                                  | Backend status                         | Renderer status                                  |
+| ----------------------------------------- | -------------------------------------- | ------------------------------------------------ |
+| `GET /api/extensions/assistants`          | ✅ `aionui-extension/src/routes.rs:41` | ✅ `ipcBridge.extensions.getAssistants` declared |
+| `POST /api/skills/assistant-rule/read`    | ✅ `skill_routes.rs:68`                | ✅ `ipcBridge.fs.readAssistantRule`              |
+| `POST /api/skills/assistant-rule/write`   | ✅ `skill_routes.rs:70`                | ✅ `ipcBridge.fs.writeAssistantRule`             |
+| `DELETE /api/skills/assistant-rule/{id}`  | ✅ `skill_routes.rs:74`                | ✅ `ipcBridge.fs.deleteAssistantRule`            |
+| `POST /api/skills/assistant-skill/read`   | ✅ `skill_routes.rs:79`                | ✅ `ipcBridge.fs.readAssistantSkill`             |
+| `POST /api/skills/assistant-skill/write`  | ✅ `skill_routes.rs:83`                | ✅ `ipcBridge.fs.writeAssistantSkill`            |
+| `DELETE /api/skills/assistant-skill/{id}` | ✅ `skill_routes.rs:87`                | ✅ `ipcBridge.fs.deleteAssistantSkill`           |
 
 All 7 endpoints are also exercised by the renderer hooks (`useAssistantList`,
 `useAssistantEditor`, `useAssistantSkills`) already in place.
@@ -43,6 +43,7 @@ confirm that the existing Assistant implementation preserves the pre-migration
 behavior end-to-end.
 
 **In scope:**
+
 - Run Vitest for Assistant-scoped files and fix any auto-unwrap mock issues
   (same class of fix frontend-dev did for SkillsHub).
 - Run the 50+ Assistant e2e tests, classify failures by owner-category
@@ -53,6 +54,7 @@ behavior end-to-end.
 - Document findings + route fixes for anything discovered.
 
 **Out of scope (deferred to separate tickets):**
+
 - Restarting the pipeline as if migration weren't done.
 - Refactoring existing hook code that works.
 - Adding new e2e tests.
@@ -89,13 +91,14 @@ spawns backend-dev as an on-demand teammate.
 
 Flat names, same convention as pilot.
 
-| Branch                                          | Repo           | Base                                   | Owner         |
-| ----------------------------------------------- | -------------- | -------------------------------------- | ------------- |
-| `feat/backend-migration-coordinator`            | AionUi         | (exists, reused)                       | coordinator   |
-| `feat/backend-migration-assistant-verify`       | AionUi         | `origin/feat/backend-migration`        | fe + e2e both work here, serialized |
-| (on-demand) `feat/extension-assistant-fix`      | aionui-backend | `origin/feat/backend-migration`        | backend-dev (only if needed) |
+| Branch                                     | Repo           | Base                            | Owner                               |
+| ------------------------------------------ | -------------- | ------------------------------- | ----------------------------------- |
+| `feat/backend-migration-coordinator`       | AionUi         | (exists, reused)                | coordinator                         |
+| `feat/backend-migration-assistant-verify`  | AionUi         | `origin/feat/backend-migration` | fe + e2e both work here, serialized |
+| (on-demand) `feat/extension-assistant-fix` | aionui-backend | `origin/feat/backend-migration` | backend-dev (only if needed)        |
 
 We don't split fe and e2e into separate branches this time because:
+
 - No large code changes expected (code already migrated in pilot).
 - Assistant e2e helpers need no migration.
 - Merging `kaizhou-lab/test/e2e-coverage` is still needed for the e2e files —
@@ -146,12 +149,12 @@ The verification passes when:
 
 ## 8. Risks
 
-| Risk                                                                     | Mitigation                                                         |
-| ------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| Risk                                                                                 | Mitigation                                                                                         |
+| ------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------- |
 | The SkillsHub state pollution bug (125 dangling symlinks) also affects Assistant e2e | Assistant tests don't hammer the skills dir at N=20 scale; most assertions are UI-level. Low risk. |
-| ipcBridge declarations subtly mismatch backend routes                    | Pre-flight doc check by coordinator (5 min) catches this before teammate time is spent |
-| Unknown backend contract gap like TC-S-17 surfaces                       | Same recovery path: spawn backend-dev for targeted fix             |
-| Test fixture sandbox issue contaminates assistant state the same way     | e2e-tester applies same state-reset pattern as Phase B rerun       |
+| ipcBridge declarations subtly mismatch backend routes                                | Pre-flight doc check by coordinator (5 min) catches this before teammate time is spent             |
+| Unknown backend contract gap like TC-S-17 surfaces                                   | Same recovery path: spawn backend-dev for targeted fix                                             |
+| Test fixture sandbox issue contaminates assistant state the same way                 | e2e-tester applies same state-reset pattern as Phase B rerun                                       |
 
 ## 9. Decision log
 

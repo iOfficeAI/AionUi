@@ -114,9 +114,8 @@ test.describe('Aionrs Chat - Basic Flow (P0)', () => {
       expect(conversation.type).toBe('aionrs');
 
       // Parse extra field
-      const extra = typeof conversation.extra === 'string'
-        ? JSON.parse(conversation.extra || '{}')
-        : (conversation.extra || {});
+      const extra =
+        typeof conversation.extra === 'string' ? JSON.parse(conversation.extra || '{}') : conversation.extra || {};
       expect(['default', 'auto_edit', 'yolo']).toContain(extra.sessionMode);
 
       // 2. Verify user message

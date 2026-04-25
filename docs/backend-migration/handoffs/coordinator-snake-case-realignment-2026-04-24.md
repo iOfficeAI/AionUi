@@ -35,23 +35,23 @@ isCustom, dirPath). Live probes confirmed the mis-alignment end-to-end.
 
 ## Role deliverables
 
-| Role | Final SHA | Deliverable |
-|---|---|---|
-| coordinator | this commit | spec, plan, merge, packaging smoke, this handoff |
-| backend-dev | `326e228` | T1: removed 21 rename_all; flipped 18 tests; audited 13 skills_builtin_e2e + 14 assistants_e2e JSON keys; live probe all directions |
-| frontend-dev | `dba2ef499` | T2: flipped 5 wire-surface sites; incidental SkillInfo type narrowing; Vitest + E2E L259-260 |
-| e2e-tester | `64bddde5c` | T3: audited + flipped 5 more camelCase classes in e2e fixtures; 8/8 green on final run; report appended "Run 3 — post-realign" |
+| Role         | Final SHA   | Deliverable                                                                                                                         |
+| ------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| coordinator  | this commit | spec, plan, merge, packaging smoke, this handoff                                                                                    |
+| backend-dev  | `326e228`   | T1: removed 21 rename_all; flipped 18 tests; audited 13 skills_builtin_e2e + 14 assistants_e2e JSON keys; live probe all directions |
+| frontend-dev | `dba2ef499` | T2: flipped 5 wire-surface sites; incidental SkillInfo type narrowing; Vitest + E2E L259-260                                        |
+| e2e-tester   | `64bddde5c` | T3: audited + flipped 5 more camelCase classes in e2e fixtures; 8/8 green on final run; report appended "Run 3 — post-realign"      |
 
 ## Packaging smoke — coordinator T4.2
 
 Staged `target/release/aionui-backend` alone in `mktemp -d` (no sibling
 `assets/` dir). Probed:
 
-| Probe | Result |
-|---|---|
-| `POST /api/skills/builtin-skill` body `{file_name:...}` | 200 ✅ |
-| `GET /api/skills` row keys | `[description, is_custom, location, name, relative_location, source]` ✅ |
-| `POST /api/skills/materialize-for-agent` body `{conversation_id, enabled_skills}` | 200, `data.dir_path` populated ✅ |
+| Probe                                                                             | Result                                                                   |
+| --------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| `POST /api/skills/builtin-skill` body `{file_name:...}`                           | 200 ✅                                                                   |
+| `GET /api/skills` row keys                                                        | `[description, is_custom, location, name, relative_location, source]` ✅ |
+| `POST /api/skills/materialize-for-agent` body `{conversation_id, enabled_skills}` | 200, `data.dir_path` populated ✅                                        |
 
 Release-binary self-contained; snake_case on the wire end-to-end.
 
@@ -111,10 +111,10 @@ hand-merge needed.
 
 ## Branch tips
 
-| Branch | Repo | SHA |
-|---|---|---|
-| `feat/backend-migration-coordinator` | AionUi | this commit (merge + handoff) |
-| `feat/backend-migration-builtin-skills` | AionUi | `64bddde5c` |
-| `feat/builtin-skills` | aionui-backend | `326e228` |
+| Branch                                  | Repo           | SHA                           |
+| --------------------------------------- | -------------- | ----------------------------- |
+| `feat/backend-migration-coordinator`    | AionUi         | this commit (merge + handoff) |
+| `feat/backend-migration-builtin-skills` | AionUi         | `64bddde5c`                   |
+| `feat/builtin-skills`                   | aionui-backend | `326e228`                     |
 
 No PRs raised per user convention.

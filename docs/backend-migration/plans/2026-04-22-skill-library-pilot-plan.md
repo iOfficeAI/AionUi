@@ -48,27 +48,28 @@ Names are flat (no `/` inside the branch suffix) because nested refs like
 `feat/backend-migration/<child>` collide with the existing
 `feat/backend-migration` ref.
 
-| Branch                                        | Repo             | Base                                                                                                   | Owner         |
-| --------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------ | ------------- |
-| `feat/backend-migration-coordinator`          | AionUi           | `origin/feat/backend-migration`                                                                        | coordinator   |
-| `feat/backend-migration-fe-skill-library`     | AionUi           | `origin/feat/backend-migration`                                                                        | frontend-dev  |
-| `feat/extension-skill-library`                | aionui-backend   | `origin/feat/backend-migration`                                                                        | backend-dev   |
-| `feat/backend-migration-e2e-skill-library`    | AionUi           | `feat/backend-migration-fe-skill-library` + merge `origin/kaizhou-lab/test/e2e-coverage` | e2e-tester    |
+| Branch                                     | Repo           | Base                                                                                     | Owner        |
+| ------------------------------------------ | -------------- | ---------------------------------------------------------------------------------------- | ------------ |
+| `feat/backend-migration-coordinator`       | AionUi         | `origin/feat/backend-migration`                                                          | coordinator  |
+| `feat/backend-migration-fe-skill-library`  | AionUi         | `origin/feat/backend-migration`                                                          | frontend-dev |
+| `feat/extension-skill-library`             | aionui-backend | `origin/feat/backend-migration`                                                          | backend-dev  |
+| `feat/backend-migration-e2e-skill-library` | AionUi         | `feat/backend-migration-fe-skill-library` + merge `origin/kaizhou-lab/test/e2e-coverage` | e2e-tester   |
 
 ## Endpoints in scope
 
 All `GET`/`POST` under `/api/skills/*`. Backend currently has `/api/extensions/*`
 routes but NOT `/api/skills/*` — those have to be built from the TS baseline.
 
-| ID | Renderer API                        | HTTP                              | Request                          | Response                                                                                                |
-| -- | ----------------------------------- | --------------------------------- | -------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| E1 | `ipcBridge.fs.listAvailableSkills`  | `GET /api/skills`                 | none                             | `Array<{ name, description, location, isCustom, source: 'builtin'\|'custom'\|'extension' }>`            |
-| E2 | `ipcBridge.fs.listBuiltinAutoSkills`| `GET /api/skills/builtin-auto`    | none                             | `Array<{ name, description }>`                                                                          |
-| E3 | `ipcBridge.fs.readBuiltinRule`      | `POST /api/skills/builtin-rule`   | `{ fileName: string }`           | `string` (file content)                                                                                 |
-| E4 | `ipcBridge.fs.readBuiltinSkill`     | `POST /api/skills/builtin-skill`  | `{ fileName: string }`           | `string` (file content)                                                                                 |
-| E5 | `ipcBridge.fs.readSkillInfo`        | `POST /api/skills/info`           | `{ skillPath: string }`          | `{ name, description }`                                                                                 |
+| ID  | Renderer API                         | HTTP                             | Request                 | Response                                                                                     |
+| --- | ------------------------------------ | -------------------------------- | ----------------------- | -------------------------------------------------------------------------------------------- |
+| E1  | `ipcBridge.fs.listAvailableSkills`   | `GET /api/skills`                | none                    | `Array<{ name, description, location, isCustom, source: 'builtin'\|'custom'\|'extension' }>` |
+| E2  | `ipcBridge.fs.listBuiltinAutoSkills` | `GET /api/skills/builtin-auto`   | none                    | `Array<{ name, description }>`                                                               |
+| E3  | `ipcBridge.fs.readBuiltinRule`       | `POST /api/skills/builtin-rule`  | `{ fileName: string }`  | `string` (file content)                                                                      |
+| E4  | `ipcBridge.fs.readBuiltinSkill`      | `POST /api/skills/builtin-skill` | `{ fileName: string }`  | `string` (file content)                                                                      |
+| E5  | `ipcBridge.fs.readSkillInfo`         | `POST /api/skills/info`          | `{ skillPath: string }` | `{ name, description }`                                                                      |
 
 **Baseline TS behavior:**
+
 - `ExtensionRegistry.ts` and `resolvers/SkillResolver.ts` for resolved skill
   shape
 - `src/process/resources/skills/` for builtin skill files on disk
@@ -237,6 +238,7 @@ Teammates are spawned one at a time. Rule: only **one AionUi-side teammate
 active at once** (because there is one AionUi working directory).
 
 Spawn order:
+
 1. **backend-dev** (parallel repo) — spawn first, let them work in
    aionui-backend while the AionUi working directory stays on the coordinator
    branch.
@@ -248,6 +250,7 @@ Spawn order:
 
 For each role, use `Agent` with `team_name: "aionui-backend-migration"`,
 `name: "<role>"`, `subagent_type: "general-purpose"`, and a prompt that:
+
 1. Names the teammate, the team, and the coordinator.
 2. States the exact repo + branch and `cd`s into it first thing.
 3. Quotes their task section from this plan verbatim.
@@ -612,6 +615,7 @@ git push
 ```
 
 **Files:**
+
 - `src/renderer/pages/settings/SkillsHubSettings.tsx`
 - `src/renderer/hooks/assistant/useAssistantEditor.ts`
 - `src/common/adapter/ipcBridge.ts` (only if spec changed a path/method)
@@ -656,6 +660,7 @@ documenting symptom / request / response / expected. SendMessage to
 - [ ] **Step 3.3: Exercise E2–E5**
 
 For each remaining endpoint, verify in-UI:
+
 - E2: open Assistant edit drawer → Auto-Skills picker populated
 - E3/E4: open Assistant edit drawer → built-in rule/skill preview loads file
   content
@@ -723,6 +728,7 @@ TaskUpdate Task 3 to `completed`.
 `frontend-dev` has SendMessage'd readiness.
 
 **Files:**
+
 - `docs/backend-migration/e2e-reports/YYYY-MM-DD-skill-library.md` (created)
 
 **Pre-activation (coordinator):** before spawning e2e-tester, confirm
@@ -789,10 +795,13 @@ Create `docs/backend-migration/e2e-reports/YYYY-MM-DD-skill-library.md`:
 **E2E branch commit:** <sha>
 
 ## Cases run
+
 - <test-file>::<case> — PASS / FAIL
 
 ## Failures
+
 For each FAIL:
+
 - Symptom (error excerpt)
 - Request/response captured
 - Repro steps
@@ -844,6 +853,7 @@ git push
 Because AionUi-side roles are serialized, each teammate **writes their
 handoff as the last step of their own task**, before releasing the working
 directory. The handoffs therefore happen in order:
+
 - backend-dev at the end of Task 2 (parallel repo, can happen anytime after
   Task 2 completes)
 - frontend-dev at the end of Task 3
@@ -864,15 +874,19 @@ Structure:
 **Last commit:** <sha>
 
 ## Done
+
 - <bullet list of delivered items>
 
 ## In flight
+
 - <anything partially done, or "none">
 
 ## Known issues / open questions
+
 - <bullets, or "none">
 
 ## Next steps for a successor
+
 - <actionable bullets>
 ```
 
@@ -897,6 +911,7 @@ git checkout feat/backend-migration-coordinator
 Coordinator writes own handoff at
 `docs/backend-migration/handoffs/coordinator-skill-library-<date>.md`
 summarizing:
+
 - Pilot outcome
 - Lessons learned (what worked, what didn't in the workflow itself)
 - Recommended adjustments before starting module #2
@@ -938,6 +953,7 @@ responsibilities reduce to:
    to the right teammate and tracks resolution in TaskList.
 
 Conflict-handling when coordinator merges base → teammate branch:
+
 - Non-semantic conflict (imports, lockfile, format): resolve yourself.
 - Semantic conflict (business logic, types): SendMessage the owning dev with
   a conflict summary and pause the switch until they respond.

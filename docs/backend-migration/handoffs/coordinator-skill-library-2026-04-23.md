@@ -9,24 +9,25 @@ Skill-Library module was the pilot for AionUi's Electron-main-process → `aionu
 
 ### Role deliverables (all branches pushed)
 
-| Role          | Branch                                          | Final SHA       | Deliverables |
-|---------------|-------------------------------------------------|-----------------|--------------|
-| coordinator   | `feat/backend-migration-coordinator` (AionUi)    | this commit     | spec, plan, merged-in pilot docs, this handoff |
-| backend-dev   | `feat/extension-skill-library` (aionui-backend)  | `274f8ab`       | 10 commits: spec draft, E1–E5 impl/tests, source-field fix, 2 handoffs |
-| frontend-dev  | `feat/backend-migration-fe-skill-library` (AionUi) | `316f63beb`   | 6 commits: 3 test mock fixes, module log, 2 handoffs |
-| frontend-dev  | `feat/backend-migration-e2e-skill-library` (AionUi) | `21cf93c6b`  | 4 commits on this branch for Task 4-fix: helper IPC→HTTP migration (incl. new `tests/e2e/helpers/httpBridge.ts`), PATH note, handoff |
-| e2e-tester-2  | `feat/backend-migration-e2e-skill-library` (AionUi) | `148e2c592`  | 5 commits: e2e report (3 phases), handoff (3 versions), post-pilot followup list |
+| Role         | Branch                                              | Final SHA   | Deliverables                                                                                                                         |
+| ------------ | --------------------------------------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| coordinator  | `feat/backend-migration-coordinator` (AionUi)       | this commit | spec, plan, merged-in pilot docs, this handoff                                                                                       |
+| backend-dev  | `feat/extension-skill-library` (aionui-backend)     | `274f8ab`   | 10 commits: spec draft, E1–E5 impl/tests, source-field fix, 2 handoffs                                                               |
+| frontend-dev | `feat/backend-migration-fe-skill-library` (AionUi)  | `316f63beb` | 6 commits: 3 test mock fixes, module log, 2 handoffs                                                                                 |
+| frontend-dev | `feat/backend-migration-e2e-skill-library` (AionUi) | `21cf93c6b` | 4 commits on this branch for Task 4-fix: helper IPC→HTTP migration (incl. new `tests/e2e/helpers/httpBridge.ts`), PATH note, handoff |
+| e2e-tester-2 | `feat/backend-migration-e2e-skill-library` (AionUi) | `148e2c592` | 5 commits: e2e report (3 phases), handoff (3 versions), post-pilot followup list                                                     |
 
 ### Pilot success criteria (from spec §6.3)
 
-| Criterion | Status |
-|-----------|--------|
+| Criterion                                                                           | Status                                                                    |
+| ----------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | E2E suite covering Skill-Library endpoints passes against the integrated fe+backend | **Partial** — 22/29 pass (78%), Class D (transport/migration) = 0 failing |
-| All four teammate branches pushed and current w.r.t. base | ✅ |
-| Each teammate has a handoff file | ✅ (backend-dev, frontend-dev, e2e-tester, this coordinator handoff) |
-| `docs/backend-migration/modules/skill-library.md` summarizes the migration | ✅ (with final outcome section appended) |
+| All four teammate branches pushed and current w.r.t. base                           | ✅                                                                        |
+| Each teammate has a handoff file                                                    | ✅ (backend-dev, frontend-dev, e2e-tester, this coordinator handoff)      |
+| `docs/backend-migration/modules/skill-library.md` summarizes the migration          | ✅ (with final outcome section appended)                                  |
 
 **Pilot verdict: SUCCESS with documented follow-ups.** Rationale:
+
 - The success criterion's intent was "prove the end-to-end migration works for this module". Class D (5 tests) directly exercised the migrated path and all pass, including the last contract gap (`ExternalSkillSourceResponse.source` field) caught and fixed mid-pilot. That validates the migration.
 - The 7 remaining failures are documented in `docs/backend-migration/post-pilot/2026-04-23-skill-library-followups.md` and categorized as: 1 pre-existing TS gap inherited (TC-S-17), 1 test-infra confound (TC-S-25, 125-symlinks state pollution), 4 test-authoring (Class B/C/E), 1 test state-leak (TC-S-15). None is a migration regression.
 
@@ -39,14 +40,17 @@ None. All teammates idle and pending shutdown.
 Captured in `docs/backend-migration/post-pilot/2026-04-23-skill-library-followups.md`. Summary:
 
 ### P0 — blocks module-2 start
+
 1. **TC-S-17 backend contract fix**: `POST /api/skills/external-paths` must reject duplicate paths with 4xx. ~1-file Rust fix.
 2. **Test-infra sandbox**: `fixtures.ts` must also isolate `~/.aionui/skills/` and `~/.aionui/custom-skill-paths.json`. Backend's `resolve_skill_paths` and `build_extension_states` must respect `--data-dir` instead of hardcoding `dirs::home_dir().join(".aionui")`.
 
 ### P1 — test-authoring debt (move alongside module-2 work)
+
 - Classes B/C/E (TC-S-06, 08, 15, 27, 28): fixture assumptions don't hold in sandbox.
 - TC-S-15 state-leak: `afterEach` cleanup must run on test failure.
 
 ### P2 — scale investigation (non-blocking)
+
 - TC-S-25 bulk-import at N=20 shows 3 of 20 cards. Needs instrumentation in `list_available_skills`; hypothesized to be a dangling-symlink filter issue at scale.
 
 ## Lessons learned (for future modules)
@@ -73,11 +77,11 @@ The user has pre-approved starting **Assistant module migration** after this pil
 
 ## Branch tips at closure
 
-| Branch | Repo | SHA |
-|--------|------|-----|
-| `feat/backend-migration-coordinator` | AionUi | (this commit) |
-| `feat/backend-migration-fe-skill-library` | AionUi | `316f63beb` |
-| `feat/backend-migration-e2e-skill-library` | AionUi | `148e2c592` |
-| `feat/extension-skill-library` | aionui-backend | `274f8ab` |
+| Branch                                     | Repo           | SHA           |
+| ------------------------------------------ | -------------- | ------------- |
+| `feat/backend-migration-coordinator`       | AionUi         | (this commit) |
+| `feat/backend-migration-fe-skill-library`  | AionUi         | `316f63beb`   |
+| `feat/backend-migration-e2e-skill-library` | AionUi         | `148e2c592`   |
+| `feat/extension-skill-library`             | aionui-backend | `274f8ab`     |
 
 Per spec §5.2 and user instruction, **none of these branches are merged back into `feat/backend-migration`** in either repo. Integration is a separate user-approved step.
