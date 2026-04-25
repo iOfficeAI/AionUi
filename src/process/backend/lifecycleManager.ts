@@ -15,11 +15,13 @@ type SpawnConfig = {
   port: number;
   dbPath: string;
   local: boolean;
+  logDir?: string;
 };
 
 export function buildSpawnArgs(config: SpawnConfig): string[] {
   const logLevel = process.env.AIONUI_LOG_LEVEL || 'info';
   const args = ['--port', String(config.port), '--data-dir', config.dbPath, '--log-level', logLevel];
+  if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.local) args.push('--local');
   return args;
 }
@@ -45,6 +47,7 @@ export class BackendLifecycleManager {
   private _port = 0;
   private _status: BackendStatus = 'stopped';
   private _lastDbPath = '';
+  private _lastLogDir?: string;
   private restartCount = 0;
   private restartWindowStart = 0;
   private readonly maxRestarts = 3;
@@ -58,13 +61,14 @@ export class BackendLifecycleManager {
     return this._status;
   }
 
-  async start(dbPath: string): Promise<number> {
+  async start(dbPath: string, logDir?: string): Promise<number> {
     const binaryPath = resolveBinaryPath();
     this._port = await findAvailablePort();
     this._status = 'starting';
     this._lastDbPath = dbPath;
+    this._lastLogDir = logDir;
 
-    const args = buildSpawnArgs({ port: this._port, dbPath, local: true });
+    const args = buildSpawnArgs({ port: this._port, dbPath, local: true, logDir });
     console.log(`[aionui-backend] starting: ${binaryPath} ${args.join(' ')}`);
 
     this.childProcess = spawn(binaryPath, args, {
@@ -165,7 +169,7 @@ export class BackendLifecycleManager {
     setTimeout(() => {
       if (this._status === 'stopped') return;
       this._status = 'starting';
-      this.start(this._lastDbPath).catch(() => {
+      this.start(this._lastDbPath, this._lastLogDir).catch(() => {
         this._status = 'error';
       });
     }, delay);

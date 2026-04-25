@@ -465,7 +465,8 @@ const handleAppReady = async (): Promise<void> => {
   let backendStartedOk = false;
   try {
     const { getDataPath } = await import('./process/utils/utils');
-    const backendPort = await backendManager.start(getDataPath());
+    const { getSystemDir } = await import('./process/utils/initStorage');
+    const backendPort = await backendManager.start(getDataPath(), getSystemDir().logDir);
     mark(`backendManager.start (port=${backendPort})`);
     // Expose the backend port to main-process callers of httpBridge (e.g. the
     // one-shot assistant migration hook below). Must land BEFORE any
