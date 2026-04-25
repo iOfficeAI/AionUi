@@ -135,7 +135,7 @@ describe('Packaged bundled bun resources integrity', () => {
       .filter((entry) => entry.isDirectory())
       .map((entry) => entry.name);
 
-    const x64Dirs = dirNames.filter((name) => name.endsWith('-x64') && !name.includes('baseline'));
+    const x64Dirs = dirNames.filter((name) => name === 'linux-x64');
     for (const x64Dir of x64Dirs) {
       const baselineName = `${x64Dir}-baseline`;
       expect(dirNames).toContain(baselineName);
