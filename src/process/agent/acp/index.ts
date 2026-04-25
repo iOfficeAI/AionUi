@@ -270,6 +270,10 @@ export class AcpAgent {
     try {
       this.emitStatusMessage('connecting');
 
+      // Build custom environment variables from Model Providers
+      const customEnvFromProviders = await this.buildCustomEnv();
+      const mergedCustomEnv = { ...this.extra.customEnv, ...customEnvFromProviders };
+
       const connectStart = Date.now();
       const tryConnect = async () => {
         const connectTimeoutMs = this.getConnectTimeoutMs();
@@ -288,7 +292,7 @@ export class AcpAgent {
               this.extra.cliPath,
               this.extra.workspace,
               this.extra.customArgs,
-              this.extra.customEnv
+              mergedCustomEnv
             ),
             connectTimeoutPromise,
           ]);
@@ -1864,6 +1868,54 @@ export class AcpAgent {
         [this.extra.backend]: snapshot.modes,
       });
     }
+  }
+
+  /**
+   * Build custom environment variables from Model Providers.
+   * Injects API endpoints and keys for CLI tools to use.
+   */
+  private async buildCustomEnv(): Promise<Record<string, string>> {
+    const env: Record<string, string> = {};
+
+    try {
+      const providers = (await ProcessConfig.get('model.config')) || [];
+
+      for (const provider of providers) {
+        if (provider.enabled === false) continue;
+
+        const platform = provider.platform?.toLowerCase() || '';
+
+        // OpenAI-compatible APIs (OpenAI, OpenRouter, etc.)
+        if (platform.includes('openai') || platform.includes('openrouter')) {
+          if (provider.baseUrl && !env.OPENAI_API_BASE) {
+            env.OPENAI_API_BASE = provider.baseUrl;
+          }
+          if (provider.apiKey && !env.OPENAI_API_KEY) {
+            env.OPENAI_API_KEY = provider.apiKey;
+          }
+        }
+
+        // Anthropic API
+        if (platform.includes('anthropic') || platform.includes('claude')) {
+          if (provider.baseUrl && !env.ANTHROPIC_API_URL) {
+            env.ANTHROPIC_API_URL = provider.baseUrl;
+          }
+          if (provider.apiKey && !env.ANTHROPIC_API_KEY) {
+            env.ANTHROPIC_API_KEY = provider.apiKey;
+          }
+        }
+
+        // Add more platforms as needed
+      }
+
+      if (Object.keys(env).length > 0) {
+        console.log('[AcpAgent] Custom env variables injected:', Object.keys(env).join(', '));
+      }
+    } catch (error) {
+      console.warn('[AcpAgent] Failed to build custom env:', error);
+    }
+
+    return env;
   }
 
   /**
