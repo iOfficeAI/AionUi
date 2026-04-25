@@ -44,7 +44,7 @@ import type {
   SetAssistantStateRequest,
   UpdateAssistantRequest,
 } from '../types/assistantTypes';
-import { toApiModel, toApiModelOptional } from './apiModelMapper';
+import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
 import {
   httpGet,
   httpPost,
@@ -55,6 +55,7 @@ import {
   wsMappedEmitter,
   stubProvider,
   stubEmitter,
+  withResponseMap,
 } from './httpBridge';
 
 // ---------------------------------------------------------------------------
@@ -95,31 +96,44 @@ export const assistants = {
 // ---------------------------------------------------------------------------
 
 export const conversation = {
-  create: httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => ({
-    type: p.type,
-    id: p.id,
-    name: p.name,
-    model: toApiModelOptional(p.model),
-    extra: p.extra,
-  })),
-  createWithConversation: httpPost<
-    TChatConversation,
-    { conversation: TChatConversation; sourceConversationId?: string; migrateCron?: boolean }
-  >('/api/conversations/clone', (p) => ({
-    source_conversation_id: p.sourceConversationId,
-    migrate_cron: p.migrateCron,
-    conversation: {
-      ...p.conversation,
-      model:
-        'model' in p.conversation ? toApiModel((p.conversation as { model: TProviderWithModel }).model) : undefined,
-    },
-  })),
-  get: httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`),
-  getAssociateConversation: httpGet<TChatConversation[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/associated`
+  create: withResponseMap(
+    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => ({
+      type: p.type,
+      id: p.id,
+      name: p.name,
+      model: toApiModelOptional(p.model),
+      extra: p.extra,
+    })),
+    fromApiConversation
   ),
-  listByCronJob: httpGet<TChatConversation[], { cronJobId: string }>(
-    (p) => `/api/cron/jobs/${p.cronJobId}/conversations`
+  createWithConversation: withResponseMap(
+    httpPost<
+      TChatConversation,
+      { conversation: TChatConversation; sourceConversationId?: string; migrateCron?: boolean }
+    >('/api/conversations/clone', (p) => ({
+      source_conversation_id: p.sourceConversationId,
+      migrate_cron: p.migrateCron,
+      conversation: {
+        ...p.conversation,
+        model:
+          'model' in p.conversation ? toApiModel((p.conversation as { model: TProviderWithModel }).model) : undefined,
+      },
+    })),
+    fromApiConversation
+  ),
+  get: withResponseMap(
+    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`),
+    fromApiConversation
+  ),
+  getAssociateConversation: withResponseMap(
+    httpGet<TChatConversation[], { conversation_id: string }>(
+      (p) => `/api/conversations/${p.conversation_id}/associated`
+    ),
+    (list) => list.map(fromApiConversation)
+  ),
+  listByCronJob: withResponseMap(
+    httpGet<TChatConversation[], { cronJobId: string }>((p) => `/api/cron/jobs/${p.cronJobId}/conversations`),
+    (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }>(
@@ -748,16 +762,18 @@ export const database = {
     (p) =>
       `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}${p.order ? `&order=${p.order}` : ''}`
   ),
-  getUserConversations: httpGet<
-    PaginatedResult<import('@/common/config/storage').TChatConversation>,
-    { cursor?: string; limit?: number }
-  >((p) => {
-    const params = new URLSearchParams();
-    if (p.cursor) params.set('cursor', p.cursor);
-    if (p.limit) params.set('limit', String(p.limit));
-    const qs = params.toString();
-    return `/api/conversations${qs ? `?${qs}` : ''}`;
-  }),
+  getUserConversations: withResponseMap(
+    httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
+      (p) => {
+        const params = new URLSearchParams();
+        if (p.cursor) params.set('cursor', p.cursor);
+        if (p.limit) params.set('limit', String(p.limit));
+        const qs = params.toString();
+        return `/api/conversations${qs ? `?${qs}` : ''}`;
+      }
+    ),
+    fromApiPaginatedConversations
+  ),
   searchConversationMessages: httpGet<
     PaginatedResult<import('../types/database').IMessageSearchItem>,
     { keyword: string; page?: number; pageSize?: number }
@@ -959,8 +975,8 @@ export const webui = {
 
 export const cron = {
   listJobs: httpGet<ICronJob[], void>('/api/cron/jobs'),
-  listJobsByConversation: httpGet<ICronJob[], { conversationId: string }>(
-    (p) => `/api/cron/jobs?conversationId=${encodeURIComponent(p.conversationId)}`
+  listJobsByConversation: httpGet<ICronJob[], { conversation_id: string }>(
+    (p) => `/api/cron/jobs?conversation_id=${encodeURIComponent(p.conversation_id)}`
   ),
   getJob: httpGet<ICronJob | null, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}`),
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),

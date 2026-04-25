@@ -102,6 +102,19 @@ type ProviderLike<Data, Params> = {
   invoke: Params extends undefined ? () => Promise<Data> : (params: Params) => Promise<Data>;
 };
 
+export function withResponseMap<Raw, Mapped, Params>(
+  inner: ProviderLike<Raw, Params>,
+  map: (data: Raw) => Mapped
+): ProviderLike<Mapped, Params> {
+  return {
+    provider: () => {},
+    invoke: (async (params?: Params) => {
+      const raw = await (inner.invoke as (p?: Params) => Promise<Raw>)(params);
+      return map(raw);
+    }) as ProviderLike<Mapped, Params>['invoke'],
+  };
+}
+
 export function httpGet<Data, Params = undefined>(
   path: string | ((params: Params) => string)
 ): ProviderLike<Data, Params> {
