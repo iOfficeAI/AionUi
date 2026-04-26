@@ -7,6 +7,7 @@
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import { createServer } from 'node:net';
+import { app } from 'electron';
 import { resolveBinaryPath } from './binaryResolver';
 
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
@@ -19,7 +20,7 @@ type SpawnConfig = {
 };
 
 export function buildSpawnArgs(config: SpawnConfig): string[] {
-  const logLevel = process.env.AIONUI_LOG_LEVEL || 'info';
+  const logLevel = process.env.AIONUI_LOG_LEVEL || (app.isPackaged ? 'info' : 'debug');
   const args = ['--port', String(config.port), '--data-dir', config.dbPath, '--log-level', logLevel];
   if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.local) args.push('--local');
