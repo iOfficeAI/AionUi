@@ -168,6 +168,7 @@ const AionrsSendBox: React.FC<{
         addOrUpdateMessage(
           {
             id: msg_id,
+            msg_id,
             type: 'text',
             position: 'right',
             conversation_id,

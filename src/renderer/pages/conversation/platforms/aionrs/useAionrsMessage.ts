@@ -222,7 +222,11 @@ export const useAionrsMessage = (
           break;
         default: {
           if (message.type === 'error') {
+            setStreamRunning(false);
+            streamRunningRef.current = false;
             setWaitingResponse(false);
+            waitingResponseRef.current = false;
+            setThought({ subject: '', description: '' });
             onError?.(message as IResponseMessage);
           } else {
             // Mark that current turn has content output (exclude error type)
