@@ -1,8 +1,10 @@
 import { ipcBridge } from '@/common';
 import type { IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
+import { showNotification } from '@process/bridge/notificationBridge';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { getDatabase } from '@process/services/database';
+import i18n, { i18nReady } from '@process/services/i18n';
 import { mainWarn } from '@process/utils/mainLogger';
 import type { AgentStatus } from './agentTypes';
 
@@ -16,6 +18,14 @@ export type TurnCompletionContext = {
   modelId?: string;
   modelLabel?: string;
   pendingConfirmations?: number;
+};
+
+const hasScheduledTaskMarker = (conversation: TChatConversation | undefined): boolean => {
+  return typeof conversation?.extra?.cronJobId === 'string' && conversation.extra.cronJobId.length > 0;
+};
+
+const getConversationNotificationTitle = (conversation: TChatConversation | undefined): string => {
+  return conversation?.name?.trim() || i18n.t('cron.notification.taskComplete');
 };
 
 export class ConversationTurnCompletionService {
@@ -95,5 +105,26 @@ export class ConversationTurnCompletionService {
     };
 
     ipcBridge.conversation?.turnCompleted?.emit?.(event);
+    await this.showCompletionNotification(conversation, event);
+  }
+
+  private async showCompletionNotification(
+    conversation: TChatConversation | undefined,
+    event: IConversationTurnCompletedEvent
+  ): Promise<void> {
+    if (hasScheduledTaskMarker(conversation)) {
+      return;
+    }
+
+    try {
+      await i18nReady;
+      await showNotification({
+        title: getConversationNotificationTitle(conversation),
+        body: i18n.t('cron.notification.taskDone'),
+        conversationId: event.sessionId,
+      });
+    } catch (error) {
+      mainWarn('[ConversationTurnCompletionService]', 'Failed to show completion notification', error);
+    }
   }
 }

@@ -10,6 +10,12 @@ const getConversationMessages = vi.fn();
 const getConversationRuntimeTask = vi.fn();
 const cronBusyGuardIsProcessing = vi.fn();
 const cronBusyGuardGetLastActiveAt = vi.fn();
+const showNotification = vi.fn(async () => {});
+const i18nT = vi.fn((key: string) => {
+  if (key === 'cron.notification.taskComplete') return 'Task Complete';
+  if (key === 'cron.notification.taskDone') return 'Task done';
+  return key;
+});
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -33,6 +39,9 @@ vi.mock('@process/utils/message', () => ({
 }));
 
 vi.mock('@process/services/database', () => ({
+  getDatabase: vi.fn(async () => ({
+    getConversation,
+  })),
   getDatabaseSync: vi.fn(() => ({
     getConversation,
     getConversationMessages,
@@ -48,6 +57,17 @@ vi.mock('@process/services/cron/CronBusyGuard', () => ({
     isProcessing: cronBusyGuardIsProcessing,
     getLastActiveAt: cronBusyGuardGetLastActiveAt,
   },
+}));
+
+vi.mock('@process/bridge/notificationBridge', () => ({
+  showNotification,
+}));
+
+vi.mock('@process/services/i18n', () => ({
+  default: {
+    t: i18nT,
+  },
+  i18nReady: Promise.resolve(),
 }));
 
 const buildConversation = () => ({
@@ -106,6 +126,13 @@ describe('ConversationTurnCompletionService', () => {
     cronBusyGuardIsProcessing.mockReturnValue(false);
     cronBusyGuardGetLastActiveAt.mockReset();
     cronBusyGuardGetLastActiveAt.mockReturnValue(undefined);
+    showNotification.mockClear();
+    i18nT.mockClear();
+    i18nT.mockImplementation((key: string) => {
+      if (key === 'cron.notification.taskComplete') return 'Task Complete';
+      if (key === 'cron.notification.taskDone') return 'Task done';
+      return key;
+    });
   });
 
   it('notifies in-process listeners when a turn completes', async () => {
@@ -137,6 +164,51 @@ describe('ConversationTurnCompletionService', () => {
         }),
       })
     );
+  });
+
+  it('shows a notification when a regular turn completes', async () => {
+    const { ConversationTurnCompletionService } =
+      await import('../../../src/process/services/ConversationTurnCompletionService');
+
+    await ConversationTurnCompletionService.getInstance().notifyPotentialCompletion('session-1');
+
+    expect(showNotification).toHaveBeenCalledWith({
+      title: 'Hello',
+      body: 'Task done',
+      conversationId: 'session-1',
+    });
+  });
+
+  it('does not send the regular completion notification for scheduled task conversations', async () => {
+    getConversation.mockReturnValue({
+      success: true,
+      data: {
+        ...buildConversation(),
+        extra: {
+          ...buildConversation().extra,
+          cronJobId: 'cron-1',
+        },
+      },
+    });
+    const { ConversationTurnCompletionService } =
+      await import('../../../src/process/services/ConversationTurnCompletionService');
+
+    await ConversationTurnCompletionService.getInstance().notifyPotentialCompletion('session-1');
+
+    expect(showNotification).not.toHaveBeenCalled();
+  });
+
+  it('shows a notification when the legacy task completion service emits a regular completion', async () => {
+    const { ConversationTurnCompletionService } =
+      await import('../../../src/process/task/ConversationTurnCompletionService');
+
+    await ConversationTurnCompletionService.getInstance().notifyPotentialCompletion('session-1');
+
+    expect(showNotification).toHaveBeenCalledWith({
+      title: 'Hello',
+      body: 'Task done',
+      conversationId: 'session-1',
+    });
   });
 
   it('keeps emitting to bridge clients even when a local listener fails', async () => {

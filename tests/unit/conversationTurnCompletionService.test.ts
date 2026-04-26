@@ -15,6 +15,12 @@ const getTask = vi.fn(() => undefined);
 const getConversationRuntimeTask = vi.fn(() => ({ task: undefined }));
 const isProcessing = vi.fn(() => false);
 const getLastActiveAt = vi.fn(() => undefined);
+const showNotification = vi.fn(async () => {});
+const i18nT = vi.fn((key: string) => {
+  if (key === 'cron.notification.taskComplete') return 'Task Complete';
+  if (key === 'cron.notification.taskDone') return 'Task done';
+  return key;
+});
 const buildDatabaseMock = () => ({
   getConversation: vi.fn(() => ({
     success: true,
@@ -93,6 +99,17 @@ vi.mock('@process/services/cron/CronBusyGuard', () => ({
   },
 }));
 
+vi.mock('@process/bridge/notificationBridge', () => ({
+  showNotification,
+}));
+
+vi.mock('@process/services/i18n', () => ({
+  default: {
+    t: i18nT,
+  },
+  i18nReady: Promise.resolve(),
+}));
+
 vi.mock('@process/services/database', () => ({
   getDatabase: async () => buildDatabaseMock(),
   getDatabaseSync: () => buildDatabaseMock(),
@@ -118,6 +135,13 @@ describe('ConversationTurnCompletionService', () => {
     isProcessing.mockReturnValue(false);
     getLastActiveAt.mockReset();
     getLastActiveAt.mockReturnValue(undefined);
+    showNotification.mockClear();
+    i18nT.mockClear();
+    i18nT.mockImplementation((key: string) => {
+      if (key === 'cron.notification.taskComplete') return 'Task Complete';
+      if (key === 'cron.notification.taskDone') return 'Task done';
+      return key;
+    });
     vi.resetModules();
   });
 

@@ -11,6 +11,8 @@ import { getDatabaseSync } from '@process/services/database';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { conversationLiveStateService } from '@process/services/ConversationLiveStateService';
 import { getConversationRuntimeTask } from '@process/services/ConversationRuntimeService';
+import { showNotification } from '@process/bridge/notificationBridge';
+import i18n, { i18nReady } from '@process/services/i18n';
 import { flushConversationMessages } from '@process/utils/message';
 
 export type ConversationStatusValue = 'pending' | 'running' | 'finished';
@@ -64,6 +66,14 @@ const RETRY_COUNT = 20;
 const RETRY_DELAY_MS = 100;
 const EMITTED_KEY_TTL_MS = 60 * 60 * 1000;
 const STALE_PROCESSING_AFTER_MS = 2 * 60 * 1000;
+
+const hasScheduledTaskMarker = (conversation: TChatConversation): boolean => {
+  return typeof conversation.extra?.cronJobId === 'string' && conversation.extra.cronJobId.length > 0;
+};
+
+const getConversationNotificationTitle = (conversation: TChatConversation): string => {
+  return conversation.name?.trim() || i18n.t('cron.notification.taskComplete');
+};
 
 const isErrorMessage = (message: StatusMessage | null): boolean => {
   if (!message) return false;
@@ -392,6 +402,7 @@ export class ConversationTurnCompletionService {
         this.pruneEmittedKeys();
         this.emittedKeys.set(sessionId, { key: emittedKey, timestamp: Date.now() });
         this.emitTurnCompleted(event);
+        await this.showCompletionNotification(snapshot.conversation, event);
         return;
       }
 
@@ -458,6 +469,26 @@ export class ConversationTurnCompletionService {
       } catch (error) {
         console.error('[ConversationTurnCompletionService] turnCompleted listener failed:', error);
       }
+    }
+  }
+
+  private async showCompletionNotification(
+    conversation: TChatConversation,
+    event: IConversationTurnCompletedEvent
+  ): Promise<void> {
+    if (hasScheduledTaskMarker(conversation)) {
+      return;
+    }
+
+    try {
+      await i18nReady;
+      await showNotification({
+        title: getConversationNotificationTitle(conversation),
+        body: i18n.t('cron.notification.taskDone'),
+        conversationId: event.sessionId,
+      });
+    } catch (error) {
+      console.error('[ConversationTurnCompletionService] completion notification failed:', error);
     }
   }
 

@@ -34,6 +34,14 @@ type AionrsApprovalKey = IApprovalKey & {
   identifier?: string;
 };
 
+function isActiveAionrsToolStatus(status: unknown): boolean {
+  return status === 'Executing' || status === 'Confirming' || status === 'Pending';
+}
+
+function isTerminalAionrsToolStatus(status: unknown): boolean {
+  return status === 'Success' || status === 'Error' || status === 'Canceled';
+}
+
 function isValidCommandName(name: string): boolean {
   return /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name);
 }
@@ -140,6 +148,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
   private agentStartError: Error | null = null;
+  private readonly activeToolCallIds = new Set<string>();
 
   // Finish fallback state
   private missingFinishFallbackTimer: ReturnType<typeof setTimeout> | null = null;
@@ -273,6 +282,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   async stop() {
     this.clearMissingFinishFallback();
+    this.activeToolCallIds.clear();
     this.flushAllBufferedStreamTexts();
     cronBusyGuard.setProcessing(this.conversation_id, false);
     this.confirmations = [];
@@ -573,10 +583,31 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
+  private updateActiveToolState(data: unknown): void {
+    if (!Array.isArray(data)) return;
+
+    for (const item of data) {
+      if (!item || typeof item !== 'object') continue;
+      const { callId, status } = item as { callId?: unknown; status?: unknown };
+      if (typeof callId !== 'string') continue;
+
+      if (isActiveAionrsToolStatus(status)) {
+        this.activeToolCallIds.add(callId);
+      } else if (isTerminalAionrsToolStatus(status)) {
+        this.activeToolCallIds.delete(callId);
+      }
+    }
+  }
+
   private handleMissingFinishFallback(): void {
     this.clearMissingFinishFallback();
 
     if (this.getConfirmations().length > 0) {
+      return;
+    }
+
+    if (this.activeToolCallIds.size > 0) {
+      this.scheduleMissingFinishFallback();
       return;
     }
 
@@ -626,6 +657,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       // System-level events (empty msg_id) are not part of a conversation turn.
       // Skip stream processing to avoid false-positive running state and fallback timer.
       if (!data.msg_id) return;
+
+      if (data.type === 'start' || data.type === 'finish' || data.type === 'error') {
+        this.activeToolCallIds.clear();
+      } else if (data.type === 'tool_group') {
+        this.updateActiveToolState(data.data);
+      }
 
       // Restart fallback timer on every non-finish event (activity heartbeat)
       if (data.type !== 'finish') {

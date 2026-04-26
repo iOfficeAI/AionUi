@@ -392,6 +392,47 @@ describe('GAP-3: AionrsManager Finish Fallback Mechanism', () => {
     });
   });
 
+  describe('AC-4b: fallback waits while tools are active', () => {
+    it('does not synthesize finish while a tool is still executing', () => {
+      emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
+      emitEvent(manager, {
+        type: 'tool_group',
+        data: [{ name: 'Bash', status: 'Executing', callId: 'call-1' }],
+        msg_id: 'msg-1',
+      });
+
+      vi.advanceTimersByTime(FALLBACK_DELAY_MS);
+
+      expect(findEmissions('finish')).toHaveLength(0);
+      expect(manager.status).toBe('running');
+
+      vi.advanceTimersByTime(FALLBACK_DELAY_MS);
+
+      expect(findEmissions('finish')).toHaveLength(0);
+    });
+
+    it('allows fallback after the active tool reaches a terminal state', () => {
+      emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
+      emitEvent(manager, {
+        type: 'tool_group',
+        data: [{ name: 'Bash', status: 'Executing', callId: 'call-1' }],
+        msg_id: 'msg-1',
+      });
+
+      vi.advanceTimersByTime(FALLBACK_DELAY_MS);
+
+      emitEvent(manager, {
+        type: 'tool_group',
+        data: [{ name: 'Bash', status: 'Success', callId: 'call-1', resultDisplay: 'done' }],
+        msg_id: 'msg-1',
+      });
+
+      vi.advanceTimersByTime(FALLBACK_DELAY_MS);
+
+      expect(findEmissions('finish').length).toBeGreaterThanOrEqual(1);
+    });
+  });
+
   // ── AC-5: Warning log ──────────────────────────────────────────
 
   describe('AC-5: mainWarn logged on fallback', () => {
