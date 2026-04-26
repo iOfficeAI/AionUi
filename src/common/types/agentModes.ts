@@ -19,6 +19,7 @@ const FULL_AUTO_MODE: Record<string, string> = {
   codex: CODEX_MODE_FULL_AUTO,
   cursor: 'agent',
   snow: 'yolo',
+  copilot: 'yolo',
 };
 
 /**

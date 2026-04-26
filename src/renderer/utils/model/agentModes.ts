@@ -38,6 +38,7 @@ export interface AgentModeOption {
  * - Codex: default modes stay sandboxed; a dedicated unsafe full-auto mode disables the sandbox
  * - Goose: mode set at startup only, not during session
  * - Cursor: agent/plan/ask modes via ACP session/set_mode (verified via `agent acp` session/new response)
+ * - Copilot: default/yolo modes via ACP session/set_mode
  */
 export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   claude: [
@@ -80,6 +81,10 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   ],
   snow: [
     { value: 'default', label: 'Agent', description: 'Full agent mode with tool access' },
+    { value: 'yolo', label: 'YOLO', description: 'Auto-approve all operations without prompting' },
+  ],
+  copilot: [
+    { value: 'default', label: 'Default' },
     { value: 'yolo', label: 'YOLO', description: 'Auto-approve all operations without prompting' },
   ],
 };
