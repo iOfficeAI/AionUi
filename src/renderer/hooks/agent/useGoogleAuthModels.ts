@@ -11,8 +11,8 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getGeminiModeList, type GeminiModeOption } from './useModeModeList';
 
-export interface GeminiGoogleAuthModelResult {
-  geminiModeOptions: GeminiModeOption[];
+export interface GoogleAuthModelResult {
+  modeOptions: GeminiModeOption[];
   isGoogleAuth: boolean;
   subscriptionStatus?: {
     isSubscriber: boolean;
@@ -22,7 +22,7 @@ export interface GeminiGoogleAuthModelResult {
   };
 }
 
-export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
+export const useGoogleAuthModels = (): GoogleAuthModelResult => {
   const { t } = useTranslation();
   const { data: googleConfig } = useSWR('google.config', () => configService.get('google.config'));
   const proxyKey = googleConfig?.proxy || '';
@@ -35,31 +35,31 @@ export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
 
   const shouldCheckSubscription = Boolean(isGoogleAuth);
 
-  // 仅在通过认证后才触发订阅状态查询。Only hit CLI subscription API when authenticated.
+  // 仅在通过认证后才触发订阅状态查询。Only hit subscription API when authenticated.
   const subscriptionKey = shouldCheckSubscription ? 'google.subscription.status' + proxyKey : null;
   const { data: subscriptionResponse } = useSWR(subscriptionKey, () => {
-    return ipcBridge.gemini.subscriptionStatus.invoke({ proxy: googleConfig?.proxy });
+    return ipcBridge.google.subscriptionStatus.invoke({ proxy: googleConfig?.proxy });
   });
 
   // 生成与终端 CLI 一致的模型列表 / Generate model list matching terminal CLI
   const descriptions = useMemo(
     () => ({
       autoGemini3: t(
-        'gemini.mode.autoGemini3Desc',
+        'google:mode.autoGemini3Desc',
         'Let Gemini CLI decide the best model for the task: gemini-3.1-pro-preview, gemini-3-flash'
       ),
       autoGemini25: t(
-        'gemini.mode.autoGemini25Desc',
+        'google:mode.autoGemini25Desc',
         'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash'
       ),
-      manual: t('gemini.mode.manualDesc', 'Manually select a model'),
+      manual: t('google:mode.manualDesc', 'Manually select a model'),
     }),
     [t]
   );
-  const geminiModeOptions = useMemo(() => getGeminiModeList({ descriptions }), [descriptions]);
+  const modeOptions = useMemo(() => getGeminiModeList({ descriptions }), [descriptions]);
 
   return {
-    geminiModeOptions,
+    modeOptions,
     isGoogleAuth: Boolean(isGoogleAuth),
     subscriptionStatus: subscriptionResponse ?? undefined,
   };

@@ -510,11 +510,6 @@ export const fileSnapshot = {
 // ---------------------------------------------------------------------------
 
 export const googleAuth = {
-  login: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.login', {
-    success: false,
-    msg: 'Google Auth not available in backend mode',
-  }),
-  logout: stubProvider<void, {}>('googleAuth.logout', undefined as unknown as void),
   status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.status', {
     success: false,
     msg: 'Google Auth not available in backend mode',
@@ -522,14 +517,14 @@ export const googleAuth = {
 };
 
 // ---------------------------------------------------------------------------
-// Gemini subscription status
+// Google subscription status (Google OAuth provider path, used by aionrs)
 // ---------------------------------------------------------------------------
 
-export const gemini = {
+export const google = {
   subscriptionStatus: httpGet<
     { isSubscriber: boolean; tier?: string; lastChecked: number; message?: string },
     { proxy?: string }
-  >('/api/gemini/subscription-status'),
+  >('/api/google/subscription-status'),
 };
 
 // ---------------------------------------------------------------------------

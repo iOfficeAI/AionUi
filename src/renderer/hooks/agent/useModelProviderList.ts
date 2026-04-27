@@ -3,7 +3,7 @@ import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import type { IProvider } from '@/common/config/storage';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
-import { useGeminiGoogleAuthModels } from './useGeminiGoogleAuthModels';
+import { useGoogleAuthModels } from './useGoogleAuthModels';
 import type { GeminiModeOption } from './useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
@@ -19,13 +19,13 @@ export interface ModelProviderListResult {
  * and exposes helpers consumed by both conversation and channel settings.
  */
 export const useModelProviderList = (): ModelProviderListResult => {
-  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
+  const { modeOptions, isGoogleAuth } = useGoogleAuthModels();
 
   const geminiModeLookup = useMemo(() => {
     const lookup = new Map<string, GeminiModeOption>();
-    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
+    modeOptions.forEach((option) => lookup.set(option.value, option));
     return lookup;
-  }, [geminiModeOptions]);
+  }, [modeOptions]);
 
   const { data: modelConfig } = useSWR('providers', () => ipcBridge.mode.listProviders.invoke());
 
@@ -73,7 +73,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
         platform: 'gemini-with-google-auth',
         base_url: '',
         api_key: '',
-        model: geminiModeOptions.map((v) => v.value),
+        model: modeOptions.map((v) => v.value),
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
         enabled: true, // Google Auth provider 始终启用
       } as unknown as IProvider;
@@ -81,7 +81,7 @@ export const useModelProviderList = (): ModelProviderListResult => {
     }
     // 过滤掉没有可用模型的 provider
     return list.filter((p) => getAvailableModels(p).length > 0);
-  }, [geminiModeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
+  }, [modeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
 
   const formatModelLabel = useCallback(
     (provider: { platform?: string } | undefined, modelName?: string) => {

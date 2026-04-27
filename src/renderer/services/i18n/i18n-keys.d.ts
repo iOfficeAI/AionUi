@@ -1923,7 +1923,7 @@ export type I18nModule =
   | 'acp'
   | 'codex'
   | 'tools'
-  | 'gemini'
+  | 'google'
   | 'cron'
   | 'starOffice'
   | 'guid'
