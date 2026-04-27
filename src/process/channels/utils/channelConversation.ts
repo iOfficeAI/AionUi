@@ -22,9 +22,9 @@ export function buildChannelConversationExtra(args: {
   backend?: AcpBackend;
   custom_agent_id?: string;
   agent_name?: string;
-  enabled_skills?: string[];
+  preset_enabled_skills?: string[];
 } {
-  const enabled_skills = getChannelEnabledSkills(args.platform);
+  const preset_enabled_skills = getChannelEnabledSkills(args.platform);
 
   if (
     args.backend === 'gemini' ||
@@ -32,13 +32,13 @@ export function buildChannelConversationExtra(args: {
     args.backend === 'codex' ||
     args.backend === 'openclaw-gateway'
   ) {
-    return enabled_skills ? { enabled_skills } : {};
+    return preset_enabled_skills ? { preset_enabled_skills } : {};
   }
 
   return {
     backend: args.backend as AcpBackend,
     custom_agent_id: args.custom_agent_id,
     agent_name: args.agent_name,
-    ...(enabled_skills ? { enabled_skills } : {}),
+    ...(preset_enabled_skills ? { preset_enabled_skills } : {}),
   };
 }
