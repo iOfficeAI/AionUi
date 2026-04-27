@@ -27,6 +27,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -96,6 +97,8 @@ const AionrsSendBox: React.FC<{
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { current_model, getDisplayModelName } = modelSelection;
+  const teamPermission = useTeamPermission();
+  const propagateMode = team_id ? teamPermission?.propagateMode : undefined;
 
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
     useAionrsMessage(conversation_id, {
@@ -398,6 +401,7 @@ const AionrsSendBox: React.FC<{
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
               compactLabelPrefix={t('agentMode.permission')}
               hideCompactLabelPrefixOnMobile
+              onModeChanged={propagateMode}
             />
           </div>
         }

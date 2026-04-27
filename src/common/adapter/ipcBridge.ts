@@ -45,7 +45,17 @@ import type {
   UpdateAssistantRequest,
 } from '../types/assistantTypes';
 import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
+import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 import {
+  fromBackendAgent,
+  fromBackendTeam,
+  fromBackendTeamList,
+  fromBackendTeamOptional,
+  toBackendAgent,
+} from './teamMapper';
+import type { ICreateTeamParams, IAddTeamAgentParams } from './teamMapper';
+import {
+  httpRequest,
   httpGet,
   httpPost,
   httpPut,
@@ -196,10 +206,18 @@ export const conversation = {
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
-  getWorkspace: httpGet<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/workspace?workspace=${encodeURIComponent(p.workspace)}&path=${encodeURIComponent(p.path)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`
-  ),
+  // Uses httpRequest directly (instead of httpGet + withResponseMap) because the
+  // response mapper needs `workspace` from params to build fullPath/relativePath,
+  // and withResponseMap's map function does not receive the original params.
+  getWorkspace: {
+    provider: () => {},
+    invoke: (async (p: { conversation_id: string; workspace: string; path: string; search?: string }) => {
+      const rel = absoluteToRelativePath(p.path, p.workspace);
+      const url = `/api/conversations/${p.conversation_id}/workspace?path=${encodeURIComponent(rel)}${p.search ? `&search=${encodeURIComponent(p.search)}` : ''}`;
+      const raw = await httpRequest<Array<{ name: string; type: string }>>('GET', url);
+      return fromBackendWorkspaceList(raw, p.workspace, rel);
+    }) as (p: { conversation_id: string; workspace: string; path: string; search?: string }) => Promise<IDirOrFile[]>,
+  },
   responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
     'responseSearchWorkSpace',
     undefined as unknown as void
@@ -1359,29 +1377,33 @@ export const hub = {
 // Team Mode API — routed to /api/teams/*
 // ---------------------------------------------------------------------------
 
-export type ICreateTeamParams = {
-  userId: string;
-  name: string;
-  workspace: string;
-  workspaceMode: 'shared' | 'isolated';
-  agents: import('@process/team/types').TeamAgent[];
-};
-
-export type IAddTeamAgentParams = {
-  teamId: string;
-  agent: Omit<import('@process/team/types').TeamAgent, 'slotId'>;
-};
+export type { ICreateTeamParams, IAddTeamAgentParams } from './teamMapper';
 
 export const team = {
-  create: httpPost<import('@process/team/types').TTeam, ICreateTeamParams>('/api/teams'),
-  list: httpGet<import('@process/team/types').TTeam[], { userId: string }>(
-    (p) => `/api/teams?userId=${encodeURIComponent(p.userId)}`
+  create: withResponseMap(
+    httpPost<import('@process/team/types').TTeam, ICreateTeamParams>('/api/teams', (p) => ({
+      name: p.name,
+      agents: p.agents.map(toBackendAgent),
+    })),
+    fromBackendTeam
   ),
-  get: httpGet<import('@process/team/types').TTeam | null, { id: string }>((p) => `/api/teams/${p.id}`),
+  list: withResponseMap(
+    httpGet<import('@process/team/types').TTeam[], { userId: string }>(
+      (p) => `/api/teams?userId=${encodeURIComponent(p.userId)}`
+    ),
+    fromBackendTeamList
+  ),
+  get: withResponseMap(
+    httpGet<import('@process/team/types').TTeam | null, { id: string }>((p) => `/api/teams/${p.id}`),
+    fromBackendTeamOptional
+  ),
   remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
-  addAgent: httpPost<import('@process/team/types').TeamAgent, IAddTeamAgentParams>(
-    (p) => `/api/teams/${p.teamId}/agents`,
-    (p) => p.agent
+  addAgent: withResponseMap(
+    httpPost<import('@process/team/types').TeamAgent, IAddTeamAgentParams>(
+      (p) => `/api/teams/${p.teamId}/agents`,
+      (p) => toBackendAgent(p.agent)
+    ),
+    fromBackendAgent
   ),
   removeAgent: httpDelete<void, { teamId: string; slotId: string }>((p) => `/api/teams/${p.teamId}/agents/${p.slotId}`),
   sendMessage: httpPost<void, { teamId: string; content: string; files?: string[] }>(

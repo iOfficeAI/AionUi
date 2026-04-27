@@ -20,7 +20,11 @@ import {
   filterTeamSupportedAgents,
   AgentOptionLabel,
 } from './agentSelectUtils';
+import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 
+// [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
+// 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts 和 team-whitelist.e2e.ts 中的 selector，
+// 并立即向上汇报改动情况。
 const FormItem = Form.Item;
 const { Option, OptGroup } = AionSelect;
 
@@ -87,6 +91,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
       const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
       const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
+      const dispatchConversationType = resolveConversationType(dispatchAgentType);
+      const resolvedModel = await resolveDefaultTeamAgentModel({
+        agent_type: dispatchAgentType,
+        conversation_type: dispatchConversationType,
+      });
       agents.push({
         slot_id: '',
         conversation_id: '',
@@ -94,9 +103,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         status: 'pending',
         agent_type: dispatchAgentType,
         agent_name: 'Leader',
-        conversation_type: resolveConversationType(dispatchAgentType),
+        conversation_type: dispatchConversationType,
         cli_path: dispatchAgent?.cli_path,
         custom_agent_id: dispatchAgent?.custom_agent_id,
+        model: resolvedModel,
       });
 
       const team = await ipcBridge.team.create.invoke({
@@ -162,6 +172,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             type='primary'
             onClick={handleCreate}
             loading={loading}
+            disabled={!name.trim() || !dispatchAgentKey}
             className='min-w-88px'
             style={{ borderRadius: 8 }}
           >

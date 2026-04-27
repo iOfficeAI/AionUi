@@ -41,7 +41,11 @@ const BACKEND_PREFIX = '[aionui-backend]';
 const ANSI_RE = /\x1b\[[0-9;]*m/g;
 
 const TRACING_LEVEL_MAP: Record<string, string> = {
-  TRACE: 'verbose', DEBUG: 'debug', INFO: 'info', WARN: 'warn', ERROR: 'error',
+  TRACE: 'verbose',
+  DEBUG: 'debug',
+  INFO: 'info',
+  WARN: 'warn',
+  ERROR: 'error',
 };
 
 // Parse tracing output: "2026-04-25T11:17:43.184875Z  INFO target: message"

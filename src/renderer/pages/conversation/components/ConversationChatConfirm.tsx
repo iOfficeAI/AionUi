@@ -275,7 +275,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
             </Typography.Ellipsis>
           </div>
           <div className='shrink-0'>
-            {confirmation.options.map((option, index) => {
+            {(confirmation.options ?? []).map((option, index) => {
               const label = $t(option.label, option.params);
               // Determine shortcut hint for this option
               const shortcut =

@@ -113,7 +113,7 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
 // HTTP request helper
 // ---------------------------------------------------------------------------
 
-async function httpRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+export async function httpRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
 

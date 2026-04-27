@@ -13,8 +13,8 @@
  *   6. Send another task to leader → verify member gets re-assigned
  *   7. Cleanup: delete team + temp directory
  */
-import { test, expect } from '../fixtures';
-import { invokeBridge, TEAM_SUPPORTED_BACKENDS } from '../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
@@ -202,7 +202,7 @@ test.describe('Team Workspace Migration', () => {
     // 5d. Backend: team workspace updated
     const teamState = await invokeBridge<{
       workspace: string;
-      agents: Array<{ slot_id: string; conversation_id: string; agent_name: string }>;
+      agents: Array<{ slot_id: string; conversation_id: string; name: string }>;
     }>(page, 'team.get', { id: teamId });
     expect(teamState.workspace).toBe(targetWorkspace);
 

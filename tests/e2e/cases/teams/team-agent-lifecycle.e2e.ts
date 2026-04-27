@@ -11,19 +11,19 @@
  *
  * Operations MUST go through leader chat input — invokeBridge is only for setup.
  */
-import { test, expect } from '../fixtures';
-import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../helpers';
+import { test, expect } from '../../fixtures';
+import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 
-/** Map leader type to agentType + conversationType values used in team.create */
-const AGENT_TYPE_MAP: Record<string, { agent_type: string; conversation_type: string }> = {
-  gemini: { agent_type: 'gemini', conversation_type: 'gemini' },
-  claude: { agent_type: 'claude', conversation_type: 'acp' },
-  codex: { agent_type: 'codex', conversation_type: 'acp' },
+/** Map leader type to backend + model values used in team.create */
+const AGENT_TYPE_MAP: Record<string, { backend: string; model: string }> = {
+  gemini: { backend: 'gemini', model: 'gemini' },
+  claude: { backend: 'acp', model: 'claude' },
+  codex: { backend: 'acp', model: 'codex' },
 };
 
 const LEADER_CONFIGS = [...TEAM_SUPPORTED_BACKENDS].map((leaderType) => ({
   leaderType,
-  teamName: `E2E Team (${leaderType})`,
+  teamName: `E2E Lifecycle-${leaderType}-${Date.now()}`,
 }));
 
 for (const { leaderType, teamName } of LEADER_CONFIGS) {
@@ -38,7 +38,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     }
 
     const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      userId: 'system_default_user',
+      user_id: 'system_default_user',
     });
     const existing = teams.find((t) => t.name === teamName);
     let resolvedTeamId: string;
@@ -47,19 +47,13 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
       resolvedTeamId = existing.id;
     } else {
       const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        userId: 'system_default_user',
         name: teamName,
-        workspace: '',
-        workspaceMode: 'shared',
         agents: [
           {
-            slot_id: 'slot-lead',
-            conversation_id: '',
-            role: 'leader',
-            agent_type: agentMeta.agent_type,
-            agent_name: 'Leader',
-            conversation_type: agentMeta.conversation_type,
-            status: 'idle',
+            name: 'Leader',
+            role: 'lead',
+            backend: agentMeta.backend,
+            model: agentMeta.model,
           },
         ],
       }).catch(() => null);
@@ -100,8 +94,8 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     // [等待] 处理所有挂起的 MCP tool confirmation dialogs（auto-approve "Yes, allow always"）
     // Gemini leader 调用 MCP 工具时会弹出确认弹窗，必须确认后 leader 才能继续/完成
     const mcpConfirmBtn = page.locator('button').filter({ hasText: /Yes.*allow always|是.*始终允许/i });
-    // 轮询点击，直到没有确认按钮可见（最多等 60 秒）
-    const mcpConfirmDeadline = Date.now() + 60_000;
+    // 轮询点击，直到没有确认按钮可见（最多等 30 秒）
+    const mcpConfirmDeadline = Date.now() + 30_000;
     while (Date.now() < mcpConfirmDeadline) {
       const visible = await mcpConfirmBtn
         .first()
@@ -112,7 +106,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
         .first()
         .click()
         .catch(() => {});
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(200);
     }
 
     // [等待] leader 空闲（没有正在运行的推理）再发 fire，否则 Enter 会被 sendbox 屏蔽
@@ -137,7 +131,7 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
 
     // [等待] 处理 fire 过程中弹出的 MCP tool confirmation dialogs
     const mcpConfirmBtn2 = page.locator('button').filter({ hasText: /Yes.*allow always|是.*始终允许/i });
-    const mcpConfirmDeadline2 = Date.now() + 60_000;
+    const mcpConfirmDeadline2 = Date.now() + 30_000;
     while (Date.now() < mcpConfirmDeadline2) {
       const visible = await mcpConfirmBtn2
         .first()
@@ -148,10 +142,13 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
         .first()
         .click()
         .catch(() => {});
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(200);
     }
 
     // [断言] 成员 tab 从 tab bar 消失（leader 推理 + 2-phase shutdown 协议，需要更多时间）
     await expect(tabBar.locator(`text=${memberName}`)).not.toBeVisible({ timeout: 120000 });
+
+    // cleanup
+    await invokeBridge(page, 'team.remove', { id: resolvedTeamId }).catch(() => {});
   });
 }

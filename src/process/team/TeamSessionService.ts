@@ -464,6 +464,8 @@ export class TeamSessionService {
       updated_at: now,
     };
     await this.repo.create(team);
+
+    ipcBridge.team.listChanged.emit({ teamId, action: 'created' });
     return team;
   }
 
@@ -517,6 +519,8 @@ export class TeamSessionService {
     await this.repo.deleteMailboxByTeam(id);
     await this.repo.deleteTasksByTeam(id);
     await this.repo.delete(id);
+
+    ipcBridge.team.listChanged.emit({ teamId: id, action: 'removed' });
   }
 
   async addAgent(team_id: string, agent: Omit<TeamAgent, 'slot_id'>): Promise<TeamAgent> {

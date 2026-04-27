@@ -133,6 +133,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
               unmountOnExit={false}
             >
               <span
+                data-testid='sider-item-menu-trigger'
                 className={classNames(
                   'flex-center cursor-pointer hover:bg-fill-2 rd-4px p-4px transition-colors relative text-t-primary',
                   {

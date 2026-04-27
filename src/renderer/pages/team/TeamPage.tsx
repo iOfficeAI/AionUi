@@ -401,6 +401,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                       ref={(el) => {
                         agentRefs.current[agent.slot_id] = el;
                       }}
+                      data-slot-id={agent.slotId}
+                      data-role={isLeaderSlot ? 'leader' : 'member'}
                       className='relative h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{
                         // Always flex-grow to fill available space; each slot starts at 400px

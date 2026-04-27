@@ -19,7 +19,22 @@
  */
 import { test, expect } from '../fixtures';
 import { invokeBridge } from '../helpers';
-import type { TTeam } from '@/common/types/teamTypes';
+/** Backend /api/teams/:id GET response shape. */
+type TTeamBackendAgent = {
+  slot_id: string;
+  conversation_id: string;
+  role: string;
+  name: string;
+  backend: string;
+  model: string;
+  status: string;
+  custom_agent_id?: string;
+};
+type TTeam = {
+  id: string;
+  name: string;
+  agents: TTeamBackendAgent[];
+};
 
 const PREFERRED_PRESET_CUSTOM_AGENT_ID = 'builtin-cowork';
 const PREFERRED_PRESET_AGENT_TYPE = 'gemini';
@@ -131,16 +146,16 @@ test.describe('Team Create - preset assistant leader', () => {
       expect(team!.agents.length).toBe(1);
 
       const leader = team!.agents[0];
-      expect(leader.role).toBe('leader');
+      expect(leader.role).toBe('lead');
       expect(leader.custom_agent_id).toBe(chosenCustomAgentId);
 
       // cowork (and all currently enabled presets) use presetAgentType = 'gemini'.
-      // If we picked the preferred cowork option, assert the exact type; otherwise
-      // just assert agentType is non-empty (we don't know the fallback preset's type).
+      // If we picked the preferred cowork option, assert the exact backend; otherwise
+      // just assert backend is non-empty (we don't know the fallback preset's type).
       if (preferredVisible && chosenCustomAgentId === PREFERRED_PRESET_CUSTOM_AGENT_ID) {
-        expect(leader.agent_type).toBe(PREFERRED_PRESET_AGENT_TYPE);
+        expect(leader.backend).toBe(PREFERRED_PRESET_AGENT_TYPE);
       } else {
-        expect(leader.agent_type).toBeTruthy();
+        expect(leader.backend).toBeTruthy();
       }
 
       await page.screenshot({ path: 'tests/e2e/results/team-preset-06-backend-verified.png' });

@@ -514,13 +514,21 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 }}
                 loadMore={(treeNode) => {
                   const path = treeNode.props.dataRef.fullPath;
+                  const targetRelPath = treeNode.props.dataRef.relativePath;
                   return ipcBridge.conversation.getWorkspace
                     .invoke({ conversation_id, workspace, path })
                     .then((res) => {
-                      if (res[0]?.children) {
-                        treeNode.props.dataRef.children = res[0].children;
-                        treeHook.setFiles([...treeHook.files]);
-                      }
+                      const newChildren = res[0]?.children;
+                      if (!newChildren?.length) return;
+                      treeHook.setFiles((prev) => {
+                        const assign = (nodes: IDirOrFile[]): IDirOrFile[] =>
+                          nodes.map((n) => {
+                            if (n.relativePath === targetRelPath) return { ...n, children: newChildren };
+                            if (n.children) return { ...n, children: assign(n.children) };
+                            return n;
+                          });
+                        return assign(prev);
+                      });
                     })
                     .catch((err) => {
                       console.error('[Workspace] loadMore failed:', err);
