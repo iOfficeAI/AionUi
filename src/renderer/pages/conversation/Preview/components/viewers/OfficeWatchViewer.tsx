@@ -111,7 +111,10 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_pat
         await new Promise((r) => setTimeout(r, 300));
         if (!cancelled) {
           let resolvedUrl = url;
-          if (!isElectronDesktop()) {
+          if (url.startsWith('/')) {
+            const backendPort = (window as Window & { __backendPort?: number }).__backendPort;
+            resolvedUrl = backendPort ? `http://127.0.0.1:${backendPort}${url}` : url;
+          } else if (!isElectronDesktop()) {
             const port = new URL(url).port;
             resolvedUrl = `${PROXY_PATH[docType]}/${port}/`;
           }
