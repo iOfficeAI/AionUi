@@ -285,11 +285,22 @@ export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'),
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
-  systemInfo: httpGet<{ cacheDir: string; workDir: string; logDir: string; platform: string; arch: string }, void>(
-    '/api/system/info'
+  systemInfo: withResponseMap(
+    httpGet<{ cache_dir: string; work_dir: string; log_dir: string; platform: string; arch: string }, void>(
+      '/api/system/info'
+    ),
+    (raw) => ({
+      cacheDir: raw.cache_dir,
+      workDir: raw.work_dir,
+      logDir: raw.log_dir,
+      platform: raw.platform,
+      arch: raw.arch,
+    })
   ),
   getPath: bridge.buildProvider<string, { name: 'desktop' | 'home' | 'downloads' }>('app.get-path'),
-  updateSystemInfo: httpPost<void, { cacheDir: string; workDir: string }>('/api/system/info', (p) => p),
+  // Electron-local: copies cache dir + persists to ProcessEnv, paired with restart.
+  // The backend reads AIONUI_*_DIR env vars on boot, so it does not own this config.
+  updateSystemInfo: bridge.buildProvider<void, { cacheDir: string; workDir: string }>('update-system-info'),
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
   getCdpStatus: bridge.buildProvider<IBridgeResponse<ICdpStatus>, void>('app.get-cdp-status'),

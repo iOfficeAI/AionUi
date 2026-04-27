@@ -19,12 +19,33 @@ type SpawnConfig = {
   logDir?: string;
 };
 
+export type BackendDirConfig = {
+  cacheDir: string;
+  workDir: string;
+  logDir: string;
+};
+
 export function buildSpawnArgs(config: SpawnConfig): string[] {
   const logLevel = process.env.AIONUI_LOG_LEVEL || (app.isPackaged ? 'info' : 'debug');
   const args = ['--port', String(config.port), '--data-dir', config.dbPath, '--log-level', logLevel];
   if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.local) args.push('--local');
   return args;
+}
+
+/**
+ * Backend reads AIONUI_{CACHE,WORK,LOG}_DIR env vars to report system dirs
+ * (see aionui-backend/crates/aionui-system/src/sysinfo.rs). Inject them so the
+ * backend's `/api/system/info` matches what Electron main persists in
+ * ProcessEnv('aionui.dir').
+ */
+export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    AIONUI_CACHE_DIR: dirs.cacheDir,
+    AIONUI_WORK_DIR: dirs.workDir,
+    AIONUI_LOG_DIR: dirs.logDir,
+  };
 }
 
 export function findAvailablePort(): Promise<number> {
@@ -49,6 +70,7 @@ export class BackendLifecycleManager {
   private _status: BackendStatus = 'stopped';
   private _lastDbPath = '';
   private _lastLogDir?: string;
+  private _lastDirs?: BackendDirConfig;
   private restartCount = 0;
   private restartWindowStart = 0;
   private readonly maxRestarts = 3;
@@ -62,18 +84,20 @@ export class BackendLifecycleManager {
     return this._status;
   }
 
-  async start(dbPath: string, logDir?: string): Promise<number> {
+  async start(dbPath: string, logDir?: string, dirs?: BackendDirConfig): Promise<number> {
     const binaryPath = resolveBinaryPath();
     this._port = await findAvailablePort();
     this._status = 'starting';
     this._lastDbPath = dbPath;
     this._lastLogDir = logDir;
+    this._lastDirs = dirs;
 
     const args = buildSpawnArgs({ port: this._port, dbPath, local: true, logDir });
     console.log(`[aionui-backend] starting: ${binaryPath} ${args.join(' ')}`);
 
     this.childProcess = spawn(binaryPath, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
+      env: dirs ? buildSpawnEnv(dirs) : process.env,
     });
 
     this.childProcess.stdin?.end();
@@ -170,7 +194,7 @@ export class BackendLifecycleManager {
     setTimeout(() => {
       if (this._status === 'stopped') return;
       this._status = 'starting';
-      this.start(this._lastDbPath, this._lastLogDir).catch(() => {
+      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs).catch(() => {
         this._status = 'error';
       });
     }, delay);
