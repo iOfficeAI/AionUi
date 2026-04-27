@@ -27,9 +27,11 @@ export interface CreateConversationParams {
     agent_name?: string;
     context_file_name?: string;
     preset_rules?: string;
-    enabled_skills?: string[];
+    /** Transient: preset opt-in skills. Consumed by create handler to compute extra.skills. */
+    preset_enabled_skills?: string[];
+    /** Transient: auto-inject skills the caller opts out of. Consumed by create handler. */
+    exclude_auto_inject_skills?: string[];
     extraSkillPaths?: string[];
-    excludeBuiltinSkills?: string[];
     preset_assistant_id?: string;
     session_mode?: string;
     is_health_check?: boolean;
