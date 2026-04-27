@@ -35,13 +35,6 @@ log.transports.file.level = FILE_LOG_LEVEL;
 log.transports.file.maxSize = FILE_SIZE_LIMIT;
 log.transports.console.level = CONSOLE_LOG_LEVEL;
 
-// --- Backend subprocess logger (writes to a separate file) ---
-const backendLog = log.create({ logId: 'backend' });
-backendLog.transports.file.fileName = `${today}.backend.log`;
-backendLog.transports.file.level = FILE_LOG_LEVEL;
-backendLog.transports.file.maxSize = FILE_SIZE_LIMIT;
-backendLog.transports.console.level = false;
-
 const BACKEND_PREFIX = '[aionui-backend]';
 
 // Strip ANSI escape sequences from a string.
@@ -62,9 +55,8 @@ function parseTracingLine(raw: string): { level: string; body: string } {
   return { level: 'info', body: clean };
 }
 
-// Route backend subprocess logs to the dedicated backend log file.
-// Messages with the [aionui-backend] prefix are forwarded to backendLog
-// (with tracing metadata stripped) and excluded from the main file transport.
+// Clean up backend subprocess log lines: strip tracing timestamps/levels,
+// resolve the log level, and keep them in the shared log file.
 log.hooks.push((message, _transport, transportName) => {
   const first = message.data[0];
   if (typeof first !== 'string' || !first.startsWith(BACKEND_PREFIX)) return message;
@@ -73,17 +65,7 @@ log.hooks.push((message, _transport, transportName) => {
   const { level, body } = parseTracingLine(raw);
   const resolved = level as typeof message.level;
 
-  if (transportName === 'file') {
-    const logFn = backendLog[resolved as keyof typeof backendLog] as (...args: unknown[]) => void;
-    (logFn ?? backendLog.info)(body, ...message.data.slice(1));
-    return false;
-  }
-
-  if (transportName === 'console') {
-    return { ...message, level: resolved, data: [`${BACKEND_PREFIX} ${body}`, ...message.data.slice(1)] };
-  }
-
-  return message;
+  return { ...message, level: resolved, data: [`${BACKEND_PREFIX} ${body}`, ...message.data.slice(1)] };
 });
 
 // Patch global console so every console.log/warn/error from any module
