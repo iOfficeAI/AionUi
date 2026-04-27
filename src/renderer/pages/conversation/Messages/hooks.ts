@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
-import { composeMessage } from '@/common/chat/chatLib';
+import { composeMessage, mergeAcpToolCallContent } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 
@@ -140,20 +140,13 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
   // acp_tool_call: 使用 tool_call_idIndex 快速查找
   // acp_tool_call: use tool_call_idIndex for fast lookup
   //
-  // TODO(acp-rewrite): When AcpAgentV2 compat layer is removed, change the merge below
-  // to deep-merge content.update instead of shallow-spreading content. tool_call_update
-  // from the SDK is incremental (only changed fields), so a shallow spread loses the
-  // original title/kind/rawInput from the initial tool_call. Currently AcpAgentV2.mergeToolCall()
-  // handles this, but after migration it should be:
-  //   const mergedUpdate = { ...existingMsg.content.update, ...message.content.update };
-  //   const merged = { ...existingMsg.content, ...message.content, update: mergedUpdate };
   if (message.type === 'acp_tool_call' && message.content?.update?.tool_call_id) {
     const existingIdx = index.tool_call_idIndex.get(message.content.update.tool_call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'acp_tool_call') {
         const newList = list.slice();
-        const merged = { ...existingMsg.content, ...message.content };
+        const merged = mergeAcpToolCallContent(existingMsg.content, message.content);
         newList[existingIdx] = { ...existingMsg, content: merged };
         return newList;
       }

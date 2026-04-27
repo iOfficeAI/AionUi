@@ -236,6 +236,18 @@ export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
 export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
+export const mergeAcpToolCallContent = (
+  existing: IMessageAcpToolCall['content'],
+  incoming: IMessageAcpToolCall['content']
+): IMessageAcpToolCall['content'] => ({
+  ...existing,
+  ...incoming,
+  update: {
+    ...existing.update,
+    ...incoming.update,
+  },
+});
+
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
   tool_call_id: string;
@@ -691,7 +703,7 @@ export const composeMessage = (
       const msg = list[i];
       if (msg.type === 'acp_tool_call' && msg.content.update?.tool_call_id === message.content.update?.tool_call_id) {
         // Create new object instead of mutating original
-        const merged = { ...msg.content, ...message.content };
+        const merged = mergeAcpToolCallContent(msg.content, message.content);
         return updateMessage(i, { ...msg, content: merged });
       }
     }

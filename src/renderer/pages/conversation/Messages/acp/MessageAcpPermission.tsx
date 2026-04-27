@@ -17,12 +17,12 @@ interface MessageAcpPermissionProps {
 }
 
 const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ message }) => {
-  const { options = [], toolCall } = message.content || {};
+  const { options = [], tool_call } = message.content || {};
   const { t } = useTranslation();
 
   // 基于实际数据生成显示信息
   const getToolInfo = () => {
-    if (!toolCall) {
+    if (!tool_call) {
       return {
         title: t('messages.permissionRequest'),
         description: t('messages.agentRequestingPermission'),
@@ -30,8 +30,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
       };
     }
 
-    // 直接使用 toolCall 中的实际数据
-    const displayTitle = toolCall.title || toolCall.rawInput?.description || t('messages.permissionRequest');
+    const displayTitle = tool_call.title || tool_call.raw_input?.description || t('messages.permissionRequest');
 
     // 简单的图标映射
     const kindIcons: Record<string, string> = {
@@ -43,7 +42,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
 
     return {
       title: displayTitle,
-      icon: kindIcons[toolCall.kind || 'execute'] || '⚡',
+      icon: kindIcons[tool_call.kind || 'execute'] || '⚡',
     };
   };
   const { title, icon } = getToolInfo();
@@ -60,7 +59,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
         confirm_key: selected,
         msg_id: message.id,
         conversation_id: message.conversation_id,
-        call_id: toolCall?.tool_call_id || message.id, // 使用 tool_call_id 或 message.id 作为 fallback
+        call_id: tool_call?.tool_call_id || message.id,
       };
 
       await conversation.confirmMessage.invoke(invokeData);
@@ -73,7 +72,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
     }
   };
 
-  if (!toolCall) {
+  if (!tool_call) {
     return null;
   }
 
@@ -85,11 +84,11 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
           <span className='text-2xl'>{icon}</span>
           <Text className='block'>{title}</Text>
         </div>
-        {(toolCall.rawInput?.command || toolCall.title) && (
+        {(tool_call.raw_input?.command || tool_call.title) && (
           <div>
             <Text className='text-xs text-t-secondary mb-1'>{t('messages.command')}</Text>
             <code className='text-xs bg-1 p-2 rounded block text-t-primary break-all'>
-              {toolCall.rawInput?.command || toolCall.title}
+              {tool_call.raw_input?.command || tool_call.title}
             </code>
           </div>
         )}
