@@ -55,11 +55,9 @@ export async function computeInitialSkillsSnapshot(options: {
  */
 async function materializeAgentSkillsDir(conversationId: string, skills: string[]): Promise<string> {
   try {
-    // NOTE: Wire field is still `enabled_skills` on the bridge type — Task 7
-    // renames it to `skills` to match the new semantics.
     const { dir_path: dirPath } = await ipcBridge.fs.materializeSkillsForAgent.invoke({
       conversation_id: conversationId,
-      enabled_skills: skills,
+      skills,
     });
     return dirPath;
   } catch (error) {

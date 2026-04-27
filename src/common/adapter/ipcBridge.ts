@@ -455,7 +455,7 @@ export const fs = {
   listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
     '/api/skills/builtin-auto'
   ),
-  materializeSkillsForAgent: httpPost<{ dir_path: string }, { conversation_id: string; enabled_skills: string[] }>(
+  materializeSkillsForAgent: httpPost<{ dir_path: string }, { conversation_id: string; skills: string[] }>(
     '/api/skills/materialize-for-agent'
   ),
   cleanupSkillsForAgent: httpDelete<void, { conversation_id: string }>(
