@@ -228,7 +228,7 @@ export const useConversationActions = ({
               pinned_at: pinned ? undefined : Date.now(),
             } as Partial<TChatConversation['extra']>,
           } as Partial<TChatConversation>,
-          mergeExtra: true,
+          merge_extra: true,
         });
 
         if (success) {

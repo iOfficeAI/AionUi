@@ -92,7 +92,7 @@ export class ClientFactory {
 
       case AuthType.USE_ANTHROPIC: {
         const clientConfig: AnthropicClientConfig = {
-          model: provider.useModel,
+          model: provider.use_model,
           baseURL: base_url,
           timeout: options.timeout,
           ...(options.baseConfig as AnthropicClientConfig),

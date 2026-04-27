@@ -86,7 +86,7 @@ export const useExport = ({
       exportCanceledRef.current = true;
     }
     if (exportModalLoading && currentExportRequestId) {
-      void ipcBridge.fs.cancelZip.invoke({ requestId: currentExportRequestId });
+      void ipcBridge.fs.cancelZip.invoke({ request_id: currentExportRequestId });
     }
     setExportModalVisible(false);
     setExportTask(null);
@@ -203,16 +203,16 @@ export const useExport = ({
   );
 
   const runCreateZip = useCallback(
-    async (path: string, files: ExportZipFile[], requestId: string): Promise<boolean> => {
+    async (path: string, files: ExportZipFile[], request_id: string): Promise<boolean> => {
       try {
         return await withTimeout(
-          ipcBridge.fs.createZip.invoke({ path, files, requestId }),
+          ipcBridge.fs.createZip.invoke({ path, files, request_id }),
           EXPORT_IO_TIMEOUT_MS * 8,
-          `createZip:${requestId}`
+          `createZip:${request_id}`
         );
       } catch (error) {
         // Ensure background zip task is stopped when renderer-side timeout/cancel happens.
-        void ipcBridge.fs.cancelZip.invoke({ requestId });
+        void ipcBridge.fs.cancelZip.invoke({ request_id });
         throw error;
       }
     },
@@ -248,8 +248,8 @@ export const useExport = ({
 
     setExportModalLoading(true);
     exportCanceledRef.current = false;
-    const requestId = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    setCurrentExportRequestId(requestId);
+    const request_id = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setCurrentExportRequestId(request_id);
 
     const throwIfCanceled = () => {
       if (exportCanceledRef.current) {
@@ -268,7 +268,7 @@ export const useExport = ({
         const topicFolderName = buildTopicFolderName(conversation);
         const files = await buildConversationExportFiles(conversation, topicFolderName);
         throwIfCanceled();
-        const success = await runCreateZip(exportPath, files, requestId);
+        const success = await runCreateZip(exportPath, files, request_id);
         throwIfCanceled();
 
         if (success) {
@@ -305,7 +305,7 @@ export const useExport = ({
       });
       const exportPath = await createUniqueFilePath(directory, `batch-export-${formatTimestamp()}`, 'zip');
       throwIfCanceled();
-      const success = await runCreateZip(exportPath, files, requestId);
+      const success = await runCreateZip(exportPath, files, request_id);
       throwIfCanceled();
 
       if (success) {

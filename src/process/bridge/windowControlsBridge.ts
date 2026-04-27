@@ -24,12 +24,12 @@ import { ipcBridge } from '@/common';
 export function registerWindowMaximizeListeners(window: BrowserWindow): void {
   // 当窗口最大化时通知渲染进程 / Notify renderer when window is maximized
   window.on('maximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit({ isMaximized: true });
+    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: true });
   });
 
   // 当窗口取消最大化时通知渲染进程 / Notify renderer when window is unmaximized
   window.on('unmaximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit({ isMaximized: false });
+    ipcBridge.windowControls.maximizedChanged.emit({ is_maximized: false });
   });
 }
 

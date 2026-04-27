@@ -220,7 +220,7 @@ const ModelModalContent: React.FC = () => {
         name: `[Health Check] ${platform.name} - ${modelName}`,
         model: {
           ...platform,
-          useModel: modelName,
+          use_model: modelName,
         },
         extra: {
           workspace: '',

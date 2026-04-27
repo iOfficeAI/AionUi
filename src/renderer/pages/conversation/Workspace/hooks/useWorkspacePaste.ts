@@ -65,8 +65,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
       }
 
       const result = await ipcBridge.fs.copyFilesToWorkspace.invoke({ file_paths: selectedFiles, workspace });
-      const copiedFiles = result.copiedFiles ?? [];
-      const failedFiles = result.failedFiles ?? [];
+      const copiedFiles = result.copied_files ?? [];
+      const failedFiles = result.failed_files ?? [];
 
       if (copiedFiles.length > 0) {
         setTimeout(() => {
@@ -173,8 +173,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         try {
           const file_paths = filesMeta.map((f) => f.path);
           const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ file_paths, workspace: targetFolderPath });
-          const copiedFiles = res.copiedFiles ?? [];
-          const failedFiles = res.failedFiles ?? [];
+          const copiedFiles = res.copied_files ?? [];
+          const failedFiles = res.failed_files ?? [];
 
           if (copiedFiles.length > 0) {
             messageApi.success(t('common.fileAttach.uploadSuccess') || 'Pasted');
@@ -226,8 +226,8 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
 
       const file_paths = pasteConfirm.filesToPaste.map((f) => f.path);
       const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ file_paths, workspace: targetFolderPath });
-      const copiedFiles = res.copiedFiles ?? [];
-      const failedFiles = res.failedFiles ?? [];
+      const copiedFiles = res.copied_files ?? [];
+      const failedFiles = res.failed_files ?? [];
 
       if (copiedFiles.length > 0) {
         messageApi.success(t('common.fileAttach.uploadSuccess') || 'Pasted');

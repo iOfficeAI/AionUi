@@ -42,7 +42,7 @@ export class ConversationServiceImpl implements IConversationService {
     // Clean up the per-conversation materialized skills directory on the
     // backend. Fire-and-forget: repo deletion is the source of truth, and
     // the backend reconciles orphans on its next startup anyway.
-    ipcBridge.fs.cleanupSkillsForAgent.invoke({ conversationId: id }).catch((err: unknown) => {
+    ipcBridge.fs.cleanupSkillsForAgent.invoke({ conversation_id: id }).catch((err: unknown) => {
       console.warn(`[ConversationServiceImpl] Failed to cleanup skills for ${id}:`, err);
     });
   }
@@ -77,7 +77,7 @@ export class ConversationServiceImpl implements IConversationService {
       let hasMore = true;
 
       while (hasMore) {
-        const { data: messages, hasMore: more } = await this.repo.getMessages(sourceConversationId, page, page_size);
+        const { data: messages, has_more: more } = await this.repo.getMessages(sourceConversationId, page, page_size);
         for (const msg of messages) {
           await this.repo.insertMessage({
             ...msg,
@@ -98,7 +98,7 @@ export class ConversationServiceImpl implements IConversationService {
               metadata: {
                 ...job.metadata,
                 conversation_id: conv.id,
-                conversationTitle: conv.name,
+                conversation_title: conv.name,
               },
             });
           }

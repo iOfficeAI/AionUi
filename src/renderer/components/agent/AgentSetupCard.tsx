@@ -110,7 +110,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
           model: {
             id: 'default',
             name: 'Default',
-            useModel: 'default',
+            use_model: 'default',
             platform: 'custom',
             base_url: '',
             api_key: '',

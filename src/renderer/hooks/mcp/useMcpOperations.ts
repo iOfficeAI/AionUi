@@ -97,7 +97,7 @@ export const useMcpOperations = (
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support if transport type is known
         const compatibleCount = transport_type
-          ? agents.filter((a) => a.supportedTransports?.includes(transport_type)).length
+          ? agents.filter((a) => a.supported_transports?.includes(transport_type)).length
           : agents.length;
 
         // 显示开始移除的消息（通过队列）
@@ -121,7 +121,7 @@ export const useMcpOperations = (
       const agents = await acpConversation.getAvailableAgents.invoke();
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support to show accurate count
-        const compatibleCount = agents.filter((a) => a.supportedTransports?.includes(server.transport.type)).length;
+        const compatibleCount = agents.filter((a) => a.supported_transports?.includes(server.transport.type)).length;
 
         // 显示开始同步的消息（通过队列）
         await globalMessageQueue.add(() => {

@@ -130,9 +130,9 @@ export class TeammateManager extends EventEmitter {
       if (agent.conversation_id && mailboxMessages.length > 0 && agent.role !== 'leader') {
         for (const msg of mailboxMessages) {
           // Skip user messages — already written by TeamSession.sendMessage()
-          if (msg.fromAgentId === 'user') continue;
-          const sender = this.agents.find((a) => a.slot_id === msg.fromAgentId);
-          const senderName = msg.fromAgentId === 'user' ? 'User' : (sender?.agent_name ?? msg.fromAgentId);
+          if (msg.from_agent_id === 'user') continue;
+          const sender = this.agents.find((a) => a.slot_id === msg.from_agent_id);
+          const senderName = msg.from_agent_id === 'user' ? 'User' : (sender?.agent_name ?? msg.from_agent_id);
           const displayContent = mailboxMessages.length > 1 ? `[${senderName}] ${msg.content}` : msg.content;
           const msgId = crypto.randomUUID();
           // All messages written to target conversation are incoming from target's perspective
@@ -230,7 +230,7 @@ export class TeammateManager extends EventEmitter {
 
       // Extract files from user messages in this batch
       const userFiles = mailboxMessages
-        .filter((m) => m.fromAgentId === 'user' && m.files?.length)
+        .filter((m) => m.from_agent_id === 'user' && m.files?.length)
         .flatMap((m) => m.files!);
 
       // Each AgentManager implementation expects a specific object shape.
@@ -372,8 +372,8 @@ export class TeammateManager extends EventEmitter {
     try {
       await this.mailbox.write({
         team_id: this.team_id,
-        toAgentId: leadAgent.slot_id,
-        fromAgentId: agent.slot_id,
+        to_agent_id: leadAgent.slot_id,
+        from_agent_id: agent.slot_id,
         type: 'idle_notification',
         content:
           `Teammate ${agent.agent_name} (${agent.agent_type}) ${reason}. ` +
@@ -422,8 +422,8 @@ export class TeammateManager extends EventEmitter {
       if (leadAgent && leadAgent.slot_id !== agent.slot_id) {
         await this.mailbox.write({
           team_id: this.team_id,
-          toAgentId: leadAgent.slot_id,
-          fromAgentId: agent.slot_id,
+          to_agent_id: leadAgent.slot_id,
+          from_agent_id: agent.slot_id,
           content: 'Turn completed',
           type: 'idle_notification',
         });
@@ -513,8 +513,8 @@ export class TeammateManager extends EventEmitter {
     // 1. Write testament to leader's mailbox
     await this.mailbox.write({
       team_id: this.team_id,
-      toAgentId: leadAgent.slot_id,
-      fromAgentId: agent.slot_id,
+      to_agent_id: leadAgent.slot_id,
+      from_agent_id: agent.slot_id,
       content: testament,
       type: 'message',
       summary: `${agent.agent_name} crashed`,

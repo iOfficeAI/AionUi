@@ -68,8 +68,8 @@ function makeMailbox(): Mailbox {
       {
         id: 'msg-1',
         team_id: 'team-1',
-        toAgentId: 'slot-1',
-        fromAgentId: 'system',
+        to_agent_id: 'slot-1',
+        from_agent_id: 'system',
         content: 'Wake trigger',
         type: 'message',
       },
@@ -574,8 +574,8 @@ describe('TeammateManager', () => {
         {
           id: 'msg-1',
           team_id: 'team-1',
-          toAgentId: 'slot-1',
-          fromAgentId: 'user',
+          to_agent_id: 'slot-1',
+          from_agent_id: 'user',
           type: 'message',
           content: 'Check these files',
           files: ['/tmp/image.png', '/tmp/doc.pdf'],
@@ -602,8 +602,8 @@ describe('TeammateManager', () => {
         {
           id: 'msg-1',
           team_id: 'team-1',
-          toAgentId: 'slot-1',
-          fromAgentId: 'user',
+          to_agent_id: 'slot-1',
+          from_agent_id: 'user',
           type: 'message',
           content: 'No attachments',
           read: false,
@@ -629,8 +629,8 @@ describe('TeammateManager', () => {
         {
           id: 'msg-1',
           team_id: 'team-1',
-          toAgentId: 'slot-1',
-          fromAgentId: 'slot-2',
+          to_agent_id: 'slot-1',
+          from_agent_id: 'slot-2',
           type: 'message',
           content: 'Agent message with files',
           files: ['/tmp/should-be-ignored.txt'],
@@ -657,8 +657,8 @@ describe('TeammateManager', () => {
         {
           id: 'msg-1',
           team_id: 'team-1',
-          toAgentId: 'slot-1',
-          fromAgentId: 'user',
+          to_agent_id: 'slot-1',
+          from_agent_id: 'user',
           type: 'message',
           content: 'First batch',
           files: ['/tmp/a.png'],
@@ -668,8 +668,8 @@ describe('TeammateManager', () => {
         {
           id: 'msg-2',
           team_id: 'team-1',
-          toAgentId: 'slot-1',
-          fromAgentId: 'user',
+          to_agent_id: 'slot-1',
+          from_agent_id: 'user',
           type: 'message',
           content: 'Second batch',
           files: ['/tmp/b.pdf', '/tmp/c.txt'],
@@ -730,8 +730,8 @@ describe('TeammateManager', () => {
         expect(mailbox.write).toHaveBeenCalledWith(
           expect.objectContaining({
             team_id: 'team-1',
-            toAgentId: 'slot-lead',
-            fromAgentId: 'slot-member',
+            to_agent_id: 'slot-lead',
+            from_agent_id: 'slot-member',
             type: 'idle_notification',
             content: expect.stringContaining('Codex'),
           })
@@ -979,8 +979,8 @@ describe('TeammateManager', () => {
       // Should have written idle notification to leader
       expect(mbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-lead',
-          fromAgentId: 'slot-member',
+          to_agent_id: 'slot-lead',
+          from_agent_id: 'slot-member',
           type: 'idle_notification',
         })
       );
@@ -1023,7 +1023,7 @@ describe('TeammateManager', () => {
       // The idle notification to leader is written exactly once, not twice.
       const idleCalls = vi
         .mocked(mbox.write)
-        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].toAgentId === 'slot-lead');
+        .mock.calls.filter((args) => args[0].type === 'idle_notification' && args[0].to_agent_id === 'slot-lead');
       expect(idleCalls).toHaveLength(1);
       mgr.dispose();
     });
@@ -1184,8 +1184,8 @@ describe('TeammateManager', () => {
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
           team_id: 'team-1',
-          toAgentId: 'slot-lead',
-          fromAgentId: 'slot-member',
+          to_agent_id: 'slot-lead',
+          from_agent_id: 'slot-member',
           content: expect.stringContaining('Worker'),
         })
       );
@@ -1554,8 +1554,8 @@ describe('TeammateManager', () => {
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
           team_id: 'team-1',
-          toAgentId: 'slot-lead',
-          fromAgentId: 'slot-member',
+          to_agent_id: 'slot-lead',
+          from_agent_id: 'slot-member',
         })
       );
 

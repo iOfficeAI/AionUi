@@ -617,8 +617,8 @@ const ToolsModalContent: React.FC = () => {
       } else {
         delete env.AIONUI_IMG_API_KEY;
       }
-      if (model.useModel) {
-        env.AIONUI_IMG_MODEL = model.useModel;
+      if (model.use_model) {
+        env.AIONUI_IMG_MODEL = model.use_model;
       } else {
         delete env.AIONUI_IMG_MODEL;
       }
@@ -780,7 +780,7 @@ const ToolsModalContent: React.FC = () => {
                     isUpdatingImageGeneration ||
                     !builtinImageGenServer ||
                     !imageGenerationModelList.length ||
-                    !imageGenerationModel?.useModel
+                    !imageGenerationModel?.use_model
                   }
                   checked={Boolean(builtinImageGenServer?.enabled)}
                   onChange={handleImageGenerationToggle}
@@ -795,8 +795,8 @@ const ToolsModalContent: React.FC = () => {
                 {imageGenerationModelList.length > 0 ? (
                   <AionSelect
                     value={
-                      imageGenerationModel?.id && imageGenerationModel?.useModel
-                        ? `${imageGenerationModel.id}|${imageGenerationModel.useModel}`
+                      imageGenerationModel?.id && imageGenerationModel?.use_model
+                        ? `${imageGenerationModel.id}|${imageGenerationModel.use_model}`
                         : undefined
                     }
                     onChange={(value) => {
@@ -805,7 +805,7 @@ const ToolsModalContent: React.FC = () => {
                       if (platform) {
                         handleImageGenerationModelChange({
                           ...platform,
-                          useModel: modelName,
+                          use_model: modelName,
                         });
                       }
                     }}

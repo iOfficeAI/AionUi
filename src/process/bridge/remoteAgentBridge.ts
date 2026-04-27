@@ -51,17 +51,14 @@ export function initRemoteAgentBridge(): void {
     const now = Date.now();
 
     // Generate independent device identity for OpenClaw protocol agents
-    const device =
-      input.protocol === 'openclaw'
-        ? generateIdentity()
-        : { deviceId: undefined, publicKeyPem: undefined, privateKeyPem: undefined };
+    const device = input.protocol === 'openclaw' ? generateIdentity() : undefined;
 
     const config = {
       ...input,
       id: uuid(),
-      deviceId: device.deviceId,
-      devicePublicKey: device.publicKeyPem,
-      devicePrivateKey: device.privateKeyPem,
+      device_id: device?.deviceId,
+      device_public_key: device?.publicKeyPem,
+      device_private_key: device?.privateKeyPem,
       status: 'unknown' as const,
       created_at: now,
       updated_at: now,
@@ -81,11 +78,11 @@ export function initRemoteAgentBridge(): void {
     if (updates.name !== undefined) dbUpdates.name = updates.name;
     if (updates.protocol !== undefined) dbUpdates.protocol = updates.protocol;
     if (updates.url !== undefined) dbUpdates.url = updates.url;
-    if (updates.authType !== undefined) dbUpdates.auth_type = updates.authType;
-    if (updates.authToken !== undefined) dbUpdates.auth_token = updates.authToken;
+    if (updates.auth_type !== undefined) dbUpdates.auth_type = updates.auth_type;
+    if (updates.auth_token !== undefined) dbUpdates.auth_token = updates.auth_token;
     if (updates.avatar !== undefined) dbUpdates.avatar = updates.avatar;
     if (updates.description !== undefined) dbUpdates.description = updates.description;
-    if (updates.allowInsecure !== undefined) dbUpdates.allow_insecure = updates.allowInsecure ? 1 : 0;
+    if (updates.allow_insecure !== undefined) dbUpdates.allow_insecure = updates.allow_insecure ? 1 : 0;
     const result = db.updateRemoteAgent(id, dbUpdates);
     return result.success;
   });
@@ -100,7 +97,7 @@ export function initRemoteAgentBridge(): void {
     return result.success;
   });
 
-  ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken, allowInsecure }) => {
+  ipcBridge.remoteAgent.testConnection.provider(async ({ url, auth_type, auth_token, allow_insecure }) => {
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
       // Normalize & validate URL: prepend ws:// when no protocol is provided
       // so that bare host:port strings (e.g. "127.0.0.1:42617") work, then
@@ -115,8 +112,8 @@ export function initRemoteAgentBridge(): void {
       let settled = false;
       let ws: WebSocket | undefined;
       const headers: Record<string, string> = {};
-      if (authType === 'bearer' && authToken) {
-        headers['Authorization'] = `Bearer ${authToken}`;
+      if (auth_type === 'bearer' && auth_token) {
+        headers['Authorization'] = `Bearer ${auth_token}`;
       }
 
       const finish = (result: { success: boolean; error?: string }) => {
@@ -137,7 +134,7 @@ export function initRemoteAgentBridge(): void {
         ws = new WebSocket(wsUrl, {
           headers,
           handshakeTimeout: 10_000,
-          rejectUnauthorized: !allowInsecure,
+          rejectUnauthorized: !allow_insecure,
         });
       } catch (error) {
         finish({
@@ -170,7 +167,7 @@ export function initRemoteAgentBridge(): void {
       return { status: 'ok' as const };
     }
 
-    console.log('[RemoteAgent] handshake connecting to', agent.url, 'hasDeviceToken:', !!agent.deviceToken);
+    console.log('[RemoteAgent] handshake connecting to', agent.url, 'hasDeviceToken:', !!agent.device_token);
     return new Promise<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }>((resolve) => {
       const timeout = setTimeout(() => {
         conn.stop();
@@ -179,17 +176,17 @@ export function initRemoteAgentBridge(): void {
 
       const conn = new OpenClawGatewayConnection({
         url: agent.url,
-        rejectUnauthorized: !agent.allowInsecure,
-        token: agent.authType === 'bearer' ? agent.authToken : undefined,
-        password: agent.authType === 'password' ? agent.authToken : undefined,
-        deviceIdentity: agent.deviceId
+        rejectUnauthorized: !agent.allow_insecure,
+        token: agent.auth_type === 'bearer' ? agent.auth_token : undefined,
+        password: agent.auth_type === 'password' ? agent.auth_token : undefined,
+        deviceIdentity: agent.device_id
           ? {
-              deviceId: agent.deviceId,
-              publicKeyPem: agent.devicePublicKey!,
-              privateKeyPem: agent.devicePrivateKey!,
+              deviceId: agent.device_id,
+              publicKeyPem: agent.device_public_key!,
+              privateKeyPem: agent.device_private_key!,
             }
           : undefined,
-        deviceToken: agent.deviceToken,
+        deviceToken: agent.device_token,
         onDeviceTokenIssued: (token) => {
           db.updateRemoteAgent(id, { device_token: token });
         },

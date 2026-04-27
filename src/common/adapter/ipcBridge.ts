@@ -77,7 +77,7 @@ export const shell = {
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (path) => ({ path })),
   openExternal: httpPost<void, string>('/api/shell/open-external', (url) => ({ url })),
   checkToolInstalled: httpPost<boolean, { tool: string }>('/api/shell/check-tool-installed'),
-  openFolderWith: httpPost<void, { folderPath: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
+  openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
     '/api/shell/open-folder-with'
   ),
 };
@@ -119,10 +119,10 @@ export const conversation = {
   createWithConversation: withResponseMap(
     httpPost<
       TChatConversation,
-      { conversation: TChatConversation; sourceConversationId?: string; migrateCron?: boolean }
+      { conversation: TChatConversation; source_conversation_id?: string; migrate_cron?: boolean }
     >('/api/conversations/clone', (p) => ({
-      source_conversation_id: p.sourceConversationId,
-      migrate_cron: p.migrateCron,
+      source_conversation_id: p.source_conversation_id,
+      migrate_cron: p.migrate_cron,
       conversation: {
         ...p.conversation,
         model:
@@ -142,11 +142,11 @@ export const conversation = {
     (list) => list.map(fromApiConversation)
   ),
   listByCronJob: withResponseMap(
-    httpGet<TChatConversation[], { cronJobId: string }>((p) => `/api/cron/jobs/${p.cronJobId}/conversations`),
+    httpGet<TChatConversation[], { cron_job_id: string }>((p) => `/api/cron/jobs/${p.cron_job_id}/conversations`),
     (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
-  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }>(
+  update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
       const updates = p.updates as Record<string, unknown>;
@@ -154,7 +154,7 @@ export const conversation = {
       return {
         ...rest,
         ...(rawModel ? { model: toApiModel(rawModel as TProviderWithModel) } : {}),
-        mergeExtra: p.mergeExtra,
+        merge_extra: p.merge_extra,
       };
     }
   ),
@@ -168,7 +168,7 @@ export const conversation = {
       msg_id: p.msg_id,
       files: p.files,
       loading_id: p.loading_id,
-      injectSkills: p.injectSkills,
+      inject_skills: p.inject_skills,
     })
   ),
   getSlashCommands: httpGet<{ commands: SlashCommandItem[] }, { conversation_id: string }>(
@@ -179,30 +179,52 @@ export const conversation = {
     (p) => ({ question: p.question })
   ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
-    (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.callId}/confirm`,
-    (p) => ({ confirmKey: p.confirmKey, msg_id: p.msg_id })
+    (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
+    (p) => ({ confirm_key: p.confirm_key, msg_id: p.msg_id })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
+    const rawLast = (r.last_message ?? r.lastMessage) as Record<string, unknown> | undefined;
+    const last_message: IConversationTurnCompletedEvent['last_message'] = rawLast
+      ? {
+          id: rawLast.id as string | undefined,
+          type: rawLast.type as string | undefined,
+          content: rawLast.content ?? null,
+          status: rawLast.status as string | null | undefined,
+          created_at: (rawLast.created_at ?? rawLast.createdAt ?? Date.now()) as number,
+        }
+      : {
+          content: null,
+          created_at: Date.now(),
+        };
+    const rawRuntime = (r.runtime ?? {}) as Record<string, unknown>;
+    const runtime: IConversationTurnCompletedEvent['runtime'] = {
+      has_task: (rawRuntime.has_task ?? rawRuntime.hasTask ?? false) as boolean,
+      task_status: (rawRuntime.task_status ??
+        rawRuntime.taskStatus) as IConversationTurnCompletedEvent['runtime']['task_status'],
+      is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
+      pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
+      db_status: (rawRuntime.db_status ??
+        rawRuntime.dbStatus) as IConversationTurnCompletedEvent['runtime']['db_status'],
+    };
+    const rawModel = (r.model ?? {}) as Record<string, unknown>;
+    const model: IConversationTurnCompletedEvent['model'] = {
+      platform: (rawModel.platform ?? '') as string,
+      name: (rawModel.name ?? '') as string,
+      use_model: (rawModel.use_model ?? rawModel.useModel ?? '') as string,
+    };
     return {
-      session_id: (r.session_id ?? r.conversation_id ?? '') as string,
+      session_id: (r.session_id ?? r.sessionId ?? r.conversation_id ?? '') as string,
       status: (r.status ?? 'finished') as IConversationTurnCompletedEvent['status'],
       state: (r.state ??
         (r.status === 'finished' ? 'ai_waiting_input' : 'unknown')) as IConversationTurnCompletedEvent['state'],
       detail: (r.detail ?? '') as string,
-      canSendMessage: (r.canSendMessage ?? r.status === 'finished') as boolean,
-      runtime: (r.runtime ?? {
-        hasTask: false,
-        isProcessing: false,
-        pendingConfirmations: 0,
-      }) as IConversationTurnCompletedEvent['runtime'],
+      can_send_message: (r.can_send_message ?? r.canSendMessage ?? r.status === 'finished') as boolean,
+      runtime,
       workspace: (r.workspace ?? '') as string,
-      model: (r.model ?? { platform: '', name: '', useModel: '' }) as IConversationTurnCompletedEvent['model'],
-      last_message: (r.last_message ?? {
-        content: null,
-        created_at: Date.now(),
-      }) as IConversationTurnCompletedEvent['last_message'],
+      model,
+      last_message,
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
@@ -251,9 +273,9 @@ export const conversation = {
     remove: wsEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
   },
   approval: {
-    check: httpGet<{ approved: boolean }, { conversation_id: string; action: string; commandType?: string }>(
+    check: httpGet<{ approved: boolean }, { conversation_id: string; action: string; command_type?: string }>(
       (p) =>
-        `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.commandType ? `&commandType=${encodeURIComponent(p.commandType)}` : ''}`
+        `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.command_type ? `&command_type=${encodeURIComponent(p.command_type)}` : ''}`
     ),
   },
 };
@@ -387,22 +409,22 @@ export const fs = {
     boolean,
     {
       path: string;
-      requestId?: string;
+      request_id?: string;
       files: Array<{
         name: string;
         content?: string | Uint8Array;
-        sourcePath?: string;
+        source_path?: string;
       }>;
     }
   >('/api/fs/zip'),
-  cancelZip: httpPost<boolean, { requestId: string }>('/api/fs/zip/cancel'),
+  cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
   getFileMetadata: httpPost<IFileMetadata, { path: string }>('/api/fs/metadata'),
   copyFilesToWorkspace: httpPost<
-    { copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> },
-    { filePaths: string[]; workspace: string; sourceRoot?: string }
+    { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
+    { file_paths: string[]; workspace: string; source_root?: string }
   >('/api/fs/copy'),
   removeEntry: httpPost<void, { path: string }>('/api/fs/remove'),
-  renameEntry: httpPost<{ newPath: string }, { path: string; newName: string }>('/api/fs/rename'),
+  renameEntry: httpPost<{ new_path: string }, { path: string; new_name: string }>('/api/fs/rename'),
   readBuiltinRule: httpPost<string, { file_name: string }>('/api/skills/builtin-rule'),
   readBuiltinSkill: httpPost<string, { file_name: string }>('/api/skills/builtin-skill'),
   readAssistantRule: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-rule/read'),
@@ -436,12 +458,12 @@ export const fs = {
   materializeSkillsForAgent: httpPost<{ dir_path: string }, { conversation_id: string; enabled_skills: string[] }>(
     '/api/skills/materialize-for-agent'
   ),
-  cleanupSkillsForAgent: httpDelete<void, { conversationId: string }>(
-    (p) => `/api/skills/materialize-for-agent/${encodeURIComponent(p.conversationId)}`
+  cleanupSkillsForAgent: httpDelete<void, { conversation_id: string }>(
+    (p) => `/api/skills/materialize-for-agent/${encodeURIComponent(p.conversation_id)}`
   ),
-  readSkillInfo: httpPost<{ name: string; description: string }, { skillPath: string }>('/api/skills/info'),
-  importSkill: httpPost<{ skillName: string }, { skillPath: string }>('/api/skills/import'),
-  scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folderPath: string }>(
+  readSkillInfo: httpPost<{ name: string; description: string }, { skill_path: string }>('/api/skills/info'),
+  importSkill: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import'),
+  scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(
     '/api/skills/scan'
   ),
   detectCommonSkillPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/detect-paths'),
@@ -454,10 +476,10 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skillName: string }, { skillPath: string }>('/api/skills/import-symlink'),
-  deleteSkill: httpDelete<void, { skillName: string }>((p) => `/api/skills/${p.skillName}`),
-  getSkillPaths: httpGet<{ userSkillsDir: string; builtinSkillsDir: string }, void>('/api/skills/paths'),
-  exportSkillWithSymlink: httpPost<void, { skillPath: string; targetDir: string }>('/api/skills/export-symlink'),
+  importSkillWithSymlink: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import-symlink'),
+  deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
+  getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
+  exportSkillWithSymlink: httpPost<void, { skill_path: string; target_dir: string }>('/api/skills/export-symlink'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
   addCustomExternalPath: httpPost<void, { name: string; path: string }>('/api/skills/external-paths'),
   removeCustomExternalPath: httpDelete<void, { path: string }>(
@@ -480,10 +502,10 @@ export const speechToText = {
 // ---------------------------------------------------------------------------
 
 export const fileWatch = {
-  startWatch: httpPost<void, { filePath: string }>('/api/fs/watch/start'),
-  stopWatch: httpPost<void, { filePath: string }>('/api/fs/watch/stop'),
+  startWatch: httpPost<void, { file_path: string }>('/api/fs/watch/start'),
+  stopWatch: httpPost<void, { file_path: string }>('/api/fs/watch/stop'),
   stopAllWatches: httpPost<void, void>('/api/fs/watch/stop-all'),
-  fileChanged: wsEmitter<{ filePath: string; eventType: string }>('fileWatch.fileChanged'),
+  fileChanged: wsEmitter<{ file_path: string; event_type: string }>('fileWatch.fileChanged'),
 };
 
 // Workspace Office file scan
@@ -494,10 +516,10 @@ export const workspaceOfficeWatch = {
 // File streaming updates (real-time content push when agent writes)
 export const fileStream = {
   contentUpdate: wsEmitter<{
-    filePath: string;
+    file_path: string;
     content: string;
     workspace: string;
-    relativePath: string;
+    relative_path: string;
     operation: 'write' | 'delete';
   }>('fileStream.contentUpdate'),
 };
@@ -508,20 +530,20 @@ export const fileSnapshot = {
   compare: httpPost<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
     '/api/fs/snapshot/compare'
   ),
-  getBaselineContent: httpPost<string | null, { workspace: string; filePath: string }>('/api/fs/snapshot/baseline'),
+  getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
   getInfo: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/info'),
   dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
-  stageFile: httpPost<void, { workspace: string; filePath: string }>('/api/fs/snapshot/stage'),
+  stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
   stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
-  unstageFile: httpPost<void, { workspace: string; filePath: string }>('/api/fs/snapshot/unstage'),
+  unstageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/unstage'),
   unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
   discardFile: httpPost<
     void,
-    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
   >('/api/fs/snapshot/discard'),
   resetFile: httpPost<
     void,
-    { workspace: string; filePath: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
   >('/api/fs/snapshot/reset'),
   getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
@@ -556,11 +578,11 @@ export const bedrock = {
   testConnection: httpPost<
     { msg?: string },
     {
-      bedrockConfig: {
-        authMethod: 'accessKey' | 'profile';
+      bedrock_config: {
+        auth_method: 'accessKey' | 'profile';
         region: string;
-        accessKeyId?: string;
-        secretAccessKey?: string;
+        access_key_id?: string;
+        secret_access_key?: string;
         profile?: string;
       };
     }
@@ -614,15 +636,15 @@ export const acpConversation = {
       cli_path?: string;
       custom_agent_id?: string;
       is_preset?: boolean;
-      isExtension?: boolean;
-      supportedTransports?: string[];
+      is_extension?: boolean;
+      supported_transports?: string[];
     }>,
     void
   >('/api/agents'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'cli_check' | 'acp_initialize'; error?: string },
-    { command: string; acpArgs?: string[]; env?: Record<string, string> }
+    { command: string; acp_args?: string[]; env?: Record<string, string> }
   >('/api/agents/test'),
   detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
@@ -708,26 +730,26 @@ export const openclawConversation = {
   responseStream: conversation.responseStream,
   getRuntime: httpGet<
     {
-      conversationId: string;
+      conversation_id: string;
       runtime: {
         workspace?: string;
         backend?: string;
-        agentName?: string;
-        cliPath?: string;
+        agent_name?: string;
+        cli_path?: string;
         model?: string;
-        sessionKey?: string | null;
-        isConnected?: boolean;
-        hasActiveSession?: boolean;
-        identityHash?: string | null;
+        session_key?: string | null;
+        is_connected?: boolean;
+        has_active_session?: boolean;
+        identity_hash?: string | null;
       };
       expected?: {
-        expectedWorkspace?: string;
-        expectedBackend?: string;
-        expectedAgentName?: string;
-        expectedCliPath?: string;
-        expectedModel?: string;
-        expectedIdentityHash?: string | null;
-        switchedAt?: number;
+        expected_workspace?: string;
+        expected_backend?: string;
+        expected_agent_name?: string;
+        expected_cli_path?: string;
+        expected_model?: string;
+        expected_identity_hash?: string | null;
+        switched_at?: number;
       };
     },
     { conversation_id: string }
@@ -754,7 +776,7 @@ export const remoteAgent = {
   delete: httpDelete<boolean, { id: string }>((p) => `/api/remote-agents/${p.id}`),
   testConnection: httpPost<
     { success: boolean; error?: string },
-    { url: string; authType: string; authToken?: string; allowInsecure?: boolean }
+    { url: string; auth_type: string; auth_token?: string; allow_insecure?: boolean }
   >('/api/remote-agents/test-connection'),
   handshake: httpPost<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/handshake`
@@ -768,16 +790,16 @@ export const remoteAgent = {
 export type PaginatedResult<T> = {
   items: T[];
   total: number;
-  hasMore: boolean;
+  has_more: boolean;
 };
 
 export const database = {
   getConversationMessages: httpGet<
     PaginatedResult<import('@/common/chat/chatLib').TMessage>,
-    { conversation_id: string; page?: number; pageSize?: number; order?: string }
+    { conversation_id: string; page?: number; page_size?: number; order?: string }
   >(
     (p) =>
-      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}${p.order ? `&order=${p.order}` : ''}`
+      `/api/conversations/${p.conversation_id}/messages?page=${p.page ?? 1}&page_size=${p.page_size ?? 50}${p.order ? `&order=${p.order}` : ''}`
   ),
   getUserConversations: withResponseMap(
     httpGet<PaginatedResult<import('@/common/config/storage').TChatConversation>, { cursor?: string; limit?: number }>(
@@ -793,10 +815,10 @@ export const database = {
   ),
   searchConversationMessages: httpGet<
     PaginatedResult<import('../types/database').IMessageSearchItem>,
-    { keyword: string; page?: number; pageSize?: number }
+    { keyword: string; page?: number; page_size?: number }
   >(
     (p) =>
-      `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&pageSize=${p.pageSize ?? 50}`
+      `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&page_size=${p.page_size ?? 50}`
   ),
 };
 
@@ -809,7 +831,7 @@ export const previewHistory = {
   save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>('/api/preview-history/save'),
   getContent: httpPost<
     { snapshot: PreviewSnapshotInfo; content: string } | null,
-    { target: PreviewHistoryTarget; snapshotId: string }
+    { target: PreviewHistoryTarget; snapshot_id: string }
   >('/api/preview-history/get-content'),
 };
 
@@ -817,10 +839,10 @@ export const previewHistory = {
 export const preview = {
   open: wsEmitter<{
     content: string;
-    contentType: import('../types/preview').PreviewContentType;
+    content_type: import('../types/preview').PreviewContentType;
     metadata?: {
       title?: string;
-      fileName?: string;
+      file_name?: string;
     };
   }>('preview.open'),
 };
@@ -841,20 +863,20 @@ export const document = {
 // ---------------------------------------------------------------------------
 
 export const pptPreview = {
-  start: httpPost<{ url: string }, { filePath: string }>('/api/ppt-preview/start'),
-  stop: httpPost<void, { filePath: string }>('/api/ppt-preview/stop'),
+  start: httpPost<{ url: string }, { file_path: string }>('/api/ppt-preview/start'),
+  stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string }, { filePath: string }>('/api/word-preview/start'),
-  stop: httpPost<void, { filePath: string }>('/api/word-preview/stop'),
+  start: httpPost<{ url: string }, { file_path: string }>('/api/word-preview/start'),
+  stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string }, { filePath: string }>('/api/excel-preview/start'),
-  stop: httpPost<void, { filePath: string }>('/api/excel-preview/stop'),
+  start: httpPost<{ url: string }, { file_path: string }>('/api/excel-preview/start'),
+  stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
 
@@ -879,7 +901,7 @@ export const windowControls = {
   unmaximize: bridge.buildProvider<void, void>('window-controls:unmaximize'),
   close: bridge.buildProvider<void, void>('window-controls:close'),
   isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
-  maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
+  maximizedChanged: bridge.buildEmitter<{ is_maximized: boolean }>('window-controls:maximized-changed'),
 };
 
 // ---------------------------------------------------------------------------
@@ -929,12 +951,12 @@ export type INotificationOptions = {
   title: string;
   body: string;
   icon?: string;
-  conversationId?: string;
+  conversation_id?: string;
 };
 
 export const notification = {
   show: bridge.buildProvider<void, INotificationOptions>('notification.show'),
-  clicked: bridge.buildEmitter<{ conversationId?: string }>('notification.clicked'),
+  clicked: bridge.buildEmitter<{ conversation_id?: string }>('notification.clicked'),
 };
 
 // ---------------------------------------------------------------------------
@@ -995,23 +1017,23 @@ export const cron = {
   listJobsByConversation: httpGet<ICronJob[], { conversation_id: string }>(
     (p) => `/api/cron/jobs?conversation_id=${encodeURIComponent(p.conversation_id)}`
   ),
-  getJob: httpGet<ICronJob | null, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}`),
+  getJob: httpGet<ICronJob | null, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
-  updateJob: httpPut<ICronJob, { jobId: string; updates: Partial<ICronJob> }>(
-    (p) => `/api/cron/jobs/${p.jobId}`,
+  updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
+    (p) => `/api/cron/jobs/${p.job_id}`,
     (p) => p.updates
   ),
-  removeJob: httpDelete<void, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}`),
-  runNow: httpPost<{ conversationId: string }, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}/run`),
-  saveSkill: httpPost<void, { jobId: string; content: string }>(
-    (p) => `/api/cron/jobs/${p.jobId}/skill`,
+  removeJob: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
+  runNow: httpPost<{ conversation_id: string }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/run`),
+  saveSkill: httpPost<void, { job_id: string; content: string }>(
+    (p) => `/api/cron/jobs/${p.job_id}/skill`,
     (p) => ({ content: p.content })
   ),
-  hasSkill: httpGet<boolean, { jobId: string }>((p) => `/api/cron/jobs/${p.jobId}/skill`),
+  hasSkill: httpGet<boolean, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
   onJobCreated: wsEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: wsEmitter<ICronJob>('cron.job-updated'),
-  onJobRemoved: wsEmitter<{ jobId: string }>('cron.job-removed'),
-  onJobExecuted: wsEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped' | 'missed'; error?: string }>(
+  onJobRemoved: wsEmitter<{ job_id: string }>('cron.job-removed'),
+  onJobExecuted: wsEmitter<{ job_id: string; status: 'ok' | 'error' | 'skipped' | 'missed'; error?: string }>(
     'cron.job-executed'
   ),
 };
@@ -1033,38 +1055,38 @@ export interface ICronJob {
   schedule: ICronSchedule;
   target: {
     payload: { kind: 'message'; text: string };
-    executionMode?: 'existing' | 'new_conversation';
+    execution_mode?: 'existing' | 'new_conversation';
   };
   metadata: {
-    conversationId: string;
-    conversationTitle?: string;
-    agentType: AgentBackend;
-    createdBy: 'user' | 'agent';
-    createdAt: number;
-    updatedAt: number;
-    agentConfig?: ICronAgentConfig;
+    conversation_id: string;
+    conversation_title?: string;
+    agent_type: AgentBackend;
+    created_by: 'user' | 'agent';
+    created_at: number;
+    updated_at: number;
+    agent_config?: ICronAgentConfig;
   };
   state: {
-    nextRunAtMs?: number;
-    lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
-    lastError?: string;
-    runCount: number;
-    retryCount: number;
-    maxRetries: number;
+    next_run_at_ms?: number;
+    last_run_at_ms?: number;
+    last_status?: 'ok' | 'error' | 'skipped' | 'missed';
+    last_error?: string;
+    run_count: number;
+    retry_count: number;
+    max_retries: number;
   };
 }
 
 export interface ICronAgentConfig {
   backend: AgentBackend;
   name: string;
-  cliPath?: string;
-  isPreset?: boolean;
-  customAgentId?: string;
-  presetAgentType?: string;
+  cli_path?: string;
+  is_preset?: boolean;
+  custom_agent_id?: string;
+  preset_agent_type?: string;
   mode?: string;
-  modelId?: string;
-  configOptions?: Record<string, string>;
+  model_id?: string;
+  config_options?: Record<string, string>;
   workspace?: string;
 }
 
@@ -1074,12 +1096,12 @@ export interface ICreateCronJobParams {
   schedule: ICronSchedule;
   prompt?: string;
   message?: string;
-  conversationId: string;
-  conversationTitle?: string;
-  agentType: AgentBackend;
-  createdBy: 'user' | 'agent';
-  executionMode?: 'existing' | 'new_conversation';
-  agentConfig?: ICronAgentConfig;
+  conversation_id: string;
+  conversation_title?: string;
+  agent_type: AgentBackend;
+  created_by: 'user' | 'agent';
+  execution_mode?: 'existing' | 'new_conversation';
+  agent_config?: ICronAgentConfig;
 }
 
 // ---------------------------------------------------------------------------
@@ -1092,14 +1114,14 @@ interface ISendMessageParams {
   conversation_id: string;
   files?: string[];
   loading_id?: string;
-  injectSkills?: string[];
+  inject_skills?: string[];
 }
 
 export interface IConfirmMessageParams {
-  confirmKey: string;
+  confirm_key: string;
   msg_id: string;
   conversation_id: string;
-  callId: string;
+  call_id: string;
 }
 
 export interface ICreateConversationParams {
@@ -1109,38 +1131,39 @@ export interface ICreateConversationParams {
   model: TProviderWithModel;
   extra: {
     workspace?: string;
-    customWorkspace?: boolean;
-    defaultFiles?: string[];
+    custom_workspace?: boolean;
+    default_files?: string[];
     backend?: AgentBackend;
-    cliPath?: string;
-    webSearchEngine?: 'google' | 'default';
-    agentName?: string;
-    customAgentId?: string;
+    cli_path?: string;
+    web_search_engine?: 'google' | 'default';
+    agent_name?: string;
+    agent_id?: string;
+    custom_agent_id?: string;
     context?: string;
-    contextFileName?: string;
-    presetRules?: string;
-    enabledSkills?: string[];
-    presetContext?: string;
-    presetAssistantId?: string;
-    sessionMode?: string;
-    codexModel?: string;
-    currentModelId?: string;
-    cachedConfigOptions?: import('../types/acpTypes').AcpSessionConfigOption[];
-    pendingConfigOptions?: Record<string, string>;
-    runtimeValidation?: {
-      expectedWorkspace?: string;
-      expectedBackend?: string;
-      expectedAgentName?: string;
-      expectedCliPath?: string;
-      expectedModel?: string;
-      expectedIdentityHash?: string | null;
-      switchedAt?: number;
+    context_file_name?: string;
+    preset_rules?: string;
+    enabled_skills?: string[];
+    preset_context?: string;
+    preset_assistant_id?: string;
+    session_mode?: string;
+    codex_model?: string;
+    current_model_id?: string;
+    cached_config_options?: import('../types/acpTypes').AcpSessionConfigOption[];
+    pending_config_options?: Record<string, string>;
+    runtime_validation?: {
+      expected_workspace?: string;
+      expected_backend?: string;
+      expected_agent_name?: string;
+      expected_cli_path?: string;
+      expected_model?: string;
+      expected_identity_hash?: string | null;
+      switched_at?: number;
     };
-    isHealthCheck?: boolean;
-    remoteAgentId?: string;
-    extraSkillPaths?: string[];
-    excludeBuiltinSkills?: string[];
-    teamId?: string;
+    is_health_check?: boolean;
+    remote_agent_id?: string;
+    extra_skill_paths?: string[];
+    exclude_builtin_skills?: string[];
+    team_id?: string;
   };
 }
 
@@ -1181,7 +1204,7 @@ export interface IResponseMessage {
 }
 
 export interface IConversationTurnCompletedEvent {
-  sessionId: string;
+  session_id: string;
   status: 'pending' | 'running' | 'finished';
   state:
     | 'ai_generating'
@@ -1192,31 +1215,31 @@ export interface IConversationTurnCompletedEvent {
     | 'error'
     | 'unknown';
   detail: string;
-  canSendMessage: boolean;
+  can_send_message: boolean;
   runtime: {
-    hasTask: boolean;
-    taskStatus?: 'pending' | 'running' | 'finished';
-    isProcessing: boolean;
-    pendingConfirmations: number;
-    dbStatus?: 'pending' | 'running' | 'finished';
+    has_task: boolean;
+    task_status?: 'pending' | 'running' | 'finished';
+    is_processing: boolean;
+    pending_confirmations: number;
+    db_status?: 'pending' | 'running' | 'finished';
   };
   workspace: string;
   model: {
     platform: string;
     name: string;
-    useModel: string;
+    use_model: string;
   };
-  lastMessage: {
+  last_message: {
     id?: string;
     type?: string;
     content: unknown;
     status?: string | null;
-    createdAt: number;
+    created_at: number;
   };
 }
 
 export interface IConversationListChangedEvent {
-  conversationId: string;
+  conversation_id: string;
   action: 'created' | 'updated' | 'deleted';
   source?: string;
 }
@@ -1345,14 +1368,14 @@ export const channel = {
   approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
   rejectPairing: httpPost<void, { code: string }>('/api/channel/pairings/reject'),
   getAuthorizedUsers: httpGet<IChannelUser[], void>('/api/channel/users'),
-  revokeUser: httpPost<void, { userId: string }>('/api/channel/users/revoke'),
+  revokeUser: httpPost<void, { user_id: string }>('/api/channel/users/revoke'),
   getActiveSessions: httpGet<IChannelSession[], void>('/api/channel/sessions'),
   syncChannelSettings: httpPost<
     void,
     {
       platform: string;
       agent: { backend: string; customAgentId?: string; name?: string };
-      model?: { id: string; useModel: string };
+      model?: { id: string; use_model: string };
     }
   >('/api/channel/settings/sync'),
   pairingRequested: wsEmitter<IChannelPairingRequest>('channel.pairing-requested'),
@@ -1391,8 +1414,8 @@ export const team = {
     fromBackendTeam
   ),
   list: withResponseMap(
-    httpGet<import('@process/team/types').TTeam[], { userId: string }>(
-      (p) => `/api/teams?userId=${encodeURIComponent(p.userId)}`
+    httpGet<import('@process/team/types').TTeam[], { user_id: string }>(
+      (p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`
     ),
     fromBackendTeamList
   ),
@@ -1403,36 +1426,38 @@ export const team = {
   remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
   addAgent: withResponseMap(
     httpPost<import('@process/team/types').TeamAgent, IAddTeamAgentParams>(
-      (p) => `/api/teams/${p.teamId}/agents`,
+      (p) => `/api/teams/${p.team_id}/agents`,
       (p) => toBackendAgent(p.agent)
     ),
     fromBackendAgent
   ),
-  removeAgent: httpDelete<void, { teamId: string; slotId: string }>((p) => `/api/teams/${p.teamId}/agents/${p.slotId}`),
-  sendMessage: httpPost<void, { teamId: string; content: string; files?: string[] }>(
-    (p) => `/api/teams/${p.teamId}/messages`,
+  removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
+  ),
+  sendMessage: httpPost<void, { team_id: string; content: string; files?: string[] }>(
+    (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({ content: p.content, files: p.files })
   ),
-  sendMessageToAgent: httpPost<void, { teamId: string; slotId: string; content: string; files?: string[] }>(
-    (p) => `/api/teams/${p.teamId}/agents/${p.slotId}/messages`,
+  sendMessageToAgent: httpPost<void, { team_id: string; slot_id: string; content: string; files?: string[] }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
     (p) => ({ content: p.content, files: p.files })
   ),
-  stop: httpDelete<void, { teamId: string }>((p) => `/api/teams/${p.teamId}/session`),
-  ensureSession: httpPost<void, { teamId: string }>((p) => `/api/teams/${p.teamId}/session`),
-  renameAgent: httpPatch<void, { teamId: string; slotId: string; newName: string }>(
-    (p) => `/api/teams/${p.teamId}/agents/${p.slotId}/name`,
-    (p) => ({ name: p.newName })
+  stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
+  ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
+  renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/name`,
+    (p) => ({ name: p.new_name })
   ),
   renameTeam: httpPatch<void, { id: string; name: string }>(
     (p) => `/api/teams/${p.id}/name`,
     (p) => ({ name: p.name })
   ),
-  setSessionMode: httpPost<void, { teamId: string; sessionMode: string }>(
-    (p) => `/api/teams/${p.teamId}/session-mode`,
-    (p) => ({ sessionMode: p.sessionMode })
+  setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
+    (p) => `/api/teams/${p.team_id}/session-mode`,
+    (p) => ({ session_mode: p.session_mode })
   ),
-  updateWorkspace: httpPost<void, { teamId: string; workspace: string }>(
-    (p) => `/api/teams/${p.teamId}/workspace`,
+  updateWorkspace: httpPost<void, { team_id: string; workspace: string }>(
+    (p) => `/api/teams/${p.team_id}/workspace`,
     (p) => ({ workspace: p.workspace })
   ),
   agentStatusChanged: wsEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),

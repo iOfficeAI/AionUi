@@ -429,7 +429,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
       if (cfg.base_url) env.AIONUI_IMG_BASE_URL = cfg.base_url;
       if (cfg.api_key) env.AIONUI_IMG_API_KEY = cfg.api_key;
-      if (cfg.useModel) env.AIONUI_IMG_MODEL = cfg.useModel;
+      if (cfg.use_model) env.AIONUI_IMG_MODEL = cfg.use_model;
       return env;
     };
 
@@ -547,7 +547,7 @@ const cleanupOrphanedHealthCheckConversations = async () => {
           idsToDelete.push(conversation.id);
         }
       });
-      hasMore = result.hasMore;
+      hasMore = result.has_more;
       page += 1;
     }
 

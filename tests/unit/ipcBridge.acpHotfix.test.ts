@@ -23,7 +23,7 @@ describe('ipcBridge.acpConversation — wire body uses snake_case', () => {
   });
 
   it('setModel sends {model_id} not {modelId}', async () => {
-    await acpConversation.setModel.invoke({ conversationId: 'c1', modelId: 'claude-sonnet-4' });
+    await acpConversation.setModel.invoke({ conversation_id: 'c1', model_id: 'claude-sonnet-4' });
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
     const [, init] = fetchMock.mock.calls[0];
     const body = JSON.parse(init!.body as string);
@@ -33,8 +33,8 @@ describe('ipcBridge.acpConversation — wire body uses snake_case', () => {
 
   it('setConfigOption sends snake_case body keys (value only; configId is URL path)', async () => {
     await acpConversation.setConfigOption.invoke({
-      conversationId: 'c1',
-      configId: 'temperature',
+      conversation_id: 'c1',
+      config_id: 'temperature',
       value: '0.5',
     });
     const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;

@@ -12,6 +12,7 @@ describe('configureConsoleLog', () => {
       file: { fileName: '', level: '' as string | boolean, maxSize: 0 },
       console: { level: '' as string | boolean },
     },
+    hooks: [] as Array<(...args: unknown[]) => unknown>,
     initialize: vi.fn(),
     functions: {
       log: vi.fn(),
@@ -37,6 +38,7 @@ describe('configureConsoleLog', () => {
     mockLog.transports.file.level = '';
     mockLog.transports.console.level = '';
     mockLog.transports.file.maxSize = 0;
+    mockLog.hooks = [];
     mockLog.initialize.mockClear();
   });
 

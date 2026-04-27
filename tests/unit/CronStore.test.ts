@@ -51,29 +51,29 @@ describe('CronStore', () => {
         },
         target: {
           payload: { kind: 'message', text: 'Hello' },
-          executionMode: 'existing',
+          execution_mode: 'existing',
         },
         metadata: {
           conversation_id: 'conv-1',
-          conversationTitle: 'Test Conversation',
+          conversation_title: 'Test Conversation',
           agent_type: 'gemini',
-          createdBy: 'user',
+          created_by: 'user',
           created_at: 1000,
           updated_at: 2000,
-          agentConfig: {
+          agent_config: {
             backend: 'gemini',
             name: 'Test Agent',
             is_preset: true,
           },
         },
         state: {
-          nextRunAtMs: 3000,
-          lastRunAtMs: 4000,
-          lastStatus: 'ok',
-          lastError: undefined,
-          runCount: 5,
-          retryCount: 0,
-          maxRetries: 3,
+          next_run_at_ms: 3000,
+          last_run_at_ms: 4000,
+          last_status: 'ok',
+          last_error: undefined,
+          run_count: 5,
+          retry_count: 0,
+          max_retries: 3,
         },
       };
 
@@ -98,7 +98,7 @@ describe('CronStore', () => {
       expect(runArgs[7]).toBe('Every minute'); // schedule_description
       expect(runArgs[8]).toBe('Hello'); // payload_message
       expect(runArgs[9]).toBe('existing'); // execution_mode
-      expect(runArgs[10]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
+      expect(runArgs[10]).toBe(JSON.stringify(job.metadata.agent_config)); // agent_config
       expect(runArgs[11]).toBe('conv-1'); // conversation_id
       expect(runArgs[12]).toBe('Test Conversation'); // conversation_title
       expect(runArgs[13]).toBe('gemini'); // agent_type
@@ -157,13 +157,13 @@ describe('CronStore', () => {
         description: 'Every minute',
       });
       expect(retrieved!.target.payload.text).toBe('Hello');
-      expect(retrieved!.target.executionMode).toBe('existing');
-      expect(retrieved!.metadata.agentConfig).toEqual({
+      expect(retrieved!.target.execution_mode).toBe('existing');
+      expect(retrieved!.metadata.agent_config).toEqual({
         backend: 'gemini',
         name: 'Test Agent',
         is_preset: true,
       });
-      expect(retrieved!.state.lastStatus).toBe('ok');
+      expect(retrieved!.state.last_status).toBe('ok');
     });
 
     it('correctly converts "cron" schedule kind with timezone', async () => {
@@ -180,19 +180,19 @@ describe('CronStore', () => {
         },
         target: {
           payload: { kind: 'message', text: 'Daily report' },
-          executionMode: 'new_conversation',
+          execution_mode: 'new_conversation',
         },
         metadata: {
           conversation_id: 'conv-2',
           agent_type: 'claude',
-          createdBy: 'agent',
+          created_by: 'agent',
           created_at: 5000,
           updated_at: 6000,
         },
         state: {
-          runCount: 0,
-          retryCount: 0,
-          maxRetries: 5,
+          run_count: 0,
+          retry_count: 0,
+          max_retries: 5,
         },
       };
 
@@ -246,10 +246,10 @@ describe('CronStore', () => {
         tz: 'America/New_York',
         description: 'Daily at midnight EST',
       });
-      expect(retrieved!.metadata.agentConfig).toBeUndefined();
-      expect(retrieved!.state.nextRunAtMs).toBeUndefined();
-      // Note: lastStatus is not converted from null to undefined in rowToJob (line 181)
-      expect(retrieved!.state.lastStatus).toBeNull();
+      expect(retrieved!.metadata.agent_config).toBeUndefined();
+      expect(retrieved!.state.next_run_at_ms).toBeUndefined();
+      // Note: last_status is not converted from null to undefined in rowToJob (line 181)
+      expect(retrieved!.state.last_status).toBeNull();
     });
 
     it('correctly converts "at" schedule kind', async () => {
@@ -269,14 +269,14 @@ describe('CronStore', () => {
         metadata: {
           conversation_id: 'conv-3',
           agent_type: 'gemini',
-          createdBy: 'user',
+          created_by: 'user',
           created_at: 7000,
           updated_at: 8000,
         },
         state: {
-          runCount: 0,
-          retryCount: 0,
-          maxRetries: 0,
+          run_count: 0,
+          retry_count: 0,
+          max_retries: 0,
         },
       };
 
@@ -405,7 +405,7 @@ describe('CronStore', () => {
       });
 
       const withConfig = await cronStore.getById('job-with-config');
-      expect(withConfig!.metadata.agentConfig).toEqual({
+      expect(withConfig!.metadata.agent_config).toEqual({
         backend: 'claude',
         name: 'Custom Agent',
         cli_path: '/path/to/cli',
@@ -419,7 +419,7 @@ describe('CronStore', () => {
       });
 
       const withoutConfig = await cronStore.getById('job-without-config');
-      expect(withoutConfig!.metadata.agentConfig).toBeUndefined();
+      expect(withoutConfig!.metadata.agent_config).toBeUndefined();
     });
   });
 
@@ -435,11 +435,11 @@ describe('CronStore', () => {
         metadata: {
           conversation_id: 'conv-1',
           agent_type: 'gemini',
-          createdBy: 'user',
+          created_by: 'user',
           created_at: 1000,
           updated_at: 1000,
         },
-        state: { runCount: 0, retryCount: 0, maxRetries: 3 },
+        state: { run_count: 0, retry_count: 0, max_retries: 3 },
       };
 
       mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));

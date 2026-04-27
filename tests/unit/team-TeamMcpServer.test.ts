@@ -419,8 +419,8 @@ describe('TeamMcpServer', () => {
 
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-member',
-          fromAgentId: 'slot-lead',
+          to_agent_id: 'slot-member',
+          from_agent_id: 'slot-lead',
           content: 'Hello Alice',
         })
       );
@@ -448,7 +448,7 @@ describe('TeamMcpServer', () => {
 
       // Should write to Alice (not to sender = leader)
       expect(mailbox.write).toHaveBeenCalledWith(
-        expect.objectContaining({ toAgentId: 'slot-member', content: 'Everyone hear this' })
+        expect.objectContaining({ to_agent_id: 'slot-member', content: 'Everyone hear this' })
       );
       expect(response.result).toContain('broadcast');
     });
@@ -475,7 +475,7 @@ describe('TeamMcpServer', () => {
 
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-lead',
+          to_agent_id: 'slot-lead',
           content: expect.stringContaining('refused to shut down'),
         })
       );
@@ -597,7 +597,7 @@ describe('TeamMcpServer', () => {
 
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-member',
+          to_agent_id: 'slot-member',
           type: 'shutdown_request',
         })
       );

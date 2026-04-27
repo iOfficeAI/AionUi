@@ -204,7 +204,7 @@ describe('shellBridge with actual providers', () => {
       Object.defineProperty(process, 'platform', { value: 'win32' });
       vi.mocked(shell.openPath).mockResolvedValue('');
 
-      await registeredProviders['openFolderWith']({ folderPath: 'C:\\Projects', tool: 'explorer' });
+      await registeredProviders['openFolderWith']({ folder_path: 'C:\\Projects', tool: 'explorer' });
 
       expect(shell.openPath).toHaveBeenCalledWith('C:\\Projects');
     });
@@ -212,7 +212,7 @@ describe('shellBridge with actual providers', () => {
     it('opens folder with terminal on macOS', async () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' });
 
-      await registeredProviders['openFolderWith']({ folderPath: '/workspace/project', tool: 'terminal' });
+      await registeredProviders['openFolderWith']({ folder_path: '/workspace/project', tool: 'terminal' });
 
       expect(spawn).toHaveBeenCalledWith('open', ['-a', 'Terminal', '/workspace/project'], {
         detached: true,
@@ -223,7 +223,7 @@ describe('shellBridge with actual providers', () => {
     it('opens folder with terminal on Windows using PowerShell', async () => {
       Object.defineProperty(process, 'platform', { value: 'win32' });
 
-      await registeredProviders['openFolderWith']({ folderPath: 'C:\\Projects', tool: 'terminal' });
+      await registeredProviders['openFolderWith']({ folder_path: 'C:\\Projects', tool: 'terminal' });
 
       expect(spawn).toHaveBeenCalledWith(
         'cmd.exe',
@@ -238,7 +238,7 @@ describe('shellBridge with actual providers', () => {
     it('opens folder with explorer on macOS using open command', async () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' });
 
-      await registeredProviders['openFolderWith']({ folderPath: '/projects', tool: 'explorer' });
+      await registeredProviders['openFolderWith']({ folder_path: '/projects', tool: 'explorer' });
 
       expect(spawn).toHaveBeenCalledWith('open', ['/projects'], { detached: true, stdio: 'ignore' });
     });
@@ -247,7 +247,7 @@ describe('shellBridge with actual providers', () => {
       Object.defineProperty(process, 'platform', { value: 'linux' });
       vi.mocked(shell.openPath).mockResolvedValue('');
 
-      await registeredProviders['openFolderWith']({ folderPath: '/projects', tool: 'explorer' });
+      await registeredProviders['openFolderWith']({ folder_path: '/projects', tool: 'explorer' });
 
       expect(spawn).toHaveBeenCalledWith('xdg-open', ['/projects'], { detached: true, stdio: 'ignore' });
     });
@@ -264,7 +264,7 @@ describe('shellBridge with actual providers', () => {
         return undefined as any;
       });
 
-      await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'terminal' });
+      await registeredProviders['openFolderWith']({ folder_path: '/project', tool: 'terminal' });
 
       expect(spawn).toHaveBeenCalledWith('gnome-terminal', ['--working-directory=/project'], {
         detached: true,
@@ -280,7 +280,7 @@ describe('shellBridge with actual providers', () => {
         return undefined as any;
       });
 
-      await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'terminal' });
+      await registeredProviders['openFolderWith']({ folder_path: '/project', tool: 'terminal' });
 
       expect(shell.openPath).toHaveBeenCalledWith('/project');
     });
@@ -302,7 +302,7 @@ describe('shellBridge with actual providers', () => {
         return filepath === '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code';
       });
 
-      await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'vscode' });
+      await registeredProviders['openFolderWith']({ folder_path: '/project', tool: 'vscode' });
       // Flush microtasks so the async error handler completes
       await new Promise((resolve) => setTimeout(resolve));
 
@@ -329,7 +329,7 @@ describe('shellBridge with actual providers', () => {
         return filepath === '/usr/bin/code';
       });
 
-      await registeredProviders['openFolderWith']({ folderPath: '/project', tool: 'vscode' });
+      await registeredProviders['openFolderWith']({ folder_path: '/project', tool: 'vscode' });
       // Flush microtasks so the async error handler completes
       await new Promise((resolve) => setTimeout(resolve));
 

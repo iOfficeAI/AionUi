@@ -8,8 +8,8 @@ function makeMessage(overrides: Partial<MailboxMessage> = {}): MailboxMessage {
   return {
     id: 'msg-1',
     team_id: 'team-1',
-    toAgentId: 'slot-2',
-    fromAgentId: 'slot-1',
+    to_agent_id: 'slot-2',
+    from_agent_id: 'slot-1',
     type: 'message',
     content: 'Hello teammate',
     read: false,
@@ -60,8 +60,8 @@ describe('Mailbox', () => {
 
       const result = await mailbox.write({
         team_id: 'team-1',
-        toAgentId: 'slot-2',
-        fromAgentId: 'slot-1',
+        to_agent_id: 'slot-2',
+        from_agent_id: 'slot-1',
         content: 'Hello teammate',
       });
 
@@ -70,8 +70,8 @@ describe('Mailbox', () => {
       expect(arg.type).toBe('message');
       expect(arg.read).toBe(false);
       expect(arg.team_id).toBe('team-1');
-      expect(arg.toAgentId).toBe('slot-2');
-      expect(arg.fromAgentId).toBe('slot-1');
+      expect(arg.to_agent_id).toBe('slot-2');
+      expect(arg.from_agent_id).toBe('slot-1');
       expect(arg.content).toBe('Hello teammate');
       expect(typeof arg.id).toBe('string');
       expect(arg.id).toHaveLength(36); // UUID format
@@ -84,8 +84,8 @@ describe('Mailbox', () => {
 
       await mailbox.write({
         team_id: 'team-1',
-        toAgentId: 'slot-2',
-        fromAgentId: 'slot-1',
+        to_agent_id: 'slot-2',
+        from_agent_id: 'slot-1',
         content: 'Done',
         type: 'idle_notification',
       });
@@ -100,8 +100,8 @@ describe('Mailbox', () => {
 
       await mailbox.write({
         team_id: 'team-1',
-        toAgentId: 'slot-2',
-        fromAgentId: 'slot-1',
+        to_agent_id: 'slot-2',
+        from_agent_id: 'slot-1',
         content: 'Work done',
         summary: 'brief summary',
       });
@@ -116,8 +116,8 @@ describe('Mailbox', () => {
 
       await mailbox.write({
         team_id: 'team-1',
-        toAgentId: 'slot-2',
-        fromAgentId: 'slot-1',
+        to_agent_id: 'slot-2',
+        from_agent_id: 'slot-1',
         content: 'With files',
         files: ['/tmp/a.png', '/tmp/b.txt'],
       });
@@ -131,8 +131,8 @@ describe('Mailbox', () => {
 
       await mailbox.write({
         team_id: 'team-1',
-        toAgentId: 'slot-2',
-        fromAgentId: 'slot-1',
+        to_agent_id: 'slot-2',
+        from_agent_id: 'slot-1',
         content: 'No files',
       });
 
@@ -147,8 +147,8 @@ describe('Mailbox', () => {
         return msg;
       });
 
-      await mailbox.write({ team_id: 'team-1', toAgentId: 'a', fromAgentId: 'b', content: 'msg1' });
-      await mailbox.write({ team_id: 'team-1', toAgentId: 'a', fromAgentId: 'b', content: 'msg2' });
+      await mailbox.write({ team_id: 'team-1', to_agent_id: 'a', from_agent_id: 'b', content: 'msg1' });
+      await mailbox.write({ team_id: 'team-1', to_agent_id: 'a', from_agent_id: 'b', content: 'msg2' });
 
       expect(ids[0]).not.toBe(ids[1]);
     });

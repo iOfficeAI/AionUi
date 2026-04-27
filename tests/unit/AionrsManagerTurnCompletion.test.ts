@@ -11,6 +11,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 const {
   emitResponseStream,
+  onResponseStream,
+  responseStreamCallbacks,
   emitConfirmationAdd,
   emitConfirmationUpdate,
   emitConfirmationRemove,
@@ -18,30 +20,41 @@ const {
   mockTeamEventBusEmit,
   mockChannelEmitAgentMessage,
   mockNotifyPotentialCompletion,
-} = vi.hoisted(() => ({
-  emitResponseStream: vi.fn(),
-  emitConfirmationAdd: vi.fn(),
-  emitConfirmationUpdate: vi.fn(),
-  emitConfirmationRemove: vi.fn(),
-  mockDb: {
-    getConversationMessages: vi.fn(() => ({ data: [] })),
-    getConversation: vi.fn(() => ({ success: false })),
-    updateConversation: vi.fn(),
-    createConversation: vi.fn(() => ({ success: true })),
-    insertMessage: vi.fn(),
-    updateMessage: vi.fn(),
-  },
-  mockTeamEventBusEmit: vi.fn(),
-  mockChannelEmitAgentMessage: vi.fn(),
-  mockNotifyPotentialCompletion: vi.fn().mockResolvedValue(undefined),
-}));
+} = vi.hoisted(() => {
+  const callbacks: Array<(msg: unknown) => void> = [];
+  return {
+    emitResponseStream: vi.fn(),
+    onResponseStream: vi.fn((cb: (msg: unknown) => void) => {
+      callbacks.push(cb);
+      return () => {
+        const i = callbacks.indexOf(cb);
+        if (i >= 0) callbacks.splice(i, 1);
+      };
+    }),
+    responseStreamCallbacks: callbacks,
+    emitConfirmationAdd: vi.fn(),
+    emitConfirmationUpdate: vi.fn(),
+    emitConfirmationRemove: vi.fn(),
+    mockDb: {
+      getConversationMessages: vi.fn(() => ({ data: [] })),
+      getConversation: vi.fn(() => ({ success: false })),
+      updateConversation: vi.fn(),
+      createConversation: vi.fn(() => ({ success: true })),
+      insertMessage: vi.fn(),
+      updateMessage: vi.fn(),
+    },
+    mockTeamEventBusEmit: vi.fn(),
+    mockChannelEmitAgentMessage: vi.fn(),
+    mockNotifyPotentialCompletion: vi.fn().mockResolvedValue(undefined),
+  };
+});
 
 // ── Module mocks ───────────────────────────────────────────────────
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
-      responseStream: { emit: emitResponseStream },
+      responseStream: { emit: emitResponseStream, on: onResponseStream },
       confirmation: {
         add: { emit: emitConfirmationAdd },
         update: { emit: emitConfirmationUpdate },
@@ -163,14 +176,15 @@ const FALLBACK_DELAY_MS = 15_000;
 function createManager(conversation_id = CONV_ID): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', base_url: '', platform: 'test' },
+    model: { name: 'test-provider', use_model: 'test-model', base_url: '', platform: 'test' },
     conversation_id: conversation_id,
   };
   return new AionrsManager(data as any, data.model as any);
 }
 
 function emitEvent(manager: AionrsManager, event: Record<string, unknown>) {
-  (manager as any).emit('aionrs.message', event);
+  const payload = { ...event, conversation_id: (manager as any).conversation_id };
+  for (const cb of responseStreamCallbacks) cb(payload);
 }
 
 // ── Tests ──────────────────────────────────────────────────────────

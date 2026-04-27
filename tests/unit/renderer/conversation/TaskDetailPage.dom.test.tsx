@@ -171,7 +171,7 @@ describe('TaskDetailPage', () => {
       description: 'Every day at 9:00 AM',
     },
     target: {
-      executionMode: 'new_conversation',
+      execution_mode: 'new_conversation',
       payload: {
         text: 'Summarize daily activities',
       },
@@ -180,16 +180,16 @@ describe('TaskDetailPage', () => {
       conversation_id: 'conv-123',
       created_at: now,
       updated_at: now,
-      agentConfig: {
+      agent_config: {
         backend: 'claude',
         name: 'Claude 3.5 Sonnet',
         model_id: 'claude-3-5-sonnet',
       },
     },
     state: {
-      lastRunAtMs: now - 86400000, // 1 day ago
-      nextRunAtMs: nextRun,
-      lastStatus: 'success',
+      last_run_at_ms: now - 86400000, // 1 day ago
+      next_run_at_ms: nextRun,
+      last_status: 'success',
     },
   };
 
@@ -278,7 +278,7 @@ describe('TaskDetailPage', () => {
     expect(within(sidebarColumn).getByText('cron.detail.instructions')).toBeInTheDocument();
     expect(within(sidebarColumn).getByText('cron.detail.agent')).toBeInTheDocument();
     expect(within(sidebarColumn).getByText('cron.detail.repeats')).toBeInTheDocument();
-    expect(within(sidebarColumn).getByText('cron.page.form.executionMode')).toBeInTheDocument();
+    expect(within(sidebarColumn).getByText('cron.page.form.execution_mode')).toBeInTheDocument();
   });
 
   it('renders active status tag when job is enabled and has no errors', async () => {
@@ -307,7 +307,7 @@ describe('TaskDetailPage', () => {
   it('renders error status tag when job has error status', async () => {
     const errorJob = {
       ...mockJob,
-      state: { ...mockJob.state, lastStatus: 'error' as const, lastError: 'Something went wrong' },
+      state: { ...mockJob.state, last_status: 'error' as const, last_error: 'Something went wrong' },
     };
     mockGetJob.mockResolvedValue(errorJob);
 
@@ -344,7 +344,7 @@ describe('TaskDetailPage', () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
-        executionMode: 'existing',
+        execution_mode: 'existing',
         payload: {
           text: 'Update task',
         },
@@ -572,7 +572,7 @@ describe('TaskDetailPage', () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
-        executionMode: 'existing_conversation',
+        execution_mode: 'existing',
         payload: {
           text: 'Update task',
         },
@@ -592,15 +592,15 @@ describe('TaskDetailPage', () => {
     const errorJob: ICronJob = {
       ...mockJob,
       target: {
-        executionMode: 'existing_conversation',
+        execution_mode: 'existing',
         payload: {
           text: 'Update task',
         },
       },
       state: {
         ...mockJob.state,
-        lastStatus: 'error',
-        lastError: 'Execution failed',
+        last_status: 'error',
+        last_error: 'Execution failed',
       },
     };
     mockGetJob.mockResolvedValue(errorJob);

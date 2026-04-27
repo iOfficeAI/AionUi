@@ -25,7 +25,7 @@ export const useGoogleModelSelection = ({
 
   useEffect(() => {
     setCurrentModel(initialModel);
-  }, [initialModel?.id, initialModel?.useModel]);
+  }, [initialModel?.id, initialModel?.use_model]);
 
   const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
 
@@ -33,7 +33,7 @@ export const useGoogleModelSelection = ({
     async (provider: IProvider, modelName: string) => {
       const selected = {
         ...(provider as unknown as TProviderWithModel),
-        useModel: modelName,
+        use_model: modelName,
       } as TProviderWithModel;
       const ok = await onSelectModel(provider, modelName);
       if (ok) {

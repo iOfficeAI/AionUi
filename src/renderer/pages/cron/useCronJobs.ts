@@ -152,7 +152,7 @@ export function useCronJobs(conversation_id?: string) {
   // Computed values
   const hasJobs = jobs.length > 0;
   const activeJobsCount = jobs.filter((j) => j.enabled).length;
-  const hasError = jobs.some((j) => j.state.lastStatus === 'error');
+  const hasError = jobs.some((j) => j.state.last_status === 'error');
 
   return {
     jobs,
@@ -222,7 +222,7 @@ export function useAllCronJobs() {
 
   // Computed values
   const activeCount = useMemo(() => jobs.filter((j) => j.enabled).length, [jobs]);
-  const hasError = useMemo(() => jobs.some((j) => j.state.lastStatus === 'error'), [jobs]);
+  const hasError = useMemo(() => jobs.some((j) => j.state.last_status === 'error'), [jobs]);
 
   return {
     jobs,
@@ -254,7 +254,7 @@ export function useCronJobsMap() {
     }
     return new Set();
   });
-  // Track lastRunAtMs for each job to detect new executions
+  // Track last_run_at_ms for each job to detect new executions
   const lastRunAtMapRef = useRef<Map<string, number>>(new Map());
   // Track current active conversation (use ref to access latest value in event handlers)
   const activeConversationIdRef = useRef<string | null>(null);
@@ -282,8 +282,8 @@ export function useCronJobsMap() {
         }
         map.get(convId)!.push(job);
         // Initialize lastRunAtMap for detecting new executions
-        if (job.state.lastRunAtMs) {
-          lastRunAtMapRef.current.set(job.id, job.state.lastRunAtMs);
+        if (job.state.last_run_at_ms) {
+          lastRunAtMapRef.current.set(job.id, job.state.last_run_at_ms);
         }
       }
 
@@ -321,9 +321,9 @@ export function useCronJobsMap() {
       onJobUpdated: (job: ICronJob) => {
         const convId = job.metadata.conversation_id;
 
-        // Check if this is a new execution (lastRunAtMs changed)
+        // Check if this is a new execution (last_run_at_ms changed)
         const prevLastRunAt = lastRunAtMapRef.current.get(job.id);
-        const newLastRunAt = job.state.lastRunAtMs;
+        const newLastRunAt = job.state.last_run_at_ms;
         if (newLastRunAt && newLastRunAt !== prevLastRunAt) {
           lastRunAtMapRef.current.set(job.id, newLastRunAt);
 
@@ -408,7 +408,7 @@ export function useCronJobsMap() {
       if (unreadConversations.has(conversation_id)) return 'unread';
 
       // Check if any job has error
-      if (convJobs.some((j) => j.state.lastStatus === 'error')) return 'error';
+      if (convJobs.some((j) => j.state.last_status === 'error')) return 'error';
 
       // Check if all jobs are paused
       if (convJobs.every((j) => !j.enabled)) return 'paused';

@@ -48,25 +48,25 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     let conversation_id = preparedConversationId ?? job.metadata.conversation_id;
 
     // Create a conversation when needed (skip if already prepared by runNow):
-    if (!preparedConversationId && job.metadata.agentConfig) {
+    if (!preparedConversationId && job.metadata.agent_config) {
       conversation_id = await this.resolveConversationForJob(job);
     }
 
     // For existing mode, ensure the reused conversation uses the correct model.
     // If the job specifies a model_id, use that; otherwise fall back to the user's
     // preferred model so it doesn't stay on whatever it was originally created with.
-    if (job.target.executionMode === 'existing' && conversation_id && job.metadata.agentConfig) {
+    if (job.target.execution_mode === 'existing' && conversation_id && job.metadata.agent_config) {
       const convService = await getConversationService();
       const conv = await convService.getConversation(conversation_id);
       if (conv) {
-        const baseModel = await this.resolveModelForBackend(job.metadata.agentConfig.backend);
-        const current_model = job.metadata.agentConfig.model_id
-          ? { ...baseModel, useModel: job.metadata.agentConfig.model_id }
+        const baseModel = await this.resolveModelForBackend(job.metadata.agent_config.backend);
+        const current_model = job.metadata.agent_config.model_id
+          ? { ...baseModel, use_model: job.metadata.agent_config.model_id }
           : baseModel;
         const convModel = 'model' in conv ? (conv as { model: TProviderWithModel }).model : undefined;
-        if (convModel?.useModel !== current_model.useModel) {
+        if (convModel?.use_model !== current_model.use_model) {
           await convService.updateConversation(conversation_id, {
-            model: convModel ? { ...convModel, useModel: current_model.useModel } : current_model,
+            model: convModel ? { ...convModel, use_model: current_model.use_model } : current_model,
           } as Partial<TChatConversation>);
           // Kill stale task so getOrBuildTask picks up the new model
           const staleTask = this.taskManager.getTask(conversation_id);
@@ -116,9 +116,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // If the task's agent is stale/disconnected, settings may fail — kill and retry
     // with a fresh task in that case.
     if (
-      job.metadata.agentConfig?.mode ||
-      job.metadata.agentConfig?.config_options ||
-      job.metadata.agentConfig?.model_id
+      job.metadata.agent_config?.mode ||
+      job.metadata.agent_config?.config_options ||
+      job.metadata.agent_config?.model_id
     ) {
       const ok = await this.applyAgentSettings(task, job);
       if (!ok) {
@@ -133,8 +133,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
 
     const hasSkill = await hasCronSkillFile(job.id);
-    const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
-    const isAionrs = job.metadata.agentConfig?.backend === 'aionrs';
+    const needsSkillSuggest = job.target.execution_mode === 'new_conversation' && !!workspace && !hasSkill;
+    const isAionrs = job.metadata.agent_config?.backend === 'aionrs';
 
     // Aionrs: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
     // Other agents: separate follow-up message via onFirstFinish (multi-turn).
@@ -191,7 +191,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Delegates all workspace init, model setup and DB persistence to the service layer.
    */
   private async buildConversationForJob(job: CronJob): Promise<TChatConversation> {
-    const config = job.metadata.agentConfig!;
+    const config = job.metadata.agent_config!;
     const baseModel = await this.resolveModelForBackend(config.backend);
     // If the job specifies a model_id, override the resolved model's useModel
     const model = config.model_id ? { ...baseModel, useModel: config.model_id } : baseModel;
@@ -264,7 +264,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    * Returns undefined when there is nothing to populate.
    */
   private async buildCachedConfigOptions(
-    config: NonNullable<CronJob['metadata']['agentConfig']>
+    config: NonNullable<CronJob['metadata']['agent_config']>
   ): Promise<unknown[] | undefined> {
     if (!config.config_options || Object.keys(config.config_options).length === 0) return undefined;
     try {
@@ -376,7 +376,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     let preferredModelId: string | undefined;
     if (backend === 'aionrs') {
       const savedModel = await ProcessConfig.get('aionrs.defaultModel');
-      preferredModelId = savedModel?.useModel;
+      preferredModelId = savedModel?.use_model;
     } else {
       const acpConfig = await ProcessConfig.get('acp.config');
       preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
@@ -387,21 +387,21 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     // For other backends, find a matching provider
     const match = providerList.find((p) => p.platform === backend || p.id === backend);
     if (match) {
-      const useModel = preferredModelId || match.useModel || 'auto';
-      return { ...match, useModel } as TProviderWithModel;
+      const use_model = preferredModelId || match.use_model || 'auto';
+      return { ...match, use_model } as TProviderWithModel;
     }
 
     // Fallback: return first available provider
     if (providerList.length > 0) {
-      const useModel = preferredModelId || providerList[0].useModel || 'auto';
-      return { ...providerList[0], useModel } as TProviderWithModel;
+      const use_model = preferredModelId || providerList[0].use_model || 'auto';
+      return { ...providerList[0], use_model } as TProviderWithModel;
     }
 
     // Last resort placeholder
     return {
       id: `${backend}-fallback`,
       name: backend,
-      useModel: preferredModelId || 'auto',
+      use_model: preferredModelId || 'auto',
       platform: backend,
       base_url: '',
       api_key: '',
@@ -425,7 +425,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   private buildMessageText(job: CronJob, hasSkill: boolean, inlineSkillSuggest: boolean): string {
     const rawText = job.target.payload.text;
 
-    if (job.target.executionMode !== 'new_conversation') {
+    if (job.target.execution_mode !== 'new_conversation') {
       return buildExistingConvPrompt(job.name, job.schedule.description, rawText);
     }
 
@@ -441,7 +441,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
   }
 
   async prepareConversation(job: CronJob): Promise<string> {
-    if (!job.metadata.agentConfig) {
+    if (!job.metadata.agent_config) {
       return job.metadata.conversation_id;
     }
     return this.resolveConversationForJob(job);
@@ -457,23 +457,23 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    */
   private async resolveConversationForJob(job: CronJob): Promise<string> {
     // new_conversation mode: always create
-    if (job.target.executionMode === 'new_conversation') {
+    if (job.target.execution_mode === 'new_conversation') {
       const conv = await this.buildConversationForJob(job);
       return conv.id;
     }
 
     // existing mode: try to reuse latest child conversation
-    if (job.target.executionMode === 'existing') {
+    if (job.target.execution_mode === 'existing') {
       const convService = await getConversationService();
       const childConversations = await convService.getConversationsByCronJob(job.id);
       console.log(
-        `[CronExecutor] resolveConversation existing mode: childCount=${childConversations.length}, executionMode=${job.target.executionMode}`
+        `[CronExecutor] resolveConversation existing mode: childCount=${childConversations.length}, executionMode=${job.target.execution_mode}`
       );
 
       if (childConversations.length > 0) {
         const latestConv = await convService.getConversation(childConversations[0].id);
         if (latestConv) {
-          const config = job.metadata.agentConfig!;
+          const config = job.metadata.agent_config!;
           const extra = latestConv.extra as Record<string, unknown> | undefined;
           const convBackend = extra?.backend as string | undefined;
           const configWorkspace = config.workspace || '';
@@ -559,8 +559,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         'function';
 
     // Apply mode
-    if (job.metadata.agentConfig?.mode && hasSetMode) {
-      const desiredMode = job.metadata.agentConfig.mode;
+    if (job.metadata.agent_config?.mode && hasSetMode) {
+      const desiredMode = job.metadata.agent_config.mode;
       try {
         const result = (await (task as { setMode: (mode: string) => Promise<unknown> }).setMode(
           desiredMode
@@ -576,8 +576,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     }
 
     // Apply config options
-    if (job.metadata.agentConfig?.config_options && hasSetConfigOption) {
-      for (const [config_id, value] of Object.entries(job.metadata.agentConfig.config_options)) {
+    if (job.metadata.agent_config?.config_options && hasSetConfigOption) {
+      for (const [config_id, value] of Object.entries(job.metadata.agent_config.config_options)) {
         try {
           await (task as { setConfigOption: (id: string, val: string) => Promise<unknown> }).setConfigOption(
             config_id,
@@ -591,12 +591,12 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     }
 
     // Apply model
-    if (job.metadata.agentConfig?.model_id) {
+    if (job.metadata.agent_config?.model_id) {
       const hasSetModel =
         'setModel' in task &&
         typeof (task as { setModel?: (model_id: string) => Promise<unknown> }).setModel === 'function';
       if (hasSetModel) {
-        const desiredModel = job.metadata.agentConfig.model_id;
+        const desiredModel = job.metadata.agent_config.model_id;
         try {
           await (task as { setModel: (model_id: string) => Promise<unknown> }).setModel(desiredModel);
         } catch (err) {

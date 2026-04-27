@@ -205,7 +205,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
         setItems((prev) => (append ? [...prev, ...result.items] : result.items));
         setPage(pageToLoad);
-        setHasMore(result.hasMore);
+        setHasMore(result.has_more);
       } catch (error) {
         console.error('[ConversationSearchPopover] Search failed:', error);
         if (!append) {
@@ -297,7 +297,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       await Promise.resolve(
         navigate(`/conversation/${item.conversation.id}`, {
           state: {
-            targetMessageId: item.messageId,
+            targetMessageId: item.message_id,
             fromConversationSearch: true,
           },
         })
@@ -401,10 +401,10 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       >
         <div className='conversation-search-modal__results flex flex-col'>
           {items.map((item) => {
-            const snippet = buildSnippet(item.previewText, debouncedKeyword);
+            const snippet = buildSnippet(item.preview_text, debouncedKeyword);
             return (
               <button
-                key={`${item.messageId}-${item.messageCreatedAt}`}
+                key={`${item.message_id}-${item.message_created_at}`}
                 type='button'
                 className={classNames(
                   'conversation-search-modal__result w-full text-left cursor-pointer transition-all duration-150',
@@ -423,7 +423,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                       </div>
                     </div>
                   </div>
-                  <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.messageCreatedAt)}</span>
+                  <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.message_created_at)}</span>
                 </div>
                 <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>
                   {renderHighlightedText(snippet, debouncedKeyword)}

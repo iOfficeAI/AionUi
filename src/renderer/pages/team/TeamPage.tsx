@@ -37,7 +37,7 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
 }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
-      const selected = { ..._provider, useModel: modelName } as TProviderWithModel;
+      const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
       return Boolean(ok);
     },
@@ -401,7 +401,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                       ref={(el) => {
                         agentRefs.current[agent.slot_id] = el;
                       }}
-                      data-slot-id={agent.slotId}
+                      data-slot-id={agent.slot_id}
                       data-role={isLeaderSlot ? 'leader' : 'member'}
                       className='relative h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{

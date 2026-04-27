@@ -76,8 +76,8 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModel
 
     const restore = async () => {
       try {
-        const saved = configService.get(configKey) as { id: string; useModel: string } | undefined;
-        if (!saved?.id || !saved?.useModel) {
+        const saved = configService.get(configKey) as { id: string; use_model: string } | undefined;
+        if (!saved?.id || !saved?.use_model) {
           // Nothing saved — mark restored so we don't keep retrying
           setRestored(true);
           return;
@@ -99,10 +99,10 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModel
         // ('auto', 'auto-gemini-2.5', 'manual'), but sub-model values like
         // 'gemini-2.5-flash' are also valid — skip strict membership check.
         const isGoogleAuth = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-        if (isGoogleAuth || provider.models?.includes(saved.useModel)) {
+        if (isGoogleAuth || provider.models?.includes(saved.use_model)) {
           setResolvedInitialModel({
             ...provider,
-            useModel: saved.useModel,
+            use_model: saved.use_model,
           } as TProviderWithModel);
         }
         setRestored(true);
@@ -119,7 +119,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModel
   const onSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
       try {
-        const modelRef = { id: provider.id, useModel: modelName };
+        const modelRef = { id: provider.id, use_model: modelName };
         await configService.set(configKey, modelRef);
 
         // Derive platform from configKey and sync to channel system
@@ -663,7 +663,7 @@ const ChannelModalContent: React.FC = () => {
       disabled: enableLoading,
       is_connected: pluginStatus?.connected || false,
       botUsername: pluginStatus?.botUsername,
-      defaultModel: telegramModelSelection.current_model?.useModel,
+      defaultModel: telegramModelSelection.current_model?.use_model,
       content: (
         <TelegramConfigForm
           pluginStatus={pluginStatus}
@@ -684,7 +684,7 @@ const ChannelModalContent: React.FC = () => {
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
       is_connected: larkPluginStatus?.connected || false,
-      defaultModel: larkModelSelection.current_model?.useModel,
+      defaultModel: larkModelSelection.current_model?.use_model,
       content: (
         <LarkConfigForm
           pluginStatus={larkPluginStatus}
@@ -702,7 +702,7 @@ const ChannelModalContent: React.FC = () => {
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
       is_connected: dingtalkPluginStatus?.connected || false,
-      defaultModel: dingtalkModelSelection.current_model?.useModel,
+      defaultModel: dingtalkModelSelection.current_model?.use_model,
       content: (
         <DingTalkConfigForm
           pluginStatus={dingtalkPluginStatus}
@@ -720,7 +720,7 @@ const ChannelModalContent: React.FC = () => {
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
       is_connected: weixinPluginStatus?.connected || false,
-      defaultModel: weixinModelSelection.current_model?.useModel,
+      defaultModel: weixinModelSelection.current_model?.use_model,
       content: (
         <WeixinConfigForm
           pluginStatus={weixinPluginStatus}
@@ -738,7 +738,7 @@ const ChannelModalContent: React.FC = () => {
       enabled: wecomPluginStatus?.enabled || false,
       disabled: wecomEnableLoading,
       is_connected: wecomPluginStatus?.connected || false,
-      defaultModel: wecomModelSelection.current_model?.useModel,
+      defaultModel: wecomModelSelection.current_model?.use_model,
       content: (
         <WecomConfigForm
           pluginStatus={wecomPluginStatus}

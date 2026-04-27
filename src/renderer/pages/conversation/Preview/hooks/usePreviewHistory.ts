@@ -21,7 +21,7 @@ interface UsePreviewHistoryOptions {
    * Current active tab
    */
   activeTab: {
-    contentType: string;
+    content_type: string;
     content: string;
     title: string;
     metadata?: {
@@ -131,7 +131,7 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
     const meta = activeTab.metadata;
     const fallbackName = meta?.file_name || meta?.title || activeTab.title;
     return {
-      contentType: activeTab.contentType as import('@/common/types/preview').PreviewContentType,
+      contentType: activeTab.content_type as import('@/common/types/preview').PreviewContentType,
       file_path: meta?.file_path,
       workspace: meta?.workspace,
       file_name: fallbackName,
@@ -204,7 +204,7 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
       try {
         const result = await ipcBridge.previewHistory.getContent.invoke({
           target: historyTarget,
-          snapshotId: snapshot.id,
+          snapshot_id: snapshot.id,
         });
         if (result?.content) {
           updateContent(result.content);

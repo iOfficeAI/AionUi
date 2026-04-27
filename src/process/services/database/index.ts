@@ -96,8 +96,8 @@ const extractSearchPreviewText = (rawContent: string): string => {
     const parsed = JSON.parse(rawContent);
     const bucket: string[] = [];
     collectStrings(parsed, bucket);
-    const previewText = bucket.join(' ').replace(/\s+/g, ' ').trim();
-    return previewText || rawContent;
+    const preview_text = bucket.join(' ').replace(/\s+/g, ' ').trim();
+    return preview_text || rawContent;
   } catch {
     return rawContent.replace(/\s+/g, ' ').trim();
   }
@@ -712,7 +712,7 @@ export class AionUIDatabase {
         total: countResult.count,
         page,
         page_size,
-        hasMore: (page + 1) * page_size < countResult.count,
+        has_more: (page + 1) * page_size < countResult.count,
       };
     } catch (error: any) {
       console.error('[Database] Get conversations error:', error);
@@ -721,7 +721,7 @@ export class AionUIDatabase {
         total: 0,
         page,
         page_size,
-        hasMore: false,
+        has_more: false,
       };
     }
   }
@@ -868,7 +868,7 @@ export class AionUIDatabase {
         total: countResult.count,
         page,
         page_size,
-        hasMore: (page + 1) * page_size < countResult.count,
+        has_more: (page + 1) * page_size < countResult.count,
       };
     } catch (error: any) {
       console.error('[Database] Get messages error:', error);
@@ -877,7 +877,7 @@ export class AionUIDatabase {
         total: 0,
         page,
         page_size,
-        hasMore: false,
+        has_more: false,
       };
     }
   }
@@ -890,7 +890,7 @@ export class AionUIDatabase {
         total: 0,
         page,
         page_size,
-        hasMore: false,
+        has_more: false,
       };
     }
 
@@ -942,10 +942,10 @@ export class AionUIDatabase {
 
       const items: IMessageSearchItem[] = rows.map((row) => ({
         conversation: rowToConversation(row),
-        messageId: row.message_id,
-        messageType: row.message_type,
-        messageCreatedAt: row.message_created_at,
-        previewText: extractSearchPreviewText(row.message_content),
+        message_id: row.message_id,
+        message_type: row.message_type,
+        message_created_at: row.message_created_at,
+        preview_text: extractSearchPreviewText(row.message_content),
       }));
 
       return {
@@ -953,7 +953,7 @@ export class AionUIDatabase {
         total: countResult.count,
         page,
         page_size,
-        hasMore: (page + 1) * page_size < countResult.count,
+        has_more: (page + 1) * page_size < countResult.count,
       };
     } catch (error: any) {
       console.error('[Database] Search messages error:', error);
@@ -962,17 +962,17 @@ export class AionUIDatabase {
         total: 0,
         page,
         page_size,
-        hasMore: false,
+        has_more: false,
       };
     }
   }
 
   /**
    * Update a message in the database
-   * @param messageId - Message ID to update
+   * @param message_id - Message ID to update
    * @param message - Updated message data
    */
-  updateMessage(messageId: string, message: TMessage): IQueryResult<boolean> {
+  updateMessage(message_id: string, message: TMessage): IQueryResult<boolean> {
     try {
       const row = messageToRow(message);
 
@@ -985,7 +985,7 @@ export class AionUIDatabase {
         WHERE id = ?
       `);
 
-      const result = stmt.run(row.type, row.content, row.position, row.status, messageId);
+      const result = stmt.run(row.type, row.content, row.position, row.status, message_id);
 
       return {
         success: true,
@@ -999,10 +999,10 @@ export class AionUIDatabase {
     }
   }
 
-  deleteMessage(messageId: string): IQueryResult<boolean> {
+  deleteMessage(message_id: string): IQueryResult<boolean> {
     try {
       const stmt = this.db.prepare('DELETE FROM messages WHERE id = ?');
-      const result = stmt.run(messageId);
+      const result = stmt.run(message_id);
 
       return {
         success: true,
@@ -1524,17 +1524,17 @@ export class AionUIDatabase {
         name: row.name,
         protocol: row.protocol as RemoteAgentConfig['protocol'],
         url: row.url,
-        authType: row.auth_type as RemoteAgentConfig['authType'],
-        authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
-        allowInsecure: !!row.allow_insecure,
+        auth_type: row.auth_type as RemoteAgentConfig['auth_type'],
+        auth_token: row.auth_token ? decryptString(row.auth_token) : undefined,
+        allow_insecure: !!row.allow_insecure,
         avatar: row.avatar ?? undefined,
         description: row.description ?? undefined,
-        deviceId: row.device_id ?? undefined,
-        devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
-        devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
-        deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
+        device_id: row.device_id ?? undefined,
+        device_public_key: row.device_public_key ? decryptString(row.device_public_key) : undefined,
+        device_private_key: row.device_private_key ? decryptString(row.device_private_key) : undefined,
+        device_token: row.device_token ? decryptString(row.device_token) : undefined,
         status: (row.status as RemoteAgentStatus) ?? 'unknown',
-        last_connectedAt: row.last_connected_at ?? undefined,
+        last_connected_at: row.last_connected_at ?? undefined,
         created_at: row.created_at,
         updated_at: row.updated_at,
       }));
@@ -1575,17 +1575,17 @@ export class AionUIDatabase {
         name: row.name,
         protocol: row.protocol as RemoteAgentConfig['protocol'],
         url: row.url,
-        authType: row.auth_type as RemoteAgentConfig['authType'],
-        authToken: row.auth_token ? decryptString(row.auth_token) : undefined,
-        allowInsecure: !!row.allow_insecure,
+        auth_type: row.auth_type as RemoteAgentConfig['auth_type'],
+        auth_token: row.auth_token ? decryptString(row.auth_token) : undefined,
+        allow_insecure: !!row.allow_insecure,
         avatar: row.avatar ?? undefined,
         description: row.description ?? undefined,
-        deviceId: row.device_id ?? undefined,
-        devicePublicKey: row.device_public_key ? decryptString(row.device_public_key) : undefined,
-        devicePrivateKey: row.device_private_key ? decryptString(row.device_private_key) : undefined,
-        deviceToken: row.device_token ? decryptString(row.device_token) : undefined,
+        device_id: row.device_id ?? undefined,
+        device_public_key: row.device_public_key ? decryptString(row.device_public_key) : undefined,
+        device_private_key: row.device_private_key ? decryptString(row.device_private_key) : undefined,
+        device_token: row.device_token ? decryptString(row.device_token) : undefined,
         status: (row.status as RemoteAgentStatus) ?? 'unknown',
-        last_connectedAt: row.last_connected_at ?? undefined,
+        last_connected_at: row.last_connected_at ?? undefined,
         created_at: row.created_at,
         updated_at: row.updated_at,
       };
@@ -1607,17 +1607,17 @@ export class AionUIDatabase {
           config.name,
           config.protocol,
           config.url,
-          config.authType,
-          config.authToken ? encryptString(config.authToken) : null,
-          config.allowInsecure ? 1 : 0,
+          config.auth_type,
+          config.auth_token ? encryptString(config.auth_token) : null,
+          config.allow_insecure ? 1 : 0,
           config.avatar ?? null,
           config.description ?? null,
-          config.deviceId ?? null,
-          config.devicePublicKey ? encryptString(config.devicePublicKey) : null,
-          config.devicePrivateKey ? encryptString(config.devicePrivateKey) : null,
-          config.deviceToken ? encryptString(config.deviceToken) : null,
+          config.device_id ?? null,
+          config.device_public_key ? encryptString(config.device_public_key) : null,
+          config.device_private_key ? encryptString(config.device_private_key) : null,
+          config.device_token ? encryptString(config.device_token) : null,
           config.status ?? 'unknown',
-          config.last_connectedAt ?? null,
+          config.last_connected_at ?? null,
           config.created_at,
           config.updated_at
         );

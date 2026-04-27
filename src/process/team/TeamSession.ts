@@ -118,8 +118,8 @@ export class TeamSession extends EventEmitter {
 
     await this.mailbox.write({
       team_id: this.team_id,
-      toAgentId: leadSlotId,
-      fromAgentId: 'user',
+      to_agent_id: leadSlotId,
+      from_agent_id: 'user',
       content,
       files,
     });
@@ -161,8 +161,8 @@ export class TeamSession extends EventEmitter {
 
     await this.mailbox.write({
       team_id: this.team_id,
-      toAgentId: slot_id,
-      fromAgentId: 'user',
+      to_agent_id: slot_id,
+      from_agent_id: 'user',
       content,
       files: options?.files,
     });

@@ -71,7 +71,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
   // Agent selection (used for Telegram conversations)
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: string; name: string; custom_agent_id?: string; is_preset?: boolean; isExtension?: boolean }>
+    Array<{ backend: string; name: string; custom_agent_id?: string; is_preset?: boolean; is_extension?: boolean }>
   >([]);
   const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; custom_agent_id?: string }>({
     backend: 'gemini',
@@ -130,7 +130,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
               name: a.name,
               custom_agent_id: a.custom_agent_id,
               is_preset: a.is_preset,
-              isExtension: a.isExtension,
+              is_extension: a.is_extension,
             }));
           setAvailableAgents(list);
         }
@@ -309,7 +309,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   };
 
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; isExtension?: boolean }> =
+  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; is_extension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (

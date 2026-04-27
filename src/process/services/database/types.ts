@@ -54,7 +54,7 @@ export interface IPaginatedResult<T> {
   total: number;
   page: number;
   page_size: number;
-  hasMore: boolean;
+  has_more: boolean;
 }
 
 /**

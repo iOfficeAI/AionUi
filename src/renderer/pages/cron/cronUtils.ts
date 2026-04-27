@@ -72,9 +72,9 @@ export function formatSchedule(job: ICronJob, t: TFunction): string {
 /**
  * Format next run time for display
  */
-export function formatNextRun(nextRunAtMs?: number): string {
-  if (!nextRunAtMs) return '-';
-  const date = new Date(nextRunAtMs);
+export function formatNextRun(next_run_at_ms?: number): string {
+  if (!next_run_at_ms) return '-';
+  const date = new Date(next_run_at_ms);
   return date.toLocaleString();
 }
 
@@ -83,7 +83,7 @@ export function formatNextRun(nextRunAtMs?: number): string {
  */
 export function getJobStatusFlags(job: ICronJob): { hasError: boolean; isPaused: boolean } {
   return {
-    hasError: job.state.lastStatus === 'error',
+    hasError: job.state.last_status === 'error',
     isPaused: !job.enabled,
   };
 }

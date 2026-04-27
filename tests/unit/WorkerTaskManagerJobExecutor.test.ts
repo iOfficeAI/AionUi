@@ -20,7 +20,7 @@ vi.mock('@/process/services/cron/cronSkillFile', () => ({
   readCronSkillContent: vi.fn(async () => null),
   parseCronSkillContent: vi.fn(() => null),
   hasCronSkillFile: vi.fn(async () => false),
-  getCronSkillDir: vi.fn((job_id: string) => `/mock/cronSkills/${jobId}`),
+  getCronSkillDir: vi.fn((job_id: string) => `/mock/cronSkills/${job_id}`),
 }));
 vi.mock('@/process/services/cron/SkillSuggestWatcher', () => ({
   skillSuggestWatcher: {
@@ -59,11 +59,11 @@ function makeJob(conversation_id = 'conv-1'): CronJob {
     metadata: {
       conversation_id,
       agent_type: 'acp',
-      createdBy: 'user',
+      created_by: 'user',
       created_at: Date.now(),
       updated_at: Date.now(),
     },
-    state: { runCount: 0, retryCount: 0, maxRetries: 3 },
+    state: { run_count: 0, retry_count: 0, max_retries: 3 },
   };
 }
 
@@ -168,7 +168,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       });
       const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
       const job = makeJob('conv-1');
-      job.target.executionMode = 'new_conversation';
+      job.target.execution_mode = 'new_conversation';
 
       await executor.executeJob(job);
 
@@ -189,7 +189,7 @@ describe('WorkerTaskManagerJobExecutor', () => {
       });
       const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
       const job = makeJob('conv-1');
-      job.target.executionMode = 'new_conversation';
+      job.target.execution_mode = 'new_conversation';
 
       await executor.executeJob(job);
 

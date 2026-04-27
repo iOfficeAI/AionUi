@@ -53,7 +53,7 @@ export const useDragAndDrop = ({ pinnedConversations, batchMode, collapsed }: Us
             sortOrder,
           } as Partial<TChatConversation['extra']>,
         } as Partial<TChatConversation>,
-        mergeExtra: true,
+        merge_extra: true,
       });
     } catch (error) {
       console.error('[DragAndDrop] Failed to persist sort order:', error);

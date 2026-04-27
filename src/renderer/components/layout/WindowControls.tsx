@@ -41,9 +41,9 @@ const WindowControls: React.FC = () => {
       });
 
     // 订阅窗口最大化状态变化 / Subscribe to window maximize state changes
-    const unsubscribe = ipcBridge.windowControls.maximizedChanged.on(({ isMaximized }) => {
+    const unsubscribe = ipcBridge.windowControls.maximizedChanged.on(({ is_maximized }) => {
       if (isMounted) {
-        setIsMaximized(isMaximized);
+        setIsMaximized(is_maximized);
       }
     });
 

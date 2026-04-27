@@ -134,7 +134,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               name: a.name,
               custom_agent_id: a.custom_agent_id,
               is_preset: a.is_preset,
-              isExtension: a.isExtension,
+              is_extension: a.is_extension,
             }));
           setAvailableAgents(list);
         }
@@ -318,7 +318,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   const hasExistingUsers = authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; isExtension?: boolean }> =
+  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; is_extension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
   return (

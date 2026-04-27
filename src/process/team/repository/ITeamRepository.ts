@@ -15,11 +15,11 @@ export interface ITeamCrudRepository {
 /** Mailbox message persistence */
 export interface IMailboxRepository {
   writeMessage(message: MailboxMessage): Promise<MailboxMessage>;
-  readUnread(team_id: string, toAgentId: string): Promise<MailboxMessage[]>;
+  readUnread(team_id: string, to_agent_id: string): Promise<MailboxMessage[]>;
   /** Atomically read all unread messages and mark them as read in one transaction. */
-  readUnreadAndMark(team_id: string, toAgentId: string): Promise<MailboxMessage[]>;
-  markRead(messageId: string): Promise<void>;
-  getMailboxHistory(team_id: string, toAgentId: string, limit?: number): Promise<MailboxMessage[]>;
+  readUnreadAndMark(team_id: string, to_agent_id: string): Promise<MailboxMessage[]>;
+  markRead(message_id: string): Promise<void>;
+  getMailboxHistory(team_id: string, to_agent_id: string, limit?: number): Promise<MailboxMessage[]>;
 }
 
 /** Task board persistence */
@@ -31,9 +31,9 @@ export interface ITaskRepository {
   findTasksByOwner(team_id: string, owner: string): Promise<TeamTask[]>;
   deleteTask(id: string): Promise<void>;
   /** Atomically append a single ID to a task's `blocks` JSON array. */
-  appendToBlocks(taskId: string, blockId: string): Promise<void>;
-  /** Atomically remove a single ID from a task's `blockedBy` JSON array and return the updated task. */
-  removeFromBlockedBy(taskId: string, unblockedId: string): Promise<TeamTask>;
+  appendToBlocks(task_id: string, block_id: string): Promise<void>;
+  /** Atomically remove a single ID from a task's `blocked_by` JSON array and return the updated task. */
+  removeFromBlockedBy(task_id: string, unblocked_id: string): Promise<TeamTask>;
 }
 
 /**

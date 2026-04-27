@@ -60,7 +60,7 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
   const existingModeConvIds = useMemo(
     () =>
       jobs
-        .filter((j) => j.target.executionMode !== 'new_conversation' && j.metadata.conversation_id)
+        .filter((j) => j.target.execution_mode !== 'new_conversation' && j.metadata.conversation_id)
         .map((j) => j.metadata.conversation_id),
     [jobs]
   );

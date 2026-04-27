@@ -223,7 +223,7 @@ describe('CronJobSiderItem', () => {
     enabled: true,
     schedule: '0 9 * * *',
     target: {
-      executionMode: 'new_conversation',
+      execution_mode: 'new_conversation',
       newConversation: {
         modelKey: 'claude-3-5-sonnet',
         prompt: 'Summarize',
@@ -235,9 +235,9 @@ describe('CronJobSiderItem', () => {
       updated_at: Date.now(),
     },
     state: {
-      lastRunAtMs: 0,
-      nextRunAtMs: 0,
-      lastStatus: 'pending',
+      last_run_at_ms: 0,
+      next_run_at_ms: 0,
+      last_status: 'pending',
     },
   };
 
@@ -246,7 +246,7 @@ describe('CronJobSiderItem', () => {
     id: 'job-2',
     name: 'Existing Mode Job',
     target: {
-      executionMode: 'existing_conversation',
+      execution_mode: 'existing_conversation',
       existingConversation: {
         message: 'Update',
       },
@@ -614,7 +614,7 @@ describe('CronJobSiderItem', () => {
       expect(mockConversationUpdate).toHaveBeenCalledWith(
         expect.objectContaining({
           id: 'conv-1',
-          mergeExtra: true,
+          merge_extra: true,
         })
       );
     });

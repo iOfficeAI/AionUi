@@ -12,8 +12,8 @@ export class Mailbox {
    */
   async write(params: {
     team_id: string;
-    toAgentId: string;
-    fromAgentId: string;
+    to_agent_id: string;
+    from_agent_id: string;
     content: string;
     type?: MailboxMessage['type'];
     summary?: string;
@@ -22,8 +22,8 @@ export class Mailbox {
     const message: MailboxMessage = {
       id: crypto.randomUUID(),
       team_id: params.team_id,
-      toAgentId: params.toAgentId,
-      fromAgentId: params.fromAgentId,
+      to_agent_id: params.to_agent_id,
+      from_agent_id: params.from_agent_id,
       type: params.type ?? 'message',
       content: params.content,
       summary: params.summary,

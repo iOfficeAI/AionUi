@@ -190,7 +190,7 @@ export async function writeTextFile(file_path: string, content: string): Promise
         file_path,
         content,
         workspace,
-        relativePath: file_name,
+        relative_path: file_name,
         operation: 'write' as const,
       });
     } catch (emitError) {

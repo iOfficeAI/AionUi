@@ -146,7 +146,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
     void ipcBridge.conversation.confirmation.confirm.invoke({
       conversation_id: this.conversation_id,
-      call_id: call_id,
+      call_id,
       msg_id: '',
       data: { value: data },
       always_allow,
