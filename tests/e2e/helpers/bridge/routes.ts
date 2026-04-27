@@ -1,4 +1,4 @@
-import { normalizePreviewTarget, type ResponseMapperKey } from './mappers';
+import type { ResponseMapperKey } from './mappers';
 
 export type HttpRoute = {
   method: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT';
@@ -96,31 +96,9 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
     path: '/api/document/convert',
     mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, to: p.to }),
   },
-  // Preview history — backend expects snake_case target DTO.
-  'preview-history.list': {
-    method: 'POST',
-    path: '/api/preview-history/list',
-    mapBody: (p) => ({ target: normalizePreviewTarget(p.target as Record<string, unknown>) }),
-    mapResponse: 'previewSnapshotList',
-  },
-  'preview-history.save': {
-    method: 'POST',
-    path: '/api/preview-history/save',
-    mapBody: (p) => ({
-      target: normalizePreviewTarget(p.target as Record<string, unknown>),
-      content: p.content,
-    }),
-    mapResponse: 'previewSnapshotInfo',
-  },
-  'preview-history.get-content': {
-    method: 'POST',
-    path: '/api/preview-history/get-content',
-    mapBody: (p) => ({
-      target: normalizePreviewTarget(p.target as Record<string, unknown>),
-      snapshot_id: p.snapshot_id ?? p.snapshotId,
-    }),
-    mapResponse: 'snapshotContent',
-  },
+  'preview-history.list': { method: 'POST', path: '/api/preview-history/list' },
+  'preview-history.save': { method: 'POST', path: '/api/preview-history/save' },
+  'preview-history.get-content': { method: 'POST', path: '/api/preview-history/get-content' },
   // File snapshot — git-backed staging/compare/discard for workspace changes.
   'fs.snapshot.init': { method: 'POST', path: '/api/fs/snapshot/init' },
   'fs.snapshot.info': { method: 'POST', path: '/api/fs/snapshot/info' },
