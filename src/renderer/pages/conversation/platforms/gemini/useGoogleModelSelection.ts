@@ -1,12 +1,10 @@
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { useCallback, useEffect, useState } from 'react';
 
 export interface GoogleModelSelection {
   current_model?: TProviderWithModel;
   providers: IProvider[];
-  geminiModeLookup: Map<string, GeminiModeOption>;
   formatModelLabel: (provider?: { platform?: string }, modelName?: string) => string;
   getDisplayModelName: (modelName?: string) => string;
   getAvailableModels: (provider: IProvider) => string[];
@@ -29,7 +27,7 @@ export const useGoogleModelSelection = ({
     setCurrentModel(initialModel);
   }, [initialModel?.id, initialModel?.useModel]);
 
-  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
 
   const handleSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
@@ -58,7 +56,6 @@ export const useGoogleModelSelection = ({
   return {
     current_model,
     providers,
-    geminiModeLookup,
     formatModelLabel,
     getDisplayModelName,
     getAvailableModels,

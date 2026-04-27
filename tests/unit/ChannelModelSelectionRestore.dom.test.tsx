@@ -54,7 +54,6 @@ let mockProviders: Array<{ id: string; name: string; model: string[]; platform?:
 vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
   useModelProviderList: () => ({
     providers: mockProviders,
-    geminiModeLookup: new Map(),
     getAvailableModels: () => [],
     formatModelLabel: (_p: unknown, m?: string) => m || '',
   }),
@@ -64,7 +63,6 @@ vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection'
   useGeminiModelSelection: ({ initialModel }: { initialModel: unknown }) => ({
     current_model: initialModel,
     providers: mockProviders,
-    geminiModeLookup: new Map(),
     formatModelLabel: () => '',
     getDisplayModelName: () => '',
     getAvailableModels: () => [],

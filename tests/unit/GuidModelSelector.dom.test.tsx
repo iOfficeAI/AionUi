@@ -49,7 +49,6 @@ describe('GuidModelSelector', () => {
         modelList={[]}
         currentModel={undefined}
         setCurrentModel={vi.fn(async () => {})}
-        geminiModeLookup={new Map()}
         currentAcpCachedModelInfo={{
           current_model_id: 'claude-opus-4-6',
           current_model_label: 'Claude Opus 4.6',
@@ -73,7 +72,6 @@ describe('GuidModelSelector', () => {
         modelList={[]}
         currentModel={undefined}
         setCurrentModel={vi.fn(async () => {})}
-        geminiModeLookup={new Map()}
         currentAcpCachedModelInfo={{
           current_model_id: 'claude-opus-4-6',
           current_model_label: 'Claude Opus 4.6',

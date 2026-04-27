@@ -1,12 +1,6 @@
 import { ipcBridge } from '@/common';
 import useSWR from 'swr';
 
-export type { GeminiModeOption } from '@/common/utils/geminiModes';
-export { getGeminiModeList } from '@/common/utils/geminiModes';
-import { getGeminiModeList } from '@/common/utils/geminiModes';
-
-export const geminiModeList = getGeminiModeList();
-
 // Gemini 模型排序函数：Pro 优先，版本号降序
 const sortGeminiModels = (models: { label: string; value: string }[]) => {
   return models.toSorted((a, b) => {
