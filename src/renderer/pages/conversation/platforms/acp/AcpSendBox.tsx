@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
@@ -221,6 +222,23 @@ const AcpSendBox: React.FC<{
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
+
+        // Archived conversation (e.g. legacy Gemini). Backend signals this
+        // via HTTP 410 + code='CONVERSATION_ARCHIVED' — never by message
+        // substring.
+        if (isBackendHttpError(error) && error.code === 'CONVERSATION_ARCHIVED') {
+          const errorMessage = {
+            id: uuid(),
+            msg_id: uuid(),
+            conversation_id,
+            type: 'error',
+            data: error.backendMessage || errorMsg,
+          };
+          ipcBridge.acpConversation.responseStream.emit(errorMessage);
+          setAiProcessing(false);
+          throw error;
+        }
+
         const isAuthError =
           errorMsg.includes('[ACP-AUTH-') ||
           errorMsg.includes('authentication failed') ||
