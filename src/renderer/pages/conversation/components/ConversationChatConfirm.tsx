@@ -41,13 +41,13 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       if (!action) return false;
 
       try {
-        const isApproved = await ipcBridge.conversation.approval.check.invoke({
+        const result = await ipcBridge.conversation.approval.check.invoke({
           conversation_id: confirmation.conversation_id,
           action,
           command_type,
         });
 
-        if (isApproved) {
+        if (result.approved) {
           // Find the "proceed_always" or "proceed_once" option to use for auto-confirm
           const allowOption = confirmation.options.find(
             (opt) => opt.value === 'proceed_always' || opt.value === 'proceed_once'

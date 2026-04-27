@@ -248,7 +248,7 @@ export const conversation = {
     remove: wsEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
   },
   approval: {
-    check: httpGet<boolean, { conversation_id: string; action: string; commandType?: string }>(
+    check: httpGet<{ approved: boolean }, { conversation_id: string; action: string; commandType?: string }>(
       (p) =>
         `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.commandType ? `&commandType=${encodeURIComponent(p.commandType)}` : ''}`
     ),
