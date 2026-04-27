@@ -25,7 +25,7 @@ import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
+import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
@@ -300,7 +300,7 @@ const ChatConversation: React.FC<{
     if (conversation.type === 'codex') {
       return <AcpModelSelector conversation_id={conversation.id} />;
     }
-    return <GeminiModelSelector disabled={true} />;
+    return <GoogleModelSelector disabled={true} />;
   }, [conversation, isAionrsConversation]);
 
   if (conversation && conversation.type === 'aionrs') {

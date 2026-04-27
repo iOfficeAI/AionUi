@@ -3,7 +3,7 @@ import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { useCallback, useEffect, useState } from 'react';
 
-export interface GeminiModelSelection {
+export interface GoogleModelSelection {
   current_model?: TProviderWithModel;
   providers: IProvider[];
   geminiModeLookup: Map<string, GeminiModeOption>;
@@ -13,16 +13,16 @@ export interface GeminiModelSelection {
   handleSelectModel: (provider: IProvider, modelName: string) => Promise<void>;
 }
 
-export interface UseGeminiModelSelectionOptions {
+export interface UseGoogleModelSelectionOptions {
   initialModel: TProviderWithModel | undefined;
   onSelectModel: (provider: IProvider, modelName: string) => Promise<boolean>;
 }
 
 // Centralize model selection logic for reuse across header, send box, and channel settings
-export const useGeminiModelSelection = ({
+export const useGoogleModelSelection = ({
   initialModel,
   onSelectModel,
-}: UseGeminiModelSelectionOptions): GeminiModelSelection => {
+}: UseGoogleModelSelectionOptions): GoogleModelSelection => {
   const [current_model, setCurrentModel] = useState<TProviderWithModel | undefined>(initialModel);
 
   useEffect(() => {

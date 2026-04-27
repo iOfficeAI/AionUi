@@ -1,4 +1,4 @@
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
@@ -12,8 +12,8 @@ import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
 
 // Unified model dropdown for chat header, send box, and channel settings
-const GeminiModelSelector: React.FC<{
-  selection?: GeminiModelSelection;
+const GoogleModelSelector: React.FC<{
+  selection?: GoogleModelSelection;
   disabled?: boolean;
   label?: string;
   variant?: 'header' | 'settings';
@@ -220,4 +220,4 @@ const GeminiModelSelector: React.FC<{
   );
 };
 
-export default GeminiModelSelector;
+export default GoogleModelSelector;
