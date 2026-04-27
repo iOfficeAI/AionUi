@@ -624,11 +624,11 @@ export const acpConversation = {
     '/api/acp/health-check'
   ),
   setMode: httpPut<void, { conversation_id: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/mode`,
+    (p) => `/api/conversations/${p.conversation_id}/mode`,
     (p) => ({ mode: p.mode })
   ),
   getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/mode`
+    (p) => `/api/conversations/${p.conversation_id}/mode`
   ),
   getModelInfo: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/acp/model`
