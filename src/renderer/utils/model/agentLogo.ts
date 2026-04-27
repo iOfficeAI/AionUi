@@ -81,7 +81,7 @@ function isDarkTheme(): boolean {
  * @returns Logo 路径，如果不存在则返回 null / Logo path, or null if not found
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
-  if (!agent) return null;
+  if (!agent || typeof agent !== 'string') return null;
   const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_MAP;
   if (key === 'opencode') {
     return isDarkTheme() ? OpenCodeLogoDark : OpenCodeLogoLight;
