@@ -209,6 +209,9 @@ export const conversation = {
     };
   }),
   listChanged: wsEmitter<IConversationListChangedEvent>('conversation.listChanged'),
+  // Uses httpRequest directly (instead of httpGet + withResponseMap) because the
+  // response mapper needs `workspace` from params to build fullPath/relativePath,
+  // and withResponseMap's map function does not receive the original params.
   getWorkspace: {
     provider: () => {},
     invoke: (async (p: { conversation_id: string; workspace: string; path: string; search?: string }) => {
