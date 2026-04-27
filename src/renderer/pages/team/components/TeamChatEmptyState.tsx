@@ -39,6 +39,9 @@ const SUGGESTION_DEFAULTS: Record<string, string> = {
 const toDetectedKind = (type: TChatConversation['type']): DetectedAgentKind => {
   // Codex conversations are rendered via the ACP pipeline and share the acp draft store.
   if (type === 'codex') return 'acp';
+  // Legacy Gemini conversations are read-only; route their drafts through the acp
+  // store to keep existing draft hooks exhaustive. Sending is blocked server-side.
+  if (type === 'gemini') return 'acp';
   return type;
 };
 

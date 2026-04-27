@@ -44,6 +44,14 @@ type Draft =
       content: string;
       atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
+    }
+  | {
+      // Legacy Gemini conversations are read-only on the backend — this draft
+      // shape exists only so the store map stays type-exhaustive.
+      _type: 'gemini';
+      content: string;
+      atPath: Array<string | FileOrFolderItem>;
+      uploadFile: string[];
     };
 
 /**
@@ -56,6 +64,7 @@ type SendBoxDraftStore = {
 const store: SendBoxDraftStore = {
   acp: new Map(),
   codex: new Map(),
+  gemini: new Map(),
   'openclaw-gateway': new Map(),
   nanobot: new Map(),
   remote: new Map(),

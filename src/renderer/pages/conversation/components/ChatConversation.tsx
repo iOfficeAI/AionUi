@@ -225,6 +225,24 @@ const ChatConversation: React.FC<{
             hideSendBox={hideSendBox}
           ></AcpChat>
         );
+      case 'gemini':
+        // Legacy Gemini conversation: the dedicated Gemini runtime has been
+        // removed. The message history is still served by the shared messages
+        // table, so AcpChat renders it fine. The composer is left enabled —
+        // any send attempt will get a BadRequest from the factory branch in
+        // aionui-common/src/enums.rs → factory.rs, surfacing a clear error
+        // to the user.
+        return (
+          <AcpChat
+            key={conversation.id}
+            conversation_id={conversation.id}
+            workspace={conversation.extra?.workspace}
+            backend='gemini'
+            agent_name={assistantDisplayName}
+            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+            hideSendBox={hideSendBox}
+          />
+        );
       case 'codex': // Legacy: codex now uses ACP protocol
         return (
           <AcpChat

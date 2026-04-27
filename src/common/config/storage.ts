@@ -338,6 +338,31 @@ export type TChatConversation =
       >,
       'model'
     >
+  // Legacy Gemini conversations. Kept solely so that the renderer can
+  // open historical rows with type='gemini' (message history is served
+  // by the shared messages table). The backend factory rejects any
+  // attempt to resume this conversation — see
+  // aionui-backend/crates/aionui-common/src/enums.rs and factory.rs.
+  // Every field is optional because legacy rows shape-varies across
+  // several older Gemini-runtime versions.
+  | Omit<
+      IChatConversation<
+        'gemini',
+        {
+          workspace?: string;
+          custom_workspace?: boolean;
+          agent_name?: string;
+          preset_assistant_id?: string;
+          pinned?: boolean;
+          pinned_at?: number;
+          is_health_check?: boolean;
+          cron_job_id?: string;
+          // Other legacy-only keys (session_mode, preset_rules, etc.)
+          // deliberately omitted — they're not read by the renderer.
+        }
+      >,
+      'model'
+    >
   | Omit<
       IChatConversation<
         'nanobot',
