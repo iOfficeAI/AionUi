@@ -16,8 +16,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
  * The local enable/disable flow tests were also backend-owned, so they
  * now live alongside that crate's tests.
  *
- * What's left here: AcpSkillManager integration that the renderer-side
- * still exercises directly.
+ * What's left here: renderer-side filesystem helpers.
  */
 
 // Mock Electron app and initStorage before importing AcpSkillManager
@@ -58,26 +57,3 @@ describe('Skills Market - enable/disable filesystem helpers', () => {
   });
 });
 
-describe('Skills Market - AcpSkillManager integration', () => {
-  it('resetInstance clears the singleton so new discoveries happen', async () => {
-    const { AcpSkillManager } = await import('../../src/process/task/AcpSkillManager');
-
-    // Get an instance (creates singleton)
-    const instance1 = AcpSkillManager.getInstance();
-    expect(instance1).toBeDefined();
-
-    // Same call returns same instance
-    const instance1b = AcpSkillManager.getInstance();
-    expect(instance1b).toBe(instance1);
-
-    // Reset clears it
-    AcpSkillManager.resetInstance();
-
-    // New call creates a fresh instance
-    const instance2 = AcpSkillManager.getInstance();
-    expect(instance2).not.toBe(instance1);
-
-    // Cleanup
-    AcpSkillManager.resetInstance();
-  });
-});

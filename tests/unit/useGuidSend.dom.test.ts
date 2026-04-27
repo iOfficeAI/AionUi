@@ -262,7 +262,7 @@ describe('useGuidSend', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           extra: expect.objectContaining({
-            exclude_builtin_skills: ['cron'],
+            exclude_auto_inject_skills: ['cron'],
           }),
         })
       );
@@ -282,7 +282,7 @@ describe('useGuidSend', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           extra: expect.objectContaining({
-            exclude_builtin_skills: [],
+            exclude_auto_inject_skills: [],
           }),
         })
       );
@@ -302,7 +302,7 @@ describe('useGuidSend', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           extra: expect.objectContaining({
-            exclude_builtin_skills: ['office-cli'],
+            exclude_auto_inject_skills: ['office-cli'],
           }),
         })
       );

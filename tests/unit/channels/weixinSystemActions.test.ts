@@ -219,7 +219,7 @@ describe('SystemActions weixin platform handling', () => {
 
   it('builds channel conversation extra with enabled_skills for weixin across backends', () => {
     expect(buildChannelConversationExtra({ platform: 'weixin', backend: 'gemini' })).toEqual({
-      enabled_skills: ['weixin-file-send'],
+      preset_enabled_skills: ['weixin-file-send'],
     });
 
     expect(
@@ -233,7 +233,7 @@ describe('SystemActions weixin platform handling', () => {
       backend: 'claude',
       custom_agent_id: 'agent-1',
       agent_name: 'Claude',
-      enabled_skills: ['weixin-file-send'],
+      preset_enabled_skills: ['weixin-file-send'],
     });
   });
 });

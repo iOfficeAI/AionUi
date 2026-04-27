@@ -15,7 +15,7 @@ function createDeps(overrides: Partial<PresetAssistantResourceDeps> = {}): Prese
     readAssistantRule: vi.fn(async () => ''),
     readAssistantSkill: vi.fn(async () => ''),
     getEnabledSkills: vi.fn(async () => undefined),
-    getDisabledBuiltinSkills: vi.fn(async () => undefined),
+    getExcludeAutoInjectSkills: vi.fn(async () => undefined),
     warn: vi.fn(),
     ...overrides,
   };
@@ -37,7 +37,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'fallback rules',
       skills: '',
       enabled_skills: undefined,
-      disabledBuiltinSkills: undefined,
+      exclude_auto_inject_skills: undefined,
     });
   });
 
@@ -61,7 +61,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'user rules',
       skills: 'user skills',
       enabled_skills: ['pptx', 'xlsx'],
-      disabledBuiltinSkills: undefined,
+      exclude_auto_inject_skills: undefined,
     });
   });
 
@@ -92,7 +92,7 @@ describe('loadPresetAssistantResources', () => {
       rules: 'fallback rules',
       skills: '',
       enabled_skills: ['moltbook'],
-      disabledBuiltinSkills: undefined,
+      exclude_auto_inject_skills: undefined,
     });
     expect(deps.warn).toHaveBeenCalledTimes(2);
   });
