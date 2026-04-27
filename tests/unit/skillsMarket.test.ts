@@ -56,4 +56,3 @@ describe('Skills Market - enable/disable filesystem helpers', () => {
     await expect(fs.rm(skillDir, { recursive: true, force: true })).resolves.toBeUndefined();
   });
 });
-

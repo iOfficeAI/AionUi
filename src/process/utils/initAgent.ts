@@ -43,7 +43,7 @@ export async function computeInitialSkillsSnapshot(options: {
     if (!exclude.has(n)) set.add(n);
   }
   for (const n of options.preset_enabled_skills ?? []) set.add(n);
-  return Array.from(set).sort();
+  return Array.from(set).toSorted();
 }
 
 /**
