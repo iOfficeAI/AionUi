@@ -1151,7 +1151,12 @@ export interface ICreateConversationParams {
     context?: string;
     context_file_name?: string;
     preset_rules?: string;
-    enabled_skills?: string[];
+    /** Transient: preset opt-in skills. Consumed by backend create handler
+     *  and stripped before persistence. */
+    preset_enabled_skills?: string[];
+    /** Transient: auto-inject skills the user opted out of on the Guid page.
+     *  Consumed by backend create handler and stripped before persistence. */
+    exclude_auto_inject_skills?: string[];
     preset_context?: string;
     preset_assistant_id?: string;
     session_mode?: string;
@@ -1171,7 +1176,6 @@ export interface ICreateConversationParams {
     is_health_check?: boolean;
     remote_agent_id?: string;
     extra_skill_paths?: string[];
-    exclude_builtin_skills?: string[];
     team_id?: string;
   };
 }

@@ -222,12 +222,9 @@ export type TChatConversation =
           agent_name?: string;
           custom_agent_id?: string; // UUID for identifying specific custom agent
           preset_context?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
-          /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-          enabled_skills?: string[];
-          /** 排除的内置自动注入 skills / Builtin auto-injected skills to exclude */
-          excludeBuiltinSkills?: string[];
-          /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loaded_skills?: Array<{ name: string; description: string }>;
+          /** Skills snapshot for this conversation — authoritative list, written
+           * once at creation. Join with `GET /api/skills` for descriptions. */
+          skills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -269,10 +266,9 @@ export type TChatConversation =
           custom_workspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
           preset_context?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
-          /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-          enabled_skills?: string[];
-          /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loaded_skills?: Array<{ name: string; description: string }>;
+          /** Skills snapshot for this conversation — authoritative list, written
+           * once at creation. Join with `GET /api/skills` for descriptions. */
+          skills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -320,10 +316,9 @@ export type TChatConversation =
             expectedIdentityHash?: string | null;
             switchedAt?: number;
           };
-          /** 启用的 skills 列表 / Enabled skills list */
-          enabled_skills?: string[];
-          /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loaded_skills?: Array<{ name: string; description: string }>;
+          /** Skills snapshot for this conversation — authoritative list, written
+           * once at creation. Join with `GET /api/skills` for descriptions. */
+          skills?: string[];
           /** 预设助手 ID / Preset assistant ID */
           preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -369,10 +364,9 @@ export type TChatConversation =
         {
           workspace?: string;
           custom_workspace?: boolean;
-          /** 启用的 skills 列表 / Enabled skills list */
-          enabled_skills?: string[];
-          /** 实际加载的 skills 快照 / Snapshot of actually loaded skills */
-          loaded_skills?: Array<{ name: string; description: string }>;
+          /** Skills snapshot for this conversation — authoritative list, written
+           * once at creation. Join with `GET /api/skills` for descriptions. */
+          skills?: string[];
           /** 预设助手 ID / Preset assistant ID */
           preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -397,10 +391,9 @@ export type TChatConversation =
           remoteAgentId: string;
           /** Remote session key for resume */
           sessionKey?: string;
-          /** Enabled skills list */
-          enabled_skills?: string[];
-          /** Snapshot of actually loaded skills */
-          loaded_skills?: Array<{ name: string; description: string }>;
+          /** Skills snapshot for this conversation — authoritative list, written
+           * once at creation. Join with `GET /api/skills` for descriptions. */
+          skills?: string[];
           /** Preset assistant ID */
           preset_assistant_id?: string;
           /** Whether this conversation is pinned */
@@ -423,10 +416,9 @@ export type TChatConversation =
         proxy?: string;
         /** System rules injected at initialization */
         preset_rules?: string;
-        /** Enabled skills list */
-        enabled_skills?: string[];
-        /** Snapshot of actually loaded skills */
-        loaded_skills?: Array<{ name: string; description: string }>;
+        /** Skills snapshot for this conversation — authoritative list, written
+         * once at creation. Join with `GET /api/skills` for descriptions. */
+        skills?: string[];
         /** Preset assistant ID */
         preset_assistant_id?: string;
         /** Whether this conversation is pinned */

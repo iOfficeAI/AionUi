@@ -11,7 +11,7 @@ import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 export type BuildAgentConversationPresetResources = {
   rules?: string;
   enabled_skills?: string[];
-  exclude_builtin_skills?: string[];
+  exclude_auto_inject_skills?: string[];
 };
 
 export type BuildAgentConversationInput = {

@@ -37,7 +37,7 @@ export type PresetAssistantResources = {
   rules?: string;
   skills: string;
   enabled_skills?: string[];
-  disabledBuiltinSkills?: string[];
+  exclude_auto_inject_skills?: string[];
 };
 
 const defaultDeps: PresetAssistantResourceDeps = {
