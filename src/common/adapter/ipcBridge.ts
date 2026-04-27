@@ -148,10 +148,7 @@ export const conversation = {
       };
     }
   ),
-  reset: httpPost<void, IResetConversationParams>(
-    (p) => `/api/conversations/${p.id}/reset`,
-    (p) => ({ gemini: p.gemini })
-  ),
+  reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
   stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/stop`),
   sendMessage: httpPost<void, ISendMessageParams>(
@@ -238,13 +235,6 @@ export const conversation = {
         `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.commandType ? `&commandType=${encodeURIComponent(p.commandType)}` : ''}`
     ),
   },
-};
-
-// Gemini — reuses unified conversation interface
-export const geminiConversation = {
-  sendMessage: conversation.sendMessage,
-  confirmMessage: conversation.confirmMessage,
-  responseStream: conversation.responseStream,
 };
 
 // ---------------------------------------------------------------------------
@@ -1097,7 +1087,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -1140,9 +1130,6 @@ export interface ICreateConversationParams {
 
 interface IResetConversationParams {
   id?: string;
-  gemini?: {
-    clearCachedCredentialFile?: boolean;
-  };
 }
 
 export interface IDirOrFile {

@@ -21,7 +21,7 @@ import { getPathSeparator, replacePathInList, updateTreeForRename } from '../uti
 
 interface UseWorkspaceFileOpsOptions {
   workspace: string;
-  eventPrefix: 'gemini' | 'acp' | 'codex' | 'aionrs';
+  eventPrefix: 'acp' | 'codex' | 'aionrs';
   messageApi: MessageApi;
   t: (key: string) => string;
 

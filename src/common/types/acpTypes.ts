@@ -17,7 +17,7 @@ export const CODEBUDDY_ACP_NPX_PACKAGE = `@tencent-ai/codebuddy-code@${CODEBUDDY
 // ACP backend types — only ACP protocol backends
 export type AcpBackendAll =
   | 'claude' // Claude ACP
-  // | 'gemini' // Google Gemini — not an ACP agent, handled by AgentRegistry directly
+  | 'gemini' // Google Gemini CLI (via `gemini --experimental-acp`)
   | 'qwen' // Qwen Code ACP
   | 'codex' // OpenAI Codex ACP (via codex-acp bridge)
   | 'codebuddy' // Tencent CodeBuddy Code CLI
@@ -36,7 +36,7 @@ export type AcpBackendAll =
   | 'custom'; // User-configured custom ACP agent (extension adapters)
 
 // Superset type covering all execution engine backends (ACP + non-ACP).
-export type AgentBackend = AcpBackendAll | 'gemini' | 'remote' | 'aionrs' | 'nanobot' | 'openclaw-gateway';
+export type AgentBackend = AcpBackendAll | 'remote' | 'aionrs' | 'nanobot' | 'openclaw-gateway';
 
 /**
  * 潜在的 ACP CLI 工具列表
@@ -312,16 +312,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     supportsStreaming: false,
     skillsDirs: ['.claude/skills'],
   },
-  // gemini: not an ACP agent — handled by AgentRegistry as a dedicated DetectedAgentKind
-  // gemini: {
-  //   id: 'gemini',
-  //   name: 'Google CLI',
-  //   cliCommand: 'gemini',
-  //   authRequired: true,
-  //   enabled: false,
-  //   supportsStreaming: true,
-  //   skillsDirs: ['.gemini/skills'],
-  // },
+  gemini: {
+    id: 'gemini',
+    name: 'Google CLI',
+    cliCommand: 'gemini',
+    authRequired: true,
+    enabled: true,
+    supportsStreaming: true,
+    acpArgs: ['--experimental-acp'],
+    skillsDirs: ['.gemini/skills'],
+  },
   qwen: {
     id: 'qwen',
     name: 'Qwen Code',

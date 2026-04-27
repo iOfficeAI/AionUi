@@ -79,9 +79,9 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Hooks ---
-  // Track which provider-based agent is selected so model selection persists per agent type
-  const [providerAgentKey, setProviderAgentKey] = useState<'gemini' | 'aionrs'>('aionrs');
-  const modelSelection = useGuidModelSelection(providerAgentKey);
+  // Only aionrs uses this provider-based model picker now (Gemini runs as a
+  // regular ACP backend with its own model selector).
+  const modelSelection = useGuidModelSelection('aionrs');
 
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
@@ -91,14 +91,6 @@ const GuidPage: React.FC = () => {
     resetAssistant: resetAssistantRequested,
     locationKey: location.key,
   });
-
-  // Sync providerAgentKey when selected agent changes
-  useEffect(() => {
-    const agent = agentSelection.selectedAgent;
-    if (agent === 'gemini' || agent === 'aionrs') {
-      setProviderAgentKey(agent);
-    }
-  }, [agentSelection.selectedAgent]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,

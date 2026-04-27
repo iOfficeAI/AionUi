@@ -286,11 +286,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // Set default model_id from user preferences when backend changes
   useEffect(() => {
     if (!resolvedBackend || model_id) return;
-    if (resolvedBackend === 'gemini') {
-      const saved = configService.get('gemini.defaultModel');
-      const preferred = typeof saved === 'string' ? saved : saved?.useModel;
-      if (preferred) setModelId(preferred);
-    } else if (resolvedBackend === 'aionrs') {
+    if (resolvedBackend === 'aionrs') {
       const saved = configService.get('aionrs.defaultModel');
       if (saved?.useModel) setModelId(saved.useModel);
     }

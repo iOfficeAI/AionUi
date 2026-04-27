@@ -11,7 +11,6 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { cronService } from './cron/cronServiceSingleton';
 import {
-  createGeminiAgent,
   createAcpAgent,
   createOpenClawAgent,
   createNanobotAgent,
@@ -132,24 +131,6 @@ export class ConversationServiceImpl implements IConversationService {
     let conversation: TChatConversation;
 
     switch (params.type) {
-      case 'gemini': {
-        conversation = await createGeminiAgent(
-          params.model,
-          params.extra.workspace,
-          params.extra.defaultFiles as string[] | undefined,
-          params.extra.web_search_engine,
-          params.extra.custom_workspace,
-          params.extra.context_file_name,
-          params.extra.preset_rules,
-          params.extra.enabled_skills as string[] | undefined,
-          params.extra.preset_assistant_id,
-          params.extra.session_mode,
-          params.extra.is_health_check,
-          params.extra.extraSkillPaths as string[] | undefined,
-          params.extra.excludeBuiltinSkills as string[] | undefined
-        );
-        break;
-      }
       case 'acp': {
         conversation = await createAcpAgent(params as any);
         break;

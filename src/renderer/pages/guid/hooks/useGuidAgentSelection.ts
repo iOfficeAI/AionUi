@@ -371,11 +371,7 @@ export const useGuidAgentSelection = ({
         let preferred: string | undefined;
         let yoloMode = false;
 
-        if (configKey === 'gemini') {
-          const config = configService.get('gemini.config');
-          preferred = config?.preferredMode;
-          yoloMode = config?.yoloMode ?? false;
-        } else if (configKey === 'aionrs') {
+        if (configKey === 'aionrs') {
           const config = configService.get('aionrs.config');
           preferred = config?.preferredMode;
         } else {

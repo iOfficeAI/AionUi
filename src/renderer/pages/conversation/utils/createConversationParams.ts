@@ -27,7 +27,6 @@ type ModePreference = {
 const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
   claude: 'bypassPermissions',
   codex: 'yolo',
-  gemini: 'yolo',
   qwen: 'yolo',
 };
 
@@ -39,9 +38,7 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 
   let preference: ModePreference | undefined;
 
-  if (backend === 'gemini') {
-    preference = configService.get('gemini.config');
-  } else if (backend === 'aionrs') {
+  if (backend === 'aionrs') {
     preference = configService.get('aionrs.config');
   } else {
     const acpConfig = configService.get('acp.config');
@@ -119,64 +116,8 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
 }
 
 /**
- * Get the default Gemini model configuration from user settings.
- * Throws if no enabled provider or model is configured.
- * [BUG-3 fix]: callers must call this inside a try block
- */
-export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
-  const providers = await ipcBridge.mode.listProviders.invoke();
-
-  if (!providers || providers.length === 0) {
-    throw new Error('No model provider configured');
-  }
-
-  const enabledProvider = providers.find((p) => p.enabled !== false);
-  if (!enabledProvider) {
-    throw new Error('No enabled model provider');
-  }
-
-  const enabledModel = enabledProvider.models.find((m) => enabledProvider.model_enabled?.[m] !== false);
-
-  return {
-    id: enabledProvider.id,
-    platform: enabledProvider.platform,
-    name: enabledProvider.name,
-    base_url: enabledProvider.base_url,
-    api_key: enabledProvider.api_key,
-    useModel: enabledModel || enabledProvider.models[0],
-    capabilities: enabledProvider.capabilities,
-    context_limit: enabledProvider.context_limit,
-    model_protocols: enabledProvider.model_protocols,
-    bedrock_config: enabledProvider.bedrock_config,
-    enabled: enabledProvider.enabled,
-    model_enabled: enabledProvider.model_enabled,
-    model_health: enabledProvider.model_health,
-  };
-}
-
-/**
- * Resolve the Gemini model to use, falling back to a placeholder for Google Auth if needed.
- */
-async function resolveGeminiModel(): Promise<TProviderWithModel> {
-  try {
-    return await getDefaultGeminiModel();
-  } catch (e) {
-    // Fallback to placeholder if no model configured (supports Google Auth users)
-    return {
-      id: 'gemini-placeholder',
-      name: 'Gemini',
-      useModel: 'default',
-      platform: 'gemini-with-google-auth' as TProviderWithModel['platform'],
-      base_url: '',
-      api_key: '',
-    };
-  }
-}
-
-/**
  * Build ICreateConversationParams for a CLI agent.
  * The backend will automatically fill in derived fields (gateway.cli_path, runtimeValidation, etc.).
- * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
  */
 export async function buildCliAgentParams(
   agent: AvailableAgent,
@@ -187,9 +128,7 @@ export async function buildCliAgentParams(
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
 
   let model: TProviderWithModel;
-  if (type === 'gemini') {
-    model = await resolveGeminiModel();
-  } else if (type === 'aionrs') {
+  if (type === 'aionrs') {
     // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
     model = await getDefaultAionrsModel();
   } else {
@@ -214,14 +153,13 @@ export async function buildCliAgentParams(
  * Build ICreateConversationParams for a preset assistant.
  * Applies 4-layer fallback for reading rules and skills (BUG-1 fix).
  * Uses resolveLocaleKey() to convert i18n.language to standard locale format (BUG-2 fix).
- * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
  */
 export async function buildPresetAssistantParams(
   agent: AvailableAgent,
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
-  const { custom_agent_id, presetAgentType = 'gemini' } = agent;
+  const { custom_agent_id, presetAgentType = 'claude' } = agent;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
@@ -235,10 +173,10 @@ export async function buildPresetAssistantParams(
     localeKey,
   });
 
-  const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
-  const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
+  const model = {} as TProviderWithModel;
 
   return buildAgentConversationParams({
     backend: agent.backend,

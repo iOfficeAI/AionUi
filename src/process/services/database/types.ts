@@ -144,16 +144,6 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     channel_chat_id: row.channel_chat_id,
   };
 
-  // Gemini type has model field
-  if (row.type === 'gemini' && row.model) {
-    return {
-      ...base,
-      type: 'gemini' as const,
-      extra: JSON.parse(row.extra),
-      model: JSON.parse(row.model),
-    } as TChatConversation;
-  }
-
   // ACP type
   if (row.type === 'acp') {
     return {

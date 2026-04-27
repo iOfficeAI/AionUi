@@ -134,12 +134,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
 
     const hasSkill = await hasCronSkillFile(job.id);
     const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
-    const isGeminiLike =
-      job.metadata.agentConfig?.backend === 'gemini' || job.metadata.agentConfig?.backend === 'aionrs';
+    const isAionrs = job.metadata.agentConfig?.backend === 'aionrs';
 
-    // Gemini/Aionrs: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
+    // Aionrs: inline SKILL_SUGGEST instructions in the task prompt (single-turn).
     // Other agents: separate follow-up message via onFirstFinish (multi-turn).
-    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isGeminiLike);
+    const messageText = this.buildMessageText(job, hasSkill, needsSkillSuggest && isAionrs);
 
     const triggered_at = Date.now();
     const cronMeta: CronMessageMeta = {
@@ -170,8 +169,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       // Defensively unregister first in case a previous execution left a stale entry
       skillSuggestWatcher.unregister(conversation_id);
 
-      if (isGeminiLike) {
-        // Gemini/Aionrs: SKILL_SUGGEST instructions are already in the prompt.
+      if (isAionrs) {
+        // Aionrs: SKILL_SUGGEST instructions are already in the prompt.
         // Just register the watcher (no onFirstFinish) and start polling.
         skillSuggestWatcher.register(conversation_id, job.id, workspace!);
         void this.detectSkillSuggestWithRetry(job.id, workspace!, conversation_id, 0);
@@ -286,8 +285,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
    */
   private getAgentType(backend: AgentBackend): AgentType {
     switch (backend) {
-      case 'gemini':
-        return 'gemini';
       case 'aionrs':
         return 'aionrs';
       case 'openclaw-gateway':
@@ -375,17 +372,9 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     const providerList = (Array.isArray(providers) ? providers : []) as unknown as TProviderWithModel[];
 
     // Read preferred model ID from user config.
-    // Gemini stores its default model in 'gemini.defaultModel' (set by Guid page).
     // ACP backends store in 'acp.config.<backend>.preferredModelId'.
     let preferredModelId: string | undefined;
-    if (backend === 'gemini') {
-      const savedModel = await ProcessConfig.get('gemini.defaultModel');
-      if (savedModel && typeof savedModel === 'object' && 'useModel' in savedModel) {
-        preferredModelId = savedModel.useModel;
-      } else if (typeof savedModel === 'string') {
-        preferredModelId = savedModel;
-      }
-    } else if (backend === 'aionrs') {
+    if (backend === 'aionrs') {
       const savedModel = await ProcessConfig.get('aionrs.defaultModel');
       preferredModelId = savedModel?.useModel;
     } else {
@@ -393,15 +382,6 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       preferredModelId = (acpConfig?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
         | string
         | undefined;
-    }
-
-    // For gemini, prefer google-auth provider
-    if (backend === 'gemini') {
-      const googleAuth = providerList.find((p) => p.platform === 'gemini-with-google-auth' || p.platform === 'gemini');
-      if (googleAuth) {
-        const useModel = preferredModelId || googleAuth.useModel || 'auto';
-        return { ...googleAuth, useModel } as TProviderWithModel;
-      }
     }
 
     // For other backends, find a matching provider
@@ -743,7 +723,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     };
 
     ipcBridge.conversation.responseStream.emit(message);
-    ipcBridge.geminiConversation.responseStream.emit(message);
+    ipcBridge.conversation.responseStream.emit(message);
     ipcBridge.acpConversation.responseStream.emit(message);
     ipcBridge.openclawConversation.responseStream.emit(message);
     console.log(`[CronExecutor] Emitted initial skill_suggest for job ${job_id}, conversation ${conversation_id}`);
@@ -782,7 +762,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       data: { cron_job_id, cron_job_name, triggered_at },
     };
     ipcBridge.conversation.responseStream.emit(ipcMessage);
-    ipcBridge.geminiConversation.responseStream.emit(ipcMessage);
+    ipcBridge.conversation.responseStream.emit(ipcMessage);
     ipcBridge.acpConversation.responseStream.emit(ipcMessage);
     ipcBridge.openclawConversation.responseStream.emit(ipcMessage);
   }
