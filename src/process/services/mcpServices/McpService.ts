@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { execSync } from 'child_process';
 import type { IMcpServer } from '@/common/config/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { CodebuddyMcpAgent } from './agents/CodebuddyMcpAgent';
@@ -41,44 +40,6 @@ export class McpService {
     return queued;
   }
 
-  private isCliAvailable(cliCommand: string): boolean {
-    const isWindows = process.platform === 'win32';
-    const whichCommand = isWindows ? 'where' : 'which';
-
-    // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
-    // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
-    try {
-      execSync(`${whichCommand} ${cliCommand}`, {
-        encoding: 'utf-8',
-        stdio: 'pipe',
-        timeout: 1000,
-      });
-      return true;
-    } catch {
-      if (!isWindows) return false;
-    }
-
-    if (isWindows) {
-      try {
-        // PowerShell fallback for shim scripts like *.ps1 (vfox)
-        // PowerShell 回退，支持 *.ps1 shim（例如 vfox）
-        execSync(
-          `powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`,
-          {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-          }
-        );
-        return true;
-      } catch {
-        return false;
-      }
-    }
-
-    return false;
-  }
-
   constructor() {
     this.agents = new Map([
       ['claude', new ClaudeMcpAgent()],
@@ -112,37 +73,6 @@ export class McpService {
       return this.agents.get('aionui');
     }
     return this.agents.get(agent.backend as McpSource);
-  }
-
-  /**
-   * 确保原生 Gemini CLI 在 agent 列表中（如果已安装但不在列表中）
-   * AcpDetector 返回的是 fork Gemini (cli_path=undefined)，但 MCP 操作需要同时处理原生 Gemini CLI
-   *
-   * Ensure native Gemini CLI is in the agent list (if installed but not present).
-   * AcpDetector returns fork Gemini (cli_path=undefined), but MCP operations need native Gemini CLI too.
-   */
-  private addNativeGeminiIfNeeded(
-    agents: Array<{ backend: string; name: string; cli_path?: string }>
-  ): Array<{ backend: string; name: string; cli_path?: string }> {
-    const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cli_path === 'gemini');
-    if (hasNativeGemini) return agents;
-
-    try {
-      if (!this.isCliAvailable('gemini')) return agents;
-
-      const allAgents = [
-        ...agents,
-        {
-          backend: 'gemini',
-          name: 'Google Gemini CLI',
-          cli_path: 'gemini',
-        },
-      ];
-      console.log('[McpService] Added native Gemini CLI to agent list');
-      return allAgents;
-    } catch {
-      return agents;
-    }
   }
 
   /**
@@ -198,11 +128,8 @@ export class McpService {
     }>
   ): Promise<DetectedMcpServer[]> {
     return this.withServiceLock(async () => {
-      // 创建完整的检测列表，包含 ACP agents 和额外的原生 Gemini CLI
-      const allAgentsToCheck = this.addNativeGeminiIfNeeded(agents);
-
       // 并发执行所有agent的MCP检测
-      const promises = allAgentsToCheck.map(async (agent) => {
+      const promises = agents.map(async (agent) => {
         try {
           const { agentInstance, source } = this.getDetectionTarget(agent);
           if (!agentInstance) {
@@ -276,12 +203,8 @@ export class McpService {
     }
 
     return this.withServiceLock(async () => {
-      // 确保原生 Gemini CLI 也在同步列表中
-      // Ensure native Gemini CLI is also in the sync list
-      const allAgents = this.addNativeGeminiIfNeeded(agents);
-
       // 并发执行所有agent的MCP同步
-      const promises = allAgents.map(async (agent) => {
+      const promises = agents.map(async (agent) => {
         try {
           // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
           // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
@@ -329,12 +252,8 @@ export class McpService {
     }>
   ): Promise<McpSyncResult> {
     return this.withServiceLock(async () => {
-      // 确保原生 Gemini CLI 也在删除列表中
-      // Ensure native Gemini CLI is also in the removal list
-      const allAgents = this.addNativeGeminiIfNeeded(agents);
-
       // 并发执行所有agent的MCP删除
-      const promises = allAgents.map(async (agent) => {
+      const promises = agents.map(async (agent) => {
         try {
           // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
           // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
