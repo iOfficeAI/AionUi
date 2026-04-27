@@ -66,7 +66,7 @@ export class TeamSessionService {
     const enabledModel = provider.models?.find((m: string) => provider.model_enabled?.[m] !== false);
     return {
       ...provider,
-      useModel: enabledModel || provider.models?.[0],
+      use_model: enabledModel || provider.models?.[0],
     } as TProviderWithModel;
   }
 
@@ -152,7 +152,7 @@ export class TeamSessionService {
 
   private async loadPresetResources(
     custom_agent_id: string
-  ): Promise<{ rules?: string; enabled_skills?: string[]; excludeBuiltinSkills?: string[] }> {
+  ): Promise<{ rules?: string; enabled_skills?: string[]; exclude_builtin_skills?: string[] }> {
     const language = await ProcessConfig.get('language');
     const localeKey = resolveLocaleKey(language || 'en-US');
     const deps: PresetAssistantResourceDeps = {
@@ -183,7 +183,7 @@ export class TeamSessionService {
     return {
       rules: resources.rules,
       enabled_skills: resources.enabled_skills,
-      excludeBuiltinSkills: resources.disabledBuiltinSkills,
+      exclude_builtin_skills: resources.disabledBuiltinSkills,
     };
   }
 
@@ -191,8 +191,10 @@ export class TeamSessionService {
     team_id: string;
     teamName: string;
     workspace: string;
-    agent: Omit<TeamAgent, 'slot_id'> | TeamAgent;
-    agents: TeamAgent[];
+    agent: Omit<TeamAgent, 'slot_id' | 'conversation_id'>;
+    // Peers here may be either fully-formed TeamAgent or the partially-populated
+    // input from createTeam (slot_id/conversation_id allocated later).
+    agents: Array<Pick<TeamAgent, 'role' | 'agent_type'> & Partial<TeamAgent>>;
     inheritedSessionMode?: string;
     /** When true, workspace was inherited (not user-specified) — setupAssistantWorkspace should still run */
     isInheritedWorkspace?: boolean;
@@ -209,7 +211,7 @@ export class TeamSessionService {
     const preferredModelId =
       agent.model ||
       (getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined);
-    const presetResources =
+    const preset_resources =
       is_preset && agent.custom_agent_id ? await this.loadPresetResources(agent.custom_agent_id) : undefined;
     let model = await this.resolveConversationModel({
       backend,
@@ -217,11 +219,11 @@ export class TeamSessionService {
       presetAgentType: is_preset ? backend : undefined,
     });
 
-    // Override useModel for Aionrs when agent has an explicit model
+    // Override use_model for Aionrs when agent has an explicit model
     if (agent.model) {
       const type = getConversationTypeForBackend(backend);
       if (type === 'aionrs') {
-        model = { ...model, useModel: agent.model };
+        model = { ...model, use_model: agent.model };
       }
     }
 
@@ -235,8 +237,8 @@ export class TeamSessionService {
       cli_path: agent.cli_path,
       custom_agent_id: agent.custom_agent_id,
       is_preset,
-      presetAgentType: is_preset ? backend : undefined,
-      presetResources,
+      preset_agent_type: is_preset ? backend : undefined,
+      preset_resources,
       session_mode: inheritedSessionMode,
       current_model_id: preferredModelId,
       extra: {
@@ -322,7 +324,7 @@ export class TeamSessionService {
       status: this.mapRecoveredStatus(conversation.status),
       cli_path: extra.cli_path || extra.gateway?.cli_path,
       custom_agent_id: extra.custom_agent_id || extra.preset_assistant_id,
-      model: extra.current_model_id || (conversation as { model?: { useModel?: string } }).model?.useModel,
+      model: extra.current_model_id || (conversation as { model?: { use_model?: string } }).model?.use_model,
     };
   }
 
@@ -386,7 +388,11 @@ export class TeamSessionService {
     name: string;
     workspace: string;
     workspace_mode: TTeam['workspace_mode'];
-    agents: TeamAgent[];
+    // slot_id/conversation_id are optional: bridge callers may omit them and
+    // rely on createTeam to allocate both.
+    agents: Array<
+      Omit<TeamAgent, 'slot_id' | 'conversation_id'> & Partial<Pick<TeamAgent, 'slot_id' | 'conversation_id'>>
+    >;
     session_mode?: string;
   }): Promise<TTeam> {
     const now = Date.now();
@@ -465,7 +471,7 @@ export class TeamSessionService {
     };
     await this.repo.create(team);
 
-    ipcBridge.team.listChanged.emit({ teamId, action: 'created' });
+    ipcBridge.team.listChanged.emit({ team_id, action: 'created' });
     return team;
   }
 
@@ -520,10 +526,10 @@ export class TeamSessionService {
     await this.repo.deleteTasksByTeam(id);
     await this.repo.delete(id);
 
-    ipcBridge.team.listChanged.emit({ teamId: id, action: 'removed' });
+    ipcBridge.team.listChanged.emit({ team_id: id, action: 'removed' });
   }
 
-  async addAgent(team_id: string, agent: Omit<TeamAgent, 'slot_id'>): Promise<TeamAgent> {
+  async addAgent(team_id: string, agent: Omit<TeamAgent, 'slot_id' | 'conversation_id'>): Promise<TeamAgent> {
     // Serialize per-team to prevent concurrent read-modify-write races on the agents array.
     // Without this lock, parallel team_spawn_agent calls read the same stale agents list,
     // and the last writer wins — silently dropping agents added by concurrent calls.
@@ -545,7 +551,10 @@ export class TeamSessionService {
     }
   }
 
-  private async addAgentUnsafe(team_id: string, agent: Omit<TeamAgent, 'slot_id'>): Promise<TeamAgent> {
+  private async addAgentUnsafe(
+    team_id: string,
+    agent: Omit<TeamAgent, 'slot_id' | 'conversation_id'>
+  ): Promise<TeamAgent> {
     const team = await this.repo.findById(team_id);
     if (!team) throw new Error(`Team "${team_id}" not found`);
 
@@ -590,7 +599,7 @@ export class TeamSessionService {
     return newAgent;
   }
 
-  private resolveBackend(agent_type: string, agents: TeamAgent[]): string {
+  private resolveBackend(agent_type: string, agents: ReadonlyArray<Pick<TeamAgent, 'role' | 'agent_type'>>): string {
     if (agent_type !== 'acp') return agent_type;
     const leader = agents.find((a) => a.role === 'leader');
     return leader && leader.agent_type !== 'acp' ? leader.agent_type : 'claude';
@@ -677,7 +686,6 @@ export class TeamSessionService {
       const leadAgent = team.agents.find((a) => a.role === 'leader');
       const resolvedType = agent_type || leadAgent?.agent_type || 'claude';
       const newAgent = await this.addAgent(team_id, {
-        conversation_id: '',
         role: 'teammate',
         agent_type: resolvedType,
         agent_name,

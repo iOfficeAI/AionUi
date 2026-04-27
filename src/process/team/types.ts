@@ -21,8 +21,8 @@ export type {
 export type MailboxMessage = {
   id: string;
   team_id: string;
-  toAgentId: string;
-  fromAgentId: string;
+  to_agent_id: string;
+  from_agent_id: string;
   type: 'message' | 'idle_notification' | 'shutdown_request';
   content: string;
   summary?: string;
@@ -39,7 +39,7 @@ export type TeamTask = {
   description?: string;
   status: 'pending' | 'in_progress' | 'completed' | 'deleted';
   owner?: string; // slot_id of the assigned agent
-  blockedBy: string[]; // task ids this task depends on
+  blocked_by: string[]; // task ids this task depends on
   blocks: string[]; // task ids that depend on this task
   metadata: Record<string, unknown>;
   created_at: number;
@@ -52,8 +52,8 @@ export type TeamTask = {
  */
 export type IdleNotification = {
   type: 'idle_notification';
-  idleReason: 'available' | 'interrupted' | 'failed';
+  idle_reason: 'available' | 'interrupted' | 'failed';
   summary: string;
-  completedTaskId?: string;
-  failureReason?: string;
+  completed_task_id?: string;
+  failure_reason?: string;
 };

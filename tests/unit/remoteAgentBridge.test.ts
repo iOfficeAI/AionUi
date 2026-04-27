@@ -19,7 +19,7 @@ const mockDb = vi.hoisted(() => ({
       name: 'Agent1',
       protocol: 'openclaw',
       url: 'wss://a1',
-      authType: 'bearer',
+      auth_type: 'bearer',
       created_at: 0,
       updated_at: 0,
     },
@@ -31,7 +31,7 @@ const mockDb = vi.hoisted(() => ({
           name: 'Agent1',
           protocol: 'openclaw',
           url: 'wss://a1',
-          authType: 'bearer',
+          auth_type: 'bearer',
           created_at: 0,
           updated_at: 0,
         }
@@ -193,17 +193,17 @@ describe('remoteAgentBridge', () => {
         name: 'NewAgent',
         protocol: 'openclaw',
         url: 'wss://new',
-        authType: 'bearer',
-        authToken: 'tok',
+        auth_type: 'bearer',
+        auth_token: 'tok',
       });
 
       expect(mockDb.createRemoteAgent).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'NewAgent',
           protocol: 'openclaw',
-          deviceId: 'dev-id',
-          devicePublicKey: 'pub-pem',
-          devicePrivateKey: 'priv-pem',
+          device_id: 'dev-id',
+          device_public_key: 'pub-pem',
+          device_private_key: 'priv-pem',
         })
       );
       expect(result).toBeDefined();
@@ -215,14 +215,14 @@ describe('remoteAgentBridge', () => {
         name: 'AcpAgent',
         protocol: 'acp',
         url: 'wss://acp',
-        authType: 'none',
+        auth_type: 'none',
       });
 
       expect(mockDb.createRemoteAgent).toHaveBeenCalledWith(
         expect.objectContaining({
-          deviceId: undefined,
-          devicePublicKey: undefined,
-          devicePrivateKey: undefined,
+          device_id: undefined,
+          device_public_key: undefined,
+          device_private_key: undefined,
         })
       );
     });
@@ -230,7 +230,7 @@ describe('remoteAgentBridge', () => {
     it('throws when database create fails', async () => {
       mockDb.createRemoteAgent.mockReturnValueOnce({ success: false, error: 'duplicate' });
       const handler = providerMap.get('create')!;
-      await expect(handler({ name: 'X', protocol: 'openclaw', url: 'wss://x', authType: 'none' })).rejects.toThrow(
+      await expect(handler({ name: 'X', protocol: 'openclaw', url: 'wss://x', auth_type: 'none' })).rejects.toThrow(
         'duplicate'
       );
     });
@@ -243,8 +243,8 @@ describe('remoteAgentBridge', () => {
         id: 'a1',
         updates: {
           name: 'Renamed',
-          authType: 'password',
-          authToken: 'secret',
+          auth_type: 'password',
+          auth_token: 'secret',
           url: 'wss://new-url',
         },
       });
@@ -279,14 +279,14 @@ describe('remoteAgentBridge', () => {
   describe('testConnection provider', () => {
     it('returns success on WebSocket open', async () => {
       const handler = providerMap.get('testConnection')!;
-      const result = await handler({ url: 'wss://test', authType: 'none' });
+      const result = await handler({ url: 'wss://test', auth_type: 'none' });
       expect(result).toEqual({ success: true });
     });
 
     it('normalizes urls without protocol prefix', async () => {
       const handler = providerMap.get('testConnection')!;
 
-      const result = await handler({ url: '127.0.0.1:42617', authType: 'none' });
+      const result = await handler({ url: '127.0.0.1:42617', auth_type: 'none' });
 
       expect(result).toEqual({ success: true });
       expect(mockWebSocketState.lastUrl).toBe('ws://127.0.0.1:42617/');
@@ -296,7 +296,7 @@ describe('remoteAgentBridge', () => {
       const handler = providerMap.get('testConnection')!;
       mockWebSocketState.throwOnUrl = 'invalid-endpoint';
 
-      const result = await handler({ url: 'invalid-endpoint', authType: 'none' });
+      const result = await handler({ url: 'invalid-endpoint', auth_type: 'none' });
 
       expect(result).toEqual({ success: false, error: 'Invalid URL' });
       expect(mockWebSocketState.lastUrl).toBe('ws://invalid-endpoint/');
@@ -304,19 +304,19 @@ describe('remoteAgentBridge', () => {
 
     it('rejects URLs with disallowed protocols (http://)', async () => {
       const handler = providerMap.get('testConnection')!;
-      const result = await handler({ url: 'http://example.com', authType: 'none' });
+      const result = await handler({ url: 'http://example.com', auth_type: 'none' });
       expect(result).toEqual({ success: false, error: 'Unsupported protocol: http:' });
     });
 
     it('rejects URLs with disallowed protocols (file://)', async () => {
       const handler = providerMap.get('testConnection')!;
-      const result = await handler({ url: 'file:///etc/passwd', authType: 'none' });
+      const result = await handler({ url: 'file:///etc/passwd', auth_type: 'none' });
       expect(result).toEqual({ success: false, error: 'Unsupported protocol: file:' });
     });
 
     it('rejects invalid URL formats', async () => {
       const handler = providerMap.get('testConnection')!;
-      const result = await handler({ url: 'ws://[invalid', authType: 'none' });
+      const result = await handler({ url: 'ws://[invalid', auth_type: 'none' });
       expect(result).toEqual({ success: false, error: 'Invalid URL' });
     });
   });
@@ -356,7 +356,7 @@ describe('remoteAgentBridge', () => {
         name: 'AcpAgent',
         protocol: 'acp',
         url: 'wss://acp',
-        authType: 'none',
+        auth_type: 'none',
         created_at: 0,
         updated_at: 0,
       });

@@ -23,7 +23,7 @@ const CronStatusTag: React.FC<{ job: ICronJob }> = ({ job }) => {
     color = 'gray';
     tone = 'paused';
     label = t('cron.status.paused');
-  } else if (job.state.lastStatus === 'error') {
+  } else if (job.state.last_status === 'error') {
     color = 'red';
     tone = 'error';
     label = t('cron.status.error');

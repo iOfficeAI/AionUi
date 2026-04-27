@@ -306,7 +306,7 @@ describe('ToolsModalContent image generation status refresh', () => {
           api_key: 'key',
           platform: 'new-api',
           base_url: 'https://example.com',
-          useModel: 'grok-imagine-1.0',
+          use_model: 'grok-imagine-1.0',
           models: ['grok-imagine-1.0'],
         };
       }

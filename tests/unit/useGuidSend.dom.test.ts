@@ -118,7 +118,7 @@ describe('useGuidSend', () => {
           type: 'remote',
           name: 'test message',
           extra: expect.objectContaining({
-            remoteAgentId: undefined,
+            remote_agent_id: undefined,
           }),
         })
       );
@@ -262,7 +262,7 @@ describe('useGuidSend', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           extra: expect.objectContaining({
-            excludeBuiltinSkills: ['cron'],
+            exclude_builtin_skills: ['cron'],
           }),
         })
       );
@@ -282,7 +282,7 @@ describe('useGuidSend', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           extra: expect.objectContaining({
-            excludeBuiltinSkills: [],
+            exclude_builtin_skills: [],
           }),
         })
       );
@@ -302,7 +302,7 @@ describe('useGuidSend', () => {
       expect(mockCreate).toHaveBeenCalledWith(
         expect.objectContaining({
           extra: expect.objectContaining({
-            excludeBuiltinSkills: ['office-cli'],
+            exclude_builtin_skills: ['office-cli'],
           }),
         })
       );

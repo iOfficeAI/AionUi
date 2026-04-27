@@ -64,7 +64,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const skillRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [loading, setLoading] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
-  const [skillPaths, setSkillPaths] = useState<{ userSkillsDir: string; builtinSkillsDir: string } | null>(null);
+  const [skillPaths, setSkillPaths] = useState<{ user_skills_dir: string; builtin_skills_dir: string } | null>(null);
   const [externalSources, setExternalSources] = useState<ExternalSource[]>([]);
   const [activeSourceTab, setActiveSourceTab] = useState<string>('');
   const [search_query, setSearchQuery] = useState('');
@@ -138,7 +138,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const handleImport = async (skillPath: string) => {
     try {
-      await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath });
+      await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
       Message.success(t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' }));
       void fetchData();
     } catch (error) {
@@ -151,7 +151,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     let successCount = 0;
     for (const skill of skills) {
       try {
-        await ipcBridge.fs.importSkillWithSymlink.invoke({ skillPath: skill.path });
+        await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skill.path });
         successCount++;
       } catch {
         // continue
@@ -170,7 +170,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const handleDelete = async (skillName: string) => {
     try {
-      await ipcBridge.fs.deleteSkill.invoke({ skillName });
+      await ipcBridge.fs.deleteSkill.invoke({ skill_name: skillName });
       Message.success(t('settings.skillsHub.deleteSuccess', { defaultValue: 'Skill deleted' }));
       void fetchData();
     } catch (error) {
@@ -453,8 +453,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
           {skillPaths && (
             <div className='flex items-center gap-8px text-12px text-t-tertiary font-mono bg-transparent py-4px mb-16px relative z-10 pt-4px border-t border-t-transparent'>
               <FolderOpen size={16} className='shrink-0' />
-              <span className='truncate' title={skillPaths.userSkillsDir}>
-                {skillPaths.userSkillsDir}
+              <span className='truncate' title={skillPaths.user_skills_dir}>
+                {skillPaths.user_skills_dir}
               </span>
             </div>
           )}
@@ -523,8 +523,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
                                     await Promise.race([
                                       ipcBridge.fs.exportSkillWithSymlink.invoke({
-                                        skillPath,
-                                        targetDir: source.path,
+                                        skill_path: skillPath,
+                                        target_dir: source.path,
                                       }),
                                       new Promise<void>((_, reject) =>
                                         setTimeout(() => reject(new Error('Export timed out.')), 8000)

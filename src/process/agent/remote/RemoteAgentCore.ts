@@ -71,21 +71,21 @@ export class RemoteAgentCore {
     try {
       this.emitStatusMessage('connecting');
 
-      const { url, authType, authToken } = this.remoteConfig;
+      const { url, auth_type, auth_token } = this.remoteConfig;
 
       this.connection = new OpenClawGatewayConnection({
         url,
-        rejectUnauthorized: !this.remoteConfig.allowInsecure,
-        token: authType === 'bearer' ? authToken : undefined,
-        password: authType === 'password' ? authToken : undefined,
-        deviceIdentity: this.remoteConfig.deviceId
+        rejectUnauthorized: !this.remoteConfig.allow_insecure,
+        token: auth_type === 'bearer' ? auth_token : undefined,
+        password: auth_type === 'password' ? auth_token : undefined,
+        deviceIdentity: this.remoteConfig.device_id
           ? {
-              deviceId: this.remoteConfig.deviceId,
-              publicKeyPem: this.remoteConfig.devicePublicKey!,
-              privateKeyPem: this.remoteConfig.devicePrivateKey!,
+              deviceId: this.remoteConfig.device_id,
+              publicKeyPem: this.remoteConfig.device_public_key!,
+              privateKeyPem: this.remoteConfig.device_private_key!,
             }
           : undefined,
-        deviceToken: this.remoteConfig.deviceToken,
+        deviceToken: this.remoteConfig.device_token,
         onDeviceTokenIssued: (token) => this.persistDeviceToken(token),
         onEvent: (evt) => this.handleEvent(evt),
         onHelloOk: (hello) => this.handleHelloOk(hello),

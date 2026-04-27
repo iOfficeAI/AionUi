@@ -159,7 +159,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `${extra.backend}-temp-${Date.now()}`,
     extra.workspace,
-    extra.defaultFiles,
+    extra.default_files,
     extra.custom_workspace
   );
 
@@ -171,8 +171,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       conversationId,
       backend: extra.backend,
       enabled_skills: extra.enabled_skills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+      extraSkillPaths: extra.extra_skill_paths,
+      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -189,7 +189,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
       enabled_skills: extra.enabled_skills,
       // 排除的内置自动注入 skills / Builtin auto-injected skills to exclude
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+      excludeBuiltinSkills: extra.exclude_builtin_skills,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       preset_assistant_id: extra.preset_assistant_id,
@@ -214,7 +214,7 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `nanobot-temp-${Date.now()}`,
     extra.workspace,
-    extra.defaultFiles,
+    extra.default_files,
     extra.custom_workspace
   );
 
@@ -226,8 +226,8 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
       conversationId,
       agent_type: 'nanobot',
       enabled_skills: extra.enabled_skills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+      extraSkillPaths: extra.extra_skill_paths,
+      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -251,7 +251,7 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `remote-temp-${Date.now()}`,
     extra.workspace,
-    extra.defaultFiles,
+    extra.default_files,
     extra.custom_workspace
   );
 
@@ -261,8 +261,8 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
     await setupAssistantWorkspace(workspace, {
       conversationId,
       enabled_skills: extra.enabled_skills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+      extraSkillPaths: extra.extra_skill_paths,
+      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -271,7 +271,7 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
     extra: {
       workspace,
       custom_workspace,
-      remoteAgentId: extra.remoteAgentId!,
+      remoteAgentId: extra.remote_agent_id!,
       enabled_skills: extra.enabled_skills,
       preset_assistant_id: extra.preset_assistant_id,
     },
@@ -287,7 +287,7 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `aionrs-temp-${Date.now()}`,
     extra.workspace,
-    extra.defaultFiles,
+    extra.default_files,
     extra.custom_workspace
   );
 
@@ -299,8 +299,8 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
       conversationId,
       agent_type: 'aionrs',
       enabled_skills: extra.enabled_skills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+      extraSkillPaths: extra.extra_skill_paths,
+      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -328,7 +328,7 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
     `openclaw-temp-${Date.now()}`,
     extra.workspace,
-    extra.defaultFiles,
+    extra.default_files,
     extra.custom_workspace
   );
 
@@ -339,8 +339,8 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
     await setupAssistantWorkspace(workspace, {
       conversationId,
       enabled_skills: extra.enabled_skills,
-      extraSkillPaths: extra.extraSkillPaths,
-      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+      extraSkillPaths: extra.extra_skill_paths,
+      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -363,7 +363,7 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
         // Note: model is not used by openclaw-gateway, so skip expectedModel to avoid
         // validation mismatch (conversation object doesn't store model for this type)
         expectedIdentityHash,
-        switchedAt: extra.runtimeValidation?.switchedAt ?? Date.now(),
+        switchedAt: extra.runtime_validation?.switched_at ?? Date.now(),
       },
       // Enabled skills list (loaded via SkillManager)
       enabled_skills: extra.enabled_skills,

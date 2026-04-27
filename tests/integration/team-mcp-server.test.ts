@@ -239,7 +239,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
       expect(resp.result).toContain('Worker');
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-worker',
+          to_agent_id: 'slot-worker',
           content: 'Please start task A',
         })
       );
@@ -269,8 +269,8 @@ describe('TeamMcpServer — TCP tool interface', () => {
 
       expect(resp.result).toContain('broadcast');
       // Lead excluded from recipients; worker should receive
-      expect(mailbox.write).toHaveBeenCalledWith(expect.objectContaining({ toAgentId: 'slot-worker' }));
-      expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ toAgentId: 'slot-lead' }));
+      expect(mailbox.write).toHaveBeenCalledWith(expect.objectContaining({ to_agent_id: 'slot-worker' }));
+      expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ to_agent_id: 'slot-lead' }));
     });
 
     it('broadcasts to all agents when to="*" (non-lead as sender)', async () => {
@@ -288,9 +288,9 @@ describe('TeamMcpServer — TCP tool interface', () => {
       expect(resp.result).toContain('broadcast');
       // Worker excluded from recipients; lead should receive
       expect(mailbox.write).toHaveBeenCalledWith(
-        expect.objectContaining({ toAgentId: 'slot-lead', content: 'Worker broadcast' })
+        expect.objectContaining({ to_agent_id: 'slot-lead', content: 'Worker broadcast' })
       );
-      expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ toAgentId: 'slot-worker' }));
+      expect(mailbox.write).not.toHaveBeenCalledWith(expect.objectContaining({ to_agent_id: 'slot-worker' }));
     });
 
     it('returns error when target agent not found', async () => {
@@ -397,7 +397,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
         // Lead's mailbox receives the reason extracted by the regex
         expect(localMailbox.write).toHaveBeenCalledWith(
           expect.objectContaining({
-            toAgentId: 'slot-lead',
+            to_agent_id: 'slot-lead',
             content: expect.stringContaining('I am still needed'),
           })
         );
@@ -417,7 +417,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
         expect(removeAgent).not.toHaveBeenCalled();
         expect(localMailbox.write).toHaveBeenCalledWith(
           expect.objectContaining({
-            toAgentId: 'slot-lead',
+            to_agent_id: 'slot-lead',
             content: expect.stringContaining('busy with critical task'),
           })
         );
@@ -766,7 +766,7 @@ describe('TeamMcpServer — TCP tool interface', () => {
       expect(resp.result).toContain('Worker');
       expect(mailbox.write).toHaveBeenCalledWith(
         expect.objectContaining({
-          toAgentId: 'slot-worker',
+          to_agent_id: 'slot-worker',
           type: 'shutdown_request',
         })
       );

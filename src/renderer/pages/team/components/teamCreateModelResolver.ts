@@ -44,11 +44,8 @@ export async function resolveDefaultTeamAgentModel(params: {
 }
 
 async function resolveGeminiDefaultModel(): Promise<string> {
-  const saved = await ConfigStorage.get('gemini.defaultModel').catch((): undefined => undefined);
-  if (saved && typeof saved === 'object' && typeof saved.useModel === 'string' && saved.useModel.length > 0) {
-    return saved.useModel;
-  }
-  if (typeof saved === 'string' && saved.length > 0) return saved;
+  // The legacy 'gemini.defaultModel' config key has been removed after the
+  // Gemini → ACP consolidation. Always fall back to the 'auto' alias.
   // aioncli-core alias: 'auto' maps to PREVIEW_GEMINI_MODEL_AUTO. See
   // src/common/utils/geminiModes.ts for the full list of aliases.
   return 'auto';
@@ -56,8 +53,8 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 
 async function resolveAionrsDefaultModel(): Promise<string> {
   const saved = await ConfigStorage.get('aionrs.defaultModel').catch((): undefined => undefined);
-  if (saved && typeof saved === 'object' && typeof saved.useModel === 'string' && saved.useModel.length > 0) {
-    return saved.useModel;
+  if (saved && typeof saved === 'object' && typeof saved.use_model === 'string' && saved.use_model.length > 0) {
+    return saved.use_model;
   }
   return 'default';
 }

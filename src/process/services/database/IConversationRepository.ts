@@ -15,7 +15,7 @@ import type { IMessageSearchResponse } from '@/common/types/database';
 export type PaginatedResult<T> = {
   data: T[];
   total: number;
-  hasMore: boolean;
+  has_more: boolean;
 };
 
 export interface IConversationRepository {

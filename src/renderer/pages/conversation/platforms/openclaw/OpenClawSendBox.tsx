@@ -69,38 +69,40 @@ const validateRuntimeMismatch = async (conversation_id: string): Promise<boolean
   const eqPath = (a?: string | null, b?: string | null) =>
     normalizeRuntimeValue(a).replace(/[\\/]+$/, '') === normalizeRuntimeValue(b).replace(/[\\/]+$/, '');
 
-  if (expected.expectedWorkspace && !eqPath(expected.expectedWorkspace, runtime.workspace)) {
-    mismatches.push(`workspace: expected=${expected.expectedWorkspace || '-'} actual=${runtime.workspace || '-'}`);
+  if (expected.expected_workspace && !eqPath(expected.expected_workspace, runtime.workspace)) {
+    mismatches.push(`workspace: expected=${expected.expected_workspace || '-'} actual=${runtime.workspace || '-'}`);
   }
   if (
-    expected.expectedBackend &&
-    normalizeRuntimeValue(expected.expectedBackend) !== normalizeRuntimeValue(runtime.backend)
+    expected.expected_backend &&
+    normalizeRuntimeValue(expected.expected_backend) !== normalizeRuntimeValue(runtime.backend)
   ) {
-    mismatches.push(`backend: expected=${expected.expectedBackend || '-'} actual=${runtime.backend || '-'}`);
+    mismatches.push(`backend: expected=${expected.expected_backend || '-'} actual=${runtime.backend || '-'}`);
   }
   if (
-    expected.expectedAgentName &&
-    normalizeRuntimeValue(expected.expectedAgentName) !== normalizeRuntimeValue(runtime.agent_name)
+    expected.expected_agent_name &&
+    normalizeRuntimeValue(expected.expected_agent_name) !== normalizeRuntimeValue(runtime.agent_name)
   ) {
-    mismatches.push(`agent: expected=${expected.expectedAgentName || '-'} actual=${runtime.agent_name || '-'}`);
+    mismatches.push(`agent: expected=${expected.expected_agent_name || '-'} actual=${runtime.agent_name || '-'}`);
   }
   if (
-    expected.expectedCliPath &&
-    normalizeRuntimeValue(expected.expectedCliPath) !== normalizeRuntimeValue(runtime.cli_path)
+    expected.expected_cli_path &&
+    normalizeRuntimeValue(expected.expected_cli_path) !== normalizeRuntimeValue(runtime.cli_path)
   ) {
-    mismatches.push(`cli_path: expected=${expected.expectedCliPath || '-'} actual=${runtime.cli_path || '-'}`);
+    mismatches.push(`cli_path: expected=${expected.expected_cli_path || '-'} actual=${runtime.cli_path || '-'}`);
   }
   if (
-    expected.expectedModel &&
-    normalizeRuntimeValue(expected.expectedModel) !== normalizeRuntimeValue(runtime.model)
+    expected.expected_model &&
+    normalizeRuntimeValue(expected.expected_model) !== normalizeRuntimeValue(runtime.model)
   ) {
-    mismatches.push(`model: expected=${expected.expectedModel || '-'} actual=${runtime.model || '-'}`);
+    mismatches.push(`model: expected=${expected.expected_model || '-'} actual=${runtime.model || '-'}`);
   }
   if (
-    expected.expectedIdentityHash &&
-    normalizeRuntimeValue(expected.expectedIdentityHash) !== normalizeRuntimeValue(runtime.identityHash)
+    expected.expected_identity_hash &&
+    normalizeRuntimeValue(expected.expected_identity_hash) !== normalizeRuntimeValue(runtime.identity_hash)
   ) {
-    mismatches.push(`identity: expected=${expected.expectedIdentityHash || '-'} actual=${runtime.identityHash || '-'}`);
+    mismatches.push(
+      `identity: expected=${expected.expected_identity_hash || '-'} actual=${runtime.identity_hash || '-'}`
+    );
   }
 
   if (mismatches.length > 0) {

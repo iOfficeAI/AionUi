@@ -48,19 +48,19 @@ export function getAuthTypeFromPlatform(platform: string): AuthType {
  */
 export function getProviderAuthType(provider: {
   platform: string;
-  authType?: AuthType;
+  auth_type?: AuthType;
   model_protocols?: Record<string, string>;
-  useModel?: string;
+  use_model?: string;
 }): AuthType {
-  // 如果明确指定了authType，直接使用
-  if (provider.authType) {
-    return provider.authType;
+  // If auth_type is explicitly specified, use it directly
+  if (provider.auth_type) {
+    return provider.auth_type;
   }
 
   // new-api 平台：根据模型名称查找协议覆盖
   // new-api platform: look up per-model protocol override
-  if (isNewApiPlatform(provider.platform) && provider.useModel && provider.model_protocols) {
-    const protocol = provider.model_protocols[provider.useModel];
+  if (isNewApiPlatform(provider.platform) && provider.use_model && provider.model_protocols) {
+    const protocol = provider.model_protocols[provider.use_model];
     if (protocol) {
       return getAuthTypeFromPlatform(protocol);
     }

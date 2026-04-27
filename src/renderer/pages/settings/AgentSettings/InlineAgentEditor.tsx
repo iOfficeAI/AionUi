@@ -188,7 +188,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       const envObj = envVarsToObject(envVars);
       const result = await acpConversation.testCustomAgent.invoke({
         command: command.trim(),
-        acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
+        acp_args: parsedArgs.length > 0 ? parsedArgs : undefined,
         env: Object.keys(envObj).length > 0 ? envObj : undefined,
       });
       if (!result.error) {

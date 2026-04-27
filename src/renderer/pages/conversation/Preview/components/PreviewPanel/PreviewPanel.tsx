@@ -284,15 +284,15 @@ const PreviewPanel: React.FC = () => {
   // 如果预览面板未打开，不渲染 / Don't render if preview panel is not open
   if (!isOpen || !activeTab) return null;
 
-  const { content, contentType, metadata } = activeTab;
-  const isMarkdown = contentType === 'markdown';
-  const isHTML = contentType === 'html';
+  const { content, content_type, metadata } = activeTab;
+  const isMarkdown = content_type === 'markdown';
+  const isHTML = content_type === 'html';
   const isEditable = metadata?.editable !== false; // 默认可编辑 / Default editable
 
   // 检查文件类型是否已有内置的打开按钮（Word、PPT、PDF、Excel 组件内部已提供）
   // Check if file type already has built-in open button
   // (Word, PPT, PDF, Excel components provide their own)
-  const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(contentType);
+  const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(content_type);
 
   // 对所有有 file_path 的文件显示"在系统中打开"按钮（统一在工具栏显示）
   // Show "Open in System" button for all files with file_path (unified in toolbar)
@@ -301,7 +301,7 @@ const PreviewPanel: React.FC = () => {
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
     try {
-      const rawFileName = metadata?.file_name || `${contentType}-${Date.now()}`;
+      const rawFileName = metadata?.file_name || `${content_type}-${Date.now()}`;
 
       if (metadata?.file_path) {
         // All files with a disk path (binary, image, zip, etc.) — unified path
@@ -309,7 +309,7 @@ const PreviewPanel: React.FC = () => {
         return;
       }
 
-      if (contentType === 'image') {
+      if (content_type === 'image') {
         // Pure base64 image (no file path on disk)
         if (!content) {
           messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
@@ -337,15 +337,15 @@ const PreviewPanel: React.FC = () => {
       const nameExt = metadata?.file_name?.split('.').pop();
       let mimeType = 'text/plain;charset=utf-8';
       let ext = 'txt';
-      if (contentType === 'markdown') {
+      if (content_type === 'markdown') {
         mimeType = 'text/markdown;charset=utf-8';
         ext = 'md';
-      } else if (contentType === 'html') {
+      } else if (content_type === 'html') {
         mimeType = 'text/html;charset=utf-8';
         ext = 'html';
-      } else if (contentType === 'diff') {
+      } else if (content_type === 'diff') {
         ext = 'diff';
-      } else if (contentType === 'code') {
+      } else if (content_type === 'code') {
         // Code files: set extension based on language
         const lang = metadata?.language;
         if (lang === 'javascript' || lang === 'js') ext = 'js';
@@ -367,7 +367,7 @@ const PreviewPanel: React.FC = () => {
       console.error('[PreviewPanel] Failed to download file:', error);
       messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
     }
-  }, [content, contentType, metadata?.file_name, metadata?.file_path, metadata?.language, messageApi, t]);
+  }, [content, content_type, metadata?.file_name, metadata?.file_path, metadata?.language, messageApi, t]);
 
   // 在系统默认应用中打开文件 / Open file in system default application
   const handleOpenInSystem = useCallback(async () => {
@@ -573,7 +573,7 @@ const PreviewPanel: React.FC = () => {
     }
 
     // 其他类型：全屏预览 / Other types: Full-screen preview
-    if (contentType === 'diff') {
+    if (content_type === 'diff') {
       return (
         <DiffPreview
           content={content}
@@ -583,7 +583,7 @@ const PreviewPanel: React.FC = () => {
           onViewModeChange={setViewMode}
         />
       );
-    } else if (contentType === 'code') {
+    } else if (content_type === 'code') {
       // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
       if (isSplitScreenEnabled && isEditMode && isEditable) {
         return (
@@ -631,15 +631,15 @@ const PreviewPanel: React.FC = () => {
           onViewModeChange={setViewMode}
         />
       );
-    } else if (contentType === 'pdf') {
+    } else if (content_type === 'pdf') {
       return <PDFPreview file_path={metadata?.file_path} content={content} />;
-    } else if (contentType === 'ppt') {
+    } else if (content_type === 'ppt') {
       return <PptViewer file_path={metadata?.file_path} content={content} />;
-    } else if (contentType === 'word') {
+    } else if (content_type === 'word') {
       return <OfficeDocPreview file_path={metadata?.file_path} content={content} />;
-    } else if (contentType === 'excel') {
+    } else if (content_type === 'excel') {
       return <ExcelPreview file_path={metadata?.file_path} content={content} />;
-    } else if (contentType === 'image') {
+    } else if (content_type === 'image') {
       return (
         <ImagePreview
           file_path={metadata?.file_path}
@@ -647,7 +647,7 @@ const PreviewPanel: React.FC = () => {
           file_name={metadata?.file_name || metadata?.title}
         />
       );
-    } else if (contentType === 'url') {
+    } else if (content_type === 'url') {
       // URL 预览模式 / URL preview mode
       return <URLViewer url={content} title={metadata?.title} />;
     }
@@ -693,9 +693,9 @@ const PreviewPanel: React.FC = () => {
         />
 
         {/* 工具栏（URL 类型不显示工具栏，因为不需要下载/编辑等功能）/ Toolbar (hidden for URL type as it doesn't need download/edit features) */}
-        {contentType !== 'url' && (
+        {content_type !== 'url' && (
           <PreviewToolbar
-            contentType={contentType}
+            content_type={content_type}
             isMarkdown={isMarkdown}
             isHTML={isHTML}
             isEditable={isEditable}
@@ -714,7 +714,7 @@ const PreviewPanel: React.FC = () => {
             onEditClick={() => {
               setIsEditMode(true);
               // Code/TXT 类型进入编辑模式时自动开启分屏 / Auto enable split screen for Code/TXT when entering edit mode
-              if (contentType === 'code') {
+              if (content_type === 'code') {
                 setIsSplitScreenEnabled(true);
               }
             }}

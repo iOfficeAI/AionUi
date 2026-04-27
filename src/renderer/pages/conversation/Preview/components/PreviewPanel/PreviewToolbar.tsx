@@ -20,7 +20,7 @@ interface PreviewToolbarProps {
    * 内容类型
    * Content type
    */
-  contentType: string;
+  content_type: string;
 
   /**
    * 是否为 Markdown 文件
@@ -176,7 +176,7 @@ interface PreviewToolbarProps {
  */
 // eslint-disable-next-line max-len
 const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
-  contentType,
+  content_type,
   isMarkdown,
   isHTML,
   isEditable,
@@ -203,7 +203,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   rightExtra,
 }) => {
   const { t } = useTranslation();
-  const isDiff = contentType === 'diff';
+  const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
 
   const toolbarBtn =
@@ -272,7 +272,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </>
           )}
 
-          {contentType === 'code' && isEditable && (
+          {content_type === 'code' && isEditable && (
             <div
               className={`${toolbarBtn} ${isEditMode ? toolbarBtnActive : ''}`}
               onClick={() => (isEditMode ? onExitEdit() : onEditClick())}
@@ -362,9 +362,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
         <div className='flex items-center gap-4px flex-shrink-0'>
           {rightExtra}
 
-          {((contentType === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (contentType === 'html' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (contentType === 'code' && isEditable && isEditMode)) && (
+          {((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
+            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled)) ||
+            (content_type === 'code' && isEditable && isEditMode)) && (
             <>
               <div
                 className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}

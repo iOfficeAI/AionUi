@@ -300,8 +300,8 @@ export class TeamMcpServer {
             mailbox
               .write({
                 team_id,
-                toAgentId: agent.slot_id,
-                fromAgentId: fromSlotId,
+                to_agent_id: agent.slot_id,
+                from_agent_id: fromSlotId,
                 content: message,
                 summary,
               })
@@ -335,8 +335,8 @@ export class TeamMcpServer {
         if (leadSlotId) {
           await mailbox.write({
             team_id,
-            toAgentId: leadSlotId,
-            fromAgentId: fromSlotId,
+            to_agent_id: leadSlotId,
+            from_agent_id: fromSlotId,
             content: `${memberName} has shut down and been removed from the team.`,
           });
           this.safeWake(leadSlotId, 'shutdown_approved');
@@ -347,8 +347,8 @@ export class TeamMcpServer {
         if (leadSlotId) {
           await mailbox.write({
             team_id,
-            toAgentId: leadSlotId,
-            fromAgentId: fromSlotId,
+            to_agent_id: leadSlotId,
+            from_agent_id: fromSlotId,
             content: `${memberName} refused to shut down. Reason: ${reason}`,
           });
           this.safeWake(leadSlotId, 'shutdown_rejected');
@@ -359,8 +359,8 @@ export class TeamMcpServer {
 
     await mailbox.write({
       team_id,
-      toAgentId: targetSlotId,
-      fromAgentId: fromSlotId,
+      to_agent_id: targetSlotId,
+      from_agent_id: fromSlotId,
       content: message,
       summary,
     });
@@ -441,8 +441,8 @@ export class TeamMcpServer {
     const fromSlotId = fromAgent?.slot_id ?? 'unknown';
     await mailbox.write({
       team_id,
-      toAgentId: newAgent.slot_id,
-      fromAgentId: fromSlotId,
+      to_agent_id: newAgent.slot_id,
+      from_agent_id: fromSlotId,
       content: `You have been spawned as "${name}" and added to the team. Check the task board and await instructions.`,
     });
     this.safeWake(newAgent.slot_id, `spawn ${name}`);
@@ -524,8 +524,8 @@ export class TeamMcpServer {
 
     await mailbox.write({
       team_id,
-      toAgentId: resolvedSlotId,
-      fromAgentId: fromSlotId,
+      to_agent_id: resolvedSlotId,
+      from_agent_id: fromSlotId,
       type: 'shutdown_request',
       content:
         'The team leader has requested you to shut down. Reply "shutdown_approved" to confirm, or "shutdown_rejected: <reason>" to refuse.',

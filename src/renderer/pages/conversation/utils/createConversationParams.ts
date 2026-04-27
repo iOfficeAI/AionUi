@@ -104,7 +104,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     name: provider.name,
     base_url: provider.base_url,
     api_key: provider.api_key,
-    useModel: enabledModel || provider.models[0],
+    use_model: enabledModel || provider.models[0],
     capabilities: provider.capabilities,
     context_limit: provider.context_limit,
     model_protocols: provider.model_protocols,
@@ -159,7 +159,7 @@ export async function buildPresetAssistantParams(
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
-  const { custom_agent_id, presetAgentType = 'claude' } = agent;
+  const { custom_agent_id, presetAgentType: preset_agent_type = 'claude' } = agent;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
@@ -173,9 +173,9 @@ export async function buildPresetAssistantParams(
     localeKey,
   });
 
-  const preferredMode = await resolvePreferredMode(presetAgentType);
-  const type = getConversationTypeForBackend(presetAgentType);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
+  const preferredMode = await resolvePreferredMode(preset_agent_type);
+  const type = getConversationTypeForBackend(preset_agent_type);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(preset_agent_type) : undefined;
   const model = {} as TProviderWithModel;
 
   return buildAgentConversationParams({
@@ -185,11 +185,11 @@ export async function buildPresetAssistantParams(
     workspace,
     custom_agent_id,
     is_preset: true,
-    presetAgentType,
-    presetResources: {
+    preset_agent_type,
+    preset_resources: {
       rules: preset_context,
       enabled_skills,
-      excludeBuiltinSkills: disabledBuiltinSkills,
+      exclude_builtin_skills: disabledBuiltinSkills,
     },
     model,
     session_mode: preferredMode,

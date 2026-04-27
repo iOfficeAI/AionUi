@@ -11,7 +11,7 @@ import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 export type BuildAgentConversationPresetResources = {
   rules?: string;
   enabled_skills?: string[];
-  excludeBuiltinSkills?: string[];
+  exclude_builtin_skills?: string[];
 };
 
 export type BuildAgentConversationInput = {
@@ -26,8 +26,8 @@ export type BuildAgentConversationInput = {
   custom_agent_id?: string;
   custom_workspace?: boolean;
   is_preset?: boolean;
-  presetAgentType?: string;
-  presetResources?: BuildAgentConversationPresetResources;
+  preset_agent_type?: string;
+  preset_resources?: BuildAgentConversationPresetResources;
   session_mode?: string;
   current_model_id?: string;
   extra?: Partial<ICreateConversationParams['extra']>;
@@ -62,14 +62,14 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     custom_agent_id,
     custom_workspace = true,
     is_preset = false,
-    presetAgentType,
-    presetResources,
+    preset_agent_type,
+    preset_resources,
     session_mode,
     current_model_id,
     extra: extraOverrides,
   } = input;
 
-  const effectivePresetType = presetAgentType || backend;
+  const effectivePresetType = preset_agent_type || backend;
   const effectivePresetAssistantId = preset_assistant_id || custom_agent_id;
   const type = getConversationTypeForBackend(is_preset ? effectivePresetType : backend);
   const extra: ICreateConversationParams['extra'] = {
@@ -79,15 +79,15 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   };
 
   if (is_preset) {
-    extra.enabled_skills = presetResources?.enabled_skills;
-    extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;
+    extra.enabled_skills = preset_resources?.enabled_skills;
+    extra.exclude_builtin_skills = preset_resources?.exclude_builtin_skills;
     extra.preset_assistant_id = effectivePresetAssistantId;
-    extra.preset_context = presetResources?.rules;
+    extra.preset_context = preset_resources?.rules;
     if (type === 'acp') {
       extra.backend = effectivePresetType as AcpBackend;
     }
   } else if (type === 'remote') {
-    extra.remoteAgentId = custom_agent_id;
+    extra.remote_agent_id = custom_agent_id;
   } else if (type === 'acp' || type === 'openclaw-gateway') {
     extra.backend = backend as AcpBackendAll;
     extra.agent_name = agent_name || name;

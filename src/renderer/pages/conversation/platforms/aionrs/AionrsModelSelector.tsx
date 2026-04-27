@@ -33,7 +33,7 @@ const AionrsModelSelector: React.FC<{
   const current_modelHealth = useMemo(() => {
     if (!current_model || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
     const matchedProvider = modelConfig.find((p) => p.id === current_model.id);
-    const healthStatus = matchedProvider?.model_health?.[current_model.useModel]?.status || 'unknown';
+    const healthStatus = matchedProvider?.model_health?.[current_model.use_model]?.status || 'unknown';
     const healthColor =
       healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
     return { status: healthStatus, color: healthColor };
@@ -63,8 +63,8 @@ const AionrsModelSelector: React.FC<{
   const { providers, getAvailableModels, handleSelectModel } = selection;
 
   const label = getModelDisplayLabel({
-    selected_value: current_model?.useModel,
-    selectedLabel: current_model?.useModel || '',
+    selected_value: current_model?.use_model,
+    selectedLabel: current_model?.use_model || '',
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
@@ -94,7 +94,9 @@ const AionrsModelSelector: React.FC<{
                     <Menu.Item
                       key={`${provider.id}-${modelName}`}
                       data-testid={`aionrs-model-option-${modelName}`}
-                      className={current_model?.id + current_model?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                      className={
+                        current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''
+                      }
                       onClick={() => void handleSelectModel(provider, modelName)}
                     >
                       <div className='flex items-center gap-8px w-full'>

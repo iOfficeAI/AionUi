@@ -34,7 +34,7 @@ function getProviderFromEnv(): TProviderWithModel | null {
     platform,
     base_url: base_url || '',
     api_key: api_key || '',
-    useModel: model,
+    use_model: model,
   };
 }
 

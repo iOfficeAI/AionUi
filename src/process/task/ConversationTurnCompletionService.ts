@@ -67,13 +67,13 @@ export class ConversationTurnCompletionService {
       status,
       state: context.state ?? 'ai_waiting_input',
       detail: context.detail ?? '',
-      canSendMessage: context.canSendMessage ?? true,
+      can_send_message: context.canSendMessage ?? true,
       runtime: {
-        hasTask: Boolean(extra.cron_job_id),
-        taskStatus: status,
-        isProcessing,
-        pendingConfirmations: context.pendingConfirmations ?? 0,
-        dbStatus: conversation?.status,
+        has_task: Boolean(extra.cron_job_id),
+        task_status: status,
+        is_processing: isProcessing,
+        pending_confirmations: context.pendingConfirmations ?? 0,
+        db_status: conversation?.status,
       },
       workspace,
       model: {
@@ -83,7 +83,7 @@ export class ConversationTurnCompletionService {
           (conversation as { model?: { name?: string } })?.model?.name ??
           context.backend ??
           'acp',
-        useModel: persistedModelId ?? (conversation as { model?: { useModel?: string } })?.model?.useModel ?? '',
+        use_model: persistedModelId ?? (conversation as { model?: { use_model?: string } })?.model?.use_model ?? '',
       },
       last_message: {
         id: undefined,

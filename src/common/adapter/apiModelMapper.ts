@@ -17,7 +17,7 @@ export type ApiProviderWithModel = {
 export function toApiModel(m: TProviderWithModel): ApiProviderWithModel {
   return {
     provider_id: m.id,
-    model: m.useModel,
+    model: m.use_model,
   };
 }
 
@@ -34,7 +34,7 @@ export function fromApiModel(raw: ApiProviderWithModel): TProviderWithModel {
     name: '',
     base_url: '',
     api_key: '',
-    useModel: raw.use_model ?? raw.model,
+    use_model: raw.use_model ?? raw.model,
   };
 }
 
@@ -51,10 +51,10 @@ export function fromApiConversation<T>(raw: T): T {
   };
 }
 
-export function fromApiPaginatedConversations<T>(result: { items: T[]; total: number; hasMore: boolean }): {
+export function fromApiPaginatedConversations<T>(result: { items: T[]; total: number; has_more: boolean }): {
   items: T[];
   total: number;
-  hasMore: boolean;
+  has_more: boolean;
 } {
   return {
     ...result,

@@ -32,7 +32,7 @@ export interface PreviewMetadata {
 export interface PreviewTab {
   id: string;
   content: string;
-  contentType: PreviewContentType;
+  content_type: PreviewContentType;
   metadata?: PreviewMetadata;
   title: string; // Tab 标题
   isDirty?: boolean; // 是否有未保存的修改 / Whether there are unsaved changes
@@ -83,7 +83,7 @@ const PERSISTABLE_CONTENT_TYPES = new Set<PreviewContentType>(['markdown', 'html
 
 const sanitizeTabsForPersistence = (input: PreviewTab[]): PreviewTab[] => {
   return input
-    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.contentType))
+    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
     .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
     .map((tab) => ({
       ...tab,
@@ -103,10 +103,10 @@ const parsePersistedTabs = (value: unknown): PreviewTab[] => {
         typeof candidate.id === 'string' &&
         typeof candidate.title === 'string' &&
         typeof candidate.content === 'string' &&
-        typeof candidate.contentType === 'string'
+        typeof candidate.content_type === 'string'
       );
     })
-    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.contentType))
+    .filter((tab) => PERSISTABLE_CONTENT_TYPES.has(tab.content_type))
     .filter((tab) => tab.content.length <= MAX_PERSISTED_TAB_CONTENT_LENGTH)
     .map((tab) => ({
       ...tab,
@@ -215,7 +215,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       return (
         tabList.find((tab) => {
-          if (tab.contentType !== type) return false;
+          if (tab.content_type !== type) return false;
           const tabFileName = normalize(tab.metadata?.file_name);
           const tabTitle = normalize(tab.metadata?.title);
           const tabFilePath = normalize(tab.metadata?.file_path);
@@ -312,7 +312,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         const newTab: PreviewTab = {
           id: tabId,
           content: new_content,
-          contentType: type,
+          content_type: type,
           metadata: meta,
           title,
           isDirty: false,
@@ -583,7 +583,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
 
           const readPromise =
-            tab.contentType === 'image'
+            tab.content_type === 'image'
               ? ipcBridge.fs.getImageBase64.invoke({ path: file_path })
               : ipcBridge.fs.readFile.invoke({ path: file_path });
 
@@ -637,7 +637,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
   useEffect(() => {
-    const handlePreviewOpen = (data: {
+    const handleEmitterPreviewOpen = (data: {
       content: string;
       contentType: PreviewContentType;
       metadata?: PreviewMetadata;
@@ -647,14 +647,24 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }
     };
 
+    const handleIpcPreviewOpen = (data: {
+      content: string;
+      content_type: PreviewContentType;
+      metadata?: PreviewMetadata;
+    }) => {
+      if (data && data.content) {
+        openPreview(data.content, data.content_type, data.metadata);
+      }
+    };
+
     // 监听 renderer emitter 事件 / Listen to renderer emitter event
-    emitter.on('preview.open', handlePreviewOpen);
+    emitter.on('preview.open', handleEmitterPreviewOpen);
 
     // 监听 IPC 事件（来自主进程，如 chrome-devtools MCP 导航）/ Listen to IPC event (from main process, e.g., chrome-devtools MCP navigation)
-    const unsubscribeIpc = ipcBridge.preview.open.on(handlePreviewOpen);
+    const unsubscribeIpc = ipcBridge.preview.open.on(handleIpcPreviewOpen);
 
     return () => {
-      emitter.off('preview.open', handlePreviewOpen);
+      emitter.off('preview.open', handleEmitterPreviewOpen);
       unsubscribeIpc();
     };
   }, [openPreview]);

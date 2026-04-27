@@ -57,7 +57,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   const handleOpenWith = async (tool: ToolType) => {
     try {
-      await ipcBridge.shell.openFolderWith.invoke({ folderPath: workspacePath, tool });
+      await ipcBridge.shell.openFolderWith.invoke({ folder_path: workspacePath, tool });
       // Save preference
       localStorage.setItem(STORAGE_KEY, tool);
       setPreferredTool(tool);

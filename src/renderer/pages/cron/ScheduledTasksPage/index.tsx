@@ -25,12 +25,12 @@ function normalizeAgentBackend(agent: string | undefined): AcpBackendAll | undef
 }
 
 function getJobAgentMeta(job: ICronJob): { name?: string; logo?: string | null } {
-  const backend = job.metadata.agentConfig?.backend || normalizeAgentBackend(job.metadata.agent_type);
+  const backend = job.metadata.agent_config?.backend || normalizeAgentBackend(job.metadata.agent_type);
   if (!backend) return {};
 
   return {
     name:
-      job.metadata.agentConfig?.name ||
+      job.metadata.agent_config?.name ||
       (ACP_BACKENDS_ALL as Record<string, AcpBackendConfig>)[backend]?.name ||
       backend,
     logo: getAgentLogo(backend),
@@ -167,7 +167,7 @@ const ScheduledTasksPage: React.FC = () => {
               const agentMeta = getJobAgentMeta(job);
               const isManualOnly = job.schedule.kind === 'cron' && !job.schedule.expr;
               const executionModeLabel =
-                job.target.executionMode === 'new_conversation'
+                job.target.execution_mode === 'new_conversation'
                   ? t('cron.page.form.newConversation')
                   : t('cron.page.form.existingConversation');
 
@@ -204,9 +204,11 @@ const ScheduledTasksPage: React.FC = () => {
 
                   <div
                     className='mt-16px min-w-0 break-words text-t-secondary text-13px leading-20px'
-                    title={job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
+                    title={
+                      job.state.next_run_at_ms ? `${t('cron.nextRun')} ${formatNextRun(job.state.next_run_at_ms)}` : '-'
+                    }
                   >
-                    {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
+                    {job.state.next_run_at_ms ? `${t('cron.nextRun')} ${formatNextRun(job.state.next_run_at_ms)}` : '-'}
                   </div>
 
                   <div className='mt-14px flex items-center justify-between gap-10px'>

@@ -33,7 +33,7 @@ const GoogleModelSelector: React.FC<{
   const current_modelHealth = React.useMemo(() => {
     if (!current_model || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
     const matchedProvider = modelConfig.find((p) => p.id === current_model.id);
-    const healthStatus = matchedProvider?.model_health?.[current_model.useModel]?.status || 'unknown';
+    const healthStatus = matchedProvider?.model_health?.[current_model.use_model]?.status || 'unknown';
     const healthColor =
       healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
     return { status: healthStatus, color: healthColor };
@@ -71,11 +71,11 @@ const GoogleModelSelector: React.FC<{
 
   // formatModelLabel returns the friendly label for known modes (e.g. 'Auto (Gemini 3)')
   // and falls back to the raw model name for manual sub-model selections.
-  const rawLabel = current_model ? formatModelLabel(current_model, current_model.useModel) : '';
+  const rawLabel = current_model ? formatModelLabel(current_model, current_model.use_model) : '';
   const label =
     customLabel ||
     getModelDisplayLabel({
-      selected_value: current_model?.useModel,
+      selected_value: current_model?.use_model,
       selectedLabel: rawLabel,
       defaultModelLabel,
       fallbackLabel: t('conversation.welcome.selectModel'),

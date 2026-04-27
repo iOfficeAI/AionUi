@@ -129,11 +129,11 @@ const RemoteAgentFormModal: React.FC<{
   );
 
   const handleTestConnection = useCallback(async () => {
-    const values = form.getFieldsValue(['url', 'authType', 'authToken', 'allowInsecure']) as {
+    const values = form.getFieldsValue(['url', 'auth_type', 'auth_token', 'allow_insecure']) as {
       url?: string;
-      authType?: string;
-      authToken?: string;
-      allowInsecure?: boolean;
+      auth_type?: string;
+      auth_token?: string;
+      allow_insecure?: boolean;
     };
     if (!values.url) {
       Message.warning(t('settings.remoteAgent.urlRequired'));
@@ -143,9 +143,9 @@ const RemoteAgentFormModal: React.FC<{
     try {
       const result = await ipcBridge.remoteAgent.testConnection.invoke({
         url: values.url,
-        authType: values.authType || 'none',
-        authToken: values.authToken,
-        allowInsecure: values.allowInsecure,
+        auth_type: values.auth_type || 'none',
+        auth_token: values.auth_token,
+        allow_insecure: values.allow_insecure,
       });
       if (result.success) {
         Message.success(t('settings.remoteAgent.testSuccess'));
@@ -289,14 +289,14 @@ const RemoteAgentFormModal: React.FC<{
           form.setFieldsValue({
             name: editAgent.name,
             url: editAgent.url,
-            authType: editAgent.authType,
-            authToken: editAgent.authToken,
-            allowInsecure: editAgent.allowInsecure,
+            auth_type: editAgent.auth_type,
+            auth_token: editAgent.auth_token,
+            allow_insecure: editAgent.allow_insecure,
           });
         } else {
           setActiveProtocol('openclaw');
           setAvatar('\u{1F916}');
-          form.setFieldsValue({ authType: 'none' });
+          form.setFieldsValue({ auth_type: 'none' });
         }
       }}
       afterClose={() => {
@@ -351,7 +351,7 @@ const RemoteAgentFormModal: React.FC<{
             <Input placeholder='wss://example.com/gateway' />
           </FormItem>
 
-          <FormItem label={t('settings.remoteAgent.authType')} field='authType' rules={[{ required: true }]}>
+          <FormItem label={t('settings.remoteAgent.auth_type')} field='auth_type' rules={[{ required: true }]}>
             <Select>
               <Select.Option value='none'>{t('settings.remoteAgent.authNone')}</Select.Option>
               <Select.Option value='bearer'>{t('settings.remoteAgent.authBearer')}</Select.Option>
@@ -360,10 +360,10 @@ const RemoteAgentFormModal: React.FC<{
 
           <Form.Item shouldUpdate noStyle>
             {(values: Record<string, unknown>) =>
-              values.authType === 'bearer' ? (
+              values.auth_type === 'bearer' ? (
                 <FormItem
-                  label={t('settings.remoteAgent.authToken')}
-                  field='authToken'
+                  label={t('settings.remoteAgent.auth_token')}
+                  field='auth_token'
                   rules={[{ required: true, message: t('settings.remoteAgent.tokenRequired') }]}
                 >
                   <Input.Password placeholder={t('settings.remoteAgent.tokenPlaceholder')} />
@@ -376,8 +376,8 @@ const RemoteAgentFormModal: React.FC<{
             {(values: Record<string, unknown>) =>
               typeof values.url === 'string' && values.url.startsWith('wss://') ? (
                 <FormItem
-                  label={t('settings.remoteAgent.allowInsecure')}
-                  field='allowInsecure'
+                  label={t('settings.remoteAgent.allow_insecure')}
+                  field='allow_insecure'
                   triggerPropName='checked'
                   extra={
                     <Typography.Text type='secondary' className='text-12px'>

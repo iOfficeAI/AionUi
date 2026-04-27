@@ -8,7 +8,7 @@ type CreateTaskParams = {
   subject: string;
   description?: string;
   owner?: string;
-  blockedBy?: string[];
+  blocked_by?: string[];
 };
 
 /** Parameters for updating an existing task */
@@ -39,7 +39,7 @@ export class TaskManager {
       description: params.description,
       status: 'pending',
       owner: params.owner,
-      blockedBy: params.blockedBy ?? [],
+      blocked_by: params.blocked_by ?? [],
       blocks: [],
       metadata: {},
       created_at: now,
@@ -49,8 +49,10 @@ export class TaskManager {
     const created = await this.repo.createTask(task);
 
     // Atomically append to `blocks` on each upstream task (bidirectional link)
-    if (created.blockedBy.length > 0) {
-      await Promise.all(created.blockedBy.map((upstreamId) => this.repo.appendToBlocks(upstreamId, created.id)));
+    if (created.blocked_by.length > 0) {
+      await Promise.all(
+        created.blocked_by.map((upstreamId: string) => this.repo.appendToBlocks(upstreamId, created.id))
+      );
     }
 
     return created;
@@ -82,8 +84,8 @@ export class TaskManager {
 
   /**
    * Check if completing a task unblocks other tasks.
-   * Removes the given taskId from the `blockedBy` array of every task that
-   * depends on it. Returns only those tasks whose `blockedBy` became empty
+   * Removes the given taskId from the `blocked_by` array of every task that
+   * depends on it. Returns only those tasks whose `blocked_by` became empty
    * (i.e. tasks that are now fully unblocked).
    */
   async checkUnblocks(taskId: string): Promise<TeamTask[]> {
@@ -92,16 +94,16 @@ export class TaskManager {
     if (!completedTask) return [];
 
     const allTasks = await this.repo.findTasksByTeam(completedTask.team_id);
-    const dependents = allTasks.filter((t) => t.blockedBy.includes(taskId));
+    const dependents = allTasks.filter((t) => t.blocked_by.includes(taskId));
 
     if (dependents.length === 0) return [];
 
-    // Atomically remove taskId from each dependent's blockedBy array
+    // Atomically remove taskId from each dependent's blocked_by array
     const updated = await Promise.all(dependents.map((t) => this.repo.removeFromBlockedBy(t.id, taskId)));
 
     // Clear the completed task's stale blocks pointer (Bug #5)
     await this.repo.updateTask(taskId, { blocks: [], updated_at: Date.now() });
 
-    return updated.filter((t) => t.blockedBy.length === 0);
+    return updated.filter((t) => t.blocked_by.length === 0);
   }
 }

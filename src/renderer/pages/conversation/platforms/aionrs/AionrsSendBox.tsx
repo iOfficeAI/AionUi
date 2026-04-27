@@ -157,7 +157,7 @@ const AionrsSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      if (!current_model?.useModel) {
+      if (!current_model?.use_model) {
         Message.warning(t('conversation.chat.noModelSelected'));
         throw new Error('No model selected');
       }
@@ -227,7 +227,7 @@ const AionrsSendBox: React.FC<{
       agentSlotId,
       checkAndUpdateTitle,
       conversation_id,
-      current_model?.useModel,
+      current_model?.use_model,
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
@@ -260,7 +260,7 @@ const AionrsSendBox: React.FC<{
 
   // Handle initial message from Guid page — wait until model is ready
   useEffect(() => {
-    if (!conversation_id || !current_model?.useModel) return;
+    if (!conversation_id || !current_model?.use_model) return;
 
     const storageKey = `aionrs_initial_message_${conversation_id}`;
     const processedKey = `aionrs_initial_processed_${conversation_id}`;
@@ -283,7 +283,7 @@ const AionrsSendBox: React.FC<{
     };
 
     void processInitialMessage();
-  }, [conversation_id, current_model?.useModel, executeCommand]);
+  }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
     if (!team_id && isBusy) {
@@ -375,10 +375,10 @@ const AionrsSendBox: React.FC<{
           setAtPath(items);
         }}
         loading={isBusy}
-        disabled={!current_model?.useModel}
+        disabled={!current_model?.use_model}
         placeholder={
-          current_model?.useModel
-            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.useModel) })
+          current_model?.use_model
+            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.use_model) })
             : t('conversation.chat.noModelSelected')
         }
         onStop={handleStop}
@@ -408,7 +408,7 @@ const AionrsSendBox: React.FC<{
         sendButtonPrefix={
           <ContextUsageIndicator
             tokenUsage={tokenUsage}
-            context_limit={getModelContextLimit(current_model?.useModel)}
+            context_limit={getModelContextLimit(current_model?.use_model)}
             size={24}
           />
         }

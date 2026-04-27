@@ -53,18 +53,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }, [modelList]);
 
   const geminiSelectedLabel = React.useMemo(() => {
-    if (!current_model?.useModel) return '';
-    return current_model.useModel;
-  }, [current_model?.useModel]);
+    if (!current_model?.use_model) return '';
+    return current_model.use_model;
+  }, [current_model?.use_model]);
 
   const geminiButtonLabel = React.useMemo(() => {
     return getModelDisplayLabel({
-      selected_value: current_model?.useModel,
+      selected_value: current_model?.use_model,
       selectedLabel: geminiSelectedLabel,
       defaultModelLabel,
       fallbackLabel: defaultModelLabel,
     });
-  }, [current_model?.useModel, defaultModelLabel, geminiSelectedLabel]);
+  }, [current_model?.use_model, defaultModelLabel, geminiSelectedLabel]);
 
   const acpSelectedLabel = React.useMemo(() => {
     return (
@@ -102,7 +102,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       <Dropdown
         trigger='hover'
         droplist={
-          <Menu selectedKeys={current_model ? [current_model.id + current_model.useModel] : []}>
+          <Menu selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}>
             {!enabledModelList || enabledModelList.length === 0
               ? [
                   <Menu.Item
@@ -142,10 +142,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                             <Menu.Item
                               key={provider.id + modelName}
                               className={
-                                current_model?.id + current_model?.useModel === provider.id + modelName ? '!bg-2' : ''
+                                current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''
                               }
                               onClick={() => {
-                                setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
                                   console.error('Failed to set current model:', error);
                                 });
                               }}

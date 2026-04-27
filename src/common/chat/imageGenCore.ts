@@ -243,7 +243,7 @@ export async function executeImageGeneration(
     });
 
     const completion: UnifiedChatCompletionResponse = await rotatingClient.createChatCompletion(
-      { model: provider.useModel, messages: messages as any },
+      { model: provider.use_model, messages: messages as any },
       { signal, timeout: API_TIMEOUT_MS }
     );
 
@@ -292,7 +292,7 @@ export async function executeImageGeneration(
     }
 
     if (!images || images.length === 0) {
-      const warningMessage = `Image generation did not produce any images.\n\nModel response: ${responseText}\n\nTip: Make sure your image generation model supports this type of request. Current model: ${provider.useModel}`;
+      const warningMessage = `Image generation did not produce any images.\n\nModel response: ${responseText}\n\nTip: Make sure your image generation model supports this type of request. Current model: ${provider.use_model}`;
       return { success: true, text: warningMessage };
     }
 

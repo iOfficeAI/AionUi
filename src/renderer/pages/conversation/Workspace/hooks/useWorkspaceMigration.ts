@@ -110,10 +110,10 @@ export function useWorkspaceMigration({
           const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
             file_paths,
             workspace: targetWorkspace,
-            sourceRoot: workspace,
+            source_root: workspace,
           });
-          if (copyResult?.failedFiles && copyResult.failedFiles.length > 0) {
-            const failedPaths = copyResult.failedFiles.map((f) => f.path).join(', ');
+          if (copyResult?.failed_files && copyResult.failed_files.length > 0) {
+            const failedPaths = copyResult.failed_files.map((f) => f.path).join(', ');
             throw new Error(`Failed to copy workspace files: ${failedPaths}`);
           }
         }
@@ -159,8 +159,8 @@ export function useWorkspaceMigration({
 
           await ipcBridge.conversation.createWithConversation.invoke({
             conversation: newConversation,
-            sourceConversationId: conversation_id,
-            migrateCron,
+            source_conversation_id: conversation_id,
+            migrate_cron: migrateCron,
           });
 
           // Close modal and reset state

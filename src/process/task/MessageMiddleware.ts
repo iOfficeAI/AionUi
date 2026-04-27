@@ -205,7 +205,7 @@ async function handleCronCommands(
             message: cmd.message,
             conversation_id,
             agent_type,
-            createdBy: 'agent',
+            created_by: 'agent',
           });
           // Emit event to renderer process for real-time UI update
           ipcBridge.cron.onJobCreated.emit(job);

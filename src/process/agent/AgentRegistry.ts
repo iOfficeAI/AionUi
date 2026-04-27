@@ -105,7 +105,7 @@ class AgentRegistry {
         remoteAgentId: config.id,
         url: config.url,
         protocol: config.protocol,
-        authType: config.authType,
+        authType: config.auth_type,
       }));
     } catch (error) {
       console.error('[AgentRegistry] Failed to load remote agents:', error);

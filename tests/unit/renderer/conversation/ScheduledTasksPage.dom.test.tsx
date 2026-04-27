@@ -201,27 +201,27 @@ const createMockJob = (overrides: Partial<ICronJob> = {}): ICronJob => ({
   },
   target: {
     payload: { kind: 'message', text: 'Generate summary' },
-    executionMode: 'new_conversation',
+    execution_mode: 'new_conversation',
   },
   metadata: {
     conversation_id: 'conv-1',
-    conversationTitle: 'Test Conversation',
+    conversation_title: 'Test Conversation',
     agent_type: 'claude',
-    createdBy: 'user',
+    created_by: 'user',
     created_at: Date.now(),
     updated_at: Date.now(),
-    agentConfig: {
+    agent_config: {
       backend: 'claude',
       name: 'Claude Code',
     },
   },
   state: {
-    nextRunAtMs: Date.now() + 3600000, // 1 hour from now
-    lastRunAtMs: Date.now() - 3600000, // 1 hour ago
-    lastStatus: 'ok',
-    runCount: 5,
-    retryCount: 0,
-    maxRetries: 3,
+    next_run_at_ms: Date.now() + 3600000, // 1 hour from now
+    last_run_at_ms: Date.now() - 3600000, // 1 hour ago
+    last_status: 'ok',
+    run_count: 5,
+    retry_count: 0,
+    max_retries: 3,
   },
   ...overrides,
 });
@@ -275,11 +275,11 @@ describe('ScheduledTasksPage', () => {
         name: 'Continuous Task',
         target: {
           payload: { kind: 'message', text: 'Generate summary' },
-          executionMode: 'existing',
+          execution_mode: 'existing',
         },
         metadata: {
           ...createMockJob().metadata,
-          agentConfig: {
+          agent_config: {
             backend: 'gemini',
             name: 'Gemini CLI',
           },
@@ -310,7 +310,7 @@ describe('ScheduledTasksPage', () => {
       },
       target: {
         payload: { kind: 'message', text: 'Run manually' },
-        executionMode: 'existing',
+        execution_mode: 'existing',
       },
     });
     mockListJobs.mockResolvedValue([manualJob]);
@@ -348,13 +348,13 @@ describe('ScheduledTasksPage', () => {
 
   it('should display correct status tags', async () => {
     const jobs = [
-      createMockJob({ id: 'job-1', enabled: true, state: { ...createMockJob().state, lastStatus: 'ok' } }),
+      createMockJob({ id: 'job-1', enabled: true, state: { ...createMockJob().state, last_status: 'ok' } }),
       createMockJob({ id: 'job-2', name: 'Task 2', enabled: false }),
       createMockJob({
         id: 'job-3',
         name: 'Task 3',
         enabled: true,
-        state: { ...createMockJob().state, lastStatus: 'error' },
+        state: { ...createMockJob().state, last_status: 'error' },
       }),
     ];
     mockListJobs.mockResolvedValue(jobs);
@@ -552,7 +552,7 @@ describe('ScheduledTasksPage', () => {
 
   it('should format next run time correctly', async () => {
     const nextRunAtMs = new Date('2026-04-03T09:00:00').getTime();
-    const job = createMockJob({ state: { ...createMockJob().state, nextRunAtMs } });
+    const job = createMockJob({ state: { ...createMockJob().state, next_run_at_ms: nextRunAtMs } });
     mockListJobs.mockResolvedValue([job]);
 
     const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
@@ -565,7 +565,7 @@ describe('ScheduledTasksPage', () => {
   });
 
   it('should not show next run time when nextRunAtMs is not set', async () => {
-    const job = createMockJob({ state: { ...createMockJob().state, nextRunAtMs: undefined } });
+    const job = createMockJob({ state: { ...createMockJob().state, next_run_at_ms: undefined } });
     mockListJobs.mockResolvedValue([job]);
 
     const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');

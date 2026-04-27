@@ -12,7 +12,7 @@ function makeTask(overrides: Partial<TeamTask> = {}): TeamTask {
     description: 'Details here',
     status: 'pending',
     owner: undefined,
-    blockedBy: [],
+    blocked_by: [],
     blocks: [],
     metadata: {},
     created_at: 1000,
@@ -73,7 +73,7 @@ describe('TaskManager', () => {
       expect(arg.team_id).toBe('team-1');
       expect(arg.subject).toBe('Do something');
       expect(arg.description).toBe('Details here');
-      expect(arg.blockedBy).toEqual([]);
+      expect(arg.blocked_by).toEqual([]);
       expect(arg.blocks).toEqual([]);
       expect(typeof arg.id).toBe('string');
       expect(result).toBe(createdTask);
@@ -89,39 +89,39 @@ describe('TaskManager', () => {
       expect(arg.owner).toBe('slot-1');
     });
 
-    it('creates task without blockedBy when not provided', async () => {
+    it('creates task without blocked_by when not provided', async () => {
       const createdTask = makeTask();
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
 
       await taskManager.create({ team_id: 'team-1', subject: 'Task' });
 
       const arg = vi.mocked(repo.createTask).mock.calls[0][0];
-      expect(arg.blockedBy).toEqual([]);
+      expect(arg.blocked_by).toEqual([]);
     });
 
-    it('atomically appends to upstream blocks when blockedBy is provided', async () => {
-      const createdTask = makeTask({ id: 'task-new', blockedBy: ['task-upstream'] });
+    it('atomically appends to upstream blocks when blocked_by is provided', async () => {
+      const createdTask = makeTask({ id: 'task-new', blocked_by: ['task-upstream'] });
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
       vi.mocked(repo.appendToBlocks).mockResolvedValue(undefined);
 
       await taskManager.create({
         team_id: 'team-1',
         subject: 'Downstream task',
-        blockedBy: ['task-upstream'],
+        blocked_by: ['task-upstream'],
       });
 
       expect(repo.appendToBlocks).toHaveBeenCalledWith('task-upstream', 'task-new');
     });
 
-    it('handles multiple blockedBy dependencies with atomic appends', async () => {
-      const createdTask = makeTask({ id: 'task-new', blockedBy: ['task-a', 'task-b'] });
+    it('handles multiple blocked_by dependencies with atomic appends', async () => {
+      const createdTask = makeTask({ id: 'task-new', blocked_by: ['task-a', 'task-b'] });
       vi.mocked(repo.createTask).mockResolvedValue(createdTask);
       vi.mocked(repo.appendToBlocks).mockResolvedValue(undefined);
 
       await taskManager.create({
         team_id: 'team-1',
         subject: 'Task',
-        blockedBy: ['task-a', 'task-b'],
+        blocked_by: ['task-a', 'task-b'],
       });
 
       expect(repo.appendToBlocks).toHaveBeenCalledTimes(2);
@@ -198,7 +198,7 @@ describe('TaskManager', () => {
     it('returns empty array when no tasks depend on the completed task', async () => {
       const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
-      vi.mocked(repo.findTasksByTeam).mockResolvedValue([makeTask({ id: 'task-2', blockedBy: [] })]);
+      vi.mocked(repo.findTasksByTeam).mockResolvedValue([makeTask({ id: 'task-2', blocked_by: [] })]);
 
       const result = await taskManager.checkUnblocks('task-1');
 
@@ -208,10 +208,10 @@ describe('TaskManager', () => {
 
     it('atomically removes completed task_id from dependents and returns fully unblocked tasks', async () => {
       const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
-      const dependent = makeTask({ id: 'task-2', blockedBy: ['task-1'] });
+      const dependent = makeTask({ id: 'task-2', blocked_by: ['task-1'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
       vi.mocked(repo.findTasksByTeam).mockResolvedValue([completedTask, dependent]);
-      const unblocked = makeTask({ id: 'task-2', blockedBy: [] });
+      const unblocked = makeTask({ id: 'task-2', blocked_by: [] });
       vi.mocked(repo.removeFromBlockedBy).mockResolvedValue(unblocked);
       vi.mocked(repo.updateTask).mockResolvedValue(makeTask({ id: 'task-1', blocks: [] }));
 
@@ -223,15 +223,15 @@ describe('TaskManager', () => {
       expect(repo.updateTask).toHaveBeenCalledWith('task-1', expect.objectContaining({ blocks: [] }));
     });
 
-    it('returns only tasks whose blockedBy is now empty (still blocked tasks not returned)', async () => {
+    it('returns only tasks whose blocked_by is now empty (still blocked tasks not returned)', async () => {
       const completedTask = makeTask({ id: 'task-1', team_id: 'team-1' });
-      const fullyUnblocked = makeTask({ id: 'task-2', blockedBy: ['task-1'] });
-      const stillBlocked = makeTask({ id: 'task-3', blockedBy: ['task-1', 'task-other'] });
+      const fullyUnblocked = makeTask({ id: 'task-2', blocked_by: ['task-1'] });
+      const stillBlocked = makeTask({ id: 'task-3', blocked_by: ['task-1', 'task-other'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
       vi.mocked(repo.findTasksByTeam).mockResolvedValue([completedTask, fullyUnblocked, stillBlocked]);
       vi.mocked(repo.removeFromBlockedBy)
-        .mockResolvedValueOnce(makeTask({ id: 'task-2', blockedBy: [] }))
-        .mockResolvedValueOnce(makeTask({ id: 'task-3', blockedBy: ['task-other'] }));
+        .mockResolvedValueOnce(makeTask({ id: 'task-2', blocked_by: [] }))
+        .mockResolvedValueOnce(makeTask({ id: 'task-3', blocked_by: ['task-other'] }));
       vi.mocked(repo.updateTask).mockResolvedValue(makeTask({ id: 'task-1', blocks: [] }));
 
       const result = await taskManager.checkUnblocks('task-1');
@@ -242,11 +242,11 @@ describe('TaskManager', () => {
 
     it('handles multiple dependents in parallel', async () => {
       const completedTask = makeTask({ id: 'task-0', team_id: 'team-1' });
-      const dep1 = makeTask({ id: 'task-1', blockedBy: ['task-0'] });
-      const dep2 = makeTask({ id: 'task-2', blockedBy: ['task-0'] });
+      const dep1 = makeTask({ id: 'task-1', blocked_by: ['task-0'] });
+      const dep2 = makeTask({ id: 'task-2', blocked_by: ['task-0'] });
       vi.mocked(repo.findTaskById).mockResolvedValue(completedTask);
       vi.mocked(repo.findTasksByTeam).mockResolvedValue([completedTask, dep1, dep2]);
-      vi.mocked(repo.removeFromBlockedBy).mockResolvedValue(makeTask({ blockedBy: [] }));
+      vi.mocked(repo.removeFromBlockedBy).mockResolvedValue(makeTask({ blocked_by: [] }));
       vi.mocked(repo.updateTask).mockResolvedValue(makeTask({ id: 'task-0', blocks: [] }));
 
       await taskManager.checkUnblocks('task-0');
@@ -257,7 +257,7 @@ describe('TaskManager', () => {
     it('concurrent checkUnblocks is now safe with atomic removeFromBlockedBy', async () => {
       const taskA = makeTask({ id: 'task-a', team_id: 'team-1', status: 'completed' });
       const taskB = makeTask({ id: 'task-b', team_id: 'team-1', status: 'completed' });
-      const taskC = makeTask({ id: 'task-c', team_id: 'team-1', blockedBy: ['task-a', 'task-b'] });
+      const taskC = makeTask({ id: 'task-c', team_id: 'team-1', blocked_by: ['task-a', 'task-b'] });
 
       vi.mocked(repo.findTaskById).mockImplementation(async (id) => {
         if (id === 'task-a') return taskA;
@@ -270,7 +270,7 @@ describe('TaskManager', () => {
       let remainingBlockers = ['task-a', 'task-b'];
       vi.mocked(repo.removeFromBlockedBy).mockImplementation(async (_taskId, unblockedId) => {
         remainingBlockers = remainingBlockers.filter((id) => id !== unblockedId);
-        return makeTask({ id: 'task-c', blockedBy: [...remainingBlockers] });
+        return makeTask({ id: 'task-c', blocked_by: [...remainingBlockers] });
       });
       vi.mocked(repo.updateTask).mockResolvedValue(makeTask({ blocks: [] }));
 
@@ -281,7 +281,7 @@ describe('TaskManager', () => {
 
       // With atomic operations, one of the two calls should see C as fully unblocked
       const allUnblocked = [...resultA, ...resultB];
-      expect(allUnblocked.some((t) => t.blockedBy.length === 0)).toBe(true);
+      expect(allUnblocked.some((t) => t.blocked_by.length === 0)).toBe(true);
     });
   });
 });

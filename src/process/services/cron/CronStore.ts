@@ -26,22 +26,22 @@ export type CronJob = {
   schedule: CronSchedule;
   target: {
     payload: { kind: 'message'; text: string };
-    executionMode?: 'existing' | 'new_conversation';
+    execution_mode?: 'existing' | 'new_conversation';
   };
   metadata: {
     conversation_id: string;
-    conversationTitle?: string;
+    conversation_title?: string;
     agent_type: AgentBackend;
-    createdBy: 'user' | 'agent';
+    created_by: 'user' | 'agent';
     created_at: number;
     updated_at: number;
-    agentConfig?: {
+    agent_config?: {
       backend: AgentBackend;
       name: string;
       cli_path?: string;
       is_preset?: boolean;
       custom_agent_id?: string;
-      presetAgentType?: string;
+      preset_agent_type?: string;
       mode?: string;
       model_id?: string;
       config_options?: Record<string, string>;
@@ -49,13 +49,13 @@ export type CronJob = {
     };
   };
   state: {
-    nextRunAtMs?: number;
-    lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
-    lastError?: string;
-    runCount: number;
-    retryCount: number;
-    maxRetries: number;
+    next_run_at_ms?: number;
+    last_run_at_ms?: number;
+    last_status?: 'ok' | 'error' | 'skipped' | 'missed';
+    last_error?: string;
+    run_count: number;
+    retry_count: number;
+    max_retries: number;
   };
 };
 
@@ -114,21 +114,21 @@ function jobToRow(job: CronJob): CronJobRow {
     schedule_tz: kind === 'cron' ? (job.schedule.tz ?? null) : null,
     schedule_description: job.schedule.description,
     payload_message: job.target.payload.text,
-    execution_mode: job.target.executionMode ?? 'existing',
-    agent_config: job.metadata.agentConfig ? JSON.stringify(job.metadata.agentConfig) : null,
+    execution_mode: job.target.execution_mode ?? 'existing',
+    agent_config: job.metadata.agent_config ? JSON.stringify(job.metadata.agent_config) : null,
     conversation_id: job.metadata.conversation_id,
-    conversation_title: job.metadata.conversationTitle ?? null,
+    conversation_title: job.metadata.conversation_title ?? null,
     agent_type: job.metadata.agent_type,
-    created_by: job.metadata.createdBy,
+    created_by: job.metadata.created_by,
     created_at: job.metadata.created_at,
     updated_at: job.metadata.updated_at,
-    next_run_at: job.state.nextRunAtMs ?? null,
-    last_run_at: job.state.lastRunAtMs ?? null,
-    last_status: job.state.lastStatus ?? null,
-    last_error: job.state.lastError ?? null,
-    run_count: job.state.runCount,
-    retry_count: job.state.retryCount,
-    max_retries: job.state.maxRetries,
+    next_run_at: job.state.next_run_at_ms ?? null,
+    last_run_at: job.state.last_run_at_ms ?? null,
+    last_status: job.state.last_status ?? null,
+    last_error: job.state.last_error ?? null,
+    run_count: job.state.run_count,
+    retry_count: job.state.retry_count,
+    max_retries: job.state.max_retries,
   };
 }
 
@@ -172,25 +172,25 @@ function rowToJob(row: CronJobRow): CronJob {
     schedule,
     target: {
       payload: { kind: 'message', text: row.payload_message },
-      executionMode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
+      execution_mode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
     },
     metadata: {
       conversation_id: row.conversation_id,
-      conversationTitle: row.conversation_title ?? undefined,
+      conversation_title: row.conversation_title ?? undefined,
       agent_type: row.agent_type as AgentBackend,
-      createdBy: row.created_by as 'user' | 'agent',
+      created_by: row.created_by as 'user' | 'agent',
       created_at: row.created_at,
       updated_at: row.updated_at,
-      agentConfig: row.agent_config ? JSON.parse(row.agent_config) : undefined,
+      agent_config: row.agent_config ? JSON.parse(row.agent_config) : undefined,
     },
     state: {
-      nextRunAtMs: row.next_run_at ?? undefined,
-      lastRunAtMs: row.last_run_at ?? undefined,
-      lastStatus: row.last_status as 'ok' | 'error' | 'skipped' | 'missed' | undefined,
-      lastError: row.last_error ?? undefined,
-      runCount: row.run_count,
-      retryCount: row.retry_count,
-      maxRetries: row.max_retries,
+      next_run_at_ms: row.next_run_at ?? undefined,
+      last_run_at_ms: row.last_run_at ?? undefined,
+      last_status: row.last_status as 'ok' | 'error' | 'skipped' | 'missed' | undefined,
+      last_error: row.last_error ?? undefined,
+      run_count: row.run_count,
+      retry_count: row.retry_count,
+      max_retries: row.max_retries,
     },
   };
 }

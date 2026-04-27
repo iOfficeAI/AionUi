@@ -132,8 +132,8 @@ describe('SkillsHubSettings Component', () => {
     ]);
 
     mockGetSkillPaths.mockResolvedValue({
-      userSkillsDir: '/user/skills',
-      builtinSkillsDir: '/builtin/skills',
+      user_skills_dir: '/user/skills',
+      builtin_skills_dir: '/builtin/skills',
     });
 
     mockListBuiltinAutoSkills.mockResolvedValue([]);
@@ -212,7 +212,7 @@ describe('SkillsHubSettings Component', () => {
     fireEvent.click(importButtons[0]);
 
     await waitFor(() => {
-      expect(mockImportSkillWithSymlink).toHaveBeenCalledWith({ skillPath: '/home/gemini/ext1' });
+      expect(mockImportSkillWithSymlink).toHaveBeenCalledWith({ skill_path: '/home/gemini/ext1' });
     });
   });
 
@@ -244,7 +244,7 @@ describe('SkillsHubSettings Component', () => {
     mockDeleteSkill.mockResolvedValue({ success: true });
 
     await waitFor(() => {
-      expect(mockDeleteSkill).toHaveBeenCalledWith({ skillName: 'MySkill1' });
+      expect(mockDeleteSkill).toHaveBeenCalledWith({ skill_name: 'MySkill1' });
     });
   });
 

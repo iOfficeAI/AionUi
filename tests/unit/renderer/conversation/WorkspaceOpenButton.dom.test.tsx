@@ -101,7 +101,7 @@ describe('WorkspaceOpenButton', () => {
 
     await waitFor(() => {
       expect(mockOpenFolderWith).toHaveBeenCalledWith({
-        folderPath: '/workspace/project',
+        folder_path: '/workspace/project',
         tool: 'explorer',
       });
     });
@@ -124,7 +124,7 @@ describe('WorkspaceOpenButton', () => {
 
     await waitFor(() => {
       expect(mockOpenFolderWith).toHaveBeenCalledWith({
-        folderPath: '/workspace/project',
+        folder_path: '/workspace/project',
         tool: 'explorer',
       });
     });
@@ -149,7 +149,7 @@ describe('WorkspaceOpenButton', () => {
 
     await waitFor(() => {
       expect(mockOpenFolderWith).toHaveBeenCalledWith({
-        folderPath: '/workspace/project',
+        folder_path: '/workspace/project',
         tool: 'terminal',
       });
     });

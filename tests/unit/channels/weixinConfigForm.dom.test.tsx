@@ -62,13 +62,29 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   acpConversation: {
     getAvailableAgents: { invoke: vi.fn(async () => ({ success: true, data: [] })) },
   },
+  pptPreview: {
+    start: { invoke: vi.fn(async () => undefined) },
+    stop: { invoke: vi.fn(async () => undefined) },
+  },
+  wordPreview: {
+    start: { invoke: vi.fn(async () => undefined) },
+    stop: { invoke: vi.fn(async () => undefined) },
+  },
+  excelPreview: {
+    start: { invoke: vi.fn(async () => undefined) },
+    stop: { invoke: vi.fn(async () => undefined) },
+  },
 }));
 
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: { get: vi.fn(async () => undefined), set: vi.fn(async () => {}) },
 }));
 
-vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
+vi.mock('@/common/config/configService', () => ({
+  configService: { get: vi.fn(async () => undefined), set: vi.fn(async () => {}) },
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector', () => ({
   default: ({ label }: { label?: string }) => <div data-testid='model-selector'>{label}</div>,
 }));
 
@@ -77,7 +93,7 @@ vi.mock('qrcode.react', () => ({
 }));
 
 import WeixinConfigForm from '@/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 
 const noopModelSelection = {
   current_model: undefined,
@@ -137,7 +153,7 @@ describe('WeixinConfigForm', () => {
   });
 
   it('shows auto-follow label when a non-gemini agent is selected', async () => {
-    vi.mocked(ConfigStorage.get).mockResolvedValueOnce({ backend: 'claude', name: 'Claude' });
+    vi.mocked(configService.get).mockResolvedValueOnce({ backend: 'claude', name: 'Claude' });
 
     render(<WeixinConfigForm pluginStatus={null} modelSelection={noopModelSelection} onStatusChange={vi.fn()} />);
 

@@ -77,8 +77,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
 
   const setCurrentModel = useCallback(
     async (model_info: TProviderWithModel) => {
-      selectedModelKeyRef.current = buildModelKey(model_info.id, model_info.useModel);
-      await configService.set(storageKey, { id: model_info.id, useModel: model_info.useModel }).catch((error) => {
+      selectedModelKeyRef.current = buildModelKey(model_info.id, model_info.use_model);
+      await configService.set(storageKey, { id: model_info.id, use_model: model_info.use_model }).catch((error) => {
         console.error('Failed to save default model:', error);
       });
       _setCurrentModel(model_info);
@@ -99,7 +99,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
         selectedModelKeyRef.current = null;
       }
 
-      const currentKey = selectedModelKeyRef.current || buildModelKey(current_model?.id, current_model?.useModel);
+      const currentKey = selectedModelKeyRef.current || buildModelKey(current_model?.id, current_model?.use_model);
       if (!agentChanged && isModelKeyAvailable(currentKey, modelList)) {
         if (!selectedModelKeyRef.current && currentKey) {
           selectedModelKeyRef.current = currentKey;
@@ -114,11 +114,11 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       let resolvedUseModel: string;
 
       if (isNewFormat) {
-        const { id, useModel } = savedModel;
+        const { id, use_model } = savedModel;
         const exactMatch = modelList.find((m) => m.id === id);
-        if (exactMatch && exactMatch.models.includes(useModel)) {
+        if (exactMatch && exactMatch.models.includes(use_model)) {
           defaultModel = exactMatch;
-          resolvedUseModel = useModel;
+          resolvedUseModel = use_model;
         } else {
           defaultModel = modelList[0];
           resolvedUseModel = defaultModel?.models[0] ?? '';
@@ -135,7 +135,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
 
       await setCurrentModel({
         ...defaultModel,
-        useModel: resolvedUseModel,
+        use_model: resolvedUseModel,
       });
     };
 

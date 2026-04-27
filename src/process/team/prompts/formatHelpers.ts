@@ -6,9 +6,9 @@ export function formatMessages(messages: MailboxMessage[], agents: TeamAgent[]):
   return messages
     .map((m) => {
       const filesNote = m.files?.length ? `\nFiles: ${m.files.join(', ')}` : '';
-      if (m.fromAgentId === 'user') return `[From User] ${m.content}${filesNote}`;
-      const sender = agents.find((a) => a.slot_id === m.fromAgentId);
-      return `[From ${sender?.agent_name ?? m.fromAgentId}] ${m.content}${filesNote}`;
+      if (m.from_agent_id === 'user') return `[From User] ${m.content}${filesNote}`;
+      const sender = agents.find((a) => a.slot_id === m.from_agent_id);
+      return `[From ${sender?.agent_name ?? m.from_agent_id}] ${m.content}${filesNote}`;
     })
     .join('\n');
 }

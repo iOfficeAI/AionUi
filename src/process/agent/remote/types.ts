@@ -17,22 +17,22 @@ export type RemoteAgentConfig = {
   name: string;
   protocol: RemoteAgentProtocol;
   url: string;
-  authType: RemoteAgentAuthType;
-  authToken?: string;
+  auth_type: RemoteAgentAuthType;
+  auth_token?: string;
   /** Skip TLS certificate verification (for self-signed certificates) */
-  allowInsecure?: boolean;
+  allow_insecure?: boolean;
   avatar?: string;
   description?: string;
   /** Ed25519 public key SHA256 fingerprint (OpenClaw protocol only, per-agent) */
-  deviceId?: string;
+  device_id?: string;
   /** Ed25519 public key PEM (OpenClaw protocol only) */
-  devicePublicKey?: string;
+  device_public_key?: string;
   /** Ed25519 private key PEM (OpenClaw protocol only) */
-  devicePrivateKey?: string;
+  device_private_key?: string;
   /** Device token issued by Gateway after hello-ok (OpenClaw protocol only) */
-  deviceToken?: string;
+  device_token?: string;
   status?: RemoteAgentStatus;
-  last_connectedAt?: number;
+  last_connected_at?: number;
   created_at: number;
   updated_at: number;
 };
@@ -42,10 +42,10 @@ export type RemoteAgentInput = {
   name: string;
   protocol: RemoteAgentProtocol;
   url: string;
-  authType: RemoteAgentAuthType;
-  authToken?: string;
+  auth_type: RemoteAgentAuthType;
+  auth_token?: string;
   /** Skip TLS certificate verification (for self-signed certificates) */
-  allowInsecure?: boolean;
+  allow_insecure?: boolean;
   avatar?: string;
   description?: string;
 };

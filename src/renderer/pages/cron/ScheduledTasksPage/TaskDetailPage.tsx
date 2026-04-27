@@ -27,7 +27,7 @@ const TaskDetailPage: React.FC = () => {
   const [editDialogVisible, setEditDialogVisible] = useState(false);
   const [runningNow, setRunningNow] = useState(false);
 
-  const isNewConversationMode = job?.target.executionMode === 'new_conversation';
+  const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
 
@@ -196,9 +196,9 @@ const TaskDetailPage: React.FC = () => {
           </div>
           <div className='flex flex-wrap items-center gap-10px md:gap-12px'>
             <CronStatusTag job={job} />
-            {job.state.nextRunAtMs && (
+            {job.state.next_run_at_ms && (
               <span className='text-14px text-t-secondary'>
-                {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
+                {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
               </span>
             )}
           </div>
@@ -231,9 +231,9 @@ const TaskDetailPage: React.FC = () => {
               ) : (
                 <div className='text-14px text-t-secondary'>
                   <span>{t('cron.detail.noHistory')}</span>
-                  {job.enabled && job.state.nextRunAtMs && (
+                  {job.enabled && job.state.next_run_at_ms && (
                     <span className='ml-4px'>
-                      · {t('cron.nextRun')} {formatNextRun(job.state.nextRunAtMs)}
+                      · {t('cron.nextRun')} {formatNextRun(job.state.next_run_at_ms)}
                     </span>
                   )}
                 </div>
@@ -251,16 +251,16 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {job.metadata.agentConfig && (
+            {job.metadata.agent_config && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   <img
-                    src={getAgentLogo(job.metadata.agentConfig.backend)}
-                    alt={job.metadata.agentConfig.name}
+                    src={getAgentLogo(job.metadata.agent_config.backend)}
+                    alt={job.metadata.agent_config.name}
                     className='h-28px w-28px rounded-50%'
                   />
-                  <span className='min-w-0 text-14px font-medium text-t-primary'>{job.metadata.agentConfig.name}</span>
+                  <span className='min-w-0 text-14px font-medium text-t-primary'>{job.metadata.agent_config.name}</span>
                 </div>
               </section>
             )}
@@ -274,7 +274,7 @@ const TaskDetailPage: React.FC = () => {
             </section>
 
             <section className='flex flex-col gap-10px'>
-              <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.executionMode')}</h2>
+              <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.execution_mode')}</h2>
               <div className='inline-flex items-center gap-4px'>
                 <span className='text-14px leading-22px text-t-primary'>{currentExecutionModeLabel}</span>
                 <Attention theme='outline' size={12} className='line-height-0 shrink-0 text-t-secondary' />
@@ -290,30 +290,30 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {job.metadata.agentConfig?.model_id && (
+            {job.metadata.agent_config?.model_id && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.model')}</h2>
                 <span className='break-words text-14px leading-22px text-t-primary'>
-                  {job.metadata.agentConfig.model_id}
+                  {job.metadata.agent_config.model_id}
                 </span>
               </section>
             )}
 
-            {job.metadata.agentConfig?.workspace && (
+            {job.metadata.agent_config?.workspace && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.workspace')}</h2>
                 <span className='min-w-0 break-all text-14px leading-22px text-t-primary'>
-                  {job.metadata.agentConfig.workspace}
+                  {job.metadata.agent_config.workspace}
                 </span>
               </section>
             )}
 
-            {job.metadata.agentConfig?.config_options &&
-              Object.keys(job.metadata.agentConfig.config_options).length > 0 && (
+            {job.metadata.agent_config?.config_options &&
+              Object.keys(job.metadata.agent_config.config_options).length > 0 && (
                 <section className='flex flex-col gap-10px'>
                   <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('acp.config.reasoning_effort')}</h2>
                   <span className='break-words text-14px leading-22px text-t-primary'>
-                    {Object.values(job.metadata.agentConfig.config_options).join(', ')}
+                    {Object.values(job.metadata.agent_config.config_options).join(', ')}
                   </span>
                 </section>
               )}

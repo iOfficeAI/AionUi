@@ -230,7 +230,7 @@ describe('shellBridge', () => {
       Object.defineProperty(process, 'platform', { value: 'win32' });
       shellMock.openPath.mockResolvedValue('');
 
-      await openFolderWithProvider.fn!({ folderPath: 'C:\\Projects', tool: 'explorer' });
+      await openFolderWithProvider.fn!({ folder_path: 'C:\\Projects', tool: 'explorer' });
 
       expect(shellMock.openPath).toHaveBeenCalledWith('C:\\Projects');
     });
@@ -238,7 +238,7 @@ describe('shellBridge', () => {
     it('opens folder with terminal on macOS', async () => {
       Object.defineProperty(process, 'platform', { value: 'darwin' });
 
-      await openFolderWithProvider.fn!({ folderPath: '/workspace/project', tool: 'terminal' });
+      await openFolderWithProvider.fn!({ folder_path: '/workspace/project', tool: 'terminal' });
 
       expect(spawnMock).toHaveBeenCalledWith('open', ['-a', 'Terminal', '/workspace/project'], {
         detached: true,
@@ -250,7 +250,7 @@ describe('shellBridge', () => {
       const folderWithSpecialChars = "/path/with'quotes";
       shellMock.openPath.mockResolvedValue('');
 
-      await openFolderWithProvider.fn!({ folderPath: folderWithSpecialChars, tool: 'explorer' });
+      await openFolderWithProvider.fn!({ folder_path: folderWithSpecialChars, tool: 'explorer' });
 
       expect(shellMock.openPath).toHaveBeenCalledWith(folderWithSpecialChars);
     });
@@ -285,7 +285,7 @@ describe('shellBridge', () => {
       // findVSCodeExecutable finds code.cmd via ProgramFiles
       fsMock.existsSync.mockImplementation((p: string) => p.endsWith('code.cmd') && p.includes('Program Files'));
 
-      await openFolderWithProvider.fn!({ folderPath: 'C:\\Projects\\Q&M', tool: 'vscode' });
+      await openFolderWithProvider.fn!({ folder_path: 'C:\\Projects\\Q&M', tool: 'vscode' });
 
       // Trigger ENOENT on first spawn
       expect(errorCallback).toBeDefined();

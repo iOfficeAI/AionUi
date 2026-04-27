@@ -148,17 +148,17 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         custom_agent_id: openclawAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
         extra: {
-          defaultFiles: files,
-          runtimeValidation: {
-            expectedWorkspace: finalWorkspace,
-            expectedBackend: openclawAgentInfo?.backend,
-            expectedAgentName: openclawAgentInfo?.name,
-            expectedCliPath: openclawAgentInfo?.cli_path,
-            expectedModel: current_model?.useModel,
-            switchedAt: Date.now(),
+          default_files: files,
+          runtime_validation: {
+            expected_workspace: finalWorkspace,
+            expected_backend: openclawAgentInfo?.backend,
+            expected_agent_name: openclawAgentInfo?.name,
+            expected_cli_path: openclawAgentInfo?.cli_path,
+            expected_model: current_model?.use_model,
+            switched_at: Date.now(),
           },
           enabled_skills: is_preset ? enabled_skills : undefined,
-          excludeBuiltinSkills,
+          exclude_builtin_skills: excludeBuiltinSkills,
         },
       });
 
@@ -206,9 +206,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         custom_agent_id: nanobotAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
         extra: {
-          defaultFiles: files,
+          default_files: files,
           enabled_skills: is_preset ? enabled_skills : undefined,
-          excludeBuiltinSkills,
+          exclude_builtin_skills: excludeBuiltinSkills,
         },
       });
 
@@ -255,12 +255,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           name: input,
           model: current_model,
           extra: {
-            defaultFiles: files,
+            default_files: files,
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
             preset_rules: is_preset ? preset_rules : undefined,
             enabled_skills: is_preset ? enabled_skills : undefined,
-            excludeBuiltinSkills,
+            exclude_builtin_skills: excludeBuiltinSkills,
             preset_assistant_id,
             session_mode: selectedMode,
           },
@@ -326,19 +326,19 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         custom_agent_id: acpAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
         is_preset,
-        presetAgentType: finalEffectiveAgentType,
-        presetResources: is_preset
+        preset_agent_type: finalEffectiveAgentType,
+        preset_resources: is_preset
           ? {
               rules: preset_rules,
               enabled_skills,
-              excludeBuiltinSkills,
+              exclude_builtin_skills: excludeBuiltinSkills,
             }
           : undefined,
         session_mode: selectedMode,
         current_model_id: selectedAcpModel || undefined,
         extra: {
-          defaultFiles: files,
-          excludeBuiltinSkills,
+          default_files: files,
+          exclude_builtin_skills: excludeBuiltinSkills,
         },
       });
 

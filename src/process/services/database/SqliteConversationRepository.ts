@@ -52,7 +52,7 @@ export class SqliteConversationRepository implements IConversationRepository {
     return {
       data: result.data ?? [],
       total: result.total ?? 0,
-      hasMore: result.hasMore ?? false,
+      has_more: result.has_more ?? false,
     };
   }
 
@@ -78,7 +78,7 @@ export class SqliteConversationRepository implements IConversationRepository {
     return {
       data: result.data ?? [],
       total: result.total ?? 0,
-      hasMore: result.hasMore ?? false,
+      has_more: result.has_more ?? false,
     };
   }
 

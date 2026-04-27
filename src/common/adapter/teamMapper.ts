@@ -9,15 +9,15 @@ import type { TeamAgent, TeammateRole, TeammateStatus, TTeam, WorkspaceMode } fr
 // ── Parameter types for team API calls ─────────────────────────────────
 
 export type ICreateTeamParams = {
-  userId: string;
+  user_id: string;
   name: string;
   workspace: string;
-  workspaceMode: WorkspaceMode;
+  workspace_mode: WorkspaceMode;
   agents: Omit<TeamAgent, 'slot_id' | 'conversation_id'>[];
 };
 
 export type IAddTeamAgentParams = {
-  teamId: string;
+  team_id: string;
   agent: Omit<TeamAgent, 'slot_id' | 'conversation_id'>;
 };
 

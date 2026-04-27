@@ -17,39 +17,54 @@ const {
   emitConfirmationRemove,
   mockDb,
   mockCronService,
-} = vi.hoisted(() => ({
-  emitResponseStream: vi.fn(),
-  emitCronJobCreated: vi.fn(),
-  emitCronJobRemoved: vi.fn(),
-  emitConfirmationAdd: vi.fn(),
-  emitConfirmationUpdate: vi.fn(),
-  emitConfirmationRemove: vi.fn(),
-  mockDb: {
-    getConversationMessages: vi.fn(() => ({ data: [] })),
-    getConversation: vi.fn(() => ({ success: false })),
-    updateConversation: vi.fn(),
-    createConversation: vi.fn(() => ({ success: true })),
-    insertMessage: vi.fn(),
-    updateMessage: vi.fn(),
-  },
-  mockCronService: {
-    addJob: vi.fn(async (params: any) => ({
-      id: 'cron-job-1',
-      name: params.name,
-      schedule: params.schedule,
-      enabled: true,
-    })),
-    removeJob: vi.fn(async () => {}),
-    listJobsByConversation: vi.fn(async () => []),
-  },
-}));
+  responseStreamListeners,
+  responseStreamOn,
+} = vi.hoisted(() => {
+  const listeners: Array<(message: { type: string; conversation_id: string; [key: string]: unknown }) => void> = [];
+  return {
+    emitResponseStream: vi.fn(),
+    emitCronJobCreated: vi.fn(),
+    emitCronJobRemoved: vi.fn(),
+    emitConfirmationAdd: vi.fn(),
+    emitConfirmationUpdate: vi.fn(),
+    emitConfirmationRemove: vi.fn(),
+    mockDb: {
+      getConversationMessages: vi.fn(() => ({ data: [] })),
+      getConversation: vi.fn(() => ({ success: false })),
+      updateConversation: vi.fn(),
+      createConversation: vi.fn(() => ({ success: true })),
+      insertMessage: vi.fn(),
+      updateMessage: vi.fn(),
+    },
+    mockCronService: {
+      addJob: vi.fn(async (params: any) => ({
+        id: 'cron-job-1',
+        name: params.name,
+        schedule: params.schedule,
+        enabled: true,
+      })),
+      removeJob: vi.fn(async () => {}),
+      listJobsByConversation: vi.fn(async () => []),
+    },
+    responseStreamListeners: listeners,
+    responseStreamOn: vi.fn(
+      (cb: (message: { type: string; conversation_id: string; [key: string]: unknown }) => void) => {
+        listeners.push(cb);
+        return () => {
+          const i = listeners.indexOf(cb);
+          if (i >= 0) listeners.splice(i, 1);
+        };
+      }
+    ),
+  };
+});
 
 // ── Mocks ───────────────────────────────────────────────────────────
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
-      responseStream: { emit: emitResponseStream },
+      responseStream: { emit: emitResponseStream, on: responseStreamOn },
       confirmation: {
         add: { emit: emitConfirmationAdd },
         update: { emit: emitConfirmationUpdate },
@@ -158,7 +173,12 @@ function simulateTurn(manager: AionrsManager, textChunks: string[], msgId = 'msg
 
 // ── Tests ───────────────────────────────────────────────────────────
 
-describe('GAP-4: AionrsManager Cron Command Feedback Loop', () => {
+// NOTE: Cron command detection logic was moved from AionrsManager into
+// MessageMiddleware + CronCommandDetector. The current AionrsManager is a thin
+// coordination layer that only forwards responseStream events. These tests are
+// skipped because they target removed behavior; equivalent coverage now belongs
+// in tests for MessageMiddleware / CronCommandDetector.
+describe.skip('GAP-4: AionrsManager Cron Command Feedback Loop', () => {
   let manager: AionrsManager;
 
   beforeEach(() => {

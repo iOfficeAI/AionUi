@@ -261,13 +261,13 @@ export function initShellBridge(): void {
   });
 
   // Open folder with specified tool
-  ipcBridge.shell.openFolderWith.provider(async ({ folderPath, tool }) => {
+  ipcBridge.shell.openFolderWith.provider(async ({ folder_path, tool }) => {
     try {
-      await openFolderWithTool(folderPath, tool);
+      await openFolderWithTool(folder_path, tool);
     } catch (error) {
       console.error(`[shellBridge] Failed to open folder with ${tool}:`, error);
       // Fallback to default shell open
-      await shell.openPath(folderPath);
+      await shell.openPath(folder_path);
     }
   });
 }

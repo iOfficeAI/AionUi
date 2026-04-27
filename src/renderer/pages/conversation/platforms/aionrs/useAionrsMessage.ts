@@ -158,7 +158,7 @@ export const useAionrsMessage = (
                 updates: {
                   extra: { last_token_usage: newTokenUsage } as TChatConversation['extra'],
                 },
-                mergeExtra: true,
+                merge_extra: true,
               });
             }
             setStreamRunning(false);

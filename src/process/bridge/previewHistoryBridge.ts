@@ -20,8 +20,8 @@ export function initPreviewHistoryBridge(): void {
   });
 
   // 预览历史：获取某个快照的具体内容 / Fetch the content payload of a specific snapshot
-  ipcBridge.previewHistory.getContent.provider(async ({ target, snapshotId }) => {
-    const result = await previewHistoryService.getContent(target as PreviewHistoryTarget, snapshotId);
+  ipcBridge.previewHistory.getContent.provider(async ({ target, snapshot_id }) => {
+    const result = await previewHistoryService.getContent(target as PreviewHistoryTarget, snapshot_id);
     if (!result) {
       return null;
     }

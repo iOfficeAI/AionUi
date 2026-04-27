@@ -19,31 +19,46 @@ const {
   mockChannelEmitAgentMessage,
   mockSetProcessing,
   mockIsProcessing,
-} = vi.hoisted(() => ({
-  emitResponseStream: vi.fn(),
-  emitConfirmationAdd: vi.fn(),
-  emitConfirmationUpdate: vi.fn(),
-  emitConfirmationRemove: vi.fn(),
-  mockDb: {
-    getConversationMessages: vi.fn(() => ({ data: [] })),
-    getConversation: vi.fn(() => ({ success: false })),
-    updateConversation: vi.fn(),
-    createConversation: vi.fn(() => ({ success: true })),
-    insertMessage: vi.fn(),
-    updateMessage: vi.fn(),
-  },
-  mockTeamEventBusEmit: vi.fn(),
-  mockChannelEmitAgentMessage: vi.fn(),
-  mockSetProcessing: vi.fn(),
-  mockIsProcessing: vi.fn(() => false),
-}));
+  responseStreamListeners,
+  responseStreamOn,
+} = vi.hoisted(() => {
+  const listeners: Array<(message: { type: string; conversation_id: string; [key: string]: unknown }) => void> = [];
+  return {
+    emitResponseStream: vi.fn(),
+    emitConfirmationAdd: vi.fn(),
+    emitConfirmationUpdate: vi.fn(),
+    emitConfirmationRemove: vi.fn(),
+    mockDb: {
+      getConversationMessages: vi.fn(() => ({ data: [] })),
+      getConversation: vi.fn(() => ({ success: false })),
+      updateConversation: vi.fn(),
+      createConversation: vi.fn(() => ({ success: true })),
+      insertMessage: vi.fn(),
+      updateMessage: vi.fn(),
+    },
+    mockTeamEventBusEmit: vi.fn(),
+    mockChannelEmitAgentMessage: vi.fn(),
+    mockSetProcessing: vi.fn(),
+    mockIsProcessing: vi.fn(() => false),
+    responseStreamListeners: listeners,
+    responseStreamOn: vi.fn(
+      (cb: (message: { type: string; conversation_id: string; [key: string]: unknown }) => void) => {
+        listeners.push(cb);
+        return () => {
+          const i = listeners.indexOf(cb);
+          if (i >= 0) listeners.splice(i, 1);
+        };
+      }
+    ),
+  };
+});
 
 // ── Module mocks ───────────────────────────────────────────────────
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
-      responseStream: { emit: emitResponseStream },
+      responseStream: { emit: emitResponseStream, on: responseStreamOn },
       confirmation: {
         add: { emit: emitConfirmationAdd },
         update: { emit: emitConfirmationUpdate },
@@ -172,7 +187,10 @@ function createManager(conversationId = CONV_ID): AionrsManager {
 }
 
 function emitEvent(manager: AionrsManager, event: Record<string, unknown>) {
-  (manager as any).emit('aionrs.message', event);
+  const message = { ...event, conversation_id: (manager as any).conversation_id };
+  for (const listener of responseStreamListeners) {
+    listener(message as { type: string; conversation_id: string; [key: string]: unknown });
+  }
 }
 
 // ── Tests ──────────────────────────────────────────────────────────
@@ -183,6 +201,7 @@ describe('GAP-5: AionrsManager CronBusyGuard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.useFakeTimers();
+    responseStreamListeners.length = 0;
     manager = createManager();
     vi.spyOn(manager as any, 'postMessagePromise').mockResolvedValue(undefined);
   });
@@ -233,8 +252,11 @@ describe('GAP-5: AionrsManager CronBusyGuard', () => {
   });
 
   // ── AC-3: Fallback finish clears guard ───────────────────────────
+  // NOTE: Fallback timer was removed when AionrsManager became a thin coordination
+  // layer that only forwards responseStream events; finalization timing now lives
+  // in the backend. This case is retained as a skip for historical reference.
 
-  describe('AC-3: Fallback finish clears guard', () => {
+  describe.skip('AC-3: Fallback finish clears guard', () => {
     it('calls setProcessing(id, false) on fallback timeout', async () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'data', msg_id: 'msg-1' });

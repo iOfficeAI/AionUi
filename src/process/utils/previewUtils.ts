@@ -34,7 +34,11 @@ export function handlePreviewOpenEvent(message: IResponseMessage | { type: strin
     return false;
   }
 
-  ipcBridge.preview.open.emit(data);
+  ipcBridge.preview.open.emit({
+    content: data.content,
+    content_type: data.contentType,
+    metadata: data.metadata,
+  });
   return true;
 }
 

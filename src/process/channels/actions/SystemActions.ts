@@ -80,7 +80,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     const findProviderWithApiKey = (providerId: string, modelName: string): TProviderWithModel | null => {
       const provider = providerList.find((p) => p.id === providerId);
       if (provider && hasProviderAuth(provider) && provider.models?.includes(modelName)) {
-        return { ...provider, useModel: modelName } as TProviderWithModel;
+        return { ...provider, use_model: modelName } as TProviderWithModel;
       }
       return null;
     };
@@ -96,7 +96,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
             : platform === 'wecom'
               ? await ProcessConfig.get('assistant.wecom.defaultModel')
               : await ProcessConfig.get('assistant.telegram.defaultModel');
-    if (savedModel?.id && savedModel?.useModel) {
+    if (savedModel?.id && savedModel?.use_model) {
       if (savedModel.id === GOOGLE_AUTH_PROVIDER_ID) {
         // Google OAuth credentials are stored locally by Gemini CLI (~/.gemini/oauth_creds.json).
         // If the user has already logged in on desktop, we can reuse those credentials in
@@ -122,7 +122,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
             platform: 'gemini-with-google-auth',
             base_url: '',
             api_key: '',
-            useModel: savedModel.useModel,
+            use_model: savedModel.use_model,
             enabled: true,
           } as TProviderWithModel;
         }
@@ -132,18 +132,18 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           `[SystemActions] Google Auth oauth_creds.json missing or empty for channel mode (${platform}), falling back to API key provider`
         );
         const fallback = providerList.find(
-          (p) => p.platform === 'gemini' && hasProviderAuth(p) && p.models?.includes(savedModel.useModel)
+          (p) => p.platform === 'gemini' && hasProviderAuth(p) && p.models?.includes(savedModel.use_model)
         );
         if (fallback) {
           return {
             ...fallback,
-            useModel: savedModel.useModel,
+            use_model: savedModel.use_model,
           } as TProviderWithModel;
         }
         // Otherwise fall through to general fallback below
       } else {
         // For regular (API-key-based) providers, look up full config
-        const result = findProviderWithApiKey(savedModel.id, savedModel.useModel);
+        const result = findProviderWithApiKey(savedModel.id, savedModel.use_model);
         if (result) return result;
       }
     }
@@ -153,7 +153,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     if (geminiProvider) {
       return {
         ...geminiProvider,
-        useModel: geminiProvider.models[0],
+        use_model: geminiProvider.models[0],
       } as TProviderWithModel;
     }
 
@@ -163,7 +163,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
       console.warn(`[SystemActions] No Gemini provider with API key, using ${anyProvider.platform} provider`);
       return {
         ...anyProvider,
-        useModel: anyProvider.models[0],
+        use_model: anyProvider.models[0],
       } as TProviderWithModel;
     }
 
@@ -182,7 +182,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
           platform: 'gemini-with-google-auth',
           base_url: '',
           api_key: '',
-          useModel: 'gemini-2.0-flash',
+          use_model: 'gemini-2.0-flash',
           enabled: true,
         } as TProviderWithModel;
       }
@@ -201,7 +201,7 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
     name: 'Gemini',
     base_url: 'https://generativelanguage.googleapis.com',
     api_key: '',
-    useModel: 'gemini-2.0-flash',
+    use_model: 'gemini-2.0-flash',
   };
 }
 

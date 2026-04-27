@@ -73,7 +73,7 @@ export interface IConfigStorageRefer {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
   };
-  'aionrs.defaultModel'?: { id: string; useModel: string };
+  'aionrs.defaultModel'?: { id: string; use_model: string };
   'tools.imageGenerationModel': TProviderWithModel & {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;
@@ -111,7 +111,7 @@ export interface IConfigStorageRefer {
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
-    useModel: string;
+    use_model: string;
   };
   // Telegram assistant agent selection / Telegram 助手所使用的 Agent
   'assistant.telegram.agent'?: {
@@ -122,7 +122,7 @@ export interface IConfigStorageRefer {
   // Lark assistant default model / Lark 助手默认模型
   'assistant.lark.defaultModel'?: {
     id: string;
-    useModel: string;
+    use_model: string;
   };
   // Lark assistant agent selection / Lark 助手所使用的 Agent
   'assistant.lark.agent'?: {
@@ -133,7 +133,7 @@ export interface IConfigStorageRefer {
   // DingTalk assistant default model / DingTalk 助手默认模型
   'assistant.dingtalk.defaultModel'?: {
     id: string;
-    useModel: string;
+    use_model: string;
   };
   // DingTalk assistant agent selection / DingTalk 助手所使用的 Agent
   'assistant.dingtalk.agent'?: {
@@ -144,7 +144,7 @@ export interface IConfigStorageRefer {
   // WeChat assistant default model / WeChat 助手默认模型
   'assistant.weixin.defaultModel'?: {
     id: string;
-    useModel: string;
+    use_model: string;
   };
   // WeChat assistant agent selection / WeChat 助手所使用的 Agent
   'assistant.weixin.agent'?: {
@@ -155,7 +155,7 @@ export interface IConfigStorageRefer {
   // WeCom assistant default model / 企业微信助手默认模型
   'assistant.wecom.defaultModel'?: {
     id: string;
-    useModel: string;
+    use_model: string;
   };
   // WeCom assistant agent selection / 企业微信助手所使用的 Agent
   'assistant.wecom.agent'?: {
@@ -533,7 +533,7 @@ export interface IProvider {
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {
-  useModel: string;
+  use_model: string;
 };
 
 // MCP Server Configuration Types
