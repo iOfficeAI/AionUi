@@ -185,12 +185,17 @@ async function sendFirstMessage(manager: InstanceType<typeof AcpAgentManager>, c
   return manager.sendMessage({ content, msg_id: 'msg-1' });
 }
 
-describe('AcpAgentManager — first-message skill injection', () => {
+// After the skill-backend migration (2026-04-27), the ACP first-message prefix
+// for preset_context + skills is built on the Rust side (see
+// aionui-ai-agent/src/acp_agent.rs::session_new_and_prompt + first_message_injector).
+// The frontend now only injects the team-guide block. The tests below cover the
+// surviving frontend responsibility: team-guide prepend for the first message.
+describe('AcpAgentManager — first-message team-guide injection', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('uses native skills (no prompt injection) for supported backend without customWorkspace', async () => {
+  it('never invokes the frontend skills-index injector anymore', async () => {
     const manager = createManager({
       backend: 'claude',
       custom_workspace: false,
@@ -200,15 +205,12 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     await sendFirstMessage(manager);
 
+    // preset_context + skills are now backend-injected; frontend must not call
+    // prepareFirstMessageWithSkillsIndex at all.
     expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
-    // Should have injected presetContext directly into content
-    const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    expect(sentContent).toContain('[Assistant Rules');
-    expect(sentContent).toContain('You are helpful.');
-    expect(sentContent).toContain('[User Request]');
   });
 
-  it('falls back to prompt injection for supported backend WITH customWorkspace', async () => {
+  it('does not invoke frontend skills-index injector even with custom workspace', async () => {
     const manager = createManager({
       backend: 'claude',
       custom_workspace: true,
@@ -218,15 +220,10 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     await sendFirstMessage(manager);
 
-    expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
-      preset_context: 'You are helpful.',
-      enabled_skills: ['pptx'],
-      enableTeamGuide: true,
-      backend: 'claude',
-    });
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
   });
 
-  it('falls back to prompt injection for unsupported backend regardless of customWorkspace', async () => {
+  it('does not invoke frontend skills-index injector for unsupported backend', async () => {
     const manager = createManager({
       backend: 'auggie',
       custom_workspace: false,
@@ -236,15 +233,10 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     await sendFirstMessage(manager);
 
-    expect(mockPrepareFirstMessage).toHaveBeenCalledWith('Hello', {
-      preset_context: 'Some rules',
-      enabled_skills: ['pdf'],
-      enableTeamGuide: false,
-      backend: 'auggie',
-    });
+    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
   });
 
-  it('injects team guide prompt even when presetContext is undefined (native path, whitelisted backend)', async () => {
+  it('injects team guide prompt for whitelisted backend on first message', async () => {
     const manager = createManager({
       backend: 'claude',
       custom_workspace: false,
@@ -252,12 +244,11 @@ describe('AcpAgentManager — first-message skill injection', () => {
 
     await sendFirstMessage(manager, 'Test message');
 
-    expect(mockPrepareFirstMessage).not.toHaveBeenCalled();
     const sentContent = mockAgentSendMessage.mock.calls[0][0].content as string;
-    // claude is whitelisted for team guide → content should include team guide prompt
-    expect(sentContent).toContain('[Assistant Rules');
+    // claude is whitelisted for team guide → content is wrapped with [Team Guide]
+    expect(sentContent).toContain('[Team Guide]');
+    expect(sentContent).toContain('[/Team Guide]');
     expect(sentContent).toContain('Team Mode');
-    expect(sentContent).toContain('[User Request]');
     expect(sentContent).toContain('Test message');
   });
 });
