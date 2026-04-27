@@ -180,7 +180,7 @@ export const conversation = {
   ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
-    (p) => ({ confirm_key: p.confirm_key, msg_id: p.msg_id })
+    (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
