@@ -39,8 +39,6 @@ import { hasCronCommands } from './CronCommandDetector';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
-import { hasNativeSkillSupport } from '@/common/types/acpTypes';
-import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
@@ -399,34 +397,10 @@ ${collectedResponses.join('\n')}`;
     }
   }
 
-  /**
-   * Check native skill support: for builtin backends, consult ACP_BACKENDS_ALL;
-   * for extension agents, check the adapter's skillsDirs from the manifest.
-   */
-  private resolveNativeSkillSupport(): boolean {
-    if (hasNativeSkillSupport(this.options.backend)) return true;
-
-    // For extension agents (backend: 'custom'), check the adapter's skillsDirs
-    if (this.options.backend === 'custom' && this.options.custom_agent_id?.startsWith('ext:')) {
-      try {
-        const [, extensionName, ...idParts] = this.options.custom_agent_id.split(':');
-        const adapterId = idParts.join(':');
-        const adapter = ExtensionRegistry.getInstance()
-          .getAcpAdapters()
-          .find((item) => {
-            const r = item as Record<string, unknown>;
-            return r._extensionName === extensionName && r.id === adapterId;
-          }) as Record<string, unknown> | undefined;
-        if (adapter && Array.isArray(adapter.skillsDirs) && adapter.skillsDirs.length > 0) {
-          return true;
-        }
-      } catch {
-        // ExtensionRegistry not available
-      }
-    }
-
-    return false;
-  }
+  // Native skill discovery is now evaluated on the backend side via
+  // `AcpBackend::native_skills_dirs()` in aionui-common. The previous
+  // frontend `resolveNativeSkillSupport` helper was removed when first-message
+  // skill injection moved to `acp_agent.rs::session_new_and_prompt`.
 
   // ── Config resolution helpers for initAgent ──────────────────────────
 
@@ -1000,38 +974,24 @@ ${collectedResponses.join('\n')}`;
         // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
+          // Skill index + preset_context injection is performed by the backend
+          // in aionui-ai-agent/src/acp_agent.rs::session_new_and_prompt. We only
+          // keep team-guide injection here — team-mode context is a frontend
+          // concern until a dedicated backend migration lands.
           const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
-          const useNativeSkills = this.resolveNativeSkillSupport() && !this.options.custom_workspace;
-          if (useNativeSkills) {
-            // Native skill discovery via workspace symlinks — inject preset rules + team guide
-            const parts: string[] = [];
-            if (this.options.preset_context) parts.push(this.options.preset_context);
-            if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
-              const [{ getTeamGuidePrompt }, { resolveLeaderAssistantLabel }] = await Promise.all([
-                import('@process/team/prompts/teamGuidePrompt.ts'),
-                import('@process/team/prompts/teamGuideAssistant.ts'),
-              ]);
-              const leaderLabel = await resolveLeaderAssistantLabel(
-                this.options.preset_assistant_id || this.options.custom_agent_id
-              );
-              parts.push(getTeamGuidePrompt({ backend: this.options.backend, leaderLabel }));
-            }
-            if (parts.length > 0) {
-              contentToSend = `[Assistant Rules - You MUST follow these instructions]\n${parts.join(
-                '\n\n'
-              )}\n\n[User Request]\n${contentToSend}`;
-            }
-          } else {
-            // Custom workspace or no native support — inject rules + skills via prompt
-            const { content: injectedContent } = await prepareFirstMessageWithSkillsIndex(contentToSend, {
-              preset_context: this.options.preset_context,
-              enabled_skills: this.options.enabled_skills,
-              excludeBuiltinSkills: this.options.excludeBuiltinSkills,
-              enableTeamGuide: !isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend)),
+          if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
+            const [{ getTeamGuidePrompt }, { resolveLeaderAssistantLabel }] = await Promise.all([
+              import('@process/team/prompts/teamGuidePrompt.ts'),
+              import('@process/team/prompts/teamGuideAssistant.ts'),
+            ]);
+            const leaderLabel = await resolveLeaderAssistantLabel(
+              this.options.preset_assistant_id || this.options.custom_agent_id
+            );
+            const teamGuide = getTeamGuidePrompt({
               backend: this.options.backend,
-              preset_assistant_id: this.options.preset_assistant_id || this.options.custom_agent_id,
+              leaderLabel,
             });
-            contentToSend = injectedContent;
+            contentToSend = `[Team Guide]\n${teamGuide}\n[/Team Guide]\n\n${contentToSend}`;
           }
         }
 
