@@ -56,5 +56,4 @@ export function initAuthBridge(): void {
       return { success: false, msg: e.message || e.toString() };
     }
   });
-
 }
