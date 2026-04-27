@@ -9,7 +9,6 @@ import type { IMcpServer } from '@/common/config/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { CodebuddyMcpAgent } from './agents/CodebuddyMcpAgent';
 import { QwenMcpAgent } from './agents/QwenMcpAgent';
-import { GeminiMcpAgent } from './agents/GeminiMcpAgent';
 import { AionuiMcpAgent } from './agents/AionuiMcpAgent';
 import { CodexMcpAgent } from './agents/CodexMcpAgent';
 import { OpencodeMcpAgent } from './agents/OpencodeMcpAgent';
@@ -85,7 +84,6 @@ export class McpService {
       ['claude', new ClaudeMcpAgent()],
       ['codebuddy', new CodebuddyMcpAgent()],
       ['qwen', new QwenMcpAgent()],
-      ['gemini', new GeminiMcpAgent()],
       ['aionui', new AionuiMcpAgent()], // AionUi 本地 @office-ai/aioncli-core
       ['codex', new CodexMcpAgent()],
       ['opencode', new OpencodeMcpAgent()],
@@ -103,11 +101,9 @@ export class McpService {
   /**
    * 根据 agent 配置获取正确的 MCP agent 实例
    * Fork Gemini (cli_path=undefined) 使用 AionuiMcpAgent
-   * Native Gemini (cli_path='gemini') 使用 GeminiMcpAgent
    *
    * Get the correct MCP agent instance based on agent config.
    * Fork Gemini (cli_path=undefined) uses AionuiMcpAgent.
-   * Native Gemini (cli_path='gemini') uses GeminiMcpAgent.
    */
   private getAgentForConfig(agent: { backend: string; cli_path?: string }): IMcpProtocol | undefined {
     // Fork Gemini 使用 AionuiMcpAgent 管理 MCP 配置

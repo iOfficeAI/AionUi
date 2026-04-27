@@ -25,8 +25,10 @@ import { ProcessConfig } from '@process/utils/initStorage';
  */
 export class AionuiMcpAgent extends AbstractMcpAgent {
   constructor() {
-    // 使用 'aionui' 作为 backend type 来区分真实的 Gemini CLI
+    // Use 'aionui' as the backend type for this dedicated agent.
     // 虽然配置最终被 ACP agent 运行时使用，但在 MCP 管理层面它是独立的 agent
+    // The config is ultimately consumed by the ACP agent at runtime, but at the
+    // MCP management layer this is a standalone agent.
     super('aionui');
   }
 
