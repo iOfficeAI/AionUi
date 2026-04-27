@@ -46,7 +46,6 @@ import type {
 } from '../types/assistantTypes';
 import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
-import { fromBackendSnapshot, fromBackendSnapshotContent, fromBackendSnapshotList } from './previewMapper';
 import {
   fromBackendAgent,
   fromBackendTeam,
@@ -828,21 +827,12 @@ export const database = {
 // ---------------------------------------------------------------------------
 
 export const previewHistory = {
-  list: withResponseMap(
-    httpPost<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('/api/preview-history/list'),
-    fromBackendSnapshotList
-  ),
-  save: withResponseMap(
-    httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>('/api/preview-history/save'),
-    fromBackendSnapshot
-  ),
-  getContent: withResponseMap(
-    httpPost<
-      { snapshot: PreviewSnapshotInfo; content: string } | null,
-      { target: PreviewHistoryTarget; snapshot_id: string }
-    >('/api/preview-history/get-content'),
-    fromBackendSnapshotContent
-  ),
+  list: httpPost<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('/api/preview-history/list'),
+  save: httpPost<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>('/api/preview-history/save'),
+  getContent: httpPost<
+    { snapshot: PreviewSnapshotInfo; content: string } | null,
+    { target: PreviewHistoryTarget; snapshot_id: string }
+  >('/api/preview-history/get-content'),
 };
 
 // Preview panel
