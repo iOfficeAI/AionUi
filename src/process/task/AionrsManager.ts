@@ -148,7 +148,8 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       conversation_id: this.conversation_id,
       call_id: call_id,
       msg_id: '',
-      data: { always_allow },
+      data: { value: data },
+      always_allow,
     });
   }
 

@@ -57,7 +57,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
               conversation_id: confirmation.conversation_id,
               call_id: confirmation.call_id,
               msg_id: confirmation.id,
-              data: allowOption.value,
+              data: { value: allowOption.value },
+              always_allow: allowOption.value === 'proceed_always',
             });
             return true;
           }
@@ -145,7 +146,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
         conversation_id: confirmation.conversation_id,
         call_id: confirmation.call_id,
         msg_id: confirmation.id,
-        data: option.value,
+        data: { value: option.value },
+        always_allow: option.value === 'proceed_always',
       });
     };
 
@@ -298,7 +300,8 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
                       conversation_id: confirmation.conversation_id,
                       call_id: confirmation.call_id,
                       msg_id: confirmation.id,
-                      data: option.value,
+                      data: { value: option.value },
+                      always_allow: option.value === 'proceed_always',
                     });
                   }}
                   key={label + option.value + index}

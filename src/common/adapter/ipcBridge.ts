@@ -238,9 +238,12 @@ export const conversation = {
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
     update: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.update'),
-    confirm: httpPost<void, { conversation_id: string; msg_id: string; data: unknown; call_id: string }>(
+    confirm: httpPost<
+      void,
+      { conversation_id: string; msg_id: string; data: unknown; call_id: string; always_allow?: boolean }
+    >(
       (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
-      (p) => ({ msg_id: p.msg_id, data: p.data })
+      (p) => ({ msg_id: p.msg_id, data: p.data, always_allow: p.always_allow ?? false })
     ),
     list: httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
       (p) => `/api/conversations/${p.conversation_id}/confirmations`
