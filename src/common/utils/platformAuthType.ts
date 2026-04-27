@@ -15,15 +15,10 @@ import { isNewApiPlatform } from './platformConstants';
 export function getAuthTypeFromPlatform(platform: string): AuthType {
   const platformLower = platform?.toLowerCase() || '';
 
-  // Gemini 相关平台
+  // Google OAuth (kept for the Google auth provider path, not the removed
+  // Gemini CLI LLM flavor)
   if (platformLower.includes('gemini-with-google-auth')) {
     return AuthType.LOGIN_WITH_GOOGLE;
-  }
-  if (platformLower.includes('gemini-vertex-ai') || platformLower.includes('vertex-ai')) {
-    return AuthType.USE_VERTEX_AI;
-  }
-  if (platformLower.includes('gemini') || platformLower.includes('google')) {
-    return AuthType.USE_GEMINI;
   }
 
   // Anthropic/Claude 相关平台

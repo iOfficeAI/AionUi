@@ -425,7 +425,7 @@ export class ActionExecutor {
         const backend = (
           savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
             ? (savedAgent as any).backend
-            : 'gemini'
+            : 'claude'
         ) as string;
         const custom_agent_id =
           savedAgent && typeof savedAgent === 'object'
@@ -455,16 +455,7 @@ export class ActionExecutor {
         let sessionConversation: TChatConversation | null = existing ?? null;
         if (!sessionConversation) {
           try {
-            if (backend === 'gemini') {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'gemini',
-                model,
-                name: conversationName,
-                source,
-                channel_chat_id: chatId,
-                extra: conversationExtra,
-              });
-            } else if (backend === 'aionrs') {
+            if (backend === 'aionrs') {
               sessionConversation = await conversationServiceSingleton.createConversation({
                 type: 'aionrs',
                 model,

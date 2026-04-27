@@ -114,8 +114,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
         if (hasLocalCreds) {
           // The google-auth-gemini provider is a frontend-only synthetic provider — it is NOT
           // persisted in /api/providers. Construct it directly with platform='gemini-with-google-auth'
-          // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes
-          // GeminiAgentManager read oauth_creds.json and use OAuth instead of an empty API key.
+          // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes the ACP
+          // agent runtime pick up oauth_creds.json and use OAuth instead of an empty API key.
           return {
             id: GOOGLE_AUTH_PROVIDER_ID,
             name: 'Gemini Google Auth',
@@ -275,7 +275,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const backend = (
     savedAgent && typeof savedAgent === 'object' && typeof (savedAgent as any).backend === 'string'
       ? (savedAgent as any).backend
-      : 'gemini'
+      : 'claude'
   ) as string;
   const custom_agent_id =
     savedAgent && typeof savedAgent === 'object'
@@ -300,16 +300,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   let newConversation: TChatConversation;
   try {
-    if (backend === 'gemini') {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'gemini',
-        model,
-        source,
-        name,
-        channel_chat_id,
-        extra: conversationExtra,
-      });
-    } else if (backend === 'aionrs') {
+    if (backend === 'aionrs') {
       newConversation = await conversationServiceSingleton.createConversation({
         type: 'aionrs',
         model,
@@ -651,7 +642,7 @@ export const handleAgentShow: ActionHandler = async (context) => {
   // Get current agent type from session (scoped by chatId)
   const user_id = context.channelUser?.id;
   const session = user_id ? sessionManager.getSession(user_id, context.chatId) : null;
-  const currentAgent = session?.agent_type || 'gemini';
+  const currentAgent = session?.agent_type || 'acp';
 
   // Get available agents dynamically
   const availableAgents = getAvailableChannelAgents();
@@ -777,7 +768,6 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
  */
 function getAgentDisplayName(agent_type: ChannelAgentType): string {
   const names: Record<ChannelAgentType, string> = {
-    gemini: '🤖 Gemini',
     acp: '🧠 Claude',
     codex: '⚡ Codex',
     'openclaw-gateway': '🦞 OpenClaw',
@@ -791,8 +781,8 @@ function getAgentDisplayName(agent_type: ChannelAgentType): string {
  */
 function backendToChannelAgentType(backend: string): ChannelAgentType | null {
   const mapping: Record<string, ChannelAgentType> = {
-    gemini: 'gemini',
     claude: 'acp',
+    gemini: 'acp', // Gemini now runs as an ACP backend
     codex: 'codex',
     'openclaw-gateway': 'openclaw-gateway',
   };
@@ -821,11 +811,7 @@ function getAvailableChannelAgents(): AgentDisplayInfo[] {
   const availableAgents: AgentDisplayInfo[] = [];
   const seenTypes = new Set<ChannelAgentType>();
 
-  // Always include Gemini as it's built-in
-  availableAgents.push({ type: 'gemini', emoji: '🤖', name: 'Gemini' });
-  seenTypes.add('gemini');
-
-  // Add detected ACP agents (claude, codex, etc.)
+  // Add detected ACP agents (claude, codex, gemini, etc.)
   for (const agent of detectedAgents) {
     const channelType = backendToChannelAgentType(agent.backend);
     if (channelType && !seenTypes.has(channelType)) {

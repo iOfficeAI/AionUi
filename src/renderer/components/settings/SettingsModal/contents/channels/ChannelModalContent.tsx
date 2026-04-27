@@ -10,8 +10,8 @@ import { channel, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import { useGeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
+import { useGoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Input, InputNumber, Message, Select, Switch } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -48,19 +48,19 @@ type ExtensionFieldValues = Record<string, Record<string, string | number | bool
 const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
 
 /**
- * Internal hook: wraps useGeminiModelSelection with configService persistence
+ * Internal hook: wraps useGoogleModelSelection with configService persistence
  * for a specific channel config key (e.g. 'assistant.telegram.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
  * TProviderWithModel and passing it as `initialModel` — this avoids triggering
  * the onSelectModel callback (and its toast) on mount.
  */
-const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModelSelection => {
+const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModelSelection => {
   const { t } = useTranslation();
 
   // Resolve persisted model into a full TProviderWithModel for initialModel.
   // useModelProviderList is SWR-backed so the duplicate call inside
-  // useGeminiModelSelection is deduplicated automatically.
+  // useGoogleModelSelection is deduplicated automatically.
   const { providers } = useModelProviderList();
   const [resolvedInitialModel, setResolvedInitialModel] = useState<TProviderWithModel | undefined>(undefined);
   const [restored, setRestored] = useState(false);
@@ -156,7 +156,7 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
     [configKey, t]
   );
 
-  return useGeminiModelSelection({
+  return useGoogleModelSelection({
     initialModel: resolvedInitialModel,
     onSelectModel,
   });

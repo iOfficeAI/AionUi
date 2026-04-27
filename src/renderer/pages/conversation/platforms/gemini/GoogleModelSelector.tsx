@@ -1,4 +1,4 @@
-import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
+import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
@@ -12,8 +12,8 @@ import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
 
 // Unified model dropdown for chat header, send box, and channel settings
-const GeminiModelSelector: React.FC<{
-  selection?: GeminiModelSelection;
+const GoogleModelSelector: React.FC<{
+  selection?: GoogleModelSelection;
   disabled?: boolean;
   label?: string;
   variant?: 'header' | 'settings';
@@ -67,7 +67,7 @@ const GeminiModelSelector: React.FC<{
     );
   }
 
-  const { providers, geminiModeLookup, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
+  const { providers, getAvailableModels, handleSelectModel, formatModelLabel } = selection;
 
   // formatModelLabel returns the friendly label for known modes (e.g. 'Auto (Gemini 3)')
   // and falls back to the raw model name for manual sub-model selections.
@@ -126,86 +126,27 @@ const GeminiModelSelector: React.FC<{
             return (
               <Menu.ItemGroup title={provider.name} key={provider.id}>
                 {models.map((modelName) => {
-                  const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-                  const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+                  // 获取模型健康状态
+                  const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
+                  const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
+                  const healthColor =
+                    healthStatus === 'healthy'
+                      ? 'bg-green-500'
+                      : healthStatus === 'unhealthy'
+                        ? 'bg-red-500'
+                        : 'bg-gray-400';
 
-                  // Manual mode: show submenu with specific models
-                  if (option?.subModels && option.subModels.length > 0) {
-                    return (
-                      <Menu.SubMenu
-                        key={`${provider.id}-${modelName}`}
-                        title={
-                          <div className='flex items-center justify-between gap-12px w-full'>
-                            <span>{option.label}</span>
-                          </div>
-                        }
-                      >
-                        {option.subModels.map((subModel) => (
-                          <Menu.Item
-                            key={`${provider.id}-${subModel.value}`}
-                            className={
-                              current_model?.id + current_model?.useModel === provider.id + subModel.value
-                                ? '!bg-2'
-                                : ''
-                            }
-                            onClick={() => void handleSelectModel(provider, subModel.value)}
-                          >
-                            {subModel.label}
-                          </Menu.Item>
-                        ))}
-                      </Menu.SubMenu>
-                    );
-                  }
-
-                  // Normal mode: show single item
                   return (
                     <Menu.Item
                       key={`${provider.id}-${modelName}`}
                       onClick={() => void handleSelectModel(provider, modelName)}
                     >
-                      {(() => {
-                        // 获取模型健康状态
-                        const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
-                        const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
-                        const healthColor =
-                          healthStatus === 'healthy'
-                            ? 'bg-green-500'
-                            : healthStatus === 'unhealthy'
-                              ? 'bg-red-500'
-                              : 'bg-gray-400';
-
-                        if (!option) {
-                          return (
-                            <div className='flex items-center gap-8px w-full'>
-                              {healthStatus !== 'unknown' && (
-                                <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
-                              )}
-                              <span>{modelName}</span>
-                            </div>
-                          );
-                        }
-                        return (
-                          <Tooltip
-                            position='right'
-                            trigger='hover'
-                            content={
-                              <div className='max-w-240px space-y-6px'>
-                                <div className='text-12px text-t-tertiary leading-5'>{option.description}</div>
-                                {option.modelHint && (
-                                  <div className='text-11px text-t-tertiary'>{option.modelHint}</div>
-                                )}
-                              </div>
-                            }
-                          >
-                            <div className='flex items-center gap-8px w-full'>
-                              {healthStatus !== 'unknown' && (
-                                <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
-                              )}
-                              <span>{option.label}</span>
-                            </div>
-                          </Tooltip>
-                        );
-                      })()}
+                      <div className='flex items-center gap-8px w-full'>
+                        {healthStatus !== 'unknown' && (
+                          <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                        )}
+                        <span>{modelName}</span>
+                      </div>
                     </Menu.Item>
                   );
                 })}
@@ -220,4 +161,4 @@ const GeminiModelSelector: React.FC<{
   );
 };
 
-export default GeminiModelSelector;
+export default GoogleModelSelector;

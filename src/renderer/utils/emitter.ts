@@ -17,10 +17,6 @@ export type ReplyQuote = {
 };
 
 interface EventTypes {
-  'gemini.selected.file': [Array<string | FileOrFolderItem>];
-  'gemini.selected.file.append': [Array<string | FileOrFolderItem>];
-  'gemini.selected.file.clear': void;
-  'gemini.workspace.refresh': void;
   'aionrs.selected.file': [Array<string | FileOrFolderItem>];
   'aionrs.selected.file.append': [Array<string | FileOrFolderItem>];
   'aionrs.selected.file.clear': void;

@@ -251,45 +251,7 @@ type ConversationHistoryData = Record<string, TMessage[]>;
 const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cacheDir, STORAGE_PATH.chatMessage));
 const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
 
-// 创建带字段迁移的聊天历史代理
-const isGeminiConversation = (
-  conversation: TChatConversation
-): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
-  return conversation.type === 'gemini';
-};
-
-const chatFile = {
-  ..._chatFile,
-  async get<K extends keyof IChatConversationRefer>(key: K): Promise<IChatConversationRefer[K]> {
-    const data = await _chatFile.get(key);
-
-    // 特别处理 chat.history 的字段迁移
-    if (key === 'chat.history' && Array.isArray(data)) {
-      const history = data as IChatConversationRefer['chat.history'];
-      return history.map((conversation: TChatConversation) => {
-        // 只有 Gemini 会话带有 model 字段，需要将旧格式 selectedModel 迁移为 useModel
-        if (isGeminiConversation(conversation) && conversation.model) {
-          // 使用 Record 类型处理旧格式迁移
-          const modelRecord = conversation.model as unknown as Record<string, unknown>;
-          if ('selectedModel' in modelRecord && !('useModel' in modelRecord)) {
-            modelRecord['useModel'] = modelRecord['selectedModel'];
-            delete modelRecord['selectedModel'];
-            conversation.model = modelRecord as TProviderWithModel;
-          }
-        }
-        return conversation;
-      }) as IChatConversationRefer[K];
-    }
-
-    return data;
-  },
-  async set<K extends keyof IChatConversationRefer>(
-    key: K,
-    value: IChatConversationRefer[K]
-  ): Promise<IChatConversationRefer[K]> {
-    return await _chatFile.set(key, value);
-  },
-};
+const chatFile = _chatFile;
 
 const buildMessageListStorage = (conversation_id: string, dir: string) => {
   const fullName = path.join(dir, 'aionui-chat-history', conversation_id + '.txt');

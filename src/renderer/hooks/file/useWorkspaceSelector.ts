@@ -12,7 +12,7 @@ import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
 
-export type WorkspaceEventPrefix = 'gemini' | 'acp' | 'codex';
+export type WorkspaceEventPrefix = 'acp' | 'codex';
 
 /**
  * Hook to select a new workspace directory for the current conversation.

@@ -15,19 +15,9 @@ export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.co
 export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
 
 export interface IConfigStorageRefer {
-  'gemini.config': {
-    authType: string;
-    proxy: string;
-    GOOGLE_GEMINI_BASE_URL?: string;
-    /** @deprecated Use accountProjects instead. Kept for backward compatibility migration. */
-    GOOGLE_CLOUD_PROJECT?: string;
-    /** 按 Google 账号存储的 GCP 项目 ID / GCP project IDs stored per Google account */
-    accountProjects?: Record<string, string>;
-    yoloMode?: boolean;
-    /** Preferred session mode for new conversations / 新会话的默认模式 */
-    preferredMode?: string;
-    /** Preferred model ID for new conversations / 新会话的默认模型 */
-    preferredModelId?: string;
+  'google.config': {
+    /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
+    proxy?: string;
   };
   'codex.config'?: {
     cli_path?: string;
@@ -79,7 +69,6 @@ export interface IConfigStorageRefer {
   customCss: string; // 自定义 CSS 样式
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
-  'gemini.defaultModel': string | { id: string; useModel: string };
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
@@ -222,35 +211,6 @@ export interface TokenUsageData {
 }
 
 export type TChatConversation =
-  | IChatConversation<
-      'gemini',
-      {
-        workspace: string;
-        custom_workspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
-        web_search_engine?: 'google' | 'default'; // 搜索引擎配置
-        last_token_usage?: TokenUsageData; // 上次的 token 使用统计
-        context_file_name?: string;
-        contextContent?: string;
-        // 系统规则支持 / System rules support
-        preset_rules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
-        /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
-        enabled_skills?: string[];
-        /** 实际加载的 skills 快照（首次消息时持久化）/ Snapshot of actually loaded skills (persisted on first message) */
-        loaded_skills?: Array<{ name: string; description: string }>;
-        /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
-        preset_assistant_id?: string;
-        /** 是否置顶会话 / Whether this conversation is pinned */
-        pinned?: boolean;
-        /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
-        pinned_at?: number;
-        /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
-        session_mode?: string;
-        /** Explicit marker for temporary health-check conversations */
-        is_health_check?: boolean;
-        /** Cron job ID that spawned this conversation */
-        cron_job_id?: string;
-      }
-    >
   | Omit<
       IChatConversation<
         'acp',
@@ -374,6 +334,31 @@ export type TChatConversation =
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
+        }
+      >,
+      'model'
+    >
+  // Legacy Gemini conversations. Kept solely so that the renderer can
+  // open historical rows with type='gemini' (message history is served
+  // by the shared messages table). The backend factory rejects any
+  // attempt to resume this conversation — see
+  // aionui-backend/crates/aionui-common/src/enums.rs and factory.rs.
+  // Every field is optional because legacy rows shape-varies across
+  // several older Gemini-runtime versions.
+  | Omit<
+      IChatConversation<
+        'gemini',
+        {
+          workspace?: string;
+          custom_workspace?: boolean;
+          agent_name?: string;
+          preset_assistant_id?: string;
+          pinned?: boolean;
+          pinned_at?: number;
+          is_health_check?: boolean;
+          cron_job_id?: string;
+          // Other legacy-only keys (session_mode, preset_rules, etc.)
+          // deliberately omitted — they're not read by the renderer.
         }
       >,
       'model'

@@ -77,7 +77,7 @@ export type GuidSendResult = {
 };
 
 /**
- * Hook that manages the send logic for all conversation types (gemini/openclaw/nanobot/acp).
+ * Hook that manages the send logic for all conversation types (openclaw/nanobot/acp).
  */
 export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const {
@@ -133,83 +133,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
 
     const finalEffectiveAgentType = effectiveAgentType;
-
-    // Gemini path
-    if (!selectedAgent || selectedAgent === 'gemini' || (is_preset && finalEffectiveAgentType === 'gemini')) {
-      // The placeholder only makes sense while Google Auth is active — otherwise
-      // it fabricates a logged-out auth type and the chat page fails to load.
-      if (!current_model && !isGoogleAuth) {
-        Message.warning(t('conversation.noModelConfigured'));
-        return;
-      }
-      const placeholderModel = current_model || {
-        id: 'gemini-placeholder',
-        name: 'Gemini',
-        useModel: 'default',
-        platform: 'gemini-with-google-auth' as const,
-        base_url: '',
-        api_key: '',
-      };
-      try {
-        const geminiConversationParams = buildAgentConversationParams({
-          backend: 'gemini',
-          name: input,
-          agent_name: agentInfo?.name,
-          preset_assistant_id,
-          workspace: finalWorkspace,
-          model: placeholderModel,
-          custom_agent_id: agentInfo?.custom_agent_id,
-          custom_workspace: isCustomWorkspace,
-          is_preset,
-          presetAgentType: finalEffectiveAgentType,
-          presetResources: is_preset
-            ? {
-                rules: preset_rules,
-                enabled_skills,
-                excludeBuiltinSkills,
-              }
-            : undefined,
-          session_mode: selectedMode,
-          extra: {
-            defaultFiles: files,
-            excludeBuiltinSkills,
-            web_search_engine:
-              placeholderModel.platform === 'gemini-with-google-auth' ||
-              placeholderModel.platform === 'gemini-vertex-ai'
-                ? 'google'
-                : 'default',
-          },
-        });
-
-        const conversation = await ipcBridge.conversation.create.invoke(geminiConversationParams);
-
-        if (!conversation || !conversation.id) {
-          throw new Error('Failed to create conversation - conversation object is null or missing id');
-        }
-
-        if (isCustomWorkspace) {
-          closeAllTabs();
-          updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
-        }
-
-        emitter.emit('chat.history.refresh');
-
-        const workspacePath = conversation.extra?.workspace || '';
-        const displayMessage = buildDisplayMessage(input, files, workspacePath);
-        const initialMessage = {
-          input: displayMessage,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`gemini_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
-        void navigate(`/conversation/${conversation.id}`);
-      } catch (error: unknown) {
-        console.error('Failed to create Gemini conversation:', error);
-        throw error;
-      }
-      return;
-    }
 
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
@@ -374,7 +297,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Remaining agent path (ACP/remote/custom, including preset fallbacks)
     {
       // Agent-type fallback only applies to preset assistants whose primary agent
-      // was unavailable and got switched (e.g. claude → gemini).  For non-preset
+      // was unavailable and got switched. For non-preset
       // agents (including extension-contributed ACP adapters with backend='custom'),
       // we must keep the original selectedAgent so the correct backend/cli_path is used.
       const agent_typeChanged = is_preset && selectedAgent !== finalEffectiveAgentType;
@@ -528,13 +451,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   // Calculate button disabled state
-  const isButtonDisabled =
-    loading ||
-    !input.trim() ||
-    ((((!selectedAgent || selectedAgent === 'gemini') && !is_presetAgent) ||
-      (is_presetAgent && currentEffectiveAgentInfo.agent_type === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&
-      !current_model &&
-      isGoogleAuth);
+  const isButtonDisabled = loading || !input.trim();
 
   return {
     handleSend,

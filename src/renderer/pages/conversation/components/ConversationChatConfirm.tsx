@@ -34,7 +34,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const checkAndAutoConfirm = useCallback(
     async (confirmation: StoredConfirmation): Promise<boolean> => {
       // Only check agent types that have approval store
-      if (agent_type !== 'gemini' && agent_type !== 'aionrs') return false;
+      if (agent_type !== 'aionrs') return false;
 
       const { action, command_type } = confirmation;
       // Skip if no action (backend will return false for empty keys)

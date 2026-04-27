@@ -11,10 +11,7 @@ import type { AcpBackend } from '../types';
 /** Save preferred mode to the agent's own config key */
 export async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
   try {
-    if (agentKey === 'gemini') {
-      const config = configService.get('gemini.config');
-      await configService.set('gemini.config', { ...config, preferredMode: mode });
-    } else if (agentKey === 'aionrs') {
+    if (agentKey === 'aionrs') {
       const config = configService.get('aionrs.config');
       await configService.set('aionrs.config', { ...config, preferredMode: mode });
     } else if (agentKey !== 'custom') {

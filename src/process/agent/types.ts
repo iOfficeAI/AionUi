@@ -9,7 +9,6 @@ export type {
   DetectedAgentKind,
   DetectedAgent,
   AcpDetectedAgent,
-  GeminiDetectedAgent,
   RemoteDetectedAgent,
   AionrsDetectedAgent,
   NanobotDetectedAgent,

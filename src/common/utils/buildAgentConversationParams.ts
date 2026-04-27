@@ -35,8 +35,6 @@ export type BuildAgentConversationInput = {
 
 export function getConversationTypeForBackend(backend: string): ICreateConversationParams['type'] {
   switch (backend) {
-    case 'gemini':
-      return 'gemini';
     case 'aionrs':
       return 'aionrs';
     case 'openclaw-gateway':
@@ -84,13 +82,9 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra.enabled_skills = presetResources?.enabled_skills;
     extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;
     extra.preset_assistant_id = effectivePresetAssistantId;
-    if (type === 'gemini') {
-      extra.preset_rules = presetResources?.rules;
-    } else {
-      extra.preset_context = presetResources?.rules;
-      if (type === 'acp') {
-        extra.backend = effectivePresetType as AcpBackend;
-      }
+    extra.preset_context = presetResources?.rules;
+    if (type === 'acp') {
+      extra.backend = effectivePresetType as AcpBackend;
     }
   } else if (type === 'remote') {
     extra.remoteAgentId = custom_agent_id;

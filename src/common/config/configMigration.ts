@@ -8,7 +8,6 @@ import { ConfigStorage, type IConfigStorageRefer } from './storage';
 const MIGRATION_FLAG: ConfigKey = 'migration.configStorageImported';
 
 const ALL_LEGACY_KEYS: ConfigKey[] = [
-  'gemini.config',
   'codex.config',
   'acp.config',
   'acp.promptTimeout',
@@ -31,7 +30,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'customCss',
   'css.themes',
   'css.activeThemeId',
-  'gemini.defaultModel',
   'aionrs.config',
   'aionrs.defaultModel',
   'tools.imageGenerationModel',

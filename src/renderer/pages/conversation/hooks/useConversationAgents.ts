@@ -27,8 +27,8 @@ export type UseConversationAgentsResult = {
  */
 function assistantToAvailableAgent(assistant: Assistant): AvailableAgent {
   return {
-    agent_type: assistant.preset_agent_type || 'gemini',
-    backend: assistant.preset_agent_type || 'gemini',
+    agent_type: assistant.preset_agent_type || 'claude',
+    backend: assistant.preset_agent_type || 'claude',
     name: assistant.name,
     custom_agent_id: assistant.id,
     is_preset: true,

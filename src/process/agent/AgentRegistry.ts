@@ -9,7 +9,6 @@ import type {
   AcpDetectedAgent,
   AionrsDetectedAgent,
   DetectedAgent,
-  GeminiDetectedAgent,
   NanobotDetectedAgent,
   OpenClawDetectedAgent,
   RemoteDetectedAgent,
@@ -48,16 +47,6 @@ class AgentRegistry {
   private remoteAgents: RemoteDetectedAgent[] = [];
   private otherAgents: DetectedAgent[] = [];
   private customAgents: AcpDetectedAgent[] = [];
-
-  private createGeminiAgent(): GeminiDetectedAgent {
-    return {
-      id: 'gemini',
-      name: 'Gemini CLI',
-      kind: 'gemini',
-      available: true,
-      backend: 'gemini',
-    };
-  }
 
   private createAionrsAgent(): AionrsDetectedAgent {
     return {
@@ -126,7 +115,7 @@ class AgentRegistry {
 
   /**
    * Deduplicate agents by backend ID. First occurrence wins — merge order
-   * determines priority: Aionrs > Gemini > Builtin > Other > Remote > Extension > Custom.
+   * determines priority: Aionrs > Builtin > Other > Remote > Extension > Custom.
    * When an extension contributes the same backend as a builtin, the builtin wins.
    *
    * Remote and custom agents share their `backend` string but are individually
@@ -150,7 +139,6 @@ class AgentRegistry {
   private merge(): void {
     this.detectedAgents = this.deduplicate([
       this.createAionrsAgent(),
-      this.createGeminiAgent(),
       ...this.builtinAgents,
       ...this.otherAgents,
       ...this.remoteAgents,

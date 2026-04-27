@@ -148,10 +148,7 @@ export const conversation = {
       };
     }
   ),
-  reset: httpPost<void, IResetConversationParams>(
-    (p) => `/api/conversations/${p.id}/reset`,
-    (p) => ({ gemini: p.gemini })
-  ),
+  reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
   stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/stop`),
   sendMessage: httpPost<void, ISendMessageParams>(
@@ -238,13 +235,6 @@ export const conversation = {
         `/api/conversations/${p.conversation_id}/approvals/check?action=${encodeURIComponent(p.action)}${p.commandType ? `&commandType=${encodeURIComponent(p.commandType)}` : ''}`
     ),
   },
-};
-
-// Gemini — reuses unified conversation interface
-export const geminiConversation = {
-  sendMessage: conversation.sendMessage,
-  confirmMessage: conversation.confirmMessage,
-  responseStream: conversation.responseStream,
 };
 
 // ---------------------------------------------------------------------------
@@ -520,11 +510,6 @@ export const fileSnapshot = {
 // ---------------------------------------------------------------------------
 
 export const googleAuth = {
-  login: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.login', {
-    success: false,
-    msg: 'Google Auth not available in backend mode',
-  }),
-  logout: stubProvider<void, {}>('googleAuth.logout', undefined as unknown as void),
   status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.status', {
     success: false,
     msg: 'Google Auth not available in backend mode',
@@ -532,14 +517,14 @@ export const googleAuth = {
 };
 
 // ---------------------------------------------------------------------------
-// Gemini subscription status
+// Google subscription status (Google OAuth provider path, used by aionrs)
 // ---------------------------------------------------------------------------
 
-export const gemini = {
+export const google = {
   subscriptionStatus: httpGet<
     { isSubscriber: boolean; tier?: string; lastChecked: number; message?: string },
     { proxy?: string }
-  >('/api/gemini/subscription-status'),
+  >('/api/google/subscription-status'),
 };
 
 // ---------------------------------------------------------------------------
@@ -1097,7 +1082,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -1140,9 +1125,6 @@ export interface ICreateConversationParams {
 
 interface IResetConversationParams {
   id?: string;
-  gemini?: {
-    clearCachedCredentialFile?: boolean;
-  };
 }
 
 export interface IDirOrFile {

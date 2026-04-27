@@ -298,7 +298,6 @@ vi.mock('@/common/config/configService', () => ({
 vi.mock('@renderer/hooks/agent/useModelProviderList', () => ({
   useModelProviderList: () => ({
     providers: [],
-    geminiModeLookup: {},
     getAvailableModels: () => [],
     formatModelLabel: (id: string) => id,
   }),

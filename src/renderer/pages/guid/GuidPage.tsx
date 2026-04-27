@@ -79,9 +79,9 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Hooks ---
-  // Track which provider-based agent is selected so model selection persists per agent type
-  const [providerAgentKey, setProviderAgentKey] = useState<'gemini' | 'aionrs'>('aionrs');
-  const modelSelection = useGuidModelSelection(providerAgentKey);
+  // Only aionrs uses this provider-based model picker now (Gemini runs as a
+  // regular ACP backend with its own model selector).
+  const modelSelection = useGuidModelSelection('aionrs');
 
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
@@ -91,14 +91,6 @@ const GuidPage: React.FC = () => {
     resetAssistant: resetAssistantRequested,
     locationKey: location.key,
   });
-
-  // Sync providerAgentKey when selected agent changes
-  useEffect(() => {
-    const agent = agentSelection.selectedAgent;
-    if (agent === 'gemini' || agent === 'aionrs') {
-      setProviderAgentKey(agent);
-    }
-  }, [agentSelection.selectedAgent]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -462,8 +454,9 @@ const GuidPage: React.FC = () => {
     ? agentSelection.currentEffectiveAgentInfo.agent_type
     : agentSelection.selectedAgent;
 
-  // Agents that use configured model providers instead of ACP probe-based models
-  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
+  // Agents that use configured model providers instead of ACP probe-based models.
+  // Only aionrs now — Gemini runs as a regular ACP backend with ACP-cached models.
+  const PROVIDER_BASED_AGENTS = new Set(['aionrs']);
   const isGeminiMode =
     PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
     (!agentSelection.is_presetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
@@ -485,7 +478,6 @@ const GuidPage: React.FC = () => {
       modelList={modelSelection.modelList}
       current_model={modelSelection.current_model}
       setCurrentModel={modelSelection.setCurrentModel}
-      geminiModeLookup={modelSelection.geminiModeLookup}
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={agentSelection.setSelectedAcpModel}

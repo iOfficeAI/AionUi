@@ -75,14 +75,6 @@ export function resolvePresetId(conversation: TChatConversation): string | null 
     return resolved;
   }
 
-  // 3. 向后兼容：enabled_skills 存在说明是 Cowork 会话（Gemini 旧会话）
-  // Backward compatible: enabled_skills means Cowork conversation (Gemini old conversations)
-  // 只有在既没有 preset_assistant_id 也没有 custom_agent_id 时才使用此逻辑
-  // Only use this logic when both preset_assistant_id and custom_agent_id are absent (including empty strings)
-  if (conversation.type === 'gemini' && !preset_assistant_id && !custom_agent_id && enabled_skills.length > 0) {
-    return 'cowork';
-  }
-
   return null;
 }
 

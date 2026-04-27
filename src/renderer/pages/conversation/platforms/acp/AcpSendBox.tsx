@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
@@ -30,7 +31,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -221,6 +222,19 @@ const AcpSendBox: React.FC<{
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
+
+        // Archived conversation (e.g. legacy Gemini). Backend signals this
+        // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
+        // not by substring matching.
+        if (isBackendHttpError(error) && error.code === 'CONVERSATION_ARCHIVED') {
+          Message.error({
+            content: error.backendMessage || errorMsg,
+            duration: 6000,
+          });
+          setAiProcessing(false);
+          throw error;
+        }
+
         const isAuthError =
           errorMsg.includes('[ACP-AUTH-') ||
           errorMsg.includes('authentication failed') ||
