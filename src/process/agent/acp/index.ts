@@ -1122,7 +1122,7 @@ export class AcpAgent {
       }
 
       // Store metadata for later use in confirmMessage
-        this.permissionRequestMeta.set(requestId, {
+      this.permissionRequestMeta.set(requestId, {
         kind: data.tool_call.kind,
         title: data.tool_call.title,
         rawInput: data.tool_call.raw_input,
