@@ -1135,6 +1135,14 @@ export interface ICreateConversationParams {
     default_files?: string[];
     backend?: AgentBackend;
     cli_path?: string;
+    gateway?: {
+      host?: string;
+      port?: number;
+      token?: string;
+      password?: string;
+      use_external_gateway?: boolean;
+      cli_path?: string;
+    };
     web_search_engine?: 'google' | 'default';
     agent_name?: string;
     agent_id?: string;

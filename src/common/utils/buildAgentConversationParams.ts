@@ -88,7 +88,15 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     }
   } else if (type === 'remote') {
     extra.remote_agent_id = custom_agent_id;
-  } else if (type === 'acp' || type === 'openclaw-gateway') {
+  } else if (type === 'openclaw-gateway') {
+    extra.agent_name = agent_name || name;
+    extra.gateway = {
+      cli_path,
+    };
+    if (custom_agent_id) {
+      extra.custom_agent_id = custom_agent_id;
+    }
+  } else if (type === 'acp') {
     extra.backend = backend as AcpBackendAll;
     extra.agent_name = agent_name || name;
     if (agent_id) extra.agent_id = agent_id;
