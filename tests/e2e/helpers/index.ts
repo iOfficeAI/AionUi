@@ -121,22 +121,3 @@ export {
   type TProviderWithModel,
   type AionrsTestModels,
 } from './chatAionrs';
-export {
-  checkGeminiAuth,
-  createGeminiConversationViaBridge,
-  sendGeminiMessage,
-  waitForGeminiReply,
-  getGeminiConversationDB,
-  readConvModelName,
-  readConvExtra,
-  cleanupE2EGeminiConversations,
-  createTempGeminiWorkspace,
-  selectGeminiAgent,
-  selectGeminiModel,
-  selectGeminiMode,
-  isElectronDesktop,
-  attachGeminiFolder,
-  uploadGeminiFiles,
-  getGeminiTestModels,
-  type GeminiTestModels,
-} from './chatGemini';
