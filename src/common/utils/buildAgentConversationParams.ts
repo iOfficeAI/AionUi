@@ -80,11 +80,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   if (is_preset) {
     extra.enabled_skills = presetResources?.enabled_skills;
-    // Emit both camelCase (for frontend `initAgent.ts` symlink materialization)
-    // and snake_case (for backend `AcpBuildExtra.exclude_builtin_skills`) until
-    // the camelCase path can be migrated.
     extra.excludeBuiltinSkills = presetResources?.excludeBuiltinSkills;
-    extra.exclude_builtin_skills = presetResources?.excludeBuiltinSkills;
     extra.preset_assistant_id = effectivePresetAssistantId;
     extra.preset_context = presetResources?.rules;
     if (type === 'acp') {
