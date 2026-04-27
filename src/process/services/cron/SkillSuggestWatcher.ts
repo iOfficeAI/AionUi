@@ -152,7 +152,7 @@ class SkillSuggestWatcher {
       };
 
       ipcBridge.conversation.responseStream.emit(message);
-      ipcBridge.geminiConversation.responseStream.emit(message);
+      ipcBridge.conversation.responseStream.emit(message);
       ipcBridge.acpConversation.responseStream.emit(message);
       ipcBridge.openclawConversation.responseStream.emit(message);
       console.log(`[SkillSuggestWatcher] Emitted skill_suggest for job ${job_id}, conversation ${conversation_id}`);

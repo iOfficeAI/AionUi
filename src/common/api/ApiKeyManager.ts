@@ -30,8 +30,6 @@ export class ApiKeyManager {
     switch (authType) {
       case AuthType.USE_OPENAI:
         return 'OPENAI_API_KEY';
-      case AuthType.USE_GEMINI:
-        return 'GEMINI_API_KEY';
       case AuthType.USE_ANTHROPIC:
         return 'ANTHROPIC_API_KEY';
       default:

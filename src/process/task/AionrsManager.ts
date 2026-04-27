@@ -10,7 +10,14 @@ import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
-import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
+// Kept inline after the Gemini runtime was removed. Only the three values
+// below are consumed by this manager; adding more requires updating the
+// confirm-message dispatcher as well.
+enum ToolConfirmationOutcome {
+  ProceedOnce = 'proceed_once',
+  ProceedAlways = 'proceed_always',
+  Cancel = 'cancel',
+}
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog } from '@process/utils/mainLogger';

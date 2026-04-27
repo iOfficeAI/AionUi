@@ -77,13 +77,9 @@ const LocalAgents: React.FC = () => {
     [mutateCustomAgents]
   );
 
-  // Aion CLI and Gemini CLI first among detected agents
+  // Aion CLI first among detected agents
   const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const geminiAgent = detectedAgents?.find((a) => a.agent_type === 'gemini' || a.backend === 'gemini');
-  const otherDetected =
-    detectedAgents?.filter(
-      (a) => a.agent_type !== 'gemini' && a.agent_type !== 'aionrs' && a.backend !== 'gemini' && a.backend !== 'aionrs'
-    ) ?? [];
+  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
@@ -147,15 +143,6 @@ const LocalAgents: React.FC = () => {
             agent={aionrsAgent}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/aionrs')}
-            variant='grid'
-          />
-        )}
-        {geminiAgent && (
-          <AgentCard
-            type='detected'
-            agent={geminiAgent}
-            settingsDisabled={false}
-            onSettings={() => navigate('/settings/gemini')}
             variant='grid'
           />
         )}

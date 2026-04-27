@@ -46,7 +46,7 @@ export const useSettingsModal = (): UseSettingsModalReturn => {
   // 弹窗可见状态 / Modal visibility state
   const [visible, setVisible] = useState(false);
   // 默认选中的标签页 / Default selected tab
-  const [defaultTab, setDefaultTab] = useState<SettingTab>('gemini');
+  const [defaultTab, setDefaultTab] = useState<SettingTab>('model');
 
   /**
    * 打开设置弹窗 / Open settings modal

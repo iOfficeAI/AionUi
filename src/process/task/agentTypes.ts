@@ -6,7 +6,7 @@
 
 // src/process/task/agentTypes.ts
 
-export type AgentType = 'gemini' | 'acp' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+export type AgentType = 'acp' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
 export type AgentStatus = 'pending' | 'running' | 'finished';
 
 export interface BuildConversationOptions {

@@ -139,7 +139,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { cliAgents, presetAssistants } = useConversationAgents();
-  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
@@ -286,11 +286,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // Set default model_id from user preferences when backend changes
   useEffect(() => {
     if (!resolvedBackend || model_id) return;
-    if (resolvedBackend === 'gemini') {
-      const saved = configService.get('gemini.defaultModel');
-      const preferred = typeof saved === 'string' ? saved : saved?.useModel;
-      if (preferred) setModelId(preferred);
-    } else if (resolvedBackend === 'aionrs') {
+    if (resolvedBackend === 'aionrs') {
       const saved = configService.get('aionrs.defaultModel');
       if (saved?.useModel) setModelId(saved.useModel);
     }
@@ -710,7 +706,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       modelList={filteredProviders}
                       current_model={geminiCurrentModel}
                       setCurrentModel={handleGeminiModelSelect}
-                      geminiModeLookup={geminiModeLookup}
                       currentAcpCachedModelInfo={acpCachedModelInfo}
                       selectedAcpModel={model_id ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}

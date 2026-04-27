@@ -16,7 +16,7 @@ import mcp from './mcp.json';
 import acp from './acp.json';
 import codex from './codex.json';
 import tools from './tools.json';
-import gemini from './gemini.json';
+import google from './google.json';
 import cron from './cron.json';
 import starOffice from './starOffice.json';
 import guid from './guid.json';
@@ -38,7 +38,7 @@ export default {
   acp,
   codex,
   tools,
-  gemini,
+  google,
   cron,
   starOffice,
   guid,

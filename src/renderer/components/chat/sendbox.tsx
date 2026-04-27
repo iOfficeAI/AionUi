@@ -793,15 +793,6 @@ const SendBox: React.FC<{
   }, []);
 
   useAddEventListener(
-    'gemini.selected.file.append',
-    (items: FileSelectionItem[]) => {
-      if (conversationContext?.type === 'gemini') {
-        handleExternalSelectionAppend(items);
-      }
-    },
-    [conversationContext?.type, handleExternalSelectionAppend]
-  );
-  useAddEventListener(
     'aionrs.selected.file.append',
     (items: FileSelectionItem[]) => {
       if (conversationContext?.type === 'aionrs') {
@@ -859,9 +850,6 @@ const SendBox: React.FC<{
   const emitSelectedFileAppend = useCallback(
     (item: FileOrFolderItem) => {
       switch (conversationContext?.type) {
-        case 'gemini':
-          emitter.emit('gemini.selected.file.append', [item]);
-          break;
         case 'aionrs':
           emitter.emit('aionrs.selected.file.append', [item]);
           break;

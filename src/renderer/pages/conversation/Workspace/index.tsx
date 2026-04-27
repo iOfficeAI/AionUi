@@ -48,7 +48,7 @@ import './workspace.css';
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
-  eventPrefix = 'gemini',
+  eventPrefix = 'acp',
   messageApi: externalMessageApi,
   team_id,
 }) => {

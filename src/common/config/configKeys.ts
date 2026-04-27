@@ -10,15 +10,8 @@ import type { SpeechToTextConfig } from '@/common/types/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
 export type ConfigKeyMap = {
-  'gemini.config': {
-    authType: string;
-    proxy: string;
-    GOOGLE_GEMINI_BASE_URL?: string;
-    GOOGLE_CLOUD_PROJECT?: string;
-    accountProjects?: Record<string, string>;
-    yoloMode?: boolean;
-    preferredMode?: string;
-    preferredModelId?: string;
+  'google.config': {
+    proxy?: string;
   };
   'codex.config':
     | { cli_path?: string; yoloMode?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access' }
@@ -55,7 +48,6 @@ export type ConfigKeyMap = {
   customCss: string;
   'css.themes': ICssTheme[];
   'css.activeThemeId': string;
-  'gemini.defaultModel': string | { id: string; useModel: string };
   'aionrs.config': { preferredMode?: string } | undefined;
   'aionrs.defaultModel': { id: string; useModel: string } | undefined;
   'tools.imageGenerationModel': TProviderWithModel & { switch?: boolean };

@@ -31,7 +31,7 @@ export interface IAgentMessageEvent extends IResponseMessage {
  *
  * Usage:
  * ```typescript
- * // 发送事件（在 GeminiAgentManager 等中）
+ * // 发送事件（在 ACP agent / session 等生产侧中）
  * channelEventBus.emitAgentMessage(conversation_id, data);
  *
  * // 监听事件（在 ChannelMessageService 中）
