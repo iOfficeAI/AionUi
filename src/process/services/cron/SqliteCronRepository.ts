@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { cronStore, type CronJob } from './CronStore';
+import { cronStore, type CronConversationBinding, type CronJob } from './CronStore';
 import type { ICronRepository } from './ICronRepository';
 
 /** Thin delegation wrapper around the CronStore singleton. */
@@ -39,5 +39,29 @@ export class SqliteCronRepository implements ICronRepository {
 
   async deleteByConversation(conversationId: string): Promise<number> {
     return cronStore.deleteByConversation(conversationId);
+  }
+
+  async insertBinding(binding: CronConversationBinding): Promise<void> {
+    await cronStore.insertBinding(binding);
+  }
+
+  async deleteBinding(jobId: string, conversationId: string): Promise<number> {
+    return cronStore.deleteBinding(jobId, conversationId);
+  }
+
+  async deleteBindingsByJob(jobId: string): Promise<number> {
+    return cronStore.deleteBindingsByJob(jobId);
+  }
+
+  async listBindingsByJob(jobId: string): Promise<CronConversationBinding[]> {
+    return cronStore.listBindingsByJob(jobId);
+  }
+
+  async listBindingsByConversation(conversationId: string): Promise<CronConversationBinding[]> {
+    return cronStore.listBindingsByConversation(conversationId);
+  }
+
+  async getDefaultBinding(jobId: string): Promise<CronConversationBinding | null> {
+    return cronStore.getDefaultBinding(jobId);
   }
 }

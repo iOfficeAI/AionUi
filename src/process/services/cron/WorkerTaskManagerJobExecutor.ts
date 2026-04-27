@@ -44,37 +44,16 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return this.busyGuard.isProcessing(conversationId);
   }
 
-  async executeJob(job: CronJob, onAcquired?: () => void, preparedConversationId?: string): Promise<string | void> {
+  async executeJob(
+    job: CronJob,
+    onAcquired?: (conversationId: string) => void,
+    preparedConversationId?: string
+  ): Promise<string | void> {
+    const isNewConversationMode = job.target.executionMode === 'new_conversation';
     let conversationId = preparedConversationId ?? job.metadata.conversationId;
 
-    // Create a conversation when needed (skip if already prepared by runNow):
-    if (!preparedConversationId && job.metadata.agentConfig) {
+    if (!preparedConversationId && isNewConversationMode && job.metadata.agentConfig) {
       conversationId = await this.resolveConversationForJob(job);
-    }
-
-    // For existing mode, ensure the reused conversation uses the correct model.
-    // If the job specifies a modelId, use that; otherwise fall back to the user's
-    // preferred model so it doesn't stay on whatever it was originally created with.
-    if (job.target.executionMode === 'existing' && conversationId && job.metadata.agentConfig) {
-      const convService = await getConversationService();
-      const conv = await convService.getConversation(conversationId);
-      if (conv) {
-        const baseModel = await this.resolveModelForBackend(job.metadata.agentConfig.backend);
-        const currentModel = job.metadata.agentConfig.modelId
-          ? { ...baseModel, useModel: job.metadata.agentConfig.modelId }
-          : baseModel;
-        const convModel = 'model' in conv ? (conv as { model: TProviderWithModel }).model : undefined;
-        if (convModel?.useModel !== currentModel.useModel) {
-          await convService.updateConversation(conversationId, {
-            model: convModel ? { ...convModel, useModel: currentModel.useModel } : currentModel,
-          } as Partial<TChatConversation>);
-          // Kill stale task so getOrBuildTask picks up the new model
-          const staleTask = this.taskManager.getTask(conversationId);
-          if (staleTask) {
-            this.taskManager.kill(conversationId);
-          }
-        }
-      }
     }
 
     const msgId = uuid();
@@ -110,15 +89,14 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     this.busyGuard.setProcessing(conversationId, true);
     // Notify caller so it can register onceIdle callbacks while the conversation
     // is already marked busy (prevents premature idle fires).
-    onAcquired?.();
+    onAcquired?.(conversationId);
 
     // Apply mode and config options if configured (must succeed before sendMessage).
     // If the task's agent is stale/disconnected, settings may fail — kill and retry
     // with a fresh task in that case.
     if (
-      job.metadata.agentConfig?.mode ||
-      job.metadata.agentConfig?.configOptions ||
-      job.metadata.agentConfig?.modelId
+      isNewConversationMode &&
+      (job.metadata.agentConfig?.mode || job.metadata.agentConfig?.configOptions || job.metadata.agentConfig?.modelId)
     ) {
       const ok = await this.applyAgentSettings(task, job);
       if (!ok) {
@@ -455,105 +433,16 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return buildNewConvPrompt(job.name, job.schedule.description, rawText);
   }
 
-  async prepareConversation(job: CronJob): Promise<string> {
-    if (!job.metadata.agentConfig) {
-      return job.metadata.conversationId;
-    }
+  async prepareConversation(job: CronJob, conversationId?: string): Promise<string> {
+    if (conversationId) return conversationId;
+    if (job.target.executionMode !== 'new_conversation') return job.metadata.conversationId;
     return this.resolveConversationForJob(job);
   }
 
-  /**
-   * Resolve the conversation ID for a job execution.
-   * - new_conversation mode: always create a fresh conversation
-   * - existing mode: reuse the latest child conversation, unless agent or workspace changed
-   *
-   * Only agent change or workspace change forces a new conversation in existing mode.
-   * Mode and configOptions changes do NOT require a new conversation.
-   */
   private async resolveConversationForJob(job: CronJob): Promise<string> {
-    // new_conversation mode: always create
-    if (job.target.executionMode === 'new_conversation') {
-      const conv = await this.buildConversationForJob(job);
-      return conv.id;
-    }
-
-    // existing mode: try to reuse latest child conversation
-    if (job.target.executionMode === 'existing') {
-      const convService = await getConversationService();
-      const childConversations = await convService.getConversationsByCronJob(job.id);
-      console.log(
-        `[CronExecutor] resolveConversation existing mode: childCount=${childConversations.length}, executionMode=${job.target.executionMode}`
-      );
-
-      if (childConversations.length > 0) {
-        const latestConv = await convService.getConversation(childConversations[0].id);
-        if (latestConv) {
-          const config = job.metadata.agentConfig!;
-          const extra = latestConv.extra as Record<string, unknown> | undefined;
-          const convBackend = extra?.backend as string | undefined;
-          const configWorkspace = config.workspace || '';
-          // Compare against cronWorkspace (what was configured), not workspace
-          // (which may be overwritten by agent runtime, e.g. codex temp dir).
-          const prevCronWorkspace = (extra?.cronWorkspace as string | undefined) ?? '';
-          const agentChanged = convBackend !== config.backend;
-          const workspaceChanged = prevCronWorkspace !== configWorkspace;
-
-          console.log(
-            `[CronExecutor] resolveConversation: convBackend=${convBackend}, configBackend=${config.backend}, agentChanged=${agentChanged}, prevCronWorkspace=${prevCronWorkspace}, configWorkspace=${configWorkspace}, workspaceChanged=${workspaceChanged}`
-          );
-
-          if (agentChanged || workspaceChanged) {
-            const conv = await this.buildConversationForJob(job);
-            return conv.id;
-          }
-
-          // Sync extra fields so the frontend reads correct values immediately.
-          const extraUpdates: Record<string, unknown> = {};
-
-          // Backfill workspace for old conversations created before this field was always set
-          if (extra?.workspace === undefined || extra?.workspace === null) {
-            extraUpdates.workspace = config.workspace || '';
-          }
-
-          if (config.mode && extra?.sessionMode !== config.mode) {
-            extraUpdates.sessionMode = config.mode;
-          }
-
-          if (config.modelId && extra?.currentModelId !== config.modelId) {
-            extraUpdates.currentModelId = config.modelId;
-          }
-
-          if (config.configOptions && Object.keys(config.configOptions).length > 0) {
-            // Prefer patching existing conversation cache; fall back to global cache
-            const existing = Array.isArray(extra?.cachedConfigOptions) ? extra.cachedConfigOptions : undefined;
-            if (existing && existing.length > 0) {
-              extraUpdates.cachedConfigOptions = existing.map((opt: Record<string, unknown>) => {
-                const val = config.configOptions![(opt.id as string) ?? ''];
-                return val !== undefined ? { ...opt, currentValue: val, selectedValue: val } : opt;
-              });
-            } else {
-              const fromGlobal = await this.buildCachedConfigOptions(config);
-              if (fromGlobal) extraUpdates.cachedConfigOptions = fromGlobal;
-            }
-          }
-
-          if (Object.keys(extraUpdates).length > 0) {
-            await convService.updateConversation(childConversations[0].id, {
-              extra: { ...extra, ...extraUpdates },
-            } as Partial<TChatConversation>);
-          }
-
-          return childConversations[0].id;
-        }
-      }
-
-      // No child conversations yet (or latest was deleted): create first one
-      const conv = await this.buildConversationForJob(job);
-      return conv.id;
-    }
-
-    // Fallback: use metadata conversationId (jobs created from conversation context)
-    return job.metadata.conversationId;
+    if (job.target.executionMode !== 'new_conversation') return job.metadata.conversationId;
+    const conv = await this.buildConversationForJob(job);
+    return conv.id;
   }
 
   /**

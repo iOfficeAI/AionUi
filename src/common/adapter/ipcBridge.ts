@@ -814,10 +814,18 @@ export const cron = {
     'cron.list-jobs-by-conversation'
   ),
   getJob: bridge.buildProvider<ICronJob | null, { jobId: string }>('cron.get-job'),
+  listBindingsByConversation: bridge.buildProvider<ICronConversationBinding[], { conversationId: string }>(
+    'cron.list-bindings-by-conversation'
+  ),
+  listBindingsByJob: bridge.buildProvider<ICronConversationBinding[], { jobId: string }>('cron.list-bindings-by-job'),
   // CRUD
   addJob: bridge.buildProvider<ICronJob, ICreateCronJobParams>('cron.add-job'),
   updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
   removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
+  bindConversation: bridge.buildProvider<ICronConversationBinding, { jobId: string; conversationId: string }>(
+    'cron.bind-conversation'
+  ),
+  unbindConversation: bridge.buildProvider<void, { jobId: string; conversationId: string }>('cron.unbind-conversation'),
   runNow: bridge.buildProvider<{ conversationId: string }, { jobId: string }>('cron.run-now'),
   saveSkill: bridge.buildProvider<void, { jobId: string; content: string }>('cron.save-skill'),
   hasSkill: bridge.buildProvider<boolean, { jobId: string }>('cron.has-skill'),
@@ -835,6 +843,17 @@ export type ICronSchedule =
   | { kind: 'at'; atMs: number; description: string }
   | { kind: 'every'; everyMs: number; description: string }
   | { kind: 'cron'; expr: string; tz?: string; description: string };
+
+export interface ICronConversationBinding {
+  id: string;
+  jobId: string;
+  conversationId: string;
+  conversationTitle?: string;
+  conversationSource?: string;
+  isDefaultTarget: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface ICronJob {
   id: string;

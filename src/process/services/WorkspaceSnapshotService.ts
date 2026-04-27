@@ -5,6 +5,7 @@
  */
 
 import { execFile } from 'node:child_process';
+import { constants as fsConstants, type Dirent } from 'node:fs';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -394,20 +395,7 @@ export class WorkspaceSnapshotService {
 
     await execFileAsync('git', ['init', '--bare', gitdir]);
     await fs.writeFile(path.join(gitdir, 'info', 'exclude'), DEFAULT_GITIGNORE, 'utf-8');
-    // Use --ignore-errors so locked/permission-denied files don't abort the entire snapshot.
-    // The command still exits non-zero when some files fail, so catch and verify the commit succeeds.
-    try {
-      await execFileAsync('git', [...gitArgs, 'add', '--ignore-errors', '.'], {
-        cwd: workspacePath,
-        maxBuffer: 10 * 1024 * 1024,
-      });
-    } catch (error) {
-      const stderr = (error as { stderr?: string }).stderr ?? '';
-      // Re-throw if the error is NOT a partial indexing failure (e.g. git not found)
-      if (!stderr.includes('Permission denied') && !stderr.includes('unable to index file')) {
-        throw error;
-      }
-    }
+    await this.addReadableFilesToSnapshot(workspacePath, gitArgs);
     await execFileAsync(
       'git',
       [
@@ -425,5 +413,76 @@ export class WorkspaceSnapshotService {
     );
 
     return gitdir;
+  }
+
+  private async addReadableFilesToSnapshot(workspacePath: string, gitArgs: string[]): Promise<void> {
+    const addReadableFiles = async () => {
+      const files = await this.listReadableFiles(workspacePath);
+      for (const file of files) {
+        await execFileAsync('git', [...gitArgs, 'add', '--', file], {
+          cwd: workspacePath,
+          maxBuffer: 10 * 1024 * 1024,
+        });
+      }
+    };
+
+    try {
+      await execFileAsync('git', [...gitArgs, 'add', '--ignore-errors', '.'], {
+        cwd: workspacePath,
+        maxBuffer: 10 * 1024 * 1024,
+      });
+    } catch {
+      await addReadableFiles();
+      return;
+    }
+
+    const { stdout } = await execFileAsync('git', [...gitArgs, 'diff', '--cached', '--name-only'], {
+      cwd: workspacePath,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    if (!stdout.trim()) {
+      await addReadableFiles();
+    }
+  }
+
+  private async listReadableFiles(root: string): Promise<string[]> {
+    const files: string[] = [];
+    await this.collectReadableFiles(root, root, files);
+    return files;
+  }
+
+  private async collectReadableFiles(root: string, current: string, files: string[]): Promise<void> {
+    const entries = await fs.readdir(current, { withFileTypes: true }).catch((): Dirent[] => []);
+    for (const entry of entries) {
+      const fullPath = path.join(current, entry.name);
+      const relativePath = path.relative(root, fullPath);
+      if (this.shouldIgnoreSnapshotPath(relativePath)) {
+        continue;
+      }
+      if (entry.isDirectory()) {
+        await this.collectReadableFiles(root, fullPath, files);
+      } else if (entry.isFile() && (await this.canReadFile(fullPath))) {
+        files.push(relativePath);
+      }
+    }
+  }
+
+  private shouldIgnoreSnapshotPath(relativePath: string): boolean {
+    const normalized = relativePath.split(path.sep).join('/');
+    return (
+      normalized === '.git' ||
+      normalized.startsWith('.git/') ||
+      normalized === 'node_modules' ||
+      normalized.startsWith('node_modules/')
+    );
+  }
+
+  private async canReadFile(filePath: string): Promise<boolean> {
+    try {
+      await fs.access(filePath, fsConstants.R_OK);
+      return true;
+    } catch {
+      return false;
+    }
   }
 }

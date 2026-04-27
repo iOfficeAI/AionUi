@@ -131,7 +131,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   visible,
   onClose,
   editJob,
-  conversationId: _conversationId,
+  conversationId,
   conversationTitle,
   agentType,
 }) => {
@@ -194,14 +194,14 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setTime('09:00');
       setWeekday('MON');
       setCustomCronExpr('');
-      setExecutionMode('new_conversation');
+      setExecutionMode(conversationId ? 'existing' : 'new_conversation');
       setAdvancedOpen(false);
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
       setSelectedAgent(undefined);
     }
-  }, [visible, editJob, form]);
+  }, [visible, editJob, form, conversationId]);
 
   // Resolve backend from selectedAgent (handles both CLI and preset agents)
   const resolvedBackend = useMemo(() => {
@@ -477,7 +477,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: values.description,
           schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
           prompt: values.prompt,
-          conversationId: '',
+          conversationId: executionMode === 'existing' ? (conversationId ?? '') : '',
           conversationTitle,
           agentType: resolvedAgentType,
           createdBy: 'user',

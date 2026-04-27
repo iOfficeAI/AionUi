@@ -59,6 +59,10 @@ vi.mock('@process/acp/compat/typeBridge', async (importOriginal) => {
   };
 });
 
+vi.mock('@process/services/ccSwitchModelSource', () => ({
+  readClaudeModelInfoFromCcSwitch: vi.fn(() => null),
+}));
+
 describe('AcpAgentV2 - Lifecycle Methods', () => {
   beforeEach(() => {
     mockSessionMethods = {

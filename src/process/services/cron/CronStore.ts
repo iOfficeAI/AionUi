@@ -59,6 +59,17 @@ export type CronJob = {
   };
 };
 
+export type CronConversationBinding = {
+  id: string;
+  jobId: string;
+  conversationId: string;
+  conversationTitle?: string;
+  conversationSource?: string;
+  isDefaultTarget: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
 /**
  * Database row structure for cron_jobs table
  */
@@ -87,6 +98,17 @@ type CronJobRow = {
   run_count: number;
   retry_count: number;
   max_retries: number;
+};
+
+type CronConversationBindingRow = {
+  id: string;
+  job_id: string;
+  conversation_id: string;
+  conversation_title: string | null;
+  conversation_source: string | null;
+  is_default_target: number;
+  created_at: number;
+  updated_at: number;
 };
 
 /**
@@ -135,6 +157,19 @@ function jobToRow(job: CronJob): CronJobRow {
 /**
  * Convert database row to CronJob
  */
+function bindingRowToBinding(row: CronConversationBindingRow): CronConversationBinding {
+  return {
+    id: row.id,
+    jobId: row.job_id,
+    conversationId: row.conversation_id,
+    conversationTitle: row.conversation_title ?? undefined,
+    conversationSource: row.conversation_source ?? undefined,
+    isDefaultTarget: row.is_default_target === 1,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 function rowToJob(row: CronJobRow): CronJob {
   let schedule: CronSchedule;
 
@@ -346,13 +381,18 @@ class CronStore {
   }
 
   /**
-   * List cron jobs by conversation ID
+   * List cron jobs bound to a conversation ID
    */
   async listByConversation(conversationId: string): Promise<CronJob[]> {
     const db = await getDatabase();
     const rows = db
       .getDriver()
-      .prepare('SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC')
+      .prepare(
+        `SELECT j.* FROM cron_jobs j
+        INNER JOIN cron_job_conversation_bindings b ON b.job_id = j.id
+        WHERE b.conversation_id = ?
+        ORDER BY b.created_at DESC, j.created_at DESC`
+      )
       .all(conversationId) as CronJobRow[];
     return rows.map(rowToJob);
   }
@@ -375,8 +415,111 @@ class CronStore {
    */
   async deleteByConversation(conversationId: string): Promise<number> {
     const db = await getDatabase();
-    const result = db.getDriver().prepare('DELETE FROM cron_jobs WHERE conversation_id = ?').run(conversationId);
+    const result = db
+      .getDriver()
+      .prepare('DELETE FROM cron_job_conversation_bindings WHERE conversation_id = ?')
+      .run(conversationId);
     return result.changes;
+  }
+
+  async insertBinding(binding: CronConversationBinding): Promise<void> {
+    const db = await getDatabase();
+    const driver = db.getDriver();
+    if (binding.isDefaultTarget) {
+      driver
+        .prepare('UPDATE cron_job_conversation_bindings SET is_default_target = 0, updated_at = ? WHERE job_id = ?')
+        .run(binding.updatedAt, binding.jobId);
+    }
+    driver
+      .prepare(
+        `INSERT OR REPLACE INTO cron_job_conversation_bindings (
+          id,
+          job_id,
+          conversation_id,
+          conversation_title,
+          conversation_source,
+          is_default_target,
+          created_at,
+          updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        binding.id,
+        binding.jobId,
+        binding.conversationId,
+        binding.conversationTitle ?? null,
+        binding.conversationSource ?? null,
+        binding.isDefaultTarget ? 1 : 0,
+        binding.createdAt,
+        binding.updatedAt
+      );
+  }
+
+  async deleteBinding(jobId: string, conversationId: string): Promise<number> {
+    const db = await getDatabase();
+    const result = db
+      .getDriver()
+      .prepare('DELETE FROM cron_job_conversation_bindings WHERE job_id = ? AND conversation_id = ?')
+      .run(jobId, conversationId);
+    return result.changes;
+  }
+
+  async deleteBindingsByJob(jobId: string): Promise<number> {
+    const db = await getDatabase();
+    const result = db.getDriver().prepare('DELETE FROM cron_job_conversation_bindings WHERE job_id = ?').run(jobId);
+    return result.changes;
+  }
+
+  async listBindingsByJob(jobId: string): Promise<CronConversationBinding[]> {
+    const db = await getDatabase();
+    const rows = db
+      .getDriver()
+      .prepare(
+        `SELECT b.*,
+          COALESCE(c.name, b.conversation_title) AS conversation_title,
+          COALESCE(c.source, b.conversation_source) AS conversation_source
+        FROM cron_job_conversation_bindings b
+        LEFT JOIN conversations c ON c.id = b.conversation_id
+        WHERE b.job_id = ?
+        ORDER BY b.is_default_target DESC, b.created_at ASC`
+      )
+      .all(jobId) as CronConversationBindingRow[];
+    return rows.map(bindingRowToBinding);
+  }
+
+  async listBindingsByConversation(conversationId: string): Promise<CronConversationBinding[]> {
+    const db = await getDatabase();
+    const rows = db
+      .getDriver()
+      .prepare(
+        `SELECT b.*,
+          COALESCE(c.name, b.conversation_title) AS conversation_title,
+          COALESCE(c.source, b.conversation_source) AS conversation_source
+        FROM cron_job_conversation_bindings b
+        LEFT JOIN conversations c ON c.id = b.conversation_id
+        WHERE b.conversation_id = ?
+        ORDER BY b.created_at DESC`
+      )
+      .all(conversationId) as CronConversationBindingRow[];
+    return rows.map(bindingRowToBinding);
+  }
+
+  async getDefaultBinding(jobId: string): Promise<CronConversationBinding | null> {
+    const db = await getDatabase();
+    const row = db
+      .getDriver()
+      .prepare(
+        `SELECT b.*,
+          COALESCE(c.name, b.conversation_title) AS conversation_title,
+          COALESCE(c.source, b.conversation_source) AS conversation_source
+        FROM cron_job_conversation_bindings b
+        LEFT JOIN conversations c ON c.id = b.conversation_id
+        WHERE b.job_id = ?
+        ORDER BY b.is_default_target DESC, b.created_at ASC
+        LIMIT 1`
+      )
+      .get(jobId) as CronConversationBindingRow | undefined;
+    return row ? bindingRowToBinding(row) : null;
   }
 }
 

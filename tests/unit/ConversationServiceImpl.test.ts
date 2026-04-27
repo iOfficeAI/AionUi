@@ -14,6 +14,8 @@ const mockCronService = vi.hoisted(() => ({
   listJobsByConversation: vi.fn(async () => []),
   removeJob: vi.fn(async () => {}),
   updateJob: vi.fn(async () => {}),
+  bindConversation: vi.fn(async () => ({})),
+  unbindConversation: vi.fn(async () => {}),
 }));
 
 vi.mock('../../src/process/services/cron/cronServiceSingleton', () => ({
@@ -165,7 +167,7 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     expect(repo.insertMessage).toHaveBeenCalledWith(expect.objectContaining({ conversation_id: 'new' }));
   });
 
-  it('migrates cron jobs to new conversation when migrateCron is true', async () => {
+  it('migrates cron job bindings to new conversation when migrateCron is true', async () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
     const job1 = makeCronJob({
       id: 'job-1',
@@ -193,24 +195,15 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     });
 
     expect(mockCronService.listJobsByConversation).toHaveBeenCalledWith('source-conv');
-    expect(mockCronService.updateJob).toHaveBeenCalledWith('job-1', {
-      metadata: {
-        ...job1.metadata,
-        conversationId: 'target-conv',
-        conversationTitle: 'Target',
-      },
-    });
-    expect(mockCronService.updateJob).toHaveBeenCalledWith('job-2', {
-      metadata: {
-        ...job2.metadata,
-        conversationId: 'target-conv',
-        conversationTitle: 'Target',
-      },
-    });
+    expect(mockCronService.bindConversation).toHaveBeenCalledWith('job-1', 'target-conv');
+    expect(mockCronService.bindConversation).toHaveBeenCalledWith('job-2', 'target-conv');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-1', 'source-conv');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-2', 'source-conv');
     expect(mockCronService.removeJob).not.toHaveBeenCalled();
+    expect(mockCronService.updateJob).not.toHaveBeenCalled();
   });
 
-  it('deletes cron jobs when migrateCron is false', async () => {
+  it('detaches cron job bindings when migrateCron is false', async () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
     const job1 = makeCronJob({ id: 'job-1', metadata: { conversationId: 'source-conv' } as any });
     const job2 = makeCronJob({ id: 'job-2', metadata: { conversationId: 'source-conv' } as any });
@@ -231,8 +224,10 @@ describe('ConversationServiceImpl.createWithMigration', () => {
       migrateCron: false,
     });
 
-    expect(mockCronService.removeJob).toHaveBeenCalledWith('job-1');
-    expect(mockCronService.removeJob).toHaveBeenCalledWith('job-2');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-1', 'source-conv');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-2', 'source-conv');
+    expect(mockCronService.bindConversation).not.toHaveBeenCalled();
+    expect(mockCronService.removeJob).not.toHaveBeenCalled();
     expect(mockCronService.updateJob).not.toHaveBeenCalled();
   });
 

@@ -140,5 +140,19 @@
     "conversationNotFound": "Conversation not found",
     "scheduledTimePassed": "Scheduled time has passed",
     "conversationBusy": "Conversation busy after {{count}} retries"
+  },
+  "binding": {
+    "title": "Scheduled tasks for this conversation",
+    "boundTasks": "Bound tasks",
+    "availableTasks": "Available tasks",
+    "bind": "Bind",
+    "unbind": "Unbind",
+    "bindSuccess": "Task bound to this conversation",
+    "unbindSuccess": "Task unbound from this conversation",
+    "createAndBind": "New task",
+    "noBoundTasks": "No tasks bound to this conversation",
+    "noAvailableTasks": "No existing ongoing tasks available to bind",
+    "boundTaskCount": "{{count}} bound task(s)",
+    "targetConversations": "Target conversations"
   }
 }

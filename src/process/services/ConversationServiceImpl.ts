@@ -83,23 +83,14 @@ export class ConversationServiceImpl implements IConversationService {
         page++;
       }
 
-      // Migrate or delete cron jobs associated with source conversation
+      // Migrate or detach cron bindings associated with source conversation.
       try {
         const jobs = await cronService.listJobsByConversation(sourceConversationId);
-        if (migrateCron) {
-          for (const job of jobs) {
-            await cronService.updateJob(job.id, {
-              metadata: {
-                ...job.metadata,
-                conversationId: conv.id,
-                conversationTitle: conv.name,
-              },
-            });
+        for (const job of jobs) {
+          if (migrateCron) {
+            await cronService.bindConversation(job.id, conv.id);
           }
-        } else {
-          for (const job of jobs) {
-            await cronService.removeJob(job.id);
-          }
+          await cronService.unbindConversation(job.id, sourceConversationId);
         }
       } catch (err) {
         console.error('[ConversationServiceImpl] Failed to handle cron jobs during migration:', err);

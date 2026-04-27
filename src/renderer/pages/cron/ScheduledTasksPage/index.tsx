@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
-import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
+import { useAllCronJobs, useCronBindingsMap } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
 import { ACP_BACKENDS_ALL, type AcpBackendAll, type AcpBackendConfig } from '@/common/types/acpTypes';
@@ -43,6 +43,7 @@ const ScheduledTasksPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
+  const { bindingsMap } = useCronBindingsMap(jobs);
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
 
@@ -170,6 +171,10 @@ const ScheduledTasksPage: React.FC = () => {
                 job.target.executionMode === 'new_conversation'
                   ? t('cron.page.form.newConversation')
                   : t('cron.page.form.existingConversation');
+              const bindings = bindingsMap.get(job.id) || [];
+              const targetLabel = bindings.length
+                ? bindings.map((binding) => binding.conversationTitle || binding.conversationId).join(', ')
+                : '-';
 
               return (
                 <div
@@ -208,6 +213,15 @@ const ScheduledTasksPage: React.FC = () => {
                   >
                     {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
                   </div>
+
+                  {job.target.executionMode !== 'new_conversation' && (
+                    <div
+                      className='mt-8px min-w-0 truncate text-12px leading-18px text-t-secondary'
+                      title={targetLabel}
+                    >
+                      {t('cron.binding.targetConversations')}: {targetLabel}
+                    </div>
+                  )}
 
                   <div className='mt-14px flex items-center justify-between gap-10px'>
                     <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-t-secondary'>

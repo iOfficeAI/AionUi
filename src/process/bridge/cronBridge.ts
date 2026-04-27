@@ -25,6 +25,14 @@ export function initCronBridge(): void {
     return cronService.getJob(jobId);
   });
 
+  ipcBridge.cron.listBindingsByConversation.provider(async ({ conversationId }) => {
+    return cronService.listBindingsByConversation(conversationId);
+  });
+
+  ipcBridge.cron.listBindingsByJob.provider(async ({ jobId }) => {
+    return cronService.listBindingsByJob(jobId);
+  });
+
   // CRUD handlers
   ipcBridge.cron.addJob.provider(async (params) => {
     return cronService.addJob(params);
@@ -36,6 +44,14 @@ export function initCronBridge(): void {
 
   ipcBridge.cron.removeJob.provider(async ({ jobId }) => {
     await cronService.removeJob(jobId);
+  });
+
+  ipcBridge.cron.bindConversation.provider(async ({ jobId, conversationId }) => {
+    return cronService.bindConversation(jobId, conversationId);
+  });
+
+  ipcBridge.cron.unbindConversation.provider(async ({ jobId, conversationId }) => {
+    await cronService.unbindConversation(jobId, conversationId);
   });
 
   ipcBridge.cron.runNow.provider(async ({ jobId }) => {

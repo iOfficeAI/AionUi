@@ -1214,6 +1214,68 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Add cron job conversation bindings
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Add cron job conversation bindings',
+  up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS cron_job_conversation_bindings (
+      id TEXT PRIMARY KEY,
+      job_id TEXT NOT NULL,
+      conversation_id TEXT NOT NULL,
+      conversation_title TEXT,
+      conversation_source TEXT,
+      is_default_target INTEGER NOT NULL DEFAULT 1,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      UNIQUE(job_id, conversation_id),
+      FOREIGN KEY (job_id) REFERENCES cron_jobs(id) ON DELETE CASCADE,
+      FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_cron_bindings_job_id ON cron_job_conversation_bindings(job_id)');
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_cron_bindings_conversation_id ON cron_job_conversation_bindings(conversation_id)'
+    );
+    db.exec(
+      'CREATE INDEX IF NOT EXISTS idx_cron_bindings_default_target ON cron_job_conversation_bindings(job_id, is_default_target)'
+    );
+    db.exec(`INSERT OR IGNORE INTO cron_job_conversation_bindings (
+      id,
+      job_id,
+      conversation_id,
+      conversation_title,
+      conversation_source,
+      is_default_target,
+      created_at,
+      updated_at
+    )
+    SELECT
+      'binding_' || j.id || '_' || j.conversation_id,
+      j.id,
+      j.conversation_id,
+      COALESCE(j.conversation_title, c.name),
+      c.source,
+      1,
+      COALESCE(j.created_at, strftime('%s', 'now') * 1000),
+      COALESCE(j.updated_at, strftime('%s', 'now') * 1000)
+    FROM cron_jobs j
+    JOIN conversations c ON c.id = j.conversation_id
+    WHERE COALESCE(j.execution_mode, 'existing') != 'new_conversation'
+      AND j.conversation_id IS NOT NULL
+      AND j.conversation_id != ''`);
+    console.log('[Migration v27] Added cron job conversation bindings');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_cron_bindings_default_target');
+    db.exec('DROP INDEX IF EXISTS idx_cron_bindings_conversation_id');
+    db.exec('DROP INDEX IF EXISTS idx_cron_bindings_job_id');
+    db.exec('DROP TABLE IF EXISTS cron_job_conversation_bindings');
+    console.log('[Migration v27] Rolled back: Removed cron job conversation bindings');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1222,7 +1284,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27,
 ];
 
 /**

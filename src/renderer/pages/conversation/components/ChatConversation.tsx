@@ -36,12 +36,6 @@ import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.t
 import ConversationSkillsIndicator from './ConversationSkillsIndicator';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
-/** Check whether a specific skill is loaded for the conversation */
-const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
-  const loadedSkills = (conversation?.extra as { loadedSkills?: Array<{ name: string }> })?.loadedSkills;
-  return loadedSkills?.some((s) => s.name === skillName) ?? false;
-};
-
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
     ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id })
@@ -171,8 +165,8 @@ const GeminiConversationPanel: React.FC<{
         <ConversationSkillsIndicator conversation={conversation} />
         <CronJobManager
           conversationId={conversation.id}
-          cronJobId={conversation.extra?.cronJobId as string | undefined}
-          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
+          conversationTitle={conversation.name}
+          agentType={conversation.type}
         />
       </div>
     ),
@@ -230,8 +224,8 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         <ConversationSkillsIndicator conversation={conversation} />
         <CronJobManager
           conversationId={conversation.id}
-          cronJobId={conversation.extra?.cronJobId as string | undefined}
-          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
+          conversationTitle={conversation.name}
+          agentType={conversation.type}
         />
       </div>
     ),
@@ -428,8 +422,8 @@ const ChatConversation: React.FC<{
         <div className='shrink-0'>
           <CronJobManager
             conversationId={conversation.id}
-            cronJobId={conversation.extra?.cronJobId as string | undefined}
-            hasCronSkill={hasLoadedSkill(conversation, 'cron')}
+            conversationTitle={conversation.name}
+            agentType={conversation.type === 'acp' ? conversation.extra?.backend : conversation.type}
           />
         </div>
       )}

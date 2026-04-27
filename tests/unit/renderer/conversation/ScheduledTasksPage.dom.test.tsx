@@ -8,6 +8,7 @@ const mockNavigate = vi.hoisted(() => vi.fn());
 const mockListJobs = vi.hoisted(() => vi.fn());
 const mockUpdateJob = vi.hoisted(() => vi.fn());
 const mockRemoveJob = vi.hoisted(() => vi.fn());
+const mockListBindingsByJob = vi.hoisted(() => vi.fn());
 const mockGetKeepAwake = vi.hoisted(() => vi.fn());
 const mockSetKeepAwake = vi.hoisted(() => vi.fn());
 const mockOnJobCreated = vi.hoisted(() => vi.fn(() => vi.fn())); // returns unsubscribe
@@ -50,6 +51,7 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.status.paused') return 'Paused';
       if (key === 'cron.status.error') return 'Error';
       if (key === 'cron.status.active') return 'Active';
+      if (key === 'cron.binding.targetConversations') return 'Target conversations';
       return key;
     },
   }),
@@ -83,6 +85,7 @@ vi.mock('@/common', () => ({
       listJobs: { invoke: (...args: unknown[]) => mockListJobs(...args) },
       updateJob: { invoke: (...args: unknown[]) => mockUpdateJob(...args) },
       removeJob: { invoke: (...args: unknown[]) => mockRemoveJob(...args) },
+      listBindingsByJob: { invoke: (...args: unknown[]) => mockListBindingsByJob(...args) },
       onJobCreated: { on: (...args: unknown[]) => mockOnJobCreated(...args) },
       onJobUpdated: { on: (...args: unknown[]) => mockOnJobUpdated(...args) },
       onJobRemoved: { on: (...args: unknown[]) => mockOnJobRemoved(...args) },
@@ -231,6 +234,7 @@ describe('ScheduledTasksPage', () => {
     vi.clearAllMocks();
     mockGetKeepAwake.mockResolvedValue(false);
     mockListJobs.mockResolvedValue([]);
+    mockListBindingsByJob.mockResolvedValue([]);
   });
 
   it('should render loading state initially', async () => {
@@ -264,6 +268,34 @@ describe('ScheduledTasksPage', () => {
     await waitFor(() => {
       expect(screen.getByText('Daily Summary')).toBeInTheDocument();
       expect(screen.getByText('Weekly Report')).toBeInTheDocument();
+    });
+  });
+
+  it('should display target conversations for existing-mode tasks', async () => {
+    const job = createMockJob({
+      target: {
+        payload: { kind: 'message', text: 'Generate summary' },
+        executionMode: 'existing',
+      },
+    });
+    mockListJobs.mockResolvedValue([job]);
+    mockListBindingsByJob.mockResolvedValue([
+      {
+        id: 'binding-1',
+        jobId: job.id,
+        conversationId: 'conv-1',
+        conversationTitle: 'Target Chat',
+        isDefaultTarget: true,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+    ]);
+
+    const { default: ScheduledTasksPage } = await import('@renderer/pages/cron/ScheduledTasksPage');
+    render(<ScheduledTasksPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Target conversations: Target Chat')).toBeInTheDocument();
     });
   });
 

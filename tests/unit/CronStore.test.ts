@@ -670,7 +670,7 @@ describe('CronStore', () => {
       expect(jobs[1].id).toBe('job-2');
     });
 
-    it('listByConversation returns jobs for specific conversation', async () => {
+    it('listByConversation returns jobs bound to a specific conversation', async () => {
       mockPrepareInstance.all.mockReturnValue([
         {
           id: 'conv-job-1',
@@ -684,7 +684,7 @@ describe('CronStore', () => {
           payload_message: 'Test',
           execution_mode: 'existing',
           agent_config: null,
-          conversation_id: 'target-conv',
+          conversation_id: 'creator-conv',
           conversation_title: null,
           agent_type: 'gemini',
           created_by: 'user',
@@ -702,12 +702,13 @@ describe('CronStore', () => {
 
       const jobs = await cronStore.listByConversation('target-conv');
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith(
-        'SELECT * FROM cron_jobs WHERE conversation_id = ? ORDER BY created_at DESC'
-      );
+      expect(mockDriver.prepare).toHaveBeenCalledWith(`SELECT j.* FROM cron_jobs j
+        INNER JOIN cron_job_conversation_bindings b ON b.job_id = j.id
+        WHERE b.conversation_id = ?
+        ORDER BY b.created_at DESC, j.created_at DESC`);
       expect(mockPrepareInstance.all).toHaveBeenCalledWith('target-conv');
       expect(jobs).toHaveLength(1);
-      expect(jobs[0].metadata.conversationId).toBe('target-conv');
+      expect(jobs[0].metadata.conversationId).toBe('creator-conv');
     });
 
     it('listEnabled returns only enabled jobs ordered by next run', async () => {
@@ -749,12 +750,14 @@ describe('CronStore', () => {
       expect(jobs[0].enabled).toBe(true);
     });
 
-    it('deleteByConversation removes all jobs for a conversation', async () => {
+    it('deleteByConversation removes conversation bindings without deleting shared jobs', async () => {
       mockPrepareInstance.run.mockImplementation(() => ({ changes: 3 }));
 
       const deleted = await cronStore.deleteByConversation('conv-to-delete');
 
-      expect(mockDriver.prepare).toHaveBeenCalledWith('DELETE FROM cron_jobs WHERE conversation_id = ?');
+      expect(mockDriver.prepare).toHaveBeenCalledWith(
+        'DELETE FROM cron_job_conversation_bindings WHERE conversation_id = ?'
+      );
       expect(mockPrepareInstance.run).toHaveBeenCalledWith('conv-to-delete');
       expect(deleted).toBe(3);
     });

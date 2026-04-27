@@ -1205,7 +1205,13 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockAddJob).toHaveBeenCalled();
     });
 
-    expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({ description: 'Test Description' }));
+    expect(mockAddJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: 'Test Description',
+        conversationId: 'conv-1',
+        executionMode: 'existing',
+      })
+    );
     expect(onClose).toHaveBeenCalled();
   });
 

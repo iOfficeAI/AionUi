@@ -5,111 +5,199 @@
  */
 
 import { iconColors } from '@/renderer/styles/colors';
-import { emitter } from '@/renderer/utils/emitter';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
-import { Button, Popover, Tooltip } from '@arco-design/web-react';
-import { AlarmClock } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Button, Empty, Message, Popover, Tooltip } from '@arco-design/web-react';
+import { AlarmClock, Plus } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { useCronJobs } from '../useCronJobs';
 import { getJobStatusFlags } from '../cronUtils';
+import CreateTaskDialog from '../ScheduledTasksPage/CreateTaskDialog';
 
-interface CronJobManagerProps {
+type CronJobManagerProps = {
   conversationId: string;
-  /** When provided (e.g. from conversation.extra.cronJobId), fetch the job directly */
-  cronJobId?: string;
-  /** Whether the cron skill is loaded for this conversation. When false and no jobs exist, the component is hidden. */
-  hasCronSkill?: boolean;
-}
+  conversationTitle?: string;
+  agentType?: string;
+};
 
-/**
- * Cron job manager component for ChatLayout headerExtra
- * Shows a single job per conversation with navigation to task detail
- */
-const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, cronJobId, hasCronSkill = true }) => {
+const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId, conversationTitle, agentType }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const { jobs, loading, refetch } = useCronJobs(conversationId);
+  const [allJobs, setAllJobs] = useState<ICronJob[]>([]);
+  const [allJobsLoading, setAllJobsLoading] = useState(false);
+  const [createDialogVisible, setCreateDialogVisible] = useState(false);
+  const [bindingJobId, setBindingJobId] = useState<string | null>(null);
 
-  // For child conversations spawned by a cron job, fetch the job directly by ID
-  const [directJob, setDirectJob] = useState<ICronJob | null>(null);
-  const [directLoading, setDirectLoading] = useState(!!cronJobId);
+  const loadAllJobs = useCallback(async () => {
+    setAllJobsLoading(true);
+    try {
+      const result = await ipcBridge.cron.listJobs.invoke();
+      setAllJobs(result || []);
+    } catch (err) {
+      console.error('[CronJobManager] Failed to load cron jobs:', err);
+      setAllJobs([]);
+    } finally {
+      setAllJobsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    if (!cronJobId) return;
-    setDirectLoading(true);
-    ipcBridge.cron.getJob
-      .invoke({ jobId: cronJobId })
-      .then((job) => setDirectJob(job ?? null))
-      .catch(() => setDirectJob(null))
-      .finally(() => setDirectLoading(false));
-  }, [cronJobId]);
+    void loadAllJobs();
+  }, [loadAllJobs]);
 
-  // For regular conversations, use the existing hook
-  const { jobs, loading: listLoading, hasJobs } = useCronJobs(cronJobId ? undefined : conversationId);
+  const boundJobIds = useMemo(() => new Set(jobs.map((job) => job.id)), [jobs]);
+  const bindableJobs = useMemo(
+    () => allJobs.filter((job) => job.target.executionMode !== 'new_conversation' && !boundJobIds.has(job.id)),
+    [allJobs, boundJobIds]
+  );
 
-  const job = cronJobId ? directJob : (jobs[0] ?? null);
-  const loading = cronJobId ? directLoading : listLoading;
-  const found = cronJobId ? !!directJob : hasJobs;
+  const status = useMemo(() => {
+    if (jobs.length === 0) return 'none';
+    if (jobs.some((job) => job.state.lastStatus === 'error')) return 'error';
+    if (jobs.every((job) => !job.enabled)) return 'paused';
+    return 'active';
+  }, [jobs]);
 
-  // Handle unconfigured state (no jobs)
-  // If cron skill is not loaded for this conversation, hide entirely
-  if (!found && !loading && !hasCronSkill) return null;
+  const indicatorClass =
+    status === 'error' ? 'bg-danger' : status === 'paused' ? 'bg-warning' : status === 'active' ? 'bg-success' : 'bg-6';
+  const iconFill = status === 'none' ? iconColors.disabled : iconColors.primary;
+  const tooltipContent =
+    status === 'none'
+      ? t('cron.binding.noBoundTasks')
+      : status === 'paused'
+        ? t('cron.status.paused')
+        : status === 'error'
+          ? t('cron.status.error')
+          : t('cron.binding.boundTaskCount', { count: jobs.length });
 
-  if (!found && !loading) {
-    const handleCreateClick = () => {
-      emitter.emit('sendbox.fill', t('cron.status.defaultPrompt'));
-    };
+  const handleBind = useCallback(
+    async (job: ICronJob) => {
+      setBindingJobId(job.id);
+      try {
+        await ipcBridge.cron.bindConversation.invoke({ jobId: job.id, conversationId });
+        Message.success(t('cron.binding.bindSuccess'));
+        await Promise.all([refetch(), loadAllJobs()]);
+      } catch (err) {
+        Message.error(String(err));
+      } finally {
+        setBindingJobId(null);
+      }
+    },
+    [conversationId, loadAllJobs, refetch, t]
+  );
 
+  const handleUnbind = useCallback(
+    async (job: ICronJob) => {
+      setBindingJobId(job.id);
+      try {
+        await ipcBridge.cron.unbindConversation.invoke({ jobId: job.id, conversationId });
+        Message.success(t('cron.binding.unbindSuccess'));
+        await Promise.all([refetch(), loadAllJobs()]);
+      } catch (err) {
+        Message.error(String(err));
+      } finally {
+        setBindingJobId(null);
+      }
+    },
+    [conversationId, loadAllJobs, refetch, t]
+  );
+
+  const handleCreateClose = useCallback(() => {
+    setCreateDialogVisible(false);
+    void Promise.all([refetch(), loadAllJobs()]);
+  }, [loadAllJobs, refetch]);
+
+  const renderJobRow = (job: ICronJob, onClick: () => void) => {
+    const { hasError, isPaused } = getJobStatusFlags(job);
+    const dotClass = hasError ? 'bg-danger' : isPaused ? 'bg-warning' : 'bg-success';
     return (
+      <Button
+        key={job.id}
+        type='text'
+        loading={bindingJobId === job.id}
+        className='!h-auto !min-w-0 !w-full !justify-start !rounded-8px !px-8px !py-6px !text-left hover:!bg-fill-2'
+        onClick={onClick}
+      >
+        <span className='flex min-w-0 items-center gap-6px'>
+          <span className={`h-7px w-7px shrink-0 rounded-full ${dotClass}`} />
+          <span className='min-w-0 truncate text-13px text-t-primary'>{job.name}</span>
+        </span>
+      </Button>
+    );
+  };
+
+  return (
+    <>
       <Popover
-        trigger='hover'
+        trigger='click'
         position='bottom'
         content={
-          <div className='flex flex-col gap-8px p-4px max-w-240px'>
-            <div className='text-13px text-t-secondary'>{t('cron.status.unconfiguredHint')}</div>
-            <Button type='primary' size='mini' onClick={handleCreateClick}>
-              {t('cron.status.createNow')}
-            </Button>
+          <div className='flex w-300px max-w-[calc(100vw-32px)] flex-col gap-12px p-4px'>
+            <div className='flex items-center justify-between gap-8px'>
+              <span className='text-13px font-medium text-t-primary'>{t('cron.binding.title')}</span>
+              <Button
+                size='mini'
+                type='primary'
+                icon={<Plus theme='outline' size={12} />}
+                onClick={() => setCreateDialogVisible(true)}
+              >
+                {t('cron.binding.createAndBind')}
+              </Button>
+            </div>
+
+            <div className='flex flex-col gap-6px'>
+              <span className='text-12px text-t-secondary'>{t('cron.binding.boundTasks')}</span>
+              {loading ? (
+                <div className='py-8px text-12px text-t-secondary'>{t('common.loading')}</div>
+              ) : jobs.length > 0 ? (
+                <div className='flex max-h-160px flex-col overflow-y-auto'>
+                  {jobs.map((job) => renderJobRow(job, () => handleUnbind(job)))}
+                </div>
+              ) : (
+                <Empty description={t('cron.binding.noBoundTasks')} className='py-8px' />
+              )}
+            </div>
+
+            <div className='h-1px w-full bg-[var(--color-border-2)]' />
+
+            <div className='flex flex-col gap-6px'>
+              <span className='text-12px text-t-secondary'>{t('cron.binding.availableTasks')}</span>
+              {allJobsLoading ? (
+                <div className='py-8px text-12px text-t-secondary'>{t('common.loading')}</div>
+              ) : bindableJobs.length > 0 ? (
+                <div className='flex max-h-180px flex-col overflow-y-auto'>
+                  {bindableJobs.map((job) => renderJobRow(job, () => handleBind(job)))}
+                </div>
+              ) : (
+                <div className='py-8px text-12px text-t-secondary'>{t('cron.binding.noAvailableTasks')}</div>
+              )}
+            </div>
           </div>
         }
       >
-        <Button
-          type='text'
-          size='small'
-          className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
-        >
-          <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
-            <AlarmClock theme='outline' size={16} fill={iconColors.disabled} />
-            <span className='ml-4px w-8px h-8px rounded-full bg-[#86909c]' />
-          </span>
-        </Button>
+        <Tooltip content={tooltipContent}>
+          <Button
+            type='text'
+            size='small'
+            className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
+          >
+            <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
+              <AlarmClock theme='outline' size={16} fill={iconFill} />
+              <span className={`ml-4px h-8px w-8px rounded-full ${indicatorClass}`} />
+            </span>
+          </Button>
+        </Tooltip>
       </Popover>
-    );
-  }
 
-  if (loading || !job) return null;
-
-  const { hasError, isPaused } = getJobStatusFlags(job);
-  const tooltipContent = isPaused ? t('cron.status.paused') : hasError ? t('cron.status.error') : job.name;
-
-  return (
-    <Tooltip content={tooltipContent}>
-      <Button
-        type='text'
-        size='small'
-        className='cron-job-manager-button chat-header-cron-pill !h-auto !w-auto !min-w-0 !px-0 !py-0'
-        onClick={() => navigate(`/scheduled/${job.id}`)}
-      >
-        <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
-          <AlarmClock theme='outline' size={16} fill={iconColors.primary} />
-          <span
-            className={`ml-4px w-8px h-8px rounded-full ${hasError ? 'bg-[#f53f3f]' : isPaused ? 'bg-[#ff7d00]' : 'bg-[#00b42a]'}`}
-          />
-        </span>
-      </Button>
-    </Tooltip>
+      <CreateTaskDialog
+        visible={createDialogVisible}
+        onClose={handleCreateClose}
+        conversationId={conversationId}
+        conversationTitle={conversationTitle}
+        agentType={agentType}
+      />
+    </>
   );
 };
 
