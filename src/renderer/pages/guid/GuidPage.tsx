@@ -454,8 +454,9 @@ const GuidPage: React.FC = () => {
     ? agentSelection.currentEffectiveAgentInfo.agent_type
     : agentSelection.selectedAgent;
 
-  // Agents that use configured model providers instead of ACP probe-based models
-  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
+  // Agents that use configured model providers instead of ACP probe-based models.
+  // Only aionrs now — Gemini runs as a regular ACP backend with ACP-cached models.
+  const PROVIDER_BASED_AGENTS = new Set(['aionrs']);
   const isGeminiMode =
     PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
     (!agentSelection.is_presetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
