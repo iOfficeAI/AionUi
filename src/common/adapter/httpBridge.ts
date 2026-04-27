@@ -89,7 +89,24 @@ export class BackendHttpError extends Error {
 }
 
 export function isBackendHttpError(error: unknown): error is BackendHttpError {
-  return error instanceof BackendHttpError;
+  // Prefer instanceof — fast path in production/bundled contexts.
+  if (error instanceof BackendHttpError) return true;
+  // Fallback: vite-dev HMR can split the module across chunks, breaking
+  // instanceof. Detect by duck-typing on the shape produced by our
+  // constructor.
+  if (
+    error &&
+    typeof error === 'object' &&
+    'name' in error &&
+    (error as { name: unknown }).name === 'BackendHttpError' &&
+    'status' in error &&
+    typeof (error as { status: unknown }).status === 'number' &&
+    'code' in error &&
+    typeof (error as { code: unknown }).code === 'string'
+  ) {
+    return true;
+  }
+  return false;
 }
 
 // ---------------------------------------------------------------------------

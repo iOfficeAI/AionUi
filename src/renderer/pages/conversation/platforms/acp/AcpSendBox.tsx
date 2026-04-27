@@ -31,7 +31,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -224,17 +224,13 @@ const AcpSendBox: React.FC<{
         const errorMsg = error instanceof Error ? error.message : String(error);
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
-        // via HTTP 410 + code='CONVERSATION_ARCHIVED' — never by message
-        // substring.
+        // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
+        // not by substring matching.
         if (isBackendHttpError(error) && error.code === 'CONVERSATION_ARCHIVED') {
-          const errorMessage = {
-            id: uuid(),
-            msg_id: uuid(),
-            conversation_id,
-            type: 'error',
-            data: error.backendMessage || errorMsg,
-          };
-          ipcBridge.acpConversation.responseStream.emit(errorMessage);
+          Message.error({
+            content: error.backendMessage || errorMsg,
+            duration: 6000,
+          });
           setAiProcessing(false);
           throw error;
         }
