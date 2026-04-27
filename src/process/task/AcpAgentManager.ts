@@ -740,33 +740,33 @@ ${collectedResponses.join('\n')}`;
     this.markTrackedTurnRuntimeActivity();
 
     if (v.type === 'acp_permission') {
-      const { toolCall, options } = v.data as AcpPermissionRequest;
+      const { tool_call, options } = v.data as AcpPermissionRequest;
 
       // Auto-approve ALL tools when in yolo/bypassPermissions mode.
       if (this.isYoloMode(this.current_mode) && options.length > 0) {
         const autoOption = options[0];
         setTimeout(() => {
-          void this.confirm(v.msg_id, toolCall.tool_call_id || v.msg_id, autoOption);
+          void this.confirm(v.msg_id, tool_call.tool_call_id || v.msg_id, autoOption);
         }, 50);
         return;
       }
 
       // Auto-approve team MCP tools — internal tools provided by AionUi.
-      const toolTitle = toolCall.title || '';
+      const toolTitle = tool_call.title || '';
       if (toolTitle.includes('aionui-team') && options.length > 0) {
         const autoOption = options[0];
         setTimeout(() => {
-          void this.confirm(v.msg_id, toolCall.tool_call_id || v.msg_id, autoOption);
+          void this.confirm(v.msg_id, tool_call.tool_call_id || v.msg_id, autoOption);
         }, 50);
         return;
       }
 
       this.addConfirmation({
-        title: toolCall.title || 'messages.permissionRequest',
+        title: tool_call.title || 'messages.permissionRequest',
         action: 'messages.command',
         id: v.msg_id,
-        description: toolCall.rawInput?.description || 'messages.agentRequestingPermission',
-        call_id: toolCall.tool_call_id || v.msg_id,
+        description: tool_call.raw_input?.description || 'messages.agentRequestingPermission',
+        call_id: tool_call.tool_call_id || v.msg_id,
         options: options.map((option) => ({
           label: option.name,
           value: option,

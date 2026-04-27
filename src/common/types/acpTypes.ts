@@ -1026,9 +1026,9 @@ export interface AcpPermissionOption {
 export interface AcpPermissionRequest {
   session_id: string;
   options: Array<AcpPermissionOption>;
-  toolCall: {
+  tool_call: {
     tool_call_id: string;
-    rawInput?: {
+    raw_input?: {
       command?: string;
       description?: string;
       [key: string]: unknown;
@@ -1046,11 +1046,19 @@ export interface LegacyAcpPermissionData extends Record<string, unknown> {
   // 可能的旧版本字段 / Possible old version fields
   options?: Array<{
     option_id?: string;
+    optionId?: string;
     name?: string;
     kind?: string;
     // 兼容可能的其他字段 / Compatible with other possible fields
     [key: string]: unknown;
   }>;
+  tool_call?: {
+    tool_call_id?: string;
+    raw_input?: unknown;
+    title?: string;
+    kind?: string;
+    [key: string]: unknown;
+  };
   toolCall?: {
     tool_call_id?: string;
     rawInput?: unknown;

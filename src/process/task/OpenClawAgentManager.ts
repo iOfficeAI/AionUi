@@ -133,21 +133,21 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     if (msg.type === 'acp_permission') {
       const permissionData = msg.data as {
         session_id: string;
-        toolCall: {
+        tool_call: {
           tool_call_id: string;
           title?: string;
           kind?: string;
-          rawInput?: Record<string, unknown>;
+          raw_input?: Record<string, unknown>;
         };
         options: Array<{ option_id: string; name: string; kind: string }>;
       };
 
       // Create confirmation for UI
       const confirmation: IConfirmation = {
-        id: permissionData.toolCall.tool_call_id,
-        call_id: permissionData.toolCall.tool_call_id,
-        title: permissionData.toolCall.title || 'Permission Required',
-        description: JSON.stringify(permissionData.toolCall.rawInput || {}),
+        id: permissionData.tool_call.tool_call_id,
+        call_id: permissionData.tool_call.tool_call_id,
+        title: permissionData.tool_call.title || 'Permission Required',
+        description: JSON.stringify(permissionData.tool_call.raw_input || {}),
         options: permissionData.options.map((opt) => ({
           label: opt.name,
           value: opt.option_id,
