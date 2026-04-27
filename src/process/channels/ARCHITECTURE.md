@@ -378,7 +378,7 @@ Agent 请求确认 → Agent Task 广播 tool_group (status=Confirming)
 
 ### 5.5 Agent 双路广播
 
-Agent Task（如 GeminiAgentManager）发送消息时同时通过两条路径：
+Agent Task（如 ACP agent session）发送消息时同时通过两条路径：
 
 1. **ipcBridge** → Renderer 进程（更新 AionUi 桌面界面）
 2. **channelEventBus** → ChannelMessageService（更新 IM 平台消息）

@@ -114,8 +114,8 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
         if (hasLocalCreds) {
           // The google-auth-gemini provider is a frontend-only synthetic provider — it is NOT
           // persisted in /api/providers. Construct it directly with platform='gemini-with-google-auth'
-          // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes
-          // GeminiAgentManager read oauth_creds.json and use OAuth instead of an empty API key.
+          // so that getProviderAuthType() returns AuthType.LOGIN_WITH_GOOGLE, which makes the ACP
+          // agent runtime pick up oauth_creds.json and use OAuth instead of an empty API key.
           return {
             id: GOOGLE_AUTH_PROVIDER_ID,
             name: 'Gemini Google Auth',

@@ -16,7 +16,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
  *
  * 工作原理：
  * 1. MCP 配置存储在 ProcessConfig 的 'mcp.config' 中
- * 2. GeminiAgentManager 在启动时从 mcp.config 读取并转换为 @office-ai/aioncli-core 格式
+ * 2. ACP agent 启动时从 mcp.config 读取并转换为 @office-ai/aioncli-core 格式
  * 3. @office-ai/aioncli-core 在运行时使用这些 MCP servers
  *
  * 与其他 ACP Backend MCP Agents 的区别：
@@ -26,7 +26,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 export class AionuiMcpAgent extends AbstractMcpAgent {
   constructor() {
     // 使用 'aionui' 作为 backend type 来区分真实的 Gemini CLI
-    // 虽然配置最终被 GeminiAgentManager 使用，但在 MCP 管理层面它是独立的 agent
+    // 虽然配置最终被 ACP agent 运行时使用，但在 MCP 管理层面它是独立的 agent
     super('aionui');
   }
 
