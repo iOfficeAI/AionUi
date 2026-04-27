@@ -1101,14 +1101,14 @@ export class AcpAgent {
     return new Promise((resolve, reject) => {
       // Ensure every permission request has a stable tool_call_id so UI + pending map stay in sync
       // 确保每个权限请求都拥有稳定的 tool_call_id，保证 UI 与 pending map 对齐
-      if (data.toolCall && !data.toolCall.tool_call_id) {
-        data.toolCall.tool_call_id = uuid();
+      if (data.tool_call && !data.tool_call.tool_call_id) {
+        data.tool_call.tool_call_id = uuid();
       }
-      const requestId = data.toolCall.tool_call_id; // 使用 tool_call_id 作为 requestId
+      const requestId = data.tool_call.tool_call_id; // 使用 tool_call_id 作为 requestId
 
       // Check ApprovalStore for cached "always allow" decision
       // Workaround for claude-agent-acp bug: it returns updatedPermissions but doesn't check suggestions
-      const approvalKey = createAcpApprovalKey(data.toolCall);
+      const approvalKey = createAcpApprovalKey(data.tool_call);
       if (this.approvalStore.isApprovedForSession(approvalKey)) {
         // Auto-approve without showing dialog - no metadata storage needed
         resolve({ option_id: 'allow_always' });
@@ -1122,19 +1122,19 @@ export class AcpAgent {
       }
 
       // Store metadata for later use in confirmMessage
-      this.permissionRequestMeta.set(requestId, {
-        kind: data.toolCall.kind,
-        title: data.toolCall.title,
-        rawInput: data.toolCall.rawInput,
+        this.permissionRequestMeta.set(requestId, {
+        kind: data.tool_call.kind,
+        title: data.tool_call.title,
+        rawInput: data.tool_call.raw_input,
       });
 
       // Intercept chrome-devtools navigation tools and show in preview panel
       // 拦截 chrome-devtools 导航工具，在预览面板中显示
       // Note: We only emit preview_open event, do NOT block tool execution
       // 注意：只发送 preview_open 事件，不阻止工具执行，agent 需要 chrome-devtools 获取网页内容
-      const tool_name = data.toolCall?.title || '';
+      const tool_name = data.tool_call?.title || '';
       if (this.isNavigationTool(tool_name)) {
-        const url = this.extractNavigationUrl(data.toolCall);
+        const url = this.extractNavigationUrl(data.tool_call);
         if (url) {
           // Emit preview_open event to show URL in preview panel
           // 发出 preview_open 事件，在预览面板中显示 URL
@@ -1340,9 +1340,9 @@ export class AcpAgent {
   }
 
   private emitPermissionRequest(data: AcpPermissionRequest): void {
-    // 重要：将权限请求中的 toolCall 注册到 adapter 的 activeToolCalls 中
+    // 重要：将权限请求中的 tool_call 注册到 adapter 的 activeToolCalls 中
     // 这样后续的 tool_call_update 事件就能找到对应的 tool call 了
-    if (data.toolCall) {
+    if (data.tool_call) {
       // 将权限请求中的 kind 映射到正确的类型
       const mapKindToValidType = (kind?: string): 'read' | 'edit' | 'execute' => {
         switch (kind) {
@@ -1361,12 +1361,12 @@ export class AcpAgent {
         session_id: data.session_id,
         update: {
           sessionUpdate: 'tool_call' as const,
-          tool_call_id: data.toolCall.tool_call_id,
-          status: normalizeToolCallStatus(data.toolCall.status),
-          title: data.toolCall.title || 'Tool Call',
-          kind: mapKindToValidType(data.toolCall.kind),
-          content: data.toolCall.content || [],
-          locations: data.toolCall.locations || [],
+          tool_call_id: data.tool_call.tool_call_id,
+          status: normalizeToolCallStatus(data.tool_call.status),
+          title: data.tool_call.title || 'Tool Call',
+          kind: mapKindToValidType(data.tool_call.kind),
+          content: data.tool_call.content || [],
+          locations: data.tool_call.locations || [],
         },
       };
 
