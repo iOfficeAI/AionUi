@@ -278,7 +278,7 @@ function convertTMessageToOutgoing(
     }
 
     case 'tool_call': {
-      const statusIcon = message.content.status === 'success' ? '✅' : message.content.status === 'error' ? '❌' : '⏳';
+      const statusIcon = message.content.status === 'completed' ? '✅' : message.content.status === 'error' ? '❌' : '⏳';
       const name = formatTextForPlatform(message.content.name || '', platform);
       return {
         type: 'text',

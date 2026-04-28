@@ -155,7 +155,10 @@ export type IMessageToolCall = IMessage<
     name: string;
     args: Record<string, any>;
     error?: string;
-    status?: 'success' | 'error';
+    status?: 'running' | 'completed' | 'error';
+    input?: Record<string, any>;
+    output?: string;
+    description?: string;
   }
 >;
 
