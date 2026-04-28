@@ -60,8 +60,15 @@ const AcpModelSelector: React.FC<{
   const prevConversationIdRef = useRef(conversation_id);
 
   const updateModelInfo = useCallback((nextModelInfo: AcpModelInfo) => {
+    // If model info has no available_models but backend is provided,
+    // ignore it and wait for cached models or retry with cached data.
+    // This handles the case where the backend returns an empty model list
+    // before the agent manager is fully initialized.
+    if (!nextModelInfo?.available_models?.length && backend) {
+      return;
+    }
     setModelInfo((prev) => (isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo));
-  }, []);
+  }, [backend]);
 
   const loadCachedModelInfo = useCallback(
     async (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
@@ -120,6 +127,7 @@ const AcpModelSelector: React.FC<{
           updateModelInfo(info);
           return;
         }
+        // Backend returned empty available_models — skip it and try cached data instead
       }
 
       if (backend) {
@@ -147,7 +155,9 @@ const AcpModelSelector: React.FC<{
 
   useEffect(() => {
     if (backend !== 'claude') return;
-    if (model_info) return;
+    // Retry if model_info is null or if it has empty available_models (backend not ready)
+    const hasValidModels = model_info?.available_models?.length;
+    if (hasValidModels) return;
 
     const refresh = () => {
       void reloadModelInfo().catch(() => {});
