@@ -285,7 +285,7 @@ export class PluginManager {
 
     if (configResult.success && configResult.data) {
       const status = this.buildPluginStatus(configResult.data);
-      channelBridge.pluginStatusChanged.emit({ pluginId, status });
+      channelBridge.pluginStatusChanged.emit({ plugin_id: pluginId, status });
     }
   }
 
@@ -307,7 +307,7 @@ export class PluginManager {
       botUsername: undefined,
       hasToken: hasPluginCredentials(config.type, config.credentials),
     };
-    channelBridge.pluginStatusChanged.emit({ pluginId, status });
+    channelBridge.pluginStatusChanged.emit({ plugin_id: pluginId, status });
   }
 
   /**

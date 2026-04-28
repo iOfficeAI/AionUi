@@ -1388,11 +1388,11 @@ import type {
 
 export const channel = {
   getPluginStatus: httpGet<IChannelPluginStatus[], void>('/api/channel/plugins'),
-  enablePlugin: httpPost<void, { pluginId: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
-  disablePlugin: httpPost<void, { pluginId: string }>('/api/channel/plugins/disable'),
+  enablePlugin: httpPost<void, { plugin_id: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
+  disablePlugin: httpPost<void, { plugin_id: string }>('/api/channel/plugins/disable'),
   testPlugin: httpPost<
-    { success: boolean; botUsername?: string; error?: string },
-    { pluginId: string; token: string; extraConfig?: { appId?: string; appSecret?: string } }
+    { success: boolean; bot_username?: string; error?: string },
+    { plugin_id: string; token: string; extra_config?: { app_id?: string; app_secret?: string } }
   >('/api/channel/plugins/test'),
   getPendingPairings: httpGet<IChannelPairingRequest[], void>('/api/channel/pairings'),
   approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
@@ -1404,12 +1404,12 @@ export const channel = {
     void,
     {
       platform: string;
-      agent: { backend: string; customAgentId?: string; name?: string };
+      agent: { backend: string; custom_agent_id?: string; name?: string };
       model?: { id: string; use_model: string };
     }
   >('/api/channel/settings/sync'),
   pairingRequested: wsEmitter<IChannelPairingRequest>('channel.pairing-requested'),
-  pluginStatusChanged: wsEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
+  pluginStatusChanged: wsEmitter<{ plugin_id: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
   userAuthorized: wsEmitter<IChannelUser>('channel.user-authorized'),
 };
 

@@ -204,15 +204,15 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     try {
       // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
-        pluginId: 'telegram_default',
+        plugin_id: 'telegram_default',
         token: telegramToken.trim(),
       });
 
       if (result.success) {
         setTokenTested(true);
-        setTestedBotUsername(result.botUsername || null);
+        setTestedBotUsername(result.bot_username || null);
         Message.success(
-          t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.botUsername || 'unknown'}`)
+          t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.bot_username || 'unknown'}`)
         );
 
         // Auto-enable bot after successful test
@@ -234,7 +234,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     try {
       // enablePlugin returns void; success if no throw
       await channel.enablePlugin.invoke({
-        pluginId: 'telegram_default',
+        plugin_id: 'telegram_default',
         config: { token: telegramToken.trim() },
       });
 

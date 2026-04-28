@@ -212,7 +212,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
     setSaveLoading(true);
     try {
       await channel.enablePlugin.invoke({
-        pluginId: 'wecom_default',
+        plugin_id: 'wecom_default',
         config: {
           botId: id,
           secret: sec,

@@ -216,11 +216,11 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     try {
       // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
-        pluginId: 'lark_default',
+        plugin_id: 'lark_default',
         token: '', // Not used for Lark
-        extraConfig: {
-          appId: appId.trim(),
-          appSecret: appSecret.trim(),
+        extra_config: {
+          app_id: appId.trim(),
+          app_secret: appSecret.trim(),
         },
       });
 
@@ -246,7 +246,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   const handleAutoEnable = async () => {
     try {
       await channel.enablePlugin.invoke({
-        pluginId: 'lark_default',
+        plugin_id: 'lark_default',
         config: {
           appId: appId.trim(),
           appSecret: appSecret.trim(),

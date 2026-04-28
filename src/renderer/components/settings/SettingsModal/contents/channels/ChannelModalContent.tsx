@@ -327,7 +327,7 @@ const ChannelModalContent: React.FC = () => {
 
         // enablePlugin returns void; success if no throw
         await channel.enablePlugin.invoke({
-          pluginId: 'telegram_default',
+          plugin_id: 'telegram_default',
           config: pendingToken ? { token: pendingToken } : {},
         });
 
@@ -336,7 +336,7 @@ const ChannelModalContent: React.FC = () => {
       } else {
         // disablePlugin returns void; success if no throw
         await channel.disablePlugin.invoke({
-          pluginId: 'telegram_default',
+          plugin_id: 'telegram_default',
         });
 
         Message.success(t('settings.assistant.pluginDisabled', 'Telegram bot disabled'));
@@ -361,7 +361,7 @@ const ChannelModalContent: React.FC = () => {
         }
 
         await channel.enablePlugin.invoke({
-          pluginId: 'lark_default',
+          plugin_id: 'lark_default',
           config: {},
         });
 
@@ -369,7 +369,7 @@ const ChannelModalContent: React.FC = () => {
         await loadPluginStatus();
       } else {
         await channel.disablePlugin.invoke({
-          pluginId: 'lark_default',
+          plugin_id: 'lark_default',
         });
 
         Message.success(t('settings.lark.pluginDisabled', 'Lark bot disabled'));
@@ -394,7 +394,7 @@ const ChannelModalContent: React.FC = () => {
         }
 
         await channel.enablePlugin.invoke({
-          pluginId: 'dingtalk_default',
+          plugin_id: 'dingtalk_default',
           config: {},
         });
 
@@ -402,7 +402,7 @@ const ChannelModalContent: React.FC = () => {
         await loadPluginStatus();
       } else {
         await channel.disablePlugin.invoke({
-          pluginId: 'dingtalk_default',
+          plugin_id: 'dingtalk_default',
         });
 
         Message.success(t('settings.dingtalk.pluginDisabled', 'DingTalk bot disabled'));
@@ -426,14 +426,14 @@ const ChannelModalContent: React.FC = () => {
           return;
         }
         await channel.enablePlugin.invoke({
-          pluginId: 'weixin_default',
+          plugin_id: 'weixin_default',
           config: {},
         });
         Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
         await loadPluginStatus();
       } else {
         await channel.disablePlugin.invoke({
-          pluginId: 'weixin_default',
+          plugin_id: 'weixin_default',
         });
         Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
         await loadPluginStatus();
@@ -455,14 +455,14 @@ const ChannelModalContent: React.FC = () => {
           return;
         }
         await channel.enablePlugin.invoke({
-          pluginId: 'wecom_default',
+          plugin_id: 'wecom_default',
           config: {},
         });
         Message.success(t('settings.wecom.pluginEnabled', 'WeCom channel enabled'));
         await loadPluginStatus();
       } else {
         await channel.disablePlugin.invoke({
-          pluginId: 'wecom_default',
+          plugin_id: 'wecom_default',
         });
         Message.success(t('settings.wecom.pluginDisabled', 'WeCom channel disabled'));
         await loadPluginStatus();
@@ -512,7 +512,7 @@ const ChannelModalContent: React.FC = () => {
           }
 
           await channel.enablePlugin.invoke({
-            pluginId: status.id || pluginType,
+            plugin_id: status.id || pluginType,
             config: fieldValues,
           });
 
@@ -524,7 +524,7 @@ const ChannelModalContent: React.FC = () => {
           await loadPluginStatus();
         } else {
           await channel.disablePlugin.invoke({
-            pluginId: status.id || pluginType,
+            plugin_id: status.id || pluginType,
           });
           Message.success(
             t('settings.channels.extension.disabled', {
