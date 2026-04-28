@@ -1,8 +1,5 @@
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { ipcBridge } from '@/common';
-import useSWR from 'swr';
-
-export const AUTO_PREVIEW_OFFICE_FILES_SWR_KEY = 'system.autoPreviewOfficeFiles';
+import { useConfig } from '@/renderer/hooks/config/useConfig';
 
 const OFFICE_AUTO_PREVIEW_TRIGGER_TYPES = new Set(['tool_group', 'tool_call', 'acp_tool_call', 'codex_tool_call']);
 
@@ -16,9 +13,6 @@ export const findNewOfficeFiles = (currentFiles: string[], knownFiles: Set<strin
  * Returns whether auto-preview for newly created Office files is enabled globally.
  */
 export const useAutoPreviewOfficeFilesEnabled = (): boolean => {
-  const { data = true } = useSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, () =>
-    ipcBridge.systemSettings.getAutoPreviewOfficeFiles.invoke()
-  );
-
-  return data;
+  const [enabled] = useConfig('system.autoPreviewOfficeFiles');
+  return enabled ?? true;
 };

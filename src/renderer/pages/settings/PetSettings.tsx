@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Radio, Switch } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { systemSettings } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
@@ -24,39 +25,19 @@ const PetSettings: React.FC = () => {
   const isPageMode = viewMode === 'page';
   const isDesktop = isElectronDesktop();
 
-  // Load initial values
   useEffect(() => {
-    systemSettings.getPetEnabled
-      .invoke()
-      .then((val) => setEnabled(val))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    systemSettings.getPetSize
-      .invoke()
-      .then((val) => setSize(val))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    systemSettings.getPetDnd
-      .invoke()
-      .then((val) => setDnd(val))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    systemSettings.getPetConfirmEnabled
-      .invoke()
-      .then((val) => setConfirmEnabled(val))
-      .catch(() => {});
+    setEnabled(configService.get('pet.enabled') ?? true);
+    setSize(configService.get('pet.size') ?? 280);
+    setDnd(configService.get('pet.dnd') ?? false);
+    setConfirmEnabled(configService.get('pet.confirmEnabled') ?? true);
   }, []);
 
   const handleEnabledChange = useCallback((checked: boolean) => {
     setEnabled(checked);
+    configService.setLocal('pet.enabled', checked);
     systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
       setEnabled(!checked);
+      configService.setLocal('pet.enabled', !checked);
     });
   }, []);
 
@@ -64,8 +45,10 @@ const PetSettings: React.FC = () => {
     (val: number) => {
       const prevSize = size;
       setSize(val);
+      configService.setLocal('pet.size', val);
       systemSettings.setPetSize.invoke({ size: val }).catch(() => {
         setSize(prevSize);
+        configService.setLocal('pet.size', prevSize);
       });
     },
     [size]
@@ -73,15 +56,19 @@ const PetSettings: React.FC = () => {
 
   const handleDndChange = useCallback((checked: boolean) => {
     setDnd(checked);
+    configService.setLocal('pet.dnd', checked);
     systemSettings.setPetDnd.invoke({ dnd: checked }).catch(() => {
       setDnd(!checked);
+      configService.setLocal('pet.dnd', !checked);
     });
   }, []);
 
   const handleConfirmEnabledChange = useCallback((checked: boolean) => {
     setConfirmEnabled(checked);
+    configService.setLocal('pet.confirmEnabled', checked);
     systemSettings.setPetConfirmEnabled.invoke({ enabled: checked }).catch(() => {
       setConfirmEnabled(!checked);
+      configService.setLocal('pet.confirmEnabled', !checked);
     });
   }, []);
 
