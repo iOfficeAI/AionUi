@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
-import ChatSider from '@/renderer/pages/conversation/components/ChatSider';
+import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
@@ -225,7 +225,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   const sider = useMemo(() => {
     if (!workspaceEnabled || !dispatchConversation) return <div />;
-    return <ChatSider conversation={dispatchConversation} team_id={team.id} />;
+    return <ChatSlider conversation={dispatchConversation} team_id={team.id} />;
   }, [workspaceEnabled, dispatchConversation, team.id]);
 
   const updateScrollArrows = useCallback(() => {

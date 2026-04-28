@@ -455,12 +455,10 @@ export const fs = {
   listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
     '/api/skills/builtin-auto'
   ),
-  materializeSkillsForAgent: httpPost<{ dir_path: string }, { conversation_id: string; skills: string[] }>(
-    '/api/skills/materialize-for-agent'
-  ),
-  cleanupSkillsForAgent: httpDelete<void, { conversation_id: string }>(
-    (p) => `/api/skills/materialize-for-agent/${encodeURIComponent(p.conversation_id)}`
-  ),
+  materializeSkillsForAgent: httpPost<
+    { skills: Array<{ name: string; source_path: string }> },
+    { conversation_id: string; skills: string[] }
+  >('/api/skills/materialize-for-agent'),
   readSkillInfo: httpPost<{ name: string; description: string }, { skill_path: string }>('/api/skills/info'),
   importSkill: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import'),
   scanForSkills: httpPost<Array<{ name: string; description: string; path: string }>, { folder_path: string }>(

@@ -345,7 +345,8 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
                   header={
                     <div className='flex items-center gap-8px text-14px min-w-0'>
                       <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
-                        {getWorkspaceDisplayName(ws)}
+                        {/* Workspace groups here only contain custom (user-chosen) workspaces */}
+                        {getWorkspaceDisplayName(ws, false, t)}
                       </span>
                     </div>
                   }

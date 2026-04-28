@@ -1,6 +1,5 @@
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { isTemporaryWorkspace } from '@/renderer/utils/workspace/workspace';
 import { Command, Down, Folder, Terminal } from '@icon-park/react';
 import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -17,6 +16,12 @@ interface ToolOption {
 
 interface WorkspaceOpenButtonProps {
   workspacePath: string;
+  /**
+   * Authoritative flag from `conversation.extra.is_temporary_workspace`.
+   * The button hides itself for temp workspaces because there is no
+   * meaningful project to open.
+   */
+  isTemporary: boolean;
 }
 
 const STORAGE_KEY = 'workspace-open-preference';
@@ -26,12 +31,11 @@ const STORAGE_KEY = 'workspace-open-preference';
  * Supports VS Code, Terminal, and File Explorer
  * Remembers user's preferred tool
  */
-const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath }) => {
+const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath, isTemporary }) => {
   const { t } = useTranslation();
   const [vscodeInstalled, setVscodeInstalled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preferredTool, setPreferredTool] = useState<ToolType | null>(null);
-  const isTemporary = isTemporaryWorkspace(workspacePath);
 
   // Check if VS Code is installed and load preferred tool
   useEffect(() => {

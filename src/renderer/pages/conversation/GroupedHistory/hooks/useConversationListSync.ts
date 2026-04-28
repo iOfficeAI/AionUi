@@ -25,6 +25,7 @@ const isGeneratingStreamMessage = (type: string): boolean => {
     type === 'tool_group' ||
     type === 'acp_tool_call' ||
     type === 'acp_permission' ||
+    type === 'permission' ||
     type === 'plan'
   );
 };
