@@ -108,7 +108,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agent_type: dispatchAgentType,
         agent_name: 'Leader',
         conversation_type: dispatchConversationType,
-        // cli_path resolved server-side from agent_metadata — no longer sent from frontend
         custom_agent_id: dispatchAgent?.id,
         model: resolvedModel,
       });
