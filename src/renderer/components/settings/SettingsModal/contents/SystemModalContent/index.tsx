@@ -115,6 +115,7 @@ const SystemModalContent: React.FC = () => {
     setNotificationEnabled(checked);
     configService.set('system.notificationEnabled', checked).catch(() => {
       setNotificationEnabled(!checked);
+      configService.setLocal('system.notificationEnabled', !checked);
     });
   }, []);
 
@@ -122,6 +123,7 @@ const SystemModalContent: React.FC = () => {
     setCronNotificationEnabled(checked);
     configService.set('system.cronNotificationEnabled', checked).catch(() => {
       setCronNotificationEnabled(!checked);
+      configService.setLocal('system.cronNotificationEnabled', !checked);
     });
   }, []);
 
@@ -149,6 +151,7 @@ const SystemModalContent: React.FC = () => {
     setSaveUploadToWorkspace(checked);
     configService.set('upload.saveToWorkspace', checked).catch(() => {
       setSaveUploadToWorkspace(!checked);
+      configService.setLocal('upload.saveToWorkspace', !checked);
     });
   }, []);
 
@@ -156,6 +159,7 @@ const SystemModalContent: React.FC = () => {
     setAutoPreviewOfficeFiles(checked);
     configService.set('system.autoPreviewOfficeFiles', checked).catch(() => {
       setAutoPreviewOfficeFiles(!checked);
+      configService.setLocal('system.autoPreviewOfficeFiles', !checked);
     });
   }, []);
 
