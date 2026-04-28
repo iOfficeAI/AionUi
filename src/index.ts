@@ -203,10 +203,31 @@ let appReadyDone = false;
 
 let mainWindow: BrowserWindow;
 const backendManager = new BackendLifecycleManager();
+let disposeCronResumeListener: (() => void) | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
 });
+
+function registerCronResumeBridge(backendPort: number): void {
+  disposeCronResumeListener?.();
+
+  const onResume = () => {
+    void fetch(`http://127.0.0.1:${backendPort}/api/cron/internal/system-resume`, {
+      method: 'POST',
+      headers: {
+        'x-aionui-internal': '1',
+      },
+    }).catch((error) => {
+      console.error('[AionUi] Failed to notify backend about system resume:', error);
+    });
+  };
+
+  powerMonitor.on('resume', onResume);
+  disposeCronResumeListener = () => {
+    powerMonitor.removeListener('resume', onResume);
+  };
+}
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
@@ -478,6 +499,7 @@ const handleAppReady = async (): Promise<void> => {
     // ipcBridge.* invoke from the main process — the renderer side reads
     // window.__backendPort via preload, but main has no `window`.
     (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+    registerCronResumeBridge(backendPort);
     backendStartedOk = true;
   } catch (error) {
     console.error('[AionUi] Failed to start aionui-backend:', error);
@@ -668,22 +690,6 @@ const handleAppReady = async (): Promise<void> => {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
     }
   }
-
-  // Listen for system resume (wake from sleep/hibernate) to recover missed cron jobs
-  powerMonitor.on('resume', () => {
-    try {
-      console.log('[App] System resumed from sleep, triggering cron recovery');
-    } catch {
-      // Console write may fail with EIO when PTY is broken after sleep
-    }
-    import('@process/services/cron/cronServiceSingleton')
-      .then(({ cronService }) => {
-        void cronService.handleSystemResume();
-      })
-      .catch(() => {
-        // Cron recovery is best-effort after system resume
-      });
-  });
 };
 
 // ============ Protocol Registration ============
@@ -755,6 +761,9 @@ app.on('before-quit', async () => {
   destroyTray();
 
   const cleanup = async () => {
+    disposeCronResumeListener?.();
+    disposeCronResumeListener = null;
+
     // Stop aionui-backend subprocess
     await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
 

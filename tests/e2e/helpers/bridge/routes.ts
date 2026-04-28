@@ -18,6 +18,22 @@ export type HttpRoute = {
  * to the legacy IPC bridge.
  */
 export const HTTP_ROUTES: Record<string, HttpRoute> = {
+  'cron.list-jobs': {
+    method: 'GET',
+    path: '/api/cron/jobs',
+  },
+  'cron.get-job': {
+    method: 'GET',
+    path: (p) => `/api/cron/jobs/${encodeURIComponent(String(p.job_id))}`,
+  },
+  'cron.remove-job': {
+    method: 'DELETE',
+    path: (p) => `/api/cron/jobs/${encodeURIComponent(String(p.job_id))}`,
+  },
+  'cron.run-now': {
+    method: 'POST',
+    path: (p) => `/api/cron/jobs/${encodeURIComponent(String(p.job_id))}/run`,
+  },
   'team.list': {
     method: 'GET',
     path: (p) => `/api/teams?user_id=${encodeURIComponent(String(p.user_id ?? ''))}`,

@@ -5,8 +5,13 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chat/chatLib';
-import { composeMessage, mergeAcpToolCallContent } from '@/common/chat/chatLib';
+import type { IMessageText, TMessage } from '@/common/chat/chatLib';
+import {
+  composeMessage,
+  mergeAcpToolCallContent,
+  mergeTextMessageContent,
+  preferTextMessageVersion,
+} from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 
@@ -173,14 +178,11 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
         if ((message.content as { teammateMessage?: boolean })?.teammateMessage) {
           return list;
         }
-        // AI streaming messages (left position) — append chunks
+        // AI streaming messages (left position) — append by default, replace when explicitly signaled
         const newList = list.slice();
         newList[existingIdx] = {
           ...existingMsg,
-          content: {
-            ...existingMsg.content,
-            content: existingMsg.content.content + message.content.content,
-          },
+          content: mergeTextMessageContent(existingMsg.content, message.content),
         };
         return newList;
       }
@@ -362,64 +364,99 @@ export const useRemoveMessageByMsgId = () => {
   );
 };
 
-export const useMessageLstCache = (key: string) => {
+export const useMessageLstCache = (
+  key: string,
+  options?: { enableLateMessagePolling?: boolean; pollIntervalMs?: number; maxPollAttempts?: number }
+) => {
   const update = useUpdateMessageList();
+  const loadMessages = useCallback(async (): Promise<TMessage[]> => {
+    const result = await ipcBridge.database.getConversationMessages.invoke({
+      conversation_id: key,
+      page: 0,
+      page_size: 10000,
+    });
+    const messages = result?.items;
+    if (messages && Array.isArray(messages)) {
+      update((currentList) => {
+        if (!currentList.length) return messages;
+        const sameConversation = currentList.filter((m) => m.conversation_id === key);
+        if (!sameConversation.length) return messages;
+        const dbIds = new Set(messages.map((m) => m.id));
+        const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+
+        // Build a map of streaming messages by msg_id for content-length comparison.
+        // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
+        // so we keep whichever version has more content to avoid losing streamed data.
+        const streamingByMsgId = new Map<string, IMessageText>();
+        for (const m of sameConversation) {
+          if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
+            streamingByMsgId.set(m.msg_id, m);
+          }
+        }
+
+        // Replace DB messages with streaming versions when streaming has more content
+        const mergedMessages = messages.map((dbMsg) => {
+          if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
+          const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
+          if (!streamMsg) return dbMsg;
+          return preferTextMessageVersion(dbMsg, streamMsg);
+        });
+
+        const streamingOnly = sameConversation.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
+        if (!streamingOnly.length && !streamingByMsgId.size) return messages;
+        return [...mergedMessages, ...streamingOnly];
+      });
+      return messages;
+    }
+    return [];
+  }, [key, update]);
+
   useEffect(() => {
     if (!key) return;
-    void ipcBridge.database.getConversationMessages
-      .invoke({
-        conversation_id: key,
-        page: 0,
-        page_size: 10000,
-      })
-      .then((result) => {
-        const messages = result?.items;
-        if (messages && Array.isArray(messages)) {
-          update((currentList) => {
-            if (!currentList.length) return messages;
-            const sameConversation = currentList.filter((m) => m.conversation_id === key);
-            if (!sameConversation.length) return messages;
-            const dbIds = new Set(messages.map((m) => m.id));
-            const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+    void loadMessages().catch((error) => {
+      console.error('[useMessageLstCache] Failed to load messages from database:', error);
+    });
+  }, [key, loadMessages]);
 
-            // Build a map of streaming messages by msg_id for content-length comparison.
-            // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
-            // so we keep whichever version has more content to avoid losing streamed data.
-            const streamingByMsgId = new Map<string, TMessage>();
-            for (const m of sameConversation) {
-              if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
-                streamingByMsgId.set(m.msg_id, m);
-              }
-            }
+  useEffect(() => {
+    if (!key || !options?.enableLateMessagePolling) return;
 
-            // Replace DB messages with streaming versions when streaming has more content
-            const mergedMessages = messages.map((dbMsg) => {
-              if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
-              const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
-              if (!streamMsg) return dbMsg;
-              const dbContent =
-                typeof dbMsg.content === 'object' && 'content' in dbMsg.content
-                  ? String((dbMsg.content as { content: unknown }).content)
-                  : '';
-              const streamContent =
-                typeof streamMsg.content === 'object' && 'content' in streamMsg.content
-                  ? String((streamMsg.content as { content: unknown }).content)
-                  : '';
-              return streamContent.length > dbContent.length ? streamMsg : dbMsg;
-            });
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    const MAX_ATTEMPTS = options?.maxPollAttempts ?? 60;
+    const POLL_INTERVAL_MS = options?.pollIntervalMs ?? 2000;
+    let attempts = 0;
 
-            const streamingOnly = sameConversation.filter(
-              (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
-            );
-            if (!streamingOnly.length && !streamingByMsgId.size) return messages;
-            return [...mergedMessages, ...streamingOnly];
-          });
+    const pollForLateMessages = async () => {
+      while (!cancelled && attempts < MAX_ATTEMPTS) {
+        attempts += 1;
+        await new Promise<void>((resolve) => {
+          timeoutId = setTimeout(resolve, POLL_INTERVAL_MS);
+        });
+        timeoutId = null;
+
+        if (cancelled) return;
+
+        try {
+          const messages = await loadMessages();
+          if (messages.some((message) => message.type === 'skill_suggest')) {
+            return;
+          }
+        } catch (error) {
+          console.error('[useMessageLstCache] Failed polling messages from database:', error);
         }
-      })
-      .catch((error) => {
-        console.error('[useMessageLstCache] Failed to load messages from database:', error);
-      });
-  }, [key]);
+      }
+    };
+
+    void pollForLateMessages();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [key, loadMessages, options?.enableLateMessagePolling, options?.maxPollAttempts, options?.pollIntervalMs]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

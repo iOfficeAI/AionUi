@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -18,6 +18,9 @@ const mockGetJobStatusFlags = vi.hoisted(() =>
   }))
 );
 const mockGetJobInvoke = vi.hoisted(() => vi.fn());
+const cronCreatedListeners = vi.hoisted(() => new Set<(job: ICronJob) => void>());
+const cronUpdatedListeners = vi.hoisted(() => new Set<(job: ICronJob) => void>());
+const cronRemovedListeners = vi.hoisted(() => new Set<(data: { job_id: string }) => void>());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -79,6 +82,24 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
       getJob: { invoke: (...args: unknown[]) => mockGetJobInvoke(...args) },
+      onJobCreated: {
+        on: (listener: (job: ICronJob) => void) => {
+          cronCreatedListeners.add(listener);
+          return () => cronCreatedListeners.delete(listener);
+        },
+      },
+      onJobUpdated: {
+        on: (listener: (job: ICronJob) => void) => {
+          cronUpdatedListeners.add(listener);
+          return () => cronUpdatedListeners.delete(listener);
+        },
+      },
+      onJobRemoved: {
+        on: (listener: (data: { job_id: string }) => void) => {
+          cronRemovedListeners.add(listener);
+          return () => cronRemovedListeners.delete(listener);
+        },
+      },
     },
   },
 }));
@@ -122,6 +143,10 @@ const makeMockJob = (overrides?: Partial<ICronJob>): ICronJob => ({
 describe('CronJobManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    cronCreatedListeners.clear();
+    cronUpdatedListeners.clear();
+    cronRemovedListeners.clear();
+    mockGetJobInvoke.mockResolvedValue(null);
     mockUseCronJobs.mockReturnValue({
       jobs: [],
       loading: false,
@@ -131,13 +156,13 @@ describe('CronJobManager', () => {
   });
 
   it('returns null when hasCronSkill=false and no jobs', () => {
-    const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
+    const { container } = render(<CronJobManager conversation_id='conv-1' hasCronSkill={false} />);
 
     expect(container.innerHTML).toBe('');
   });
 
   it('shows unconfigured state when hasCronSkill=true (default) and no jobs', () => {
-    render(<CronJobManager conversationId='conv-1' />);
+    render(<CronJobManager conversation_id='conv-1' />);
 
     // Should render the Popover with create button
     expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
@@ -147,7 +172,7 @@ describe('CronJobManager', () => {
   });
 
   it('shows unconfigured state when hasCronSkill is explicitly true and no jobs', () => {
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={true} />);
+    render(<CronJobManager conversation_id='conv-1' hasCronSkill={true} />);
 
     expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
     expect(screen.getByText('cron.status.createNow')).toBeInTheDocument();
@@ -161,7 +186,7 @@ describe('CronJobManager', () => {
       hasJobs: true,
     });
 
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
+    render(<CronJobManager conversation_id='conv-1' hasCronSkill={false} />);
 
     // Should show Tooltip with job name, not Popover
     expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
@@ -178,7 +203,7 @@ describe('CronJobManager', () => {
       hasJobs: true,
     });
 
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={true} />);
+    render(<CronJobManager conversation_id='conv-1' hasCronSkill={true} />);
 
     expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
     expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
@@ -191,7 +216,7 @@ describe('CronJobManager', () => {
       hasJobs: false,
     });
 
-    const { container } = render(<CronJobManager conversationId='conv-1' />);
+    const { container } = render(<CronJobManager conversation_id='conv-1' />);
 
     // loading=true and no job -> the component hits `if (loading || !job) return null`
     expect(container.innerHTML).toBe('');
@@ -204,8 +229,36 @@ describe('CronJobManager', () => {
       hasJobs: false,
     });
 
-    const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
+    const { container } = render(<CronJobManager conversation_id='conv-1' hasCronSkill={false} />);
 
     expect(container.innerHTML).toBe('');
+  });
+
+  it('shows a direct cron job when cron_job_id is provided', async () => {
+    const job = makeMockJob({ id: 'job-direct' });
+    mockGetJobInvoke.mockResolvedValue(job);
+
+    render(<CronJobManager conversation_id='conv-1' cron_job_id='job-direct' hasCronSkill={false} />);
+
+    expect(await screen.findByTestId('arco-tooltip')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
+  });
+
+  it('hydrates direct cron job from a late created event', async () => {
+    render(<CronJobManager conversation_id='conv-1' cron_job_id='job-late' hasCronSkill={false} />);
+
+    expect(mockGetJobInvoke).toHaveBeenCalledWith({ job_id: 'job-late' });
+    expect(screen.queryByTestId('arco-tooltip')).not.toBeInTheDocument();
+    await waitFor(() => expect(cronCreatedListeners.size).toBeGreaterThan(0));
+
+    const lateJob = makeMockJob({ id: 'job-late', name: 'Late Job' });
+    await act(async () => {
+      for (const listener of cronCreatedListeners) {
+        listener(lateJob);
+      }
+    });
+
+    expect(await screen.findByTestId('arco-tooltip')).toBeInTheDocument();
+    expect(screen.getByTestId('arco-tooltip')).toHaveAttribute('data-tooltip-content', 'Late Job');
   });
 });

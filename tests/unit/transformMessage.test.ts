@@ -23,11 +23,62 @@ describe('transformMessage', () => {
     expect(result!.content).toEqual({ content: 'something went wrong', type: 'error' });
   });
 
+  it('transforms tips messages into tips with warning type by default', () => {
+    const result = transformMessage(makeMessage('tips', { content: 'resume warning' }));
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('tips');
+    expect(result!.content).toEqual({ content: 'resume warning', type: 'warning' });
+  });
+
   it('transforms content messages into text', () => {
     const result = transformMessage(makeMessage('content', 'hello'));
     expect(result).toBeDefined();
     expect(result!.type).toBe('text');
     expect(result!.position).toBe('left');
+  });
+
+  it('preserves replace signal from top-level stream events', () => {
+    const result = transformMessage({
+      ...makeMessage('content', 'clean final'),
+      replace: true,
+    });
+
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('text');
+    expect(result!.content).toMatchObject({ content: 'clean final', replace: true });
+  });
+
+  it('preserves replace signal from object text payloads', () => {
+    const result = transformMessage(
+      makeMessage('content', {
+        content: 'clean final',
+        replace: true,
+      })
+    );
+
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('text');
+    expect(result!.content).toMatchObject({ content: 'clean final', replace: true });
+  });
+
+  it('normalizes backend snake_case skill_suggest payloads', () => {
+    const result = transformMessage(
+      makeMessage('skill_suggest', {
+        cron_job_id: 'cron-1',
+        name: 'daily-report',
+        description: 'Daily report',
+        skill_content: '---\nname: daily-report\n---\n\nDo the task.\n',
+      })
+    );
+
+    expect(result).toBeDefined();
+    expect(result!.type).toBe('skill_suggest');
+    expect(result!.content).toMatchObject({
+      cron_job_id: 'cron-1',
+      name: 'daily-report',
+      description: 'Daily report',
+      skillContent: '---\nname: daily-report\n---\n\nDo the task.\n',
+    });
   });
 
   it('transforms user_content messages into right-aligned text', () => {

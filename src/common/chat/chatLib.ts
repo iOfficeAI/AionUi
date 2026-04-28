@@ -137,6 +137,8 @@ export type IMessageText = IMessage<
   'text',
   {
     content: string;
+    /** Backend explicitly replaced the accumulated text for this msg_id. */
+    replace?: boolean;
     cronMeta?: CronMessageMeta;
     teammateMessage?: boolean;
     senderName?: string;
@@ -253,6 +255,47 @@ export const mergeAcpToolCallContent = (
     ...incoming.update,
   },
 });
+
+type ResponseTextData = {
+  content: string;
+  replace?: boolean;
+  cronMeta?: CronMessageMeta;
+};
+
+const isResponseTextData = (data: unknown): data is ResponseTextData =>
+  typeof data === 'object' &&
+  data !== null &&
+  'content' in data &&
+  typeof (data as { content?: unknown }).content === 'string';
+
+export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
+  content?.replace === true;
+
+export const mergeTextMessageContent = (
+  existing: IMessageText['content'],
+  incoming: IMessageText['content']
+): IMessageText['content'] => {
+  const { replace: _existingReplace, ...existingRest } = existing;
+  const { replace: incomingReplace, ...incomingRest } = incoming;
+
+  return {
+    ...existingRest,
+    ...incomingRest,
+    content: incomingReplace ? incoming.content : existing.content + incoming.content,
+    ...(incomingReplace ? { replace: true } : {}),
+  };
+};
+
+export const preferTextMessageVersion = (primary: IMessageText, secondary: IMessageText): IMessageText => {
+  const primaryIsReplace = isTextContentReplacement(primary.content);
+  const secondaryIsReplace = isTextContentReplacement(secondary.content);
+
+  if (primaryIsReplace !== secondaryIsReplace) {
+    return primaryIsReplace ? primary : secondary;
+  }
+
+  return secondary.content.content.length > primary.content.content.length ? secondary : primary;
+};
 
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
@@ -433,11 +476,26 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         },
       };
     }
+    case 'tips': {
+      const data = message.data as { content: string; type?: 'error' | 'success' | 'warning' };
+      return {
+        id: uuid(),
+        type: 'tips',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: {
+          content: data.content,
+          type: data.type ?? 'warning',
+        },
+      };
+    }
     case 'text':
     case 'content':
     case 'user_content': {
       const data = message.data;
-      const isRichData = typeof data === 'object' && data !== null && 'content' in data;
+      const isRichData = isResponseTextData(data);
+      const shouldReplace = message.replace === true || (isRichData && data.replace === true);
       return {
         id: uuid(),
         type: 'text',
@@ -446,10 +504,14 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         conversation_id: message.conversation_id,
         content: isRichData
           ? {
-              content: (data as { content: string; cronMeta?: CronMessageMeta }).content,
-              cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta,
+              content: data.content,
+              cronMeta: data.cronMeta,
+              ...(shouldReplace ? { replace: true } : {}),
             }
-          : { content: data as string },
+          : {
+              content: data as string,
+              ...(shouldReplace ? { replace: true } : {}),
+            },
         ...(message.hidden && { hidden: true }),
       };
     }
@@ -571,7 +633,8 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         cron_job_id: string;
         name: string;
         description: string;
-        skillContent: string;
+        skillContent?: string;
+        skill_content?: string;
       };
       return {
         id: uuid(),
@@ -579,14 +642,22 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'center',
-        content: suggestData,
+        content: {
+          cron_job_id: suggestData.cron_job_id,
+          name: suggestData.name,
+          description: suggestData.description,
+          skillContent: suggestData.skillContent ?? suggestData.skill_content ?? '',
+        },
       };
     }
     case 'cron_trigger': {
       const triggerData = message.data as {
-        cron_job_id: string;
-        cron_job_name: string;
-        triggered_at: number;
+        cron_job_id?: string;
+        cronJobId?: string;
+        cron_job_name?: string;
+        cronJobName?: string;
+        triggered_at?: number;
+        triggeredAt?: number;
       };
       return {
         id: uuid(),
@@ -594,7 +665,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'center',
-        content: triggerData,
+        content: {
+          cron_job_id: triggerData.cron_job_id ?? triggerData.cronJobId ?? '',
+          cron_job_name: triggerData.cron_job_name ?? triggerData.cronJobName ?? '',
+          triggered_at: triggerData.triggered_at ?? triggerData.triggeredAt ?? Date.now(),
+        },
       };
     }
     case 'start':
@@ -771,7 +846,7 @@ export const composeMessage = (
     return pushMessage(message);
   }
   if (message.type === 'text' && last.type === 'text') {
-    message.content.content = last.content.content + message.content.content;
+    message.content = mergeTextMessageContent(last.content, message.content);
   }
   return updateMessage(list.length - 1, Object.assign({}, last, message));
 };

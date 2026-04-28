@@ -1172,7 +1172,7 @@ describe('CreateTaskDialog - component behavior', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it('calls addJob API when submitting in create mode', async () => {
+  it('submits create mode jobs as new-conversation tasks bound to the source conversation', async () => {
     const onClose = vi.fn();
     mockAddJob.mockResolvedValue(undefined);
 
@@ -1184,7 +1184,13 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockAddJob).toHaveBeenCalled();
     });
 
-    expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({ description: 'Test Description' }));
+    expect(mockAddJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: 'Test Description',
+        conversation_id: 'conv-1',
+        execution_mode: 'new_conversation',
+      })
+    );
     expect(onClose).toHaveBeenCalled();
   });
 

@@ -11,12 +11,14 @@ import { Button, Message, Switch, Popconfirm, Spin, Empty } from '@arco-design/w
 import { Left, Delete, PlayOne, Write, Attention } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
+import { mutate } from 'swr';
 
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -85,6 +87,50 @@ const TaskDetailPage: React.FC = () => {
       const result = await ipcBridge.cron.runNow.invoke({ job_id: job.id });
       Message.success(t('cron.runNowSuccess'));
       if (result?.conversation_id) {
+        const conversationKey = `conversation/${result.conversation_id}`;
+        const deadline = Date.now() + 15_000;
+        let latestConversation: TChatConversation | null = null;
+
+        while (Date.now() < deadline) {
+          const conversation = await ipcBridge.conversation.get
+            .invoke({ id: result.conversation_id })
+            .catch((): TChatConversation | null => null);
+
+          if (conversation) {
+            latestConversation = conversation;
+            const workspace =
+              typeof conversation.extra?.workspace === 'string' ? conversation.extra.workspace.trim() : '';
+            if (!isNewConversationMode || workspace) {
+              break;
+            }
+          }
+
+          await new Promise((resolve) => setTimeout(resolve, 300));
+        }
+
+        if (latestConversation) {
+          const latestExtra = (latestConversation.extra ?? {}) as Record<string, unknown> & {
+            cron_job_id?: string;
+            cronJobId?: string;
+          };
+          const normalizedCronJobId =
+            typeof latestExtra.cron_job_id === 'string' && latestExtra.cron_job_id.trim()
+              ? latestExtra.cron_job_id
+              : job.id;
+          latestConversation = {
+            ...latestConversation,
+            extra: {
+              ...latestExtra,
+              cron_job_id: normalizedCronJobId,
+              cronJobId:
+                typeof latestExtra.cronJobId === 'string' && latestExtra.cronJobId.trim()
+                  ? latestExtra.cronJobId
+                  : normalizedCronJobId,
+            },
+          };
+          await mutate<TChatConversation>(conversationKey, latestConversation, false);
+        }
+
         navigate(`/conversation/${result.conversation_id}`);
       }
     } catch (err) {

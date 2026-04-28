@@ -10,10 +10,10 @@ import {
   transformMessage,
   composeMessage,
   joinPath,
-  type TMessage,
   type IMessageSkillSuggest,
   type IMessageCronTrigger,
   type IMessageText,
+  type IMessageTips,
   type CronMessageMeta,
 } from '../../src/common/chat/chatLib';
 
@@ -77,7 +77,7 @@ describe('transformMessage - skill_suggest', () => {
       conversation_id: 'conv-123',
       msg_id: 'msg-456',
       data: {
-        cronJobId: 'cron-001',
+        cron_job_id: 'cron-001',
         name: 'test-skill',
         description: 'A test skill',
         skillContent: '---\nname: test-skill\n---\n\n# Test Skill',
@@ -91,11 +91,53 @@ describe('transformMessage - skill_suggest', () => {
     expect(result.conversation_id).toBe('conv-123');
     expect(result.msg_id).toBe('msg-456');
     expect(result.position).toBe('center');
-    expect(result.content.cronJobId).toBe('cron-001');
+    expect(result.content.cron_job_id).toBe('cron-001');
     expect(result.content.name).toBe('test-skill');
     expect(result.content.description).toBe('A test skill');
     expect(result.content.skillContent).toBe('---\nname: test-skill\n---\n\n# Test Skill');
     expect(result.id).toBeDefined(); // uuid generated
+  });
+
+  it('normalizes backend snake_case skill_content payloads', () => {
+    const input: IResponseMessage = {
+      type: 'skill_suggest',
+      conversation_id: 'conv-123',
+      msg_id: 'msg-456',
+      data: {
+        cron_job_id: 'cron-001',
+        name: 'test-skill',
+        description: 'A test skill',
+        skill_content: '---\nname: test-skill\n---\n\n# Test Skill',
+      },
+    };
+
+    const result = transformMessage(input) as IMessageSkillSuggest;
+    expect(result.content.cron_job_id).toBe('cron-001');
+    expect(result.content.skillContent).toBe('---\nname: test-skill\n---\n\n# Test Skill');
+  });
+});
+
+describe('transformMessage - tips', () => {
+  it('transforms tips message correctly', () => {
+    const input: IResponseMessage = {
+      type: 'tips',
+      conversation_id: 'conv-tip',
+      msg_id: 'msg-tip',
+      data: {
+        content: 'Missed while asleep',
+        type: 'warning',
+      },
+    };
+
+    const result = transformMessage(input) as IMessageTips;
+
+    expect(result).toBeDefined();
+    expect(result.type).toBe('tips');
+    expect(result.position).toBe('center');
+    expect(result.content).toEqual({
+      content: 'Missed while asleep',
+      type: 'warning',
+    });
   });
 });
 
@@ -124,10 +166,30 @@ describe('transformMessage - cron_trigger', () => {
     expect(result.conversation_id).toBe('conv-789');
     expect(result.msg_id).toBe('msg-012');
     expect(result.position).toBe('center');
-    expect(result.content.cronJobId).toBe('cron-002');
+    expect(result.content.cron_job_id).toBe('cron-002');
     expect(result.content.cron_job_name).toBe('Daily Report');
-    expect(result.content.triggeredAt).toBe(triggeredAt);
+    expect(result.content.triggered_at).toBe(triggeredAt);
     expect(result.id).toBeDefined(); // uuid generated
+  });
+
+  it('normalizes snake_case cron_trigger message correctly', () => {
+    const triggeredAt = Date.now();
+    const input: IResponseMessage = {
+      type: 'cron_trigger',
+      conversation_id: 'conv-790',
+      msg_id: 'msg-013',
+      data: {
+        cron_job_id: 'cron-003',
+        cron_job_name: 'Nightly Cleanup',
+        triggered_at: triggeredAt,
+      },
+    };
+
+    const result = transformMessage(input) as IMessageCronTrigger;
+
+    expect(result.content.cron_job_id).toBe('cron-003');
+    expect(result.content.cron_job_name).toBe('Nightly Cleanup');
+    expect(result.content.triggered_at).toBe(triggeredAt);
   });
 });
 
@@ -264,15 +326,13 @@ describe('transformMessage - hidden field', () => {
 // ---------------------------------------------------------------------------
 
 describe('composeMessage - cronMeta preservation', () => {
-  it('composing text messages overwrites content object (cronMeta lost if not in new message)', () => {
-    // Note: composeMessage uses Object.assign({}, last, message)
-    // which means the new message's content object completely replaces the old one
+  it('preserves existing cronMeta when appending more text for the same msg_id', () => {
     const triggeredAt = Date.now();
     const cronMeta: CronMessageMeta = {
       source: 'cron',
-      cronJobId: 'cron-005',
+      cron_job_id: 'cron-005',
       cron_job_name: 'Compose Test',
-      triggeredAt,
+      triggered_at: triggeredAt,
     };
 
     const existingMessage: IMessageText = {
@@ -302,18 +362,16 @@ describe('composeMessage - cronMeta preservation', () => {
     expect(result[0].type).toBe('text');
     const textResult = result[0] as IMessageText;
     expect(textResult.content.content).toBe('First part second part');
-    // cronMeta is lost because the new message's content object replaces the old one
-    // after concatenating the content strings
-    expect(textResult.content.cronMeta).toBeUndefined();
+    expect(textResult.content.cronMeta).toEqual(cronMeta);
   });
 
   it('preserves cronMeta when both messages have it during composition', () => {
     const triggeredAt = Date.now();
     const cronMeta: CronMessageMeta = {
       source: 'cron',
-      cronJobId: 'cron-005',
+      cron_job_id: 'cron-005',
       cron_job_name: 'Compose Test',
-      triggeredAt,
+      triggered_at: triggeredAt,
     };
 
     const existingMessage: IMessageText = {
@@ -344,16 +402,77 @@ describe('composeMessage - cronMeta preservation', () => {
     expect(result[0].type).toBe('text');
     const textResult = result[0] as IMessageText;
     expect(textResult.content.content).toBe('First part second part');
-    // cronMeta is preserved because the new message also has it
     expect(textResult.content.cronMeta).toEqual(cronMeta);
+  });
+
+  it('replaces accumulated text when the incoming message explicitly requests replacement', () => {
+    const existingMessage: IMessageText = {
+      id: 'msg-001',
+      type: 'text',
+      conversation_id: 'conv-compose',
+      msg_id: 'msg-compose',
+      content: {
+        content: 'Dirty [CRON_CREATE] block',
+      },
+    };
+
+    const newMessage: IMessageText = {
+      id: 'msg-002',
+      type: 'text',
+      conversation_id: 'conv-compose',
+      msg_id: 'msg-compose',
+      content: {
+        content: 'Clean final text',
+        replace: true,
+      },
+    };
+
+    const result = composeMessage(newMessage, [existingMessage]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('text');
+    const textResult = result[0] as IMessageText;
+    expect(textResult.content.content).toBe('Clean final text');
+    expect(textResult.content.replace).toBe(true);
+  });
+
+  it('clears the replace marker when later chunks resume default append behavior', () => {
+    const existingMessage: IMessageText = {
+      id: 'msg-001',
+      type: 'text',
+      conversation_id: 'conv-compose',
+      msg_id: 'msg-compose',
+      content: {
+        content: 'Clean final text',
+        replace: true,
+      },
+    };
+
+    const newMessage: IMessageText = {
+      id: 'msg-002',
+      type: 'text',
+      conversation_id: 'conv-compose',
+      msg_id: 'msg-compose',
+      content: {
+        content: ' + follow-up',
+      },
+    };
+
+    const result = composeMessage(newMessage, [existingMessage]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].type).toBe('text');
+    const textResult = result[0] as IMessageText;
+    expect(textResult.content.content).toBe('Clean final text + follow-up');
+    expect(textResult.content.replace).toBeUndefined();
   });
 
   it('adds new text message with cronMeta when msg_id differs', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
-      cronJobId: 'cron-006',
+      cron_job_id: 'cron-006',
       cron_job_name: 'New Message',
-      triggeredAt: Date.now(),
+      triggered_at: Date.now(),
     };
 
     const existingMessage: IMessageText = {
@@ -391,9 +510,9 @@ describe('composeMessage - cronMeta preservation', () => {
   it('inserts first message with cronMeta into empty list', () => {
     const cronMeta: CronMessageMeta = {
       source: 'cron',
-      cronJobId: 'cron-007',
+      cron_job_id: 'cron-007',
       cron_job_name: 'First Message',
-      triggeredAt: Date.now(),
+      triggered_at: Date.now(),
     };
 
     const message: IMessageText = {

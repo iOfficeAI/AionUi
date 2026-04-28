@@ -10,8 +10,7 @@ import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
 
 export interface RemoteAgentManagerData {
   conversation_id: string;
@@ -49,12 +48,12 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
   }
 
   async stop() {
-    cronBusyGuard.setProcessing(this.conversation_id, false);
+    conversationBusyGuard.setProcessing(this.conversation_id, false);
     this.confirmations = [];
   }
 
   async sendMessage(_data: { content: string; msg_id?: string; files?: string[] }) {
-    cronBusyGuard.setProcessing(this.conversation_id, true);
+    conversationBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     this._lastActivityAt = Date.now();
   }
@@ -78,13 +77,12 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
       if (message.type === 'start') {
         this.status = 'running';
-        cronBusyGuard.setProcessing(this.conversation_id, true);
+        conversationBusyGuard.setProcessing(this.conversation_id, true);
       }
 
       if (message.type === 'finish' || message.type === 'error') {
         this.status = 'finished';
-        cronBusyGuard.setProcessing(this.conversation_id, false);
-        skillSuggestWatcher.onFinish(this.conversation_id);
+        conversationBusyGuard.setProcessing(this.conversation_id, false);
       }
 
       this.emitToEventBuses(message);

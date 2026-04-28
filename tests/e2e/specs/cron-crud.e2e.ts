@@ -12,8 +12,14 @@
 import { test, expect } from '../fixtures';
 import { invokeBridge } from '../helpers/bridge';
 import { goToGuid } from '../helpers/navigation';
-import { selectAgent, sendMessageFromGuid, waitForSessionActive, waitForAiReply, deleteConversation } from '../helpers';
-import { agentPillByBackend } from '../helpers/selectors';
+import {
+  AGENT_PILL,
+  selectAgent,
+  sendMessageFromGuid,
+  waitForSessionActive,
+  waitForAiReply,
+  deleteConversation,
+} from '../helpers';
 
 interface CronJob {
   id: string;
@@ -25,18 +31,42 @@ interface CronJob {
   metadata: { conversation_id: string; [key: string]: unknown };
 }
 
+async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const visible = await page
+      .locator(AGENT_PILL)
+      .first()
+      .waitFor({ state: 'visible', timeout: 45_000 })
+      .then(() => true)
+      .catch(() => false);
+    if (visible) {
+      const backends = await page
+        .locator(AGENT_PILL)
+        .evaluateAll((els) => els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean));
+      const preferred = ['gemini', 'claude', 'codex', 'aionrs'].find((backend) => backends.includes(backend));
+      const found = preferred ?? backends[0] ?? null;
+      if (found) return found;
+    }
+    if (attempt === 0) {
+      await page.reload({ waitUntil: 'domcontentloaded' });
+      await goToGuid(page);
+    }
+  }
+  return null;
+}
+
 // ── Bridge helpers ──────────────────────────────────────────────────────────
 
 async function listCronJobs(page: import('@playwright/test').Page): Promise<CronJob[]> {
   return invokeBridge<CronJob[]>(page, 'cron.list-jobs', undefined, 10_000);
 }
 
-async function getCronJob(page: import('@playwright/test').Page, job_id: string): Promise<CronJob | null> {
-  return invokeBridge<CronJob | null>(page, 'cron.get-job', { jobId }, 10_000);
+async function getCronJob(page: import('@playwright/test').Page, jobId: string): Promise<CronJob | null> {
+  return invokeBridge<CronJob | null>(page, 'cron.get-job', { job_id: jobId }, 10_000);
 }
 
-async function removeCronJob(page: import('@playwright/test').Page, job_id: string): Promise<void> {
-  return invokeBridge<void>(page, 'cron.remove-job', { jobId }, 10_000);
+async function removeCronJob(page: import('@playwright/test').Page, jobId: string): Promise<void> {
+  return invokeBridge<void>(page, 'cron.remove-job', { job_id: jobId }, 10_000);
 }
 
 // ── Confirmation auto-approve ──────────────────────────────────────────────
@@ -91,7 +121,7 @@ async function sendFollowUpMessage(page: import('@playwright/test').Page, messag
  */
 async function waitForCronJobCreated(
   page: import('@playwright/test').Page,
-  conversation_id: string,
+  conversationId: string,
   timeoutMs = 120_000
 ): Promise<CronJob> {
   const deadline = Date.now() + timeoutMs;
@@ -110,7 +140,7 @@ async function waitForCronJobCreated(
  */
 async function waitForCronJobUpdated(
   page: import('@playwright/test').Page,
-  job_id: string,
+  jobId: string,
   originalName: string,
   timeoutMs = 120_000
 ): Promise<CronJob> {
@@ -144,7 +174,7 @@ test.describe('Cron via AI conversation', () => {
   test.describe.configure({ timeout: 300_000 });
 
   let createdJobId: string | null = null;
-  let conversation_id: string | null = null;
+  let conversationId: string | null = null;
   let stopAutoApprove: (() => void) | null = null;
 
   test.afterEach(async ({ page }) => {
@@ -171,19 +201,18 @@ test.describe('Cron via AI conversation', () => {
   });
 
   test('create scheduled task via conversation, modify it, then delete — conversations preserved', async ({ page }) => {
-    // ── Step 1: Navigate to guid and select Gemini agent ──
+    // ── Step 1: Navigate to guid and select an available ACP-capable agent ──
     await goToGuid(page);
+    await page
+      .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 45_000 })
+      .catch(() => {});
 
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill
-      .waitFor({ state: 'visible', timeout: 15_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!visible) {
-      test.skip(true, 'Gemini agent not available');
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No usable agent available on guid page');
       return;
     }
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
 
     // ── Step 2: Send message to create a scheduled task ──
     conversationId = await sendMessageFromGuid(
@@ -258,7 +287,16 @@ test.describe('Cron via AI conversation', () => {
 
     // Re-locate historyColumn on the new page
     const historyColumnAfter = page.locator('[data-testid="task-detail-history-column"]');
-    const conversationCountAfter = await historyColumnAfter.locator('.cursor-pointer').count();
+    const conversationCountAfter = await expect
+      .poll(
+        async () => {
+          const entries = historyColumnAfter.locator('.cursor-pointer');
+          return entries.count();
+        },
+        { timeout: 15_000, message: 'Waiting for conversation history to reload after cron update' }
+      )
+      .toBeGreaterThanOrEqual(conversationCountBefore)
+      .then(async () => historyColumnAfter.locator('.cursor-pointer').count());
     expect(conversationCountAfter).toBe(conversationCountBefore);
 
     // ── Step 10: Verify job ID preserved (same job, not delete+recreate) ──
@@ -299,17 +337,16 @@ test.describe('Cron via AI conversation', () => {
 
   test('AI creates task in conversation — sidebar shows task with child conversation', async ({ page }) => {
     await goToGuid(page);
+    await page
+      .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 45_000 })
+      .catch(() => {});
 
-    const pill = page.locator(agentPillByBackend('gemini'));
-    const visible = await pill
-      .waitFor({ state: 'visible', timeout: 15_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (!visible) {
-      test.skip(true, 'Gemini agent not available');
+    const backend = await pickAvailableBackend(page);
+    if (!backend) {
+      test.skip(true, 'No usable agent available on guid page');
       return;
     }
-    await selectAgent(page, 'gemini');
+    await selectAgent(page, backend);
 
     conversationId = await sendMessageFromGuid(
       page,

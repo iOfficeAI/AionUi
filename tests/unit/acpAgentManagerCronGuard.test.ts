@@ -19,8 +19,8 @@ const { mockSetProcessing, mockIsProcessing } = vi.hoisted(() => ({
   mockIsProcessing: vi.fn(() => false),
 }));
 
-vi.mock('@process/services/cron/CronBusyGuard', () => ({
-  cronBusyGuard: { setProcessing: mockSetProcessing, isProcessing: mockIsProcessing },
+vi.mock('@process/task/ConversationBusyGuard', () => ({
+  conversationBusyGuard: { setProcessing: mockSetProcessing, isProcessing: mockIsProcessing },
 }));
 vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
@@ -87,11 +87,6 @@ vi.mock('@process/task/BaseAgentManager', () => ({
 }));
 
 vi.mock('@process/task/IpcAgentEventEmitter', () => ({ IpcAgentEventEmitter: vi.fn() }));
-vi.mock('@process/task/CronCommandDetector', () => ({ hasCronCommands: vi.fn(() => false) }));
-vi.mock('@process/task/MessageMiddleware', () => ({
-  extractTextFromMessage: vi.fn(() => ''),
-  processCronInMessage: vi.fn((x: unknown) => x),
-}));
 vi.mock('@process/task/ThinkTagDetector', () => ({ stripThinkTags: vi.fn((x: unknown) => x) }));
 vi.mock('@process/utils/initAgent', () => ({ hasNativeSkillSupport: vi.fn(() => false) }));
 vi.mock('@process/task/agentUtils', () => ({

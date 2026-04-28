@@ -64,7 +64,6 @@ import {
   wsEmitter,
   wsMappedEmitter,
   stubProvider,
-  stubEmitter,
   withResponseMap,
 } from './httpBridge';
 
@@ -1039,7 +1038,17 @@ export const cron = {
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
   updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
     (p) => `/api/cron/jobs/${p.job_id}`,
-    (p) => p.updates
+    (p) => ({
+      name: p.updates.name,
+      description: p.updates.description,
+      enabled: p.updates.enabled,
+      schedule: p.updates.schedule,
+      message: p.updates.target?.payload.text,
+      execution_mode: p.updates.target?.execution_mode,
+      agent_config: p.updates.metadata?.agent_config,
+      conversation_title: p.updates.metadata?.conversation_title,
+      max_retries: p.updates.state?.max_retries,
+    })
   ),
   removeJob: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
   runNow: httpPost<{ conversation_id: string }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/run`),
@@ -1047,7 +1056,11 @@ export const cron = {
     (p) => `/api/cron/jobs/${p.job_id}/skill`,
     (p) => ({ content: p.content })
   ),
-  hasSkill: httpGet<boolean, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
+  hasSkill: withResponseMap(
+    httpGet<{ has_skill: boolean }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
+    (data) => Boolean(data?.has_skill)
+  ),
+  deleteSkill: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
   onJobCreated: wsEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: wsEmitter<ICronJob>('cron.job-updated'),
   onJobRemoved: wsEmitter<{ job_id: string }>('cron.job-removed'),
@@ -1231,6 +1244,8 @@ export interface IResponseMessage {
   msg_id: string;
   conversation_id: string;
   hidden?: boolean;
+  /** Replace accumulated text for the same msg_id instead of appending. */
+  replace?: boolean;
 }
 
 export interface IConversationTurnCompletedEvent {

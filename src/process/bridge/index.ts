@@ -9,7 +9,6 @@ import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
 import { initBedrockBridge } from './bedrockBridge';
-import { initCronBridge } from './cronBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initDocumentBridge } from './documentBridge';
 import { initPreviewHistoryBridge } from './previewHistoryBridge';
@@ -45,7 +44,6 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initOfficeWatchBridge();
   initWindowControlsBridge();
   initUpdateBridge();
-  initCronBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
   initTaskBridge(deps.workerTaskManager);
@@ -68,7 +66,6 @@ export {
   initApplicationBridge,
   initAuthBridge,
   initBedrockBridge,
-  initCronBridge,
   initDialogBridge,
   initDocumentBridge,
   initNotificationBridge,

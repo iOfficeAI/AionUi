@@ -89,8 +89,8 @@ vi.mock('@process/utils/previewUtils', () => ({
   handlePreviewOpenEvent: vi.fn(),
 }));
 
-vi.mock('@process/services/cron/CronBusyGuard', () => ({
-  cronBusyGuard: { setProcessing: vi.fn() },
+vi.mock('@process/task/ConversationBusyGuard', () => ({
+  conversationBusyGuard: { setProcessing: vi.fn() },
 }));
 
 vi.mock('@process/utils/mainLogger', () => ({
@@ -108,17 +108,8 @@ vi.mock('@/common/utils', () => ({
   uuid: vi.fn(() => 'mock-uuid'),
 }));
 
-vi.mock('@process/task/MessageMiddleware', () => ({
-  extractTextFromMessage: vi.fn(),
-  processCronInMessage: vi.fn(),
-}));
-
 vi.mock('@process/task/ThinkTagDetector', () => ({
   stripThinkTags: vi.fn((s: string) => s),
-}));
-
-vi.mock('@process/task/CronCommandDetector', () => ({
-  hasCronCommands: vi.fn(() => false),
 }));
 
 // Mock hasNativeSkillSupport to use real logic for known backends

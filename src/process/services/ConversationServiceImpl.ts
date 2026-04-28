@@ -8,7 +8,6 @@ import type { IConversationService, CreateConversationParams, MigrateConversatio
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { cronService } from './cron/cronServiceSingleton';
 import {
   createAcpAgent,
   createOpenClawAgent,
@@ -59,7 +58,7 @@ export class ConversationServiceImpl implements IConversationService {
   }
 
   async createWithMigration(params: MigrateConversationParams): Promise<TChatConversation> {
-    const { conversation, sourceConversationId, migrateCron } = params;
+    const { conversation, sourceConversationId } = params;
     const conv: TChatConversation = {
       ...conversation,
       created_at: conversation.created_at ?? Date.now(),
@@ -84,28 +83,6 @@ export class ConversationServiceImpl implements IConversationService {
         }
         hasMore = more;
         page++;
-      }
-
-      // Migrate or delete cron jobs associated with source conversation
-      try {
-        const jobs = await cronService.listJobsByConversation(sourceConversationId);
-        if (migrateCron) {
-          for (const job of jobs) {
-            await cronService.updateJob(job.id, {
-              metadata: {
-                ...job.metadata,
-                conversation_id: conv.id,
-                conversation_title: conv.name,
-              },
-            });
-          }
-        } else {
-          for (const job of jobs) {
-            await cronService.removeJob(job.id);
-          }
-        }
-      } catch (err) {
-        console.error('[ConversationServiceImpl] Failed to handle cron jobs during migration:', err);
       }
 
       // Integrity check: only delete source if message counts match

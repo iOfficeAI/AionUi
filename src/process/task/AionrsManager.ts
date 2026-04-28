@@ -21,8 +21,7 @@ enum ToolConfirmationOutcome {
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainLog } from '@process/utils/mainLogger';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
 
 type AionrsApprovalKey = IApprovalKey & {
   action: 'exec' | 'edit' | 'info' | 'mcp';
@@ -81,13 +80,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   async stop() {
-    cronBusyGuard.setProcessing(this.conversation_id, false);
+    conversationBusyGuard.setProcessing(this.conversation_id, false);
     this.confirmations = [];
     // Actual stop is handled by the renderer via ipcBridge.conversation.stop.invoke()
   }
 
   async sendMessage(_data: { content: string; msg_id: string; files?: string[] }) {
-    cronBusyGuard.setProcessing(this.conversation_id, true);
+    conversationBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     this._lastActivityAt = Date.now();
     // Actual message sending is handled by AionrsSendBox via ipcBridge.conversation.sendMessage.invoke()
@@ -112,13 +111,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
       if (message.type === 'start') {
         this.status = 'running';
-        cronBusyGuard.setProcessing(this.conversation_id, true);
+        conversationBusyGuard.setProcessing(this.conversation_id, true);
       }
 
       if (message.type === 'finish' || message.type === 'error') {
         this.status = 'finished';
-        cronBusyGuard.setProcessing(this.conversation_id, false);
-        skillSuggestWatcher.onFinish(this.conversation_id);
+        conversationBusyGuard.setProcessing(this.conversation_id, false);
       }
 
       this.emitToEventBuses(message);

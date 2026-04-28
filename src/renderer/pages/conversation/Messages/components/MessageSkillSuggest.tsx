@@ -9,7 +9,24 @@ import React from 'react';
 import SkillSuggestCard from './SkillSuggestCard';
 
 const MessageSkillSuggest: React.FC<{ message: IMessageSkillSuggest }> = ({ message }) => {
-  const { cron_job_id, name, description, skillContent } = message.content;
+  const rawContent = message.content as
+    | IMessageSkillSuggest['content']
+    | {
+        skill_content?: string;
+      }
+    | string;
+  const content =
+    typeof rawContent === 'string'
+      ? (() => {
+          try {
+            return JSON.parse(rawContent) as IMessageSkillSuggest['content'] & { skill_content?: string };
+          } catch {
+            return {} as IMessageSkillSuggest['content'] & { skill_content?: string };
+          }
+        })()
+      : rawContent;
+  const { cron_job_id, name, description } = content;
+  const skillContent = content.skillContent ?? content.skill_content ?? '';
 
   return (
     <div className='max-w-780px w-full mx-auto'>

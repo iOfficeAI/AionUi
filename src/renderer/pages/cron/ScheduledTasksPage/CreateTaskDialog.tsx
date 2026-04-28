@@ -460,7 +460,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: values.description,
           schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
           prompt: values.prompt,
-          conversation_id: '',
+          conversation_id: _conversation_id ?? '',
           conversation_title,
           agent_type: resolvedAgentType,
           created_by: 'user',

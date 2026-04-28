@@ -39,7 +39,7 @@ const AcpChat: React.FC<{
   agentSlotId,
   emptySlot,
 }) => {
-  useMessageLstCache(conversation_id);
+  useMessageLstCache(conversation_id, { enableLateMessagePolling: Boolean(cron_job_id) });
 
   return (
     <ConversationProvider

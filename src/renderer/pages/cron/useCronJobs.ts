@@ -10,6 +10,10 @@ import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+const isJobErrorLike = (job: ICronJob): boolean => {
+  return job.state.last_status === 'error' || job.state.last_status === 'missed';
+};
+
 /**
  * Common cron job actions
  */
@@ -152,7 +156,7 @@ export function useCronJobs(conversation_id?: string) {
   // Computed values
   const hasJobs = jobs.length > 0;
   const activeJobsCount = jobs.filter((j) => j.enabled).length;
-  const hasError = jobs.some((j) => j.state.last_status === 'error');
+  const hasError = jobs.some(isJobErrorLike);
 
   return {
     jobs,
@@ -222,7 +226,7 @@ export function useAllCronJobs() {
 
   // Computed values
   const activeCount = useMemo(() => jobs.filter((j) => j.enabled).length, [jobs]);
-  const hasError = useMemo(() => jobs.some((j) => j.state.last_status === 'error'), [jobs]);
+  const hasError = useMemo(() => jobs.some(isJobErrorLike), [jobs]);
 
   return {
     jobs,
@@ -408,7 +412,7 @@ export function useCronJobsMap() {
       if (unreadConversations.has(conversation_id)) return 'unread';
 
       // Check if any job has error
-      if (convJobs.some((j) => j.state.last_status === 'error')) return 'error';
+      if (convJobs.some(isJobErrorLike)) return 'error';
 
       // Check if all jobs are paused
       if (convJobs.every((j) => !j.enabled)) return 'paused';

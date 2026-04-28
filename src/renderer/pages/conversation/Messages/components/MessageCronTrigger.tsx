@@ -14,7 +14,33 @@ import { useNavigate } from 'react-router-dom';
 const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ message }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { cron_job_id, cron_job_name } = message.content;
+  const rawContent = message.content as
+    | IMessageCronTrigger['content']
+    | {
+        cronJobId?: string;
+        cronJobName?: string;
+        triggeredAt?: number;
+      }
+    | string;
+  const parseContent = () => {
+    if (typeof rawContent !== 'string') {
+      return rawContent;
+    }
+    try {
+      return JSON.parse(rawContent) as
+        | IMessageCronTrigger['content']
+        | {
+            cronJobId?: string;
+            cronJobName?: string;
+            triggeredAt?: number;
+          };
+    } catch {
+      return {} as IMessageCronTrigger['content'];
+    }
+  };
+  const parsedContent = parseContent();
+  const cron_job_id = parsedContent.cron_job_id ?? parsedContent.cronJobId ?? '';
+  const cron_job_name = parsedContent.cron_job_name ?? parsedContent.cronJobName ?? '';
 
   return (
     <div className='max-w-780px w-full mx-auto cursor-pointer' onClick={() => navigate(`/scheduled/${cron_job_id}`)}>

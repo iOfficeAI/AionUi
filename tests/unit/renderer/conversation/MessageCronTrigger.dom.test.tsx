@@ -55,4 +55,34 @@ describe('MessageCronTrigger', () => {
     fireEvent.click(screen.getByText('cron.trigger.runScheduledTask:Weekly Report'));
     expect(mockNavigate).toHaveBeenCalledWith('/scheduled/abc-123');
   });
+
+  it('supports camelCase cron trigger payloads', () => {
+    render(
+      <MessageCronTrigger
+        message={
+          {
+            content: { cronJobId: 'job-camel', cronJobName: 'Camel Task' },
+          } as Parameters<typeof MessageCronTrigger>[0]['message']
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByText('cron.trigger.runScheduledTask:Camel Task'));
+    expect(mockNavigate).toHaveBeenCalledWith('/scheduled/job-camel');
+  });
+
+  it('supports persisted string cron trigger payloads', () => {
+    render(
+      <MessageCronTrigger
+        message={
+          {
+            content: JSON.stringify({ cron_job_id: 'job-json', cron_job_name: 'JSON Task' }),
+          } as Parameters<typeof MessageCronTrigger>[0]['message']
+        }
+      />
+    );
+
+    fireEvent.click(screen.getByText('cron.trigger.runScheduledTask:JSON Task'));
+    expect(mockNavigate).toHaveBeenCalledWith('/scheduled/job-json');
+  });
 });

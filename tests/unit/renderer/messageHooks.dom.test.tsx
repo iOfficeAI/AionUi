@@ -29,12 +29,23 @@ type TestMessage = {
   position?: string;
   content: {
     content: string;
+    replace?: boolean;
   };
   created_at?: number;
 };
 
-const CacheProbe = ({ conversation_id }: { conversation_id: string }) => {
-  useMessageLstCache(conversation_id);
+const CacheProbe = ({
+  conversation_id,
+  enableLateMessagePolling,
+  pollIntervalMs,
+  maxPollAttempts,
+}: {
+  conversation_id: string;
+  enableLateMessagePolling?: boolean;
+  pollIntervalMs?: number;
+  maxPollAttempts?: number;
+}) => {
+  useMessageLstCache(conversation_id, { enableLateMessagePolling, pollIntervalMs, maxPollAttempts });
   const messages = useMessageList();
   return <pre data-testid='messages'>{JSON.stringify(messages)}</pre>;
 };
@@ -63,6 +74,51 @@ const MutationProbe = () => {
         }
       >
         add-message
+      </button>
+      <button
+        type='button'
+        onClick={() =>
+          addOrUpdateMessage({
+            id: 'stream-1',
+            msg_id: 'stream-1',
+            conversation_id: 'conv-1',
+            type: 'text',
+            position: 'left',
+            content: { content: 'draft [CRON_CREATE]' },
+          })
+        }
+      >
+        add-stream-start
+      </button>
+      <button
+        type='button'
+        onClick={() =>
+          addOrUpdateMessage({
+            id: 'stream-append',
+            msg_id: 'stream-1',
+            conversation_id: 'conv-1',
+            type: 'text',
+            position: 'left',
+            content: { content: ' tail' },
+          })
+        }
+      >
+        add-stream-append
+      </button>
+      <button
+        type='button'
+        onClick={() =>
+          addOrUpdateMessage({
+            id: 'stream-replace',
+            msg_id: 'stream-1',
+            conversation_id: 'conv-1',
+            type: 'text',
+            position: 'left',
+            content: { content: 'clean final', replace: true },
+          })
+        }
+      >
+        add-stream-replace
       </button>
       <button type='button' onClick={() => removeMessageByMsgId('msg-1')}>
         remove-message
@@ -143,6 +199,102 @@ describe('message hooks cache merge', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('mutated-messages').textContent).not.toContain('msg-1');
+    });
+  });
+
+  it('appends streamed text by default and replaces it when replacement is signaled', async () => {
+    mockGetConversationMessagesInvoke.mockResolvedValue({ items: [] });
+
+    render(
+      <MessageListProvider value={[]}>
+        <MutationProbe />
+      </MessageListProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'add-stream-start' }));
+    fireEvent.click(screen.getByRole('button', { name: 'add-stream-append' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('mutated-messages').textContent).toContain('draft [CRON_CREATE] tail');
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'add-stream-replace' }));
+
+    await waitFor(() => {
+      const messages = JSON.parse(screen.getByTestId('mutated-messages').textContent ?? '[]') as TestMessage[];
+      const streamMessage = messages.find((message) => message.msg_id === 'stream-1');
+      expect(streamMessage?.content.content).toBe('clean final');
+      expect(streamMessage?.content.replace).toBe(true);
+    });
+  });
+
+  it('prefers replacement-signaled hydrated text over a longer dirty streaming version', async () => {
+    const dbMessages: TestMessage[] = [
+      {
+        id: 'db-1',
+        msg_id: 'shared-msg',
+        conversation_id: 'conv-1',
+        type: 'text',
+        content: { content: 'clean final', replace: true },
+      },
+    ];
+
+    mockGetConversationMessagesInvoke.mockResolvedValue({ items: dbMessages });
+
+    const initialMessages: TestMessage[] = [
+      {
+        id: 'stream-1',
+        msg_id: 'shared-msg',
+        conversation_id: 'conv-1',
+        type: 'text',
+        content: { content: 'dirty [CRON_CREATE] instructions that should lose by length alone' },
+      },
+    ];
+
+    render(
+      <MessageListProvider value={initialMessages}>
+        <CacheProbe conversation_id='conv-1' />
+      </MessageListProvider>
+    );
+
+    await waitFor(() => {
+      const messages = JSON.parse(screen.getByTestId('messages').textContent ?? '[]') as TestMessage[];
+      expect(messages).toHaveLength(1);
+      expect(messages[0]?.content.content).toBe('clean final');
+      expect(messages[0]?.content.replace).toBe(true);
+    });
+  });
+
+  it('polls late persisted cron messages and hydrates skill_suggest into the list', async () => {
+    mockGetConversationMessagesInvoke.mockResolvedValueOnce({ items: [] }).mockResolvedValueOnce({
+      items: [
+        {
+          id: 'skill-1',
+          msg_id: 'skill-stream-1',
+          conversation_id: 'conv-cron',
+          type: 'skill_suggest',
+          position: 'center',
+          content: {
+            cron_job_id: 'cron-1',
+            name: 'daily-brief',
+            description: 'Daily brief',
+            skillContent: '# skill body',
+          },
+        },
+      ],
+    });
+
+    render(
+      <MessageListProvider value={[]}>
+        <CacheProbe conversation_id='conv-cron' enableLateMessagePolling pollIntervalMs={10} maxPollAttempts={2} />
+      </MessageListProvider>
+    );
+
+    await waitFor(() => {
+      expect(mockGetConversationMessagesInvoke).toHaveBeenCalledTimes(2);
+      const content = screen.getByTestId('messages').textContent ?? '';
+      expect(content).toContain('skill_suggest');
+      expect(content).toContain('daily-brief');
     });
   });
 });
