@@ -70,10 +70,6 @@ vi.mock('@process/team/teamEventBus', () => ({
   teamEventBus: { emit: mockTeamEventBusEmit },
 }));
 
-vi.mock('@process/channels/agent/ChannelEventBus', () => ({
-  channelEventBus: { emitAgentMessage: mockChannelEmitAgentMessage },
-}));
-
 vi.mock('@/common/platform', () => ({
   getPlatformServices: () => ({
     paths: { isPackaged: () => false, getAppPath: () => null },

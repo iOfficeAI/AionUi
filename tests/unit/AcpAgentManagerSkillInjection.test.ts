@@ -42,10 +42,6 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@process/channels/agent/ChannelEventBus', () => ({
-  channelEventBus: { emitAgentMessage: vi.fn() },
-}));
-
 vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn(async () => ({
     updateConversation: vi.fn(),

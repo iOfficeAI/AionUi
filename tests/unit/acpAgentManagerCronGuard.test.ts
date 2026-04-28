@@ -41,14 +41,6 @@ vi.mock('@process/utils/message', () => ({
   addOrUpdateMessage: vi.fn(),
   nextTickToLocalFinish: vi.fn((cb: () => void) => cb()),
 }));
-vi.mock('@process/channels/agent/ChannelEventBus', () => ({
-  channelEventBus: {
-    emit: vi.fn(),
-    on: vi.fn(),
-    off: vi.fn(),
-    emitAgentMessage: vi.fn(),
-  },
-}));
 vi.mock('@process/utils/previewUtils', () => ({ handlePreviewOpenEvent: vi.fn() }));
 vi.mock('@process/extensions', () => ({
   ExtensionRegistry: {
