@@ -762,4 +762,150 @@ describe('CronStore', () => {
       expect(deleted).toBe(3);
     });
   });
+
+  describe('binding operations', () => {
+    const sampleBinding = {
+      id: 'binding-1',
+      jobId: 'job-1',
+      conversationId: 'conv-1',
+      conversationTitle: 'My Conversation',
+      conversationSource: 'gemini',
+      isDefaultTarget: true,
+      createdAt: 1000,
+      updatedAt: 2000,
+    };
+
+    it('insertBinding clears the previous default before inserting a new default-target binding', async () => {
+      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+
+      await cronStore.insertBinding(sampleBinding);
+
+      const sqlCalls = mockDriver.prepare.mock.calls.map((c) => c[0] as string);
+      expect(
+        sqlCalls.some((sql) => sql.includes('UPDATE cron_job_conversation_bindings SET is_default_target = 0'))
+      ).toBe(true);
+      expect(sqlCalls.some((sql) => sql.includes('INSERT OR REPLACE INTO cron_job_conversation_bindings'))).toBe(true);
+    });
+
+    it('insertBinding skips the default-clear step for non-default bindings', async () => {
+      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+
+      await cronStore.insertBinding({ ...sampleBinding, isDefaultTarget: false });
+
+      const sqlCalls = mockDriver.prepare.mock.calls.map((c) => c[0] as string);
+      expect(sqlCalls.some((sql) => sql.includes('SET is_default_target = 0'))).toBe(false);
+      expect(sqlCalls.some((sql) => sql.includes('INSERT OR REPLACE INTO cron_job_conversation_bindings'))).toBe(true);
+    });
+
+    it('deleteBinding removes a single (jobId, conversationId) pair', async () => {
+      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+
+      const deleted = await cronStore.deleteBinding('job-1', 'conv-1');
+
+      expect(mockDriver.prepare).toHaveBeenCalledWith(
+        'DELETE FROM cron_job_conversation_bindings WHERE job_id = ? AND conversation_id = ?'
+      );
+      expect(mockPrepareInstance.run).toHaveBeenCalledWith('job-1', 'conv-1');
+      expect(deleted).toBe(1);
+    });
+
+    it('deleteBindingsByJob removes every binding for a job', async () => {
+      mockPrepareInstance.run.mockImplementation(() => ({ changes: 4 }));
+
+      const deleted = await cronStore.deleteBindingsByJob('job-1');
+
+      expect(mockDriver.prepare).toHaveBeenCalledWith('DELETE FROM cron_job_conversation_bindings WHERE job_id = ?');
+      expect(mockPrepareInstance.run).toHaveBeenCalledWith('job-1');
+      expect(deleted).toBe(4);
+    });
+
+    it('listBindingsByJob returns mapped bindings ordered by default-first', async () => {
+      mockPrepareInstance.all.mockReturnValue([
+        {
+          id: 'b1',
+          job_id: 'job-1',
+          conversation_id: 'conv-1',
+          conversation_title: 'C1',
+          conversation_source: 'gemini',
+          is_default_target: 1,
+          created_at: 1000,
+          updated_at: 1000,
+        },
+      ]);
+
+      const list = await cronStore.listBindingsByJob('job-1');
+
+      expect(mockPrepareInstance.all).toHaveBeenCalledWith('job-1');
+      expect(list).toEqual([
+        {
+          id: 'b1',
+          jobId: 'job-1',
+          conversationId: 'conv-1',
+          conversationTitle: 'C1',
+          conversationSource: 'gemini',
+          isDefaultTarget: true,
+          createdAt: 1000,
+          updatedAt: 1000,
+        },
+      ]);
+    });
+
+    it('listBindingsByConversation returns mapped bindings for a conversation', async () => {
+      mockPrepareInstance.all.mockReturnValue([
+        {
+          id: 'b1',
+          job_id: 'job-1',
+          conversation_id: 'conv-1',
+          conversation_title: null,
+          conversation_source: null,
+          is_default_target: 0,
+          created_at: 1000,
+          updated_at: 1000,
+        },
+      ]);
+
+      const list = await cronStore.listBindingsByConversation('conv-1');
+
+      expect(mockPrepareInstance.all).toHaveBeenCalledWith('conv-1');
+      expect(list).toEqual([
+        {
+          id: 'b1',
+          jobId: 'job-1',
+          conversationId: 'conv-1',
+          conversationTitle: undefined,
+          conversationSource: undefined,
+          isDefaultTarget: false,
+          createdAt: 1000,
+          updatedAt: 1000,
+        },
+      ]);
+    });
+
+    it('getDefaultBinding returns the default-target row when present', async () => {
+      mockPrepareInstance.get.mockReturnValue({
+        id: 'b1',
+        job_id: 'job-1',
+        conversation_id: 'conv-1',
+        conversation_title: 'C1',
+        conversation_source: 'gemini',
+        is_default_target: 1,
+        created_at: 1000,
+        updated_at: 1000,
+      });
+
+      const binding = await cronStore.getDefaultBinding('job-1');
+
+      expect(binding).not.toBeNull();
+      expect(binding!.isDefaultTarget).toBe(true);
+      expect(binding!.jobId).toBe('job-1');
+    });
+
+    it('getDefaultBinding returns null when no row matches', async () => {
+      mockPrepareInstance.get.mockReturnValue(undefined);
+
+      const binding = await cronStore.getDefaultBinding('job-1');
+
+      expect(binding).toBeNull();
+    });
+  });
 });
