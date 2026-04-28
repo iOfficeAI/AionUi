@@ -7,7 +7,7 @@
  */
 
 import { test, expect } from '../../../fixtures';
-import { goToSettings, waitForSettle } from '../../../helpers/navigation';
+import { goToSettings, waitForSettle, waitForClassChange } from '../../../helpers/navigation';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import { ARCO_SWITCH } from '../../../helpers/selectors';
 
@@ -30,14 +30,13 @@ test.describe('System Preferences', () => {
     await takeScreenshot(page, 'system-preferences/tc-pref-01/02-before-switch.png');
 
     await selectTrigger.click();
-    await page.waitForTimeout(300);
 
     const englishOption = page.locator('.arco-select-option:has-text("English")');
     await expect(englishOption).toBeVisible();
     await takeScreenshot(page, 'system-preferences/tc-pref-01/03-dropdown-open.png');
 
     await englishOption.click();
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(() => document.body.textContent?.includes('Language'), { timeout: 5_000 });
 
     await takeScreenshot(page, 'system-preferences/tc-pref-01/04-after-english.png');
 
@@ -48,12 +47,11 @@ test.describe('System Preferences', () => {
     expect(settingsTextEn).toContain('Language');
 
     await selectTrigger.click();
-    await page.waitForTimeout(300);
 
     const chineseOption = page.locator('.arco-select-option:has-text("简体中文")');
     await expect(chineseOption).toBeVisible();
     await chineseOption.click();
-    await page.waitForTimeout(1000);
+    await page.waitForFunction(() => document.body.textContent?.includes('语言'), { timeout: 5_000 });
 
     await takeScreenshot(page, 'system-preferences/tc-pref-01/05-restored-chinese.png');
 
@@ -79,14 +77,14 @@ test.describe('System Preferences', () => {
     await takeScreenshot(page, 'system-preferences/tc-pref-02/02-before-toggle.png');
 
     await closeToTraySwitch.click();
-    await page.waitForTimeout(500);
+    await waitForClassChange(closeToTraySwitch);
 
     const isCheckedAfter = await closeToTraySwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     expect(isCheckedAfter).toBe(!wasChecked);
     await takeScreenshot(page, 'system-preferences/tc-pref-02/03-after-toggle.png');
 
     await closeToTraySwitch.click();
-    await page.waitForTimeout(500);
+    await waitForClassChange(closeToTraySwitch);
 
     const isRestoredCheck = await closeToTraySwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     expect(isRestoredCheck).toBe(wasChecked);
@@ -110,7 +108,7 @@ test.describe('System Preferences', () => {
     await takeScreenshot(page, 'system-preferences/tc-pref-03/02-before-toggle.png');
 
     await notificationSwitch.click();
-    await page.waitForTimeout(500);
+    await waitForClassChange(notificationSwitch);
 
     const isCheckedAfter = await notificationSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     expect(isCheckedAfter).toBe(!wasChecked);
@@ -122,7 +120,7 @@ test.describe('System Preferences', () => {
     }
 
     await notificationSwitch.click();
-    await page.waitForTimeout(500);
+    await waitForClassChange(notificationSwitch);
 
     const isRestoredCheck = await notificationSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     expect(isRestoredCheck).toBe(wasChecked);
@@ -148,14 +146,14 @@ test.describe('System Preferences', () => {
     await takeScreenshot(page, 'system-preferences/tc-pref-04/02-before-toggle.png');
 
     await officeSwitch.click();
-    await page.waitForTimeout(500);
+    await waitForClassChange(officeSwitch);
 
     const isCheckedAfter = await officeSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     expect(isCheckedAfter).toBe(!wasChecked);
     await takeScreenshot(page, 'system-preferences/tc-pref-04/03-after-toggle.png');
 
     await officeSwitch.click();
-    await page.waitForTimeout(500);
+    await waitForClassChange(officeSwitch);
 
     const isRestoredCheck = await officeSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     expect(isRestoredCheck).toBe(wasChecked);

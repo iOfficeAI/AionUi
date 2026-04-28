@@ -19,7 +19,10 @@ function themeCard(page: import('@playwright/test').Page, name: string) {
 }
 
 async function createCustomTheme(page: import('@playwright/test').Page) {
-  const addBtn = page.locator('.arco-btn-outline').filter({ hasText: /Add|手动添加/i }).first();
+  const addBtn = page
+    .locator('.arco-btn-outline')
+    .filter({ hasText: /Add|手动添加/i })
+    .first();
   if (!(await addBtn.isVisible({ timeout: 5_000 }).catch(() => false))) {
     test.skip(true, 'CSS theme add button not found');
     return;
@@ -102,13 +105,14 @@ test.describe('CSS Theme CRUD', () => {
       .catch(() => {});
   });
 
-  test.skip('create a custom CSS theme via modal', async ({ page }) => {
+  test('create a custom CSS theme via modal', async ({ page }) => {
     await navigateToCssThemes(page);
     const addBtn = page
-      .locator('.arco-btn')
-      .filter({ hasText: /\+|Add|手动添加/i })
+      .locator('.arco-btn-outline')
+      .filter({ hasText: /Add|手动添加/i })
       .first();
     await addBtn.waitFor({ state: 'visible', timeout: 5_000 });
+    await addBtn.scrollIntoViewIfNeeded();
     await addBtn.click();
 
     const modal = page.locator('.arco-modal:visible');
@@ -127,7 +131,7 @@ test.describe('CSS Theme CRUD', () => {
     await takeScreenshot(page, 'css-theme-crud/04-theme-created.png');
   });
 
-  test.skip('delete a custom CSS theme', async ({ page }) => {
+  test('delete a custom CSS theme', async ({ page }) => {
     await navigateToCssThemes(page);
     await createCustomTheme(page);
 

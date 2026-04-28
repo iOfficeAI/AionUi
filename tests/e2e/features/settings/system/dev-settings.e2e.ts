@@ -7,22 +7,14 @@
  */
 
 import { test, expect } from '../../../fixtures';
-import { goToSettings, waitForSettle } from '../../../helpers/navigation';
+import { goToSettings, waitForSettle, waitForClassChange } from '../../../helpers/navigation';
 import { takeScreenshot } from '../../../helpers/screenshots';
 import { ARCO_SWITCH } from '../../../helpers/selectors';
 
 async function scrollToDevSettings(page: import('@playwright/test').Page): Promise<boolean> {
-  await page.evaluate(() => {
-    const area = document.querySelector('[data-radix-scroll-area-viewport], .aion-scroll-area, [class*="ScrollArea"]');
-    if (area) area.scrollTop = area.scrollHeight;
-    else window.scrollTo(0, document.body.scrollHeight);
-  });
-  await page.waitForTimeout(500);
-  return page
-    .locator('button:has-text("DevTools")')
-    .first()
-    .isVisible({ timeout: 3_000 })
-    .catch(() => false);
+  const btn = page.locator('button:has-text("DevTools")').first();
+  await btn.scrollIntoViewIfNeeded().catch(() => {});
+  return btn.isVisible({ timeout: 3_000 }).catch(() => false);
 }
 
 function devSection(page: import('@playwright/test').Page) {
@@ -65,12 +57,12 @@ test.describe('DevSettings', () => {
     await takeScreenshot(page, 'dev-settings/tc-dev-02/01-before.png');
 
     await cdpSwitch.click();
-    await page.waitForTimeout(1_000);
+    await waitForClassChange(cdpSwitch);
     expect(await cdpSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'))).toBe(!wasChecked);
     await takeScreenshot(page, 'dev-settings/tc-dev-02/02-toggled.png');
 
     await cdpSwitch.click();
-    await page.waitForTimeout(1_000);
+    await waitForClassChange(cdpSwitch);
     expect(await cdpSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'))).toBe(wasChecked);
     await takeScreenshot(page, 'dev-settings/tc-dev-02/03-restored.png');
   });
@@ -87,7 +79,7 @@ test.describe('DevSettings', () => {
     const wasChecked = await cdpSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     if (!wasChecked) {
       await cdpSwitch.click();
-      await page.waitForTimeout(1_000);
+      await waitForClassChange(cdpSwitch);
     }
 
     const portText = section.locator('text=/127\\.0\\.0\\.1:\\d+/').first();
@@ -95,7 +87,7 @@ test.describe('DevSettings', () => {
     if (!portVisible) {
       if (!wasChecked) {
         await cdpSwitch.click();
-        await page.waitForTimeout(500);
+        await waitForClassChange(cdpSwitch);
       }
       test.skip(true, 'CDP port not available');
       return;
@@ -109,7 +101,7 @@ test.describe('DevSettings', () => {
 
     if (!wasChecked) {
       await cdpSwitch.click();
-      await page.waitForTimeout(500);
+      await waitForClassChange(cdpSwitch);
     }
   });
 
@@ -125,7 +117,7 @@ test.describe('DevSettings', () => {
     const wasChecked = await cdpSwitch.evaluate((el) => el.classList.contains('arco-switch-checked'));
     if (!wasChecked) {
       await cdpSwitch.click();
-      await page.waitForTimeout(1_000);
+      await waitForClassChange(cdpSwitch);
     }
 
     const collapseHeaders = section.locator('.arco-collapse-item-header');
@@ -133,7 +125,7 @@ test.describe('DevSettings', () => {
     if (headerCount === 0) {
       if (!wasChecked) {
         await cdpSwitch.click();
-        await page.waitForTimeout(500);
+        await waitForClassChange(cdpSwitch);
       }
       test.skip(true, 'MCP Collapse not available — CDP port may not be active');
       return;
@@ -146,18 +138,21 @@ test.describe('DevSettings', () => {
     await takeScreenshot(page, 'dev-settings/tc-dev-04/01-collapsed.png');
 
     await firstHeader.click();
-    await page.waitForTimeout(500);
     const preBlock = section.locator('pre').first();
     await expect(preBlock).toBeVisible();
     expect(await preBlock.textContent()).toContain('mcpServers');
     await takeScreenshot(page, 'dev-settings/tc-dev-04/02-expanded.png');
 
     await firstHeader.click();
-    await page.waitForTimeout(500);
+    await page
+      .waitForFunction((sel) => document.querySelector(sel)?.clientHeight === 0, '.arco-collapse-item-content', {
+        timeout: 3_000,
+      })
+      .catch(() => {});
 
     if (!wasChecked) {
       await cdpSwitch.click();
-      await page.waitForTimeout(500);
+      await waitForClassChange(cdpSwitch);
     }
   });
 });
