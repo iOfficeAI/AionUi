@@ -980,14 +980,6 @@ export interface AcpSessionModes {
 
 // ===== Unified model info for UI =====
 
-/** Unified model info that abstracts over both stable and unstable APIs */
-export type AcpModelInfoSourceDetail =
-  | 'cc-switch'
-  | 'acp-config-option'
-  | 'acp-models'
-  | 'persisted-model'
-  | 'codex-stream';
-
 export interface AcpModelInfo {
   /** Currently active model ID */
   current_model_id: string | null;
@@ -995,14 +987,6 @@ export interface AcpModelInfo {
   current_model_label: string | null;
   /** Available models for switching */
   available_models: Array<{ id: string; label: string }>;
-  /** Whether the user can switch models */
-  can_switch: boolean;
-  /** Source of the model info: 'configOption' (stable) or 'models' (unstable) */
-  source: 'configOption' | 'models';
-  /** More specific source detail for UI diagnostics */
-  source_detail?: AcpModelInfoSourceDetail;
-  /** Config option ID (only when source is 'configOption') */
-  config_option_id?: string;
 }
 
 // 所有会话更新的联合类型 / Union type for all session updates

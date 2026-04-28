@@ -555,12 +555,7 @@ export class AcpAgent {
     try {
       await this.connection.setModel(model_id);
     } catch (setModelError) {
-      // Fallback to set_config_option if set_model is not supported
-      if (model_info.source === 'configOption' && model_info.config_option_id) {
-        await this.connection.setConfigOption(model_info.config_option_id, model_id);
-      } else {
-        throw setModelError;
-      }
+      throw setModelError;
     }
 
     this.userModelOverride = model_id;

@@ -1230,11 +1230,8 @@ ${collectedResponses.join('\n')}`;
       // Return persisted model info when agent is not yet initialized
       if (this.persistedModelId) {
         return {
-          source: 'models',
-          source_detail: 'persisted-model',
           current_model_id: this.persistedModelId,
           current_model_label: this.persistedModelId,
-          can_switch: false,
           available_models: [],
         };
       }

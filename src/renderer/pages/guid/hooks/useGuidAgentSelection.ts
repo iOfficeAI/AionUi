@@ -428,11 +428,9 @@ export const useGuidAgentSelection = ({
     // use the hardcoded default list so the Guid page shows a model selector immediately.
     if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
       return {
-        source: 'models' as const,
         current_model_id: DEFAULT_CODEX_MODELS[0].id,
         current_model_label: DEFAULT_CODEX_MODELS[0].label,
         available_models: DEFAULT_CODEX_MODELS.map((m) => ({ id: m.id, label: m.label })),
-        can_switch: true,
       } satisfies AcpModelInfo;
     }
 

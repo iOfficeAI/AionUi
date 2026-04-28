@@ -139,9 +139,6 @@ export function buildClaudeModelInfoFromCcSwitchConfig(
     current_model_id,
     current_model_label,
     available_models,
-    can_switch: available_models.length > 1,
-    source: 'models',
-    source_detail: 'cc-switch',
   };
 }
 

@@ -10,7 +10,6 @@ import { configService } from '@/common/config/configService';
 import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
-import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@/renderer/utils/model/modelSource';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,9 +22,6 @@ function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | n
   if (
     a.current_model_id !== b.current_model_id ||
     a.current_model_label !== b.current_model_label ||
-    a.can_switch !== b.can_switch ||
-    a.source !== b.source ||
-    a.source_detail !== b.source_detail ||
     a.available_models.length !== b.available_models.length
   ) {
     return false;
@@ -42,8 +38,8 @@ function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | n
  * Fetches model info via IPC and listens for real-time updates via responseStream.
  * Renders three states:
  * - null model info: disabled "Use CLI model" button (backward compatible)
- * - can_switch=false: read-only display of current model name
- * - can_switch=true: clickable dropdown selector
+ * - no available_models: read-only display of current model name
+ * - has available_models: clickable dropdown selector
  *
  * When backend and initialModelId are provided, the component can show
  * cached model info before the agent manager is created (pre-first-message).
@@ -198,15 +194,11 @@ const AcpModelSelector: React.FC<{
         }
         updateModelInfo(incoming);
       } else if (message.type === 'codex_model_info' && message.data) {
-        // Codex model info: always read-only display
         const data = message.data as { model: string };
         if (data.model) {
           updateModelInfo({
-            source: 'models',
-            source_detail: 'codex-stream',
             current_model_id: data.model,
             current_model_label: data.model,
-            can_switch: false,
             available_models: [],
           });
         }
@@ -255,12 +247,7 @@ const AcpModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
-  const modelSourceLabel = getAcpModelSourceLabel(model_info);
-  const buttonLabel = formatAcpModelDisplayLabel(display_label, modelSourceLabel);
-  const tooltipContent =
-    modelSourceLabel && display_label
-      ? `${display_label}\nSource: ${modelSourceLabel}`
-      : display_label || modelSourceLabel;
+  const tooltipContent = display_label;
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
 
@@ -293,7 +280,8 @@ const AcpModelSelector: React.FC<{
   }
 
   // State 2: Has model info but cannot switch — read-only display
-  if (!model_info.can_switch) {
+  const canSwitch = model_info.available_models.length > 0;
+  if (!canSwitch) {
     return (
       <Tooltip content={tooltipContent} position='top'>
         <Button
@@ -306,7 +294,7 @@ const AcpModelSelector: React.FC<{
             {current_modelHealth.status !== 'unknown' && (
               <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
             )}
-            <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
+            <MarqueePillLabel>{display_label}</MarqueePillLabel>
           </span>
         </Button>
       </Tooltip>
@@ -347,7 +335,7 @@ const AcpModelSelector: React.FC<{
           {current_modelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
           )}
-          <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
+          <MarqueePillLabel>{display_label}</MarqueePillLabel>
         </span>
       </Button>
     </Dropdown>

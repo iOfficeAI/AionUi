@@ -7,7 +7,7 @@
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 
 /**
- * 获取模型来源标签，用于界面直接显示。
+ * @deprecated No longer used — source/source_detail removed from AcpModelInfo.
  */
 export function getAcpModelSourceLabel(model_info: Pick<AcpModelInfo, 'source' | 'source_detail'> | null): string {
   const source_detail = model_info?.source_detail;
@@ -23,7 +23,7 @@ export function getAcpModelSourceLabel(model_info: Pick<AcpModelInfo, 'source' |
 }
 
 /**
- * 组合模型显示文本，附带来源标签。
+ * @deprecated No longer used.
  */
 export function formatAcpModelDisplayLabel(modelLabel: string, sourceLabel: string): string {
   if (!sourceLabel) return modelLabel;
