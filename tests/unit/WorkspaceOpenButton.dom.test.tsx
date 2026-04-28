@@ -3,7 +3,6 @@ import React from 'react';
 import { render, screen } from '@testing-library/react';
 
 const mockIsElectronDesktop = vi.fn(() => true);
-const mockIsTemporaryWorkspace = vi.fn(() => false);
 const mockCheckToolInstalled = vi.fn().mockResolvedValue(false);
 
 vi.mock('react-i18next', () => ({
@@ -33,10 +32,6 @@ vi.mock('@/renderer/utils/platform', () => ({
   isElectronDesktop: () => mockIsElectronDesktop(),
 }));
 
-vi.mock('@/renderer/utils/workspace/workspace', () => ({
-  isTemporaryWorkspace: (p: string) => mockIsTemporaryWorkspace(p),
-}));
-
 vi.mock('@/common', () => ({
   ipcBridge: {
     shell: {
@@ -52,31 +47,29 @@ describe('WorkspaceOpenButton', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockIsElectronDesktop.mockReturnValue(true);
-    mockIsTemporaryWorkspace.mockReturnValue(false);
     mockCheckToolInstalled.mockResolvedValue(false);
     localStorage.clear();
   });
 
   it('renders in Electron desktop mode with non-temporary workspace', () => {
-    const { container } = render(<WorkspaceOpenButton workspacePath='/home/user/project' />);
+    const { container } = render(<WorkspaceOpenButton workspacePath='/home/user/project' isTemporary={false} />);
     expect(container.querySelector('.workspace-open-button')).not.toBeNull();
   });
 
   it('does not render in WebUI/browser mode', () => {
     mockIsElectronDesktop.mockReturnValue(false);
-    const { container } = render(<WorkspaceOpenButton workspacePath='/home/user/project' />);
+    const { container } = render(<WorkspaceOpenButton workspacePath='/home/user/project' isTemporary={false} />);
     expect(container.querySelector('.workspace-open-button')).toBeNull();
     expect(container.innerHTML).toBe('');
   });
 
-  it('does not render for temporary workspaces', () => {
-    mockIsTemporaryWorkspace.mockReturnValue(true);
-    const { container } = render(<WorkspaceOpenButton workspacePath='/tmp/temp-workspace' />);
+  it('does not render when isTemporary is true (auto-provisioned workspace)', () => {
+    const { container } = render(<WorkspaceOpenButton workspacePath='/any/path' isTemporary={true} />);
     expect(container.querySelector('.workspace-open-button')).toBeNull();
   });
 
   it('shows terminal icon as default tool', () => {
-    render(<WorkspaceOpenButton workspacePath='/home/user/project' />);
+    render(<WorkspaceOpenButton workspacePath='/home/user/project' isTemporary={false} />);
     expect(screen.getByTestId('icon-terminal')).toBeDefined();
   });
 });

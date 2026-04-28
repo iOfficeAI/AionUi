@@ -3,47 +3,41 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 /**
  * Covers the backend-driven skill materialization path in initAgent:
  * `setupAssistantWorkspace` now calls `materializeSkillsForAgent` with the
- * resolved skill list and symlinks each returned skill dir into the
- * CLI-native skills folder.
+ * resolved skill list and symlinks each returned `source_path` directly into
+ * the CLI-native skills folder (no per-conversation copy).
  */
 
 const norm = (p: string) => p.replace(/\\/g, '/');
 
-const { materializeInvoke, cleanupInvoke, mkdirCalls, symlinkCalls, lstatResults, statResults, readdirResults, reset } =
-  vi.hoisted(() => {
-    const materializeMock =
-      vi.fn<(args: { conversation_id: string; skills: string[] }) => Promise<{ dir_path: string }>>();
-    const cleanupMock = vi.fn<(args: { conversationId: string }) => Promise<void>>();
-    const mk: string[] = [];
-    const links: Array<{ source: string; target: string; type: string }> = [];
-    const ls: Record<string, boolean> = {};
-    const st: Record<string, boolean> = {};
-    const rd: Record<string, string[]> = {};
-    return {
-      materializeInvoke: materializeMock,
-      cleanupInvoke: cleanupMock,
-      mkdirCalls: mk,
-      symlinkCalls: links,
-      lstatResults: ls,
-      statResults: st,
-      readdirResults: rd,
-      reset: () => {
-        materializeMock.mockReset();
-        cleanupMock.mockReset();
-        mk.length = 0;
-        links.length = 0;
-        for (const k of Object.keys(ls)) delete ls[k];
-        for (const k of Object.keys(st)) delete st[k];
-        for (const k of Object.keys(rd)) delete rd[k];
-      },
-    };
-  });
+type MaterializeResponse = { skills: Array<{ name: string; source_path: string }> };
+
+const { materializeInvoke, mkdirCalls, symlinkCalls, lstatResults, statResults, reset } = vi.hoisted(() => {
+  const materializeMock =
+    vi.fn<(args: { conversation_id: string; skills: string[] }) => Promise<MaterializeResponse>>();
+  const mk: string[] = [];
+  const links: Array<{ source: string; target: string; type: string }> = [];
+  const ls: Record<string, boolean> = {};
+  const st: Record<string, boolean> = {};
+  return {
+    materializeInvoke: materializeMock,
+    mkdirCalls: mk,
+    symlinkCalls: links,
+    lstatResults: ls,
+    statResults: st,
+    reset: () => {
+      materializeMock.mockReset();
+      mk.length = 0;
+      links.length = 0;
+      for (const k of Object.keys(ls)) delete ls[k];
+      for (const k of Object.keys(st)) delete st[k];
+    },
+  };
+});
 
 vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       materializeSkillsForAgent: { invoke: materializeInvoke },
-      cleanupSkillsForAgent: { invoke: cleanupInvoke },
     },
   },
 }));
@@ -52,15 +46,6 @@ vi.mock('fs/promises', () => ({
   default: {
     mkdir: vi.fn(async (dir: string) => {
       mkdirCalls.push(norm(dir));
-    }),
-    readdir: vi.fn(async (dir: string, _opts?: unknown) => {
-      const entries = readdirResults[norm(dir)] ?? [];
-      return entries.map((name) => ({
-        name,
-        isDirectory: () => true,
-        isFile: () => false,
-        isSymbolicLink: () => false,
-      }));
     }),
     stat: vi.fn(async (p: string) => {
       if (statResults[norm(p)]) return {};
@@ -97,10 +82,14 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     setupAssistantWorkspace = mod.setupAssistantWorkspace;
   });
 
-  it('materializes via backend and symlinks each skill subdir into the native skills dir', async () => {
-    const dirPath = '/mock/data/agent-skills/conv-1';
-    materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
-    readdirResults[dirPath] = ['cron', 'office-cli', 'pptx'];
+  it('resolves sources via backend and symlinks each source_path into the native skills dir', async () => {
+    materializeInvoke.mockResolvedValueOnce({
+      skills: [
+        { name: 'cron', source_path: '/mock/data/builtin-skills/auto-inject/cron' },
+        { name: 'office-cli', source_path: '/mock/data/builtin-skills/office-cli' },
+        { name: 'pptx', source_path: '/mock/data/skills/pptx' },
+      ],
+    });
 
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-1',
@@ -114,19 +103,23 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     });
     expect(mkdirCalls).toContain('/tmp/ws/.claude/skills');
     expect(symlinkCalls).toHaveLength(3);
-    expect(symlinkCalls.map((c) => c.target).toSorted()).toEqual([
-      '/tmp/ws/.claude/skills/cron',
-      '/tmp/ws/.claude/skills/office-cli',
-      '/tmp/ws/.claude/skills/pptx',
+    // Source paths are forwarded verbatim — no per-conv copy step.
+    expect(
+      symlinkCalls
+        .map((c) => ({ source: c.source, target: c.target }))
+        .toSorted((a, b) => a.target.localeCompare(b.target))
+    ).toEqual([
+      { source: '/mock/data/builtin-skills/auto-inject/cron', target: '/tmp/ws/.claude/skills/cron' },
+      { source: '/mock/data/builtin-skills/office-cli', target: '/tmp/ws/.claude/skills/office-cli' },
+      { source: '/mock/data/skills/pptx', target: '/tmp/ws/.claude/skills/pptx' },
     ]);
     expect(symlinkCalls.every((c) => c.type === 'junction')).toBe(true);
   });
 
-  it('only symlinks skills present in the materialized directory', async () => {
-    const dirPath = '/mock/data/agent-skills/conv-2';
-    materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
-    // Backend materializes only office-cli (cron was excluded from the snapshot).
-    readdirResults[dirPath] = ['office-cli'];
+  it('only symlinks skills returned in the backend response', async () => {
+    materializeInvoke.mockResolvedValueOnce({
+      skills: [{ name: 'office-cli', source_path: '/mock/data/builtin-skills/office-cli' }],
+    });
 
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-2',
@@ -163,9 +156,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
   });
 
   it('still wires extra skill paths that live outside the backend corpus', async () => {
-    const dirPath = '/mock/data/agent-skills/conv-5';
-    materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
-    readdirResults[dirPath] = [];
+    materializeInvoke.mockResolvedValueOnce({ skills: [] });
     statResults['/cron-jobs/job-1'] = true;
 
     await setupAssistantWorkspace('/tmp/ws', {

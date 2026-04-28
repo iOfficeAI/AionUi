@@ -9,7 +9,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       listBuiltinAutoSkills: { invoke: vi.fn() },
-      materializeSkillsForAgent: { invoke: vi.fn().mockResolvedValue({ dir_path: '' }) },
+      materializeSkillsForAgent: { invoke: vi.fn().mockResolvedValue({ skills: [] }) },
     },
   },
 }));

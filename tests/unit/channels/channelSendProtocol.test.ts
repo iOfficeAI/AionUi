@@ -121,6 +121,39 @@ describe('channelSendProtocol', () => {
     expect(parsed.rejectedActions).toEqual([]);
   });
 
+  it('allows files from sibling managed workspaces under conversations/<uuid>', async () => {
+    const { resolveChannelSendProtocol } = await import('@process/channels/utils/channelSendProtocol');
+    const convA = '3f7a1f38-8b74-4cc2-9e11-1a6f2b5f8f10';
+    const convB = '8a2b4c6d-1e0f-4a2b-9c3d-7e5f8a1b2c3d';
+    const workspace = path.join(TEST_DATA_ROOT, 'conversations', convA);
+    const siblingWorkspace = path.join(TEST_DATA_ROOT, 'conversations', convB);
+    const sharedFile = path.join(siblingWorkspace, 'uploads', 'report.pdf');
+
+    fs.mkdirSync(path.dirname(sharedFile), { recursive: true });
+    fs.mkdirSync(workspace, { recursive: true });
+    fs.writeFileSync(sharedFile, 'report');
+    mockGetConversation.mockReturnValue({ success: true, data: { extra: { workspace } } });
+    const canonicalSharedFile = fs.realpathSync(sharedFile);
+
+    const parsed = await resolveChannelSendProtocol(
+      buildChannelSendProtocol({
+        type: 'file',
+        path: `../${convB}/uploads/report.pdf`,
+        file_name: 'report.pdf',
+      }),
+      'conv-sibling-new-layout'
+    );
+
+    expect(parsed.mediaActions).toEqual([
+      {
+        type: 'file',
+        path: canonicalSharedFile,
+        file_name: 'report.pdf',
+      },
+    ]);
+    expect(parsed.rejectedActions).toEqual([]);
+  });
+
   it('allows files from config temp storage', async () => {
     const { resolveChannelSendProtocol } = await import('@process/channels/utils/channelSendProtocol');
     const workspace = path.join(TEST_DATA_ROOT, 'codex-temp-100');

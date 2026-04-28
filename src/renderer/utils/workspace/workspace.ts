@@ -9,55 +9,27 @@
  * 工作空间工具函数
  */
 
-/**
- * Pattern to match temporary workspace naming convention: <backend>-temp-<timestamp>
- * Matches any workspace ending with -temp- followed by digits (Unix timestamp)
- * Examples: codex-temp-1234567890, gemini-temp-1234567890, claude-temp-1234567890
- */
-const TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
-
 const splitPathSegments = (targetPath: string): string[] => targetPath.split(/[\\/]+/).filter(Boolean);
 
 /**
- * Check if a workspace path is a temporary workspace
- * 检查工作空间路径是否为临时工作空间
- */
-export const isTemporaryWorkspace = (workspacePath: string): boolean => {
-  // Extract the last path segment (directory name)
-  const parts = splitPathSegments(workspacePath);
-  const lastSegment = parts[parts.length - 1] || '';
-
-  // Check if it matches the temporary workspace pattern
-  return TEMP_WORKSPACE_REGEX.test(lastSegment);
-};
-
-/**
- * Get the display name for a workspace path
- * 获取工作空间的显示名称
+ * Get the display name for a workspace path.
  *
- * @param workspacePath - The full workspace path
- * @param t - Optional i18n translation function
- * @returns The display name for the workspace
+ * When `isTemporaryWorkspace` is true, returns the localized "Temporary
+ * Session" label. Otherwise returns the last directory name of the
+ * workspace path.
+ *
+ * The caller must supply `isTemporaryWorkspace` — this function never
+ * inspects the path shape to guess. The authoritative signal comes
+ * from `conversation.extra.is_temporary_workspace` on the API response.
  */
-export const getWorkspaceDisplayName = (workspacePath: string, t?: (key: string) => string): string => {
-  // Check for temporary workspace
-  if (isTemporaryWorkspace(workspacePath)) {
-    // Try to extract timestamp from temp workspace path using the generic pattern
-    const parts = splitPathSegments(workspacePath);
-    const lastSegment = parts[parts.length - 1] || '';
-    const match = lastSegment.match(/-temp-(\d+)$/i);
-
-    if (match) {
-      const timestamp = parseInt(match[1], 10);
-      const date = new Date(timestamp);
-      const dateStr = date.toLocaleDateString();
-      const label = t ? t('conversation.workspace.temporarySpace') : 'Temporary Session';
-      return `${label} (${dateStr})`;
-    }
+export const getWorkspaceDisplayName = (
+  workspacePath: string,
+  isTemporaryWorkspace: boolean,
+  t?: (key: string) => string
+): string => {
+  if (isTemporaryWorkspace) {
     return t ? t('conversation.workspace.temporarySpace') : 'Temporary Session';
   }
-
-  // For regular workspace, show the last directory name
   const parts = splitPathSegments(workspacePath);
   return parts[parts.length - 1] || workspacePath;
 };

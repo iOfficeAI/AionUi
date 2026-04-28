@@ -10,10 +10,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { emitter } from '@/renderer/utils/emitter';
-import {
-  isTemporaryWorkspace as checkIsTemporaryWorkspace,
-  getWorkspaceDisplayName as getDisplayName,
-} from '@/renderer/utils/workspace/workspace';
+import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -48,6 +45,7 @@ import './workspace.css';
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
+  isTemporaryWorkspace: isTemporaryWorkspaceProp,
   eventPrefix = 'acp',
   messageApi: externalMessageApi,
   team_id,
@@ -142,16 +140,20 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
   const treeData = flattenSingleRoot(treeHook.files);
 
-  // Check if this is a temporary workspace (check both path and root folder name)
-  const isTemporaryWorkspace = checkIsTemporaryWorkspace(workspace) || checkIsTemporaryWorkspace(rootName);
+  // Authoritative source: `conversation.extra.is_temporary_workspace` is
+  // derived by the backend on every response (see
+  // aionui-conversation::convert::row_to_response). We never inspect the
+  // directory path shape — the backend's temp-workspace layout is not a
+  // public contract. Default to false when the prop is unavailable (e.g.
+  // tests that render the panel outside a conversation).
+  const isTemporaryWorkspace = isTemporaryWorkspaceProp ?? false;
+  void rootName; // reserved for future UI hints; no longer used for detection.
 
   // Get workspace display name using shared utility
-  const workspaceDisplayName = useMemo(() => {
-    if (isTemporaryWorkspace) {
-      return t('conversation.workspace.temporarySpace');
-    }
-    return getDisplayName(workspace);
-  }, [workspace, isTemporaryWorkspace, t]);
+  const workspaceDisplayName = useMemo(
+    () => getDisplayName(workspace, isTemporaryWorkspace, t),
+    [workspace, isTemporaryWorkspace, t]
+  );
 
   // Migration hook
   const migrationHook = useWorkspaceMigration({

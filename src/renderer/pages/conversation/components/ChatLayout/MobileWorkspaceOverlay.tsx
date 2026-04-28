@@ -12,6 +12,7 @@ type MobileWorkspaceOverlayProps = {
   siderTitle?: React.ReactNode;
   sider: React.ReactNode;
   workspacePath?: string;
+  isTemporaryWorkspace?: boolean;
 };
 
 // Full-screen overlay + fixed workspace panel + floating collapse handle for mobile viewports
@@ -23,6 +24,7 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
   siderTitle,
   sider,
   workspacePath,
+  isTemporaryWorkspace,
 }) => (
   <>
     {/* Backdrop */}
@@ -51,6 +53,7 @@ const MobileWorkspaceOverlay: React.FC<MobileWorkspaceOverlayProps> = ({
         onToggle={() => dispatchWorkspaceToggleEvent()}
         togglePlacement='left'
         workspacePath={workspacePath}
+        isTemporaryWorkspace={isTemporaryWorkspace}
       >
         {siderTitle}
       </WorkspacePanelHeader>
