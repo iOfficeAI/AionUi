@@ -217,6 +217,13 @@ export const useAionrsMessage = (
             addOrUpdateMessage(transformMessage(message));
           }
           break;
+        case 'permission':
+          if (!streamRunningRef.current) {
+            setStreamRunning(true);
+            streamRunningRef.current = true;
+          }
+          addOrUpdateMessage(transformMessage(message));
+          break;
         case 'config_changed':
           onConfigChangedRef.current?.(message.data as Record<string, unknown>);
           break;

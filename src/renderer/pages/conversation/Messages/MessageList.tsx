@@ -11,6 +11,7 @@ import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
+import MessagePermission from './components/MessagePermission';
 import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 import classNames from 'classnames';
 import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
@@ -125,6 +126,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessageToolGroup message={message}></MessageToolGroup>;
       case 'agent_status':
         return <MessageAgentStatus message={message}></MessageAgentStatus>;
+      case 'permission':
+        return <MessagePermission message={message}></MessagePermission>;
       case 'acp_permission':
         return <MessageAcpPermission message={message}></MessageAcpPermission>;
       case 'acp_tool_call':

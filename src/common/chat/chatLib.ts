@@ -77,6 +77,7 @@ type TMessageType =
   | 'tool_call'
   | 'tool_group'
   | 'agent_status'
+  | 'permission'
   | 'acp_permission'
   | 'acp_tool_call'
   | 'codex_permission'
@@ -232,6 +233,8 @@ export type IMessageAgentStatus = IMessage<
 
 export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
+export type IMessagePermission = IMessage<'permission', IConfirmation>;
+
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
 export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
@@ -379,6 +382,7 @@ export type TMessage =
   | IMessageToolCall
   | IMessageToolGroup
   | IMessageAgentStatus
+  | IMessagePermission
   | IMessageAcpPermission
   | IMessageAcpToolCall
   | IMessageCodexPermission
@@ -471,6 +475,16 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         type: 'agent_status',
         msg_id: message.msg_id,
         position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data as any,
+      };
+    }
+    case 'permission': {
+      return {
+        id: uuid(),
+        type: 'permission',
+        msg_id: message.msg_id,
+        position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
       };
