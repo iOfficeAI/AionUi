@@ -9,14 +9,13 @@ import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
-import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR, { mutate as mutateSWR } from 'swr';
+import useSWR from 'swr';
 import { useSettingsViewMode } from '../../settingsViewContext';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
@@ -68,54 +67,23 @@ const SystemModalContent: React.FC = () => {
   }, [isDesktop]);
 
   useEffect(() => {
-    ipcBridge.systemSettings.getCloseToTray
-      .invoke()
-      .then((enabled) => setCloseToTray(enabled))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    ipcBridge.systemSettings.getNotificationEnabled
-      .invoke()
-      .then((enabled) => setNotificationEnabled(enabled))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    ipcBridge.systemSettings.getCronNotificationEnabled
-      .invoke()
-      .then((enabled) => setCronNotificationEnabled(enabled))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const val = configService.get('acp.promptTimeout');
-    if (val && val > 0) setPromptTimeout(val);
-  }, []);
-
-  useEffect(() => {
-    const val = configService.get('acp.agentIdleTimeout');
-    if (val && val > 0) setAgentIdleTimeout(val);
-  }, []);
-
-  useEffect(() => {
-    ipcBridge.systemSettings.getSaveUploadToWorkspace
-      .invoke()
-      .then((enabled) => setSaveUploadToWorkspace(enabled))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    ipcBridge.systemSettings.getAutoPreviewOfficeFiles
-      .invoke()
-      .then((enabled) => setAutoPreviewOfficeFiles(enabled))
-      .catch(() => {});
+    setCloseToTray(configService.get('system.closeToTray') ?? false);
+    setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
+    setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
+    setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
+    setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
+    const pt = configService.get('acp.promptTimeout');
+    if (pt && pt > 0) setPromptTimeout(pt);
+    const ait = configService.get('acp.agentIdleTimeout');
+    if (ait && ait > 0) setAgentIdleTimeout(ait);
   }, []);
 
   const handleCloseToTrayChange = useCallback((checked: boolean) => {
     setCloseToTray(checked);
+    configService.setLocal('system.closeToTray', checked);
     ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
       setCloseToTray(!checked);
+      configService.setLocal('system.closeToTray', !checked);
     });
   }, []);
 
@@ -145,15 +113,17 @@ const SystemModalContent: React.FC = () => {
 
   const handleNotificationEnabledChange = useCallback((checked: boolean) => {
     setNotificationEnabled(checked);
-    ipcBridge.systemSettings.setNotificationEnabled.invoke({ enabled: checked }).catch(() => {
+    configService.set('system.notificationEnabled', checked).catch(() => {
       setNotificationEnabled(!checked);
+      configService.setLocal('system.notificationEnabled', !checked);
     });
   }, []);
 
   const handleCronNotificationEnabledChange = useCallback((checked: boolean) => {
     setCronNotificationEnabled(checked);
-    ipcBridge.systemSettings.setCronNotificationEnabled.invoke({ enabled: checked }).catch(() => {
+    configService.set('system.cronNotificationEnabled', checked).catch(() => {
       setCronNotificationEnabled(!checked);
+      configService.setLocal('system.cronNotificationEnabled', !checked);
     });
   }, []);
 
@@ -179,21 +149,17 @@ const SystemModalContent: React.FC = () => {
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
-    ipcBridge.systemSettings.setSaveUploadToWorkspace.invoke({ enabled: checked }).catch(() => {
+    configService.set('upload.saveToWorkspace', checked).catch(() => {
       setSaveUploadToWorkspace(!checked);
+      configService.setLocal('upload.saveToWorkspace', !checked);
     });
   }, []);
 
   const handleAutoPreviewOfficeFilesChange = useCallback((checked: boolean) => {
     setAutoPreviewOfficeFiles(checked);
-    void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, checked, {
-      revalidate: false,
-    });
-    ipcBridge.systemSettings.setAutoPreviewOfficeFiles.invoke({ enabled: checked }).catch(() => {
+    configService.set('system.autoPreviewOfficeFiles', checked).catch(() => {
       setAutoPreviewOfficeFiles(!checked);
-      void mutateSWR(AUTO_PREVIEW_OFFICE_FILES_SWR_KEY, !checked, {
-        revalidate: false,
-      });
+      configService.setLocal('system.autoPreviewOfficeFiles', !checked);
     });
   }, []);
 

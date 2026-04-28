@@ -14,6 +14,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import { ACP_BACKENDS_ALL, type AcpBackendAll, type AcpBackendConfig } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import CronStatusTag from './CronStatusTag';
@@ -47,17 +48,17 @@ const ScheduledTasksPage: React.FC = () => {
   const [keepAwake, setKeepAwake] = useState(false);
 
   useEffect(() => {
-    systemSettings.getKeepAwake
-      .invoke()
-      .then(setKeepAwake)
-      .catch(() => {});
+    setKeepAwake(configService.get('system.keepAwake') ?? false);
   }, []);
 
   const handleKeepAwakeChange = useCallback(async (enabled: boolean) => {
+    setKeepAwake(enabled);
+    configService.setLocal('system.keepAwake', enabled);
     try {
       await systemSettings.setKeepAwake.invoke({ enabled });
-      setKeepAwake(enabled);
     } catch (err) {
+      setKeepAwake(!enabled);
+      configService.setLocal('system.keepAwake', !enabled);
       Message.error(String(err));
     }
   }, []);

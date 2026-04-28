@@ -65,6 +65,11 @@ class ConfigServiceImpl {
     await fetchJson<void>('PUT', '/api/settings/client', { [key]: value });
   }
 
+  setLocal<K extends ConfigKey>(key: K, value: ConfigKeyMap[K]): void {
+    this.cache.set(key, value);
+    this.notify(key, value);
+  }
+
   async remove(key: ConfigKey): Promise<void> {
     this.cache.delete(key);
     this.notify(key, undefined);
