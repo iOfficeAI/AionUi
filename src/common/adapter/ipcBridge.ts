@@ -941,6 +941,34 @@ export interface ICreateConversationParams {
     presetContext?: string;
     /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
     presetAssistantId?: string;
+    /** Stable hash of the normalized preset rules payload. */
+    presetRulesHash?: string;
+    /** Stable hash of enabled skill IDs and builtin exclusions. */
+    skillPackHash?: string;
+    /** Runtime response-contract feature controls. */
+    runtimeContracts?: {
+      enabled?: boolean;
+      debug?: boolean;
+      contracts?: string[];
+    };
+    /** Instruction provenance passed to the runtime agent for diagnostics. */
+    contextProvenance?: {
+      assistant?: {
+        id?: string;
+        rulesHash?: string;
+      };
+      skills?: {
+        enabled?: string[];
+        excludedBuiltin?: string[];
+        skillPackHash?: string;
+      };
+      model?: {
+        provider?: string;
+        platform?: string;
+        useModel?: string;
+      };
+      instructionSources?: string[];
+    };
     /** Initial session mode selected on Guid page (from AgentModeSelector) */
     sessionMode?: string;
     /** User-selected Codex model from Guid page */

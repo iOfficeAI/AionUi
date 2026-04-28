@@ -58,6 +58,11 @@ class ConversationManageWithDB {
     }, 2000);
   }
 
+  async flushNow(): Promise<void> {
+    clearTimeout(this.timer);
+    await this.flush();
+  }
+
   private async flush(): Promise<void> {
     if (!this.initialized || this.flushing || this.stack.length === 0) return;
     this.flushing = true;
@@ -159,6 +164,10 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage, b
   }
 
   ConversationManageWithDB.get(conversation_id).sync('accumulate', message);
+};
+
+export const flushConversationMessages = async (conversation_id: string): Promise<void> => {
+  await ConversationManageWithDB.get(conversation_id).flushNow();
 };
 
 /**

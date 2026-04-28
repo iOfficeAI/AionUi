@@ -95,6 +95,7 @@ vi.mock('@process/utils/initStorage', () => ({
 vi.mock('@process/utils/message', () => ({
   addMessage: vi.fn(),
   addOrUpdateMessage: mockAddOrUpdateMessage,
+  flushConversationMessages: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@/common/utils', () => {

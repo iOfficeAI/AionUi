@@ -16,8 +16,13 @@ import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { AionrsAgent, type StdioMcpOption } from '@process/agent/aionrs';
 import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import { getDatabase } from '@process/services/database';
-import { addMessage, addOrUpdateMessage } from '@process/utils/message';
+import { addMessage, addOrUpdateMessage, flushConversationMessages } from '@process/utils/message';
 import { uuid } from '@/common/utils';
+import {
+  normalizePresetAssistantExtra,
+  type PresetContextProvenance,
+  type RuntimeContractsConfig,
+} from '@/common/utils/presetAssistantExtra';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { mainError, mainLog, mainWarn } from '@process/utils/mainLogger';
@@ -27,6 +32,19 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import {
+  createRuntimeResponseContractState,
+  buildRuntimeResponseContractInitialPrompt,
+  buildRuntimeResponseContractRepairPrompt,
+  denyForbiddenPreArtifactTools,
+  finalizeRuntimeResponseContract,
+  isRuntimeResponseContractActive,
+  recordRuntimeContractRawContent,
+  recordRuntimeContractReasoning,
+  resetRuntimeResponseContractForRepair,
+  type RuntimeContractFinalizeResult,
+  type RuntimeContractState,
+} from './RuntimeResponseContract';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -62,6 +80,14 @@ type AionrsManagerData = {
   conversation_id: string;
   yoloMode?: boolean;
   presetRules?: string;
+  presetContext?: string;
+  presetAssistantId?: string;
+  presetRulesHash?: string;
+  skillPackHash?: string;
+  enabledSkills?: string[];
+  excludeBuiltinSkills?: string[];
+  runtimeContracts?: RuntimeContractsConfig;
+  contextProvenance?: PresetContextProvenance;
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
@@ -87,6 +113,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private _messageSentAt: number | null = null;
   private currentMsgId: string | null = null;
   private currentMsgContent: string = '';
+  private isFreshSession = true;
+  private activeResponseContract: RuntimeContractState | null = null;
+  private agentStartError: unknown = null;
 
   // Heartbeat state
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
@@ -109,17 +138,26 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   >();
 
   constructor(data: AionrsManagerData, model: TProviderWithModel) {
-    super('aionrs', { ...data, model }, new IpcAgentEventEmitter(), false);
-    this.workspace = data.workspace;
-    this.conversation_id = data.conversation_id;
+    const normalizedData = normalizePresetAssistantExtra(data, {
+      type: 'aionrs',
+      isPreset: Boolean(data.presetAssistantId),
+      failClosed: true,
+      model,
+    });
+    super('aionrs', { ...normalizedData, model }, new IpcAgentEventEmitter(), false);
+    this.workspace = normalizedData.workspace;
+    this.conversation_id = normalizedData.conversation_id;
     this.model = model;
-    this.currentMode = data.sessionMode || 'default';
+    this.currentMode = normalizedData.sessionMode || 'default';
 
     // enableFork=false skips auto-init in ForkTask, so init manually
     this.init();
 
-    // Start the agent bootstrap — store promise so sendMessage can await it
-    this.agentReady = this.start().catch(() => {});
+    // Start the agent bootstrap; keep failures visible so sendMessage can fail closed.
+    this.agentReady = this.start().catch((error) => {
+      mainError('[AionrsManager]', 'Failed to start aionrs agent', error);
+      this.agentStartError = error;
+    });
   }
 
   /**
@@ -133,9 +171,11 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       const db = await getDatabase();
       const result = db.getConversationMessages(this.conversation_id, 0, 1);
       const hasMessages = (result.data?.length ?? 0) > 0;
+      this.isFreshSession = !hasMessages;
       sessionArgs = hasMessages ? { resume: this.conversation_id } : { sessionId: this.conversation_id };
     } catch {
       // Fallback: start as new session if DB check fails
+      this.isFreshSession = true;
       sessionArgs = { sessionId: this.conversation_id };
     }
 
@@ -159,6 +199,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       proxy: mergedData.proxy,
       yoloMode: mergedData.yoloMode,
       presetRules: mergedData.presetRules,
+      contextProvenance: mergedData.contextProvenance,
       maxTokens: mergedData.maxTokens,
       maxTurns: mergedData.maxTurns,
       sessionId: mergedData.sessionId,
@@ -221,13 +262,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
   }
 
-  async sendMessage(data: { content: string; msg_id: string; files?: string[] }) {
+  async sendMessage(data: { content?: string; input?: string; msg_id: string; files?: string[] }) {
+    const content = data.content ?? data.input ?? '';
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
       position: 'right',
       conversation_id: this.conversation_id,
-      content: { content: data.content },
+      content: { content },
     };
     addMessage(this.conversation_id, message);
     try {
@@ -238,13 +280,48 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     this.status = 'pending';
     this._lastActivityAt = Date.now();
+    this.activeResponseContract = createRuntimeResponseContractState({
+      assistantId: this.data.data.presetAssistantId,
+      prompt: content,
+      isFirstTurn: this.isFreshSession,
+      runtimeContracts: this.data.data.runtimeContracts,
+    });
     // Wait for agent bootstrap to complete before sending
     await this.agentReady;
+    if (this.agentStartError) {
+      await this.handleStartupFailure(data.msg_id, this.agentStartError);
+      return;
+    }
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
-    if (this.agent) {
-      await this.agent.send(data.content, data.msg_id, data.files);
+    if (!this.agent) {
+      await this.handleStartupFailure(data.msg_id, new Error('aionrs agent did not initialize'));
+      return;
     }
+    const outboundContent = isRuntimeResponseContractActive(this.activeResponseContract)
+      ? buildRuntimeResponseContractInitialPrompt(this.activeResponseContract, content)
+      : content;
+    await this.agent.send(outboundContent, data.msg_id, data.files);
+    this.isFreshSession = false;
+  }
+
+  private async handleStartupFailure(msgId: string, error: unknown): Promise<void> {
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.status = 'finished';
+    const detail = error instanceof Error ? error.message : String(error);
+    const response: IResponseMessage = {
+      type: 'error',
+      msg_id: msgId,
+      conversation_id: this.conversation_id,
+      data: `AionRS runtime startup failed before the first assistant response: ${detail}`,
+    };
+    const tMessage = transformMessage(response);
+    if (tMessage) {
+      addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+      await flushConversationMessages(this.conversation_id);
+    }
+    ipcBridge.conversation.responseStream.emit(response);
+    this.activeResponseContract = null;
   }
 
   /**
@@ -455,11 +532,114 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     })();
   }
 
+  private async saveRuntimeContractState(result: RuntimeContractFinalizeResult): Promise<void> {
+    const state = this.activeResponseContract;
+    if (!state) return;
+    try {
+      const db = await getDatabase();
+      const existing = db.getConversation(this.conversation_id);
+      if (existing.success && existing.data && existing.data.type === 'aionrs') {
+        db.updateConversation(this.conversation_id, {
+          extra: {
+            ...existing.data.extra,
+            runtimeContractState: {
+              schemaVersion: state.schemaVersion,
+              active: state.active,
+              status: result.status,
+              errors: result.errors,
+              finalizedAt: Date.now(),
+            },
+          },
+        } as Partial<typeof existing.data>);
+      }
+    } catch (error) {
+      mainWarn('[AionrsManager]', 'Failed to save runtime contract state', error);
+    }
+  }
+
+  private scheduleContractRepair(state: RuntimeContractState, errors: string[], msgId: string): void {
+    mainWarn('[AionrsManager]', 'Runtime response contract blocked first attempt; requesting one no-tool repair', {
+      conversationId: this.conversation_id,
+      msgId,
+      errors,
+    });
+    resetRuntimeResponseContractForRepair(state);
+    this.currentMsgId = msgId;
+    this.currentMsgContent = '';
+    this._messageSentAt = Date.now();
+
+    setTimeout(() => {
+      if (!this.agent || this.activeResponseContract !== state) return;
+      void this.agent.send(buildRuntimeResponseContractRepairPrompt(state, errors), msgId, []).catch((error) => {
+        mainError('[AionrsManager]', 'Runtime response contract repair send failed', error);
+      });
+    }, 0);
+  }
+
+  private async handleContractTurnEnd(
+    processedData: IResponseMessage,
+    options: { allowRepair?: boolean } = {}
+  ): Promise<void> {
+    const result = finalizeRuntimeResponseContract(this.activeResponseContract, this.currentMsgContent);
+    const msgId = this.currentMsgId || processedData.msg_id || uuid();
+    const state = this.activeResponseContract;
+    if (result.status === 'blocked' && state && !state.repairAttempted && this.agent && options.allowRepair !== false) {
+      this.scheduleContractRepair(state, result.errors, msgId);
+      return;
+    }
+    this.currentMsgId = msgId;
+    this.currentMsgContent = result.visibleText;
+
+    const visibleMessage: IResponseMessage = {
+      type: 'content',
+      conversation_id: this.conversation_id,
+      msg_id: msgId,
+      data: result.visibleText,
+    };
+    const tMessage = transformMessage(visibleMessage);
+    if (tMessage) {
+      this.flushAllBufferedStreamTexts();
+      addOrUpdateMessage(this.conversation_id, tMessage, 'aionrs');
+      await flushConversationMessages(this.conversation_id);
+    }
+
+    await this.saveRuntimeContractState(result);
+    ipcBridge.conversation.responseStream.emit(visibleMessage);
+    this.emitToEventBuses(visibleMessage);
+
+    const finalizedMessage: IResponseMessage = {
+      type: 'assistant_message_finalized',
+      conversation_id: this.conversation_id,
+      msg_id: msgId,
+      data: {
+        schemaVersion: this.activeResponseContract?.schemaVersion ?? 1,
+        status: result.status,
+        errors: result.errors,
+        cropped: result.cropped,
+        presetAssistantId: this.data.data.presetAssistantId,
+        presetRulesHash: this.data.data.presetRulesHash,
+        skillPackHash: this.data.data.skillPackHash,
+      },
+    };
+    ipcBridge.conversation.responseStream.emit(finalizedMessage);
+    this.emitToEventBuses(finalizedMessage);
+
+    const finishMessage: IResponseMessage = {
+      ...processedData,
+      type: 'finish',
+      conversation_id: this.conversation_id,
+      msg_id: processedData.msg_id || msgId,
+    };
+    ipcBridge.conversation.responseStream.emit(finishMessage);
+    this.emitToEventBuses(finishMessage);
+
+    this.activeResponseContract = null;
+    await this.handleTurnEnd();
+  }
+
   private handleProcessExit(code: number | null, activeMsgId: string): void {
     mainError('[AionrsManager]', `aionrs process exited unexpectedly (code=${code}) during active turn ${activeMsgId}`);
-
-    this.status = 'finished';
-    void this.handleTurnEnd();
+    this.stopHeartbeat();
 
     const errorMessage: IResponseMessage = {
       type: 'error',
@@ -473,9 +653,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     const finishMessage: IResponseMessage = {
       type: 'finish',
       conversation_id: this.conversation_id,
-      msg_id: uuid(),
+      msg_id: activeMsgId || uuid(),
       data: null,
     };
+
+    this.status = 'finished';
+    if (this.activeResponseContract?.active) {
+      void this.handleContractTurnEnd(finishMessage, { allowRepair: false });
+      return;
+    }
+
+    void this.handleTurnEnd();
     ipcBridge.conversation.responseStream.emit(finishMessage);
     this.emitToEventBuses(finishMessage);
   }
@@ -578,6 +766,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
             modelId: this.model.useModel,
             baseUrl: this.model.baseUrl,
             platform: this.model.platform,
+            presetAssistantId: this.data.data.presetAssistantId,
+            presetRulesHash: this.data.data.presetRulesHash,
+            skillPackHash: this.data.data.skillPackHash,
+            contextProvenance: this.data.data.contextProvenance,
             timestamp: Date.now(),
           },
         });
@@ -588,6 +780,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (data.type === 'thought') {
         data.conversation_id = this.conversation_id;
         const content = typeof data.data === 'string' ? data.data : '';
+        if (isRuntimeResponseContractActive(this.activeResponseContract)) {
+          recordRuntimeContractReasoning(this.activeResponseContract, content);
+          return;
+        }
         if (content) {
           this.emitThinkingMessage(content, 'thinking');
         }
@@ -605,7 +801,11 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (data.type === 'content' && typeof data.data === 'string') {
         const { thinking, content: stripped } = extractAndStripThinkTags(data.data);
         if (thinking) {
-          this.emitThinkingMessage(thinking, 'thinking');
+          if (isRuntimeResponseContractActive(this.activeResponseContract)) {
+            recordRuntimeContractReasoning(this.activeResponseContract, thinking);
+          } else {
+            this.emitThinkingMessage(thinking, 'thinking');
+          }
         }
         if (stripped !== data.data) {
           processedData = { ...data, data: stripped };
@@ -616,6 +816,29 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       if (processedData.type === 'content' && typeof processedData.data === 'string') {
         this.currentMsgContent += processedData.data;
         this.currentMsgId = processedData.msg_id ?? this.currentMsgId;
+        recordRuntimeContractRawContent(this.activeResponseContract, processedData.data);
+        if (isRuntimeResponseContractActive(this.activeResponseContract)) {
+          return;
+        }
+      }
+
+      if (processedData.type === 'tool_group') {
+        const toolContent = Array.isArray(processedData.data)
+          ? (processedData.data as IMessageToolGroup['content'])
+          : [];
+        const deniedTools = denyForbiddenPreArtifactTools(this.activeResponseContract, toolContent);
+        if (deniedTools.length > 0) {
+          for (const tool of deniedTools) {
+            this.agent?.denyTool(tool.callId, tool.reason);
+          }
+          return;
+        }
+        if (
+          isRuntimeResponseContractActive(this.activeResponseContract) &&
+          this.activeResponseContract.deniedToolCalls.length > 0
+        ) {
+          return;
+        }
       }
 
       // On turn end, clear fallback timer, persist usage, and check for cron commands
@@ -626,6 +849,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         this.heartbeatActive = false;
         this.heartbeatMissedCount = 0;
         this.saveContextUsage(processedData.data);
+        if (this.activeResponseContract?.active) {
+          void this.handleContractTurnEnd(processedData as IResponseMessage);
+          return;
+        }
         void this.handleTurnEnd();
       }
 

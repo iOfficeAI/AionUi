@@ -70,6 +70,39 @@ describe('buildAgentConversationParams', () => {
     });
   });
 
+  it('builds preset AionRS params with normalized rules and hashes', () => {
+    const params = buildAgentConversationParams({
+      backend: 'aionrs',
+      name: 'Portfolio Review OS',
+      agentName: 'Portfolio Review OS',
+      workspace: '/workspace',
+      model: { id: 'provider-1', name: 'MiniMax', platform: 'new-api', useModel: 'minimax-m2.7' } as any,
+      customAgentId: 'custom-1776969323991',
+      isPreset: true,
+      presetAgentType: 'aionrs',
+      presetResources: {
+        rules: 'PORTFOLIO RULES',
+        enabledSkills: ['portfolio-construction'],
+      },
+    });
+
+    expect(params).toEqual({
+      type: 'aionrs',
+      name: 'Portfolio Review OS',
+      model: { id: 'provider-1', name: 'MiniMax', platform: 'new-api', useModel: 'minimax-m2.7' },
+      extra: expect.objectContaining({
+        workspace: '/workspace',
+        customWorkspace: true,
+        presetAssistantId: 'custom-1776969323991',
+        presetRules: 'PORTFOLIO RULES',
+        presetContext: 'PORTFOLIO RULES',
+        presetRulesHash: expect.stringMatching(/^fnv1a32:/),
+        skillPackHash: expect.stringMatching(/^fnv1a32:/),
+        enabledSkills: ['portfolio-construction'],
+      }),
+    });
+  });
+
   it('builds remote params with remote agent id', () => {
     const params = buildAgentConversationParams({
       backend: 'remote',

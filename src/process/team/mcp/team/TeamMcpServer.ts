@@ -443,7 +443,7 @@ export class TeamMcpServer {
       teamId,
       toAgentId: newAgent.slotId,
       fromAgentId: fromSlotId,
-      content: `You have been spawned as "${name}" and added to the team. Check the task board and await instructions.`,
+      content: `You have been spawned as "${name}" and added to the team. Read current Leader handoffs before relying on the task board; concrete Leader handoff instructions beat stale task-board state.`,
     });
     this.safeWake(newAgent.slotId, `spawn ${name}`);
     return `Teammate "${name}" (${newAgent.slotId}) has been created and joined the team. You can now assign tasks and send messages to them.`;
