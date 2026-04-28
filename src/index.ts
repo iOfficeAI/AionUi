@@ -781,14 +781,6 @@ app.on('before-quit', async () => {
     // Stop all active team sessions (TCP servers + child processes)
     await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
 
-    // Shutdown Channel subsystem
-    try {
-      const { getChannelManager } = await import('@process/channels');
-      await getChannelManager().shutdown();
-    } catch (error) {
-      console.error('[App] Failed to shutdown ChannelManager:', error);
-    }
-
     // Web Server lifecycle is managed by aionui-backend subprocess
 
     // Stop Office Watch processes (Word / Excel / PPT preview)
