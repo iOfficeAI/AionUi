@@ -71,7 +71,7 @@ test.describe('System Preferences', () => {
   test('TC-PREF-02: should toggle close-to-tray switch', async ({ page }) => {
     await takeScreenshot(page, 'system-preferences/tc-pref-02/01-initial.png');
 
-    const allSwitches = page.locator(`.divide-border-2 ${ARCO_SWITCH}`);
+    const allSwitches = page.locator(`.divide-y ${ARCO_SWITCH}`);
     const closeToTraySwitch = allSwitches.nth(1);
     await expect(closeToTraySwitch).toBeVisible();
 
@@ -136,7 +136,7 @@ test.describe('System Preferences', () => {
   test('TC-PREF-04: should toggle auto-preview Office files switch', async ({ page }) => {
     await takeScreenshot(page, 'system-preferences/tc-pref-04/01-initial.png');
 
-    const allSwitches = page.locator(`.divide-border-2 ${ARCO_SWITCH}`);
+    const allSwitches = page.locator(`.divide-y ${ARCO_SWITCH}`);
 
     const switchCount = await allSwitches.count();
     expect(switchCount).toBeGreaterThanOrEqual(4);
