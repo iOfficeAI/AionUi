@@ -15,8 +15,18 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
+import type { McpSource } from '../types/mcpTypes';
 import type { AgentBackend, AcpModelInfo } from '../types/acpTypes';
+import type {
+  TTeam,
+  TeamAgent,
+  ITeamAgentStatusEvent,
+  ITeamAgentSpawnedEvent,
+  ITeamAgentRemovedEvent,
+  ITeamAgentRenamedEvent,
+  ITeamListChangedEvent,
+  ITeamMcpStatusEvent,
+} from '../types/teamTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
@@ -1549,25 +1559,25 @@ export type { ICreateTeamParams, IAddTeamAgentParams } from './teamMapper';
 
 export const team = {
   create: withResponseMap(
-    httpPost<import('@process/team/types').TTeam, ICreateTeamParams>('/api/teams', (p) => ({
+    httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
       name: p.name,
       agents: p.agents.map(toBackendAgent),
     })),
     fromBackendTeam
   ),
   list: withResponseMap(
-    httpGet<import('@process/team/types').TTeam[], { user_id: string }>(
+    httpGet<TTeam[], { user_id: string }>(
       (p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`
     ),
     fromBackendTeamList
   ),
   get: withResponseMap(
-    httpGet<import('@process/team/types').TTeam | null, { id: string }>((p) => `/api/teams/${p.id}`),
+    httpGet<TTeam | null, { id: string }>((p) => `/api/teams/${p.id}`),
     fromBackendTeamOptional
   ),
   remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
   addAgent: withResponseMap(
-    httpPost<import('@process/team/types').TeamAgent, IAddTeamAgentParams>(
+    httpPost<TeamAgent, IAddTeamAgentParams>(
       (p) => `/api/teams/${p.team_id}/agents`,
       (p) => toBackendAgent(p.agent)
     ),
@@ -1602,10 +1612,10 @@ export const team = {
     (p) => `/api/teams/${p.team_id}/workspace`,
     (p) => ({ workspace: p.workspace })
   ),
-  agentStatusChanged: wsEmitter<import('@process/team/types').ITeamAgentStatusEvent>('team.agent.status'),
-  agentSpawned: wsEmitter<import('@/common/types/teamTypes').ITeamAgentSpawnedEvent>('team.agent.spawned'),
-  agentRemoved: wsEmitter<import('@/common/types/teamTypes').ITeamAgentRemovedEvent>('team.agent.removed'),
-  agentRenamed: wsEmitter<import('@/common/types/teamTypes').ITeamAgentRenamedEvent>('team.agent.renamed'),
-  listChanged: wsEmitter<import('@/common/types/teamTypes').ITeamListChangedEvent>('team.list-changed'),
-  mcpStatus: wsEmitter<import('@/common/types/teamTypes').ITeamMcpStatusEvent>('team.mcp.status'),
+  agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agent.status'),
+  agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agent.spawned'),
+  agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agent.removed'),
+  agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agent.renamed'),
+  listChanged: wsEmitter<ITeamListChangedEvent>('team.list-changed'),
+  mcpStatus: wsEmitter<ITeamMcpStatusEvent>('team.mcp.status'),
 };
