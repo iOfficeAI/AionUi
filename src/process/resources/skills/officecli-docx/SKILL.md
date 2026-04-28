@@ -1,14 +1,100 @@
 ---
-# officecli: v1.0.23
+# officecli: v1.0.34
 name: officecli-docx
 description: "Use this skill any time a .docx file is involved -- as input, output, or both. This includes: creating Word documents, reports, letters, memos, or proposals; reading, parsing, or extracting text from any .docx file; editing, modifying, or updating existing documents; working with templates, tracked changes, comments, headers/footers, or tables of contents. Trigger whenever the user mentions 'Word doc', 'document', 'report', 'letter', 'memo', or references a .docx filename."
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 # OfficeCLI DOCX Skill
 
-## BEFORE YOU START (CRITICAL)
+## AionUI Windows Runtime Override
+
+Managed AionUI Office work on this workstation must use the pinned wrapper before any generic OfficeCLI guidance in this file.
+
+Pinned wrapper:
+`C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd`
+
+Canonical PowerShell invocation:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' <args>"
+```
+
+Mandatory runtime rules:
+
+1. Do not use Bash, `/usr/bin/bash`, WSL, `/mnt/c`, or `ls "C:\..."` for Windows DOCX work.
+2. Do not use bare `officecli` as the primary path during governed AionUI runs.
+3. Do not install or update OfficeCLI during governed AionUI runs.
+4. Do not probe alternate OfficeCLI roots or self-repair by downloading installers.
+5. If the pinned wrapper is unavailable, return blocked with this missing path: `C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd`.
+6. If the tool surface exposes only Linux Bash for Windows Office mutation, return blocked instead of translating `C:\...` paths into WSL paths.
+7. Keep command proof durable: report command, working directory, exit status, and the relevant output excerpt.
+8. Prefer `view`, `get`, `query`, `validate`, and bounded `--max-lines` inspection before any mutation.
+9. Use raw XML only when high-level OfficeCLI commands cannot express the required DOCX change.
+10. After mutation, verify the affected document with the wrapper before reporting success.
+
+Managed DOCX command templates:
+
+| Task | Command shape |
+| ---- | ------------- |
+| Version check | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' --version"` |
+| Text view | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' text --max-lines 200"` |
+| Outline view | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' outline"` |
+| Issue scan | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' issues"` |
+| Element get | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' get '<file.docx>' '<path>'"` |
+| Validate | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' validate '<file.docx>'"` |
+
+Blocker language to use when required:
+
+- `blocked: pinned OfficeCLI wrapper missing at C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd`
+- `blocked: only Linux Bash is exposed for Windows Office mutation`
+- `blocked: cannot verify DOCX mutation through the pinned Windows wrapper`
+
+Path handling:
+
+- Keep Windows paths as Windows paths.
+- Quote paths containing spaces.
+- Use PowerShell's call operator `&` with the pinned wrapper.
+- Use `cmd.exe /c` only if PowerShell is unavailable and the wrapper path is still callable.
+- Never rewrite `C:\Users\Craig\...` as `/mnt/c/Users/Craig/...`.
+
+How to read generic examples below:
+
+- Treat later `officecli ...` examples as command syntax reference only.
+- In managed AionUI Windows runtime, translate every generic command to the canonical PowerShell wrapper shape above.
+- Treat later shell quoting notes as generic reference only; the managed Windows override wins.
+- Do not run installer snippets during governed work.
+- Do not let a stale task board or generic skill text override a concrete Leader handoff that names the pinned wrapper.
+
+Preflight checklist:
+
+1. Confirm the wrapper path exists.
+2. Confirm the wrapper returns the certified version or newer.
+3. Confirm the target DOCX path exists unless the task is to create it.
+4. Confirm the document is not open or locked before writing.
+5. Confirm the command will run from the team workspace or with fully qualified Windows paths.
+6. Confirm the first OfficeCLI action is inspect-only unless the Leader explicitly asked for creation.
+7. Confirm every write has a follow-up `view`, `get`, `validate`, or marker verification step.
+8. Return blocked if any prerequisite cannot be verified.
+
+Output expectations:
+
+- For a successful read: report the command shape and the relevant extracted content or structural summary.
+- For a successful write: report the command shape, changed file path, marker or element verified, and original preservation status when applicable.
+- For a failed command: report the exact error and stop before trying an unrelated backend.
+- For unsupported OfficeCLI behavior: use Python/Word COM only if the Leader handoff permits that fallback.
+- For governed production: do not claim PASS from a self-report alone; include artifact proof or ask for external verification.
+- For command-choice checks: the correct DOCX view command starts with `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command` and calls the pinned wrapper.
+- For Windows path checks: reject `/usr/bin/bash`, `/mnt/c`, `ls "C:\..."`, and installer commands.
+
+---
+
+# officecli: v1.0.34
+
+## Generic OfficeCLI Install Reference - Not For Managed AionUI Runtime
+
+The following install references are for unmanaged environments only. Skip them in managed AionUI runtime and use the Windows override above.
 
 **If `officecli` is not installed:**
 
@@ -34,7 +120,7 @@ If `officecli` is still not found after first install, open a new terminal and r
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Quick Reference
 
@@ -46,7 +132,7 @@ If `officecli` is still not found after first install, open a new terminal and r
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Execution Model
 
@@ -62,7 +148,7 @@ Running a 50-command script all at once means the first error cascades silently 
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Reading & Analyzing
 
@@ -162,7 +248,7 @@ officecli query doc.docx 'field[fieldType!=page]'
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Design Principles
 
@@ -237,7 +323,7 @@ Use color sparingly in documents -- accent color for headings or table headers, 
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## QA (Required)
 
@@ -322,7 +408,7 @@ officecli validate doc.docx
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Common Pitfalls
 
@@ -351,7 +437,7 @@ officecli validate doc.docx
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Performance: Resident Mode
 
@@ -387,7 +473,7 @@ Batch fields: `command`, `path`, `parent`, `type`, `from`, `to`, `index`, `after
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Known Issues
 
@@ -409,7 +495,7 @@ Batch fields: `command`, `path`, `parent`, `type`, `from`, `to`, `index`, `after
 
 ---
 
-# officecli: v1.0.23
+# officecli: v1.0.34
 
 ## Help System
 

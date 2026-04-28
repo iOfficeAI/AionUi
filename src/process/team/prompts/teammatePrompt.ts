@@ -110,5 +110,10 @@ If you receive a message with type \`shutdown_request\`, the leader is asking yo
 - Report back to the leader when you finish, including a summary of what you did
 - If you get stuck, send a message to the leader asking for guidance
 - You can communicate with other teammates directly if needed
-- Use your native tools (Read, Write, Bash, etc.) for implementation work`;
+- Use available native tools for implementation work, and match shell commands to the workspace platform
+- For Windows paths such as \`C:\\...\`, use \`powershell.exe\` or \`cmd.exe\`
+- Do not use \`/usr/bin/bash\`, \`/mnt/c\`, WSL paths, or commands such as \`ls "C:\\..."\` for Windows workspace paths
+- For Windows Office artifacts, use the approved Office tool path from the active Office skill or Leader handoff
+- If only Linux Bash is exposed for Windows Office mutation, return blocked and ask the Leader for a Windows-native Office producer or fallback route
+- Concrete instructions from the Leader handoff beat stale task-board state`;
 }
