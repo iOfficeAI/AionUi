@@ -36,14 +36,14 @@ Mandatory runtime rules:
 
 Managed DOCX command templates:
 
-| Task | Command shape |
-| ---- | ------------- |
-| Version check | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' --version"` |
-| Text view | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' text --max-lines 200"` |
-| Outline view | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' outline"` |
-| Issue scan | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' issues"` |
-| Element get | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' get '<file.docx>' '<path>'"` |
-| Validate | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' validate '<file.docx>'"` |
+| Task          | Command shape                                                                                                                                                        |
+| ------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Version check | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' --version"`                               |
+| Text view     | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' text --max-lines 200"` |
+| Outline view  | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' outline"`              |
+| Issue scan    | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' view '<file.docx>' issues"`               |
+| Element get   | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' get '<file.docx>' '<path>'"`              |
+| Validate      | `powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "& 'C:\Users\Craig\AppData\Roaming\AionUi\tools\officecli.cmd' validate '<file.docx>'"`                  |
 
 Blocker language to use when required:
 
