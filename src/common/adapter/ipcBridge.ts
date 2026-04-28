@@ -1441,22 +1441,92 @@ import type {
   IChannelPluginStatus,
   IChannelSession,
   IChannelUser,
-} from '@process/channels/types';
+} from '@/common/types/channel';
+
+type RawPluginStatus = Record<string, unknown>;
+type RawPairing = Record<string, unknown>;
+type RawUser = Record<string, unknown>;
+type RawSession = Record<string, unknown>;
+
+function toPluginStatus(raw: RawPluginStatus): IChannelPluginStatus {
+  return {
+    id: (raw.plugin_id ?? raw.id) as string,
+    type: (raw.type ?? raw.plugin_type) as string,
+    name: raw.name as string,
+    enabled: raw.enabled as boolean,
+    connected: (raw.connected ?? false) as boolean,
+    status: raw.status as string | undefined,
+    last_connected: raw.last_connected as number | undefined,
+    activeUsers: (raw.active_users ?? 0) as number,
+    botUsername: raw.bot_username as string | undefined,
+    hasToken: (raw.has_token ?? false) as boolean,
+    isExtension: raw.is_extension as boolean | undefined,
+    extensionMeta: raw.extension_meta as IChannelPluginStatus['extensionMeta'],
+  };
+}
+
+function toPairing(raw: RawPairing): IChannelPairingRequest {
+  return {
+    code: raw.code as string,
+    platformUserId: raw.platform_user_id as string,
+    platformType: raw.platform_type as string,
+    display_name: raw.display_name as string | undefined,
+    requestedAt: raw.requested_at as number,
+    expiresAt: raw.expires_at as number,
+  };
+}
+
+function toChannelUser(raw: RawUser): IChannelUser {
+  return {
+    id: raw.id as string,
+    platformUserId: raw.platform_user_id as string,
+    platformType: raw.platform_type as string,
+    display_name: raw.display_name as string | undefined,
+    authorizedAt: raw.authorized_at as number,
+    lastActive: raw.last_active as number | undefined,
+    session_id: raw.session_id as string | undefined,
+  };
+}
+
+function toChannelSession(raw: RawSession): IChannelSession {
+  return {
+    id: raw.id as string,
+    user_id: raw.user_id as string,
+    agent_type: raw.agent_type as string,
+    conversation_id: raw.conversation_id as string | undefined,
+    workspace: raw.workspace as string | undefined,
+    chatId: raw.chat_id as string | undefined,
+    created_at: raw.created_at as number,
+    lastActivity: raw.last_activity as number,
+  };
+}
 
 export const channel = {
-  getPluginStatus: httpGet<IChannelPluginStatus[], void>('/api/channel/plugins'),
+  getPluginStatus: withResponseMap(
+    httpGet<RawPluginStatus[], void>('/api/channel/plugins'),
+    (raw) => raw.map(toPluginStatus)
+  ),
   enablePlugin: httpPost<void, { plugin_id: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
   disablePlugin: httpPost<void, { plugin_id: string }>('/api/channel/plugins/disable'),
   testPlugin: httpPost<
     { success: boolean; bot_username?: string; error?: string },
     { plugin_id: string; token: string; extra_config?: { app_id?: string; app_secret?: string } }
   >('/api/channel/plugins/test'),
-  getPendingPairings: httpGet<IChannelPairingRequest[], void>('/api/channel/pairings'),
+  getPendingPairings: withResponseMap(
+    httpGet<RawPairing[], void>('/api/channel/pairings'),
+    (raw) => raw.map(toPairing)
+  ),
   approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
   rejectPairing: httpPost<void, { code: string }>('/api/channel/pairings/reject'),
-  getAuthorizedUsers: httpGet<IChannelUser[], void>('/api/channel/users'),
+  getAuthorizedUsers: withResponseMap(
+    httpGet<RawUser[], void>('/api/channel/users'),
+    (raw) => raw.map(toChannelUser)
+  ),
   revokeUser: httpPost<void, { user_id: string }>('/api/channel/users/revoke'),
-  getActiveSessions: httpGet<IChannelSession[], void>('/api/channel/sessions'),
+  getActiveSessions: withResponseMap(
+    httpGet<RawSession[], void>('/api/channel/sessions'),
+    (raw) => raw.map(toChannelSession)
+  ),
   syncChannelSettings: httpPost<
     void,
     {
@@ -1465,9 +1535,24 @@ export const channel = {
       model?: { id: string; use_model: string };
     }
   >('/api/channel/settings/sync'),
-  pairingRequested: wsEmitter<IChannelPairingRequest>('channel.pairing-requested'),
-  pluginStatusChanged: wsEmitter<{ plugin_id: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
-  userAuthorized: wsEmitter<IChannelUser>('channel.user-authorized'),
+  pairingRequested: wsMappedEmitter<IChannelPairingRequest>(
+    'channel.pairing-requested',
+    (raw) => toPairing(raw as RawPairing)
+  ),
+  pluginStatusChanged: wsMappedEmitter<{ plugin_id: string; status: IChannelPluginStatus }>(
+    'channel.plugin-status-changed',
+    (raw) => {
+      const r = raw as Record<string, unknown>;
+      return {
+        plugin_id: r.plugin_id as string,
+        status: toPluginStatus(r.status as RawPluginStatus),
+      };
+    }
+  ),
+  userAuthorized: wsMappedEmitter<IChannelUser>(
+    'channel.user-authorized',
+    (raw) => toChannelUser(raw as RawUser)
+  ),
 };
 
 // ---------------------------------------------------------------------------
