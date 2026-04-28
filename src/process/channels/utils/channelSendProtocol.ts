@@ -12,7 +12,10 @@ import { getConfigPath, getDataPath } from '@process/utils';
 
 const CHANNEL_SEND_BLOCK_RE = /\[AIONUI_CHANNEL_SEND\]\s*([\s\S]*?)\s*\[\/AIONUI_CHANNEL_SEND\]/g;
 const MAX_MEDIA_BYTES = 200 * 1024 * 1024;
-const TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
+// Legacy auto-provisioned workspace layout (`{dataRoot}/<backend>-temp-<ts>/...`).
+const LEGACY_TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
+// Current auto-provisioned workspace layout (`{dataRoot}/conversations/<uuid>/...`).
+const UUID_SEGMENT_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type RawChannelMediaAction = {
   type: 'image' | 'file';
@@ -72,8 +75,17 @@ function isPathInsideManagedTempWorkspace(candidatePath: string, dataRoot: strin
     return false;
   }
 
-  const [firstSegment] = relative.split(/[\\/]+/).filter(Boolean);
-  return Boolean(firstSegment) && TEMP_WORKSPACE_REGEX.test(firstSegment);
+  const segments = relative.split(/[\\/]+/).filter(Boolean);
+  const firstSegment = segments[0];
+  if (!firstSegment) return false;
+
+  // Legacy: `{dataRoot}/<backend>-temp-<ts>/...`
+  if (LEGACY_TEMP_WORKSPACE_REGEX.test(firstSegment)) {
+    return true;
+  }
+
+  // Current: `{dataRoot}/conversations/<uuid>/...`
+  return firstSegment === 'conversations' && UUID_SEGMENT_REGEX.test(segments[1] ?? '');
 }
 
 function getCanonicalRoot(rootPath: string): string | null {

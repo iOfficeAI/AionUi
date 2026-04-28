@@ -10,25 +10,39 @@
  */
 
 /**
- * Pattern to match temporary workspace naming convention: <backend>-temp-<timestamp>
- * Matches any workspace ending with -temp- followed by digits (Unix timestamp)
- * Examples: codex-temp-1234567890, gemini-temp-1234567890, claude-temp-1234567890
+ * Legacy pattern for auto-provisioned workspaces: <backend>-temp-<timestamp>.
+ * Kept so historical directories still render as "Temporary Session" even
+ * though new conversations no longer use this naming.
  */
-const TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
+const LEGACY_TEMP_WORKSPACE_REGEX = /-temp-\d+$/i;
+
+/**
+ * Matches a UUID v4-ish last segment (conservative but sufficient for paths
+ * minted by `uuid()`).
+ */
+const UUID_LAST_SEGMENT_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const splitPathSegments = (targetPath: string): string[] => targetPath.split(/[\\/]+/).filter(Boolean);
 
 /**
- * Check if a workspace path is a temporary workspace
- * 检查工作空间路径是否为临时工作空间
+ * Check if a workspace path is an auto-provisioned temporary workspace.
+ *
+ * 检查工作空间路径是否为自动分配的临时工作空间。
+ *
+ * Matches either the legacy `<backend>-temp-<timestamp>` naming or the new
+ * `.../conversations/<uuid>` layout introduced when auto-provisioning was
+ * aligned with the backend workspace convention.
  */
 export const isTemporaryWorkspace = (workspacePath: string): boolean => {
-  // Extract the last path segment (directory name)
   const parts = splitPathSegments(workspacePath);
   const lastSegment = parts[parts.length - 1] || '';
+  const parentSegment = parts[parts.length - 2] || '';
 
-  // Check if it matches the temporary workspace pattern
-  return TEMP_WORKSPACE_REGEX.test(lastSegment);
+  if (LEGACY_TEMP_WORKSPACE_REGEX.test(lastSegment)) {
+    return true;
+  }
+  // New convention: `{workDir}/conversations/{uuid}`.
+  return parentSegment === 'conversations' && UUID_LAST_SEGMENT_REGEX.test(lastSegment);
 };
 
 /**
@@ -42,9 +56,9 @@ export const isTemporaryWorkspace = (workspacePath: string): boolean => {
 export const getWorkspaceDisplayName = (workspacePath: string, t?: (key: string) => string): string => {
   // Check for temporary workspace
   if (isTemporaryWorkspace(workspacePath)) {
-    // Try to extract timestamp from temp workspace path using the generic pattern
     const parts = splitPathSegments(workspacePath);
     const lastSegment = parts[parts.length - 1] || '';
+    // Legacy timestamped temp names still carry a creation date we can surface.
     const match = lastSegment.match(/-temp-(\d+)$/i);
 
     if (match) {
