@@ -4,20 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { RemoteAgentCore } from '@process/agent/remote';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { uuid } from '@/common/utils';
-import { getDatabase } from '@process/services/database';
-import { addMessage, addOrUpdateMessage } from '@process/utils/message';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
+import { teamEventBus } from '@process/team/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
-import { teamEventBus } from '@process/team/teamEventBus';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 
 export interface RemoteAgentManagerData {
   conversation_id: string;
@@ -27,235 +21,109 @@ export interface RemoteAgentManagerData {
   yoloMode?: boolean;
 }
 
+/**
+ * Lightweight proxy that delegates remote agent lifecycle to the Rust backend.
+ *
+ * The backend RemoteAgentManager owns the WebSocket connection to the
+ * remote gateway. This frontend manager only tracks status by listening
+ * to message.stream events pushed over the backend WebSocket.
+ *
+ * Message sending is handled by the SendBox component:
+ *   ipcBridge.conversation.sendMessage.invoke() ->
+ *   POST /api/conversations/{id}/messages ->
+ *   backend conversation_service.send_message()
+ */
 class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
-  core!: RemoteAgentCore;
-  bootstrap: Promise<RemoteAgentCore>;
-  private options: RemoteAgentManagerData;
+  private wsCleanup: (() => void) | null = null;
 
   constructor(data: RemoteAgentManagerData) {
     super('remote', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
-    this.options = data;
-    this.status = 'pending';
 
-    this.bootstrap = this.initCore(data);
-    // Prevent unhandled promise rejection when remote agent fails to initialize.
-    // The error still propagates when sendMessage() awaits this.bootstrap.
-    this.bootstrap.catch(() => {});
+    this.subscribeToBackend();
   }
 
-  private async initCore(data: RemoteAgentManagerData): Promise<RemoteAgentCore> {
-    const db = await getDatabase();
-    const remoteConfig = db.getRemoteAgent(data.remoteAgentId);
-    if (!remoteConfig) {
-      throw new Error(`Remote agent config not found: ${data.remoteAgentId}`);
-    }
+  override async start() {
+    // Agent lifecycle is managed by the backend.
+  }
 
-    this.core = new RemoteAgentCore({
-      conversation_id: data.conversation_id,
-      remoteConfig,
-      sessionKey: data.sessionKey,
-      onStreamEvent: (msg) => this.handleStreamEvent(msg),
-      onSignalEvent: (msg) => this.handleSignalEvent(msg),
-      onSessionKeyUpdate: (key) => this.handleSessionKeyUpdate(key),
+  async stop() {
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.confirmations = [];
+  }
+
+  async sendMessage(_data: { content: string; msg_id?: string; files?: string[] }) {
+    cronBusyGuard.setProcessing(this.conversation_id, true);
+    this.status = 'pending';
+    this._lastActivityAt = Date.now();
+  }
+
+  private emitToEventBuses(message: IResponseMessage): void {
+    if (message.type === 'finish' || message.type === 'error') {
+      teamEventBus.emit('responseStream', {
+        ...message,
+        conversation_id: this.conversation_id,
+      });
+    }
+    channelEventBus.emitAgentMessage(this.conversation_id, {
+      ...message,
+      conversation_id: this.conversation_id,
+    });
+  }
+
+  private subscribeToBackend() {
+    const cleanup = ipcBridge.conversation.responseStream.on((message: IResponseMessage) => {
+      if (this.conversation_id !== message.conversation_id) return;
+
+      if (message.type === 'start') {
+        this.status = 'running';
+        cronBusyGuard.setProcessing(this.conversation_id, true);
+      }
+
+      if (message.type === 'finish' || message.type === 'error') {
+        this.status = 'finished';
+        cronBusyGuard.setProcessing(this.conversation_id, false);
+        skillSuggestWatcher.onFinish(this.conversation_id);
+      }
+
+      this.emitToEventBuses(message);
     });
 
-    try {
-      await this.core.start();
-      this.updateRemoteAgentStatus(data.remoteAgentId, 'connected');
-      return this.core;
-    } catch (error) {
-      this.updateRemoteAgentStatus(data.remoteAgentId, 'error');
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      this.emitErrorMessage(`Failed to start remote agent: ${errorMsg}`);
-      throw error;
-    }
+    this.wsCleanup = cleanup;
   }
 
-  private handleStreamEvent(message: IResponseMessage): void {
-    const msg = { ...message, conversation_id: this.conversation_id };
+  confirm(id: string, call_id: string, data: string) {
+    super.confirm(id, call_id, data);
 
-    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
-    if (contentTypes.includes(msg.type)) {
-      this.status = 'finished';
-    }
-
-    const tMessage = transformMessage(msg);
-    if (tMessage) {
-      if ((msg.type === 'content' || msg.type === 'agent_status') && msg.msg_id) {
-        addOrUpdateMessage(this.conversation_id, tMessage);
-      } else {
-        addMessage(this.conversation_id, tMessage);
-      }
-    }
-
-    ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
-      teamEventBus.emit('responseStream', msg);
-    }
-    channelEventBus.emitAgentMessage(this.conversation_id, msg);
-  }
-
-  private handleSignalEvent(message: IResponseMessage): void {
-    const msg = { ...message, conversation_id: this.conversation_id };
-
-    if (msg.type === 'acp_permission') {
-      const permissionData = msg.data as {
-        session_id: string;
-        tool_call: {
-          tool_call_id: string;
-          title?: string;
-          kind?: string;
-          raw_input?: Record<string, unknown>;
-        };
-        options: Array<{ option_id: string; name: string; kind: string }>;
-      };
-
-      const confirmation: IConfirmation = {
-        id: permissionData.tool_call.tool_call_id,
-        call_id: permissionData.tool_call.tool_call_id,
-        title: permissionData.tool_call.title || 'Permission Required',
-        description: JSON.stringify(permissionData.tool_call.raw_input || {}),
-        options: permissionData.options.map((opt) => ({
-          label: opt.name,
-          value: opt.option_id,
-        })),
-      };
-
-      this.addConfirmation(confirmation);
+    if (data === 'cancel') {
       return;
     }
 
-    if (msg.type === 'finish') {
-      cronBusyGuard.setProcessing(this.conversation_id, false);
-      skillSuggestWatcher.onFinish(this.conversation_id);
-    }
+    const always_allow = data === 'proceed_always' || data === 'allow_always';
 
-    ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
-      teamEventBus.emit('responseStream', msg);
-    }
-    channelEventBus.emitAgentMessage(this.conversation_id, msg);
-  }
-
-  private handleSessionKeyUpdate(sessionKey: string): void {
-    this.saveSessionKey(sessionKey);
-  }
-
-  private async saveSessionKey(sessionKey: string): Promise<void> {
-    try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'remote') {
-        const conversation = result.data;
-        const updatedExtra = {
-          ...conversation.extra,
-          sessionKey,
-        };
-        db.updateConversation(this.conversation_id, {
-          extra: updatedExtra,
-        } as Partial<typeof conversation>);
-      }
-    } catch (error) {
-      console.error('[RemoteAgentManager] Failed to save session key:', error);
-    }
-  }
-
-  private async updateRemoteAgentStatus(remoteAgentId: string, status: 'connected' | 'error'): Promise<void> {
-    try {
-      const db = await getDatabase();
-      db.updateRemoteAgent(remoteAgentId, {
-        status,
-        ...(status === 'connected' ? { last_connected_at: Date.now() } : {}),
-      });
-    } catch {
-      // Non-critical — status is a cached display hint
-    }
-  }
-
-  async sendMessage(data: {
-    content: string;
-    agentContent?: string;
-    files?: string[];
-    msg_id?: string;
-    hidden?: boolean;
-    silent?: boolean;
-  }) {
-    cronBusyGuard.setProcessing(this.conversation_id, true);
-    this.status = 'running';
-    try {
-      await this.bootstrap;
-
-      if (data.msg_id && data.content && !data.silent) {
-        const userMessage: TMessage = {
-          id: data.msg_id,
-          msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id: this.conversation_id,
-          content: { content: data.content },
-          created_at: Date.now(),
-          ...(data.hidden && { hidden: true }),
-        };
-        addMessage(this.conversation_id, userMessage);
-      }
-
-      const result = await this.core.sendMessage({
-        content: data.agentContent || data.content,
-        files: data.files,
-      });
-
-      return result;
-    } catch (error) {
-      cronBusyGuard.setProcessing(this.conversation_id, false);
-      this.status = 'finished';
-
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      this.emitErrorMessage(`Failed to send message: ${errorMsg}`);
-      throw error;
-    }
-  }
-
-  async confirm(id: string, call_id: string, data: string) {
-    super.confirm(id, call_id, data);
-    await this.bootstrap;
-    await this.core.confirmMessage({ confirm_key: data, call_id });
-  }
-
-  private emitErrorMessage(error: string): void {
-    const message: IResponseMessage = {
-      type: 'error',
+    void ipcBridge.conversation.confirmation.confirm.invoke({
       conversation_id: this.conversation_id,
-      msg_id: uuid(),
-      data: error,
+      call_id,
+      msg_id: '',
+      data: { value: data },
+      always_allow,
+    });
+  }
+
+  getDiagnostics() {
+    return {
+      workspace: this.workspace,
+      conversation_id: this.conversation_id,
     };
+  }
 
-    const tMessage = transformMessage(message);
-    if (tMessage) {
-      addMessage(this.conversation_id, tMessage);
+  override kill() {
+    if (this.wsCleanup) {
+      this.wsCleanup();
+      this.wsCleanup = null;
     }
-
-    ipcBridge.conversation.responseStream.emit(message);
-    teamEventBus.emit('responseStream', message);
-  }
-
-  async ensureYoloMode(): Promise<boolean> {
-    return !!this.options.yoloMode;
-  }
-
-  stop() {
-    return this.core?.stop?.() ?? Promise.resolve();
-  }
-
-  kill() {
-    try {
-      this.core?.kill?.();
-    } finally {
-      super.kill();
-    }
+    super.kill();
   }
 }
 

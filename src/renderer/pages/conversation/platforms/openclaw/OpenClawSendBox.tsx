@@ -31,11 +31,9 @@ import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileSer
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Message, Tag } from '@arco-design/web-react';
+import { Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-
-const normalizeRuntimeValue = (value?: string | null): string => (value || '').trim();
 
 interface OpenClawDraftData {
   _type: 'openclaw-gateway';
@@ -51,67 +49,6 @@ const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw-gateway', {
   uploadFile: [],
 });
 
-/**
- * Validate that the OpenClaw runtime matches the expected configuration.
- * Returns true if validation passes, false otherwise (with user-facing error).
- */
-const validateRuntimeMismatch = async (conversation_id: string): Promise<boolean> => {
-  const runtimeResult = await ipcBridge.openclawConversation.getRuntime.invoke({ conversation_id: conversation_id });
-  if (!runtimeResult) {
-    Message.error('Failed to validate agent runtime');
-    return false;
-  }
-
-  const runtime = runtimeResult.runtime || {};
-  const expected = runtimeResult.expected || {};
-  const mismatches: string[] = [];
-
-  const eqPath = (a?: string | null, b?: string | null) =>
-    normalizeRuntimeValue(a).replace(/[\\/]+$/, '') === normalizeRuntimeValue(b).replace(/[\\/]+$/, '');
-
-  if (expected.expected_workspace && !eqPath(expected.expected_workspace, runtime.workspace)) {
-    mismatches.push(`workspace: expected=${expected.expected_workspace || '-'} actual=${runtime.workspace || '-'}`);
-  }
-  if (
-    expected.expected_backend &&
-    normalizeRuntimeValue(expected.expected_backend) !== normalizeRuntimeValue(runtime.backend)
-  ) {
-    mismatches.push(`backend: expected=${expected.expected_backend || '-'} actual=${runtime.backend || '-'}`);
-  }
-  if (
-    expected.expected_agent_name &&
-    normalizeRuntimeValue(expected.expected_agent_name) !== normalizeRuntimeValue(runtime.agent_name)
-  ) {
-    mismatches.push(`agent: expected=${expected.expected_agent_name || '-'} actual=${runtime.agent_name || '-'}`);
-  }
-  if (
-    expected.expected_cli_path &&
-    normalizeRuntimeValue(expected.expected_cli_path) !== normalizeRuntimeValue(runtime.cli_path)
-  ) {
-    mismatches.push(`cli_path: expected=${expected.expected_cli_path || '-'} actual=${runtime.cli_path || '-'}`);
-  }
-  if (
-    expected.expected_model &&
-    normalizeRuntimeValue(expected.expected_model) !== normalizeRuntimeValue(runtime.model)
-  ) {
-    mismatches.push(`model: expected=${expected.expected_model || '-'} actual=${runtime.model || '-'}`);
-  }
-  if (
-    expected.expected_identity_hash &&
-    normalizeRuntimeValue(expected.expected_identity_hash) !== normalizeRuntimeValue(runtime.identity_hash)
-  ) {
-    mismatches.push(
-      `identity: expected=${expected.expected_identity_hash || '-'} actual=${runtime.identity_hash || '-'}`
-    );
-  }
-
-  if (mismatches.length > 0) {
-    Message.error(`Agent switch validation failed: ${mismatches.join(' | ')}`);
-    return false;
-  }
-  return true;
-};
-
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
@@ -125,7 +62,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const [aiProcessing, setAiProcessing] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
-  const [openclawStatus, setOpenClawStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -220,7 +156,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     setAiProcessing(false);
     aiProcessingRef.current = false;
     setHasHydratedRunningState(false);
-    setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
 
@@ -243,21 +178,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = isRunning;
       setHasHydratedRunningState(true);
     });
-
-    // Eagerly initialize the OpenClaw agent and recover its connection status.
-    // The agent may have already emitted 'session_active' before this listener was set up
-    // (race condition: agent starts in constructor during conversation.create, before navigation).
-    // getRuntime awaits bootstrap, so by the time it returns the agent is fully connected.
-    void ipcBridge.openclawConversation.getRuntime
-      .invoke({ conversation_id })
-      .then((res) => {
-        if (res?.runtime?.has_active_session) {
-          setOpenClawStatus('session_active');
-        }
-      })
-      .catch(() => {
-        // Agent not ready or conversation not found – ignore
-      });
 
     return () => {
       cancelled = true;
@@ -328,8 +248,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         case 'agent_status': {
-          const statusData = message.data as { status: string; message: string };
-          setOpenClawStatus(statusData.status);
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -413,11 +331,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      const runtimeOk = await validateRuntimeMismatch(conversation_id);
-      if (!runtimeOk) {
-        throw new Error('OpenClaw runtime validation failed');
-      }
-
       const msg_id = uuid();
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
@@ -522,10 +435,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     onFilesSelected: appendSelectedFiles,
   });
 
-  // Handle initial message from guid page
+  // Handle initial message from guid page.
+  // In backend-proxy mode, warmup happens on the backend when send_message is
+  // called, so we no longer need to wait for a frontend 'session_active' status.
   useEffect(() => {
-    if (!conversation_id || !openclawStatus) return;
-    if (openclawStatus !== 'session_active') return;
+    if (!conversation_id || !hasHydratedRunningState) return;
 
     const storageKey = `openclaw_initial_message_${conversation_id}`;
     const processedKey = `openclaw_initial_processed_${conversation_id}`;
@@ -536,9 +450,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       if (sessionStorage.getItem(processedKey)) return;
 
       try {
-        const runtimeOk = await validateRuntimeMismatch(conversation_id);
-        if (!runtimeOk) return;
-
         sessionStorage.setItem(processedKey, 'true');
         setAiProcessing(true);
         aiProcessingRef.current = true;
@@ -556,8 +467,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           content: { content: initialDisplayMessage },
           created_at: Date.now(),
         };
-        // Reset AI reply for new turn
-        // 重置 AI 回复用于新一轮
         addOrUpdateMessage(userMessage, true);
 
         void checkAndUpdateTitle(conversation_id, input);
@@ -572,7 +481,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         sessionStorage.removeItem(storageKey);
       } catch {
         sessionStorage.removeItem(processedKey);
-        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
         setAiProcessing(false);
         aiProcessingRef.current = false;
       }
@@ -587,7 +495,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     return () => {
       clearTimeout(timer);
     };
-  }, [conversation_id, openclawStatus, addOrUpdateMessage]);
+  }, [conversation_id, hasHydratedRunningState, addOrUpdateMessage]);
 
   const handleStop = async (): Promise<void> => {
     try {

@@ -4,313 +4,128 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { OpenClawAgent, type OpenClawAgentConfig } from '@process/agent/openclaw';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
-import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { uuid } from '@/common/utils';
-import type { AgentBackend } from '@/common/types/acpTypes';
-import { getDatabase } from '@process/services/database';
-import { addMessage, addOrUpdateMessage } from '@process/utils/message';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
-import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
+import { teamEventBus } from '@process/team/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
-import { teamEventBus } from '@process/team/teamEventBus';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 
 export interface OpenClawAgentManagerData {
   conversation_id: string;
   workspace?: string;
-  backend?: AgentBackend;
-  agent_name?: string;
-  /** Gateway configuration */
-  gateway?: {
-    host?: string;
-    port?: number;
-    token?: string;
-    password?: string;
-    useExternalGateway?: boolean;
-    cli_path?: string;
-  };
-  /** Session key for resume */
-  sessionKey?: string;
-  /** YOLO mode (auto-approve all permissions) */
   yoloMode?: boolean;
 }
 
+/**
+ * Lightweight proxy that delegates agent lifecycle to the Rust backend.
+ *
+ * The backend `OpenClawAgentManager` owns the WebSocket connection to the
+ * OpenClaw Gateway. This frontend manager only tracks status by listening
+ * to `message.stream` events pushed over the backend WebSocket.
+ *
+ * Message sending is handled by OpenClawSendBox →
+ *   ipcBridge.conversation.sendMessage.invoke() →
+ *   POST /api/conversations/{id}/messages →
+ *   backend send_message() → OpenClawAgentManager.send_message()
+ */
 class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
-  agent!: OpenClawAgent;
-  bootstrap: Promise<OpenClawAgent>;
-  private isFirstMessage: boolean = true;
-  private options: OpenClawAgentManagerData;
+  private wsCleanup: (() => void) | null = null;
 
   constructor(data: OpenClawAgentManagerData) {
     super('openclaw-gateway', data, new IpcAgentEventEmitter(), false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace ?? '';
-    this.options = data;
-    this.status = 'pending';
 
-    this.bootstrap = this.initAgent(data);
-    // Prevent unhandled promise rejection when gateway fails to start (e.g. binary not found).
-    // The error still propagates when sendMessage() awaits this.bootstrap.
-    this.bootstrap.catch(() => {});
+    this.subscribeToBackend();
   }
 
-  private async initAgent(data: OpenClawAgentManagerData): Promise<OpenClawAgent> {
-    const config: OpenClawAgentConfig = {
-      id: data.conversation_id,
-      workingDir: data.workspace || process.cwd(),
-      gateway: data.gateway
-        ? {
-            ...data.gateway,
-            port: data.gateway.port ?? 18789,
-          }
-        : undefined,
-      extra: {
-        workspace: data.workspace,
-        sessionKey: data.sessionKey,
-        yoloMode: data.yoloMode,
-      },
-      onStreamEvent: (message) => this.handleStreamEvent(message),
-      onSignalEvent: (message) => this.handleSignalEvent(message),
-      onSessionKeyUpdate: (sessionKey) => this.handleSessionKeyUpdate(sessionKey),
-    };
-
-    this.agent = new OpenClawAgent(config);
-
-    try {
-      await this.agent.start();
-      return this.agent;
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      this.emitErrorMessage(`Failed to start OpenClaw agent: ${errorMsg}`);
-      throw error;
-    }
+  override async start() {
+    // Agent lifecycle is managed by the backend.
+    // The backend creates/reuses OpenClawAgentManager on warmup/send_message.
   }
 
-  private handleStreamEvent(message: IResponseMessage): void {
-    const msg = { ...message, conversation_id: this.conversation_id };
-
-    // Mark as finished when content is output (visible to user)
-    // OpenClaw uses: content, agent_status, acp_tool_call, plan
-    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
-    if (contentTypes.includes(msg.type)) {
-      this.status = 'finished';
-    }
-
-    // Persist messages to database
-    const tMessage = transformMessage(msg);
-    if (tMessage) {
-      // Use addOrUpdateMessage for types that reuse the same msg_id (content streaming, agent_status updates)
-      // Use addMessage for non-streaming messages that should be inserted as-is
-      if ((msg.type === 'content' || msg.type === 'agent_status') && msg.msg_id) {
-        addOrUpdateMessage(this.conversation_id, tMessage);
-      } else {
-        addMessage(this.conversation_id, tMessage);
-      }
-    }
-
-    // Emit to frontend
-    ipcBridge.openclawConversation.responseStream.emit(msg);
-    // Also emit to the unified conversation stream so the generic chat UI can render OpenClaw replies.
-    ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
-      teamEventBus.emit('responseStream', msg);
-    }
-
-    // Emit to Channel global event bus (Telegram/Lark streaming)
-    channelEventBus.emitAgentMessage(this.conversation_id, msg);
+  async stop() {
+    cronBusyGuard.setProcessing(this.conversation_id, false);
+    this.confirmations = [];
+    // Actual stop is handled by the renderer via ipcBridge.conversation.stop.invoke()
   }
 
-  private handleSignalEvent(message: IResponseMessage): void {
-    const msg = { ...message, conversation_id: this.conversation_id };
-
-    // Handle permission requests
-    if (msg.type === 'acp_permission') {
-      const permissionData = msg.data as {
-        session_id: string;
-        tool_call: {
-          tool_call_id: string;
-          title?: string;
-          kind?: string;
-          raw_input?: Record<string, unknown>;
-        };
-        options: Array<{ option_id: string; name: string; kind: string }>;
-      };
-
-      // Create confirmation for UI
-      const confirmation: IConfirmation = {
-        id: permissionData.tool_call.tool_call_id,
-        call_id: permissionData.tool_call.tool_call_id,
-        title: permissionData.tool_call.title || 'Permission Required',
-        description: JSON.stringify(permissionData.tool_call.raw_input || {}),
-        options: permissionData.options.map((opt) => ({
-          label: opt.name,
-          value: opt.option_id,
-        })),
-      };
-
-      this.addConfirmation(confirmation);
-      return;
-    }
-
-    // Handle finish event
-    if (msg.type === 'finish') {
-      cronBusyGuard.setProcessing(this.conversation_id, false);
-      skillSuggestWatcher.onFinish(this.conversation_id);
-    }
-
-    // Emit signal events to frontend
-    ipcBridge.openclawConversation.responseStream.emit(msg);
-    ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
-      teamEventBus.emit('responseStream', msg);
-    }
-
-    // Forward signals to Channel global event bus
-    channelEventBus.emitAgentMessage(this.conversation_id, msg);
-  }
-
-  private handleSessionKeyUpdate(sessionKey: string): void {
-    this.saveSessionKey(sessionKey);
-  }
-
-  /**
-   * Persist the resolved session key to the database for resume support.
-   * Follows the same pattern as AcpAgentManager.saveAcpSessionId().
-   */
-  private async saveSessionKey(sessionKey: string): Promise<void> {
-    try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'openclaw-gateway') {
-        const conversation = result.data;
-        const updatedExtra = {
-          ...conversation.extra,
-          sessionKey,
-        };
-        db.updateConversation(this.conversation_id, {
-          extra: updatedExtra,
-        } as Partial<typeof conversation>);
-      }
-    } catch (error) {
-      console.error('[OpenClawAgentManager] Failed to save session key:', error);
-    }
-  }
-
-  async sendMessage(data: {
-    content: string;
-    agentContent?: string;
-    files?: string[];
-    msg_id?: string;
-    hidden?: boolean;
-    silent?: boolean;
-  }) {
+  async sendMessage(_data: { content: string; msg_id?: string; files?: string[] }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
-    // Set status to running when message is being processed
-    this.status = 'running';
-    try {
-      await this.bootstrap;
-
-      // Save user message to chat history (always use original content, not injected version)
-      if (data.msg_id && data.content && !data.silent) {
-        const userMessage: TMessage = {
-          id: data.msg_id,
-          msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id: this.conversation_id,
-          content: { content: data.content },
-          created_at: Date.now(),
-          ...(data.hidden && { hidden: true }),
-        };
-        addMessage(this.conversation_id, userMessage);
-      }
-
-      // Send message to agent (use agentContent if provided, e.g. with injected skills)
-      const result = await this.agent.sendMessage({
-        content: data.agentContent || data.content,
-        files: data.files,
-        msg_id: data.msg_id,
-      });
-
-      return result;
-    } catch (error) {
-      cronBusyGuard.setProcessing(this.conversation_id, false);
-      this.status = 'finished';
-
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      this.emitErrorMessage(`Failed to send message: ${errorMsg}`);
-      throw error;
-    }
+    this.status = 'pending';
+    this._lastActivityAt = Date.now();
+    // Actual message sending is handled by OpenClawSendBox via
+    // ipcBridge.conversation.sendMessage.invoke() → POST /api/conversations/{id}/messages
   }
 
-  async confirm(id: string, call_id: string, data: string) {
-    super.confirm(id, call_id, data);
-    await this.bootstrap;
-
-    // Send confirmation to agent
-    await this.agent.confirmMessage({
-      confirm_key: data,
-      call_id,
+  private emitToEventBuses(message: IResponseMessage): void {
+    if (message.type === 'finish' || message.type === 'error') {
+      teamEventBus.emit('responseStream', {
+        ...message,
+        conversation_id: this.conversation_id,
+      });
+    }
+    channelEventBus.emitAgentMessage(this.conversation_id, {
+      ...message,
+      conversation_id: this.conversation_id,
     });
   }
 
-  private emitErrorMessage(error: string): void {
-    const message: IResponseMessage = {
-      type: 'error',
+  private subscribeToBackend() {
+    const cleanup = ipcBridge.conversation.responseStream.on((message: IResponseMessage) => {
+      if (this.conversation_id !== message.conversation_id) return;
+
+      if (message.type === 'start') {
+        this.status = 'running';
+        cronBusyGuard.setProcessing(this.conversation_id, true);
+      }
+
+      if (message.type === 'finish' || message.type === 'error') {
+        this.status = 'finished';
+        cronBusyGuard.setProcessing(this.conversation_id, false);
+        skillSuggestWatcher.onFinish(this.conversation_id);
+      }
+
+      this.emitToEventBuses(message);
+    });
+
+    this.wsCleanup = cleanup;
+  }
+
+  confirm(id: string, call_id: string, data: string) {
+    super.confirm(id, call_id, data);
+
+    if (data === 'cancel') {
+      return;
+    }
+
+    const always_allow = data === 'proceed_always' || data === 'allow_always';
+
+    void ipcBridge.conversation.confirmation.confirm.invoke({
       conversation_id: this.conversation_id,
-      msg_id: uuid(),
-      data: error,
-    };
-
-    const tMessage = transformMessage(message);
-    if (tMessage) {
-      addMessage(this.conversation_id, tMessage);
-    }
-
-    ipcBridge.openclawConversation.responseStream.emit(message);
-    ipcBridge.conversation.responseStream.emit(message);
-  }
-
-  /**
-   * Check if yoloMode is already enabled for this OpenClaw agent.
-   * Returns true if agent was started with yoloMode.
-   */
-  async ensureYoloMode(): Promise<boolean> {
-    return !!this.options.yoloMode;
-  }
-
-  stop() {
-    return this.agent?.stop?.() ?? Promise.resolve();
-  }
-
-  kill() {
-    try {
-      this.agent?.kill?.();
-    } finally {
-      super.kill();
-    }
+      call_id,
+      msg_id: '',
+      data: { value: data },
+      always_allow,
+    });
   }
 
   getDiagnostics() {
     return {
       workspace: this.workspace,
-      backend: this.options.backend,
-      agent_name: this.options.agent_name,
-      cli_path: this.options.gateway?.cli_path ?? null,
-      gatewayHost: this.options.gateway?.host ?? null,
-      gatewayPort: this.options.gateway?.port ?? 18789,
       conversation_id: this.conversation_id,
-      is_connected: this.agent?.is_connected ?? false,
-      has_active_session: this.agent?.has_active_session ?? false,
-      sessionKey: this.agent?.currentSessionKey ?? null,
     };
+  }
+
+  override kill() {
+    if (this.wsCleanup) {
+      this.wsCleanup();
+      this.wsCleanup = null;
+    }
+    super.kill();
   }
 }
 
