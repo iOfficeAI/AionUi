@@ -140,4 +140,33 @@ test.describe('Zoom scale (FontSizeControl)', () => {
     await resetButton(page).click();
     await waitForSettle(page, 1_000);
   });
+
+  test('clicking the slider track changes the percentage', async ({ page }) => {
+    // Reset to 100% first for a known baseline
+    const reset = resetButton(page);
+    if (await reset.isEnabled()) {
+      await reset.click();
+      await waitForSettle(page, 1_000);
+    }
+    const baseline = await currentPercent(page);
+    expect(baseline).toBe(100);
+
+    const slider = fontSizeControlLocator(page);
+    await expect(slider).toBeVisible({ timeout: 5_000 });
+    const box = await slider.boundingBox();
+    expect(box).not.toBeNull();
+
+    // Click at ~80% of the track width to increase the value
+    const targetX = box!.x + box!.width * 0.8;
+    const targetY = box!.y + box!.height / 2;
+    await page.mouse.click(targetX, targetY);
+    await waitForSettle(page, 1_000);
+
+    const after = await currentPercent(page);
+    expect(after).toBeGreaterThan(baseline);
+
+    // Restore default
+    await resetButton(page).click();
+    await waitForSettle(page, 1_000);
+  });
 });

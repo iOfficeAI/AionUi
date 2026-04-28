@@ -1,12 +1,9 @@
-/**
- * CSS Theme CRUD E2E — select preset, create custom, delete custom.
- * Pure UI interactions only (zero invokeBridge, zero mock).
- */
 import { test, expect } from '../../../fixtures';
 import { goToSettings } from '../../../helpers/navigation';
 import { takeScreenshot } from '../../../helpers/screenshots';
 
 const CUSTOM_THEME_NAME = `E2E Custom Theme ${Date.now()}`;
+const EDITED_THEME_NAME = `E2E Edited Theme ${Date.now()}`;
 const CUSTOM_CSS = ':root { --bg-1: #1a1a2e; }';
 
 async function navigateToCssThemes(page: import('@playwright/test').Page) {
@@ -43,15 +40,16 @@ async function deleteCustomThemeViaModal(page: import('@playwright/test').Page, 
   const card = themeCard(page, name);
   if ((await card.count()) === 0) return;
   await card.hover();
-  await page.waitForTimeout(200);
-  await card.locator('[class*="bg-white"]').last().click();
+  const editIcon = card.locator('[class*="bg-white"]').last();
+  await editIcon.waitFor({ state: 'visible', timeout: 3_000 });
+  await editIcon.click();
   const modal = page.locator('.arco-modal').filter({ hasText: /CSS/i });
   await modal.waitFor({ state: 'visible', timeout: 5_000 });
   const deleteBtn = modal.locator('.arco-btn-text').filter({ hasText: /Delete|删除/i });
   if ((await deleteBtn.count()) > 0) {
     await deleteBtn.click();
     await page.locator('.arco-modal').last().locator('.arco-btn-status-danger').click();
-    await page.waitForTimeout(500);
+    await modal.waitFor({ state: 'hidden', timeout: 5_000 });
   } else {
     await modal
       .locator('.arco-btn')
@@ -67,6 +65,7 @@ test.describe('CSS Theme CRUD', () => {
     try {
       await navigateToCssThemes(page);
       await deleteCustomThemeViaModal(page, CUSTOM_THEME_NAME);
+      await deleteCustomThemeViaModal(page, EDITED_THEME_NAME);
     } catch {
       /* best-effort cleanup */
     }
@@ -140,8 +139,9 @@ test.describe('CSS Theme CRUD', () => {
     await takeScreenshot(page, 'css-theme-crud/05-before-delete.png');
 
     await newCard.hover();
-    await page.waitForTimeout(200);
-    await newCard.locator('[class*="bg-white"]').last().click();
+    const editIcon = newCard.locator('[class*="bg-white"]').last();
+    await editIcon.waitFor({ state: 'visible', timeout: 5_000 });
+    await editIcon.click();
 
     const editModal = page.locator('.arco-modal:visible');
     await editModal.waitFor({ state: 'visible', timeout: 5_000 });
@@ -157,5 +157,41 @@ test.describe('CSS Theme CRUD', () => {
     await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
     await expect(newCard).toBeHidden({ timeout: 5_000 });
     await takeScreenshot(page, 'css-theme-crud/06-theme-deleted.png');
+  });
+
+  test('edit a custom CSS theme name via modal', async ({ page }) => {
+    await navigateToCssThemes(page);
+    await createCustomTheme(page);
+
+    const card = themeCard(page, CUSTOM_THEME_NAME);
+    await expect(card).toBeVisible({ timeout: 5_000 });
+
+    await card.hover();
+    await page.waitForFunction(
+      (name: string) => {
+        const el = [...document.querySelectorAll('.grid > div.cursor-pointer')].find((d) =>
+          d.textContent?.includes(name)
+        );
+        return el?.querySelector('[class*="bg-white"]') !== null;
+      },
+      CUSTOM_THEME_NAME,
+      { timeout: 5_000 }
+    );
+    await card.locator('[class*="bg-white"]').last().click();
+
+    const modal = page.locator('.arco-modal:visible');
+    await modal.waitFor({ state: 'visible', timeout: 5_000 });
+    await takeScreenshot(page, 'css-theme-crud/07-edit-modal-opened.png');
+
+    const nameInput = modal.locator('.arco-input').first();
+    await nameInput.clear();
+    await nameInput.fill(EDITED_THEME_NAME);
+    await modal.locator('.arco-btn-primary').click();
+    await modal.waitFor({ state: 'hidden', timeout: 5_000 });
+
+    await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
+    await expect(themeCard(page, EDITED_THEME_NAME)).toBeVisible({ timeout: 5_000 });
+    await expect(themeCard(page, CUSTOM_THEME_NAME)).toBeHidden({ timeout: 3_000 });
+    await takeScreenshot(page, 'css-theme-crud/08-theme-renamed.png');
   });
 });
