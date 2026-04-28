@@ -12,7 +12,7 @@ import { ipcBridge } from '@/common';
  * appropriate rule md from the backend manifest, extension bundle, or user
  * directory. Callers no longer need to distinguish builtin vs. user here.
  *
- * `enabledSkills` / `disabledBuiltinSkills` are now part of the Assistant
+ * `enabledSkills` / `excludeAutoInjectSkills` are now part of the Assistant
  * record returned by `/api/assistants`; callers should read them directly from
  * there rather than via this helper. The two override hooks on
  * `PresetAssistantResourceDeps` are kept for backwards compatibility with
@@ -23,7 +23,7 @@ export type PresetAssistantResourceDeps = {
   readAssistantRule: (args: { assistant_id: string; locale: string }) => Promise<string>;
   readAssistantSkill: (args: { assistant_id: string; locale: string }) => Promise<string>;
   getEnabledSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
-  getDisabledBuiltinSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
+  getExcludeAutoInjectSkills: (custom_agent_id: string) => Promise<string[] | undefined>;
   warn: (message: string, error?: unknown) => void;
 };
 
@@ -37,7 +37,7 @@ export type PresetAssistantResources = {
   rules?: string;
   skills: string;
   enabled_skills?: string[];
-  disabledBuiltinSkills?: string[];
+  exclude_auto_inject_skills?: string[];
 };
 
 const defaultDeps: PresetAssistantResourceDeps = {
@@ -51,7 +51,7 @@ const defaultDeps: PresetAssistantResourceDeps = {
       return undefined;
     }
   },
-  getDisabledBuiltinSkills: async (custom_agent_id) => {
+  getExcludeAutoInjectSkills: async (custom_agent_id) => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
       return list.find((a) => a.id === custom_agent_id)?.disabled_builtin_skills;
@@ -75,7 +75,7 @@ export async function loadPresetAssistantResources(
       rules: fallbackRules,
       skills: '',
       enabled_skills: undefined,
-      disabledBuiltinSkills: undefined,
+      exclude_auto_inject_skills: undefined,
     };
   }
 
@@ -98,6 +98,6 @@ export async function loadPresetAssistantResources(
     rules: rules || fallbackRules,
     skills,
     enabled_skills: await deps.getEnabledSkills(custom_agent_id),
-    disabledBuiltinSkills: await deps.getDisabledBuiltinSkills(custom_agent_id),
+    exclude_auto_inject_skills: await deps.getExcludeAutoInjectSkills(custom_agent_id),
   };
 }

@@ -34,10 +34,10 @@ import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.t
 import ConversationSkillsIndicator from './ConversationSkillsIndicator';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
-/** Check whether a specific skill is loaded for the conversation */
+/** Check whether a specific skill is mounted on the conversation. */
 const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
-  const loaded_skills = (conversation?.extra as { loaded_skills?: Array<{ name: string }> })?.loaded_skills;
-  return loaded_skills?.some((s) => s.name === skillName) ?? false;
+  const skills = (conversation?.extra as { skills?: string[] } | undefined)?.skills;
+  return skills?.includes(skillName) ?? false;
 };
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {

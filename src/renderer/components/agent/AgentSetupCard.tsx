@@ -122,7 +122,9 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
             cli_path: agent.cli_path,
             preset_context: ((conversation.extra as Record<string, unknown>)?.preset_rules ||
               (conversation.extra as Record<string, unknown>)?.preset_context) as string,
-            enabled_skills: (conversation.extra as { enabled_skills?: string[] } | undefined)?.enabled_skills,
+            // Skill set is re-snapshotted on create from current auto-inject set.
+            // Source conversation's skill list is intentionally not carried over —
+            // switch-agent is semantically a new conversation.
             preset_assistant_id: conversation.extra?.preset_assistant_id,
           },
         };

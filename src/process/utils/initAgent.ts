@@ -19,17 +19,45 @@ import { getSystemDir } from './initStorage';
 import { computeOpenClawIdentityHash } from './openclawUtils';
 
 /**
- * Ask the backend to materialize auto-inject + opt-in skills for the given
+ * Compute the skill snapshot to write into `extra.skills` for a newly
+ * created conversation that's being persisted via the Electron-local
+ * SQLite path (not the Rust backend's create endpoint). Mirrors the
+ * backend's `compute_initial_skills`:
+ *
+ *   (auto_inject_now − exclude_auto_inject) ∪ preset_enabled, sorted, deduped.
+ */
+export async function computeInitialSkillsSnapshot(options: {
+  preset_enabled_skills?: string[];
+  exclude_auto_inject_skills?: string[];
+}): Promise<string[]> {
+  let autoInjectNames: string[] = [];
+  try {
+    const auto = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
+    autoInjectNames = auto.map((s) => s.name);
+  } catch (err) {
+    console.warn('[initAgent] listBuiltinAutoSkills failed, snapshot will omit auto-inject:', err);
+  }
+  const exclude = new Set(options.exclude_auto_inject_skills ?? []);
+  const set = new Set<string>();
+  for (const n of autoInjectNames) {
+    if (!exclude.has(n)) set.add(n);
+  }
+  for (const n of options.preset_enabled_skills ?? []) set.add(n);
+  return Array.from(set).toSorted();
+}
+
+/**
+ * Ask the backend to materialize the resolved skill list for the given
  * conversation and return the absolute directory path that holds
  * `{skillName}/SKILL.md` subdirs. On HTTP failure the empty-string fallback
  * keeps caller code simple — the conversation then starts without any
  * skills (degraded capability, not a hard failure).
  */
-async function materializeAgentSkillsDir(conversationId: string, enabledSkills: string[]): Promise<string> {
+async function materializeAgentSkillsDir(conversationId: string, skills: string[]): Promise<string> {
   try {
     const { dir_path: dirPath } = await ipcBridge.fs.materializeSkillsForAgent.invoke({
       conversation_id: conversationId,
-      enabled_skills: enabledSkills,
+      skills,
     });
     return dirPath;
   } catch (error) {
@@ -58,9 +86,8 @@ export async function setupAssistantWorkspace(
     conversationId: string;
     agent_type?: string;
     backend?: string;
-    enabled_skills?: string[];
-    /** Builtin skill names to exclude from auto-injection (e.g. 'cron' for cron-spawned conversations) */
-    excludeBuiltinSkills?: string[];
+    /** Resolved skill snapshot to materialize (NOT the raw enabled list). */
+    skills: string[];
     /** Absolute paths to extra skill directories to symlink (e.g. cron job skill dirs) */
     extraSkillPaths?: string[];
   }
@@ -69,7 +96,7 @@ export async function setupAssistantWorkspace(
   const skillsDirs = getSkillsDirsForBackend(key);
   if (!skillsDirs) return;
 
-  const materializedDir = await materializeAgentSkillsDir(options.conversationId, options.enabled_skills ?? []);
+  const materializedDir = await materializeAgentSkillsDir(options.conversationId, options.skills);
 
   let materializedSkillNames: string[] = [];
   if (materializedDir) {
@@ -81,14 +108,11 @@ export async function setupAssistantWorkspace(
     }
   }
 
-  const excludeSet = new Set(options.excludeBuiltinSkills ?? []);
-
   for (const skillsRelDir of skillsDirs) {
     const targetSkillsDir = path.join(workspace, skillsRelDir);
     await fs.mkdir(targetSkillsDir, { recursive: true });
 
     for (const skillName of materializedSkillNames) {
-      if (excludeSet.has(skillName)) continue;
       const sourceSkillDir = path.join(materializedDir, skillName);
       const targetSkillDir = path.join(targetSkillsDir, skillName);
       try {
@@ -165,14 +189,18 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
 
   const conversationId = uuid();
 
+  const skills = await computeInitialSkillsSnapshot({
+    preset_enabled_skills: extra.preset_enabled_skills,
+    exclude_auto_inject_skills: extra.exclude_auto_inject_skills,
+  });
+
   // 对 temp workspace 设置 skill symlinks（原生发现）
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
       backend: extra.backend,
-      enabled_skills: extra.enabled_skills,
+      skills,
       extraSkillPaths: extra.extra_skill_paths,
-      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -186,10 +214,8 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       agent_name: extra.agent_name,
       custom_agent_id: extra.custom_agent_id, // 同时用于标识预设助手 / Also used to identify preset assistant
       preset_context: extra.preset_context, // 智能助手的预设规则/提示词
-      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
-      enabled_skills: extra.enabled_skills,
-      // 排除的内置自动注入 skills / Builtin auto-injected skills to exclude
-      excludeBuiltinSkills: extra.exclude_builtin_skills,
+      // Frozen skill snapshot — authoritative list for this conversation.
+      skills,
       // 预设助手 ID，用于在会话面板显示助手名称和头像
       // Preset assistant ID for displaying name and avatar in conversation panel
       preset_assistant_id: extra.preset_assistant_id,
@@ -220,14 +246,18 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
 
   const conversationId = uuid();
 
+  const skills = await computeInitialSkillsSnapshot({
+    preset_enabled_skills: extra.preset_enabled_skills,
+    exclude_auto_inject_skills: extra.exclude_auto_inject_skills,
+  });
+
   // 对 temp workspace 设置 skill symlinks
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
       agent_type: 'nanobot',
-      enabled_skills: extra.enabled_skills,
+      skills,
       extraSkillPaths: extra.extra_skill_paths,
-      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -236,7 +266,7 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
     extra: {
       workspace: workspace,
       custom_workspace,
-      enabled_skills: extra.enabled_skills,
+      skills,
       preset_assistant_id: extra.preset_assistant_id,
     },
     created_at: Date.now(),
@@ -257,12 +287,16 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
 
   const conversationId = uuid();
 
+  const skills = await computeInitialSkillsSnapshot({
+    preset_enabled_skills: extra.preset_enabled_skills,
+    exclude_auto_inject_skills: extra.exclude_auto_inject_skills,
+  });
+
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
-      enabled_skills: extra.enabled_skills,
+      skills,
       extraSkillPaths: extra.extra_skill_paths,
-      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -272,7 +306,7 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
       workspace,
       custom_workspace,
       remoteAgentId: extra.remote_agent_id!,
-      enabled_skills: extra.enabled_skills,
+      skills,
       preset_assistant_id: extra.preset_assistant_id,
     },
     created_at: Date.now(),
@@ -293,14 +327,18 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
 
   const conversationId = uuid();
 
+  const skills = await computeInitialSkillsSnapshot({
+    preset_enabled_skills: extra.preset_enabled_skills,
+    exclude_auto_inject_skills: extra.exclude_auto_inject_skills,
+  });
+
   // Set up skill symlinks for native discovery by aionrs CLI
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
       agent_type: 'aionrs',
-      enabled_skills: extra.enabled_skills,
+      skills,
       extraSkillPaths: extra.extra_skill_paths,
-      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -311,7 +349,7 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
       workspace,
       custom_workspace,
       preset_rules: extra.preset_rules,
-      enabled_skills: extra.enabled_skills,
+      skills,
       preset_assistant_id: extra.preset_assistant_id,
       session_mode: extra.session_mode,
     },
@@ -334,13 +372,17 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
 
   const conversationId = uuid();
 
+  const skills = await computeInitialSkillsSnapshot({
+    preset_enabled_skills: extra.preset_enabled_skills,
+    exclude_auto_inject_skills: extra.exclude_auto_inject_skills,
+  });
+
   // 对 temp workspace 设置 skill symlinks
   if (!custom_workspace) {
     await setupAssistantWorkspace(workspace, {
       conversationId,
-      enabled_skills: extra.enabled_skills,
+      skills,
       extraSkillPaths: extra.extra_skill_paths,
-      excludeBuiltinSkills: extra.exclude_builtin_skills,
     });
   }
 
@@ -365,8 +407,8 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
         expectedIdentityHash,
         switchedAt: extra.runtime_validation?.switched_at ?? Date.now(),
       },
-      // Enabled skills list (loaded via SkillManager)
-      enabled_skills: extra.enabled_skills,
+      // Frozen skill snapshot — authoritative list for this conversation.
+      skills,
       // Preset assistant ID for displaying name and avatar in conversation panel
       preset_assistant_id: extra.preset_assistant_id,
     },

@@ -24,7 +24,6 @@ import type { CronJob } from './CronStore';
 import type { ICronJobExecutor } from './ICronJobExecutor';
 import { addMessage } from '@process/utils/message';
 import { getCronSkillDir, hasCronSkillFile } from './cronSkillFile';
-import { AcpSkillManager } from '@process/task/AcpSkillManager';
 import { skillSuggestWatcher } from './SkillSuggestWatcher';
 
 /** Lazy-import to break circular dependency: cronServiceSingleton ↔ conversationServiceSingleton */
@@ -225,29 +224,13 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         ...(config.model_id ? { current_model_id: config.model_id } : {}),
         ...(cached_config_options ? { cached_config_options } : {}),
         ...(hasSkill
-          ? { extraSkillPaths: [cronSkillDir], excludeBuiltinSkills: ['cron'] }
-          : { excludeBuiltinSkills: ['cron'] }),
+          ? { extraSkillPaths: [cronSkillDir], exclude_auto_inject_skills: ['cron'] }
+          : { exclude_auto_inject_skills: ['cron'] }),
       },
     };
 
     const service = await getConversationService();
     const conversation = await service.createConversation(params);
-
-    // Persist loaded skills snapshot so ConversationSkillsIndicator can display them
-    try {
-      const excludeBuiltinSkills = (params.extra as { excludeBuiltinSkills?: string[] })?.excludeBuiltinSkills;
-      const skillManager = AcpSkillManager.getInstance();
-      await skillManager.discoverSkills(undefined, excludeBuiltinSkills);
-      const excludeSet = new Set(excludeBuiltinSkills ?? []);
-      const loaded_skills = skillManager.getSkillsIndex().filter((s) => !excludeSet.has(s.name));
-      if (loaded_skills.length > 0) {
-        const updatedExtra = { ...conversation.extra, loaded_skills };
-        service.updateConversation(conversation.id, { extra: updatedExtra } as Partial<typeof conversation>);
-        conversation.extra = updatedExtra as typeof conversation.extra;
-      }
-    } catch (error) {
-      console.warn('[CronExecutor] Failed to persist loaded_skills:', error);
-    }
 
     // Notify frontend so sider updates immediately
     ipcBridge.conversation.listChanged.emit({

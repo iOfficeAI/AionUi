@@ -167,7 +167,7 @@ export async function buildPresetAssistantParams(
   const {
     rules: preset_context,
     enabled_skills,
-    disabledBuiltinSkills,
+    exclude_auto_inject_skills,
   } = await loadPresetAssistantResources({
     custom_agent_id,
     localeKey,
@@ -189,7 +189,7 @@ export async function buildPresetAssistantParams(
     preset_resources: {
       rules: preset_context,
       enabled_skills,
-      exclude_builtin_skills: disabledBuiltinSkills,
+      exclude_auto_inject_skills,
     },
     model,
     session_mode: preferredMode,

@@ -46,7 +46,7 @@ describe('channelConversation real functions', () => {
         platform: 'weixin',
         backend: 'gemini',
       });
-      expect(result).toEqual({ enabled_skills: ['weixin-file-send'] });
+      expect(result).toEqual({ preset_enabled_skills: ['weixin-file-send'] });
     });
 
     it('returns enabled_skills only for codex backend with weixin platform', () => {
@@ -54,7 +54,7 @@ describe('channelConversation real functions', () => {
         platform: 'weixin',
         backend: 'codex',
       });
-      expect(result).toEqual({ enabled_skills: ['weixin-file-send'] });
+      expect(result).toEqual({ preset_enabled_skills: ['weixin-file-send'] });
     });
 
     it('returns enabled_skills only for openclaw-gateway backend with weixin platform', () => {
@@ -62,7 +62,7 @@ describe('channelConversation real functions', () => {
         platform: 'weixin',
         backend: 'openclaw-gateway',
       });
-      expect(result).toEqual({ enabled_skills: ['weixin-file-send'] });
+      expect(result).toEqual({ preset_enabled_skills: ['weixin-file-send'] });
     });
 
     it('returns empty object for gemini backend with non-weixin platform', () => {
@@ -84,7 +84,7 @@ describe('channelConversation real functions', () => {
         backend: 'claude',
         custom_agent_id: 'agent-123',
         agent_name: 'Claude Assistant',
-        enabled_skills: ['weixin-file-send'],
+        preset_enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -111,7 +111,7 @@ describe('channelConversation real functions', () => {
         backend: 'unknown-backend',
         custom_agent_id: 'custom-1',
         agent_name: 'Custom Agent',
-        enabled_skills: ['weixin-file-send'],
+        preset_enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -140,7 +140,7 @@ describe('channelConversation real functions', () => {
         backend: 'claude',
         custom_agent_id: undefined,
         agent_name: undefined,
-        enabled_skills: ['weixin-file-send'],
+        preset_enabled_skills: ['weixin-file-send'],
       });
     });
 
@@ -155,7 +155,7 @@ describe('channelConversation real functions', () => {
         backend: 'claude',
         custom_agent_id: '',
         agent_name: '',
-        enabled_skills: ['weixin-file-send'],
+        preset_enabled_skills: ['weixin-file-send'],
       });
     });
   });

@@ -11,7 +11,7 @@ import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 export type BuildAgentConversationPresetResources = {
   rules?: string;
   enabled_skills?: string[];
-  exclude_builtin_skills?: string[];
+  exclude_auto_inject_skills?: string[];
 };
 
 export type BuildAgentConversationInput = {
@@ -79,8 +79,14 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   };
 
   if (is_preset) {
-    extra.enabled_skills = preset_resources?.enabled_skills;
-    extra.exclude_builtin_skills = preset_resources?.exclude_builtin_skills;
+    // Transient create-request fields: backend's create handler consumes
+    // them to compute extra.skills, then strips before persistence.
+    if (preset_resources?.enabled_skills?.length) {
+      extra.preset_enabled_skills = preset_resources.enabled_skills;
+    }
+    if (preset_resources?.exclude_auto_inject_skills?.length) {
+      extra.exclude_auto_inject_skills = preset_resources.exclude_auto_inject_skills;
+    }
     extra.preset_assistant_id = effectivePresetAssistantId;
     extra.preset_context = preset_resources?.rules;
     if (type === 'acp') {

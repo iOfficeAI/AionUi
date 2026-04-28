@@ -152,7 +152,7 @@ export class TeamSessionService {
 
   private async loadPresetResources(
     custom_agent_id: string
-  ): Promise<{ rules?: string; enabled_skills?: string[]; exclude_builtin_skills?: string[] }> {
+  ): Promise<{ rules?: string; enabled_skills?: string[]; exclude_auto_inject_skills?: string[] }> {
     const language = await ProcessConfig.get('language');
     const localeKey = resolveLocaleKey(language || 'en-US');
     const deps: PresetAssistantResourceDeps = {
@@ -166,7 +166,7 @@ export class TeamSessionService {
           return undefined;
         }
       },
-      getDisabledBuiltinSkills: async (assistantId) => {
+      getExcludeAutoInjectSkills: async (assistantId) => {
         try {
           const list = await ipcBridge.assistants.list.invoke();
           return list.find((a) => a.id === assistantId)?.disabled_builtin_skills;
@@ -183,7 +183,7 @@ export class TeamSessionService {
     return {
       rules: resources.rules,
       enabled_skills: resources.enabled_skills,
-      exclude_builtin_skills: resources.disabledBuiltinSkills,
+      exclude_auto_inject_skills: resources.exclude_auto_inject_skills,
     };
   }
 

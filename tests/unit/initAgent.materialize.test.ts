@@ -2,8 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 /**
  * Covers the backend-driven skill materialization path in initAgent:
- * `setupAssistantWorkspace` now calls `materializeSkillsForAgent` and
- * symlinks each returned skill dir into the CLI-native skills folder.
+ * `setupAssistantWorkspace` now calls `materializeSkillsForAgent` with the
+ * resolved skill list and symlinks each returned skill dir into the
+ * CLI-native skills folder.
  */
 
 const norm = (p: string) => p.replace(/\\/g, '/');
@@ -11,7 +12,7 @@ const norm = (p: string) => p.replace(/\\/g, '/');
 const { materializeInvoke, cleanupInvoke, mkdirCalls, symlinkCalls, lstatResults, statResults, readdirResults, reset } =
   vi.hoisted(() => {
     const materializeMock =
-      vi.fn<(args: { conversation_id: string; enabled_skills: string[] }) => Promise<{ dir_path: string }>>();
+      vi.fn<(args: { conversation_id: string; skills: string[] }) => Promise<{ dir_path: string }>>();
     const cleanupMock = vi.fn<(args: { conversationId: string }) => Promise<void>>();
     const mk: string[] = [];
     const links: Array<{ source: string; target: string; type: string }> = [];
@@ -104,12 +105,12 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-1',
       backend: 'claude',
-      enabled_skills: ['pptx'],
+      skills: ['cron', 'office-cli', 'pptx'],
     });
 
     expect(materializeInvoke).toHaveBeenCalledWith({
       conversation_id: 'conv-1',
-      enabled_skills: ['pptx'],
+      skills: ['cron', 'office-cli', 'pptx'],
     });
     expect(mkdirCalls).toContain('/tmp/ws/.claude/skills');
     expect(symlinkCalls).toHaveLength(3);
@@ -121,15 +122,16 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     expect(symlinkCalls.every((c) => c.type === 'junction')).toBe(true);
   });
 
-  it('skips skills listed in excludeBuiltinSkills', async () => {
+  it('only symlinks skills present in the materialized directory', async () => {
     const dirPath = '/mock/data/agent-skills/conv-2';
     materializeInvoke.mockResolvedValueOnce({ dir_path: dirPath });
-    readdirResults[dirPath] = ['cron', 'office-cli'];
+    // Backend materializes only office-cli (cron was excluded from the snapshot).
+    readdirResults[dirPath] = ['office-cli'];
 
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-2',
       backend: 'claude',
-      excludeBuiltinSkills: ['cron'],
+      skills: ['office-cli'],
     });
 
     expect(symlinkCalls.map((c) => c.target)).toEqual(['/tmp/ws/.claude/skills/office-cli']);
@@ -141,7 +143,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-3',
       backend: 'claude',
-      enabled_skills: ['pptx'],
+      skills: ['pptx'],
     });
 
     expect(mkdirCalls).toContain('/tmp/ws/.claude/skills');
@@ -151,7 +153,8 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
   it('is a no-op for backends without native skill support', async () => {
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-4',
-      agentType: 'nanobot',
+      agent_type: 'nanobot',
+      skills: [],
     });
 
     expect(materializeInvoke).not.toHaveBeenCalled();
@@ -168,6 +171,7 @@ describe('initAgent — setupAssistantWorkspace materialization', () => {
     await setupAssistantWorkspace('/tmp/ws', {
       conversationId: 'conv-5',
       backend: 'claude',
+      skills: [],
       extraSkillPaths: ['/cron-jobs/job-1'],
     });
 

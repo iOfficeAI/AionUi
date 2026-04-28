@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-// Track calls to prepareFirstMessageWithSkillsIndex
+// Track calls to any would-be frontend skills-index injector. After the
+// skill-backend migration (2026-04-27) the frontend helper was deleted;
+// this mock is a canary — we assert it is never invoked.
 const { mockPrepareFirstMessage, mockAgentSendMessage } = vi.hoisted(() => ({
-  mockPrepareFirstMessage: vi.fn(async (content: string) => ({ content: `[injected] ${content}`, loadedSkills: [] })),
+  mockPrepareFirstMessage: vi.fn(),
   mockAgentSendMessage: vi.fn(async () => ({ success: true })),
 }));
 
@@ -129,6 +131,9 @@ vi.mock('@process/utils/initAgent', () => ({
 }));
 
 vi.mock('@process/task/agentUtils', () => ({
+  // Canary export — if AcpAgentManager ever reaches back into a frontend
+  // skills-index injector, the tests below will see mockPrepareFirstMessage
+  // invoked and fail.
   prepareFirstMessageWithSkillsIndex: mockPrepareFirstMessage,
   buildSystemInstructions: vi.fn(async () => undefined),
 }));

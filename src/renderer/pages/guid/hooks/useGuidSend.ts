@@ -157,8 +157,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             expected_model: current_model?.use_model,
             switched_at: Date.now(),
           },
-          enabled_skills: is_preset ? enabled_skills : undefined,
-          exclude_builtin_skills: excludeBuiltinSkills,
+          preset_enabled_skills: is_preset ? enabled_skills : undefined,
+          exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
 
@@ -207,8 +207,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         custom_workspace: isCustomWorkspace,
         extra: {
           default_files: files,
-          enabled_skills: is_preset ? enabled_skills : undefined,
-          exclude_builtin_skills: excludeBuiltinSkills,
+          preset_enabled_skills: is_preset ? enabled_skills : undefined,
+          exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
 
@@ -259,8 +259,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
             preset_rules: is_preset ? preset_rules : undefined,
-            enabled_skills: is_preset ? enabled_skills : undefined,
-            exclude_builtin_skills: excludeBuiltinSkills,
+            preset_enabled_skills: is_preset ? enabled_skills : undefined,
+            exclude_auto_inject_skills: excludeBuiltinSkills,
             preset_assistant_id,
             session_mode: selectedMode,
           },
@@ -331,14 +331,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           ? {
               rules: preset_rules,
               enabled_skills,
-              exclude_builtin_skills: excludeBuiltinSkills,
+              exclude_auto_inject_skills: excludeBuiltinSkills,
             }
           : undefined,
         session_mode: selectedMode,
         current_model_id: selectedAcpModel || undefined,
         extra: {
           default_files: files,
-          exclude_builtin_skills: excludeBuiltinSkills,
+          exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
 

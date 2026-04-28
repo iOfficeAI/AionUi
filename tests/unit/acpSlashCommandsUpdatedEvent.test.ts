@@ -103,7 +103,6 @@ vi.mock('@process/utils/initAgent', () => ({
 }));
 
 vi.mock('@process/task/agentUtils', () => ({
-  prepareFirstMessageWithSkillsIndex: vi.fn(async (c: string) => ({ content: c, loadedSkills: [] })),
   buildSystemInstructions: vi.fn(async () => undefined),
 }));
 

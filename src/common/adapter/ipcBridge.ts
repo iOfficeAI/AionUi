@@ -455,7 +455,7 @@ export const fs = {
   listBuiltinAutoSkills: httpGet<Array<{ name: string; description: string; location: string }>, void>(
     '/api/skills/builtin-auto'
   ),
-  materializeSkillsForAgent: httpPost<{ dir_path: string }, { conversation_id: string; enabled_skills: string[] }>(
+  materializeSkillsForAgent: httpPost<{ dir_path: string }, { conversation_id: string; skills: string[] }>(
     '/api/skills/materialize-for-agent'
   ),
   cleanupSkillsForAgent: httpDelete<void, { conversation_id: string }>(
@@ -1159,7 +1159,12 @@ export interface ICreateConversationParams {
     context?: string;
     context_file_name?: string;
     preset_rules?: string;
-    enabled_skills?: string[];
+    /** Transient: preset opt-in skills. Consumed by backend create handler
+     *  and stripped before persistence. */
+    preset_enabled_skills?: string[];
+    /** Transient: auto-inject skills the user opted out of on the Guid page.
+     *  Consumed by backend create handler and stripped before persistence. */
+    exclude_auto_inject_skills?: string[];
     preset_context?: string;
     preset_assistant_id?: string;
     session_mode?: string;
@@ -1179,7 +1184,6 @@ export interface ICreateConversationParams {
     is_health_check?: boolean;
     remote_agent_id?: string;
     extra_skill_paths?: string[];
-    exclude_builtin_skills?: string[];
     team_id?: string;
   };
 }
