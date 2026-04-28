@@ -6,6 +6,7 @@ export interface IChannelPluginStatus {
   connected: boolean;
   status?: string;
   last_connected?: number;
+  error?: string;
   activeUsers: number;
   botUsername?: string;
   hasToken?: boolean;

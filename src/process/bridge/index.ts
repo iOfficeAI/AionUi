@@ -21,7 +21,6 @@ import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initOfficeWatchBridge } from './officeWatchBridge';
-import { initWeixinLoginBridge } from './weixinLoginBridge';
 import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 import { initRemoteAgentBridge } from './remoteAgentBridge';
 import { initTeamBridge } from './teamBridge';
@@ -48,7 +47,6 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initNotificationBridge();
   initTaskBridge(deps.workerTaskManager);
   initSpeechToTextBridge();
-  initWeixinLoginBridge();
   initWorkspaceSnapshotBridge();
   initRemoteAgentBridge();
   initTeamBridge(deps.teamSessionService);
@@ -80,7 +78,6 @@ export {
   initRemoteAgentBridge,
   initTeamBridge,
   initWindowControlsBridge,
-  initWeixinLoginBridge,
   initWorkspaceSnapshotBridge,
 };
 export { disposeAllSnapshots } from './workspaceSnapshotBridge';
