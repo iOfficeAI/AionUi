@@ -1,40 +1,23 @@
 import { describe, expect, it } from 'vitest';
 
-import {
-  getLastDirectoryName,
-  getWorkspaceDisplayName,
-  isTemporaryWorkspace,
-} from '@/renderer/utils/workspace/workspace';
+import { getLastDirectoryName, getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 
 describe('workspace utils', () => {
-  it('shows only the last directory for Unix-style workspace paths', () => {
-    expect(getWorkspaceDisplayName('/Users/demo/projects/AionUi')).toBe('AionUi');
+  it('shows only the last directory for Unix-style workspace paths when not temporary', () => {
+    expect(getWorkspaceDisplayName('/Users/demo/projects/AionUi', false)).toBe('AionUi');
   });
 
-  it('shows only the last directory for Windows-style workspace paths', () => {
-    expect(getWorkspaceDisplayName('E:\\code\\taichuCode\\AionUi')).toBe('AionUi');
+  it('shows only the last directory for Windows-style workspace paths when not temporary', () => {
+    expect(getWorkspaceDisplayName('E:\\code\\taichuCode\\AionUi', false)).toBe('AionUi');
   });
 
-  it('detects legacy temporary workspaces on Windows-style paths', () => {
-    expect(isTemporaryWorkspace('C:\\Users\\demo\\codex-temp-1741680000000')).toBe(true);
+  it('returns the temporary-session label when isTemporaryWorkspace is true', () => {
+    expect(getWorkspaceDisplayName('/any/path/ignored/when/temp', true)).toBe('Temporary Session');
   });
 
-  it('detects current-convention temporary workspaces under conversations/<uuid>', () => {
-    expect(isTemporaryWorkspace('/Users/demo/Library/AionUi/conversations/3f7a1f38-8b74-4cc2-9e11-1a6f2b5f8f10')).toBe(
-      true
-    );
-  });
-
-  it('treats user-specified workspaces as non-temporary', () => {
-    expect(isTemporaryWorkspace('/Users/demo/projects/AionUi')).toBe(false);
-    // Looks like a uuid but not under `conversations/` → not temporary.
-    expect(isTemporaryWorkspace('/Users/demo/3f7a1f38-8b74-4cc2-9e11-1a6f2b5f8f10')).toBe(false);
-  });
-
-  it('labels new-convention temp workspaces with the generic temporary-session label', () => {
-    expect(
-      getWorkspaceDisplayName('/Users/demo/Library/AionUi/conversations/3f7a1f38-8b74-4cc2-9e11-1a6f2b5f8f10')
-    ).toBe('Temporary Session');
+  it('routes the localized label through the provided translator', () => {
+    const t = (key: string) => (key === 'conversation.workspace.temporarySpace' ? '临时会话' : key);
+    expect(getWorkspaceDisplayName('/irrelevant', true, t)).toBe('临时会话');
   });
 
   it('extracts the last directory name from Windows-style paths', () => {

@@ -11,6 +11,12 @@ type WorkspaceHeaderProps = {
   onToggle: () => void;
   togglePlacement?: 'left' | 'right';
   workspacePath?: string;
+  /**
+   * Authoritative temp-workspace flag from
+   * `conversation.extra.is_temporary_workspace`. Passed straight through
+   * to `WorkspaceOpenButton`, which hides for temp workspaces.
+   */
+  isTemporaryWorkspace?: boolean;
 };
 
 // Compact header bar for the workspace side panel with optional collapse toggle
@@ -21,6 +27,7 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
   onToggle,
   togglePlacement = 'right',
   workspacePath,
+  isTemporaryWorkspace = false,
 }) => (
   <div
     className='workspace-panel-header flex items-center justify-start px-12px py-4px gap-12px border-b border-[var(--bg-3)]'
@@ -39,7 +46,9 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({
     <div className='flex-1 truncate'>{children}</div>
 
     {/* Open workspace button - shown when workspace path is provided */}
-    {workspacePath && !collapsed && <WorkspaceOpenButton workspacePath={workspacePath} />}
+    {workspacePath && !collapsed && (
+      <WorkspaceOpenButton workspacePath={workspacePath} isTemporary={isTemporaryWorkspace} />
+    )}
 
     {showToggle && togglePlacement === 'right' && (
       <button type='button' className='workspace-header__toggle' aria-label='Toggle workspace' onClick={onToggle}>

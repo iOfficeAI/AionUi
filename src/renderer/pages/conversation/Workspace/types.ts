@@ -17,6 +17,13 @@ export type MessageApi = ReturnType<typeof Message.useMessage>[0];
 export interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
+  /**
+   * Authoritative "is this an auto-provisioned temporary workspace" flag.
+   * Sourced from `conversation.extra.is_temporary_workspace` on the API
+   * response (backend derives it from the data_dir path on every read).
+   * Renamed here to camelCase per the frontend prop convention.
+   */
+  isTemporaryWorkspace?: boolean;
   eventPrefix?: 'acp' | 'codex' | 'aionrs';
   messageApi?: MessageApi;
   team_id?: string;

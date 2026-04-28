@@ -51,10 +51,12 @@ const ChatLayout: React.FC<{
   tabsSlot?: React.ReactNode;
   /** Workspace path for opening in external tools */
   workspacePath?: string;
+  /** Authoritative temp-workspace flag from `conversation.extra.is_temporary_workspace`. */
+  isTemporaryWorkspace?: boolean;
   /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
   onRenameTitle?: (new_name: string) => Promise<boolean>;
 }> = (props) => {
-  const { conversation_id, workspacePath } = props;
+  const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
   const { backend, presetAssistant, agent_name, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
@@ -351,6 +353,7 @@ const ChatLayout: React.FC<{
               onToggle={() => dispatchWorkspaceToggleEvent()}
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
               workspacePath={workspacePath}
+              isTemporaryWorkspace={isTemporaryWorkspace}
             >
               {props.siderTitle}
             </WorkspacePanelHeader>
@@ -370,6 +373,7 @@ const ChatLayout: React.FC<{
             siderTitle={props.siderTitle}
             sider={props.sider}
             workspacePath={workspacePath}
+            isTemporaryWorkspace={isTemporaryWorkspace}
           />
         )}
 

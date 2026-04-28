@@ -63,7 +63,11 @@ export const groupConversationsByWorkspace = (
       time,
       workspaceGroup: {
         workspace,
-        display_name: getWorkspaceDisplayName(workspace),
+        // This grouping path only sees custom (user-chosen) workspaces —
+        // non-custom conversations end up in `withoutWorkspaceConvs` above
+        // and never reach this helper. Passing `false` is therefore correct
+        // without consulting `extra.is_temporary_workspace` per-row.
+        display_name: getWorkspaceDisplayName(workspace, false, t),
         conversations: sortedConvs,
       },
     });

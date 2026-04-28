@@ -21,6 +21,9 @@ const ChatSider: React.FC<{
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        isTemporaryWorkspace={
+          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
         eventPrefix='acp'
         messageApi={messageApi}
         team_id={team_id}
@@ -31,6 +34,9 @@ const ChatSider: React.FC<{
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        isTemporaryWorkspace={
+          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
         eventPrefix='codex'
         messageApi={messageApi}
         team_id={team_id}
@@ -41,6 +47,9 @@ const ChatSider: React.FC<{
       <ChatWorkspace
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}
+        isTemporaryWorkspace={
+          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
         eventPrefix='aionrs'
         messageApi={messageApi}
         team_id={team_id}
