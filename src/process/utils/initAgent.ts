@@ -47,22 +47,24 @@ export async function computeInitialSkillsSnapshot(options: {
 }
 
 /**
- * Ask the backend to materialize the resolved skill list for the given
- * conversation and return the absolute directory path that holds
- * `{skillName}/SKILL.md` subdirs. On HTTP failure the empty-string fallback
- * keeps caller code simple — the conversation then starts without any
- * skills (degraded capability, not a hard failure).
+ * Ask the backend for the resolved skill source paths for this conversation.
+ * Each entry is { name, source_path } — frontend symlinks `source_path` into
+ * the CLI's native skills dir. On HTTP failure returns an empty list so the
+ * conversation starts without skills (degraded but not fatal).
  */
-async function materializeAgentSkillsDir(conversationId: string, skills: string[]): Promise<string> {
+async function resolveSkillSources(
+  conversationId: string,
+  skills: string[]
+): Promise<Array<{ name: string; source_path: string }>> {
   try {
-    const { dir_path: dirPath } = await ipcBridge.fs.materializeSkillsForAgent.invoke({
+    const response = await ipcBridge.fs.materializeSkillsForAgent.invoke({
       conversation_id: conversationId,
       skills,
     });
-    return dirPath;
+    return response.skills;
   } catch (error) {
-    console.warn('[setupAssistantWorkspace] Failed to materialize skills via backend:', error);
-    return '';
+    console.warn('[setupAssistantWorkspace] Failed to resolve skills via backend:', error);
+    return [];
   }
 }
 
@@ -70,12 +72,12 @@ async function materializeAgentSkillsDir(conversationId: string, skills: string[
  * 为 assistant 设置原生 workspace 结构（skill symlinks）
  * Set up native workspace structure for assistant (skill symlinks only)
  *
- * 后端物化 auto-inject + opt-in skills 到 {dataDir}/agent-skills/{convId}/，
- * 前端将其下每个 {skillName} 子目录 symlink 到 CLI 的原生 skills 目录。
+ * 后端解析 auto-inject + opt-in skills 的规范源路径，前端为每个 skill
+ * 直接 symlink 源路径到 CLI 的原生 skills 目录（不再经过 per-conv 拷贝）。
  *
- * Backend materializes auto-inject + opt-in skills into
- * {dataDir}/agent-skills/{convId}/; we symlink each {skillName} subdir into
- * the CLI's native skills dir for auto-discovery.
+ * The backend resolves the canonical source paths for auto-inject + opt-in
+ * skills; the frontend symlinks each source path into the CLI's native skills
+ * dir for auto-discovery. No per-conversation copy is involved anymore.
  *
  * 只在 temp workspace（非用户指定）时执行，避免污染用户项目目录。
  * Only runs for temp workspaces (not user-specified) to avoid polluting user project dirs.
@@ -96,34 +98,23 @@ export async function setupAssistantWorkspace(
   const skillsDirs = getSkillsDirsForBackend(key);
   if (!skillsDirs) return;
 
-  const materializedDir = await materializeAgentSkillsDir(options.conversationId, options.skills);
-
-  let materializedSkillNames: string[] = [];
-  if (materializedDir) {
-    try {
-      const entries = await fs.readdir(materializedDir, { withFileTypes: true });
-      materializedSkillNames = entries.filter((e) => e.isDirectory()).map((e) => e.name);
-    } catch (error) {
-      console.warn(`[setupAssistantWorkspace] Failed to enumerate materialized skills dir ${materializedDir}:`, error);
-    }
-  }
+  const skillRefs = await resolveSkillSources(options.conversationId, options.skills);
 
   for (const skillsRelDir of skillsDirs) {
     const targetSkillsDir = path.join(workspace, skillsRelDir);
     await fs.mkdir(targetSkillsDir, { recursive: true });
 
-    for (const skillName of materializedSkillNames) {
-      const sourceSkillDir = path.join(materializedDir, skillName);
-      const targetSkillDir = path.join(targetSkillsDir, skillName);
+    for (const { name, source_path } of skillRefs) {
+      const targetSkillDir = path.join(targetSkillsDir, name);
       try {
         await fs.lstat(targetSkillDir);
         // Already exists (from a previous materialize on this workspace), skip.
       } catch {
         try {
-          await fs.symlink(sourceSkillDir, targetSkillDir, 'junction');
-          console.log(`[setupAssistantWorkspace] Symlinked skill: ${skillName} -> ${targetSkillDir}`);
+          await fs.symlink(source_path, targetSkillDir, 'junction');
+          console.log(`[setupAssistantWorkspace] Symlinked skill: ${name} -> ${targetSkillDir}`);
         } catch (error) {
-          console.warn(`[setupAssistantWorkspace] Failed to symlink skill ${skillName}:`, error);
+          console.warn(`[setupAssistantWorkspace] Failed to symlink skill ${name}:`, error);
         }
       }
     }
@@ -156,9 +147,14 @@ export async function setupAssistantWorkspace(
  * 避免文件被复制两次（一次在创建会话时，一次在发送消息时）
  * Note: File copying is handled by copyFilesToDirectory in sendMessage
  * This avoids files being copied twice
+ *
+ * Auto-provisioned workspaces land under `{workDir}/conversations/{conv_id}/`
+ * to match the backend's conversation workspace convention. Historical
+ * `{workDir}/{backend}-temp-{ts}/` directories created by previous builds are
+ * NOT migrated and are left as orphans.
  */
 const buildWorkspaceWidthFiles = async (
-  defaultWorkspaceName: string,
+  conversationId: string,
   workspace?: string,
   _defaultFiles?: string[],
   providedCustomWorkspace?: boolean
@@ -167,8 +163,8 @@ const buildWorkspaceWidthFiles = async (
   const custom_workspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
 
   if (!workspace) {
-    const tempPath = getSystemDir().workDir;
-    workspace = path.join(tempPath, defaultWorkspaceName);
+    const workDir = getSystemDir().workDir;
+    workspace = path.join(workDir, 'conversations', conversationId);
     await fs.mkdir(workspace, { recursive: true });
   } else {
     // 规范化路径：去除末尾斜杠，解析为绝对路径
@@ -180,14 +176,13 @@ const buildWorkspaceWidthFiles = async (
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const conversationId = uuid();
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
-    `${extra.backend}-temp-${Date.now()}`,
+    conversationId,
     extra.workspace,
     extra.default_files,
     extra.custom_workspace
   );
-
-  const conversationId = uuid();
 
   const skills = await computeInitialSkillsSnapshot({
     preset_enabled_skills: extra.preset_enabled_skills,
@@ -237,14 +232,13 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
 
 export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const conversationId = uuid();
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
-    `nanobot-temp-${Date.now()}`,
+    conversationId,
     extra.workspace,
     extra.default_files,
     extra.custom_workspace
   );
-
-  const conversationId = uuid();
 
   const skills = await computeInitialSkillsSnapshot({
     preset_enabled_skills: extra.preset_enabled_skills,
@@ -278,14 +272,13 @@ export const createNanobotAgent = async (options: ICreateConversationParams): Pr
 
 export const createRemoteAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const conversationId = uuid();
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
-    `remote-temp-${Date.now()}`,
+    conversationId,
     extra.workspace,
     extra.default_files,
     extra.custom_workspace
   );
-
-  const conversationId = uuid();
 
   const skills = await computeInitialSkillsSnapshot({
     preset_enabled_skills: extra.preset_enabled_skills,
@@ -318,14 +311,13 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
 
 export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const conversationId = uuid();
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
-    `aionrs-temp-${Date.now()}`,
+    conversationId,
     extra.workspace,
     extra.default_files,
     extra.custom_workspace
   );
-
-  const conversationId = uuid();
 
   const skills = await computeInitialSkillsSnapshot({
     preset_enabled_skills: extra.preset_enabled_skills,
@@ -363,14 +355,13 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
 
 export const createOpenClawAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const conversationId = uuid();
   const { workspace, custom_workspace } = await buildWorkspaceWidthFiles(
-    `openclaw-temp-${Date.now()}`,
+    conversationId,
     extra.workspace,
     extra.default_files,
     extra.custom_workspace
   );
-
-  const conversationId = uuid();
 
   const skills = await computeInitialSkillsSnapshot({
     preset_enabled_skills: extra.preset_enabled_skills,
