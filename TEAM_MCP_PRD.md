@@ -798,8 +798,8 @@ CREATE TABLE tasks (
 | `team_task_update` | `{ id: string; status?: string; owner?: string; ... }` | `string` | 更新任务 |
 | `team_task_list` | `{}` | `TeamTask[]` | 列出任务 |
 | `team_members` | `{}` | `TeamAgent[]` | 列出 team 成员 |
-| `team_rename_agent` | `{ slot_id: string; new_name: string }` | `string` | 重命名 agent |
-| `team_shutdown_agent` | `{ slot_id: string }` | `string` | 请求 agent shutdown |
+| `team_rename_agent` | `{ agent: string; new_name: string }` | `string` | 重命名 agent（agent 参数支持 name 或 slot_id 模糊匹配） |
+| `team_shutdown_agent` | `{ agent: string }` | `string` | 请求 agent shutdown（agent 参数支持 name 或 slot_id 模糊匹配） |
 | `team_describe_assistant` | `{ assistant_id: string }` | `string` | 获取 assistant 描述 |
 | `team_list_models` | `{ backend: string }` | `string` | 列出 backend 支持的模型 |
 
