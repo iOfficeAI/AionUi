@@ -81,7 +81,7 @@ test.describe('System Preferences — Extra', () => {
     await expect(bootSwitch).toBeVisible();
 
     const isDisabled = await bootSwitch.evaluate(
-      (el) => el.classList.contains('arco-switch-disabled') || el.getAttribute('aria-disabled') === 'true'
+      (el: HTMLButtonElement) => el.disabled || el.classList.contains('arco-switch-disabled')
     );
     test.skip(isDisabled, 'startOnBoot not supported in dev mode');
 

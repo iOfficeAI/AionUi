@@ -33,7 +33,7 @@ async function createCustomTheme(page: import('@playwright/test').Page) {
   await page.keyboard.type(CUSTOM_CSS);
   await modal.locator('.arco-btn-primary').click();
   await modal.waitFor({ state: 'hidden', timeout: 5_000 });
-  await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
+  await page.locator('.arco-message-success').first().waitFor({ state: 'visible', timeout: 5_000 });
 }
 
 async function deleteCustomThemeViaModal(page: import('@playwright/test').Page, name: string) {
@@ -90,7 +90,7 @@ test.describe('CSS Theme CRUD', () => {
 
     const targetCard = cards.nth(targetIndex);
     await targetCard.click();
-    await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
+    await page.locator('.arco-message-success').first().waitFor({ state: 'visible', timeout: 5_000 });
 
     const cls = await targetCard.getAttribute('class');
     expect(cls).toContain('border-[var(--color-primary)]');
@@ -100,6 +100,7 @@ test.describe('CSS Theme CRUD', () => {
     await cards.first().click();
     await page
       .locator('.arco-message-success')
+      .first()
       .waitFor({ state: 'visible', timeout: 5_000 })
       .catch(() => {});
   });
@@ -124,7 +125,7 @@ test.describe('CSS Theme CRUD', () => {
     await modal.locator('.arco-btn-primary').click();
     await modal.waitFor({ state: 'hidden', timeout: 5_000 });
 
-    await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
+    await page.locator('.arco-message-success').first().waitFor({ state: 'visible', timeout: 5_000 });
     const newCard = themeCard(page, CUSTOM_THEME_NAME);
     await expect(newCard).toBeVisible({ timeout: 5_000 });
     await takeScreenshot(page, 'css-theme-crud/04-theme-created.png');
@@ -154,7 +155,7 @@ test.describe('CSS Theme CRUD', () => {
     await confirmModal.waitFor({ state: 'visible', timeout: 3_000 });
     await confirmModal.locator('.arco-btn-status-danger').click();
 
-    await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
+    await page.locator('.arco-message-success').first().waitFor({ state: 'visible', timeout: 5_000 });
     await expect(newCard).toBeHidden({ timeout: 5_000 });
     await takeScreenshot(page, 'css-theme-crud/06-theme-deleted.png');
   });
@@ -189,7 +190,7 @@ test.describe('CSS Theme CRUD', () => {
     await modal.locator('.arco-btn-primary').click();
     await modal.waitFor({ state: 'hidden', timeout: 5_000 });
 
-    await page.locator('.arco-message-success').waitFor({ state: 'visible', timeout: 5_000 });
+    await page.locator('.arco-message-success').first().waitFor({ state: 'visible', timeout: 5_000 });
     await expect(themeCard(page, EDITED_THEME_NAME)).toBeVisible({ timeout: 5_000 });
     await expect(themeCard(page, CUSTOM_THEME_NAME)).toBeHidden({ timeout: 3_000 });
     await takeScreenshot(page, 'css-theme-crud/08-theme-renamed.png');

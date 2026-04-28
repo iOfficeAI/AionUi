@@ -154,18 +154,22 @@ test.describe('Extension: Tab Switch Round-Trip', () => {
     await goToSettings(page, 'gemini');
 
     let ids: string[] = [];
-    await expect
-      .poll(
-        async () => {
-          const counts = await countTabsPresent(page);
-          ids = KNOWN_TAB_IDS.filter((_, i) => counts[i] > 0);
-          return ids.length;
-        },
-        { timeout: 10_000, message: 'Waiting for multiple extension tabs' }
-      )
-      .toBeGreaterThanOrEqual(2);
+    try {
+      await expect
+        .poll(
+          async () => {
+            const counts = await countTabsPresent(page);
+            ids = KNOWN_TAB_IDS.filter((_, i) => counts[i] > 0);
+            return ids.length;
+          },
+          { timeout: 10_000, message: 'Waiting for multiple extension tabs' }
+        )
+        .toBeGreaterThanOrEqual(2);
+    } catch {
+      /* not enough tabs in this environment */
+    }
 
-    test.skip(ids.length < 2, 'Need at least 2 extension tabs');
+    test.skip(ids.length < 2, 'Need at least 2 extension tabs installed');
 
     await goToExtensionSettings(page, ids[0]);
     await waitForSettle(page);
