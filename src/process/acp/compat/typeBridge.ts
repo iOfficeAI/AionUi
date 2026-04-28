@@ -129,8 +129,6 @@ export function toAcpModelInfo(snapshot: ModelSnapshot): AcpModelInfo {
     current_model_id: snapshot.current_model_id,
     current_model_label,
     available_models,
-    can_switch: available_models.length > 0,
-    source: 'models',
   };
 }
 

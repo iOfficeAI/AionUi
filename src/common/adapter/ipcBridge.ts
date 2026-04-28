@@ -657,18 +657,29 @@ export const acpConversation = {
     (p) => `/api/conversations/${p.conversation_id}/mode`
   ),
   getModelInfo: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/model`
+    (p) => `/api/conversations/${p.conversation_id}/model`
   ),
   setModel: httpPut<void, { conversation_id: string; model_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/model`,
+    (p) => `/api/conversations/${p.conversation_id}/model`,
     (p) => ({ model_id: p.model_id })
   ),
   getConfigOptions: httpGet<
     { config_options: import('../types/acpTypes').AcpSessionConfigOption[] },
     { conversation_id: string }
-  >((p) => `/api/conversations/${p.conversation_id}/acp/config`),
+  >((p) => `/api/conversations/${p.conversation_id}/config`),
+  getConfigOption: httpGet<
+    { config_option: import('../types/acpTypes').AcpSessionConfigOption | null },
+    { conversation_id: string; config_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/config/${p.config_id}`),
+  setConfigOptions: httpPut<
+    void,
+    { conversation_id: string; config_options: Array<{ config_id: string; value: string }> }
+  >(
+    (p) => `/api/conversations/${p.conversation_id}/config`,
+    (p) => ({ config_options: p.config_options })
+  ),
   setConfigOption: httpPut<void, { conversation_id: string; config_id: string; value: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/acp/config/${p.config_id}`,
+    (p) => `/api/conversations/${p.conversation_id}/config/${p.config_id}`,
     (p) => ({ value: p.value })
   ),
 };

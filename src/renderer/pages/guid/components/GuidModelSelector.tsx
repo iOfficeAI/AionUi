@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
-import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@/renderer/utils/model/modelSource';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
@@ -88,14 +87,6 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       fallbackLabel: defaultModelLabel,
     });
   }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
-  const acpSourceLabel = React.useMemo(
-    () => getAcpModelSourceLabel(currentAcpCachedModelInfo),
-    [currentAcpCachedModelInfo]
-  );
-  const acpButtonDisplayLabel = React.useMemo(
-    () => formatAcpModelDisplayLabel(acpButtonLabel, acpSourceLabel),
-    [acpButtonLabel, acpSourceLabel]
-  );
 
   if (isGeminiMode) {
     return (
@@ -192,7 +183,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
 
   // ACP cached model selector
   if (currentAcpCachedModelInfo && currentAcpCachedModelInfo.available_models?.length > 0) {
-    if (currentAcpCachedModelInfo.can_switch) {
+    if (currentAcpCachedModelInfo.available_models.length > 0) {
       return (
         <Dropdown
           trigger='click'
@@ -200,8 +191,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
               {currentAcpCachedModelInfo.available_models.map((model) => {
                 // 获取模型健康状态
-                const backend = currentAcpCachedModelInfo.source;
-                const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
+                const providerConfig = modelConfig?.find((p) => p.platform?.includes(''));
                 const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
                 const healthColor =
                   healthStatus === 'healthy'
@@ -231,7 +221,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-              <span>{acpButtonDisplayLabel}</span>
+              <span>{acpButtonLabel}</span>
               <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             </span>
           </Button>
@@ -249,7 +239,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{acpButtonDisplayLabel}</span>
+            <span>{acpButtonLabel}</span>
           </span>
         </Button>
       </Tooltip>
