@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
@@ -48,7 +48,7 @@ type IMessageVO =
   | {
       type: 'tool_summary';
       id: string;
-      messages: Array<IMessageToolGroup | IMessageAcpToolCall>;
+      messages: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall>;
       sourceMessageIds: string[];
     };
 
@@ -175,7 +175,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
     let diffsSourceMessageIds: string[] = [];
-    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall> = [];
+    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall> = [];
     let toolSourceMessageIds: string[] = [];
 
     const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string) => {
@@ -193,7 +193,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       toolList = [];
       toolSourceMessageIds = [];
     };
-    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall) => {
+    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall) => {
       if (!toolList.length) {
         toolSourceMessageIds = [];
         result.push({
@@ -238,6 +238,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         continue;
       }
       if (message.type === 'acp_tool_call') {
+        pushToolList(message);
+        continue;
+      }
+      if (message.type === 'tool_call') {
         pushToolList(message);
         continue;
       }
