@@ -1,6 +1,5 @@
 import type { AcpAgent } from '@process/agent/acp';
 import { AcpAgentV2 } from '@process/acp/compat';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
@@ -309,7 +308,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     };
     ipcBridge.acpConversation.responseStream.emit(finishMessage);
     teamEventBus.emit('responseStream', finishMessage);
-    channelEventBus.emitAgentMessage(this.conversation_id, finishMessage);
 
     void ConversationTurnCompletionService.getInstance().notifyPotentialCompletion(this.conversation_id, {
       status: this.status ?? 'finished',
@@ -666,11 +664,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
     const emitDuration = Date.now() - emitStart;
 
-    channelEventBus.emitAgentMessage(this.conversation_id, {
-      ...processedMessage,
-      conversation_id: this.conversation_id,
-    });
-
     const totalDuration = Date.now() - pipeline_start;
     if (totalDuration > 10) {
       console.log(
@@ -722,12 +715,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         })),
       });
 
-      channelEventBus.emitAgentMessage(this.conversation_id, {
-        type: 'error',
-        conversation_id: this.conversation_id,
-        msg_id: v.msg_id,
-        data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
-      });
       return;
     }
 
@@ -737,11 +724,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     }
 
     ipcBridge.acpConversation.responseStream.emit(v);
-
-    channelEventBus.emitAgentMessage(this.conversation_id, {
-      ...v,
-      conversation_id: this.conversation_id,
-    });
   }
 
   /**

@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
@@ -65,10 +64,6 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
         conversation_id: this.conversation_id,
       });
     }
-    channelEventBus.emitAgentMessage(this.conversation_id, {
-      ...message,
-      conversation_id: this.conversation_id,
-    });
   }
 
   private subscribeToBackend() {

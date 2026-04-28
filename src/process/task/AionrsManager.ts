@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
@@ -99,10 +98,6 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
         conversation_id: this.conversation_id,
       });
     }
-    channelEventBus.emitAgentMessage(this.conversation_id, {
-      ...message,
-      conversation_id: this.conversation_id,
-    });
   }
 
   init() {
