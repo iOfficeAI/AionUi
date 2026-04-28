@@ -12,7 +12,6 @@ import { resolveMcpServers } from './resolvers/McpServerResolver';
 import { resolveAssistants, resolveAgents } from './resolvers/AssistantResolver';
 import { resolveSkills } from './resolvers/SkillResolver';
 import { resolveThemes } from './resolvers/ThemeResolver';
-import { resolveChannelPlugins } from './resolvers/ChannelPluginResolver';
 import { resolveWebuiContributions, type WebuiContribution } from './resolvers/WebuiResolver';
 import { resolveSettingsTabs, type ResolvedSettingsTab } from './resolvers/SettingsTabResolver';
 import { resolveExtensionI18n, getExtI18nForLocale, type AggregatedExtI18n } from './resolvers/I18nResolver';
@@ -43,7 +42,6 @@ export class ExtensionRegistry {
   private _agents: Record<string, unknown>[] = [];
   private _skills: Array<{ name: string; description: string; location: string }> = [];
   private _themes: ICssTheme[] = [];
-  private _channelPlugins = new Map<string, { constructor: unknown; meta: unknown }>();
   private _webuiContributions: WebuiContribution[] = [];
   private _settingsTabs: ResolvedSettingsTab[] = [];
   private _modelProviders: ResolvedModelProvider[] = [];
@@ -168,7 +166,6 @@ export class ExtensionRegistry {
           `${this._agents.length} agent(s), ` +
           `${this._skills.length} skill(s), ` +
           `${this._themes.length} theme(s), ` +
-          `${this._channelPlugins.size} channel plugin(s), ` +
           `${this._webuiContributions.length} webui contribution(s), ` +
           `${this._settingsTabs.length} settings tab(s), ` +
           `${this._modelProviders.length} model provider(s), ` +
@@ -318,10 +315,6 @@ export class ExtensionRegistry {
     this._mcpServers = resolveMcpServers(enabledExtensions);
     this._skills = resolveSkills(enabledExtensions);
     this._themes = resolveThemes(enabledExtensions);
-    this._channelPlugins = resolveChannelPlugins(enabledExtensions) as Map<
-      string,
-      { constructor: unknown; meta: unknown }
-    >;
     this._webuiContributions = resolveWebuiContributions(enabledExtensions);
     this._settingsTabs = resolveSettingsTabs(enabledExtensions);
     this._modelProviders = resolveModelProviders(enabledExtensions);
@@ -371,16 +364,6 @@ export class ExtensionRegistry {
   /** Get all extension-contributed themes (converted to ICssTheme) */
   getThemes(): ICssTheme[] {
     return this._themes;
-  }
-
-  /** Get all extension-contributed channel plugins (type → { constructor, meta }) */
-  getChannelPlugins(): Map<string, { constructor: unknown; meta: unknown }> {
-    return this._channelPlugins;
-  }
-
-  /** Get metadata for a specific channel plugin type */
-  getChannelPluginMeta(type: string): unknown {
-    return this._channelPlugins.get(type)?.meta;
   }
 
   /** Get all extension-contributed WebUI configurations */
