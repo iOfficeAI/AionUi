@@ -91,7 +91,7 @@ export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>
   return {
     name: a.agent_name,
     role: a.role === 'leader' ? 'lead' : a.role,
-    backend: a.conversation_type === 'acp' ? 'acp' : a.agent_type,
+    backend: a.agent_type,
     model: a.model || 'default',
     ...(a.custom_agent_id ? { custom_agent_id: a.custom_agent_id } : {}),
   };
