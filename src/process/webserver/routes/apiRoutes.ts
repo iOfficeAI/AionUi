@@ -22,9 +22,6 @@ import { isActiveOfficeWatchPort } from '@process/bridge/officeWatchBridge';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
-import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
-import { registerWecomChannelRoutes } from './wecomChannelRoutes';
-
 /** Temp directory used by multer disk storage — validated at runtime to prevent path traversal */
 const MULTER_TEMP_DIR = os.tmpdir();
 
@@ -443,8 +440,6 @@ export function registerApiRoutes(app: Express): void {
     }
   );
 
-  registerWecomChannelRoutes(app);
-
   registerExtensionWebuiRoutes(app, validateApiAccess);
 
   /**
@@ -642,12 +637,6 @@ export function registerApiRoutes(app: Express): void {
    * GET /api/office-watch-proxy/:port/*
    */
   registerOfficecliWatchProxy('/api/office-watch-proxy', isActiveOfficeWatchPort, 'Office watch preview');
-
-  /**
-   * WeChat QR-code login (WebUI mode)
-   * GET /api/channel/weixin/login
-   */
-  registerWeixinLoginRoutes(app, validateApiAccess);
 
   /**
    * 通用 API 端点 - Generic API endpoint
