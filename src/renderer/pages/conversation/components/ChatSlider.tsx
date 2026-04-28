@@ -9,7 +9,7 @@ import { Message } from '@arco-design/web-react';
 import React from 'react';
 import ChatWorkspace from '../Workspace';
 
-const ChatSider: React.FC<{
+const ChatSlider: React.FC<{
   conversation?: TChatConversation;
   team_id?: string;
 }> = ({ conversation, team_id }) => {
@@ -69,4 +69,4 @@ const ChatSider: React.FC<{
   );
 };
 
-export default ChatSider;
+export default ChatSlider;

@@ -20,7 +20,7 @@ import useSWR from 'swr';
 import { emitter } from '../../../utils/emitter';
 import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
-import ChatSider from './ChatSider';
+import ChatSlider from './ChatSlider.tsx';
 import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
@@ -160,7 +160,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const chatLayoutProps = {
     title: conversation.name,
     siderTitle: sliderTitle,
-    sider: <ChatSider conversation={conversation} />,
+    sider: <ChatSlider conversation={conversation} />,
     headerLeft: <AionrsModelSelector selection={modelSelection} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
@@ -386,7 +386,7 @@ const ChatConversation: React.FC<{
       headerLeft={modelSelector}
       headerExtra={headerExtraNode}
       siderTitle={sliderTitle}
-      sider={<ChatSider conversation={conversation} />}
+      sider={<ChatSlider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
       workspacePath={conversation?.extra?.workspace}
       isTemporaryWorkspace={

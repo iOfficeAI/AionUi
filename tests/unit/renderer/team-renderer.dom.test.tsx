@@ -128,7 +128,7 @@ vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
     React.createElement('div', { 'data-testid': 'chat-layout' }, tabsSlot, children),
 }));
 
-vi.mock('@/renderer/pages/conversation/components/ChatSider', () => ({
+vi.mock('@/renderer/pages/conversation/components/ChatSlider', () => ({
   default: () => React.createElement('div', { 'data-testid': 'chat-sider' }),
 }));
 
