@@ -27,7 +27,7 @@ const LocalAgents: React.FC = () => {
   const { data: detectedAgents } = useSWR('acp.agents.available.settings', async () => {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents.filter((agent) => agent.agent_type !== 'remote' && agent.backend !== 'custom' && !agent.is_preset);
+      return agents.filter((agent) => agent.agent_type !== 'remote' && agent.agent_source !== 'custom');
     }
     return [];
   });

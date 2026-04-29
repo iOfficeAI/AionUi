@@ -15,7 +15,6 @@ export type AgentCheckResult = {
   latency?: number;
   error?: string;
   checking: boolean;
-  cli_path?: string;
 };
 
 export type AgentReadinessState = {
@@ -142,13 +141,11 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
         return;
       }
 
-      // Filter out current agent and custom agents
+      // Filter out current agent and remote agents (local-only health check)
       const agentsToCheck = agentsList
         .filter(
           (agent) =>
-            !agent.is_preset &&
             agent.agent_type !== 'remote' &&
-            agent.backend !== 'remote' &&
             agent.backend !== currentAgentBackend &&
             agent.agent_type !== currentAgentBackend
         )
@@ -159,7 +156,6 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
             name: AGENT_NAMES[backendKey] || agent.name,
             available: false,
             checking: true,
-            cli_path: agent.cli_path,
           };
         });
 

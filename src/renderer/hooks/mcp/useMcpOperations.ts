@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
+import { getSupportedMcpTransports } from '@renderer/utils/model/agentTypes';
 import { globalMessageQueue } from './messageQueue';
 
 /**
@@ -97,7 +98,7 @@ export const useMcpOperations = (
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support if transport type is known
         const compatibleCount = transport_type
-          ? agents.filter((a) => a.supported_transports?.includes(transport_type)).length
+          ? agents.filter((a) => getSupportedMcpTransports(a)?.includes(transport_type)).length
           : agents.length;
 
         // 显示开始移除的消息（通过队列）
@@ -121,7 +122,9 @@ export const useMcpOperations = (
       const agents = await acpConversation.getAvailableAgents.invoke();
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support to show accurate count
-        const compatibleCount = agents.filter((a) => a.supported_transports?.includes(server.transport.type)).length;
+        const compatibleCount = agents.filter((a) =>
+          getSupportedMcpTransports(a)?.includes(server.transport.type)
+        ).length;
 
         // 显示开始同步的消息（通过队列）
         await globalMessageQueue.add(() => {

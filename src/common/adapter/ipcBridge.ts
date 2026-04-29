@@ -633,22 +633,7 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  getAvailableAgents: httpGet<
-    Array<{
-      id: string;
-      name: string;
-      agent_type: string;
-      backend?: string;
-      available: boolean;
-      source: 'internal' | 'builtin' | 'extension' | 'custom';
-      cli_path?: string;
-      custom_agent_id?: string;
-      is_preset?: boolean;
-      is_extension?: boolean;
-      supported_transports?: string[];
-    }>,
-    void
-  >('/api/agents'),
+  getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'cli_check' | 'acp_initialize'; error?: string },
@@ -656,7 +641,7 @@ export const acpConversation = {
   >('/api/agents/test'),
   detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
-  checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: AgentBackend }>(
+  checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
     '/api/acp/health-check'
   ),
   setMode: httpPut<void, { conversation_id: string; mode: string }>(
@@ -1502,9 +1487,8 @@ function toChannelSession(raw: RawSession): IChannelSession {
 }
 
 export const channel = {
-  getPluginStatus: withResponseMap(
-    httpGet<RawPluginStatus[], void>('/api/channel/plugins'),
-    (raw) => raw.map(toPluginStatus)
+  getPluginStatus: withResponseMap(httpGet<RawPluginStatus[], void>('/api/channel/plugins'), (raw) =>
+    raw.map(toPluginStatus)
   ),
   enablePlugin: httpPost<void, { plugin_id: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
   disablePlugin: httpPost<void, { plugin_id: string }>('/api/channel/plugins/disable'),
@@ -1512,25 +1496,19 @@ export const channel = {
     { success: boolean; bot_username?: string; error?: string },
     { plugin_id: string; token: string; extra_config?: { app_id?: string; app_secret?: string } }
   >('/api/channel/plugins/test'),
-  getPendingPairings: withResponseMap(
-    httpGet<RawPairing[], void>('/api/channel/pairings'),
-    (raw) => raw.map(toPairing)
+  getPendingPairings: withResponseMap(httpGet<RawPairing[], void>('/api/channel/pairings'), (raw) =>
+    raw.map(toPairing)
   ),
   approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
   rejectPairing: httpPost<void, { code: string }>('/api/channel/pairings/reject'),
-  getAuthorizedUsers: withResponseMap(
-    httpGet<RawUser[], void>('/api/channel/users'),
-    (raw) => raw.map(toChannelUser)
-  ),
+  getAuthorizedUsers: withResponseMap(httpGet<RawUser[], void>('/api/channel/users'), (raw) => raw.map(toChannelUser)),
   revokeUser: httpPost<void, { user_id: string }>('/api/channel/users/revoke'),
-  getActiveSessions: withResponseMap(
-    httpGet<RawSession[], void>('/api/channel/sessions'),
-    (raw) => raw.map(toChannelSession)
+  getActiveSessions: withResponseMap(httpGet<RawSession[], void>('/api/channel/sessions'), (raw) =>
+    raw.map(toChannelSession)
   ),
   syncChannelSettings: httpPost<void, { platform: string }>('/api/channel/settings/sync'),
-  pairingRequested: wsMappedEmitter<IChannelPairingRequest>(
-    'channel.pairing-requested',
-    (raw) => toPairing(raw as RawPairing)
+  pairingRequested: wsMappedEmitter<IChannelPairingRequest>('channel.pairing-requested', (raw) =>
+    toPairing(raw as RawPairing)
   ),
   pluginStatusChanged: wsMappedEmitter<{ plugin_id: string; status: IChannelPluginStatus }>(
     'channel.plugin-status-changed',
@@ -1542,10 +1520,7 @@ export const channel = {
       };
     }
   ),
-  userAuthorized: wsMappedEmitter<IChannelUser>(
-    'channel.user-authorized',
-    (raw) => toChannelUser(raw as RawUser)
-  ),
+  userAuthorized: wsMappedEmitter<IChannelUser>('channel.user-authorized', (raw) => toChannelUser(raw as RawUser)),
 };
 
 // ---------------------------------------------------------------------------
@@ -1553,6 +1528,7 @@ export const channel = {
 // ---------------------------------------------------------------------------
 
 import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {
   getExtensionList: httpGet<IHubAgentItem[], void>('/api/hub/extensions'),

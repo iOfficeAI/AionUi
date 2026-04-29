@@ -13,7 +13,6 @@ import SettingsPageWrapper from './components/SettingsPageWrapper';
 type AionrsAgentInfo = {
   available: boolean;
   version?: string;
-  path?: string;
 };
 
 const AionrsSettings: React.FC = () => {
@@ -24,7 +23,7 @@ const AionrsSettings: React.FC = () => {
     void ipcBridge.acpConversation.getAvailableAgents.invoke().then((agents) => {
       if (Array.isArray(agents)) {
         const agent = agents.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-        setAgentInfo(agent ? { available: true, path: agent.cli_path } : { available: false });
+        setAgentInfo(agent ? { available: agent.available } : { available: false });
       }
     });
   }, []);
@@ -51,11 +50,6 @@ const AionrsSettings: React.FC = () => {
           {agentInfo?.version && (
             <Typography.Text type='secondary' className='text-12px'>
               {t('settings.aionrs.version', { defaultValue: 'Version' })}: {agentInfo.version}
-            </Typography.Text>
-          )}
-          {agentInfo?.path && (
-            <Typography.Text type='secondary' className='text-12px break-all'>
-              {t('settings.aionrs.path', { defaultValue: 'Path' })}: {agentInfo.path}
             </Typography.Text>
           )}
         </div>

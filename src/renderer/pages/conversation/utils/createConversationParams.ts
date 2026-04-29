@@ -9,6 +9,7 @@ import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
+import type { Assistant } from '@/common/types/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import { resolveLocaleKey } from '@/common/utils';
@@ -17,7 +18,7 @@ import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
-import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 
 type ModePreference = {
@@ -122,13 +123,10 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
  * Build ICreateConversationParams for a CLI agent.
  * The backend will automatically fill in derived fields (gateway.cli_path, runtimeValidation, etc.).
  */
-export async function buildCliAgentParams(
-  agent: AvailableAgent,
-  workspace: string
-): Promise<ICreateConversationParams> {
-  const type = getConversationTypeForBackend(agent.backend);
-  const preferredMode = await resolvePreferredMode(agent.backend);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
+export async function buildCliAgentParams(agent: AgentMetadata, workspace: string): Promise<ICreateConversationParams> {
+  const type = getConversationTypeForBackend(agent.agent_type);
+  const preferredMode = await resolvePreferredMode(agent.agent_type);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.agent_type) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'aionrs') {
@@ -144,8 +142,6 @@ export async function buildCliAgentParams(
     agent_id: agent.id,
     agent_name: agent.name,
     workspace,
-    cli_path: agent.cli_path,
-    custom_agent_id: agent.custom_agent_id,
     model,
     session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
@@ -158,11 +154,12 @@ export async function buildCliAgentParams(
  * Uses resolveLocaleKey() to convert i18n.language to standard locale format (BUG-2 fix).
  */
 export async function buildPresetAssistantParams(
-  agent: AvailableAgent,
+  assistant: Assistant,
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
-  const { custom_agent_id, presetAgentType: preset_agent_type = 'claude' } = agent;
+  const preset_agent_type = assistant.preset_agent_type || 'claude';
+  const custom_agent_id = assistant.id;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
@@ -182,9 +179,9 @@ export async function buildPresetAssistantParams(
   const model = {} as TProviderWithModel;
 
   return buildAgentConversationParams({
-    backend: agent.backend,
-    name: agent.name,
-    agent_name: agent.name,
+    backend: preset_agent_type,
+    name: assistant.name,
+    agent_name: assistant.name,
     workspace,
     custom_agent_id,
     is_preset: true,

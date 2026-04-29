@@ -230,14 +230,19 @@ const migration_v8: IMigration = {
   version: 8,
   name: 'Add source column to conversations',
   up: (db) => {
-    // Add source column to conversations table
-    db.exec(`ALTER TABLE conversations ADD COLUMN source TEXT CHECK(source IN ('aionui', 'telegram'))`);
+    const columns = new Set(
+      (db.prepare('PRAGMA table_info(conversations)').all() as Array<{ name: string }>).map((c) => c.name)
+    );
+    if (!columns.has('source')) {
+      db.exec(`ALTER TABLE conversations ADD COLUMN source TEXT CHECK(source IN ('aionui', 'telegram'))`);
+      console.log('[Migration v8] Added source column to conversations table');
+    } else {
+      console.log('[Migration v8] source column already exists, skipping ALTER');
+    }
 
-    // Create index for efficient source-based queries
+    // Create indexes for efficient source-based queries (idempotent)
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source)');
     db.exec('CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC)');
-
-    console.log('[Migration v8] Added source column to conversations table');
   },
   down: (db) => {
     // SQLite doesn't support DROP COLUMN directly, need to recreate table

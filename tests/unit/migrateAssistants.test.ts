@@ -25,10 +25,7 @@ vi.mock('@/process/utils/initStorage', () => ({
   ProcessConfig: {},
 }));
 
-import {
-  legacyAssistantToCreateRequest,
-  migrateAssistantsToBackend,
-} from '@/process/utils/migrateAssistants';
+import { legacyAssistantToCreateRequest, migrateAssistantsToBackend } from '@/process/utils/migrateAssistants';
 import { ipcBridge } from '@/common';
 
 type Store = Map<string, unknown>;
@@ -215,7 +212,9 @@ describe('migrateAssistantsToBackend', () => {
       importInvokeMock.mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
       setStateInvokeMock.mockResolvedValue(undefined);
 
-      const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+      const result = await migrateAssistantsToBackend(
+        cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]
+      );
 
       expect(result).toBe(true);
       // setState called only for disabled builtins; id stripped of "builtin-" prefix.
@@ -235,7 +234,9 @@ describe('migrateAssistantsToBackend', () => {
       });
       setStateInvokeMock.mockRejectedValue(new Error('backend offline'));
 
-      const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+      const result = await migrateAssistantsToBackend(
+        cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]
+      );
 
       expect(result).toBe(false);
       expect(importInvokeMock).not.toHaveBeenCalled();
@@ -265,7 +266,9 @@ describe('migrateAssistantsToBackend', () => {
         ],
       });
 
-      const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+      const result = await migrateAssistantsToBackend(
+        cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]
+      );
 
       expect(result).toBe(true);
       expect(importInvokeMock).not.toHaveBeenCalled();
