@@ -1527,14 +1527,7 @@ export const channel = {
     httpGet<RawSession[], void>('/api/channel/sessions'),
     (raw) => raw.map(toChannelSession)
   ),
-  syncChannelSettings: httpPost<
-    void,
-    {
-      platform: string;
-      agent: { backend: string; custom_agent_id?: string; name?: string };
-      model?: { id: string; use_model: string };
-    }
-  >('/api/channel/settings/sync'),
+  syncChannelSettings: httpPost<void, { platform: string }>('/api/channel/settings/sync'),
   pairingRequested: wsMappedEmitter<IChannelPairingRequest>(
     'channel.pairing-requested',
     (raw) => toPairing(raw as RawPairing)
