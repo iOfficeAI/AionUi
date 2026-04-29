@@ -19,11 +19,9 @@ const AionrsChat: React.FC<{
   conversation_id: string;
   workspace: string;
   modelSelection: AionrsModelSelection;
-  team_id?: string;
-  agentSlotId?: string;
   session_mode?: string;
   emptySlot?: React.ReactNode;
-}> = ({ conversation_id, workspace, modelSelection, team_id, agentSlotId, session_mode, emptySlot }) => {
+}> = ({ conversation_id, workspace, modelSelection, session_mode, emptySlot }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -42,8 +40,6 @@ const AionrsChat: React.FC<{
         <AionrsSendBox
           conversation_id={conversation_id}
           modelSelection={modelSelection}
-          team_id={team_id}
-          agentSlotId={agentSlotId}
           session_mode={session_mode}
         />
       </div>

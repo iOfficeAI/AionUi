@@ -87,8 +87,6 @@ const AcpSendBox: React.FC<{
   cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agent_name?: string;
   workspacePath?: string;
-  team_id?: string;
-  agentSlotId?: string;
   messageState: UseAcpMessageReturn;
 }> = ({
   conversation_id,
@@ -97,8 +95,6 @@ const AcpSendBox: React.FC<{
   cached_config_options,
   agent_name,
   workspacePath,
-  team_id,
-  agentSlotId,
   messageState,
 }) => {
   const {
@@ -174,48 +170,27 @@ const AcpSendBox: React.FC<{
 
       setAiProcessing(true);
 
-      if (!team_id) {
-        addOrUpdateMessageRef.current(
-          {
-            id: msg_id,
-            msg_id,
-            type: 'text',
-            position: 'right',
-            conversation_id,
-            content: { content: displayMessage },
-            created_at: Date.now(),
-          },
-          true
-        );
-      }
+      addOrUpdateMessageRef.current(
+        {
+          id: msg_id,
+          msg_id,
+          type: 'text',
+          position: 'right',
+          conversation_id,
+          content: { content: displayMessage },
+          created_at: Date.now(),
+        },
+        true
+      );
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        if (team_id) {
-          try {
-            if (agentSlotId) {
-              await ipcBridge.team.sendMessageToAgent.invoke({
-                team_id,
-                slot_id: agentSlotId,
-                content: displayMessage,
-                files,
-              });
-            } else {
-              await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
-            }
-          } catch (teamError: unknown) {
-            const teamErrorMsg = teamError instanceof Error ? teamError.message : String(teamError);
-            throw new Error(
-              agentSlotId ? `Failed to send message to agent: ${teamErrorMsg}` : `Failed to send message to team: ${teamErrorMsg}`
-            );
-          }
-        } else {
-          await ipcBridge.acpConversation.sendMessage.invoke({
-            input: displayMessage,
-            conversation_id,
-            files,
-          });
-        }
+        await ipcBridge.acpConversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files,
+        });
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
@@ -264,7 +239,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, team_id, workspacePath]
+    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
   );
 
   const {
@@ -408,7 +383,7 @@ Please check your local CLI tool authentication status`,
             <AcpConfigSelector
               conversation_id={conversation_id}
               backend={backend}
-              compact={!!team_id}
+              compact={false}
               initialConfigOptions={cached_config_options}
             />
           </div>
@@ -456,7 +431,7 @@ Please check your local CLI tool authentication status`,
         slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
-        compactActions={!!team_id}
+        compactActions={false}
         sendButtonPrefix={
           tokenUsage ? (
             <ContextUsageIndicator

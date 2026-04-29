@@ -88,17 +88,15 @@ const useSendBoxDraft = (conversation_id: string) => {
 const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
-  team_id?: string;
-  agentSlotId?: string;
   session_mode?: string;
-}> = ({ conversation_id, modelSelection, team_id, agentSlotId, session_mode }) => {
+}> = ({ conversation_id, modelSelection, session_mode }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { current_model, getDisplayModelName } = modelSelection;
   const teamPermission = useTeamPermission();
-  const propagateMode = team_id ? teamPermission?.propagateMode : undefined;
+  const propagateMode = teamPermission?.propagateMode;
 
   const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
     useAionrsMessage(conversation_id, {
@@ -167,50 +165,29 @@ const AionrsSendBox: React.FC<{
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      if (!team_id) {
-        addOrUpdateMessage(
-          {
-            id: msg_id,
-            msg_id,
-            type: 'text',
-            position: 'right',
-            conversation_id,
-            content: {
-              content: displayMessage,
-            },
-            created_at: Date.now(),
+      addOrUpdateMessage(
+        {
+          id: msg_id,
+          msg_id,
+          type: 'text',
+          position: 'right',
+          conversation_id,
+          content: {
+            content: displayMessage,
           },
-          true
-        );
-      }
+          created_at: Date.now(),
+        },
+        true
+      );
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        if (team_id) {
-          try {
-            if (agentSlotId) {
-              await ipcBridge.team.sendMessageToAgent.invoke({
-                team_id,
-                slot_id: agentSlotId,
-                content: displayMessage,
-                files,
-              });
-            } else {
-              await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
-            }
-          } catch (teamError: unknown) {
-            const teamErrorMsg = teamError instanceof Error ? teamError.message : String(teamError);
-            throw new Error(
-              agentSlotId ? `Failed to send message to agent: ${teamErrorMsg}` : `Failed to send message to team: ${teamErrorMsg}`
-            );
-          }
-        } else {
-          await ipcBridge.conversation.sendMessage.invoke({
-            input: displayMessage,
-            conversation_id,
-            files,
-          });
-        }
+        await ipcBridge.conversation.sendMessage.invoke({
+          input: displayMessage,
+          msg_id,
+          conversation_id,
+          files,
+        });
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
@@ -222,14 +199,12 @@ const AionrsSendBox: React.FC<{
     },
     [
       addOrUpdateMessage,
-      agentSlotId,
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
-      team_id,
       workspacePath,
     ]
   );
@@ -284,7 +259,7 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (!team_id && isBusy) {
+    if (isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
