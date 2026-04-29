@@ -37,16 +37,6 @@ async function main() {
       entryPoints: [path.join(ROOT, 'src/process/resources/builtinMcp/imageGenServer.ts')],
       outfile: path.join(ROOT, 'out/main/builtin-mcp-image-gen.js'),
     }),
-    esbuild.build({
-      ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'src/process/team/mcp/team/teamMcpStdio.ts')],
-      outfile: path.join(ROOT, 'out/main/team-mcp-stdio.js'),
-    }),
-    esbuild.build({
-      ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'src/process/team/mcp/guide/teamGuideMcpStdio.ts')],
-      outfile: path.join(ROOT, 'out/main/team-guide-mcp-stdio.js'),
-    }),
   ]);
 }
 

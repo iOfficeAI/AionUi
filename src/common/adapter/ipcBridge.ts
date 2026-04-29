@@ -25,7 +25,6 @@ import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamListChangedEvent,
-  ITeamMcpStatusEvent,
 } from '../types/teamTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
@@ -1617,5 +1616,4 @@ export const team = {
   agentRemoved: wsEmitter<ITeamAgentRemovedEvent>('team.agent.removed'),
   agentRenamed: wsEmitter<ITeamAgentRenamedEvent>('team.agent.renamed'),
   listChanged: wsEmitter<ITeamListChangedEvent>('team.list-changed'),
-  mcpStatus: wsEmitter<ITeamMcpStatusEvent>('team.mcp.status'),
 };
