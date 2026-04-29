@@ -86,7 +86,7 @@ export const ConversationArtifactProvider: React.FC<React.PropsWithChildren<{ co
   useEffect(() => {
     if (!conversation_id) return;
 
-    return ipcBridge.conversation.artifactStream.on((artifact) => {
+    return ipcBridge.conversation.artifactStream.on((artifact: IConversationArtifact) => {
       if (artifact.conversation_id !== conversation_id) return;
       upsertArtifact(artifact);
     });

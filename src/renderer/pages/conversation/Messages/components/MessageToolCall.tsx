@@ -85,9 +85,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
           onClick={hasDetail ? () => setExpanded(!expanded) : undefined}
         >
           <span className='font-medium text-13px'>{normalized.name}</span>
-          {normalized.description && (
-            <span className='m-l-4px opacity-80 text-13px'>{normalized.description}</span>
-          )}
+          {normalized.description && <span className='m-l-4px opacity-80 text-13px'>{normalized.description}</span>}
         </span>
         {hasDetail && (
           <span

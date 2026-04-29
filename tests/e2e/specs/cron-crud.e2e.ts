@@ -19,6 +19,7 @@ import {
   waitForSessionActive,
   waitForAiReply,
   deleteConversation,
+  startAutoApprovePermissionMessages,
 } from '../helpers';
 
 interface CronJob {
@@ -67,43 +68,6 @@ async function getCronJob(page: import('@playwright/test').Page, jobId: string):
 
 async function removeCronJob(page: import('@playwright/test').Page, jobId: string): Promise<void> {
   return invokeBridge<void>(page, 'cron.remove-job', { job_id: jobId }, 10_000);
-}
-
-// ── Confirmation auto-approve ──────────────────────────────────────────────
-
-/**
- * Start a background loop that auto-clicks "Always Allow" on any
- * confirmation dialog (e.g., Activate Skill: cron).
- * Returns a cleanup function to stop the loop.
- */
-function startAutoApproveConfirmations(page: import('@playwright/test').Page): () => void {
-  let running = true;
-
-  const loop = async () => {
-    while (running) {
-      try {
-        // ConversationChatConfirm renders option buttons as divs with
-        // shortcut badge + label. The "Always Allow" option has shortcut "A".
-        // We look for any confirmation option containing "始终允许" or "Always"
-        // and click it. Fallback: click the first option (Enter = allow once).
-        const alwaysBtn = page
-          .locator('div.cursor-pointer')
-          .filter({ hasText: /始终允许|Always allow|proceed_always/ })
-          .first();
-        if (await alwaysBtn.isVisible().catch(() => false)) {
-          await alwaysBtn.click().catch(() => {});
-        }
-      } catch {
-        // page may be navigating
-      }
-      await page.waitForTimeout(1_000).catch(() => {});
-    }
-  };
-
-  void loop();
-  return () => {
-    running = false;
-  };
 }
 
 // ── Conversation helpers ───────────────────────────────────────────────────
@@ -222,7 +186,7 @@ test.describe('Cron via AI conversation', () => {
     expect(conversationId).toBeTruthy();
 
     // Start auto-approving skill activation confirmations
-    stopAutoApprove = startAutoApproveConfirmations(page);
+    stopAutoApprove = startAutoApprovePermissionMessages(page);
 
     // Wait for agent session to be active
     await waitForSessionActive(page, 120_000);
@@ -355,7 +319,7 @@ test.describe('Cron via AI conversation', () => {
     expect(conversationId).toBeTruthy();
 
     // Start auto-approving skill activation confirmations
-    stopAutoApprove = startAutoApproveConfirmations(page);
+    stopAutoApprove = startAutoApprovePermissionMessages(page);
 
     await waitForSessionActive(page, 120_000);
 

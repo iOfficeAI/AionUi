@@ -9,7 +9,6 @@ describe('useAutoPreviewOfficeFilesEnabled helpers', () => {
     expect(isOfficeAutoPreviewTriggerMessage({ type: 'tool_call' })).toBe(true);
     expect(isOfficeAutoPreviewTriggerMessage({ type: 'tool_group' })).toBe(true);
     expect(isOfficeAutoPreviewTriggerMessage({ type: 'acp_tool_call' })).toBe(true);
-    expect(isOfficeAutoPreviewTriggerMessage({ type: 'codex_tool_call' })).toBe(true);
     expect(isOfficeAutoPreviewTriggerMessage({ type: 'text' })).toBe(false);
     expect(isOfficeAutoPreviewTriggerMessage({ type: 'thinking' })).toBe(false);
   });

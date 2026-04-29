@@ -35,6 +35,7 @@ All team-mode pilots MUST follow this worktree + PR convention.
 ### Coordinator closure checklist
 
 After T3 green:
+
 1. Push coord branch to origin.
 2. `gh pr create --base main` (backend) or `--base feat/backend-migration` (AionUi).
 3. PR body references the handoff doc.
@@ -74,6 +75,7 @@ needs resilience against unknown remote state, bake
 new agent self-heals.
 
 **Spawn prompt discipline (to avoid repeat zombies):**
+
 - One task per spawn. Do not combine "fix clippy + start T1b".
 - Include "If stuck 5+ minutes, SendMessage team-lead immediately".
 - Mandatory progress reporting every ~10 min, even during investigation:
@@ -125,7 +127,7 @@ your SHA is there."
 Every migration-class plan must include:
 
 1. **Enumerate per-item user-intent state** at spec level — not just "user
-   data" but *per-item state the user set intentionally* (e.g. `enabled=false`
+   data" but _per-item state the user set intentionally_ (e.g. `enabled=false`
    on built-ins, `sort_order`, `last_used_at`). For each: preserve, drop
    explicitly, or document.
 2. **Real-user-data dry-run task before T5 E2E.** Pipeline:
@@ -170,8 +172,8 @@ keys.
 ## Packaging smoke as standalone acceptance step
 
 When a pilot's motivation is "kill sibling `assets/` assumption", verifying
-the fix requires running the binary *in a state where no sibling `assets/`
-exist*. A dev-machine `cargo run` always has the sibling via
+the fix requires running the binary _in a state where no sibling `assets/`
+exist_. A dev-machine `cargo run` always has the sibling via
 `target/debug/assets/`; full Electron `bun run build` is ~15 min.
 
 Mid-fidelity 2-minute smoke (run during T4 closure for any asset-delivery

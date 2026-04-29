@@ -552,11 +552,7 @@ export class AcpAgent {
     // Always use session/set_model for direct CLI control.
     // Falls back to session/set_config_option only for non-Claude backends
     // that don't support the unstable_setSessionModel method.
-    try {
-      await this.connection.setModel(model_id);
-    } catch (setModelError) {
-      throw setModelError;
-    }
+    await this.connection.setModel(model_id);
 
     this.userModelOverride = model_id;
 

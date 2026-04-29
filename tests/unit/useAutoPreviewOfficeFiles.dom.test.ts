@@ -27,7 +27,7 @@ vi.mock('@/renderer/utils/file/fileType', () => ({
 vi.mock('@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled', () => ({
   useAutoPreviewOfficeFilesEnabled: () => true,
   isOfficeAutoPreviewTriggerMessage: (message: { type: string }) =>
-    ['tool_group', 'tool_call', 'acp_tool_call', 'codex_tool_call'].includes(message.type),
+    ['tool_group', 'tool_call', 'acp_tool_call'].includes(message.type),
   findNewOfficeFiles: (currentFiles: string[], knownFiles: Set<string>) =>
     currentFiles.filter((filePath) => !knownFiles.has(filePath)),
 }));

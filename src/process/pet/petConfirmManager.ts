@@ -348,7 +348,7 @@ function registerIpcHandlers(): void {
         currentConfirmations.delete(confirmation.id);
 
         // CRITICAL: Immediately broadcast removal to prevent main renderer from also responding.
-        // The main renderer's ConversationChatConfirm has keyboard shortcuts that can trigger
+        // The main renderer's confirmation UI has keyboard shortcuts that can trigger
         // a second response. Since worker uses pipe.once(call_id), only the first response is
         // processed — if main renderer responds first (e.g., user presses Enter accidentally),
         // the pet window's response (e.g., 'cancel') is ignored.

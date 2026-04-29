@@ -44,7 +44,7 @@ function renderConfirmation(confirmation: IConfirmation): void {
   // Render description
   descriptionEl.textContent = confirmation.description;
 
-  // Render options — shortcut badge before label (matches ConversationChatConfirm style)
+  // Render options — shortcut badge before label (matches the main confirmation message style)
   optionsEl.innerHTML = '';
   confirmation.options.forEach((option, index) => {
     const btn = document.createElement('div');

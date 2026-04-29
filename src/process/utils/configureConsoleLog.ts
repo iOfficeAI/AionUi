@@ -38,7 +38,7 @@ log.transports.console.level = CONSOLE_LOG_LEVEL;
 const BACKEND_PREFIX = '[aionui-backend]';
 
 // Strip ANSI escape sequences from a string.
-const ANSI_RE = /\x1b\[[0-9;]*m/g;
+const ANSI_RE = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'g');
 
 const TRACING_LEVEL_MAP: Record<string, string> = {
   TRACE: 'verbose',

@@ -8,9 +8,11 @@ import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
+import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { processLocalCronResponse } from './localCronCommands';
 
 type TokenUsage = {
   input_tokens?: number;
@@ -39,6 +41,8 @@ export const useAionrsMessage = (
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
   const activeMsgIdRef = useRef<string | null>(null);
+  const messageBufferRef = useRef(new Map<string, string>());
+  const processedCronMsgIdsRef = useRef(new Set<string>());
 
   // Use refs to avoid useEffect re-subscription when these states change
   const hasActiveToolsRef = useRef(hasActiveTools);
@@ -116,6 +120,60 @@ export const useAionrsMessage = (
     activeMsgIdRef.current = msgId;
   }, []);
 
+  const processCompletedAssistantMessage = useCallback(
+    async (msgId: string) => {
+      if (!msgId || processedCronMsgIdsRef.current.has(msgId)) {
+        return;
+      }
+
+      const rawContent = messageBufferRef.current.get(msgId) ?? '';
+      if (!rawContent.trim()) {
+        return;
+      }
+
+      processedCronMsgIdsRef.current.add(msgId);
+
+      try {
+        const result = await processLocalCronResponse(conversation_id, rawContent);
+        if (result.displayContent !== undefined && result.displayContent !== rawContent) {
+          addOrUpdateMessage({
+            id: uuid(),
+            msg_id: msgId,
+            type: 'text',
+            position: 'left',
+            conversation_id,
+            created_at: Date.now(),
+            content: {
+              content: result.displayContent,
+              replace: true,
+            },
+          });
+        }
+
+        for (const response of result.systemResponses) {
+          addOrUpdateMessage(
+            {
+              id: uuid(),
+              msg_id: `cron-local-${uuid()}`,
+              type: 'tips',
+              position: 'center',
+              conversation_id,
+              created_at: Date.now(),
+              content: {
+                content: response,
+                type: response.startsWith('❌') ? 'error' : 'success',
+              },
+            },
+            true
+          );
+        }
+      } catch {
+        processedCronMsgIdsRef.current.delete(msgId);
+      }
+    },
+    [addOrUpdateMessage, conversation_id]
+  );
+
   useEffect(() => {
     return ipcBridge.conversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
@@ -127,6 +185,24 @@ export const useAionrsMessage = (
       if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRef.current) {
         if (message.type === 'thought') {
           return;
+        }
+      }
+
+      if ((message.type === 'content' || message.type === 'text') && message.msg_id) {
+        const payload = message.data;
+        const chunk =
+          typeof payload === 'string'
+            ? payload
+            : typeof payload === 'object' &&
+                payload !== null &&
+                'content' in payload &&
+                typeof (payload as { content?: unknown }).content === 'string'
+              ? ((payload as { content: string }).content ?? '')
+              : '';
+
+        if (chunk) {
+          const previous = messageBufferRef.current.get(message.msg_id) ?? '';
+          messageBufferRef.current.set(message.msg_id, previous + chunk);
         }
       }
 
@@ -164,6 +240,9 @@ export const useAionrsMessage = (
             setStreamRunning(false);
             setWaitingResponse(false);
             setThought({ subject: '', description: '' });
+            if (message.msg_id) {
+              void processCompletedAssistantMessage(message.msg_id);
+            }
           }
           break;
         case 'tool_group':
@@ -256,7 +335,7 @@ export const useAionrsMessage = (
       }
     });
     // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
-  }, [conversation_id, addOrUpdateMessage, onError]);
+  }, [conversation_id, addOrUpdateMessage, onError, processCompletedAssistantMessage]);
 
   useEffect(() => {
     let cancelled = false;
