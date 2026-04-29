@@ -1194,6 +1194,37 @@ describe('CreateTaskDialog - component behavior', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('falls back to a minimal ACP agent_config when create mode receives a bare backend value', async () => {
+    const onClose = vi.fn();
+    mockAddJob.mockResolvedValue(undefined);
+    mockFormValidate.mockResolvedValueOnce({
+      name: 'Claude Task',
+      description: 'Claude Description',
+      prompt: 'Claude Prompt',
+      agent: 'claude',
+    });
+
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversation_id='conv-1' />);
+
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockAddJob).toHaveBeenCalled();
+    });
+
+    expect(mockAddJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agent_type: 'claude',
+        agent_config: expect.objectContaining({
+          backend: 'claude',
+          name: 'Claude',
+          mode: 'full-auto',
+        }),
+      })
+    );
+    expect(onClose).toHaveBeenCalled();
+  });
+
   it('calls updateJob API when submitting in edit mode', async () => {
     const onClose = vi.fn();
     mockUpdateJob.mockResolvedValue(undefined);

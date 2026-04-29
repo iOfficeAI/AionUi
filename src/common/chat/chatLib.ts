@@ -84,9 +84,7 @@ type TMessageType =
   | 'codex_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands'
-  | 'skill_suggest'
-  | 'cron_trigger';
+  | 'available_commands';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -401,26 +399,6 @@ export type IMessageAvailableCommands = IMessage<
   }
 >;
 
-export type IMessageSkillSuggest = IMessage<
-  'skill_suggest',
-  {
-    cron_job_id: string;
-    name: string;
-    description: string;
-    /** Full SKILL.md content (including frontmatter) */
-    skillContent: string;
-  }
->;
-
-export type IMessageCronTrigger = IMessage<
-  'cron_trigger',
-  {
-    cron_job_id: string;
-    cron_job_name: string;
-    triggered_at: number;
-  }
->;
-
 // eslint-disable-next-line max-len
 export type TMessage =
   | IMessageText
@@ -435,9 +413,7 @@ export type TMessage =
   | IMessageCodexToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands
-  | IMessageSkillSuggest
-  | IMessageCronTrigger;
+  | IMessageAvailableCommands;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -462,6 +438,7 @@ export interface IConfirmation<Option extends any = any> {
  * @description 将后端返回的消息转换为前端消息
  * */
 export const transformMessage = (message: IResponseMessage): TMessage => {
+  const created_at = message.created_at ?? Date.now();
   switch (message.type) {
     case 'error': {
       return {
@@ -470,6 +447,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
+        created_at,
         content: {
           content: message.data as string,
           type: 'error',
@@ -484,6 +462,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
+        created_at,
         content: {
           content: data.content,
           type: data.type ?? 'warning',
@@ -502,6 +481,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: message.type === 'user_content' ? 'right' : 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: isRichData
           ? {
               content: data.content,
@@ -522,6 +502,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'left',
+        created_at,
         content: message.data as any,
       };
     }
@@ -531,6 +512,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         id: uuid(),
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -541,6 +523,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -551,6 +534,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -561,6 +545,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -571,6 +556,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -581,6 +567,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -591,6 +578,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -601,6 +589,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -617,6 +606,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: {
           content: data.content,
           subject: data.subject,
@@ -628,53 +618,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
       break;
-    case 'skill_suggest': {
-      const suggestData = message.data as {
-        cron_job_id: string;
-        name: string;
-        description: string;
-        skillContent?: string;
-        skill_content?: string;
-      };
-      return {
-        id: uuid(),
-        type: 'skill_suggest',
-        msg_id: message.msg_id,
-        conversation_id: message.conversation_id,
-        position: 'center',
-        content: {
-          cron_job_id: suggestData.cron_job_id,
-          name: suggestData.name,
-          description: suggestData.description,
-          skillContent: suggestData.skillContent ?? suggestData.skill_content ?? '',
-        },
-      };
-    }
-    case 'cron_trigger': {
-      const triggerData = message.data as {
-        cron_job_id?: string;
-        cronJobId?: string;
-        cron_job_name?: string;
-        cronJobName?: string;
-        triggered_at?: number;
-        triggeredAt?: number;
-      };
-      return {
-        id: uuid(),
-        type: 'cron_trigger',
-        msg_id: message.msg_id,
-        conversation_id: message.conversation_id,
-        position: 'center',
-        content: {
-          cron_job_id: triggerData.cron_job_id ?? triggerData.cronJobId ?? '',
-          cron_job_name: triggerData.cron_job_name ?? triggerData.cronJobName ?? '',
-          triggered_at: triggerData.triggered_at ?? triggerData.triggeredAt ?? Date.now(),
-        },
-      };
-    }
     case 'start':
     case 'finish':
     case 'thought':
+    case 'skill_suggest':
+    case 'cron_trigger':
     case 'info': // Stream retry notifications and similar transient agent updates
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector

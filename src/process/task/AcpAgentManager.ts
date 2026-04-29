@@ -456,7 +456,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       const yoloModeValues: Record<string, string> = {
         claude: 'bypassPermissions',
         qwen: 'yolo',
-        codex: 'yolo',
+        codex: 'full-access',
       };
       this.current_mode = yoloModeValues[data.backend] || 'yolo';
       this.yoloMode = true;

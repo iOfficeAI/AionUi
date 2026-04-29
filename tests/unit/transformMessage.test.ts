@@ -35,6 +35,17 @@ describe('transformMessage', () => {
     expect(result).toBeDefined();
     expect(result!.type).toBe('text');
     expect(result!.position).toBe('left');
+    expect(result!.created_at).toEqual(expect.any(Number));
+  });
+
+  it('preserves stream created_at when provided by the backend', () => {
+    const result = transformMessage({
+      ...makeMessage('content', 'hello'),
+      created_at: 1234,
+    });
+
+    expect(result).toBeDefined();
+    expect(result!.created_at).toBe(1234);
   });
 
   it('preserves replace signal from top-level stream events', () => {
@@ -61,7 +72,7 @@ describe('transformMessage', () => {
     expect(result!.content).toMatchObject({ content: 'clean final', replace: true });
   });
 
-  it('normalizes backend snake_case skill_suggest payloads', () => {
+  it('ignores skill_suggest events because they are rendered as artifacts, not messages', () => {
     const result = transformMessage(
       makeMessage('skill_suggest', {
         cron_job_id: 'cron-1',
@@ -71,14 +82,7 @@ describe('transformMessage', () => {
       })
     );
 
-    expect(result).toBeDefined();
-    expect(result!.type).toBe('skill_suggest');
-    expect(result!.content).toMatchObject({
-      cron_job_id: 'cron-1',
-      name: 'daily-report',
-      description: 'Daily report',
-      skillContent: '---\nname: daily-report\n---\n\nDo the task.\n',
-    });
+    expect(result).toBeUndefined();
   });
 
   it('transforms user_content messages into right-aligned text', () => {
@@ -89,7 +93,17 @@ describe('transformMessage', () => {
   });
 
   it('returns undefined for transient message types', () => {
-    for (const type of ['start', 'finish', 'thought', 'info', 'system', 'acp_model_info', 'request_trace']) {
+    for (const type of [
+      'start',
+      'finish',
+      'thought',
+      'skill_suggest',
+      'cron_trigger',
+      'info',
+      'system',
+      'acp_model_info',
+      'request_trace',
+    ]) {
       expect(transformMessage(makeMessage(type))).toBeUndefined();
     }
   });

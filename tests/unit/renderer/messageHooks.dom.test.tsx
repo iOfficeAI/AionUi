@@ -34,18 +34,8 @@ type TestMessage = {
   created_at?: number;
 };
 
-const CacheProbe = ({
-  conversation_id,
-  enableLateMessagePolling,
-  pollIntervalMs,
-  maxPollAttempts,
-}: {
-  conversation_id: string;
-  enableLateMessagePolling?: boolean;
-  pollIntervalMs?: number;
-  maxPollAttempts?: number;
-}) => {
-  useMessageLstCache(conversation_id, { enableLateMessagePolling, pollIntervalMs, maxPollAttempts });
+const CacheProbe = ({ conversation_id }: { conversation_id: string }) => {
+  useMessageLstCache(conversation_id);
   const messages = useMessageList();
   return <pre data-testid='messages'>{JSON.stringify(messages)}</pre>;
 };
@@ -262,39 +252,6 @@ describe('message hooks cache merge', () => {
       expect(messages).toHaveLength(1);
       expect(messages[0]?.content.content).toBe('clean final');
       expect(messages[0]?.content.replace).toBe(true);
-    });
-  });
-
-  it('polls late persisted cron messages and hydrates skill_suggest into the list', async () => {
-    mockGetConversationMessagesInvoke.mockResolvedValueOnce({ items: [] }).mockResolvedValueOnce({
-      items: [
-        {
-          id: 'skill-1',
-          msg_id: 'skill-stream-1',
-          conversation_id: 'conv-cron',
-          type: 'skill_suggest',
-          position: 'center',
-          content: {
-            cron_job_id: 'cron-1',
-            name: 'daily-brief',
-            description: 'Daily brief',
-            skillContent: '# skill body',
-          },
-        },
-      ],
-    });
-
-    render(
-      <MessageListProvider value={[]}>
-        <CacheProbe conversation_id='conv-cron' enableLateMessagePolling pollIntervalMs={10} maxPollAttempts={2} />
-      </MessageListProvider>
-    );
-
-    await waitFor(() => {
-      expect(mockGetConversationMessagesInvoke).toHaveBeenCalledTimes(2);
-      const content = screen.getByTestId('messages').textContent ?? '';
-      expect(content).toContain('skill_suggest');
-      expect(content).toContain('daily-brief');
     });
   });
 });

@@ -68,6 +68,13 @@ type ConversationMessageRecord = {
   content?: unknown;
 };
 
+type ConversationArtifactRecord = {
+  id: string;
+  kind?: string;
+  status?: string;
+  payload?: unknown;
+};
+
 function parseJsonish<T>(value: unknown): T | null {
   if (!value) return null;
   if (typeof value === 'string') {
@@ -194,9 +201,11 @@ async function waitForSkillSuggestMessage(
 ): Promise<{ name: string; description: string; skillContent: string }> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const messages = await getConversationMessages(page, conversationId);
-    const skillMessage = messages.find((message) => message.type === 'skill_suggest');
-    if (!skillMessage) {
+    const artifacts = await getConversationArtifacts(page, conversationId);
+    const skillArtifact = artifacts.find(
+      (artifact) => artifact.kind === 'skill_suggest' && artifact.status === 'pending'
+    );
+    if (!skillArtifact) {
       await page.waitForTimeout(1_000);
       continue;
     }
@@ -206,7 +215,7 @@ async function waitForSkillSuggestMessage(
       description?: string;
       skill_content?: string;
       skillContent?: string;
-    }>(skillMessage.content);
+    }>(skillArtifact.payload);
 
     if (parsed?.name) {
       return {
@@ -219,7 +228,7 @@ async function waitForSkillSuggestMessage(
     await page.waitForTimeout(1_000);
   }
 
-  throw new Error(`No skill_suggest message for conversation ${conversationId} within ${timeoutMs}ms`);
+  throw new Error(`No pending skill_suggest artifact for conversation ${conversationId} within ${timeoutMs}ms`);
 }
 
 async function assertNoSkillSuggestMessageWithin(
@@ -229,12 +238,36 @@ async function assertNoSkillSuggestMessageWithin(
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
-    const messages = await getConversationMessages(page, conversationId);
-    if (messages.some((message) => message.type === 'skill_suggest')) {
-      throw new Error(`Unexpected skill_suggest message for conversation ${conversationId}`);
+    const artifacts = await getConversationArtifacts(page, conversationId);
+    if (artifacts.some((artifact) => artifact.kind === 'skill_suggest' && artifact.status === 'pending')) {
+      throw new Error(`Unexpected pending skill_suggest artifact for conversation ${conversationId}`);
     }
     await page.waitForTimeout(1_000);
   }
+}
+
+async function getConversationArtifacts(
+  page: import('@playwright/test').Page,
+  conversationId: string
+): Promise<ConversationArtifactRecord[]> {
+  return page.evaluate(
+    async ({ conversationId }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) throw new Error('window.__backendPort is not available');
+
+      const res = await fetch(
+        `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(conversationId)}/artifacts`
+      );
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`GET /api/conversations/${conversationId}/artifacts failed (${res.status}): ${body}`);
+      }
+
+      const json = (await res.json()) as { data?: ConversationArtifactRecord[] };
+      return Array.isArray(json?.data) ? json.data : [];
+    },
+    { conversationId }
+  );
 }
 
 async function getConversationExtra(
@@ -946,6 +979,102 @@ test.describe('Conversation Full Cycle', () => {
     }
   });
 
+  test('cron -- create task with Codex, run now reaches AI reply', async ({ page }) => {
+    test.setTimeout(360_000);
+
+    let createdJobId: string | null = null;
+    let createdConversationId: string | null = null;
+
+    try {
+      await goToGuid(page);
+      await page
+        .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
+        .catch(() => {});
+
+      await page.evaluate(() => window.location.assign('#/scheduled'));
+      await page
+        .waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 })
+        .catch(() => {});
+      await page
+        .locator('h1')
+        .filter({ hasText: /Scheduled Tasks|定时任务/ })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .catch(() => {});
+
+      const createBtn = page
+        .locator('button')
+        .filter({ hasText: /New task|新建任务|新建/ })
+        .first();
+      if (!(await createBtn.isVisible().catch(() => false))) {
+        test.skip(true, 'Scheduled tasks page or create button not available');
+        return;
+      }
+      await createBtn.click();
+
+      const dialog = page.locator('.arco-modal').first();
+      await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+      if (!(await dialog.isVisible().catch(() => false))) {
+        test.skip(true, 'Create task dialog did not open');
+        return;
+      }
+
+      const taskName = `E2E-Codex-Cron-${Date.now()}`;
+      await dialog.locator('#name input').fill(taskName);
+      await dialog.locator('#description input').fill('E2E codex cron run-now test');
+
+      const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
+      const agentSelect = agentFormItem.locator('.arco-select').first();
+      await agentSelect.click();
+
+      const codexOption = page.locator('.arco-select-option').filter({ hasText: /Codex/i }).first();
+      if (!(await codexOption.isVisible().catch(() => false))) {
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.keyboard.press('Escape').catch(() => {});
+        test.skip(true, 'Codex agent not available in create task dialog');
+        return;
+      }
+      await codexOption.click();
+
+      await dialog.locator('#prompt textarea').fill('Please reply with a short acknowledgement for cron codex e2e.');
+
+      await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
+      await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+
+      const createdJob = await findCronJobByName(page, taskName, 15_000);
+      createdJobId = createdJob.id;
+
+      const taskCard = page.locator('span').filter({ hasText: taskName }).first();
+      await expect(taskCard).toBeVisible({ timeout: 10_000 });
+      await taskCard.click();
+      await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+      const runNowBtn = page
+        .locator('button.arco-btn-primary')
+        .filter({ hasText: /Run now|立即执行/ })
+        .first();
+      await runNowBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await runNowBtn.click();
+
+      await page.waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 60_000 });
+      const match = /#\/conversation\/([^/?]+)/.exec(page.url());
+      expect(match?.[1]).toBeTruthy();
+      createdConversationId = match?.[1] ?? null;
+
+      await waitForSessionActive(page, 180_000);
+      const reply = await waitForAiReply(page, 180_000);
+      expect(reply.length).toBeGreaterThan(0);
+    } finally {
+      if (createdConversationId) {
+        await deleteConversation(page, createdConversationId).catch(() => {});
+      }
+      if (createdJobId) {
+        await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }).catch(() => {});
+      }
+      await goToGuid(page).catch(() => {});
+    }
+  });
+
   test('cron -- CreateTaskDialog run-now emits skill suggestion, save it, then next run reuses saved skill', async ({
     page,
   }) => {
@@ -1034,7 +1163,7 @@ test.describe('Conversation Full Cycle', () => {
       const firstWorkspace = await waitForConversationWorkspace(page, firstConversationId, 20_000);
       expect(firstWorkspace.length).toBeGreaterThan(0);
 
-      const firstCronTrigger = page.locator('[data-message-type="cron_trigger"]').last();
+      const firstCronTrigger = page.locator('[data-testid="message-cron-trigger"]').last();
       await expect(firstCronTrigger).toBeVisible({ timeout: 30_000 });
       await expect(firstCronTrigger).toContainText(taskName, { timeout: 10_000 });
 
@@ -1059,7 +1188,7 @@ test.describe('Conversation Full Cycle', () => {
               const skillSuggestNode = document.querySelector('[data-testid="skill-suggest-card"]');
               const port = (window as unknown as { __backendPort?: number }).__backendPort;
               let hasSkill = null;
-              let skillSuggestMessage = null;
+              let skillSuggestArtifact = null;
               if (port) {
                 const res = await fetch(`http://127.0.0.1:${port}/api/cron/jobs/${encodeURIComponent(jobId)}/skill`);
                 if (res.ok) {
@@ -1067,15 +1196,15 @@ test.describe('Conversation Full Cycle', () => {
                   hasSkill = Boolean(json.data?.has_skill);
                 }
 
-                const messagesRes = await fetch(
-                  `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(window.location.hash.split('/conversation/')[1] || '')}/messages?page=1&page_size=100&order=ASC`
+                const artifactsRes = await fetch(
+                  `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(window.location.hash.split('/conversation/')[1] || '')}/artifacts`
                 );
-                if (messagesRes.ok) {
-                  const messagesJson = (await messagesRes.json()) as {
-                    data?: { items?: Array<{ type?: string; content?: unknown }> };
+                if (artifactsRes.ok) {
+                  const artifactsJson = (await artifactsRes.json()) as {
+                    data?: Array<{ kind?: string; payload?: unknown; status?: string }>;
                   };
-                  const items = messagesJson.data?.items ?? [];
-                  skillSuggestMessage = items.find((item) => item.type === 'skill_suggest') ?? null;
+                  const items = artifactsJson.data ?? [];
+                  skillSuggestArtifact = items.find((item) => item.kind === 'skill_suggest') ?? null;
                 }
               }
               return {
@@ -1085,7 +1214,7 @@ test.describe('Conversation Full Cycle', () => {
                 messageTypes,
                 skillSuggestCardText: skillSuggestNode?.textContent ?? null,
                 skillSuggestCardHtml: skillSuggestNode?.outerHTML ?? null,
-                skillSuggestMessage,
+                skillSuggestArtifact,
                 bodyTextSnippet: bodyText.slice(-1200),
               };
             },
@@ -1126,7 +1255,7 @@ test.describe('Conversation Full Cycle', () => {
       const secondWorkspace = await waitForConversationWorkspace(page, secondConversationId, 20_000);
       expect(secondWorkspace.length).toBeGreaterThan(0);
 
-      const secondCronTrigger = page.locator('[data-message-type="cron_trigger"]').last();
+      const secondCronTrigger = page.locator('[data-testid="message-cron-trigger"]').last();
       await expect(secondCronTrigger).toBeVisible({ timeout: 30_000 });
       await expect(secondCronTrigger).toContainText(taskName, { timeout: 10_000 });
 

@@ -11,8 +11,10 @@ import type { SkillSuggestion } from '@/renderer/utils/chat/skillSuggestParser';
 
 const mockHasSkill = vi.hoisted(() => vi.fn());
 const mockSaveSkill = vi.hoisted(() => vi.fn());
+const mockUpdateArtifact = vi.hoisted(() => vi.fn());
 const mockMessageSuccess = vi.hoisted(() => vi.fn());
 const mockMessageError = vi.hoisted(() => vi.fn());
+const mockUpdateArtifactStatus = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -26,7 +28,14 @@ vi.mock('@/common', () => ({
       hasSkill: { invoke: (...args: unknown[]) => mockHasSkill(...args) },
       saveSkill: { invoke: (...args: unknown[]) => mockSaveSkill(...args) },
     },
+    conversation: {
+      updateArtifact: { invoke: (...args: unknown[]) => mockUpdateArtifact(...args) },
+    },
   },
+}));
+
+vi.mock('@renderer/pages/conversation/Messages/artifacts', () => ({
+  useUpdateConversationArtifactStatus: () => mockUpdateArtifactStatus,
 }));
 
 vi.mock('@icon-park/react', () => ({
@@ -75,14 +84,22 @@ describe('SkillSuggestCard', () => {
     content: '---\nname: Test Skill\ndescription: A test skill\n---\n\n# Test Skill\n\nThis is a test skill.',
   };
 
+  const baseProps = {
+    artifact_id: 'artifact-1',
+    conversation_id: 'conv-1',
+    cron_job_id: 'test-job-123',
+    suggestion: mockSuggestion,
+  } as const;
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockHasSkill.mockResolvedValue(false);
     mockSaveSkill.mockResolvedValue(undefined);
+    mockUpdateArtifact.mockResolvedValue(undefined);
   });
 
   it('renders skill suggestion name and description', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -96,7 +113,7 @@ describe('SkillSuggestCard', () => {
   it('does not render when skill already exists', async () => {
     mockHasSkill.mockResolvedValue(true);
 
-    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    const { container } = render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -108,25 +125,20 @@ describe('SkillSuggestCard', () => {
   });
 
   it('saves skill when save button is clicked', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    const saveButton = screen.getByText('cron.skill.save');
-    expect(saveButton).toBeInTheDocument();
-
-    fireEvent.click(saveButton);
+    fireEvent.click(screen.getByText('cron.skill.save'));
 
     await waitFor(() => {
       expect(mockSaveSkill).toHaveBeenCalledWith({
         job_id: 'test-job-123',
         content: mockSuggestion.content,
       });
-    });
-
-    await waitFor(() => {
+      expect(mockUpdateArtifactStatus).toHaveBeenCalledWith('artifact-1', 'saved');
       expect(mockMessageSuccess).toHaveBeenCalledWith('cron.skill.saveSuccess');
     });
   });
@@ -138,7 +150,7 @@ describe('SkillSuggestCard', () => {
     });
     mockSaveSkill.mockReturnValue(savePromise);
 
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
@@ -159,20 +171,16 @@ describe('SkillSuggestCard', () => {
   });
 
   it('hides card after successful save', async () => {
-    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    const { container } = render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    const saveButton = screen.getByText('cron.skill.save');
-    fireEvent.click(saveButton);
+    fireEvent.click(screen.getByText('cron.skill.save'));
 
     await waitFor(() => {
       expect(mockSaveSkill).toHaveBeenCalled();
-    });
-
-    await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
     });
   });
@@ -181,78 +189,86 @@ describe('SkillSuggestCard', () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     mockSaveSkill.mockRejectedValue(new Error('Save failed'));
 
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    const saveButton = screen.getByText('cron.skill.save');
-    fireEvent.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockSaveSkill).toHaveBeenCalled();
-    });
+    fireEvent.click(screen.getByText('cron.skill.save'));
 
     await waitFor(() => {
       expect(mockMessageError).toHaveBeenCalledWith('cron.skill.saveFailed');
-    });
-
-    await waitFor(() => {
       expect(consoleErrorSpy).toHaveBeenCalledWith('[SkillSuggestCard] Failed to save skill:', expect.any(Error));
     });
 
-    // Card should still be visible after failed save
     expect(screen.getByText('Test Skill')).toBeInTheDocument();
-
     consoleErrorSpy.mockRestore();
   });
 
-  it('hides card when dismiss button is clicked', async () => {
-    const { container } = render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+  it('dismisses artifact and hides the card when dismiss button is clicked', async () => {
+    const { container } = render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    const dismissButton = screen.getByText('cron.skill.dismiss');
-    expect(dismissButton).toBeInTheDocument();
-
-    fireEvent.click(dismissButton);
+    fireEvent.click(screen.getByText('cron.skill.dismiss'));
 
     await waitFor(() => {
+      expect(mockUpdateArtifact).toHaveBeenCalledWith({
+        conversation_id: 'conv-1',
+        artifact_id: 'artifact-1',
+        status: 'dismissed',
+      });
+      expect(mockUpdateArtifactStatus).toHaveBeenCalledWith('artifact-1', 'dismissed');
       expect(container).toBeEmptyDOMElement();
     });
 
-    // Should not call saveSkill when dismissing
     expect(mockSaveSkill).not.toHaveBeenCalled();
   });
 
-  it('expands and collapses preview content when toggle is clicked', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+  it('shows error message when dismiss fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockUpdateArtifact.mockRejectedValue(new Error('Dismiss failed'));
+
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    // Preview should be collapsed initially
+    fireEvent.click(screen.getByText('cron.skill.dismiss'));
+
+    await waitFor(() => {
+      expect(mockMessageError).toHaveBeenCalledWith('cron.skill.saveFailed');
+      expect(consoleErrorSpy).toHaveBeenCalledWith('[SkillSuggestCard] Failed to dismiss artifact:', expect.any(Error));
+    });
+
+    expect(screen.getByText('Test Skill')).toBeInTheDocument();
+    consoleErrorSpy.mockRestore();
+  });
+
+  it('expands and collapses preview content when toggle is clicked', async () => {
+    render(<SkillSuggestCard {...baseProps} />);
+
+    await waitFor(() => {
+      expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
+    });
+
     expect(screen.queryByTestId('markdown-view')).not.toBeInTheDocument();
     expect(screen.getByTestId('icon-down')).toBeInTheDocument();
 
-    // Click to expand
     const previewToggle = screen.getByText('cron.skill.preview');
     fireEvent.click(previewToggle);
 
-    // Preview should be visible now
     await waitFor(() => {
       expect(screen.getByTestId('markdown-view')).toBeInTheDocument();
     });
     expect(screen.getByTestId('icon-up')).toBeInTheDocument();
 
-    // Click to collapse
     fireEvent.click(previewToggle);
 
-    // Preview should be hidden again
     await waitFor(() => {
       expect(screen.queryByTestId('markdown-view')).not.toBeInTheDocument();
     });
@@ -260,19 +276,17 @@ describe('SkillSuggestCard', () => {
   });
 
   it('renders preview content in markdown format when expanded', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    const previewToggle = screen.getByText('cron.skill.preview');
-    fireEvent.click(previewToggle);
+    fireEvent.click(screen.getByText('cron.skill.preview'));
 
     await waitFor(() => {
       const markdownView = screen.getByTestId('markdown-view');
       expect(markdownView).toBeInTheDocument();
-      // Verify content is wrapped in markdown code fence
       expect(markdownView.textContent).toContain('```markdown');
       expect(markdownView.textContent).toContain(mockSuggestion.content);
     });
@@ -281,30 +295,14 @@ describe('SkillSuggestCard', () => {
   it('handles hasSkill check failure gracefully', async () => {
     mockHasSkill.mockRejectedValue(new Error('Network error'));
 
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
+    render(<SkillSuggestCard {...baseProps} />);
 
     await waitFor(() => {
       expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
     });
 
-    // Card should still render even if hasSkill check fails
     await waitFor(() => {
       expect(screen.getByText('Test Skill')).toBeInTheDocument();
     });
-  });
-
-  it('renders correct button types and sizes', async () => {
-    render(<SkillSuggestCard suggestion={mockSuggestion} cron_job_id='test-job-123' />);
-
-    await waitFor(() => {
-      expect(mockHasSkill).toHaveBeenCalledWith({ job_id: 'test-job-123' });
-    });
-
-    const saveButton = screen.getByText('cron.skill.save');
-    expect(saveButton).toHaveAttribute('data-button-type', 'primary');
-    expect(saveButton).toHaveAttribute('data-size', 'small');
-
-    const dismissButton = screen.getByText('cron.skill.dismiss');
-    expect(dismissButton).toHaveAttribute('data-size', 'small');
   });
 });

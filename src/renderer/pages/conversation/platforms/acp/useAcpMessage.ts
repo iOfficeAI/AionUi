@@ -12,7 +12,7 @@ import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/ho
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-type UseAcpMessageReturn = {
+export type UseAcpMessageReturn = {
   thought: ThoughtData;
   setThought: React.Dispatch<React.SetStateAction<ThoughtData>>;
   running: boolean;
@@ -115,6 +115,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
+        return;
+      }
+
+      if (message.type === 'skill_suggest' || message.type === 'cron_trigger') {
         return;
       }
 

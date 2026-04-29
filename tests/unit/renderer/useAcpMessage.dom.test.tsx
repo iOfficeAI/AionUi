@@ -1,13 +1,34 @@
-import { renderHook, waitFor } from '@testing-library/react';
+import React from 'react';
+import { render, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import AcpChat from '@/renderer/pages/conversation/platforms/acp/AcpChat';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 
 const mockAddOrUpdateMessage = vi.fn();
 const mockConversationGetInvoke = vi.fn();
 const mockResponseStreamOn = vi.fn(() => () => {});
+const mockArtifactListInvoke = vi.fn();
+const mockArtifactStreamOn = vi.fn(() => () => {});
+const mockMessageListCache = vi.fn();
 
-vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
+vi.mock('@renderer/pages/conversation/Messages/MessageList', () => ({
+  default: () => <div data-testid='message-list' />,
+}));
+
+vi.mock('@/renderer/pages/conversation/components/ConversationChatConfirm', () => ({
+  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/acp/AcpSendBox', () => ({
+  default: () => <div data-testid='acp-sendbox' />,
+}));
+
+vi.mock('@/renderer/pages/conversation/Messages/hooks', async () => ({
+  ...(await vi.importActual<typeof import('@/renderer/pages/conversation/Messages/hooks')>(
+    '@/renderer/pages/conversation/Messages/hooks'
+  )),
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
+  useMessageLstCache: (...args: unknown[]) => mockMessageListCache(...args),
 }));
 
 vi.mock('@/common', () => ({
@@ -15,6 +36,12 @@ vi.mock('@/common', () => ({
     conversation: {
       get: {
         invoke: (...args: unknown[]) => mockConversationGetInvoke(...args),
+      },
+      listArtifacts: {
+        invoke: (...args: unknown[]) => mockArtifactListInvoke(...args),
+      },
+      artifactStream: {
+        on: (...args: unknown[]) => mockArtifactStreamOn(...args),
       },
     },
     acpConversation: {
@@ -32,6 +59,7 @@ describe('useAcpMessage — conversation hydration', () => {
       status: 'idle',
       type: 'acp',
     });
+    mockArtifactListInvoke.mockResolvedValue([]);
   });
 
   it('does not clear aiProcessing when get resolves non-running after setAiProcessing(true)', async () => {
@@ -112,5 +140,62 @@ describe('useAcpMessage — conversation hydration', () => {
 
     await waitFor(() => expect(result.current.aiProcessing).toBe(false));
     expect(result.current.hasThinkingMessage).toBe(false);
+  });
+
+  it('subscribes to ACP response stream and artifact stream even when sendbox is hidden', async () => {
+    let responseHandler: ((message: unknown) => void) | undefined;
+    let artifactHandler: ((artifact: unknown) => void) | undefined;
+    mockResponseStreamOn.mockImplementation((cb: (message: unknown) => void) => {
+      responseHandler = cb;
+      return () => {};
+    });
+    mockArtifactStreamOn.mockImplementation((cb: (artifact: unknown) => void) => {
+      artifactHandler = cb;
+      return () => {};
+    });
+
+    render(<AcpChat conversation_id='conv-cron' backend='claude' cron_job_id='cron-1' hideSendBox />);
+
+    await waitFor(() => {
+      expect(mockMessageListCache).toHaveBeenCalledWith('conv-cron');
+      expect(mockResponseStreamOn).toHaveBeenCalled();
+      expect(mockArtifactListInvoke).toHaveBeenCalledWith({ conversation_id: 'conv-cron' });
+      expect(mockArtifactStreamOn).toHaveBeenCalled();
+    });
+
+    expect(responseHandler).toBeTypeOf('function');
+    expect(artifactHandler).toBeTypeOf('function');
+
+    responseHandler?.({
+      type: 'skill_suggest',
+      msg_id: 'skill-1',
+      conversation_id: 'conv-cron',
+      data: {
+        cron_job_id: 'cron-1',
+        name: 'daily-brief',
+        description: 'Daily brief',
+        skill_content: '# skill body',
+      },
+    });
+
+    artifactHandler?.({
+      id: 'artifact-1',
+      conversation_id: 'conv-cron',
+      cron_job_id: 'cron-1',
+      kind: 'skill_suggest',
+      status: 'pending',
+      payload: {
+        cron_job_id: 'cron-1',
+        name: 'daily-brief',
+        description: 'Daily brief',
+        skill_content: '# skill body',
+      },
+      created_at: 1000,
+      updated_at: 1000,
+    });
+
+    await waitFor(() => {
+      expect(mockAddOrUpdateMessage).not.toHaveBeenCalledWith(expect.objectContaining({ type: 'skill_suggest' }));
+    });
   });
 });

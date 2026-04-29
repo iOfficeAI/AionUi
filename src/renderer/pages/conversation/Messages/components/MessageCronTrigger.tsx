@@ -4,18 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageCronTrigger } from '@/common/chat/chatLib';
+import type { ICronTriggerArtifact } from '@/common/adapter/ipcBridge';
 import { iconColors } from '@/renderer/styles/colors';
 import { AlarmClock, Right } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
-const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ message }) => {
+const MessageCronTrigger: React.FC<{ artifact: ICronTriggerArtifact }> = ({ artifact }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const rawContent = message.content as
-    | IMessageCronTrigger['content']
+  const rawContent = artifact.payload as
+    | ICronTriggerArtifact['payload']
     | {
         cronJobId?: string;
         cronJobName?: string;
@@ -28,14 +28,14 @@ const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ messag
     }
     try {
       return JSON.parse(rawContent) as
-        | IMessageCronTrigger['content']
+        | ICronTriggerArtifact['payload']
         | {
             cronJobId?: string;
             cronJobName?: string;
             triggeredAt?: number;
           };
     } catch {
-      return {} as IMessageCronTrigger['content'];
+      return {} as ICronTriggerArtifact['payload'];
     }
   };
   const parsedContent = parseContent();
@@ -43,7 +43,11 @@ const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ messag
   const cron_job_name = parsedContent.cron_job_name ?? parsedContent.cronJobName ?? '';
 
   return (
-    <div className='max-w-780px w-full mx-auto cursor-pointer' onClick={() => navigate(`/scheduled/${cron_job_id}`)}>
+    <div
+      data-testid='message-cron-trigger'
+      className='max-w-780px w-full mx-auto cursor-pointer'
+      onClick={() => navigate(`/scheduled/${cron_job_id}`)}
+    >
       <div
         className='flex items-center gap-8px px-16px py-12px rd-12px b-1 b-solid bg-fill-0 hover:bg-fill-1 transition-colors'
         style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}

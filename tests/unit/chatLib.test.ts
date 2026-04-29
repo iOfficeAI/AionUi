@@ -10,8 +10,6 @@ import {
   transformMessage,
   composeMessage,
   joinPath,
-  type IMessageSkillSuggest,
-  type IMessageCronTrigger,
   type IMessageText,
   type IMessageTips,
   type CronMessageMeta,
@@ -66,39 +64,8 @@ describe('joinPath', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// transformMessage - skill_suggest
-// ---------------------------------------------------------------------------
-
-describe('transformMessage - skill_suggest', () => {
-  it('transforms skill_suggest message correctly', () => {
-    const input: IResponseMessage = {
-      type: 'skill_suggest',
-      conversation_id: 'conv-123',
-      msg_id: 'msg-456',
-      data: {
-        cron_job_id: 'cron-001',
-        name: 'test-skill',
-        description: 'A test skill',
-        skillContent: '---\nname: test-skill\n---\n\n# Test Skill',
-      },
-    };
-
-    const result = transformMessage(input) as IMessageSkillSuggest;
-
-    expect(result).toBeDefined();
-    expect(result.type).toBe('skill_suggest');
-    expect(result.conversation_id).toBe('conv-123');
-    expect(result.msg_id).toBe('msg-456');
-    expect(result.position).toBe('center');
-    expect(result.content.cron_job_id).toBe('cron-001');
-    expect(result.content.name).toBe('test-skill');
-    expect(result.content.description).toBe('A test skill');
-    expect(result.content.skillContent).toBe('---\nname: test-skill\n---\n\n# Test Skill');
-    expect(result.id).toBeDefined(); // uuid generated
-  });
-
-  it('normalizes backend snake_case skill_content payloads', () => {
+describe('transformMessage - artifacts', () => {
+  it('ignores skill_suggest events because they are rendered as conversation artifacts', () => {
     const input: IResponseMessage = {
       type: 'skill_suggest',
       conversation_id: 'conv-123',
@@ -111,9 +78,22 @@ describe('transformMessage - skill_suggest', () => {
       },
     };
 
-    const result = transformMessage(input) as IMessageSkillSuggest;
-    expect(result.content.cron_job_id).toBe('cron-001');
-    expect(result.content.skillContent).toBe('---\nname: test-skill\n---\n\n# Test Skill');
+    expect(transformMessage(input)).toBeUndefined();
+  });
+
+  it('ignores cron_trigger events because they are rendered as conversation artifacts', () => {
+    const input: IResponseMessage = {
+      type: 'cron_trigger',
+      conversation_id: 'conv-789',
+      msg_id: 'msg-012',
+      data: {
+        cronJobId: 'cron-002',
+        cron_job_name: 'Daily Report',
+        triggeredAt: Date.now(),
+      },
+    };
+
+    expect(transformMessage(input)).toBeUndefined();
   });
 });
 
@@ -138,58 +118,6 @@ describe('transformMessage - tips', () => {
       content: 'Missed while asleep',
       type: 'warning',
     });
-  });
-});
-
-// ---------------------------------------------------------------------------
-// transformMessage - cron_trigger
-// ---------------------------------------------------------------------------
-
-describe('transformMessage - cron_trigger', () => {
-  it('transforms cron_trigger message correctly', () => {
-    const triggeredAt = Date.now();
-    const input: IResponseMessage = {
-      type: 'cron_trigger',
-      conversation_id: 'conv-789',
-      msg_id: 'msg-012',
-      data: {
-        cronJobId: 'cron-002',
-        cron_job_name: 'Daily Report',
-        triggeredAt,
-      },
-    };
-
-    const result = transformMessage(input) as IMessageCronTrigger;
-
-    expect(result).toBeDefined();
-    expect(result.type).toBe('cron_trigger');
-    expect(result.conversation_id).toBe('conv-789');
-    expect(result.msg_id).toBe('msg-012');
-    expect(result.position).toBe('center');
-    expect(result.content.cron_job_id).toBe('cron-002');
-    expect(result.content.cron_job_name).toBe('Daily Report');
-    expect(result.content.triggered_at).toBe(triggeredAt);
-    expect(result.id).toBeDefined(); // uuid generated
-  });
-
-  it('normalizes snake_case cron_trigger message correctly', () => {
-    const triggeredAt = Date.now();
-    const input: IResponseMessage = {
-      type: 'cron_trigger',
-      conversation_id: 'conv-790',
-      msg_id: 'msg-013',
-      data: {
-        cron_job_id: 'cron-003',
-        cron_job_name: 'Nightly Cleanup',
-        triggered_at: triggeredAt,
-      },
-    };
-
-    const result = transformMessage(input) as IMessageCronTrigger;
-
-    expect(result.content.cron_job_id).toBe('cron-003');
-    expect(result.content.cron_job_name).toBe('Nightly Cleanup');
-    expect(result.content.triggered_at).toBe(triggeredAt);
   });
 });
 
@@ -537,55 +465,12 @@ describe('composeMessage - cronMeta preservation', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// composeMessage - skill_suggest and cron_trigger
-// ---------------------------------------------------------------------------
-
-describe('composeMessage - skill_suggest', () => {
-  it('adds skill_suggest message to list', () => {
-    const skillSuggestMsg: IMessageSkillSuggest = {
-      id: 'msg-skill',
-      type: 'skill_suggest',
-      conversation_id: 'conv-skill',
-      msg_id: 'msg-skill-1',
-      position: 'center',
-      content: {
-        cronJobId: 'cron-008',
-        name: 'suggested-skill',
-        description: 'A suggested skill',
-        skillContent: '# Skill content',
-      },
-    };
-
+describe('composeMessage - ignores undefined artifact transforms', () => {
+  it('keeps the list unchanged when transformMessage returns undefined for artifact events', () => {
     const messageHandler = vi.fn();
-    const result = composeMessage(skillSuggestMsg, [], messageHandler);
+    const result = composeMessage(undefined, [], messageHandler);
 
-    expect(result).toHaveLength(1);
-    expect(result[0]).toEqual(skillSuggestMsg);
-    expect(messageHandler).toHaveBeenCalledWith('insert', skillSuggestMsg);
-  });
-});
-
-describe('composeMessage - cron_trigger', () => {
-  it('adds cron_trigger message to list', () => {
-    const cronTriggerMsg: IMessageCronTrigger = {
-      id: 'msg-trigger',
-      type: 'cron_trigger',
-      conversation_id: 'conv-trigger',
-      msg_id: 'msg-trigger-1',
-      position: 'center',
-      content: {
-        cronJobId: 'cron-009',
-        cron_job_name: 'Trigger Job',
-        triggeredAt: Date.now(),
-      },
-    };
-
-    const messageHandler = vi.fn();
-    const result = composeMessage(cronTriggerMsg, [], messageHandler);
-
-    expect(result).toHaveLength(1);
-    expect(result[0]).toEqual(cronTriggerMsg);
-    expect(messageHandler).toHaveBeenCalledWith('insert', cronTriggerMsg);
+    expect(result).toEqual([]);
+    expect(messageHandler).not.toHaveBeenCalled();
   });
 });

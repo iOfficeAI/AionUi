@@ -364,10 +364,7 @@ export const useRemoveMessageByMsgId = () => {
   );
 };
 
-export const useMessageLstCache = (
-  key: string,
-  options?: { enableLateMessagePolling?: boolean; pollIntervalMs?: number; maxPollAttempts?: number }
-) => {
+export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
     const result = await ipcBridge.database.getConversationMessages.invoke({
@@ -417,46 +414,6 @@ export const useMessageLstCache = (
       console.error('[useMessageLstCache] Failed to load messages from database:', error);
     });
   }, [key, loadMessages]);
-
-  useEffect(() => {
-    if (!key || !options?.enableLateMessagePolling) return;
-
-    let cancelled = false;
-    let timeoutId: ReturnType<typeof setTimeout> | null = null;
-    const MAX_ATTEMPTS = options?.maxPollAttempts ?? 60;
-    const POLL_INTERVAL_MS = options?.pollIntervalMs ?? 2000;
-    let attempts = 0;
-
-    const pollForLateMessages = async () => {
-      while (!cancelled && attempts < MAX_ATTEMPTS) {
-        attempts += 1;
-        await new Promise<void>((resolve) => {
-          timeoutId = setTimeout(resolve, POLL_INTERVAL_MS);
-        });
-        timeoutId = null;
-
-        if (cancelled) return;
-
-        try {
-          const messages = await loadMessages();
-          if (messages.some((message) => message.type === 'skill_suggest')) {
-            return;
-          }
-        } catch (error) {
-          console.error('[useMessageLstCache] Failed polling messages from database:', error);
-        }
-      }
-    };
-
-    void pollForLateMessages();
-
-    return () => {
-      cancelled = true;
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [key, loadMessages, options?.enableLateMessagePolling, options?.maxPollAttempts, options?.pollIntervalMs]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

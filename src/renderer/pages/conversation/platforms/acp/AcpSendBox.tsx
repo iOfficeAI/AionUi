@@ -36,7 +36,7 @@ import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
-import { useAcpMessage } from './useAcpMessage';
+import type { UseAcpMessageReturn } from './useAcpMessage';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -98,6 +98,7 @@ const AcpSendBox: React.FC<{
   workspacePath?: string;
   team_id?: string;
   agentSlotId?: string;
+  messageState: UseAcpMessageReturn;
 }> = ({
   conversation_id,
   backend,
@@ -107,6 +108,7 @@ const AcpSendBox: React.FC<{
   workspacePath,
   team_id,
   agentSlotId,
+  messageState,
 }) => {
   const {
     running,
@@ -118,7 +120,7 @@ const AcpSendBox: React.FC<{
     tokenUsage,
     context_limit,
     hasThinkingMessage,
-  } = useAcpMessage(conversation_id);
+  } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)

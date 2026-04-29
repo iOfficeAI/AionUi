@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
+import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
@@ -384,10 +385,11 @@ export const useGuidAgentSelection = ({
         if (cancelled) return;
 
         // 1. Use preferredMode if valid
-        if (preferred) {
+        const normalizedPreferred = configKey === 'codex' ? normalizeCodexMode(preferred) : preferred;
+        if (normalizedPreferred) {
           const modes = getAgentModes(configKey);
-          if (modes.some((m) => m.value === preferred)) {
-            _setSelectedMode(preferred);
+          if (modes.some((m) => m.value === normalizedPreferred)) {
+            _setSelectedMode(normalizedPreferred);
             return;
           }
         }
@@ -397,7 +399,7 @@ export const useGuidAgentSelection = ({
           const yoloValues: Record<string, string> = {
             claude: 'bypassPermissions',
             gemini: 'yolo',
-            codex: 'yolo',
+            codex: CODEX_MODE_NATIVE_FULL_ACCESS,
             qwen: 'yolo',
           };
           _setSelectedMode(yoloValues[configKey] || 'yolo');

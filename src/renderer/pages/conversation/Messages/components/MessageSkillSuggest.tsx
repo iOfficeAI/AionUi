@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageSkillSuggest } from '@/common/chat/chatLib';
+import type { ISkillSuggestArtifact } from '@/common/adapter/ipcBridge';
 import React from 'react';
 import SkillSuggestCard from './SkillSuggestCard';
 
-const MessageSkillSuggest: React.FC<{ message: IMessageSkillSuggest }> = ({ message }) => {
-  const rawContent = message.content as
-    | IMessageSkillSuggest['content']
+const MessageSkillSuggest: React.FC<{ artifact: ISkillSuggestArtifact }> = ({ artifact }) => {
+  const rawContent = artifact.payload as
+    | ISkillSuggestArtifact['payload']
     | {
         skill_content?: string;
       }
@@ -19,9 +19,9 @@ const MessageSkillSuggest: React.FC<{ message: IMessageSkillSuggest }> = ({ mess
     typeof rawContent === 'string'
       ? (() => {
           try {
-            return JSON.parse(rawContent) as IMessageSkillSuggest['content'] & { skill_content?: string };
+            return JSON.parse(rawContent) as ISkillSuggestArtifact['payload'] & { skill_content?: string };
           } catch {
-            return {} as IMessageSkillSuggest['content'] & { skill_content?: string };
+            return {} as ISkillSuggestArtifact['payload'] & { skill_content?: string };
           }
         })()
       : rawContent;
@@ -29,8 +29,13 @@ const MessageSkillSuggest: React.FC<{ message: IMessageSkillSuggest }> = ({ mess
   const skillContent = content.skillContent ?? content.skill_content ?? '';
 
   return (
-    <div className='max-w-780px w-full mx-auto'>
-      <SkillSuggestCard suggestion={{ name, description, content: skillContent }} cron_job_id={cron_job_id} />
+    <div data-testid='message-skill-suggest' className='max-w-780px w-full mx-auto'>
+      <SkillSuggestCard
+        artifact_id={artifact.id}
+        conversation_id={artifact.conversation_id}
+        suggestion={{ name, description, content: skillContent }}
+        cron_job_id={cron_job_id}
+      />
     </div>
   );
 };
