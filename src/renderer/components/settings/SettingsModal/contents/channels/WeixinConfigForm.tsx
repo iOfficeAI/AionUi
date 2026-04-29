@@ -496,6 +496,16 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       };
                       setSelectedAgent(next);
                       void persistSelectedAgent(next);
+
+                      if (next.agent_type === 'aionrs') {
+                        const savedModel = configService.get('assistant.weixin.defaultModel');
+                        if (!savedModel?.id) {
+                          const firstProvider = modelSelection.providers?.[0];
+                          if (firstProvider?.id && firstProvider.models?.[0]) {
+                            void modelSelection.handleSelectModel(firstProvider, firstProvider.models[0]);
+                          }
+                        }
+                      }
                     }}
                   >
                     {a.name}

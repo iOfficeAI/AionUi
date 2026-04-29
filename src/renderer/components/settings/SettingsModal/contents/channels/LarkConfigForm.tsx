@@ -646,6 +646,16 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                         };
                         setSelectedAgent(next);
                         void persistSelectedAgent(next);
+
+                        if (next.agent_type === 'aionrs') {
+                          const savedModel = configService.get('assistant.lark.defaultModel');
+                          if (!savedModel?.id) {
+                            const firstProvider = modelSelection.providers?.[0];
+                            if (firstProvider?.id && firstProvider.models?.[0]) {
+                              void modelSelection.handleSelectModel(firstProvider, firstProvider.models[0]);
+                            }
+                          }
+                        }
                       }}
                     >
                       {a.name}
