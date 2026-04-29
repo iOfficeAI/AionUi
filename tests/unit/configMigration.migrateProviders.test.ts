@@ -1,17 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockServiceGet = vi.fn();
-const mockServiceSet = vi.fn();
+const mockHttpRequest = vi.fn();
 const mockLegacyGet = vi.fn();
 const mockListProviders = vi.fn();
 const mockCreateProvider = vi.fn();
 
-vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: mockServiceGet,
-    set: mockServiceSet,
-    setBatch: vi.fn(),
-  },
+vi.mock('@/common/adapter/httpBridge', () => ({
+  httpRequest: mockHttpRequest,
 }));
 
 vi.mock('@/common/config/storage', () => ({
@@ -34,62 +29,70 @@ const { migrateProviders } = await import('@/common/config/configMigration');
 describe('migrateProviders', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockHttpRequest.mockImplementation(async (method: string, _path: string, body?: unknown) => {
+      if (method === 'GET') return {};
+      if (method === 'PUT') return body;
+      return undefined;
+    });
   });
 
   it('skips when flag is already set', async () => {
-    mockServiceGet.mockReturnValue(true);
+    mockHttpRequest.mockResolvedValueOnce({ 'migration.providersImported': true });
 
     await migrateProviders();
 
     expect(mockListProviders).not.toHaveBeenCalled();
-    expect(mockServiceSet).not.toHaveBeenCalled();
+    expect(mockHttpRequest).toHaveBeenCalledTimes(1);
   });
 
   it('sets flag and returns when backend already has providers', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([{ id: 'existing' }]);
 
     await migrateProviders();
 
-    expect(mockServiceSet).toHaveBeenCalledWith('migration.providersImported', true);
+    expect(mockHttpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+      'migration.providersImported': true,
+    });
     expect(mockLegacyGet).not.toHaveBeenCalled();
   });
 
   it('sets flag and returns when ConfigStorage has no model.config', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockRejectedValue(new Error('not found'));
 
     await migrateProviders();
 
-    expect(mockServiceSet).toHaveBeenCalledWith('migration.providersImported', true);
+    expect(mockHttpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+      'migration.providersImported': true,
+    });
     expect(mockCreateProvider).not.toHaveBeenCalled();
   });
 
   it('sets flag and returns when model.config is empty array', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([]);
 
     await migrateProviders();
 
-    expect(mockServiceSet).toHaveBeenCalledWith('migration.providersImported', true);
+    expect(mockHttpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+      'migration.providersImported': true,
+    });
     expect(mockCreateProvider).not.toHaveBeenCalled();
   });
 
   it('sets flag and returns when model.config is null', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue(null);
 
     await migrateProviders();
 
-    expect(mockServiceSet).toHaveBeenCalledWith('migration.providersImported', true);
+    expect(mockHttpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+      'migration.providersImported': true,
+    });
     expect(mockCreateProvider).not.toHaveBeenCalled();
   });
 
   it('transforms camelCase fields to snake_case for backend API', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([
       {
@@ -129,7 +132,6 @@ describe('migrateProviders', () => {
   });
 
   it('transforms bedrockConfig fields to snake_case', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([
       {
@@ -162,7 +164,6 @@ describe('migrateProviders', () => {
   });
 
   it('continues migration when a single create fails', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([
       {
@@ -187,11 +188,12 @@ describe('migrateProviders', () => {
     await migrateProviders();
 
     expect(mockCreateProvider).toHaveBeenCalledTimes(2);
-    expect(mockServiceSet).toHaveBeenCalledWith('migration.providersImported', true);
+    expect(mockHttpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+      'migration.providersImported': true,
+    });
   });
 
   it('defaults enabled to true when omitted', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([
       {
@@ -212,7 +214,6 @@ describe('migrateProviders', () => {
   });
 
   it('migrates multiple providers', async () => {
-    mockServiceGet.mockReturnValue(undefined);
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([
       {
@@ -261,7 +262,8 @@ describe('migrateProviders', () => {
   });
 
   it('is idempotent — second call is a no-op when flag is set', async () => {
-    mockServiceGet.mockReturnValueOnce(undefined).mockReturnValueOnce(true);
+    mockHttpRequest.mockImplementationOnce(async () => ({})).mockImplementationOnce(async () => undefined);
+    mockHttpRequest.mockImplementationOnce(async () => ({ 'migration.providersImported': true }));
     mockListProviders.mockResolvedValue([]);
     mockLegacyGet.mockResolvedValue([
       {
@@ -278,11 +280,8 @@ describe('migrateProviders', () => {
     await migrateProviders();
     expect(mockCreateProvider).toHaveBeenCalledTimes(1);
 
-    vi.clearAllMocks();
-    mockServiceGet.mockReturnValue(true);
-
     await migrateProviders();
-    expect(mockCreateProvider).not.toHaveBeenCalled();
-    expect(mockListProviders).not.toHaveBeenCalled();
+    expect(mockCreateProvider).toHaveBeenCalledTimes(1);
+    expect(mockListProviders).toHaveBeenCalledTimes(1);
   });
 });

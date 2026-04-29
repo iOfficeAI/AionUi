@@ -125,6 +125,12 @@ type ConfigFile = typeof ProcessConfigType;
 
 type BuiltinOverride = { id: string; enabled: false };
 
+type LegacyConfigAccessor = {
+  get: (key: string) => Promise<unknown>;
+  set: (key: string, value: unknown) => Promise<unknown>;
+  remove?: (key: string) => Promise<unknown>;
+};
+
 /**
  * Collect user-set `enabled=false` overrides on legacy built-in rows so we can
  * replay them against the backend's `assistant_overrides` table post-import.
@@ -174,6 +180,19 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
   return failed;
 }
 
+async function finalizeAssistantMigration(configFile: ConfigFile): Promise<boolean> {
+  const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
+  try {
+    if (typeof rawConfigFile.remove === 'function') {
+      await rawConfigFile.remove('assistants');
+    }
+    return true;
+  } catch (error) {
+    console.error('[AionUi] Failed to finalize assistant migration:', error);
+    return false;
+  }
+}
+
 /**
  * One-shot import of legacy `ConfigStorage.get('assistants')` into the backend
  * after the backend is healthy. Two phases:
@@ -184,28 +203,23 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
  *      user had disabled, so the `enabled=false` preference survives the
  *      migration to the backend's `assistant_overrides` table.
  *
- * Flag `migration.electronConfigImported` only flips true when BOTH phases
- * complete cleanly (or when there is nothing to do). Any failure keeps the
- * flag false so the next launch retries.
+ * Returns `true` only when BOTH phases complete cleanly (or when there is
+ * nothing to do). The caller owns the overall Electron-config migration flag;
+ * any failure returns `false` so the caller can keep that flag unset and retry
+ * on the next launch.
  *
  * Honors `AIONUI_SKIP_ELECTRON_MIGRATION=1` so E2E fixtures can seed via
  * `POST /api/assistants/import` directly.
  */
-export async function migrateAssistantsToBackend(configFile: ConfigFile): Promise<void> {
+export async function migrateAssistantsToBackend(configFile: ConfigFile): Promise<boolean> {
   if (process.env.AIONUI_SKIP_ELECTRON_MIGRATION === '1') {
     console.log('[AionUi] Assistant migration skipped (env flag set)');
-    return;
+    return false;
   }
-
-  const imported = await configFile.get('migration.electronConfigImported').catch(() => false);
-  if (imported) return;
 
   // The legacy `assistants` key was removed from IConfigStorageRefer in T3a,
   // but the file on disk may still carry it. Read defensively.
-  const rawConfigFile = configFile as unknown as {
-    get: (key: string) => Promise<unknown>;
-    set: (key: string, value: unknown) => Promise<unknown>;
-  };
+  const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
 
@@ -214,8 +228,7 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
 
   // Nothing to do at all — flag flips true immediately.
   if (userAssistants.length === 0 && builtinOverrides.length === 0) {
-    await configFile.set('migration.electronConfigImported', true);
-    return;
+    return finalizeAssistantMigration(configFile);
   }
 
   // Phase 1: import user-authored assistants (if any).
@@ -228,12 +241,12 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
         console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
         // Keep flag false; next launch retries. Insert-only on backend so
         // already-imported rows will skip rather than clobber.
-        return;
+        return false;
       }
       console.log(`[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`);
     } catch (error) {
       console.error('[AionUi] Assistant migration failed:', error);
-      return;
+      return false;
     }
   }
 
@@ -242,8 +255,8 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   if (overrideFailures > 0) {
     // Partial override failure — retry on next launch. setState is an upsert
     // on the backend side, so replaying is safe.
-    return;
+    return false;
   }
 
-  await configFile.set('migration.electronConfigImported', true);
+  return finalizeAssistantMigration(configFile);
 }
