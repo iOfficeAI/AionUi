@@ -505,17 +505,16 @@ const handleAppReady = async (): Promise<void> => {
     console.error('[AionUi] Failed to start aionui-backend:', error);
   }
 
-  // One-shot migration: import legacy `ConfigStorage.get('assistants')` into
-  // the backend. Only runs when backend is healthy; the migration flag
-  // remains false on failure so the next launch retries. Insert-only on the
-  // backend side, so retries are idempotent.
+  // One-shot backend migrations: replay legacy Electron config into backend
+  // storage only after the backend is healthy. Each step is independently
+  // idempotent and keeps its flag false on failure so the next launch retries.
   if (backendStartedOk) {
     try {
-      const { migrateAssistantsToBackend } = await import('./process/utils/migrateAssistants');
-      await migrateAssistantsToBackend(ProcessConfig);
-      mark('migrateAssistantsToBackend');
+      const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
+      await runBackendMigrations(ProcessConfig);
+      mark('runBackendMigrations');
     } catch (error) {
-      console.error('[AionUi] Assistant migration hook threw:', error);
+      console.error('[AionUi] Backend migration hook threw:', error);
     }
   }
 

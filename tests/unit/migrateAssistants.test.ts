@@ -25,7 +25,10 @@ vi.mock('@/process/utils/initStorage', () => ({
   ProcessConfig: {},
 }));
 
-import { legacyAssistantToCreateRequest, migrateAssistantsToBackend } from '@/process/utils/migrateAssistants';
+import {
+  legacyAssistantToCreateRequest,
+  migrateAssistantsToBackend,
+} from '@/process/utils/migrateAssistants';
 import { ipcBridge } from '@/common';
 
 type Store = Map<string, unknown>;
@@ -37,6 +40,9 @@ function makeConfigFile(initial: Record<string, unknown>) {
     get: vi.fn(async (k: string) => store.get(k)),
     set: vi.fn(async (k: string, v: unknown) => {
       store.set(k, v);
+    }),
+    remove: vi.fn(async (k: string) => {
+      store.delete(k);
     }),
   };
 }
@@ -53,17 +59,18 @@ describe('migrateAssistantsToBackend', () => {
     delete process.env.AIONUI_SKIP_ELECTRON_MIGRATION;
   });
 
-  it('is a no-op when migration.electronConfigImported is already true', async () => {
-    const cf = makeConfigFile({ 'migration.electronConfigImported': true });
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+  it('returns true when the legacy assistants key is absent entirely', async () => {
+    const cf = makeConfigFile({});
+    const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
-    expect(cf.set).not.toHaveBeenCalled();
+    expect(result).toBe(true);
     expect(importInvokeMock).not.toHaveBeenCalled();
+    expect(cf.remove).toHaveBeenCalledWith('assistants');
+    expect(cf.set).not.toHaveBeenCalled();
   });
 
   it('filters out legacy builtin-prefixed rows before importing', async () => {
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [
         { id: 'builtin-office', name: 'Office' },
         { id: 'custom-123', name: 'Mine' },
@@ -76,19 +83,20 @@ describe('migrateAssistantsToBackend', () => {
       errors: [],
     });
 
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+    const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
+    expect(result).toBe(true);
     expect(importInvokeMock).toHaveBeenCalledTimes(1);
     const [call] = importInvokeMock.mock.calls[0];
     expect(call.assistants).toHaveLength(1);
     expect(call.assistants[0].id).toBe('custom-123');
-    // Flag is set when all rows succeed.
-    expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
+    expect(cf.remove).toHaveBeenCalledWith('assistants');
+    expect(cf.set).not.toHaveBeenCalled();
+    expect(cf.store.has('assistants')).toBe(false);
   });
 
-  it('does not set the flag when the import reports partial failure', async () => {
+  it('returns false when the import reports partial failure', async () => {
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [{ id: 'a', name: 'A' }],
     });
     importInvokeMock.mockResolvedValue({
@@ -98,60 +106,53 @@ describe('migrateAssistantsToBackend', () => {
       errors: [{ id: 'a', error: 'boom' }],
     });
 
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+    const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
-    expect(cf.set).not.toHaveBeenCalledWith('migration.electronConfigImported', true);
+    expect(result).toBe(false);
+    expect(cf.set).not.toHaveBeenCalled();
   });
 
-  it('sets the flag when every legacy row is a builtin (nothing to import)', async () => {
+  it('returns true when every legacy row is a builtin (nothing to import)', async () => {
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [{ id: 'builtin-office', name: 'Office' }],
     });
 
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+    const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
+    expect(result).toBe(true);
     expect(importInvokeMock).not.toHaveBeenCalled();
-    expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
-  });
-
-  it('sets the flag when the legacy assistants key is absent entirely', async () => {
-    const cf = makeConfigFile({ 'migration.electronConfigImported': false });
-
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
-
-    expect(importInvokeMock).not.toHaveBeenCalled();
-    expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
+    expect(cf.remove).toHaveBeenCalledWith('assistants');
+    expect(cf.set).not.toHaveBeenCalled();
+    expect(cf.store.has('assistants')).toBe(false);
   });
 
   it('respects AIONUI_SKIP_ELECTRON_MIGRATION=1', async () => {
     process.env.AIONUI_SKIP_ELECTRON_MIGRATION = '1';
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [{ id: 'custom-1', name: 'X' }],
     });
 
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+    const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
+    expect(result).toBe(false);
     expect(cf.set).not.toHaveBeenCalled();
     expect(importInvokeMock).not.toHaveBeenCalled();
   });
 
-  it('does not set the flag when the import call itself throws', async () => {
+  it('returns false when the import call itself throws', async () => {
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [{ id: 'custom-1', name: 'X' }],
     });
     importInvokeMock.mockRejectedValue(new Error('network down'));
 
-    await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+    const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
-    expect(cf.set).not.toHaveBeenCalledWith('migration.electronConfigImported', true);
+    expect(result).toBe(false);
+    expect(cf.set).not.toHaveBeenCalled();
   });
 
   it('normalizes malformed legacy rows into backend-shaped CreateAssistantRequest', async () => {
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [
         {
           id: 'custom-full',
@@ -188,7 +189,6 @@ describe('migrateAssistantsToBackend', () => {
 
   it('defaults preset_agent_type to gemini and name to "Untitled" when missing', async () => {
     const cf = makeConfigFile({
-      'migration.electronConfigImported': false,
       assistants: [{ id: 'custom-bare' }],
     });
     importInvokeMock.mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
@@ -205,7 +205,6 @@ describe('migrateAssistantsToBackend', () => {
   describe('builtin disabled-state override (H3)', () => {
     it('replays enabled=false for legacy builtins via setState with stripped id', async () => {
       const cf = makeConfigFile({
-        'migration.electronConfigImported': false,
         assistants: [
           { id: 'builtin-word-creator', isBuiltin: true, enabled: false },
           { id: 'builtin-openclaw-setup', isBuiltin: true, enabled: false },
@@ -216,32 +215,33 @@ describe('migrateAssistantsToBackend', () => {
       importInvokeMock.mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
       setStateInvokeMock.mockResolvedValue(undefined);
 
-      await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+      const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
+      expect(result).toBe(true);
       // setState called only for disabled builtins; id stripped of "builtin-" prefix.
       expect(setStateInvokeMock).toHaveBeenCalledTimes(2);
       expect(setStateInvokeMock).toHaveBeenCalledWith({ id: 'word-creator', enabled: false });
       expect(setStateInvokeMock).toHaveBeenCalledWith({ id: 'openclaw-setup', enabled: false });
       // Cowork was enabled — must not appear.
       expect(setStateInvokeMock).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'cowork' }));
-      // Flag flips true after both phases succeed.
-      expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
+      expect(cf.remove).toHaveBeenCalledWith('assistants');
+      expect(cf.set).not.toHaveBeenCalled();
+      expect(cf.store.has('assistants')).toBe(false);
     });
 
-    it('keeps the flag false when any setState call throws', async () => {
+    it('returns false when any setState call throws', async () => {
       const cf = makeConfigFile({
-        'migration.electronConfigImported': false,
         assistants: [{ id: 'builtin-word-creator', isBuiltin: true, enabled: false }],
       });
       setStateInvokeMock.mockRejectedValue(new Error('backend offline'));
 
-      await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+      const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
-      // No user rows → phase 1 skipped; phase 2 failed → flag must stay false
-      // so the next launch retries.
+      expect(result).toBe(false);
       expect(importInvokeMock).not.toHaveBeenCalled();
       expect(setStateInvokeMock).toHaveBeenCalledOnce();
-      expect(cf.set).not.toHaveBeenCalledWith('migration.electronConfigImported', true);
+      expect(cf.set).not.toHaveBeenCalled();
+      expect(cf.remove).not.toHaveBeenCalled();
     });
 
     it('is also exercised directly via the exported mapper', async () => {
@@ -256,9 +256,8 @@ describe('migrateAssistantsToBackend', () => {
       expect(out.enabled_skills).toEqual(['a']);
     });
 
-    it('sets the flag immediately when there are no user imports and no overrides', async () => {
+    it('returns true immediately when there are no user imports and no overrides', async () => {
       const cf = makeConfigFile({
-        'migration.electronConfigImported': false,
         assistants: [
           // All built-ins, all enabled — nothing to import, nothing to override.
           { id: 'builtin-word-creator', isBuiltin: true, enabled: true },
@@ -266,11 +265,14 @@ describe('migrateAssistantsToBackend', () => {
         ],
       });
 
-      await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
+      const result = await migrateAssistantsToBackend(cf as unknown as Parameters<typeof migrateAssistantsToBackend>[0]);
 
+      expect(result).toBe(true);
       expect(importInvokeMock).not.toHaveBeenCalled();
       expect(setStateInvokeMock).not.toHaveBeenCalled();
-      expect(cf.set).toHaveBeenCalledWith('migration.electronConfigImported', true);
+      expect(cf.remove).toHaveBeenCalledWith('assistants');
+      expect(cf.set).not.toHaveBeenCalled();
+      expect(cf.store.has('assistants')).toBe(false);
     });
   });
 });

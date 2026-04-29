@@ -85,17 +85,6 @@ export interface IConfigStorageRefer {
   'upload.saveToWorkspace'?: boolean;
   // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
   'guid.lastSelectedAgent'?: string;
-  // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
-  'migration.assistantEnabledFixed'?: boolean;
-  // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
-  /** @deprecated Use migration.builtinDefaultSkillsAdded_v2 instead */
-  'migration.coworkDefaultSkillsAdded'?: boolean;
-  // 迁移标记：为所有内置助手添加默认启用的 skills / Migration flag: add default enabled skills for all builtin assistants
-  'migration.builtinDefaultSkillsAdded_v2'?: boolean;
-  // 迁移标记：为所有内置助手添加 promptsI18n / Migration flag: add promptsI18n for all builtin assistants
-  'migration.promptsI18nAdded'?: boolean;
-  /** Migration flag: split 'assistants' into presets-only + 'acp.customAgents' (user-defined customs). */
-  'migration.assistantsSplitCustom'?: boolean;
   /** Migration flag: Electron desktop config has been imported to server config */
   'migration.electronConfigImported'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window

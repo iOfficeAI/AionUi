@@ -55,11 +55,6 @@ export type ConfigKeyMap = {
   'workspace.pasteConfirm': boolean | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'guid.lastSelectedAgent': string | undefined;
-  'migration.assistantEnabledFixed': boolean | undefined;
-  'migration.coworkDefaultSkillsAdded': boolean | undefined;
-  'migration.builtinDefaultSkillsAdded_v2': boolean | undefined;
-  'migration.promptsI18nAdded': boolean | undefined;
-  'migration.assistantsSplitCustom': boolean | undefined;
   'migration.electronConfigImported': boolean | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;

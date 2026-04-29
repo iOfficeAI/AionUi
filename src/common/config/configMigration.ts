@@ -1,8 +1,8 @@
 import { ipcBridge } from '@/common';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import type { CreateProviderRequest } from '@/common/types/providerApi';
 
-import type { ConfigKey } from './configKeys';
-import { configService } from './configService';
+import type { ConfigKey, ConfigKeyMap } from './configKeys';
 import { ConfigStorage, type IConfigStorageRefer } from './storage';
 
 const MIGRATION_FLAG: ConfigKey = 'migration.configStorageImported';
@@ -13,7 +13,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'acp.promptTimeout',
   'acp.agentIdleTimeout',
   'acp.customAgents',
-  'assistants',
   'acp.cachedInitializeResult',
   'acp.cachedModels',
   'acp.cached_config_options',
@@ -57,34 +56,35 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'assistant.weixin.agent',
   'assistant.wecom.defaultModel',
   'assistant.wecom.agent',
-  'migration.assistantEnabledFixed',
-  'migration.coworkDefaultSkillsAdded',
-  'migration.builtinDefaultSkillsAdded_v2',
-  'migration.promptsI18nAdded',
-  'migration.assistantsSplitCustom',
-  'migration.electronConfigImported',
 ];
 
 export async function migrateConfigStorage(): Promise<void> {
-  if (configService.get(MIGRATION_FLAG)) {
+  if (await isBackendMigrationComplete(MIGRATION_FLAG)) {
     return;
   }
 
   const entries: Record<string, unknown> = {};
 
-  for (const key of ALL_LEGACY_KEYS) {
-    try {
-      const value = await ConfigStorage.get(key as keyof IConfigStorageRefer);
-      if (value !== undefined && value !== null) {
-        entries[key] = value;
+  const legacyEntries = await Promise.all(
+    ALL_LEGACY_KEYS.map(async (key) => {
+      try {
+        const value = await ConfigStorage.get(key as keyof IConfigStorageRefer);
+        return [key, value] as const;
+      } catch {
+        // key may not exist in old storage, skip
+        return [key, undefined] as const;
       }
-    } catch {
-      // key may not exist in old storage, skip
+    })
+  );
+
+  for (const [key, value] of legacyEntries) {
+    if (value !== undefined && value !== null) {
+      entries[key] = value;
     }
   }
 
   entries[MIGRATION_FLAG] = true;
-  await configService.setBatch(entries as Parameters<typeof configService.setBatch>[0]);
+  await setBackendClientPreferences(entries);
   console.info('[Migration] configStorage migration completed, migrated %d keys', Object.keys(entries).length - 1);
 }
 
@@ -143,14 +143,14 @@ function transformModelHealth(health: LegacyModelHealth): CreateProviderRequest[
 }
 
 export async function migrateProviders(): Promise<void> {
-  if (configService.get(PROVIDERS_MIGRATION_FLAG)) {
+  if (await isBackendMigrationComplete(PROVIDERS_MIGRATION_FLAG)) {
     return;
   }
 
   const existing = await ipcBridge.mode.listProviders.invoke();
   if (existing && existing.length > 0) {
     console.info('[Migration] providers migration skipped — backend already has %d providers', existing.length);
-    await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+    await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
     return;
   }
 
@@ -161,51 +161,70 @@ export async function migrateProviders(): Promise<void> {
     )) as unknown as LegacyProvider[];
   } catch (err) {
     console.info('[Migration] providers migration skipped — no model.config in legacy storage', err);
-    await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+    await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
     return;
   }
 
   if (!legacyProviders || !Array.isArray(legacyProviders) || legacyProviders.length === 0) {
     console.info('[Migration] providers migration skipped — model.config is empty or invalid');
-    await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+    await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
     return;
   }
 
   console.info('[Migration] found %d legacy providers to migrate', legacyProviders.length);
 
-  let migrated = 0;
-  for (const legacy of legacyProviders) {
-    try {
-      const req: CreateProviderRequest = {
-        id: legacy.id,
-        platform: legacy.platform,
-        name: legacy.name,
-        base_url: legacy.baseUrl,
-        api_key: legacy.apiKey,
-        models: legacy.model,
-        enabled: legacy.enabled ?? true,
-        capabilities: legacy.capabilities,
-        context_limit: legacy.contextLimit,
-        model_protocols: legacy.modelProtocols,
-        model_enabled: legacy.modelEnabled,
-        model_health: legacy.modelHealth ? transformModelHealth(legacy.modelHealth) : undefined,
-        bedrock_config: legacy.bedrockConfig
-          ? {
-              auth_method: legacy.bedrockConfig.authMethod,
-              region: legacy.bedrockConfig.region,
-              access_key_id: legacy.bedrockConfig.accessKeyId,
-              secret_access_key: legacy.bedrockConfig.secretAccessKey,
-              profile: legacy.bedrockConfig.profile,
-            }
-          : undefined,
-      };
-      await ipcBridge.mode.createProvider.invoke(req);
-      migrated++;
-    } catch (err) {
-      console.warn('[Migration] failed to create provider %s:', legacy.id, err);
-    }
-  }
+  const requests = legacyProviders.map((legacy) => ({
+    legacy,
+    req: {
+      id: legacy.id,
+      platform: legacy.platform,
+      name: legacy.name,
+      base_url: legacy.baseUrl,
+      api_key: legacy.apiKey,
+      models: legacy.model,
+      enabled: legacy.enabled ?? true,
+      capabilities: legacy.capabilities,
+      context_limit: legacy.contextLimit,
+      model_protocols: legacy.modelProtocols,
+      model_enabled: legacy.modelEnabled,
+      model_health: legacy.modelHealth ? transformModelHealth(legacy.modelHealth) : undefined,
+      bedrock_config: legacy.bedrockConfig
+        ? {
+            auth_method: legacy.bedrockConfig.authMethod,
+            region: legacy.bedrockConfig.region,
+            access_key_id: legacy.bedrockConfig.accessKeyId,
+            secret_access_key: legacy.bedrockConfig.secretAccessKey,
+            profile: legacy.bedrockConfig.profile,
+          }
+        : undefined,
+    } satisfies CreateProviderRequest,
+  }));
 
-  await configService.set(PROVIDERS_MIGRATION_FLAG, true);
+  const results = await Promise.allSettled(requests.map(({ req }) => ipcBridge.mode.createProvider.invoke(req)));
+  let migrated = 0;
+  results.forEach((result, index) => {
+    if (result.status === 'fulfilled') {
+      migrated += 1;
+      return;
+    }
+    console.warn('[Migration] failed to create provider %s:', requests[index].legacy.id, result.reason);
+  });
+
+  await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
   console.info('[Migration] providers migration completed, migrated %d/%d providers', migrated, legacyProviders.length);
+}
+
+type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;
+
+async function getBackendClientPreferences(): Promise<BackendClientPreferences> {
+  return (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client')) as BackendClientPreferences;
+}
+
+async function setBackendClientPreferences(entries: BackendClientPreferences): Promise<void> {
+  await httpRequest<void>('PUT', '/api/settings/client', entries);
+}
+
+async function isBackendMigrationComplete(flag: ConfigKey): Promise<boolean> {
+  const settings = await getBackendClientPreferences();
+  return settings[flag] === true;
 }

@@ -51,7 +51,6 @@ import './services/i18n';
 import { registerPwa } from './services/registerPwa';
 
 // Config service
-import { migrateConfigStorage, migrateProviders } from '@/common/config/configMigration';
 import { configService } from '@/common/config/configService';
 
 // Components and utilities
@@ -118,8 +117,6 @@ const Main = () => {
     if (!ready) return;
     configService
       .initialize()
-      .then(() => migrateConfigStorage())
-      .then(() => migrateProviders())
       .then(() => setConfigReady(true))
       .catch((err) => {
         console.error('Failed to initialize config:', err);
