@@ -73,13 +73,14 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   // Agent selection
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: string; name: string; custom_agent_id?: string }>
+    Array<{ agent_type: string; backend?: string; name: string; custom_agent_id?: string }>
   >([]);
   const [selectedAgent, setSelectedAgent] = useState<{
-    backend: string;
+    agent_type: string;
+    backend?: string;
     name?: string;
     custom_agent_id?: string;
-  }>({ backend: 'gemini' });
+  }>({ agent_type: 'acp', backend: 'gemini' });
 
   // Close EventSource on unmount to prevent connection leaks.
   useEffect(() => {
@@ -207,24 +208,33 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
             agentsResp
               .filter((a) => !a.is_preset)
               .map((a) => ({
+                agent_type: a.agent_type,
                 backend: a.backend,
                 name: a.name,
                 custom_agent_id: a.custom_agent_id,
               }))
           );
         }
-        if (
-          saved &&
-          typeof saved === 'object' &&
-          'backend' in saved &&
-          typeof (saved as Record<string, unknown>).backend === 'string'
-        ) {
-          const s = saved as { backend: string; custom_agent_id?: string; name?: string };
-          setSelectedAgent({
-            backend: s.backend,
-            custom_agent_id: s.custom_agent_id,
-            name: s.name,
-          });
+        if (saved && typeof saved === 'object') {
+          const s = saved as Record<string, unknown>;
+          let agentType = typeof s.agent_type === 'string' ? s.agent_type : undefined;
+          const backend = typeof s.backend === 'string' ? s.backend : undefined;
+
+          // Legacy migration: derive agent_type from backend
+          if (!agentType && backend) {
+            agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
+              ? backend
+              : 'acp';
+          }
+
+          if (agentType) {
+            setSelectedAgent({
+              agent_type: agentType,
+              backend,
+              custom_agent_id: s.custom_agent_id as string | undefined,
+              name: s.name as string | undefined,
+            });
+          }
         }
       } catch (error) {
         console.error('[WeixinConfig] Failed to load agents:', error);
@@ -233,11 +243,16 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     void load();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: {
+    agent_type: string;
+    backend?: string;
+    custom_agent_id?: string;
+    name?: string;
+  }) => {
     try {
       await configService.set('assistant.weixin.agent', agent);
       await channel.syncChannelSettings
-        .invoke({ platform: 'weixin', agent })
+        .invoke({ platform: 'weixin' })
         .catch((err) => console.warn('[WeixinConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
@@ -355,12 +370,13 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     }
   };
 
-  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const showModelSelector = selectedAgent.agent_type === 'aionrs';
   const agentOptions: Array<{
-    backend: string;
+    agent_type: string;
+    backend?: string;
     name: string;
     custom_agent_id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'acp', backend: 'gemini', name: 'Gemini CLI' }];
 
   const handleDisconnect = async () => {
     try {
@@ -458,21 +474,22 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
             <Menu
               selectedKeys={[
                 selectedAgent.custom_agent_id
-                  ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                  : selectedAgent.backend,
+                  ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                  : selectedAgent.agent_type,
               ]}
             >
               {agentOptions.map((a) => {
-                const key = a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend;
+                const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type;
                 return (
                   <Menu.Item
                     key={key}
                     onClick={() => {
                       const currentKey = selectedAgent.custom_agent_id
-                        ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                        : selectedAgent.backend;
+                        ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                        : selectedAgent.agent_type;
                       if (key === currentKey) return;
                       const next = {
+                        agent_type: a.agent_type,
                         backend: a.backend,
                         custom_agent_id: a.custom_agent_id,
                         name: a.name,
@@ -493,12 +510,12 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               {selectedAgent.name ||
                 availableAgents.find(
                   (a) =>
-                    (a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend) ===
+                    (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type) ===
                     (selectedAgent.custom_agent_id
-                      ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                      : selectedAgent.backend)
+                      ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                      : selectedAgent.agent_type)
                 )?.name ||
-                selectedAgent.backend}
+                selectedAgent.agent_type}
             </span>
             <Down theme='outline' size={14} />
           </Button>
@@ -511,10 +528,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         description={t('settings.weixin.defaultModelDesc', 'Model used for WeChat conversations')}
       >
         <GoogleModelSelector
-          selection={isGeminiAgent ? modelSelection : undefined}
-          disabled={!isGeminiAgent}
+          selection={showModelSelector ? modelSelection : undefined}
+          disabled={!showModelSelector}
           label={
-            !isGeminiAgent
+            !showModelSelector
               ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
               : undefined
           }
