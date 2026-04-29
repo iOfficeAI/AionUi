@@ -750,8 +750,6 @@ app.on('before-quit', async () => {
       /* pet not initialized */
     }
 
-    // Stop all active team sessions (TCP servers + child processes)
-    await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
 
     // Web Server lifecycle is managed by aionui-backend subprocess
 

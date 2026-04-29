@@ -39,17 +39,9 @@ vi.mock('fs', () => ({
   promises: { readFile: vi.fn(), access: vi.fn() },
 }));
 
-// ─── ipcBridge mock (needed for mcpStatus.emit calls in createOrResumeSession) ──
-// Must use vi.hoisted() so the mock factory can reference the variable before vi.mock() hoisting.
-
-const { mockMcpStatusEmit } = vi.hoisted(() => ({
-  mockMcpStatusEmit: vi.fn(),
-}));
-
 vi.mock('../../src/common', () => ({
   ipcBridge: {
     team: {
-      mcpStatus: { emit: mockMcpStatusEmit },
       agentSpawned: { emit: vi.fn() },
       agentRemoved: { emit: vi.fn() },
       agentRenamed: { emit: vi.fn() },
@@ -59,7 +51,6 @@ vi.mock('../../src/common', () => ({
 
 vi.mock('../../src/common/adapter/ipcBridge', () => ({
   team: {
-    mcpStatus: { emit: mockMcpStatusEmit },
     agentSpawned: { emit: vi.fn() },
     agentRemoved: { emit: vi.fn() },
     agentRenamed: { emit: vi.fn() },
@@ -416,118 +407,6 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
   });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Step 8: Task #3 IPC events — emitMcpStatus fires correct phases
-// ─────────────────────────────────────────────────────────────────────────────
-
-describe('Step 8: Task #3 IPC mcpStatus events', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockLoadSession.mockResolvedValue({ session_id: 'session-abc' });
-    mockNewSession.mockResolvedValue({ session_id: 'new-session-123' });
-    vi.mocked(ProcessConfig.get).mockResolvedValue(null);
-  });
-
-  it('does NOT emit mcpStatus when no teamMcpStdioConfig (not a team agent)', async () => {
-    const agent = createCodexAgent();
-    await callCreateOrResume(agent);
-    expect(mockMcpStatusEmit).not.toHaveBeenCalled();
-  });
-
-  it('emits session_injecting then session_ready for fresh session with team config', async () => {
-    const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
-    await callCreateOrResume(agent);
-
-    const phases = mockMcpStatusEmit.mock.calls.map((c) => c[0].phase);
-    expect(phases).toContain('session_injecting');
-    expect(phases).toContain('session_ready');
-    // session_injecting must come before session_ready
-    expect(phases.indexOf('session_injecting')).toBeLessThan(phases.indexOf('session_ready'));
-  });
-
-  it('emits session_injecting then session_ready for Codex resume path', async () => {
-    const agent = createCodexAgent({
-      acp_session_id: 'session-abc',
-      acp_session_conversation_id: 'conv-test-1',
-      teamMcpStdioConfig: TEAM_MCP_CONFIG,
-    });
-    await callCreateOrResume(agent);
-
-    const phases = mockMcpStatusEmit.mock.calls.map((c) => c[0].phase);
-    expect(phases).toContain('session_injecting');
-    expect(phases).toContain('session_ready');
-  });
-
-  it('emits session_error when loadSession throws', async () => {
-    mockLoadSession.mockRejectedValue(new Error('session expired'));
-    mockNewSession.mockRejectedValue(new Error('fallback also failed'));
-    const agent = createCodexAgent({
-      acp_session_id: 'session-abc',
-      acp_session_conversation_id: 'conv-test-1',
-      teamMcpStdioConfig: TEAM_MCP_CONFIG,
-    });
-
-    // createOrResumeSession will throw because both loadSession and newSession fail
-    await expect(callCreateOrResume(agent)).rejects.toThrow();
-
-    const errorCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_error');
-    expect(errorCalls.length).toBeGreaterThan(0);
-    // error message must be present — not just a boolean
-    expect(errorCalls[0][0].error).toBeTruthy();
-    expect(typeof errorCalls[0][0].error).toBe('string');
-  });
-
-  it('emits session_error with error message when newSession throws', async () => {
-    mockNewSession.mockRejectedValue(new Error('connection refused'));
-    const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
-
-    await expect(callCreateOrResume(agent)).rejects.toThrow('connection refused');
-
-    const errorCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_error');
-    expect(errorCalls.length).toBeGreaterThan(0);
-    expect(errorCalls[0][0].error).toContain('connection refused');
-  });
-
-  it('emits degraded when team config is missing but mcpServers ends up empty', async () => {
-    // Agent has team_id name pattern but somehow mcpServers is [] (e.g., command was empty)
-    const agent = createCodexAgent({
-      teamMcpStdioConfig: { name: 'aionui-team-abc', command: '', args: [], env: [] },
-    });
-    await callCreateOrResume(agent);
-
-    const phases = mockMcpStatusEmit.mock.calls.map((c) => c[0].phase);
-    expect(phases).toContain('degraded');
-  });
-
-  it('event payload includes team_id derived from server name', async () => {
-    const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
-    await callCreateOrResume(agent);
-
-    const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_ready');
-    expect(readyCalls.length).toBeGreaterThan(0);
-    const payload = readyCalls[0][0];
-    // team_id extracted from 'aionui-team-abc' → 'abc'
-    expect(payload.team_id).toBe('abc');
-  });
-
-  it('event payload includes slot_id (conversation_id) for routing to agent bubble', async () => {
-    const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
-    await callCreateOrResume(agent);
-
-    const injectingCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_injecting');
-    expect(injectingCalls.length).toBeGreaterThan(0);
-    const payload = injectingCalls[0][0];
-    expect(payload.slot_id).toBe('conv-test-1');
-  });
-
-  it('session_ready payload includes serverCount', async () => {
-    const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
-    await callCreateOrResume(agent);
-
-    const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_ready');
-    expect(readyCalls[0][0].server_count).toBe(1);
-  });
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Checklist #8: End-to-end falsification plan

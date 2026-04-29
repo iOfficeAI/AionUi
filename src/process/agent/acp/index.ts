@@ -1509,18 +1509,6 @@ export class AcpAgent {
     const resumeConversationId = this.extra.acp_session_conversation_id;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // Derive team_id from injected team MCP server name (format: aionui-team-<team_id>)
-    // Only emit MCP status events when running inside a team session.
-    const teamMcpName = this.extra.teamMcpStdioConfig?.name;
-    const team_id = teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined;
-    const slot_id = this.id;
-
-    const emitMcpStatus = team_id
-      ? (phase: import('@/common/types/teamTypes').TeamMcpPhase, extra?: { server_count?: number; error?: string }) => {
-          ipcBridge.team.mcpStatus.emit({ team_id: team_id!, slot_id, phase, ...extra });
-        }
-      : null;
-
     const doSession = async (): Promise<void> => {
       // Validate session ownership: only resume if the stored session belongs to this conversation.
       if (resumeSessionId && resumeConversationId && resumeConversationId !== this.id) {
@@ -1533,17 +1521,10 @@ export class AcpAgent {
         try {
           let response: { session_id?: string };
 
-          emitMcpStatus?.('session_injecting', { server_count: mcpServers.length });
           response = await this.connection.resumeSession(resumeSessionId, this.extra.workspace, {
             forkSession: false,
             mcpServers,
           });
-
-          if (mcpServers.length === 0) {
-            emitMcpStatus?.('degraded');
-          } else {
-            emitMcpStatus?.('session_ready', { server_count: mcpServers.length });
-          }
 
           if (response.session_id && response.session_id !== resumeSessionId) {
             this.extra.acp_session_id = response.session_id;
@@ -1553,19 +1534,11 @@ export class AcpAgent {
         } catch (resumeError) {
           const error = resumeError instanceof Error ? resumeError.message : String(resumeError);
           console.warn(`[AcpAgent] Failed to resume session ${resumeSessionId}, creating fresh session:`, error);
-          emitMcpStatus?.('session_error', { error });
         }
       }
 
       // No stored session or resume failed — create a brand new session
-      emitMcpStatus?.('session_injecting', { server_count: mcpServers.length });
       const response = await this.connection.newSession(this.extra.workspace, { mcpServers });
-
-      if (mcpServers.length === 0) {
-        emitMcpStatus?.('degraded');
-      } else {
-        emitMcpStatus?.('session_ready', { server_count: mcpServers.length });
-      }
 
       if (response.session_id) {
         this.extra.acp_session_id = response.session_id;
@@ -1576,8 +1549,6 @@ export class AcpAgent {
     try {
       await doSession();
     } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      emitMcpStatus?.('session_error', { error });
       throw err;
     }
 
@@ -1605,14 +1576,6 @@ export class AcpAgent {
     } catch (error) {
       const errMsg = error instanceof Error ? error.message : String(error);
       console.warn(`[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`, errMsg);
-      const mcpName = this.extra.teamMcpStdioConfig?.name;
-      const tId =
-        typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
-          ? mcpName.slice('aionui-team-'.length)
-          : undefined;
-      if (tId) {
-        ipcBridge.team.mcpStatus.emit({ team_id: tId, slot_id: this.id, phase: 'load_failed', error: errMsg });
-      }
       return [];
     }
   }

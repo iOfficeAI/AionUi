@@ -63,7 +63,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@process/team/teamEventBus', () => ({
+vi.mock('@process/task/teamEventBus', () => ({
   teamEventBus: { emit: mockTeamEventBusEmit },
 }));
 
