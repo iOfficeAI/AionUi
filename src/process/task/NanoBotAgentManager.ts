@@ -14,7 +14,7 @@ import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
-import { teamEventBus } from '@process/team/teamEventBus';
+import { teamEventBus } from '@process/task/teamEventBus';
 
 export interface NanoBotAgentManagerData {
   conversation_id: string;

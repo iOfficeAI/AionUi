@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { teamEventBus } from '@process/team/teamEventBus';
+import { teamEventBus } from '@process/task/teamEventBus';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 // Kept inline after the Gemini runtime was removed. Only the three values

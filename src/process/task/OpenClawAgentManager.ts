@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { teamEventBus } from '@process/team/teamEventBus';
+import { teamEventBus } from '@process/task/teamEventBus';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
