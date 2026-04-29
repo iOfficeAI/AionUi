@@ -71,11 +71,14 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
 
   // Agent selection (used for Telegram conversations)
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: string; name: string; custom_agent_id?: string; is_preset?: boolean; is_extension?: boolean }>
+    Array<{ agent_type: string; backend?: string; name: string; custom_agent_id?: string }>
   >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; custom_agent_id?: string }>({
-    backend: 'gemini',
-  });
+  const [selectedAgent, setSelectedAgent] = useState<{
+    agent_type: string;
+    backend?: string;
+    name?: string;
+    custom_agent_id?: string;
+  }>({ agent_type: 'acp', backend: 'gemini' });
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -126,23 +129,33 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           const list = agentsResp
             .filter((a) => !a.is_preset)
             .map((a) => ({
+              agent_type: a.agent_type,
               backend: a.backend,
               name: a.name,
               custom_agent_id: a.custom_agent_id,
-              is_preset: a.is_preset,
-              is_extension: a.is_extension,
             }));
           setAvailableAgents(list);
         }
 
-        if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
-          setSelectedAgent({
-            backend: (saved as any).backend as string,
-            custom_agent_id: (saved as any).custom_agent_id,
-            name: (saved as any).name,
-          });
-        } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as string });
+        if (saved && typeof saved === 'object') {
+          const s = saved as Record<string, unknown>;
+          let agentType = typeof s.agent_type === 'string' ? s.agent_type : undefined;
+          const backend = typeof s.backend === 'string' ? s.backend : undefined;
+
+          if (!agentType && backend) {
+            agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
+              ? backend
+              : 'acp';
+          }
+
+          if (agentType) {
+            setSelectedAgent({
+              agent_type: agentType,
+              backend,
+              custom_agent_id: s.custom_agent_id as string | undefined,
+              name: s.name as string | undefined,
+            });
+          }
         }
       } catch (error) {
         console.error('[TelegramConfig] Failed to load agents:', error);
@@ -152,11 +165,16 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: {
+    agent_type: string;
+    backend?: string;
+    custom_agent_id?: string;
+    name?: string;
+  }) => {
     try {
       await configService.set('assistant.telegram.agent', agent);
       await channel.syncChannelSettings
-        .invoke({ platform: 'telegram', agent })
+        .invoke({ platform: 'telegram' })
         .catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
@@ -308,9 +326,13 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     return `${remaining} min`;
   };
 
-  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; is_extension?: boolean }> =
-    availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const showModelSelector = selectedAgent.agent_type === 'aionrs';
+  const agentOptions: Array<{
+    agent_type: string;
+    backend?: string;
+    name: string;
+    custom_agent_id?: string;
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'acp', backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -398,23 +420,26 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
               <Menu
                 selectedKeys={[
                   selectedAgent.custom_agent_id
-                    ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                    : selectedAgent.backend,
+                    ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                    : selectedAgent.agent_type,
                 ]}
               >
                 {agentOptions.map((a) => {
-                  const key = a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend;
+                  const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
                         const currentKey = selectedAgent.custom_agent_id
-                          ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                          : selectedAgent.backend;
-                        if (key === currentKey) {
-                          return;
-                        }
-                        const next = { backend: a.backend, custom_agent_id: a.custom_agent_id, name: a.name };
+                          ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                          : selectedAgent.agent_type;
+                        if (key === currentKey) return;
+                        const next = {
+                          agent_type: a.agent_type,
+                          backend: a.backend,
+                          custom_agent_id: a.custom_agent_id,
+                          name: a.name,
+                        };
                         setSelectedAgent(next);
                         void persistSelectedAgent(next);
                       }}
@@ -431,12 +456,12 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
                 {selectedAgent.name ||
                   availableAgents.find(
                     (a) =>
-                      (a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend) ===
+                      (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type) ===
                       (selectedAgent.custom_agent_id
-                        ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                        : selectedAgent.backend)
+                        ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                        : selectedAgent.agent_type)
                   )?.name ||
-                  selectedAgent.backend}
+                  selectedAgent.agent_type}
               </span>
               <Down theme='outline' size={14} />
             </Button>
@@ -450,10 +475,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         description={t('settings.assistant.defaultModelDesc', 'Model used for Telegram conversations')}
       >
         <GoogleModelSelector
-          selection={isGeminiAgent ? modelSelection : undefined}
-          disabled={!isGeminiAgent}
+          selection={showModelSelector ? modelSelection : undefined}
+          disabled={!showModelSelector}
           label={
-            !isGeminiAgent
+            !showModelSelector
               ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
               : undefined
           }
