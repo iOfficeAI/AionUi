@@ -35,11 +35,15 @@ export async function httpInvoke<T = unknown>(
       const headers: Record<string, string> = {};
       if (effectiveBody !== undefined) headers['Content-Type'] = 'application/json';
 
-      const res = await fetch(url, {
+      const requestInit: RequestInit = {
         method: m,
         headers,
-        body: effectiveBody !== undefined ? JSON.stringify(effectiveBody) : undefined,
-      });
+      };
+      if (effectiveBody !== undefined && m !== 'GET') {
+        requestInit.body = JSON.stringify(effectiveBody);
+      }
+
+      const res = await fetch(url, requestInit);
 
       if (!res.ok) {
         let errText: string;

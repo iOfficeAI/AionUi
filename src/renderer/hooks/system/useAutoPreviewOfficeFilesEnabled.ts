@@ -1,7 +1,7 @@
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { useConfig } from '@/renderer/hooks/config/useConfig';
 
-const OFFICE_AUTO_PREVIEW_TRIGGER_TYPES = new Set(['tool_group', 'tool_call', 'acp_tool_call', 'codex_tool_call']);
+const OFFICE_AUTO_PREVIEW_TRIGGER_TYPES = new Set(['tool_group', 'tool_call', 'acp_tool_call']);
 
 export const isOfficeAutoPreviewTriggerMessage = (message: Pick<IResponseMessage, 'type'>): boolean =>
   OFFICE_AUTO_PREVIEW_TRIGGER_TYPES.has(message.type);

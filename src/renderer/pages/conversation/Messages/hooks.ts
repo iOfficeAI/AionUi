@@ -26,7 +26,7 @@ const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = []
 interface MessageIndex {
   msgIdIndex: Map<string, number>; // msg_id -> index
   call_idIndex: Map<string, number>; // tool_call.call_id -> index
-  tool_call_idIndex: Map<string, number>; // codex_tool_call.tool_call_id / acp_tool_call.tool_call_id -> index
+  tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
 }
 
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
@@ -51,9 +51,6 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
     }
     if (msg.type === 'tool_call' && msg.content?.call_id) {
       call_idIndex.set(msg.content.call_id, i);
-    }
-    if (msg.type === 'codex_tool_call' && msg.content?.tool_call_id) {
-      tool_call_idIndex.set(msg.content.tool_call_id, i);
     }
     if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
       tool_call_idIndex.set(msg.content.update.tool_call_id, i);
@@ -122,29 +119,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     return list.concat(message);
   }
 
-  // codex_tool_call: 使用 tool_call_idIndex 快速查找
-  // codex_tool_call: use tool_call_idIndex for fast lookup
-  if (message.type === 'codex_tool_call' && message.content?.tool_call_id) {
-    const existingIdx = index.tool_call_idIndex.get(message.content.tool_call_id);
-    if (existingIdx !== undefined && existingIdx < list.length) {
-      const existingMsg = list[existingIdx];
-      if (existingMsg.type === 'codex_tool_call') {
-        const newList = list.slice();
-        const merged = { ...existingMsg.content, ...message.content };
-        newList[existingIdx] = { ...existingMsg, content: merged };
-        return newList;
-      }
-    }
-    // 未找到，添加新消息并更新索引
-    const newIdx = list.length;
-    index.tool_call_idIndex.set(message.content.tool_call_id, newIdx);
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
-    return list.concat(message);
-  }
-
-  // acp_tool_call: 使用 tool_call_idIndex 快速查找
   // acp_tool_call: use tool_call_idIndex for fast lookup
-  //
   if (message.type === 'acp_tool_call' && message.content?.update?.tool_call_id) {
     const existingIdx = index.tool_call_idIndex.get(message.content.update.tool_call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
@@ -310,9 +285,6 @@ export const useAddOrUpdateMessage = () => {
           if (msg.msg_id) index.msgIdIndex.set(msg.msg_id, newIdx);
           if (msg.type === 'tool_call' && msg.content?.call_id) {
             index.call_idIndex.set(msg.content.call_id, newIdx);
-          }
-          if (msg.type === 'codex_tool_call' && msg.content?.tool_call_id) {
-            index.tool_call_idIndex.set(msg.content.tool_call_id, newIdx);
           }
           if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
             index.tool_call_idIndex.set(msg.content.update.tool_call_id, newIdx);

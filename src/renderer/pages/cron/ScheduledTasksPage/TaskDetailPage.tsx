@@ -126,8 +126,8 @@ const TaskDetailPage: React.FC = () => {
                 typeof latestExtra.cronJobId === 'string' && latestExtra.cronJobId.trim()
                   ? latestExtra.cronJobId
                   : normalizedCronJobId,
-            },
-          };
+            } as TChatConversation['extra'],
+          } as TChatConversation;
           await mutate<TChatConversation>(conversationKey, latestConversation, false);
         }
 

@@ -25,8 +25,15 @@ const MessageSkillSuggest: React.FC<{ artifact: ISkillSuggestArtifact }> = ({ ar
           }
         })()
       : rawContent;
-  const { cron_job_id, name, description } = content;
-  const skillContent = content.skillContent ?? content.skill_content ?? '';
+  const cron_job_id = 'cron_job_id' in content && typeof content.cron_job_id === 'string' ? content.cron_job_id : '';
+  const name = 'name' in content && typeof content.name === 'string' ? content.name : '';
+  const description = 'description' in content && typeof content.description === 'string' ? content.description : '';
+  const skillContent =
+    'skillContent' in content && typeof content.skillContent === 'string'
+      ? content.skillContent
+      : typeof content.skill_content === 'string'
+        ? content.skill_content
+        : '';
 
   return (
     <div data-testid='message-skill-suggest' className='max-w-780px w-full mx-auto'>

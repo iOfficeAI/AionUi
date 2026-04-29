@@ -29,10 +29,7 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   return (
     <div className='flex flex-col'>
       <div className='flex flex-row color-#86909C gap-12px items-center'>
-        <Badge
-          status={statusToBadge(item.status)}
-          className={item.status === 'running' ? 'badge-breathing' : ''}
-        />
+        <Badge status={statusToBadge(item.status)} className={item.status === 'running' ? 'badge-breathing' : ''} />
         <span
           className={
             'flex-1 min-w-0' +

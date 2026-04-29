@@ -11,7 +11,6 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
-import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import NanobotSendBox from './NanobotSendBox';
 
 const NanobotChat: React.FC<{
@@ -34,11 +33,7 @@ const NanobotChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot}></MessageList>
         </FlexFullContainer>
-        {!hideSendBox && (
-          <ConversationChatConfirm conversation_id={conversation_id}>
-            <NanobotSendBox conversation_id={conversation_id} />
-          </ConversationChatConfirm>
-        )}
+        {!hideSendBox && <NanobotSendBox conversation_id={conversation_id} />}
       </div>
     </ConversationProvider>
   );

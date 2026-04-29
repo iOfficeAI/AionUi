@@ -51,34 +51,31 @@ const getResultDisplayText = (
 
 export function normalizeToolGroup(message: IMessageToolGroup): NormalizedToolCall[] {
   if (!Array.isArray(message.content)) return [];
-  return message.content.map(
-    ({ name, call_id, description, confirmationDetails, status, result_display }) => {
-      let desc = typeof description === 'string' ? description.slice(0, 100) : '';
-      const type = confirmationDetails?.type;
-      if (type === 'edit') desc = confirmationDetails.file_name;
-      if (type === 'exec') desc = confirmationDetails.command;
-      if (type === 'info') desc = confirmationDetails.urls?.join(';') || confirmationDetails.title;
-      if (type === 'mcp')
-        desc = confirmationDetails.server_name + ':' + confirmationDetails.tool_name;
+  return message.content.map(({ name, call_id, description, confirmationDetails, status, result_display }) => {
+    let desc = typeof description === 'string' ? description.slice(0, 100) : '';
+    const type = confirmationDetails?.type;
+    if (type === 'edit') desc = confirmationDetails.file_name;
+    if (type === 'exec') desc = confirmationDetails.command;
+    if (type === 'info') desc = confirmationDetails.urls?.join(';') || confirmationDetails.title;
+    if (type === 'mcp') desc = confirmationDetails.server_name + ':' + confirmationDetails.tool_name;
 
-      let input: string | undefined;
-      if (confirmationDetails) {
-        const { title: _title, type: _type, ...rest } = confirmationDetails;
-        if (Object.keys(rest).length) input = formatValue(rest);
-      } else if (description) {
-        input = description;
-      }
-
-      return {
-        key: call_id,
-        name,
-        status: normalizeToolGroupStatus(status),
-        description: desc,
-        input,
-        output: getResultDisplayText(result_display),
-      };
+    let input: string | undefined;
+    if (confirmationDetails) {
+      const { title: _title, type: _type, ...rest } = confirmationDetails;
+      if (Object.keys(rest).length) input = formatValue(rest);
+    } else if (description) {
+      input = description;
     }
-  );
+
+    return {
+      key: call_id,
+      name,
+      status: normalizeToolGroupStatus(status),
+      description: desc,
+      input,
+      output: getResultDisplayText(result_display),
+    };
+  });
 }
 
 // ===== acp_tool_call → NormalizedToolCall =====
@@ -212,9 +209,7 @@ export function normalizeToolMessages(messages: ToolMessage[]): NormalizedToolCa
 export function hasRunningToolMessages(messages: ToolMessage[]): boolean {
   return messages.some((m) => {
     if (m.type === 'tool_group') {
-      return (
-        Array.isArray(m.content) && m.content.some((t) => normalizeToolGroupStatus(t.status) === 'running')
-      );
+      return Array.isArray(m.content) && m.content.some((t) => normalizeToolGroupStatus(t.status) === 'running');
     }
     if (m.type === 'acp_tool_call') {
       return m.content?.update && normalizeAcpStatus(m.content.update.status) === 'running';

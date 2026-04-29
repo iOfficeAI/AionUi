@@ -21,11 +21,6 @@ vi.mock('../../src/common/adapter/ipcBridge', () => ({
         on: vi.fn(() => vi.fn()),
       },
     },
-    codexConversation: {
-      responseStream: {
-        on: vi.fn(() => vi.fn()),
-      },
-    },
     conversation: {
       responseSearchWorkSpace: {
         provider: vi.fn(() => vi.fn()),

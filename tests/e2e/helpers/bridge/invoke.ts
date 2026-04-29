@@ -45,12 +45,16 @@ export async function invokeBridge<T = unknown>(
           const headers: Record<string, string> = {};
           if (requestBody !== undefined) headers['Content-Type'] = 'application/json';
 
-          const response = await fetch(`http://127.0.0.1:${port}${path}`, {
+          const requestInit: RequestInit = {
             method,
             headers,
-            body: requestBody !== undefined ? JSON.stringify(requestBody) : undefined,
             signal: controller.signal,
-          });
+          };
+          if (requestBody !== undefined && method !== 'GET') {
+            requestInit.body = JSON.stringify(requestBody);
+          }
+
+          const response = await fetch(`http://127.0.0.1:${port}${path}`, requestInit);
 
           if (!response.ok) {
             let errBody: unknown;

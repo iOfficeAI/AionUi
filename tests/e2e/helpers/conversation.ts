@@ -73,17 +73,63 @@ export async function selectModel(page: Page, modelLabel: string): Promise<void>
  * @returns The conversation ID extracted from the URL hash.
  */
 export async function sendMessageFromGuid(page: Page, message: string): Promise<string> {
+  const previousHash = await page.evaluate(() => window.location.hash);
   const textarea = page.locator(GUID_INPUT);
   await textarea.fill(message);
   await textarea.press('Enter');
-  // Wait for navigation to conversation page
-  await page.waitForFunction(() => window.location.hash.includes('/conversation/'), {
-    timeout: 15_000,
-  });
-  const hash = new URL(page.url()).hash; // #/conversation/<id>
-  const id = hash.split('/conversation/')[1];
-  if (!id) throw new Error(`Failed to extract conversation ID from URL: ${page.url()}`);
-  return id;
+  // Wait for navigation to a new conversation route instead of reusing a stale hash.
+  await page.waitForFunction(
+    (prevHash) => window.location.hash.includes('/conversation/') && window.location.hash !== prevHash,
+    previousHash,
+    {
+      timeout: 15_000,
+    }
+  );
+
+  let persistedConversationId: string | null = null;
+  await expect
+    .poll(
+      async () => {
+        const hash = await page.evaluate(() => window.location.hash);
+        const id = hash.split('/conversation/')[1];
+        if (!id) return null;
+
+        const exists = await page.evaluate(async (conversationId) => {
+          const port = (window as unknown as { __backendPort?: number }).__backendPort;
+          if (!port) return false;
+          const res = await fetch(`http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(conversationId)}`);
+          return res.ok;
+        }, id);
+
+        if (exists) {
+          persistedConversationId = id;
+        }
+
+        return exists ? id : null;
+      },
+      {
+        timeout: 30_000,
+        message: 'Waiting for guid send to land on a persisted conversation',
+      }
+    )
+    .not.toBeNull();
+
+  if (!persistedConversationId) {
+    throw new Error(`Failed to extract persisted conversation ID from URL: ${page.url()}`);
+  }
+
+  await page.waitForFunction(
+    (conversationId) => {
+      const hash = window.location.hash;
+      return hash.includes('/conversation/') && hash.split('/conversation/')[1] === conversationId;
+    },
+    persistedConversationId,
+    {
+      timeout: 15_000,
+    }
+  );
+
+  return persistedConversationId;
 }
 
 /**

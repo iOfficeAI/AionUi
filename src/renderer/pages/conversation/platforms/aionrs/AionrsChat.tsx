@@ -12,7 +12,6 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
-import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 
@@ -40,15 +39,13 @@ const AionrsChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot} />
         </FlexFullContainer>
-        <ConversationChatConfirm conversation_id={conversation_id}>
-          <AionrsSendBox
-            conversation_id={conversation_id}
-            modelSelection={modelSelection}
-            team_id={team_id}
-            agentSlotId={agentSlotId}
-            session_mode={session_mode}
-          />
-        </ConversationChatConfirm>
+        <AionrsSendBox
+          conversation_id={conversation_id}
+          modelSelection={modelSelection}
+          team_id={team_id}
+          agentSlotId={agentSlotId}
+          session_mode={session_mode}
+        />
       </div>
     </ConversationProvider>
   );

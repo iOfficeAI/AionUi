@@ -15,10 +15,6 @@ vi.mock('@renderer/pages/conversation/Messages/MessageList', () => ({
   default: () => <div data-testid='message-list' />,
 }));
 
-vi.mock('@/renderer/pages/conversation/components/ConversationChatConfirm', () => ({
-  default: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-}));
-
 vi.mock('@/renderer/pages/conversation/platforms/acp/AcpSendBox', () => ({
   default: () => <div data-testid='acp-sendbox' />,
 }));

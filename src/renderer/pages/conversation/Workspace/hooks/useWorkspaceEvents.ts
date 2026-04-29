@@ -125,17 +125,10 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
         throttledRefresh();
       }
     };
-    const handleCodexResponse = (data: { type: string }) => {
-      if (data.type === 'codex_tool_call') {
-        throttledRefresh();
-      }
-    };
     const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
-    const unsubscribeCodex = ipcBridge.codexConversation.responseStream.on(handleCodexResponse);
 
     return () => {
       unsubscribeAcp();
-      unsubscribeCodex();
     };
   }, [conversation_id, eventPrefix, throttledRefresh]);
 

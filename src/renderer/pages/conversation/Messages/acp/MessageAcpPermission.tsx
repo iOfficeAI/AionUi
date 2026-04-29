@@ -77,7 +77,12 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   }
 
   return (
-    <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }}>
+    <Card
+      className='mb-4'
+      bordered={false}
+      style={{ background: 'var(--bg-1)' }}
+      data-testid='message-acp-permission-card'
+    >
       <div className='space-y-4'>
         {/* Header with icon and title */}
         <div className='flex items-center space-x-2'>
@@ -101,9 +106,9 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
                   const optionName = option?.name || `${t('messages.option')} ${index + 1}`;
                   const option_id = option?.option_id || `option_${index}`;
                   return (
-                    <Radio key={option_id} value={option_id}>
-                      {optionName}
-                    </Radio>
+                    <div key={option_id} data-testid={`message-acp-permission-option-${option_id}`}>
+                      <Radio value={option_id}>{optionName}</Radio>
+                    </div>
                   );
                 })
               ) : (
@@ -111,7 +116,13 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
               )}
             </Radio.Group>
             <div className='flex justify-start pl-20px'>
-              <Button type='primary' size='mini' disabled={!selected || isResponding} onClick={handleConfirm}>
+              <Button
+                type='primary'
+                size='mini'
+                disabled={!selected || isResponding}
+                onClick={handleConfirm}
+                data-testid='message-acp-permission-confirm'
+              >
                 {isResponding ? t('messages.processing') : t('messages.confirm')}
               </Button>
             </div>

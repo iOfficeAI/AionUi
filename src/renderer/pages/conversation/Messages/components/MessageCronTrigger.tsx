@@ -39,8 +39,9 @@ const MessageCronTrigger: React.FC<{ artifact: ICronTriggerArtifact }> = ({ arti
     }
   };
   const parsedContent = parseContent();
-  const cron_job_id = parsedContent.cron_job_id ?? parsedContent.cronJobId ?? '';
-  const cron_job_name = parsedContent.cron_job_name ?? parsedContent.cronJobName ?? '';
+  const cron_job_id = 'cron_job_id' in parsedContent ? parsedContent.cron_job_id : (parsedContent.cronJobId ?? '');
+  const cron_job_name =
+    'cron_job_name' in parsedContent ? parsedContent.cron_job_name : (parsedContent.cronJobName ?? '');
 
   return (
     <div

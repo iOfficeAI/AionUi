@@ -12,7 +12,6 @@ import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messa
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
-import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
 
@@ -54,19 +53,17 @@ const AcpChat: React.FC<{
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           {!hideSendBox && (
-            <ConversationChatConfirm conversation_id={conversation_id}>
-              <AcpSendBox
-                conversation_id={conversation_id}
-                backend={backend}
-                session_mode={session_mode}
-                cached_config_options={cached_config_options}
-                agent_name={agent_name}
-                workspacePath={workspace}
-                team_id={team_id}
-                agentSlotId={agentSlotId}
-                messageState={messageState}
-              ></AcpSendBox>
-            </ConversationChatConfirm>
+            <AcpSendBox
+              conversation_id={conversation_id}
+              backend={backend}
+              session_mode={session_mode}
+              cached_config_options={cached_config_options}
+              agent_name={agent_name}
+              workspacePath={workspace}
+              team_id={team_id}
+              agentSlotId={agentSlotId}
+              messageState={messageState}
+            ></AcpSendBox>
           )}
         </div>
       </ConversationArtifactProvider>

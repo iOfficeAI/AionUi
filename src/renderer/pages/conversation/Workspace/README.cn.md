@@ -85,7 +85,6 @@ const {
 2. **Agent 响应流** - 自动刷新工作空间
    - Gemini: `tool_group`, `tool_call`
    - ACP: `acp_tool_call`
-   - Codex: `codex_tool_call`
 3. **手动刷新工作空间事件** - `${eventPrefix}.workspace.refresh`
 4. **清空选中文件事件** - `${eventPrefix}.selected.file.clear`（发送消息后）
 5. **搜索工作空间响应** - 更新搜索结果

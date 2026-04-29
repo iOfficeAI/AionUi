@@ -56,7 +56,7 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
   };
 
   return (
-    <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }}>
+    <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }} data-testid='message-permission-card'>
       <div className='space-y-4'>
         <div className='flex items-center space-x-2'>
           <span className='text-2xl'>{icon}</span>
@@ -79,16 +79,25 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={setSelected}>
               {options.length > 0 ? (
                 options.map((option, index) => (
-                  <Radio key={String(option.value) || `option_${index}`} value={String(option.value)}>
-                    {option.label}
-                  </Radio>
+                  <div
+                    key={String(option.value) || `option_${index}`}
+                    data-testid={`message-permission-option-${String(option.value) || `option_${index}`}`}
+                  >
+                    <Radio value={String(option.value)}>{option.label}</Radio>
+                  </div>
                 ))
               ) : (
                 <Text type='secondary'>{t('messages.noOptionsAvailable')}</Text>
               )}
             </Radio.Group>
             <div className='flex justify-start pl-20px'>
-              <Button type='primary' size='mini' disabled={!selected || isResponding} onClick={handleConfirm}>
+              <Button
+                type='primary'
+                size='mini'
+                disabled={!selected || isResponding}
+                onClick={handleConfirm}
+                data-testid='message-permission-confirm'
+              >
                 {isResponding ? t('messages.processing') : t('messages.confirm')}
               </Button>
             </div>

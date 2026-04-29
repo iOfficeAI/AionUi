@@ -5,13 +5,7 @@
  */
 
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
-import type {
-  CodexToolCallUpdate,
-  IMessageAcpToolCall,
-  IMessageToolCall,
-  IMessageToolGroup,
-  TMessage,
-} from '@/common/chat/chatLib';
+import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
@@ -28,9 +22,8 @@ import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '@renderer/utils/common';
 import './messages.css';
 import HOC from '@renderer/utils/ui/HOC';
-import MessageCodexToolCall from './codex/MessageCodexToolCall';
-import type { FileChangeInfo } from './codex/MessageFileChanges';
-import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
+import type { FileChangeInfo } from './MessageFileChanges';
+import MessageFileChanges, { parseDiff } from './MessageFileChanges';
 import { useConversationArtifacts } from './artifacts';
 import { useMessageList } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
@@ -47,8 +40,6 @@ import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
-
-type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 type IMessageVO =
   | TMessage
@@ -153,11 +144,6 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessageAcpPermission message={message}></MessageAcpPermission>;
       case 'acp_tool_call':
         return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
-      case 'codex_permission':
-        // Permission UI is now handled by ConversationChatConfirm component
-        return null;
-      case 'codex_tool_call':
-        return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':
@@ -188,7 +174,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
   const handledTargetKeyRef = useRef<string>('');
 
-  // Pre-process message list to group Codex turn_diff messages
+  // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
@@ -234,14 +220,6 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       // Skip hidden and available_commands messages
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
-      if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        pushFileDffChanges(
-          parseDiff((message.content as TurnDiffContent).data.unified_diff),
-          message.id,
-          message.created_at ?? 0
-        );
-        continue;
-      }
       if (message.type === 'tool_group') {
         if (message.content.length === 1) {
           const writeFileResults = message.content

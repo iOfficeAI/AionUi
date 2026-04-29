@@ -4,19 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexPermissionRequest } from '@/common/types/codex/types';
-import type {
-  ExecCommandBeginData,
-  ExecCommandEndData,
-  ExecCommandOutputDeltaData,
-  McpToolCallBeginData,
-  McpToolCallEndData,
-  PatchApplyBeginData,
-  PatchApplyEndData,
-  TurnDiffData,
-  WebSearchBeginData,
-  WebSearchEndData,
-} from '@/common/types/codex/types/eventData';
 import type {
   AcpBackend,
   AgentBackend,
@@ -80,8 +67,6 @@ type TMessageType =
   | 'permission'
   | 'acp_permission'
   | 'acp_tool_call'
-  | 'codex_permission'
-  | 'codex_tool_call'
   | 'plan'
   | 'thinking'
   | 'available_commands';
@@ -240,8 +225,6 @@ export type IMessagePermission = IMessage<'permission', IConfirmation>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
-export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
-
 export const mergeAcpToolCallContent = (
   existing: IMessageAcpToolCall['content'],
   incoming: IMessageAcpToolCall['content']
@@ -295,78 +278,6 @@ export const preferTextMessageVersion = (primary: IMessageText, secondary: IMess
   return secondary.content.content.length > primary.content.content.length ? secondary : primary;
 };
 
-// Base interface for all tool call updates
-interface BaseCodexToolCallUpdate {
-  tool_call_id: string;
-  status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
-  title?: string; // Optional - can be derived from data or kind
-  kind: 'execute' | 'patch' | 'mcp' | 'web_search';
-
-  // UI display data
-  description?: string;
-  content?: Array<{
-    type: 'text' | 'diff' | 'output';
-    text?: string;
-    output?: string;
-    file_path?: string;
-    old_text?: string;
-    new_text?: string;
-  }>;
-
-  // Timing
-  startTime?: number;
-  endTime?: number;
-}
-
-// Specific subtypes using the original event data structures
-export type CodexToolCallUpdate =
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'exec_command_begin';
-      data: ExecCommandBeginData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'exec_command_output_delta';
-      data: ExecCommandOutputDeltaData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'exec_command_end';
-      data: ExecCommandEndData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'patch_apply_begin';
-      data: PatchApplyBeginData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'patch_apply_end';
-      data: PatchApplyEndData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'mcp_tool_call_begin';
-      data: McpToolCallBeginData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'mcp_tool_call_end';
-      data: McpToolCallEndData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'web_search_begin';
-      data: WebSearchBeginData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'web_search_end';
-      data: WebSearchEndData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'turn_diff';
-      data: TurnDiffData;
-    })
-  | (BaseCodexToolCallUpdate & {
-      subtype: 'generic';
-      data?: any; // For generic updates that don't map to specific events
-    });
-
-export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
-
 export type IMessagePlan = IMessage<
   'plan',
   {
@@ -409,8 +320,6 @@ export type TMessage =
   | IMessagePermission
   | IMessageAcpPermission
   | IMessageAcpToolCall
-  | IMessageCodexPermission
-  | IMessageCodexToolCall
   | IMessagePlan
   | IMessageThinking
   | IMessageAvailableCommands;
@@ -560,28 +469,6 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data as any,
       };
     }
-    case 'codex_permission': {
-      return {
-        id: uuid(),
-        type: 'codex_permission',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        created_at,
-        content: message.data as any,
-      };
-    }
-    case 'codex_tool_call': {
-      return {
-        id: uuid(),
-        type: 'codex_tool_call',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        created_at,
-        content: message.data as any,
-      };
-    }
     case 'plan': {
       return {
         id: uuid(),
@@ -626,7 +513,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'info': // Stream retry notifications and similar transient agent updates
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
-    case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
+    case 'codex_model_info': // Legacy Codex model info updates
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
       break;
@@ -723,21 +610,7 @@ export const composeMessage = (
     return pushMessage(message);
   }
 
-  // Handle codex_tool_call message merging
-  if (message.type === 'codex_tool_call') {
-    for (let i = 0, len = list.length; i < len; i++) {
-      const msg = list[i];
-      if (msg.type === 'codex_tool_call' && msg.content.tool_call_id === message.content.tool_call_id) {
-        // Create new object instead of mutating original
-        const merged = { ...msg.content, ...message.content };
-        return updateMessage(i, { ...msg, content: merged });
-      }
-    }
-    // If no existing tool call found, add new one
-    return pushMessage(message);
-  }
-
-  // Handle acp_tool_call message merging (same logic as codex_tool_call)
+  // Handle acp_tool_call message merging
   if (message.type === 'acp_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];

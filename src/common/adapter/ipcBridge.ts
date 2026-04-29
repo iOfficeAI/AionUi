@@ -735,15 +735,6 @@ export const mcpService = {
   getAuthenticatedServers: httpGet<string[], void>('/api/mcp/oauth/authenticated'),
 };
 
-// ---------------------------------------------------------------------------
-// Codex / OpenClaw — reuse unified conversation interface
-// ---------------------------------------------------------------------------
-
-export const codexConversation = {
-  sendMessage: conversation.sendMessage,
-  responseStream: conversation.responseStream,
-};
-
 export const openclawConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,

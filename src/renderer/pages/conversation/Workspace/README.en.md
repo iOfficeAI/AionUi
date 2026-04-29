@@ -85,7 +85,6 @@ const {
 2. **Agent response stream** - Auto-refresh workspace
    - Gemini: `tool_group`, `tool_call`
    - ACP: `acp_tool_call`
-   - Codex: `codex_tool_call`
 3. **Manual refresh workspace event** - `${eventPrefix}.workspace.refresh`
 4. **Clear selected files event** - `${eventPrefix}.selected.file.clear` (after sending message)
 5. **Search workspace response** - Update search results
