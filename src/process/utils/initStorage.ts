@@ -27,6 +27,7 @@ import {
   getDataPath,
   getTempPath,
   hasElectronAppPath,
+  pruneDirectoryToMatch,
   verifyDirectoryFiles,
 } from './utils';
 import { getDatabase } from '../services/database/export';
@@ -430,21 +431,13 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       if (!existsSync(builtinSkillsCopyDir)) {
         mkdirSync(builtinSkillsCopyDir);
       }
+      // Prune FIRST, then copy: removes stale files (e.g. creating.md/editing.md merged away
+      // upstream) and also clears any dest entry whose type (dir ↔ file) differs from source,
+      // so the subsequent copy never hits ENOTDIR/EEXIST on a type mismatch.
+      await pruneDirectoryToMatch(builtinSkillsDir, builtinSkillsCopyDir);
       await copyDirectoryRecursively(builtinSkillsDir, builtinSkillsCopyDir, {
         overwrite: true,
       });
-      // Remove stale: entries in dest that no longer exist in source
-      const srcNames = new Set(
-        readdirSync(builtinSkillsDir, { withFileTypes: true })
-          .filter((e) => e.isDirectory())
-          .map((e) => e.name)
-      );
-      for (const entry of readdirSync(builtinSkillsCopyDir, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue;
-        if (!srcNames.has(entry.name)) {
-          await fs.rm(path.join(builtinSkillsCopyDir, entry.name), { recursive: true, force: true });
-        }
-      }
     } catch (error) {
       console.warn(`[AionUi] Failed to sync builtin skills directory:`, error);
     }

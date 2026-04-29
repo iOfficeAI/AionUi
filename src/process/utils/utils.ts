@@ -326,6 +326,40 @@ export async function copyDirectoryRecursively(src: string, dest: string, option
   }
 }
 
+/**
+ * 递归删除 dest 中在 src 中不存在的条目（按同名匹配）。
+ * 与 copyDirectoryRecursively 搭配使用，用于把 dest 同步成与 src 一致的结构。
+ * Recursively prune entries in `dest` that no longer exist in `src` (matched by name).
+ * Pair with copyDirectoryRecursively to make `dest` structurally match `src`.
+ */
+export async function pruneDirectoryToMatch(src: string, dest: string): Promise<void> {
+  if (!existsSync(src) || !existsSync(dest)) return;
+
+  const srcEntries = await fs.readdir(src, { withFileTypes: true });
+  const srcByName = new Map(srcEntries.map((entry) => [entry.name, entry]));
+
+  const destEntries = await fs.readdir(dest, { withFileTypes: true });
+  for (const destEntry of destEntries) {
+    const destPath = path.join(dest, destEntry.name);
+    const srcEntry = srcByName.get(destEntry.name);
+
+    if (!srcEntry) {
+      await fs.rm(destPath, { recursive: true, force: true });
+      continue;
+    }
+
+    // Name exists in src but type changed (dir ↔ file) — remove stale dest so copy can replace it cleanly.
+    if (srcEntry.isDirectory() !== destEntry.isDirectory()) {
+      await fs.rm(destPath, { recursive: true, force: true });
+      continue;
+    }
+
+    if (destEntry.isDirectory()) {
+      await pruneDirectoryToMatch(path.join(src, destEntry.name), destPath);
+    }
+  }
+}
+
 // 验证两个目录的文件名结构是否相同
 export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<boolean> {
   try {
