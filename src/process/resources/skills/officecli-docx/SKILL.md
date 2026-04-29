@@ -71,16 +71,16 @@ Before reaching for a command, know what a good docx looks like. These are the d
 
 ### Visual delivery floor (applies to EVERY document)
 
-Before you declare done, the PDF render (see QA) MUST satisfy all of these:
+Before you declare done, open `officecli view "$FILE" html --browser` and confirm all of these:
 
 - **No placeholder tokens rendered as data.** `$xxx$`, `{var}`, `{{name}}`, `<TODO>`, `lorem`, `xxxx` must never appear in a heading, body paragraph, cover page, TOC, caption, header, or footer. These are build-time tokens that escaped replacement. If you want a literal `{name}` in a template for a human to fill, wrap it in a visible instruction paragraph ("Replace `{name}` before sending") so no one confuses it with finished content.
 - **No truncated titles or overflowing cells.** Long headings / table cell values must fit the page and the column. If a cell overflows, widen the column or set `wrapText` on the cell.
 - **Page numbers render as real numbers.** Confirm `get --depth 3` on the footer shows `<w:fldChar>` children — not just a run with literal text `"Page"`. The footer must contain a live field, not a static word.
-- **TOC present when document has 3+ headings.** Add with `--type toc`. The TOC itself renders as a field code in CLI output — it becomes a linked list when a human opens the file and presses F9 (Word) or opens it in LibreOffice.
+- **TOC present when document has 3+ headings.** Add with `--type toc`. The TOC is a live field — some viewers show the heading list immediately, others show `Update field to see table of contents` until the user recalculates (F9 in Word).
 - **Cover page ≥ 60% filled, last page ≥ 40% filled.** A cover that is 80% blank space looks unfinished. Pad with subtitle / author / date / scope statement / key highlights / decorative band. A last page with just "Thank you" centered also reads as unfinished — add conclusion, next steps, contact, legal notice.
 - **No `\$`, `\t`, `\n` literals in document text.** If you see these in `view text`, a shell-escape layer leaked. Delete the paragraph and re-enter it.
 
-If any of the above fails on PDF, STOP and fix before declaring done.
+If any of the above fails, STOP and fix before declaring done.
 
 ### Hard rules worth repeating (they are how docx goes wrong)
 
@@ -96,7 +96,7 @@ Six steps. Every non-trivial build follows this shape.
 2. **Orient.** For a new file, `officecli create doc.docx`. For existing, `officecli view doc.docx outline` first — get the heading tree, section count, whether a TOC / watermark / tracked changes are already there. Never start editing blind.
 3. **Build incrementally.** Structural first, content next, formatting last. Styles and numbering defs → sections / page setup → headings and body → tables / images / fields / TOC → headers / footers → comments. After each structural op, `get` it back to confirm shape before stacking on top.
 4. **Format to spec.** Explicit heading sizes, spacing, widths, alignment, tabs, list indents. Formatting is not optional polish — per Requirements for Outputs it is part of the deliverable.
-5. **Close, then recalculate fields.** `officecli close doc.docx` writes XML to disk. TOC / PAGE / NUMPAGES / SEQ / PAGEREF fields have **cached values** that may be stale or empty. When a human opens the file in Word, press F9 to recalc; in LibreOffice, Tools → Update → Update All. For the CLI's purposes, confirm fields _exist_ (via `get --depth 3` finding `<w:fldChar>`) rather than trusting the text value — the text is the cached render, the field is the truth.
+5. **Close, then recalculate fields.** `officecli close doc.docx` writes XML to disk. TOC / PAGE / NUMPAGES / SEQ / PAGEREF fields have **cached values** that may be stale or empty. When a human opens the file in Word, they press F9 to recalc. For the CLI's purposes, confirm fields _exist_ (via `get --depth 3` finding `<w:fldChar>`) rather than trusting the text value — the text is the cached render, the field is the truth.
 6. **QA — assume there are problems.** See the QA section. You are not done when your last command exited 0; you are done after one fix-and-verify cycle finds zero new issues.
 
 ## Quick Start
@@ -121,6 +121,12 @@ Verified: `validate` returns `no errors found`; `get /footer[1] --depth 3` shows
 ## Reading & Analysis
 
 Start wide, then narrow. `outline` tells you what structure is already there; jump into `view text` / `get` / `query` only once you know where to look.
+
+**Open the rendered document to eyeball your own work.**
+
+- `officecli view $FILE html --browser` opens the document in a browser tab. Headings, tables, page breaks visible. Catches heading hierarchy issues, empty paragraphs-as-spacing, missing TOC entries.
+- `officecli watch $FILE` keeps the preview live as you iterate (optional).
+  Use this as your **first visual check after a batch of edits**.
 
 **Orient.** Heading tree, section count, table / image counts, watermark, tracked changes presence.
 
@@ -246,10 +252,10 @@ For a standalone MERGEFIELD inside a paragraph:
 
 ```bash
 officecli add doc.docx "/body/p[3]" --type field --prop fieldType=mergefield --prop name=customer_name
-# Word / LibreOffice / WPS render this as «customer_name» — visible placeholder, replaced at mail-merge time.
+# Renders as «customer_name» — visible placeholder, replaced in Word at mail-merge time.
 ```
 
-Verified: canonical form passes `validate` and renders `«customer_name»` in PDF. Confirm all MERGEFIELDs exist with `officecli query doc.docx 'field[fieldType=mergefield]'`.
+Verified: canonical form passes `validate` and renders `«customer_name»` on open. Confirm all MERGEFIELDs exist with `officecli query doc.docx 'field[fieldType=mergefield]'`.
 
 **MERGEFIELD templates: do NOT render placeholder literals.** If a template shows `{{customer_name}}` or `$NAME$` as body text, a human recipient sees the literal token — that is a failed template. Either (a) insert a real MERGEFIELD via the `field` type above, which Word replaces at mail-merge time, or (b) put literal tokens only inside an obvious instruction paragraph ("Replace `{{customer_name}}` before sending"). See Requirements for Outputs → Visual delivery floor.
 
@@ -279,7 +285,7 @@ For any document with 3+ headings (Requirements):
 officecli add doc.docx /body --type toc --prop levels="1-3" --prop title="Table of Contents" --prop hyperlinks=true --index 0
 ```
 
-The TOC renders as a field code in CLI output and becomes a clickable list when a human opens the file and presses F9 in Word (or auto-updates in LibreOffice). Do NOT pass `--prop pagenumbers=true` — UNSUPPORTED; page numbers render automatically.
+The TOC is a live field — when a human opens the file, the viewer either populates it on open or shows it after the user recalculates (F9 in Word). Do NOT pass `--prop pagenumbers=true` — UNSUPPORTED; page numbers render automatically.
 
 **Addressing the TOC (1.0.60+).** Direct paths `/toc[1]` or `/tableofcontents` resolve to the first TOC field without hand-walking XPath — use these as the primary path for `get` / `set` / `remove`:
 
@@ -288,14 +294,12 @@ officecli get doc.docx "/toc[1]" --depth 2            # primary path — no raw-
 officecli get doc.docx "/tableofcontents" --depth 2   # alias, same target
 ```
 
-The LibreOffice-PDF static-TOC fallback below (recipe (f)) still applies for PDF-only deliveries — that is a rendering limit, not an addressing gap.
+**TOC delivery step — treat this as mandatory before handing the file off.** **The live TOC field is a placeholder until recalculated.** Some viewers show the real heading list on first open; others show the literal string `Update field to see table of contents` until the reader recalculates. Two workarounds — pick one based on who reads the file:
 
-**TOC delivery step — treat this as mandatory before handing the file off.** LibreOffice's PDF export of a raw TOC field prints the literal string `Update field to see table of contents` instead of the heading list. Word/WPS users get the real TOC on first open (or after F9), but PDF-only recipients just see the placeholder. Two workarounds — pick one based on who reads the file:
+- **Recipients who will open in a viewer that recalculates (or who will press F9)**: add a visible instruction ("Press F9 to refresh the TOC and page numbers"). No further action needed.
+- **Recipients who cannot / will not recalculate**: use the **static TOC fallback — see Report-level recipes (f) below**. No CLI-only pipeline currently populates `<w:sdtContent>` with the cached heading rows that Word writes on save. `raw-set` on `//w:sdt/w:sdtContent` is theoretically possible but requires reconstructing the exact per-heading XML (with correct bookmarks, PAGEREF chains, and cached page numbers) and has not worked for any R1/R2 Tester. Hand-write the static fallback instead.
 
-- **Word/WPS recipients**: add a visible instruction in the note area of the deliverable ("Press F9 to refresh the TOC and page numbers"). No further action needed.
-- **PDF-only / mail recipients**: use the **static TOC fallback — see Report-level recipes (f) below**. LibreOffice cannot act as a substitute for Word-based TOC pre-rendering: no CLI-only pipeline currently populates `<w:sdtContent>` with the cached heading rows that Word writes on save. `raw-set` on `//w:sdt/w:sdtContent` is theoretically possible but requires reconstructing the exact per-heading XML (with correct bookmarks, PAGEREF chains, and cached page numbers) and has not worked for any R1/R2 Tester. Treat TOC pre-render without Word as a **black hole** and hand-write the static fallback instead.
-
-Ship-check: `officecli query "$FILE" 'p:contains("Update field to see")'` must return empty for PDF-only deliveries. If it matches, the TOC is unpopulated — switch to recipe (f).
+Ship-check: `officecli query "$FILE" 'p:contains("Update field to see")'` must return empty whenever the reader won't recalculate. If it matches, the TOC is unpopulated — switch to recipe (f).
 
 ### Images
 
@@ -342,8 +346,8 @@ officecli add "$FILE" /body --type paragraph --prop text='Prepared for: Acme Cor
 officecli add "$FILE" /body --type paragraph --prop text='Engagement: 2026-04 — 2026-06' --prop alignment=center --prop size=11pt
 officecli add "$FILE" /body --type paragraph --prop text='Author: Advisory Partners' --prop alignment=center --prop size=11pt --prop spaceAfter=36pt
 officecli add "$FILE" /body --type paragraph --prop text="Key themes: 1) margin resilience, 2) EMEA expansion, 3) capital allocation." --prop alignment=center --prop italic=true --prop size=10pt
-# Force the next section to start on a new page — belt-and-suspenders for LibreOffice PDF
-# (pageBreakBefore alone is unreliable in soffice PDF; --type pagebreak alone flaked in earlier rounds)
+# Force the next section to start on a new page — belt-and-suspenders for cross-viewer reliability
+# (pageBreakBefore alone is unreliable across viewers; --type pagebreak alone also flaked in earlier rounds)
 officecli add "$FILE" /body --type pagebreak
 officecli set "$FILE" "/body/p[last()]" --prop pageBreakBefore=true
 ```
@@ -405,7 +409,7 @@ officecli set "$FILE" "/body/tbl[1]/tr[1]/tc[1]/p[1]" --prop listStyle=bullet
 
 If your seed paragraph lands at the bottom instead of the top (row-level `set c1=` sometimes appends), re-order: `officecli move "$FILE" "/body/tbl[1]/tr[1]/tc[1]/p[N]" --index 0`. Tester #1 shipped SWOT + risk matrix + scenario matrix with this pattern after `\n` literal failed.
 
-**(f) Static TOC fallback (PDF-only delivery).** When your reader sees only the PDF (no Word F9), the live TOC field renders as the literal `Update field to see table of contents`. LibreOffice cannot pre-populate a TOC field the way Word can — this is a hard black hole, not a recipe gap. Workaround: remove the TOC field, keep the `TOCHeading` style paragraph as a visible header, then hand-write one paragraph per heading with a literal dot-leader line. Visual outcome: a plain text TOC with dots trailing to page numbers, no live field, ships correctly in any reader.
+**(f) Static TOC fallback (cross-viewer reliability).** When delivering to viewers that don't auto-recalculate fields, the live TOC field renders as the literal `Update field to see table of contents`. No CLI-only pipeline can pre-populate a TOC field the way Word does on save — this is a hard black hole, not a recipe gap. Workaround: remove the TOC field, keep the `TOCHeading` style paragraph as a visible header, then hand-write one paragraph per heading with a literal dot-leader line. Visual outcome: a plain text TOC with dots trailing to page numbers, no live field, ships correctly in any reader.
 
 ```bash
 # 1. Locate and remove the raw TOC field paragraph(s) that carry the "Update field to see..." cached text
@@ -421,11 +425,11 @@ officecli add "$FILE" /body --type paragraph --prop text="2. Market Diagnosis ..
 # ... one per heading
 ```
 
-Tester #1 shipped 13 static TOC lines this way after the live-field option left the literal prompt in PDF. Page numbers are manually set — run `soffice --convert-to pdf` first to learn the real numbers, then fill. The trade-off: no click-to-jump, but no placeholder text either. `add --type toc` (live field) remains correct for Word/WPS recipients — this recipe is for PDF-only hand-off.
+Tester #1 shipped 13 static TOC lines this way after the live-field option left the literal prompt visible to the reader. Page numbers are manually set — open the file in Word once to learn the real numbers, then fill. The trade-off: no click-to-jump, but no placeholder text either. `add --type toc` (live field) remains correct for recipients whose viewer recalculates on open (or who will press F9) — this recipe is for everyone else.
 
-### Forcing page breaks — belt-and-suspenders for LibreOffice-PDF workflows
+### Forcing page breaks — belt-and-suspenders for cross-viewer reliability
 
-Two mechanisms exist; **neither alone is reliable under `soffice → PDF`**. LibreOffice's PDF pagination is heuristic — depending on version and preceding content state, it may silently ignore `<w:pageBreakBefore/>` OR render `<w:br w:type="page"/>` as a soft break. Cross-round testers observed the two failures in opposite directions. Apply BOTH on every H1 you want on a fresh page:
+Two mechanisms exist; **neither alone is reliable across every viewer**. Pagination is heuristic — depending on the viewer and preceding content state, it may silently ignore `<w:pageBreakBefore/>` OR render `<w:br w:type="page"/>` as a soft break. Cross-round testers observed the two failures in opposite directions. Apply BOTH on every H1 you want on a fresh page:
 
 ```bash
 # 1. Prepend a pagebreak element BEFORE the heading
@@ -434,12 +438,11 @@ officecli add "$FILE" /body --type pagebreak --index <N>
 officecli set "$FILE" "/body/p[<N+1>]" --prop pageBreakBefore=true
 ```
 
-- Word / WPS: `pageBreakBefore=true` alone is sufficient if that is your only render target.
-- LibreOffice PDF (e.g. `soffice --convert-to pdf`): use BOTH. Observed on officecli 1.0.60: `pageBreakBefore` alone left 9 chapters mashed into 6 PDF pages; `--type pagebreak` alone has flaked in earlier rounds. The redundant pair closes the gap.
+Neither alone guarantees a break in every client. Observed on officecli 1.0.60: `pageBreakBefore` alone left 9 chapters mashed into 6 pages in one viewer; `--type pagebreak` alone flaked in earlier rounds. The redundant pair closes the gap.
 
-**`break=newPage` alias (1.0.61+).** The paragraph / section prop `--prop break=newPage` is a shorter alias that maps to `pageBreakBefore=true` (accepts `newPage | page | nextPage | pageBreak`). Same underlying XML, same PDF behavior — so the belt-and-suspenders rule still applies: use `add --type pagebreak` before the heading AND set `pageBreakBefore=true` / `break=newPage` on the heading paragraph itself.
+**`break=newPage` alias (1.0.61+).** The paragraph / section prop `--prop break=newPage` is a shorter alias that maps to `pageBreakBefore=true` (accepts `newPage | page | nextPage | pageBreak`). Same underlying XML, same behavior — so the belt-and-suspenders rule still applies: use `add --type pagebreak` before the heading AND set `pageBreakBefore=true` / `break=newPage` on the heading paragraph itself.
 
-Apply to every H1, the TOC heading, and the cover-closing paragraph. Re-render PDF and count pages to confirm.
+Apply to every H1, the TOC heading, and the cover-closing paragraph. Preview via `view html --browser` and count pages to confirm.
 
 ### Template delivery — separating Template Notes from end-user content
 
@@ -500,12 +503,12 @@ Your first document is almost never correct. Treat QA as a bug hunt, not a confi
    officecli query doc.docx 'image:no-alt'
    ```
 5. `officecli validate doc.docx` — schema check. Close any resident first (see Known Issues).
-6. **Render to PDF and eyeball every page.** `officecli view doc.docx html` and `officecli watch doc.docx` are fine for structural preview during editing, but they are not the delivery format. Use `soffice --headless --convert-to pdf doc.docx && open doc.pdf` on macOS (or `xdg-open` on Linux). Walk every page. "validate pass" is not delivery; "PDF looks like a real document" is delivery.
+6. **Visual pass — walk every page in the browser preview.** `officecli view doc.docx html --browser` renders the document. Walk every page. "validate pass" is not delivery; "the preview looks like a real document" is delivery.
 7. If anything failed, fix, then **rerun the full cycle**. One fix commonly creates another problem.
 
 ### Delivery Gate (run before handing off — any failure = REJECT, do NOT deliver)
 
-The three checks below are the automated half of the QA cycle; they catch the five defect classes that burnt R1 testers (228 `shd` schema errors, shell-escape leak into cover titles, TOC placeholder into PDF, static-text footer instead of live PAGE, unreplaced template tokens). Copy-paste this block, substitute your file, and refuse to declare done until every command prints OK.
+The three checks below are the automated half of the QA cycle; they catch the five defect classes that burnt R1 testers (228 `shd` schema errors, shell-escape leak into cover titles, TOC placeholder visible to reader, static-text footer instead of live PAGE, unreplaced template tokens). Copy-paste this block, substitute your file, and refuse to declare done until every command prints OK.
 
 ```bash
 FILE="doc.docx"
@@ -514,11 +517,10 @@ FILE="doc.docx"
 officecli close "$FILE" 2>/dev/null
 officecli validate "$FILE" | grep -q "no errors found" || { echo "REJECT: validate failed"; exit 1; }
 
-# Gate 2 — PDF-text leak check. Renders the PDF, then greps for tokens that must NEVER appear in a delivered file.
-soffice --headless --convert-to pdf "$FILE" >/dev/null 2>&1
-pdftotext "${FILE%.docx}.pdf" - | \
+# Gate 2 — token leak via CLI text-layer view. Greps for tokens that must NEVER appear in a delivered file.
+officecli view "$FILE" text | \
   grep -nE '(\$[A-Za-z_]+\$|\{\{[^}]+\}\}|<TODO>|xxxx|lorem|Update field to see|\\[\$tn])' && \
-  { echo "REJECT: token leak in PDF (see line(s) above)"; exit 1; } || echo "Gate 2 OK"
+  { echo "REJECT: token leak (see line(s) above)"; exit 1; } || echo "Gate 2 OK"
 
 # Gate 3 — live-field structural spot-check. A footer showing the literal word "Page" with no live PAGE field is a static run.
 # Use `query` (operates on semantic elements) OR `raw` (inspects the XML part) — both reveal fldChar.
@@ -528,18 +530,18 @@ officecli query "$FILE" 'field[fieldType=page]' | grep -q . || \
 echo "Delivery Gate PASS"
 ```
 
-The greps above correspond one-to-one with R1 failures: `$...$` catches shell-escape leaks (Tester #1's `USM` after `US$22B` got eaten), `{{...}}` catches unmigrated template tokens, `Update field to see` catches the LibreOffice TOC-placeholder rendering, `\$`/`\t`/`\n` catches shell-escape literals dropped into text. Every gate must print its success message before you declare the file delivered.
+The greps above correspond one-to-one with R1 failures: `$...$` catches shell-escape leaks (Tester #1's `USM` after `US$22B` got eaten), `{{...}}` catches unmigrated template tokens, `Update field to see` catches the unpopulated-TOC placeholder, `\$`/`\t`/`\n` catches shell-escape literals dropped into text. Every gate must print its success message before you declare the file delivered.
 
 ### Field / cached-value spot-check
 
 TOC, PAGE, NUMPAGES, MERGEFIELD are all fields with **cached values** that may be stale or empty at write time. Confirm existence by structure, not by text.
 
 - [ ] Footer PAGE field: `get /footer[N] --depth 3` lists the runs that carry the `fldChar begin` / `instrText` / `fldChar separate` / cached value / `fldChar end` chain — expect ≥ 5 runs for a single PAGE, ≥ 11 for composite "Page X of Y". For the underlying `<w:fldChar>` XML, use `officecli raw doc.docx "/footer[1]" | grep -c fldChar`, or run `officecli query doc.docx 'field[fieldType=page]'` for a semantic match. If you see a single run with text `"Page"`, the field is missing — re-add with `--prop field=page`.
-- [ ] TOC: `get /body/toc[1] --depth 2` must show field structure. In LibreOffice PDF preview, TOC may show `1 1 1 1` for page numbers or the literal `Update field to see table of contents` — F9 in Word populates the real values (see TOC delivery step).
+- [ ] TOC: `get /body/toc[1] --depth 2` must show field structure. In some viewers the TOC shows `1 1 1 1` for page numbers or the literal `Update field to see table of contents` until recalculated (see TOC delivery step).
 - [ ] MERGEFIELD: `query 'field[fieldType=mergefield]'` — one entry per template slot. No literal `{{name}}` text elsewhere.
 - [ ] SEQ / PAGEREF (if your document uses them via raw-set): confirm each `<w:fldChar>` chain exists by `raw`-inspecting the `document.xml`.
 
-**LibreOffice PDF caveat on PAGE fields**: LibreOffice sometimes renders PAGE field text as the literal word "Page" (no number) in PDF export, while Word renders the number correctly. This is a [RENDERER-BUG], not a skill defect. Judge by whether `fldChar` children exist, not by whether the PDF shows a digit. If the customer's reader is Word or WPS, the digit will appear.
+**Cross-viewer caveat on PAGE fields**: some viewers render PAGE field text as the literal word "Page" (no number) until the reader recalculates. This is a [RENDERER-BUG], not a skill defect. Judge by whether `fldChar` children exist, not by whether the visible text shows a digit.
 
 ### Fresh eyes (subagent)
 
@@ -554,11 +556,11 @@ You are reading the same document you wrote. Spawn a subagent with the single in
 - placeholder tokens rendered as body text
 - an empty first-page footer attached to a document that has no cover
 
-The checklist above — especially the visual PDF pass and the field structure check — is how you catch what validation can't.
+The checklist above — especially the browser-preview visual pass and the field structure check — is how you catch what validation can't.
 
 ### QA display notes (don't chase these)
 
-- `view text` shows `"1."` for every numbered list item regardless of rendered number. The actual Word/LibreOffice output increments correctly. Not a defect.
+- `view text` shows `"1."` for every numbered list item regardless of rendered number. The actual rendered output increments correctly. Not a defect.
 - `view issues` flags "body paragraph missing first-line indent" on cover-page paragraphs, centered headings, list items, bibliography entries, callout boxes. First-line indent is only required for APA/academic body text. On professional documents (block style) these warnings are expected.
 
 ## Known Issues & Pitfalls
@@ -566,7 +568,7 @@ The checklist above — especially the visual PDF pass and the field structure c
 Organized by source. When something "looks broken", attribute it before chasing it:
 
 - **[AGENT-ERROR]** — the document itself is wrong (structure / data / formatting). Fix the document.
-- **[RENDERER-BUG]** — LibreOffice PDF renders differently from Word/WPS. Document is correct; don't chase.
+- **[RENDERER-BUG]** — the document is correct; a specific viewer renders it differently. Don't chase.
 - **[SKILL gap]** — the skill didn't teach the relevant rule. Open an issue against the skill.
 
 ### Schema-invalid-on-emit — disabled APIs + working forms
@@ -614,17 +616,17 @@ Specialty-only (skip unless you hit them):
 - **C-D-6** `add num --prop abstractNumId=N` may silent-bind wrong when built-ins exist → `get /numbering --depth 2` after add, correct with `set /numbering/num[N] --prop abstractNumId=...`.
 - **C-D-7** Watermark `opacity` asymmetric — `add` rejects, `set` accepts → two-step (see Advanced topics).
 
-### Renderer quirks (LibreOffice PDF vs Word / WPS)
+### Renderer quirks (cross-viewer)
 
-`soffice → PDF` is the right tool for structural QA (overflow, placeholder leakage, hierarchy, layout). It does NOT faithfully reproduce Word rendering. Observed divergences, all [RENDERER-BUG]:
+`officecli view html --browser` is the right tool for structural QA (overflow, placeholder leakage, hierarchy, layout). Some features vary by the viewer the end user opens the file in. Observed divergences, all [RENDERER-BUG]:
 
-- **PAGE field renders as literal "Page" (no number) in LibreOffice PDF export**, while Word shows the digit. Judge field presence by `get --depth 3` finding `<w:fldChar>`, not by eyeballing the PDF for a digit.
-- **TOC cached page numbers may read "1 1 1 1"** until a human opens the file and presses F9 (Word) or auto-updates on open (LibreOffice).
-- **Pie / doughnut chart fill collapses to one color** in LibreOffice PDF (column / bar render fine). Switch to column / bar or accept the render caveat.
-- **Form-control checkboxes may render double-boxed** in LibreOffice. Correct in Word.
-- **OMML equation rendering** may shift baselines vs Word; the underlying XML is identical.
+- **PAGE field may render as literal "Page" (no number)** in some viewers until the reader recalculates. Judge field presence by `get --depth 3` finding `<w:fldChar>`, not by eyeballing a digit.
+- **TOC cached page numbers may read "1 1 1 1"** until a human opens the file and recalculates (F9 in Word).
+- **Pie / doughnut chart fill may collapse to one color** in some viewers (column / bar render fine). Switch to column / bar or accept the render caveat.
+- **Form-control checkboxes may render double-boxed** in some viewers.
+- **OMML equation baselines** may shift across viewers; the underlying XML is identical.
 
-Before calling a color, field, or chart broken, open the file once in Word / WPS. If it looks correct there, it is a renderer quirk — do not chase.
+Before calling a color, field, or chart broken, open the file in the user's target viewer. If it looks correct there, it is a viewer quirk — do not chase.
 
 ### `validate` caveats
 
@@ -639,23 +641,23 @@ Before calling a color, field, or chart broken, open the file once in Word / WPS
 
 ### Common pitfalls
 
-| Pitfall                                                           | Correct approach                                                                                                                                                                                                                                        |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `--index` vs `[N]`                                                | `--index` is 0-based (array convention); `[N]` paths are 1-based (XPath)                                                                                                                                                                                |
-| Unquoted `[N]` in zsh/bash                                        | Quote every path: `"/body/p[1]"`                                                                                                                                                                                                                        |
-| `[last]` as predicate                                             | Must be `[last()]` with parens. `/body/tbl[last()]/tr[1]` valid; `[last]` throws "Malformed path segment"                                                                                                                                               |
-| Raw twips in spacing                                              | Use unit-qualified values: `12pt`, `0.5cm`, `1.5x`                                                                                                                                                                                                      |
-| Empty paragraphs for spacing                                      | Use `spaceBefore` / `spaceAfter` on paragraphs                                                                                                                                                                                                          |
-| Row-level `set` for formatting                                    | Row `set` only supports `height`, `header`, `c1..cN` text. Format goes on cell paragraph / run                                                                                                                                                          |
-| `listStyle` on a run                                              | `listStyle` is a paragraph property                                                                                                                                                                                                                     |
-| Indent via leading spaces                                         | Use `--prop indent=720` (twips) for left indent, `--prop firstLineIndent=360` for first line, `--prop hangingIndent=720` for hanging. Leading spaces fire `view issues`. Dotted `ind.left` works; dotted `ind.firstLine` does NOT — use canonical names |
-| Cover page number suppression via `set differentFirstPage=true`   | UNSUPPORTED. Add a first-type footer instead: `--type footer --prop type=first --prop text=""`                                                                                                                                                          |
-| TOC `--prop pagenumbers=true`                                     | UNSUPPORTED. Page numbers render automatically                                                                                                                                                                                                          |
-| `--type pagebreak` OR `pageBreakBefore` alone not breaking in PDF | Apply BOTH: `add /body --type pagebreak` before the heading AND `set /body/p[N+1] --prop pageBreakBefore=true`. LibreOffice PDF heuristically drops either one; the pair is the only reliable recipe (see Forcing page breaks)                          |
-| Row-level `c1="line1\nline2"` for multi-line cell                 | `\n` lands as a literal. Use recipe (e): seed one bullet, then `add paragraph` to the cell for each subsequent line                                                                                                                                     |
-| Raw-set when dotted-attr would work                               | Prefer L2 (`pbdr.top=`, `ind.left=`, `font.size=`) over L3 raw-set. `shd.fill=` and `ind.firstLine=` are NOT safe — use canonical `shd=clear;XXXXXX` and `firstLineIndent=N`                                                                            |
-| Next paragraph picks up the previous Heading style                | If a Heading2 `Next body line` sneaks through, set explicit `--prop style=Normal` on the following paragraph                                                                                                                                            |
-| Modifying a file open in Word                                     | Close it in Word first                                                                                                                                                                                                                                  |
+| Pitfall                                                                   | Correct approach                                                                                                                                                                                                                                        |
+| ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--index` vs `[N]`                                                        | `--index` is 0-based (array convention); `[N]` paths are 1-based (XPath)                                                                                                                                                                                |
+| Unquoted `[N]` in zsh/bash                                                | Quote every path: `"/body/p[1]"`                                                                                                                                                                                                                        |
+| `[last]` as predicate                                                     | Must be `[last()]` with parens. `/body/tbl[last()]/tr[1]` valid; `[last]` throws "Malformed path segment"                                                                                                                                               |
+| Raw twips in spacing                                                      | Use unit-qualified values: `12pt`, `0.5cm`, `1.5x`                                                                                                                                                                                                      |
+| Empty paragraphs for spacing                                              | Use `spaceBefore` / `spaceAfter` on paragraphs                                                                                                                                                                                                          |
+| Row-level `set` for formatting                                            | Row `set` only supports `height`, `header`, `c1..cN` text. Format goes on cell paragraph / run                                                                                                                                                          |
+| `listStyle` on a run                                                      | `listStyle` is a paragraph property                                                                                                                                                                                                                     |
+| Indent via leading spaces                                                 | Use `--prop indent=720` (twips) for left indent, `--prop firstLineIndent=360` for first line, `--prop hangingIndent=720` for hanging. Leading spaces fire `view issues`. Dotted `ind.left` works; dotted `ind.firstLine` does NOT — use canonical names |
+| Cover page number suppression via `set differentFirstPage=true`           | UNSUPPORTED. Add a first-type footer instead: `--type footer --prop type=first --prop text=""`                                                                                                                                                          |
+| TOC `--prop pagenumbers=true`                                             | UNSUPPORTED. Page numbers render automatically                                                                                                                                                                                                          |
+| `--type pagebreak` OR `pageBreakBefore` alone not breaking across viewers | Apply BOTH: `add /body --type pagebreak` before the heading AND `set /body/p[N+1] --prop pageBreakBefore=true`. Some viewers heuristically drop either one; the pair is the only reliable recipe (see Forcing page breaks)                              |
+| Row-level `c1="line1\nline2"` for multi-line cell                         | `\n` lands as a literal. Use recipe (e): seed one bullet, then `add paragraph` to the cell for each subsequent line                                                                                                                                     |
+| Raw-set when dotted-attr would work                                       | Prefer L2 (`pbdr.top=`, `ind.left=`, `font.size=`) over L3 raw-set. `shd.fill=` and `ind.firstLine=` are NOT safe — use canonical `shd=clear;XXXXXX` and `firstLineIndent=N`                                                                            |
+| Next paragraph picks up the previous Heading style                        | If a Heading2 `Next body line` sneaks through, set explicit `--prop style=Normal` on the following paragraph                                                                                                                                            |
+| Modifying a file open in Word                                             | Close it in Word first                                                                                                                                                                                                                                  |
 
 ### Help pointer
 

@@ -71,7 +71,7 @@ Before declaring done, the per-slide render (see QA) MUST satisfy:
 - **No text overflow inside shapes.** A 72pt KPI in a 4cm-tall box clips. Shrink the number, enlarge the box, or shorten the text — never trim content to fit.
 - **Cover slide is content-rich.** Title + subtitle + presenter/client block + date + a brand band or key-takeaway strap. A cover with 80% whitespace reads as a stub.
 - **Contrast floor.** On dark backgrounds (brightness < 30%), body text MUST be `FFFFFF` or > 80%-bright. Mid-gray on dark navy is invisible on projection.
-- **Animation restraint.** ≤ 1 animation per slide, ≤ 600ms, entrance/emphasis only (never `bounce`, `swivel`, `fly-from-edge`).
+- **Animation restraint.** ≤ 1 animation per slide, ≤ 600ms, entrance/emphasis only (never `bounce`, `swivel`, `fly-from-edge`). Animation is a runtime feature — `view html --browser` shows static geometry; the animation itself runs only when the `.pptx` is opened in a live presentation viewer.
 - **No `\$`, `\t`, `\n` literals in slide text.** If `view text` shows these, a shell-escape leaked — delete and re-enter via heredoc batch.
 
 If any fails, STOP and fix before declaring done.
@@ -138,7 +138,7 @@ Each animation is a cognitive interrupt. Limits:
 - **≤ 1 animation per slide**, duration **≤ 600ms**.
 - Use only `fade`, `appear`, or a single `zoom-entrance` on a hero slide.
 - Never: `bounce`, `swivel`, `fly-from-edge`, `spin`, multi-object choreography.
-- Animation does NOT render in LibreOffice PDF — verify in PowerPoint / Keynote.
+- Animation is runtime-only — verify in a live presentation viewer.
 
 → Presets: `officecli help pptx animation`.
 
@@ -149,7 +149,7 @@ Each animation is a cognitive interrupt. Limits:
 3. **Build in display order — HARD RULE.** `--index` on slide add is frequently ignored. Add slides in audience-view order: cover → agenda → section-1 divider → section-1 content → section-2 divider → … → closing. Out-of-order insertion requires `officecli move deck.pptx /slide[N] --index M` + re-verify with `get --depth 0`. **Before final delivery, confirm slide count + narrative arc match your build plan** — Evaluators REJECTed R1 decks where the cover rendered as slide 11 of 14. Gate 4 catches this.
 4. **Incremental per slide.** Create slide + background, then title, then supporting shapes / charts / connectors. Always `layout=blank` for custom designs. After each structural op, `get /slide[N] --depth 1` to confirm shape IDs.
 5. **Format to spec.** Explicit title ≥ 36pt, body ≥ 18pt, colors from one palette, connectors via `@id=`. Formatting is deliverable, not polish.
-6. **Close + verify in target viewer.** `officecli close` writes the ZIP. LibreOffice PDF is OK for structural QA; **always open in PowerPoint or Keynote before shipping** — chart colors, animations, font substitution, zoom all differ.
+6. **Close + verify in target viewer.** `officecli close` writes the ZIP. `view html --browser` is OK for structural QA; **always open in the target presentation viewer before shipping** — chart colors, animations, font substitution, zoom are runtime features that only the live viewer renders faithfully.
 7. **QA — assume there are problems.** Fix-and-verify until a cycle finds zero new issues.
 
 ## Quick Start
@@ -227,10 +227,10 @@ officecli query deck.pptx 'animation'                      # every animation in 
 ```bash
 officecli view deck.pptx html --browser       # per-slide PNG in one browser tab — best structural ground truth
 officecli view deck.pptx svg --start 3 --end 3   # single slide SVG (charts + gradients do NOT render in SVG)
-officecli watch deck.pptx                     # live-reload preview while editing
+officecli watch deck.pptx                     # keeps the preview live as you iterate (optional)
 ```
 
-`view html --browser` is the best check before PDF export. Neither is final ground truth — see Renderer Honesty.
+`view html --browser` is the best structural check. Not final ground truth for runtime-only features (animations, zoom) — see Renderer Honesty.
 
 ## Creating & Editing
 
@@ -298,7 +298,7 @@ officecli add deck.pptx /slide[3] --type chart --prop chartType=column \
   --prop x=2cm --prop y=4cm --prop width=20cm --prop height=10cm
 ```
 
-Gotchas: (1) series cannot be added after creation — include all series at `add` time or `remove` + re-add. (2) `gap` / `gapwidth` are ignored at `add` — `set` after creation. (3) chart titles with `()`, `[]`, `TBD` ship as literal text — replace before delivery. (4) LibreOffice PDF normalizes chart colors to theme defaults — verify in PowerPoint/Keynote (C-P-7).
+Gotchas: (1) series cannot be added after creation — include all series at `add` time or `remove` + re-add. (2) `gap` / `gapwidth` are ignored at `add` — `set` after creation. (3) chart titles with `()`, `[]`, `TBD` ship as literal text — replace before delivery. (4) some viewers normalize chart colors to theme defaults — verify in the target presentation viewer (C-P-7).
 
 ### Pictures
 
@@ -368,7 +368,7 @@ officecli set deck.pptx "/slide[7]/shape[@name=DocsBtn]" --prop link=https://exa
 - **Tables** — `--type table --prop rows=N --prop cols=M`. Row-level `set` supports `height`, `header`, `c1/c2/c3`. Cell formatting lives on the cell paragraph / run. Populate rows BEFORE setting table-level font (font cascade gets reset by row ops).
 - **Placeholders** — `"/slide[N]/placeholder[title]"` / `placeholder[body]`. Available only when the slide uses a layout with placeholders (not `layout=blank`).
 - **Groups** (LEAD) — address children via `"/slide[N]/group[@name=G]/shape[1]"`. Survives reordering better than positional indexes. `officecli help pptx group`.
-- **Zoom slide** (LEAD) — `--type zoom --prop targets="3,7,15"`. Section-navigation hub. Does NOT render in PDF — verify in PowerPoint. `officecli help pptx zoom`.
+- **Zoom slide** (LEAD) — `--type zoom --prop targets="3,7,15"`. Section-navigation hub. Zoom is a runtime feature — `view html --browser` shows the static geometry; the zoom interaction runs only in a live presentation viewer. `officecli help pptx zoom`.
 
 ### Raw-set escape hatch (L1 / L2 / L3)
 
@@ -633,7 +633,7 @@ Color convention: red path = stop/escalate, blue path = standard-action, green t
    officecli query deck.pptx 'picture:no-alt'
    ```
 4. `officecli close deck.pptx && officecli validate deck.pptx` — schema check. NEVER run validate against a resident-open file (spurious errors).
-5. **Render to PDF + open in PowerPoint/Keynote.** PDF catches overflow and placeholders; PowerPoint is ground truth for chart colors, fonts, zoom, and animations (PDF renders none of those faithfully).
+5. **Open the deck in the target presentation viewer before shipping.** `view html --browser` catches overflow and placeholders; the target viewer is ground truth for chart colors, fonts, zoom, and animations (these are runtime features).
 6. If anything failed, fix, then **rerun the full cycle**. One fix commonly creates another problem.
 
 ### Delivery Gate (any failure = REJECT, do NOT deliver)
@@ -651,10 +651,9 @@ echo "$VALIDATE_OUT" | grep -q "no errors found" && echo "Gate 1 OK" || {
   [ -z "$OTHER" ] && echo "Gate 1 OK (chart spPr whitelist)" || { echo "REJECT Gate 1:"; echo "$OTHER"; exit 1; }
 }
 
-# Gate 2 — PDF token leak. Tokens that must NEVER appear in a delivered deck.
+# Gate 2 — token leak via CLI text-layer view. Tokens that must NEVER appear in a delivered deck.
 # NOTE: `[ ]` empty-bracket branch false-positives on legitimate checkbox UI — prefer `☐` (U+2610) in checklists.
-soffice --headless --convert-to pdf "$FILE" >/dev/null 2>&1
-pdftotext "${FILE%.pptx}.pdf" - | \
+officecli view "$FILE" text | \
   grep -nE '(\$[A-Za-z_]+\$|\{\{[^}]+\}\}|<TODO>|xxxx|lorem|\\[\$tn]|\([[:space:]]*\)|\[[[:space:]]*\])' && \
   { echo "REJECT Gate 2: token leak above"; exit 1; } || echo "Gate 2 OK"
 
@@ -685,34 +684,31 @@ Each grep corresponds to an R1 failure: `$...$` = shell-escape leaks, `{{...}}` 
 
 You are reading the same deck you wrote. R1 showed that all 3 Testers passed Gates 1–3 AND YET all 3 decks were REJECTed by Evaluators for slide-order + title overlap + dark-on-dark. **Gates 1–4 cannot see rendered slides.** This step is the only visual-assembly check. Do not skip.
 
-Render each slide to PNG first:
+Open the per-slide preview:
 
 ```bash
-soffice --headless --convert-to pdf "$FILE" >/dev/null 2>&1
-mkdir -p render && pdftoppm -r 96 "${FILE%.pptx}.pdf" render/slide -png
+officecli view "$FILE" html --browser
 ```
 
-Then spawn a subagent with this exact prompt:
+Walk every slide and answer, for EACH:
 
-> Read each PNG at `<abs path>/render/slide-*.png` in filename order. For EVERY slide, answer:
->
-> - **overlap**: do any text shapes overlap each other or a chart? (flag e.g. a title wrapping to 2 lines with its subtitle underneath the wrap)
-> - **dark-on-dark**: is any text on a fill where fill brightness < 30% AND text brightness < 80%? (quiz options, phone numbers, labels on navy/red/green cards)
-> - **divider overlap**: any giant decorative number (01/02/03 at 100pt+) colliding with the divider title text?
-> - **order sanity**: does the slide sequence match the narrative outline (cover → agenda → dividers-before-their-sections → closing)?
-> - **missing arrowheads**: do flowchart/decision-tree connectors show direction, or plain lines? (R1 Evaluator flagged 42+ connectors as plain lines.)
->
-> REJECT the delivery if ANY of these are present; list every instance with its slide number. If none, report "Gate 5b PASS".
+- **overlap**: do any text shapes overlap each other or a chart? (flag e.g. a title wrapping to 2 lines with its subtitle underneath the wrap)
+- **dark-on-dark**: is any text on a fill where fill brightness < 30% AND text brightness < 80%? (quiz options, phone numbers, labels on navy/red/green cards)
+- **divider overlap**: any giant decorative number (01/02/03 at 100pt+) colliding with the divider title text?
+- **order sanity**: does the slide sequence match the narrative outline (cover → agenda → dividers-before-their-sections → closing)?
+- **missing arrowheads**: do flowchart/decision-tree connectors show direction, or plain lines? (R1 Evaluator flagged 42+ connectors as plain lines.)
 
-(Alternative for human operators: `officecli view deck.pptx html --browser` and scan each slide manually against the same checklist.)
+REJECT the delivery if ANY of the above is present; list every instance with its slide number. If none, report "Gate 5b PASS".
+
+For scripted/subagent audits, point the subagent at the browser preview URL or hand off the `.pptx` path and the checklist above — the same questions apply.
 
 ### Honest limit
 
-`validate` catches schema errors, not design errors. A deck can pass `validate` with 14pt body on every slide, five fonts, placeholder tokens in chart titles, animation on every slide, or gray text on navy. The QA cycle above — especially `view annotated`, `view html --browser`, and opening in the target viewer — is how you catch what validation can't.
+`validate` catches schema errors, not design errors. A deck can pass `validate` with 14pt body on every slide, five fonts, placeholder tokens in chart titles, animation on every slide, or gray text on navy. The QA cycle above — especially `view annotated`, `view html --browser`, and opening in the target presentation viewer — is how you catch what validation can't.
 
 ## Known Issues & Pitfalls
 
-When something looks broken, attribute it first: **[AGENT-ERROR]** (deck itself is wrong — fix the deck), **[RENDERER-BUG]** (LibreOffice PDF vs PowerPoint — don't chase), or **[SKILL gap]** (rule missing — open an issue).
+When something looks broken, attribute it first: **[AGENT-ERROR]** (deck itself is wrong — fix the deck), **[RENDERER-BUG]** (deck is correct; a specific viewer renders it differently — don't chase), or **[SKILL gap]** (rule missing — open an issue).
 
 ### CLI bug backlog (C-P-1 through C-P-7)
 
@@ -724,11 +720,11 @@ When something looks broken, attribute it first: **[AGENT-ERROR]** (deck itself 
 | **C-P-4** | `remove /slide[N]/shape[@id=X]/animation[1]` rejected (deep-path accepted by `add` but not `remove`).                                              | Use `set --prop animation=none`, or overwrite with a new preset.                                                                                                                                         |
 | **C-P-5** | `shape=bentConnector2` / `curvedConnector2` rejected. Only 3 short + 3 specific storage names accepted.                                            | Use short form `straight \| elbow \| curve`, or storage `straightConnector1 \| bentConnector3 \| curvedConnector3 \| line`.                                                                              |
 | **C-P-6** | Connector `from=/to=` rejects `@name=` selectors (works everywhere else).                                                                          | Resolve `@id=` first via `query`. See Recipe (c).                                                                                                                                                        |
-| **C-P-7** | [RENDERER-BUG] LibreOffice PDF normalizes chart series colors to theme defaults, ignoring `seriesN.color=`.                                        | Verify chart colors in PowerPoint / Keynote, not PDF. `view html --browser` respects colors as officecli-layer ground truth.                                                                             |
+| **C-P-7** | [RENDERER-BUG] Some viewers normalize chart series colors to theme defaults, ignoring `seriesN.color=`.                                            | Verify chart colors in the user's target presentation viewer. `view html --browser` respects colors as the officecli-layer ground truth.                                                                 |
 
 ### Renderer honesty
 
-`soffice → PDF` = structural QA (overflow, placeholders, hierarchy). NOT faithful on: chart series colors (C-P-7), font substitution, animation / zoom (don't render), shadow / glow / soft fill, slide-number fields. **Ground-truth layering:** `view html --browser` > PDF > **PowerPoint/Keynote for final delivery**.
+`officecli view html --browser` = structural QA (overflow, placeholders, hierarchy). Some features are runtime-only or viewer-specific and only render faithfully in a live presentation viewer: chart series colors (C-P-7), font substitution, animation, zoom, shadow / glow / soft fill, slide-number fields. **Ground-truth layering:** `view html --browser` for officecli-layer structure, then open in the user's target presentation viewer for runtime / color fidelity.
 
 ### Schema-invalid on current CLI — disabled APIs + working forms
 

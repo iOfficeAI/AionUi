@@ -62,7 +62,7 @@ Before reaching for a command, know what a good xlsx looks like. These are the d
 
 ### Visual delivery floor (applies to EVERY workbook)
 
-Before you declare done, the PDF render (see QA) MUST satisfy all of these:
+Before you declare done, open `officecli view "$FILE" html --browser` and confirm all of these:
 
 - **No `###` in any cell.** `###` means a column is too narrow for its widest value. Every column the user reads needs an explicit `width`. `###` in a delivered file is unfinished work, never "a small visual nit".
 - **No truncated titles.** Sheet titles, section headers, long labels must fit. Widen the column or apply `wrapText=true` on the cell.
@@ -70,7 +70,7 @@ Before you declare done, the PDF render (see QA) MUST satisfy all of these:
 - **Pie / doughnut slices have distinct fill colors.** If the slices render same-colored, switch to `bar` / `column` or set `colors=...` explicitly.
 - **No empty trailing pages / empty chart anchors.** `anchor=D2:J18` over empty source cells looks like a broken chart.
 
-If any of the above fails on PDF, STOP and fix before declaring done.
+If any of the above fails, STOP and fix before declaring done.
 
 ### Financial models only — skip this section if you are building a template, tracker, CSV import, or operational sheet
 
@@ -103,7 +103,7 @@ Six steps. Every non-trivial build follows this shape.
 2. **Create or load.** `officecli create foo.xlsx` (new) or `officecli view foo.xlsx outline` (existing — get the lay of the land first).
 3. **Build incrementally.** One command, read the output, continue. After any structural op (new sheet, chart, named range, pivot), run `get` on it to confirm shape before stacking more on top.
 4. **Format.** Column widths, number formats, freeze panes, tab colors, header fills. Formatting is not optional polish — per "Requirements for Outputs" it is part of the deliverable.
-5. **Close, then reckon with the cache.** `officecli close <file>` writes to disk. Newly-added formulas ship without cached values; when a human opens the file, Excel / LibreOffice recalculates and populates them. **But your downstream `INDEX/MATCH`, `SUMPRODUCT`, or any formula that references an upstream formula will cache whatever the upstream cached at write-time — often `0` or a stale value — and that cached lie survives into PDF exports and non-recalculating readers.** After any multi-formula build involving array formulas (`SUMPRODUCT`, `SUMIFS` with dynamic criteria) or cross-sheet chains, **re-touch every downstream cell** (run `set` again with the same formula) so the engine recomputes its cache from the freshly-cached upstream. Then `officecli get` a few downstream cells and eyeball that their `cachedValue=` is plausible. **Array-formula fallback:** for `SUMPRODUCT(1/COUNTIF(range, range))` distinct-count patterns, the CLI engine treats the inner division as scalar and caches `1/N` (e.g. `0.001543`) rather than the true distinct count. Re-touching won't fix it. **Fallback: hardcode the correct value + an adjacent comment `"hardcoded distinct count; update if Data rows change"`, and tell the reader at delivery**. Better than shipping a cached lie. Do NOT run `validate` while a resident is open — it reports spurious drawing errors.
+5. **Close, then reckon with the cache.** `officecli close <file>` writes to disk. Newly-added formulas ship without cached values; when a human opens the file in a spreadsheet app, the app recalculates and populates them. **But your downstream `INDEX/MATCH`, `SUMPRODUCT`, or any formula that references an upstream formula will cache whatever the upstream cached at write-time — often `0` or a stale value — and that cached lie survives into non-recalculating readers.** After any multi-formula build involving array formulas (`SUMPRODUCT`, `SUMIFS` with dynamic criteria) or cross-sheet chains, **re-touch every downstream cell** (run `set` again with the same formula) so the engine recomputes its cache from the freshly-cached upstream. Then `officecli get` a few downstream cells and eyeball that their `cachedValue=` is plausible. **Array-formula fallback:** for `SUMPRODUCT(1/COUNTIF(range, range))` distinct-count patterns, the CLI engine treats the inner division as scalar and caches `1/N` (e.g. `0.001543`) rather than the true distinct count. Re-touching won't fix it. **Fallback: hardcode the correct value + an adjacent comment `"hardcoded distinct count; update if Data rows change"`, and tell the reader at delivery**. Better than shipping a cached lie. Do NOT run `validate` while a resident is open — it reports spurious drawing errors.
 6. **QA — assume there are problems.** See the QA section. You are not done when your last command exited 0; you are done after one fix-and-verify cycle finds zero new issues.
 
 ## Quick Start
@@ -161,6 +161,12 @@ Outcome: 648-row retail CSV (6490 cells) loads in ~30s, zero failures. Tune: sta
 ## Reading & Analysis
 
 Start wide, then narrow. `outline` first tells you what sheets exist and where the data is; jump into `view` / `get` / `query` only once you know where to look.
+
+**Open the rendered workbook to eyeball your own work.**
+
+- `officecli view $FILE html --browser` opens the workbook as a browser tab. Each sheet is addressable, charts render inline. Catches `###`, placeholder leakage, pivot layout, row-height clipping.
+- `officecli watch $FILE` keeps the preview live as you iterate (optional).
+  Use this as your **first visual check after a batch of edits** — fix at source.
 
 **Orient.** Sheets, dimensions, formula counts.
 
@@ -260,7 +266,7 @@ Chart types live under `officecli help xlsx chart` — the enum is long (20+). P
 
 **Chart `anchor` and series are immutable after create.** `set chart[N] --prop anchor=...` is rejected (`UNSUPPORTED props: anchor`); likewise new series cannot be appended. To resize, move, or add a series: `officecli remove` the chart, then `officecli add` with the new anchor / full series list. Also note: `remove chart[1]` shifts `chart[2] → chart[1]`, and re-add **appends at the end** — to preserve chart order, remove all and rebuild in order.
 
-**Anchor sizing.** No auto-fit. A column chart with 5-6 categories + 2 series needs roughly `A5:L22` (12 cols × 18 rows) to show all labels uncut. Narrower and X-axis labels clip; wider and the PDF splits the chart across pages. If in doubt, start narrow, render PDF, widen in increments. Page layout (below) is the other half of the fix.
+**Anchor sizing.** No auto-fit. A column chart with 5-6 categories + 2 series needs roughly `A5:L22` (12 cols × 18 rows) to show all labels uncut. Narrower and X-axis labels clip; wider and the chart can split across pages on print/export. If in doubt, start narrow, preview via `view html --browser`, widen in increments. Page layout (below) is the other half of the fix.
 
 **Chart `dataRange` — always prefix with the sheet.** Even when the chart lives on the same sheet, write `dataRange="Summary!A17:C22"`, not `A17:C22`. The sheet-less form works inconsistently; the prefixed form is 100% reliable.
 
@@ -353,15 +359,15 @@ Your first workbook is almost never correct. Treat QA as a bug hunt, not a confi
    officecli query data.xlsx 'cell:contains("#N/A")'
    ```
 4. `officecli validate data.xlsx` — close any resident first (see Known Issues).
-5. **Render to PDF and eyeball every page (MANDATORY).** xlsx has no visual preview. `soffice --headless --convert-to pdf data.xlsx && open data.pdf` (macOS) or your PDF viewer of choice. Walk every page. If you see `###`, truncated titles, placeholder tokens (`$fy$24`, `{var}`, `<TODO>`), sliced charts, white-slice pie charts, empty trailing pages — **STOP and fix before declaring done**. "validate pass" is not delivery; "PDF looks like a real document" is delivery.
-6. **PDF page layout fix (wide tables / multi-chart sheets).** If the PDF slices a chart or table across pages, set per-sheet page layout:
+5. **Visual pass — walk every sheet in the browser preview.** `officecli view "$FILE" html --browser` renders each sheet, charts inline. Scan for `###`, truncated titles, placeholder tokens (`$fy$24`, `{var}`, `<TODO>`), sliced charts, white-slice pie charts, empty chart anchors — **STOP and fix before declaring done**. "validate pass" is not delivery; "the browser preview looks like a real workbook" is delivery.
+6. **Print / export layout fix (wide tables / multi-chart sheets).** When a sheet holds a chart or a wide table and the user will print or export it, set per-sheet page layout so it fits on one page:
    ```bash
    officecli set data.xlsx "/Summary" --prop orientation=landscape --prop fitToPage=true
    ```
-   Outcome: each sheet renders as exactly one page with no mid-chart splits. Apply to every sheet that holds a chart or a > 8-column table. (Recipe credit: Tester-discovered — one line, high ROI.)
+   Outcome: each sheet's print/export layout is one page with no mid-chart splits. Apply to every sheet that holds a chart or a > 8-column table.
 7. If anything failed, fix, then **rerun the full cycle**. One fix commonly creates another problem.
 
-LibreOffice PDF is authoritative for layout (`###`, truncation, token leakage) but NOT for chart fill colors / theme tints — spot-check those in Office / WPS. See "Renderer caveats" below.
+`officecli view issues` + `view html --browser` are the structural QA pair: `issues` catches broken formulas and empty sheets; `html --browser` catches `###`, truncation, and token leakage. Chart fill colors / theme tints can vary across viewers — spot-check in the user's target viewer when color fidelity matters.
 
 ### Formula verification checklist
 
@@ -416,7 +422,7 @@ Avoid these until fixed; they produce invalid XML or silent breakage. Full detai
 - **`chartType=pareto`** — emits empty `cx:axisId val=""`; `validate` fails after `close`. Substitute `column` or `boxWhisker`.
 - **`labelRotation` on axis-by-role** — inserts bad `a:endParaRPr`. Use `title`/`min`/`max`/`majorGridlines`/`visible` only.
 - **Data bar without explicit min/max** — default cfvo `val=""` is invalid. Always pass `--prop min=N --prop max=N`.
-- **Line chart `showMarker` defaults to `true`** — omitting the prop is NOT enough. The default emits markers, which render as scatter dots (no connecting line) in LibreOffice PDF. Always pass `--prop showMarker=false` explicitly on line charts. (Older validate bug `c:marker unexpected child` appears fixed in 1.0.57+.)
+- **Line chart `showMarker` defaults to `true`** — omitting the prop is NOT enough. The default emits markers, which in some viewers render as scatter dots (no connecting line). Always pass `--prop showMarker=false` explicitly on line charts. (Older validate bug `c:marker unexpected child` appears fixed in 1.0.57+.)
 - **Chart `anchor` and series are immutable after create** — to resize/move/add-series: `remove` + `add`. `remove chart[N]` shifts subsequent indices down; re-add appends at end.
 - **`validate` while resident open** — reports spurious `tableParts` / `drawing` errors. Always `close` first.
 - **Batch + resident** — intermittent failure (up to 1-in-3) for **mixed formula batches**. For formula batches in resident mode, stay ≤ 12 ops, check output every block, retry failed ops individually; critical cross-sheet formulas prefer individual `set` (100% reliable). Pure value-set batches (no formulas) run reliably at 50-80+ ops even in resident.
@@ -424,15 +430,15 @@ Avoid these until fixed; they produce invalid XML or silent breakage. Full detai
 - **Sheet `position` prop on add** — help says Add processes `position`, but the prop is often ignored. Reorder with `officecli move --index` / `--after` / `--before` after creating the sheet.
 - **`remove /sheet[N]` cascade guard** — 1.0.59+ rejects sheet remove/rename when the sheet is referenced by validation / conditional format / sparkline / hyperlink / named range on another sheet. Remove those dependent elements first, then remove the sheet.
 
-### Renderer caveats (LibreOffice / PDF vs Office / WPS)
+### Renderer caveats (cross-viewer color fidelity)
 
-The `soffice → PDF` path is the right tool for structural QA (overflow, truncation, placeholder leakage, layout), but it **does not faithfully reproduce Office's chart rendering**. Observed divergences:
+`officecli view html --browser` is the right tool for structural QA (overflow, truncation, placeholder leakage, layout). Some chart rendering details vary across the viewer the end user opens the file in. Observed divergences:
 
-- **Pie / doughnut fill colors collapse to a single theme tint in LibreOffice's PDF** (slices look "all white" or "all one color"). The file may be fine in Excel / WPS.
-- **Line chart / column chart series colors drift** from the workbook theme.
-- **Form-control checkboxes may render as double-boxed**.
+- **Pie / doughnut fill colors may collapse to a single theme tint** in some viewers (slices look "all white" or "all one color"). The file may be fine in the user's target viewer.
+- **Line chart / column chart series colors may drift** from the workbook theme in some viewers.
+- **Form-control checkboxes may render as double-boxed** in some viewers.
 
-Before calling a color or chart "broken", open the file once in Office or WPS. If it looks correct there, the problem is rendering, not data — do not chase it. PDF remains authoritative for `###`, truncation, placeholder text, and layout issues.
+Before calling a color or chart "broken", open the file in the user's actual target viewer. If it looks correct there, the problem is viewer rendering, not data — do not chase it. The CLI's structural checks (`###`, truncation, placeholder text, layout) remain authoritative.
 
 ### Escape layers (shell quoting is above; these are the extras)
 
