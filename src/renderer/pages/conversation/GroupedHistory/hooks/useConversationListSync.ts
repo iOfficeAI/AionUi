@@ -96,8 +96,8 @@ const refreshConversations = () => {
       const items = result?.items;
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
-          const extra = conv.extra as { is_health_check?: boolean; team_id?: string } | undefined;
-          return extra?.is_health_check !== true && !extra?.team_id;
+          const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
+          return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
         });
         conversationsState = filteredData;
         // Use ALL conversation IDs (including team/healthCheck) so the
