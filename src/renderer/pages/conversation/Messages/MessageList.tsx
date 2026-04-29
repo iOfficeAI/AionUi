@@ -270,7 +270,9 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         created_at: artifact.created_at,
       }));
 
-    return [...result, ...visibleArtifacts].sort((a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b));
+    return [...result, ...visibleArtifacts].toSorted(
+      (a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b)
+    );
   }, [artifacts, list]);
 
   // Use auto-scroll hook

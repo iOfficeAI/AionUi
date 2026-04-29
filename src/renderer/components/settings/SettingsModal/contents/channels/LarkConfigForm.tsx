@@ -78,17 +78,14 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   // Agent selection (used for Lark conversations)
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ agent_type: string; backend?: string; name: string; custom_agent_id?: string; is_preset?: boolean }>
+    Array<{ agent_type: string; backend?: string; name: string; id?: string }>
   >([]);
   const [selectedAgent, setSelectedAgent] = useState<{
     agent_type: string;
     backend?: string;
     name?: string;
-    custom_agent_id?: string;
-  }>({
-    agent_type: 'acp',
-    backend: 'gemini',
-  });
+    id?: string;
+  }>({ agent_type: 'aionrs' });
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -138,16 +135,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         ]);
 
         if (Array.isArray(agentsResp)) {
-          const list = agentsResp
-            .filter((a) => !a.is_preset)
-            .map((a) => ({
-              agent_type: a.agent_type,
-              backend: a.backend,
-              name: a.name,
-              custom_agent_id: a.custom_agent_id,
-              is_preset: a.is_preset,
-              is_extension: a.is_extension,
-            }));
+          const list = agentsResp.map((a) => ({
+            agent_type: a.agent_type,
+            backend: a.backend,
+            name: a.name,
+            id: a.id,
+          }));
           setAvailableAgents(list);
         }
 
@@ -163,7 +156,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           setSelectedAgent({
             agent_type: agentType,
             backend: typeof s.backend === 'string' ? s.backend : undefined,
-            custom_agent_id: s.custom_agent_id as string | undefined,
+            // Legacy rows persist `custom_agent_id`; new rows write `id`.
+            id: (s.id as string | undefined) ?? (s.custom_agent_id as string | undefined),
             name: s.name as string | undefined,
           });
         } else if (typeof saved === 'string') {
@@ -180,14 +174,19 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: {
-    agent_type: string;
-    backend?: string;
-    custom_agent_id?: string;
-    name?: string;
-  }) => {
+  const persistSelectedAgent = async (agent: { agent_type: string; backend?: string; id?: string; name?: string }) => {
+    // Write both `id` (new unified AgentMetadata field) and
+    // `custom_agent_id` (legacy channel-plugin field) so older reads
+    // keep working until every consumer migrates off the legacy name.
+    const payload = {
+      agent_type: agent.agent_type,
+      backend: agent.backend,
+      id: agent.id,
+      custom_agent_id: agent.id,
+      name: agent.name,
+    };
     try {
-      await configService.set('assistant.lark.agent', agent);
+      await configService.set('assistant.lark.agent', payload);
       await channel.syncChannelSettings
         .invoke({ platform: 'lark' })
         .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
@@ -358,9 +357,8 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     agent_type: string;
     backend?: string;
     name: string;
-    custom_agent_id?: string;
-    is_extension?: boolean;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'acp', backend: 'gemini', name: 'Gemini CLI' }];
+    id?: string;
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -623,27 +621,27 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
             droplist={
               <Menu
                 selectedKeys={[
-                  selectedAgent.custom_agent_id
-                    ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
-                    : (selectedAgent.backend || selectedAgent.agent_type),
+                  selectedAgent.id
+                    ? `${selectedAgent.agent_type}|${selectedAgent.id}`
+                    : selectedAgent.backend || selectedAgent.agent_type,
                 ]}
               >
                 {agentOptions.map((a) => {
-                  const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : (a.backend || a.agent_type);
+                  const key = a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
-                        const currentKey = selectedAgent.custom_agent_id
-                          ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
-                          : (selectedAgent.backend || selectedAgent.agent_type);
+                        const currentKey = selectedAgent.id
+                          ? `${selectedAgent.agent_type}|${selectedAgent.id}`
+                          : selectedAgent.backend || selectedAgent.agent_type;
                         if (key === currentKey) {
                           return;
                         }
                         const next = {
                           agent_type: a.agent_type,
                           backend: a.backend,
-                          custom_agent_id: a.custom_agent_id,
+                          id: a.id,
                           name: a.name,
                         };
                         setSelectedAgent(next);
@@ -674,10 +672,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                 {selectedAgent.name ||
                   availableAgents.find(
                     (a) =>
-                      (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : (a.backend || a.agent_type)) ===
-                      (selectedAgent.custom_agent_id
-                        ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
-                        : (selectedAgent.backend || selectedAgent.agent_type))
+                      (a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type) ===
+                      (selectedAgent.id
+                        ? `${selectedAgent.agent_type}|${selectedAgent.id}`
+                        : selectedAgent.backend || selectedAgent.agent_type)
                   )?.name ||
                   selectedAgent.agent_type}
               </span>

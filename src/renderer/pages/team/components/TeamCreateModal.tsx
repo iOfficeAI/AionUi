@@ -19,6 +19,8 @@ import {
   resolveTeamAgentType,
   filterTeamSupportedAgents,
   AgentOptionLabel,
+  cliAgentToOption,
+  assistantToOption,
 } from './agentSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 
@@ -51,15 +53,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     setCachedInitResults(data ?? null);
   }, [visible]);
 
-  const allAgents = filterTeamSupportedAgents([...cliAgents, ...presetAssistants], cachedInitResults);
+  const cliAgentOptions = useMemo(() => cliAgents.map(cliAgentToOption), [cliAgents]);
+  const presetAssistantOptions = useMemo(() => presetAssistants.map(assistantToOption), [presetAssistants]);
+  const allAgents = filterTeamSupportedAgents([...cliAgentOptions, ...presetAssistantOptions], cachedInitResults);
 
   const { supportedCliAgents, supportedPresetAssistants } = useMemo(() => {
     const supportedKeys = new Set(allAgents.map(agentKey));
     return {
-      supportedCliAgents: cliAgents.filter((a) => supportedKeys.has(agentKey(a))),
-      supportedPresetAssistants: presetAssistants.filter((a) => supportedKeys.has(agentKey(a))),
+      supportedCliAgents: cliAgentOptions.filter((a) => supportedKeys.has(agentKey(a))),
+      supportedPresetAssistants: presetAssistantOptions.filter((a) => supportedKeys.has(agentKey(a))),
     };
-  }, [allAgents, cliAgents, presetAssistants]);
+  }, [allAgents, cliAgentOptions, presetAssistantOptions]);
 
   useEffect(() => {
     if (visible) {
@@ -104,8 +108,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agent_type: dispatchAgentType,
         agent_name: 'Leader',
         conversation_type: dispatchConversationType,
-        cli_path: dispatchAgent?.cli_path,
-        custom_agent_id: dispatchAgent?.custom_agent_id,
+        // cli_path resolved server-side from agent_metadata — no longer sent from frontend
+        custom_agent_id: dispatchAgent?.id,
         model: resolvedModel,
       });
 

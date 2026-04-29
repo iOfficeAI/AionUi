@@ -217,8 +217,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     const agentId = selectedAgent.substring(colonIdx + 1);
 
     if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.custom_agent_id === agentId);
-      return agent?.backend;
+      const assistant = presetAssistants.find((a) => a.id === agentId);
+      return assistant?.preset_agent_type;
     }
     // CLI agent: agentId is the backend
     return agentId;
@@ -399,9 +399,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       if (backendConfig) {
         resolvedAgentType = backend as AcpBackendAll;
         agent_config = {
+          // cli_path is no longer sent from the frontend — the backend
+          // resolves it server-side from the `agent_metadata` catalog.
           backend,
           name: agent?.name || backendConfig.name,
-          cli_path: agent?.cli_path,
           mode: getFullAutoMode(backend),
           model_id,
           config_options: mergedConfigOptions,
@@ -411,16 +412,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         resolvedAgentType = backend as ICreateCronJobParams['agent_type'];
       }
     } else if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.custom_agent_id === agentId);
-      if (agent) {
-        resolvedAgentType = agent.backend as AcpBackendAll;
+      const assistant = presetAssistants.find((a) => a.id === agentId);
+      if (assistant) {
+        const presetBackend = assistant.preset_agent_type;
+        resolvedAgentType = presetBackend as AcpBackendAll;
         agent_config = {
-          backend: agent.backend as AgentBackend,
-          name: agent.name,
+          backend: presetBackend as AgentBackend,
+          name: assistant.name,
           is_preset: true,
-          custom_agent_id: agent.custom_agent_id,
-          preset_agent_type: agent.presetAgentType,
-          mode: getFullAutoMode(agent.backend),
+          custom_agent_id: assistant.id,
+          preset_agent_type: presetBackend,
+          mode: getFullAutoMode(presetBackend),
           model_id,
           config_options: mergedConfigOptions,
           workspace,
@@ -546,15 +548,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     }
                   }
                 } else if (type === 'preset') {
-                  const agent = presetAssistants.find((a) => a.custom_agent_id === id);
-                  if (agent) {
-                    name = agent.name;
-                    const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-                    const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+                  const assistant = presetAssistants.find((a) => a.id === id);
+                  if (assistant) {
+                    name = assistant.name;
+                    const avatarImage = assistant.avatar ? CUSTOM_AVATAR_IMAGE_MAP[assistant.avatar] : undefined;
+                    const isEmoji = assistant.avatar && !avatarImage && !assistant.avatar.endsWith('.svg');
                     if (avatarImage) {
-                      logo = <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />;
+                      logo = <img src={avatarImage} alt={assistant.name} className='w-16px h-16px object-contain' />;
                     } else if (isEmoji) {
-                      logo = <span className='text-14px leading-16px'>{agent.avatar}</span>;
+                      logo = <span className='text-14px leading-16px'>{assistant.avatar}</span>;
                     }
                   }
                 }
@@ -587,20 +589,20 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               )}
               {presetAssistants.length > 0 && (
                 <OptGroup label={t('conversation.dropdown.presetAssistants')}>
-                  {presetAssistants.map((agent) => {
-                    const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-                    const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+                  {presetAssistants.map((assistant) => {
+                    const avatarImage = assistant.avatar ? CUSTOM_AVATAR_IMAGE_MAP[assistant.avatar] : undefined;
+                    const isEmoji = assistant.avatar && !avatarImage && !assistant.avatar.endsWith('.svg');
                     return (
-                      <Option key={`preset:${agent.custom_agent_id}`} value={`preset:${agent.custom_agent_id}`}>
+                      <Option key={`preset:${assistant.id}`} value={`preset:${assistant.id}`}>
                         <div className='flex items-center gap-8px'>
                           {avatarImage ? (
-                            <img src={avatarImage} alt={agent.name} className='w-16px h-16px object-contain' />
+                            <img src={avatarImage} alt={assistant.name} className='w-16px h-16px object-contain' />
                           ) : isEmoji ? (
-                            <span className='text-14px leading-16px'>{agent.avatar}</span>
+                            <span className='text-14px leading-16px'>{assistant.avatar}</span>
                           ) : (
                             <Robot size='16' />
                           )}
-                          <span>{agent.name}</span>
+                          <span>{assistant.name}</span>
                         </div>
                       </Option>
                     );

@@ -4,39 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useMemo } from 'react';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/assistantTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
-import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export type UseConversationAgentsResult = {
   /** Detected execution engines (acp, extension, remote, aionrs, gemini, etc.) */
-  cliAgents: AvailableAgent[];
-  /** Preset assistants from the backend-assembled catalog */
-  presetAssistants: AvailableAgent[];
+  cliAgents: AgentMetadata[];
+  /** Preset assistants from `/api/assistants` — kept as-is, not re-shaped into agent form */
+  presetAssistants: Assistant[];
   /** Loading state */
   isLoading: boolean;
   /** Refresh data */
   refresh: () => Promise<void>;
 };
-
-/**
- * Convert a backend Assistant record into an AvailableAgent shape.
- */
-function assistantToAvailableAgent(assistant: Assistant): AvailableAgent {
-  return {
-    agent_type: assistant.preset_agent_type || 'claude',
-    backend: assistant.preset_agent_type || 'claude',
-    name: assistant.name,
-    custom_agent_id: assistant.id,
-    is_preset: true,
-    context: assistant.context,
-    avatar: assistant.avatar,
-    presetAgentType: assistant.preset_agent_type,
-  };
-}
 
 /**
  * Hook to fetch available CLI agents and preset assistants for the conversation tab dropdown.
@@ -51,10 +34,10 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
     data: cliAgents,
     isLoading: isLoadingAgents,
     mutate,
-  } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
+  } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
   // Preset assistants from the backend-maintained catalog
-  const { data: presetConfigs, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
+  const { data: presetAssistants, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
       return list.filter((assistant) => assistant.enabled !== false);
@@ -64,15 +47,13 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
     }
   });
 
-  const presetAssistants = useMemo(() => (presetConfigs || []).map(assistantToAvailableAgent), [presetConfigs]);
-
   const refresh = async () => {
     await mutate();
   };
 
   return {
     cliAgents: cliAgents || [],
-    presetAssistants,
+    presetAssistants: presetAssistants || [],
     isLoading: isLoadingAgents || isLoadingPresets,
     refresh,
   };
