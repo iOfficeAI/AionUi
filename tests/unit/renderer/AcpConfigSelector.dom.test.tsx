@@ -106,6 +106,25 @@ describe('AcpConfigSelector', () => {
     expect(button).toHaveTextContent('Medium');
   });
 
+  it('shows the default aionrs ChatGPT reasoning selector before cached Guid options load', () => {
+    render(
+      <AcpConfigSelector
+        backend='aionrs'
+        fallbackCurrentModel={{
+          id: 'chatgpt-provider',
+          name: 'ChatGPT',
+          platform: 'chatgpt',
+          useModel: 'gpt-5',
+          baseUrl: 'https://chatgpt.com',
+          apiKey: '',
+          model: ['gpt-5'],
+        }}
+      />
+    );
+
+    expect(screen.getByRole('button')).toHaveTextContent('Medium');
+  });
+
   it('uses the local handler for conversation-scoped custom selectors without ACP syncing', async () => {
     const onOptionSelect = vi.fn().mockResolvedValue(true);
 

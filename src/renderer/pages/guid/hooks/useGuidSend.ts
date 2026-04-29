@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { TChatConversation } from '@/common/config/storage';
+import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -116,7 +117,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
   } = deps;
   const sendingRef = useRef(false);
-  const selectedAionrsReasoningEffort = selectedAcpConfigOptions.reasoning_effort;
+  const selectedAionrsReasoningEffort =
+    pendingConfigOptions.reasoning_effort ||
+    selectedAcpConfigOptions.reasoning_effort ||
+    cachedConfigOptions.find((option) => option.id === 'reasoning_effort')?.currentValue ||
+    cachedConfigOptions.find((option) => option.id === 'reasoning_effort')?.selectedValue ||
+    getDefaultAcpConfigOptions('aionrs', currentModel).find((option) => option.id === 'reasoning_effort')?.currentValue;
 
   const handleSend = useCallback(async () => {
     const isCustomWorkspace = !!dir;

@@ -84,8 +84,8 @@ const ACP_TEXT_FILE_READ_CONTENT_JSON_MAX_BYTES = Math.max(
   0,
   ACP_TEXT_FILE_READ_MAX_BYTES - ACP_TEXT_FILE_READ_RESPONSE_OVERHEAD_BYTES
 );
-const ACP_TEXT_FILE_READ_TOO_LARGE_MESSAGE =
-  'File is too large for a full ACP text read. Request a smaller line/limit range.';
+const ACP_TEXT_FILE_READ_TOO_LARGE_MESSAGE = 'File is too large for a full ACP text read.';
+const ACP_TEXT_FILE_READ_NOTICE_PREFIX = '[ACP read_text_file notice]';
 
 function splitLineSegments(content: string): string[] {
   if (content.length === 0) return [];
@@ -104,12 +104,66 @@ function fitsReadTextFileResponseBudget(content: string): boolean {
   return jsonStringByteLength(content) <= ACP_TEXT_FILE_READ_CONTENT_JSON_MAX_BYTES;
 }
 
-function assertReadTextFileResponseBudget(content: string): string {
+function clampToReadTextFileResponseBudget(content: string): string {
   if (fitsReadTextFileResponseBudget(content)) {
     return content;
   }
 
-  throw new Error(ACP_TEXT_FILE_READ_TOO_LARGE_MESSAGE);
+  let low = 0;
+  let high = content.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (fitsReadTextFileResponseBudget(content.slice(0, mid))) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return content.slice(0, low);
+}
+
+function appendSegmentPrefixWithinReadTextFileBudget(prefix: string, segment: string): string {
+  let low = 0;
+  let high = segment.length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    if (fitsReadTextFileResponseBudget(prefix + segment.slice(0, mid))) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+
+  return prefix + segment.slice(0, low);
+}
+
+function appendSegmentsWithinReadTextFileBudget(prefix: string, segments: string[]): string {
+  let result = clampToReadTextFileResponseBudget(prefix);
+  if (result.length < prefix.length) {
+    return result;
+  }
+
+  for (const segment of segments) {
+    const next = result + segment;
+    if (fitsReadTextFileResponseBudget(next)) {
+      result = next;
+      continue;
+    }
+
+    return appendSegmentPrefixWithinReadTextFileBudget(result, segment);
+  }
+
+  return result;
+}
+
+function buildReadTextFileGuidance(message: string, guidance: string, segments: string[]): string {
+  const prefix = `${ACP_TEXT_FILE_READ_NOTICE_PREFIX}\n${message}\n${guidance}\n\nPartial content:\n`;
+  return appendSegmentsWithinReadTextFileBudget(prefix, segments);
+}
+
+function buildReadTextFileFailureContent(reason: string): string {
+  return clampToReadTextFileResponseBudget(`${ACP_TEXT_FILE_READ_NOTICE_PREFIX}\nUnable to read file.\n${reason}`);
 }
 
 export function sliceReadTextFileContent(content: string, line?: number | null, limit?: number | null): string {
@@ -118,11 +172,27 @@ export function sliceReadTextFileContent(content: string, line?: number | null, 
   const startIndex = startLine - 1;
 
   if (limit == null) {
-    return assertReadTextFileResponseBudget(lines.slice(startIndex).join(''));
+    const segments = lines.slice(startIndex);
+    const sliced = segments.join('');
+    if (fitsReadTextFileResponseBudget(sliced)) {
+      return sliced;
+    }
+
+    return buildReadTextFileGuidance(
+      ACP_TEXT_FILE_READ_TOO_LARGE_MESSAGE,
+      'Request a smaller line/limit range.',
+      segments
+    );
   }
 
   const lineCount = Math.max(0, Math.floor(limit));
-  return assertReadTextFileResponseBudget(lines.slice(startIndex, startIndex + lineCount).join(''));
+  const segments = lines.slice(startIndex, startIndex + lineCount);
+  const sliced = segments.join('');
+  if (fitsReadTextFileResponseBudget(sliced)) {
+    return sliced;
+  }
+
+  return buildReadTextFileGuidance('Requested ACP text range is too large.', 'Request a smaller limit.', segments);
 }
 
 export class AcpSession {
@@ -339,12 +409,18 @@ export class AcpSession {
       onSessionUpdate: (notification) => this.handleMessage(notification),
       onRequestPermission: (request) => this.handlePermissionRequest(request),
       onReadTextFile: async (req) => {
-        this.assertPathAllowed(req.path);
+        try {
+          this.assertPathAllowed(req.path);
+        } catch (err) {
+          return { content: buildReadTextFileFailureContent(err instanceof Error ? err.message : String(err)) };
+        }
+
         let content: string;
         try {
           content = fs.readFileSync(req.path, 'utf-8');
-        } catch {
-          throw new Error(`File not found: ${req.path}`);
+        } catch (err) {
+          const message = err instanceof Error ? err.message : String(err);
+          return { content: buildReadTextFileFailureContent(`File not found: ${req.path}\n${message}`) };
         }
         return { content: sliceReadTextFileContent(content, req.line, req.limit) };
       },

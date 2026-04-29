@@ -500,6 +500,7 @@ const GuidPage: React.FC = () => {
       onFilesUploaded={guidInput.handleFilesUploaded}
       onSelectWorkspace={(dir) => guidInput.setDir(dir)}
       modelSelectorNode={modelSelectorNode}
+      currentModel={modelSelection.currentModel}
       selectedAgent={agentSelection.selectedAgent}
       effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agentType}
       selectedMode={agentSelection.selectedMode}

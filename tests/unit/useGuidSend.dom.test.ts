@@ -246,6 +246,75 @@ describe('useGuidSend', () => {
         })
       );
     });
+
+    it('defaults aionrs ChatGPT reasoning effort when the user has not selected a strength yet', async () => {
+      const deps = makeDeps({
+        selectedAgent: 'aionrs',
+        selectedAgentKey: 'aionrs',
+        currentModel: {
+          id: 'chatgpt-provider',
+          name: 'ChatGPT',
+          platform: 'chatgpt',
+          useModel: 'gpt-5',
+          baseUrl: 'https://chatgpt.com',
+          apiKey: '',
+        },
+        selectedAcpConfigOptions: {},
+        getEffectiveAgentType: vi.fn(() => ({ agentType: 'aionrs', isAvailable: true })),
+        currentEffectiveAgentInfo: { agentType: 'aionrs', isAvailable: true },
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'aionrs',
+          extra: expect.objectContaining({
+            reasoningEffort: 'medium',
+          }),
+        })
+      );
+    });
+
+    it('uses pending aionrs reasoning effort selected on the Guid page', async () => {
+      const deps = makeDeps({
+        selectedAgent: 'aionrs',
+        selectedAgentKey: 'aionrs',
+        currentModel: {
+          id: 'chatgpt-provider',
+          name: 'ChatGPT',
+          platform: 'chatgpt',
+          useModel: 'gpt-5',
+          baseUrl: 'https://chatgpt.com',
+          apiKey: '',
+        },
+        selectedAcpConfigOptions: {
+          reasoning_effort: 'medium',
+        },
+        pendingConfigOptions: {
+          reasoning_effort: 'xhigh',
+        },
+        getEffectiveAgentType: vi.fn(() => ({ agentType: 'aionrs', isAvailable: true })),
+        currentEffectiveAgentInfo: { agentType: 'aionrs', isAvailable: true },
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'aionrs',
+          extra: expect.objectContaining({
+            reasoningEffort: 'xhigh',
+          }),
+        })
+      );
+    });
   });
 
   describe('sendMessageHandler', () => {

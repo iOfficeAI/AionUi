@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { describe, expect, it, vi } from 'vitest';
-import { AcpSession } from '@process/acp/session/AcpSession';
+import { AcpSession, ACP_TEXT_FILE_READ_MAX_BYTES } from '@process/acp/session/AcpSession';
 import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
 import type {
   AgentConfig,
@@ -163,7 +163,7 @@ describe('AcpSession file access handlers', () => {
     }
   });
 
-  it('rejects oversized full ACP text reads so agents must request a line range', async () => {
+  it('returns visible guidance for oversized full ACP text reads', async () => {
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-acp-read-'));
     const filePath = path.join(workspace, 'large.ts');
     const content = Array.from({ length: 700 }, (_, index) => `export const value${index} = '${'x'.repeat(40)}';`).join(
@@ -210,20 +210,85 @@ describe('AcpSession file access handlers', () => {
       session.start();
       await active;
 
-      await expect(
-        capturedHandlers!.onReadTextFile({
-          path: filePath,
-          sessionId: 'session-1',
-        })
-      ).rejects.toThrow(
-        'File is too large for a full ACP text read. Request a smaller line/limit range.'
+      const response = await capturedHandlers!.onReadTextFile({
+        path: filePath,
+        sessionId: 'session-1',
+      });
+
+      expect(response.content).toContain('File is too large for a full ACP text read.');
+      expect(response.content).toContain('Request a smaller line/limit range.');
+      expect(response.content.length).toBeLessThan(content.length);
+      expect(Buffer.byteLength(JSON.stringify(response.content), 'utf-8')).toBeLessThanOrEqual(
+        ACP_TEXT_FILE_READ_MAX_BYTES
       );
     } finally {
       fs.rmSync(workspace, { recursive: true, force: true });
     }
   });
 
-  it('rejects ACP text reads outside the allowed workspace', async () => {
+  it('returns visible guidance for oversized ranged ACP text reads', async () => {
+    const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-acp-read-'));
+    const filePath = path.join(workspace, 'large-range.ts');
+    const content = Array.from({ length: 700 }, (_, index) => `export const value${index} = '${'x'.repeat(40)}';`).join(
+      '\n'
+    );
+    fs.writeFileSync(filePath, content, 'utf-8');
+
+    let capturedHandlers: ProtocolHandlers | null = null;
+    let resolveActive: () => void = () => {};
+    const active = new Promise<void>((resolve) => {
+      resolveActive = resolve;
+    });
+    const client = createClient({
+      sessionId: 'session-1',
+    } as NewSessionResponse);
+    const factory: ClientFactory = {
+      create: (_config, handlers) => {
+        capturedHandlers = handlers;
+        return client;
+      },
+    };
+    const agentConfig: AgentConfig = {
+      agentBackend: 'codex',
+      agentSource: 'extension',
+      agentId: 'codex',
+      cwd: workspace,
+    };
+    const callbacks: SessionCallbacks = {
+      onMessage: vi.fn(),
+      onSessionId: vi.fn(),
+      onStatusChange: (status: SessionStatus) => {
+        if (status === 'active') resolveActive();
+      },
+      onConfigUpdate: vi.fn(),
+      onModelUpdate: vi.fn(),
+      onModeUpdate: vi.fn(),
+      onContextUsage: vi.fn(),
+      onPermissionRequest: vi.fn(),
+      onSignal: vi.fn(),
+    };
+
+    const session = new AcpSession(agentConfig, factory, callbacks);
+    try {
+      session.start();
+      await active;
+
+      const response = await capturedHandlers!.onReadTextFile({
+        path: filePath,
+        sessionId: 'session-1',
+        line: 10,
+        limit: 500,
+      });
+
+      expect(response.content).toContain('Requested ACP text range is too large.');
+      expect(response.content).toContain('Request a smaller limit.');
+      expect(response.content).toContain('export const value9');
+    } finally {
+      fs.rmSync(workspace, { recursive: true, force: true });
+    }
+  });
+
+  it('returns visible denial for ACP text reads outside the allowed workspace', async () => {
     const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-acp-read-'));
     const outsideWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-acp-outside-'));
     const outsidePath = path.join(outsideWorkspace, 'example.ts');
@@ -268,12 +333,13 @@ describe('AcpSession file access handlers', () => {
       session.start();
       await active;
 
-      await expect(
-        capturedHandlers?.onReadTextFile({
-          path: outsidePath,
-          sessionId: 'session-1',
-        })
-      ).rejects.toThrow(/outside permitted directories/);
+      const response = await capturedHandlers!.onReadTextFile({
+        path: outsidePath,
+        sessionId: 'session-1',
+      });
+
+      expect(response.content).toContain('Unable to read file.');
+      expect(response.content).toContain('outside permitted directories');
     } finally {
       fs.rmSync(workspace, { recursive: true, force: true });
       fs.rmSync(outsideWorkspace, { recursive: true, force: true });

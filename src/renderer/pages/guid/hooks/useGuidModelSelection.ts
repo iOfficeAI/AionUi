@@ -110,13 +110,16 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
 
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
   const selectedModelKeyRef = useRef<string | null>(null);
+  const currentModelKeyRef = useRef<string | null>(null);
   const prevStorageKeyRef = useRef<string | null>(null);
 
   const storageKey = MODEL_STORAGE_KEY[agentKey];
 
   const setCurrentModel = useCallback(
     async (modelInfo: TProviderWithModel) => {
-      selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
+      const nextKey = buildModelKey(modelInfo.id, modelInfo.useModel);
+      selectedModelKeyRef.current = nextKey;
+      currentModelKeyRef.current = nextKey;
       await ConfigStorage.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
         console.error('Failed to save default model:', error);
       });
@@ -127,6 +130,8 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
 
   // Set default model when modelList or agent changes
   useEffect(() => {
+    let cancelled = false;
+
     const setDefaultModel = async () => {
       if (!modelList || modelList.length === 0) {
         return;
@@ -136,9 +141,10 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
       prevStorageKeyRef.current = storageKey;
       if (agentChanged) {
         selectedModelKeyRef.current = null;
+        currentModelKeyRef.current = null;
       }
 
-      const currentKey = selectedModelKeyRef.current || buildModelKey(currentModel?.id, currentModel?.useModel);
+      const currentKey = selectedModelKeyRef.current || currentModelKeyRef.current;
       if (!agentChanged && isModelKeyAvailable(currentKey, modelList)) {
         if (!selectedModelKeyRef.current && currentKey) {
           selectedModelKeyRef.current = currentKey;
@@ -146,6 +152,12 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         return;
       }
       const savedModel = await ConfigStorage.get(storageKey);
+      if (cancelled) return;
+
+      const latestSelectedKey = selectedModelKeyRef.current;
+      if (isModelKeyAvailable(latestSelectedKey, modelList)) {
+        return;
+      }
 
       const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
 
@@ -171,6 +183,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
       }
 
       if (!defaultModel || !resolvedUseModel) return;
+      if (cancelled) return;
 
       await setCurrentModel({
         ...defaultModel,
@@ -181,7 +194,11 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     setDefaultModel().catch((error) => {
       console.error('Failed to set default model:', error);
     });
-  }, [modelList, storageKey]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [modelList, setCurrentModel, storageKey]);
   return {
     modelList,
     isGoogleAuth,

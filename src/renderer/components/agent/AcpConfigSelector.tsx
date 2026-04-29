@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { TProviderWithModel } from '@/common/config/storage';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { getDefaultAcpConfigOptions } from '@/common/types/codex/codexConfigOptions';
@@ -14,11 +15,15 @@ import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
 
-function resolveInitialConfigOptions(options: unknown[] | undefined, backend?: string): AcpSessionConfigOption[] {
+function resolveInitialConfigOptions(
+  options: unknown[] | undefined,
+  backend?: string,
+  fallbackCurrentModel?: TProviderWithModel
+): AcpSessionConfigOption[] {
   if (Array.isArray(options) && options.length > 0) {
     return options as AcpSessionConfigOption[];
   }
-  return getDefaultAcpConfigOptions(backend as AcpBackend | 'custom' | undefined);
+  return getDefaultAcpConfigOptions(backend as AcpBackend | 'custom' | undefined, fallbackCurrentModel);
 }
 
 /**
@@ -39,6 +44,8 @@ const AcpConfigSelector: React.FC<{
   leadingIcon?: ReactNode;
   /** Cached config options for immediate render (from DB or ConfigStorage) */
   initialConfigOptions?: unknown[];
+  /** Current provider/model used for backend-specific default options before cache is ready */
+  fallbackCurrentModel?: TProviderWithModel;
   /** Local/custom callback when user selects an option */
   onOptionSelect?: (configId: string, value: string) => void | boolean | Promise<void | boolean>;
 }> = ({
@@ -48,11 +55,12 @@ const AcpConfigSelector: React.FC<{
   buttonClassName,
   leadingIcon,
   initialConfigOptions,
+  fallbackCurrentModel,
   onOptionSelect,
 }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(() =>
-    resolveInitialConfigOptions(initialConfigOptions, backend)
+    resolveInitialConfigOptions(initialConfigOptions, backend, fallbackCurrentModel)
   );
   const shouldSyncWithAcpConversation = Boolean(backend && conversationId && !onOptionSelect);
 
@@ -96,8 +104,8 @@ const AcpConfigSelector: React.FC<{
 
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
   useEffect(() => {
-    setConfigOptions(resolveInitialConfigOptions(initialConfigOptions, backend));
-  }, [backend, initialConfigOptions]);
+    setConfigOptions(resolveInitialConfigOptions(initialConfigOptions, backend, fallbackCurrentModel));
+  }, [backend, fallbackCurrentModel, initialConfigOptions]);
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {

@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
@@ -29,6 +30,7 @@ type GuidActionRowProps = {
 
   // Model selector node (rendered by parent)
   modelSelectorNode: React.ReactNode;
+  currentModel?: TProviderWithModel;
 
   // Agent mode
   selectedAgent: AcpBackend | 'custom';
@@ -69,6 +71,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onFilesUploaded,
   onSelectWorkspace,
   modelSelectorNode,
+  currentModel,
   selectedAgent,
   effectiveModeAgent,
   selectedMode,
@@ -290,6 +293,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             backend={configOptionsBackend}
             buttonClassName='guid-config-btn'
             initialConfigOptions={cachedConfigOptions}
+            fallbackCurrentModel={currentModel}
             leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
             onOptionSelect={onConfigOptionSelect}
           />

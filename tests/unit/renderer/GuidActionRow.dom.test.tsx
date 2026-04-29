@@ -40,6 +40,10 @@ vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
   default: () => <div>AgentModeSelector</div>,
 }));
 
+vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
+  default: () => <div>ReasoningSelector</div>,
+}));
+
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({
     isMobile: false,
@@ -102,6 +106,9 @@ describe('GuidActionRow', () => {
     loading: false,
     isButtonDisabled: false,
     speechInputNode: <button aria-label='speech-input'>Mic</button>,
+    builtinAutoSkills: [],
+    disabledBuiltinSkills: [],
+    onToggleBuiltinSkill: vi.fn(),
     onSend: vi.fn(),
   };
 
