@@ -51,23 +51,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
   // 生��二维码 token / Generate QR token
   webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
-  // WeChat login IPC
-  weixinLoginStart: () => ipcRenderer.invoke('weixin:login:start'),
-  weixinLoginOnQR: (callback: (data: { qrcodeUrl: string }) => void) => {
-    const h = (_event: unknown, data: { qrcodeUrl: string }) => callback(data);
-    ipcRenderer.on('weixin:login:qr', h);
-    return () => ipcRenderer.off('weixin:login:qr', h);
-  },
-  weixinLoginOnScanned: (callback: () => void) => {
-    const h = () => callback();
-    ipcRenderer.on('weixin:login:scanned', h);
-    return () => ipcRenderer.off('weixin:login:scanned', h);
-  },
-  weixinLoginOnDone: (callback: (data: { accountId: string }) => void) => {
-    const h = (_event: unknown, data: { accountId: string }) => callback(data);
-    ipcRenderer.on('weixin:login:done', h);
-    return () => ipcRenderer.off('weixin:login:done', h);
-  },
 });
 
 // Synchronously fetch the aionui-backend port and expose it to the renderer

@@ -6,6 +6,7 @@
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -62,7 +63,6 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   );
   // In Electron mode this holds a base64 data URL; in WebUI mode it holds the raw QR ticket string.
   const [qrcodeDataUrl, setQrcodeDataUrl] = useState<string | null>(null);
-  const [isWebUIMode, setIsWebUIMode] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Pairing state
@@ -277,11 +277,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   };
 
   const handleLoginWebUI = () => {
-    setIsWebUIMode(true);
     setLoginState('loading_qr');
     setQrcodeDataUrl(null);
 
-    const es = new EventSource('/api/channel/weixin/login', { withCredentials: true });
+    const es = new EventSource(`${getBaseUrl()}/api/channel/weixin/login`);
     eventSourceRef.current = es;
 
     es.addEventListener('qr', (e: MessageEvent) => {
@@ -324,50 +323,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     };
   };
 
-  const handleLogin = async () => {
-    if (!window.electronAPI?.weixinLoginStart) {
-      handleLoginWebUI();
-      return;
-    }
-
-    setLoginState('loading_qr');
-    setQrcodeDataUrl(null);
-
-    const unsubQR =
-      window.electronAPI.weixinLoginOnQR?.(({ qrcodeUrl: dataUrl }: { qrcodeUrl: string }) => {
-        setQrcodeDataUrl(dataUrl);
-        setLoginState('showing_qr');
-      }) ?? (() => {});
-    const unsubScanned =
-      window.electronAPI.weixinLoginOnScanned?.(() => {
-        setLoginState('scanned');
-      }) ?? (() => {});
-    const unsubDone =
-      window.electronAPI.weixinLoginOnDone?.(() => {
-        // credentials come from the Promise resolve — not this event
-      }) ?? (() => {});
-
-    try {
-      const result = await window.electronAPI.weixinLoginStart();
-      const { accountId, botToken } = result as {
-        accountId: string;
-        botToken: string;
-      };
-      await enableWeixinPlugin(accountId, botToken);
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      if (msg.toLowerCase().includes('expired') || msg.toLowerCase().includes('too many')) {
-        Message.warning(t('settings.weixin.loginExpired', 'QR code expired, please try again'));
-      } else if (msg !== 'Aborted') {
-        Message.error(t('settings.weixin.loginError', 'WeChat login failed'));
-      }
-      setLoginState('idle');
-      setQrcodeDataUrl(null);
-    } finally {
-      unsubQR();
-      unsubScanned();
-      unsubDone();
-    }
+  const handleLogin = () => {
+    handleLoginWebUI();
   };
 
   const showModelSelector = selectedAgent.agent_type === 'aionrs';
@@ -414,12 +371,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     if (loginState === 'showing_qr' || loginState === 'scanned') {
       return (
         <div className='flex flex-col items-center gap-8px'>
-          {qrcodeDataUrl &&
-            (isWebUIMode ? (
-              <QRCodeSVG value={qrcodeDataUrl} size={160} />
-            ) : (
-              <img src={qrcodeDataUrl} alt='WeChat QR code' className='w-160px h-160px rd-8px' />
-            ))}
+          {qrcodeDataUrl && <QRCodeSVG value={qrcodeDataUrl} size={160} />}
           {loginState === 'scanned' ? (
             <div className='flex items-center gap-6px text-13px text-t-secondary'>
               <Spin size={14} />

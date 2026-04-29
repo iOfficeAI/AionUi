@@ -36,7 +36,7 @@ function getBackendPort(): number {
   return g.__backendPort ?? 13400;
 }
 
-function getBaseUrl(): string {
+export function getBaseUrl(): string {
   return `http://127.0.0.1:${getBackendPort()}`;
 }
 
