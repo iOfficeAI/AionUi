@@ -475,18 +475,18 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               selectedKeys={[
                 selectedAgent.custom_agent_id
                   ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
-                  : selectedAgent.agent_type,
+                  : (selectedAgent.backend || selectedAgent.agent_type),
               ]}
             >
               {agentOptions.map((a) => {
-                const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type;
+                const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : (a.backend || a.agent_type);
                 return (
                   <Menu.Item
                     key={key}
                     onClick={() => {
                       const currentKey = selectedAgent.custom_agent_id
                         ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
-                        : selectedAgent.agent_type;
+                        : (selectedAgent.backend || selectedAgent.agent_type);
                       if (key === currentKey) return;
                       const next = {
                         agent_type: a.agent_type,
@@ -499,9 +499,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
                       if (next.agent_type === 'aionrs') {
                         const savedModel = configService.get('assistant.weixin.defaultModel');
-                        if (!savedModel?.id) {
-                          const firstProvider = modelSelection.providers?.[0];
-                          if (firstProvider?.id && firstProvider.models?.[0]) {
+                        const providers = modelSelection.providers;
+                        const savedProviderExists = savedModel?.id && providers.some((p) => p.id === savedModel.id);
+                        if (!savedProviderExists && providers.length > 0) {
+                          const firstProvider = providers[0];
+                          if (firstProvider.id && firstProvider.models?.[0]) {
                             void modelSelection.handleSelectModel(firstProvider, firstProvider.models[0]);
                           }
                         }
@@ -520,10 +522,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
               {selectedAgent.name ||
                 availableAgents.find(
                   (a) =>
-                    (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type) ===
+                    (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : (a.backend || a.agent_type)) ===
                     (selectedAgent.custom_agent_id
                       ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
-                      : selectedAgent.agent_type)
+                      : (selectedAgent.backend || selectedAgent.agent_type))
                 )?.name ||
                 selectedAgent.agent_type}
             </span>
