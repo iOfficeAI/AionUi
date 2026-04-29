@@ -14,9 +14,9 @@ import { ipcBridge } from '@/common';
  *
  * `enabledSkills` / `excludeAutoInjectSkills` are now part of the Assistant
  * record returned by `/api/assistants`; callers should read them directly from
- * there rather than via this helper. The two override hooks on
- * `PresetAssistantResourceDeps` are kept for backwards compatibility with
- * TeamSessionService, which still carries its own lookup path.
+ * there rather than via this helper. The override hooks on
+ * `PresetAssistantResourceDeps` remain for tests and narrowly-scoped call sites
+ * that need custom read/list behavior.
  */
 
 export type PresetAssistantResourceDeps = {
