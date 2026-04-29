@@ -230,7 +230,10 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         setTokenTested(true);
         setTestedBotUsername(result.bot_username || null);
         Message.success(
-          t('settings.assistant.connectionSuccess', `Connected! Bot: @${result.bot_username || 'unknown'}`)
+          t('settings.assistant.connectionSuccess', {
+            defaultValue: 'Connected! Bot: @{{username}}',
+            username: result.bot_username || 'unknown',
+          })
         );
 
         // Auto-enable bot after successful test
