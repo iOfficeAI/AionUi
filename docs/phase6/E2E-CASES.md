@@ -182,46 +182,60 @@ TeamPage
 - 后端支持 `team_spawn_agent` MCP 工具（需要在 MCP stubs 中暴露）
 - 至少有一个可用的 preset 或可选的 agent
 
+### 核心原则
+Team 的主要流程全是**推理+对话**完成的。创建成员不是前端直接调 API，而是：
+1. 用户提需求 → 2. Leader 返回阵容推荐 → 3. 用户确认 → 4. Leader 才 spawn
+
 ### 步骤
 
 | # | 操作 | 期望结果 | 关键 Selector / 事件 |
 |---|-----|--------|------------------|
-| 1 | 向 Leader 发消息，要求创建 teammate (e.g. "Please spawn a code review agent") | 消息出现在聊天区 | 同 Case 2 步骤 3-4 |
+| 1 | 向 Leader 发消息，描述任务需求 (e.g. "帮我做一个前端项目，需要一个代码审查员和一个测试员") | 消息出现在聊天区 | 同 Case 2 步骤 3-4 |
 | 2 | 等待 Leader 推理 | Leader badge 从 idle → active（绿脉冲） | AgentStatusBadge active state |
-| 3 | 等待 Leader 推理完成并回复 | 回复消息出现，Leader 状态回到 idle | 同 Case 2 步骤 8-10 |
-| 4 | 观察后端 MCP 工具调用 | `team_spawn_agent` 被调用（可从 backend 日志确认） | Backend logs 或 MCP trace |
-| 5 | 等待 WebSocket 事件 `team.agent.spawned` | 前端收到新 agent 信息（slot_id, name, status） | WS 事件监听或 UI 更新 |
-| 6 | 观察新 Agent Tab 出现 | Tab 栏中出现新的 tab 项（位置在 Leader 后） | `[data-testid="team-tab-bar"]` 子元素数量 +1 |
-| 7 | 验证新 Tab 的名称和状态 badge | Tab 显示 agent 名称（e.g. "Code Reviewer"）+ idle badge | 新 tab 内的 TeamAgentIdentity 文本 + badge |
-| 8 | 点击新 Tab 切换到 teammate | 聊天区显示该 agent 的空对话或前置消息 | 新 tab active，聊天区更新 |
-| 9 | 验证新 agent 的 conversation 已创建 | Network tab 显示 conversation 已初始化 | Backend 数据库或 API 验证 |
+| 3 | **等待 Leader 返回阵容推荐** | 回复中包含成员配置信息（agent 类型、模型、角色） | 验证回复文本包含 agent 类型关键词 |
+| 4 | **验证阵容推荐内容** | 推荐中包含：agent 类型（如 claude/codex）+ 模型信息 + 角色分配 | 文本断言 |
+| 5 | **用户回复确认**（输入"同意"或"可以"） | 确认消息出现在聊天区 | 同 Case 2 发送步骤 |
+| 6 | 等待 Leader 再次推理 | Leader badge 从 idle → active | AgentStatusBadge active state |
+| 7 | Leader 调用 `team_spawn_agent` MCP 工具 | 后端日志可见工具调用 | Backend logs 或 MCP trace |
+| 8 | 等待 WebSocket 事件 `team.agent.spawned` | 前端收到新 agent 信息（slot_id, name, status） | WS 事件监听或 UI 更新 |
+| 9 | 观察新 Agent Tab 出现 | Tab 栏中出现新的 tab 项（位置在 Leader 后） | `[data-testid="team-tab-bar"]` 子元素数量 +1 |
+| 10 | 验证新 Tab 的名称和状态 badge | Tab 显示 agent 名称 + idle badge | 新 tab 内的 TeamAgentIdentity 文本 + badge |
+| 11 | 点击新 Tab 切换到 teammate | 聊天区显示该 agent 的空对话或前置消息 | 新 tab active，聊天区更新 |
+| 12 | 验证新 agent 的 conversation 已创建 | Network tab 显示 conversation 已初始化 | Backend 数据库或 API 验证 |
 
 ### 断言
 
 ```typescript
-// 初始 tab 数
 const tabsBefore = await page.locator('[data-testid="team-tab-bar"] > div').count();
-
-// 发送 spawn 请求
 const input = page.locator('textarea[placeholder*="发送消息"]').first();
-await input.fill('Please spawn a code review agent');
+
+// Step 1: 发送任务需求
+await input.fill('帮我做一个前端项目，需要一个代码审查员和一个测试员');
 await input.press('Enter');
 
-// 等待回复
-await page.waitForFunction(() => {
-  const messages = document.querySelectorAll('.message-item.text.justify-start');
-  return messages.length > 0;
-}, { timeout: 300000 });
+// Step 3: 等待 Leader 返回阵容推荐
+const recommendationMsg = page.locator('.message-item.text.justify-start').last();
+await expect(recommendationMsg).toBeVisible({ timeout: 300_000 });
 
-// 等待新 tab 出现
-await expect(
-  page.locator('[data-testid="team-tab-bar"] > div').count()
-).toBeGreaterThan(tabsBefore);
+// Step 4: 验证阵容推荐包含 agent 类型和模型信息
+const replyText = await recommendationMsg.textContent();
+expect(replyText).toMatch(/claude|codex|gemini/i); // 包含 agent 类型
+expect(replyText).toMatch(/model|模型|sonnet|opus|haiku/i); // 包含模型信息
 
-// 新 tab 包含非 Leader 的名称
+// Step 5: 用户确认
+await input.fill('同意，开始创建');
+await input.press('Enter');
+
+// Step 8-9: 等待新 tab 出现（Leader spawn 后 WS 推送）
+await expect(async () => {
+  const tabsNow = await page.locator('[data-testid="team-tab-bar"] > div').count();
+  expect(tabsNow).toBeGreaterThan(tabsBefore);
+}).toPass({ timeout: 300_000 });
+
+// Step 10: 验证新 tab 名称
 const allTabs = page.locator('[data-testid="team-tab-bar"] > div');
-const lastTab = allTabs.nth(await allTabs.count() - 1);
-const tabName = await lastTab.textContent();
+const newTab = allTabs.nth(await allTabs.count() - 1);
+const tabName = await newTab.textContent();
 expect(tabName).not.toMatch(/Leader/i);
 expect(tabName?.length).toBeGreaterThan(0);
 ```
