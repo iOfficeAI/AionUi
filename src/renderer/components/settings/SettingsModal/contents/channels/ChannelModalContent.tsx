@@ -122,27 +122,14 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GoogleModel
         const modelRef = { id: provider.id, use_model: modelName };
         await configService.set(configKey, modelRef);
 
-        // Derive platform from configKey and sync to channel system
         const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
           | 'telegram'
           | 'lark'
           | 'dingtalk'
           | 'weixin'
           | 'wecom';
-        const agentKey = `assistant.${platform}.agent` as const;
-        const currentAgent = configService.get(agentKey);
         await channel.syncChannelSettings
-          .invoke({
-            platform,
-            agent: (currentAgent as {
-              backend: string;
-              custom_agent_id?: string;
-              name?: string;
-            }) || {
-              backend: 'gemini',
-            },
-            model: modelRef,
-          })
+          .invoke({ platform })
           .catch((err) => console.warn(`[ChannelSettings] syncChannelSettings failed for ${platform}:`, err));
 
         Message.success(t('settings.assistant.modelSwitched', 'Model switched successfully'));
