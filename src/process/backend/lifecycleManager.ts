@@ -163,7 +163,7 @@ export class BackendLifecycleManager {
     this.childProcess = null;
   }
 
-  private async waitForHealth(port: number, timeoutMs = 10_000): Promise<boolean> {
+  private async waitForHealth(port: number, timeoutMs = 30_000): Promise<boolean> {
     const start = Date.now();
     while (Date.now() - start < timeoutMs) {
       try {
