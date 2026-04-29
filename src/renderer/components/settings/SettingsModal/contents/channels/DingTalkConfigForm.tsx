@@ -235,10 +235,9 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
     try {
       // testPlugin returns { success, botUsername?, error? } directly
       const result = await channel.testPlugin.invoke({
-        plugin_id: 'dingtalk_default',
-        token: '',
+        plugin_id: 'dingtalk',
+        token: clientId.trim(),
         extra_config: {
-          app_id: clientId.trim(),
           app_secret: clientSecret.trim(),
         },
       });
@@ -263,10 +262,12 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   const handleAutoEnable = async () => {
     try {
       await channel.enablePlugin.invoke({
-        plugin_id: 'dingtalk_default',
+        plugin_id: 'dingtalk',
         config: {
-          clientId: clientId.trim(),
-          clientSecret: clientSecret.trim(),
+          credentials: {
+            client_id: clientId.trim(),
+            client_secret: clientSecret.trim(),
+          },
         },
       });
 

@@ -264,8 +264,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   const enableWeixinPlugin = async (accountId: string, botToken: string) => {
     // enablePlugin returns void; success if no throw
     await channel.enablePlugin.invoke({
-      plugin_id: 'weixin_default',
-      config: { accountId, botToken },
+      plugin_id: 'weixin',
+      config: { credentials: { account_id: accountId, bot_token: botToken } },
     });
     Message.success(t('settings.weixin.pluginEnabled', 'WeChat channel enabled'));
     const plugins = await channel.getPluginStatus.invoke();
@@ -337,7 +337,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const handleDisconnect = async () => {
     try {
-      await channel.disablePlugin.invoke({ plugin_id: 'weixin_default' });
+      await channel.disablePlugin.invoke({ plugin_id: 'weixin' });
       Message.success(t('settings.weixin.pluginDisabled', 'WeChat channel disabled'));
       onStatusChange(null);
       setLoginState('idle');
