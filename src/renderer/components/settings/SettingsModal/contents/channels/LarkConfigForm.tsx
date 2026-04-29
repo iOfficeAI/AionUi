@@ -78,9 +78,15 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
 
   // Agent selection (used for Lark conversations)
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: string; name: string; custom_agent_id?: string; is_preset?: boolean }>
+    Array<{ agent_type: string; backend?: string; name: string; custom_agent_id?: string; is_preset?: boolean }>
   >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; custom_agent_id?: string }>({
+  const [selectedAgent, setSelectedAgent] = useState<{
+    agent_type: string;
+    backend?: string;
+    name?: string;
+    custom_agent_id?: string;
+  }>({
+    agent_type: 'acp',
     backend: 'gemini',
   });
 
@@ -135,6 +141,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           const list = agentsResp
             .filter((a) => !a.is_preset)
             .map((a) => ({
+              agent_type: a.agent_type,
               backend: a.backend,
               name: a.name,
               custom_agent_id: a.custom_agent_id,
@@ -144,14 +151,26 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           setAvailableAgents(list);
         }
 
-        if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
+        if (saved && typeof saved === 'object') {
+          const s = saved as Record<string, unknown>;
+          const agentType =
+            typeof s.agent_type === 'string'
+              ? s.agent_type
+              : typeof s.backend === 'string' &&
+                  ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(s.backend)
+                ? s.backend
+                : 'acp';
           setSelectedAgent({
-            backend: (saved as any).backend as string,
-            custom_agent_id: (saved as any).custom_agent_id,
-            name: (saved as any).name,
+            agent_type: agentType,
+            backend: typeof s.backend === 'string' ? s.backend : undefined,
+            custom_agent_id: s.custom_agent_id as string | undefined,
+            name: s.name as string | undefined,
           });
         } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as string });
+          const agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(saved)
+            ? saved
+            : 'acp';
+          setSelectedAgent({ agent_type: agentType, backend: saved });
         }
       } catch (error) {
         console.error('[LarkConfig] Failed to load agents:', error);
@@ -161,11 +180,16 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: {
+    agent_type: string;
+    backend?: string;
+    custom_agent_id?: string;
+    name?: string;
+  }) => {
     try {
       await configService.set('assistant.lark.agent', agent);
       await channel.syncChannelSettings
-        .invoke({ platform: 'lark', agent })
+        .invoke({ platform: 'lark' })
         .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
@@ -327,9 +351,14 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   };
 
   const hasExistingUsers = authorizedUsers.length > 0;
-  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; is_extension?: boolean }> =
-    availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const showModelSelector = selectedAgent.agent_type === 'aionrs';
+  const agentOptions: Array<{
+    agent_type: string;
+    backend?: string;
+    name: string;
+    custom_agent_id?: string;
+    is_extension?: boolean;
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'acp', backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -593,23 +622,28 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
               <Menu
                 selectedKeys={[
                   selectedAgent.custom_agent_id
-                    ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                    : selectedAgent.backend,
+                    ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                    : selectedAgent.agent_type,
                 ]}
               >
                 {agentOptions.map((a) => {
-                  const key = a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend;
+                  const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
                         const currentKey = selectedAgent.custom_agent_id
-                          ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                          : selectedAgent.backend;
+                          ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                          : selectedAgent.agent_type;
                         if (key === currentKey) {
                           return;
                         }
-                        const next = { backend: a.backend, custom_agent_id: a.custom_agent_id, name: a.name };
+                        const next = {
+                          agent_type: a.agent_type,
+                          backend: a.backend,
+                          custom_agent_id: a.custom_agent_id,
+                          name: a.name,
+                        };
                         setSelectedAgent(next);
                         void persistSelectedAgent(next);
                       }}
@@ -626,12 +660,12 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
                 {selectedAgent.name ||
                   availableAgents.find(
                     (a) =>
-                      (a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend) ===
+                      (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type) ===
                       (selectedAgent.custom_agent_id
-                        ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                        : selectedAgent.backend)
+                        ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                        : selectedAgent.agent_type)
                   )?.name ||
-                  selectedAgent.backend}
+                  selectedAgent.agent_type}
               </span>
               <Down theme='outline' size={14} />
             </Button>
@@ -645,10 +679,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         description={t('settings.lark.defaultModelDesc', 'Model used for Lark conversations')}
       >
         <GoogleModelSelector
-          selection={isGeminiAgent ? modelSelection : undefined}
-          disabled={!isGeminiAgent}
+          selection={showModelSelector ? modelSelection : undefined}
+          disabled={!showModelSelector}
           label={
-            !isGeminiAgent
+            !showModelSelector
               ? t('settings.assistant.autoFollowCliModel', 'Automatically follow the model when CLI is running')
               : undefined
           }
