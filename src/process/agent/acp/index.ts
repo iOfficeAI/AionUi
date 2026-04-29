@@ -39,9 +39,6 @@ import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSIO
 import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModelSlot } from './utils';
-import { getTeamGuideStdioConfig } from '@process/team/mcp/guide/teamGuideSingleton';
-import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
-import { waitForMcpReady } from '@process/team/mcpReadiness';
 
 // InitializeResult removed — replaced by AcpInitializeResult from acpTypes.ts
 
@@ -1584,17 +1581,6 @@ export class AcpAgent {
       throw err;
     }
 
-    // Wait for MCP tools to be registered in the backend before allowing
-    // message dispatch. The team-mcp-stdio.js script sends a TCP mcp_ready
-    // notification after server.connect() completes. Without this wait,
-    // the first conversationTurn/start may arrive before the backend has
-    // finished the MCP handshake (initialize → tools/list), causing the
-    // agent to process the message without team tools.
-    if (this.extra.teamMcpStdioConfig && team_id) {
-      emitMcpStatus?.('mcp_tools_waiting');
-      await waitForMcpReady(slot_id, 30_000);
-      emitMcpStatus?.('mcp_tools_ready');
-    }
   }
 
   private async loadBuiltinSessionMcpServers(): Promise<AcpSessionMcpServer[]> {
@@ -1613,25 +1599,6 @@ export class AcpAgent {
       const teamServer = buildTeamMcpServer(this.extra.teamMcpStdioConfig);
       if (teamServer) {
         servers.push(teamServer);
-      }
-
-      // Inject Aion team-guide MCP server for solo agents (not in team mode already).
-      // Uses stdio bridge mode — same pattern as TeamMcpServer.
-      // AION_MCP_BACKEND env var tells the stdio bridge which backend this agent is,
-      // so aion_create_team automatically creates a team with the correct agent type.
-      if (!this.extra.teamMcpStdioConfig && (await shouldInjectTeamGuideMcp(this.extra.backend))) {
-        const aionStdioConfig = getTeamGuideStdioConfig();
-        if (aionStdioConfig) {
-          const configWithBackend = {
-            ...aionStdioConfig,
-            env: [
-              ...aionStdioConfig.env,
-              { name: 'AION_MCP_BACKEND', value: this.extra.backend },
-              { name: 'AION_MCP_CONVERSATION_ID', value: this.id },
-            ],
-          };
-          servers.push(buildTeamMcpServer(configWithBackend)!);
-        }
       }
 
       return servers;

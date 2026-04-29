@@ -34,7 +34,6 @@ import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
-import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
 interface AcpAgentManagerData {
@@ -882,25 +881,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         // 因此自定义工作空间或不支持原生 skill 发现的 backend 都需要通过 prompt 注入 skills。
         // So custom workspaces or backends without native skill discovery need prompt injection.
         if (this.isFirstMessage) {
-          // Skill index + preset_context injection is performed by the backend
-          // in aionui-ai-agent/src/acp_agent.rs::session_new_and_prompt. We only
-          // keep team-guide injection here — team-mode context is a frontend
-          // concern until a dedicated backend migration lands.
-          const isInTeam = Boolean((this.options as unknown as Record<string, unknown>).teamMcpStdioConfig);
-          if (!isInTeam && (await shouldInjectTeamGuideMcp(this.options.backend))) {
-            const [{ getTeamGuidePrompt }, { resolveLeaderAssistantLabel }] = await Promise.all([
-              import('@process/team/prompts/teamGuidePrompt.ts'),
-              import('@process/team/prompts/teamGuideAssistant.ts'),
-            ]);
-            const leaderLabel = await resolveLeaderAssistantLabel(
-              this.options.preset_assistant_id || this.options.custom_agent_id
-            );
-            const teamGuide = getTeamGuidePrompt({
-              backend: this.options.backend,
-              leaderLabel,
-            });
-            contentToSend = `[Team Guide]\n${teamGuide}\n[/Team Guide]\n\n${contentToSend}`;
-          }
         }
 
         const result = await this.sendAgentMessageWithFinishFallback({

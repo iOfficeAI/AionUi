@@ -4,8 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getTeamGuidePrompt } from '@process/team/prompts/teamGuidePrompt.ts';
-import { resolveLeaderAssistantLabel } from '@process/team/prompts/teamGuideAssistant.ts';
 
 /**
  * First message processing configuration.
@@ -17,44 +15,22 @@ import { resolveLeaderAssistantLabel } from '@process/team/prompts/teamGuideAssi
 export interface FirstMessageConfig {
   /** Preset context / rules string. */
   preset_context?: string;
-  /** Inject Team mode guidance prompt when agent has aion_create_team capability */
-  enableTeamGuide?: boolean;
-  /** Agent backend type (e.g. 'claude', 'codex') — used to populate team guide prompt */
-  backend?: string;
-  /**
-   * Preset assistant id backing this conversation (e.g. 'builtin-word-creator').
-   * When set, the team guide prompt shows the assistant's display name on the
-   * Leader row instead of the raw backend key.
-   */
-  preset_assistant_id?: string;
 }
 
 /**
  * Build system instructions (preset context + team guide only). Skills are
  * delivered via backend materialization + filesystem, not inlined.
  */
-export async function buildSystemInstructions(config: FirstMessageConfig): Promise<string | undefined> {
-  const instructions: string[] = [];
-
+export function buildSystemInstructions(config: FirstMessageConfig): string | undefined {
   if (config.preset_context) {
-    instructions.push(config.preset_context);
+    return config.preset_context;
   }
-
-  if (config.enableTeamGuide) {
-    const leaderLabel = await resolveLeaderAssistantLabel(config.preset_assistant_id);
-    instructions.push(getTeamGuidePrompt({ backend: config.backend, leaderLabel }));
-  }
-
-  if (instructions.length === 0) {
-    return undefined;
-  }
-
-  return instructions.join('\n\n');
+  return undefined;
 }
 
 /** Inject system instructions for the first message of a conversation. */
-export async function prepareFirstMessage(content: string, config: FirstMessageConfig): Promise<string> {
-  const systemInstructions = await buildSystemInstructions(config);
+export function prepareFirstMessage(content: string, config: FirstMessageConfig): string {
+  const systemInstructions = buildSystemInstructions(config);
 
   if (!systemInstructions) {
     return content;

@@ -18,9 +18,6 @@ import {
 import { AcpError as AcpSessionError } from '@process/acp/errors/AcpError';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
-import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
-import { waitForMcpReady } from '@/process/team/mcpReadiness';
-import { shouldInjectTeamGuideMcp } from '@/process/team/prompts/teamGuideCapability';
 import type { McpServer } from '@agentclientprotocol/sdk';
 import type {
   AgentConfig,
@@ -148,30 +145,6 @@ export class AcpAgentV2 {
       (this.agentConfig as { authCredentials?: Record<string, string> }).authCredentials = creds;
     }
 
-    // Inject team-guide MCP server for solo agents (not in team mode) so the
-    // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
-    if (!this.agentConfig.teamMcpConfig) {
-      if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
-        const aionStdioConfig = getTeamGuideStdioConfig();
-        if (aionStdioConfig) {
-          const guideServer: McpServer = {
-            name: aionStdioConfig.name,
-            command: aionStdioConfig.command,
-            args: aionStdioConfig.args,
-            env: [
-              ...aionStdioConfig.env,
-              { name: 'AION_MCP_BACKEND', value: this.agentConfig.agentBackend },
-              { name: 'AION_MCP_CONVERSATION_ID', value: this.conversation_id },
-            ],
-          };
-          (this.agentConfig as { presetMcpServers?: McpServer[] }).presetMcpServers = [
-            ...(this.agentConfig.presetMcpServers || []),
-            guideServer,
-          ];
-        }
-      }
-    }
-
     // Load user-configured (builtin) MCP servers from settings, filtered by
     // cached agent MCP capabilities. Mirrors AcpAgent.loadBuiltinSessionMcpServers().
 
@@ -206,19 +179,6 @@ export class AcpAgentV2 {
     };
 
     this.session = new AcpSession(this.agentConfig, clientFactory, callbacks, sessionOptions);
-
-    // Wait for team MCP tools to complete handshake before allowing messages.
-    // The stdio script sends mcp_ready with TEAM_AGENT_SLOT_ID after server.connect().
-    const teamMcp = this.agentConfig.teamMcpConfig;
-    const teamSlotId =
-      teamMcp && 'env' in teamMcp
-        ? teamMcp.env.find((e: { name: string }) => e.name === 'TEAM_AGENT_SLOT_ID')?.value
-        : undefined;
-    if (teamSlotId) {
-      await waitForMcpReady(teamSlotId, 30_000).catch(() => {
-        console.warn('[AcpAgentV2] Team MCP readiness timeout, proceeding anyway');
-      });
-    }
 
     return this.session;
   }

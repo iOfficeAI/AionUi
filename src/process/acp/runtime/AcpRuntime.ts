@@ -1,8 +1,6 @@
 // src/process/acp/runtime/AcpRuntime.ts
 
 import type { TMessage } from '@/common/chat/chatLib';
-import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
-import type { McpServer } from '@agentclientprotocol/sdk';
 import type { ClientFactory } from '@process/acp/infra/IAcpClient';
 import { IdleReclaimer } from '@process/acp/runtime/IdleReclaimer';
 import { AcpSession } from '@process/acp/session/AcpSession';
@@ -16,7 +14,6 @@ import type {
   SessionStatus,
   SignalEvent,
 } from '@process/acp/types';
-import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability';
 import { ProcessConfig } from '@process/utils/initStorage';
 
 const DEFAULT_IDLE_TIMEOUT_MS = 300_000; // 5 minutes
@@ -63,27 +60,6 @@ export class AcpRuntime {
     // Shallow-clone to avoid mutating the caller's object (e.g., MCP servers would
     // duplicate on retries if we pushed into the original arrays).
     const config = { ...agentConfig };
-
-    // Inject team-guide MCP server for solo agents (not in team mode) so the
-    // agent has the aion_create_team tool available.
-    if (!config.teamMcpConfig) {
-      if (await shouldInjectTeamGuideMcp(config.agentBackend)) {
-        const aionStdioConfig = getTeamGuideStdioConfig();
-        if (aionStdioConfig) {
-          const guideServer: McpServer = {
-            name: aionStdioConfig.name,
-            command: aionStdioConfig.command,
-            args: aionStdioConfig.args,
-            env: [
-              ...aionStdioConfig.env,
-              { name: 'AION_MCP_BACKEND', value: config.agentBackend },
-              { name: 'AION_MCP_CONVERSATION_ID', value: convId },
-            ],
-          };
-          config.presetMcpServers = [...(config.presetMcpServers || []), guideServer];
-        }
-      }
-    }
 
     // Load user-configured (builtin) MCP servers from settings, filtered by
     // cached agent MCP capabilities.
