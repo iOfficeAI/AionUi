@@ -75,9 +75,15 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
 
   // Agent selection
   const [availableAgents, setAvailableAgents] = useState<
-    Array<{ backend: string; name: string; custom_agent_id?: string; is_preset?: boolean }>
+    Array<{ agent_type: string; backend?: string; name: string; custom_agent_id?: string; is_preset?: boolean }>
   >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{ backend: string; name?: string; custom_agent_id?: string }>({
+  const [selectedAgent, setSelectedAgent] = useState<{
+    agent_type: string;
+    backend?: string;
+    name?: string;
+    custom_agent_id?: string;
+  }>({
+    agent_type: 'acp',
     backend: 'gemini',
   });
 
@@ -130,6 +136,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
           const list = agentsResp
             .filter((a) => !a.is_preset)
             .map((a) => ({
+              agent_type: a.agent_type,
               backend: a.backend,
               name: a.name,
               custom_agent_id: a.custom_agent_id,
@@ -139,14 +146,27 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
           setAvailableAgents(list);
         }
 
-        if (saved && typeof saved === 'object' && 'backend' in saved && typeof (saved as any).backend === 'string') {
+        if (saved && typeof saved === 'object') {
+          const s = saved as any;
+          const backend = typeof s.backend === 'string' ? s.backend : undefined;
+          const agentType =
+            typeof s.agent_type === 'string'
+              ? s.agent_type
+              : backend && ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
+                ? backend
+                : 'acp';
           setSelectedAgent({
-            backend: (saved as any).backend as string,
-            custom_agent_id: (saved as any).custom_agent_id,
-            name: (saved as any).name,
+            agent_type: agentType,
+            backend,
+            custom_agent_id: s.custom_agent_id,
+            name: s.name,
           });
         } else if (typeof saved === 'string') {
-          setSelectedAgent({ backend: saved as string });
+          const backend = saved as string;
+          const agentType = ['aionrs', 'aion-cli', 'openclaw-gateway', 'nanobot', 'remote'].includes(backend)
+            ? backend
+            : 'acp';
+          setSelectedAgent({ agent_type: agentType, backend });
         }
       } catch (error) {
         console.error('[DingTalkConfig] Failed to load agents:', error);
@@ -156,11 +176,16 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
     void loadAgentsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { backend: string; custom_agent_id?: string; name?: string }) => {
+  const persistSelectedAgent = async (agent: {
+    agent_type: string;
+    backend?: string;
+    custom_agent_id?: string;
+    name?: string;
+  }) => {
     try {
       await configService.set('assistant.dingtalk.agent', agent);
       await channel.syncChannelSettings
-        .invoke({ platform: 'dingtalk', agent })
+        .invoke({ platform: 'dingtalk' })
         .catch((err) => console.warn('[DingTalkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
@@ -317,9 +342,14 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
   };
 
   const hasExistingUsers = authorizedUsers.length > 0;
-  const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
-  const agentOptions: Array<{ backend: string; name: string; custom_agent_id?: string; is_extension?: boolean }> =
-    availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
+  const showModelSelector = selectedAgent.agent_type === 'aionrs';
+  const agentOptions: Array<{
+    agent_type: string;
+    backend?: string;
+    name: string;
+    custom_agent_id?: string;
+    is_extension?: boolean;
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'acp', backend: 'gemini', name: 'Gemini CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -473,23 +503,28 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
               <Menu
                 selectedKeys={[
                   selectedAgent.custom_agent_id
-                    ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                    : selectedAgent.backend,
+                    ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                    : selectedAgent.agent_type,
                 ]}
               >
                 {agentOptions.map((a) => {
-                  const key = a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend;
+                  const key = a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type;
                   return (
                     <Menu.Item
                       key={key}
                       onClick={() => {
                         const currentKey = selectedAgent.custom_agent_id
-                          ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                          : selectedAgent.backend;
+                          ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                          : selectedAgent.agent_type;
                         if (key === currentKey) {
                           return;
                         }
-                        const next = { backend: a.backend, custom_agent_id: a.custom_agent_id, name: a.name };
+                        const next = {
+                          agent_type: a.agent_type,
+                          backend: a.backend,
+                          custom_agent_id: a.custom_agent_id,
+                          name: a.name,
+                        };
                         setSelectedAgent(next);
                         void persistSelectedAgent(next);
                       }}
@@ -506,12 +541,12 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                 {selectedAgent.name ||
                   availableAgents.find(
                     (a) =>
-                      (a.custom_agent_id ? `${a.backend}|${a.custom_agent_id}` : a.backend) ===
+                      (a.custom_agent_id ? `${a.agent_type}|${a.custom_agent_id}` : a.agent_type) ===
                       (selectedAgent.custom_agent_id
-                        ? `${selectedAgent.backend}|${selectedAgent.custom_agent_id}`
-                        : selectedAgent.backend)
+                        ? `${selectedAgent.agent_type}|${selectedAgent.custom_agent_id}`
+                        : selectedAgent.agent_type)
                   )?.name ||
-                  selectedAgent.backend}
+                  selectedAgent.agent_type}
               </span>
               <Down theme='outline' size={14} />
             </Button>
@@ -525,10 +560,10 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         description={t('settings.dingtalk.defaultModelDesc', 'Used for Agent conversations')}
       >
         <GoogleModelSelector
-          selection={isGeminiAgent ? modelSelection : undefined}
-          disabled={!isGeminiAgent}
+          selection={showModelSelector ? modelSelection : undefined}
+          disabled={!showModelSelector}
           label={
-            !isGeminiAgent ? t('settings.assistant.autoFollowCliModel', 'Auto-follow CLI runtime model') : undefined
+            !showModelSelector ? t('settings.assistant.autoFollowCliModel', 'Auto-follow CLI runtime model') : undefined
           }
           variant='settings'
         />
