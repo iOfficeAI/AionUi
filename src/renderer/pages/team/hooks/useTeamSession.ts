@@ -62,13 +62,6 @@ export function useTeamSession(team: TTeam) {
     };
   }, [team.id, mutateTeam]);
 
-  const sendMessage = useCallback(
-    async (content: string) => {
-      await ipcBridge.team.sendMessage.invoke({ team_id: team.id, content });
-    },
-    [team.id]
-  );
-
   const addAgent = useCallback(
     async (agent: Omit<TeamAgent, 'slot_id'>) => {
       await ipcBridge.team.addAgent.invoke({ team_id: team.id, agent });
@@ -93,5 +86,5 @@ export function useTeamSession(team: TTeam) {
     [team.id, mutateTeam]
   );
 
-  return { statusMap, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam };
+  return { statusMap, addAgent, renameAgent, removeAgent, mutateTeam };
 }
