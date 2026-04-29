@@ -134,7 +134,6 @@ const AgentChatSlot: React.FC<{
           <TeamChatView
             conversation={conversation as TChatConversation}
             team_id={team_id}
-            agentSlotId={isLeader ? undefined : agent.slot_id}
             agent_name={agent.agent_name}
           />
         ) : (
