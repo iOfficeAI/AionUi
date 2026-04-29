@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { iconColors } from '@/renderer/styles/colors';
+import { useUpdateConversationArtifactStatus } from '@renderer/pages/conversation/Messages/artifacts';
 import { Button, Message } from '@arco-design/web-react';
 import { Down, Lightning, Up } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
@@ -14,14 +15,22 @@ import MarkdownView from '@renderer/components/Markdown';
 import type { SkillSuggestion } from '@renderer/utils/chat/skillSuggestParser';
 
 interface SkillSuggestCardProps {
+  artifact_id: string;
+  conversation_id: string;
   suggestion: SkillSuggestion;
   cron_job_id: string;
 }
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cron_job_id }) => {
+const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({
+  artifact_id,
+  conversation_id,
+  suggestion,
+  cron_job_id,
+}) => {
   const { t } = useTranslation();
+  const updateArtifactStatus = useUpdateConversationArtifactStatus();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -43,6 +52,7 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cron_jo
     setSaving(true);
     try {
       await ipcBridge.cron.saveSkill.invoke({ job_id: cron_job_id, content: suggestion.content });
+      updateArtifactStatus(artifact_id, 'saved');
       setSaved(true);
       Message.success(t('cron.skill.saveSuccess'));
     } catch (err) {
@@ -55,6 +65,7 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cron_jo
 
   return (
     <div
+      data-testid='skill-suggest-card'
       className='mt-8px p-12px rd-8px bg-fill-0 b-1 b-solid'
       style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
     >
@@ -83,7 +94,23 @@ const SkillSuggestCard: React.FC<SkillSuggestCardProps> = ({ suggestion, cron_jo
         <Button type='primary' size='small' loading={saving} onClick={handleSave}>
           {t('cron.skill.save')}
         </Button>
-        <Button size='small' onClick={() => setDismissed(true)}>
+        <Button
+          size='small'
+          onClick={async () => {
+            try {
+              await ipcBridge.conversation.updateArtifact.invoke({
+                conversation_id,
+                artifact_id,
+                status: 'dismissed',
+              });
+              updateArtifactStatus(artifact_id, 'dismissed');
+              setDismissed(true);
+            } catch (error) {
+              Message.error(t('cron.skill.saveFailed'));
+              console.error('[SkillSuggestCard] Failed to dismiss artifact:', error);
+            }
+          }}
+        >
           {t('cron.skill.dismiss')}
         </Button>
       </div>

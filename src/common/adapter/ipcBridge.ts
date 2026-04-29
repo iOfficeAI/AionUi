@@ -64,7 +64,6 @@ import {
   wsEmitter,
   wsMappedEmitter,
   stubProvider,
-  stubEmitter,
   withResponseMap,
 } from './httpBridge';
 
@@ -182,7 +181,18 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
   ),
+  listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/artifacts`
+  ),
+  updateArtifact: httpPatch<
+    IConversationArtifact,
+    { conversation_id: string; artifact_id: string; status: IConversationArtifactStatus }
+  >(
+    (p) => `/api/conversations/${p.conversation_id}/artifacts/${p.artifact_id}`,
+    (p) => ({ status: p.status })
+  ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
+  artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
     const rawLast = (r.last_message ?? r.lastMessage) as Record<string, unknown> | undefined;
@@ -1039,7 +1049,17 @@ export const cron = {
   addJob: httpPost<ICronJob, ICreateCronJobParams>('/api/cron/jobs'),
   updateJob: httpPut<ICronJob, { job_id: string; updates: Partial<ICronJob> }>(
     (p) => `/api/cron/jobs/${p.job_id}`,
-    (p) => p.updates
+    (p) => ({
+      name: p.updates.name,
+      description: p.updates.description,
+      enabled: p.updates.enabled,
+      schedule: p.updates.schedule,
+      message: p.updates.target?.payload.text,
+      execution_mode: p.updates.target?.execution_mode,
+      agent_config: p.updates.metadata?.agent_config,
+      conversation_title: p.updates.metadata?.conversation_title,
+      max_retries: p.updates.state?.max_retries,
+    })
   ),
   removeJob: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}`),
   runNow: httpPost<{ conversation_id: string }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/run`),
@@ -1047,7 +1067,11 @@ export const cron = {
     (p) => `/api/cron/jobs/${p.job_id}/skill`,
     (p) => ({ content: p.content })
   ),
-  hasSkill: httpGet<boolean, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
+  hasSkill: withResponseMap(
+    httpGet<{ has_skill: boolean }, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
+    (data) => Boolean(data?.has_skill)
+  ),
+  deleteSkill: httpDelete<void, { job_id: string }>((p) => `/api/cron/jobs/${p.job_id}/skill`),
   onJobCreated: wsEmitter<ICronJob>('cron.job-created'),
   onJobUpdated: wsEmitter<ICronJob>('cron.job-updated'),
   onJobRemoved: wsEmitter<{ job_id: string }>('cron.job-removed'),
@@ -1230,8 +1254,50 @@ export interface IResponseMessage {
   data: unknown;
   msg_id: string;
   conversation_id: string;
+  created_at?: number;
   hidden?: boolean;
+  /** Replace accumulated text for the same msg_id instead of appending. */
+  replace?: boolean;
 }
+
+export type IConversationArtifactKind = 'cron_trigger' | 'skill_suggest';
+export type IConversationArtifactStatus = 'active' | 'pending' | 'dismissed' | 'saved';
+
+export interface IConversationArtifactBase<
+  Kind extends IConversationArtifactKind,
+  Payload extends Record<string, unknown>,
+> {
+  id: string;
+  conversation_id: string;
+  cron_job_id?: string;
+  kind: Kind;
+  status: IConversationArtifactStatus;
+  payload: Payload;
+  created_at: number;
+  updated_at: number;
+}
+
+export type ICronTriggerArtifact = IConversationArtifactBase<
+  'cron_trigger',
+  {
+    cron_job_id: string;
+    cron_job_name: string;
+    triggered_at: number;
+  }
+>;
+
+export type ISkillSuggestArtifact = IConversationArtifactBase<
+  'skill_suggest',
+  {
+    cron_job_id: string;
+    name: string;
+    description: string;
+    skillContent?: string;
+    skill_content?: string;
+  }
+>;
+
+export type IConversationArtifact = ICronTriggerArtifact | ISkillSuggestArtifact;
 
 export interface IConversationTurnCompletedEvent {
   session_id: string;

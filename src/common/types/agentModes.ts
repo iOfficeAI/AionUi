@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CODEX_MODE_FULL_AUTO } from '@/common/types/codex/codexModes';
+import { CODEX_MODE_NATIVE_FULL_ACCESS } from '@/common/types/codex/codexModes';
 
 /**
  * Full-auto (YOLO) mode ID per backend.
@@ -16,7 +16,7 @@ const FULL_AUTO_MODE: Record<string, string> = {
   opencode: 'build',
   gemini: 'yolo',
   aionrs: 'yolo',
-  codex: CODEX_MODE_FULL_AUTO,
+  codex: CODEX_MODE_NATIVE_FULL_ACCESS,
   cursor: 'agent',
   snow: 'yolo',
 };

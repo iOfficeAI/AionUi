@@ -4,7 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
+import type {
+  CodexToolCallUpdate,
+  IMessageAcpToolCall,
+  IMessageToolCall,
+  IMessageToolGroup,
+  TMessage,
+} from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
@@ -24,6 +31,7 @@ import HOC from '@renderer/utils/ui/HOC';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
+import { useConversationArtifacts } from './artifacts';
 import { useMessageList } from './hooks';
 import MessageAgentStatus from './components/MessageAgentStatus';
 import MessagePlan from './components/MessagePlan';
@@ -44,20 +52,26 @@ type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 type IMessageVO =
   | TMessage
-  | { type: 'file_summary'; id: string; diffs: FileChangeInfo[]; sourceMessageIds: string[] }
+  | { type: 'file_summary'; id: string; diffs: FileChangeInfo[]; sourceMessageIds: string[]; created_at: number }
   | {
       type: 'tool_summary';
       id: string;
       messages: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall>;
       sourceMessageIds: string[];
+      created_at: number;
     };
+type IArtifactVO = { type: 'artifact'; id: string; artifact: IConversationArtifact; created_at: number };
+type IProcessedItem = IMessageVO | IArtifactVO;
 
 type ConversationLocationState = {
   targetMessageId?: string;
   fromConversationSearch?: boolean;
 };
 
-const getProcessedItemSourceMessageIds = (item: IMessageVO): string[] => {
+const getProcessedItemSourceMessageIds = (item: IProcessedItem): string[] => {
+  if ('type' in item && item.type === 'artifact') {
+    return [item.id];
+  }
   if ('type' in item && item.type === 'tool_summary') {
     return item.sourceMessageIds;
   }
@@ -67,16 +81,23 @@ const getProcessedItemSourceMessageIds = (item: IMessageVO): string[] => {
   return 'id' in item ? [item.id] : [];
 };
 
-const matchesTargetMessage = (item: IMessageVO, targetMessageId?: string): boolean => {
+const matchesTargetMessage = (item: IProcessedItem, targetMessageId?: string): boolean => {
   if (!targetMessageId) {
     return false;
   }
   return getProcessedItemSourceMessageIds(item).includes(targetMessageId);
 };
 
-const getProcessedItemAnchorId = (item: IMessageVO): string => {
+const getProcessedItemAnchorId = (item: IProcessedItem): string => {
   const sourceIds = getProcessedItemSourceMessageIds(item);
   return sourceIds[0] || ('id' in item ? item.id : uuid());
+};
+
+const getProcessedItemCreatedAt = (item: IProcessedItem): number => {
+  if ('type' in item && ['file_summary', 'tool_summary', 'artifact'].includes(item.type)) {
+    return item.created_at;
+  }
+  return item.created_at ?? 0;
 };
 
 const highlightStyle: React.CSSProperties = {
@@ -141,10 +162,6 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':
         return <MessageThinking message={message}></MessageThinking>;
-      case 'skill_suggest':
-        return <MessageSkillSuggest message={message} />;
-      case 'cron_trigger':
-        return <MessageCronTrigger message={message} />;
       case 'available_commands':
         return null;
       default:
@@ -161,6 +178,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
   const list = useMessageList();
+  const artifacts = useConversationArtifacts();
   const conversationContext = useConversationContextSafe();
   useAutoPreviewOfficeFiles(conversationContext);
   const { t } = useTranslation();
@@ -178,7 +196,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageToolCall> = [];
     let toolSourceMessageIds: string[] = [];
 
-    const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string) => {
+    const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string, created_at: number) => {
       if (!diffsChanges.length) {
         diffsSourceMessageIds = [];
         result.push({
@@ -186,6 +204,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           id: `summary-${sourceMessageId}`,
           diffs: diffsChanges,
           sourceMessageIds: diffsSourceMessageIds,
+          created_at,
         });
       }
       diffsChanges.push(changes);
@@ -201,6 +220,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           id: `tool-summary-${message.id}`,
           messages: toolList,
           sourceMessageIds: toolSourceMessageIds,
+          created_at: message.created_at ?? 0,
         });
       }
       toolList.push(message);
@@ -215,7 +235,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       if (message.hidden) continue;
       if (message.type === 'available_commands') continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
+        pushFileDffChanges(
+          parseDiff((message.content as TurnDiffContent).data.unified_diff),
+          message.id,
+          message.created_at ?? 0
+        );
         continue;
       }
       if (message.type === 'tool_group') {
@@ -230,7 +254,11 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
             )
             .map((item) => item.result_display as WriteFileResult);
           if (writeFileResults.length && writeFileResults[0].file_diff) {
-            pushFileDffChanges(parseDiff(writeFileResults[0].file_diff, writeFileResults[0].file_name), message.id);
+            pushFileDffChanges(
+              parseDiff(writeFileResults[0].file_diff, writeFileResults[0].file_name),
+              message.id,
+              message.created_at ?? 0
+            );
             continue;
           }
         }
@@ -251,8 +279,21 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       diffsSourceMessageIds = [];
       result.push(message);
     }
-    return result;
-  }, [list]);
+    const visibleArtifacts = artifacts
+      .filter((artifact) => {
+        if (artifact.kind === 'cron_trigger') return artifact.status === 'active';
+        if (artifact.kind === 'skill_suggest') return artifact.status === 'pending';
+        return false;
+      })
+      .map<IArtifactVO>((artifact) => ({
+        type: 'artifact',
+        id: artifact.id,
+        artifact,
+        created_at: artifact.created_at,
+      }));
+
+    return [...result, ...visibleArtifacts].sort((a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b));
+  }, [artifacts, list]);
 
   // Use auto-scroll hook
   const {
@@ -313,7 +354,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       const targetIndex = processedList.findIndex((item) => {
         if (
           (item as { type?: string }).type === 'file_summary' ||
-          (item as { type?: string }).type === 'tool_summary'
+          (item as { type?: string }).type === 'tool_summary' ||
+          (item as { type?: string }).type === 'artifact'
         ) {
           return false;
         }
@@ -348,6 +390,24 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
 
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     const highlighted = matchesTargetMessage(item, highlightedMessageId);
+    if ('type' in item && item.type === 'artifact') {
+      return (
+        <div
+          key={item.id}
+          id={`message-${getProcessedItemAnchorId(item)}`}
+          data-conversation-artifact-kind={item.artifact.kind}
+          data-testid={`conversation-artifact-${item.artifact.kind}`}
+          className='min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'
+          style={highlighted ? highlightStyle : undefined}
+        >
+          {item.artifact.kind === 'cron_trigger' ? (
+            <MessageCronTrigger artifact={item.artifact} />
+          ) : (
+            <MessageSkillSuggest artifact={item.artifact} />
+          )}
+        </div>
+      );
+    }
     if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
         <div

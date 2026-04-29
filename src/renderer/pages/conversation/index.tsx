@@ -39,7 +39,7 @@ const ChatConversationIndex: React.FC = () => {
     if (!id) return;
 
     return ipcBridge.conversation.listChanged.on((event) => {
-      if (event.conversation_id !== id || event.action !== 'updated') {
+      if (event.conversation_id !== id || (event.action !== 'updated' && event.action !== 'created')) {
         return;
       }
 

@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import type { IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
 import { getDatabase } from '@process/services/database';
 import { mainWarn } from '@process/utils/mainLogger';
 import type { AgentStatus } from './agentTypes';
@@ -60,7 +60,9 @@ export class ConversationTurnCompletionService {
       context.model_id ?? (typeof extra.current_model_id === 'string' ? extra.current_model_id : undefined);
     const status = context.status ?? (conversation?.status as AgentStatus) ?? 'finished';
     const isProcessing =
-      typeof cronBusyGuard.isProcessing === 'function' ? cronBusyGuard.isProcessing(conversation_id) : false;
+      typeof conversationBusyGuard.isProcessing === 'function'
+        ? conversationBusyGuard.isProcessing(conversation_id)
+        : false;
 
     const event: IConversationTurnCompletedEvent = {
       session_id: conversation_id,

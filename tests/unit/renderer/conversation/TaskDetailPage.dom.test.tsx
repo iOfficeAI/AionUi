@@ -15,6 +15,8 @@ const mockOnJobUpdated = vi.hoisted(() => vi.fn());
 const mockOnJobExecuted = vi.hoisted(() => vi.fn());
 const mockListByCronJob = vi.hoisted(() => vi.fn());
 const mockConversationListChanged = vi.hoisted(() => vi.fn());
+const mockGetConversation = vi.hoisted(() => vi.fn());
+const mockMutate = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -26,6 +28,14 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
   useParams: () => mockUseParams(),
 }));
+
+vi.mock('swr', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('swr')>();
+  return {
+    ...actual,
+    mutate: (...args: unknown[]) => mockMutate(...args),
+  };
+});
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -39,6 +49,7 @@ vi.mock('@/common', () => ({
       onJobExecuted: { on: (...args: unknown[]) => mockOnJobExecuted(...args) },
     },
     conversation: {
+      get: { invoke: (...args: unknown[]) => mockGetConversation(...args) },
       listByCronJob: { invoke: (...args: unknown[]) => mockListByCronJob(...args) },
       listChanged: { on: (...args: unknown[]) => mockConversationListChanged(...args) },
     },
@@ -226,6 +237,16 @@ describe('TaskDetailPage', () => {
     mockOnJobExecuted.mockReturnValue(() => {});
     mockListByCronJob.mockResolvedValue(mockConversations);
     mockConversationListChanged.mockReturnValue(() => {});
+    mockMutate.mockResolvedValue(undefined);
+    mockGetConversation.mockResolvedValue({
+      id: 'new-conv-id',
+      name: 'New Conversation',
+      type: 'acp',
+      model: undefined,
+      extra: {
+        workspace: '/tmp/new-cron-workspace',
+      },
+    });
   });
 
   it('shows loading spinner initially', () => {
@@ -418,6 +439,18 @@ describe('TaskDetailPage', () => {
       expect(mockNavigate).toHaveBeenCalledWith('/conversation/new-conv-id');
     });
 
+    expect(mockMutate).toHaveBeenCalledWith(
+      'conversation/new-conv-id',
+      expect.objectContaining({
+        id: 'new-conv-id',
+        extra: expect.objectContaining({
+          workspace: '/tmp/new-cron-workspace',
+          cron_job_id: 'job-123',
+          cronJobId: 'job-123',
+        }),
+      }),
+      false
+    );
     expect(mockMessageSuccess).toHaveBeenCalledWith('cron.runNowSuccess');
   });
 

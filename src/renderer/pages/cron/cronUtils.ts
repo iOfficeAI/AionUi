@@ -83,7 +83,7 @@ export function formatNextRun(next_run_at_ms?: number): string {
  */
 export function getJobStatusFlags(job: ICronJob): { hasError: boolean; isPaused: boolean } {
   return {
-    hasError: job.state.last_status === 'error',
+    hasError: job.state.last_status === 'error' || job.state.last_status === 'missed',
     isPaused: !job.enabled,
   };
 }

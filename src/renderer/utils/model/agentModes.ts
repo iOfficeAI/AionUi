@@ -5,9 +5,9 @@
  */
 
 import {
-  CODEX_MODE_AUTO_EDIT,
-  CODEX_MODE_FULL_AUTO,
-  CODEX_MODE_FULL_AUTO_NO_SANDBOX,
+  CODEX_MODE_NATIVE_DEFAULT,
+  CODEX_MODE_NATIVE_FULL_ACCESS,
+  CODEX_MODE_READ_ONLY,
 } from '@/common/types/codex/codexModes';
 
 /**
@@ -35,7 +35,7 @@ export interface AgentModeOption {
  *   Plan mode disabled until upstream fix. See https://github.com/QwenLM/qwen-code/issues/1806
  * - OpenCode: plan/build modes via ACP session/set_mode (no yolo support)
  * - Gemini: supports default/autoEdit/yolo (auto-approve at manager layer, not via ACP)
- * - Codex: default modes stay sandboxed; a dedicated unsafe full-auto mode disables the sandbox
+ * - Codex: ACP currently advertises `read-only` / `auto` / `full-access`
  * - Goose: mode set at startup only, not during session
  * - Cursor: agent/plan/ask modes via ACP session/set_mode (verified via `agent acp` session/new response)
  */
@@ -68,10 +68,9 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'yolo', label: 'YOLO' },
   ],
   codex: [
-    { value: 'default', label: 'Plan' },
-    { value: CODEX_MODE_AUTO_EDIT, label: 'Auto Edit' },
-    { value: CODEX_MODE_FULL_AUTO, label: 'Full Auto' },
-    { value: CODEX_MODE_FULL_AUTO_NO_SANDBOX, label: 'Full Auto (No Sandbox)' },
+    { value: CODEX_MODE_READ_ONLY, label: 'Read Only' },
+    { value: CODEX_MODE_NATIVE_DEFAULT, label: 'Default' },
+    { value: CODEX_MODE_NATIVE_FULL_ACCESS, label: 'Full Access' },
   ],
   cursor: [
     { value: 'agent', label: 'Agent', description: 'Full agent capabilities with tool access' },

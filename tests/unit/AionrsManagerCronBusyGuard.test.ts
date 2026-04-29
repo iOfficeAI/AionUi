@@ -138,8 +138,8 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
   },
 }));
 
-vi.mock('@process/services/cron/CronBusyGuard', () => ({
-  cronBusyGuard: {
+vi.mock('@process/task/ConversationBusyGuard', () => ({
+  conversationBusyGuard: {
     setProcessing: mockSetProcessing,
     isProcessing: mockIsProcessing,
   },

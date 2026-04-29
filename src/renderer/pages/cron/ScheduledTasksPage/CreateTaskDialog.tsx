@@ -19,7 +19,13 @@ import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
-import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
+import {
+  ACP_BACKENDS_ALL,
+  type AcpBackendAll,
+  type AcpModelInfo,
+  type AcpSessionConfigOption,
+  type AgentBackend,
+} from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
@@ -368,8 +374,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const resolveAgentConfig = (agentValue: string) => {
     const colonIdx = agentValue.indexOf(':');
-    const agentKind = agentValue.substring(0, colonIdx);
-    const agentId = agentValue.substring(colonIdx + 1);
+    const agentKind = colonIdx >= 0 ? agentValue.substring(0, colonIdx) : 'cli';
+    const agentId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
 
     // Merge cached config option defaults with user overrides
     const mergedConfigOptions = (() => {
@@ -387,18 +393,22 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       'claude') as ICreateCronJobParams['agent_type'];
 
     if (agentKind === 'cli') {
-      const agent = cliAgents.find((a) => a.backend === agentId);
-      if (agent) {
-        resolvedAgentType = agent.backend as AcpBackendAll;
+      const agent = cliAgents.find((a) => a.backend === agentId || a.agent_type === agentId);
+      const backend = (agent?.backend || agent?.agent_type || agentId) as AgentBackend;
+      const backendConfig = (ACP_BACKENDS_ALL as Record<string, { name: string } | undefined>)[backend];
+      if (backendConfig) {
+        resolvedAgentType = backend as AcpBackendAll;
         agent_config = {
-          backend: agent.backend as AgentBackend,
-          name: agent.name,
-          cli_path: agent.cli_path,
-          mode: getFullAutoMode(agent.backend),
+          backend,
+          name: agent?.name || backendConfig.name,
+          cli_path: agent?.cli_path,
+          mode: getFullAutoMode(backend),
           model_id,
           config_options: mergedConfigOptions,
           workspace,
         };
+      } else if (agent) {
+        resolvedAgentType = backend as ICreateCronJobParams['agent_type'];
       }
     } else if (agentKind === 'preset') {
       const agent = presetAssistants.find((a) => a.custom_agent_id === agentId);
@@ -460,7 +470,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: values.description,
           schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
           prompt: values.prompt,
-          conversation_id: '',
+          conversation_id: _conversation_id ?? '',
           conversation_title,
           agent_type: resolvedAgentType,
           created_by: 'user',

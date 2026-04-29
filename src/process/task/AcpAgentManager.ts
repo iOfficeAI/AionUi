@@ -26,7 +26,7 @@ import { getDatabase } from '@process/services/database';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
 import { mainWarn, mainError } from '@process/utils/mainLogger';
 import {
   getCodexSandboxModeForSessionMode,
@@ -35,12 +35,9 @@ import {
 } from '@process/task/codexConfig';
 import BaseAgentManager from './BaseAgentManager';
 import { IpcAgentEventEmitter } from './IpcAgentEventEmitter';
-import { hasCronCommands } from './CronCommandDetector';
-import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 import { extractAndStripThinkTags } from './ThinkTagDetector';
 import type { AgentKillReason } from './IAgentManager';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
-import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 
 interface AcpAgentManagerData {
@@ -92,9 +89,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   options: AcpAgentManagerData;
   private current_mode: string = 'default';
   private persistedModelId: string | null = null;
-  // Track current message for cron detection (accumulated from streaming chunks)
-  private currentMsgId: string | null = null;
-  private currentMsgContent: string = '';
   /** Current turn's thinking message msg_id for accumulating content */
   private thinkingMsgId: string | null = null;
   /** Timestamp when thinking started for duration calculation */
@@ -299,7 +293,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.clearMissingFinishFallback();
     this.flushBufferedStreamTextMessages();
 
-    cronBusyGuard.setProcessing(this.conversation_id, false);
+    conversationBusyGuard.setProcessing(this.conversation_id, false);
     this.status = 'finished';
 
     if (this.thinkingMsgId) {
@@ -308,40 +302,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       this.thinkingStartTime = null;
       this.thinkingContent = '';
     }
-
-    skillSuggestWatcher.onFinish(this.conversation_id);
-
-    if (this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
-      const cronMessage: TMessage = {
-        id: this.currentMsgId || uuid(),
-        msg_id: this.currentMsgId || uuid(),
-        type: 'text',
-        position: 'left',
-        conversation_id: this.conversation_id,
-        content: { content: this.currentMsgContent },
-        status: 'finish',
-        created_at: Date.now(),
-      };
-      const collectedResponses: string[] = [];
-      await processCronInMessage(this.conversation_id, backend, cronMessage, (sysMsg) => {
-        collectedResponses.push(sysMsg);
-        const systemMessage: IResponseMessage = {
-          type: 'system',
-          conversation_id: this.conversation_id,
-          msg_id: uuid(),
-          data: sysMsg,
-        };
-        ipcBridge.acpConversation.responseStream.emit(systemMessage);
-      });
-      if (collectedResponses.length > 0 && this.agent) {
-        const feedbackMessage = `[System Response]
-${collectedResponses.join('\n')}`;
-        await this.agent.sendMessage({ content: feedbackMessage });
-      }
-    }
-
-    this.currentMsgId = null;
-    this.currentMsgContent = '';
 
     const finishMessage: IResponseMessage = {
       ...(message as IResponseMessage),
@@ -496,7 +456,7 @@ ${collectedResponses.join('\n')}`;
       const yoloModeValues: Record<string, string> = {
         claude: 'bypassPermissions',
         qwen: 'yolo',
-        codex: 'yolo',
+        codex: 'full-access',
       };
       this.current_mode = yoloModeValues[data.backend] || 'yolo';
       this.yoloMode = true;
@@ -691,17 +651,6 @@ ${collectedResponses.join('\n')}`;
           console.log(
             `[ACP-PERF] stream: transform ${transformDuration}ms, db ${dbDuration}ms type=${processedMessage.type}`
           );
-        }
-
-        // Track streaming content for cron detection when turn ends
-        if (isStreamTextChunk) {
-          const textContent = extractTextFromMessage(tMessage);
-          if (tMessage.msg_id !== this.currentMsgId) {
-            this.currentMsgId = tMessage.msg_id || null;
-            this.currentMsgContent = textContent;
-          } else {
-            this.currentMsgContent += textContent;
-          }
         }
       }
     }
@@ -919,7 +868,7 @@ ${collectedResponses.join('\n')}`;
 
     const managerSendStart = Date.now();
     // Mark conversation as busy to prevent cron jobs from running
-    cronBusyGuard.setProcessing(this.conversation_id, true);
+    conversationBusyGuard.setProcessing(this.conversation_id, true);
     // Set status to running when message is being processed
     this.status = 'running';
     try {
@@ -1003,7 +952,7 @@ ${collectedResponses.join('\n')}`;
         if (this.isFirstMessage) {
           this.isFirstMessage = false;
         }
-        // Note: cronBusyGuard.setProcessing(false) is not called here
+        // Note: conversationBusyGuard.setProcessing(false) is not called here
         // because the response streaming is still in progress.
         // It will be cleared when the conversation ends or on error.
         // Exception: if the agent returns a failure (e.g. timeout), clean up
@@ -1429,7 +1378,7 @@ ${collectedResponses.join('\n')}`;
    * 保存上下文使用量到数据库，以便在页面切换时恢复。
    */
   private clearBusyState(): void {
-    cronBusyGuard.setProcessing(this.conversation_id, false);
+    conversationBusyGuard.setProcessing(this.conversation_id, false);
     this.status = 'finished';
   }
 

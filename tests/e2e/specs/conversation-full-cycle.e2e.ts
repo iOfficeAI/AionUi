@@ -23,6 +23,7 @@ import {
   agentPillByBackend,
   SKILLS_INDICATOR,
   SKILLS_INDICATOR_COUNT,
+  invokeBridge,
 } from '../helpers';
 
 // Generous timeout for AI responses
@@ -55,6 +56,272 @@ async function pickAvailableBackend(page: import('@playwright/test').Page): Prom
     }
   }
   return null;
+}
+
+type CronJobRecord = {
+  id: string;
+  name: string;
+};
+
+type ConversationMessageRecord = {
+  type?: string;
+  content?: unknown;
+};
+
+type ConversationArtifactRecord = {
+  id: string;
+  kind?: string;
+  status?: string;
+  payload?: unknown;
+};
+
+function parseJsonish<T>(value: unknown): T | null {
+  if (!value) return null;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      return null;
+    }
+  }
+  return value as T;
+}
+
+async function selectPreferredCronDialogAgent(
+  page: import('@playwright/test').Page,
+  dialog: import('@playwright/test').Locator
+): Promise<string | null> {
+  const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
+  const agentSelect = agentFormItem.locator('.arco-select').first();
+  await agentSelect.click();
+  const anyOptionVisible = await page
+    .locator('.arco-select-option')
+    .first()
+    .waitFor({ state: 'visible', timeout: 5_000 })
+    .then(() => true)
+    .catch(() => false);
+  if (!anyOptionVisible) {
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.keyboard.press('Escape').catch(() => {});
+    return null;
+  }
+
+  const preferredPatterns = [/Gemini/i, /Claude/i, /Codex/i, /Aion/i];
+  for (const pattern of preferredPatterns) {
+    const option = page.locator('.arco-select-option').filter({ hasText: pattern }).first();
+    if (await option.isVisible().catch(() => false)) {
+      const label = (await option.textContent())?.trim() ?? null;
+      await option.click();
+      return label;
+    }
+  }
+
+  const fallback = page.locator('.arco-select-option').first();
+  if (!(await fallback.isVisible().catch(() => false))) {
+    await page.keyboard.press('Escape').catch(() => {});
+    await page.keyboard.press('Escape').catch(() => {});
+    return null;
+  }
+  const label = (await fallback.textContent())?.trim() ?? null;
+  await fallback.click();
+  return label;
+}
+
+async function listCronJobs(page: import('@playwright/test').Page): Promise<CronJobRecord[]> {
+  return invokeBridge<CronJobRecord[]>(page, 'cron.list-jobs', undefined, 10_000);
+}
+
+async function findCronJobByName(
+  page: import('@playwright/test').Page,
+  taskName: string,
+  timeoutMs = 15_000
+): Promise<CronJobRecord> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const jobs = await listCronJobs(page);
+    const job = jobs.find((item) => item.name === taskName);
+    if (job) return job;
+    await page.waitForTimeout(500);
+  }
+  throw new Error(`Cron job ${taskName} not found within ${timeoutMs}ms`);
+}
+
+async function hasCronSkill(page: import('@playwright/test').Page, jobId: string): Promise<boolean> {
+  return page.evaluate(
+    async ({ jobId }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) throw new Error('window.__backendPort is not available');
+      const res = await fetch(`http://127.0.0.1:${port}/api/cron/jobs/${encodeURIComponent(jobId)}/skill`);
+      if (!res.ok) {
+        throw new Error(`GET /api/cron/jobs/${jobId}/skill failed (${res.status})`);
+      }
+      const json = (await res.json()) as { data?: { has_skill?: boolean } };
+      return Boolean(json.data?.has_skill);
+    },
+    { jobId }
+  );
+}
+
+async function deleteCronSkill(page: import('@playwright/test').Page, jobId: string): Promise<void> {
+  await page.evaluate(
+    async ({ jobId }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) throw new Error('window.__backendPort is not available');
+      const res = await fetch(`http://127.0.0.1:${port}/api/cron/jobs/${encodeURIComponent(jobId)}/skill`, {
+        method: 'DELETE',
+      });
+      if (res.status === 404) return;
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`DELETE /api/cron/jobs/${jobId}/skill failed (${res.status}): ${body}`);
+      }
+    },
+    { jobId }
+  );
+}
+
+async function getConversationMessages(
+  page: import('@playwright/test').Page,
+  conversationId: string
+): Promise<ConversationMessageRecord[]> {
+  const result = await invokeBridge<{ items?: ConversationMessageRecord[] } | ConversationMessageRecord[]>(
+    page,
+    'database.get-conversation-messages',
+    { conversation_id: conversationId, page: 1, page_size: 100, order: 'ASC' },
+    10_000
+  );
+  if (Array.isArray(result)) return result;
+  return Array.isArray(result?.items) ? result.items : [];
+}
+
+async function waitForSkillSuggestMessage(
+  page: import('@playwright/test').Page,
+  conversationId: string,
+  timeoutMs = 90_000
+): Promise<{ name: string; description: string; skillContent: string }> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const artifacts = await getConversationArtifacts(page, conversationId);
+    const skillArtifact = artifacts.find(
+      (artifact) => artifact.kind === 'skill_suggest' && artifact.status === 'pending'
+    );
+    if (!skillArtifact) {
+      await page.waitForTimeout(1_000);
+      continue;
+    }
+
+    const parsed = parseJsonish<{
+      name?: string;
+      description?: string;
+      skill_content?: string;
+      skillContent?: string;
+    }>(skillArtifact.payload);
+
+    if (parsed?.name) {
+      return {
+        name: parsed.name,
+        description: parsed.description ?? '',
+        skillContent: parsed.skillContent ?? parsed.skill_content ?? '',
+      };
+    }
+
+    await page.waitForTimeout(1_000);
+  }
+
+  throw new Error(`No pending skill_suggest artifact for conversation ${conversationId} within ${timeoutMs}ms`);
+}
+
+async function assertNoSkillSuggestMessageWithin(
+  page: import('@playwright/test').Page,
+  conversationId: string,
+  timeoutMs = 15_000
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const artifacts = await getConversationArtifacts(page, conversationId);
+    if (artifacts.some((artifact) => artifact.kind === 'skill_suggest' && artifact.status === 'pending')) {
+      throw new Error(`Unexpected pending skill_suggest artifact for conversation ${conversationId}`);
+    }
+    await page.waitForTimeout(1_000);
+  }
+}
+
+async function getConversationArtifacts(
+  page: import('@playwright/test').Page,
+  conversationId: string
+): Promise<ConversationArtifactRecord[]> {
+  return page.evaluate(
+    async ({ conversationId }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) throw new Error('window.__backendPort is not available');
+
+      const res = await fetch(
+        `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(conversationId)}/artifacts`
+      );
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`GET /api/conversations/${conversationId}/artifacts failed (${res.status}): ${body}`);
+      }
+
+      const json = (await res.json()) as { data?: ConversationArtifactRecord[] };
+      return Array.isArray(json?.data) ? json.data : [];
+    },
+    { conversationId }
+  );
+}
+
+async function getConversationExtra(
+  page: import('@playwright/test').Page,
+  conversationId: string
+): Promise<Record<string, unknown>> {
+  return page.evaluate(
+    async ({ conversationId }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) throw new Error('window.__backendPort is not available');
+
+      const res = await fetch(`http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(conversationId)}`);
+      if (!res.ok) {
+        const body = await res.text();
+        throw new Error(`GET /api/conversations/${conversationId} failed (${res.status}): ${body}`);
+      }
+
+      const json = (await res.json()) as { data?: { extra?: unknown } };
+      const rawExtra = json?.data?.extra;
+      if (!rawExtra) return {};
+      if (typeof rawExtra === 'string') {
+        try {
+          return JSON.parse(rawExtra) as Record<string, unknown>;
+        } catch {
+          return {};
+        }
+      }
+      return (rawExtra as Record<string, unknown>) ?? {};
+    },
+    { conversationId }
+  );
+}
+
+async function waitForConversationWorkspace(
+  page: import('@playwright/test').Page,
+  conversationId: string,
+  timeoutMs = 20_000
+): Promise<string> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const extra = await getConversationExtra(page, conversationId);
+    const workspace = typeof extra.workspace === 'string' ? extra.workspace.trim() : '';
+    if (workspace) return workspace;
+    await page.waitForTimeout(500);
+  }
+
+  throw new Error(`Conversation ${conversationId} workspace is empty after ${timeoutMs}ms`);
+}
+
+async function removeConversationViaBridge(
+  page: import('@playwright/test').Page,
+  conversationId: string
+): Promise<void> {
+  await invokeBridge(page, 'remove-conversation', { id: conversationId }, 5_000).catch(() => {});
 }
 
 test.describe('Conversation Full Cycle', () => {
@@ -709,6 +976,315 @@ test.describe('Conversation Full Cycle', () => {
 
       await page.waitForFunction(() => window.location.hash === '#/scheduled', { timeout: 10_000 }).catch(() => {});
       await expect(page.locator('span').filter({ hasText: taskName }).first()).not.toBeVisible({ timeout: 5_000 });
+    }
+  });
+
+  test('cron -- create task with Codex, run now reaches AI reply', async ({ page }) => {
+    test.setTimeout(360_000);
+
+    let createdJobId: string | null = null;
+    let createdConversationId: string | null = null;
+
+    try {
+      await goToGuid(page);
+      await page
+        .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
+        .catch(() => {});
+
+      await page.evaluate(() => window.location.assign('#/scheduled'));
+      await page
+        .waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 })
+        .catch(() => {});
+      await page
+        .locator('h1')
+        .filter({ hasText: /Scheduled Tasks|定时任务/ })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .catch(() => {});
+
+      const createBtn = page
+        .locator('button')
+        .filter({ hasText: /New task|新建任务|新建/ })
+        .first();
+      if (!(await createBtn.isVisible().catch(() => false))) {
+        test.skip(true, 'Scheduled tasks page or create button not available');
+        return;
+      }
+      await createBtn.click();
+
+      const dialog = page.locator('.arco-modal').first();
+      await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+      if (!(await dialog.isVisible().catch(() => false))) {
+        test.skip(true, 'Create task dialog did not open');
+        return;
+      }
+
+      const taskName = `E2E-Codex-Cron-${Date.now()}`;
+      await dialog.locator('#name input').fill(taskName);
+      await dialog.locator('#description input').fill('E2E codex cron run-now test');
+
+      const agentFormItem = dialog.locator('.arco-form-item').filter({ has: page.locator('#agent') });
+      const agentSelect = agentFormItem.locator('.arco-select').first();
+      await agentSelect.click();
+
+      const codexOption = page.locator('.arco-select-option').filter({ hasText: /Codex/i }).first();
+      if (!(await codexOption.isVisible().catch(() => false))) {
+        await page.keyboard.press('Escape').catch(() => {});
+        await page.keyboard.press('Escape').catch(() => {});
+        test.skip(true, 'Codex agent not available in create task dialog');
+        return;
+      }
+      await codexOption.click();
+
+      await dialog.locator('#prompt textarea').fill('Please reply with a short acknowledgement for cron codex e2e.');
+
+      await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
+      await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+
+      const createdJob = await findCronJobByName(page, taskName, 15_000);
+      createdJobId = createdJob.id;
+
+      const taskCard = page.locator('span').filter({ hasText: taskName }).first();
+      await expect(taskCard).toBeVisible({ timeout: 10_000 });
+      await taskCard.click();
+      await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+      const runNowBtn = page
+        .locator('button.arco-btn-primary')
+        .filter({ hasText: /Run now|立即执行/ })
+        .first();
+      await runNowBtn.waitFor({ state: 'visible', timeout: 5_000 });
+      await runNowBtn.click();
+
+      await page.waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 60_000 });
+      const match = /#\/conversation\/([^/?]+)/.exec(page.url());
+      expect(match?.[1]).toBeTruthy();
+      createdConversationId = match?.[1] ?? null;
+
+      await waitForSessionActive(page, 180_000);
+      const reply = await waitForAiReply(page, 180_000);
+      expect(reply.length).toBeGreaterThan(0);
+    } finally {
+      if (createdConversationId) {
+        await deleteConversation(page, createdConversationId).catch(() => {});
+      }
+      if (createdJobId) {
+        await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }).catch(() => {});
+      }
+      await goToGuid(page).catch(() => {});
+    }
+  });
+
+  test('cron -- CreateTaskDialog run-now emits skill suggestion, save it, then next run reuses saved skill', async ({
+    page,
+  }) => {
+    test.setTimeout(360_000);
+
+    let createdJobId: string | null = null;
+    const createdConversationIds: string[] = [];
+
+    try {
+      await goToGuid(page);
+      await page
+        .waitForFunction(() => (document.body.textContent?.length ?? 0) > 200, { timeout: 15_000 })
+        .catch(() => {});
+
+      await page.evaluate(() => window.location.assign('#/scheduled'));
+      await page
+        .waitForFunction(() => window.location.hash.includes('/scheduled'), { timeout: 10_000 })
+        .catch(() => {});
+      await page
+        .locator('h1')
+        .filter({ hasText: /Scheduled Tasks|定时任务/ })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .catch(() => {});
+
+      const createBtn = page
+        .locator('button')
+        .filter({ hasText: /New task|新建任务|新建/ })
+        .first();
+      if (!(await createBtn.isVisible().catch(() => false))) {
+        console.log('[cron-skill-suggest-e2e] skip: create button unavailable');
+        test.skip(true, 'Scheduled tasks page or create button not available');
+        return;
+      }
+      await createBtn.click();
+
+      const dialog = page.locator('.arco-modal').first();
+      await dialog.waitFor({ state: 'visible', timeout: 5_000 }).catch(() => {});
+      if (!(await dialog.isVisible().catch(() => false))) {
+        console.log('[cron-skill-suggest-e2e] skip: dialog did not open');
+        test.skip(true, 'Create task dialog did not open');
+        return;
+      }
+
+      const taskName = `E2E-SkillSuggest-${Date.now()}`;
+      await dialog.locator('#name input').fill(taskName);
+      await dialog.locator('#description input').fill('E2E cron skill suggest flow');
+
+      if (!(await selectPreferredCronDialogAgent(page, dialog))) {
+        console.log('[cron-skill-suggest-e2e] skip: no usable agent in dialog');
+        test.skip(true, 'No usable agent available in create task dialog');
+        return;
+      }
+
+      await dialog
+        .locator('#prompt textarea')
+        .fill(
+          "Create a recurring morning brief. Include today's date, the Shanghai weather, three concise highlights, and one actionable recommendation. Keep the same structure on every run."
+        );
+
+      await page.locator('.arco-modal-footer .arco-btn-primary').first().click();
+      await dialog.waitFor({ state: 'hidden', timeout: 10_000 });
+
+      const taskCard = page.locator('span').filter({ hasText: taskName }).first();
+      await expect(taskCard).toBeVisible({ timeout: 10_000 });
+      await taskCard.click();
+      await page.waitForFunction(() => window.location.hash.includes('/scheduled/'), { timeout: 10_000 });
+
+      const createdJob = await findCronJobByName(page, taskName, 15_000);
+      createdJobId = createdJob.id;
+
+      const runNowBtn = page
+        .locator('button.arco-btn-primary')
+        .filter({ hasText: /Run now|立即执行/ })
+        .first();
+      await runNowBtn.waitFor({ state: 'visible', timeout: 5_000 });
+
+      await runNowBtn.click();
+      await page.waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 30_000 });
+      const firstConversationId = new URL(page.url()).hash.split('/conversation/')[1];
+      if (!firstConversationId) {
+        throw new Error(`Failed to extract first conversation id from ${page.url()}`);
+      }
+      createdConversationIds.push(firstConversationId);
+
+      const firstWorkspace = await waitForConversationWorkspace(page, firstConversationId, 20_000);
+      expect(firstWorkspace.length).toBeGreaterThan(0);
+
+      const firstCronTrigger = page.locator('[data-testid="message-cron-trigger"]').last();
+      await expect(firstCronTrigger).toBeVisible({ timeout: 30_000 });
+      await expect(firstCronTrigger).toContainText(taskName, { timeout: 10_000 });
+
+      await waitForSessionActive(page, 180_000);
+      const firstReply = await waitForAiReply(page, 180_000);
+      expect(firstReply.length).toBeGreaterThan(0);
+
+      const firstSuggestion = await waitForSkillSuggestMessage(page, firstConversationId, 90_000);
+      expect(firstSuggestion.skillContent.length).toBeGreaterThan(0);
+
+      const firstSkillCard = page.locator('div.max-w-780px').filter({ hasText: firstSuggestion.name }).last();
+      const firstSkillCardVisible = await firstSkillCard
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .then(() => true)
+        .catch(async () => {
+          const debug = await page.evaluate(
+            async ({ jobId, suggestionName }) => {
+              const bodyText = document.body.innerText || '';
+              const messageTypes = Array.from(document.querySelectorAll('[data-message-type]')).map((node) =>
+                node.getAttribute('data-message-type')
+              );
+              const skillSuggestNode = document.querySelector('[data-testid="skill-suggest-card"]');
+              const port = (window as unknown as { __backendPort?: number }).__backendPort;
+              let hasSkill = null;
+              let skillSuggestArtifact = null;
+              if (port) {
+                const res = await fetch(`http://127.0.0.1:${port}/api/cron/jobs/${encodeURIComponent(jobId)}/skill`);
+                if (res.ok) {
+                  const json = (await res.json()) as { data?: { has_skill?: boolean } };
+                  hasSkill = Boolean(json.data?.has_skill);
+                }
+
+                const artifactsRes = await fetch(
+                  `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(window.location.hash.split('/conversation/')[1] || '')}/artifacts`
+                );
+                if (artifactsRes.ok) {
+                  const artifactsJson = (await artifactsRes.json()) as {
+                    data?: Array<{ kind?: string; payload?: unknown; status?: string }>;
+                  };
+                  const items = artifactsJson.data ?? [];
+                  skillSuggestArtifact = items.find((item) => item.kind === 'skill_suggest') ?? null;
+                }
+              }
+              return {
+                hash: window.location.hash,
+                hasSkill,
+                bodyHasSuggestionName: bodyText.includes(suggestionName),
+                messageTypes,
+                skillSuggestCardText: skillSuggestNode?.textContent ?? null,
+                skillSuggestCardHtml: skillSuggestNode?.outerHTML ?? null,
+                skillSuggestArtifact,
+                bodyTextSnippet: bodyText.slice(-1200),
+              };
+            },
+            { jobId: createdJobId!, suggestionName: firstSuggestion.name }
+          );
+          console.log('[cron-skill-suggest-e2e] ui-debug', JSON.stringify(debug));
+          return false;
+        });
+      expect(firstSkillCardVisible).toBe(true);
+      if (firstSuggestion.description) {
+        await expect(firstSkillCard).toContainText(firstSuggestion.description, { timeout: 10_000 });
+      }
+
+      await firstSkillCard.locator('button').first().click();
+      await expect
+        .poll(async () => hasCronSkill(page, createdJobId!), {
+          timeout: 20_000,
+          message: 'Waiting for cron saved skill',
+        })
+        .toBe(true);
+
+      const firstSavedSkillName = `cron-${createdJobId}`;
+
+      await page.evaluate((jobId) => window.location.assign(`#/scheduled/${jobId}`), createdJobId);
+      await page.waitForFunction((jobId) => window.location.hash.includes(`/scheduled/${jobId}`), createdJobId, {
+        timeout: 10_000,
+      });
+      await expect(page.locator('h1').filter({ hasText: taskName }).first()).toBeVisible({ timeout: 5_000 });
+
+      await runNowBtn.click();
+      await page.waitForFunction(() => window.location.hash.includes('/conversation/'), { timeout: 30_000 });
+      const secondConversationId = new URL(page.url()).hash.split('/conversation/')[1];
+      if (!secondConversationId) {
+        throw new Error(`Failed to extract second conversation id from ${page.url()}`);
+      }
+      createdConversationIds.push(secondConversationId);
+
+      const secondWorkspace = await waitForConversationWorkspace(page, secondConversationId, 20_000);
+      expect(secondWorkspace.length).toBeGreaterThan(0);
+
+      const secondCronTrigger = page.locator('[data-testid="message-cron-trigger"]').last();
+      await expect(secondCronTrigger).toBeVisible({ timeout: 30_000 });
+      await expect(secondCronTrigger).toContainText(taskName, { timeout: 10_000 });
+
+      await waitForSessionActive(page, 180_000);
+      const secondReply = await waitForAiReply(page, 180_000);
+      expect(secondReply.length).toBeGreaterThan(0);
+
+      const skillDeadline = Date.now() + 30_000;
+      let conversationSkills: string[] = [];
+      while (Date.now() < skillDeadline) {
+        const extra = await getConversationExtra(page, secondConversationId);
+        conversationSkills = Array.isArray(extra.skills)
+          ? extra.skills.filter((item): item is string => typeof item === 'string')
+          : [];
+        if (conversationSkills.includes(firstSavedSkillName)) break;
+        await page.waitForTimeout(1_000);
+      }
+      expect(conversationSkills).toContain(firstSavedSkillName);
+
+      await assertNoSkillSuggestMessageWithin(page, secondConversationId, 15_000);
+    } finally {
+      if (createdJobId) {
+        await deleteCronSkill(page, createdJobId).catch(() => {});
+        await invokeBridge(page, 'cron.remove-job', { job_id: createdJobId }, 10_000).catch(() => {});
+      }
+
+      for (const conversationId of createdConversationIds) {
+        await removeConversationViaBridge(page, conversationId);
+      }
     }
   });
 

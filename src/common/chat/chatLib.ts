@@ -84,9 +84,7 @@ type TMessageType =
   | 'codex_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands'
-  | 'skill_suggest'
-  | 'cron_trigger';
+  | 'available_commands';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -137,6 +135,8 @@ export type IMessageText = IMessage<
   'text',
   {
     content: string;
+    /** Backend explicitly replaced the accumulated text for this msg_id. */
+    replace?: boolean;
     cronMeta?: CronMessageMeta;
     teammateMessage?: boolean;
     senderName?: string;
@@ -254,6 +254,47 @@ export const mergeAcpToolCallContent = (
   },
 });
 
+type ResponseTextData = {
+  content: string;
+  replace?: boolean;
+  cronMeta?: CronMessageMeta;
+};
+
+const isResponseTextData = (data: unknown): data is ResponseTextData =>
+  typeof data === 'object' &&
+  data !== null &&
+  'content' in data &&
+  typeof (data as { content?: unknown }).content === 'string';
+
+export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
+  content?.replace === true;
+
+export const mergeTextMessageContent = (
+  existing: IMessageText['content'],
+  incoming: IMessageText['content']
+): IMessageText['content'] => {
+  const { replace: _existingReplace, ...existingRest } = existing;
+  const { replace: incomingReplace, ...incomingRest } = incoming;
+
+  return {
+    ...existingRest,
+    ...incomingRest,
+    content: incomingReplace ? incoming.content : existing.content + incoming.content,
+    ...(incomingReplace ? { replace: true } : {}),
+  };
+};
+
+export const preferTextMessageVersion = (primary: IMessageText, secondary: IMessageText): IMessageText => {
+  const primaryIsReplace = isTextContentReplacement(primary.content);
+  const secondaryIsReplace = isTextContentReplacement(secondary.content);
+
+  if (primaryIsReplace !== secondaryIsReplace) {
+    return primaryIsReplace ? primary : secondary;
+  }
+
+  return secondary.content.content.length > primary.content.content.length ? secondary : primary;
+};
+
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
   tool_call_id: string;
@@ -358,26 +399,6 @@ export type IMessageAvailableCommands = IMessage<
   }
 >;
 
-export type IMessageSkillSuggest = IMessage<
-  'skill_suggest',
-  {
-    cron_job_id: string;
-    name: string;
-    description: string;
-    /** Full SKILL.md content (including frontmatter) */
-    skillContent: string;
-  }
->;
-
-export type IMessageCronTrigger = IMessage<
-  'cron_trigger',
-  {
-    cron_job_id: string;
-    cron_job_name: string;
-    triggered_at: number;
-  }
->;
-
 // eslint-disable-next-line max-len
 export type TMessage =
   | IMessageText
@@ -392,9 +413,7 @@ export type TMessage =
   | IMessageCodexToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands
-  | IMessageSkillSuggest
-  | IMessageCronTrigger;
+  | IMessageAvailableCommands;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -419,6 +438,7 @@ export interface IConfirmation<Option extends any = any> {
  * @description 将后端返回的消息转换为前端消息
  * */
 export const transformMessage = (message: IResponseMessage): TMessage => {
+  const created_at = message.created_at ?? Date.now();
   switch (message.type) {
     case 'error': {
       return {
@@ -427,9 +447,25 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
+        created_at,
         content: {
           content: message.data as string,
           type: 'error',
+        },
+      };
+    }
+    case 'tips': {
+      const data = message.data as { content: string; type?: 'error' | 'success' | 'warning' };
+      return {
+        id: uuid(),
+        type: 'tips',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: {
+          content: data.content,
+          type: data.type ?? 'warning',
         },
       };
     }
@@ -437,19 +473,25 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'content':
     case 'user_content': {
       const data = message.data;
-      const isRichData = typeof data === 'object' && data !== null && 'content' in data;
+      const isRichData = isResponseTextData(data);
+      const shouldReplace = message.replace === true || (isRichData && data.replace === true);
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
         position: message.type === 'user_content' ? 'right' : 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: isRichData
           ? {
-              content: (data as { content: string; cronMeta?: CronMessageMeta }).content,
-              cronMeta: (data as { cronMeta?: CronMessageMeta }).cronMeta,
+              content: data.content,
+              cronMeta: data.cronMeta,
+              ...(shouldReplace ? { replace: true } : {}),
             }
-          : { content: data as string },
+          : {
+              content: data as string,
+              ...(shouldReplace ? { replace: true } : {}),
+            },
         ...(message.hidden && { hidden: true }),
       };
     }
@@ -460,6 +502,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'left',
+        created_at,
         content: message.data as any,
       };
     }
@@ -469,6 +512,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         id: uuid(),
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -479,6 +523,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -489,6 +534,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -499,6 +545,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -509,6 +556,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -519,6 +567,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -529,6 +578,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -539,6 +589,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: message.data as any,
       };
     }
@@ -555,6 +606,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
+        created_at,
         content: {
           content: data.content,
           subject: data.subject,
@@ -566,40 +618,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
       break;
-    case 'skill_suggest': {
-      const suggestData = message.data as {
-        cron_job_id: string;
-        name: string;
-        description: string;
-        skillContent: string;
-      };
-      return {
-        id: uuid(),
-        type: 'skill_suggest',
-        msg_id: message.msg_id,
-        conversation_id: message.conversation_id,
-        position: 'center',
-        content: suggestData,
-      };
-    }
-    case 'cron_trigger': {
-      const triggerData = message.data as {
-        cron_job_id: string;
-        cron_job_name: string;
-        triggered_at: number;
-      };
-      return {
-        id: uuid(),
-        type: 'cron_trigger',
-        msg_id: message.msg_id,
-        conversation_id: message.conversation_id,
-        position: 'center',
-        content: triggerData,
-      };
-    }
     case 'start':
     case 'finish':
     case 'thought':
+    case 'skill_suggest':
+    case 'cron_trigger':
     case 'info': // Stream retry notifications and similar transient agent updates
     case 'system': // Cron system responses, ignored
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
@@ -771,7 +794,7 @@ export const composeMessage = (
     return pushMessage(message);
   }
   if (message.type === 'text' && last.type === 'text') {
-    message.content.content = last.content.content + message.content.content;
+    message.content = mergeTextMessageContent(last.content, message.content);
   }
   return updateMessage(list.length - 1, Object.assign({}, last, message));
 };

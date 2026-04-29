@@ -8,11 +8,13 @@ import { ConversationProvider } from '@/renderer/hooks/context/ConversationConte
 import type { AcpBackend } from '@/common/types/acpTypes';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
+import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
 import AcpSendBox from './AcpSendBox';
+import { useAcpMessage } from './useAcpMessage';
 
 const AcpChat: React.FC<{
   conversation_id: string;
@@ -40,30 +42,34 @@ const AcpChat: React.FC<{
   emptySlot,
 }) => {
   useMessageLstCache(conversation_id);
+  const messageState = useAcpMessage(conversation_id);
 
   return (
     <ConversationProvider
       value={{ conversation_id: conversation_id, workspace, type: 'acp', cron_job_id, hideSendBox }}
     >
-      <div className='flex-1 flex flex-col px-20px min-h-0'>
-        <FlexFullContainer>
-          <MessageList className='flex-1' emptySlot={emptySlot} />
-        </FlexFullContainer>
-        {!hideSendBox && (
-          <ConversationChatConfirm conversation_id={conversation_id}>
-            <AcpSendBox
-              conversation_id={conversation_id}
-              backend={backend}
-              session_mode={session_mode}
-              cached_config_options={cached_config_options}
-              agent_name={agent_name}
-              workspacePath={workspace}
-              team_id={team_id}
-              agentSlotId={agentSlotId}
-            ></AcpSendBox>
-          </ConversationChatConfirm>
-        )}
-      </div>
+      <ConversationArtifactProvider conversation_id={conversation_id}>
+        <div className='flex-1 flex flex-col px-20px min-h-0'>
+          <FlexFullContainer>
+            <MessageList className='flex-1' emptySlot={emptySlot} />
+          </FlexFullContainer>
+          {!hideSendBox && (
+            <ConversationChatConfirm conversation_id={conversation_id}>
+              <AcpSendBox
+                conversation_id={conversation_id}
+                backend={backend}
+                session_mode={session_mode}
+                cached_config_options={cached_config_options}
+                agent_name={agent_name}
+                workspacePath={workspace}
+                team_id={team_id}
+                agentSlotId={agentSlotId}
+                messageState={messageState}
+              ></AcpSendBox>
+            </ConversationChatConfirm>
+          )}
+        </div>
+      </ConversationArtifactProvider>
     </ConversationProvider>
   );
 };

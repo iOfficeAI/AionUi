@@ -10,6 +10,7 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
+import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import { resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
 import {
@@ -26,7 +27,7 @@ type ModePreference = {
 
 const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
   claude: 'bypassPermissions',
-  codex: 'yolo',
+  codex: CODEX_MODE_NATIVE_FULL_ACCESS,
   qwen: 'yolo',
 };
 
@@ -45,8 +46,10 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
     preference = acpConfig?.[backend as AcpBackend];
   }
 
-  if (preference?.preferredMode && modeOptions.some((option) => option.value === preference.preferredMode)) {
-    return preference.preferredMode;
+  const normalizedPreferredMode =
+    backend === 'codex' ? normalizeCodexMode(preference?.preferredMode) : preference?.preferredMode;
+  if (normalizedPreferredMode && modeOptions.some((option) => option.value === normalizedPreferredMode)) {
+    return normalizedPreferredMode;
   }
 
   const legacyMode = LEGACY_YOLO_MODE_MAP[backend];

@@ -37,13 +37,47 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversation_id, cron_j
   const [directLoading, setDirectLoading] = useState(!!cron_job_id);
 
   useEffect(() => {
-    if (!cron_job_id) return;
+    if (!cron_job_id) {
+      setDirectJob(null);
+      setDirectLoading(false);
+      return;
+    }
+
     setDirectLoading(true);
     ipcBridge.cron.getJob
       .invoke({ job_id: cron_job_id })
       .then((job) => setDirectJob(job ?? null))
       .catch(() => setDirectJob(null))
       .finally(() => setDirectLoading(false));
+  }, [cron_job_id]);
+
+  useEffect(() => {
+    if (!cron_job_id) return;
+
+    const unsubCreated = ipcBridge.cron.onJobCreated.on((created) => {
+      if (created.id === cron_job_id) {
+        setDirectJob(created);
+        setDirectLoading(false);
+      }
+    });
+    const unsubUpdated = ipcBridge.cron.onJobUpdated.on((updated) => {
+      if (updated.id === cron_job_id) {
+        setDirectJob(updated);
+        setDirectLoading(false);
+      }
+    });
+    const unsubRemoved = ipcBridge.cron.onJobRemoved.on(({ job_id }) => {
+      if (job_id === cron_job_id) {
+        setDirectJob(null);
+        setDirectLoading(false);
+      }
+    });
+
+    return () => {
+      unsubCreated();
+      unsubUpdated();
+      unsubRemoved();
+    };
   }, [cron_job_id]);
 
   // For regular conversations, use the existing hook

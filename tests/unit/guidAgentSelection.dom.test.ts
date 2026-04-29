@@ -101,6 +101,13 @@ vi.mock('../../src/renderer/utils/model/agentModes', () => ({
         { value: 'bypassPermissions', label: 'Bypass Permissions' },
       ];
     }
+    if (backend === 'codex') {
+      return [
+        { value: 'read-only', label: 'Read Only' },
+        { value: 'auto', label: 'Default' },
+        { value: 'full-access', label: 'Full Access' },
+      ];
+    }
     return [
       { value: 'default', label: 'Default' },
       { value: 'yolo', label: 'YOLO' },
@@ -324,6 +331,28 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     });
 
     expect(result.current.selectedMode).toBe('default');
+  });
+
+  it('normalizes legacy codex preferred mode to native full-access', async () => {
+    setupMocks({
+      acpConfig: {
+        codex: { preferredMode: 'yolo' },
+      },
+    });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('codex');
+    });
+
+    await waitFor(() => {
+      expect(result.current.selectedMode).toBe('full-access');
+    });
   });
 
   it('non-preset agent uses its own key for model cache lookup', async () => {
