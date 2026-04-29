@@ -48,15 +48,6 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 
-const assertTeamBridgeSuccess = (
-  result: void | { __bridgeError?: boolean; message?: string },
-  fallbackMessage: string
-): void => {
-  if (result && typeof result === 'object' && '__bridgeError' in result && result.__bridgeError) {
-    throw new Error(result.message || fallbackMessage);
-  }
-};
-
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
   const atPath = data?.atPath ?? EMPTY_AT_PATH;
@@ -201,17 +192,22 @@ const AcpSendBox: React.FC<{
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (team_id) {
-          if (agentSlotId) {
-            const result = await ipcBridge.team.sendMessageToAgent.invoke({
-              team_id,
-              slot_id: agentSlotId,
-              content: displayMessage,
-              files,
-            });
-            assertTeamBridgeSuccess(result, 'Failed to send message to agent');
-          } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
-            assertTeamBridgeSuccess(result, 'Failed to send message to team');
+          try {
+            if (agentSlotId) {
+              await ipcBridge.team.sendMessageToAgent.invoke({
+                team_id,
+                slot_id: agentSlotId,
+                content: displayMessage,
+                files,
+              });
+            } else {
+              await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
+            }
+          } catch (teamError: unknown) {
+            const teamErrorMsg = teamError instanceof Error ? teamError.message : String(teamError);
+            throw new Error(
+              agentSlotId ? `Failed to send message to agent: ${teamErrorMsg}` : `Failed to send message to team: ${teamErrorMsg}`
+            );
           }
         } else {
           await ipcBridge.acpConversation.sendMessage.invoke({

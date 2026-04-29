@@ -187,23 +187,22 @@ const AionrsSendBox: React.FC<{
       try {
         void checkAndUpdateTitle(conversation_id, input);
         if (team_id) {
-          if (agentSlotId) {
-            const result = await ipcBridge.team.sendMessageToAgent.invoke({
-              team_id,
-              slot_id: agentSlotId,
-              content: displayMessage,
-              files,
-            });
-            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-            if (maybeError.__bridgeError) {
-              throw new Error(maybeError.message || 'Failed to send message to agent');
+          try {
+            if (agentSlotId) {
+              await ipcBridge.team.sendMessageToAgent.invoke({
+                team_id,
+                slot_id: agentSlotId,
+                content: displayMessage,
+                files,
+              });
+            } else {
+              await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
             }
-          } else {
-            const result = await ipcBridge.team.sendMessage.invoke({ team_id, content: displayMessage, files });
-            const maybeError = result as unknown as { __bridgeError?: boolean; message?: string };
-            if (maybeError.__bridgeError) {
-              throw new Error(maybeError.message || 'Failed to send message to team');
-            }
+          } catch (teamError: unknown) {
+            const teamErrorMsg = teamError instanceof Error ? teamError.message : String(teamError);
+            throw new Error(
+              agentSlotId ? `Failed to send message to agent: ${teamErrorMsg}` : `Failed to send message to team: ${teamErrorMsg}`
+            );
           }
         } else {
           await ipcBridge.conversation.sendMessage.invoke({
