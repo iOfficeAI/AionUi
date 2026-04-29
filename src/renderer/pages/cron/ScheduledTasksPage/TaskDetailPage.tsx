@@ -122,6 +122,10 @@ const TaskDetailPage: React.FC = () => {
             extra: {
               ...latestExtra,
               cron_job_id: normalizedCronJobId,
+              cronJobId:
+                typeof latestExtra.cronJobId === 'string' && latestExtra.cronJobId.trim()
+                  ? latestExtra.cronJobId
+                  : normalizedCronJobId,
             } as TChatConversation['extra'],
           } as TChatConversation;
           await mutate<TChatConversation>(conversationKey, latestConversation, false);
