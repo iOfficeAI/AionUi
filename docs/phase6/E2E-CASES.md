@@ -536,6 +536,69 @@ export async function waitForAgentIdle(
 
 ---
 
+## Case 12: 成员 Shutdown（通过推理下线 Teammate）
+
+### 目的
+验证 Leader 通过推理调用 `team_shutdown_agent` MCP 工具下线成员，前端 Tab 实时消失。
+
+### 前置条件
+- 已执行 Case 3，Team 中至少有 Leader + 1 个 Teammate
+- `team_shutdown_agent` MCP 工具后端已实现
+- Teammate 能响应 shutdown_request（回复 `shutdown_approved`）
+
+### 核心原则
+同 Case 3：全程推理+对话完成，不直接调 removeAgent API。
+
+### 步骤
+
+| # | 操作 | 期望结果 | 关键 Selector / 事件 |
+|---|-----|--------|------------------|
+| 1 | 记录当前 Tab 数量 | 已知 Tab 数（如 Leader + 1 Teammate = 2） | `[data-testid="team-tab-bar"]` 子元素 count |
+| 2 | 向 Leader 发消息要求下线成员 (e.g. "把测试员下线，任务已完成") | 消息出现在聊天区 | 同 Case 2 发送步骤 |
+| 3 | 等待 Leader 推理 | Leader badge idle → active | AgentStatusBadge active state |
+| 4 | Leader 调用 `team_shutdown_agent` MCP 工具 | 后端发送 shutdown_request 到 Teammate mailbox | Backend logs |
+| 5 | Teammate 收到 shutdown_request 并回复 `shutdown_approved` | Teammate 自动响应（无需用户干预） | Backend logs |
+| 6 | 等待 WebSocket 事件 `team.agent.removed` | 前端收到 slot_id | WS 事件 |
+| 7 | 验证 Teammate Tab 消失 | Tab 栏数量 -1 | `[data-testid="team-tab-bar"]` 子元素 count 减少 |
+| 8 | 验证 Leader 回复确认 | Leader 回复中包含"已下线"或类似确认 | 消息文本断言 |
+
+### 断言
+
+```typescript
+const tabsBefore = await page.locator('[data-testid="team-tab-bar"] > div').count();
+const input = page.locator('textarea[placeholder*="发送消息"]').first();
+
+// Step 2: 要求 Leader 下线成员
+await input.fill('把测试员下线，任务已经完成了');
+await input.press('Enter');
+
+// Step 6-7: 等待 Tab 消失
+await expect(async () => {
+  const tabsNow = await page.locator('[data-testid="team-tab-bar"] > div').count();
+  expect(tabsNow).toBeLessThan(tabsBefore);
+}).toPass({ timeout: 300_000 });
+
+// Step 8: Leader 确认下线
+const lastReply = page.locator('.message-item.text.justify-start').last();
+const replyText = await lastReply.textContent();
+expect(replyText).toMatch(/下线|shutdown|removed|已移除/i);
+```
+
+### 超时设置
+- Leader 推理: **5 分钟 (300 秒)**
+- Teammate 响应 shutdown: **30 秒**（自动响应，不需要用户操作）
+- Tab 消失: **10 秒**
+
+### 状态
+⚠️ **依赖 `team_shutdown_agent` MCP 工具后端实现**（Wave 5 中 `team_spawn_agent` 落地后同步可用）
+
+### 注意事项
+- Teammate 可能拒绝 shutdown（回复 `shutdown_rejected: reason`），此时 Tab 不应消失
+- 如果 Teammate 正在 working 状态，shutdown 可能被延迟到回合结束
+- 这是完整的推理链路：Leader 判断 → MCP 调用 → Teammate 响应 → 前端 UI 更新
+
+---
+
 ## 已知限制和未来改进
 
 1. **通过推理 Spawn Agent 的不确定性**：
@@ -571,4 +634,6 @@ export async function waitForAgentIdle(
 | 版本 | 日期 | 作者 | 变更 |
 |------|------|------|------|
 | 1.0 | 2026-04-29 | E2E Tester A | 初始设计，5 个核心 case + 综合场景 |
+| 1.1 | 2026-04-29 | E2E Tester B | 补充 Case 6-11（单聊转群聊 + 边界场景） |
+| 1.2 | 2026-04-29 | Leader | Case 3 补充阵容推荐→用户确认流程；新增 Case 12 成员 Shutdown |
 
