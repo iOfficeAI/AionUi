@@ -1585,14 +1585,6 @@ export const team = {
   removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`
   ),
-  sendMessage: httpPost<void, { team_id: string; content: string; files?: string[] }>(
-    (p) => `/api/teams/${p.team_id}/messages`,
-    (p) => ({ content: p.content, files: p.files })
-  ),
-  sendMessageToAgent: httpPost<void, { team_id: string; slot_id: string; content: string; files?: string[] }>(
-    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
-    (p) => ({ content: p.content, files: p.files })
-  ),
   stop: httpDelete<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
   ensureSession: httpPost<void, { team_id: string }>((p) => `/api/teams/${p.team_id}/session`),
   renameAgent: httpPatch<void, { team_id: string; slot_id: string; new_name: string }>(
