@@ -205,6 +205,11 @@ let mainWindow: BrowserWindow;
 const backendManager = new BackendLifecycleManager();
 let disposeCronResumeListener: (() => void) | null = null;
 
+// Flag tracking whether the backend subprocess started successfully. Read by
+// the deferred runBackendMigrations trigger in createWindow().
+let backendStartedOk = false;
+let backendMigrationsScheduled = false;
+
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
 });
@@ -228,6 +233,26 @@ function registerCronResumeBridge(backendPort: number): void {
     powerMonitor.removeListener('resume', onResume);
   };
 }
+
+/**
+ * Run one-shot backend migrations after the renderer has loaded. Some steps
+ * (ConfigStorage.get, ipcBridge.listProviders) route through the renderer via
+ * BroadcastChannel, so invoking them before the renderer exists deadlocks the
+ * main process. Called from did-finish-load.
+ */
+const scheduleBackendMigrations = (): void => {
+  if (backendMigrationsScheduled || !backendStartedOk) return;
+  backendMigrationsScheduled = true;
+  void (async () => {
+    try {
+      const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
+      await runBackendMigrations(ProcessConfig);
+      console.info('[AionUi] runBackendMigrations completed');
+    } catch (error) {
+      console.error('[AionUi] Backend migration hook threw:', error);
+    }
+  })();
+};
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
@@ -303,6 +328,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     mainWindow.webContents.once('did-finish-load', () => {
       console.log('[AionUi] Renderer did-finish-load');
       showWindow();
+      scheduleBackendMigrations();
     });
     // Fallback: show window after 5s even if events don't fire (e.g. loadURL failure)
     setTimeout(showWindow, 5000);
@@ -483,7 +509,6 @@ const handleAppReady = async (): Promise<void> => {
   }
 
   // Start aionui-backend subprocess and wait for health check
-  let backendStartedOk = false;
   try {
     const { getDataPath } = await import('./process/utils/utils');
     const { getSystemDir } = await import('./process/utils/initStorage');
@@ -505,18 +530,10 @@ const handleAppReady = async (): Promise<void> => {
     console.error('[AionUi] Failed to start aionui-backend:', error);
   }
 
-  // One-shot backend migrations: replay legacy Electron config into backend
-  // storage only after the backend is healthy. Each step is independently
-  // idempotent and keeps its flag false on failure so the next launch retries.
-  if (backendStartedOk) {
-    try {
-      const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
-      await runBackendMigrations(ProcessConfig);
-      mark('runBackendMigrations');
-    } catch (error) {
-      console.error('[AionUi] Backend migration hook threw:', error);
-    }
-  }
+  // One-shot backend migrations are deferred until after the renderer finishes
+  // loading. Some migration steps (ConfigStorage.get, ipcBridge.listProviders)
+  // route through the renderer via BroadcastChannel; running them here would
+  // deadlock because the renderer does not exist yet. See scheduleBackendMigrations().
 
   try {
     initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
