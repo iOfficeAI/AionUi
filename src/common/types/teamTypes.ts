@@ -44,6 +44,7 @@ export function getTeamCapableBackends(
 /** Role of a teammate within a team */
 export type TeammateRole = 'leader' | 'teammate';
 
+// Backend statuses: idle|working|thinking|tool_use|completed|error → mapped via teamMapper.toStatus()
 /** Lifecycle status of a teammate agent */
 export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
 

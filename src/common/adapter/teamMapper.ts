@@ -24,7 +24,6 @@ export type IAddTeamAgentParams = {
 // ── Backend → Frontend ─────────────────────────────────────────────────
 
 const VALID_ROLES = new Set<TeammateRole>(['leader', 'teammate']);
-const VALID_STATUSES = new Set<TeammateStatus>(['pending', 'idle', 'active', 'completed', 'failed']);
 const VALID_WORKSPACE_MODES = new Set<WorkspaceMode>(['shared', 'isolated']);
 
 function toRole(raw: string | undefined): TeammateRole {
@@ -33,7 +32,16 @@ function toRole(raw: string | undefined): TeammateRole {
 }
 
 function toStatus(raw: string | undefined): TeammateStatus {
-  return VALID_STATUSES.has(raw as TeammateStatus) ? (raw as TeammateStatus) : 'idle';
+  const statusMap: Record<string, TeammateStatus> = {
+    pending: 'pending',
+    idle: 'idle',
+    working: 'active',
+    thinking: 'active',
+    tool_use: 'active',
+    completed: 'completed',
+    error: 'failed',
+  };
+  return statusMap[raw ?? ''] ?? 'idle';
 }
 
 function toWorkspaceMode(raw: string | undefined): WorkspaceMode {
