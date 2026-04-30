@@ -19,7 +19,6 @@ if (app.isPackaged) {
 import initStorage from './utils/initStorage';
 import './utils/initBridge';
 import './services/i18n'; // Initialize i18n for main process
-import { ExtensionRegistry } from '@process/extensions';
 
 export const initializeProcess = async () => {
   const t0 = performance.now();
@@ -27,13 +26,4 @@ export const initializeProcess = async () => {
 
   await initStorage();
   mark('initStorage');
-
-  // Initialize Extension Registry (scan and resolve all extensions)
-  try {
-    await ExtensionRegistry.getInstance().initialize();
-  } catch (error) {
-    console.error('[Process] Failed to initialize ExtensionRegistry:', error);
-    // Don't fail app startup if extensions fail to initialize
-  }
-  mark('ExtensionRegistry');
 };

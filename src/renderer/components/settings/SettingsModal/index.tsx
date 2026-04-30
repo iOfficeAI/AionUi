@@ -24,6 +24,7 @@ import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
 import WebuiModalContent from './contents/WebuiModalContent';
 import { SettingsViewModeProvider } from './settingsViewContext';
+import { LEGACY_ANCHOR_REMAP } from '@/renderer/pages/settings/components/SettingsSider';
 
 // ==================== 常量定义 / Constants ====================
 
@@ -228,7 +229,12 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         unanchored.push(tab);
         continue;
       }
-      const { anchor, placement } = tab.position;
+      const { relativeTo: rawAnchor, placement } = tab.position;
+      const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
+      if (!builtinItems.some((item) => item.key === anchor)) {
+        unanchored.push(tab);
+        continue;
+      }
       const map = placement === 'before' ? beforeMap : afterMap;
       let list = map.get(anchor);
       if (!list) {
@@ -321,11 +327,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       const isActive = activeTab === tabKey;
       return (
         <div key={tabKey} className='w-full h-full' style={{ display: isActive ? 'block' : 'none' }}>
-          <ExtensionSettingsTabContent
-            tabId={extTab.id}
-            entryUrl={extTab.entryUrl}
-            extensionName={extTab._extensionName}
-          />
+          <ExtensionSettingsTabContent tabId={extTab.id} url={extTab.url} extensionName={extTab.extensionName} />
         </div>
       );
     });

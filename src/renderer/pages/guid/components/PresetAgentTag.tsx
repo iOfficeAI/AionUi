@@ -46,8 +46,7 @@ const PresetAgentTag: React.FC<PresetAgentTagProps> = ({
   const avatarImage = mappedAvatar || resolvedAvatar;
   const isImageAvatar = Boolean(
     avatarImage &&
-    (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) ||
-      /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(avatarImage))
+    (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
   );
   const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
   const name = assistant?.name_i18n?.[localeKey] || assistant?.name || agentInfo.name;

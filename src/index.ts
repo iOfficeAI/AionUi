@@ -14,18 +14,16 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
-import { pathToFileURL } from 'url';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
-import { AION_ASSET_PROTOCOL } from '@process/extensions';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
-import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import { registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
 import { BackendLifecycleManager } from '@process/backend';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
@@ -139,22 +137,6 @@ void logEnvironmentDiagnostics();
 if (electronSquirrelStartup) {
   app.quit();
 }
-
-// ============ Custom Asset Protocol ============
-// Register aion-asset:// as a privileged scheme BEFORE app.whenReady().
-// This protocol serves local extension assets (icons, covers) bypassing
-// the browser security policy that blocks file:// URLs from http://localhost.
-protocol.registerSchemesAsPrivileged([
-  {
-    scheme: AION_ASSET_PROTOCOL,
-    privileges: {
-      standard: true,
-      secure: true,
-      supportFetchAPI: true,
-      corsEnabled: true,
-    },
-  },
-]);
 
 // Global error handlers for main process
 // Sentry automatically captures these, but we keep the handlers to prevent Electron's default error dialog
@@ -465,22 +447,6 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Register aion-asset:// protocol handler.
-  // Converts aion-asset://asset/C:/path/to/file.svg → file:///C:/path/to/file.svg
-  // and serves the local file through Electron's net module.
-  protocol.handle(AION_ASSET_PROTOCOL, (request) => {
-    const url = new URL(request.url);
-    // pathname is /C:/path/to/file.svg — strip leading slash on Windows
-    let file_path = decodeURIComponent(url.pathname);
-    if (process.platform === 'win32' && file_path.startsWith('/') && /^\/[A-Za-z]:/.test(file_path)) {
-      file_path = file_path.slice(1);
-    }
-    if (!fs.existsSync(file_path)) {
-      console.warn(`[aion-asset] File not found: ${request.url} -> ${file_path}`);
-    }
-    return net.fetch(pathToFileURL(file_path).href);
-  });
-
   // Set dock icon in development mode on macOS
   // In production, the icon is set via forge.config.ts packagerConfig.icon
   if (process.platform === 'darwin' && !app.isPackaged && app.dock) {
@@ -508,7 +474,9 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aionui-backend subprocess and wait for health check
+  // Start aionui-backend only after initializeProcess(). initStorage may open
+  // the legacy Electron SQLite catalog for a one-shot v26 migration and must
+  // close it before the backend touches the same file.
   try {
     const { getDataPath } = await import('./process/utils/utils');
     const { getSystemDir } = await import('./process/utils/initStorage');
@@ -631,13 +599,6 @@ const handleAppReady = async (): Promise<void> => {
       })();
     }, 3000);
 
-    // Run ACP detection in parallel with renderer loading.
-    // By the time React mounts and calls getAvailableAgents (~300ms+),
-    // detection (~700ms) is usually already done.
-    initializeAcpDetector()
-      .then(() => mark('initializeAcpDetector'))
-      .catch((error) => console.error('[ACP] Detection failed:', error));
-
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
     try {
@@ -669,11 +630,6 @@ const handleAppReady = async (): Promise<void> => {
         handleDeepLinkUrl(pendingUrl);
       });
     }
-  }
-
-  // WebUI mode also needs ACP detection for remote agent access
-  if (isWebUIMode) {
-    await initializeAcpDetector();
   }
 
   if (!isResetPasswordMode) {

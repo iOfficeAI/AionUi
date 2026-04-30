@@ -42,11 +42,6 @@ vi.mock('@process/utils/message', () => ({
   nextTickToLocalFinish: vi.fn((cb: () => void) => cb()),
 }));
 vi.mock('@process/utils/previewUtils', () => ({ handlePreviewOpenEvent: vi.fn() }));
-vi.mock('@process/extensions', () => ({
-  ExtensionRegistry: {
-    getInstance: vi.fn(() => ({ getAll: vi.fn(() => []), getAcpAdapters: vi.fn(() => []) })),
-  },
-}));
 vi.mock('@process/agent/acp', () => ({
   AcpAgent: class {
     sendMessage = vi.fn();

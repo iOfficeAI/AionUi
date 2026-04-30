@@ -81,7 +81,7 @@ export const useGuidMention = ({
       }
       const mappedAvatarImage = avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined;
       const avatarImage =
-        mappedAvatarImage || (avatar && /^(https?:|file:|data:|aion-asset:|\/)/.test(avatar) ? avatar : undefined);
+        mappedAvatarImage || (avatar && /^(https?:|file:|data:|\/)/.test(avatar) ? avatar : undefined);
       return {
         key,
         label,

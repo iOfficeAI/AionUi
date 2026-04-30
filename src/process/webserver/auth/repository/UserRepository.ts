@@ -4,53 +4,42 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { httpRequest } from '@/common/adapter/httpBridge';
 import { AUTH_CONFIG } from '@process/webserver/config/constants';
-import { getDatabase } from '@process/services/database/export';
-import type { IUser, IQueryResult } from '@process/services/database/types';
 
 /**
  * 认证用户类型，仅包含必要的认证字段
  * Authentication user type containing only essential auth fields
  */
-export type AuthUser = Pick<
-  IUser,
-  'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'
->;
+export type AuthUser = {
+  id: string;
+  username: string;
+  password_hash: string;
+  jwt_secret: string | null;
+  created_at: number;
+  updated_at: number;
+  last_login: number | null;
+};
 
-/**
- * 解包数据库查询结果，失败时抛出异常
- * Unwrap database query result, throw error on failure
- * @param result - 查询结果 / Query result
- * @param errorMessage - 错误消息 / Error message
- * @returns 解包后的数据 / Unwrapped data
- */
-function unwrap<T>(result: IQueryResult<T>, errorMessage: string): T {
-  if (!result.success || typeof result.data === 'undefined' || result.data === null) {
-    throw new Error(result.error || errorMessage);
-  }
-  return result.data;
-}
+type AuthStatus = {
+  success: boolean;
+  needs_setup: boolean;
+  user_count: number;
+  is_authenticated: boolean;
+};
 
-/**
- * 将数据库用户记录映射为认证用户对象
- * Map database user record to auth user object
- * @param row - 数据库用户记录 / Database user record
- * @returns 认证用户对象 / Auth user object
- */
-function mapUser(row: IUser): AuthUser {
-  return {
-    id: row.id,
-    username: row.username,
-    password_hash: row.password_hash,
-    jwt_secret: row.jwt_secret ?? null,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-    last_login: row.last_login ?? null,
-  };
+const INTERNAL_USERS_BASE = '/api/auth/internal/users';
+
+function encodePath(value: string): string {
+  return encodeURIComponent(value);
 }
 
 function hasPassword(user: AuthUser | null): boolean {
   return !!user?.password_hash?.trim();
+}
+
+async function getAuthStatus(): Promise<AuthStatus> {
+  return await httpRequest<AuthStatus>('GET', '/api/auth/status');
 }
 
 /**
@@ -64,23 +53,12 @@ export const UserRepository = {
    * @returns 是否存在用户 / Whether users exist
    */
   async hasUsers(): Promise<boolean> {
-    const db = await getDatabase();
-    const result = db.hasUsers();
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to check users');
-    }
-    // 数据层已经过滤掉未设置密码的占位用户
-    // Database layer already ignores placeholder rows without passwords
-    return Boolean(result.data);
+    const status = await getAuthStatus();
+    return !status.needs_setup;
   },
 
   async getSystemUser(): Promise<AuthUser | null> {
-    const db = await getDatabase();
-    const system = db.getSystemUser();
-    if (!system) {
-      return null;
-    }
-    return mapUser(system);
+    return await httpRequest<AuthUser | null>('GET', `${INTERNAL_USERS_BASE}/system`);
   },
 
   async getPrimaryWebUIUser(): Promise<AuthUser | null> {
@@ -102,8 +80,10 @@ export const UserRepository = {
   },
 
   async setSystemUserCredentials(username: string, passwordHash: string): Promise<void> {
-    const db = await getDatabase();
-    db.setSystemUserCredentials(username, passwordHash);
+    await httpRequest<void>('POST', `${INTERNAL_USERS_BASE}/system/credentials`, {
+      username,
+      password_hash: passwordHash,
+    });
   },
 
   /**
@@ -114,10 +94,10 @@ export const UserRepository = {
    * @returns 创建的用户 / Created user
    */
   async createUser(username: string, passwordHash: string): Promise<AuthUser> {
-    const db = await getDatabase();
-    const result = db.createUser(username, undefined, passwordHash);
-    const user = unwrap(result, 'Failed to create user');
-    return mapUser(user);
+    return await httpRequest<AuthUser>('POST', INTERNAL_USERS_BASE, {
+      username,
+      password_hash: passwordHash,
+    });
   },
 
   /**
@@ -127,12 +107,7 @@ export const UserRepository = {
    * @returns 用户对象或 null / User object or null
    */
   async findByUsername(username: string): Promise<AuthUser | null> {
-    const db = await getDatabase();
-    const result = db.getUserByUsername(username);
-    if (!result.success || !result.data) {
-      return null;
-    }
-    return mapUser(result.data);
+    return await httpRequest<AuthUser | null>('GET', `${INTERNAL_USERS_BASE}/by-username/${encodePath(username)}`);
   },
 
   /**
@@ -142,12 +117,7 @@ export const UserRepository = {
    * @returns 用户对象或 null / User object or null
    */
   async findById(id: string): Promise<AuthUser | null> {
-    const db = await getDatabase();
-    const result = db.getUser(id);
-    if (!result.success || !result.data) {
-      return null;
-    }
-    return mapUser(result.data);
+    return await httpRequest<AuthUser | null>('GET', `${INTERNAL_USERS_BASE}/${encodePath(id)}`);
   },
 
   /**
@@ -156,12 +126,7 @@ export const UserRepository = {
    * @returns 用户数组 / Array of users
    */
   async listUsers(): Promise<AuthUser[]> {
-    const db = await getDatabase();
-    const result = db.getAllUsers();
-    if (!result.success || !result.data) {
-      return [];
-    }
-    return result.data.map(mapUser);
+    return await httpRequest<AuthUser[]>('GET', INTERNAL_USERS_BASE);
   },
 
   /**
@@ -170,12 +135,8 @@ export const UserRepository = {
    * @returns 用户数量 / Number of users
    */
   async countUsers(): Promise<number> {
-    const db = await getDatabase();
-    const result = db.getUserCount();
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to count users');
-    }
-    return result.data ?? 0;
+    const status = await getAuthStatus();
+    return status.user_count ?? 0;
   },
 
   /**
@@ -185,19 +146,15 @@ export const UserRepository = {
    * @param passwordHash - 新的密码哈希 / New password hash
    */
   async updatePassword(user_id: string, passwordHash: string): Promise<void> {
-    const db = await getDatabase();
-    const result = db.updateUserPassword(user_id, passwordHash);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update user password');
-    }
+    await httpRequest<void>('POST', `${INTERNAL_USERS_BASE}/${encodePath(user_id)}/password`, {
+      password_hash: passwordHash,
+    });
   },
 
   async updateUsername(user_id: string, username: string): Promise<void> {
-    const db = await getDatabase();
-    const result = db.updateUserUsername(user_id, username);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update username');
-    }
+    await httpRequest<void>('POST', `${INTERNAL_USERS_BASE}/${encodePath(user_id)}/username`, {
+      username,
+    });
   },
 
   /**
@@ -206,11 +163,7 @@ export const UserRepository = {
    * @param user_id - 用户 ID / User ID
    */
   async updateLastLogin(user_id: string): Promise<void> {
-    const db = await getDatabase();
-    const result = db.updateUserLastLogin(user_id);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update last login');
-    }
+    await httpRequest<void>('POST', `${INTERNAL_USERS_BASE}/${encodePath(user_id)}/last-login`);
   },
 
   /**
@@ -220,10 +173,8 @@ export const UserRepository = {
    * @param jwtSecret - JWT secret 字符串 / JWT secret string
    */
   async updateJwtSecret(user_id: string, jwtSecret: string): Promise<void> {
-    const db = await getDatabase();
-    const result = db.updateUserJwtSecret(user_id, jwtSecret);
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to update JWT secret');
-    }
+    await httpRequest<void>('POST', `${INTERNAL_USERS_BASE}/${encodePath(user_id)}/jwt-secret`, {
+      jwt_secret: jwtSecret,
+    });
   },
 };

@@ -2,7 +2,6 @@ import { ipcBridge } from '@/common';
 import type { IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { conversationBusyGuard } from '@process/task/ConversationBusyGuard';
-import { getDatabase } from '@process/services/database';
 import { mainWarn } from '@process/utils/mainLogger';
 import type { AgentStatus } from './agentTypes';
 
@@ -43,13 +42,7 @@ export class ConversationTurnCompletionService {
 
     let conversation: TChatConversation | undefined;
     try {
-      const db = await getDatabase();
-      if (typeof db.getConversation === 'function') {
-        const result = db.getConversation(conversation_id);
-        if (result.success && result.data) {
-          conversation = result.data as TChatConversation;
-        }
-      }
+      conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
     } catch (error) {
       mainWarn('[ConversationTurnCompletionService]', 'Failed to load conversation metadata', error);
     }

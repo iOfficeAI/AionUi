@@ -28,7 +28,7 @@ import {
   hasElectronAppPath,
   verifyDirectoryFiles,
 } from './utils';
-import { getDatabase } from '../services/database/export';
+import { runLegacyDatabaseMigrations } from '@process/services/database/runLegacyDatabaseMigrations';
 import {
   BUILTIN_IMAGE_GEN_ID,
   BUILTIN_IMAGE_GEN_LEGACY_NAMES,
@@ -527,46 +527,6 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
   }
 };
 
-/**
- * 启动时清理异常遗留的健康检测临时会话
- * Cleanup orphaned health-check temporary conversations on startup
- */
-const cleanupOrphanedHealthCheckConversations = async () => {
-  try {
-    const db = await getDatabase();
-    const page_size = 1000;
-    const idsToDelete: string[] = [];
-    let page = 0;
-    let hasMore = true;
-
-    while (hasMore) {
-      const result = db.getUserConversations(undefined, page, page_size);
-      result.data.forEach((conversation) => {
-        const extra = conversation.extra as { is_health_check?: boolean } | undefined;
-        if (extra?.is_health_check === true) {
-          idsToDelete.push(conversation.id);
-        }
-      });
-      hasMore = result.has_more;
-      page += 1;
-    }
-
-    let deletedCount = 0;
-    idsToDelete.forEach((id) => {
-      const deleted = db.deleteConversation(id);
-      if (deleted.success && deleted.data) {
-        deletedCount += 1;
-      }
-    });
-
-    if (deletedCount > 0) {
-      console.log(`[AionUi] Cleaned up ${deletedCount} orphaned health-check conversation(s) on startup`);
-    }
-  } catch (error) {
-    console.warn('[AionUi] Failed to cleanup orphaned health-check conversations:', error);
-  }
-};
-
 const initStorage = async () => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[AionUi:init] ${label} +${Math.round(performance.now() - t0)}ms`);
@@ -621,14 +581,17 @@ const initStorage = async () => {
   cleanupLegacyBuiltinSkillsDir();
   mark('5b. legacyBuiltinSkillsCleanup');
 
-  // 6. 初始化数据库（better-sqlite3）
-  try {
-    await getDatabase();
-    await cleanupOrphanedHealthCheckConversations();
-  } catch (error) {
-    console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
+  // 6. Backend only understands the v26-era schema baseline. Older desktop
+  //    users may still have a pre-v26 Electron-managed catalog, so we upgrade
+  //    that file here, close it, and only then allow the backend to start.
+  const legacyDbMigration = await runLegacyDatabaseMigrations();
+  if (legacyDbMigration.skipped) {
+    mark('6. legacyDbMigrations skipped');
+  } else if (legacyDbMigration.migrated) {
+    mark(`6. legacyDbMigrations v${legacyDbMigration.fromVersion}->v${legacyDbMigration.toVersion}`);
+  } else {
+    mark(`6. legacyDbMigrations noop(v${legacyDbMigration.fromVersion})`);
   }
-  mark('6. database');
 
   if (hasElectronAppPath()) {
     application.systemInfo.provider(() => {

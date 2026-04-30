@@ -29,10 +29,10 @@ function deepGet(obj: unknown, keyPath: string): string | undefined {
  * with i18n support. Fetches extension i18n data for the current locale
  * and looks up `settingsTabs.{tabId}.name` in the extension's namespace.
  *
- * Falls back to `tab.name` when no translation is found.
+ * Falls back to `tab.label` when no translation is found.
  */
 function getLocalSettingsTabId(tab: IExtensionSettingsTab): string {
-  const globalPrefix = `ext-${tab._extensionName}-`;
+  const globalPrefix = `ext-${tab.extensionName}-`;
   return tab.id.startsWith(globalPrefix) ? tab.id.slice(globalPrefix.length) : tab.id;
 }
 
@@ -52,15 +52,14 @@ export function useExtI18n(): {
 
   const resolveExtTabName = useCallback(
     (tab: IExtensionSettingsTab): string => {
-      const ns = `ext.${tab._extensionName}`;
-      const nsData = extI18nData[ns] as NestedRecord | undefined;
+      const nsData = extI18nData[tab.extensionName] as NestedRecord | undefined;
       const localTabId = getLocalSettingsTabId(tab);
       if (nsData) {
         const translated =
           deepGet(nsData, `extension.settingsTabs.${localTabId}.name`) ?? deepGet(nsData, `settings.tab.${localTabId}`);
         if (translated) return translated;
       }
-      return tab.name;
+      return tab.label;
     },
     [extI18nData]
   );

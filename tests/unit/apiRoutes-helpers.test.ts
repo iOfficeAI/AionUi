@@ -8,8 +8,14 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import path from 'path';
 
 // Mock dependencies
-vi.mock('@process/services/database', () => ({
-  getDatabase: vi.fn(),
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      get: {
+        invoke: vi.fn(),
+      },
+    },
+  },
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
@@ -23,15 +29,6 @@ vi.mock('@process/utils/initStorage', () => ({
 vi.mock('@process/webserver/auth/middleware/TokenMiddleware', () => ({
   TokenMiddleware: {
     validateToken: vi.fn().mockReturnValue((req: any, res: any, next: any) => next()),
-  },
-}));
-
-vi.mock('@process/extensions', () => ({
-  ExtensionRegistry: {
-    getInstance: vi.fn().mockReturnValue({
-      getWebuiContributions: vi.fn().mockReturnValue([]),
-      getLoadedExtensions: vi.fn().mockReturnValue([]),
-    }),
   },
 }));
 
@@ -62,7 +59,7 @@ vi.mock('./weixinLoginRoutes', () => ({
 }));
 
 import { registerApiRoutes, resolveUploadWorkspace } from '../../src/process/webserver/routes/apiRoutes';
-import { getDatabase } from '@process/services/database';
+import { ipcBridge } from '@/common';
 import type { Express } from 'express';
 
 describe('apiRoutes helper functions', () => {
@@ -72,15 +69,9 @@ describe('apiRoutes helper functions', () => {
 
   describe('decodeMulterFileName through sanitizeFileName', () => {
     it('handles non-ASCII filenames in upload (CJK characters)', async () => {
-      const mockDb = {
-        getConversation: vi.fn().mockReturnValue({
-          success: true,
-          data: {
-            extra: { workspace: '/workspace' },
-          },
-        }),
-      };
-      vi.mocked(getDatabase).mockResolvedValue(mockDb as any);
+      vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue({
+        extra: { workspace: '/workspace' },
+      } as never);
 
       // This tests the path that would use sanitizeFileName
       const result = await resolveUploadWorkspace('conv-123', undefined);
@@ -88,28 +79,26 @@ describe('apiRoutes helper functions', () => {
     });
   });
 
-  describe('normalizeMountPath', () => {
-    it('is used in extension route registration', () => {
+  describe('registerApiRoutes', () => {
+    it('registers route handlers without extension webui hooks', () => {
       const app = {
         use: vi.fn(),
         post: vi.fn(),
         get: vi.fn(),
       } as unknown as Express;
 
-      // This triggers the registerApiRoutes which uses normalizeMountPath
       expect(() => registerApiRoutes(app)).not.toThrow();
     });
   });
 
-  describe('isPathInsideRoot', () => {
-    it('prevents path traversal in extension routes', () => {
+  describe('route setup', () => {
+    it('keeps helper-only route registration side-effect free', () => {
       const app = {
         use: vi.fn(),
         post: vi.fn(),
         get: vi.fn(),
       } as unknown as Express;
 
-      // This triggers code paths that use isPathInsideRoot
       expect(() => registerApiRoutes(app)).not.toThrow();
     });
   });
@@ -152,7 +141,7 @@ describe('apiRoutes - sanitizeFileName edge cases', () => {
   });
 });
 
-describe('apiRoutes - normalizeMountPath behavior', () => {
+describe('apiRoutes - path normalization behavior', () => {
   it('normalizes paths correctly', () => {
     // Test normalizeMountPath logic: empty string becomes '/'
     const emptyInput = '';

@@ -54,7 +54,7 @@ let mainPage: Page | null = null;
 
 #### 3.1 Database
 
-**Path resolution** (`src/process/services/database/index.ts:1689`):
+**Path resolution** (`src/process/utils/utils.ts:getDataPath()` + backend `--data-dir`):
 
 ```typescript
 return path.join(getDataPath(), 'aionui.db');
@@ -191,6 +191,6 @@ bun run test:e2e:skills      # Matches tests/e2e/specs/skills-*.e2e.ts
 - `playwright.config.ts:8-10` — Singleton architecture comment
 - `tests/e2e/fixtures.ts:26-28` — App singleton declaration
 - `tests/e2e/README.md:42-50` — Shared instance design rationale
-- `src/process/services/database/index.ts:1689` — Database path resolution
+- `src/process/utils/utils.ts` — `getDataPath()` database directory resolution
 - `src/process/utils/configureChromium.ts:18-26` — userData isolation in dev mode
 - `src/common/platform/index.ts` — `getDevAppName()` implementation

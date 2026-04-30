@@ -4,41 +4,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getDatabase } from '@process/services/database';
+import { ipcBridge } from '@/common';
 import type { IConversationRepository, PaginatedResult } from './IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 import type { TMessage } from '@/common/chat/chatLib';
 import type { IMessageSearchResponse } from '@/common/types/database';
 
 /**
- * SQLite-backed implementation of IConversationRepository.
- * Delegates to the AionUIDatabase singleton via getDatabase().
- * Methods are async because getDatabase() returns a Promise.
+ * Backend-backed implementation of IConversationRepository.
+ * Kept under the legacy filename to minimize import churn while the
+ * Electron-side SQLite repository is being removed.
  */
 export class SqliteConversationRepository implements IConversationRepository {
-  private getDb() {
-    return getDatabase();
-  }
-
   async getConversation(id: string): Promise<TChatConversation | undefined> {
-    const db = await this.getDb();
-    const result = db.getConversation(id);
-    return result.success ? (result.data ?? undefined) : undefined;
+    return ipcBridge.conversation.get.invoke({ id });
   }
 
   async createConversation(conversation: TChatConversation): Promise<void> {
-    const db = await this.getDb();
-    db.createConversation(conversation);
+    await ipcBridge.conversation.createWithConversation.invoke({ conversation });
   }
 
   async updateConversation(id: string, updates: Partial<TChatConversation>): Promise<void> {
-    const db = await this.getDb();
-    db.updateConversation(id, updates);
+    await ipcBridge.conversation.update.invoke({ id, updates });
   }
 
   async deleteConversation(id: string): Promise<void> {
-    const db = await this.getDb();
-    db.deleteConversation(id);
+    await ipcBridge.conversation.remove.invoke({ id });
   }
 
   async getMessages(
@@ -47,18 +38,21 @@ export class SqliteConversationRepository implements IConversationRepository {
     page_size: number,
     order?: 'ASC' | 'DESC'
   ): Promise<PaginatedResult<TMessage>> {
-    const db = await this.getDb();
-    const result = db.getConversationMessages(id, page, page_size, order);
+    const result = await ipcBridge.database.getConversationMessages.invoke({
+      conversation_id: id,
+      page: page + 1,
+      page_size,
+      order,
+    });
     return {
-      data: result.data ?? [],
+      data: result.items ?? [],
       total: result.total ?? 0,
       has_more: result.has_more ?? false,
     };
   }
 
-  async insertMessage(message: TMessage): Promise<void> {
-    const db = await this.getDb();
-    db.insertMessage(message);
+  async insertMessage(_message: TMessage): Promise<void> {
+    throw new Error('insertMessage is no longer supported in Electron; backend owns message persistence');
   }
 
   /**
@@ -67,34 +61,49 @@ export class SqliteConversationRepository implements IConversationRepository {
    * We map offset/limit → page/page_size, ignoring cursor (not supported by SQLite impl).
    */
   async getUserConversations(
-    _cursor?: string,
-    offset?: number,
+    cursor?: string,
+    _offset?: number,
     limit?: number
   ): Promise<PaginatedResult<TChatConversation>> {
-    const db = await this.getDb();
-    const page_size = limit ?? 50;
-    const page = offset !== undefined && page_size > 0 ? Math.floor(offset / page_size) : 0;
-    const result = db.getUserConversations(undefined, page, page_size);
+    const result = await ipcBridge.database.getUserConversations.invoke({ cursor, limit });
     return {
-      data: result.data ?? [],
+      data: result.items ?? [],
       total: result.total ?? 0,
       has_more: result.has_more ?? false,
     };
   }
 
   async listAllConversations(): Promise<TChatConversation[]> {
-    const db = await this.getDb();
-    const result = db.getUserConversations(undefined, 0, 10000);
-    return result.data ?? [];
+    const conversations: TChatConversation[] = [];
+    let cursor: string | undefined;
+    let hasMore = true;
+
+    while (hasMore) {
+      const page = await ipcBridge.database.getUserConversations.invoke({ cursor, limit: 200 });
+      conversations.push(...(page.items ?? []));
+      hasMore = page.has_more;
+      cursor = page.items.at(-1)?.id;
+    }
+
+    return conversations;
   }
 
   async searchMessages(keyword: string, page: number, page_size: number): Promise<IMessageSearchResponse> {
-    const db = await this.getDb();
-    return db.searchConversationMessages(keyword, undefined, page, page_size);
+    const result = await ipcBridge.database.searchConversationMessages.invoke({
+      keyword,
+      page: page + 1,
+      page_size,
+    });
+    return {
+      items: result.items,
+      total: result.total,
+      page: page + 1,
+      page_size,
+      has_more: result.has_more,
+    };
   }
 
   async getConversationsByCronJob(cron_job_id: string): Promise<TChatConversation[]> {
-    const db = await this.getDb();
-    return db.getConversationsByCronJobId(cron_job_id);
+    return ipcBridge.conversation.listByCronJob.invoke({ cron_job_id });
   }
 }

@@ -16,7 +16,6 @@ export type {
   SignalEvent,
 } from './types';
 
-export type { AcpSessionRow, IAcpSessionRepository } from '../services/database/IAcpSessionRepository';
 export { AcpError, type AcpErrorCode } from './errors/AcpError';
 export { normalizeError } from './errors/errorNormalize';
 export type { AcpClient, ClientFactory } from './infra/IAcpClient';

@@ -41,66 +41,26 @@ export const isLinux = (): boolean => {
   return typeof navigator !== 'undefined' && /linux/i.test(navigator.userAgent);
 };
 
-const ASSET_PROTOCOL_PREFIX = 'aion-asset://asset/';
-
-const shouldKeepAssetProtocolInElectron = (): boolean => {
-  if (!isElectronDesktop() || typeof window === 'undefined') return false;
-  const protocol = window.location.protocol;
-  return protocol === 'http:' || protocol === 'https:';
-};
-
-const getAssetAbsolutePath = (url: string): string | undefined => {
-  if (!url.startsWith(ASSET_PROTOCOL_PREFIX)) return undefined;
-
-  let absPath = decodeURIComponent(url.slice(ASSET_PROTOCOL_PREFIX.length));
-  if (/^\/[A-Za-z]:/.test(absPath)) {
-    absPath = absPath.slice(1);
-  }
-  return absPath;
-};
-
-const toFileUrl = (absPath: string): string => {
-  const normalized = absPath.replace(/\\/g, '/');
-  if (/^[A-Za-z]:\//.test(normalized)) {
-    return `file:///${encodeURI(normalized)}`;
-  }
-  return `file://${encodeURI(normalized)}`;
-};
-
 /**
  * Resolve an extension asset URL for the current environment.
- * - In Electron dev / any HTTP(S)-served renderer: keep `aion-asset://` because direct `file://` is blocked.
- * - In Electron packaged / local-protocol renderers: convert `aion-asset://asset/{path}` to `file://` for reliable image loading.
- * - In a regular browser (WebUI): convert `aion-asset://asset/{path}` to `/api/ext-asset?path={encodedPath}`.
+ * Backend-managed extension assets are already emitted as HTTP URLs, so this
+ * helper resolves app-relative backend paths into absolute backend URLs when
+ * the desktop renderer is not same-origin with the backend process.
  *
  * 将扩展资源 URL 转换为当前环境可用的地址
  */
 export const resolveExtensionAssetUrl = (url: string | undefined): string | undefined => {
   if (!url) return url;
-
-  const absPath = getAssetAbsolutePath(url);
-
-  if (isElectronDesktop()) {
-    if (absPath && !shouldKeepAssetProtocolInElectron()) {
-      return toFileUrl(absPath);
+  if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url;
+  if (url.startsWith('/')) {
+    if (isElectronDesktop()) {
+      const port = window.__backendPort;
+      if (port) {
+        return `http://127.0.0.1:${port}${url}`;
+      }
     }
     return url;
   }
-
-  if (absPath) {
-    return `/api/ext-asset?path=${encodeURIComponent(absPath)}`;
-  }
-
-  // WebUI: file:///{absPath} -> /api/ext-asset
-  if (url.startsWith('file://')) {
-    let file_path = decodeURIComponent(url.replace(/^file:\/\/\/?/, ''));
-    // On Windows, file:///C:/path → C:/path (strip leading / before drive letter)
-    if (/^\/[A-Za-z]:/.test(file_path)) {
-      file_path = file_path.slice(1);
-    }
-    return `/api/ext-asset?path=${encodeURIComponent(file_path)}`;
-  }
-
   return url;
 };
 

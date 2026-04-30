@@ -49,6 +49,8 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
   }
 
   // List models for all team-capable backends
+  // TODO(extension-migration-followup): replace this shim-backed sync lookup
+  // with ipcBridge.agent.getDetectedAgents.invoke().
   const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
   const detectedAgents = agentRegistry
     .getDetectedAgents()

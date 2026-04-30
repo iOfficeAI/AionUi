@@ -14,7 +14,6 @@ const {
   emitConfirmationAdd,
   emitConfirmationUpdate,
   emitConfirmationRemove,
-  mockDb,
 } = vi.hoisted(() => {
   const callbacks: Array<(msg: unknown) => void> = [];
   return {
@@ -30,14 +29,6 @@ const {
     emitConfirmationAdd: vi.fn(),
     emitConfirmationUpdate: vi.fn(),
     emitConfirmationRemove: vi.fn(),
-    mockDb: {
-      getConversationMessages: vi.fn(() => ({ data: [] })),
-      getConversation: vi.fn(() => ({ success: false })),
-      updateConversation: vi.fn(),
-      createConversation: vi.fn(() => ({ success: true })),
-      insertMessage: vi.fn(),
-      updateMessage: vi.fn(),
-    },
   };
 });
 
@@ -75,14 +66,6 @@ vi.mock('@/common/platform', () => ({
 
 vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({})),
-}));
-
-vi.mock('@process/services/database', () => ({
-  getDatabase: vi.fn(() => Promise.resolve(mockDb)),
-}));
-
-vi.mock('@process/services/database/export', () => ({
-  getDatabase: vi.fn(() => Promise.resolve(mockDb)),
 }));
 
 vi.mock('@process/utils/initStorage', () => ({

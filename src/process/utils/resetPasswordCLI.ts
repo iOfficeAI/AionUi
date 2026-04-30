@@ -10,7 +10,7 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { getDataPath } from '@process/utils';
-import { closeDatabase, getDatabase } from '@process/services/database/export';
+import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
 import path from 'path';
 
 // 颜色输出 / Color output
@@ -84,14 +84,8 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     const dbPath = path.join(getDataPath(), 'aionui.db');
     log.info(`Database path: ${dbPath}`);
 
-    const db = await getDatabase();
-    const hasUsersResult = db.hasUsers();
-
-    if (!hasUsersResult.success) {
-      throw new Error(hasUsersResult.error || 'Failed to check database users');
-    }
-
-    if (!hasUsersResult.data) {
+    const hasUsers = await UserRepository.hasUsers();
+    if (!hasUsers) {
       log.error('Database is not initialized yet');
       log.info('');
       log.info('Please run AionUi at least once to initialize the database:');
@@ -102,23 +96,13 @@ export async function resetPasswordCLI(username: string): Promise<void> {
       process.exit(1);
     }
 
-    const userResult = db.getUserByUsername(username);
-    if (!userResult.success) {
-      throw new Error(userResult.error || `Failed to query user '${username}'`);
-    }
-
-    const user = userResult.data;
+    const user = await UserRepository.findByUsername(username);
     if (!user) {
       log.error(`User '${username}' not found in database`);
       log.info('');
       log.info('Available users:');
 
-      const allUsersResult = db.getAllUsers();
-      if (!allUsersResult.success) {
-        throw new Error(allUsersResult.error || 'Failed to list users');
-      }
-
-      const allUsers = allUsersResult.data;
+      const allUsers = await UserRepository.listUsers();
       if (allUsers.length === 0) {
         log.info('  (no users found)');
       } else {
@@ -133,16 +117,10 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     const newPassword = generatePassword();
     const hashedPassword = await hashPassword(newPassword);
 
-    const updatePasswordResult = db.updateUserPassword(user.id, hashedPassword);
-    if (!updatePasswordResult.success) {
-      throw new Error(updatePasswordResult.error || 'Failed to update password');
-    }
+    await UserRepository.updatePassword(user.id, hashedPassword);
 
     const newJwtSecret = crypto.randomBytes(64).toString('hex');
-    const updateJwtSecretResult = db.updateUserJwtSecret(user.id, newJwtSecret);
-    if (!updateJwtSecretResult.success) {
-      throw new Error(updateJwtSecretResult.error || 'Failed to update JWT secret');
-    }
+    await UserRepository.updateJwtSecret(user.id, newJwtSecret);
 
     // Display result
     console.log('');
@@ -166,7 +144,5 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     log.error(`Error: ${errorMessage}`);
     console.error(error);
     process.exit(1);
-  } finally {
-    closeDatabase();
   }
 }

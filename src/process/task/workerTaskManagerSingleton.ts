@@ -11,12 +11,13 @@
 
 import { AgentFactory } from './AgentFactory';
 import { WorkerTaskManager } from './WorkerTaskManager';
-import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
+import { ipcBridge } from '@/common';
 import AcpAgentManager from './AcpAgentManager';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 import RemoteAgentManager from './RemoteAgentManager';
 import { AionrsManager } from './AionrsManager';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 
 const agentFactory = new AgentFactory();
 
@@ -69,5 +70,71 @@ agentFactory.register('aionrs', (conv, opts) => {
   ) as unknown as ReturnType<typeof agentFactory.create>;
 });
 
-const conversationRepo = new SqliteConversationRepository();
+const conversationRepo: IConversationRepository = {
+  async getConversation(id) {
+    return ipcBridge.conversation.get.invoke({ id });
+  },
+  async createConversation(conversation) {
+    await ipcBridge.conversation.createWithConversation.invoke({ conversation });
+  },
+  async updateConversation(id, updates) {
+    await ipcBridge.conversation.update.invoke({ id, updates });
+  },
+  async deleteConversation(id) {
+    await ipcBridge.conversation.remove.invoke({ id });
+  },
+  async getMessages(id, page, page_size, order) {
+    const result = await ipcBridge.database.getConversationMessages.invoke({
+      conversation_id: id,
+      page: page + 1,
+      page_size,
+      order,
+    });
+    return {
+      data: result.items ?? [],
+      total: result.total ?? 0,
+      has_more: result.has_more ?? false,
+    };
+  },
+  async insertMessage() {
+    throw new Error('insertMessage is no longer supported in Electron; backend owns message persistence');
+  },
+  async getUserConversations(cursor, _offset, limit) {
+    const result = await ipcBridge.database.getUserConversations.invoke({ cursor, limit });
+    return {
+      data: result.items ?? [],
+      total: result.total ?? 0,
+      has_more: result.has_more ?? false,
+    };
+  },
+  async listAllConversations() {
+    const conversations: Awaited<ReturnType<typeof ipcBridge.database.getUserConversations.invoke>>['items'] = [];
+    let cursor: string | undefined;
+    let hasMore = true;
+    while (hasMore) {
+      const page = await ipcBridge.database.getUserConversations.invoke({ cursor, limit: 200 });
+      conversations.push(...(page.items ?? []));
+      hasMore = page.has_more;
+      cursor = page.items.at(-1)?.id;
+    }
+    return conversations;
+  },
+  async searchMessages(keyword, page, page_size) {
+    const result = await ipcBridge.database.searchConversationMessages.invoke({
+      keyword,
+      page: page + 1,
+      page_size,
+    });
+    return {
+      items: result.items,
+      total: result.total,
+      page: page + 1,
+      page_size,
+      has_more: result.has_more,
+    };
+  },
+  async getConversationsByCronJob(cron_job_id) {
+    return ipcBridge.conversation.listByCronJob.invoke({ cron_job_id });
+  },
+};
 export const workerTaskManager = new WorkerTaskManager(agentFactory, conversationRepo);

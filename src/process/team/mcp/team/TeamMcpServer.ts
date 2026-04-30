@@ -408,6 +408,8 @@ export class TeamMcpServer {
     // Team mode validation: only backends with confirmed ACP MCP stdio support
     if (agent_type) {
       const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
+      // TODO(extension-migration-followup): replace this shim-backed sync lookup
+      // with ipcBridge.agent.getDetectedAgents.invoke().
       if (!isTeamCapableBackend(agent_type, cachedInitResults)) {
         const capable = getTeamCapableBackends(
           agentRegistry.getDetectedAgents().map((a) => a.backend),

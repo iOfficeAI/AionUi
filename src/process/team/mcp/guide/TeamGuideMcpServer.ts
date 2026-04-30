@@ -17,14 +17,53 @@ import * as crypto from 'node:crypto';
 import * as net from 'node:net';
 import * as path from 'node:path';
 import { ipcBridge } from '@/common';
-import type { TeamSessionService } from '@process/team/TeamSessionService';
+import type { TTeam } from '@process/team/types';
 import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getConversationTypeForBackend } from '@/common/utils/buildAgentConversationParams';
 import { handleListModels } from '../modelListHandler';
-import { getDatabase } from '@process/services/database';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers';
+
+export type TeamGuideRuntime = {
+  createTeam: (params: {
+    user_id: string;
+    name: string;
+    workspace: string;
+    workspace_mode: 'shared' | 'isolated';
+    agents: Array<{
+      slot_id: string;
+      conversation_id: string;
+      role: 'leader' | 'teammate';
+      agent_type: string;
+      agent_name: string;
+      conversation_type: string;
+      status: 'pending' | 'idle' | 'active' | 'completed' | 'failed';
+      model?: string;
+      cli_path?: string;
+      custom_agent_id?: string;
+    }>;
+  }) => Promise<TTeam>;
+  ensureSession: (team_id: string) => Promise<void>;
+  sendMessageToAgent: (
+    team_id: string,
+    slot_id: string,
+    content: string,
+    options?: { silent?: boolean; files?: string[] }
+  ) => Promise<void>;
+};
+
+const defaultRuntime: TeamGuideRuntime = {
+  createTeam: (params) => ipcBridge.team.create.invoke(params),
+  ensureSession: (team_id) => ipcBridge.team.ensureSession.invoke({ team_id }),
+  sendMessageToAgent: (team_id, slot_id, content, options) =>
+    ipcBridge.team.sendMessageToAgent.invoke({
+      team_id,
+      slot_id,
+      content,
+      files: options?.files,
+    }),
+};
 
 /**
  * Singleton in-process MCP server for Aion team management tools.
@@ -35,11 +74,8 @@ export class TeamGuideMcpServer {
   private tcpServer: net.Server | null = null;
   private _port = 0;
   private readonly authToken = crypto.randomUUID();
-  private teamSessionService: TeamSessionService;
 
-  constructor(teamSessionService: TeamSessionService) {
-    this.teamSessionService = teamSessionService;
-  }
+  constructor(private readonly runtime: TeamGuideRuntime = defaultRuntime) {}
 
   /** Start the TCP server and return stdio config for injection into ACP sessions. */
   async start(): Promise<StdioMcpConfig> {
@@ -178,10 +214,11 @@ export class TeamGuideMcpServer {
     // When no workspace is provided but a caller conversation exists (single-chat → team),
     // inherit the workspace from the caller's conversation to avoid overwriting it with ''.
     if (!workspace && callerConversationId) {
-      const db = await getDatabase();
-      const row = db.getConversation(callerConversationId);
-      const callerWorkspace = (row?.data?.extra as Record<string, unknown> | undefined)?.workspace;
-      if (callerWorkspace && typeof callerWorkspace === 'string') {
+      const conversation = await ipcBridge.conversation.get
+        .invoke({ id: callerConversationId })
+        .catch((): null => null);
+      const callerWorkspace = (conversation?.extra as Record<string, unknown> | undefined)?.workspace;
+      if (typeof callerWorkspace === 'string' && callerWorkspace.trim().length > 0) {
         workspace = callerWorkspace;
       }
     }
@@ -194,12 +231,11 @@ export class TeamGuideMcpServer {
     const teamName = name || summary.split(/\s+/).slice(0, 5).join(' ');
     const user_id = 'system_default_user';
 
-    const team = await this.teamSessionService.createTeam({
+    const team = await this.runtime.createTeam({
       user_id,
       name: teamName,
       workspace,
       workspace_mode: 'shared',
-      session_mode: 'yolo',
       agents: [
         {
           slot_id: '',
@@ -216,20 +252,6 @@ export class TeamGuideMcpServer {
     const leadAgent = team.agents.find((a) => a.role === 'leader');
     const route = `/team/${team.id}`;
 
-    // Notify sidebar: the reused conversation now belongs to a team → filter it out.
-    // TeamSessionService.createTeam calls conversationService.updateConversation directly
-    // (bypassing the IPC bridge), so conversation.listChanged is never emitted automatically.
-    if (callerConversationId) {
-      ipcBridge.conversation.listChanged.emit({
-        conversation_id: callerConversationId,
-        action: 'updated',
-        source: 'aionui',
-      });
-    }
-
-    // Notify frontend to refresh team list
-    ipcBridge.team.listChanged.emit({ team_id: team.id, action: 'created' });
-
     // Navigate to team page immediately after creation.
     ipcBridge.deepLink.received.emit({ action: 'navigate', params: { route } });
 
@@ -239,11 +261,9 @@ export class TeamGuideMcpServer {
     const leaderIsReused = Boolean(callerConversationId && leadAgent?.conversation_id === callerConversationId);
     void (async () => {
       try {
-        const session = await this.teamSessionService.getOrStartSession(team.id);
         if (leadAgent) {
-          // When the leader is reused, skip the UI bubble — the conversation already
-          // shows the full user context. The summary still reaches the agent via mailbox.
-          await session.sendMessageToAgent(leadAgent.slot_id, summary, { silent: leaderIsReused });
+          await this.runtime.ensureSession(team.id);
+          await this.runtime.sendMessageToAgent(team.id, leadAgent.slot_id, summary, { silent: leaderIsReused });
         }
       } catch (err) {
         console.error('[TeamGuideMcpServer] async session/message failed:', err);

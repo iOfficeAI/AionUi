@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: (url: string) => {
-    if (url.startsWith('ext://')) return url.replace('ext://', 'aion-asset://extensions/');
+    if (url.startsWith('ext://')) return url.replace('ext://', '/api/extensions/test/assets/');
     return '';
   },
 }));
@@ -83,7 +83,7 @@ describe('resolveAvatarImageSrc', () => {
   });
 
   it('resolves ext:// prefixed URLs through resolveExtensionAssetUrl', () => {
-    expect(resolveAvatarImageSrc('ext://foo/bar.png', {})).toBe('aion-asset://extensions/foo/bar.png');
+    expect(resolveAvatarImageSrc('ext://foo/bar.png', {})).toBe('/api/extensions/test/assets/foo/bar.png');
   });
 
   it('returns undefined when avatar is an emoji (not an image)', () => {

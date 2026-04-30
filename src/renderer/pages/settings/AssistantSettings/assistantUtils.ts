@@ -26,8 +26,7 @@ export const resolveAvatarImageSrc = (
   if (mapped) return mapped;
 
   const resolved = resolveExtensionAssetUrl(value) || value;
-  const isImage =
-    /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|aion-asset:\/\/|file:\/\/|data:)/i.test(resolved);
+  const isImage = /\.(svg|png|jpe?g|webp|gif)$/i.test(resolved) || /^(https?:|file:\/\/|data:|\/)/i.test(resolved);
   return isImage ? resolved : undefined;
 };
 

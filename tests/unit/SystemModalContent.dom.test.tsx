@@ -88,6 +88,7 @@ const mockSetCronNotificationEnabled = vi.fn();
 const mockSetSaveUploadToWorkspace = vi.fn();
 const mockSetAutoPreviewOfficeFiles = vi.fn();
 const mockOpenFile = vi.fn();
+const mockOpenFolderWith = vi.fn();
 const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
 const mockGetStartOnBootStatus = vi.fn();
@@ -144,6 +145,7 @@ vi.mock('@/common', () => ({
     shell: {
       openExternal: { invoke: (...args: any[]) => mockOpenExternal(...args) },
       openFile: { invoke: (...args: any[]) => mockOpenFile(...args) },
+      openFolderWith: { invoke: (...args: any[]) => mockOpenFolderWith(...args) },
     },
   },
 }));
@@ -247,6 +249,7 @@ describe('SystemModalContent', () => {
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
     mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
     mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
+    mockOpenFolderWith.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {
@@ -386,6 +389,21 @@ describe('SystemModalContent', () => {
     await waitFor(() => {
       expect(screen.getByText('settings.openDevTools')).toBeInTheDocument();
     });
+  });
+
+  it('should open the log directory with the file explorer', async () => {
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('/tmp/logs')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('icon-folder-search').closest('button')!);
+    });
+
+    expect(mockOpenFolderWith).toHaveBeenCalledWith({ folder_path: '/tmp/logs', tool: 'explorer' });
+    expect(mockOpenFile).not.toHaveBeenCalled();
   });
 
   it('should toggle DevTools when button is clicked', async () => {

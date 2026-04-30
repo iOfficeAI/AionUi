@@ -5,7 +5,10 @@ import type { CreateProviderRequest } from '@/common/types/providerApi';
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
 import type { IConfigStorageRefer } from './storage';
 
-export type ConfigFile = { get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>; set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<unknown> };
+export type ConfigFile = {
+  get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>;
+  set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<unknown>;
+};
 
 const ALL_LEGACY_KEYS: ConfigKey[] = [
   'codex.config',
@@ -217,4 +220,3 @@ type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;
 async function setBackendClientPreferences(entries: BackendClientPreferences): Promise<void> {
   await httpRequest<void>('PUT', '/api/settings/client', entries);
 }
-

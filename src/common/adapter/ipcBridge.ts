@@ -1339,14 +1339,11 @@ interface IBridgeResponse<D = {}> {
 
 export interface IExtensionInfo {
   name: string;
-  displayName: string;
+  display_name: string;
   version: string;
   description?: string;
   source: string;
-  directory: string;
   enabled: boolean;
-  riskLevel: 'safe' | 'moderate' | 'dangerous';
-  hasLifecycle: boolean;
 }
 
 export interface IExtensionPermissionSummary {
@@ -1358,12 +1355,12 @@ export interface IExtensionPermissionSummary {
 
 export interface IExtensionSettingsTab {
   id: string;
-  name: string;
+  label: string;
   icon?: string;
-  entryUrl: string;
-  position?: { anchor: string; placement: 'before' | 'after' };
+  url: string;
+  position?: { relativeTo: string; placement: 'before' | 'after' };
   order: number;
-  _extensionName: string;
+  extensionName: string;
 }
 
 export interface IExtensionWebuiContribution {

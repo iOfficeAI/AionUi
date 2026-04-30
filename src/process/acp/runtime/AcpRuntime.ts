@@ -16,8 +16,6 @@ import type {
   SessionStatus,
   SignalEvent,
 } from '@process/acp/types';
-// TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
-// import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability';
 import { ProcessConfig } from '@process/utils/initStorage';
 

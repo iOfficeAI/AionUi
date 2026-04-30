@@ -14,7 +14,7 @@ describe('resetPasswordCLI helpers', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.doUnmock('@process/utils');
-    vi.doUnmock('@process/services/database/export');
+    vi.doUnmock('@process/webserver/auth/repository/UserRepository');
   });
 
   it('returns admin when resetpass is missing', async () => {
@@ -37,30 +37,27 @@ describe('resetPasswordCLI helpers', () => {
     expect(resolveResetPasswordUsername(['node', 'server.mjs', '--resetpass', '--verbose', 'alice'])).toBe('alice');
   });
 
-  it('uses the shared database abstraction for successful resets', async () => {
-    const mockDb = {
-      hasUsers: vi.fn(() => ({ success: true, data: true })),
-      getUserByUsername: vi.fn(() => ({
-        success: true,
-        data: {
-          id: 'user-1',
-          username: 'admin',
-          password_hash: 'old-hash',
-          jwt_secret: 'old-secret',
-        },
-      })),
-      getAllUsers: vi.fn(() => ({ success: true, data: [] })),
-      updateUserPassword: vi.fn(() => ({ success: true, data: true })),
-      updateUserJwtSecret: vi.fn(() => ({ success: true, data: true })),
-    };
-    const closeDatabase = vi.fn();
-
+  it('uses the backend-backed user repository for successful resets', async () => {
     vi.doMock('@process/utils', () => ({
       getDataPath: vi.fn(() => 'C:/mock/.aionui/aionui'),
     }));
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() => Promise.resolve(mockDb)),
-      closeDatabase,
+    const userRepo = {
+      hasUsers: vi.fn(async () => true),
+      findByUsername: vi.fn(async () => ({
+        id: 'user-1',
+        username: 'admin',
+        password_hash: 'old-hash',
+        jwt_secret: 'old-secret',
+        created_at: 0,
+        updated_at: 0,
+        last_login: null,
+      })),
+      listUsers: vi.fn(async () => []),
+      updatePassword: vi.fn(async () => undefined),
+      updateJwtSecret: vi.fn(async () => undefined),
+    };
+    vi.doMock('@process/webserver/auth/repository/UserRepository', () => ({
+      UserRepository: userRepo,
     }));
 
     const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -70,11 +67,10 @@ describe('resetPasswordCLI helpers', () => {
     const { resetPasswordCLI } = await import('@process/utils/resetPasswordCLI');
 
     await expect(resetPasswordCLI('admin')).resolves.toBeUndefined();
-    expect(mockDb.hasUsers).toHaveBeenCalledOnce();
-    expect(mockDb.getUserByUsername).toHaveBeenCalledWith('admin');
-    expect(mockDb.updateUserPassword).toHaveBeenCalledOnce();
-    expect(mockDb.updateUserJwtSecret).toHaveBeenCalledOnce();
-    expect(closeDatabase).toHaveBeenCalledOnce();
+    expect(userRepo.hasUsers).toHaveBeenCalledOnce();
+    expect(userRepo.findByUsername).toHaveBeenCalledWith('admin');
+    expect(userRepo.updatePassword).toHaveBeenCalledOnce();
+    expect(userRepo.updateJwtSecret).toHaveBeenCalledOnce();
     expect(exitSpy).not.toHaveBeenCalled();
 
     logSpy.mockRestore();

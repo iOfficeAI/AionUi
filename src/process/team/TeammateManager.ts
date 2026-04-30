@@ -173,6 +173,8 @@ export class TeammateManager extends EventEmitter {
           | Array<{ custom_agent_id: string; name: string; backend: string; description?: string; skills?: string[] }>
           | undefined;
         if (agent.role === 'leader') {
+          // TODO(extension-migration-followup): replace this shim-backed sync
+          // lookup with ipcBridge.agent.getDetectedAgents.invoke().
           const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
           availableAgentTypes = agentRegistry
             .getDetectedAgents()

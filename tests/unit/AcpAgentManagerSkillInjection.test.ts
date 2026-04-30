@@ -95,10 +95,6 @@ vi.mock('@process/utils/mainLogger', () => ({
   mainError: vi.fn(),
 }));
 
-vi.mock('@process/extensions', () => ({
-  ExtensionRegistry: { getInstance: () => ({ getAcpAdapters: () => [] }) },
-}));
-
 vi.mock('@/common/utils', () => ({
   parseError: vi.fn((e: unknown) => String(e)),
   uuid: vi.fn(() => 'mock-uuid'),

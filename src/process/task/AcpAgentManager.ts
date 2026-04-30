@@ -20,8 +20,6 @@ import type {
   AcpSessionConfigOption,
 } from '@/common/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
-import { ExtensionRegistry } from '@process/extensions';
-import { getDatabase } from '@process/services/database';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
@@ -391,30 +389,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
       (agent) => agent.id === data.custom_agent_id
     );
-
-    // Fallback: extension adapter (custom_agent_id format: ext:{extensionName}:{adapterId})
-    if (!customAgentConfig && data.custom_agent_id!.startsWith('ext:')) {
-      const [, extensionName, ...idParts] = data.custom_agent_id!.split(':');
-      const adapterId = idParts.join(':');
-      const adapter = ExtensionRegistry.getInstance()
-        .getAcpAdapters()
-        .find((item) => {
-          const record = item as Record<string, unknown>;
-          return record._extensionName === extensionName && record.id === adapterId;
-        }) as Record<string, unknown> | undefined;
-
-      if (adapter) {
-        customAgentConfig = {
-          id: data.custom_agent_id,
-          name: typeof adapter.name === 'string' ? adapter.name : data.custom_agent_id,
-          defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
-          acpArgs: Array.isArray(adapter.acpArgs)
-            ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
-            : undefined,
-          env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
-        };
-      }
-    }
 
     if (!customAgentConfig?.defaultCliPath) {
       return { cli_path: data.cli_path };
@@ -873,9 +847,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         addMessage(this.conversation_id, userMessage);
         // Ensure conversation list sorting updates immediately after user sends.
         try {
-          (await getDatabase()).updateConversation(this.conversation_id, {});
+          await ipcBridge.conversation.update.invoke({
+            id: this.conversation_id,
+            updates: { modified_at: Date.now() },
+          });
         } catch {
-          // Conversation might not exist in DB yet
+          // Conversation might not exist in backend yet
         }
         const userResponseMessage: IResponseMessage = {
           type: 'user_content',
@@ -1312,6 +1289,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     return mode === 'yolo' || mode === 'bypassPermissions' || isCodexAutoApproveMode(mode);
   }
 
+  private async updateConversationExtra(extra: Record<string, unknown>): Promise<void> {
+    await ipcBridge.conversation.update.invoke({
+      id: this.conversation_id,
+      updates: { extra },
+      merge_extra: true,
+    });
+  }
+
   /**
    * Clear legacy yoloMode in acp.config for the current backend.
    * This syncs back to the old SecurityModalContent config key so that
@@ -1338,18 +1323,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private async saveModelId(model_id: string): Promise<void> {
     try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
-        const conversation = result.data;
-        const updatedExtra = {
-          ...conversation.extra,
-          current_model_id: model_id,
-        };
-        db.updateConversation(this.conversation_id, {
-          extra: updatedExtra,
-        } as Partial<typeof conversation>);
-      }
+      await this.updateConversationExtra({
+        current_model_id: model_id,
+      });
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to save model ID', error);
     }
@@ -1366,19 +1342,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
 
   private async saveContextUsage(usage: { used: number; size: number }): Promise<void> {
     try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
-        const conversation = result.data;
-        const updatedExtra = {
-          ...conversation.extra,
-          last_token_usage: { total_tokens: usage.used },
-          last_context_limit: usage.size,
-        };
-        db.updateConversation(this.conversation_id, {
-          extra: updatedExtra,
-        } as Partial<typeof conversation>);
-      }
+      await this.updateConversationExtra({
+        last_token_usage: { total_tokens: usage.used },
+        last_context_limit: usage.size,
+      });
     } catch {
       // Non-critical metadata, silently ignore errors
     }
@@ -1390,18 +1357,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private async saveSessionMode(mode: string): Promise<void> {
     try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
-        const conversation = result.data;
-        const updatedExtra = {
-          ...conversation.extra,
-          session_mode: mode,
-        };
-        db.updateConversation(this.conversation_id, {
-          extra: updatedExtra,
-        } as Partial<typeof conversation>);
-      }
+      await this.updateConversationExtra({
+        session_mode: mode,
+      });
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save session mode', error);
     }
@@ -1414,14 +1372,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private async saveConfigOptions(config_options: AcpSessionConfigOption[]): Promise<void> {
     try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
-        const conversation = result.data;
-        db.updateConversation(this.conversation_id, {
-          extra: { ...conversation.extra, cached_config_options: config_options },
-        } as Partial<typeof conversation>);
-      }
+      await this.updateConversationExtra({
+        cached_config_options: config_options,
+      });
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save config options', error);
     }
@@ -1508,20 +1461,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
    */
   private async saveAcpSessionId(session_id: string): Promise<void> {
     try {
-      const db = await getDatabase();
-      const result = db.getConversation(this.conversation_id);
-      if (result.success && result.data && result.data.type === 'acp') {
-        const conversation = result.data;
-        const updatedExtra = {
-          ...conversation.extra,
-          acp_session_id: session_id,
-          acp_session_conversation_id: this.conversation_id,
-          acp_session_updated_at: Date.now(),
-        };
-        db.updateConversation(this.conversation_id, {
-          extra: updatedExtra,
-        } as Partial<typeof conversation>);
-      }
+      await this.updateConversationExtra({
+        acp_session_id: session_id,
+        acp_session_conversation_id: this.conversation_id,
+        acp_session_updated_at: Date.now(),
+      });
     } catch (error) {
       mainError('[AcpAgentManager]', 'Failed to save ACP session ID', error);
     }

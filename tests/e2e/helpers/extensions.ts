@@ -9,7 +9,7 @@ export type ExtensionSnapshot = {
   agents: Array<{ id: string; name: string; _source?: string; _kind?: string }>;
   skills: Array<{ name: string; description?: string; location: string }>;
   themes: Array<{ id: string; name: string; cover?: string }>;
-  settingsTabs: Array<{ id: string; name: string; entryUrl: string; _extensionName: string }>;
+  settingsTabs: Array<{ id: string; label: string; url: string; extensionName: string }>;
   webuiContributions: Array<{
     extensionName: string;
     apiRoutes: Array<{ path: string; auth: boolean }>;

@@ -7,8 +7,6 @@
 import type { TMessage } from '@/common/chat/chatLib';
 import { composeMessage } from '@/common/chat/chatLib';
 import type { AgentBackend } from '@/common/types/acpTypes';
-import { getDatabase } from '../services/database/export';
-import { ProcessChat } from './initStorage';
 
 const Cache = new Map<string, ConversationManageWithDB>();
 
@@ -17,23 +15,12 @@ const Cache = new Map<string, ConversationManageWithDB>();
 // Aggregate multiple messages for synchronous updates, reducing database operations
 class ConversationManageWithDB {
   private stack: Array<['insert' | 'accumulate', TMessage]> = [];
-  private dbPromise = getDatabase();
   private timer: NodeJS.Timeout;
+  private messageList: TMessage[] = [];
   /** Whether a flush is currently in progress (replaces unbounded promise chain) */
   private flushing = false;
-  private initialized = false;
 
-  constructor(private conversation_id: string) {
-    this.dbPromise
-      .then((db) => ensureConversationExists(db, this.conversation_id))
-      .then(() => {
-        this.initialized = true;
-        this.flush();
-      })
-      .catch(() => {
-        this.initialized = true;
-      });
-  }
+  constructor(private conversation_id: string) {}
   static get(conversation_id: string) {
     if (Cache.has(conversation_id)) return Cache.get(conversation_id);
     const manage = new ConversationManageWithDB(conversation_id);
@@ -59,24 +46,15 @@ class ConversationManageWithDB {
   }
 
   private async flush(): Promise<void> {
-    if (!this.initialized || this.flushing || this.stack.length === 0) return;
+    if (this.flushing || this.stack.length === 0) return;
     this.flushing = true;
     try {
-      const db = await this.dbPromise;
       const stack = this.stack.splice(0);
-      const messages = db.getConversationMessages(this.conversation_id, 0, 50, 'DESC');
-      let messageList = messages.data.toReversed();
       for (const [type, msg] of stack) {
         if (type === 'insert') {
-          db.insertMessage(msg);
-          messageList.push(msg);
+          this.messageList.push(msg);
         } else {
-          messageList = composeMessage(msg, messageList, (opType, message) => {
-            if (opType === 'insert') db.insertMessage(message);
-            if (opType === 'update') {
-              db.updateMessage(message.id, message);
-            }
-          });
+          this.messageList = composeMessage(msg, this.messageList, () => {});
         }
       }
       executePendingCallbacks();
@@ -111,36 +89,6 @@ export const removeFromMessageCache = (conversation_id: string): void => {
     Cache.delete(conversation_id);
   }
 };
-
-/**
- * Ensure conversation exists in database
- * If not, load from file storage and create it
- */
-async function ensureConversationExists(
-  db: Awaited<ReturnType<typeof getDatabase>>,
-  conversation_id: string
-): Promise<void> {
-  // Check if conversation exists in database
-  const existingConv = db.getConversation(conversation_id);
-  if (existingConv.success && existingConv.data) {
-    return; // Conversation already exists
-  }
-
-  // Load conversation from file storage
-  const history = await ProcessChat.get('chat.history');
-  const conversation = (history || []).find((c) => c.id === conversation_id);
-
-  if (!conversation) {
-    console.error(`[Message] Conversation ${conversation_id} not found in file storage either`);
-    return;
-  }
-
-  // Create conversation in database
-  const result = db.createConversation(conversation);
-  if (!result.success) {
-    console.error(`[Message] Failed to create conversation in database:`, result.error);
-  }
-}
 
 /**
  * Add or update a single message

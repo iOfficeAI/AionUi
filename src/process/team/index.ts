@@ -11,4 +11,3 @@ export type {
 } from './types';
 export { TeamSession } from './TeamSession';
 export { TeamSessionService } from './TeamSessionService';
-export { SqliteTeamRepository } from './repository/SqliteTeamRepository';
