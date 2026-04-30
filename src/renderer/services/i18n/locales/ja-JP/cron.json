@@ -117,7 +117,10 @@
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",
       "selectFolder": "フォルダを選択",
       "clearFolder": "クリア",
-      "model": "モデル"
+      "model": "モデル",
+      "customIntervalPrefix": "毎",
+      "customIntervalPlaceholder": "10",
+      "customIntervalInvalid": "選択した単位に有効な間隔を入力してください"
     },
     "freq": {
       "manual": "手動",
@@ -127,12 +130,20 @@
       "weekly": "毎週",
       "custom": "カスタム"
     },
+    "customIntervalUnit": {
+      "minutes": "分",
+      "hours": "時間",
+      "days": "日"
+    },
     "scheduleDesc": {
       "manual": "手動",
       "hourly": "毎時実行",
       "dailyAt": "毎日 {{time}} に実行",
       "weekdaysAt": "平日 {{time}} に実行",
-      "weeklyAt": "毎週{{day}} {{time}} に実行"
+      "weeklyAt": "毎週{{day}} {{time}} に実行",
+      "everyMinutes": "{{value}} 分ごとに実行",
+      "everyHours": "{{value}} 時間ごとに実行",
+      "everyDays": "{{value}} 日ごと 09:00 に実行"
     }
   },
   "trigger": {
@@ -152,6 +163,21 @@
     "jobNotFound": "スクリプトが見つかりません: {{id}}",
     "conversationNotFound": "会話が見つかりません",
     "scheduledTimePassed": "予定時刻が過ぎました",
-    "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました"
+    "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました",
+    "existingNoBindings": "継続モードのタスクは会話にバインドされていないため、即時実行できません。先に少なくとも 1 つの会話にバインドしてください。"
+  },
+  "binding": {
+    "title": "この会話のスケジュールタスク",
+    "boundTasks": "紐付け済みタスク",
+    "availableTasks": "紐付け可能なタスク",
+    "bind": "紐付け",
+    "unbind": "解除",
+    "bindSuccess": "タスクをこの会話に紐付けました",
+    "unbindSuccess": "タスクの紐付けを解除しました",
+    "createAndBind": "新規タスク",
+    "noBoundTasks": "この会話に紐付いたタスクはありません",
+    "noAvailableTasks": "紐付け可能な継続会話タスクはありません",
+    "boundTaskCount": "{{count}} 件のタスクが紐付いています",
+    "targetConversations": "対象会話"
   }
 }

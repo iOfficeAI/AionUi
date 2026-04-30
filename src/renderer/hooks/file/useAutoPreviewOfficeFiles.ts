@@ -115,7 +115,7 @@ export const useAutoPreviewOfficeFiles = (
     void syncOfficeFiles(false);
 
     const unsubscribeResponse = ipcBridge.conversation.responseStream.on((message) => {
-      if (message.conversation_id !== conversationId) return;
+      if (!message || message.conversation_id !== conversationId) return;
       if (!isOfficeAutoPreviewTriggerMessage(message)) return;
 
       scheduleOfficeScan();

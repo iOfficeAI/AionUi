@@ -22,7 +22,7 @@ import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
-import { Button, Input, Message, Tag } from '@arco-design/web-react';
+import { Button, Input, Message, Modal, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
@@ -40,7 +40,7 @@ import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
-import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
+import { getConversationInputHistory, isCaretAtLineStart, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;
@@ -280,6 +280,13 @@ const SendBox: React.FC<{
   // 检测是否单行
   // Detect whether to use single-line or multi-line mode
   useEffect(() => {
+    // 锁定多行模式时，始终使用多行
+    // When locked to multi-line mode, always use multi-line
+    if (lockMultiLine) {
+      setIsSingleLine(false);
+      return;
+    }
+
     // 有换行符直接多行
     // Switch to multi-line mode if newline character exists
     if (input.includes('\n')) {
@@ -424,6 +431,24 @@ const SendBox: React.FC<{
     }
     if (conversationContext?.conversationId) {
       commands.push({
+        name: 'help',
+        description: t('chat.help.commandDescription', { defaultValue: 'Show available commands' }),
+        kind: 'builtin',
+        source: 'builtin',
+      });
+      commands.push({
+        name: 'model',
+        description: t('conversation.model.commandDescription', { defaultValue: 'Open model selector' }),
+        kind: 'builtin',
+        source: 'builtin',
+      });
+      commands.push({
+        name: 'clear',
+        description: t('chat.clear.commandDescription', { defaultValue: 'Clear conversation messages' }),
+        kind: 'builtin',
+        source: 'builtin',
+      });
+      commands.push({
         name: 'copy',
         description: t('messages.copy', { defaultValue: 'Copy' }),
         kind: 'builtin',
@@ -456,7 +481,14 @@ const SendBox: React.FC<{
     input,
     commands: mergedSlashCommands,
     onExecuteBuiltin: (name) => {
-      if (name === 'copy') {
+      // Platform-owned builtins (rewind/undo/clear) are forwarded to the
+      // platform sendbox unconditionally so the slash-menu Enter path always
+      // hits the same handler as the click path. Don't rely on the trailing
+      // `else` fallback for these — keep them explicit to avoid silent
+      // no-ops if the dispatch chain ever changes shape.
+      if (name === 'rewind' || name === 'undo' || name === 'clear') {
+        onSlashBuiltinCommand?.(name);
+      } else if (name === 'copy') {
         const lastAssistantText = getLastAssistantText(messageList, Boolean(loading));
         if (!lastAssistantText) {
           Message.warning(t('messages.copyLastOutput.empty'));
@@ -471,6 +503,28 @@ const SendBox: React.FC<{
         }
       } else if (name === 'export') {
         void conversationExport.openExportFlow();
+      } else if (name === 'model') {
+        const modelButton = containerRef.current?.querySelector<HTMLButtonElement>('.sendbox-model-btn');
+        modelButton?.click();
+      } else if (name === 'help') {
+        // Show every command currently available in this conversation so users
+        // who reach for `/help` (like in Claude Code CLI) get an inline list
+        // they can scan without losing context.
+        Modal.info({
+          title: t('chat.help.modalTitle', { defaultValue: 'Available commands' }),
+          icon: null,
+          okText: t('chat.help.dismiss', { defaultValue: 'Got it' }),
+          content: (
+            <div className='flex flex-col gap-8px'>
+              {mergedSlashCommands.map((command) => (
+                <div key={command.name} className='flex gap-12px text-13px leading-snug'>
+                  <code className='shrink-0 font-mono text-t-primary'>/{command.name}</code>
+                  <span className='min-w-0 text-t-secondary'>{command.description ?? ''}</span>
+                </div>
+              ))}
+            </div>
+          ),
+        });
       } else {
         onSlashBuiltinCommand?.(name);
       }
@@ -530,6 +584,24 @@ const SendBox: React.FC<{
       highlightScrollRef.current.scrollLeft = textarea.scrollLeft;
     },
     [getTextareaElement]
+  );
+
+  useAddEventListener(
+    'sendbox.focus',
+    (requestedCaret) => {
+      requestAnimationFrame(() => {
+        const textarea = getTextareaElement();
+        if (!textarea) {
+          return;
+        }
+        textarea.focus();
+        const caret = Math.max(0, Math.min(requestedCaret ?? textarea.value.length, textarea.value.length));
+        textarea.setSelectionRange(caret, caret);
+        setCaretPosition(caret);
+        syncHighlightScroll(textarea);
+      });
+    },
+    [getTextareaElement, syncHighlightScroll]
   );
 
   const syncHighlightTextMetrics = useCallback(
@@ -1063,8 +1135,16 @@ const SendBox: React.FC<{
       }
 
       if (event.key === 'ArrowUp') {
+        // Not on first line → let default cursor-up happen
         if (historyNavigationIndex === null && !isCaretOnFirstLine(event.currentTarget)) {
           return false;
+        }
+
+        // On first line but not at line start → move caret to line start instead of switching history
+        if (historyNavigationIndex === null && !isCaretAtLineStart(event.currentTarget)) {
+          event.preventDefault();
+          event.currentTarget.setSelectionRange(0, 0);
+          return true;
         }
 
         const nextIndex =

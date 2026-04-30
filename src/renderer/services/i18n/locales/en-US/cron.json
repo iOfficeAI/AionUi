@@ -104,7 +104,10 @@
       "workspaceHint": "Optional: set a workspace folder for file operations",
       "selectFolder": "Select Folder",
       "clearFolder": "Clear",
-      "model": "Model"
+      "model": "Model",
+      "customIntervalPrefix": "Every",
+      "customIntervalPlaceholder": "10",
+      "customIntervalInvalid": "Enter a valid interval for the selected unit"
     },
     "freq": {
       "manual": "Manual",
@@ -114,12 +117,20 @@
       "weekly": "Weekly",
       "custom": "Custom"
     },
+    "customIntervalUnit": {
+      "minutes": "minutes",
+      "hours": "hours",
+      "days": "days"
+    },
     "scheduleDesc": {
       "manual": "Manual",
       "hourly": "Every hour",
       "dailyAt": "Every day at {{time}}",
       "weekdaysAt": "Weekdays at {{time}}",
-      "weeklyAt": "Every {{day}} at {{time}}"
+      "weeklyAt": "Every {{day}} at {{time}}",
+      "everyMinutes": "Every {{value}} minutes",
+      "everyHours": "Every {{value}} hours",
+      "everyDays": "Every {{value}} days at 09:00"
     }
   },
   "trigger": {
@@ -140,5 +151,19 @@
     "conversationNotFound": "Conversation not found",
     "scheduledTimePassed": "Scheduled time has passed",
     "conversationBusy": "Conversation busy after {{count}} retries"
+  },
+  "binding": {
+    "title": "Scheduled tasks for this conversation",
+    "boundTasks": "Bound tasks",
+    "availableTasks": "Available tasks",
+    "bind": "Bind",
+    "unbind": "Unbind",
+    "bindSuccess": "Task bound to this conversation",
+    "unbindSuccess": "Task unbound from this conversation",
+    "createAndBind": "New task",
+    "noBoundTasks": "No tasks bound to this conversation",
+    "noAvailableTasks": "No existing ongoing tasks available to bind",
+    "boundTaskCount": "{{count}} bound task(s)",
+    "targetConversations": "Target conversations"
   }
 }

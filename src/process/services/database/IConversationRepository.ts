@@ -24,6 +24,7 @@ export interface IConversationRepository {
   updateConversation(id: string, updates: Partial<TChatConversation>): Promise<void>;
   deleteConversation(id: string): Promise<void>;
   getMessages(id: string, page: number, pageSize: number, order?: 'ASC' | 'DESC'): Promise<PaginatedResult<TMessage>>;
+  deleteMessages(ids: string[]): Promise<number>;
   insertMessage(message: TMessage): Promise<void>;
   /**
    * If cursor is provided, offset is ignored.

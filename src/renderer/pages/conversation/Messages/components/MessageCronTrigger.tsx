@@ -17,7 +17,11 @@ const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ messag
   const { cronJobId, cronJobName } = message.content;
 
   return (
-    <div className='max-w-780px w-full mx-auto cursor-pointer' onClick={() => navigate(`/scheduled/${cronJobId}`)}>
+    <button
+      type='button'
+      className='max-w-780px w-full mx-auto cursor-pointer border-none bg-transparent p-0 text-left'
+      onClick={() => navigate(`/scheduled/${cronJobId}`)}
+    >
       <div
         className='flex items-center gap-8px px-16px py-12px rd-12px b-1 b-solid bg-fill-0 hover:bg-fill-1 transition-colors'
         style={{ borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
@@ -40,7 +44,7 @@ const MessageCronTrigger: React.FC<{ message: IMessageCronTrigger }> = ({ messag
           style={{ lineHeight: 0 }}
         />
       </div>
-    </div>
+    </button>
   );
 };
 

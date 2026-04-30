@@ -43,12 +43,20 @@ export interface MigrateConversationParams {
   migrateCron?: boolean;
 }
 
+export interface ConversationRollbackResult {
+  restoredInput: string;
+  deletedMessageIds: string[];
+  deletedCount: number;
+}
+
 export interface IConversationService {
   createConversation(params: CreateConversationParams): Promise<TChatConversation>;
   deleteConversation(id: string): Promise<void>;
   updateConversation(id: string, updates: Partial<TChatConversation>, mergeExtra?: boolean): Promise<void>;
   getConversation(id: string): Promise<TChatConversation | undefined>;
   createWithMigration(params: MigrateConversationParams): Promise<TChatConversation>;
+  rollbackConversationToUserMessage(id: string, targetUserMessageId: string): Promise<ConversationRollbackResult>;
+  clearAllMessages(id: string): Promise<{ deletedCount: number }>;
   /** Returns all conversations without pagination. */
   listAllConversations(): Promise<TChatConversation[]>;
   /** List conversations spawned by a specific cron job. */

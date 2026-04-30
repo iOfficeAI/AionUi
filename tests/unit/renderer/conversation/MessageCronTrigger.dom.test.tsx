@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockNavigate = vi.hoisted(() => vi.fn());
 
@@ -36,23 +36,33 @@ function buildMessage(cronJobId: string, cronJobName: string) {
 }
 
 describe('MessageCronTrigger', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   it('renders the cron job name in the trigger card', () => {
     render(<MessageCronTrigger message={buildMessage('job-1', 'Daily Backup')} />);
 
     expect(screen.getByText('cron.trigger.runScheduledTask:Daily Backup')).toBeTruthy();
   });
 
+  it('renders the trigger card as an accessible button', () => {
+    render(<MessageCronTrigger message={buildMessage('job-42', 'Nightly Sync')} />);
+
+    expect(screen.getByRole('button', { name: 'cron.trigger.runScheduledTask:Nightly Sync' })).toBeTruthy();
+  });
+
   it('clicking the card navigates to the scheduled task detail page', () => {
     render(<MessageCronTrigger message={buildMessage('job-42', 'Nightly Sync')} />);
 
-    fireEvent.click(screen.getByText('cron.trigger.runScheduledTask:Nightly Sync'));
+    fireEvent.click(screen.getByRole('button', { name: 'cron.trigger.runScheduledTask:Nightly Sync' }));
     expect(mockNavigate).toHaveBeenCalledWith('/scheduled/job-42');
   });
 
   it('renders the correct navigation path with cronJobId', () => {
     render(<MessageCronTrigger message={buildMessage('abc-123', 'Weekly Report')} />);
 
-    fireEvent.click(screen.getByText('cron.trigger.runScheduledTask:Weekly Report'));
+    fireEvent.click(screen.getByRole('button', { name: 'cron.trigger.runScheduledTask:Weekly Report' }));
     expect(mockNavigate).toHaveBeenCalledWith('/scheduled/abc-123');
   });
 });

@@ -113,6 +113,14 @@ export const removeFromMessageCache = (conversation_id: string): void => {
 };
 
 /**
+ * Dispose any pending buffered writes for a conversation before destructive
+ * history mutations such as rewind/undo.
+ */
+export const resetMessageCacheForRewrite = (conversation_id: string): void => {
+  removeFromMessageCache(conversation_id);
+};
+
+/**
  * Ensure conversation exists in database
  * If not, load from file storage and create it
  */

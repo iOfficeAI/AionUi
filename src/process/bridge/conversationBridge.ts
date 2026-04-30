@@ -11,7 +11,7 @@ import type { IConversationService, CreateConversationParams } from '@process/se
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
-import { removeFromMessageCache } from '@process/utils/message';
+import { removeFromMessageCache, resetMessageCacheForRewrite } from '@process/utils/message';
 import {
   getSkillsDir,
   getBuiltinSkillsCopyDir,
@@ -484,6 +484,88 @@ export function initConversationBridge(
         conversationId: conversation_id,
         error: error instanceof Error ? error.message : String(error),
       });
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  // Rewind and clear both kill the worker and replace the underlying ACP
+  // session. WorkerTaskManager.kill() is fire-and-forget — it splices the
+  // entry out of taskList synchronously and starts the child shutdown in
+  // the background. AcpAgentManager.kill gives the child 500ms grace before
+  // forcing it down, with a 1500ms hard timeout. If we resolve the IPC and
+  // the user immediately sends, a freshly spawned ACP child can race the
+  // dying one and crash with
+  //   `Cannot read properties of null (reading 'createSession')`
+  //   `process exited unexpectedly` / `Session expired` cascade.
+  //
+  // Wait long enough for both the grace window and the hard timeout to
+  // elapse, then yield once more so the OS can finish reaping the child
+  // before the renderer's next sendMessage spawns a fresh one.
+  const TASK_RESET_SETTLE_MS = 1700;
+  const settleAfterTaskReset = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, TASK_RESET_SETTLE_MS));
+
+  ipcBridge.conversation.rollbackToMessage.provider(async ({ conversation_id, target_message_id }) => {
+    try {
+      const taskWasAlive = Boolean(workerTaskManager.getTask(conversation_id));
+      if (taskWasAlive) {
+        workerTaskManager.kill(conversation_id);
+      }
+
+      resetMessageCacheForRewrite(conversation_id);
+      const result = await conversationService.rollbackConversationToUserMessage(conversation_id, target_message_id);
+
+      if (taskWasAlive) {
+        await settleAfterTaskReset();
+      }
+
+      const conversation = await conversationService.getConversation(conversation_id);
+      if (conversation) {
+        emitConversationListChanged(conversation, 'updated');
+      }
+      await refreshTrayMenuSafely();
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error('[conversationBridge] Failed to rollback conversation:', error);
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
+
+  ipcBridge.conversation.clearMessages.provider(async ({ conversation_id }) => {
+    try {
+      const taskWasAlive = Boolean(workerTaskManager.getTask(conversation_id));
+      if (taskWasAlive) {
+        workerTaskManager.kill(conversation_id);
+      }
+
+      resetMessageCacheForRewrite(conversation_id);
+      const result = await conversationService.clearAllMessages(conversation_id);
+
+      if (taskWasAlive) {
+        await settleAfterTaskReset();
+      }
+
+      const conversation = await conversationService.getConversation(conversation_id);
+      if (conversation) {
+        emitConversationListChanged(conversation, 'updated');
+      }
+      await refreshTrayMenuSafely();
+
+      return {
+        success: true,
+        data: result,
+      };
+    } catch (error) {
+      console.error('[conversationBridge] Failed to clear conversation messages:', error);
       return {
         success: false,
         msg: error instanceof Error ? error.message : String(error),

@@ -240,6 +240,11 @@ const ConversationTabs: React.FC = () => {
           applyDefaultConversationName(params, defaultConversationName)
         );
 
+        if (!newConversation || !newConversation.id) {
+          Message.error(t('conversation.createFailed'));
+          return;
+        }
+
         // [BUG-5] Order matters: closeAllTabs() must come before openTab() to prevent append behavior
         closeAllTabs();
         updateWorkspaceTime(workspace);

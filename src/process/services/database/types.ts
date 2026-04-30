@@ -190,8 +190,11 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     } as TChatConversation;
   }
 
-  // Aionrs type has model field
-  if (row.type === 'aionrs' && row.model) {
+  // Aionrs type requires a persisted model; otherwise the session cannot be rebuilt safely.
+  if (row.type === 'aionrs') {
+    if (!row.model) {
+      throw new Error(`Aion CLI conversation ${row.id} is missing model configuration`);
+    }
     return {
       ...base,
       type: 'aionrs' as const,

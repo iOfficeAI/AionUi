@@ -202,6 +202,64 @@ describe('WorkerTaskManagerJobExecutor', () => {
     });
   });
 
+  describe('agent config', () => {
+    it('does not apply creator agent settings when executing in an existing conversation', async () => {
+      const task = {
+        ...makeTask('acp'),
+        setMode: vi.fn(async () => ({ success: true })),
+        setConfigOption: vi.fn(async () => undefined),
+        setModel: vi.fn(async () => undefined),
+      };
+      const taskManager = makeTaskManager({
+        getTask: vi.fn(() => task as any),
+      });
+      const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
+      const job = makeJob('codex-conv');
+      job.target.executionMode = 'existing';
+      job.metadata.agentConfig = {
+        backend: 'claude',
+        mode: 'plan',
+        modelId: 'claude-sonnet-4-6',
+        configOptions: { thinking: 'true' },
+      } as NonNullable<CronJob['metadata']['agentConfig']>;
+
+      await executor.executeJob(job);
+
+      expect(task.setMode).not.toHaveBeenCalled();
+      expect(task.setConfigOption).not.toHaveBeenCalled();
+      expect(task.setModel).not.toHaveBeenCalled();
+      expect(task.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it('applies stored agent settings when executing in a new conversation', async () => {
+      const task = {
+        ...makeTask('acp'),
+        setMode: vi.fn(async () => ({ success: true })),
+        setConfigOption: vi.fn(async () => undefined),
+        setModel: vi.fn(async () => undefined),
+      };
+      const taskManager = makeTaskManager({
+        getTask: vi.fn(() => task as any),
+      });
+      const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
+      const job = makeJob('cron-conv');
+      job.target.executionMode = 'new_conversation';
+      job.metadata.agentConfig = {
+        backend: 'claude',
+        mode: 'plan',
+        modelId: 'claude-sonnet-4-6',
+        configOptions: { thinking: 'true' },
+      } as NonNullable<CronJob['metadata']['agentConfig']>;
+
+      await executor.executeJob(job, undefined, 'cron-conv');
+
+      expect(task.setMode).toHaveBeenCalledWith('plan');
+      expect(task.setConfigOption).toHaveBeenCalledWith('thinking', 'true');
+      expect(task.setModel).toHaveBeenCalledWith('claude-sonnet-4-6');
+      expect(task.sendMessage).toHaveBeenCalledTimes(1);
+    });
+  });
+
   describe('hidden flag', () => {
     it('sets hidden=true on all cron messages', async () => {
       const task = makeTask('acp');

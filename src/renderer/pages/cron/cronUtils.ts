@@ -35,6 +35,21 @@ function formatCronExpr(expr: string, t: TFunction): string | null {
     return t('cron.page.scheduleDesc.hourly');
   }
 
+  const minuteStep = minute.match(/^\*\/(\d+)$/)?.[1];
+  if (minuteStep && hour === '*' && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+    return t('cron.page.scheduleDesc.everyMinutes', { value: Number(minuteStep) });
+  }
+
+  const hourStep = hour.match(/^\*\/(\d+)$/)?.[1];
+  if (minute === '0' && hourStep && dayOfMonth === '*' && month === '*' && dayOfWeek === '*') {
+    return t('cron.page.scheduleDesc.everyHours', { value: Number(hourStep) });
+  }
+
+  const dayStep = dayOfMonth.match(/^\*\/(\d+)$/)?.[1];
+  if (minute === '0' && hour === '9' && dayStep && month === '*' && dayOfWeek === '*') {
+    return t('cron.page.scheduleDesc.everyDays', { value: Number(dayStep) });
+  }
+
   if (dayOfMonth === '*' && month === '*' && dayOfWeek === '*' && hour !== '*' && minute !== '*') {
     return t('cron.page.scheduleDesc.dailyAt', { time });
   }

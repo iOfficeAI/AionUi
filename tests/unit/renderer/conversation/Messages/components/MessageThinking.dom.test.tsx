@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, fireEvent } from '@testing-library/react';
 import React from 'react';
 import MessageThinking from '@/renderer/pages/conversation/Messages/components/MessageThinking';
 
@@ -61,6 +61,29 @@ describe('MessageThinking Component', () => {
     const summary = screen.getByText(/45s/);
     expect(summary).toBeTruthy();
     expect(summary.textContent).not.toMatch(/\dm/);
+  });
+
+  it('should expose the thinking details toggle as an accessible button', () => {
+    render(<MessageThinking message={mockMessage} />);
+
+    const toggle = screen.getByRole('button', { name: /Thought complete/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+
+    fireEvent.click(toggle);
+
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('should toggle thinking details from keyboard activation', () => {
+    render(<MessageThinking message={mockMessage} />);
+
+    const toggle = screen.getByRole('button', { name: /Thought complete/ });
+
+    fireEvent.keyDown(toggle, { key: 'Enter' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.keyDown(toggle, { key: ' ' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('should format active thinking elapsed time (timer test)', () => {

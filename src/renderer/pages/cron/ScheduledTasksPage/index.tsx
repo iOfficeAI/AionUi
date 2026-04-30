@@ -11,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Switch, Message, Empty, Spin, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
-import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
+import { useAllCronJobs, useCronBindingsMap } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
 import { ACP_BACKENDS_ALL, type AcpBackendAll, type AcpBackendConfig } from '@/common/types/acpTypes';
@@ -43,6 +43,7 @@ const ScheduledTasksPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
+  const { bindingsMap } = useCronBindingsMap(jobs);
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
 
@@ -84,6 +85,15 @@ const ScheduledTasksPage: React.FC = () => {
       }
     },
     [pauseJob, resumeJob, t]
+  );
+
+  const handleJobCardKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLElement>, job: ICronJob) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      handleGoToDetail(job);
+    },
+    [handleGoToDetail]
   );
 
   return (
@@ -170,15 +180,23 @@ const ScheduledTasksPage: React.FC = () => {
                 job.target.executionMode === 'new_conversation'
                   ? t('cron.page.form.newConversation')
                   : t('cron.page.form.existingConversation');
+              const bindings = bindingsMap.get(job.id) || [];
+              const targetLabel = bindings.length
+                ? bindings.map((binding) => binding.conversationTitle || binding.conversationId).join(', ')
+                : '-';
 
               return (
                 <div
                   key={job.id}
+                  role='button'
+                  tabIndex={0}
+                  aria-label={`Open scheduled task ${job.name}`}
                   className={classNames(
                     'group flex cursor-pointer flex-col border border-solid border-[var(--color-border-2)] bg-fill-1 transition-colors duration-200 hover:border-[var(--color-border-3)] hover:shadow-sm',
                     isMobile ? 'rounded-12px px-16px py-16px' : 'rounded-12px px-20px py-18px'
                   )}
                   onClick={() => handleGoToDetail(job)}
+                  onKeyDown={(event) => handleJobCardKeyDown(event, job)}
                 >
                   <div className='mb-12px flex items-center justify-between gap-8px'>
                     <span
@@ -209,6 +227,15 @@ const ScheduledTasksPage: React.FC = () => {
                     {job.state.nextRunAtMs ? `${t('cron.nextRun')} ${formatNextRun(job.state.nextRunAtMs)}` : '-'}
                   </div>
 
+                  {job.target.executionMode !== 'new_conversation' && (
+                    <div
+                      className='mt-8px min-w-0 truncate text-12px leading-18px text-t-secondary'
+                      title={targetLabel}
+                    >
+                      {t('cron.binding.targetConversations')}: {targetLabel}
+                    </div>
+                  )}
+
                   <div className='mt-14px flex items-center justify-between gap-10px'>
                     <div className='min-w-0 flex items-center gap-6px text-12px leading-18px text-t-secondary'>
                       {agentMeta.name ? (
@@ -231,7 +258,11 @@ const ScheduledTasksPage: React.FC = () => {
                       <span className='min-w-0 truncate'>{executionModeLabel}</span>
                     </div>
 
-                    <div className='shrink-0' onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className='shrink-0'
+                      onClick={(e) => e.stopPropagation()}
+                      onKeyDown={(e) => e.stopPropagation()}
+                    >
                       {!isManualOnly && (
                         <Switch size='small' checked={job.enabled} onChange={() => handleToggleEnabled(job)} />
                       )}

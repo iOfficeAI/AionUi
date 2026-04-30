@@ -6,7 +6,7 @@
 
 import type { IMessageThinking } from '@/common/chat/chatLib';
 import { Spin } from '@arco-design/web-react';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './MessageThinking.module.css';
 
@@ -45,6 +45,7 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef<number>(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
+  const bodyId = useId();
 
   // Auto-collapse when status changes to done
   useEffect(() => {
@@ -76,15 +77,32 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
     ? `${t('conversation.thinking.complete', { defaultValue: 'Thought complete' })} (${formatDuration(duration || 0)}) — ${getFirstLine(text)}`
     : `${subject || t('conversation.thinking.label', { defaultValue: 'Thinking...' })} (${formatElapsedTime(elapsedTime)})`;
 
+  const toggleExpanded = useCallback(() => {
+    setExpanded((v) => !v);
+  }, []);
+
+  const handleHeaderKeyDown = useCallback((event: React.KeyboardEvent<HTMLButtonElement>) => {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    event.preventDefault();
+    setExpanded((v) => !v);
+  }, []);
+
   return (
     <div className={styles.container}>
       <hr className={styles.divider} />
-      <div className={styles.header} onClick={() => setExpanded((v) => !v)}>
+      <button
+        type='button'
+        className={styles.header}
+        aria-expanded={expanded}
+        aria-controls={bodyId}
+        onClick={toggleExpanded}
+        onKeyDown={handleHeaderKeyDown}
+      >
         {!isDone && <Spin size={12} />}
         <span className={`${styles.arrow} ${expanded ? styles.arrowExpanded : ''}`}>{'\u25B6'}</span>
         <span className={styles.summary}>{summaryText}</span>
-      </div>
-      <div ref={bodyRef} className={`${styles.body} ${!expanded ? styles.collapsed : ''}`}>
+      </button>
+      <div id={bodyId} ref={bodyRef} className={`${styles.body} ${!expanded ? styles.collapsed : ''}`}>
         {text}
       </div>
       <hr className={styles.divider} />

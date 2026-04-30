@@ -4,7 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IConversationService, CreateConversationParams, MigrateConversationParams } from './IConversationService';
+import type {
+  IConversationService,
+  CreateConversationParams,
+  MigrateConversationParams,
+  ConversationRollbackResult,
+} from './IConversationService';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
@@ -17,6 +22,7 @@ import {
   createRemoteAgent,
   createAionrsAgent,
 } from '@process/utils/initAgent';
+import { resetMessageCacheForRewrite } from '@process/utils/message';
 
 /**
  * Concrete implementation of IConversationService.
@@ -83,23 +89,14 @@ export class ConversationServiceImpl implements IConversationService {
         page++;
       }
 
-      // Migrate or delete cron jobs associated with source conversation
+      // Migrate or detach cron bindings associated with source conversation.
       try {
         const jobs = await cronService.listJobsByConversation(sourceConversationId);
-        if (migrateCron) {
-          for (const job of jobs) {
-            await cronService.updateJob(job.id, {
-              metadata: {
-                ...job.metadata,
-                conversationId: conv.id,
-                conversationTitle: conv.name,
-              },
-            });
+        for (const job of jobs) {
+          if (migrateCron) {
+            await cronService.bindConversation(job.id, conv.id);
           }
-        } else {
-          for (const job of jobs) {
-            await cronService.removeJob(job.id);
-          }
+          await cronService.unbindConversation(job.id, sourceConversationId);
         }
       } catch (err) {
         console.error('[ConversationServiceImpl] Failed to handle cron jobs during migration:', err);
@@ -119,6 +116,91 @@ export class ConversationServiceImpl implements IConversationService {
     }
 
     return conv;
+  }
+
+  async rollbackConversationToUserMessage(
+    id: string,
+    targetUserMessageId: string
+  ): Promise<ConversationRollbackResult> {
+    const conversation = await this.repo.getConversation(id);
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const { data: messages } = await this.repo.getMessages(id, 0, 10000, 'ASC');
+    const targetIndex = messages.findIndex((message) => message.id === targetUserMessageId);
+    if (targetIndex < 0) {
+      throw new Error('Target message not found');
+    }
+
+    const targetMessage = messages[targetIndex];
+    if (targetMessage.type !== 'text' || targetMessage.position !== 'right') {
+      throw new Error('Rollback target must be a user text message');
+    }
+
+    // Match Claude Code CLI's /rewind: "Restore the code and/or conversation
+    // to the point *before* this prompt". The target user message and
+    // everything after it is removed; the user message's text is returned so
+    // the renderer can repopulate the composer for an immediate re-send.
+    const restoredInput = targetMessage.content.content;
+    const deletedMessages = messages.slice(targetIndex);
+    const deletedMessageIds = deletedMessages.map((message) => message.id);
+
+    resetMessageCacheForRewrite(id);
+    if (deletedMessageIds.length > 0) {
+      await this.repo.deleteMessages(deletedMessageIds);
+    }
+
+    const nextExtra = {
+      ...conversation.extra,
+      acpSessionId: undefined,
+      acpSessionConversationId: undefined,
+      acpSessionUpdatedAt: undefined,
+      lastTokenUsage: undefined,
+      lastContextLimit: undefined,
+    } as TChatConversation['extra'];
+
+    await this.repo.updateConversation(id, {
+      extra: nextExtra,
+      modifyTime: Date.now(),
+    } as Partial<TChatConversation>);
+
+    return {
+      restoredInput,
+      deletedMessageIds,
+      deletedCount: deletedMessageIds.length,
+    };
+  }
+
+  async clearAllMessages(id: string): Promise<{ deletedCount: number }> {
+    const conversation = await this.repo.getConversation(id);
+    if (!conversation) {
+      throw new Error('Conversation not found');
+    }
+
+    const { data: messages } = await this.repo.getMessages(id, 0, 10000, 'ASC');
+    const messageIds = messages.map((message) => message.id);
+
+    resetMessageCacheForRewrite(id);
+    if (messageIds.length > 0) {
+      await this.repo.deleteMessages(messageIds);
+    }
+
+    const nextExtra = {
+      ...conversation.extra,
+      acpSessionId: undefined,
+      acpSessionConversationId: undefined,
+      acpSessionUpdatedAt: undefined,
+      lastTokenUsage: undefined,
+      lastContextLimit: undefined,
+    } as TChatConversation['extra'];
+
+    await this.repo.updateConversation(id, {
+      extra: nextExtra,
+      modifyTime: Date.now(),
+    } as Partial<TChatConversation>);
+
+    return { deletedCount: messageIds.length };
   }
 
   async createConversation(params: CreateConversationParams): Promise<TChatConversation> {

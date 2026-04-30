@@ -23,6 +23,7 @@ import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetec
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
+import { useResizableSider } from '@renderer/hooks/ui/useResizableSider';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
@@ -60,6 +61,8 @@ const useDebug = () => {
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 250;
+const DESKTOP_SIDER_MIN_WIDTH = 200;
+const DESKTOP_SIDER_MAX_WIDTH = 420;
 const DESKTOP_COLLAPSED_WIDTH = 64;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
@@ -86,11 +89,26 @@ const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
-  const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
+  const {
+    collapsed,
+    setCollapsed,
+    width: desktopSiderWidth,
+    isDragging: isSiderDragging,
+    beginResizeDrag: beginSiderResizeDrag,
+    beginMouseResizeDrag: beginSiderMouseResizeDrag,
+  } = useResizableSider({
+    defaultWidth: DEFAULT_SIDER_WIDTH,
+    minWidth: DESKTOP_SIDER_MIN_WIDTH,
+    maxWidth: DESKTOP_SIDER_MAX_WIDTH,
+    collapsedWidth: DESKTOP_COLLAPSED_WIDTH,
+    snapThreshold: SIDER_DRAG_SNAP_THRESHOLD,
+    snapHysteresis: SIDER_DRAG_HYSTERESIS,
+    disabled: isMobile,
+  });
   const [customCss, setCustomCss] = useState<string>('');
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
@@ -103,14 +121,8 @@ const Layout: React.FC<{
   const location = useLocation();
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
-  const collapsedRef = useRef(collapsed);
   const lastCssRef = useRef('');
   const lastUiCssUpdateAtRef = useRef(0);
-  const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
-    active: false,
-    startX: 0,
-    startWidth: DEFAULT_SIDER_WIDTH,
-  });
 
   const loadAndHealCustomCss = useCallback(async () => {
     try {
@@ -259,13 +271,15 @@ const Layout: React.FC<{
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 进入移动端后立即折叠 / Collapse immediately when switching to mobile
+  // 进入移动端后立即折叠 / Collapse immediately when switching to mobile.
+  // Depend only on isMobile so that the user can later expand the sider via
+  // the titlebar toggle without this effect re-running and folding it again.
   useEffect(() => {
-    if (!isMobile || collapsedRef.current) {
+    if (!isMobile) {
       return;
     }
     setCollapsed(true);
-  }, [isMobile]);
+  }, [isMobile, setCollapsed]);
 
   // 清理侧栏 Tooltip 残留节点，避免移动端路由切换后浮层卡在左上角
   useEffect(() => {
@@ -350,59 +364,8 @@ const Layout: React.FC<{
         MOBILE_SIDER_MIN_WIDTH,
         Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
       )
-    : DEFAULT_SIDER_WIDTH;
-  useEffect(() => {
-    collapsedRef.current = collapsed;
-  }, [collapsed]);
-
-  const beginSiderResizeDrag = useCallback(
-    (event: React.MouseEvent<HTMLDivElement>) => {
-      if (isMobile) return;
-      event.preventDefault();
-      dragStateRef.current = {
-        active: true,
-        startX: event.clientX,
-        startWidth: collapsedRef.current ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH,
-      };
-      document.body.style.cursor = 'col-resize';
-      document.body.style.userSelect = 'none';
-    },
-    [isMobile]
-  );
-
-  useEffect(() => {
-    const handleMouseMove = (event: MouseEvent) => {
-      const dragState = dragStateRef.current;
-      if (!dragState.active) return;
-
-      const draggedWidth = dragState.startWidth + (event.clientX - dragState.startX);
-      // Add a small hysteresis zone to avoid rapid toggling near the snap threshold.
-      const shouldCollapse = collapsedRef.current
-        ? draggedWidth < SIDER_DRAG_SNAP_THRESHOLD + SIDER_DRAG_HYSTERESIS
-        : draggedWidth <= SIDER_DRAG_SNAP_THRESHOLD - SIDER_DRAG_HYSTERESIS;
-      if (shouldCollapse !== collapsedRef.current) {
-        setCollapsed(shouldCollapse);
-      }
-    };
-
-    const endDrag = () => {
-      if (!dragStateRef.current.active) return;
-      dragStateRef.current.active = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-    };
-
-    const handleBlur = () => endDrag();
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', endDrag);
-    window.addEventListener('blur', handleBlur);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', endDrag);
-      window.removeEventListener('blur', handleBlur);
-      endDrag();
-    };
-  }, []);
+    : desktopSiderWidth;
+  const siderCollapsed = collapsed && !isSiderDragging;
 
   const siderStyle = isMobile
     ? {
@@ -431,10 +394,11 @@ const Layout: React.FC<{
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
             <ArcoLayout.Sider
               collapsedWidth={isMobile ? 0 : 64}
-              collapsed={collapsed}
+              collapsed={siderCollapsed}
               width={siderWidth}
               className={classNames('!bg-2 layout-sider', {
-                collapsed: collapsed,
+                collapsed: siderCollapsed,
+                'layout-sider--dragging': isSiderDragging,
               })}
               style={siderStyle}
             >
@@ -449,13 +413,13 @@ const Layout: React.FC<{
               >
                 <div
                   className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
-                    '!size-24px': collapsed,
+                    '!size-24px': siderCollapsed,
                   })}
                   onClick={onClick}
                 >
                   <svg
                     className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                      ' scale-140': !collapsed,
+                      ' scale-140': !siderCollapsed,
                     })}
                     viewBox='0 0 80 80'
                     fill='none'
@@ -500,7 +464,7 @@ const Layout: React.FC<{
                         cleanupSiderTooltips();
                         if (isMobile) setCollapsed(true);
                       },
-                      collapsed,
+                      collapsed: siderCollapsed,
                     } as any)
                   : sider}
               </ArcoLayout.Content>
@@ -508,7 +472,8 @@ const Layout: React.FC<{
                 <div
                   className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
                   style={{ right: '-4px' }}
-                  onMouseDown={beginSiderResizeDrag}
+                  onPointerDown={beginSiderResizeDrag}
+                  onMouseDown={beginSiderMouseResizeDrag}
                   aria-hidden='true'
                 >
                   <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />

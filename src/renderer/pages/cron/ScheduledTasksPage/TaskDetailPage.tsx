@@ -15,7 +15,7 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
-import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
+import { useCronJobBindings, useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 
 const TaskDetailPage: React.FC = () => {
@@ -30,6 +30,7 @@ const TaskDetailPage: React.FC = () => {
   const isNewConversationMode = job?.target.executionMode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(jobId);
+  const { bindings, refetch: refetchBindings } = useCronJobBindings(jobId);
 
   const fetchJob = useCallback(async () => {
     if (!jobId) return;
@@ -88,7 +89,7 @@ const TaskDetailPage: React.FC = () => {
         navigate(`/conversation/${result.conversationId}`);
       }
     } catch (err) {
-      Message.error(String(err));
+      Message.error(err instanceof Error ? err.message : String(err));
     } finally {
       setRunningNow(false);
     }
@@ -104,6 +105,20 @@ const TaskDetailPage: React.FC = () => {
       Message.error(String(err));
     }
   }, [job, navigate, t]);
+
+  const handleUnbind = useCallback(
+    async (conversationId: string) => {
+      if (!job) return;
+      try {
+        await ipcBridge.cron.unbindConversation.invoke({ jobId: job.id, conversationId });
+        Message.success(t('cron.binding.unbindSuccess'));
+        await refetchBindings();
+      } catch (err) {
+        Message.error(String(err));
+      }
+    },
+    [job, refetchBindings, t]
+  );
 
   if (loading) {
     return (
@@ -250,6 +265,44 @@ const TaskDetailPage: React.FC = () => {
                 </div>
               </div>
             </section>
+
+            {job.target.executionMode !== 'new_conversation' && (
+              <section className='flex flex-col gap-10px'>
+                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.binding.targetConversations')}</h2>
+                {bindings.length > 0 ? (
+                  <div className='flex flex-col gap-8px'>
+                    {bindings.map((binding) => (
+                      <div
+                        key={binding.id}
+                        className='flex min-w-0 items-center justify-between gap-8px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-12px py-10px'
+                      >
+                        <Button
+                          type='text'
+                          className='!h-auto !min-w-0 !flex-1 !justify-start !px-0 !py-0 !text-left hover:!bg-transparent'
+                          onClick={() => navigate(`/conversation/${binding.conversationId}`)}
+                        >
+                          <span className='block min-w-0'>
+                            <span className='block min-w-0 truncate text-14px leading-20px text-t-primary'>
+                              {binding.conversationTitle || binding.conversationId}
+                            </span>
+                            {binding.conversationSource && (
+                              <span className='block min-w-0 truncate text-12px leading-18px text-t-secondary'>
+                                {binding.conversationSource}
+                              </span>
+                            )}
+                          </span>
+                        </Button>
+                        <Button size='mini' type='text' onClick={() => handleUnbind(binding.conversationId)}>
+                          {t('cron.binding.unbind')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className='text-14px text-t-secondary'>{t('cron.binding.noBoundTasks')}</div>
+                )}
+              </section>
+            )}
 
             {job.metadata.agentConfig && (
               <section className='flex flex-col gap-10px'>

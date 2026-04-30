@@ -36,6 +36,13 @@ export function isCaretOnFirstLine(textarea: HTMLTextAreaElement): boolean {
   return !textarea.value.slice(0, selectionStart).includes('\n');
 }
 
+export function isCaretAtLineStart(textarea: HTMLTextAreaElement): boolean {
+  const pos = textarea.selectionStart ?? 0;
+  if (pos === 0) return true;
+  const textBefore = textarea.value.slice(0, pos);
+  return textBefore.endsWith('\n');
+}
+
 export function isCaretOnLastLine(textarea: HTMLTextAreaElement): boolean {
   const selectionEnd = textarea.selectionEnd ?? textarea.value.length;
   return !textarea.value.slice(selectionEnd).includes('\n');

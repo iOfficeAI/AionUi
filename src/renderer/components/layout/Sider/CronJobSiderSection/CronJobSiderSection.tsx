@@ -17,9 +17,10 @@ interface CronJobSiderSectionProps {
   jobs: ICronJob[];
   pathname: string;
   onNavigate: (path: string) => void;
+  batchMode?: boolean;
 }
 
-const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathname, onNavigate }) => {
+const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathname, onNavigate, batchMode = false }) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
 
@@ -116,6 +117,7 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
             pathname={pathname}
             onNavigate={onNavigate}
             existingConversation={existingConversations.get(job.metadata.conversationId)}
+            batchMode={batchMode}
           />
         ))}
     </div>

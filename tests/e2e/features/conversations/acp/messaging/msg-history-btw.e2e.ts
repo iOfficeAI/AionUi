@@ -78,7 +78,111 @@ test.describe('F-MSG-06 输入框历史记录', () => {
 });
 
 test.describe('F-MSG-07 重试与撤销上一轮对话', () => {
-  test.skip('整个功能未实现（skip 白名单：F-MSG-07 undo/redo 未实现）', async () => {});
+  test('Claude /rewind 会打开回退选择并真实裁剪消息历史', async ({ page }) => {
+    await goToGuid(page);
+    await selectAgent(page, 'claude');
+    const conversationId = await sendMessageFromGuid(page, 'F-MSG-07 rewind first turn');
+    createdIds.push(conversationId);
+    await waitForSessionActive(page, 120_000);
+    await waitForAiReply(page, 120_000);
+
+    const textarea = page.locator('textarea').first();
+    await expect(textarea).toBeVisible({ timeout: 15_000 });
+    await textarea.fill('F-MSG-07 rewind second turn');
+    await textarea.press('Enter');
+    await waitForAiReply(page, 120_000);
+
+    const beforeMessages = await invokeBridge<
+      Array<{ id: string; type?: string; position?: string; content?: { content?: string } }>
+    >(page, 'database.get-conversation-messages', { conversation_id: conversationId });
+    const beforeUserCount = beforeMessages.filter(
+      (message) => message.type === 'text' && message.position === 'right'
+    ).length;
+    expect(beforeUserCount).toBeGreaterThanOrEqual(2);
+
+    await textarea.fill('/rewind');
+    await textarea.press('Enter');
+
+    await expect(page.getByText(/Rewind conversation/i)).toBeVisible({ timeout: 15_000 });
+    await page.getByRole('button', { name: /F-MSG-07 rewind second turn/i }).click();
+
+    await expect(page.getByText(/Rewind conversation/i)).toHaveCount(0, { timeout: 15_000 });
+    await expect(textarea).toHaveValue('F-MSG-07 rewind second turn', { timeout: 15_000 });
+
+    await expect
+      .poll(
+        async () => {
+          const messages = await invokeBridge<
+            Array<{ type?: string; position?: string; content?: { content?: string } }>
+          >(page, 'database.get-conversation-messages', { conversation_id: conversationId });
+          return messages.filter((message) => message.type === 'text' && message.position === 'right').length;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(beforeUserCount - 1);
+
+    const afterMessages = await invokeBridge<
+      Array<{ type?: string; position?: string; content?: { content?: string } }>
+    >(page, 'database.get-conversation-messages', { conversation_id: conversationId });
+    const hasRemovedPrompt = afterMessages.some(
+      (message) =>
+        message.type === 'text' &&
+        message.position === 'right' &&
+        message.content?.content === 'F-MSG-07 rewind second turn'
+    );
+    expect(hasRemovedPrompt).toBe(false);
+  });
+
+  test('Codex /undo 会真实裁剪最近一轮并恢复输入框', async ({ page }) => {
+    await goToGuid(page);
+    await selectAgent(page, 'codex');
+    const conversationId = await sendMessageFromGuid(page, 'F-MSG-07 codex undo first turn');
+    createdIds.push(conversationId);
+    await waitForSessionActive(page, 120_000);
+    await waitForAiReply(page, 120_000);
+
+    const textarea = page.locator('textarea').first();
+    await expect(textarea).toBeVisible({ timeout: 15_000 });
+    await textarea.fill('F-MSG-07 codex undo second turn');
+    await textarea.press('Enter');
+    await waitForAiReply(page, 120_000);
+
+    const beforeMessages = await invokeBridge<
+      Array<{ type?: string; position?: string; content?: { content?: string } }>
+    >(page, 'database.get-conversation-messages', { conversation_id: conversationId });
+    const beforeUserCount = beforeMessages.filter(
+      (message) => message.type === 'text' && message.position === 'right'
+    ).length;
+    expect(beforeUserCount).toBeGreaterThanOrEqual(2);
+
+    await textarea.fill('/undo');
+    await textarea.press('Enter');
+
+    await expect(textarea).toHaveValue('F-MSG-07 codex undo second turn', { timeout: 15_000 });
+
+    await expect
+      .poll(
+        async () => {
+          const messages = await invokeBridge<
+            Array<{ type?: string; position?: string; content?: { content?: string } }>
+          >(page, 'database.get-conversation-messages', { conversation_id: conversationId });
+          return messages.filter((message) => message.type === 'text' && message.position === 'right').length;
+        },
+        { timeout: 15_000 }
+      )
+      .toBe(beforeUserCount - 1);
+
+    const afterMessages = await invokeBridge<
+      Array<{ type?: string; position?: string; content?: { content?: string } }>
+    >(page, 'database.get-conversation-messages', { conversation_id: conversationId });
+    const hasRemovedPrompt = afterMessages.some(
+      (message) =>
+        message.type === 'text' &&
+        message.position === 'right' &&
+        message.content?.content === 'F-MSG-07 codex undo second turn'
+    );
+    expect(hasRemovedPrompt).toBe(false);
+  });
 });
 
 test.describe('F-MSG-08 /btw 追加上下文', () => {

@@ -246,7 +246,7 @@ describe('CronJobSiderItem', () => {
     id: 'job-2',
     name: 'Existing Mode Job',
     target: {
-      executionMode: 'existing_conversation',
+      executionMode: 'existing',
       existingConversation: {
         message: 'Update',
       },

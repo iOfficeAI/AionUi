@@ -104,7 +104,10 @@
       "workspaceHint": "[Optional: set a workspace folder for file operations]",
       "selectFolder": "[Select Folder]",
       "clearFolder": "[Clear]",
-      "model": "[Model]"
+      "model": "[Model]",
+      "customIntervalPrefix": "Every",
+      "customIntervalPlaceholder": "10",
+      "customIntervalInvalid": "Enter a valid interval for the selected unit"
     },
     "freq": {
       "manual": "Вручную",
@@ -114,12 +117,20 @@
       "weekly": "Еженедельно",
       "custom": "Пользовательский"
     },
+    "customIntervalUnit": {
+      "minutes": "minutes",
+      "hours": "hours",
+      "days": "days"
+    },
     "scheduleDesc": {
       "manual": "Вручную",
       "hourly": "Каждый час",
       "dailyAt": "Каждый день в {{time}}",
       "weekdaysAt": "По будням в {{time}}",
-      "weeklyAt": "Каждый {{day}} в {{time}}"
+      "weeklyAt": "Каждый {{day}} в {{time}}",
+      "everyMinutes": "Every {{value}} minutes",
+      "everyHours": "Every {{value}} hours",
+      "everyDays": "Every {{value}} days at 09:00"
     }
   },
   "trigger": {
@@ -139,6 +150,21 @@
     "jobNotFound": "Задача не найдена: {{id}}",
     "conversationNotFound": "Диалог не найден",
     "scheduledTimePassed": "Запланированное время прошло",
-    "conversationBusy": "Диалог занят после {{count}} попыток"
+    "conversationBusy": "Диалог занят после {{count}} попыток",
+    "existingNoBindings": "Задача в постоянном режиме не привязана ни к одному диалогу, мгновенный запуск невозможен. Сначала привяжите её хотя бы к одному диалогу."
+  },
+  "binding": {
+    "title": "Запланированные задачи для этого диалога",
+    "boundTasks": "Привязанные задачи",
+    "availableTasks": "Доступные задачи",
+    "bind": "Привязать",
+    "unbind": "Отвязать",
+    "bindSuccess": "Задача привязана к этому диалогу",
+    "unbindSuccess": "Задача отвязана от этого диалога",
+    "createAndBind": "Новая задача",
+    "noBoundTasks": "К этому диалогу нет привязанных задач",
+    "noAvailableTasks": "Нет текущих задач, доступных для привязки",
+    "boundTaskCount": "Привязано задач: {{count}}",
+    "targetConversations": "Целевые диалоги"
   }
 }
