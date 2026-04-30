@@ -1141,6 +1141,18 @@ const SendBox: React.FC<{
 
   const sendMessageHandler = () => {
     if (isUploading) return;
+    // Cancel any pending warmup: once the user actually submits, the
+    // forthcoming /messages request will build the agent on its own.
+    // Without this, a focus-triggered warmup timer still fires ~1s later
+    // and races the real send over the same conversation.
+    if (warmupTimerRef.current) {
+      clearTimeout(warmupTimerRef.current);
+      warmupTimerRef.current = null;
+    }
+    const activeCid = conversationContext?.conversation_id;
+    if (activeCid) {
+      warmedConversationRef.current = activeCid;
+    }
     if (enableBtw && btwQuestion !== null) {
       const normalizedQuestion = btwQuestion.trim();
       if (!normalizedQuestion) {
