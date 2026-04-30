@@ -72,8 +72,8 @@ import {
 // ---------------------------------------------------------------------------
 
 export const shell = {
-  openFile: httpPost<void, string>('/api/shell/open-file', (path) => ({ path })),
-  showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (path) => ({ path })),
+  openFile: httpPost<void, string>('/api/shell/open-file', (file_path) => ({ file_path })),
+  showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
   openExternal: httpPost<void, string>('/api/shell/open-external', (url) => ({ url })),
   checkToolInstalled: httpPost<boolean, { tool: string }>('/api/shell/check-tool-installed'),
   openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
@@ -516,9 +516,11 @@ export const fileWatch = {
   fileChanged: wsEmitter<{ file_path: string; event_type: string }>('fileWatch.fileChanged'),
 };
 
-// Workspace Office file scan
+// Workspace Office file watch
 export const workspaceOfficeWatch = {
-  scan: httpPost<string[], { workspace: string }>('/api/fs/office-watch/start'),
+  start: httpPost<void, { workspace: string }>('/api/fs/office-watch/start'),
+  stop: httpPost<void, { workspace: string }>('/api/fs/office-watch/stop'),
+  fileAdded: wsEmitter<{ file_path: string; workspace: string }>('workspaceOfficeWatch.fileAdded'),
 };
 
 // File streaming updates (real-time content push when agent writes)

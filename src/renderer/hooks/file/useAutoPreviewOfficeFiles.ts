@@ -7,25 +7,31 @@
 import { ipcBridge } from '@/common';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import {
-  findNewOfficeFiles,
-  isOfficeAutoPreviewTriggerMessage,
-  useAutoPreviewOfficeFilesEnabled,
-} from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
+import { useAutoPreviewOfficeFilesEnabled } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback, useEffect, useRef } from 'react';
 
-const OFFICE_SCAN_DEBOUNCE_MS = 1500;
 const OFFICE_OPEN_DELAY_MS = 1000;
+const OFFICE_CONTENT_TYPES = new Set(['ppt', 'word', 'excel']);
+
+const normalizeWatchPath = (value: string): string => {
+  const normalized = value.replaceAll('\\', '/');
+
+  if (normalized === '/private/var') return '/var';
+  if (normalized.startsWith('/private/var/')) return normalized.slice('/private'.length);
+  if (normalized === '/private/tmp') return '/tmp';
+  if (normalized.startsWith('/private/tmp/')) return normalized.slice('/private'.length);
+
+  return normalized;
+};
 
 /**
  * Auto-opens a preview tab when a new .pptx/.docx/.xlsx file appears in the
  * workspace during the current conversation.
  *
- * Instead of keeping a recursive fs watcher alive for the entire workspace,
- * this hook performs a debounced Office-file scan only after conversation tool
- * activity or turn completion. That avoids continuously watching large source
- * trees such as repositories containing node_modules.
+ * The backend keeps a workspace watcher and emits `workspaceOfficeWatch.fileAdded`
+ * when a matching file is created. This hook captures the initial baseline once,
+ * then opens previews only for newly added Office files.
  */
 export const useAutoPreviewOfficeFiles = (
   conversation: Pick<ConversationContextValue, 'conversation_id' | 'workspace'> | null
@@ -33,11 +39,9 @@ export const useAutoPreviewOfficeFiles = (
   const enabled = useAutoPreviewOfficeFilesEnabled();
   const { findPreviewTab, openPreview } = usePreviewContext();
   const knownOfficeFilesRef = useRef<Set<string>>(new Set());
-  const scanTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const openTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const scanRequestIdRef = useRef(0);
   const workspace = conversation?.workspace?.trim() ? conversation.workspace : undefined;
-  const conversation_id = conversation?.conversation_id;
+  const normalizedWorkspace = workspace ? normalizeWatchPath(workspace) : undefined;
 
   const clearPendingOpenTimers = useCallback(() => {
     for (const timer of openTimersRef.current.values()) {
@@ -46,100 +50,77 @@ export const useAutoPreviewOfficeFiles = (
     openTimersRef.current.clear();
   }, []);
 
-  const syncOfficeFiles = useCallback(
-    async (openNewFiles: boolean) => {
-      if (!enabled || !workspace || !conversation_id) return;
+  const openOfficePreview = useCallback(
+    (file_path: string) => {
+      if (!workspace) return;
+      const normalizedFilePath = normalizeWatchPath(file_path);
+      if (openTimersRef.current.has(normalizedFilePath)) return;
 
-      const requestId = ++scanRequestIdRef.current;
+      const { contentType } = getFileTypeInfo(file_path);
+      if (!OFFICE_CONTENT_TYPES.has(contentType)) return;
 
-      try {
-        const currentFiles = await ipcBridge.workspaceOfficeWatch.scan.invoke({ workspace });
-        if (requestId !== scanRequestIdRef.current) return;
+      const file_name = file_path.split(/[\\/]/).pop() ?? file_path;
+      const timer = setTimeout(() => {
+        openTimersRef.current.delete(normalizedFilePath);
 
-        if (openNewFiles) {
-          const newFiles = findNewOfficeFiles(currentFiles, knownOfficeFilesRef.current);
-
-          for (const file_path of newFiles) {
-            if (openTimersRef.current.has(file_path)) {
-              continue;
-            }
-
-            const { contentType } = getFileTypeInfo(file_path);
-            const file_name = file_path.split(/[\\/]/).pop() ?? file_path;
-
-            const timer = setTimeout(() => {
-              openTimersRef.current.delete(file_path);
-
-              if (!findPreviewTab(contentType, '', { file_path, file_name })) {
-                openPreview('', contentType, { file_path, file_name, title: file_name, workspace, editable: false });
-              }
-            }, OFFICE_OPEN_DELAY_MS);
-
-            openTimersRef.current.set(file_path, timer);
-          }
+        if (!findPreviewTab(contentType, '', { file_path, file_name })) {
+          openPreview('', contentType, { file_path, file_name, title: file_name, workspace, editable: false });
         }
+      }, OFFICE_OPEN_DELAY_MS);
 
-        knownOfficeFilesRef.current = new Set(currentFiles);
-      } catch {
-        // Ignore scan failures and keep current baseline unchanged.
-      }
+      openTimersRef.current.set(normalizedFilePath, timer);
     },
-    [conversation_id, enabled, findPreviewTab, openPreview, workspace]
+    [findPreviewTab, openPreview, workspace]
   );
-
-  const scheduleOfficeScan = useCallback(() => {
-    if (scanTimerRef.current) {
-      clearTimeout(scanTimerRef.current);
-    }
-
-    scanTimerRef.current = setTimeout(() => {
-      scanTimerRef.current = null;
-      void syncOfficeFiles(true);
-    }, OFFICE_SCAN_DEBOUNCE_MS);
-  }, [syncOfficeFiles]);
 
   useEffect(() => {
     knownOfficeFilesRef.current = new Set();
-    scanRequestIdRef.current += 1;
     clearPendingOpenTimers();
 
-    if (scanTimerRef.current) {
-      clearTimeout(scanTimerRef.current);
-      scanTimerRef.current = null;
-    }
-
-    if (!enabled || !workspace || !conversation_id) {
+    if (!enabled || !workspace) {
       return;
     }
 
-    void syncOfficeFiles(false);
+    let cancelled = false;
+    const primeOfficeWatch = async () => {
+      try {
+        await ipcBridge.workspaceOfficeWatch.start.invoke({ workspace });
+        const currentFiles = await ipcBridge.fs.listWorkspaceFiles.invoke({ root: workspace });
+        if (cancelled) return;
+        knownOfficeFilesRef.current = new Set(
+          currentFiles
+            .map((file) => file.fullPath)
+            .map((file_path) => normalizeWatchPath(file_path))
+            .filter((file_path) => OFFICE_CONTENT_TYPES.has(getFileTypeInfo(file_path).contentType))
+        );
+      } catch {
+        // Ignore watcher/bootstrap failures; the hook should stay inert rather than noisy.
+      }
+    };
 
-    const unsubscribeResponse = ipcBridge.conversation.responseStream.on((message) => {
-      if (message.conversation_id !== conversation_id) return;
-      if (!isOfficeAutoPreviewTriggerMessage(message)) return;
+    void primeOfficeWatch();
 
-      scheduleOfficeScan();
-    });
+    const unsubscribeFileAdded = ipcBridge.workspaceOfficeWatch.fileAdded.on((event) => {
+      try {
+        const normalizedEventWorkspace = normalizeWatchPath(event.workspace);
+        if (normalizedEventWorkspace !== normalizedWorkspace) return;
 
-    const unsubscribeTurnCompleted = ipcBridge.conversation.turnCompleted.on((event) => {
-      if (event.session_id !== conversation_id) return;
-      if (event.status !== 'finished') return;
+        const normalizedFilePath = normalizeWatchPath(event.file_path);
+        if (knownOfficeFilesRef.current.has(normalizedFilePath)) return;
 
-      scheduleOfficeScan();
+        knownOfficeFilesRef.current.add(normalizedFilePath);
+        openOfficePreview(event.file_path);
+      } catch (error) {
+        console.error('[useAutoPreviewOfficeFiles] failed to process fileAdded event', error, event);
+      }
     });
 
     return () => {
-      unsubscribeResponse();
-      unsubscribeTurnCompleted();
-
-      if (scanTimerRef.current) {
-        clearTimeout(scanTimerRef.current);
-        scanTimerRef.current = null;
-      }
-
+      cancelled = true;
+      unsubscribeFileAdded();
       clearPendingOpenTimers();
       knownOfficeFilesRef.current.clear();
-      scanRequestIdRef.current += 1;
+      void ipcBridge.workspaceOfficeWatch.stop.invoke({ workspace }).catch(() => {});
     };
-  }, [clearPendingOpenTimers, conversation_id, enabled, scheduleOfficeScan, syncOfficeFiles, workspace]);
+  }, [clearPendingOpenTimers, enabled, normalizedWorkspace, openOfficePreview, workspace]);
 };

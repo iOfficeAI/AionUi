@@ -83,6 +83,32 @@ interface OfficeWatchErrorState {
   message: string;
 }
 
+function resolveOfficeWatchUrl(url: string, docType: DocType): string {
+  const proxyMatch = url.match(/^\/api\/(?:office-watch-proxy|ppt-proxy)\/(\d+)(\/.*)?$/);
+  if (proxyMatch && isElectronDesktop()) {
+    const [, port, suffix] = proxyMatch;
+    return `http://127.0.0.1:${port}${suffix || '/'}`;
+  }
+
+  if (url.startsWith('/')) {
+    if (!isElectronDesktop()) {
+      const proxyPortMatch = url.match(/^\/api\/(?:office-watch-proxy|ppt-proxy)\/(\d+)(\/.*)?$/);
+      if (proxyPortMatch) {
+        const [, port, suffix] = proxyPortMatch;
+        return `${PROXY_PATH[docType]}/${port}${suffix || '/'}`;
+      }
+    }
+    return `${getBaseUrl()}${url}`;
+  }
+
+  if (!isElectronDesktop()) {
+    const parsed = new URL(url);
+    return `${PROXY_PATH[docType]}/${parsed.port}/`;
+  }
+
+  return url;
+}
+
 function normalizeOfficeWatchErrorCode(error?: string | null): OfficeWatchErrorCode | undefined {
   switch (error) {
     case 'OFFICECLI_NOT_FOUND':
@@ -158,13 +184,7 @@ const OfficeWatchViewer: React.FC<OfficeWatchViewerProps> = ({ docType, file_pat
         // Small delay to ensure the watch HTTP server is fully ready for the webview
         await new Promise((r) => setTimeout(r, 300));
         if (!cancelled) {
-          let resolvedUrl = url;
-          if (url.startsWith('/')) {
-            resolvedUrl = `${getBaseUrl()}${url}`;
-          } else if (!isElectronDesktop()) {
-            const port = new URL(url).port;
-            resolvedUrl = `${PROXY_PATH[docType]}/${port}/`;
-          }
+          const resolvedUrl = resolveOfficeWatchUrl(url, docType);
           setWatchUrl(resolvedUrl);
           setLoading(false);
         }

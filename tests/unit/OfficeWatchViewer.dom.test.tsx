@@ -61,7 +61,7 @@ describe('OfficeWatchViewer', () => {
     stopInvokeMock.mockResolvedValue(undefined);
   });
 
-  it('forwards workspace on successful start', async () => {
+  it('forwards workspace and uses direct officecli URL on Electron', async () => {
     startInvokeMock.mockResolvedValue({ url: '/api/office-watch-proxy/12345' });
 
     render(<OfficeWatchViewer docType='word' file_path='/tmp/report.docx' workspace='/tmp/ws' />);
@@ -74,10 +74,7 @@ describe('OfficeWatchViewer', () => {
       file_path: '/tmp/report.docx',
       workspace: '/tmp/ws',
     });
-    expect(screen.getByTestId('webview-host')).toHaveAttribute(
-      'data-url',
-      'http://127.0.0.1:13400/api/office-watch-proxy/12345'
-    );
+    expect(screen.getByTestId('webview-host')).toHaveAttribute('data-url', 'http://127.0.0.1:12345/');
   });
 
   it('renders install guide action for OFFICECLI_NOT_FOUND', async () => {
