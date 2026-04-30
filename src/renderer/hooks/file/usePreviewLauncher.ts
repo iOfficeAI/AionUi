@@ -13,6 +13,7 @@ import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
   LARGE_TEXT_PREVIEW_THRESHOLD,
 } from '@/renderer/pages/conversation/Preview/constants';
+import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/previewError';
 import { useCallback, useState } from 'react';
 
 const LARGE_TEXT_PREVIEW_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html', 'diff']);
@@ -71,6 +72,7 @@ export const usePreviewLauncher = () => {
   const workspace = conversationContext?.workspace;
   const { openPreview } = usePreviewContext();
   const [loading, setLoading] = useState(false);
+  const [errorKind, setErrorKind] = useState<PreviewErrorKind | null>(null);
 
   /**
    * 启动预览面板 / Launch preview panel
@@ -88,6 +90,7 @@ export const usePreviewLauncher = () => {
       diffContent,
     }: PreviewLaunchOptions) => {
       setLoading(true);
+      setErrorKind(null);
 
       // 路径解析 / Path resolution
       // 优先使用工作区 + 相对路径拼接绝对路径 / Prefer workspace + relative path to build absolute path
@@ -106,6 +109,7 @@ export const usePreviewLauncher = () => {
         file_path: resolvedPath,
         workspace,
         language,
+        truncated: false,
       };
 
       // 1. 乐观预览：如果有回退内容（如 Diff 中提取的内容），立即显示 / Optimistic preview: Show fallback content immediately if available
@@ -115,6 +119,7 @@ export const usePreviewLauncher = () => {
         openPreview(normalizedFallback.content, contentType, {
           ...metadata,
           editable: normalizedFallback.truncated ? false : editable,
+          truncated: normalizedFallback.truncated,
         });
         hasOpened = true;
       }
@@ -126,7 +131,11 @@ export const usePreviewLauncher = () => {
             const pathToRead = absolutePath || originalPath;
 
             if (contentType === 'image') {
-              const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: pathToRead! });
+              const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: pathToRead!, workspace });
+              if (!base64) {
+                setErrorKind(classifyPreviewError(base64));
+                return;
+              }
               openPreview(base64, contentType, {
                 ...metadata,
                 editable,
@@ -147,18 +156,27 @@ export const usePreviewLauncher = () => {
 
             // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
             const content = await Promise.race([
-              ipcBridge.fs.readFile.invoke({ path: pathToRead! }),
+              ipcBridge.fs.readFile.invoke({ path: pathToRead!, workspace }),
               new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000)),
             ]);
+            if (content == null) {
+              setErrorKind(classifyPreviewError(content));
+              return;
+            }
             const normalizedContent = normalizeLargeTextPreview(content, contentType);
             openPreview(normalizedContent.content, contentType, {
               ...metadata,
               editable: normalizedContent.truncated ? false : editable,
+              truncated: normalizedContent.truncated,
             });
             return;
           } catch (error) {
             // 读取失败，如果已经显示了乐观预览，则只记录警告
             // Read failed, log warning if optimistic preview is already shown
+            setErrorKind(classifyPreviewError(error));
+            if (!hasOpened) {
+              return;
+            }
           }
         }
 
@@ -174,6 +192,7 @@ export const usePreviewLauncher = () => {
           }
         }
       } catch (error) {
+        setErrorKind(classifyPreviewError(error));
         console.error('[usePreviewLauncher] Failed to open preview:', error);
       } finally {
         setLoading(false);
@@ -182,7 +201,7 @@ export const usePreviewLauncher = () => {
     [workspace, openPreview]
   );
 
-  return { launchPreview, loading };
+  return { launchPreview, loading, errorKind };
 };
 
 export type { PreviewLaunchOptions };

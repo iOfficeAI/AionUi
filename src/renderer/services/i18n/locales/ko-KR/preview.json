@@ -57,11 +57,22 @@
   "openInPanelTooltip": "미리보기 패널에서 보기",
   "mermaidTitle": "Mermaid 다이어그램",
   "largeTextTruncatedHint": "대용량 파일 미리보기 모드: 성능을 위해 앞의 {{count}}자만 표시합니다.",
+  "truncatedBanner": "미리보기 내용이 잘렸습니다. 전체 파일은 다운로드해서 확인하세요.",
   "errors": {
     "missingFilePath": "파일 경로가 누락되었습니다",
     "openWithoutPath": "열 수 없음: 파일 경로가 제공되지 않았습니다",
     "conversionFailed": "변환 실패",
     "emptySnapshot": "스냅샷 내용이 비어 있습니다"
+  },
+  "office": {
+    "installLinkText": "officecli 설치 안내 열기",
+    "errors": {
+      "officecliNotFound": "officecli가 설치되어 있지 않습니다.",
+      "installFailed": "officecli 자동 설치에 실패했습니다. 백엔드 로그를 확인한 뒤 다시 시도하세요.",
+      "portTimeout": "미리보기 서비스가 시작되었지만 제시간에 준비되지 않았습니다. 다시 시도하세요.",
+      "startFailed": "Office 미리보기 서비스 시작에 실패했습니다.",
+      "outsideSandbox": "이 파일은 현재 워크스페이스 샌드박스 범위 밖에 있습니다."
+    }
   },
   "word": {
     "title": "Word 문서",

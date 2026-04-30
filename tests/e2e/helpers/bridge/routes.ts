@@ -80,7 +80,7 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
   'word-preview.start': {
     method: 'POST',
     path: '/api/word-preview/start',
-    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, workspace: p.workspace }),
   },
   'word-preview.stop': {
     method: 'POST',
@@ -90,7 +90,7 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
   'excel-preview.start': {
     method: 'POST',
     path: '/api/excel-preview/start',
-    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, workspace: p.workspace }),
   },
   'excel-preview.stop': {
     method: 'POST',
@@ -100,7 +100,7 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
   'ppt-preview.start': {
     method: 'POST',
     path: '/api/ppt-preview/start',
-    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath }),
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, workspace: p.workspace }),
   },
   'ppt-preview.stop': {
     method: 'POST',
@@ -110,7 +110,7 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
   'document.convert': {
     method: 'POST',
     path: '/api/document/convert',
-    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, to: p.to }),
+    mapBody: (p) => ({ file_path: p.file_path ?? p.filePath, to: p.to, workspace: p.workspace }),
   },
   'preview-history.list': { method: 'POST', path: '/api/preview-history/list' },
   'preview-history.save': { method: 'POST', path: '/api/preview-history/save' },

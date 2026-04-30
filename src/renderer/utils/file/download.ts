@@ -22,8 +22,11 @@ function triggerBlobDownload(blob: Blob, file_name: string): void {
  * Download a file by reading its raw bytes from disk (works in both Electron and WebUI).
  * Uses getImageBase64 + in-memory atob decode to bypass CSP connect-src restrictions.
  */
-export async function downloadFileFromPath(file_path: string, file_name: string): Promise<void> {
-  const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: file_path });
+export async function downloadFileFromPath(file_path: string, file_name: string, workspace?: string): Promise<void> {
+  const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
+  if (!dataUrl) {
+    throw new Error('File data not found');
+  }
   const ext = file_name.split('.').pop()?.toLowerCase() ?? '';
   const mimeType = BINARY_MIME_MAP[ext] ?? 'application/octet-stream';
   const blob = base64ToBlob(dataUrl, mimeType);

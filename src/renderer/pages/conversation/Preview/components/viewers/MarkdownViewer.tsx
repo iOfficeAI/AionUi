@@ -39,6 +39,7 @@ interface MarkdownPreviewProps {
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
   file_path?: string; // 当前 Markdown 文件的绝对路径 / Absolute file path of current markdown
+  workspace?: string;
 }
 
 const isDataOrRemoteUrl = (value?: string): boolean => {
@@ -53,6 +54,7 @@ const isAbsoluteLocalPath = (value?: string): boolean => {
 
 interface MarkdownImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   baseDir?: string;
+  workspace?: string;
 }
 
 const useImageResolverCache = () => {
@@ -86,7 +88,7 @@ const useImageResolverCache = () => {
   return resolve;
 };
 
-const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...props }) => {
+const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, workspace, ...props }) => {
   const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(undefined);
   const resolveImage = useImageResolverCache();
 
@@ -132,7 +134,10 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
         return;
       }
 
-      resolveImage(absolutePath, () => ipcBridge.fs.getImageBase64.invoke({ path: absolutePath }))
+      resolveImage(absolutePath, async () => {
+        const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: absolutePath, workspace });
+        return dataUrl ?? src;
+      })
         .then((dataUrl) => {
           if (!cancelled) {
             setResolvedSrc(dataUrl);
@@ -151,7 +156,7 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
     return () => {
       cancelled = true;
     };
-  }, [src, baseDir]);
+  }, [src, baseDir, resolveImage, workspace]);
 
   if (!resolvedSrc) {
     return alt ? <span>{alt}</span> : null;
@@ -203,6 +208,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   containerRef: externalContainerRef,
   onScroll: externalOnScroll,
   file_path,
+  workspace,
 }) => {
   const { t } = useTranslation();
   const internalContainerRef = useRef<HTMLDivElement>(null);
@@ -313,9 +319,11 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
       }
 
       void ipcBridge.fs.getImageBase64
-        .invoke({ path: absolutePath })
+        .invoke({ path: absolutePath, workspace })
         .then((dataUrl) => {
-          img.src = dataUrl;
+          if (dataUrl) {
+            img.src = dataUrl;
+          }
         })
         .catch((error) => {
           console.error('[MarkdownPreview] Failed to inline rendered image:', { rawAttr, absolutePath, error });
@@ -342,7 +350,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     return () => {
       observer.disconnect();
     };
-  }, [baseDir, containerRef, viewMode, displayedContent]);
+  }, [baseDir, containerRef, viewMode, displayedContent, workspace]);
 
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
@@ -432,7 +440,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               rehypePlugins={[rehypeRaw, rehypeKatex]}
               components={{
                 img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                  return <MarkdownImage src={src} alt={alt} baseDir={baseDir} {...props} />;
+                  return <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} {...props} />;
                 },
                 table({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) {
                   return (

@@ -57,11 +57,22 @@
   "openInPanelTooltip": "View in preview panel",
   "mermaidTitle": "Mermaid Diagram",
   "largeTextTruncatedHint": "Large file preview mode: showing first {{count}} characters for performance.",
+  "truncatedBanner": "Preview content was truncated. Click download to view the full file.",
   "errors": {
     "missingFilePath": "File path is missing",
     "openWithoutPath": "Unable to open: file path is not provided",
     "conversionFailed": "Conversion failed",
     "emptySnapshot": "Snapshot content is empty"
+  },
+  "office": {
+    "installLinkText": "Open officecli install guide",
+    "errors": {
+      "officecliNotFound": "officecli is not installed.",
+      "installFailed": "Failed to install officecli automatically. Check backend logs and retry.",
+      "portTimeout": "Preview service started but did not become ready in time. Retry.",
+      "startFailed": "Failed to start the Office preview service.",
+      "outsideSandbox": "This file is outside the current workspace sandbox."
+    }
   },
   "word": {
     "title": "Word Document",

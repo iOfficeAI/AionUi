@@ -37,9 +37,11 @@ const LocalImageView: React.FC<{
   useEffect(() => {
     setLoading(true);
     ipcBridge.fs.getImageBase64
-      .invoke({ path: absolutePath })
+      .invoke({ path: absolutePath, workspace: root || undefined })
       .then((base64) => {
-        setUrl(base64);
+        if (base64) {
+          setUrl(base64);
+        }
         setLoading(false);
       })
       .catch((error) => {

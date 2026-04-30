@@ -14,6 +14,7 @@ const startInvokeMock = vi.fn();
 const stopInvokeMock = vi.fn();
 const statusOnMock = vi.fn();
 const statusUnsubMock = vi.fn();
+const translate = (key: string) => key;
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
@@ -33,7 +34,7 @@ vi.mock('../../src/common', () => ({
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: translate,
   }),
 }));
 

@@ -199,7 +199,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
         }
 
         if (change.operation === 'modify' || change.operation === 'create') {
-          const current = await ipcBridge.fs.readFile.invoke({ path: change.file_path });
+          const current = await ipcBridge.fs.readFile.invoke({ path: change.file_path, workspace });
           after = typeof current === 'string' ? current : '';
         }
 

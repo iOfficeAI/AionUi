@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { buildPdfSrc } from '../../previewUrls';
 import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Button, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -109,7 +110,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
 
   // 使用 Electron webview 加载本地 PDF 文件
   // Use Electron webview to load local PDF files
-  const pdfSrc = file_path ? `file://${file_path}` : content || '';
+  const pdfSrc = buildPdfSrc(file_path, content);
 
   if (error) {
     return (

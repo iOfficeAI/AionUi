@@ -305,7 +305,7 @@ const PreviewPanel: React.FC = () => {
 
       if (metadata?.file_path) {
         // All files with a disk path (binary, image, zip, etc.) — unified path
-        await downloadFileFromPath(metadata.file_path, rawFileName);
+        await downloadFileFromPath(metadata.file_path, rawFileName, metadata.workspace);
         return;
       }
 
@@ -422,7 +422,12 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview content={content} hideToolbar file_path={metadata?.file_path} />
+              <MarkdownPreview
+                content={content}
+                hideToolbar
+                file_path={metadata?.file_path}
+                workspace={metadata?.workspace}
+              />
             </div>
           );
         }
@@ -460,6 +465,7 @@ const PreviewPanel: React.FC = () => {
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   file_path={metadata?.file_path}
+                  workspace={metadata?.workspace}
                 />
               </div>
             </div>
@@ -476,6 +482,7 @@ const PreviewPanel: React.FC = () => {
           onViewModeChange={setViewMode}
           onContentChange={updateContent}
           file_path={metadata?.file_path}
+          workspace={metadata?.workspace}
         />
       );
     }
@@ -491,6 +498,7 @@ const PreviewPanel: React.FC = () => {
               <HTMLRenderer
                 content={content}
                 file_path={metadata?.file_path}
+                workspace={metadata?.workspace}
                 copySuccessMessage={t('preview.html.copySuccess')}
                 inspectMode={inspectMode}
                 onElementSelected={handleElementSelected}
@@ -532,6 +540,7 @@ const PreviewPanel: React.FC = () => {
                 <HTMLRenderer
                   content={content}
                   file_path={metadata?.file_path}
+                  workspace={metadata?.workspace}
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   inspectMode={inspectMode}
@@ -563,6 +572,7 @@ const PreviewPanel: React.FC = () => {
             <HTMLRenderer
               content={content}
               file_path={metadata?.file_path}
+              workspace={metadata?.workspace}
               inspectMode={inspectMode}
               copySuccessMessage={t('preview.html.copySuccess')}
               onElementSelected={handleElementSelected}
@@ -634,17 +644,18 @@ const PreviewPanel: React.FC = () => {
     } else if (content_type === 'pdf') {
       return <PDFPreview file_path={metadata?.file_path} content={content} />;
     } else if (content_type === 'ppt') {
-      return <PptViewer file_path={metadata?.file_path} content={content} />;
+      return <PptViewer file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
     } else if (content_type === 'word') {
-      return <OfficeDocPreview file_path={metadata?.file_path} content={content} />;
+      return <OfficeDocPreview file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
     } else if (content_type === 'excel') {
-      return <ExcelPreview file_path={metadata?.file_path} content={content} />;
+      return <ExcelPreview file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
     } else if (content_type === 'image') {
       return (
         <ImagePreview
           file_path={metadata?.file_path}
           content={content}
           file_name={metadata?.file_name || metadata?.title}
+          workspace={metadata?.workspace}
         />
       );
     } else if (content_type === 'url') {
@@ -730,6 +741,12 @@ const PreviewPanel: React.FC = () => {
             leftExtra={toolbarExtras?.left}
             rightExtra={toolbarExtras?.right}
           />
+        )}
+
+        {metadata?.truncated && (
+          <div className='sticky top-0 z-1 px-16px py-10px text-12px bg-warning-1 text-warning-7 border-b border-warning-3'>
+            {t('preview.truncatedBanner')}
+          </div>
         )}
 
         {/* 预览内容 / Preview content */}

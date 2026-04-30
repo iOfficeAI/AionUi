@@ -408,10 +408,10 @@ export const dialog = {
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
   listWorkspaceFiles: httpPost<Array<IWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
-  getImageBase64: httpPost<string, { path: string }>('/api/fs/image-base64'),
+  getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
-  readFile: httpPost<string, { path: string }>('/api/fs/read'),
-  readFileBuffer: httpPost<ArrayBuffer, { path: string }>('/api/fs/read-buffer'),
+  readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
+  readFileBuffer: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read-buffer'),
   createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
   createUploadFile: httpPost<string, { file_name: string; conversation_id?: string }>('/api/fs/temp'),
   writeFile: httpPost<boolean, { path: string; data: Uint8Array | string }>('/api/fs/write'),
@@ -428,7 +428,7 @@ export const fs = {
     }
   >('/api/fs/zip'),
   cancelZip: httpPost<boolean, { request_id: string }>('/api/fs/zip/cancel'),
-  getFileMetadata: httpPost<IFileMetadata, { path: string }>('/api/fs/metadata'),
+  getFileMetadata: httpPost<IFileMetadata, { path: string; workspace?: string }>('/api/fs/metadata'),
   copyFilesToWorkspace: httpPost<
     { copied_files: string[]; failed_files?: Array<{ path: string; error: string }> },
     { file_paths: string[]; workspace: string; source_root?: string }
@@ -882,19 +882,23 @@ export const document = {
 // ---------------------------------------------------------------------------
 
 export const pptPreview = {
-  start: httpPost<{ url: string }, { file_path: string }>('/api/ppt-preview/start'),
+  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>('/api/ppt-preview/start'),
   stop: httpPost<void, { file_path: string }>('/api/ppt-preview/stop'),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('ppt-preview.status'),
 };
 
 export const wordPreview = {
-  start: httpPost<{ url: string }, { file_path: string }>('/api/word-preview/start'),
+  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
+    '/api/word-preview/start'
+  ),
   stop: httpPost<void, { file_path: string }>('/api/word-preview/stop'),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('word-preview.status'),
 };
 
 export const excelPreview = {
-  start: httpPost<{ url: string }, { file_path: string }>('/api/excel-preview/start'),
+  start: httpPost<{ url: string; error?: string }, { file_path: string; workspace?: string }>(
+    '/api/excel-preview/start'
+  ),
   stop: httpPost<void, { file_path: string }>('/api/excel-preview/stop'),
   status: wsEmitter<{ state: 'starting' | 'installing' | 'ready' | 'error'; message?: string }>('excel-preview.status'),
 };
@@ -1502,9 +1506,8 @@ function toChannelSession(raw: RawSession): IChannelSession {
 }
 
 export const channel = {
-  getPluginStatus: withResponseMap(
-    httpGet<RawPluginStatus[], void>('/api/channel/plugins'),
-    (raw) => raw.map(toPluginStatus)
+  getPluginStatus: withResponseMap(httpGet<RawPluginStatus[], void>('/api/channel/plugins'), (raw) =>
+    raw.map(toPluginStatus)
   ),
   enablePlugin: httpPost<void, { plugin_id: string; config: Record<string, unknown> }>('/api/channel/plugins/enable'),
   disablePlugin: httpPost<void, { plugin_id: string }>('/api/channel/plugins/disable'),
@@ -1512,25 +1515,19 @@ export const channel = {
     { success: boolean; bot_username?: string; error?: string },
     { plugin_id: string; token: string; extra_config?: { app_id?: string; app_secret?: string } }
   >('/api/channel/plugins/test'),
-  getPendingPairings: withResponseMap(
-    httpGet<RawPairing[], void>('/api/channel/pairings'),
-    (raw) => raw.map(toPairing)
+  getPendingPairings: withResponseMap(httpGet<RawPairing[], void>('/api/channel/pairings'), (raw) =>
+    raw.map(toPairing)
   ),
   approvePairing: httpPost<void, { code: string }>('/api/channel/pairings/approve'),
   rejectPairing: httpPost<void, { code: string }>('/api/channel/pairings/reject'),
-  getAuthorizedUsers: withResponseMap(
-    httpGet<RawUser[], void>('/api/channel/users'),
-    (raw) => raw.map(toChannelUser)
-  ),
+  getAuthorizedUsers: withResponseMap(httpGet<RawUser[], void>('/api/channel/users'), (raw) => raw.map(toChannelUser)),
   revokeUser: httpPost<void, { user_id: string }>('/api/channel/users/revoke'),
-  getActiveSessions: withResponseMap(
-    httpGet<RawSession[], void>('/api/channel/sessions'),
-    (raw) => raw.map(toChannelSession)
+  getActiveSessions: withResponseMap(httpGet<RawSession[], void>('/api/channel/sessions'), (raw) =>
+    raw.map(toChannelSession)
   ),
   syncChannelSettings: httpPost<void, { platform: string }>('/api/channel/settings/sync'),
-  pairingRequested: wsMappedEmitter<IChannelPairingRequest>(
-    'channel.pairing-requested',
-    (raw) => toPairing(raw as RawPairing)
+  pairingRequested: wsMappedEmitter<IChannelPairingRequest>('channel.pairing-requested', (raw) =>
+    toPairing(raw as RawPairing)
   ),
   pluginStatusChanged: wsMappedEmitter<{ plugin_id: string; status: IChannelPluginStatus }>(
     'channel.plugin-status-changed',
@@ -1542,10 +1539,7 @@ export const channel = {
       };
     }
   ),
-  userAuthorized: wsMappedEmitter<IChannelUser>(
-    'channel.user-authorized',
-    (raw) => toChannelUser(raw as RawUser)
-  ),
+  userAuthorized: wsMappedEmitter<IChannelUser>('channel.user-authorized', (raw) => toChannelUser(raw as RawUser)),
 };
 
 // ---------------------------------------------------------------------------

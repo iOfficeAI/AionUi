@@ -244,6 +244,9 @@ const ImageDisplay: React.FC<{
       ipcBridge.fs.getImageBase64
         .invoke({ path: imgUrl })
         .then((base64) => {
+          if (!base64) {
+            throw new Error('Image file not found');
+          }
           setImageUrl(base64);
           setLoading(false);
         })

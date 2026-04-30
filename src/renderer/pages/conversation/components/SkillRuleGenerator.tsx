@@ -77,7 +77,10 @@ const LoadRuleModal: React.FC<{
   const handleSelectFile = async (file: IDirOrFile) => {
     setLoadingFile(true);
     try {
-      const content = await ipcBridge.fs.readFile.invoke({ path: file.fullPath });
+      const content = await ipcBridge.fs.readFile.invoke({ path: file.fullPath, workspace });
+      if (content == null) {
+        throw new Error('Rule file not found');
+      }
       const prompt = `
 System Instruction: The user has explicitly loaded the following rule/skill. Please internalize and apply it to our conversation immediately.
 

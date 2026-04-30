@@ -57,11 +57,22 @@
   "openInPanelTooltip": "Önizleme panelinde görüntüle",
   "mermaidTitle": "Mermaid Diyagramı",
   "largeTextTruncatedHint": "Büyük dosya önizleme modu: performans için yalnızca ilk {{count}} karakter gösteriliyor.",
+  "truncatedBanner": "Önizleme içeriği kısaltıldı. Tam dosyayı görmek için indir seçeneğini kullanın.",
   "errors": {
     "missingFilePath": "Dosya yolu eksik",
     "openWithoutPath": "Açılamadı: dosya yolu sağlanmadı",
     "conversionFailed": "Dönüştürme başarısız",
     "emptySnapshot": "Anlık görüntü içeriği boş"
+  },
+  "office": {
+    "installLinkText": "officecli kurulum kılavuzunu aç",
+    "errors": {
+      "officecliNotFound": "officecli yüklü değil.",
+      "installFailed": "officecli otomatik olarak yüklenemedi. Arka uç günlüklerini kontrol edip yeniden deneyin.",
+      "portTimeout": "Önizleme servisi başladı ancak zamanında hazır olmadı. Yeniden deneyin.",
+      "startFailed": "Office önizleme servisi başlatılamadı.",
+      "outsideSandbox": "Bu dosya geçerli çalışma alanı sandbox'ının dışında."
+    }
   },
   "word": {
     "title": "Word Belgesi",
