@@ -36,8 +36,8 @@ const MIGRATION_STEPS: Array<{
   name: string;
   run: (configFile: ConfigFile) => Promise<MigrationStepResult>;
 }> = [
-  { name: 'migrateConfigStorage', run: async () => (await migrateConfigStorage(), true) },
-  { name: 'migrateProviders', run: async () => (await migrateProviders(), true) },
+  { name: 'migrateConfigStorage', run: async (configFile) => (await migrateConfigStorage(configFile), true) },
+  { name: 'migrateProviders', run: async (configFile) => (await migrateProviders(configFile), true) },
   { name: 'migrateAssistantsToBackend', run: async (configFile) => migrateAssistantsToBackend(configFile) },
 ];
 

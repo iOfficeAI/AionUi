@@ -216,7 +216,6 @@ const AcpSendBox: React.FC<{
         } else {
           await ipcBridge.acpConversation.sendMessage.invoke({
             input: displayMessage,
-            msg_id,
             conversation_id,
             files,
           });

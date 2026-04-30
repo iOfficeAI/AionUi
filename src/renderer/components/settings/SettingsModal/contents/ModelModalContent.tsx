@@ -331,7 +331,6 @@ const ModelModalContent: React.FC = () => {
       await ipcBridge.conversation.sendMessage.invoke({
         conversation_id: tempConversationId,
         input: 'ping',
-        msg_id: uuid(),
       });
 
       // 4. 等待响应

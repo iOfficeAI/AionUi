@@ -252,7 +252,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
-          msg_id,
           conversation_id,
           files,
         });
@@ -367,7 +366,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
-          msg_id,
           conversation_id,
           files,
         });

@@ -293,7 +293,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       starOfficeInstallInFlightRef.current = true;
       void checkAndUpdateTitle(conversation_id, text);
       ipcBridge.openclawConversation.sendMessage
-        .invoke({ input: text, msg_id, conversation_id, inject_skills: ['star-office-helper'] })
+        .invoke({ input: text, conversation_id, inject_skills: ['star-office-helper'] })
         .then(() => {
           emitter.emit('chat.history.refresh');
         })
@@ -350,7 +350,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
-          msg_id,
           conversation_id,
           files,
         });
@@ -472,7 +471,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.openclawConversation.sendMessage.invoke({
           input: initialDisplayMessage,
-          msg_id,
           conversation_id,
           files,
           loading_id,
