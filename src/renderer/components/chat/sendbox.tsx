@@ -40,7 +40,11 @@ import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
-import { getConversationInputHistory, isCaretAtLineStart, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
+import {
+  getConversationInputHistory,
+  isCaretAtLineStart,
+  isCaretOnFirstLine,
+} from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;

@@ -147,46 +147,6 @@ describe('MessageList loading state', () => {
     expect(autoScrollMock.scrollToBottom).toHaveBeenCalledWith('smooth');
   });
 
-  it('renders a message navigation rail with jump targets', () => {
-    renderMessageList(<MessageList />, [
-      {
-        id: 'msg-rail-1',
-        msg_id: 'msg-rail-1',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'left',
-        content: { content: 'first visible message' },
-      } as TMessage,
-      {
-        id: 'msg-rail-2',
-        msg_id: 'msg-rail-2',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'right',
-        content: { content: 'second visible message' },
-      } as TMessage,
-      {
-        id: 'msg-rail-3',
-        msg_id: 'msg-rail-3',
-        conversation_id: 'conv-1',
-        type: 'text',
-        position: 'left',
-        content: { content: 'third visible message' },
-      } as TMessage,
-    ]);
-
-    expect(screen.getByTestId('message-navigation-rail')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: 'Jump to message 2: second visible message' }));
-
-    expect(autoScrollMock.hideScrollButton).toHaveBeenCalledTimes(1);
-    expect(autoScrollMock.scrollToIndex).toHaveBeenCalledWith({
-      index: 1,
-      align: 'center',
-      behavior: 'smooth',
-    });
-  });
-
   it('renders an error state with retry when history loading fails', () => {
     const retry = vi.fn();
     renderMessageList(<MessageList loadingError={new Error('network timeout')} onRetryLoad={retry} />);

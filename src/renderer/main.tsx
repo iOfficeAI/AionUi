@@ -130,4 +130,6 @@ const App = HOC.Wrapper(Config)(Main);
 void registerPwa();
 
 const root = createRoot(document.getElementById('root')!);
-root.render(React.createElement(ErrorBoundary, null, React.createElement(AppProviders, null, React.createElement(App))));
+root.render(
+  React.createElement(ErrorBoundary, null, React.createElement(AppProviders, null, React.createElement(App)))
+);

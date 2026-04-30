@@ -55,8 +55,7 @@ export const BatchSelectionProvider: React.FC<{
   const selectedCount = selectedIds.size;
 
   const allSelected = useMemo(
-    () =>
-      regularConversationIds.length > 0 && regularConversationIds.every((id) => selectedIds.has(id)),
+    () => regularConversationIds.length > 0 && regularConversationIds.every((id) => selectedIds.has(id)),
     [regularConversationIds, selectedIds]
   );
 
@@ -99,7 +98,14 @@ export const BatchSelectionProvider: React.FC<{
       handleToggleSelectAll,
       registerRegularConversations,
     }),
-    [selectedIds, selectedCount, allSelected, toggleSelectedConversation, handleToggleSelectAll, registerRegularConversations]
+    [
+      selectedIds,
+      selectedCount,
+      allSelected,
+      toggleSelectedConversation,
+      handleToggleSelectAll,
+      registerRegularConversations,
+    ]
   );
 
   return <BatchSelectionContext.Provider value={value}>{children}</BatchSelectionContext.Provider>;

@@ -22,7 +22,13 @@ vi.mock('@renderer/pages/conversation/Messages/MessageList', () => ({
 
 vi.mock('@renderer/pages/conversation/Messages/hooks', () => ({
   MessageListProvider: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-  useMessageLstCache: vi.fn(),
+  useMessageLstCache: vi.fn(() => ({
+    isLoading: false,
+    isRefreshing: false,
+    error: null,
+    hasCachedMessages: false,
+    reload: vi.fn(async () => []),
+  })),
 }));
 
 vi.mock('@renderer/utils/ui/HOC', () => ({

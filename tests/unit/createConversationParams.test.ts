@@ -326,7 +326,10 @@ describe('createConversationParams', () => {
     }
   });
 
-  it('falls back to first model if none enabled for aionrs', async () => {
+  it('throws for aionrs when no models within the provider are enabled', async () => {
+    // Aion CLI conversation creation is intentionally strict: a provider with all
+    // models disabled is treated the same as having no usable provider, so creation
+    // refuses to proceed instead of silently picking a disabled model.
     configGet.mockResolvedValue([
       {
         id: 'p1',
@@ -340,8 +343,9 @@ describe('createConversationParams', () => {
       },
     ]);
 
-    const params = await buildCliAgentParams({ backend: 'aionrs', name: 'A' }, '/tmp');
-    expect(params.model.useModel).toBe('m1');
+    await expect(buildCliAgentParams({ backend: 'aionrs', name: 'A' }, '/tmp')).rejects.toThrow(
+      'No enabled model provider for Aion CLI'
+    );
   });
 
   it('handles missing cliPath for acp backend', async () => {
