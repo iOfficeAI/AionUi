@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { Assistant } from '@/common/types/assistantTypes';
 import type { AcpBackendConfig } from '../types';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
@@ -15,7 +15,7 @@ import { mutate } from 'swr';
 type UseCustomAgentsLoaderOptions = {
   /**
    * Ids of ACP custom agents detected as installed/available. Used to filter
-   * `ConfigStorage.get('acp.customAgents')` down to engine configs whose CLI
+   * `configService.get('acp.customAgents')` down to engine configs whose CLI
    * actually resolves on this machine.
    */
   availableCustomAgentIds: Set<string>;
@@ -30,7 +30,7 @@ type UseCustomAgentsLoaderResult = {
   assistants: Assistant[];
   /**
    * User-defined ACP custom agent ENGINE configs from
-   * `ConfigStorage.get('acp.customAgents')` (CLI path, args, env). Completely
+   * `configService.get('acp.customAgents')` (CLI path, args, env). Completely
    * separate from `assistants`. Only entries whose ids appear in
    * `availableCustomAgentIds` are returned — we hide configs whose CLI is
    * missing from PATH.
@@ -54,7 +54,7 @@ type UseCustomAgentsLoaderResult = {
  *     "what to render in the AssistantSelectionArea pill bar" and what the
  *     editor drawer edits.
  *   - `customAgents: AcpBackendConfig[]` — user-defined ACP engine configs
- *     that still live in `ConfigStorage.get('acp.customAgents')` because
+ *     that still live in `configService.get('acp.customAgents')` because
  *     they describe a CLI binary to spawn, not a prompt-only preset.
  *
  * Conflating these two as a single `customAgents: AcpBackendConfig[]` used
@@ -80,10 +80,8 @@ export const useCustomAgentsLoader = ({
 
   const loadCustomAgents = useCallback(async () => {
     try {
-      const [assistantList, userCustomAgents] = await Promise.all([
-        ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[]),
-        ConfigStorage.get('acp.customAgents'),
-      ]);
+      const assistantList = await ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[]);
+      const userCustomAgents = configService.get('acp.customAgents');
       setAssistants(assistantList);
       const filteredCustoms = ((userCustomAgents || []) as AcpBackendConfig[]).filter((a) =>
         availableCustomAgentIds.has(a.id)
