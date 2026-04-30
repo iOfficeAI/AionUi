@@ -57,11 +57,22 @@
   "openInPanelTooltip": "在預覽面板中查看",
   "mermaidTitle": "Mermaid 圖表",
   "largeTextTruncatedHint": "大型檔案預覽模式：為了保持流暢度，僅顯示前 {{count}} 個字元。",
+  "truncatedBanner": "預覽內容已截斷，點擊下載即可查看完整檔案。",
   "errors": {
     "missingFilePath": "未提供檔案路徑",
     "openWithoutPath": "無法開啟：未提供檔案路徑",
     "conversionFailed": "轉換失敗",
     "emptySnapshot": "快照內容為空"
+  },
+  "office": {
+    "installLinkText": "開啟 officecli 安裝說明",
+    "errors": {
+      "officecliNotFound": "尚未安裝 officecli。",
+      "installFailed": "自動安裝 officecli 失敗，請檢查後端日誌後再試一次。",
+      "portTimeout": "預覽服務啟動後未能及時就緒，請重試。",
+      "startFailed": "啟動 Office 預覽服務失敗。",
+      "outsideSandbox": "此檔案不在目前工作區沙箱範圍內。"
+    }
   },
   "word": {
     "title": "Word 文件",

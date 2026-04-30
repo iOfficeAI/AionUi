@@ -161,6 +161,13 @@
       "downloadSuccess": "下載成功",
       "downloadFailed": "下載失敗"
     },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "檔案不在工作區範圍內，無法預覽。",
+        "notFound": "檔案不存在或已被刪除。",
+        "timeout": "讀取檔案逾時，請稍後重試。"
+      }
+    },
     "changes": {
       "tab": "變更",
       "filesTab": "檔案",

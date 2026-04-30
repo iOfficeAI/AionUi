@@ -13,9 +13,10 @@ interface ImagePreviewProps {
   file_path?: string;
   content?: string;
   file_name?: string;
+  workspace?: string;
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_name }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_name, workspace }) => {
   const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState<string>(content || '');
   const [loading, setLoading] = useState<boolean>(!!file_path && !content);
@@ -41,7 +42,10 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
       try {
         setLoading(true);
         setError(null);
-        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: file_path });
+        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
+        if (!base64) {
+          throw new Error('Image file not found');
+        }
         if (!isMounted) return;
         setImageSrc(base64);
       } catch (err) {
@@ -60,7 +64,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
     return () => {
       isMounted = false;
     };
-  }, [content, file_path, t]);
+  }, [content, file_path, t, workspace]);
 
   const renderStatus = () => {
     if (loading) {

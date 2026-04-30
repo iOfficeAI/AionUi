@@ -22,6 +22,8 @@ type ConvertResponse = { to: string; result: { success?: boolean; data?: unknown
 type SnapshotInfo = { id: string; label: string; created_at: number; size: number; contentType: string };
 
 const OFFICECLI_MISSING = /officecli|not installed|install.?hint|ENOENT/i;
+const OFFICECLI_INSTALL_ERRORS = new Set(['OFFICECLI_NOT_FOUND', 'OFFICECLI_INSTALL_FAILED']);
+const EXTERNAL_WORKSPACE_ROOT = '/Users/Shared';
 
 /** Write a temp file we can feed to preview/convert APIs. */
 function makeTempFile(ext: string, body: string): string {
@@ -31,19 +33,47 @@ function makeTempFile(ext: string, body: string): string {
   return file;
 }
 
+function makeExternalWorkspaceFile(ext: string, body: string): { filePath: string; workspace: string } {
+  const dir = fs.mkdtempSync(path.join(EXTERNAL_WORKSPACE_ROOT, 'aionui-preview-e2e-'));
+  const file = path.join(dir, `sample.${ext}`);
+  fs.writeFileSync(file, body);
+  return { filePath: file, workspace: dir };
+}
+
 /** Call an office-preview start endpoint; returns null when officecli is missing. */
 async function tryOfficeStart(
   page: import('@playwright/test').Page,
   key: string,
-  filePath: string
+  filePath: string,
+  extraData?: Record<string, unknown>
 ): Promise<OfficeStartResult> {
   try {
-    return await invokeBridge<OfficeStartResult>(page, key, { file_path: filePath }, 20_000);
+    return await invokeBridge<OfficeStartResult>(page, key, { file_path: filePath, ...extraData }, 20_000);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (OFFICECLI_MISSING.test(message)) return null;
     throw error;
   }
+}
+
+async function expectBackendFailure(
+  page: import('@playwright/test').Page,
+  key: string,
+  data: Record<string, unknown>,
+  status: number,
+  errorCode: string
+): Promise<void> {
+  let caughtMessage: string | null = null;
+
+  try {
+    await invokeBridge(page, key, data, 15_000);
+  } catch (error) {
+    caughtMessage = error instanceof Error ? error.message : String(error);
+  }
+
+  expect(caughtMessage).toBeTruthy();
+  expect(caughtMessage!).toContain(`failed (${status})`);
+  expect(caughtMessage!).toContain(errorCode);
 }
 
 test.describe('Preview panel & office documents', () => {
@@ -64,6 +94,24 @@ test.describe('Preview panel & office documents', () => {
     expect(response).not.toBeNull();
     expect(response!).toHaveProperty('to');
     expect(response!).toHaveProperty('result');
+    expect(response!.to).toBe('markdown');
+    expect(typeof response!.result).toBe('object');
+  });
+
+  test('document.convert accepts workspace files outside the default sandbox', async ({ page }) => {
+    await goToGuid(page);
+    const { filePath, workspace } = makeExternalWorkspaceFile('md', '# Workspace\n\nPreview sandbox regression.\n');
+
+    await expectBackendFailure(page, 'document.convert', { filePath, to: 'markdown' }, 403, 'PATH_OUTSIDE_SANDBOX');
+
+    const response = await invokeBridge<ConvertResponse>(
+      page,
+      'document.convert',
+      { filePath, to: 'markdown', workspace },
+      15_000
+    );
+
+    expect(response).not.toBeNull();
     expect(response!.to).toBe('markdown');
     expect(typeof response!.result).toBe('object');
   });
@@ -105,6 +153,31 @@ test.describe('Preview panel & office documents', () => {
     expect(started!.url!).toMatch(/^https?:\/\/|\/api\/(office-watch-proxy|ppt-proxy)\//);
 
     // Cleanup — don't leak the watch process.
+    await invokeBridge(page, 'word-preview.stop', { file_path: filePath }, 10_000).catch(() => {});
+  });
+
+  test('word-preview.start accepts workspace files outside the default sandbox', async ({ page }) => {
+    await goToGuid(page);
+    const { filePath, workspace } = makeExternalWorkspaceFile('docx', 'stub');
+
+    await expectBackendFailure(page, 'word-preview.start', { filePath }, 403, 'PATH_OUTSIDE_SANDBOX');
+
+    const started = await tryOfficeStart(page, 'word-preview.start', filePath, { workspace });
+    if (started === null) {
+      console.log('[E2E] officecli not installed — skipping workspace word preview');
+      test.skip();
+      return;
+    }
+
+    if (started?.error) {
+      expect(OFFICECLI_INSTALL_ERRORS.has(started.error)).toBeTruthy();
+      test.skip();
+      return;
+    }
+
+    expect(started?.url).toBeTruthy();
+    expect(started!.url!).toMatch(/^https?:\/\/|\/api\/(office-watch-proxy|ppt-proxy)\//);
+
     await invokeBridge(page, 'word-preview.stop', { file_path: filePath }, 10_000).catch(() => {});
   });
 

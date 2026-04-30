@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fs } from '../../src/common/adapter/ipcBridge';
+import { fs, shell } from '../../src/common/adapter/ipcBridge';
 
 describe('ipcBridge.fs — createTempFile/createUploadFile use snake_case body', () => {
   beforeEach(() => {
@@ -111,5 +111,39 @@ describe('ipcBridge.fs — createTempFile/createUploadFile use snake_case body',
     expect(String(url)).toContain('/api/skills/assistant-skill/custom-42');
     expect(init!.method).toBe('DELETE');
     expect(init!.body).toBeUndefined();
+  });
+});
+
+describe('ipcBridge.shell — file operations use {file_path}', () => {
+  beforeEach(() => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        return {
+          ok: true,
+          status: 200,
+          headers: { get: () => null },
+          text: async () => '',
+        } as unknown as Response;
+      })
+    );
+  });
+
+  it('openFile sends {file_path}', async () => {
+    await shell.openFile.invoke('/tmp/demo.md');
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ file_path: '/tmp/demo.md' });
+    expect(body).not.toHaveProperty('path');
+  });
+
+  it('showItemInFolder sends {file_path}', async () => {
+    await shell.showItemInFolder.invoke('/tmp/demo.md');
+    const fetchMock = globalThis.fetch as ReturnType<typeof vi.fn>;
+    const [, init] = fetchMock.mock.calls[0];
+    const body = JSON.parse(init!.body as string);
+    expect(body).toEqual({ file_path: '/tmp/demo.md' });
+    expect(body).not.toHaveProperty('path');
   });
 });

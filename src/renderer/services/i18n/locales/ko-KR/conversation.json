@@ -161,6 +161,13 @@
       "downloadSuccess": "다운로드 완료",
       "downloadFailed": "다운로드 실패"
     },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "파일이 워크스페이스 샌드박스 범위를 벗어나 미리볼 수 없습니다.",
+        "notFound": "파일이 없거나 삭제되었습니다.",
+        "timeout": "파일 읽기 시간이 초과되었습니다. 다시 시도해 주세요."
+      }
+    },
     "changes": {
       "tab": "변경",
       "filesTab": "파일",

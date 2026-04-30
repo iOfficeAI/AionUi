@@ -161,6 +161,13 @@
       "downloadSuccess": "Download successful",
       "downloadFailed": "Download failed"
     },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "File is outside the workspace sandbox, cannot preview.",
+        "notFound": "File does not exist or has been deleted.",
+        "timeout": "Reading file timed out. Please retry."
+      }
+    },
     "changes": {
       "tab": "Changes",
       "filesTab": "Files",

@@ -8,11 +8,13 @@ import { ipcBridge } from '@/common';
 import { downloadFileFromPath } from '@/renderer/utils/file/download';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import type { PreviewContentType } from '@/common/types/preview';
+import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { emitter } from '@/renderer/utils/emitter';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
   LARGE_TEXT_PREVIEW_THRESHOLD,
 } from '@/renderer/pages/conversation/Preview/constants';
+import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/file/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
@@ -297,93 +299,26 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       try {
         closeContextMenu();
 
-        // 根据文件扩展名确定内容类型 / Determine content type based on file extension
         const ext = nodeData.name.toLowerCase().split('.').pop() || '';
-
-        // 支持的图片格式列表 / List of supported image formats
-        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tif', 'tiff', 'avif'];
-
-        let contentType: PreviewContentType = 'code';
+        let contentType: PreviewContentType = getContentTypeByExtension(nodeData.name);
         let content = '';
         let isLargeTextTruncated = false;
-
-        // 根据扩展名判断文件类型 / Determine file type based on extension
-        if (ext === 'md' || ext === 'markdown') {
-          contentType = 'markdown';
-        } else if (ext === 'diff' || ext === 'patch') {
-          contentType = 'diff';
-        } else if (ext === 'pdf') {
-          contentType = 'pdf';
-        } else if (['ppt', 'pptx', 'odp'].includes(ext)) {
-          contentType = 'ppt';
-        } else if (['doc', 'docx', 'odt'].includes(ext)) {
-          contentType = 'word';
-        } else if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) {
-          contentType = 'excel';
-        } else if (['html', 'htm'].includes(ext)) {
-          contentType = 'html';
-        } else if (imageExtensions.includes(ext)) {
-          contentType = 'image';
-        } else if (
-          [
-            'js',
-            'ts',
-            'tsx',
-            'jsx',
-            'py',
-            'java',
-            'go',
-            'rs',
-            'c',
-            'cpp',
-            'h',
-            'hpp',
-            'css',
-            'scss',
-            'json',
-            'xml',
-            'yaml',
-            'yml',
-            'txt',
-            'log',
-            'sh',
-            'bash',
-            'zsh',
-            'fish',
-            'sql',
-            'rb',
-            'php',
-            'swift',
-            'kt',
-            'scala',
-            'r',
-            'lua',
-            'vim',
-            'toml',
-            'ini',
-            'cfg',
-            'conf',
-            'env',
-            'gitignore',
-            'dockerignore',
-            'editorconfig',
-          ].includes(ext)
-        ) {
-          contentType = 'code';
-        } else {
-          // 未知扩展名也默认为 code 类型，尝试作为文本读取 / Unknown extensions also default to code type, try to read as text
-          contentType = 'code';
-        }
 
         // 根据文件类型读取内容 / Read content based on file type
         if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
           content = '';
         } else if (contentType === 'image') {
           // 图片: 读取为 Base64 格式 / Image: Read as Base64 format
-          content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
+          content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath, workspace });
+          if (content == null) {
+            throw null;
+          }
         } else {
           // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
-          content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+          content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath, workspace });
+          if (content == null) {
+            throw null;
+          }
 
           // 大文本仅保留前一段预览内容，避免切换/关闭 tab 时卡顿
           // Keep only first chunk for large text preview to reduce tab switch/close jank
@@ -400,12 +335,14 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
           file_path: nodeData.fullPath,
           workspace: workspace,
           language: ext,
+          truncated: isLargeTextTruncated,
           // Markdown 和图片文件默认为只读模式
           // Markdown and image files default to read-only mode
           editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
         });
       } catch (error) {
-        messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));
+        const kind = classifyPreviewError(error);
+        messageApi.error(t(previewErrorToI18nKey(kind)));
       }
     },
     [closeContextMenu, openPreview, workspace, messageApi, t]
@@ -435,7 +372,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       closeContextMenu();
 
       try {
-        await downloadFileFromPath(nodeData.fullPath, nodeData.name);
+        await downloadFileFromPath(nodeData.fullPath, nodeData.name, workspace);
         messageApi.success(t('conversation.workspace.contextMenu.downloadSuccess'));
       } catch (error) {
         messageApi.error(t('conversation.workspace.contextMenu.downloadFailed'));

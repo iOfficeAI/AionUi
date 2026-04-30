@@ -161,6 +161,13 @@
       "downloadSuccess": "ダウンロードしました",
       "downloadFailed": "ダウンロードに失敗しました"
     },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "ファイルがワークスペースのサンドボックス外にあるため、プレビューできません。",
+        "notFound": "ファイルが存在しないか、削除されています。",
+        "timeout": "ファイルの読み込みがタイムアウトしました。再試行してください。"
+      }
+    },
     "changes": {
       "tab": "変更",
       "filesTab": "ファイル",

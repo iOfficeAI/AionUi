@@ -78,6 +78,10 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           .invoke({ path })
           .then((base64) => {
             if (cancelled) return;
+            if (!base64) {
+              setImageUrl('');
+              return;
+            }
             if (base64.includes(IMAGE_NOT_FOUND_B64_MARKER) && retryCount < MAX_IMAGE_RETRIES) {
               retryCount++;
               retryTimer = setTimeout(loadImage, IMAGE_RETRY_DELAY_MS);

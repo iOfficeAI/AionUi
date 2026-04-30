@@ -27,6 +27,7 @@ export interface PreviewMetadata {
   file_path?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
   workspace?: string; // 工作空间根目录 / Workspace root directory
   editable?: boolean; // 是否可编辑 / Whether editable
+  truncated?: boolean; // 预览内容是否被截断 / Whether preview content was truncated
 }
 
 export interface PreviewTab {
@@ -575,7 +576,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       if (!file_path || tab.isDirty || savingFilesRef.current.has(file_path)) return;
 
       void ipcBridge.fs.getFileMetadata
-        .invoke({ path: file_path })
+        .invoke({ path: file_path, workspace: tab.metadata?.workspace })
         .then((metadata) => {
           if (!metadata) return;
           const prevMtime = fileMtimeRef.current.get(file_path);
@@ -584,8 +585,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
           const readPromise =
             tab.content_type === 'image'
-              ? ipcBridge.fs.getImageBase64.invoke({ path: file_path })
-              : ipcBridge.fs.readFile.invoke({ path: file_path });
+              ? ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: tab.metadata?.workspace })
+              : ipcBridge.fs.readFile.invoke({ path: file_path, workspace: tab.metadata?.workspace });
 
           void readPromise
             .then((content) => {

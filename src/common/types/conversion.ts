@@ -66,6 +66,7 @@ export type DocumentConversionTarget = 'markdown' | 'excel-json' | 'ppt-json';
 export interface DocumentConversionRequest {
   file_path: string; // 待转换文件的绝对路径 / Absolute file path to convert
   to: DocumentConversionTarget; // 目标格式 / Desired target format
+  workspace?: string; // 工作区根目录（可选）/ Optional workspace root
 }
 
 // 根据目标格式返回不同的数据类型 / Result payload differs per target format

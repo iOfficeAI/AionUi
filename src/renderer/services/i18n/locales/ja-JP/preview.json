@@ -57,11 +57,22 @@
   "openInPanelTooltip": "プレビューパネルで表示",
   "mermaidTitle": "Mermaid 図",
   "largeTextTruncatedHint": "大きなファイルのプレビューでは、パフォーマンスのため先頭 {{count}} 文字のみ表示します。",
+  "truncatedBanner": "プレビュー内容は途中で切り詰められています。完全な内容はダウンロードして確認してください。",
   "errors": {
     "missingFilePath": "ファイルパスが指定されていません",
     "openWithoutPath": "ファイルパスがないため開けません",
     "conversionFailed": "変換に失敗しました",
     "emptySnapshot": "スナップショット内容が空です"
+  },
+  "office": {
+    "installLinkText": "officecli のインストール手順を開く",
+    "errors": {
+      "officecliNotFound": "officecli がインストールされていません。",
+      "installFailed": "officecli の自動インストールに失敗しました。バックエンドログを確認して再試行してください。",
+      "portTimeout": "プレビューサービスは起動しましたが、時間内に準備完了になりませんでした。再試行してください。",
+      "startFailed": "Office プレビューサービスの起動に失敗しました。",
+      "outsideSandbox": "このファイルは現在のワークスペースサンドボックスの外にあります。"
+    }
   },
   "word": {
     "title": "Word ドキュメント",

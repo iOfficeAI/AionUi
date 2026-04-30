@@ -11,15 +11,15 @@ import type { PreviewContentType } from '@/common/types/preview';
  * Mapping configuration from file extensions to content types
  */
 export const FILE_EXTENSION_MAP: Record<PreviewContentType, readonly string[]> = {
-  markdown: ['md', 'markdown'],
+  markdown: ['md', 'markdown', 'mdown', 'mkd'],
   html: ['html', 'htm'],
   pdf: ['pdf'],
-  word: ['doc', 'docx'],
-  ppt: ['ppt', 'pptx'],
-  excel: ['xls', 'xlsx'],
-  image: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'],
+  word: ['doc', 'docx', 'odt'],
+  ppt: ['ppt', 'pptx', 'odp'],
+  excel: ['xls', 'xlsx', 'ods', 'csv'],
+  image: ['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico', 'tif', 'tiff', 'avif'],
   code: [], // code 作为默认类型，不需要显式映射 / code is the default type, no explicit mapping needed
-  diff: [], // diff 类型通常通过其他方式判断 / diff type is usually determined by other means
+  diff: ['diff', 'patch'],
   url: [], // url 类型用于网页预览，无扩展名映射 / url type for web preview, no extension mapping
 };
 

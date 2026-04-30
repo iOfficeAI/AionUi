@@ -154,6 +154,13 @@
       "downloadSuccess": "İndirme başarılı",
       "downloadFailed": "İndirme başarısız"
     },
+    "preview": {
+      "errors": {
+        "outsideSandbox": "Dosya çalışma alanı korumalı alanının dışında, önizlenemiyor.",
+        "notFound": "Dosya mevcut değil veya silinmiş.",
+        "timeout": "Dosya okuma zaman aşımına uğradı. Lütfen tekrar deneyin."
+      }
+    },
     "expand": "Çalışma Alanını Genişlet",
     "collapse": "Çalışma Alanını Daralt",
     "changes": {
