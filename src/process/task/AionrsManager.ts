@@ -119,7 +119,9 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.init();
 
     // Start the agent bootstrap — store promise so sendMessage can await it
-    this.agentReady = this.start().catch(() => {});
+    this.agentReady = this.start().catch((err) => {
+      mainError('[AionrsManager] Agent startup failed:', err);
+    });
   }
 
   /**
