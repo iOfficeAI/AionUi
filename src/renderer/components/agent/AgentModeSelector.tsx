@@ -162,12 +162,22 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   // When initialMode prop changes (e.g. agent switch on Guid page), update local state.
   // Validate against available modes to handle backends with non-standard default
   // (e.g. opencode uses 'build' instead of 'default').
+  // Intentionally exclude `modes`/`defaultMode` from deps: backend `config_changed`
+  // events (e.g. after a setMode call) cause `dynamicModes` to be replaced with a
+  // new array reference, which would otherwise re-fire this effect and revert the
+  // user's just-made local selection back to the still-stale `initialMode` prop.
   useEffect(() => {
-    if (initialMode !== undefined) {
-      const valid = modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
-      setCurrentMode(valid);
-    }
-  }, [initialMode, modes, defaultMode]);
+    if (initialMode === undefined) return;
+    setCurrentMode(modes.some((m) => m.value === initialMode) ? initialMode : defaultMode);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialMode]);
+
+  // When the modes list changes (e.g. async cache load or backend capability update),
+  // re-validate the current selection. Preserve it if still valid; otherwise fall
+  // back to the backend's default mode.
+  useEffect(() => {
+    setCurrentMode((prev) => (modes.some((m) => m.value === prev) ? prev : defaultMode));
+  }, [modes, defaultMode]);
 
   // Sync mode from backend when mounting or switching conversation tabs
   useEffect(() => {
