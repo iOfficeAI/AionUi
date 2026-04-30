@@ -187,7 +187,6 @@ const AcpSendBox: React.FC<{
         void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
-          msg_id,
           conversation_id,
           files,
         });

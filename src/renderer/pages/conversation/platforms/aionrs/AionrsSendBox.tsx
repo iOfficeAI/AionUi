@@ -184,7 +184,6 @@ const AionrsSendBox: React.FC<{
         void checkAndUpdateTitle(conversation_id, input);
         await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
-          msg_id,
           conversation_id,
           files,
         });

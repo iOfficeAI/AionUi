@@ -12,7 +12,7 @@ import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -423,6 +423,20 @@ export const useGuidAgentSelection = ({
       : selectedAgentKey.startsWith('custom:')
         ? 'custom'
         : selectedAgentKey;
+
+    // Primary source: `handshake.available_models` from `/api/agents`.
+    // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
+    // the agent_metadata row, so this is populated across restarts without
+    // requiring a fresh session.
+    const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
+    const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
+    const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    if (handshakeModels && Array.isArray(handshakeModels.available_models) && handshakeModels.available_models.length > 0) {
+      return handshakeModels;
+    }
+
+    // Secondary: legacy per-backend cache (kept for compatibility with
+    // flows that still write into `acp.cachedModels`).
     const cached = acpCachedModels[backend];
     if (cached) return cached;
 
@@ -437,7 +451,7 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, acpCachedModels, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
+  }, [selectedAgentKey, acpCachedModels, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
