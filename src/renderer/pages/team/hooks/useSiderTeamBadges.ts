@@ -94,9 +94,11 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
 
     return removeStack(
       ipcBridge.conversation.confirmation.add.on((data) => {
+        if (!data) return;
         updateCount(data.conversation_id, +1);
       }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
+        if (!data) return;
         updateCount(data.conversation_id, -1);
       })
     );

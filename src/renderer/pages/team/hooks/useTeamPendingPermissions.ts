@@ -74,14 +74,14 @@ export function useTeamPendingPermissions(teamId: string, conversationIds: strin
     // Subscribe to real-time events
     const unsub = removeStack(
       ipcBridge.conversation.confirmation.add.on((data) => {
-        if (!idSet.has(data.conversation_id)) return;
+        if (!data || !idSet.has(data.conversation_id)) return;
         setPendingCounts((prev) => ({
           ...prev,
           [data.conversation_id]: (prev[data.conversation_id] ?? 0) + 1,
         }));
       }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
-        if (!idSet.has(data.conversation_id)) return;
+        if (!data || !idSet.has(data.conversation_id)) return;
         setPendingCounts((prev) => ({
           ...prev,
           [data.conversation_id]: Math.max(0, (prev[data.conversation_id] ?? 0) - 1),

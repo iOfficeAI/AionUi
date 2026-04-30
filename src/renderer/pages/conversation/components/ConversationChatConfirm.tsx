@@ -111,7 +111,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
 
     return removeStack(
       ipcBridge.conversation.confirmation.add.on((data) => {
-        if (!idSet.has(data.conversation_id)) return;
+        if (!data || !idSet.has(data.conversation_id)) return;
         // Check if should auto-confirm (async)
         const stored: StoredConfirmation = { ...data, conversation_id: data.conversation_id };
         void checkAndAutoConfirm(stored).then((autoConfirmed) => {
@@ -122,11 +122,11 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
         });
       }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
-        if (!idSet.has(data.conversation_id)) return;
+        if (!data || !idSet.has(data.conversation_id)) return;
         setConfirmations((prev) => prev.filter((p) => p.id !== data.id));
       }),
-      ipcBridge.conversation.confirmation.update.on(({ ...data }) => {
-        if (!idSet.has(data.conversation_id)) return;
+      ipcBridge.conversation.confirmation.update.on((data) => {
+        if (!data || !idSet.has(data.conversation_id)) return;
         setConfirmations((list) => list.map((p) => (p.id === data.id ? { ...p, ...data } : p)));
       })
     );

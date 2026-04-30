@@ -447,7 +447,8 @@ export const useAddOrUpdateMessage = () => {
   }, []);
 
   return useCallback(
-    (message: TMessage, add = false) => {
+    (message: TMessage | undefined, add = false) => {
+      if (!message) return;
       pendingRef.current.push({ message, add });
       if (rafRef.current === null) {
         rafRef.current = setTimeout(flush);

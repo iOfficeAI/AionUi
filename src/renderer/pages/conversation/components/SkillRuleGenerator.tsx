@@ -234,6 +234,7 @@ Requirements:
 
       // Listen for the response to capture preset content
       const removeListener = ipcBridge.conversation.responseStream.on((msg) => {
+        if (!msg) return;
         if (msg.conversation_id === conversationId && msg.msg_id === msg_id) {
           if (msg.type === 'content') {
             capturedContent += msg.data as string;

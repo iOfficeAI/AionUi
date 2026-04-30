@@ -399,7 +399,7 @@ export interface IConfirmation<Option extends any = any> {
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
-export const transformMessage = (message: IResponseMessage): TMessage => {
+export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   switch (message.type) {
     case 'error': {
       return {
