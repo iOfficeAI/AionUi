@@ -32,7 +32,7 @@ function upsertArtifacts(
     artifactById.set(artifact.id, artifact);
   }
 
-  return Array.from(artifactById.values()).sort((a, b) => a.created_at - b.created_at);
+  return Array.from(artifactById.values()).toSorted((a, b) => a.created_at - b.created_at);
 }
 
 export const useConversationArtifacts = (): IConversationArtifact[] =>

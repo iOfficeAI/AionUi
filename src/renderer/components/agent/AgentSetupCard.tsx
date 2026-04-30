@@ -119,7 +119,6 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
             workspace: conversation.extra?.workspace || '',
             custom_workspace: conversation.extra?.custom_workspace || false,
             backend: agent.backend,
-            cli_path: agent.cli_path,
             preset_context: ((conversation.extra as Record<string, unknown>)?.preset_rules ||
               (conversation.extra as Record<string, unknown>)?.preset_context) as string,
             // Skill set is re-snapshotted on create from current auto-inject set.

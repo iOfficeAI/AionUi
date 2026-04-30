@@ -633,22 +633,7 @@ export const mode = {
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
-  getAvailableAgents: httpGet<
-    Array<{
-      id: string;
-      name: string;
-      agent_type: string;
-      backend?: string;
-      available: boolean;
-      source: 'internal' | 'builtin' | 'extension' | 'custom';
-      cli_path?: string;
-      custom_agent_id?: string;
-      is_preset?: boolean;
-      is_extension?: boolean;
-      supported_transports?: string[];
-    }>,
-    void
-  >('/api/agents'),
+  getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'cli_check' | 'acp_initialize'; error?: string },
@@ -656,7 +641,7 @@ export const acpConversation = {
   >('/api/agents/test'),
   detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
-  checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: AgentBackend }>(
+  checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
     '/api/acp/health-check'
   ),
   setMode: httpPut<void, { conversation_id: string; mode: string }>(
@@ -1547,6 +1532,7 @@ export const channel = {
 // ---------------------------------------------------------------------------
 
 import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {
   getExtensionList: httpGet<IHubAgentItem[], void>('/api/hub/extensions'),

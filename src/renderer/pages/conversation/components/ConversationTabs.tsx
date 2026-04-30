@@ -225,12 +225,12 @@ const ConversationTabs: React.FC = () => {
         } else if (key.startsWith('preset:')) {
           const assistantId = key.slice(7);
           // [BUG-6] Null check: find() may return undefined
-          const agent = presetAssistants.find((a) => a.custom_agent_id === assistantId);
-          if (!agent) {
+          const assistant = presetAssistants.find((a) => a.id === assistantId);
+          if (!assistant) {
             Message.error(t('conversation.createFailed'));
             return;
           }
-          params = await buildPresetAssistantParams(agent, workspace, i18n.language);
+          params = await buildPresetAssistantParams(assistant, workspace, i18n.language);
         } else {
           return;
         }
@@ -285,7 +285,7 @@ const ConversationTabs: React.FC = () => {
                       <Robot size='16' />
                     )}
                     <span>{agent.name}</span>
-                    {agent.isExtension && (
+                    {agent.agent_source === 'extension' && (
                       <Tag size='small' color='arcoblue'>
                         ext
                       </Tag>
@@ -298,20 +298,24 @@ const ConversationTabs: React.FC = () => {
         )}
         {presetAssistants.length > 0 && (
           <Menu.ItemGroup title={t('conversation.dropdown.presetAssistants')}>
-            {presetAssistants.map((agent) => {
-              const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
-              const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+            {presetAssistants.map((assistant) => {
+              const avatarImage = assistant.avatar ? CUSTOM_AVATAR_IMAGE_MAP[assistant.avatar] : undefined;
+              const isEmoji = assistant.avatar && !avatarImage && !assistant.avatar.endsWith('.svg');
               return (
-                <Menu.Item key={`preset:${agent.custom_agent_id}`}>
+                <Menu.Item key={`preset:${assistant.id}`}>
                   <div className='flex items-center gap-8px'>
                     {avatarImage ? (
-                      <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                      <img
+                        src={avatarImage}
+                        alt={assistant.name}
+                        style={{ width: 16, height: 16, objectFit: 'contain' }}
+                      />
                     ) : isEmoji ? (
-                      <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>
+                      <span style={{ fontSize: 14, lineHeight: '16px' }}>{assistant.avatar}</span>
                     ) : (
                       <Robot size='16' />
                     )}
-                    <span>{agent.name}</span>
+                    <span>{assistant.name}</span>
                   </div>
                 </Menu.Item>
               );
