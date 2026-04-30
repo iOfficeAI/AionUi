@@ -13,7 +13,6 @@ import ChannelDingTalkLogo from '@/renderer/assets/channel-logos/dingtalk.svg';
 import ChannelDiscordLogo from '@/renderer/assets/channel-logos/discord.svg';
 import ChannelLarkLogo from '@/renderer/assets/channel-logos/lark.svg';
 import ChannelSlackLogo from '@/renderer/assets/channel-logos/slack.svg';
-import ChannelTelegramLogo from '@/renderer/assets/channel-logos/telegram.svg';
 import ChannelWecomLogo from '@/renderer/assets/channel-logos/wecom.svg';
 import ChannelWeixinLogo from '@/renderer/assets/channel-logos/weixin.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -46,7 +45,6 @@ const PreferenceRow: React.FC<{
 );
 
 const CHANNEL_LOGOS = [
-  { src: ChannelTelegramLogo, alt: 'Telegram' },
   { src: ChannelLarkLogo, alt: 'Lark' },
   { src: ChannelDingTalkLogo, alt: 'DingTalk' },
   { src: ChannelWeixinLogo, alt: 'WeChat' },
@@ -735,20 +733,7 @@ const WebuiModalContent: React.FC = () => {
           <PreferenceRow
             label={t('settings.webui.allowRemote')}
             description={
-              <span className='text-t-secondary'>
-                {t('settings.webui.allowRemoteDesc')}
-                {'  '}
-                <button
-                  className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px'
-                  onClick={() =>
-                    shell.openExternal
-                      .invoke('https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide')
-                      .catch(console.error)
-                  }
-                >
-                  {t('settings.webui.viewGuide')}
-                </button>
-              </span>
+              <span className='text-t-secondary'>{t('settings.webui.allowRemoteDesc')}</span>
             }
           >
             <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />

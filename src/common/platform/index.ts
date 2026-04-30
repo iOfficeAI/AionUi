@@ -13,6 +13,14 @@ export function getDevAppName(): string {
   return isMultiInstance ? 'AICoreDesktop-Dev-2' : 'AICoreDesktop-Dev';
 }
 
+/**
+ * Resolve the user-visible dev app name without changing the underlying
+ * isolation directory name used for userData.
+ */
+export function getDevDisplayName(): string {
+  return 'AICore';
+}
+
 export function registerPlatformServices(services: IPlatformServices): void {
   _services = services;
 }
@@ -41,7 +49,7 @@ export function getPlatformServices(): IPlatformServices {
         // must apply the dev name here as a safety net.
         if (!app.isPackaged) {
           const devAppName = getDevAppName();
-          app.setName(devAppName);
+          app.setName(getDevDisplayName());
           app.setPath('userData', path.join(path.dirname(app.getPath('userData')), devAppName));
         }
         // Typed as IPlatformPaths so tsc enforces completeness: any new method

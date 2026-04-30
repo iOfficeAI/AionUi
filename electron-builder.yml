@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AICore
-executableName: AICore
-copyright: Copyright © 2024 AICore
+productName: AICore Desktop
+executableName: AICoreDesktop
+copyright: Copyright © 2024 AICore Desktop
 
 protocols:
-  - name: AICore Protocol
+  - name: AICore Desktop Protocol
     schemes:
       - aionui
 

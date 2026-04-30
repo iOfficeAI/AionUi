@@ -71,12 +71,12 @@ Let me first check your current OpenClaw installation status, and then I can pro
 - **Use cases**: Daily use, mobile work, scenarios requiring timely notifications
 - **Configuration requirements**: Need to create corresponding Bot and obtain Token/credentials (e.g., Telegram Bot Token)
 
-**Option B: Start AionUi WebUI Remote Mode**
+**Option B: Start AICore WebUI Remote Mode**
 
-- **Experience**: Access through browser with AionUi's full interface features
+- **Experience**: Access through browser with AICore's full interface features
 - **Advantages**: Richer interface, supports file preview, multi-conversation management, and advanced features
 - **Use cases**: Complex operations, file management, multi-task processing scenarios
-- **Configuration requirements**: Start AionUi WebUI service, access through browser
+- **Configuration requirements**: Start AICore WebUI service, access through browser
 
 You can choose one based on your usage habits, or configure both. Which option would you like me to help you configure?"
 
@@ -136,7 +136,7 @@ I've explained OpenClaw's capabilities and permission scope. OpenClaw is a power
    - **If already configured**:
      - Inform can start using: "It looks like OpenClaw is already configured. You can now start using it."
    - **Usage guidance**:
-     - **Local usage**: "After OpenClaw installation is complete, **please restart AionUi**, then you can see OpenClaw in the available Agent list on the AionUi homepage and start chatting directly."
+     - **Local usage**: "After OpenClaw installation is complete, **please restart AICore**, then you can see OpenClaw in the available Agent list on the AICore homepage and start chatting directly."
      - **Remote usage**: "If you need remote access, I can help you configure it. There are two options:"
        - Explain both options (see "Remote Usage Options Comparison" below)
        - Ask user: "Which option would you like to configure?" → **Wait for user reply**
@@ -193,23 +193,23 @@ I've explained OpenClaw's capabilities and permission scope. OpenClaw is a power
 **Trigger condition**: When user explicitly mentions "configure remote access", "configure remote usage", "configure channels", etc.
 
 1. **Ask user preference first**: Ask user which method they want to configure → **Wait for user reply**
-   - "Do you want to connect directly to IM channels (like Telegram, WhatsApp, etc.), or use AionUi WebUI remote mode?"
+   - "Do you want to connect directly to IM channels (like Telegram, WhatsApp, etc.), or use AICore WebUI remote mode?"
 2. **Based on user choice**:
    - **Choose IM Channels** → Go to Option A
    - **Choose WebUI** → Go to Option B
 3. **Option A: Configure IM Channels**
    - Ask user which channel (Telegram, WhatsApp, Discord, Slack, etc.) → **Wait for user reply**
    - Explain required info (Bot Token/credentials) → Get consent → Configure (environment-synchronized format) → Verify
-4. **Option B: Start AionUi WebUI Remote Mode**
-   - **Must use aionui-webui-setup skill**: Consult `references/aionui-webui.md`
+4. **Option B: Start AICore WebUI Remote Mode**
+   - **Must use aicore-webui-setup skill**: Consult `references/aionui-webui.md`
    - **Workflow**:
      1. Ask user needs: Same WiFi, cross-network access, or server deployment? → **Wait for user reply**
-     2. After user replies, **guide user to AionUi settings interface**:
+     2. After user replies, **guide user to AICore settings interface**:
         - **Open settings interface**: Clearly tell user how to open it
-          - "Please click the **Settings icon** (gear icon) at the bottom left of AionUi"
+          - "Please click the **Settings icon** (gear icon) at the bottom left of AICore"
           - "In the settings menu, click the **'WebUI'** option"
           - "Enter the WebUI configuration interface"
-        - **Configuration steps**: Follow `aionui-webui-setup` skill's `references/aionui-webui.md` documentation to guide user:
+        - **Configuration steps**: Follow `aicore-webui-setup` skill's `references/aionui-webui.md` documentation to guide user:
           - Step 1: Enable WebUI (switch "Enable WebUI" toggle to ON)
           - Step 2: Enable remote access (if needed, switch "Allow Remote Access" toggle to ON)
           - Step 3: Get access information (tell user they can find access URL, username, and password in settings interface)
@@ -220,7 +220,7 @@ I've explained OpenClaw's capabilities and permission scope. OpenClaw is a power
    - **Key principles**:
      - **All configuration should be done through settings interface**, do not use command line methods
      - **Guided instructions**: Use format like "Click xxx, go to xxxx", clearly tell user operation steps
-     - **Don't attempt to install `@aionui/webui` or similar npm packages**: WebUI is a built-in feature of AionUi, not a separate package
+     - **Don't attempt to install `@aionui/webui` or similar npm packages**: WebUI is a built-in feature of AICore, not a separate package
      - **Settings interface displays all information**: Access URL, username, password can all be viewed and copied directly in settings interface
 
 ---
@@ -248,7 +248,7 @@ Contains comprehensive OpenClaw documentation:
 - Advanced scenarios → Read `references/best-practices.md`
 - Uninstallation questions → Read `references/uninstallation.md`
 
-### aionui-webui-setup Skill
+### aicore-webui-setup Skill
 
 **Core documentation**: `references/aionui-webui.md`
 
@@ -302,7 +302,7 @@ Contains comprehensive OpenClaw documentation:
      - After user confirms: Execute `openclaw onboard --install-daemon` (environment-synchronized format) → Verify configuration complete
    - **If already configured**: Inform can start using
    - **Usage guidance**:
-     - Introduce local usage (return to AionUi homepage)
+     - Introduce local usage (return to AICore homepage)
      - Introduce remote usage options (use "Remote Usage Options Comparison" template)
      - Ask if need to configure remote usage → **Wait for user reply**
 6. Based on user's choice, proceed to corresponding configuration flow
@@ -315,7 +315,7 @@ Contains comprehensive OpenClaw documentation:
 
 1. Introduce both options → Ask user to choose
 2. **Choose IM Channels**: Ask channel → Configure (environment-synchronized format) → Verify
-3. **Choose WebUI**: Use `aionui-webui-setup` skill → Ask needs → Choose solution → Execute configuration → Provide usage instructions
+3. **Choose WebUI**: Use `aicore-webui-setup` skill → Ask needs → Choose solution → Execute configuration → Provide usage instructions
 4. Verify success → Ask about other needs
 
 ---
@@ -330,5 +330,5 @@ Contains comprehensive OpenClaw documentation:
 6. **Remote usage**: Introduce both options (IM Channels vs WebUI) → User chooses → **Wait for reply** → Configure
 7. **Skill usage**:
    - OpenClaw questions → `openclaw-setup` skill (consult corresponding documentation)
-   - WebUI configuration → **Must use `aionui-webui-setup` skill** (directly consult `references/aionui-webui.md` and follow documentation, don't repeat detailed steps from documentation)
+   - WebUI configuration → **Must use `aicore-webui-setup` skill** (directly consult `references/aionui-webui.md` and follow documentation, don't repeat detailed steps from documentation)
 8. **Don't assume**: Don't assume tools exist, if detection inconsistent use environment synchronization method to re-check

@@ -11,7 +11,6 @@ import {
   misakaMikotoCover,
   helloKittyCover,
   retroWindowsCover,
-  y2kJpCover,
   retromaObsidianBookCover,
 } from './themeCovers.ts';
 
@@ -20,7 +19,6 @@ import defaultCss from './presets/default.css?raw';
 import misakaMikotoCss from './presets/misaka-mikoto.css?raw';
 import helloKittyCss from './presets/hello-kitty.css?raw';
 import retroWindowsCss from './presets/retro-windows.css?raw';
-import retromaY2kCss from './presets/retroma-y2k.css?raw';
 import retromaObsidianBookCss from './presets/retroma-obsidian-book.css?raw';
 import discourseHorizonCss from './presets/discourse-horizon.css?raw';
 import glitteringInputFieldCss from './presets/glittering-input-field.css?raw';
@@ -69,15 +67,6 @@ export const PRESET_THEMES: ICssTheme[] = [
     isPreset: true,
     cover: retroWindowsCover,
     css: retroWindowsCss,
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-  },
-  {
-    id: 'retroma-y2k-jp-v42-pure',
-    name: 'Y2K电子账本 by 椰树女王',
-    isPreset: true,
-    cover: y2kJpCover,
-    css: retromaY2kCss,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   },

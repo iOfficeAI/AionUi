@@ -1,10 +1,10 @@
-# AionUi WebUI 配置指南
+# AICore WebUI 配置指南
 
 ## 概述
 
-AionUi 支持 WebUI 模式，允许通过浏览器访问应用。这对于远程使用 OpenClaw 非常有用。AionUi 提供三种远程连接方式，满足不同场景的需求。
+AICore 支持 WebUI 模式，允许通过浏览器访问应用。这对于远程使用 OpenClaw 非常有用。AICore 提供三种远程连接方式，满足不同场景的需求。
 
-**重要**：WebUI 配置应通过 AionUi 设置界面完成，无需使用命令行。本指南将引导你如何在设置界面中完成配置。
+**重要**：WebUI 配置应通过 AICore 设置界面完成，无需使用命令行。本指南将引导你如何在设置界面中完成配置。
 
 ## 三种远程连接方式
 
@@ -38,13 +38,13 @@ AionUi 支持 WebUI 模式，允许通过浏览器访问应用。这对于远程
 
 **方式 1：通过设置按钮（推荐）**
 
-1. 在 AionUi 主界面，点击左下角的**设置图标**（齿轮图标）
+1. 在 AICore 主界面，点击左下角的**设置图标**（齿轮图标）
 2. 在设置菜单中，点击 **"WebUI"** 选项
 3. 进入 WebUI 配置界面
 
 **方式 2：通过快捷键**
 
-- 在 AionUi 主界面，使用快捷键打开设置（具体快捷键请查看 AionUi 帮助文档）
+- 在 AICore 主界面，使用快捷键打开设置（具体快捷键请查看 AICore 帮助文档）
 
 **方式 3：通过路由（WebUI 模式）**
 
@@ -94,7 +94,7 @@ WebUI 启动后，设置界面会显示：
 
 #### Step 1: 打开 WebUI 设置界面
 
-1. 在 AionUi 主界面，点击左下角的**设置图标**
+1. 在 AICore 主界面，点击左下角的**设置图标**
 2. 点击 **"WebUI"** 选项
 
 #### Step 2: 启用 WebUI 和远程访问
@@ -111,7 +111,7 @@ WebUI 启动后，设置界面会显示：
 
 #### Step 4: 在远程设备上访问
 
-1. 确保远程设备与 AionUi 电脑在同一 WiFi 网络
+1. 确保远程设备与 AICore 电脑在同一 WiFi 网络
 2. 在远程设备的浏览器中，粘贴并访问复制的地址
 3. 使用设置界面中显示的**用户名**和**密码**登录
 
@@ -121,8 +121,8 @@ WebUI 启动后，设置界面会显示：
 
 ### 适用场景
 
-- 从办公室访问家庭的 AionUi
-- 从手机（使用流量）访问家庭的 AionUi
+- 从办公室访问家庭的 AICore
+- 从手机（使用流量）访问家庭的 AICore
 - 需要跨网络访问，但不想配置公网 IP
 
 ### 优势
@@ -134,10 +134,10 @@ WebUI 启动后，设置界面会显示：
 
 ### 配置步骤
 
-#### Step 1: 在 AionUi 电脑上配置 WebUI
+#### Step 1: 在 AICore 电脑上配置 WebUI
 
 1. **打开 WebUI 设置界面**：
-   - 在 AionUi 主界面，点击左下角的**设置图标**
+   - 在 AICore 主界面，点击左下角的**设置图标**
    - 点击 **"WebUI"** 选项
 
 2. **启用 WebUI**：
@@ -148,7 +148,7 @@ WebUI 启动后，设置界面会显示：
    - 记录显示的**本地访问地址**（`http://localhost:25808`）
    - 记录**用户名**和**密码**
 
-#### Step 2: 在 AionUi 电脑上安装并登录 Tailscale
+#### Step 2: 在 AICore 电脑上安装并登录 Tailscale
 
 1. 访问 [Tailscale 官网](https://tailscale.com/) 下载并安装
 2. 登录 Tailscale 账户（首次使用需要注册）
@@ -156,7 +156,7 @@ WebUI 启动后，设置界面会显示：
 
 #### Step 3: 获取 Tailscale IP
 
-1. 在 AionUi 电脑上，打开 Tailscale 应用
+1. 在 AICore 电脑上，打开 Tailscale 应用
 2. 查看显示的 Tailscale IP 地址（例如：`100.x.x.x`）
 3. 组合访问 URL：`http://<Tailscale_IP>:25808`
 
@@ -206,14 +206,14 @@ tailscale status --json
 
 ### Linux 服务器部署（推荐）
 
-#### Step 1: 在服务器上安装 AionUi
+#### Step 1: 在服务器上安装 AICore
 
-按照 AionUi 安装指南在服务器上安装 AionUi 应用。
+按照 AICore 安装指南在服务器上安装 AICore 应用。
 
 #### Step 2: 通过设置界面配置 WebUI
 
 1. **打开 WebUI 设置界面**：
-   - 如果服务器有图形界面，直接打开 AionUi 应用
+   - 如果服务器有图形界面，直接打开 AICore 应用
    - 如果服务器无图形界面，需要通过 SSH 端口转发或 VNC 访问图形界面
 
 2. **配置 WebUI**：
@@ -243,7 +243,7 @@ sudo iptables -A INPUT -p tcp --dport 25808 -j ACCEPT
 
 #### Step 4: 配置开机自启（可选）
 
-如果需要 AionUi 开机自启，可以配置 systemd 服务。但建议通过 AionUi 设置界面管理 WebUI，而不是通过命令行。
+如果需要 AICore 开机自启，可以配置 systemd 服务。但建议通过 AICore 设置界面管理 WebUI，而不是通过命令行。
 
 #### Step 5: 获取访问地址
 
@@ -263,13 +263,13 @@ sudo iptables -A INPUT -p tcp --dport 25808 -j ACCEPT
 
 ### macOS 服务器部署
 
-#### Step 1: 在服务器上安装 AionUi
+#### Step 1: 在服务器上安装 AICore
 
-按照 AionUi 安装指南在 macOS 服务器上安装 AionUi 应用。
+按照 AICore 安装指南在 macOS 服务器上安装 AICore 应用。
 
 #### Step 2: 通过设置界面配置 WebUI
 
-1. 打开 AionUi 应用
+1. 打开 AICore 应用
 2. 点击左下角的**设置图标**
 3. 点击 **"WebUI"** 选项
 4. 将 **"启用 WebUI"** 和 **"允许远程访问"** 开关切换到**开启**状态
@@ -278,8 +278,8 @@ sudo iptables -A INPUT -p tcp --dport 25808 -j ACCEPT
 
 ```bash
 # 允许端口 25808
-sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /Applications/AionUi.app/Contents/MacOS/AionUi
-sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/AionUi.app/Contents/MacOS/AionUi
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --add /Applications/AICore.app/Contents/MacOS/AICore
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/AICore.app/Contents/MacOS/AICore
 ```
 
 ---
@@ -309,7 +309,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 ### Channels 配置
 
 - 配置 Telegram、Lark 等聊天平台的 Bot Token
-- 实现通过 IM 应用访问 AionUi
+- 实现通过 IM 应用访问 AICore
 
 ---
 
@@ -359,7 +359,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 
 - 确认两端设备都已登录 Tailscale
 - 检查 Tailscale 状态：`tailscale status`
-- 确认 AionUi WebUI 已在设置界面中启用
+- 确认 AICore WebUI 已在设置界面中启用
 
 ---
 
@@ -371,9 +371,9 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 
 | 平台    | 配置文件位置                                             |
 | ------- | -------------------------------------------------------- |
-| Windows | `%APPDATA%/AionUi/webui.config.json`                     |
-| macOS   | `~/Library/Application Support/AionUi/webui.config.json` |
-| Linux   | `~/.config/AionUi/webui.config.json`                     |
+| Windows | `%APPDATA%/AICore/webui.config.json`                     |
+| macOS   | `~/Library/Application Support/AICore/webui.config.json` |
+| Linux   | `~/.config/AICore/webui.config.json`                     |
 
 ### 配置示例
 
@@ -407,7 +407,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 
 1. **配置防火墙规则**：仅开放必要端口
 2. **使用强密码**：避免使用默认或弱密码
-3. **定期更新**：保持 AionUi 和系统更新
+3. **定期更新**：保持 AICore 和系统更新
 4. **监控日志**：定期检查访问日志
 5. **考虑使用反向代理**：使用 Nginx 等反向代理，配置 SSL/TLS
 
@@ -422,11 +422,11 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 
 ## 与 OpenClaw 集成
 
-启动 WebUI 后，可以通过浏览器访问 AionUi，然后：
+启动 WebUI 后，可以通过浏览器访问 AICore，然后：
 
 1. **在首页找到 OpenClaw 入口**（ACP 代理列表）
 2. **直接与 OpenClaw 对话**
-3. **享受完整的 AionUi 界面功能**：
+3. **享受完整的 AICore 界面功能**：
    - 文件预览和管理
    - 多对话管理
    - 完整的工具和技能支持
@@ -435,8 +435,8 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 
 ## 相关资源
 
-- [AionUi Wiki - Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
-- [AionUi Wiki - WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide)
+- [AICore Wiki - Remote Internet Access Guide](https://github.com/iOfficeAI/AICore/wiki/Remote-Internet-Access-Guide)
+- [AICore Wiki - WebUI Configuration Guide](https://github.com/iOfficeAI/AICore/wiki/WebUI-Configuration-Guide)
 - [Tailscale 官方文档](https://tailscale.com/kb/)
 
 ---
@@ -445,7 +445,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 
 ### 设置界面操作
 
-1. **打开设置**：点击 AionUi 左下角的**设置图标** → 点击 **"WebUI"**
+1. **打开设置**：点击 AICore 左下角的**设置图标** → 点击 **"WebUI"**
 2. **启用 WebUI**：将"启用 WebUI"开关切换到**开启**状态
 3. **启用远程访问**：将"允许远程访问"开关切换到**开启**状态（如果需要）
 4. **复制访问地址**：点击访问地址旁边的**复制图标**
@@ -459,7 +459,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --unblockapp /Applications/
 lsof -i :25808
 
 # 检查进程
-ps aux | grep AionUi
+ps aux | grep AICore
 
 # 获取 IP 地址
 ifconfig | grep "inet " | grep -v 127.0.0.1

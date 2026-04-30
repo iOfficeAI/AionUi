@@ -43,7 +43,7 @@ type ExtensionFieldSchema = {
 
 type ExtensionFieldValues = Record<string, Record<string, string | number | boolean>>;
 
-const BUILTIN_CHANNEL_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
+const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
 
 /**
  * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence

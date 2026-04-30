@@ -27,6 +27,7 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const displayName =
     agentName ||
     ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
+    (backend === 'aionrs' ? 'aicore' : undefined) ||
     backend.charAt(0).toUpperCase() + backend.slice(1);
 
   // Hide disconnected status from historical messages (no longer emitted but may exist in DB)

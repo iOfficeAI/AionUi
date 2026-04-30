@@ -16,22 +16,30 @@ function getBinaryName(): string {
  * Resolve the aionrs binary path.
  * Search order:
  *  1. Bundled with app (production)
- *  2. System PATH
+ *  2. Bundled with project resources (development)
+ *  3. System PATH
  */
 export function resolveAionrsBinary(): string | null {
+  const runtimeKey = `${process.platform}-${process.arch}`;
+  const binaryName = getBinaryName();
+
   // 1. Bundled binary (production) — same layout as bundled-bun
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (resourcesPath) {
-    const runtimeKey = `${process.platform}-${process.arch}`;
-    const bundled = join(resourcesPath, 'bundled-aionrs', runtimeKey, getBinaryName());
+    const bundled = join(resourcesPath, 'bundled-aionrs', runtimeKey, binaryName);
     if (existsSync(bundled)) return bundled;
   }
 
-  // 2. System PATH
+  // 2. Bundled binary prepared in the project resources for local dev.
+  const devBundled = join(process.cwd(), 'resources', 'bundled-aionrs', runtimeKey, binaryName);
+  if (existsSync(devBundled)) return devBundled;
+
+  // 3. System PATH
   try {
     const cmd = process.platform === 'win32' ? 'where aionrs' : 'which aionrs';
     const result = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim();
-    if (result && existsSync(result)) return result;
+    const resolvedPath = result.split(/\r?\n/)[0]?.trim();
+    if (resolvedPath && existsSync(resolvedPath)) return resolvedPath;
   } catch {
     // not found in PATH
   }

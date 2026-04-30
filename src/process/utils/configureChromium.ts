@@ -9,7 +9,7 @@ import http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
-import { getDevAppName } from '@/common/platform';
+import { getDevAppName, getDevDisplayName } from '@/common/platform';
 
 // ============ Environment Separation ============
 // Set app name before any getPath() call so userData is isolated from production.
@@ -18,7 +18,7 @@ import { getDevAppName } from '@/common/platform';
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
 if (!app.isPackaged) {
   const devAppName = getDevAppName();
-  app.setName(devAppName);
+  app.setName(getDevDisplayName());
   // In Electron 28+, setName alone no longer updates userData path on macOS.
   // Explicitly override userData to the dev directory.
   const appSupportDir = path.dirname(app.getPath('userData'));

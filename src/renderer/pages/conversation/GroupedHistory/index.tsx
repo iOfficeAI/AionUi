@@ -92,6 +92,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleOpenMenu,
   } = useConversationActions({
     batchMode,
+    conversations,
     onSessionClick,
     onBatchModeChange,
     selectedConversationIds,
@@ -402,7 +403,14 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 onClick={() => toggleSection(section.timeline)}
               >
                 <span className='text-13px text-t-secondary font-bold leading-20px'>{section.timeline}</span>
-                <div className='ml-auto h-20px w-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 text-t-secondary'>
+                <div
+                  className={classNames(
+                    'h-20px w-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 text-t-secondary',
+                    {
+                      'ml-auto': true,
+                    }
+                  )}
+                >
                   {collapsedSections.has(section.timeline) ? (
                     <Right theme='outline' size={12} />
                   ) : (
@@ -446,6 +454,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               })}
           </div>
         ))}
+
       </div>
     </>
   );
