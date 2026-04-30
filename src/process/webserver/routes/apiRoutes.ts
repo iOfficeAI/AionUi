@@ -367,7 +367,10 @@ export function registerApiRoutes(app: Express): void {
         // This breaks the taint chain: path.basename() strips any directory traversal sequences,
         // and MULTER_TEMP_DIR is a constant set at startup, not user-provided.
         const safeTempPath = path.join(path.resolve(MULTER_TEMP_DIR), path.basename(file.path));
-        await fsPromises.rename(safeTempPath, targetPath);
+        // Use copy + unlink instead of rename to support cross-device moves
+        // (e.g. /tmp on tmpfs vs. /home on ext4 in container/server deployments)
+        await fsPromises.copyFile(safeTempPath, targetPath);
+        await fsPromises.unlink(safeTempPath);
 
         res.json({
           success: true,

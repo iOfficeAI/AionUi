@@ -6,6 +6,7 @@
 
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import path from 'path';
+import fsPromises from 'fs/promises';
 
 // Mock dependencies
 vi.mock('@process/services/database', () => ({
@@ -174,5 +175,57 @@ describe('apiRoutes - normalizeMountPath behavior', () => {
     const whitespace = '   ';
     const result = !whitespace || whitespace.trim() === '' ? '/' : whitespace;
     expect(result).toBe('/');
+  });
+});
+
+describe('apiRoutes upload handler — file move with copyFile + unlink', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('calls copyFile and unlink for cross-device file moves', async () => {
+    const copyFileSpy = vi.spyOn(fsPromises, 'copyFile').mockResolvedValue(undefined);
+    const unlinkSpy = vi.spyOn(fsPromises, 'unlink').mockResolvedValue(undefined);
+    const accessSpy = vi.spyOn(fsPromises, 'access').mockRejectedValue(new Error('not found'));
+    const mkdirSpy = vi.spyOn(fsPromises, 'mkdir').mockResolvedValue(undefined);
+
+    const app = {
+      use: vi.fn(),
+      post: vi.fn(),
+      get: vi.fn(),
+    } as unknown as Express;
+
+    registerApiRoutes(app);
+
+    // Extract the upload handler (last argument of app.post('/api/upload', ...))
+    const uploadCall = (app.post as any).mock.calls.find((call: any[]) => call[0] === '/api/upload');
+    expect(uploadCall).toBeDefined();
+    const uploadHandler = uploadCall![uploadCall!.length - 1];
+
+    const mockReq = {
+      file: {
+        path: '/tmp/multer-temp-abc123',
+        originalname: 'test-file.txt',
+        size: 1024,
+        mimetype: 'text/plain',
+      },
+      body: { conversationId: 'conv-123', workspace: '' },
+    } as any;
+
+    const mockRes = {
+      status: vi.fn().mockReturnThis(),
+      json: vi.fn().mockReturnThis(),
+    } as any;
+
+    await uploadHandler(mockReq, mockRes);
+
+    expect(copyFileSpy).toHaveBeenCalledTimes(1);
+    expect(unlinkSpy).toHaveBeenCalledTimes(1);
+    expect(mockRes.json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+
+    copyFileSpy.mockRestore();
+    unlinkSpy.mockRestore();
+    accessSpy.mockRestore();
+    mkdirSpy.mockRestore();
   });
 });
