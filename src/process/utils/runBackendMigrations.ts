@@ -22,7 +22,7 @@ const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
 ] as const;
 
 async function cleanupLegacyClientPreferences(): Promise<void> {
-  const payload = Object.fromEntries(LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS.map((key) => [key, null]));
+  const payload = Object.fromEntries(LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS.map((key): [string, null] => [key, null]));
   await httpRequest<void>('PUT', '/api/settings/client', payload);
 }
 
@@ -35,8 +35,8 @@ const MIGRATION_STEPS: Array<{
   name: string;
   run: (configFile: ConfigFile) => Promise<MigrationStepResult>;
 }> = [
-  { name: 'migrateConfigStorage', run: async () => (await migrateConfigStorage(), true) },
-  { name: 'migrateProviders', run: async () => (await migrateProviders(), true) },
+  { name: 'migrateConfigStorage', run: async (configFile) => (await migrateConfigStorage(configFile), true) },
+  { name: 'migrateProviders', run: async (configFile) => (await migrateProviders(configFile), true) },
   { name: 'migrateAssistantsToBackend', run: async (configFile) => migrateAssistantsToBackend(configFile) },
 ];
 

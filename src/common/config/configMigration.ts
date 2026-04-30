@@ -3,9 +3,9 @@ import { httpRequest } from '@/common/adapter/httpBridge';
 import type { CreateProviderRequest } from '@/common/types/providerApi';
 
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
-import { ConfigStorage, type IConfigStorageRefer } from './storage';
+import type { IConfigStorageRefer } from './storage';
 
-const MIGRATION_FLAG: ConfigKey = 'migration.configStorageImported';
+export type ConfigFile = { get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>; set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<unknown> };
 
 const ALL_LEGACY_KEYS: ConfigKey[] = [
   'codex.config',
@@ -58,20 +58,15 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'assistant.wecom.agent',
 ];
 
-export async function migrateConfigStorage(): Promise<void> {
-  if (await isBackendMigrationComplete(MIGRATION_FLAG)) {
-    return;
-  }
-
+export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {
   const entries: Record<string, unknown> = {};
 
   const legacyEntries = await Promise.all(
     ALL_LEGACY_KEYS.map(async (key) => {
       try {
-        const value = await ConfigStorage.get(key as keyof IConfigStorageRefer);
+        const value = await configFile.get(key as keyof IConfigStorageRefer);
         return [key, value] as const;
       } catch {
-        // key may not exist in old storage, skip
         return [key, undefined] as const;
       }
     })
@@ -83,17 +78,19 @@ export async function migrateConfigStorage(): Promise<void> {
     }
   }
 
-  entries[MIGRATION_FLAG] = true;
+  if (Object.keys(entries).length === 0) {
+    console.info('[Migration] configStorage migration skipped — no legacy keys found');
+    return;
+  }
+
   await setBackendClientPreferences(entries);
-  console.info('[Migration] configStorage migration completed, migrated %d keys', Object.keys(entries).length - 1);
+  console.info('[Migration] configStorage migration completed, migrated %d keys', Object.keys(entries).length);
 }
 
 // ---------------------------------------------------------------------------
-// Provider migration — reads legacy `model.config` from old ConfigStorage
+// Provider migration — reads legacy `model.config` from local config file
 // and writes each entry to the backend via `POST /api/providers`.
 // ---------------------------------------------------------------------------
-
-const PROVIDERS_MIGRATION_FLAG: ConfigKey = 'migration.providersImported';
 
 type LegacyModelHealth = Record<
   string,
@@ -142,32 +139,33 @@ function transformModelHealth(health: LegacyModelHealth): CreateProviderRequest[
   return result;
 }
 
-export async function migrateProviders(): Promise<void> {
-  if (await isBackendMigrationComplete(PROVIDERS_MIGRATION_FLAG)) {
+export async function migrateProviders(configFile: ConfigFile): Promise<void> {
+  const alreadyDone = await configFile.get('migration.electronProvidersImported').catch((): undefined => undefined);
+  if (alreadyDone === true) {
     return;
   }
 
   const existing = await ipcBridge.mode.listProviders.invoke();
   if (existing && existing.length > 0) {
     console.info('[Migration] providers migration skipped — backend already has %d providers', existing.length);
-    await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
+    await configFile.set('migration.electronProvidersImported', true);
     return;
   }
 
   let legacyProviders: LegacyProvider[];
   try {
-    legacyProviders = (await ConfigStorage.get(
+    legacyProviders = (await configFile.get(
       'model.config' as keyof IConfigStorageRefer
     )) as unknown as LegacyProvider[];
   } catch (err) {
-    console.info('[Migration] providers migration skipped — no model.config in legacy storage', err);
-    await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
+    console.info('[Migration] providers migration skipped — no model.config in config file', err);
+    await configFile.set('migration.electronProvidersImported', true);
     return;
   }
 
   if (!legacyProviders || !Array.isArray(legacyProviders) || legacyProviders.length === 0) {
     console.info('[Migration] providers migration skipped — model.config is empty or invalid');
-    await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
+    await configFile.set('migration.electronProvidersImported', true);
     return;
   }
 
@@ -210,21 +208,13 @@ export async function migrateProviders(): Promise<void> {
     console.warn('[Migration] failed to create provider %s:', requests[index].legacy.id, result.reason);
   });
 
-  await setBackendClientPreferences({ [PROVIDERS_MIGRATION_FLAG]: true });
+  await configFile.set('migration.electronProvidersImported', true);
   console.info('[Migration] providers migration completed, migrated %d/%d providers', migrated, legacyProviders.length);
 }
 
 type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;
 
-async function getBackendClientPreferences(): Promise<BackendClientPreferences> {
-  return (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client')) as BackendClientPreferences;
-}
-
 async function setBackendClientPreferences(entries: BackendClientPreferences): Promise<void> {
   await httpRequest<void>('PUT', '/api/settings/client', entries);
 }
 
-async function isBackendMigrationComplete(flag: ConfigKey): Promise<boolean> {
-  const settings = await getBackendClientPreferences();
-  return settings[flag] === true;
-}
