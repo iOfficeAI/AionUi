@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Tests for TeamGuideMcpServer tool handler logic (TCP architecture):
- *   - aion_create_team: input validation, TeamSessionService wiring, return shape
+ *   - aion_create_team: input validation, backend team runtime wiring, return shape
  *   - shouldInjectTeamGuideMcp: dynamic capability check (uses cached ACP init results)
  */
 
@@ -35,6 +35,9 @@ const makeCachedInitEntry = () => ({
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    conversation: {
+      get: { invoke: vi.fn() },
+    },
     deepLink: {
       received: { emit: mockDeepLinkEmit },
     },
@@ -61,18 +64,19 @@ vi.mock('../../src/process/utils/initStorage', () => ({
 }));
 
 // ------------------------------------------------------------------
-// Mock TeamSessionService
+// Mock TeamGuide runtime
 // ------------------------------------------------------------------
 
 const mockCreateTeam = vi.fn();
-const mockGetOrStartSession = vi.fn();
+const mockEnsureSession = vi.fn();
 const mockSendMessageToAgent = vi.fn();
 
-function makeTeamSessionService() {
+function makeTeamGuideRuntime() {
   return {
     createTeam: mockCreateTeam,
-    getOrStartSession: mockGetOrStartSession,
-  } as unknown as import('../../src/process/team/TeamSessionService').TeamSessionService;
+    ensureSession: mockEnsureSession,
+    sendMessageToAgent: mockSendMessageToAgent,
+  };
 }
 
 // ------------------------------------------------------------------
@@ -143,7 +147,7 @@ describe('TeamGuideMcpServer lifecycle', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new TeamGuideMcpServer(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamGuideRuntime());
     await service.start();
   });
 
@@ -165,7 +169,7 @@ describe('TeamGuideMcpServer lifecycle', () => {
   });
 
   it('start() returns the same StdioMcpConfig as getStdioConfig()', async () => {
-    const service2 = new TeamGuideMcpServer(makeTeamSessionService());
+    const service2 = new TeamGuideMcpServer(makeTeamGuideRuntime());
     const returned = await service2.start();
     const getter = service2.getStdioConfig();
     expect(returned).toEqual(getter);
@@ -188,7 +192,7 @@ describe('TeamGuideMcpServer auth token', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new TeamGuideMcpServer(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamGuideRuntime());
     await service.start();
   });
 
@@ -211,9 +215,7 @@ describe('TeamGuideMcpServer auth token', () => {
       name: 'oversize recovery check',
       agents: [{ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' }],
     });
-    mockGetOrStartSession.mockResolvedValue({
-      sendMessageToAgent: mockSendMessageToAgent,
-    });
+    mockEnsureSession.mockResolvedValue(undefined);
     mockSendMessageToAgent.mockResolvedValue(undefined);
 
     await new Promise<void>((resolve, reject) => {
@@ -263,7 +265,7 @@ describe('aion_create_team handler', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new TeamGuideMcpServer(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamGuideRuntime());
     await service.start();
 
     mockCreateTeam.mockResolvedValue({
@@ -272,10 +274,7 @@ describe('aion_create_team handler', () => {
       agents: [{ slot_id: 'slot-lead', conversation_id: 'conv-lead', role: 'leader' }],
     });
 
-    mockGetOrStartSession.mockResolvedValue({
-      sendMessageToAgent: mockSendMessageToAgent,
-    });
-
+    mockEnsureSession.mockResolvedValue(undefined);
     mockSendMessageToAgent.mockResolvedValue(undefined);
   });
 
@@ -311,7 +310,7 @@ describe('aion_create_team handler', () => {
     expect(data.route).toBe('/team/team-abc-123');
   });
 
-  it('calls TeamSessionService.createTeam with the provided name', async () => {
+  it('calls the runtime createTeam with the provided name', async () => {
     await tcpRequest(getPort(service), {
       tool: 'aion_create_team',
       args: { summary: '测试摘要', name: '测试团队' },
@@ -330,7 +329,10 @@ describe('aion_create_team handler', () => {
 
     // Session start + message send are fire-and-forget; wait for microtasks to settle
     await vi.waitFor(() => {
-      expect(mockSendMessageToAgent).toHaveBeenCalledWith('slot-lead', '构建电商网站', { silent: false });
+      expect(mockEnsureSession).toHaveBeenCalledWith('team-abc-123');
+      expect(mockSendMessageToAgent).toHaveBeenCalledWith('team-abc-123', 'slot-lead', '构建电商网站', {
+        silent: false,
+      });
     });
   });
 
@@ -345,7 +347,7 @@ describe('aion_create_team handler', () => {
     expect(String(response.error)).toContain('summary is required');
   });
 
-  it('returns error when TeamSessionService.createTeam throws', async () => {
+  it('returns error when runtime createTeam throws', async () => {
     mockCreateTeam.mockRejectedValue(new Error('DB write failed'));
 
     const response = (await tcpRequest(getPort(service), {
@@ -411,7 +413,7 @@ describe('unknown tool', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
-    service = new TeamGuideMcpServer(makeTeamSessionService());
+    service = new TeamGuideMcpServer(makeTeamGuideRuntime());
     await service.start();
   });
 

@@ -8,6 +8,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { extensions as extensionsIpc } from '@/common/adapter/ipcBridge';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 
 const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(url || '');
 
@@ -29,11 +30,12 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
   const { i18n } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
-  const isExternalTab = isExternalSettingsUrl(url);
+  const resolvedUrl = resolveExtensionAssetUrl(url) ?? url;
+  const isExternalTab = isExternalSettingsUrl(resolvedUrl);
 
   useEffect(() => {
     setLoading(true);
-  }, [url]);
+  }, [resolvedUrl]);
 
   const postLocaleInit = useCallback(async () => {
     if (isExternalTab) return;
@@ -107,7 +109,7 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
       {isExternalTab ? (
         <WebviewHost
           key={tabId}
-          url={url}
+          url={resolvedUrl}
           id={tabId}
           partition={`persist:ext-settings-${tabId}`}
           style={{ minHeight: '200px' }}
@@ -122,7 +124,7 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
           <iframe
             ref={iframeRef}
             key={tabId}
-            src={url}
+            src={resolvedUrl}
             onLoad={() => setLoading(false)}
             sandbox='allow-scripts allow-same-origin'
             className='w-full h-full border-none'

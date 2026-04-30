@@ -13,10 +13,6 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 describe('AuthService.validateUsername', () => {
   beforeEach(() => {
     vi.resetModules();
-    // Break the DB import chain triggered by UserRepository
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() => ({})),
-    }));
   });
 
   it('returns valid for a well-formed username', async () => {
@@ -68,45 +64,42 @@ describe('UserRepository.updateUsername', () => {
     vi.resetModules();
   });
 
-  it('does not throw when db.updateUserUsername succeeds', async () => {
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() =>
-        Promise.resolve({
-          updateUserUsername: vi.fn(() => ({ success: true, data: true })),
-        })
-      ),
+  it('does not throw when backend update succeeds', async () => {
+    const httpRequestMock = vi.fn(async () => null);
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     await expect(UserRepository.updateUsername('user-123', 'newname')).resolves.not.toThrow();
+    expect(httpRequestMock).toHaveBeenCalledWith('POST', '/api/auth/internal/users/user-123/username', {
+      username: 'newname',
+    });
   });
 
-  it('throws when db.updateUserUsername returns failure', async () => {
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() =>
-        Promise.resolve({
-          updateUserUsername: vi.fn(() => ({
-            success: false,
-            error: 'UNIQUE constraint failed',
-            data: false,
-          })),
-        })
-      ),
+  it('throws when backend update fails', async () => {
+    const httpRequestMock = vi.fn(async () => {
+      throw new Error('UNIQUE constraint failed');
+    });
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     await expect(UserRepository.updateUsername('user-123', 'taken')).rejects.toThrow('UNIQUE constraint failed');
   });
 
-  it('calls db.updateUserUsername with correct arguments', async () => {
-    const updateUserUsernameMock = vi.fn(() => ({ success: true, data: true }));
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() => Promise.resolve({ updateUserUsername: updateUserUsernameMock })),
+  it('calls backend update endpoint with correct arguments', async () => {
+    const httpRequestMock = vi.fn(async () => null);
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     await UserRepository.updateUsername('user-123', 'newname');
-    expect(updateUserUsernameMock).toHaveBeenCalledWith('user-123', 'newname');
+    expect(httpRequestMock).toHaveBeenCalledWith('POST', '/api/auth/internal/users/user-123/username', {
+      username: 'newname',
+    });
   });
 });
 
@@ -131,39 +124,39 @@ describe('UserRepository.getPrimaryWebUIUser', () => {
   });
 
   it('prefers the initialized system user when it already has a password', async () => {
-    const getUserByUsernameMock = vi.fn();
-
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() =>
-        Promise.resolve({
-          getSystemUser: vi.fn(() => makeDbUser({ username: 'alice', password_hash: 'hash' })),
-          getUserByUsername: getUserByUsernameMock,
-        })
-      ),
+    const httpRequestMock = vi.fn(async (_method: string, path: string) => {
+      if (path === '/api/auth/internal/users/system') {
+        return makeDbUser({ username: 'alice', password_hash: 'hash' });
+      }
+      return null;
+    });
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
     const result = await UserRepository.getPrimaryWebUIUser();
 
     expect(result?.username).toBe('alice');
-    expect(getUserByUsernameMock).not.toHaveBeenCalled();
+    expect(httpRequestMock).toHaveBeenCalledTimes(1);
   });
 
   it('falls back to the legacy admin record when the system placeholder has no password', async () => {
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() =>
-        Promise.resolve({
-          getSystemUser: vi.fn(() => makeDbUser()),
-          getUserByUsername: vi.fn(() => ({
-            success: true,
-            data: makeDbUser({
-              id: 'legacy-admin',
-              username: 'admin',
-              password_hash: 'legacy-hash',
-            }),
-          })),
-        })
-      ),
+    const httpRequestMock = vi.fn(async (_method: string, path: string) => {
+      if (path === '/api/auth/internal/users/system') {
+        return makeDbUser();
+      }
+      if (path === '/api/auth/internal/users/by-username/admin') {
+        return makeDbUser({
+          id: 'legacy-admin',
+          username: 'admin',
+          password_hash: 'legacy-hash',
+        });
+      }
+      return null;
+    });
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
@@ -174,16 +167,17 @@ describe('UserRepository.getPrimaryWebUIUser', () => {
   });
 
   it('returns a renamed system user when the placeholder has been customized but not initialized', async () => {
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() =>
-        Promise.resolve({
-          getSystemUser: vi.fn(() => makeDbUser({ username: 'alice' })),
-          getUserByUsername: vi.fn(() => ({
-            success: true,
-            data: null,
-          })),
-        })
-      ),
+    const httpRequestMock = vi.fn(async (_method: string, path: string) => {
+      if (path === '/api/auth/internal/users/system') {
+        return makeDbUser({ username: 'alice' });
+      }
+      if (path === '/api/auth/internal/users/by-username/admin') {
+        return null;
+      }
+      return null;
+    });
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');
@@ -194,16 +188,17 @@ describe('UserRepository.getPrimaryWebUIUser', () => {
   });
 
   it('returns null when only an empty placeholder system user exists', async () => {
-    vi.doMock('@process/services/database/export', () => ({
-      getDatabase: vi.fn(() =>
-        Promise.resolve({
-          getSystemUser: vi.fn(() => makeDbUser()),
-          getUserByUsername: vi.fn(() => ({
-            success: true,
-            data: null,
-          })),
-        })
-      ),
+    const httpRequestMock = vi.fn(async (_method: string, path: string) => {
+      if (path === '/api/auth/internal/users/system') {
+        return makeDbUser();
+      }
+      if (path === '/api/auth/internal/users/by-username/admin') {
+        return null;
+      }
+      return null;
+    });
+    vi.doMock('@/common/adapter/httpBridge', () => ({
+      httpRequest: httpRequestMock,
     }));
 
     const { UserRepository } = await import('@process/webserver/auth/repository/UserRepository');

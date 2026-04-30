@@ -20,10 +20,7 @@ const hoisted = vi.hoisted(() => {
   const mockMenuInstance = { items: [] };
   const mockBuildFromTemplate = vi.fn(() => mockMenuInstance);
   const mockListTasks = vi.fn(() => []);
-  const mockGetUserConversations = vi.fn(() => ({ data: [] }));
-  const mockGetDatabase = vi.fn(() => ({
-    getUserConversations: mockGetUserConversations,
-  }));
+  const mockGetUserConversations = vi.fn(() => ({ items: [] }));
 
   const mockNativeImage = {
     resize: vi.fn().mockReturnThis(),
@@ -61,7 +58,6 @@ const hoisted = vi.hoisted(() => {
     mockBuildFromTemplate,
     mockListTasks,
     mockGetUserConversations,
-    mockGetDatabase,
     mockNativeImage,
     mockDock,
     mockApp,
@@ -91,7 +87,6 @@ const {
   mockBuildFromTemplate,
   mockListTasks,
   mockGetUserConversations,
-  mockGetDatabase,
   mockNativeImage,
   mockDock,
   mockApp,
@@ -117,6 +112,9 @@ vi.mock('@/common/electronSafe', () => ({
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    database: {
+      getUserConversations: { invoke: mockGetUserConversations },
+    },
     systemSettings: {
       setCloseToTray: { invoke: vi.fn() },
     },
@@ -129,10 +127,6 @@ vi.mock('@process/services/i18n', () => ({
 
 vi.mock('@process/task/workerTaskManagerSingleton', () => ({
   workerTaskManager: { listTasks: mockListTasks },
-}));
-
-vi.mock('@process/services/database', () => ({
-  getDatabase: mockGetDatabase,
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
@@ -289,16 +283,12 @@ describe('tray module', () => {
       vi.resetModules();
       vi.clearAllMocks();
       mockListTasks.mockReturnValue([]);
-      mockGetUserConversations.mockReturnValue({ data: [] });
-      mockGetDatabase.mockImplementation(() => ({
-        getUserConversations: mockGetUserConversations,
-      }));
+      mockGetUserConversations.mockReturnValue({ items: [] });
     };
 
     const getTemplateFromRefresh = async () => {
       // Pre-import mocked modules to ensure mock is resolved before tray imports them
       await import('@/common/electronSafe');
-      await import('@process/services/database');
       const { createOrUpdateTray, refreshTrayMenu } = await import('@process/utils/tray');
       createOrUpdateTray();
       const previousCalls = mockBuildFromTemplate.mock.calls.length;
@@ -310,7 +300,7 @@ describe('tray module', () => {
     it('should include recent conversations when available', async () => {
       setupWithOverrides();
       mockGetUserConversations.mockReturnValue({
-        data: [
+        items: [
           { id: '1', name: 'Test Chat' },
           { id: '2', name: 'Another Chat' },
         ],
@@ -325,7 +315,7 @@ describe('tray module', () => {
     it('should truncate long conversation titles to 20 chars', async () => {
       setupWithOverrides();
       mockGetUserConversations.mockReturnValue({
-        data: [
+        items: [
           {
             id: '1',
             name: 'A very long conversation title that exceeds twenty characters',
@@ -351,9 +341,7 @@ describe('tray module', () => {
 
     it('should gracefully handle database errors for recent conversations', async () => {
       setupWithOverrides();
-      mockGetDatabase.mockImplementation(() => {
-        throw new Error('DB unavailable');
-      });
+      mockGetUserConversations.mockRejectedValue(new Error('Backend unavailable'));
 
       await getTemplateFromRefresh();
 

@@ -18,26 +18,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 // Hoisted mocks
 // ---------------------------------------------------------------------------
 
-const mockDb = vi.hoisted(() => ({
-  getConversation: vi.fn(() => ({ success: true, data: { id: 'conv-1' } })),
-  getConversationMessages: vi.fn(() => ({ data: [] })),
-  insertMessage: vi.fn(),
-  updateMessage: vi.fn(),
-  createConversation: vi.fn(() => ({ success: true })),
-}));
-
-vi.mock('@process/services/database/export', () => ({
-  getDatabase: vi.fn(() => Promise.resolve(mockDb)),
-}));
-
-vi.mock('@process/utils/initStorage', () => ({
-  ProcessChat: {
-    get: vi.fn(() => Promise.resolve([])),
-  },
-}));
+const mockComposeMessage = vi.hoisted(() => vi.fn((_msg, list, _cb) => list));
 
 vi.mock('@/common/chat/chatLib', () => ({
-  composeMessage: vi.fn((_msg, list, _cb) => list),
+  composeMessage: mockComposeMessage,
 }));
 
 // ---------------------------------------------------------------------------
@@ -62,20 +46,22 @@ describe('message queue (ConversationManageWithDB)', () => {
     vi.useRealTimers();
   });
 
-  it('addMessage triggers immediate flush via insert path', async () => {
+  it('addMessage primes the in-memory list before accumulate updates run', async () => {
     const msg = { id: 'msg-1', msg_id: 'msg-1', type: 'text', position: 'left', conversation_id: 'conv-flush' } as any;
     addMessage('conv-flush', msg);
-
-    // Let the constructor's dbPromise + ensureConversationExists resolve
-    await vi.advanceTimersByTimeAsync(0);
-    // Let the flush itself resolve
     await vi.advanceTimersByTimeAsync(0);
 
-    expect(mockDb.insertMessage).toHaveBeenCalledWith(msg);
+    addOrUpdateMessage('conv-flush', { ...msg, id: 'msg-2', msg_id: 'msg-2' });
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(mockComposeMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'msg-2' }),
+      [expect.objectContaining({ id: 'msg-1' })],
+      expect.any(Function)
+    );
   });
 
   it('addOrUpdateMessage with accumulate uses debounced flush (2s)', async () => {
-    // First trigger init to complete by adding a dummy insert
     const initMsg = {
       id: 'msg-init',
       msg_id: 'msg-init',
@@ -85,8 +71,7 @@ describe('message queue (ConversationManageWithDB)', () => {
     } as any;
     addMessage('conv-debounce', initMsg);
     await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(0);
-    mockDb.getConversationMessages.mockClear();
+    mockComposeMessage.mockClear();
 
     // Now test the accumulate path with debounce
     const msg = {
@@ -99,13 +84,13 @@ describe('message queue (ConversationManageWithDB)', () => {
     addOrUpdateMessage('conv-debounce', msg);
 
     // Not flushed yet (debounce is 2000ms)
-    expect(mockDb.getConversationMessages).not.toHaveBeenCalled();
+    expect(mockComposeMessage).not.toHaveBeenCalled();
 
     // Advance past debounce
     await vi.advanceTimersByTimeAsync(2100);
 
     // Now the flush should have run
-    expect(mockDb.getConversationMessages).toHaveBeenCalled();
+    expect(mockComposeMessage).toHaveBeenCalled();
   });
 
   it('addOrUpdateMessage rejects undefined message', () => {
@@ -133,10 +118,15 @@ describe('message queue (ConversationManageWithDB)', () => {
     // Adding another message to same conv should create a new instance (not reuse disposed one)
     addMessage('conv-rm', { ...msg, id: 'msg-rm-2', msg_id: 'msg-rm-2' });
     await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(0);
+    addOrUpdateMessage('conv-rm', { ...msg, id: 'msg-rm-3', msg_id: 'msg-rm-3' });
+    await vi.advanceTimersByTimeAsync(2100);
 
-    // insertMessage should be called for both messages (separate instances)
-    expect(mockDb.insertMessage).toHaveBeenCalledTimes(2);
+    // composeMessage sees only the second instance's inserted message
+    expect(mockComposeMessage).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'msg-rm-3' }),
+      [expect.objectContaining({ id: 'msg-rm-2' })],
+      expect.any(Function)
+    );
   });
 
   it('removeFromMessageCache is no-op for unknown conversation', () => {
@@ -146,7 +136,7 @@ describe('message queue (ConversationManageWithDB)', () => {
 
   it('flush handles errors gracefully', async () => {
     const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    mockDb.getConversationMessages.mockImplementationOnce(() => {
+    mockComposeMessage.mockImplementationOnce(() => {
       throw new Error('DB read error');
     });
 
@@ -158,43 +148,38 @@ describe('message queue (ConversationManageWithDB)', () => {
       conversation_id: 'conv-err',
     } as any;
     addMessage('conv-err', msg);
+    addOrUpdateMessage('conv-err', { ...msg, id: 'msg-err-2', msg_id: 'msg-err-2' });
 
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(0);
+    await vi.advanceTimersByTimeAsync(2100);
 
     expect(consoleSpy).toHaveBeenCalledWith('[Message] flush error:', expect.any(Error));
     consoleSpy.mockRestore();
   });
 
   it('flush re-runs if new messages arrive during flush', async () => {
-    // First message triggers flush
     const msg1 = { id: 'm1', msg_id: 'm1', type: 'text', position: 'left', conversation_id: 'conv-rerun' } as any;
     const msg2 = { id: 'm2', msg_id: 'm2', type: 'text', position: 'left', conversation_id: 'conv-rerun' } as any;
 
-    // Make getConversationMessages add a second message during first flush
-    let firstCall = true;
-    mockDb.getConversationMessages.mockImplementation(() => {
-      if (firstCall) {
-        firstCall = false;
-        // Simulate adding another message while flush is in progress
-        addMessage('conv-rerun', msg2);
-      }
-      return { data: [] };
-    });
-
     addMessage('conv-rerun', msg1);
     await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(0);
 
-    // Both messages should have been inserted
-    expect(mockDb.insertMessage).toHaveBeenCalledWith(msg1);
-    expect(mockDb.insertMessage).toHaveBeenCalledWith(msg2);
+    let firstCall = true;
+    mockComposeMessage.mockImplementation(() => {
+      if (firstCall) {
+        firstCall = false;
+        addOrUpdateMessage('conv-rerun', msg2);
+      }
+      return [msg1];
+    });
+
+    addOrUpdateMessage('conv-rerun', { ...msg1, id: 'm1-update', msg_id: 'm1-update' });
+    await vi.advanceTimersByTimeAsync(2100);
+    await vi.advanceTimersByTimeAsync(2100);
+
+    expect(mockComposeMessage).toHaveBeenCalledTimes(2);
   });
 
-  it('constructor handles ensureConversationExists failure gracefully', async () => {
-    mockDb.getConversation.mockReturnValueOnce({ success: false, data: null });
-
+  it('constructor no longer depends on database bootstrap', async () => {
     const msg = {
       id: 'msg-fail',
       msg_id: 'msg-fail',
@@ -204,10 +189,10 @@ describe('message queue (ConversationManageWithDB)', () => {
     } as any;
     addMessage('conv-fail-init', msg);
     await vi.advanceTimersByTimeAsync(0);
-    await vi.advanceTimersByTimeAsync(0);
+    addOrUpdateMessage('conv-fail-init', { ...msg, id: 'msg-fail-2', msg_id: 'msg-fail-2' });
+    await vi.advanceTimersByTimeAsync(2100);
 
-    // Should still work — initialized is set to true in catch path
-    expect(mockDb.insertMessage).toHaveBeenCalled();
+    expect(mockComposeMessage).toHaveBeenCalled();
   });
 
   it('executePendingCallbacks runs all callbacks', () => {

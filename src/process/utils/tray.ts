@@ -12,6 +12,7 @@ import {
   electronTray as Tray,
 } from '@/common/electronSafe';
 import * as path from 'path';
+import { ipcBridge } from '@/common';
 import i18n from '@process/services/i18n';
 import { workerTaskManager } from '../task/workerTaskManagerSingleton';
 
@@ -55,10 +56,8 @@ const getTrayIcon = (): Electron.NativeImage => {
 const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
   const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
     try {
-      const { getDatabase } = await import('@process/services/database');
-      const db = await getDatabase();
-      const result = db.getUserConversations(undefined, 0, 5);
-      return (result.data || []).slice(0, 5).map((conv) => ({
+      const result = await ipcBridge.database.getUserConversations.invoke({ limit: 5 });
+      return (result.items || []).slice(0, 5).map((conv) => ({
         id: conv.id,
         title: conv.name || i18n.t('common.tray.untitled'),
       }));

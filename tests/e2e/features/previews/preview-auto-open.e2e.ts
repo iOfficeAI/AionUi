@@ -108,42 +108,45 @@ async function getWorkspaceOfficeWatchDebug(
   workspaceFiles: string[];
   officeEvents: Array<{ name: string; data: unknown }>;
 }> {
-  return page.evaluate(async ({ workspacePath }) => {
-    const win = window as Window & {
-      __backendPort?: number;
-      __previewAutoOpenDebug?: {
-        status: string;
-        events: Array<{ name: string; data: unknown }>;
+  return page.evaluate(
+    async ({ workspacePath }) => {
+      const win = window as Window & {
+        __backendPort?: number;
+        __previewAutoOpenDebug?: {
+          status: string;
+          events: Array<{ name: string; data: unknown }>;
+        };
       };
-    };
 
-    const port = win.__backendPort;
-    if (!port) {
-      throw new Error('window.__backendPort is not available');
-    }
+      const port = win.__backendPort;
+      if (!port) {
+        throw new Error('window.__backendPort is not available');
+      }
 
-    const [settingsResponse, filesResponse] = await Promise.all([
-      fetch(`http://127.0.0.1:${port}/api/settings/client`),
-      fetch(`http://127.0.0.1:${port}/api/fs/list`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ root: workspacePath }),
-      }),
-    ]);
+      const [settingsResponse, filesResponse] = await Promise.all([
+        fetch(`http://127.0.0.1:${port}/api/settings/client`),
+        fetch(`http://127.0.0.1:${port}/api/fs/list`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ root: workspacePath }),
+        }),
+      ]);
 
-    const settingsText = await settingsResponse.text();
-    const filesText = await filesResponse.text();
-    const settingsJson = settingsText ? (JSON.parse(settingsText) as { data?: Record<string, unknown> }) : undefined;
-    const filesJson = filesText ? (JSON.parse(filesText) as { data?: Array<{ fullPath?: string }> }) : undefined;
-    const events = win.__previewAutoOpenDebug?.events ?? [];
+      const settingsText = await settingsResponse.text();
+      const filesText = await filesResponse.text();
+      const settingsJson = settingsText ? (JSON.parse(settingsText) as { data?: Record<string, unknown> }) : undefined;
+      const filesJson = filesText ? (JSON.parse(filesText) as { data?: Array<{ fullPath?: string }> }) : undefined;
+      const events = win.__previewAutoOpenDebug?.events ?? [];
 
-    return {
-      configValue: settingsJson?.data?.autoPreviewOfficeFiles,
-      wsStatus: win.__previewAutoOpenDebug?.status ?? 'missing',
-      workspaceFiles: (filesJson?.data ?? []).map((file) => file.fullPath ?? '').filter(Boolean),
-      officeEvents: events.filter((event) => event.name === 'workspaceOfficeWatch.fileAdded'),
-    };
-  }, { workspacePath: workspace });
+      return {
+        configValue: settingsJson?.data?.autoPreviewOfficeFiles,
+        wsStatus: win.__previewAutoOpenDebug?.status ?? 'missing',
+        workspaceFiles: (filesJson?.data ?? []).map((file) => file.fullPath ?? '').filter(Boolean),
+        officeEvents: events.filter((event) => event.name === 'workspaceOfficeWatch.fileAdded'),
+      };
+    },
+    { workspacePath: workspace }
+  );
 }
 
 async function createConversationWithWorkspace(
@@ -154,60 +157,64 @@ async function createConversationWithWorkspace(
   await enableAutoPreviewOfficeFiles(page);
   await installWorkspaceOfficeWatchDebug(page);
 
-  const conversationId = await page.evaluate(async ({ workspacePath }) => {
-    const port = (window as unknown as { __backendPort?: number }).__backendPort;
-    if (!port) {
-      throw new Error('window.__backendPort is not available');
-    }
+  const conversationId = await page.evaluate(
+    async ({ workspacePath }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) {
+        throw new Error('window.__backendPort is not available');
+      }
 
-    const response = await fetch(`http://127.0.0.1:${port}/api/conversations`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'acp',
-        name: `E2E preview auto-open ${Date.now()}`,
-        extra: {
-          workspace: workspacePath,
-          custom_workspace: true,
-          backend: 'claude',
-        },
-      }),
-    });
+      const response = await fetch(`http://127.0.0.1:${port}/api/conversations`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'acp',
+          name: `E2E preview auto-open ${Date.now()}`,
+          extra: {
+            workspace: workspacePath,
+            custom_workspace: true,
+            backend: 'claude',
+          },
+        }),
+      });
 
-    if (!response.ok) {
-      const body = await response.text();
-      throw new Error(`POST /api/conversations failed (${response.status}): ${body}`);
-    }
+      if (!response.ok) {
+        const body = await response.text();
+        throw new Error(`POST /api/conversations failed (${response.status}): ${body}`);
+      }
 
-    const json = (await response.json()) as { data?: { id?: string } };
-    const id = json?.data?.id;
-    if (!id) {
-      throw new Error('Conversation create response did not include an id');
-    }
+      const json = (await response.json()) as { data?: { id?: string } };
+      const id = json?.data?.id;
+      if (!id) {
+        throw new Error('Conversation create response did not include an id');
+      }
 
-    window.location.assign(`#/conversation/${id}`);
-    return id;
-  }, { workspacePath: workspace });
-
-  await page.waitForFunction(
-    (id) => window.location.hash === `#/conversation/${id}`,
-    conversationId,
-    { timeout: 15_000 }
+      window.location.assign(`#/conversation/${id}`);
+      return id;
+    },
+    { workspacePath: workspace }
   );
+
+  await page.waitForFunction((id) => window.location.hash === `#/conversation/${id}`, conversationId, {
+    timeout: 15_000,
+  });
 
   await expect(page.locator('.chat-workspace')).toBeVisible({ timeout: 30_000 });
   return conversationId;
 }
 
 async function deleteConversation(page: import('@playwright/test').Page, conversationId: string): Promise<void> {
-  await page.evaluate(async ({ id }) => {
-    const port = (window as unknown as { __backendPort?: number }).__backendPort;
-    if (!port) return;
+  await page.evaluate(
+    async ({ id }) => {
+      const port = (window as unknown as { __backendPort?: number }).__backendPort;
+      if (!port) return;
 
-    await fetch(`http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-    }).catch(() => {});
-  }, { id: conversationId });
+      await fetch(`http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+      }).catch(() => {});
+    },
+    { id: conversationId }
+  );
 }
 
 test.describe('Preview auto-open for Office files', () => {

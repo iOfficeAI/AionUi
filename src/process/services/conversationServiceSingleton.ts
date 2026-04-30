@@ -5,7 +5,7 @@
  */
 
 /**
- * Singleton ConversationServiceImpl wired with a SqliteConversationRepository.
+ * Singleton ConversationServiceImpl wired with the backend-backed repository.
  * Extracted to a separate module to avoid circular dependencies.
  */
 

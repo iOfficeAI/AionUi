@@ -11,6 +11,7 @@ import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/commo
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
 import WebviewHost from '@/renderer/components/media/WebviewHost';
+import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 
 const isExternalSettingsUrl = (url?: string): boolean => /^https?:\/\//i.test(url || '');
@@ -43,7 +44,7 @@ const ExtensionSettingsPage: React.FC = () => {
     return { tab: null, error: `Settings tab "${tabId}" not found` };
   }, [tabId, extensionTabs]);
 
-  const resolvedUrl = tab?.url;
+  const resolvedUrl = resolveExtensionAssetUrl(tab?.url) ?? tab?.url;
   const isExternalTab = isExternalSettingsUrl(resolvedUrl);
 
   useEffect(() => {

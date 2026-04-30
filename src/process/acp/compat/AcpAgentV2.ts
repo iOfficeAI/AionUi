@@ -18,8 +18,6 @@ import {
 import { AcpError as AcpSessionError } from '@process/acp/errors/AcpError';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
-// TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
-// import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
 import { waitForMcpReady } from '@/process/team/mcpReadiness';
 import { shouldInjectTeamGuideMcp } from '@/process/team/prompts/teamGuideCapability';

@@ -44,12 +44,23 @@ export const isLinux = (): boolean => {
 /**
  * Resolve an extension asset URL for the current environment.
  * Backend-managed extension assets are already emitted as HTTP URLs, so this
- * helper now only preserves URLs the renderer can consume directly.
+ * helper resolves app-relative backend paths into absolute backend URLs when
+ * the desktop renderer is not same-origin with the backend process.
  *
  * 将扩展资源 URL 转换为当前环境可用的地址
  */
 export const resolveExtensionAssetUrl = (url: string | undefined): string | undefined => {
   if (!url) return url;
+  if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url;
+  if (url.startsWith('/')) {
+    if (isElectronDesktop()) {
+      const port = window.__backendPort;
+      if (port) {
+        return `http://127.0.0.1:${port}${url}`;
+      }
+    }
+    return url;
+  }
   return url;
 };
 

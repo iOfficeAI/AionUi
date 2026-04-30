@@ -115,10 +115,6 @@ export default defineConfig(({ mode }) => {
         rollupOptions: {
           input: {
             index: resolve('src/index.ts'),
-            // Worker entry files are output alongside index.js in out/main/.
-            // BaseAgentManager.resolveWorkerDir() handles the case where code
-            // splitting places it in a chunks/ subdirectory.
-            lifecycleRunner: resolve('src/process/extensions/lifecycle/lifecycleRunner.ts'),
             // Built-in MCP server entry points (compiled by scripts/build-mcp-servers.js via esbuild,
             // not vite — esbuild bundles all deps for self-contained execution by external node processes)
           },

@@ -166,6 +166,15 @@ const SystemModalContent: React.FC = () => {
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
+  const handleOpenLogDir = useCallback(() => {
+    if (!systemInfo?.logDir) return;
+    void ipcBridge.shell.openFolderWith
+      .invoke({ folder_path: systemInfo.logDir, tool: 'explorer' })
+      .catch((caughtError) => {
+        console.error('[SystemModalContent] Failed to open log directory:', caughtError);
+      });
+  }, [systemInfo?.logDir]);
+
   // Initialize form data
   useEffect(() => {
     if (systemInfo) {
@@ -345,9 +354,7 @@ const SystemModalContent: React.FC = () => {
                       icon={<FolderSearch theme='outline' size='18' fill={iconColors.primary} />}
                       onClick={(e) => {
                         e.stopPropagation();
-                        if (systemInfo?.logDir) {
-                          void ipcBridge.shell.openFile.invoke(systemInfo.logDir);
-                        }
+                        handleOpenLogDir();
                       }}
                     />
                   </div>

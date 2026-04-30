@@ -10,7 +10,7 @@ import http from 'node:http';
 import os from 'os';
 import path from 'path';
 import multer from 'multer';
-import { getDatabase } from '@process/services/database';
+import { ipcBridge } from '@/common';
 import { getSystemDir } from '@process/utils/initStorage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
@@ -61,10 +61,10 @@ export async function resolveUploadWorkspace(conversation_id: string, requestedW
     throw new Error('Missing conversation id');
   }
 
-  const db = await getDatabase();
-  const result = db.getConversation(conversation_id);
-  const conversationWorkspace = result.data?.extra?.workspace;
-  if (!result.success || !conversationWorkspace) {
+  const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id }).catch((): null => null);
+  const extra = (conversation?.extra as Record<string, unknown> | undefined) ?? {};
+  const conversationWorkspace = typeof extra.workspace === 'string' ? extra.workspace : '';
+  if (!conversationWorkspace) {
     throw new Error('Conversation workspace not found');
   }
 

@@ -6,11 +6,10 @@
 
 /**
  * Singleton accessor for TeamGuideMcpServer.
- * Call `initTeamGuideService(teamSessionService)` once on app boot (in initBridge.ts).
+ * Call `initTeamGuideService()` once on app boot (in initBridge.ts).
  * AcpAgent reads the stdio config via `getTeamGuideStdioConfig()` when building session MCP servers.
  */
 
-import type { TeamSessionService } from '@process/team/TeamSessionService';
 import type { StdioMcpConfig } from '../team/TeamMcpServer';
 import { TeamGuideMcpServer } from './TeamGuideMcpServer';
 
@@ -21,9 +20,9 @@ let _stdioConfig: StdioMcpConfig | null = null;
  * Initialize and start the TeamGuideMcpServer singleton.
  * Must be called before any ACP agent session is created.
  */
-export async function initTeamGuideService(teamSessionService: TeamSessionService): Promise<void> {
+export async function initTeamGuideService(): Promise<void> {
   if (_service) return; // already started
-  _service = new TeamGuideMcpServer(teamSessionService);
+  _service = new TeamGuideMcpServer();
   _stdioConfig = await _service.start();
 }
 

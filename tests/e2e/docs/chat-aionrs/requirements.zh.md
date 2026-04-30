@@ -33,9 +33,10 @@
    - 处理流式事件（`stream_start`, `text_delta`, `thinking`, `tool_request`, `stream_end` 等）
    - 权限确认逻辑（`auto_edit` / `yolo` 自动批准部分工具）
 
-4. **数据库持久化** (`src/process/services/database/schema.ts:42-77`)
-   - 对话记录写入 `conversations` 表（含 `extra.sessionMode`, `extra.lastTokenUsage`）
-   - 消息记录写入 `messages` 表（含 `type`, `content`, `position`, `status`）
+4. **后端持久化**
+   - backend 独占 `aionui.db`，Electron 不再直接访问 SQLite
+   - 对话记录由 `/api/conversations*` 相关 contract 持久化
+   - 消息记录由 backend message persistence 负责
 
 ---
 
@@ -436,7 +437,7 @@ const conversationName = `E2E-aionrs-${scenario}-${Date.now()}`;
 
 ### 5.1 conversations 表验证
 
-**关键字段** (`src/process/services/database/schema.ts:42-58`):
+**关键字段**（backend-owned `conversations` 持久化）:
 
 | 字段         | 类型        | 验证规则                               | 源码追溯                   |
 | ------------ | ----------- | -------------------------------------- | -------------------------- |
@@ -479,7 +480,7 @@ const conversationName = `E2E-aionrs-${scenario}-${Date.now()}`;
 
 ### 5.2 messages 表验证
 
-**关键字段** (`src/process/services/database/schema.ts:61-77`):
+**关键字段**（backend-owned `messages` 持久化）:
 
 | 字段              | 类型        | 验证规则                                      | 源码追溯     |
 | ----------------- | ----------- | --------------------------------------------- | ------------ |
@@ -939,4 +940,4 @@ test.beforeAll(async ({ page }) => {
 | `src/process/task/AionrsManager.ts`                                           | 78-781 | 进程管理 + 权限审批 + DB 持久化                                     |
 | `src/process/agent/aionrs/index.ts`                                           | 54-450 | binary 启动 + stdin/stdout 协议                                     |
 | `src/process/agent/aionrs/binaryResolver.ts`                                  | —      | binary 路径解析逻辑                                                 |
-| `src/process/services/database/schema.ts`                                     | 42-77  | conversations + messages 表结构                                     |
+| `aionui-backend aionui.db`                                                    | —      | conversations + messages 由 backend 独占持久化                      |

@@ -474,7 +474,9 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aionui-backend subprocess and wait for health check
+  // Start aionui-backend only after initializeProcess(). initStorage may open
+  // the legacy Electron SQLite catalog for a one-shot v26 migration and must
+  // close it before the backend touches the same file.
   try {
     const { getDataPath } = await import('./process/utils/utils');
     const { getSystemDir } = await import('./process/utils/initStorage');

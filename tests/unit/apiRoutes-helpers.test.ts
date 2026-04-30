@@ -8,8 +8,14 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import path from 'path';
 
 // Mock dependencies
-vi.mock('@process/services/database', () => ({
-  getDatabase: vi.fn(),
+vi.mock('@/common', () => ({
+  ipcBridge: {
+    conversation: {
+      get: {
+        invoke: vi.fn(),
+      },
+    },
+  },
 }));
 
 vi.mock('@process/utils/initStorage', () => ({
@@ -53,7 +59,7 @@ vi.mock('./weixinLoginRoutes', () => ({
 }));
 
 import { registerApiRoutes, resolveUploadWorkspace } from '../../src/process/webserver/routes/apiRoutes';
-import { getDatabase } from '@process/services/database';
+import { ipcBridge } from '@/common';
 import type { Express } from 'express';
 
 describe('apiRoutes helper functions', () => {
@@ -63,15 +69,9 @@ describe('apiRoutes helper functions', () => {
 
   describe('decodeMulterFileName through sanitizeFileName', () => {
     it('handles non-ASCII filenames in upload (CJK characters)', async () => {
-      const mockDb = {
-        getConversation: vi.fn().mockReturnValue({
-          success: true,
-          data: {
-            extra: { workspace: '/workspace' },
-          },
-        }),
-      };
-      vi.mocked(getDatabase).mockResolvedValue(mockDb as any);
+      vi.mocked(ipcBridge.conversation.get.invoke).mockResolvedValue({
+        extra: { workspace: '/workspace' },
+      } as never);
 
       // This tests the path that would use sanitizeFileName
       const result = await resolveUploadWorkspace('conv-123', undefined);

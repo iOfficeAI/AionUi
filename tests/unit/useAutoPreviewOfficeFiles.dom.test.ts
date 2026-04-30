@@ -87,7 +87,9 @@ describe('useAutoPreviewOfficeFiles', () => {
       { fullPath: '/workspace/notes.md', name: 'notes.md', relativePath: 'notes.md' },
     ]);
 
-    const { unmount } = renderHook(() => useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace' }));
+    const { unmount } = renderHook(() =>
+      useAutoPreviewOfficeFiles({ conversation_id: 'conv-1', workspace: '/workspace' })
+    );
 
     await flushEffects();
 

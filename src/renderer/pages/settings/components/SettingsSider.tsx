@@ -130,6 +130,10 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       }
       const { relativeTo: rawAnchor, placement } = tab.position;
       const anchor = LEGACY_ANCHOR_REMAP[rawAnchor] ?? rawAnchor;
+      if (!result.some((item) => item.id === anchor)) {
+        unanchored.push(tab);
+        continue;
+      }
       const map = placement === 'before' ? beforeMap : afterMap;
       let list = map.get(anchor);
       if (!list) {

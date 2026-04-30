@@ -4,7 +4,7 @@
  * Only mocked (absolutely cannot instantiate in tests):
  *  - ipcBridge (@/common)         — Electron IPC routes through webContents.send()
  *  - electron                     — Not available in Node test environment
- *  - @process/utils/message       — Calls getDatabase() which needs Electron runtime
+ *  - @process/utils/message       — Uses Electron-side buffering helpers
  *  - @process/agent/acp/AcpDetector — Filesystem/network agent detection
  *  - IWorkerTaskManager           — The actual LLM API call
  *

@@ -210,7 +210,7 @@ export async function waitForAionrsReply(page: Page, conversationId: string, tim
 
     if (aiTextMsgs.length > 0) {
       const last = aiTextMsgs[aiTextMsgs.length - 1];
-      // content is already an object (rowToMessage does JSON.parse)
+      // content is already an object
       const currentText =
         typeof last.content === 'object' && last.content !== null
           ? ((last.content as { content?: string }).content ?? '')

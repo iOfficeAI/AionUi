@@ -17,6 +17,7 @@ type SpawnConfig = {
   dbPath: string;
   local: boolean;
   logDir?: string;
+  appVersion: string;
 };
 
 export type BackendDirConfig = {
@@ -27,7 +28,16 @@ export type BackendDirConfig = {
 
 export function buildSpawnArgs(config: SpawnConfig): string[] {
   const logLevel = process.env.AIONUI_LOG_LEVEL || (app.isPackaged ? 'info' : 'debug');
-  const args = ['--port', String(config.port), '--data-dir', config.dbPath, '--log-level', logLevel];
+  const args = [
+    '--port',
+    String(config.port),
+    '--data-dir',
+    config.dbPath,
+    '--log-level',
+    logLevel,
+    '--app-version',
+    config.appVersion,
+  ];
   if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.local) args.push('--local');
   return args;
@@ -86,13 +96,14 @@ export class BackendLifecycleManager {
 
   async start(dbPath: string, logDir?: string, dirs?: BackendDirConfig): Promise<number> {
     const binaryPath = resolveBinaryPath();
+    const appVersion = app.getVersion();
     this._port = await findAvailablePort();
     this._status = 'starting';
     this._lastDbPath = dbPath;
     this._lastLogDir = logDir;
     this._lastDirs = dirs;
 
-    const args = buildSpawnArgs({ port: this._port, dbPath, local: true, logDir });
+    const args = buildSpawnArgs({ port: this._port, dbPath, local: true, logDir, appVersion });
     console.log(`[aionui-backend] starting: ${binaryPath} ${args.join(' ')}`);
 
     this.childProcess = spawn(binaryPath, args, {
