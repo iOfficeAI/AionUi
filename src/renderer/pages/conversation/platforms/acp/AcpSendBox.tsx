@@ -17,7 +17,11 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import {
+  useAddOrUpdateMessage,
+  useMessageList,
+  useReloadMessageListFromDatabase,
+} from '@/renderer/pages/conversation/Messages/hooks';
 import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import {
   shouldEnqueueConversationCommand,
@@ -31,7 +35,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Tag } from '@arco-design/web-react';
+import { Button, Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -115,6 +119,7 @@ const AcpSendBox: React.FC<{
     aiProcessing,
     setAiProcessing,
     resetState,
+    resetConversationState,
     tokenUsage,
     contextLimit,
     hasThinkingMessage,
@@ -135,6 +140,12 @@ const AcpSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
+  const messageList = useMessageList();
+  const reloadMessageListFromDatabase = useReloadMessageListFromDatabase(conversation_id);
+  const [rewindSelectionOpen, setRewindSelectionOpen] = React.useState(false);
+  const [rewindPending, setRewindPending] = React.useState(false);
+  const [rewindActiveIndex, setRewindActiveIndex] = React.useState(0);
+  const rewindRowRefs = React.useRef<Array<HTMLButtonElement | null>>([]);
 
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
@@ -144,6 +155,59 @@ const AcpSendBox: React.FC<{
     setUploadFile,
   });
   const isBusy = running || aiProcessing;
+  // Rewind candidates are ordered oldest -> newest (top to bottom), matching
+  // the Claude Code CLI's /rewind picker. The most recent turn lives at the
+  // bottom of the list and is the default selection (rewinding to "before
+  // this prompt" mirrors CLI muscle memory: Enter without arrow keys
+  // == undo last turn).
+  const rewindCandidates = React.useMemo(() => {
+    const userTextMessages = messageList.filter(
+      (message): message is Extract<(typeof messageList)[number], { type: 'text' }> =>
+        message.conversation_id === conversation_id &&
+        message.type === 'text' &&
+        message.position === 'right' &&
+        !message.hidden &&
+        typeof message.content.content === 'string' &&
+        message.content.content.trim().length > 0
+    );
+    const totalTurns = userTextMessages.length;
+    return userTextMessages.map((message, index) => {
+      const turnsAfter = totalTurns - 1 - index;
+      const turnsBefore = index;
+      return {
+        id: message.id,
+        input: message.content.content,
+        title:
+          turnsAfter === 0
+            ? t('chat.rewind.mostRecentTurn', { defaultValue: 'Most recent turn' })
+            : t('chat.rewind.turnOffset', {
+                defaultValue: `${turnsAfter} turns ago`,
+              }),
+        description: message.content.content.replace(/\s+/g, ' ').trim().slice(0, 160),
+        discardCount: turnsAfter + 1,
+        keepCount: turnsBefore,
+      };
+    });
+  }, [conversation_id, messageList, t]);
+  const rewindCandidatesRef = useLatestRef(rewindCandidates);
+  const rewindActiveIndexRef = useLatestRef(rewindActiveIndex);
+  const rewindPendingRef = useLatestRef(rewindPending);
+
+  // Default the active row to the most recent turn (bottom of the picker)
+  // every time the picker opens or the candidate list changes shape. This
+  // mirrors Claude Code CLI: pressing Enter without arrows = undo last turn.
+  useEffect(() => {
+    if (!rewindSelectionOpen) return;
+    setRewindActiveIndex(Math.max(0, rewindCandidates.length - 1));
+  }, [rewindSelectionOpen, rewindCandidates.length]);
+
+  // Keep the active row in view while the user navigates with the keyboard
+  // — without this the highlight scrolls off the top/bottom on long lists.
+  useEffect(() => {
+    if (!rewindSelectionOpen) return;
+    const activeRow = rewindRowRefs.current[rewindActiveIndex];
+    activeRow?.scrollIntoView({ block: 'nearest' });
+  }, [rewindActiveIndex, rewindSelectionOpen]);
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
@@ -265,7 +329,60 @@ Please check your local CLI tool authentication status`,
     onExecute: executeCommand,
   });
 
+  const executeRollback = useCallback(
+    async (targetMessageId: string) => {
+      setRewindPending(true);
+      try {
+        const result = await ipcBridge.conversation.rollbackToMessage.invoke({
+          conversation_id,
+          target_message_id: targetMessageId,
+        });
+        assertBridgeSuccess(result, 'Failed to rewind conversation');
+
+        clearFiles();
+        emitter.emit('acp.selected.file.clear');
+        clear();
+        resetConversationState();
+        resetActiveExecution('external-reset');
+        await reloadMessageListFromDatabase();
+        // Repopulate the composer with the rewound prompt so the user can
+        // edit and resend (matches the Claude Code CLI flow where /rewind
+        // clears the turn and surfaces its text for re-editing).
+        const restoredInput = result.data?.restoredInput ?? '';
+        setContent(restoredInput);
+        emitter.emit('sendbox.focus');
+        emitter.emit('chat.history.refresh');
+      } finally {
+        setRewindPending(false);
+      }
+    },
+    [
+      clear,
+      clearFiles,
+      conversation_id,
+      reloadMessageListFromDatabase,
+      resetActiveExecution,
+      resetConversationState,
+      setContent,
+    ]
+  );
+
   const onSendHandler = async (message: string) => {
+    const trimmedMessage = message.trim();
+
+    // /undo is a pure alias of /rewind. Both open the multi-turn picker
+    // regardless of which agent is running so users keep one mental model
+    // when switching between Claude Code and Codex.
+    if (trimmedMessage === '/undo' || trimmedMessage === '/rewind') {
+      if (rewindCandidates.length === 0) {
+        Message.warning(t('chat.rewind.noTurn', { defaultValue: 'There is no previous turn to rewind.' }));
+        return;
+      }
+      setRewindActiveIndex(0);
+      setRewindSelectionOpen(true);
+      return;
+    }
+
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 
@@ -307,6 +424,57 @@ Please check your local CLI tool authentication status`,
     onFilesSelected: appendSelectedFiles,
   });
 
+  const executeClear = useCallback(async () => {
+    const result = await ipcBridge.conversation.clearMessages.invoke({ conversation_id });
+    assertBridgeSuccess(result, 'Failed to clear conversation');
+
+    clearFiles();
+    emitter.emit('acp.selected.file.clear');
+    clear();
+    resetConversationState();
+    resetActiveExecution('external-reset');
+    await reloadMessageListFromDatabase();
+    setContent('');
+    emitter.emit('sendbox.focus');
+    emitter.emit('chat.history.refresh');
+    Message.success(
+      t('chat.clear.success', {
+        defaultValue: 'Conversation cleared',
+      })
+    );
+  }, [
+    clear,
+    clearFiles,
+    conversation_id,
+    reloadMessageListFromDatabase,
+    resetActiveExecution,
+    resetConversationState,
+    setContent,
+    t,
+  ]);
+
+  const handleBuiltinSlashCommand = useCallback(
+    (name: string) => {
+      if (name === 'rewind' || name === 'undo') {
+        if (rewindCandidates.length === 0) {
+          Message.warning(t('chat.rewind.noTurn', { defaultValue: 'There is no previous turn to rewind.' }));
+          return;
+        }
+        setRewindActiveIndex(0);
+        setRewindSelectionOpen(true);
+        return;
+      }
+
+      if (name === 'clear') {
+        void executeClear();
+        return;
+      }
+
+      onSlashBuiltinCommand?.(name);
+    },
+    [executeClear, onSlashBuiltinCommand, rewindCandidates, t]
+  );
+
   useAddEventListener('acp.selected.file', setAtPath);
   useAddEventListener('acp.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
     const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
@@ -314,6 +482,80 @@ Please check your local CLI tool authentication status`,
       setAtPath(merged as Array<string | FileOrFolderItem>);
     }
   });
+
+  useEffect(() => {
+    if (!rewindSelectionOpen) {
+      return;
+    }
+
+    // Read the latest state via refs so this listener is registered exactly
+    // once per "picker open" cycle instead of being torn down and rebound on
+    // every active-index/candidate change. Avoids closure staleness in the
+    // race window right after the slash menu hands off Enter to the picker.
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (rewindPendingRef.current) {
+        return;
+      }
+      const candidates = rewindCandidatesRef.current;
+      if (!candidates || candidates.length === 0) {
+        return;
+      }
+
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        event.stopPropagation();
+        setRewindSelectionOpen(false);
+        return;
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault();
+        event.stopPropagation();
+        setRewindActiveIndex((prev) => (prev + 1) % candidates.length);
+        return;
+      }
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        event.stopPropagation();
+        setRewindActiveIndex((prev) => (prev - 1 + candidates.length) % candidates.length);
+        return;
+      }
+
+      if (/^[0-9]$/.test(event.key)) {
+        // 0 == newest turn (last in list), 1..9 == 1..9 turns ago.
+        const turnsAgo = Number(event.key);
+        const selectedIndex = candidates.length - 1 - turnsAgo;
+        if (selectedIndex < 0 || selectedIndex >= candidates.length) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        const selectedCandidate = candidates[selectedIndex];
+        setRewindSelectionOpen(false);
+        void executeRollback(selectedCandidate.id);
+        return;
+      }
+
+      if (event.key === 'Enter' && !event.shiftKey) {
+        const activeCandidate = candidates[rewindActiveIndexRef.current];
+        if (!activeCandidate) {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
+        setRewindSelectionOpen(false);
+        void executeRollback(activeCandidate.id);
+      }
+    };
+
+    // Capture phase so the picker's keys win over the textarea / slash menu
+    // handlers — once the picker is open, ↑↓Enter must talk to the picker.
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, { capture: true } as AddEventListenerOptions);
+    };
+  }, [executeRollback, rewindCandidatesRef, rewindActiveIndexRef, rewindPendingRef, rewindSelectionOpen]);
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
@@ -342,6 +584,81 @@ Please check your local CLI tool authentication status`,
         onClear={clear}
       />
       <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
+      {rewindSelectionOpen && (
+        <div className='mb-8px rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-1)] p-6px shadow-sm'>
+          <div className='flex items-start justify-between gap-8px px-10px pt-8px pb-4px'>
+            <div className='min-w-0'>
+              <div className='text-13px font-semibold text-t-primary'>
+                {t('chat.rewind.title', { defaultValue: 'Rewind' })}
+              </div>
+              <div className='text-12px text-t-secondary'>
+                {t('chat.rewind.pickTurn', {
+                  defaultValue: 'Restore the conversation to the point before…',
+                })}
+              </div>
+            </div>
+            <Button
+              size='mini'
+              type='text'
+              disabled={rewindPending}
+              onClick={() => {
+                setRewindSelectionOpen(false);
+              }}
+            >
+              {t('common.cancel')}
+            </Button>
+          </div>
+          <div className='max-h-260px overflow-y-auto py-2px'>
+            {rewindCandidates.map((candidate, index) => {
+              const turnsAgo = rewindCandidates.length - 1 - index;
+              const numericShortcut = turnsAgo <= 9 ? String(turnsAgo) : null;
+              const isActive = index === rewindActiveIndex;
+              return (
+                <button
+                  key={candidate.id}
+                  ref={(el) => {
+                    rewindRowRefs.current[index] = el;
+                  }}
+                  type='button'
+                  disabled={rewindPending}
+                  className='w-full text-left px-10px py-8px rounded-8px transition-colors disabled:cursor-not-allowed disabled:opacity-60'
+                  style={{
+                    background: isActive ? 'var(--color-fill-2)' : 'transparent',
+                  }}
+                  onMouseEnter={() => {
+                    setRewindActiveIndex(index);
+                  }}
+                  onClick={() => {
+                    setRewindSelectionOpen(false);
+                    void executeRollback(candidate.id);
+                  }}
+                >
+                  <div className='flex items-baseline gap-8px text-12px text-t-secondary'>
+                    <span className='shrink-0' style={{ visibility: isActive ? 'visible' : 'hidden' }}>
+                      ›
+                    </span>
+                    <span className='shrink-0 font-mono opacity-70'>{numericShortcut ?? ' '}</span>
+                    <span className='shrink-0'>{candidate.title}</span>
+                  </div>
+                  <div className='ml-22px text-13px text-t-primary truncate'>
+                    {candidate.description || candidate.input}
+                  </div>
+                  <div className='ml-22px text-11px text-t-tertiary'>
+                    {candidate.keepCount > 0
+                      ? `${candidate.keepCount} earlier turn${candidate.keepCount > 1 ? 's' : ''} kept · ${candidate.discardCount} turn${candidate.discardCount > 1 ? 's' : ''} removed`
+                      : `Removes all ${candidate.discardCount} turn${candidate.discardCount > 1 ? 's' : ''} (rewinds to start)`}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          <div className='px-10px pt-4px pb-6px text-11px text-t-tertiary'>
+            {t('chat.rewind.footer', {
+              defaultValue: 'Enter to rewind · Esc to cancel · 0–9 jump · ↑↓ navigate',
+            })}
+          </div>
+        </div>
+      )}
 
       <SendBox
         value={content}
@@ -429,8 +746,28 @@ Please check your local CLI tool authentication status`,
           </>
         }
         onSend={onSendHandler}
-        slashCommands={slashCommands}
-        onSlashBuiltinCommand={onSlashBuiltinCommand}
+        slashCommands={[
+          // /rewind and /undo are universal aliases that always open the
+          // turn picker regardless of which ACP agent is running.
+          {
+            name: 'rewind',
+            description: t('chat.rewind.commandDescription', {
+              defaultValue: 'Pick a previous turn and rewind the conversation',
+            }),
+            kind: 'builtin' as const,
+            source: 'builtin' as const,
+          },
+          {
+            name: 'undo',
+            description: t('chat.rewind.undoAliasDescription', {
+              defaultValue: 'Alias of /rewind — pick a previous turn to undo',
+            }),
+            kind: 'builtin' as const,
+            source: 'builtin' as const,
+          },
+          ...slashCommands,
+        ]}
+        onSlashBuiltinCommand={handleBuiltinSlashCommand}
         allowSendWhileLoading
         compactActions={!!teamId}
         sendButtonPrefix={

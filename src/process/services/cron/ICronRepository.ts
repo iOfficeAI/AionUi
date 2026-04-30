@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CronJob } from './CronStore';
+import type { CronConversationBinding, CronJob } from './CronStore';
 
 export interface ICronRepository {
   insert(job: CronJob): Promise<void>;
@@ -15,4 +15,10 @@ export interface ICronRepository {
   listEnabled(): Promise<CronJob[]>;
   listByConversation(conversationId: string): Promise<CronJob[]>;
   deleteByConversation(conversationId: string): Promise<number>;
+  insertBinding(binding: CronConversationBinding): Promise<void>;
+  deleteBinding(jobId: string, conversationId: string): Promise<number>;
+  deleteBindingsByJob(jobId: string): Promise<number>;
+  listBindingsByJob(jobId: string): Promise<CronConversationBinding[]>;
+  listBindingsByConversation(conversationId: string): Promise<CronConversationBinding[]>;
+  getDefaultBinding(jobId: string): Promise<CronConversationBinding | null>;
 }

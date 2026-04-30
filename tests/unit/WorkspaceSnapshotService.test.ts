@@ -38,6 +38,13 @@ describe('WorkspaceSnapshotService', () => {
       await fs.chmod(unreadablePath, 0o000);
 
       try {
+        try {
+          await fs.readFile(unreadablePath);
+          return;
+        } catch {
+          // continue with the permission-denied scenario
+        }
+
         const info = await service.init(tmpDir);
         expect(info.mode).toBe('snapshot');
 

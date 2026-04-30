@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ICronJob } from '@/common/adapter/ipcBridge';
+import type { ICronConversationBinding, ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -127,21 +127,17 @@ export function useCronJobs(conversationId?: string) {
   // Event handlers
   const eventHandlers = useMemo<CronJobEventHandlers>(
     () => ({
-      onJobCreated: (job: ICronJob) => {
-        if (job.metadata.conversationId === conversationId) {
-          setJobs((prev) => (prev.some((j) => j.id === job.id) ? prev : [...prev, job]));
-        }
+      onJobCreated: () => {
+        void fetchJobs();
       },
-      onJobUpdated: (job: ICronJob) => {
-        if (job.metadata.conversationId === conversationId) {
-          setJobs((prev) => prev.map((j) => (j.id === job.id ? job : j)));
-        }
+      onJobUpdated: () => {
+        void fetchJobs();
       },
       onJobRemoved: ({ jobId }: { jobId: string }) => {
         setJobs((prev) => prev.filter((j) => j.id !== jobId));
       },
     }),
-    [conversationId]
+    [fetchJobs]
   );
 
   useCronJobSubscription(eventHandlers);
@@ -274,18 +270,36 @@ export function useCronJobsMap() {
     try {
       const allJobs = await ipcBridge.cron.listJobs.invoke();
       const map = new Map<string, ICronJob[]>();
+      const addJobToConversation = (conversationId: string, job: ICronJob) => {
+        if (!map.has(conversationId)) {
+          map.set(conversationId, []);
+        }
+        map.get(conversationId)!.push(job);
+      };
 
-      for (const job of allJobs || []) {
-        const convId = job.metadata.conversationId;
-        if (!map.has(convId)) {
-          map.set(convId, []);
-        }
-        map.get(convId)!.push(job);
-        // Initialize lastRunAtMap for detecting new executions
-        if (job.state.lastRunAtMs) {
-          lastRunAtMapRef.current.set(job.id, job.state.lastRunAtMs);
-        }
-      }
+      await Promise.all(
+        (allJobs || []).map(async (job) => {
+          if (job.target.executionMode === 'new_conversation') {
+            addJobToConversation(job.metadata.conversationId, job);
+          } else {
+            const bindings = await ipcBridge.cron.listBindingsByJob
+              .invoke({ jobId: job.id })
+              .catch((): ICronConversationBinding[] => []);
+            if (bindings.length > 0) {
+              for (const binding of bindings) {
+                addJobToConversation(binding.conversationId, job);
+              }
+            } else if (job.metadata.conversationId) {
+              addJobToConversation(job.metadata.conversationId, job);
+            }
+          }
+
+          // Initialize lastRunAtMap for detecting new executions
+          if (job.state.lastRunAtMs) {
+            lastRunAtMapRef.current.set(job.id, job.state.lastRunAtMs);
+          }
+        })
+      );
 
       setJobsMap(map);
     } catch (err) {
@@ -303,54 +317,44 @@ export function useCronJobsMap() {
   // Event handlers
   const eventHandlers = useMemo<CronJobEventHandlers>(
     () => ({
-      onJobCreated: (job: ICronJob) => {
-        setJobsMap((prev) => {
-          const convId = job.metadata.conversationId;
-          const existing = prev.get(convId) || [];
-          if (existing.some((j) => j.id === job.id)) {
-            return prev;
-          }
-          const newMap = new Map(prev);
-          newMap.set(convId, [...existing, job]);
-          return newMap;
-        });
+      onJobCreated: () => {
+        void fetchAllJobs();
         // Refresh conversation list to update sorting (modifyTime was updated)
         console.log('[useCronJobsMap] onJobCreated, triggering chat.history.refresh');
         emitter.emit('chat.history.refresh');
       },
       onJobUpdated: (job: ICronJob) => {
-        const convId = job.metadata.conversationId;
-
-        // Check if this is a new execution (lastRunAtMs changed)
         const prevLastRunAt = lastRunAtMapRef.current.get(job.id);
         const newLastRunAt = job.state.lastRunAtMs;
         if (newLastRunAt && newLastRunAt !== prevLastRunAt) {
           lastRunAtMapRef.current.set(job.id, newLastRunAt);
-
-          // Mark as unread only if user is not currently viewing this conversation
-          // Use ref to access the latest activeConversationId value
-          if (activeConversationIdRef.current !== convId) {
+          void (async () => {
+            const bindings =
+              job.target.executionMode === 'new_conversation'
+                ? []
+                : await ipcBridge.cron.listBindingsByJob
+                    .invoke({ jobId: job.id })
+                    .catch((): ICronConversationBinding[] => []);
+            const defaultBindings = bindings.filter((binding) => binding.isDefaultTarget);
+            const conversationIds = defaultBindings.length
+              ? defaultBindings.map((binding) => binding.conversationId)
+              : [job.metadata.conversationId];
             setUnreadConversations((prev) => {
-              if (prev.has(convId)) return prev;
               const newSet = new Set(prev);
-              newSet.add(convId);
-              return newSet;
+              for (const conversationId of conversationIds) {
+                if (conversationId && activeConversationIdRef.current !== conversationId) {
+                  newSet.add(conversationId);
+                }
+              }
+              return newSet.size === prev.size ? prev : newSet;
             });
-          }
+          })();
 
           // Refresh conversation list to update sorting (modifyTime was updated after execution)
           emitter.emit('chat.history.refresh');
         }
 
-        setJobsMap((prev) => {
-          const newMap = new Map(prev);
-          const existing = newMap.get(convId) || [];
-          newMap.set(
-            convId,
-            existing.map((j) => (j.id === job.id ? job : j))
-          );
-          return newMap;
-        });
+        void fetchAllJobs();
       },
       onJobRemoved: ({ jobId }: { jobId: string }) => {
         setJobsMap((prev) => {
@@ -367,7 +371,7 @@ export function useCronJobsMap() {
         });
       },
     }),
-    []
+    [fetchAllJobs]
   );
 
   useEffect(() => {
@@ -475,6 +479,59 @@ export function useCronJobsMap() {
  * Hook for fetching conversations spawned by a specific cron job
  * @param jobId - The cron job ID to fetch conversations for
  */
+export function useCronJobBindings(jobId: string | undefined) {
+  const [bindings, setBindings] = useState<ICronConversationBinding[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchBindings = useCallback(async () => {
+    if (!jobId) {
+      setBindings([]);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await ipcBridge.cron.listBindingsByJob.invoke({ jobId });
+      setBindings(result || []);
+    } catch (err) {
+      console.error('[useCronJobBindings] Failed to fetch:', err);
+      setBindings([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [jobId]);
+
+  useEffect(() => {
+    void fetchBindings();
+  }, [fetchBindings]);
+
+  return { bindings, loading, refetch: fetchBindings };
+}
+
+export function useCronBindingsMap(jobs: ICronJob[]) {
+  const [bindingsMap, setBindingsMap] = useState<Map<string, ICronConversationBinding[]>>(new Map());
+  const jobIdsKey = useMemo(() => jobs.map((job) => job.id).join('\n'), [jobs]);
+
+  const fetchBindings = useCallback(async () => {
+    const jobIds = jobIdsKey ? jobIdsKey.split('\n') : [];
+    const entries = await Promise.all(
+      jobIds.map(async (jobId) => {
+        const bindings = await ipcBridge.cron.listBindingsByJob
+          .invoke({ jobId })
+          .catch((): ICronConversationBinding[] => []);
+        return [jobId, bindings] as const;
+      })
+    );
+    setBindingsMap(new Map(entries));
+  }, [jobIdsKey]);
+
+  useEffect(() => {
+    void fetchBindings();
+  }, [fetchBindings]);
+
+  return { bindingsMap, refetch: fetchBindings };
+}
+
 export function useCronJobConversations(jobId: string | undefined) {
   const [conversations, setConversations] = useState<TChatConversation[]>([]);
   const [loading, setLoading] = useState(false);

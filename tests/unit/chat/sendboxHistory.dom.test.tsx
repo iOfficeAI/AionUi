@@ -2,6 +2,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import SendBox from '@/renderer/components/chat/sendbox';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import { MessageListProvider } from '@/renderer/pages/conversation/Messages/hooks';
+import { emitter } from '@/renderer/utils/emitter';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React, { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -293,5 +294,20 @@ describe('SendBox history navigation', () => {
     fireEvent.keyDown(textarea, { key: 'ArrowUp' });
 
     expect(textarea).toHaveValue('line one\nline two');
+  });
+
+  it('focuses the textarea and restores the requested caret on sendbox.focus', async () => {
+    render(<SendBoxHarness initialValue='restored prompt' />);
+
+    const textarea = screen.getByRole('textbox') as HTMLTextAreaElement;
+    fireEvent.blur(textarea);
+
+    emitter.emit('sendbox.focus', 4);
+
+    await waitFor(() => {
+      expect(document.activeElement).toBe(textarea);
+      expect(textarea.selectionStart).toBe(4);
+      expect(textarea.selectionEnd).toBe(4);
+    });
   });
 });

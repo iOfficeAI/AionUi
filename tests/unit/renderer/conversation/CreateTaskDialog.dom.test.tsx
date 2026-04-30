@@ -15,6 +15,9 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.page.scheduleDesc.dailyAt') return `Daily at ${options?.time}`;
       if (key === 'cron.page.scheduleDesc.weekdaysAt') return `Weekdays at ${options?.time}`;
       if (key === 'cron.page.scheduleDesc.weeklyAt') return `Weekly on ${options?.day} at ${options?.time}`;
+      if (key === 'cron.page.scheduleDesc.everyMinutes') return `Every ${options?.value} minutes`;
+      if (key === 'cron.page.scheduleDesc.everyHours') return `Every ${options?.value} hours`;
+      if (key === 'cron.page.scheduleDesc.everyDays') return `Every ${options?.value} days at 09:00`;
       if (key === 'cron.page.form.newConversation') return 'New conversation';
       if (key === 'cron.page.form.existingConversation') return 'Ongoing conversation';
       if (key === 'cron.page.form.newConversationHint') return 'Start fresh on every run';
@@ -27,6 +30,12 @@ vi.mock('react-i18next', () => ({
         return 'Each run continues in the same conversation, so earlier context and results stay available.';
       }
       if (key === 'cron.page.form.advancedSettings') return 'Advanced settings';
+      if (key === 'cron.page.form.customIntervalPrefix') return 'Every';
+      if (key === 'cron.page.form.customIntervalPlaceholder') return '10';
+      if (key === 'cron.page.form.customIntervalInvalid') return 'Enter a valid interval';
+      if (key === 'cron.page.customIntervalUnit.minutes') return 'minutes';
+      if (key === 'cron.page.customIntervalUnit.hours') return 'hours';
+      if (key === 'cron.page.customIntervalUnit.days') return 'days';
       if (key === 'cron.page.form.workspace') return 'Workspace';
       if (key === 'cron.page.form.workspaceHint') return 'Optional workspace';
       if (key === 'cron.page.form.workspacePlaceholder') return 'Workspace path';
@@ -795,6 +804,31 @@ describe('CreateTaskDialog - schedule preset definitions', () => {
     expect(callArgs.updates.schedule.expr).toBe('0 * * * *');
   });
 
+  it('generates custom interval schedule from numeric value and unit', async () => {
+    const onClose = vi.fn();
+    mockAddJob.mockResolvedValue(undefined);
+
+    render(<CreateTaskDialog visible={true} onClose={onClose} conversationId='conv-1' />);
+
+    const frequencySelect = screen.getAllByTestId('mock-select').find((el) => {
+      const options = Array.from(el.querySelectorAll('option')).map((opt) => opt.textContent);
+      return options.includes('cron.page.freq.custom');
+    });
+    expect(frequencySelect).toBeDefined();
+
+    fireEvent.change(frequencySelect as HTMLElement, { target: { value: 'custom' } });
+    fireEvent.change(screen.getByPlaceholderText('10'), { target: { value: '15' } });
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockAddJob).toHaveBeenCalled();
+    });
+
+    const callArgs = mockAddJob.mock.calls[0][0];
+    expect(callArgs.schedule.expr).toBe('*/15 * * * *');
+    expect(callArgs.schedule.description).toBe('Every 15 minutes');
+  });
+
   it('correctly reconstructs daily schedule from cron expression in edit mode', async () => {
     const editJob: ICronJob = {
       id: 'job-daily',
@@ -1020,7 +1054,7 @@ describe('CreateTaskDialog - custom schedule hint', () => {
     const editJob: ICronJob = {
       id: 'job-custom-hint',
       name: 'Custom Task',
-      schedule: { kind: 'cron', expr: '0 */4 * * *', description: 'Every 4 hours' },
+      schedule: { kind: 'cron', expr: '15 7 1 * *', description: 'Monthly custom schedule' },
       target: {
         kind: 'conversation',
         conversationId: 'conv-1',
@@ -1205,7 +1239,13 @@ describe('CreateTaskDialog - component behavior', () => {
       expect(mockAddJob).toHaveBeenCalled();
     });
 
-    expect(mockAddJob).toHaveBeenCalledWith(expect.objectContaining({ description: 'Test Description' }));
+    expect(mockAddJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: 'Test Description',
+        conversationId: 'conv-1',
+        executionMode: 'existing',
+      })
+    );
     expect(onClose).toHaveBeenCalled();
   });
 

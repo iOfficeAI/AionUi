@@ -92,6 +92,8 @@ vi.mock('@/common', () => ({
       getSlashCommands: createCommand('conversation.getSlashCommands'),
       askSideQuestion: createCommand('conversation.askSideQuestion'),
       sendMessage: createCommand('conversation.sendMessage'),
+      rollbackToMessage: createCommand('conversation.rollbackToMessage'),
+      clearMessages: createCommand('conversation.clearMessages'),
       warmup: createCommand('conversation.warmup'),
       responseStream: { emit: vi.fn() },
       listChanged: { emit: vi.fn() },

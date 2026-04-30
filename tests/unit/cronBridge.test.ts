@@ -9,6 +9,10 @@ const { mockCronService, mockWriteRawCronSkillFile, mockHasCronSkillFile } = vi.
     addJob: vi.fn(),
     updateJob: vi.fn(),
     removeJob: vi.fn(),
+    listBindingsByConversation: vi.fn(),
+    listBindingsByJob: vi.fn(),
+    bindConversation: vi.fn(),
+    unbindConversation: vi.fn(),
     runNow: vi.fn(),
   },
   mockWriteRawCronSkillFile: vi.fn(),
@@ -60,7 +64,7 @@ vi.mock('electron', () => ({
 }));
 
 import { initCronBridge } from '@/process/bridge/cronBridge';
-import type { ICronJob, ICreateCronJobParams } from '@/common/adapter/ipcBridge';
+import type { ICronConversationBinding, ICronJob, ICreateCronJobParams } from '@/common/adapter/ipcBridge';
 
 describe('cronBridge', () => {
   beforeEach(() => {
@@ -246,6 +250,58 @@ describe('cronBridge', () => {
     });
   });
 
+  describe('conversation bindings', () => {
+    const binding: ICronConversationBinding = {
+      id: 'binding-1',
+      jobId: 'job-1',
+      conversationId: 'conv-1',
+      conversationTitle: 'Conversation One',
+      conversationSource: 'weixin',
+      isDefaultTarget: true,
+      createdAt: 1000,
+      updatedAt: 1000,
+    };
+
+    it('should list bindings by conversation', async () => {
+      mockCronService.listBindingsByConversation.mockResolvedValue([binding]);
+
+      const handler = providerMap.get('cron.listBindingsByConversation');
+      const result = await handler!({ conversationId: 'conv-1' });
+
+      expect(mockCronService.listBindingsByConversation).toHaveBeenCalledWith('conv-1');
+      expect(result).toEqual([binding]);
+    });
+
+    it('should list bindings by job', async () => {
+      mockCronService.listBindingsByJob.mockResolvedValue([binding]);
+
+      const handler = providerMap.get('cron.listBindingsByJob');
+      const result = await handler!({ jobId: 'job-1' });
+
+      expect(mockCronService.listBindingsByJob).toHaveBeenCalledWith('job-1');
+      expect(result).toEqual([binding]);
+    });
+
+    it('should bind a conversation to a job', async () => {
+      mockCronService.bindConversation.mockResolvedValue(binding);
+
+      const handler = providerMap.get('cron.bindConversation');
+      const result = await handler!({ jobId: 'job-1', conversationId: 'conv-1' });
+
+      expect(mockCronService.bindConversation).toHaveBeenCalledWith('job-1', 'conv-1');
+      expect(result).toEqual(binding);
+    });
+
+    it('should unbind a conversation from a job', async () => {
+      mockCronService.unbindConversation.mockResolvedValue(undefined);
+
+      const handler = providerMap.get('cron.unbindConversation');
+      await handler!({ jobId: 'job-1', conversationId: 'conv-1' });
+
+      expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-1', 'conv-1');
+    });
+  });
+
   describe('runNow', () => {
     it('should delegate to cronService.runNow and return conversationId shape', async () => {
       mockCronService.runNow.mockResolvedValue('conv-123');
@@ -317,6 +373,10 @@ describe('cronBridge', () => {
         'cron.addJob',
         'cron.updateJob',
         'cron.removeJob',
+        'cron.listBindingsByConversation',
+        'cron.listBindingsByJob',
+        'cron.bindConversation',
+        'cron.unbindConversation',
         'cron.runNow',
         'cron.saveSkill',
         'cron.hasSkill',

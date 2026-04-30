@@ -117,7 +117,10 @@
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
-      "model": "Model"
+      "model": "Model",
+      "customIntervalPrefix": "Her",
+      "customIntervalPlaceholder": "10",
+      "customIntervalInvalid": "Seçilen birim için geçerli bir aralık girin"
     },
     "freq": {
       "manual": "Manuel",
@@ -127,12 +130,20 @@
       "weekly": "Haftalık",
       "custom": "Özel"
     },
+    "customIntervalUnit": {
+      "minutes": "dakika",
+      "hours": "saat",
+      "days": "gün"
+    },
     "scheduleDesc": {
       "manual": "Manuel",
       "hourly": "Her saat çalıştır",
       "dailyAt": "Her gün {{time}}'de çalıştır",
       "weekdaysAt": "Hafta içi {{time}}'de çalıştır",
-      "weeklyAt": "Her {{day}} {{time}}'de çalıştır"
+      "weeklyAt": "Her {{day}} {{time}}'de çalıştır",
+      "everyMinutes": "Her {{value}} dakikada çalıştır",
+      "everyHours": "Her {{value}} saatte çalıştır",
+      "everyDays": "Her {{value}} günde 09:00'da çalıştır"
     }
   },
   "trigger": {
@@ -152,6 +163,21 @@
     "jobNotFound": "Betik bulunamadı: {{id}}",
     "conversationNotFound": "Konuşma bulunamadı",
     "scheduledTimePassed": "Zamanlanmış saat geçti",
-    "conversationBusy": "Konuşma meşgul, {{count}} denemeden sonra atlandı"
+    "conversationBusy": "Konuşma meşgul, {{count}} denemeden sonra atlandı",
+    "existingNoBindings": "Bu kalıcı mod görev hiçbir konuşmaya bağlı değil; hemen çalıştırılamıyor. Tetiklemeden önce en az bir konuşmaya bağlayın."
+  },
+  "binding": {
+    "title": "Bu konuşmanın zamanlanmış görevleri",
+    "boundTasks": "Bağlı görevler",
+    "availableTasks": "Bağlanabilir görevler",
+    "bind": "Bağla",
+    "unbind": "Bağlantıyı kaldır",
+    "bindSuccess": "Görev bu konuşmaya bağlandı",
+    "unbindSuccess": "Görev bu konuşmadan kaldırıldı",
+    "createAndBind": "Yeni görev",
+    "noBoundTasks": "Bu konuşmaya bağlı görev yok",
+    "noAvailableTasks": "Bağlanabilecek devam eden konuşma görevi yok",
+    "boundTaskCount": "{{count}} bağlı görev",
+    "targetConversations": "Hedef konuşmalar"
   }
 }

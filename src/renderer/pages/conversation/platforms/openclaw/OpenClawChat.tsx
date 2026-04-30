@@ -21,7 +21,7 @@ const OpenClawChat: React.FC<{
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
 }> = ({ conversation_id, workspace, cronJobId, hideSendBox, emptySlot }) => {
-  useMessageLstCache(conversation_id);
+  const messageCacheState = useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
@@ -32,7 +32,14 @@ const OpenClawChat: React.FC<{
     >
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
-          <MessageList className='flex-1' emptySlot={emptySlot}></MessageList>
+          <MessageList
+            className='flex-1'
+            emptySlot={emptySlot}
+            isLoading={messageCacheState.isLoading}
+            isRefreshing={messageCacheState.isRefreshing}
+            loadingError={messageCacheState.error}
+            onRetryLoad={() => void messageCacheState.reload()}
+          ></MessageList>
         </FlexFullContainer>
         {!hideSendBox && (
           <ConversationChatConfirm conversation_id={conversation_id}>

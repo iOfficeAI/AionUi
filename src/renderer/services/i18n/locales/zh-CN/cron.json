@@ -105,7 +105,10 @@
       "workspaceHint": "可选：设置文件操作的工作空间文件夹",
       "selectFolder": "选择文件夹",
       "clearFolder": "清除",
-      "model": "模型"
+      "model": "模型",
+      "customIntervalPrefix": "每",
+      "customIntervalPlaceholder": "10",
+      "customIntervalInvalid": "请输入符合所选单位的有效间隔"
     },
     "freq": {
       "manual": "手动触发",
@@ -115,12 +118,20 @@
       "weekly": "每周",
       "custom": "自定义"
     },
+    "customIntervalUnit": {
+      "minutes": "分钟",
+      "hours": "小时",
+      "days": "天"
+    },
     "scheduleDesc": {
       "manual": "手动触发",
       "hourly": "每小时执行",
       "dailyAt": "每天 {{time}} 执行",
       "weekdaysAt": "工作日 {{time}} 执行",
-      "weeklyAt": "每周{{day}} {{time}} 执行"
+      "weeklyAt": "每周{{day}} {{time}} 执行",
+      "everyMinutes": "每 {{value}} 分钟执行",
+      "everyHours": "每 {{value}} 小时执行",
+      "everyDays": "每 {{value}} 天 09:00 执行"
     }
   },
   "trigger": {
@@ -141,5 +152,19 @@
     "conversationNotFound": "未找到会话",
     "scheduledTimePassed": "定时时间已过",
     "conversationBusy": "会话繁忙，在 {{count}} 次尝试后跳过"
+  },
+  "binding": {
+    "title": "当前会话的定时任务",
+    "boundTasks": "已绑定任务",
+    "availableTasks": "可绑定任务",
+    "bind": "绑定",
+    "unbind": "解绑",
+    "bindSuccess": "已绑定到当前会话",
+    "unbindSuccess": "已从当前会话解绑",
+    "createAndBind": "新建任务",
+    "noBoundTasks": "当前会话暂无绑定任务",
+    "noAvailableTasks": "暂无可绑定的持续会话任务",
+    "boundTaskCount": "已绑定 {{count}} 个任务",
+    "targetConversations": "目标会话"
   }
 }

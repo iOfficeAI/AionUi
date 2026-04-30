@@ -21,6 +21,7 @@ type UseAcpMessageReturn = {
   aiProcessing: boolean;
   setAiProcessing: React.Dispatch<React.SetStateAction<boolean>>;
   resetState: () => void;
+  resetConversationState: () => void;
   tokenUsage: TokenUsageData | null;
   contextLimit: number;
   hasThinkingMessage: boolean;
@@ -113,8 +114,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   }, []);
 
   const handleResponseMessage = useCallback(
-    (message: IResponseMessage) => {
-      if (conversation_id !== message.conversation_id) {
+    (message: IResponseMessage | undefined) => {
+      if (!message || conversation_id !== message.conversation_id) {
         return;
       }
 
@@ -384,6 +385,14 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setHasThinkingMessage(false);
   }, []);
 
+  const resetConversationState = useCallback(() => {
+    requestTraceRef.current = null;
+    setAcpStatus(null);
+    setTokenUsage(null);
+    setContextLimit(0);
+    resetState();
+  }, [resetState]);
+
   return {
     thought,
     setThought,
@@ -393,6 +402,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     aiProcessing,
     setAiProcessing,
     resetState,
+    resetConversationState,
     tokenUsage,
     contextLimit,
     hasThinkingMessage,

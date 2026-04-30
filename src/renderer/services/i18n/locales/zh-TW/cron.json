@@ -105,7 +105,10 @@
       "workspaceHint": "選填：設定檔案操作的工作空間資料夾",
       "selectFolder": "選擇資料夾",
       "clearFolder": "清除",
-      "model": "模型"
+      "model": "模型",
+      "customIntervalPrefix": "每",
+      "customIntervalPlaceholder": "10",
+      "customIntervalInvalid": "請輸入符合所選單位的有效間隔"
     },
     "freq": {
       "manual": "手動觸發",
@@ -115,12 +118,20 @@
       "weekly": "每週",
       "custom": "自訂"
     },
+    "customIntervalUnit": {
+      "minutes": "分鐘",
+      "hours": "小時",
+      "days": "天"
+    },
     "scheduleDesc": {
       "manual": "手動觸發",
       "hourly": "每小時執行",
       "dailyAt": "每天 {{time}} 執行",
       "weekdaysAt": "工作日 {{time}} 執行",
-      "weeklyAt": "每週{{day}} {{time}} 執行"
+      "weeklyAt": "每週{{day}} {{time}} 執行",
+      "everyMinutes": "每 {{value}} 分鐘執行",
+      "everyHours": "每 {{value}} 小時執行",
+      "everyDays": "每 {{value}} 天 09:00 執行"
     }
   },
   "trigger": {
@@ -140,6 +151,21 @@
     "jobNotFound": "未找到腳本: {{id}}",
     "conversationNotFound": "未找到對話",
     "scheduledTimePassed": "定時時間已過",
-    "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過"
+    "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過",
+    "existingNoBindings": "持續模式任務未綁定任何對話，無法立即執行。請先綁定一個對話再觸發。"
+  },
+  "binding": {
+    "title": "目前會話的定時任務",
+    "boundTasks": "已綁定任務",
+    "availableTasks": "可綁定任務",
+    "bind": "綁定",
+    "unbind": "解除綁定",
+    "bindSuccess": "已綁定到目前會話",
+    "unbindSuccess": "已從目前會話解除綁定",
+    "createAndBind": "新增任務",
+    "noBoundTasks": "目前會話尚無綁定任務",
+    "noAvailableTasks": "尚無可綁定的持續會話任務",
+    "boundTaskCount": "已綁定 {{count}} 個任務",
+    "targetConversations": "目標會話"
   }
 }

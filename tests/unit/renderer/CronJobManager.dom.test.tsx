@@ -1,14 +1,14 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Hoisted mocks
 const mockNavigate = vi.hoisted(() => vi.fn());
 const mockUseCronJobs = vi.hoisted(() =>
   vi.fn(() => ({
     jobs: [],
     loading: false,
     hasJobs: false,
+    refetch: vi.fn(async () => {}),
   }))
 );
 const mockGetJobStatusFlags = vi.hoisted(() =>
@@ -17,11 +17,15 @@ const mockGetJobStatusFlags = vi.hoisted(() =>
     isPaused: false,
   }))
 );
-const mockGetJobInvoke = vi.hoisted(() => vi.fn());
+const mockListJobsInvoke = vi.hoisted(() => vi.fn(async () => []));
+const mockBindConversationInvoke = vi.hoisted(() => vi.fn(async () => ({})));
+const mockUnbindConversationInvoke = vi.hoisted(() => vi.fn(async () => undefined));
+const mockMessageSuccess = vi.hoisted(() => vi.fn());
+const mockMessageError = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    t: (key: string) => key,
+    t: (key: string, params?: Record<string, unknown>) => (params?.count ? `${key}:${params.count}` : key),
   }),
 }));
 
@@ -32,17 +36,29 @@ vi.mock('react-router-dom', () => ({
 vi.mock('@arco-design/web-react', () => ({
   Button: ({
     children,
+    icon,
+    loading,
     onClick,
     ...props
   }: {
     children?: React.ReactNode;
+    icon?: React.ReactNode;
+    loading?: boolean;
     onClick?: () => void;
     [key: string]: unknown;
   }) => (
-    <button data-testid='arco-button' onClick={onClick} {...props}>
+    <button data-loading={loading ? 'true' : 'false'} onClick={onClick} {...props}>
+      {icon}
       {children}
     </button>
   ),
+  Empty: ({ description, className }: { description?: React.ReactNode; className?: string }) => (
+    <div className={className}>{description}</div>
+  ),
+  Message: {
+    success: (...args: unknown[]) => mockMessageSuccess(...args),
+    error: (...args: unknown[]) => mockMessageError(...args),
+  },
   Popover: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
     <div data-testid='arco-popover'>
       {content}
@@ -58,6 +74,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   AlarmClock: () => <span data-testid='icon-alarm-clock' />,
+  Plus: () => <span data-testid='icon-plus' />,
 }));
 
 vi.mock('@/renderer/styles/colors', () => ({
@@ -67,29 +84,41 @@ vi.mock('@/renderer/styles/colors', () => ({
   },
 }));
 
-vi.mock('@/renderer/utils/emitter', () => ({
-  emitter: {
-    emit: vi.fn(),
-    on: vi.fn(() => () => {}),
-    off: vi.fn(),
-  },
-}));
-
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
-      getJob: { invoke: (...args: unknown[]) => mockGetJobInvoke(...args) },
+      listJobs: { invoke: (...args: unknown[]) => mockListJobsInvoke(...args) },
+      bindConversation: { invoke: (...args: unknown[]) => mockBindConversationInvoke(...args) },
+      unbindConversation: { invoke: (...args: unknown[]) => mockUnbindConversationInvoke(...args) },
     },
   },
 }));
 
-// Mock using the aliased path that the component resolves to
 vi.mock('@/renderer/pages/cron/useCronJobs', () => ({
   useCronJobs: mockUseCronJobs,
 }));
 
 vi.mock('@/renderer/pages/cron/cronUtils', () => ({
   getJobStatusFlags: mockGetJobStatusFlags,
+}));
+
+vi.mock('@/renderer/pages/cron/ScheduledTasksPage/CreateTaskDialog', () => ({
+  default: ({
+    visible,
+    conversationId,
+    conversationTitle,
+    agentType,
+  }: {
+    visible: boolean;
+    conversationId?: string;
+    conversationTitle?: string;
+    agentType?: string;
+  }) =>
+    visible ? (
+      <div data-testid='create-task-dialog'>
+        {conversationId}|{conversationTitle}|{agentType}
+      </div>
+    ) : null,
 }));
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -120,92 +149,103 @@ const makeMockJob = (overrides?: Partial<ICronJob>): ICronJob => ({
 });
 
 describe('CronJobManager', () => {
+  const refetch = vi.fn(async () => {});
+
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseCronJobs.mockReturnValue({
       jobs: [],
       loading: false,
       hasJobs: false,
+      refetch,
     });
+    mockListJobsInvoke.mockResolvedValue([]);
+    mockBindConversationInvoke.mockResolvedValue({});
+    mockUnbindConversationInvoke.mockResolvedValue(undefined);
     mockGetJobStatusFlags.mockReturnValue({ hasError: false, isPaused: false });
   });
 
-  it('returns null when hasCronSkill=false and no jobs', () => {
-    const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
+  it('always shows the scheduled task entry for a conversation without bound jobs', async () => {
+    render(<CronJobManager conversationId='conv-1' conversationTitle='Chat One' agentType='remote' />);
 
-    expect(container.innerHTML).toBe('');
+    expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
+    expect(screen.getByText('cron.binding.title')).toBeInTheDocument();
+    expect(screen.getByText('cron.binding.noBoundTasks')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('cron.binding.noAvailableTasks')).toBeInTheDocument());
   });
 
-  it('shows unconfigured state when hasCronSkill=true (default) and no jobs', () => {
+  it('opens a create dialog with the current conversation context', () => {
+    render(<CronJobManager conversationId='conv-1' conversationTitle='Chat One' agentType='remote' />);
+
+    fireEvent.click(screen.getByText('cron.binding.createAndBind'));
+
+    expect(screen.getByTestId('create-task-dialog')).toHaveTextContent('conv-1|Chat One|remote');
+  });
+
+  it('shows bound tasks in the tooltip summary', () => {
+    mockUseCronJobs.mockReturnValue({
+      jobs: [makeMockJob({ id: 'bound-job', name: 'Bound Task' })],
+      loading: false,
+      hasJobs: true,
+      refetch,
+    });
+
     render(<CronJobManager conversationId='conv-1' />);
 
-    // Should render the Popover with create button
-    expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
-    expect(screen.getByText('cron.status.createNow')).toBeInTheDocument();
-    expect(screen.getByText('cron.status.unconfiguredHint')).toBeInTheDocument();
-    expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
+    expect(screen.getByText('Bound Task')).toBeInTheDocument();
+    expect(screen.getByTestId('arco-tooltip')).toHaveAttribute('data-tooltip-content', 'cron.binding.boundTaskCount:1');
   });
 
-  it('shows unconfigured state when hasCronSkill is explicitly true and no jobs', () => {
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={true} />);
-
-    expect(screen.getByTestId('arco-popover')).toBeInTheDocument();
-    expect(screen.getByText('cron.status.createNow')).toBeInTheDocument();
-  });
-
-  it('shows job status when jobs exist regardless of hasCronSkill', () => {
-    const job = makeMockJob();
+  it('unbinds a bound task when clicking the whole task row', async () => {
     mockUseCronJobs.mockReturnValue({
-      jobs: [job],
+      jobs: [makeMockJob({ id: 'bound-job', name: 'Bound Task' })],
       loading: false,
       hasJobs: true,
+      refetch,
     });
 
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
+    render(<CronJobManager conversationId='conv-1' />);
+    expect(screen.queryByText('cron.binding.unbind')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Bound Task' }));
 
-    // Should show Tooltip with job name, not Popover
-    expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
-    expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
-    // Should not show the unconfigured popover
-    expect(screen.queryByTestId('arco-popover')).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockUnbindConversationInvoke).toHaveBeenCalledWith({ jobId: 'bound-job', conversationId: 'conv-1' });
+    });
+    expect(mockMessageSuccess).toHaveBeenCalledWith('cron.binding.unbindSuccess');
+    expect(refetch).toHaveBeenCalled();
   });
 
-  it('shows job status when jobs exist with hasCronSkill=true', () => {
-    const job = makeMockJob();
-    mockUseCronJobs.mockReturnValue({
-      jobs: [job],
-      loading: false,
-      hasJobs: true,
+  it('binds an existing ongoing task when clicking the whole task row', async () => {
+    const availableJob = makeMockJob({ id: 'available-job', name: 'Available Task' });
+    mockListJobsInvoke.mockResolvedValue([availableJob]);
+
+    render(<CronJobManager conversationId='conv-1' />);
+
+    await waitFor(() => expect(screen.getByText('Available Task')).toBeInTheDocument());
+    expect(screen.queryByText('cron.binding.bind')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Available Task' }));
+
+    await waitFor(() => {
+      expect(mockBindConversationInvoke).toHaveBeenCalledWith({ jobId: 'available-job', conversationId: 'conv-1' });
     });
-
-    render(<CronJobManager conversationId='conv-1' hasCronSkill={true} />);
-
-    expect(screen.getByTestId('arco-tooltip')).toBeInTheDocument();
-    expect(screen.getByTestId('icon-alarm-clock')).toBeInTheDocument();
+    expect(mockMessageSuccess).toHaveBeenCalledWith('cron.binding.bindSuccess');
+    expect(refetch).toHaveBeenCalled();
+    expect(mockListJobsInvoke).toHaveBeenCalledTimes(2);
   });
 
-  it('returns null during loading with no job', () => {
-    mockUseCronJobs.mockReturnValue({
-      jobs: [],
-      loading: true,
-      hasJobs: false,
-    });
+  it('does not offer new-conversation tasks as bindable tasks', async () => {
+    mockListJobsInvoke.mockResolvedValue([
+      makeMockJob({
+        id: 'new-conv-job',
+        name: 'New Conversation Task',
+        target: { payload: { kind: 'message', text: 'run' }, executionMode: 'new_conversation' },
+      }),
+    ]);
 
-    const { container } = render(<CronJobManager conversationId='conv-1' />);
+    render(<CronJobManager conversationId='conv-1' />);
 
-    // loading=true and no job -> the component hits `if (loading || !job) return null`
-    expect(container.innerHTML).toBe('');
-  });
-
-  it('returns null when hasCronSkill=false, no jobs, and not loading', () => {
-    mockUseCronJobs.mockReturnValue({
-      jobs: [],
-      loading: false,
-      hasJobs: false,
-    });
-
-    const { container } = render(<CronJobManager conversationId='conv-1' hasCronSkill={false} />);
-
-    expect(container.innerHTML).toBe('');
+    await waitFor(() => expect(screen.getByText('cron.binding.noAvailableTasks')).toBeInTheDocument());
+    expect(screen.queryByText('New Conversation Task')).not.toBeInTheDocument();
   });
 });

@@ -171,8 +171,13 @@ describe('calcLayoutMetrics', () => {
       expect(m.showDesktopWorkspaceSidebar).toBe(false);
     });
 
-    it('should compute mobileWorkspaceWidthPx >= 300', () => {
-      expect(m.mobileWorkspaceWidthPx).toBeGreaterThanOrEqual(300);
+    it('should compute mobileWorkspaceWidthPx >= 260', () => {
+      expect(m.mobileWorkspaceWidthPx).toBeGreaterThanOrEqual(260);
+    });
+
+    it('should leave a tappable backdrop area beside the mobile workspace drawer', () => {
+      const narrow = calcLayoutMetrics(makeInput({ containerWidth: 390, isMobile: true, isDesktop: false }));
+      expect(narrow.mobileWorkspaceWidthPx).toBeLessThanOrEqual(326);
     });
 
     it('should use mobile workspace width when workspace is enabled', () => {

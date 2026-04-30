@@ -11,6 +11,8 @@ const mockGetJob = vi.hoisted(() => vi.fn());
 const mockUpdateJob = vi.hoisted(() => vi.fn());
 const mockRunNow = vi.hoisted(() => vi.fn());
 const mockRemoveJob = vi.hoisted(() => vi.fn());
+const mockListBindingsByJob = vi.hoisted(() => vi.fn());
+const mockUnbindConversation = vi.hoisted(() => vi.fn());
 const mockOnJobUpdated = vi.hoisted(() => vi.fn());
 const mockOnJobExecuted = vi.hoisted(() => vi.fn());
 const mockListByCronJob = vi.hoisted(() => vi.fn());
@@ -35,6 +37,8 @@ vi.mock('@/common', () => ({
       updateJob: { invoke: (...args: unknown[]) => mockUpdateJob(...args) },
       runNow: { invoke: (...args: unknown[]) => mockRunNow(...args) },
       removeJob: { invoke: (...args: unknown[]) => mockRemoveJob(...args) },
+      listBindingsByJob: { invoke: (...args: unknown[]) => mockListBindingsByJob(...args) },
+      unbindConversation: { invoke: (...args: unknown[]) => mockUnbindConversation(...args) },
       onJobUpdated: { on: (...args: unknown[]) => mockOnJobUpdated(...args) },
       onJobExecuted: { on: (...args: unknown[]) => mockOnJobExecuted(...args) },
     },
@@ -222,6 +226,8 @@ describe('TaskDetailPage', () => {
     mockUpdateJob.mockResolvedValue({ ...mockJob, enabled: false });
     mockRunNow.mockResolvedValue({ conversationId: 'new-conv-id' });
     mockRemoveJob.mockResolvedValue(undefined);
+    mockListBindingsByJob.mockResolvedValue([]);
+    mockUnbindConversation.mockResolvedValue(undefined);
     mockOnJobUpdated.mockReturnValue(() => {});
     mockOnJobExecuted.mockReturnValue(() => {});
     mockListByCronJob.mockResolvedValue(mockConversations);
@@ -360,6 +366,47 @@ describe('TaskDetailPage', () => {
     });
   });
 
+  it('displays and unbinds target conversations for existing-mode tasks', async () => {
+    const existingModeJob: ICronJob = {
+      ...mockJob,
+      target: {
+        executionMode: 'existing',
+        payload: {
+          text: 'Update task',
+        },
+      },
+    };
+    mockGetJob.mockResolvedValue(existingModeJob);
+    mockListBindingsByJob.mockResolvedValue([
+      {
+        id: 'binding-1',
+        jobId: 'job-123',
+        conversationId: 'conv-bound',
+        conversationTitle: 'Bound Chat',
+        conversationSource: 'weixin',
+        isDefaultTarget: true,
+        createdAt: now,
+        updatedAt: now,
+      },
+    ]);
+
+    render(<TaskDetailPage />);
+
+    await waitFor(() => {
+      expect(screen.getByText('cron.binding.targetConversations')).toBeInTheDocument();
+      expect(screen.getByText('Bound Chat')).toBeInTheDocument();
+      expect(screen.getByText('weixin')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('cron.binding.unbind'));
+
+    await waitFor(() => {
+      expect(mockUnbindConversation).toHaveBeenCalledWith({ jobId: 'job-123', conversationId: 'conv-bound' });
+    });
+    expect(mockMessageSuccess).toHaveBeenCalledWith('cron.binding.unbindSuccess');
+    expect(mockListBindingsByJob).toHaveBeenCalledTimes(2);
+  });
+
   it('toggles enabled switch and calls updateJob', async () => {
     render(<TaskDetailPage />);
 
@@ -434,7 +481,7 @@ describe('TaskDetailPage', () => {
     fireEvent.click(runNowButton);
 
     await waitFor(() => {
-      expect(mockMessageError).toHaveBeenCalledWith('Error: Run failed');
+      expect(mockMessageError).toHaveBeenCalledWith('Run failed');
     });
   });
 
@@ -568,11 +615,11 @@ describe('TaskDetailPage', () => {
     });
   });
 
-  it('displays conversation list for existing_conversation mode', async () => {
+  it('displays conversation list for existing mode', async () => {
     const existingModeJob: ICronJob = {
       ...mockJob,
       target: {
-        executionMode: 'existing_conversation',
+        executionMode: 'existing',
         payload: {
           text: 'Update task',
         },
@@ -588,11 +635,11 @@ describe('TaskDetailPage', () => {
     });
   });
 
-  it('displays no history for existing_conversation mode with no conversations', async () => {
+  it('displays no history for existing mode with no conversations', async () => {
     const errorJob: ICronJob = {
       ...mockJob,
       target: {
-        executionMode: 'existing_conversation',
+        executionMode: 'existing',
         payload: {
           text: 'Update task',
         },

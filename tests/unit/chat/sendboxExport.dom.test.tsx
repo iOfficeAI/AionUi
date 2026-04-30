@@ -260,4 +260,30 @@ describe('SendBox export flow', () => {
     });
     expect(screen.queryByText('messages.export.copyLabel')).not.toBeInTheDocument();
   });
+
+  it('opens the model selector from the builtin /model command', async () => {
+    const modelButtonClick = vi.fn();
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace', type: 'gemini' }}>
+        <SendBox
+          value='/model'
+          onChange={vi.fn()}
+          onSend={onSend}
+          onSlashBuiltinCommand={onSlashBuiltinCommand}
+          tools={
+            <button className='sendbox-model-btn' onClick={modelButtonClick}>
+              model-selector
+            </button>
+          }
+        />
+      </ConversationProvider>
+    );
+
+    fireEvent.click(screen.getByRole('option', { name: /\/model/i }));
+
+    await waitFor(() => {
+      expect(modelButtonClick).toHaveBeenCalledTimes(1);
+    });
+    expect(onSlashBuiltinCommand).not.toHaveBeenCalledWith('model');
+  });
 });

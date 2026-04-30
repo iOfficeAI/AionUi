@@ -39,13 +39,20 @@ const AcpChat: React.FC<{
   agentSlotId,
   emptySlot,
 }) => {
-  useMessageLstCache(conversation_id);
+  const messageCacheState = useMessageLstCache(conversation_id);
 
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp', cronJobId, hideSendBox }}>
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>
-          <MessageList className='flex-1' emptySlot={emptySlot} />
+          <MessageList
+            className='flex-1'
+            emptySlot={emptySlot}
+            isLoading={messageCacheState.isLoading}
+            isRefreshing={messageCacheState.isRefreshing}
+            loadingError={messageCacheState.error}
+            onRetryLoad={() => void messageCacheState.reload()}
+          />
         </FlexFullContainer>
         {!hideSendBox && (
           <ConversationChatConfirm conversation_id={conversation_id}>

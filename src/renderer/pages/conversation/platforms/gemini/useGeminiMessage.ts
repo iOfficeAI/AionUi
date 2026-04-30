@@ -105,7 +105,7 @@ export const useGeminiMessage = (conversation_id: string, onError?: (message: IR
 
   useEffect(() => {
     return ipcBridge.geminiConversation.responseStream.on((message) => {
-      if (conversation_id !== message.conversation_id) {
+      if (!message || conversation_id !== message.conversation_id) {
         return;
       }
 

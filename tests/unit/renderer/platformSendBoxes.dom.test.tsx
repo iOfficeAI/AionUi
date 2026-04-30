@@ -39,6 +39,7 @@ const mockUseConversationCommandQueue = vi.fn(() => ({
 const mockConversationGetInvoke = vi.fn();
 const mockConversationStopInvoke = vi.fn();
 const mockConversationSendInvoke = vi.fn();
+const mockConversationRollbackInvoke = vi.fn();
 const mockAcpSendInvoke = vi.fn();
 const mockGeminiSendInvoke = vi.fn();
 const mockOpenClawSendInvoke = vi.fn();
@@ -60,6 +61,7 @@ const mockClearFiles = vi.fn();
 const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
   files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
 );
+let mockSendboxMessage = 'queued command';
 
 const mockDraftData: {
   atPath: Array<string | { path: string; isFile?: boolean; name?: string }>;
@@ -79,6 +81,7 @@ vi.mock('@/common', () => ({
       get: { invoke: (...args: unknown[]) => mockConversationGetInvoke(...args) },
       stop: { invoke: (...args: unknown[]) => mockConversationStopInvoke(...args) },
       sendMessage: { invoke: (...args: unknown[]) => mockConversationSendInvoke(...args) },
+      rollbackToMessage: { invoke: (...args: unknown[]) => mockConversationRollbackInvoke(...args) },
       responseStream: { on: vi.fn(() => vi.fn()) },
     },
     acpConversation: {
@@ -133,7 +136,7 @@ vi.mock('@/renderer/components/chat/sendbox', () => ({
           type: 'button',
           disabled,
           onClick: () => {
-            void Promise.resolve(onSend('queued command')).catch(() => {});
+            void Promise.resolve(onSend(mockSendboxMessage)).catch(() => {});
           },
         },
         'trigger-send'
@@ -259,9 +262,14 @@ vi.mock('@/renderer/hooks/system/useCommandQueueEnabled', () => ({
   useCommandQueueEnabled: () => mockUseCommandQueueEnabled(),
 }));
 
+const mockUseMessageList = vi.fn(() => []);
+const mockReloadMessageListFromDatabase = vi.fn(() => vi.fn().mockResolvedValue([]));
+
 vi.mock('@/renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
   useRemoveMessageByMsgId: () => mockRemoveMessageByMsgId,
+  useMessageList: () => mockUseMessageList(),
+  useReloadMessageListFromDatabase: () => mockReloadMessageListFromDatabase(),
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
@@ -273,6 +281,9 @@ vi.mock('@/renderer/pages/conversation/platforms/assertBridgeSuccess', () => ({
   assertBridgeSuccess: (...args: unknown[]) => mockAssertBridgeSuccess(...args),
 }));
 
+const mockResetAcpState = vi.fn();
+const mockResetAcpConversationState = vi.fn();
+
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpMessage', () => ({
   useAcpMessage: vi.fn(() => ({
     thought: { subject: '', description: '' },
@@ -281,7 +292,8 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpMessage', () => ({
     acpStatus: null,
     aiProcessing: false,
     setAiProcessing: vi.fn(),
-    resetState: vi.fn(),
+    resetState: mockResetAcpState,
+    resetConversationState: mockResetAcpConversationState,
     tokenUsage: 0,
     contextLimit: 0,
     hasThinkingMessage: false,
@@ -372,6 +384,8 @@ vi.mock('@arco-design/web-react', () => ({
     warning: (...args: unknown[]) => mockArcoWarning(...args),
     success: (...args: unknown[]) => mockArcoSuccess(...args),
   },
+  Button: ({ children, onClick, disabled }: { children?: React.ReactNode; onClick?: () => void; disabled?: boolean }) =>
+    React.createElement('button', { type: 'button', onClick, disabled }, children),
   Tag: ({ children }: { children?: React.ReactNode }) => React.createElement('div', {}, children),
 }));
 
@@ -427,6 +441,10 @@ describe('platform send box queue integration', () => {
     }));
     mockConversationStopInvoke.mockResolvedValue(undefined);
     mockConversationSendInvoke.mockResolvedValue({ success: true });
+    mockConversationRollbackInvoke.mockResolvedValue({
+      success: true,
+      data: { restoredInput: 'restored prompt', deletedMessageIds: ['msg-2'], deletedCount: 1 },
+    });
     mockAcpSendInvoke.mockResolvedValue({ success: true });
     mockGeminiSendInvoke.mockResolvedValue({ success: true });
     mockOpenClawSendInvoke.mockResolvedValue({ success: true });
@@ -739,6 +757,192 @@ describe('platform send box queue integration', () => {
       conversation_id: 'conv-acp',
       files: ['C:/workspace/uploads/photo.png'],
     });
+  });
+
+  it('opens rewind selection for Claude instead of sending the raw slash command', async () => {
+    mockSendboxMessage = '/rewind';
+    mockUseMessageList.mockReturnValue([
+      {
+        id: 'msg-user-1',
+        msg_id: 'msg-user-1',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'First prompt to rewind' },
+      },
+    ]);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Restore the conversation to the point before/i)).toBeInTheDocument();
+    });
+
+    expect(mockAcpSendInvoke).not.toHaveBeenCalled();
+    expect(mockConversationRollbackInvoke).not.toHaveBeenCalled();
+  });
+
+  it('supports keyboard confirmation inside the Claude rewind picker', async () => {
+    mockSendboxMessage = '/rewind';
+    mockUseMessageList.mockReturnValue([
+      {
+        id: 'msg-user-1',
+        msg_id: 'msg-user-1',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'First prompt to rewind' },
+      },
+      {
+        id: 'msg-user-2',
+        msg_id: 'msg-user-2',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'Second prompt to rewind' },
+      },
+    ]);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Restore the conversation to the point before/i)).toBeInTheDocument();
+    });
+
+    // Default active row is the newest turn (bottom of the list = msg-user-2).
+    // ArrowDown wraps to the top (msg-user-1) since the list is in time order.
+    fireEvent.keyDown(window, { key: 'ArrowDown' });
+    fireEvent.keyDown(window, { key: 'Enter' });
+
+    await waitFor(() => {
+      expect(mockConversationRollbackInvoke).toHaveBeenCalledWith({
+        conversation_id: 'conv-acp',
+        target_message_id: 'msg-user-1',
+      });
+    });
+  });
+
+  it('supports numeric shortcut confirmation inside the Claude rewind picker', async () => {
+    mockSendboxMessage = '/rewind';
+    mockUseMessageList.mockReturnValue([
+      {
+        id: 'msg-user-1',
+        msg_id: 'msg-user-1',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'First prompt to rewind' },
+      },
+      {
+        id: 'msg-user-2',
+        msg_id: 'msg-user-2',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'Second prompt to rewind' },
+      },
+    ]);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Restore the conversation to the point before/i)).toBeInTheDocument();
+    });
+
+    // 1 == "1 turn ago" — with two turns total, that's the older one.
+    fireEvent.keyDown(window, { key: '1' });
+
+    await waitFor(() => {
+      expect(mockConversationRollbackInvoke).toHaveBeenCalledWith({
+        conversation_id: 'conv-acp',
+        target_message_id: 'msg-user-1',
+      });
+    });
+  });
+
+  it('supports 0 as a shortcut for rewinding the most recent turn', async () => {
+    mockSendboxMessage = '/rewind';
+    mockUseMessageList.mockReturnValue([
+      {
+        id: 'msg-user-1',
+        msg_id: 'msg-user-1',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'First prompt to rewind' },
+      },
+      {
+        id: 'msg-user-2',
+        msg_id: 'msg-user-2',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'Second prompt to rewind' },
+      },
+    ]);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='claude' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Restore the conversation to the point before/i)).toBeInTheDocument();
+    });
+
+    fireEvent.keyDown(window, { key: '0' });
+
+    await waitFor(() => {
+      expect(mockConversationRollbackInvoke).toHaveBeenCalledWith({
+        conversation_id: 'conv-acp',
+        target_message_id: 'msg-user-2',
+      });
+    });
+  });
+
+  it('opens the rewind picker on Codex /undo (alias of /rewind)', async () => {
+    mockSendboxMessage = '/undo';
+    mockUseMessageList.mockReturnValue([
+      {
+        id: 'msg-user-2',
+        msg_id: 'msg-user-2',
+        conversation_id: 'conv-acp',
+        type: 'text',
+        position: 'right',
+        content: { content: 'Latest prompt to undo' },
+      },
+    ]);
+
+    render(<AcpSendBox conversation_id='conv-acp' backend='codex' />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'trigger-send' }));
+
+    // /undo and /rewind are pure aliases — both open the picker on every
+    // backend rather than executing an immediate single-turn rollback.
+    await waitFor(() => {
+      expect(screen.getByText(/Restore the conversation to the point before/i)).toBeInTheDocument();
+    });
+
+    expect(mockConversationRollbackInvoke).not.toHaveBeenCalled();
+    expect(mockAcpSendInvoke).not.toHaveBeenCalled();
+
+    // Confirming the picker (Enter on the only candidate) drives the shared
+    // rollback flow.
+    fireEvent.keyDown(window, { key: 'Enter' });
+    await waitFor(() => {
+      expect(mockConversationRollbackInvoke).toHaveBeenCalledWith({
+        conversation_id: 'conv-acp',
+        target_message_id: 'msg-user-2',
+      });
+    });
+    expect(queueSpies.clear).toHaveBeenCalled();
+    expect(queueSpies.resetActiveExecution).toHaveBeenCalledWith('external-reset');
+    expect(mockResetAcpConversationState).toHaveBeenCalled();
   });
 
   it('blocks OpenClaw dispatch when runtime validation fails', async () => {

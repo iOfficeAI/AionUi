@@ -68,8 +68,8 @@ const AcpConfigSelector: React.FC<{
   // Listen for config_option_update events from responseStream (conversation mode only)
   useEffect(() => {
     if (!backend || !conversationId) return;
-    const handler = (message: IResponseMessage) => {
-      if (message.conversation_id !== conversationId) return;
+    const handler = (message: IResponseMessage | undefined) => {
+      if (!message || message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info') {
         ipcBridge.acpConversation.getConfigOptions
           .invoke({ conversationId })

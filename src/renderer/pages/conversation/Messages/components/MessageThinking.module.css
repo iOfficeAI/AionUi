@@ -11,10 +11,14 @@
 .header {
   display: flex;
   align-items: center;
+  width: 100%;
   gap: 6px;
+  border: 0;
+  background: transparent;
   font-size: 12px;
   color: var(--color-text-3);
   font-style: italic;
+  text-align: left;
   cursor: pointer;
   user-select: none;
   padding: 4px 0;

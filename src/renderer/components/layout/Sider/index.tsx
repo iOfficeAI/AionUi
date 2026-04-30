@@ -11,6 +11,7 @@ import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
+import { BatchSelectionProvider } from './BatchSelectionContext';
 import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
 
@@ -193,20 +194,27 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             />
             {/* Scrollable content: team + scheduled tasks + conversation history */}
             <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
-              {/* Team section */}
-              <TeamSiderSection
-                collapsed={collapsed}
-                pathname={pathname}
-                siderTooltipProps={siderTooltipProps}
-                onSessionClick={onSessionClick}
-              />
-              {/* Scheduled section */}
-              {!collapsed && (
-                <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
-              )}
-              <Suspense fallback={<div className='min-h-200px' />}>
-                <WorkspaceGroupedHistory {...workspaceHistoryProps} />
-              </Suspense>
+              <BatchSelectionProvider batchMode={isBatchMode}>
+                {/* Team section */}
+                <TeamSiderSection
+                  collapsed={collapsed}
+                  pathname={pathname}
+                  siderTooltipProps={siderTooltipProps}
+                  onSessionClick={onSessionClick}
+                />
+                {/* Scheduled section */}
+                {!collapsed && (
+                  <CronJobSiderSection
+                    jobs={cronJobs}
+                    pathname={pathname}
+                    onNavigate={handleCronNavigate}
+                    batchMode={isBatchMode}
+                  />
+                )}
+                <Suspense fallback={<div className='min-h-200px' />}>
+                  <WorkspaceGroupedHistory {...workspaceHistoryProps} />
+                </Suspense>
+              </BatchSelectionProvider>
             </div>
           </div>
         )}

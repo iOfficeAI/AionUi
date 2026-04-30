@@ -1028,6 +1028,31 @@ export class AionUIDatabase {
     }
   }
 
+  deleteMessages(messageIds: string[]): IQueryResult<number> {
+    if (messageIds.length === 0) {
+      return {
+        success: true,
+        data: 0,
+      };
+    }
+
+    try {
+      const placeholders = messageIds.map(() => '?').join(', ');
+      const stmt = this.db.prepare(`DELETE FROM messages WHERE id IN (${placeholders})`);
+      const result = stmt.run(...messageIds);
+
+      return {
+        success: true,
+        data: result.changes,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
   /**
    * Get message by msg_id and conversation_id
    * Used for finding existing messages to update (e.g., streaming text accumulation)

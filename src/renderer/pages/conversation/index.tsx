@@ -31,7 +31,7 @@ const ChatConversationIndex: React.FC = () => {
     previousConversationIdRef.current = id;
   }, [id, closePreview]);
 
-  const { data, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
+  const { data, error, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
     return ipcBridge.conversation.get.invoke({ id });
   });
 
@@ -64,6 +64,24 @@ const ChatConversationIndex: React.FC = () => {
   }, [data, openTab]);
 
   if (isLoading) return <Spin loading></Spin>;
+
+  if (error || !data) {
+    return (
+      <div className='h-full flex items-center justify-center text-center text-t-secondary px-24px'>
+        <div>
+          <div className='text-16px font-medium text-t-primary mb-8px'>
+            {t('conversation.loadFailed', { defaultValue: '会话加载失败' })}
+          </div>
+          <div className='text-13px'>
+            {t('conversation.loadFailedDescription', {
+              defaultValue: '该会话不存在或配置不完整，请返回首页重新创建会话。',
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return <ChatConversation conversation={data}></ChatConversation>;
 };
 

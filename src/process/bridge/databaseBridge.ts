@@ -10,13 +10,52 @@ import type { TChatConversation } from '@/common/config/storage';
 import { migrateConversationToDatabase } from './migrationUtils';
 import type { IConversationRepository } from '@process/services/database/IConversationRepository';
 
+const MESSAGE_HISTORY_SLOW_THRESHOLD_MS = 500;
+
+const getNow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+const shouldLogMessageHistoryLoad = (durationMs: number): boolean =>
+  durationMs >= MESSAGE_HISTORY_SLOW_THRESHOLD_MS || process.env.AIONUI_MESSAGE_LOAD_DEBUG === '1';
+
+const getPayloadBytes = (value: unknown): number | undefined => {
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).length;
+  } catch {
+    return undefined;
+  }
+};
+
+const normalizeMessageOrder = (order: unknown): 'ASC' | 'DESC' => (order === 'DESC' ? 'DESC' : 'ASC');
+
 export function initDatabaseBridge(repo: IConversationRepository): void {
   // Get conversation messages from database
   ipcBridge.database.getConversationMessages.provider(async (_params) => {
     const { conversation_id, page = 0, pageSize = 10000 } = _params ?? {};
+    const order = normalizeMessageOrder(_params?.order);
+    const startedAt = getNow();
     try {
-      const result = await repo.getMessages(conversation_id, page, pageSize);
-      return result.data;
+      const repoStartedAt = getNow();
+      const result = await repo.getMessages(conversation_id, page, pageSize, order);
+      const repoMs = getNow() - repoStartedAt;
+      const totalMs = getNow() - startedAt;
+      const messages = result.data ?? [];
+
+      if (shouldLogMessageHistoryLoad(totalMs)) {
+        console.info('[DatabaseBridge] Conversation messages loaded', {
+          conversationId: conversation_id,
+          page,
+          pageSize,
+          order,
+          messages: messages.length,
+          total: result.total,
+          hasMore: result.hasMore,
+          payloadBytes: getPayloadBytes(messages),
+          repoMs: Math.round(repoMs),
+          totalMs: Math.round(totalMs),
+        });
+      }
+
+      return messages;
     } catch (error) {
       console.error('[DatabaseBridge] Error getting conversation messages:', error);
       return [];

@@ -76,8 +76,38 @@ describe('databaseBridge', () => {
 
       const result = await handlers['getConversationMessages']({ conversation_id: 'c1' });
 
-      expect(repo.getMessages).toHaveBeenCalledWith('c1', 0, 10000);
+      expect(repo.getMessages).toHaveBeenCalledWith('c1', 0, 10000, 'ASC');
       expect(result).toEqual(msgs);
+    });
+
+    it('logs timing diagnostics for slow history reads', async () => {
+      const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+      const now = vi
+        .spyOn(performance, 'now')
+        .mockReturnValueOnce(0)
+        .mockReturnValueOnce(10)
+        .mockReturnValueOnce(640)
+        .mockReturnValueOnce(650);
+      const msgs: Partial<TMessage>[] = [{ id: 'm1', type: 'text' as any }];
+      const payloadBytes = new TextEncoder().encode(JSON.stringify(msgs)).length;
+      vi.mocked(repo.getMessages).mockReturnValue({ data: msgs as TMessage[], total: 3, hasMore: true });
+
+      await handlers['getConversationMessages']({ conversation_id: 'c1', page: 1, pageSize: 50 });
+
+      expect(info).toHaveBeenCalledWith('[DatabaseBridge] Conversation messages loaded', {
+        conversationId: 'c1',
+        page: 1,
+        pageSize: 50,
+        order: 'ASC',
+        messages: 1,
+        total: 3,
+        hasMore: true,
+        payloadBytes,
+        repoMs: 630,
+        totalMs: 650,
+      });
+      now.mockRestore();
+      info.mockRestore();
     });
 
     it('returns empty array when repo throws', async () => {
@@ -98,12 +128,20 @@ describe('databaseBridge', () => {
       expect(result).toEqual([]);
     });
 
-    it('uses provided page and pageSize', async () => {
+    it('uses provided page, pageSize, and order', async () => {
       vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, hasMore: false });
 
-      await handlers['getConversationMessages']({ conversation_id: 'c1', page: 2, pageSize: 50 });
+      await handlers['getConversationMessages']({ conversation_id: 'c1', page: 2, pageSize: 50, order: 'DESC' });
 
-      expect(repo.getMessages).toHaveBeenCalledWith('c1', 2, 50);
+      expect(repo.getMessages).toHaveBeenCalledWith('c1', 2, 50, 'DESC');
+    });
+
+    it('falls back to ascending order for invalid order values', async () => {
+      vi.mocked(repo.getMessages).mockReturnValue({ data: [], total: 0, hasMore: false });
+
+      await handlers['getConversationMessages']({ conversation_id: 'c1', order: 'DESC; DROP TABLE messages' });
+
+      expect(repo.getMessages).toHaveBeenCalledWith('c1', 0, 10000, 'ASC');
     });
   });
 

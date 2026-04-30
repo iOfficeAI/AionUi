@@ -14,6 +14,8 @@ const mockCronService = vi.hoisted(() => ({
   listJobsByConversation: vi.fn(async () => []),
   removeJob: vi.fn(async () => {}),
   updateJob: vi.fn(async () => {}),
+  bindConversation: vi.fn(async () => ({})),
+  unbindConversation: vi.fn(async () => {}),
 }));
 
 vi.mock('../../src/process/services/cron/cronServiceSingleton', () => ({
@@ -37,6 +39,7 @@ function makeRepo(overrides: Partial<IConversationRepository> = {}): IConversati
     updateConversation: vi.fn(),
     deleteConversation: vi.fn(),
     getMessages: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
+    deleteMessages: vi.fn(async () => 0),
     insertMessage: vi.fn(),
     getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     listAllConversations: vi.fn(() => []),
@@ -165,7 +168,7 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     expect(repo.insertMessage).toHaveBeenCalledWith(expect.objectContaining({ conversation_id: 'new' }));
   });
 
-  it('migrates cron jobs to new conversation when migrateCron is true', async () => {
+  it('migrates cron job bindings to new conversation when migrateCron is true', async () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
     const job1 = makeCronJob({
       id: 'job-1',
@@ -193,24 +196,15 @@ describe('ConversationServiceImpl.createWithMigration', () => {
     });
 
     expect(mockCronService.listJobsByConversation).toHaveBeenCalledWith('source-conv');
-    expect(mockCronService.updateJob).toHaveBeenCalledWith('job-1', {
-      metadata: {
-        ...job1.metadata,
-        conversationId: 'target-conv',
-        conversationTitle: 'Target',
-      },
-    });
-    expect(mockCronService.updateJob).toHaveBeenCalledWith('job-2', {
-      metadata: {
-        ...job2.metadata,
-        conversationId: 'target-conv',
-        conversationTitle: 'Target',
-      },
-    });
+    expect(mockCronService.bindConversation).toHaveBeenCalledWith('job-1', 'target-conv');
+    expect(mockCronService.bindConversation).toHaveBeenCalledWith('job-2', 'target-conv');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-1', 'source-conv');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-2', 'source-conv');
     expect(mockCronService.removeJob).not.toHaveBeenCalled();
+    expect(mockCronService.updateJob).not.toHaveBeenCalled();
   });
 
-  it('deletes cron jobs when migrateCron is false', async () => {
+  it('detaches cron job bindings when migrateCron is false', async () => {
     const targetConv = makeConversation({ id: 'target-conv', name: 'Target' });
     const job1 = makeCronJob({ id: 'job-1', metadata: { conversationId: 'source-conv' } as any });
     const job2 = makeCronJob({ id: 'job-2', metadata: { conversationId: 'source-conv' } as any });
@@ -231,8 +225,10 @@ describe('ConversationServiceImpl.createWithMigration', () => {
       migrateCron: false,
     });
 
-    expect(mockCronService.removeJob).toHaveBeenCalledWith('job-1');
-    expect(mockCronService.removeJob).toHaveBeenCalledWith('job-2');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-1', 'source-conv');
+    expect(mockCronService.unbindConversation).toHaveBeenCalledWith('job-2', 'source-conv');
+    expect(mockCronService.bindConversation).not.toHaveBeenCalled();
+    expect(mockCronService.removeJob).not.toHaveBeenCalled();
     expect(mockCronService.updateJob).not.toHaveBeenCalled();
   });
 
@@ -495,5 +491,177 @@ describe('ConversationServiceImpl.getConversationsByCronJob', () => {
 
     expect(repo.getConversationsByCronJob).toHaveBeenCalledWith('job-1');
     expect(result).toEqual(conversations);
+  });
+});
+
+describe('ConversationServiceImpl.rollbackConversationToUserMessage', () => {
+  it('removes the target user message and everything after it (CLI /rewind parity)', async () => {
+    const conversation = makeConversation({
+      id: 'c1',
+      type: 'acp' as TChatConversation['type'],
+      extra: { acpSessionId: 'session-1' } as TChatConversation['extra'],
+    });
+    const messages = [
+      { id: 'u1', type: 'text', position: 'right', content: { content: 'q1' } } as any,
+      { id: 'a1', type: 'text', position: 'left', content: { content: 'a1' } } as any,
+      { id: 'u2', type: 'text', position: 'right', content: { content: 'q2 prompt' } } as any,
+      { id: 'a2', type: 'text', position: 'left', content: { content: 'a2' } } as any,
+      { id: 'u3', type: 'text', position: 'right', content: { content: 'q3' } } as any,
+      { id: 'a3', type: 'text', position: 'left', content: { content: 'a3' } } as any,
+    ];
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({ data: messages, total: messages.length, hasMore: false })),
+      deleteMessages: vi.fn(async () => 4),
+      updateConversation: vi.fn(async () => undefined),
+    });
+    const svc = new ConversationServiceImpl(repo);
+
+    const result = await svc.rollbackConversationToUserMessage('c1', 'u2');
+
+    // u2 itself + everything after is deleted (the picker rewinds to "right
+    // *before* this prompt"). Its text is returned so the composer can be
+    // repopulated for re-editing.
+    expect(repo.deleteMessages).toHaveBeenCalledWith(['u2', 'a2', 'u3', 'a3']);
+    expect(result.deletedCount).toBe(4);
+    expect(result.restoredInput).toBe('q2 prompt');
+  });
+
+  it('also rolls back non-ACP conversations (parity across agents)', async () => {
+    const conversation = makeConversation({
+      id: 'c1',
+      type: 'gemini' as TChatConversation['type'],
+      extra: {} as TChatConversation['extra'],
+    });
+    const messages = [
+      { id: 'u1', type: 'text', position: 'right', content: { content: 'q1' } } as any,
+      { id: 'a1', type: 'text', position: 'left', content: { content: 'a1' } } as any,
+      { id: 'u2', type: 'text', position: 'right', content: { content: 'q2' } } as any,
+    ];
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({ data: messages, total: messages.length, hasMore: false })),
+      deleteMessages: vi.fn(async () => 3),
+      updateConversation: vi.fn(async () => undefined),
+    });
+    const svc = new ConversationServiceImpl(repo);
+
+    const result = await svc.rollbackConversationToUserMessage('c1', 'u1');
+
+    expect(repo.deleteMessages).toHaveBeenCalledWith(['u1', 'a1', 'u2']);
+    expect(result.deletedCount).toBe(3);
+  });
+
+  it('throws when the target message is not a user message', async () => {
+    const conversation = makeConversation({
+      id: 'c1',
+      type: 'acp' as TChatConversation['type'],
+    });
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({
+        data: [{ id: 'a1', type: 'text', position: 'left', content: { content: 'a' } } as any],
+        total: 1,
+        hasMore: false,
+      })),
+    });
+    const svc = new ConversationServiceImpl(repo);
+    await expect(svc.rollbackConversationToUserMessage('c1', 'a1')).rejects.toThrow(/user text message/);
+  });
+
+  it('throws when the target message id is missing', async () => {
+    const conversation = makeConversation({ id: 'c1', type: 'acp' as TChatConversation['type'] });
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+    });
+    const svc = new ConversationServiceImpl(repo);
+    await expect(svc.rollbackConversationToUserMessage('c1', 'nope')).rejects.toThrow(/Target message not found/);
+  });
+});
+
+describe('ConversationServiceImpl.clearAllMessages', () => {
+  it('throws when conversation is missing', async () => {
+    const repo = makeRepo({ getConversation: vi.fn(async () => undefined) });
+    const svc = new ConversationServiceImpl(repo);
+    await expect(svc.clearAllMessages('missing')).rejects.toThrow(/Conversation not found/);
+  });
+
+  it('clears messages on non-ACP conversations too (Gemini, openclaw, ...)', async () => {
+    const conversation = makeConversation({
+      id: 'c1',
+      type: 'gemini' as TChatConversation['type'],
+      extra: { lastTokenUsage: 7 } as TChatConversation['extra'],
+    });
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({
+        data: [{ id: 'm1' } as any, { id: 'm2' } as any],
+        total: 2,
+        hasMore: false,
+      })),
+      deleteMessages: vi.fn(async () => 2),
+      updateConversation: vi.fn(async () => undefined),
+    });
+    const svc = new ConversationServiceImpl(repo);
+
+    const result = await svc.clearAllMessages('c1');
+
+    expect(repo.deleteMessages).toHaveBeenCalledWith(['m1', 'm2']);
+    expect(result.deletedCount).toBe(2);
+  });
+
+  it('deletes all messages and resets the ACP session extras', async () => {
+    const conversation = makeConversation({
+      id: 'c1',
+      type: 'acp' as TChatConversation['type'],
+      extra: { acpSessionId: 'session-1', lastTokenUsage: 42 } as TChatConversation['extra'],
+    });
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({
+        data: [{ id: 'm1' } as any, { id: 'm2' } as any, { id: 'm3' } as any],
+        total: 3,
+        hasMore: false,
+      })),
+      deleteMessages: vi.fn(async () => 3),
+      updateConversation: vi.fn(async () => undefined),
+    });
+    const svc = new ConversationServiceImpl(repo);
+
+    const result = await svc.clearAllMessages('c1');
+
+    expect(repo.deleteMessages).toHaveBeenCalledWith(['m1', 'm2', 'm3']);
+    expect(repo.updateConversation).toHaveBeenCalledWith(
+      'c1',
+      expect.objectContaining({
+        extra: expect.objectContaining({
+          acpSessionId: undefined,
+          lastTokenUsage: undefined,
+        }),
+      })
+    );
+    expect(result).toEqual({ deletedCount: 3 });
+  });
+
+  it('skips deleteMessages when there are no messages but still resets extras', async () => {
+    const conversation = makeConversation({
+      id: 'c1',
+      type: 'acp' as TChatConversation['type'],
+      extra: { acpSessionId: 'session-1' } as TChatConversation['extra'],
+    });
+    const repo = makeRepo({
+      getConversation: vi.fn(async () => conversation),
+      getMessages: vi.fn(async () => ({ data: [], total: 0, hasMore: false })),
+      deleteMessages: vi.fn(async () => 0),
+      updateConversation: vi.fn(async () => undefined),
+    });
+    const svc = new ConversationServiceImpl(repo);
+
+    const result = await svc.clearAllMessages('c1');
+
+    expect(repo.deleteMessages).not.toHaveBeenCalled();
+    expect(repo.updateConversation).toHaveBeenCalled();
+    expect(result.deletedCount).toBe(0);
   });
 });

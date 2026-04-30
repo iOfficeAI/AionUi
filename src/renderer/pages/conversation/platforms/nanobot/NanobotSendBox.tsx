@@ -180,7 +180,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   useEffect(() => {
     return ipcBridge.conversation.responseStream.on((message) => {
-      if (conversation_id !== message.conversation_id) {
+      if (!message || conversation_id !== message.conversation_id) {
         return;
       }
       switch (message.type) {

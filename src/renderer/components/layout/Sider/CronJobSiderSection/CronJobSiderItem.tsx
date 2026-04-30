@@ -14,6 +14,7 @@ import { Down } from '@icon-park/react';
 import { Input, Message, Modal } from '@arco-design/web-react';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
+import { useBatchSelectionContextSafe } from '../BatchSelectionContext';
 import { ipcBridge } from '@/common';
 import { emitter } from '@/renderer/utils/emitter';
 import { isConversationPinned } from '@renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
@@ -35,6 +36,7 @@ interface CronJobSiderItemProps {
   onNavigate: (path: string) => void;
   /** Pre-fetched conversation for existing mode (fetched by parent to avoid N+1 IPC) */
   existingConversation?: TChatConversation;
+  batchMode?: boolean;
 }
 
 const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
@@ -42,6 +44,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   pathname,
   onNavigate,
   existingConversation: existingConversationProp,
+  batchMode = false,
 }) => {
   const { t } = useTranslation();
   const { id: currentConversationId } = useParams();
@@ -51,6 +54,11 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   // Always fetch all child conversations regardless of mode
   const { conversations } = useCronJobConversations(job.id);
   const { isConversationGenerating, hasCompletionUnread, clearCompletionUnread } = useConversationHistoryContext();
+
+  // Use shared batch selection context (available when wrapped by BatchSelectionProvider in Sider)
+  const batchContext = useBatchSelectionContextSafe();
+  const selectedConversationIds = batchContext?.selectedConversationIds ?? new Set<string>();
+  const toggleSelectedConversation = batchContext?.toggleSelectedConversation ?? (() => {});
 
   // Show all child conversations in both modes; include existingConversationProp as fallback
   const childConversations = useMemo(() => {
@@ -263,11 +271,11 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
           hasCompletionUnread={hasCompletionUnread(conv.id)}
           collapsed={false}
           tooltipEnabled={false}
-          batchMode={false}
-          checked={false}
+          batchMode={batchMode}
+          checked={selectedConversationIds.has(conv.id)}
           selected={currentConversationId === conv.id}
           menuVisible={dropdownVisibleId === conv.id}
-          onToggleChecked={() => {}}
+          onToggleChecked={() => toggleSelectedConversation(conv)}
           onConversationClick={handleConversationClick}
           onOpenMenu={handleOpenMenu}
           onMenuVisibleChange={handleMenuVisibleChange}
@@ -282,8 +290,11 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
       isMobile,
       isConversationGenerating,
       hasCompletionUnread,
+      batchMode,
+      selectedConversationIds,
       currentConversationId,
       dropdownVisibleId,
+      toggleSelectedConversation,
       handleConversationClick,
       handleOpenMenu,
       handleMenuVisibleChange,

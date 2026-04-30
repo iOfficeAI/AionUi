@@ -223,7 +223,7 @@ const ModelModalContent: React.FC = () => {
         };
 
         const responseListener = (msg: IResponseMessage) => {
-          if (msg.conversation_id !== tempConversationId) return;
+          if (!msg || msg.conversation_id !== tempConversationId) return;
 
           // 输出 request_trace 到 console（使用与对话相同的格式）
           if (msg.type === 'request_trace') {

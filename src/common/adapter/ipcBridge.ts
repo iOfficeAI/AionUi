@@ -61,6 +61,13 @@ export const conversation = {
     IBridgeResponse<ConversationSideQuestionResult>,
     { conversation_id: string; question: string }
   >('conversation.ask-side-question'),
+  rollbackToMessage: bridge.buildProvider<
+    IBridgeResponse<{ restoredInput: string; deletedMessageIds: string[]; deletedCount: number }>,
+    { conversation_id: string; target_message_id: string }
+  >('conversation.rollback-to-message'),
+  clearMessages: bridge.buildProvider<IBridgeResponse<{ deletedCount: number }>, { conversation_id: string }>(
+    'conversation.clear-messages'
+  ),
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
   responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
   turnCompleted: bridge.buildEmitter<IConversationTurnCompletedEvent>('conversation.turn.completed'),
@@ -617,7 +624,7 @@ export const remoteAgent = {
 export const database = {
   getConversationMessages: bridge.buildProvider<
     import('@/common/chat/chatLib').TMessage[],
-    { conversation_id: string; page?: number; pageSize?: number }
+    { conversation_id: string; page?: number; pageSize?: number; order?: 'ASC' | 'DESC' }
   >('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<
     import('@/common/config/storage').TChatConversation[],
@@ -814,10 +821,18 @@ export const cron = {
     'cron.list-jobs-by-conversation'
   ),
   getJob: bridge.buildProvider<ICronJob | null, { jobId: string }>('cron.get-job'),
+  listBindingsByConversation: bridge.buildProvider<ICronConversationBinding[], { conversationId: string }>(
+    'cron.list-bindings-by-conversation'
+  ),
+  listBindingsByJob: bridge.buildProvider<ICronConversationBinding[], { jobId: string }>('cron.list-bindings-by-job'),
   // CRUD
   addJob: bridge.buildProvider<ICronJob, ICreateCronJobParams>('cron.add-job'),
   updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
   removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
+  bindConversation: bridge.buildProvider<ICronConversationBinding, { jobId: string; conversationId: string }>(
+    'cron.bind-conversation'
+  ),
+  unbindConversation: bridge.buildProvider<void, { jobId: string; conversationId: string }>('cron.unbind-conversation'),
   runNow: bridge.buildProvider<{ conversationId: string }, { jobId: string }>('cron.run-now'),
   saveSkill: bridge.buildProvider<void, { jobId: string; content: string }>('cron.save-skill'),
   hasSkill: bridge.buildProvider<boolean, { jobId: string }>('cron.has-skill'),
@@ -835,6 +850,17 @@ export type ICronSchedule =
   | { kind: 'at'; atMs: number; description: string }
   | { kind: 'every'; everyMs: number; description: string }
   | { kind: 'cron'; expr: string; tz?: string; description: string };
+
+export interface ICronConversationBinding {
+  id: string;
+  jobId: string;
+  conversationId: string;
+  conversationTitle?: string;
+  conversationSource?: string;
+  isDefaultTarget: boolean;
+  createdAt: number;
+  updatedAt: number;
+}
 
 export interface ICronJob {
   id: string;

@@ -21,11 +21,11 @@ import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
 import DragOverlayContent from './DragOverlayContent';
 import SortableConversationRow from './SortableConversationRow';
-import { useBatchSelection } from './hooks/useBatchSelection';
 import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
+import { useBatchSelectionContext } from '@/renderer/components/layout/Sider/BatchSelectionContext';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
@@ -73,7 +73,13 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     allSelected,
     toggleSelectedConversation,
     handleToggleSelectAll,
-  } = useBatchSelection(batchMode, conversations);
+    registerRegularConversations,
+  } = useBatchSelectionContext();
+
+  // Register regular conversations for "select all" support
+  useEffect(() => {
+    registerRegularConversations(conversations);
+  }, [conversations, registerRegularConversations]);
 
   const {
     renameModalVisible,

@@ -17,6 +17,25 @@ const crypto = require('crypto');
 const prepareBundledBun = require('./prepareBundledBun');
 const prepareAionrs = require('./prepareAionrs');
 
+// Pick the package runner used to invoke electron-vite / electron-builder.
+// Prefer bunx (matches the project's local toolchain), fall back to `npx
+// --no-install` so contributors and CI without bun installed can still build
+// without needing a manual shim.
+function pickPackageRunner() {
+  for (const candidate of ['bunx', 'npx']) {
+    const probe = spawnSync(candidate, ['--version'], {
+      stdio: 'ignore',
+      shell: process.platform === 'win32',
+    });
+    if (probe.status === 0) {
+      return candidate === 'npx' ? 'npx --no-install' : 'bunx';
+    }
+  }
+  throw new Error('No package runner found in PATH (looked for bunx, npx). Install Node.js or Bun first.');
+}
+
+const PACKAGE_RUNNER = pickPackageRunner();
+
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
 // electron-builder --prepackaged with the .app path (not the parent directory).
@@ -223,7 +242,7 @@ function createDmgWithPrepackaged(appDir, targetArch) {
   if (!appName) throw new Error(`No .app found in ${appDir}`);
   const appPath = path.join(appDir, appName);
 
-  execSync(`bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
+  execSync(`${PACKAGE_RUNNER} electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
     stdio: 'inherit',
     shell: process.platform === 'win32',
   });
@@ -399,7 +418,7 @@ try {
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
-    execSync(`bunx electron-vite build`, {
+    execSync(`${PACKAGE_RUNNER} electron-vite build`, {
       stdio: 'inherit',
       shell: process.platform === 'win32',
       env: {
@@ -541,7 +560,7 @@ try {
     cleanupWindowsPackOutput();
   }
 
-  const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  const builderCommand = `${PACKAGE_RUNNER} electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
   try {
     buildWithDmgRetry(builderCommand, targetArch);
   } catch (error) {

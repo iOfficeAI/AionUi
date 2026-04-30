@@ -179,7 +179,7 @@ const initializeConversationListSyncStore = () => {
     refreshConversations();
   });
   ipcBridge.conversation.responseStream.on((message) => {
-    const conversationId = message.conversation_id;
+    const conversationId = message?.conversation_id;
     if (!conversationId) {
       return;
     }

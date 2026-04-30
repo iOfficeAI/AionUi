@@ -6,7 +6,7 @@
 
 import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { resolveLocaleKey } from '@/common/utils';
@@ -22,6 +22,16 @@ type ModePreference = {
   preferredMode?: string;
   yoloMode?: boolean;
 };
+
+function isUsableAionrsProvider(provider: IProvider): boolean {
+  if (provider.enabled === false) return false;
+  if (provider.platform?.toLowerCase().includes('gemini-with-google-auth')) return false;
+  return provider.model.some((model) => provider.modelEnabled?.[model] !== false);
+}
+
+function getFirstEnabledModel(provider: IProvider): string | undefined {
+  return provider.model.find((model) => provider.modelEnabled?.[model] !== false);
+}
 
 const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
   claude: 'bypassPermissions',
@@ -92,13 +102,15 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No model provider configured');
   }
 
-  // aionrs supports all platforms via OpenAI-compatible protocol
-  const provider = providers.find((p) => p.enabled !== false);
+  const provider = providers.find(isUsableAionrsProvider);
   if (!provider) {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
-  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const enabledModel = getFirstEnabledModel(provider);
+  if (!enabledModel) {
+    throw new Error('No enabled model for Aion CLI');
+  }
 
   return {
     id: provider.id,
@@ -236,7 +248,12 @@ export async function buildPresetAssistantParams(
   const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
-  const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
+  const model =
+    type === 'gemini'
+      ? await resolveGeminiModel()
+      : type === 'aionrs'
+        ? await getDefaultAionrsModel()
+        : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
     backend: agent.backend,

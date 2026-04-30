@@ -32,6 +32,9 @@ type TeamPageContentProps = {
   onRenameTeam: (newName: string) => Promise<boolean>;
 };
 
+const MIN_TEAM_SLOT_WIDTH = 280;
+const DEFAULT_TEAM_SLOT_WIDTH = 400;
+
 /** Compact aionrs model selector for the agent header */
 const AionrsHeaderModelSelector: React.FC<{ conversationId: string; initialModel?: TProviderWithModel }> = ({
   conversationId,
@@ -180,6 +183,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(false);
   const [fullscreenSlotId, setFullscreenSlotId] = useState<string | null>(null);
+  const [slotWidths, setSlotWidths] = useState<Record<string, number>>({});
 
   const activeAgent = agents.find((a) => a.slotId === activeSlotId);
   const leadAgent = agents.find((a) => a.role === 'leader');
@@ -272,6 +276,63 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
       observer.disconnect();
     };
   }, [updateScrollArrows]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container || agents.length === 0) return;
+    const nextDefaultWidth = Math.max(MIN_TEAM_SLOT_WIDTH, Math.floor(container.clientWidth / agents.length));
+    setSlotWidths((previous) => {
+      const next: Record<string, number> = {};
+      for (const agent of agents) {
+        next[agent.slotId] = previous[agent.slotId] ?? nextDefaultWidth;
+      }
+      return next;
+    });
+  }, [agents]);
+
+  const getSlotWidth = useCallback(
+    (slotId: string): number => slotWidths[slotId] ?? DEFAULT_TEAM_SLOT_WIDTH,
+    [slotWidths]
+  );
+
+  const startSlotResize = useCallback(
+    (event: React.MouseEvent, leftSlotId: string, rightSlotId: string) => {
+      event.preventDefault();
+      event.stopPropagation();
+
+      const startX = event.clientX;
+      const startLeftWidth = getSlotWidth(leftSlotId);
+      const startRightWidth = getSlotWidth(rightSlotId);
+      const previousCursor = document.body.style.cursor;
+      const previousUserSelect = document.body.style.userSelect;
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        const delta = moveEvent.clientX - startX;
+        const clampedDelta = Math.max(
+          MIN_TEAM_SLOT_WIDTH - startLeftWidth,
+          Math.min(startRightWidth - MIN_TEAM_SLOT_WIDTH, delta)
+        );
+        setSlotWidths((previous) => ({
+          ...previous,
+          [leftSlotId]: startLeftWidth + clampedDelta,
+          [rightSlotId]: startRightWidth - clampedDelta,
+        }));
+      };
+
+      const handleMouseUp = () => {
+        document.body.style.cursor = previousCursor;
+        document.body.style.userSelect = previousUserSelect;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+      };
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    },
+    [getSlotWidth]
+  );
 
   const handleTabClick = useCallback(
     (slotId: string) => {
@@ -414,9 +475,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                 className='flex h-full w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
                 style={{ scrollSnapType: 'x proximity' }}
               >
-                {agents.map((agent) => {
-                  const isSingle = agents.length <= 2;
+                {agents.map((agent, index) => {
+                  const nextAgent = agents[index + 1];
                   const isLeaderSlot = agent.slotId === leadAgent?.slotId;
+                  const slotWidth = getSlotWidth(agent.slotId);
                   return (
                     <div
                       key={agent.slotId}
@@ -425,13 +487,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                       }}
                       className='relative h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{
-                        // Always flex-grow to fill available space; each slot starts at 400px
-                        // basis so the layout is stable, but spare room is distributed evenly
-                        // instead of leaving empty gaps to the right. When the team is wider
-                        // than the viewport we preserve the 400px floor (prevents shrinking
-                        // into unreadable cards) so horizontal scroll kicks in naturally.
-                        flex: '1 1 400px',
-                        minWidth: isSingle ? '240px' : '400px',
+                        flex: `0 0 ${slotWidth}px`,
+                        minWidth: `${MIN_TEAM_SLOT_WIDTH}px`,
                         scrollSnapAlign: 'start',
                       }}
                     >
@@ -442,6 +499,15 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                         onToggleFullscreen={() => setFullscreenSlotId(agent.slotId)}
                         onRemove={() => handleRemoveAgent(agent.slotId)}
                       />
+                      {nextAgent && (
+                        <div
+                          className='absolute top-0 bottom-0 w-8px z-30 cursor-col-resize hover:bg-[color:var(--color-primary-4)] transition-colors'
+                          style={{ right: -4 }}
+                          role='separator'
+                          aria-orientation='vertical'
+                          onMouseDown={(event) => startSlotResize(event, agent.slotId, nextAgent.slotId)}
+                        />
+                      )}
                     </div>
                   );
                 })}

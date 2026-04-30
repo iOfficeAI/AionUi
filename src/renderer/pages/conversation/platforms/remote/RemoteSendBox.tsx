@@ -173,7 +173,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   useEffect(() => {
     return ipcBridge.conversation.responseStream.on((message) => {
-      if (conversation_id !== message.conversation_id) return;
+      if (!message || conversation_id !== message.conversation_id) return;
 
       switch (message.type) {
         case 'thought':

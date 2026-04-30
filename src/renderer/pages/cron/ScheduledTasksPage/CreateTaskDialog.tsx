@@ -40,7 +40,26 @@ interface CreateTaskDialogProps {
 }
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
+type CustomIntervalUnit = 'minutes' | 'hours' | 'days';
 type ExecutionMode = 'new_conversation' | 'existing';
+
+type ParsedCronExpr = {
+  frequency: FrequencyType;
+  time: string;
+  weekday: string;
+  customIntervalValue: string;
+  customIntervalUnit: CustomIntervalUnit;
+  customCronExpr: string;
+};
+
+const DEFAULT_CUSTOM_INTERVAL_VALUE = '10';
+const DEFAULT_CUSTOM_INTERVAL_UNIT: CustomIntervalUnit = 'minutes';
+
+const CUSTOM_INTERVAL_MAX_BY_UNIT: Record<CustomIntervalUnit, number> = {
+  minutes: 59,
+  hours: 23,
+  days: 31,
+};
 
 const WEEKDAYS = [
   { value: 'MON', label: 'monday' },
@@ -56,55 +75,94 @@ const WEEKDAYS = [
  * Infer frequency type and time/weekday from a cron expression for edit mode.
  * Returns 'custom' for expressions that don't match our preset formats.
  */
-function parseCronExpr(expr: string): { frequency: FrequencyType; time: string; weekday: string } {
-  if (!expr) return { frequency: 'manual', time: '09:00', weekday: 'MON' };
+function getDefaultParsedCronExpr(frequency: FrequencyType = 'manual'): ParsedCronExpr {
+  return {
+    frequency,
+    time: '09:00',
+    weekday: 'MON',
+    customIntervalValue: DEFAULT_CUSTOM_INTERVAL_VALUE,
+    customIntervalUnit: DEFAULT_CUSTOM_INTERVAL_UNIT,
+    customCronExpr: '',
+  };
+}
+
+function parseStep(value: string): string | null {
+  const matched = value.match(/^\*\/(\d+)$/);
+  if (!matched) return null;
+  return matched[1];
+}
+
+function parseCronExpr(expr: string): ParsedCronExpr {
+  if (!expr) return getDefaultParsedCronExpr('manual');
 
   const parts = expr.trim().split(/\s+/);
-  if (parts.length < 5) return { frequency: 'daily', time: '09:00', weekday: 'MON' };
+  if (parts.length < 5) return getDefaultParsedCronExpr('daily');
 
   const [min, hour, day, month, dow] = parts;
 
-  // Hourly: 0 * * * *
   if (hour === '*' && min === '0' && day === '*' && month === '*' && dow === '*') {
-    return { frequency: 'hourly', time: '09:00', weekday: 'MON' };
+    return getDefaultParsedCronExpr('hourly');
   }
 
-  // Weekdays: min hour * * MON-FRI
+  if (day === '*' && month === '*' && dow === '*') {
+    const minuteStep = parseStep(min);
+    if (minuteStep && hour === '*') {
+      return {
+        ...getDefaultParsedCronExpr('custom'),
+        customIntervalValue: minuteStep,
+        customIntervalUnit: 'minutes',
+      };
+    }
+
+    const hourStep = parseStep(hour);
+    if (hourStep && min === '0') {
+      return {
+        ...getDefaultParsedCronExpr('custom'),
+        customIntervalValue: hourStep,
+        customIntervalUnit: 'hours',
+      };
+    }
+  }
+
+  if (min === '0' && hour === '9' && month === '*' && dow === '*') {
+    const dayStep = parseStep(day);
+    if (dayStep) {
+      return {
+        ...getDefaultParsedCronExpr('custom'),
+        customIntervalValue: dayStep,
+        customIntervalUnit: 'days',
+      };
+    }
+  }
+
   if (dow === 'MON-FRI' && day === '*' && month === '*') {
     const hh = String(hour).padStart(2, '0');
     const mm = String(min).padStart(2, '0');
-    const time = `${hh}:${mm}`;
-    return { frequency: 'weekdays', time, weekday: 'MON' };
+    return { ...getDefaultParsedCronExpr('weekdays'), time: `${hh}:${mm}` };
   }
 
-  // Weekly: min hour * * DAY
   if (dow !== '*' && day === '*' && month === '*') {
     const dayUpper = dow.toUpperCase();
     const matched = WEEKDAYS.find((d) => d.value === dayUpper);
     if (matched) {
       const hh = String(hour).padStart(2, '0');
       const mm = String(min).padStart(2, '0');
-      const time = `${hh}:${mm}`;
-      return { frequency: 'weekly', time, weekday: dayUpper };
+      return { ...getDefaultParsedCronExpr('weekly'), time: `${hh}:${mm}`, weekday: dayUpper };
     }
-    return { frequency: 'daily', time: '09:00', weekday: 'MON' };
+    return getDefaultParsedCronExpr('daily');
   }
 
-  // Daily: min hour * * * - only if all parts match the expected pattern
   if (day === '*' && month === '*' && dow === '*') {
-    // Check if hour and minute are simple numbers (not expressions like */4)
     const hourNum = Number(hour);
     const minNum = Number(min);
     if (!isNaN(hourNum) && !isNaN(minNum) && hourNum >= 0 && hourNum <= 23 && minNum >= 0 && minNum <= 59) {
       const hh = String(hourNum).padStart(2, '0');
       const mm = String(minNum).padStart(2, '0');
-      const time = `${hh}:${mm}`;
-      return { frequency: 'daily', time, weekday: 'MON' };
+      return { ...getDefaultParsedCronExpr('daily'), time: `${hh}:${mm}` };
     }
   }
 
-  // Custom: any expression that doesn't match our presets
-  return { frequency: 'custom', time: '09:00', weekday: 'MON' };
+  return { ...getDefaultParsedCronExpr('custom'), customCronExpr: expr };
 }
 
 function getDescriptionInitialValue(job: ICronJob): string {
@@ -131,7 +189,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   visible,
   onClose,
   editJob,
-  conversationId: _conversationId,
+  conversationId,
   conversationTitle,
   agentType,
 }) => {
@@ -143,6 +201,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
+  const [customIntervalValue, setCustomIntervalValue] = useState(DEFAULT_CUSTOM_INTERVAL_VALUE);
+  const [customIntervalUnit, setCustomIntervalUnit] = useState<CustomIntervalUnit>(DEFAULT_CUSTOM_INTERVAL_UNIT);
   const [customCronExpr, setCustomCronExpr] = useState<string>('');
 
   const isEditMode = !!editJob;
@@ -166,7 +226,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency(parsed.frequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
-      setCustomCronExpr(parsed.frequency === 'custom' ? cronExpr : '');
+      setCustomIntervalValue(parsed.customIntervalValue);
+      setCustomIntervalUnit(parsed.customIntervalUnit);
+      setCustomCronExpr(parsed.customCronExpr);
       setExecutionMode(editJob.target.executionMode || 'existing');
       setAdvancedOpen(
         Boolean(
@@ -193,15 +255,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
+      setCustomIntervalValue(DEFAULT_CUSTOM_INTERVAL_VALUE);
+      setCustomIntervalUnit(DEFAULT_CUSTOM_INTERVAL_UNIT);
       setCustomCronExpr('');
-      setExecutionMode('new_conversation');
+      setExecutionMode(conversationId ? 'existing' : 'new_conversation');
       setAdvancedOpen(false);
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
       setSelectedAgent(undefined);
     }
-  }, [visible, editJob, form]);
+  }, [visible, editJob, form, conversationId]);
 
   // Resolve backend from selectedAgent (handles both CLI and preset agents)
   const resolvedBackend = useMemo(() => {
@@ -311,10 +375,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';
+  const customIntervalMax = CUSTOM_INTERVAL_MAX_BY_UNIT[customIntervalUnit];
 
   // Build cron expression and description from frequency settings
   const scheduleInfo = useMemo(() => {
     const [hour, minute] = time.split(':').map(Number);
+    const customInterval = Number(customIntervalValue);
     switch (frequency) {
       case 'manual':
         return { expr: '', description: t('cron.page.scheduleDesc.manual') };
@@ -331,12 +397,44 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${dayLabel}`), time }),
         };
       }
-      case 'custom':
-        return { expr: customCronExpr, description: editJob?.schedule.description || customCronExpr };
+      case 'custom': {
+        if (customCronExpr) {
+          return { expr: customCronExpr, description: editJob?.schedule.description || customCronExpr };
+        }
+        if (!Number.isInteger(customInterval) || customInterval < 1 || customInterval > customIntervalMax) {
+          return { expr: '', description: '' };
+        }
+        if (customIntervalUnit === 'minutes') {
+          return {
+            expr: `*/${customInterval} * * * *`,
+            description: t('cron.page.scheduleDesc.everyMinutes', { value: customInterval }),
+          };
+        }
+        if (customIntervalUnit === 'hours') {
+          return {
+            expr: `0 */${customInterval} * * *`,
+            description: t('cron.page.scheduleDesc.everyHours', { value: customInterval }),
+          };
+        }
+        return {
+          expr: `0 9 */${customInterval} * *`,
+          description: t('cron.page.scheduleDesc.everyDays', { value: customInterval }),
+        };
+      }
       default:
         return { expr: '', description: '' };
     }
-  }, [frequency, time, weekday, t, customCronExpr, editJob]);
+  }, [
+    frequency,
+    time,
+    weekday,
+    t,
+    customCronExpr,
+    editJob,
+    customIntervalValue,
+    customIntervalMax,
+    customIntervalUnit,
+  ]);
 
   const executionModeOptions = useMemo(
     () => [
@@ -362,9 +460,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
-    if (value !== 'custom') {
-      setCustomCronExpr('');
-    }
+    setCustomCronExpr('');
+  };
+
+  const handleCustomIntervalValueChange = (value: string | React.ChangeEvent<HTMLInputElement>) => {
+    const nextValue = typeof value === 'string' ? value : value.target.value;
+    setCustomCronExpr('');
+    setCustomIntervalValue(nextValue);
+  };
+
+  const handleCustomIntervalUnitChange = (value: CustomIntervalUnit) => {
+    setCustomCronExpr('');
+    setCustomIntervalUnit(value);
   };
 
   const handleAgentChange = useCallback((value: string) => {
@@ -445,6 +552,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
+      if (frequency === 'custom' && !scheduleExpr) {
+        Message.error(t('cron.page.form.customIntervalInvalid'));
+        return;
+      }
 
       const { agentConfig, resolvedAgentType } = resolveAgentConfig(values.agent);
 
@@ -477,7 +588,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           description: values.description,
           schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
           prompt: values.prompt,
-          conversationId: '',
+          conversationId: executionMode === 'existing' ? (conversationId ?? '') : '',
           conversationTitle,
           agentType: resolvedAgentType,
           createdBy: 'user',
@@ -656,12 +767,31 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <Option value='daily'>{t('cron.page.freq.daily')}</Option>
               <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
               <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
-              {frequency === 'custom' && <Option value='custom'>{t('cron.page.freq.custom')}</Option>}
+              <Option value='custom'>{t('cron.page.freq.custom')}</Option>
             </Select>
-            {frequency === 'custom' && (
+            {frequency === 'custom' && customCronExpr && (
               <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
                 {t('cron.page.customCronWarning', { expr: customCronExpr })}
               </p>
+            )}
+            {frequency === 'custom' && (
+              <div className='mt-10px flex items-center gap-10px'>
+                <span className='text-13px text-t-secondary'>{t('cron.page.form.customIntervalPrefix')}</span>
+                <Input
+                  type='number'
+                  min={1}
+                  max={customIntervalMax}
+                  value={customIntervalValue}
+                  onChange={handleCustomIntervalValueChange}
+                  placeholder={t('cron.page.form.customIntervalPlaceholder')}
+                  className='w-96px'
+                />
+                <Select value={customIntervalUnit} onChange={handleCustomIntervalUnitChange} className='w-120px'>
+                  <Option value='minutes'>{t('cron.page.customIntervalUnit.minutes')}</Option>
+                  <Option value='hours'>{t('cron.page.customIntervalUnit.hours')}</Option>
+                  <Option value='days'>{t('cron.page.customIntervalUnit.days')}</Option>
+                </Select>
+              </div>
             )}
           </FormItem>
 

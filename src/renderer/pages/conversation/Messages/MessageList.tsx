@@ -8,7 +8,7 @@ import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMess
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
-import { Image } from '@arco-design/web-react';
+import { Button, Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
@@ -84,6 +84,20 @@ const highlightStyle: React.CSSProperties = {
   borderRadius: '12px',
 };
 
+const MESSAGE_RENDER_SLOW_THRESHOLD_MS = 500;
+const getNow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+const shouldLogMessageRender = (durationMs: number): boolean => {
+  if (durationMs >= MESSAGE_RENDER_SLOW_THRESHOLD_MS) {
+    return true;
+  }
+  try {
+    return globalThis.localStorage?.getItem('aionui:message-render-debug') === '1';
+  } catch {
+    return false;
+  }
+};
+
 const getUnhandledMessageType = (_message: never): string => 'unknown';
 
 // Image preview context
@@ -156,7 +170,14 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.highlighted === next.highlighted
 );
 
-const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
+const MessageList: React.FC<{
+  className?: string;
+  emptySlot?: React.ReactNode;
+  isLoading?: boolean;
+  isRefreshing?: boolean;
+  loadingError?: Error | null;
+  onRetryLoad?: () => void;
+}> = ({ emptySlot, isLoading = false, isRefreshing = false, loadingError, onRetryLoad }) => {
   const list = useMessageList();
   const conversationContext = useConversationContextSafe();
   useAutoPreviewOfficeFiles(conversationContext);
@@ -168,7 +189,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const handledTargetKeyRef = useRef<string>('');
 
   // Pre-process message list to group Codex turn_diff messages
-  const processedList = useMemo(() => {
+  const processedListStats = useMemo(() => {
+    const startedAt = getNow();
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
     let diffsSourceMessageIds: string[] = [];
@@ -244,9 +266,13 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       diffsSourceMessageIds = [];
       result.push(message);
     }
-    return result;
+    return {
+      items: result,
+      processMs: getNow() - startedAt,
+      rawCount: list.length,
+    };
   }, [list]);
-
+  const processedList = processedListStats.items;
   // Use auto-scroll hook
   const {
     virtuosoRef,
@@ -261,6 +287,32 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     messages: list,
     itemCount: processedList.length,
   });
+
+  useEffect(() => {
+    if (processedList.length === 0 || isLoading) return;
+    const renderStartedAt = getNow();
+    const frame = window.requestAnimationFrame(() => {
+      const renderReadyMs = getNow() - renderStartedAt;
+      const totalMs = processedListStats.processMs + renderReadyMs;
+      if (!shouldLogMessageRender(totalMs)) return;
+      console.info('[MessageRender] conversation messages rendered', {
+        conversationId: conversationContext?.conversationId,
+        rawMessages: processedListStats.rawCount,
+        renderedItems: processedList.length,
+        processMs: Math.round(processedListStats.processMs),
+        renderReadyMs: Math.round(renderReadyMs),
+        totalMs: Math.round(totalMs),
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [
+    conversationContext?.conversationId,
+    isLoading,
+    processedList.length,
+    processedListStats.processMs,
+    processedListStats.rawCount,
+  ]);
 
   useEffect(() => {
     if (!targetMessageId || processedList.length === 0 || !virtuosoRef.current) {
@@ -356,6 +408,56 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
   };
 
+  if (processedList.length === 0 && isLoading) {
+    return (
+      <div
+        className='relative flex-1 h-full flex items-center justify-center px-20px'
+        data-testid='message-list-loading'
+        role='status'
+        aria-live='polite'
+        aria-busy='true'
+      >
+        <div className='w-full max-w-680px flex flex-col gap-14px'>
+          {[0, 1, 2].map((item) => (
+            <div
+              key={item}
+              className='rounded-18px border border-solid border-[var(--color-border-2)] bg-1/84 p-14px shadow-[0_8px_28px_rgba(15,23,42,0.05)] backdrop-blur-md'
+            >
+              <div className='h-12px w-38% rounded-full bg-[var(--color-fill-3)] animate-pulse' />
+              <div className='mt-12px h-10px w-full rounded-full bg-[var(--color-fill-2)] animate-pulse' />
+              <div className='mt-8px h-10px w-72% rounded-full bg-[var(--color-fill-2)] animate-pulse' />
+            </div>
+          ))}
+          <div className='text-center text-12px text-t-secondary'>
+            {t('messages.loadingHistory', { defaultValue: 'Loading conversation history…' })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (processedList.length === 0 && loadingError) {
+    return (
+      <div
+        className='relative flex-1 h-full flex items-center justify-center px-20px'
+        data-testid='message-list-error'
+        role='alert'
+      >
+        <div className='max-w-420px rounded-18px border border-solid border-[var(--color-border-2)] bg-1/90 p-18px text-center shadow-[0_12px_36px_rgba(15,23,42,0.08)] backdrop-blur-md'>
+          <div className='text-14px font-medium text-t-primary'>
+            {t('messages.historyLoadFailed', { defaultValue: 'Could not load conversation history' })}
+          </div>
+          <div className='mt-6px text-12px text-t-secondary break-words'>{loadingError.message}</div>
+          {onRetryLoad && (
+            <Button className='mt-12px' size='small' type='primary' onClick={onRetryLoad}>
+              {t('common.retry', { defaultValue: 'Retry' })}
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   if (processedList.length === 0 && emptySlot) {
     return <div className='relative flex-1 h-full flex items-center justify-center'>{emptySlot}</div>;
   }
@@ -386,20 +488,31 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         </ImagePreviewContext.Provider>
       </Image.PreviewGroup>
 
+      {isRefreshing && (
+        <div
+          className='absolute top-12px left-50% z-20 -translate-x-50% rounded-full border border-solid border-[var(--color-border-2)] bg-1/86 px-12px py-5px text-12px text-t-secondary shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-md'
+          data-testid='message-list-refreshing'
+          role='status'
+          aria-live='polite'
+        >
+          {t('messages.refreshingHistory', { defaultValue: 'Refreshing history…' })}
+        </div>
+      )}
+
       {showScrollButton && (
         <>
-          {/* Gradient mask */}
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
-          {/* Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
-            <div
-              className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3'
+            <button
+              type='button'
+              className='appearance-none flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-aou-6-brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-1)]'
               onClick={handleScrollButtonClick}
-              title={t('messages.scrollToBottom')}
+              aria-label={t('messages.scrollToBottom', { defaultValue: 'Scroll to bottom' })}
+              title={t('messages.scrollToBottom', { defaultValue: 'Scroll to bottom' })}
               style={{ lineHeight: 0 }}
             >
               <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />
-            </div>
+            </button>
           </div>
         </>
       )}

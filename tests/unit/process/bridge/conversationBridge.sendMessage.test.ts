@@ -34,6 +34,8 @@ vi.mock('@/common', () => ({
       getSlashCommands: mockProvider('conversation.getSlashCommands'),
       askSideQuestion: mockProvider('conversation.askSideQuestion'),
       sendMessage: mockProvider('conversation.sendMessage'),
+      rollbackToMessage: mockProvider('conversation.rollbackToMessage'),
+      clearMessages: mockProvider('conversation.clearMessages'),
       confirmMessage: mockProvider('conversation.confirmMessage'),
       listChanged: { emit: vi.fn() },
       listByCronJob: mockProvider('conversation.listByCronJob'),

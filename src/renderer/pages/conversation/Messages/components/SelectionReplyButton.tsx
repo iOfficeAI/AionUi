@@ -82,7 +82,7 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
   const [pos, setPos] = useState<ReplyPos | null>(null);
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
-  const buttonRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     // Disable on mobile — conflicts with native text selection menu
@@ -151,10 +151,13 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
 
   if (!pos) return null;
 
+  const replyLabel = t('common.reply', { defaultValue: 'Reply' });
+
   return (
-    <div
+    <button
       ref={buttonRef}
-      className='fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none'
+      type='button'
+      className='appearance-none fixed z-9999 flex items-center gap-4px px-10px py-6px rd-8px cursor-pointer transition-colors select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-bg-1)]'
       style={{
         top: pos.top,
         left: pos.left,
@@ -164,6 +167,8 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
         color: 'var(--brand)',
       }}
+      aria-label={replyLabel}
+      title={replyLabel}
       onMouseDown={(e) => {
         e.preventDefault();
         emitter.emit('sendbox.reply', {
@@ -176,8 +181,8 @@ const SelectionReplyButton: React.FC<{ messages: TMessage[] }> = ({ messages }) 
       }}
     >
       <Quote theme='outline' size='14' fill='currentColor' />
-      <span className='text-12px font-medium whitespace-nowrap'>{t('common.reply', { defaultValue: 'Reply' })}</span>
-    </div>
+      <span className='text-12px font-medium whitespace-nowrap'>{replyLabel}</span>
+    </button>
   );
 };
 

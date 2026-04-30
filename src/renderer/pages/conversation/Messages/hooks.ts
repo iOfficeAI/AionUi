@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { composeMessage } from '@/common/chat/chatLib';
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
@@ -15,6 +15,104 @@ const [useMessageList, MessageListProvider, useUpdateMessageList] = createContex
 const [useChatKey, ChatKeyProvider] = createContext('');
 
 const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
+
+const MESSAGE_HISTORY_CACHE_LIMIT = 12;
+const MESSAGE_HISTORY_INITIAL_DISPLAY_LIMIT = 300;
+const MESSAGE_HISTORY_INITIAL_QUERY_SIZE = MESSAGE_HISTORY_INITIAL_DISPLAY_LIMIT + 1;
+const MESSAGE_HISTORY_FULL_PAGE_SIZE = 10000;
+const MESSAGE_LOAD_SLOW_THRESHOLD_MS = 500;
+const messageHistoryCache = new Map<string, TMessage[]>();
+
+export type MessageListCacheState = {
+  isLoading: boolean;
+  isRefreshing: boolean;
+  error: Error | null;
+  hasCachedMessages: boolean;
+  reload: () => Promise<TMessage[]>;
+};
+
+const getNow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
+
+const shouldLogMessageLoad = (durationMs: number): boolean => {
+  if (durationMs >= MESSAGE_LOAD_SLOW_THRESHOLD_MS) {
+    return true;
+  }
+  try {
+    return globalThis.localStorage?.getItem('aionui:message-load-debug') === '1';
+  } catch {
+    return false;
+  }
+};
+
+const getPayloadBytes = (value: unknown): number | undefined => {
+  try {
+    return new TextEncoder().encode(JSON.stringify(value)).length;
+  } catch {
+    return undefined;
+  }
+};
+
+const normalizeLoadedMessages = (messages: unknown, order: 'ASC' | 'DESC' = 'ASC'): TMessage[] => {
+  if (!Array.isArray(messages)) return [];
+  return order === 'DESC' ? [...messages].reverse() : messages;
+};
+
+const rememberConversationMessages = (conversationId: string, messages: TMessage[]) => {
+  if (!conversationId) return;
+  messageHistoryCache.delete(conversationId);
+  messageHistoryCache.set(conversationId, messages);
+  while (messageHistoryCache.size > MESSAGE_HISTORY_CACHE_LIMIT) {
+    const oldestKey = messageHistoryCache.keys().next().value;
+    if (!oldestKey) break;
+    messageHistoryCache.delete(oldestKey);
+  }
+};
+
+const rememberConversationMessagesFromList = (conversationId: string, messages: TMessage[]) => {
+  const conversationMessages = messages.filter((message) => message.conversation_id === conversationId);
+  rememberConversationMessages(conversationId, conversationMessages);
+};
+
+const mergeLoadedMessages = (
+  conversationId: string,
+  currentList: TMessage[],
+  messages: TMessage[],
+  staleMessageIds = new Set<string>()
+): TMessage[] => {
+  if (!currentList.length) return messages;
+  const sameConversation = currentList.filter(
+    (m) => m.conversation_id === conversationId && !staleMessageIds.has(m.id)
+  );
+  if (!sameConversation.length) return messages;
+  const dbIds = new Set(messages.map((m) => m.id));
+  const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+
+  const streamingByMsgId = new Map<string, TMessage>();
+  for (const m of sameConversation) {
+    if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
+      streamingByMsgId.set(m.msg_id, m);
+    }
+  }
+
+  const mergedMessages = messages.map((dbMsg) => {
+    if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
+    const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
+    if (!streamMsg) return dbMsg;
+    const dbContent =
+      typeof dbMsg.content === 'object' && 'content' in dbMsg.content
+        ? String((dbMsg.content as { content: unknown }).content)
+        : '';
+    const streamContent =
+      typeof streamMsg.content === 'object' && 'content' in streamMsg.content
+        ? String((streamMsg.content as { content: unknown }).content)
+        : '';
+    return streamContent.length > dbContent.length ? streamMsg : dbMsg;
+  });
+
+  const streamingOnly = sameConversation.filter((m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id)));
+  if (!streamingOnly.length && !streamingByMsgId.size) return messages;
+  return [...mergedMessages, ...streamingOnly];
+};
 
 // 消息索引缓存类型定义
 // Message index cache type definitions
@@ -299,8 +397,12 @@ export const useAddOrUpdateMessage = () => {
       // Get or build index for fast lookup
       const index = getOrBuildIndex(list);
       let newList = list;
+      const affectedConversationIds = new Set<string>();
 
       for (const item of pending) {
+        if (item.message.conversation_id) {
+          affectedConversationIds.add(item.message.conversation_id);
+        }
         if (item.add) {
           // 新增消息，更新索引
           // New message, update index
@@ -327,6 +429,9 @@ export const useAddOrUpdateMessage = () => {
           newList = beforeUpdateMessageListStack.shift()!(newList);
         }
       }
+      for (const conversationId of affectedConversationIds) {
+        rememberConversationMessagesFromList(conversationId, newList);
+      }
       return newList;
     });
 
@@ -342,7 +447,8 @@ export const useAddOrUpdateMessage = () => {
   }, []);
 
   return useCallback(
-    (message: TMessage, add = false) => {
+    (message: TMessage | undefined, add = false) => {
+      if (!message) return;
       pendingRef.current.push({ message, add });
       if (rafRef.current === null) {
         rafRef.current = setTimeout(flush);
@@ -357,78 +463,235 @@ export const useRemoveMessageByMsgId = () => {
 
   return useCallback(
     (msgId: string) => {
-      update((list) => list.filter((message) => message.msg_id !== msgId));
+      update((list) => {
+        const removedConversationIds = new Set(
+          list
+            .filter((message) => message.msg_id === msgId)
+            .map((message) => message.conversation_id)
+            .filter(Boolean)
+        );
+        const nextList = list.filter((message) => message.msg_id !== msgId);
+        for (const conversationId of removedConversationIds) {
+          rememberConversationMessagesFromList(conversationId, nextList);
+        }
+        return nextList;
+      });
     },
     [update]
   );
 };
 
-export const useMessageLstCache = (key: string) => {
+export const useReplaceMessageList = () => {
   const update = useUpdateMessageList();
-  useEffect(() => {
-    if (!key) return;
-    void ipcBridge.database.getConversationMessages
-      .invoke({
-        conversation_id: key,
-        page: 0,
-        pageSize: 10000, // Load all messages (up to 10k per conversation)
-      })
-      .then((messages) => {
-        if (messages && Array.isArray(messages)) {
-          // Merge DB messages with any real-time streaming messages already in the list.
-          // This prevents a race condition where streaming messages (added via IPC before
-          // the DB load completes) could cause DB-only messages (e.g. cron user messages
-          // whose IPC event was emitted before the component mounted) to be lost.
-          // Use both msg_id and id for deduplication since DB messages and streaming
-          // messages share the same msg_id but may have different id values
-          // (streaming messages get new UUIDs from transformMessage).
-          update((currentList) => {
-            if (!currentList.length) return messages;
-            // Only keep streaming messages that belong to the current conversation
-            // to prevent messages from a previous conversation leaking into the new one
-            const sameConversation = currentList.filter((m) => m.conversation_id === key);
-            if (!sameConversation.length) return messages;
-            const dbIds = new Set(messages.map((m) => m.id));
-            const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
 
-            // Build a map of streaming messages by msg_id for content-length comparison.
-            // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
-            // so we keep whichever version has more content to avoid losing streamed data.
-            const streamingByMsgId = new Map<string, TMessage>();
-            for (const m of sameConversation) {
-              if (m.msg_id && m.type === 'text' && dbMsgIds.has(m.msg_id)) {
-                streamingByMsgId.set(m.msg_id, m);
-              }
-            }
+  return useCallback(
+    (messages: TMessage[]) => {
+      update(() => messages);
+    },
+    [update]
+  );
+};
 
-            // Replace DB messages with streaming versions when streaming has more content
-            const mergedMessages = messages.map((dbMsg) => {
-              if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
-              const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
-              if (!streamMsg) return dbMsg;
-              const dbContent =
-                typeof dbMsg.content === 'object' && 'content' in dbMsg.content
-                  ? String((dbMsg.content as { content: unknown }).content)
-                  : '';
-              const streamContent =
-                typeof streamMsg.content === 'object' && 'content' in streamMsg.content
-                  ? String((streamMsg.content as { content: unknown }).content)
-                  : '';
-              return streamContent.length > dbContent.length ? streamMsg : dbMsg;
-            });
+export const useReloadMessageListFromDatabase = (conversationId?: string) => {
+  const replace = useReplaceMessageList();
 
-            const streamingOnly = sameConversation.filter(
-              (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
-            );
-            if (!streamingOnly.length && !streamingByMsgId.size) return messages;
-            return [...mergedMessages, ...streamingOnly];
-          });
-        }
-      })
-      .catch((error) => {
-        console.error('[useMessageLstCache] Failed to load messages from database:', error);
+  return useCallback(async () => {
+    if (!conversationId) {
+      replace([]);
+      return [] as TMessage[];
+    }
+
+    const messages = await ipcBridge.database.getConversationMessages.invoke({
+      conversation_id: conversationId,
+      page: 0,
+      pageSize: MESSAGE_HISTORY_FULL_PAGE_SIZE,
+    });
+    const nextMessages = Array.isArray(messages) ? messages : [];
+    rememberConversationMessages(conversationId, nextMessages);
+    replace(nextMessages);
+    return nextMessages;
+  }, [conversationId, replace]);
+};
+
+export const useMessageLstCache = (key: string): MessageListCacheState => {
+  const update = useUpdateMessageList();
+  const messages = useMessageList();
+  const loadIdRef = useRef(0);
+  const [state, setState] = useState<Omit<MessageListCacheState, 'reload'>>({
+    isLoading: Boolean(key),
+    isRefreshing: false,
+    error: null,
+    hasCachedMessages: false,
+  });
+  const latestStateRef = useRef(state);
+  const latestMessagesRef = useRef(messages);
+  latestStateRef.current = state;
+  latestMessagesRef.current = messages;
+
+  const loadMessages = useCallback(async () => {
+    if (!key) {
+      update(() => []);
+      setState({ isLoading: false, isRefreshing: false, error: null, hasCachedMessages: false });
+      return [] as TMessage[];
+    }
+
+    const loadId = ++loadIdRef.current;
+    const startedAt = getNow();
+    const cachedMessages = messageHistoryCache.get(key);
+    const cachedMessageIds = new Set(cachedMessages?.map((message) => message.id));
+    const hasCachedMessages = Boolean(cachedMessages?.length);
+
+    if (cachedMessages) {
+      update(() => cachedMessages);
+    } else {
+      update((currentList) => currentList.filter((message) => message.conversation_id === key));
+    }
+
+    setState({
+      isLoading: !hasCachedMessages,
+      isRefreshing: hasCachedMessages,
+      error: null,
+      hasCachedMessages,
+    });
+
+    try {
+      const loadFromDatabase = async (pageSize: number, order: 'ASC' | 'DESC' = 'ASC') => {
+        const dbRequestStartedAt = getNow();
+        const messages = await ipcBridge.database.getConversationMessages.invoke({
+          conversation_id: key,
+          page: 0,
+          pageSize,
+          order,
+        });
+        return {
+          messages: normalizeLoadedMessages(messages, order),
+          dbMs: getNow() - dbRequestStartedAt,
+        };
+      };
+
+      const firstPageSize = hasCachedMessages ? MESSAGE_HISTORY_FULL_PAGE_SIZE : MESSAGE_HISTORY_INITIAL_QUERY_SIZE;
+      const firstOrder = hasCachedMessages ? 'ASC' : 'DESC';
+      const firstLoad = await loadFromDatabase(firstPageSize, firstOrder);
+      const needsFullRefresh = !hasCachedMessages && firstLoad.messages.length > MESSAGE_HISTORY_INITIAL_DISPLAY_LIMIT;
+      const nextMessages = needsFullRefresh
+        ? firstLoad.messages.slice(firstLoad.messages.length - MESSAGE_HISTORY_INITIAL_DISPLAY_LIMIT)
+        : firstLoad.messages;
+
+      if (loadId !== loadIdRef.current) {
+        return nextMessages;
+      }
+
+      update((currentList) => {
+        const mergedMessages = mergeLoadedMessages(key, currentList, nextMessages, cachedMessageIds);
+        rememberConversationMessages(key, mergedMessages);
+        return mergedMessages;
       });
-  }, [key]);
+      setState({
+        isLoading: false,
+        isRefreshing: needsFullRefresh,
+        error: null,
+        hasCachedMessages: nextMessages.length > 0 || hasCachedMessages,
+      });
+
+      const firstTotalMs = getNow() - startedAt;
+      if (shouldLogMessageLoad(firstTotalMs)) {
+        console.info('[MessageLoad] conversation history loaded', {
+          conversationId: key,
+          cached: hasCachedMessages,
+          partial: needsFullRefresh,
+          messages: nextMessages.length,
+          payloadBytes: getPayloadBytes(nextMessages),
+          dbMs: Math.round(firstLoad.dbMs),
+          totalMs: Math.round(firstTotalMs),
+        });
+      }
+
+      if (!needsFullRefresh) {
+        return nextMessages;
+      }
+
+      const fullLoad = await loadFromDatabase(MESSAGE_HISTORY_FULL_PAGE_SIZE);
+      const fullMessages = fullLoad.messages;
+
+      if (loadId !== loadIdRef.current) {
+        return fullMessages;
+      }
+
+      update((currentList) => {
+        const mergedMessages = mergeLoadedMessages(key, currentList, fullMessages, cachedMessageIds);
+        rememberConversationMessages(key, mergedMessages);
+        return mergedMessages;
+      });
+
+      setState({
+        isLoading: false,
+        isRefreshing: false,
+        error: null,
+        hasCachedMessages: fullMessages.length > 0,
+      });
+
+      const totalMs = getNow() - startedAt;
+      if (shouldLogMessageLoad(totalMs)) {
+        console.info('[MessageLoad] conversation history loaded', {
+          conversationId: key,
+          cached: false,
+          partial: false,
+          messages: fullMessages.length,
+          payloadBytes: getPayloadBytes(fullMessages),
+          dbMs: Math.round(fullLoad.dbMs),
+          totalMs: Math.round(totalMs),
+        });
+      }
+
+      return fullMessages;
+    } catch (error) {
+      if (loadId !== loadIdRef.current) {
+        return [] as TMessage[];
+      }
+      const normalizedError = error instanceof Error ? error : new Error(String(error));
+      setState({
+        isLoading: false,
+        isRefreshing: false,
+        error: normalizedError,
+        hasCachedMessages,
+      });
+      console.error('[useMessageLstCache] Failed to load messages from database:', error);
+      throw normalizedError;
+    }
+  }, [key, update]);
+
+  useLayoutEffect(() => {
+    void loadMessages().catch(() => {});
+  }, [loadMessages]);
+
+  useEffect(() => {
+    if (!key || typeof window === 'undefined') return;
+
+    const reloadIfNeeded = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+
+      const currentState = latestStateRef.current;
+      if (currentState.isLoading || currentState.isRefreshing) return;
+
+      const hasCurrentMessages = latestMessagesRef.current.some((message) => message.conversation_id === key);
+      if (!currentState.error && hasCurrentMessages) return;
+
+      void loadMessages().catch(() => {});
+    };
+
+    window.addEventListener('focus', reloadIfNeeded);
+    document.addEventListener('visibilitychange', reloadIfNeeded);
+
+    return () => {
+      window.removeEventListener('focus', reloadIfNeeded);
+      document.removeEventListener('visibilitychange', reloadIfNeeded);
+    };
+  }, [key, loadMessages]);
+
+  return {
+    ...state,
+    reload: loadMessages,
+  };
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {
