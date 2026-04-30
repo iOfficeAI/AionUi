@@ -208,7 +208,6 @@ const AionrsSendBox: React.FC<{
         } else {
           await ipcBridge.conversation.sendMessage.invoke({
             input: displayMessage,
-            msg_id,
             conversation_id,
             files,
           });

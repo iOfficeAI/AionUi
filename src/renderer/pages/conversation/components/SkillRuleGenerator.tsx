@@ -96,7 +96,6 @@ Please acknowledge receiving this rule/skill and confirm you will apply it.
 
       await ipcBridge.conversation.sendMessage.invoke({
         input: prompt,
-        msg_id: uuid(),
         conversation_id: conversation_id,
       });
 
@@ -253,7 +252,6 @@ Requirements:
       // 3. Send prompt to the agent
       await ipcBridge.conversation.sendMessage.invoke({
         input: prompt,
-        msg_id: msg_id,
         conversation_id: conversation_id,
       });
 
