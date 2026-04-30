@@ -141,7 +141,7 @@ export class TeamSessionService {
 
     const provider = providers[0];
     if (!provider) {
-      throw new Error('No enabled model provider for Aion CLI');
+      throw new Error('No enabled model provider for AICore CLI');
     }
 
     const enabledModel = provider.model?.find((m: string) => provider.modelEnabled?.[m] !== false);

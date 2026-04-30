@@ -119,7 +119,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.init();
 
     // Start the agent bootstrap — store promise so sendMessage can await it
-    this.agentReady = this.start().catch(() => {});
+    this.agentReady = this.start();
+    // Prevent unhandled rejection while still allowing sendMessage() to surface
+    // the startup error to the conversation stream.
+    this.agentReady.catch((error) => {
+      mainLog('[AionrsManager]', 'agent bootstrap failed:', error instanceof Error ? error.message : String(error));
+    });
   }
 
   /**
@@ -239,12 +244,43 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     this.status = 'pending';
     this._lastActivityAt = Date.now();
     // Wait for agent bootstrap to complete before sending
-    await this.agentReady;
+    try {
+      await this.agentReady;
+    } catch (error) {
+      cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      this.emit('aionrs.message', {
+        type: 'error',
+        data: errorMessage,
+        msg_id: data.msg_id,
+      });
+      this.emit('aionrs.message', {
+        type: 'finish',
+        data: null,
+        msg_id: data.msg_id,
+      });
+      throw error;
+    }
     this._messageSentAt = Date.now();
     mainLog('[AionrsManager]', `message sent: msg_id=${data.msg_id}`);
-    if (this.agent) {
-      await this.agent.send(data.content, data.msg_id, data.files);
+    if (!this.agent) {
+      const error = new Error('AICore CLI agent failed to initialize');
+      cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
+      this.emit('aionrs.message', {
+        type: 'error',
+        data: error.message,
+        msg_id: data.msg_id,
+      });
+      this.emit('aionrs.message', {
+        type: 'finish',
+        data: null,
+        msg_id: data.msg_id,
+      });
+      throw error;
     }
+    await this.agent.send(data.content, data.msg_id, data.files);
   }
 
   /**

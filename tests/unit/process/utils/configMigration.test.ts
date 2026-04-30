@@ -20,9 +20,11 @@ describe('getElectronConfigCandidatePaths', () => {
     const { getElectronConfigCandidatePaths } = await import('../../../../src/process/utils/configMigration');
     const home = os.homedir();
     const paths = getElectronConfigCandidatePaths();
+    expect(paths).toContain(path.join(home, '.aicoredesktop-config', 'aionui-config.txt'));
+    expect(paths).toContain(path.join(home, '.aicoredesktop-config-dev', 'aionui-config.txt'));
     expect(paths).toContain(path.join(home, '.aionui-config', 'aionui-config.txt'));
     expect(paths).toContain(path.join(home, '.aionui-config-dev', 'aionui-config.txt'));
-    expect(paths).toHaveLength(2);
+    expect(paths).toHaveLength(4);
   });
 
   it('returns both app-name candidates on Windows', async () => {
@@ -31,9 +33,11 @@ describe('getElectronConfigCandidatePaths', () => {
     process.env.APPDATA = appData;
     const { getElectronConfigCandidatePaths } = await import('../../../../src/process/utils/configMigration');
     const paths = getElectronConfigCandidatePaths();
+    expect(paths).toContain(path.join(appData, 'AICoreDesktop', 'config', 'aionui-config.txt'));
+    expect(paths).toContain(path.join(appData, 'AICoreDesktop-Dev', 'config', 'aionui-config.txt'));
     expect(paths).toContain(path.join(appData, 'AionUi', 'config', 'aionui-config.txt'));
     expect(paths).toContain(path.join(appData, 'AionUi-Dev', 'config', 'aionui-config.txt'));
-    expect(paths).toHaveLength(2);
+    expect(paths).toHaveLength(4);
   });
 
   it('returns both app-name candidates on Linux', async () => {
@@ -41,9 +45,11 @@ describe('getElectronConfigCandidatePaths', () => {
     const { getElectronConfigCandidatePaths } = await import('../../../../src/process/utils/configMigration');
     const home = os.homedir();
     const paths = getElectronConfigCandidatePaths();
+    expect(paths).toContain(path.join(home, '.config', 'AICoreDesktop', 'config', 'aionui-config.txt'));
+    expect(paths).toContain(path.join(home, '.config', 'AICoreDesktop-Dev', 'config', 'aionui-config.txt'));
     expect(paths).toContain(path.join(home, '.config', 'AionUi', 'config', 'aionui-config.txt'));
     expect(paths).toContain(path.join(home, '.config', 'AionUi-Dev', 'config', 'aionui-config.txt'));
-    expect(paths).toHaveLength(2);
+    expect(paths).toHaveLength(4);
   });
 });
 
@@ -79,7 +85,7 @@ describe('migrateFromElectronConfig', () => {
       }),
     };
     // Explicitly mock existsSync to return false — do not rely on real filesystem
-    // (CI machines might have ~/.aionui-config from a previous run)
+    // (CI machines might have ~/.aicoredesktop-config from a previous run)
     vi.doMock('fs', () => ({
       existsSync: vi.fn().mockReturnValue(false),
       readFileSync: vi.fn().mockReturnValue(''),

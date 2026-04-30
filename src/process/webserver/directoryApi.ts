@@ -388,7 +388,7 @@ router.get('/shortcuts', fileOperationLimiter, (_req, res) => {
   try {
     const shortcuts = [
       {
-        name: 'AionUi Directory',
+        name: 'AICore Directory',
         path: process.cwd(),
         icon: '🤖',
       },

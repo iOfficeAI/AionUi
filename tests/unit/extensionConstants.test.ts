@@ -15,7 +15,7 @@ vi.mock('@/common/platform', () => ({
 }));
 
 vi.mock('@process/utils', () => ({
-  getDataPath: () => '/home/user/.aionui-dev',
+  getDataPath: () => '/home/user/.aicoredesktop-dev',
 }));
 
 // Must import after mocks
@@ -92,7 +92,7 @@ describe('extension constants', () => {
 
   describe('getUserExtensionsDir', () => {
     it('should return data path + extensions', () => {
-      expect(getUserExtensionsDir()).toBe(path.join('/home/user/.aionui-dev', 'extensions'));
+      expect(getUserExtensionsDir()).toBe(path.join('/home/user/.aicoredesktop-dev', 'extensions'));
     });
   });
 
@@ -133,7 +133,8 @@ describe('extension constants', () => {
   });
 
   describe('getHubResourcesDir', () => {
-    const originalResourcesPath = process.resourcesPath;
+    type ProcessWithResourcesPath = NodeJS.Process & { resourcesPath?: string };
+    const originalResourcesPath = (process as ProcessWithResourcesPath).resourcesPath;
 
     afterEach(() => {
       mocks.isPackaged.mockReturnValue(false);
@@ -152,12 +153,12 @@ describe('extension constants', () => {
     it('should return process resources path in packaged mode', () => {
       mocks.isPackaged.mockReturnValue(true);
       Object.defineProperty(process, 'resourcesPath', {
-        value: '/opt/AionUi/resources',
+        value: '/opt/AICoreDesktop/resources',
         configurable: true,
         writable: true,
       });
 
-      expect(getHubResourcesDir()).toBe(path.join('/opt/AionUi/resources', 'hub'));
+      expect(getHubResourcesDir()).toBe(path.join('/opt/AICoreDesktop/resources', 'hub'));
     });
   });
 

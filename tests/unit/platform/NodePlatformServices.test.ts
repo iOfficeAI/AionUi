@@ -16,9 +16,9 @@ describe('NodePlatformServices.paths', () => {
     expect(new NodePlatformServices().paths.getDataDir()).toBe('/custom/data');
   });
 
-  it('getDataDir falls back to homedir/.aionui-server', async () => {
+  it('getDataDir falls back to homedir/.aicoredesktop-server', async () => {
     const { NodePlatformServices } = await import('../../../src/common/platform/NodePlatformServices');
-    expect(new NodePlatformServices().paths.getDataDir()).toBe(path.join(os.homedir(), '.aionui-server'));
+    expect(new NodePlatformServices().paths.getDataDir()).toBe(path.join(os.homedir(), '.aicoredesktop-server'));
   });
 
   it('getLogsDir uses LOGS_DIR env var when set', async () => {
@@ -27,9 +27,9 @@ describe('NodePlatformServices.paths', () => {
     expect(new NodePlatformServices().paths.getLogsDir()).toBe('/custom/logs');
   });
 
-  it('getLogsDir falls back to homedir/.aionui-server/logs', async () => {
+  it('getLogsDir falls back to homedir/.aicoredesktop-server/logs', async () => {
     const { NodePlatformServices } = await import('../../../src/common/platform/NodePlatformServices');
-    expect(new NodePlatformServices().paths.getLogsDir()).toBe(path.join(os.homedir(), '.aionui-server', 'logs'));
+    expect(new NodePlatformServices().paths.getLogsDir()).toBe(path.join(os.homedir(), '.aicoredesktop-server', 'logs'));
   });
 
   it('getAppPath returns process.cwd()', async () => {

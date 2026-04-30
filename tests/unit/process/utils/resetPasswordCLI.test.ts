@@ -56,7 +56,7 @@ describe('resetPasswordCLI helpers', () => {
     const closeDatabase = vi.fn();
 
     vi.doMock('@process/utils', () => ({
-      getDataPath: vi.fn(() => 'C:/mock/.aionui/aionui'),
+      getDataPath: vi.fn(() => 'C:/mock/.aicoredesktop/aicoredesktop'),
     }));
     vi.doMock('@process/services/database/export', () => ({
       getDatabase: vi.fn(() => Promise.resolve(mockDb)),

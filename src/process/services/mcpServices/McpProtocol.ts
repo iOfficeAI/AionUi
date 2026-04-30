@@ -266,7 +266,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           return {
             success: false,
             error:
-              'Bundled bun runtime is unavailable. Please reinstall AionUi or use a direct stdio command instead of npx.',
+              'Bundled bun runtime is unavailable. Please reinstall AICore or use a direct stdio command instead of npx.',
           };
         }
         return {
@@ -280,7 +280,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       if (errorCode === 'EACCES' || errorMessage.includes('EACCES') || errorMessage.includes('permission denied')) {
         return {
           success: false,
-          error: `Permission denied when running "${transport.command}". Please check file permissions or reinstall AionUi.`,
+          error: `Permission denied when running "${transport.command}". Please check file permissions or reinstall AICore.`,
         };
       }
 

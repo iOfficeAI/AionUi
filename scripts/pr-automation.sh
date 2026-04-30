@@ -5,7 +5,7 @@
 # Environment variables:
 #   SLEEP_SECONDS      Seconds to sleep between Claude runs (default: 30)
 #   MAX_CLAUDE_SECS    Maximum seconds a Claude run may take (default: 3600)
-#   LOG_DIR            Directory for log files (default: ~/Library/Logs/AionUi)
+#   LOG_DIR            Directory for log files (default: ~/Library/Logs/AICoreDesktop)
 #   LOG_FILE           Full log file path (overrides LOG_DIR if set)
 #   PR_DAYS_LOOKBACK   Only process PRs created within the last N days (default: 7)
 #   CRITICAL_PATH_PATTERN  Regex for files that trigger human review (default: see pr-automation.conf)
@@ -42,7 +42,7 @@ export CRITICAL_PATH_PATTERN=${CRITICAL_PATH_PATTERN:-""}
 export LARGE_PR_FILE_THRESHOLD=${LARGE_PR_FILE_THRESHOLD:-50}
 export PR_DAYS_LOOKBACK=${PR_DAYS_LOOKBACK:-7}
 CLAUDE_MODEL=${CLAUDE_MODEL:-sonnet}
-LOG_DIR=${LOG_DIR:-$HOME/Library/Logs/AionUi}
+LOG_DIR=${LOG_DIR:-$HOME/Library/Logs/AICoreDesktop}
 LOG_FILE=${LOG_FILE:-$LOG_DIR/pr-automation-$(date '+%Y-%m-%d').log}
 PID_FILE="$LOG_DIR/pr-automation-daemon.pid"
 mkdir -p "$LOG_DIR"
@@ -73,7 +73,7 @@ cleanup_labels() {
   fi
   # Clean up stale worktrees from killed Claude sessions
   local stale_wts
-  stale_wts=$(find /tmp -maxdepth 1 -name 'aionui-pr-*' -type d 2>/dev/null || true)
+  stale_wts=$(find /tmp -maxdepth 1 -name 'aicoredesktop-pr-*' -type d 2>/dev/null || true)
   if [ -n "$stale_wts" ]; then
     log_warn "Cleaning up stale worktrees: $stale_wts"
     echo "$stale_wts" | while read -r wt; do

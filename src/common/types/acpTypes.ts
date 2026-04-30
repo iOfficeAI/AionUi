@@ -299,6 +299,9 @@ export interface AcpBackendConfig {
    * Builtin skills (in _builtin/ directory) are auto-injected by default; skills in this list will be excluded.
    */
   disabledBuiltinSkills?: string[];
+
+  /** Whether to show this assistant on the home page. Defaults to false. */
+  showOnHome?: boolean;
 }
 
 // 所有后端配置 - 包括暂时禁用的 / All backend configurations - including temporarily disabled ones

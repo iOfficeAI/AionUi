@@ -69,7 +69,7 @@
   width: 26px;
   height: 26px;
   display: block;
-  color: inherit;
+  object-fit: contain;
 }
 
 .app-titlebar--mobile .app-titlebar__brand-logo {

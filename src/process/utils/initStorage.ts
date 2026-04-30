@@ -76,7 +76,7 @@ const migrateLegacyData = async () => {
         try {
           return existsSync(newDir) && readdirSync(newDir).length === 0;
         } catch (error) {
-          console.warn('[AionUi] Warning: Could not read new directory during migration check:', error);
+          console.warn('[AICore] Warning: Could not read new directory during migration check:', error);
           return false; // 假设非空以避免迁移覆盖
         }
       })();
@@ -97,7 +97,7 @@ const migrateLegacyData = async () => {
           try {
             await fs.rm(oldDir, { recursive: true });
           } catch (cleanupError) {
-            console.warn('[AionUi] 原目录清理失败，请手动删除:', oldDir, cleanupError);
+            console.warn('[AICore] 原目录清理失败，请手动删除:', oldDir, cleanupError);
           }
         }
       }
@@ -105,7 +105,7 @@ const migrateLegacyData = async () => {
       return true;
     }
   } catch (error) {
-    console.error('[AionUi] 数据迁移失败:', error);
+    console.error('[AICore] 数据迁移失败:', error);
   }
 
   return false;
@@ -398,7 +398,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       }
     }
 
-    console.warn(`[AionUi] Could not find builtin ${dirPath} directory, tried:`, candidates);
+    console.warn(`[AICore] Could not find builtin ${dirPath} directory, tried:`, candidates);
     return candidates[0];
   };
 
@@ -439,7 +439,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         overwrite: true,
       });
     } catch (error) {
-      console.warn(`[AionUi] Failed to sync builtin skills directory:`, error);
+      console.warn(`[AICore] Failed to sync builtin skills directory:`, error);
     }
   }
 
@@ -480,7 +480,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
           // 检查源文件是否存在 / Check if source file exists
           if (!existsSync(sourceRulesPath)) {
-            console.warn(`[AionUi] Source rule file not found: ${sourceRulesPath}`);
+            console.warn(`[AICore] Source rule file not found: ${sourceRulesPath}`);
             continue;
           }
 
@@ -493,7 +493,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           await fs.writeFile(targetPath, content, 'utf-8');
         } catch (error) {
           // 忽略缺失的语言文件 / Ignore missing locale files
-          console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
+          console.warn(`[AICore] Failed to copy rule file ${ruleFile}:`, error);
         }
       }
     } else {
@@ -525,7 +525,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
           // 检查源文件是否存在 / Check if source file exists
           if (!existsSync(sourceSkillsPath)) {
-            console.warn(`[AionUi] Source skill file not found: ${sourceSkillsPath}`);
+            console.warn(`[AICore] Source skill file not found: ${sourceSkillsPath}`);
             continue;
           }
 
@@ -538,7 +538,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           await fs.writeFile(targetPath, content, 'utf-8');
         } catch (error) {
           // 忽略缺失的技能文件 / Ignore missing skill files
-          console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
+          console.warn(`[AICore] Failed to copy skill file ${skillFile}:`, error);
         }
       }
     } else {
@@ -604,6 +604,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       enabledSkills: defaultEnabledSkills,
       // 复制快捷提示词 / Copy quick prompts
       promptsI18n: preset.promptsI18n,
+      showOnHome: preset.showOnHome,
     });
   }
 
@@ -779,7 +780,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 
     if (changed) {
       await configFile.set('mcp.config', mcpServers);
-      console.log('[AionUi] Built-in MCP servers ensured');
+      console.log('[AICore] Built-in MCP servers ensured');
     }
 
     // Clear old switch flag after migration
@@ -788,7 +789,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       await configFile.set('tools.imageGenerationModel', rest as typeof oldConfig);
     }
   } catch (error) {
-    console.error('[AionUi] Failed to ensure built-in MCP servers:', error);
+    console.error('[AICore] Failed to ensure built-in MCP servers:', error);
   }
 };
 
@@ -825,10 +826,10 @@ const cleanupOrphanedHealthCheckConversations = async () => {
     });
 
     if (deletedCount > 0) {
-      console.log(`[AionUi] Cleaned up ${deletedCount} orphaned health-check conversation(s) on startup`);
+      console.log(`[AICore] Cleaned up ${deletedCount} orphaned health-check conversation(s) on startup`);
     }
   } catch (error) {
-    console.warn('[AionUi] Failed to cleanup orphaned health-check conversations:', error);
+    console.warn('[AICore] Failed to cleanup orphaned health-check conversations:', error);
   }
 };
 
@@ -881,7 +882,7 @@ const initStorage = async () => {
       await configFile.set('mcp.config', defaultServers);
     }
   } catch (error) {
-    console.error('[AionUi] Failed to initialize default MCP servers:', error);
+    console.error('[AICore] Failed to initialize default MCP servers:', error);
   }
   mark('4.1 MCP defaults');
 
@@ -989,6 +990,7 @@ const initStorage = async () => {
           existing.avatar !== builtin.avatar ||
           existing.isPreset !== builtin.isPreset ||
           existing.isBuiltin !== builtin.isBuiltin ||
+          existing.showOnHome !== builtin.showOnHome ||
           nameI18nMissing ||
           !!nameI18nChanged ||
           descriptionI18nMissing ||
@@ -1057,7 +1059,7 @@ const initStorage = async () => {
     }
     mark('5.2 assistant config + migrations');
   } catch (error) {
-    console.error('[AionUi] Failed to initialize builtin assistants:', error);
+    console.error('[AICore] Failed to initialize builtin assistants:', error);
   }
 
   // 6. 初始化数据库（better-sqlite3）
@@ -1171,7 +1173,7 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
         skillContents.push(`## Skill: ${skillName}\n${content}`);
       }
     } catch (error) {
-      console.warn(`[AionUi] Failed to load skill ${skillName}:`, error);
+      console.warn(`[AICore] Failed to load skill ${skillName}:`, error);
     }
   }
 

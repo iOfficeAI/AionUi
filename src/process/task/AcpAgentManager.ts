@@ -824,7 +824,7 @@ ${collectedResponses.join('\n')}`;
         type: 'error',
         conversation_id: this.conversation_id,
         msg_id: v.msg_id,
-        data: 'Permission required. Please open AionUi and confirm the pending request in the conversation panel.',
+        data: 'Permission required. Please open AICore and confirm the pending request in the conversation panel.',
       });
       return;
     }

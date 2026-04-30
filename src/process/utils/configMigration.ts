@@ -30,6 +30,8 @@ export function getElectronConfigCandidatePaths(): string[] {
   const home = os.homedir();
   if (process.platform === 'darwin') {
     return [
+      path.join(home, '.aicoredesktop-config', 'aionui-config.txt'),
+      path.join(home, '.aicoredesktop-config-dev', 'aionui-config.txt'),
       path.join(home, '.aionui-config', 'aionui-config.txt'),
       path.join(home, '.aionui-config-dev', 'aionui-config.txt'),
     ];
@@ -37,12 +39,16 @@ export function getElectronConfigCandidatePaths(): string[] {
   if (process.platform === 'win32') {
     const appData = process.env.APPDATA ?? path.join(home, 'AppData', 'Roaming');
     return [
+      path.join(appData, 'AICoreDesktop', 'config', 'aionui-config.txt'),
+      path.join(appData, 'AICoreDesktop-Dev', 'config', 'aionui-config.txt'),
       path.join(appData, 'AionUi', 'config', 'aionui-config.txt'),
       path.join(appData, 'AionUi-Dev', 'config', 'aionui-config.txt'),
     ];
   }
   // Linux and other platforms
   return [
+    path.join(home, '.config', 'AICoreDesktop', 'config', 'aionui-config.txt'),
+    path.join(home, '.config', 'AICoreDesktop-Dev', 'config', 'aionui-config.txt'),
     path.join(home, '.config', 'AionUi', 'config', 'aionui-config.txt'),
     path.join(home, '.config', 'AionUi-Dev', 'config', 'aionui-config.txt'),
   ];
@@ -91,7 +97,7 @@ export async function migrateFromElectronConfig(configStore: ConfigStore): Promi
     // Decode — if result is empty, the file is missing/corrupted; do NOT set flag
     const sourceData = decodeConfigFile(sourcePath);
     if (Object.keys(sourceData).length === 0) {
-      console.warn('[AionUi] Config migration: source file appears empty or corrupted, will retry next startup');
+      console.warn('[AICore] Config migration: source file appears empty or corrupted, will retry next startup');
       return;
     }
 
@@ -116,9 +122,9 @@ export async function migrateFromElectronConfig(configStore: ConfigStore): Promi
     }
 
     await configStore.set('migration.electronConfigImported', true);
-    console.log('[AionUi] Config migrated from Electron desktop config:', sourcePath);
+    console.log('[AICore] Config migrated from Electron desktop config:', sourcePath);
   } catch (error) {
-    console.warn('[AionUi] Config migration from Electron failed:', error);
+    console.warn('[AICore] Config migration from Electron failed:', error);
   }
 }
 
@@ -138,13 +144,13 @@ export async function importConfigFromFile(
     // Warn on relative paths and resolve them
     if (!path.isAbsolute(sourcePath)) {
       const resolved = path.resolve(process.cwd(), sourcePath);
-      console.warn('[AionUi] IMPORT_CONFIG_FROM: relative path provided, resolving to:', resolved);
+      console.warn('[AICore] IMPORT_CONFIG_FROM: relative path provided, resolving to:', resolved);
       sourcePath = resolved;
     }
 
     const sourceData = decodeConfigFile(sourcePath);
     if (Object.keys(sourceData).length === 0) {
-      console.warn('[AionUi] IMPORT_CONFIG_FROM: file is missing, empty, or corrupted:', sourcePath);
+      console.warn('[AICore] IMPORT_CONFIG_FROM: file is missing, empty, or corrupted:', sourcePath);
       return;
     }
 
@@ -169,8 +175,8 @@ export async function importConfigFromFile(
       await configStore.set(key, sourceValue as IConfigStorageRefer[typeof key]);
     }
 
-    console.log('[AionUi] Config imported from:', sourcePath, '(overwrite:', overwrite, ')');
+    console.log('[AICore] Config imported from:', sourcePath, '(overwrite:', overwrite, ')');
   } catch (error) {
-    console.warn('[AionUi] IMPORT_CONFIG_FROM failed:', error);
+    console.warn('[AICore] IMPORT_CONFIG_FROM failed:', error);
   }
 }

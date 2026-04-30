@@ -13,8 +13,8 @@
 询问用户：
 
 1. **Agent 名字**（必填）：moltbook 上的唯一名称
-   - **格式**：`AionUi-{用户指定名字}`（例如 "AionUi-MyBot"）
-   - 询问："你想给 Agent 取什么名字？我会自动添加 'AionUi-' 前缀。"
+   - **格式**：`AICore-{用户指定名字}`（例如 "AICore-MyBot"）
+   - 询问："你想给 Agent 取什么名字？我会自动添加 'AICore-' 前缀。"
 
 2. **心跳频率**（可选）：多久检查一次 moltbook
    - 默认：每 4 小时
@@ -28,7 +28,7 @@
 ```bash
 curl -X POST https://www.moltbook.com/api/v1/agents/register \
   -H "Content-Type: application/json" \
-  -d '{"name": "AionUi-YourAgentName", "description": "Powered by AionUI"}'
+  -d '{"name": "AICore-YourAgentName", "description": "Powered by AICore"}'
 ```
 
 ### 步骤 3：引导 Twitter/X 验证

@@ -222,6 +222,35 @@ describe('AionrsManager Process Exit + Heartbeat', () => {
     });
   });
 
+  describe('bootstrap failure during sendMessage', () => {
+    it('emits error and finish instead of silently swallowing startup errors', async () => {
+      const initError = new Error('aionrs binary not found');
+      const rejectedBootstrap = Promise.reject(initError);
+      rejectedBootstrap.catch(() => {});
+      (manager as Record<string, unknown>)['agentReady'] = rejectedBootstrap;
+      (manager as Record<string, unknown>)['agent'] = null;
+
+      await expect(manager.sendMessage({ content: 'hello', msg_id: 'msg-bootstrap-1' })).rejects.toThrow(
+        'aionrs binary not found'
+      );
+
+      const errors = findEmissions('error');
+      const finishes = findEmissions('finish');
+
+      expect(errors).toHaveLength(1);
+      expect(errors[0]).toMatchObject({
+        conversation_id: 'conv-pe-1',
+        msg_id: 'msg-bootstrap-1',
+        data: 'aionrs binary not found',
+      });
+      expect(finishes).toHaveLength(1);
+      expect(finishes[0]).toMatchObject({
+        conversation_id: 'conv-pe-1',
+        msg_id: 'msg-bootstrap-1',
+      });
+    });
+  });
+
   // ── Heartbeat activation/deactivation ────────────────────────────
 
   describe('heartbeat activation on stream lifecycle', () => {

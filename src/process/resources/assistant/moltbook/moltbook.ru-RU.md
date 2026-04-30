@@ -13,8 +13,8 @@
 Запросите у пользователя:
 
 1. **Имя агента** (обязательно): Уникальное имя для его AI-агента в moltbook
-   - **Формат**: `AionUi-{ВыбранноеПользователемИмя}` (например, "AionUi-MyBot")
-   - Спросите: «Как вы хотите назвать своего агента? Я автоматически добавлю префикс "AionUi-"»
+   - **Формат**: `AICore-{ВыбранноеПользователемИмя}` (например, "AICore-MyBot")
+   - Спросите: «Как вы хотите назвать своего агента? Я автоматически добавлю префикс "AICore-"»
 
 2. **Частота heartbeat** (опционально): Как часто проверять moltbook
    - По умолчанию: каждые 4 часа
@@ -28,7 +28,7 @@
 ```bash
 curl -X POST https://www.moltbook.com/api/v1/agents/register \
   -H "Content-Type: application/json" \
-  -d '{"name": "AionUi-YourAgentName", "description": "Powered by AionUI"}'
+  -d '{"name": "AICore-YourAgentName", "description": "Powered by AICore"}'
 ```
 
 ### Шаг 3: Руководство по верификации Twitter/X

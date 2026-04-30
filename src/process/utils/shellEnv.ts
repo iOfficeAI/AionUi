@@ -758,7 +758,7 @@ async function loadFullShellEnvironmentImpl(): Promise<Record<string, string>> {
 // Environment diagnostics — logged once at startup
 // ---------------------------------------------------------------------------
 
-const ENV_TAG = '[AionUi:env]';
+const ENV_TAG = '[AICore:env]';
 const ENV_DIVIDER = '═'.repeat(52);
 
 /** Format bytes into a human-readable string (e.g. "16.00 GB"). @internal */
@@ -870,7 +870,7 @@ export async function logEnvironmentDiagnostics(): Promise<void> {
 
     const lines: string[] = [
       `${ENV_TAG} ${ENV_DIVIDER}`,
-      `${ENV_TAG}   AionUi v${appVersion} (${mode})`,
+      `${ENV_TAG}   AICore v${appVersion} (${mode})`,
       `${ENV_TAG}   OS       : ${process.platform} ${os.release()} (${process.arch})`,
     ];
 
@@ -916,7 +916,7 @@ export async function logEnvironmentDiagnostics(): Promise<void> {
     console.log('\n' + lines.join('\n'));
   } catch (error) {
     // Diagnostics must never crash the app — log and move on.
-    console.warn('[AionUi:env] Failed to collect environment diagnostics:', error);
+    console.warn('[AICore:env] Failed to collect environment diagnostics:', error);
   }
 }
 

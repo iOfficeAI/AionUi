@@ -70,15 +70,15 @@ const asset = (name: string) => ({
 
 describe('pickRecommendedAsset', () => {
   it('should prefer ia32 package on win32 ia32 runtime', () => {
-    const assets = [asset('AionUi-1.0.0-win-x64.exe'), asset('AionUi-1.0.0-win-ia32.exe')];
+    const assets = [asset('AICore-1.0.0-win-x64.exe'), asset('AICore-1.0.0-win-ia32.exe')];
 
     const result = pickRecommendedAsset(assets, { platform: 'win32', arch: 'ia32' });
 
-    expect(result?.name).toBe('AionUi-1.0.0-win-ia32.exe');
+    expect(result?.name).toBe('AICore-1.0.0-win-ia32.exe');
   });
 
   it('should return undefined when no compatible arch package exists', () => {
-    const assets = [asset('AionUi-1.0.0-win-x64.exe'), asset('AionUi-1.0.0-win-x64.zip')];
+    const assets = [asset('AICore-1.0.0-win-x64.exe'), asset('AICore-1.0.0-win-x64.zip')];
 
     const result = pickRecommendedAsset(assets, { platform: 'win32', arch: 'ia32' });
 
@@ -86,10 +86,10 @@ describe('pickRecommendedAsset', () => {
   });
 
   it('should allow generic package without explicit arch token', () => {
-    const assets = [asset('AionUi-1.0.0-win.exe')];
+    const assets = [asset('AICore-1.0.0-win.exe')];
 
     const result = pickRecommendedAsset(assets, { platform: 'win32', arch: 'ia32' });
 
-    expect(result?.name).toBe('AionUi-1.0.0-win.exe');
+    expect(result?.name).toBe('AICore-1.0.0-win.exe');
   });
 });

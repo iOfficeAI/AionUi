@@ -33,7 +33,7 @@ const AionrsSettings: React.FC = () => {
     <SettingsPageWrapper>
       <div className='flex flex-col gap-16px'>
         <Typography.Title heading={5} className='!mb-0'>
-          Aion CLI
+          AICore CLI
         </Typography.Title>
 
         {/* Status */}
@@ -64,7 +64,7 @@ const AionrsSettings: React.FC = () => {
         <Typography.Text type='secondary' className='text-12px'>
           {t('settings.aionrs.providerNote', {
             defaultValue:
-              'Provider and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock.',
+              'Provider and API key settings are managed in the Models page. AICore CLI supports: Anthropic, OpenAI, AWS Bedrock.',
           })}
         </Typography.Text>
       </div>

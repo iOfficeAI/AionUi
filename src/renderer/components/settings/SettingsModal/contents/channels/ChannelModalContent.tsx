@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2025 AionUi (aionui.com)
+ * Copyright 2025 AICore (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
 
@@ -21,12 +21,10 @@ import ChannelItem from './ChannelItem';
 import type { ChannelConfig } from './types';
 import DingTalkConfigForm from './DingTalkConfigForm';
 import LarkConfigForm from './LarkConfigForm';
-import TelegramConfigForm from './TelegramConfigForm';
 import WeixinConfigForm from './WeixinConfigForm';
 import WecomConfigForm from './WecomConfigForm';
 
 type ChannelModelConfigKey =
-  | 'assistant.telegram.defaultModel'
   | 'assistant.lark.defaultModel'
   | 'assistant.dingtalk.defaultModel'
   | 'assistant.weixin.defaultModel'
@@ -45,11 +43,11 @@ type ExtensionFieldSchema = {
 
 type ExtensionFieldValues = Record<string, Record<string, string | number | boolean>>;
 
-const BUILTIN_CHANNEL_TYPES = new Set(['telegram', 'lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
+const BUILTIN_CHANNEL_TYPES = new Set(['lark', 'dingtalk', 'weixin', 'wecom', 'slack', 'discord']);
 
 /**
  * Internal hook: wraps useGeminiModelSelection with ConfigStorage persistence
- * for a specific channel config key (e.g. 'assistant.telegram.defaultModel').
+ * for a specific channel config key (e.g. 'assistant.lark.defaultModel').
  *
  * Restoration is done by resolving the saved model reference into a full
  * TProviderWithModel and passing it as `initialModel` — this avoids triggering
@@ -124,7 +122,6 @@ const useChannelModelSelection = (configKey: ChannelModelConfigKey): GeminiModel
 
         // Derive platform from configKey and sync to channel system
         const platform = configKey.replace('assistant.', '').replace('.defaultModel', '') as
-          | 'telegram'
           | 'lark'
           | 'dingtalk'
           | 'weixin'
@@ -171,12 +168,10 @@ const ChannelModalContent: React.FC = () => {
   const isPageMode = viewMode === 'page';
 
   // Plugin state
-  const [pluginStatus, setPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [larkPluginStatus, setLarkPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [dingtalkPluginStatus, setDingtalkPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [weixinPluginStatus, setWeixinPluginStatus] = useState<IChannelPluginStatus | null>(null);
   const [wecomPluginStatus, setWecomPluginStatus] = useState<IChannelPluginStatus | null>(null);
-  const [enableLoading, setEnableLoading] = useState(false);
   const [larkEnableLoading, setLarkEnableLoading] = useState(false);
   const [dingtalkEnableLoading, setDingtalkEnableLoading] = useState(false);
   const [weixinEnableLoading, setWeixinEnableLoading] = useState(false);
@@ -186,12 +181,8 @@ const ChannelModalContent: React.FC = () => {
   const [extensionFieldValues, setExtensionFieldValues] = useState<ExtensionFieldValues>({});
   const [webuiStatus, setWebuiStatus] = useState<IWebUIStatus | null>(null);
 
-  // Track the token entered in TelegramConfigForm so the toggle handler can use it
-  const telegramTokenRef = React.useRef<string>('');
-
   // Collapse state - true means collapsed (closed), false means expanded (open)
   const [collapseKeys, setCollapseKeys] = useState<Record<string, boolean>>({
-    telegram: true, // Default to collapsed
     slack: true,
     discord: true,
     lark: true,
@@ -201,7 +192,6 @@ const ChannelModalContent: React.FC = () => {
   });
 
   // Model selection state — uses unified hook with ConfigStorage persistence
-  const telegramModelSelection = useChannelModelSelection('assistant.telegram.defaultModel');
   const larkModelSelection = useChannelModelSelection('assistant.lark.defaultModel');
   const dingtalkModelSelection = useChannelModelSelection('assistant.dingtalk.defaultModel');
   const weixinModelSelection = useChannelModelSelection('assistant.weixin.defaultModel');
@@ -212,14 +202,12 @@ const ChannelModalContent: React.FC = () => {
     try {
       const result = await channel.getPluginStatus.invoke();
       if (result.success && result.data) {
-        const telegramPlugin = result.data.find((p) => p.type === 'telegram');
         const larkPlugin = result.data.find((p) => p.type === 'lark');
         const dingtalkPlugin = result.data.find((p) => p.type === 'dingtalk');
         const weixinPlugin = result.data.find((p) => p.type === 'weixin');
         const wecomPlugin = result.data.find((p) => p.type === 'wecom');
         const extensionPlugins = result.data.filter((p) => !BUILTIN_CHANNEL_TYPES.has(p.type));
 
-        setPluginStatus(telegramPlugin || null);
         setLarkPluginStatus(larkPlugin || null);
         setDingtalkPluginStatus(dingtalkPlugin || null);
         setWeixinPluginStatus(weixinPlugin || null);
@@ -278,9 +266,7 @@ const ChannelModalContent: React.FC = () => {
   // Listen for plugin status changes
   useEffect(() => {
     const unsubscribe = channel.pluginStatusChanged.on(({ status }) => {
-      if (status.type === 'telegram') {
-        setPluginStatus(status);
-      } else if (status.type === 'lark') {
+      if (status.type === 'lark') {
         setLarkPluginStatus(status);
       } else if (status.type === 'dingtalk') {
         setDingtalkPluginStatus(status);
@@ -308,49 +294,6 @@ const ChannelModalContent: React.FC = () => {
       ...prev,
       [channelId]: !prev[channelId],
     }));
-  };
-
-  // Enable/Disable plugin
-  const handleTogglePlugin = async (enabled: boolean) => {
-    setEnableLoading(true);
-    try {
-      if (enabled) {
-        // Check if we have a token - either saved in database or entered in the form
-        const pendingToken = telegramTokenRef.current.trim();
-        if (!pluginStatus?.hasToken && !pendingToken) {
-          Message.warning(t('settings.assistant.tokenRequired', 'Please enter a bot token first'));
-          setEnableLoading(false);
-          return;
-        }
-
-        const result = await channel.enablePlugin.invoke({
-          pluginId: 'telegram_default',
-          config: pendingToken ? { token: pendingToken } : {},
-        });
-
-        if (result.success) {
-          Message.success(t('settings.assistant.pluginEnabled', 'Telegram bot enabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.assistant.enableFailed', 'Failed to enable plugin'));
-        }
-      } else {
-        const result = await channel.disablePlugin.invoke({
-          pluginId: 'telegram_default',
-        });
-
-        if (result.success) {
-          Message.success(t('settings.assistant.pluginDisabled', 'Telegram bot disabled'));
-          await loadPluginStatus();
-        } else {
-          Message.error(result.msg || t('settings.assistant.disableFailed', 'Failed to disable plugin'));
-        }
-      }
-    } catch (error: any) {
-      Message.error(error.message);
-    } finally {
-      setEnableLoading(false);
-    }
   };
 
   // Enable/Disable Lark plugin
@@ -709,32 +652,10 @@ const ChannelModalContent: React.FC = () => {
 
   // Build channel configurations
   const channels: ChannelConfig[] = useMemo(() => {
-    const telegramChannel: ChannelConfig = {
-      id: 'telegram',
-      title: t('settings.channels.telegramTitle', 'Telegram'),
-      description: t('settings.channels.telegramDesc', 'Chat with AionUi assistant via Telegram'),
-      status: 'active',
-      enabled: pluginStatus?.enabled || false,
-      disabled: enableLoading,
-      isConnected: pluginStatus?.connected || false,
-      botUsername: pluginStatus?.botUsername,
-      defaultModel: telegramModelSelection.currentModel?.useModel,
-      content: (
-        <TelegramConfigForm
-          pluginStatus={pluginStatus}
-          modelSelection={telegramModelSelection}
-          onStatusChange={setPluginStatus}
-          onTokenChange={(token) => {
-            telegramTokenRef.current = token;
-          }}
-        />
-      ),
-    };
-
     const larkChannel: ChannelConfig = {
       id: 'lark',
       title: t('settings.channels.larkTitle', 'Lark / Feishu'),
-      description: t('settings.channels.larkDesc', 'Chat with AionUi assistant via Lark or Feishu'),
+      description: t('settings.channels.larkDesc', 'Chat with AICore assistant via Lark or Feishu'),
       status: 'active',
       enabled: larkPluginStatus?.enabled || false,
       disabled: larkEnableLoading,
@@ -752,7 +673,7 @@ const ChannelModalContent: React.FC = () => {
     const dingtalkChannel: ChannelConfig = {
       id: 'dingtalk',
       title: t('settings.channels.dingtalkTitle', 'DingTalk'),
-      description: t('settings.channels.dingtalkDesc', 'Chat with AionUi assistant via DingTalk'),
+      description: t('settings.channels.dingtalkDesc', 'Chat with AICore assistant via DingTalk'),
       status: 'active',
       enabled: dingtalkPluginStatus?.enabled || false,
       disabled: dingtalkEnableLoading,
@@ -770,7 +691,7 @@ const ChannelModalContent: React.FC = () => {
     const weixinChannel: ChannelConfig = {
       id: 'weixin',
       title: t('settings.channels.weixinTitle', 'WeChat'),
-      description: t('settings.channels.weixinDesc', 'Chat with AionUi assistant via WeChat'),
+      description: t('settings.channels.weixinDesc', 'Chat with AICore assistant via WeChat'),
       status: 'active',
       enabled: weixinPluginStatus?.enabled || false,
       disabled: weixinEnableLoading,
@@ -788,7 +709,7 @@ const ChannelModalContent: React.FC = () => {
     const wecomChannel: ChannelConfig = {
       id: 'wecom',
       title: t('settings.channels.wecomTitle', 'WeCom'),
-      description: t('settings.channels.wecomDesc', 'Chat with AionUi assistant via WeCom (Enterprise WeChat)'),
+      description: t('settings.channels.wecomDesc', 'Chat with AICore assistant via WeCom (Enterprise WeChat)'),
       status: 'active',
       enabled: wecomPluginStatus?.enabled || false,
       disabled: wecomEnableLoading,
@@ -823,59 +744,20 @@ const ChannelModalContent: React.FC = () => {
         content: renderExtensionConfigForm(status),
       }));
 
-    const extensionTypeSet = new Set(extensionChannels.map((channel) => String(channel.id).toLowerCase()));
-    const comingSoonChannels: ChannelConfig[] = [
-      {
-        id: 'slack',
-        title: t('settings.channels.slackTitle', 'Slack'),
-        description: t('settings.channels.slackDesc', 'Chat with AionUi assistant via Slack'),
-        status: 'coming_soon' as const,
-        enabled: false,
-        disabled: true,
-        content: (
-          <div className='text-14px text-t-secondary py-12px'>
-            {t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', {
-              channel: t('settings.channels.slackTitle', 'Slack'),
-            })}
-          </div>
-        ),
-      },
-      {
-        id: 'discord',
-        title: t('settings.channels.discordTitle', 'Discord'),
-        description: t('settings.channels.discordDesc', 'Chat with AionUi assistant via Discord'),
-        status: 'coming_soon' as const,
-        enabled: false,
-        disabled: true,
-        content: (
-          <div className='text-14px text-t-secondary py-12px'>
-            {t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', {
-              channel: t('settings.channels.discordTitle', 'Discord'),
-            })}
-          </div>
-        ),
-      },
-    ].filter((channel) => !extensionTypeSet.has(String(channel.id).toLowerCase()));
-
     return [
-      telegramChannel,
       larkChannel,
       dingtalkChannel,
       weixinChannel,
       wecomChannel,
       ...extensionChannels,
-      ...comingSoonChannels,
     ];
   }, [
-    pluginStatus,
     larkPluginStatus,
     dingtalkPluginStatus,
     extensionStatuses,
     extensionLoadingMap,
-    telegramModelSelection,
     larkModelSelection,
     dingtalkModelSelection,
-    enableLoading,
     larkEnableLoading,
     dingtalkEnableLoading,
     weixinPluginStatus,
@@ -891,7 +773,6 @@ const ChannelModalContent: React.FC = () => {
 
   // Get toggle handler for each channel
   const getToggleHandler = (channelId: string) => {
-    if (channelId === 'telegram') return handleTogglePlugin;
     if (channelId === 'lark') return handleToggleLarkPlugin;
     if (channelId === 'dingtalk') return handleToggleDingtalkPlugin;
     if (channelId === 'weixin') return handleToggleWeixinPlugin;
@@ -904,7 +785,7 @@ const ChannelModalContent: React.FC = () => {
     return undefined;
   };
   const channelGuideText = t('settings.webui.featureChannelsDesc', {
-    defaultValue: 'Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps.',
+    defaultValue: 'Connect Lark, DingTalk, WeChat, and WeCom to interact with AICore from IM apps.',
   });
   const channelSetupSteps = [
     t('settings.channels.selectFirst', {

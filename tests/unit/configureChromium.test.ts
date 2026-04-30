@@ -12,12 +12,12 @@ import path from 'path';
 const originalEnv = { ...process.env };
 
 // The real CDP registry file persists across tests and may contain live entries
-// from running AionUi instances, causing port conflicts. Back it up and restore.
-const REAL_REGISTRY = path.join(os.homedir(), '.aionui-cdp-registry.json');
+// from running app instances, causing port conflicts. Back it up and restore.
+const REAL_REGISTRY = path.join(os.homedir(), '.aicoredesktop-cdp-registry.json');
 let savedRegistry: string | null = null;
 
 function createSandbox(): string {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-cdp-test-'));
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'aicoredesktop-cdp-test-'));
 }
 
 function removeSandbox(dir: string): void {
@@ -37,7 +37,7 @@ async function loadConfigureChromium(options: SetupOptions = {}) {
   fs.mkdirSync(userDataDir, { recursive: true });
 
   const configPath = path.join(userDataDir, 'cdp.config.json');
-  const registryPath = path.join(sandbox, '.aionui-cdp-registry.json');
+  const registryPath = path.join(sandbox, '.aicoredesktop-cdp-registry.json');
 
   if (options.config) {
     fs.writeFileSync(configPath, JSON.stringify(options.config, null, 2), 'utf-8');
@@ -292,8 +292,8 @@ describe('configureChromium CDP (lightweight mock + file sandbox)', () => {
       const ctx = await loadConfigureChromium({ isPackaged: false });
       restores.push(ctx.restore);
 
-      expect(ctx.setNameSpy).toHaveBeenCalledWith('AionUi-Dev');
-      expect(ctx.setPathSpy).toHaveBeenCalledWith('userData', path.join(ctx.sandbox, 'AionUi-Dev'));
+      expect(ctx.setNameSpy).toHaveBeenCalledWith('AICoreDesktop-Dev');
+      expect(ctx.setPathSpy).toHaveBeenCalledWith('userData', path.join(ctx.sandbox, 'AICoreDesktop-Dev'));
     });
 
     it('does not set app name or userData path in packaged builds', async () => {

@@ -132,7 +132,7 @@ export function validateEngineCompatibility(extension: LoadedExtension): EngineV
     if (!satisfiesVersion(AIONUI_VERSION, engine.aionui)) {
       result.valid = false;
       result.issues.push(
-        `Extension "${extension.manifest.name}" requires AionUI ${engine.aionui} but current version is ${AIONUI_VERSION}`
+        `Extension "${extension.manifest.name}" requires AICore ${engine.aionui} but current version is ${AIONUI_VERSION}`
       );
     }
   }

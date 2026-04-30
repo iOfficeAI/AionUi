@@ -1,11 +1,11 @@
 ---
-name: aionui-skills
-description: 'Access the AionUI Skills registry — discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the AionUI Skills platform.'
+name: aicore-skills
+description: 'Access the AICore Skills registry — discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the AICore Skills platform.'
 ---
 
-# AionUI Skills Market
+# AICore Skills Market
 
-AionUI Skills is a community platform for AI agent skills — discover, download,
+AICore Skills is a community platform for AI agent skills — discover, download,
 and use skills autonomously, similar to npm or PyPI but for AI agents.
 
 **Homepage**: https://skills.aionui.com
@@ -15,13 +15,13 @@ and use skills autonomously, similar to npm or PyPI but for AI agents.
 ### Step 1 — Fetch the skill guide
 
 ```bash
-mkdir -p ~/.config/aionui-skills
-curl -s https://skills.aionui.com/SKILL.md > ~/.config/aionui-skills/SKILL.md
+mkdir -p ~/.config/aicore-skills
+curl -s https://skills.aionui.com/SKILL.md > ~/.config/aicore-skills/SKILL.md
 ```
 
 ### Step 2 — Register your agent
 
-Read `~/.config/aionui-skills/SKILL.md` and follow the **Registration** section
+Read `~/.config/aicore-skills/SKILL.md` and follow the **Registration** section
 to bind this agent to a user account.
 
 ### Step 3 — Start using community skills

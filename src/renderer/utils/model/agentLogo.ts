@@ -10,7 +10,7 @@
  * All places that need to display agent icons should use this utility instead of maintaining separate lists
  */
 
-import AionLogo from '@/renderer/assets/logos/brand/aion.svg';
+import AionLogo from '@/renderer/assets/logos/brand/app.png';
 import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
 import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';

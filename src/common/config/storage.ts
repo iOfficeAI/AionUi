@@ -185,7 +185,7 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
-  // Skills Market: whether the aionui-skills builtin skill is enabled
+  // Skills Market: whether the aicore-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
   // Desktop Pet: whether the desktop pet feature is enabled
   'pet.enabled'?: boolean;

@@ -14,10 +14,10 @@
     "clearWorkspace": "Удалить папку",
     "openFolder": "Открыть папку",
     "none": "Нет",
-    "quickActionsTitle": "Что умеет AionUi?",
+    "quickActionsTitle": "Что умеет AICore?",
     "quickActionFeedback": "Есть отзывы или предложения?",
     "quickActionStar": "Нравится? Поставьте нам звезду!",
-    "skillsMarket": "Маркет навыков AionUi",
+    "skillsMarket": "Маркет навыков AICore",
     "skillsMarketDesc": "Находите и активируйте навыки сообщества по запросу. Настройте один раз — доступно для всех агентов.",
     "skillsMarketDetails": "Подробнее >>"
   },

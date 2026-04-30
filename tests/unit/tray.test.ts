@@ -193,7 +193,7 @@ describe('tray module', () => {
 
       createOrUpdateTray();
 
-      expect(mockTrayInstance.setToolTip).toHaveBeenCalledWith('AionUi');
+      expect(mockTrayInstance.setToolTip).toHaveBeenCalledWith('AICore');
     });
 
     it('should be idempotent - second call does not create another tray', async () => {

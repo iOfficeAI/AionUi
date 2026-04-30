@@ -11,7 +11,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 /**
  * Skills Market feature tests
  *
- * Tests the enable/disable flow for the aionui-skills builtin skill:
+ * Tests the enable/disable flow for the aicore-skills builtin skill:
  * - Bundled SKILL.md content validation
  * - Enable: copy bundled SKILL.md → user builtin skills directory
  * - Disable: remove the skill directory
@@ -21,7 +21,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 // Path to the bundled SKILL.md in the project
 const BUNDLED_SKILL_PATH = path.resolve(
   __dirname,
-  '../../src/process/resources/skills/_builtin/aionui-skills/SKILL.md'
+  '../../src/process/resources/skills/_builtin/aicore-skills/SKILL.md'
 );
 
 // Mock Electron app and initStorage before importing AcpSkillManager
@@ -47,11 +47,11 @@ describe('Skills Market - Bundled SKILL.md', () => {
 
     const nameMatch = frontmatter.match(/^name:\s*(.+)$/m);
     expect(nameMatch).not.toBeNull();
-    expect(nameMatch![1].trim()).toBe('aionui-skills');
+    expect(nameMatch![1].trim()).toBe('aicore-skills');
 
     const descMatch = frontmatter.match(/^description:\s*(.+)$/m);
     expect(descMatch).not.toBeNull();
-    expect(descMatch![1]).toContain('AionUI Skills');
+    expect(descMatch![1]).toContain('AICore Skills');
   });
 
   it('contains the curl command for fetching full SKILL.md', async () => {
@@ -68,7 +68,7 @@ describe('Skills Market - Bundled SKILL.md', () => {
 
   it('references the standard credentials path', async () => {
     const content = await fs.readFile(BUNDLED_SKILL_PATH, 'utf-8');
-    expect(content).toContain('~/.config/aionui-skills');
+    expect(content).toContain('~/.config/aicore-skills');
   });
 
   it('is concise enough for [LOAD_SKILL] injection (under 50 lines)', async () => {
@@ -97,9 +97,9 @@ describe('Skills Market - Enable/Disable flow', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
-  it('enable: creates aionui-skills directory with SKILL.md', async () => {
+  it('enable: creates aicore-skills directory with SKILL.md', async () => {
     const builtinDir = path.join(tmpDir, '_builtin');
-    const skillDir = path.join(builtinDir, 'aionui-skills');
+    const skillDir = path.join(builtinDir, 'aicore-skills');
 
     // Simulate enable flow
     await fs.mkdir(skillDir, { recursive: true });
@@ -109,12 +109,12 @@ describe('Skills Market - Enable/Disable flow', () => {
     // Verify
     const written = await fs.readFile(path.join(skillDir, 'SKILL.md'), 'utf-8');
     expect(written).toBe(content);
-    expect(written).toContain('name: aionui-skills');
+    expect(written).toContain('name: aicore-skills');
   });
 
-  it('disable: removes aionui-skills directory completely', async () => {
+  it('disable: removes aicore-skills directory completely', async () => {
     const builtinDir = path.join(tmpDir, '_builtin');
-    const skillDir = path.join(builtinDir, 'aionui-skills');
+    const skillDir = path.join(builtinDir, 'aicore-skills');
 
     // Setup: create the skill
     await fs.mkdir(skillDir, { recursive: true });
@@ -128,7 +128,7 @@ describe('Skills Market - Enable/Disable flow', () => {
   });
 
   it('disable: fs.rm with force does not throw if directory does not exist', async () => {
-    const skillDir = path.join(tmpDir, '_builtin', 'aionui-skills');
+    const skillDir = path.join(tmpDir, '_builtin', 'aicore-skills');
 
     // Should not throw even if directory doesn't exist
     await expect(fs.rm(skillDir, { recursive: true, force: true })).resolves.toBeUndefined();

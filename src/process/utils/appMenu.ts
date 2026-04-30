@@ -17,8 +17,6 @@ export function setupApplicationMenu(): void {
     template.push({
       label: app.name,
       submenu: [
-        { role: 'about' },
-        { type: 'separator' },
         { role: 'services' },
         { type: 'separator' },
         { role: 'hide' },
