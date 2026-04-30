@@ -164,7 +164,6 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/messages`,
     (p) => ({
       content: p.input,
-      msg_id: p.msg_id,
       files: p.files,
       loading_id: p.loading_id,
       inject_skills: p.inject_skills,
@@ -1134,7 +1133,6 @@ export interface ICreateCronJobParams {
 
 interface ISendMessageParams {
   input: string;
-  msg_id: string;
   conversation_id: string;
   files?: string[];
   loading_id?: string;

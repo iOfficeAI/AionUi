@@ -83,7 +83,6 @@ describe('useAcpInitialMessage', () => {
     expect(checkAndUpdateTitle).toHaveBeenCalledWith('conv-acp', 'describe this image');
     expect(mockAcpSendInvoke).toHaveBeenCalledWith({
       input: 'describe this image|C:/workspace/uploads/photo.png|C:/workspace',
-      msg_id: 'acp-init-1',
       conversation_id: 'conv-acp',
       files: ['C:/workspace/uploads/photo.png'],
     });
