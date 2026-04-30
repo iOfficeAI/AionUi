@@ -118,7 +118,7 @@ export const useAionrsMessage = (
 
   useEffect(() => {
     return ipcBridge.conversation.responseStream.on((message) => {
-      if (conversation_id !== message.conversation_id) {
+      if (!message || conversation_id !== message.conversation_id) {
         return;
       }
 

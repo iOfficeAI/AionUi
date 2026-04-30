@@ -281,7 +281,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   useEffect(() => {
     return ipcBridge.openclawConversation.responseStream.on((message) => {
-      if (conversation_id !== message.conversation_id) {
+      if (!message || conversation_id !== message.conversation_id) {
         return;
       }
 

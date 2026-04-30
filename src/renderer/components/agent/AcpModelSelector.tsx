@@ -176,8 +176,8 @@ const AcpModelSelector: React.FC<{
 
   // Listen for acp_model_info / codex_model_info events from responseStream
   useEffect(() => {
-    const handler = (message: IResponseMessage) => {
-      if (message.conversation_id !== conversationId) return;
+    const handler = (message: IResponseMessage | undefined) => {
+      if (!message || message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
         if (backend === 'codex') {

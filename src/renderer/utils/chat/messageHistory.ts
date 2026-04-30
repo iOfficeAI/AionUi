@@ -31,9 +31,69 @@ export function getConversationInputHistory(messages: TMessage[], conversationId
   return history;
 }
 
+const CARET_MIRROR_STYLE_PROPERTIES = [
+  'boxSizing',
+  'width',
+  'fontFamily',
+  'fontSize',
+  'fontStyle',
+  'fontWeight',
+  'letterSpacing',
+  'lineHeight',
+  'paddingTop',
+  'paddingRight',
+  'paddingBottom',
+  'paddingLeft',
+  'borderTopWidth',
+  'borderRightWidth',
+  'borderBottomWidth',
+  'borderLeftWidth',
+  'whiteSpace',
+  'wordBreak',
+  'overflowWrap',
+  'tabSize',
+] as const;
+
+function getLineHeightPx(style: CSSStyleDeclaration): number {
+  const parsed = Number.parseFloat(style.lineHeight);
+  if (Number.isFinite(parsed)) return parsed;
+  const fontSize = Number.parseFloat(style.fontSize);
+  return Number.isFinite(fontSize) ? fontSize * 1.4 : 20;
+}
+
 export function isCaretOnFirstLine(textarea: HTMLTextAreaElement): boolean {
   const selectionStart = textarea.selectionStart ?? 0;
-  return !textarea.value.slice(0, selectionStart).includes('\n');
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
+    return !textarea.value.slice(0, selectionStart).includes('\n');
+  }
+
+  const style = window.getComputedStyle(textarea);
+  const mirror = document.createElement('div');
+  const caret = document.createElement('span');
+
+  CARET_MIRROR_STYLE_PROPERTIES.forEach((property) => {
+    mirror.style[property] = style[property];
+  });
+
+  mirror.style.position = 'absolute';
+  mirror.style.visibility = 'hidden';
+  mirror.style.left = '-9999px';
+  mirror.style.top = '0';
+  mirror.style.height = 'auto';
+  mirror.style.minHeight = '0';
+  mirror.style.overflow = 'hidden';
+  mirror.style.whiteSpace = 'pre-wrap';
+  mirror.style.wordWrap = 'break-word';
+  mirror.textContent = textarea.value.slice(0, selectionStart);
+  caret.textContent = '\u200b';
+  mirror.appendChild(caret);
+  document.body.appendChild(mirror);
+
+  const caretTop = caret.offsetTop;
+  const lineHeight = getLineHeightPx(style);
+  mirror.remove();
+
+  return caretTop < lineHeight * 0.75;
 }
 
 export function isCaretAtLineStart(textarea: HTMLTextAreaElement): boolean {

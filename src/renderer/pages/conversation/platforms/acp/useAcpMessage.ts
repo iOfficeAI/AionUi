@@ -114,8 +114,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   }, []);
 
   const handleResponseMessage = useCallback(
-    (message: IResponseMessage) => {
-      if (conversation_id !== message.conversation_id) {
+    (message: IResponseMessage | undefined) => {
+      if (!message || conversation_id !== message.conversation_id) {
         return;
       }
 
