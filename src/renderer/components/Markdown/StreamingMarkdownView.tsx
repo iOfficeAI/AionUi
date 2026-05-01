@@ -50,6 +50,67 @@ export const hasClosedFencedCodeBlocks = (content: string): boolean => {
   return openFence === null;
 };
 
+const isEscapedAt = (content: string, index: number): boolean => {
+  let backslashCount = 0;
+
+  for (let cursor = index - 1; cursor >= 0 && content[cursor] === '\\'; cursor -= 1) {
+    backslashCount += 1;
+  }
+
+  return backslashCount % 2 === 1;
+};
+
+export const hasClosedInlineCodeSpans = (content: string): boolean => {
+  const lines = content.split(/\r?\n/);
+  let openFence: { marker: '`' | '~'; length: number } | null = null;
+  let openInlineCodeLength: number | null = null;
+
+  for (const line of lines) {
+    const fenceMatch = line.match(/^\s{0,3}(`{3,}|~{3,})/);
+
+    if (fenceMatch) {
+      const marker = fenceMatch[1][0] as '`' | '~';
+      const length = fenceMatch[1].length;
+
+      if (!openFence) {
+        openFence = { marker, length };
+        continue;
+      }
+
+      if (openFence.marker === marker && length >= openFence.length) {
+        openFence = null;
+      }
+
+      continue;
+    }
+
+    if (openFence) {
+      continue;
+    }
+
+    for (let cursor = 0; cursor < line.length; cursor += 1) {
+      if (line[cursor] !== '`' || isEscapedAt(line, cursor)) {
+        continue;
+      }
+
+      let runLength = 1;
+      while (line[cursor + runLength] === '`') {
+        runLength += 1;
+      }
+
+      if (openInlineCodeLength === null) {
+        openInlineCodeLength = runLength;
+      } else if (openInlineCodeLength === runLength) {
+        openInlineCodeLength = null;
+      }
+
+      cursor += runLength - 1;
+    }
+  }
+
+  return openInlineCodeLength === null;
+};
+
 const isLocalFilePath = (src: string): boolean => {
   if (src.startsWith('http://') || src.startsWith('https://')) return false;
   if (src.startsWith('data:')) return false;
@@ -69,7 +130,9 @@ const StreamingMarkdownView: React.FC<StreamingMarkdownViewProps> = ({ children:
     return convertLatexDelimiters(childrenProp.replace(/file:\/\//g, ''));
   }, [childrenProp]);
   const shouldUseStreamdown = useMemo(
-    () => typeof normalizedChildren !== 'string' || hasClosedFencedCodeBlocks(normalizedChildren),
+    () =>
+      typeof normalizedChildren !== 'string' ||
+      (hasClosedFencedCodeBlocks(normalizedChildren) && hasClosedInlineCodeSpans(normalizedChildren)),
     [normalizedChildren]
   );
 

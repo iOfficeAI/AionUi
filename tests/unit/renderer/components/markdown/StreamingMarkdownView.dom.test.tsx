@@ -50,4 +50,19 @@ describe('StreamingMarkdownView', () => {
     expect(screen.getByTestId('streamdown')).toBeInTheDocument();
     expect(streamdownMock).toHaveBeenCalledOnce();
   });
+
+  it('falls back to raw text while an inline code span is still open', () => {
+    const text = '运行链路里应该真的有一个 `process_data 或类似';
+    const { container } = render(<StreamingMarkdownView>{text}</StreamingMarkdownView>);
+
+    expect(screen.queryByTestId('streamdown')).not.toBeInTheDocument();
+    expect(container.textContent).toContain(text);
+  });
+
+  it('renders with streamdown after the inline code span closes', () => {
+    render(<StreamingMarkdownView>{'运行链路里应该真的有一个 `process_data` 或类似'}</StreamingMarkdownView>);
+
+    expect(screen.getByTestId('streamdown')).toBeInTheDocument();
+    expect(streamdownMock).toHaveBeenCalledOnce();
+  });
 });
