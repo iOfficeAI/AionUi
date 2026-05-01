@@ -14,6 +14,7 @@ const chatConversationMocks = vi.hoisted(() => ({
   openWorkspaceInEditor: vi.fn().mockResolvedValue(undefined),
   updateConversation: vi.fn().mockResolvedValue(true),
   acpChat: vi.fn(() => null),
+  codexChat: vi.fn(() => <div>codex-chat</div>),
   geminiChat: vi.fn(() => null),
   aionrsChat: vi.fn(() => null),
   useGeminiModelSelection: vi.fn(() => ({})),
@@ -99,7 +100,7 @@ vi.mock('@/renderer/pages/conversation/platforms/acp/AcpChat', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/codex/CodexChat', () => ({
-  default: () => <div>codex-chat</div>,
+  default: chatConversationMocks.codexChat,
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/nanobot/NanobotChat', () => ({
@@ -270,6 +271,7 @@ describe('ChatConversation workspace launcher', () => {
     chatConversationMocks.openWorkspaceInEditor.mockClear();
     chatConversationMocks.updateConversation.mockClear();
     chatConversationMocks.acpChat.mockClear();
+    chatConversationMocks.codexChat.mockClear();
     chatConversationMocks.geminiChat.mockClear();
     chatConversationMocks.aionrsChat.mockClear();
     chatConversationMocks.useGeminiModelSelection.mockReturnValue({
@@ -429,16 +431,16 @@ describe('ChatConversation workspace launcher', () => {
     });
   });
 
-  it('passes the persisted Codex session mode into the ACP chat view', () => {
+  it('passes the persisted Codex session mode into the native Codex chat view', () => {
     render(<ChatConversation conversation={createCodexConversation('yolo')} />);
 
-    expect(chatConversationMocks.acpChat).toHaveBeenCalledWith(
+    expect(chatConversationMocks.codexChat).toHaveBeenCalledWith(
       expect.objectContaining({
         conversation_id: 'conv-codex',
-        backend: 'codex',
         sessionMode: 'yolo',
       }),
       undefined
     );
+    expect(chatConversationMocks.acpChat).not.toHaveBeenCalled();
   });
 });

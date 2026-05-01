@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "Codex にメッセージを送信..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} コンテキスト",
+    "activity": {
+      "idle": "Codex はアイドル状態です",
+      "waiting": "Codex を待機中...",
+      "thinking": "Codex が思考中...",
+      "streaming": "Codex が応答中...",
+      "permission": "権限確認を待機中...",
+      "tool": "ツールを実行中...",
+      "toolWithName": "ツールを実行中: {{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflareの保護により{{service}}へのアクセスがブロックされました。対処: 1) VPN を利用 2) ネットワークを切替 3) 時間をおいて再試行 4) 別の AI サービスへ切替",
     "network_timeout": "ネットワークがタイムアウトしました。接続を自動的に再試行しています...",

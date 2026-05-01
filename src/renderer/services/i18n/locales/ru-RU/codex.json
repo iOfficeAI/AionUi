@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "Отправить сообщение Codex..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} контекста",
+    "activity": {
+      "idle": "Codex бездействует",
+      "waiting": "Ожидание Codex...",
+      "thinking": "Codex размышляет...",
+      "streaming": "Codex отвечает...",
+      "permission": "Ожидание подтверждения разрешения...",
+      "tool": "Выполняется инструмент...",
+      "toolWithName": "Выполняется инструмент: {{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Защита Cloudflare заблокировала доступ к {{service}}. Варианты: 1) Использовать VPN 2) Сменить сеть 3) Попробовать позже 4) Переключиться на другие ИИ-сервисы",
     "network_timeout": "Таймаут сети, автоматическое повторное подключение...",

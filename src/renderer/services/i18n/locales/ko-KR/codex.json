@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "Codex에 메시지 보내기..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} 컨텍스트",
+    "activity": {
+      "idle": "Codex가 유휴 상태입니다",
+      "waiting": "Codex 대기 중...",
+      "thinking": "Codex가 생각 중입니다...",
+      "streaming": "Codex가 응답 중입니다...",
+      "permission": "권한 확인 대기 중...",
+      "tool": "도구 실행 중...",
+      "toolWithName": "도구 실행 중: {{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare 보호로 인해 {{service}} 접근이 차단되었습니다. 제안: 1) VPN 사용 2) 네트워크 전환 3) 나중에 재시도 4) 다른 AI 서비스로 전환",
     "network_timeout": "네트워크 시간 초과, 연결 자동 재시도 중...",

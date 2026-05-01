@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "Codex'e mesaj gönder..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} bağlam",
+    "activity": {
+      "idle": "Codex boşta",
+      "waiting": "Codex bekleniyor...",
+      "thinking": "Codex düşünüyor...",
+      "streaming": "Codex yanıtlıyor...",
+      "permission": "İzin onayı bekleniyor...",
+      "tool": "Araç çalıştırılıyor...",
+      "toolWithName": "Araç çalıştırılıyor: {{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare koruması {{service}} erişimini engelledi. Öneriler: 1) VPN kullanın 2) Ağı değiştirin 3) Daha sonra tekrar deneyin 4) Diğer AI servislerine geçin",
     "network_timeout": "Ağ zaman aşımı, bağlantı otomatik olarak tekrar deneniyor...",

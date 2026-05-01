@@ -32,6 +32,7 @@ import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
 import GeminiChat from '../platforms/gemini/GeminiChat';
+import CodexChat from '../platforms/codex/CodexChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import GeminiModelSelector from '../platforms/gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from '../platforms/gemini/useGeminiModelSelection';
@@ -521,22 +522,14 @@ const ChatConversation: React.FC<{
             hideSendBox={hideSendBox}
           ></AcpChat>
         );
-      case 'codex': // Legacy: codex now uses ACP protocol
+      case 'codex':
         return (
-          <AcpChat
+          <CodexChat
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            backend='codex'
             sessionMode={conversation.extra?.sessionMode}
-            agentName={assistantDisplayName}
-            cachedConfigOptions={
-              (
-                conversation.extra as {
-                  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
-                }
-              )?.cachedConfigOptions
-            }
+            cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
             hideSendBox={hideSendBox}
           />
         );
@@ -580,7 +573,7 @@ const ChatConversation: React.FC<{
     );
   }, [t]);
 
-  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
+  // For ACP conversations, use AcpModelSelector that can show/switch models.
   // For other non-Gemini conversations, show disabled GeminiModelSelector.
   // NOTE: This must be placed before the Gemini early return to maintain consistent hook order.
   const modelSelector = useMemo(() => {
@@ -595,9 +588,7 @@ const ChatConversation: React.FC<{
         />
       );
     }
-    if (conversation.type === 'codex') {
-      return <AcpModelSelector conversationId={conversation.id} />;
-    }
+    if (conversation.type === 'codex') return undefined;
     return <GeminiModelSelector disabled={true} />;
   }, [conversation, isGeminiConversation, isAionrsConversation]);
 

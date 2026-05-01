@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "傳送訊息給 Codex..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} 上下文",
+    "activity": {
+      "idle": "Codex 閒置中",
+      "waiting": "正在等待 Codex...",
+      "thinking": "Codex 正在思考...",
+      "streaming": "Codex 正在回覆...",
+      "permission": "正在等待權限確認...",
+      "tool": "正在執行工具...",
+      "toolWithName": "正在執行工具：{{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare 保護導致無法存取 {{service}}。建議：1）使用 VPN 2）切換網路 3）稍後重試 4）切換至其他 AI 服務",
     "network_timeout": "網路逾時，正在自動重試連線...",

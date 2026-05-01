@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "发送消息给 Codex..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} 上下文",
+    "activity": {
+      "idle": "Codex 空闲中",
+      "waiting": "正在等待 Codex...",
+      "thinking": "Codex 正在思考...",
+      "streaming": "Codex 正在回复...",
+      "permission": "正在等待权限确认...",
+      "tool": "正在运行工具...",
+      "toolWithName": "正在运行工具：{{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare防护机制阻止了对{{service}}的访问。建议：1) 使用VPN 2) 更换网络 3) 稍后重试 4) 切换到其他AI服务",
     "network_timeout": "网络超时，正在自动重试连接...",

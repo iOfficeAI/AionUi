@@ -1,5 +1,19 @@
 {
-  "sendbox": {},
+  "sendbox": {
+    "placeholder": "Send message to Codex..."
+  },
+  "runtime": {
+    "contextUsage": "{{used}} / {{limit}} context",
+    "activity": {
+      "idle": "Codex is idle",
+      "waiting": "Waiting for Codex...",
+      "thinking": "Codex is thinking...",
+      "streaming": "Codex is responding...",
+      "permission": "Waiting for permission confirmation...",
+      "tool": "Running tool...",
+      "toolWithName": "Running tool: {{tool}}"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare protection blocked access to {{service}}. Suggestions: 1) Use VPN 2) Switch network 3) Retry later 4) Switch to other AI services",
     "network_timeout": "Network timeout, automatically retrying connection...",
