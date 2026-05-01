@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { CodexNativeAgentManager } from '@/process/agent/codex/appserver/CodexNativeAgentManager';
+import type { CodexJsonRpcRequest, CodexServerRequestHandler } from '@/process/agent/codex/appserver/types';
 
 type Deferred = {
   promise: Promise<void>;
@@ -29,6 +30,8 @@ const testDoubles = vi.hoisted(() => {
   };
 
   class FakeCodexAppServerClient {
+    serverRequestHandler: CodexServerRequestHandler | undefined;
+
     constructor() {
       state.clients.push(this);
     }
@@ -40,6 +43,10 @@ const testDoubles = vi.hoisted(() => {
     onFailure = vi.fn((handler: (error: Error) => void) => {
       state.failureListeners.add(handler);
       return () => state.failureListeners.delete(handler);
+    });
+
+    onServerRequest = vi.fn((handler: CodexServerRequestHandler) => {
+      this.serverRequestHandler = handler;
     });
 
     emitFailure(error: Error): void {
@@ -112,6 +119,7 @@ vi.mock('@process/utils/message', () => ({
 
 type FakeClient = {
   start: ReturnType<typeof vi.fn>;
+  serverRequestHandler?: CodexServerRequestHandler;
   emitFailure: (error: Error) => void;
 };
 
@@ -245,6 +253,35 @@ describe('CodexNativeAgentManager', () => {
     const session = testDoubles.state.sessions[0] as FakeSession;
     expect(client.start).toHaveBeenCalledTimes(1);
     expect(session.start).toHaveBeenCalledTimes(1);
+
+    manager.kill();
+  });
+
+  it('resolves native server approval requests from confirmation choices', async () => {
+    const manager = createManager('conversation-native-approval');
+    const client = testDoubles.state.clients[0] as FakeClient;
+    const request: CodexJsonRpcRequest = {
+      jsonrpc: '2.0',
+      id: 7,
+      method: 'item/commandExecution/requestApproval',
+      params: { command: ['bun', 'test'], reason: 'run tests' },
+    };
+
+    expect(client.serverRequestHandler).toBeDefined();
+
+    const resultPromise = client.serverRequestHandler?.(request);
+    expect(manager.getConfirmations()).toEqual([
+      expect.objectContaining({
+        id: 'codex_native_7',
+        callId: 'codex_native_7',
+        action: 'exec',
+      }),
+    ]);
+
+    manager.confirm('codex_native_7', 'codex_native_7', 'allow_once');
+
+    await expect(resultPromise).resolves.toEqual({ decision: 'accept' });
+    expect(manager.getConfirmations()).toEqual([]);
 
     manager.kill();
   });

@@ -17,6 +17,7 @@ import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { CodexAppServerClient } from './CodexAppServerClient';
+import { CodexPermissionResolver } from './CodexPermissionResolver';
 import { CodexThreadSession } from './CodexThreadSession';
 
 export type CodexNativeAgentManagerData = {
@@ -37,6 +38,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   workspace: string;
   private readonly options: CodexNativeAgentManagerData;
   private readonly client: CodexAppServerClient;
+  private readonly permissionResolver: CodexPermissionResolver;
   private readonly session: CodexThreadSession;
   private started = false;
   private startPromise: Promise<void> | undefined;
@@ -55,6 +57,10 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       args: data.appServerCommand ? data.appServerArgs || [] : ['app-server', ...(data.appServerArgs || [])],
       cwd: this.workspace,
     });
+    this.permissionResolver = new CodexPermissionResolver({
+      addConfirmation: (confirmation) => this.addConfirmation(confirmation),
+    });
+    this.client.onServerRequest((request) => this.permissionResolver.handleRequest(request));
     this.unsubscribeClientFailure = this.client.onFailure(() => {
       this.started = false;
       this.startPromise = undefined;
@@ -156,6 +162,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
 
   confirm(msgId: string, callId: string, data: string): void {
     super.confirm(msgId, callId, data);
+    this.permissionResolver.resolve(callId, data);
   }
 
   kill(): void {
