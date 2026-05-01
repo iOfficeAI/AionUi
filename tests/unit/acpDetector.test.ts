@@ -10,6 +10,17 @@ const mockDetectExtensionAgents = vi.fn(async () => []);
 const mockDetectCustomAgents = vi.fn(async () => []);
 const mockClearEnvCache = vi.fn();
 const mockIsCliAvailable = vi.fn(() => false);
+const mockDetectNativeCodexAgents = vi.fn(() => [
+  {
+    id: 'codex',
+    name: 'Codex',
+    kind: 'codex',
+    backend: 'codex',
+    available: true,
+    cliPath: 'codex',
+    appServer: true,
+  },
+]);
 
 vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: {
@@ -18,6 +29,12 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
     detectCustomAgents: (...args: unknown[]) => mockDetectCustomAgents(...args),
     clearEnvCache: (...args: unknown[]) => mockClearEnvCache(...args),
     isCliAvailable: (...args: unknown[]) => mockIsCliAvailable(...args),
+  },
+}));
+
+vi.mock('@process/agent/codex/CodexNativeDetector', () => ({
+  codexNativeDetector: {
+    detect: (...args: unknown[]) => mockDetectNativeCodexAgents(...args),
   },
 }));
 
@@ -59,6 +76,17 @@ describe('AgentRegistry', () => {
     mockDetectExtensionAgents.mockResolvedValue([]);
     mockDetectCustomAgents.mockResolvedValue([]);
     mockIsCliAvailable.mockReturnValue(false);
+    mockDetectNativeCodexAgents.mockReturnValue([
+      {
+        id: 'codex',
+        name: 'Codex',
+        kind: 'codex',
+        backend: 'codex',
+        available: true,
+        cliPath: 'codex',
+        appServer: true,
+      },
+    ]);
   });
 
   describe('initialize', () => {
@@ -78,12 +106,13 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Aionrs always first, Gemini always second, then ACP agents
-      expect(agents).toHaveLength(4);
+      // Aionrs always first, Gemini second, native Codex third, then ACP agents
+      expect(agents).toHaveLength(5);
       expect(agents[0].backend).toBe('aionrs');
       expect(agents[1].backend).toBe('gemini');
-      expect(agents[2]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
-      expect(agents[3]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
+      expect(agents[2]).toMatchObject({ backend: 'codex', kind: 'codex', cliPath: 'codex' });
+      expect(agents[3]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
+      expect(agents[4]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
     });
 
     it('should skip built-in CLIs that are not available', async () => {
@@ -95,7 +124,7 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(3); // gemini + aionrs + claude
+      expect(agents).toHaveLength(4); // aionrs + gemini + native codex + claude
       expect(agents.find((a) => a.backend === 'qwen')).toBeUndefined();
       expect(agents.find((a) => a.backend === 'auggie')).toBeUndefined();
     });
@@ -105,9 +134,10 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // aionrs + gemini
+      expect(agents).toHaveLength(3); // aionrs + gemini + native codex
       expect(agents[0]).toMatchObject({ backend: 'aionrs', name: 'Aion CLI' });
       expect(agents[1]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
+      expect(agents[2]).toMatchObject({ backend: 'codex', kind: 'codex' });
     });
 
     it('should detect extension-contributed agents when CLI is available', async () => {
@@ -138,7 +168,7 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // gemini + aionrs
+      expect(agents).toHaveLength(3); // aionrs + gemini + native codex
     });
 
     it('should not run twice (isDetected guard)', async () => {
@@ -211,9 +241,10 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2);
+      expect(agents).toHaveLength(3);
       expect(agents[0].backend).toBe('aionrs');
       expect(agents[1].backend).toBe('gemini');
+      expect(agents[2]).toMatchObject({ backend: 'codex', kind: 'codex' });
     });
   });
 
@@ -313,7 +344,7 @@ describe('AgentRegistry', () => {
 
       expect(agents[0].backend).toBe('aionrs');
       expect(agents[1].backend).toBe('gemini');
-      expect(agents.slice(2).map((agent) => agent.backend)).toEqual(['claude', 'qwen']);
+      expect(agents.slice(2).map((agent) => agent.backend)).toEqual(['codex', 'claude', 'qwen']);
     });
 
     it('should clear env cache before re-detecting', async () => {
