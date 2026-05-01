@@ -40,6 +40,43 @@ export class CodexEventTranslator {
         const params = notification.params as { itemId?: string; delta?: string } | undefined;
         return [this.message('content', { content: params?.delta || '' }, true, params?.itemId || uuid())];
       }
+      case 'item/reasoning/summaryTextDelta':
+      case 'item/reasoning/textDelta': {
+        const params = asRecord(notification.params);
+        return [
+          this.message(
+            'thinking',
+            { content: readString(params?.delta) || '', status: 'thinking' },
+            true,
+            readString(params?.itemId) || 'codex_reasoning'
+          ),
+        ];
+      }
+      case 'turn/plan/updated':
+      case 'item/plan/delta': {
+        const planMessage = normalizePlanMessage(notification.params);
+        return [this.message('plan', planMessage.data, true, planMessage.msgId)];
+      }
+      case 'turn/diff/updated':
+        return [
+          this.message(
+            'codex_tool_call',
+            {
+              toolCallId: 'turn_diff',
+              status: 'success',
+              kind: 'execute',
+              subtype: 'turn_diff',
+              description: 'Turn diff',
+              data: normalizeTurnDiff(notification.params),
+            },
+            true,
+            'turn_diff'
+          ),
+        ];
+      case 'thread/tokenUsage/updated': {
+        const tokenUsage = readTokenUsageMetrics(notification.params);
+        return [this.message('acp_context_usage', { used: tokenUsage.used, size: tokenUsage.size }, false)];
+      }
       case 'item/started':
       case 'item/completed': {
         const itemEvent = this.translateItemLifecycle(notification);
@@ -278,6 +315,71 @@ function readString(value: unknown): string | undefined {
 
 function readNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+type NormalizedPlanStatus = 'pending' | 'in_progress' | 'completed';
+
+function normalizePlanMessage(params: unknown): {
+  msgId: string;
+  data: { sessionId: string; entries: Array<{ content: string; status: NormalizedPlanStatus }> };
+} {
+  const record = asRecord(params);
+  const msgId = readString(record?.turnId) || readString(record?.itemId) || 'codex_plan';
+  const plan = record?.plan;
+  if (Array.isArray(plan)) {
+    return {
+      msgId,
+      data: {
+        sessionId: msgId,
+        entries: plan
+          .map((entry) => asRecord(entry))
+          .filter((entry): entry is Record<string, unknown> => Boolean(entry))
+          .map((entry) => ({
+            content: readString(entry.step) || readString(entry.content) || readString(entry.text) || '',
+            status: normalizePlanStatus(entry.status),
+          })),
+      },
+    };
+  }
+
+  const delta = readString(record?.delta);
+  return {
+    msgId,
+    data: {
+      sessionId: msgId,
+      entries: delta ? [{ content: delta, status: 'pending' }] : [],
+    },
+  };
+}
+
+function normalizePlanStatus(value: unknown): NormalizedPlanStatus {
+  switch (readString(value)) {
+    case 'completed':
+      return 'completed';
+    case 'inProgress':
+    case 'in_progress':
+      return 'in_progress';
+    case 'pending':
+    default:
+      return 'pending';
+  }
+}
+
+function normalizeTurnDiff(params: unknown): { unified_diff: string } {
+  const record = asRecord(params);
+  return {
+    unified_diff: readString(record?.diff) || readString(record?.unifiedDiff) || readString(record?.unified_diff) || '',
+  };
+}
+
+function readTokenUsageMetrics(params: unknown): { used: number; size: number } {
+  const record = asRecord(params);
+  const tokenUsage = asRecord(record?.tokenUsage);
+  const total = asRecord(tokenUsage?.total);
+  return {
+    used: readNumber(total?.totalTokens) ?? readNumber(record?.totalTokens) ?? 0,
+    size: readNumber(tokenUsage?.modelContextWindow) ?? readNumber(record?.contextWindow) ?? 0,
+  };
 }
 
 function readStringArray(value: unknown): string[] {

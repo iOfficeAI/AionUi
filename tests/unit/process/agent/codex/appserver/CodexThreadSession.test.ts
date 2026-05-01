@@ -17,7 +17,7 @@ function createNotificationHarness(): {
       };
     },
     emitNotification: (notification) => {
-      for (const listener of [...listeners]) {
+      for (const listener of listeners) {
         listener(notification);
       }
     },
@@ -40,7 +40,7 @@ function createFailureHarness(): {
       };
     },
     emitFailure: (error) => {
-      for (const listener of [...listeners]) {
+      for (const listener of listeners) {
         listener(error);
       }
     },
@@ -89,6 +89,86 @@ describe('CodexThreadSession', () => {
     expect(request).toHaveBeenNthCalledWith(2, 'turn/start', expect.objectContaining({ threadId: 'thread-1' }));
     expect(messages).toContainEqual(expect.objectContaining({ type: 'start', conversation_id: 'conversation-1' }));
     expect(messages).toContainEqual(expect.objectContaining({ type: 'finish', conversation_id: 'conversation-1' }));
+  });
+
+  it('persists official nested token usage metadata from notifications', async () => {
+    const notifications = createNotificationHarness();
+    const failures = createFailureHarness();
+    const request = vi.fn().mockResolvedValueOnce({ thread: { id: 'thread-1' } });
+    const persistConversationExtra = vi.fn().mockResolvedValue(undefined);
+    const session = new CodexThreadSession({
+      client: {
+        request,
+        onNotification: notifications.onNotification,
+        onFailure: failures.onFailure,
+        onServerRequest: vi.fn(),
+      },
+      options: {
+        conversationId: 'conversation-1',
+        workspace: '/workspace',
+        approvalPolicy: 'on-request',
+        sandboxPolicy: 'workspace-write',
+      },
+      emitMessage: vi.fn(),
+      emitConfirmation: vi.fn(),
+      persistConversationExtra,
+    });
+
+    await session.start();
+    notifications.emitNotification({
+      jsonrpc: '2.0',
+      method: 'thread/tokenUsage/updated',
+      params: {
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+        tokenUsage: {
+          total: { totalTokens: 1200 },
+          last: { totalTokens: 200 },
+          modelContextWindow: 128000,
+        },
+      },
+    });
+
+    expect(persistConversationExtra).toHaveBeenLastCalledWith({
+      lastTokenUsage: { totalTokens: 1200 },
+      lastContextLimit: 128000,
+    });
+  });
+
+  it('persists zero token usage metadata when notification fields are missing', async () => {
+    const notifications = createNotificationHarness();
+    const failures = createFailureHarness();
+    const request = vi.fn().mockResolvedValueOnce({ thread: { id: 'thread-1' } });
+    const persistConversationExtra = vi.fn().mockResolvedValue(undefined);
+    const session = new CodexThreadSession({
+      client: {
+        request,
+        onNotification: notifications.onNotification,
+        onFailure: failures.onFailure,
+        onServerRequest: vi.fn(),
+      },
+      options: {
+        conversationId: 'conversation-1',
+        workspace: '/workspace',
+        approvalPolicy: 'on-request',
+        sandboxPolicy: 'workspace-write',
+      },
+      emitMessage: vi.fn(),
+      emitConfirmation: vi.fn(),
+      persistConversationExtra,
+    });
+
+    await session.start();
+    notifications.emitNotification({
+      jsonrpc: '2.0',
+      method: 'thread/tokenUsage/updated',
+      params: {},
+    });
+
+    expect(persistConversationExtra).toHaveBeenLastCalledWith({
+      lastTokenUsage: { totalTokens: 0 },
+      lastContextLimit: 0,
+    });
   });
 
   it('does not retain duplicate notification listeners after thread start fails and is retried', async () => {

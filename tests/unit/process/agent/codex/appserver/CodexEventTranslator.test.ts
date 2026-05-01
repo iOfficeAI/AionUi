@@ -2,6 +2,234 @@ import { describe, expect, it } from 'vitest';
 import { CodexEventTranslator } from '@/process/agent/codex/appserver/CodexEventTranslator';
 
 describe('CodexEventTranslator native tool events', () => {
+  it.each([
+    ['item/reasoning/summaryTextDelta', 'reason-1', 'Inspecting files'],
+    ['item/reasoning/textDelta', 'reason-2', 'Checking types'],
+  ])('maps %s to persisted thinking messages', (method, itemId, delta) => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method,
+      params: { itemId, delta },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'thinking',
+          conversation_id: 'conversation-1',
+          msg_id: itemId,
+          data: { content: delta, status: 'thinking' },
+        }),
+      }),
+    ]);
+  });
+
+  it('uses an empty thinking delta when reasoning params are missing', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/reasoning/summaryTextDelta',
+    });
+
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'thinking',
+          data: { content: '', status: 'thinking' },
+        }),
+      })
+    );
+  });
+
+  it('maps official turn plan updates to persisted plan messages', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'turn/plan/updated',
+      params: {
+        turnId: 'turn-1',
+        explanation: 'Need to verify native events',
+        plan: [
+          { step: 'Add tests', status: 'completed' },
+          { step: 'Implement translator', status: 'inProgress' },
+        ],
+      },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'plan',
+          conversation_id: 'conversation-1',
+          msg_id: 'turn-1',
+          data: {
+            sessionId: 'turn-1',
+            entries: [
+              { content: 'Add tests', status: 'completed' },
+              { content: 'Implement translator', status: 'in_progress' },
+            ],
+          },
+        }),
+      }),
+    ]);
+  });
+
+  it('maps plan deltas to persisted plan messages', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/plan/delta',
+      params: { itemId: 'plan-1', delta: '1. Inspect files' },
+    });
+
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'plan',
+          msg_id: 'plan-1',
+          data: {
+            sessionId: 'plan-1',
+            entries: [{ content: '1. Inspect files', status: 'pending' }],
+          },
+        }),
+      })
+    );
+  });
+
+  it('maps turn diff updates to persisted turn diff tool calls', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'turn/diff/updated',
+      params: { diff: 'diff --git a/file.ts b/file.ts\n' },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'codex_tool_call',
+          msg_id: 'turn_diff',
+          data: {
+            toolCallId: 'turn_diff',
+            subtype: 'turn_diff',
+            status: 'success',
+            kind: 'execute',
+            description: 'Turn diff',
+            data: { unified_diff: 'diff --git a/file.ts b/file.ts\n' },
+          },
+        }),
+      }),
+    ]);
+  });
+
+  it('maps official nested token usage updates to non-persisted context usage messages', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'thread/tokenUsage/updated',
+      params: {
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+        tokenUsage: {
+          total: { totalTokens: 1200 },
+          last: { totalTokens: 200 },
+          modelContextWindow: 128000,
+        },
+      },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: false,
+        message: expect.objectContaining({
+          type: 'acp_context_usage',
+          conversation_id: 'conversation-1',
+          data: { used: 1200, size: 128000 },
+        }),
+      }),
+    ]);
+  });
+
+  it('maps legacy top-level token usage updates to non-persisted context usage messages', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'thread/tokenUsage/updated',
+      params: { totalTokens: 1200, contextWindow: 128000 },
+    });
+
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: false,
+        message: expect.objectContaining({
+          type: 'acp_context_usage',
+          data: { used: 1200, size: 128000 },
+        }),
+      })
+    );
+  });
+
+  it('uses zero defaults for token usage updates with missing fields', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'thread/tokenUsage/updated',
+      params: {},
+    });
+
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        persist: false,
+        message: expect.objectContaining({
+          type: 'acp_context_usage',
+          data: { used: 0, size: 0 },
+        }),
+      })
+    );
+  });
+
+  it('keeps warnings as persisted error agent status messages', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'warning',
+      params: { message: 'low context' },
+    });
+
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'agent_status',
+          data: { status: 'error', warning: { message: 'low context' } },
+        }),
+      })
+    );
+  });
+
   it('maps command output deltas to codex tool call updates', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
