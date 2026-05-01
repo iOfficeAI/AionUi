@@ -310,10 +310,10 @@ export const useGuidAgentSelection = ({
   }, [acpCachedConfigOptions, currentConfigBackend, currentConfigBackendKey, currentModel]);
 
   // --- SWR: Fetch available agents ---
-  const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
+  const { data: availableAgentsData } = useSWR<AvailableAgent[]>('acp.agents.available', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (result.success) {
-      return result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
+      return (result.data as AvailableAgent[]).filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
     }
     return [];
   });

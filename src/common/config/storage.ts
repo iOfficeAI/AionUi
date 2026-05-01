@@ -351,6 +351,10 @@ export type TChatConversation =
           sessionMode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
+          /** Native Codex app-server conversation marker */
+          codexNative?: boolean;
+          /** Native Codex app-server thread ID */
+          codexThreadId?: string;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
           /** Cron job ID that spawned this conversation */

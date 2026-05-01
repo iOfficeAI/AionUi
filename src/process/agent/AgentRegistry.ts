@@ -5,9 +5,11 @@
  */
 
 import { acpDetector } from '@process/agent/acp/AcpDetector';
+import { codexNativeDetector } from '@process/agent/codex/CodexNativeDetector';
 import type {
   AcpDetectedAgent,
   AionrsDetectedAgent,
+  CodexDetectedAgent,
   DetectedAgent,
   GeminiDetectedAgent,
   NanobotDetectedAgent,
@@ -48,6 +50,7 @@ class AgentRegistry {
   private remoteAgents: RemoteDetectedAgent[] = [];
   private otherAgents: DetectedAgent[] = [];
   private customAgents: AcpDetectedAgent[] = [];
+  private nativeCodexAgents: CodexDetectedAgent[] = [];
 
   private createGeminiAgent(): GeminiDetectedAgent {
     return {
@@ -126,7 +129,7 @@ class AgentRegistry {
 
   /**
    * Deduplicate agents by backend ID. First occurrence wins — merge order
-   * determines priority: Aionrs > Gemini > Builtin > Other > Remote > Extension > Custom.
+   * determines priority: Aionrs > Gemini > Native Codex > Builtin > Other > Remote > Extension > Custom.
    * When an extension contributes the same backend as a builtin, the builtin wins.
    *
    * Remote and custom agents share their `backend` string but are individually
@@ -151,6 +154,7 @@ class AgentRegistry {
     this.detectedAgents = this.deduplicate([
       this.createAionrsAgent(),
       this.createGeminiAgent(),
+      ...this.nativeCodexAgents,
       ...this.builtinAgents,
       ...this.otherAgents,
       ...this.remoteAgents,
@@ -194,6 +198,7 @@ class AgentRegistry {
     this.extensionAgents = extensionAgents;
     this.remoteAgents = remoteAgents;
     this.customAgents = customAgents;
+    this.nativeCodexAgents = codexNativeDetector.detect();
     this.otherAgents = this.detectOtherCliAgents();
     this.merge();
   }
@@ -224,6 +229,14 @@ class AgentRegistry {
     return [...this.detectedAgents];
   }
 
+  getDetectedAgentForBackend(backend: string): DetectedAgent | undefined {
+    return this.detectedAgents.find((agent) => agent.backend === backend);
+  }
+
+  getDetectedAgentKindForBackend(backend: string): DetectedAgent['kind'] | undefined {
+    return this.getDetectedAgentForBackend(backend)?.kind;
+  }
+
   getAcpAgents(): AcpDetectedAgent[] {
     return this.detectedAgents.filter((a): a is AcpDetectedAgent => isAgentKind(a, 'acp'));
   }
@@ -241,13 +254,18 @@ class AgentRegistry {
       acpDetector.clearEnvCache();
 
       const oldBuiltins = this.builtinAgents.map((a) => a.backend);
+      const oldNativeCodex = this.nativeCodexAgents.map((a) => a.backend);
+      this.nativeCodexAgents = codexNativeDetector.detect();
       this.builtinAgents = await acpDetector.detectBuiltinAgents();
       this.otherAgents = this.detectOtherCliAgents();
       const newBuiltins = this.builtinAgents.map((a) => a.backend);
+      const newNativeCodex = this.nativeCodexAgents.map((a) => a.backend);
       this.merge();
 
-      const added = newBuiltins.filter((b) => !oldBuiltins.includes(b));
-      const removed = oldBuiltins.filter((b) => !newBuiltins.includes(b));
+      const oldDetected = [...oldNativeCodex, ...oldBuiltins];
+      const newDetected = [...newNativeCodex, ...newBuiltins];
+      const added = newDetected.filter((b) => !oldDetected.includes(b));
+      const removed = oldDetected.filter((b) => !newDetected.includes(b));
       if (added.length > 0 || removed.length > 0) {
         console.log(`[AgentRegistry] Builtin agents changed: +[${added.join(', ')}] -[${removed.join(', ')}]`);
       }

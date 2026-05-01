@@ -25,6 +25,7 @@ vi.mock('../../src/process/services/cron/cronServiceAccess', () => ({
 vi.mock('../../src/process/utils/initAgent', () => ({
   createGeminiAgent: vi.fn(async () => ({ id: 'gen-id', type: 'gemini', name: 'test', extra: {} })),
   createAcpAgent: vi.fn(async () => ({ id: 'acp-id', type: 'acp', name: 'test', extra: {} })),
+  createCodexAgent: vi.fn(async () => ({ id: 'codex-id', type: 'codex', name: 'test', extra: {} })),
   createOpenClawAgent: vi.fn(async () => ({ id: 'claw-id', type: 'openclaw-gateway', name: 'test', extra: {} })),
   createNanobotAgent: vi.fn(async () => ({ id: 'nano-id', type: 'nanobot', name: 'test', extra: {} })),
   createRemoteAgent: vi.fn(async () => ({ id: 'remote-id', type: 'remote', name: 'test', extra: {} })),
@@ -398,6 +399,31 @@ describe('ConversationServiceImpl.createConversation', () => {
     });
     expect(result.type).toBe('acp');
     expect(repo.createConversation).toHaveBeenCalledWith(expect.objectContaining({ type: 'acp' }));
+  });
+
+  it('creates and saves a native codex conversation', async () => {
+    const repo = makeRepo();
+    const svc = new ConversationServiceImpl(repo);
+    const result = await svc.createConversation({
+      type: 'codex',
+      model: {} as any,
+      extra: {
+        workspace: '/ws',
+        codexNative: true,
+        cliPath: '/usr/local/bin/codex',
+      },
+    });
+
+    expect(result.type).toBe('codex');
+    expect(repo.createConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'codex',
+        extra: expect.objectContaining({
+          codexNative: true,
+          cliPath: '/usr/local/bin/codex',
+        }),
+      })
+    );
   });
 
   it('throws for unknown conversation type', async () => {

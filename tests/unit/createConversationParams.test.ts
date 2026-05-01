@@ -10,10 +10,16 @@ import { resolveLocaleKey } from '../../src/common/utils';
 const loadPresetAssistantResources = vi.fn();
 const configGet = vi.fn();
 const getModelConfigInvoke = vi.fn();
+const getAvailableAgentsInvoke = vi.fn();
 const defaultCodexModels: Array<{ id: string; label: string }> = [];
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    acpConversation: {
+      getAvailableAgents: {
+        invoke: getAvailableAgentsInvoke,
+      },
+    },
     mode: {
       getModelConfig: {
         invoke: getModelConfigInvoke,
@@ -50,6 +56,7 @@ describe('createConversationParams', () => {
     loadPresetAssistantResources.mockReset();
     configGet.mockReset();
     getModelConfigInvoke.mockReset();
+    getAvailableAgentsInvoke.mockReset();
     defaultCodexModels.length = 0;
   });
 
@@ -116,6 +123,51 @@ describe('createConversationParams', () => {
     expect(params.type).toBe('acp');
     expect(params.extra.presetContext).toBe('acp preset rules');
     expect(params.extra.backend).toBe('codebuddy');
+  });
+
+  it('routes codex preset assistants through native codex when the detected codex agent is native', async () => {
+    loadPresetAssistantResources.mockResolvedValue({
+      rules: 'codex preset rules',
+      skills: '',
+      enabledSkills: ['reviewer'],
+    });
+    getAvailableAgentsInvoke.mockResolvedValue({
+      success: true,
+      data: [
+        {
+          id: 'codex',
+          backend: 'codex',
+          kind: 'codex',
+          name: 'Codex',
+          cliPath: '/native/codex',
+        },
+      ],
+    });
+
+    const params = await buildPresetAssistantParams(
+      {
+        backend: 'custom',
+        name: 'Codex Preset',
+        customAgentId: 'preset-codex',
+        isPreset: true,
+        presetAgentType: 'codex',
+      },
+      '/tmp/workspace',
+      'en'
+    );
+
+    expect(params.type).toBe('codex');
+    expect(params.extra).toEqual(
+      expect.objectContaining({
+        workspace: '/tmp/workspace',
+        codexNative: true,
+        cliPath: '/native/codex',
+        presetAssistantId: 'preset-codex',
+        presetContext: 'codex preset rules',
+        enabledSkills: ['reviewer'],
+      })
+    );
+    expect(params.extra.backend).toBeUndefined();
   });
 
   it('falls back to gemini-placeholder when no provider configured for gemini (preset)', async () => {

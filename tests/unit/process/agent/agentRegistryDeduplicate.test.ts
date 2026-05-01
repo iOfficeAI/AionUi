@@ -16,6 +16,7 @@ const mockDetectCustomAgents = vi.fn(async () => []);
 const mockClearEnvCache = vi.fn();
 const mockIsCliAvailable = vi.fn(() => false);
 const mockGetRemoteAgents = vi.fn(() => []);
+const mockDetectNativeCodex = vi.fn(() => []);
 
 vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: {
@@ -33,11 +34,21 @@ vi.mock('@process/services/database', () => ({
   }),
 }));
 
+vi.mock('@process/agent/codex/CodexNativeDetector', () => ({
+  codexNativeDetector: {
+    detect: (...args: unknown[]) => mockDetectNativeCodex(...args),
+  },
+}));
+
 // ---------------------------------------------------------------------------
 // Types & helpers
 // ---------------------------------------------------------------------------
 
-import type { AcpDetectedAgent, RemoteDetectedAgent } from '../../../../src/common/types/detectedAgent';
+import type {
+  AcpDetectedAgent,
+  CodexDetectedAgent,
+  RemoteDetectedAgent,
+} from '../../../../src/common/types/detectedAgent';
 
 function makeAcpAgent(opts: {
   id: string;
@@ -57,6 +68,18 @@ function makeAcpAgent(opts: {
     acpArgs: ['--acp'],
     isExtension: opts.isExtension,
     extensionName: opts.extensionName,
+  };
+}
+
+function makeCodexAgent(opts: { id?: string; cliPath?: string } = {}): CodexDetectedAgent {
+  return {
+    id: opts.id ?? 'codex',
+    name: 'Codex',
+    kind: 'codex',
+    available: true,
+    backend: 'codex',
+    cliPath: opts.cliPath ?? 'codex',
+    appServer: true,
   };
 }
 
@@ -88,6 +111,7 @@ describe('AgentRegistry.deduplicate', () => {
     mockDetectCustomAgents.mockResolvedValue([]);
     mockIsCliAvailable.mockReturnValue(false);
     mockGetRemoteAgents.mockReturnValue([]);
+    mockDetectNativeCodex.mockReturnValue([]);
   });
 
   it('keeps the first agent when two agents share the same backend', async () => {
@@ -194,6 +218,26 @@ describe('AgentRegistry.deduplicate', () => {
     // aionrs + gemini + codex
     expect(agents).toHaveLength(3);
     expect(agents[2]).toMatchObject({ id: 'codex', backend: 'codex' });
+  });
+
+  it('keeps native Codex before ACP Codex with the same backend', async () => {
+    mockDetectNativeCodex.mockReturnValue([makeCodexAgent({ cliPath: '/usr/bin/codex' })]);
+    mockDetectBuiltinAgents.mockResolvedValue([
+      makeAcpAgent({ id: 'codex-acp', name: 'Codex ACP', backend: 'codex', cliPath: '/usr/bin/codex-acp' }),
+    ]);
+
+    const registry = await createFreshRegistry();
+    await registry.initialize();
+    const agents = registry.getDetectedAgents();
+
+    const codexAgents = agents.filter((a) => a.backend === 'codex');
+    expect(codexAgents).toHaveLength(1);
+    expect(codexAgents[0]).toMatchObject({
+      id: 'codex',
+      kind: 'codex',
+      cliPath: '/usr/bin/codex',
+      appServer: true,
+    });
   });
 
   it('keeps multiple remote agents alongside a single non-remote backend', async () => {

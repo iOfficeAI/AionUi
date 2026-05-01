@@ -10,9 +10,17 @@ import type { IConversationService } from '../../../src/process/services/IConver
 import type { ITeamRepository } from '../../../src/process/team/repository/ITeamRepository';
 import type { TTeam, TeamAgent } from '../../../src/common/types/teamTypes';
 
-const { mockConfigGet, mockReadFile } = vi.hoisted(() => ({
+const { mockConfigGet, mockReadFile, mockDetectedAgents } = vi.hoisted(() => ({
   mockConfigGet: vi.fn(),
   mockReadFile: vi.fn(),
+  mockDetectedAgents: [] as Array<{
+    id: string;
+    backend: string;
+    kind: string;
+    name: string;
+    cliPath?: string;
+    appServer?: boolean;
+  }>,
 }));
 
 vi.mock('../../../src/process/utils/initStorage', () => ({
@@ -29,6 +37,17 @@ vi.mock('fs/promises', () => ({
   },
   readFile: mockReadFile,
   access: mockReadFile,
+}));
+
+vi.mock('../../../src/process/agent/AgentRegistry', () => ({
+  agentRegistry: {
+    getDetectedAgentForBackend: vi.fn((backend: string) =>
+      mockDetectedAgents.find((agent) => agent.backend === backend)
+    ),
+    getDetectedAgentKindForBackend: vi.fn(
+      (backend: string) => mockDetectedAgents.find((agent) => agent.backend === backend)?.kind
+    ),
+  },
 }));
 
 import { TeamSessionService } from '../../../src/process/team/TeamSessionService';
@@ -93,6 +112,7 @@ function makeAgent(overrides: Partial<TeamAgent> = {}): TeamAgent {
 describe('TeamSessionService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockDetectedAgents.length = 0;
   });
 
   it('resolves a real gemini model instead of an empty placeholder', async () => {
@@ -258,6 +278,58 @@ describe('TeamSessionService', () => {
           remoteAgentId: 'remote-agent-id',
           teamId: expect.any(String),
         }),
+      })
+    );
+  });
+
+  it('creates native codex team conversations when native codex is the detected backend', async () => {
+    mockConfigGet.mockResolvedValue(undefined);
+    mockDetectedAgents.push({
+      id: 'codex',
+      backend: 'codex',
+      kind: 'codex',
+      name: 'Codex',
+      cliPath: '/native/codex',
+      appServer: true,
+    });
+
+    const repo = makeRepo();
+    const conversationService = makeConversationService({
+      createConversation: vi.fn().mockResolvedValue({ id: 'conv-codex', extra: {} }),
+    });
+    const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
+
+    const team = await service.createTeam({
+      userId: 'user-1',
+      name: 'Team Codex',
+      workspace: '/workspace',
+      workspaceMode: 'shared',
+      agents: [
+        makeAgent({
+          agentType: 'codex',
+          agentName: 'Codex',
+          conversationType: 'acp',
+        }),
+      ],
+    });
+
+    expect(conversationService.createConversation).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'codex',
+        extra: expect.objectContaining({
+          workspace: '/workspace',
+          teamId: expect.any(String),
+          codexNative: true,
+          cliPath: '/native/codex',
+        }),
+      })
+    );
+    const callArgs = (conversationService.createConversation as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(callArgs.extra.backend).toBeUndefined();
+    expect(team.agents[0]).toEqual(
+      expect.objectContaining({
+        conversationId: 'conv-codex',
+        conversationType: 'codex',
       })
     );
   });
@@ -492,5 +564,58 @@ describe('TeamSessionService', () => {
         updatedAt: expect.any(Number),
       })
     );
+  });
+
+  it('repairs native codex team conversations when the agents array was lost', async () => {
+    const legacyTeam: TTeam = {
+      id: 'team-native-codex',
+      userId: 'user-1',
+      name: 'Native Codex Team',
+      workspace: '',
+      workspaceMode: 'shared',
+      leaderAgentId: 'slot-lead',
+      agents: [],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const nativeConversation: TChatConversation = {
+      id: 'conv-native-codex',
+      name: 'Native Codex Team - Leader',
+      type: 'codex',
+      status: 'pending',
+      createTime: 1,
+      modifyTime: 2,
+      extra: {
+        codexNative: true,
+        cliPath: '/native/codex',
+        agentName: 'Leader',
+        teamId: 'team-native-codex',
+        teamMcpStdioConfig: {
+          env: [{ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-lead' }],
+        },
+      },
+    };
+
+    const repo = makeRepo({
+      findById: vi.fn().mockResolvedValue(legacyTeam),
+    });
+    const conversationService = makeConversationService({
+      listAllConversations: vi.fn().mockResolvedValue([nativeConversation]),
+    });
+    const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, conversationService);
+
+    const repairedTeam = await service.getTeam('team-native-codex');
+
+    expect(repairedTeam?.agents).toEqual([
+      expect.objectContaining({
+        slotId: 'slot-lead',
+        conversationId: 'conv-native-codex',
+        role: 'leader',
+        agentType: 'codex',
+        agentName: 'Leader',
+        conversationType: 'codex',
+        cliPath: '/native/codex',
+      }),
+    ]);
   });
 });

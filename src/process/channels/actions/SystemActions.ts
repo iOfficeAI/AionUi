@@ -46,7 +46,7 @@ import type { ChannelAgentType, PluginType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
-import { buildChannelConversationExtra } from '../utils';
+import { buildChannelConversationExtra, buildChannelCreateConversationParams } from '../utils';
 
 /**
  * Get the default model for Channel assistant (Telegram/Lark)
@@ -285,7 +285,9 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   // Always create a NEW conversation for "session.new" (scoped by chatId)
   const channelChatId = context.chatId;
-  const { convType, convBackend } = resolveChannelConvType(backend);
+  const detectedAgent = agentRegistry.getDetectedAgentForBackend(backend);
+  const detectedCliPath = detectedAgent && 'cliPath' in detectedAgent ? detectedAgent.cliPath : undefined;
+  const { convType, convBackend } = resolveChannelConvType(backend, detectedAgent?.kind);
   const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
   const conversationExtra = buildChannelConversationExtra({
     platform,
@@ -296,52 +298,18 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   let newConversation: TChatConversation;
   try {
-    if (backend === 'gemini') {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'gemini',
+    newConversation = await conversationServiceSingleton.createConversation(
+      buildChannelCreateConversationParams({
+        backend,
+        detectedAgentKind: detectedAgent?.kind,
+        detectedCliPath,
         model,
         source,
         name,
         channelChatId,
         extra: conversationExtra,
-      });
-    } else if (backend === 'aionrs') {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'aionrs',
-        model,
-        source,
-        name,
-        channelChatId,
-        extra: conversationExtra,
-      });
-    } else if (backend === 'codex') {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'acp',
-        model,
-        source,
-        name,
-        channelChatId,
-        extra: { ...conversationExtra, backend: 'codex' },
-      });
-    } else if (backend === 'openclaw-gateway') {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'openclaw-gateway',
-        model,
-        source,
-        name,
-        channelChatId,
-        extra: conversationExtra,
-      });
-    } else {
-      newConversation = await conversationServiceSingleton.createConversation({
-        type: 'acp',
-        model,
-        source,
-        name,
-        channelChatId,
-        extra: conversationExtra,
-      });
-    }
+      })
+    );
   } catch (error) {
     return createErrorResponse(`Failed to create session: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }

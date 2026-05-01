@@ -101,7 +101,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         status: 'pending',
         agentType: dispatchAgentType,
         agentName: 'Leader',
-        conversationType: resolveConversationType(dispatchAgentType),
+        conversationType: resolveConversationType(dispatchAgentType, dispatchAgent?.kind),
         cliPath: dispatchAgent?.cliPath,
         customAgentId: dispatchAgent?.customAgentId,
       });

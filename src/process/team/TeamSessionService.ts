@@ -6,6 +6,7 @@ import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import {
   loadPresetAssistantResources,
   type PresetAssistantResourceDeps,
@@ -15,6 +16,7 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IConversationService } from '@process/services/IConversationService';
 import type { AgentType } from '@process/task/agentTypes';
 import type { AgentBackend } from '@/common/types/acpTypes';
+import type { DetectedAgent, DetectedAgentKind } from '@/common/types/detectedAgent';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getAssistantsDir } from '@process/utils/initStorage';
@@ -153,11 +155,12 @@ export class TeamSessionService {
 
   private async resolveConversationModel(params: {
     backend: string;
+    agentKind?: DetectedAgentKind;
     isPreset: boolean;
     presetAgentType?: string;
   }): Promise<TProviderWithModel> {
-    const { backend, isPreset, presetAgentType } = params;
-    const type = getConversationTypeForBackend(isPreset ? presetAgentType || backend : backend);
+    const { backend, agentKind, isPreset, presetAgentType } = params;
+    const type = getConversationTypeForBackend(isPreset ? presetAgentType || backend : backend, agentKind);
 
     if (type === 'gemini') {
       try {
@@ -172,6 +175,10 @@ export class TeamSessionService {
     }
 
     return {} as TProviderWithModel;
+  }
+
+  private resolveDetectedAgentForBackend(backend: string): DetectedAgent | undefined {
+    return agentRegistry.getDetectedAgentForBackend(backend);
   }
 
   private async resolvePreferredAcpModelId(agentType: string): Promise<string | undefined> {
@@ -293,22 +300,29 @@ export class TeamSessionService {
   }> {
     const { teamId, teamName, workspace, agent, agents, inheritedSessionMode, isInheritedWorkspace } = params;
     const backend = this.resolveBackend(agent.agentType, agents) as AgentBackend;
+    const detectedAgent = this.resolveDetectedAgentForBackend(backend);
+    const agentKind = detectedAgent?.kind;
+    const detectedCliPath =
+      'cliPath' in (detectedAgent || {}) ? (detectedAgent as { cliPath?: string }).cliPath : undefined;
     // remote agents use customAgentId as remoteAgentId, not as a preset indicator
     const isPreset = Boolean(agent.customAgentId) && backend !== 'remote';
     const preferredModelId =
       agent.model ||
-      (getConversationTypeForBackend(backend) === 'acp' ? await this.resolvePreferredAcpModelId(backend) : undefined);
+      (getConversationTypeForBackend(backend, agentKind) === 'acp'
+        ? await this.resolvePreferredAcpModelId(backend)
+        : undefined);
     const presetResources =
       isPreset && agent.customAgentId ? await this.loadPresetResources(agent.customAgentId) : undefined;
     let model = await this.resolveConversationModel({
       backend,
+      agentKind,
       isPreset,
       presetAgentType: isPreset ? backend : undefined,
     });
 
     // Override useModel for Gemini/Aionrs when agent has an explicit model
     if (agent.model) {
-      const type = getConversationTypeForBackend(backend);
+      const type = getConversationTypeForBackend(backend, agentKind);
       if (type === 'gemini' || type === 'aionrs') {
         model = { ...model, useModel: agent.model };
       }
@@ -316,12 +330,13 @@ export class TeamSessionService {
 
     return buildAgentConversationParams({
       backend,
+      agentKind,
       name: `${teamName} - ${agent.agentName}`,
       agentName: agent.agentName,
       workspace,
       customWorkspace: Boolean(workspace) && !isInheritedWorkspace,
       model,
-      cliPath: agent.cliPath,
+      cliPath: agent.cliPath || detectedCliPath,
       customAgentId: agent.customAgentId,
       isPreset,
       presetAgentType: isPreset ? backend : undefined,
@@ -355,6 +370,8 @@ export class TeamSessionService {
         return 'remote';
       case 'nanobot':
         return 'nanobot';
+      case 'codex':
+        return 'codex';
       case 'openclaw-gateway':
         return (conversation.extra as { backend?: string } | undefined)?.backend || 'openclaw-gateway';
       case 'acp':
@@ -506,7 +523,7 @@ export class TeamSessionService {
               { extra: extraUpdate } as any,
               true
             );
-            return { ...agent, slotId, conversationId: agent.conversationId };
+            return { ...agent, slotId, conversationId: agent.conversationId, conversationType: existing.type };
           }
           // Fall through to create new if conversation was not found
         }
@@ -524,7 +541,12 @@ export class TeamSessionService {
         // Ensure teamId is in extra regardless of which factory function was used
         // (some factories like createCodexAgent/createGeminiAgent drop unknown extra fields)
         await this.conversationService.updateConversation(conversation.id, { extra: { teamId } } as any, true);
-        return { ...agent, slotId, conversationId: conversation.id };
+        return {
+          ...agent,
+          slotId,
+          conversationId: conversation.id,
+          conversationType: conversation.type || conversationParams.type,
+        };
       })
     );
 
@@ -668,6 +690,7 @@ export class TeamSessionService {
       agentType: this.resolveBackend(agent.agentType, team.agents),
       slotId: `slot-${uuid(8)}`,
       conversationId: conversation.id,
+      conversationType: conversation.type || conversationParams.type,
     };
     const updatedAgents = [...team.agents, newAgent];
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
@@ -684,13 +707,10 @@ export class TeamSessionService {
   }
 
   private resolveConversationType(agentType: string): AgentType {
-    if (agentType === 'gemini') return 'gemini';
-    if (agentType === 'aionrs') return 'aionrs';
-    if (agentType === 'codex') return 'acp';
-    if (agentType === 'openclaw-gateway') return 'openclaw-gateway';
-    if (agentType === 'nanobot') return 'nanobot';
-    if (agentType === 'remote') return 'remote';
-    return 'acp';
+    return getConversationTypeForBackend(
+      agentType,
+      agentRegistry.getDetectedAgentKindForBackend(agentType)
+    ) as AgentType;
   }
 
   async renameAgent(teamId: string, slotId: string, newName: string): Promise<void> {
@@ -770,7 +790,7 @@ export class TeamSessionService {
         agentType: resolvedType,
         agentName,
         status: 'pending',
-        conversationType: this.resolveConversationType(resolvedType) as 'acp',
+        conversationType: this.resolveConversationType(resolvedType),
         model,
         customAgentId,
       });

@@ -160,6 +160,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       try {
         const geminiConversationParams = buildAgentConversationParams({
           backend: 'gemini',
+          agentKind: agentInfo?.kind,
           name: input,
           agentName: agentInfo?.name,
           presetAssistantId,
@@ -223,6 +224,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
       const openclawConversationParams = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
+        agentKind: openclawAgentInfo?.kind,
         name: input,
         agentName: openclawAgentInfo?.name,
         presetAssistantId,
@@ -282,6 +284,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const nanobotAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
       const nanobotConversationParams = buildAgentConversationParams({
         backend: nanobotAgentInfo?.backend || 'nanobot',
+        agentKind: nanobotAgentInfo?.kind,
         name: input,
         agentName: nanobotAgentInfo?.name,
         presetAssistantId,
@@ -402,6 +405,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const agentBackend = acpBackend || selectedAgent;
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
+        agentKind: acpAgentInfo?.kind,
         name: input,
         agentName: acpAgentInfo?.name,
         presetAssistantId,

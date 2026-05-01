@@ -5,6 +5,7 @@
  */
 
 import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 
 /**
  * Available agent entry returned by the backend.
@@ -13,6 +14,7 @@ import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
  */
 export type AvailableAgent = {
   backend: string;
+  kind?: DetectedAgentKind;
   name: string;
   cliPath?: string;
   customAgentId?: string;

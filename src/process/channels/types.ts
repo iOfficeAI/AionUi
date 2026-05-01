@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
+
 // ==================== Plugin Types ====================
 
 /**
@@ -563,11 +565,16 @@ export function isChannelPlatform(value: string): value is ChannelPlatform {
  * Resolve a backend string to conversation type and optional backend qualifier.
  * Centralizes the backend → convType mapping used across channels.
  */
-export function resolveChannelConvType(backend: string): {
+export function resolveChannelConvType(
+  backend: string,
+  detectedAgentKind?: DetectedAgentKind
+): {
   convType: string;
   convBackend?: string;
 } {
-  if (backend === 'codex') return { convType: 'codex' };
+  if (backend === 'codex') {
+    return detectedAgentKind === 'codex' ? { convType: 'codex' } : { convType: 'acp', convBackend: 'codex' };
+  }
   if (backend === 'gemini') return { convType: 'gemini' };
   if (backend === 'aionrs') return { convType: 'aionrs' };
   if (backend === 'openclaw-gateway') return { convType: 'openclaw-gateway' };

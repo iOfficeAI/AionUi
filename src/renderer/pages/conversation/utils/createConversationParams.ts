@@ -9,6 +9,7 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { normalizeCodexConfigOptions, normalizeCodexConfigOptionValues } from '@/common/types/codex/codexConfigOptions';
 import { resolveAvailableModel, resolveLocaleKey } from '@/common/utils';
@@ -100,6 +101,18 @@ type ConversationAionrsConfigExtra = {
   sessionMode?: string;
   reasoningEffort?: string;
 };
+
+function isDetectedAgentKind(kind: unknown): kind is DetectedAgentKind {
+  return (
+    kind === 'gemini' ||
+    kind === 'acp' ||
+    kind === 'remote' ||
+    kind === 'aionrs' ||
+    kind === 'openclaw-gateway' ||
+    kind === 'nanobot' ||
+    kind === 'codex'
+  );
+}
 
 function getConversationAcpBackend(conversation: TChatConversation): string | undefined {
   if (conversation.type === 'codex') {
@@ -241,6 +254,27 @@ async function resolvePreferredAionrsConfigSelection(): Promise<Partial<ICreateC
   return reasoningEffort ? { reasoningEffort } : {};
 }
 
+async function resolveDetectedAgentForBackend(
+  backend: string
+): Promise<Pick<AvailableAgent, 'kind' | 'cliPath'> | undefined> {
+  try {
+    const response = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    if (!response.success) {
+      return undefined;
+    }
+    const agent = response.data?.find((item) => item.backend === backend);
+    if (!agent) {
+      return undefined;
+    }
+    return {
+      kind: isDetectedAgentKind(agent.kind) ? agent.kind : undefined,
+      cliPath: agent.cliPath,
+    };
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Get a model from configured providers that is compatible with aionrs.
  * aionrs supports all platforms via OpenAI-compatible protocol.
@@ -351,7 +385,7 @@ export async function buildCliAgentParams(
   agent: AvailableAgent,
   workspace: string
 ): Promise<ICreateConversationParams> {
-  const type = getConversationTypeForBackend(agent.backend);
+  const type = getConversationTypeForBackend(agent.backend, agent.kind);
   const preferredMode = await resolvePreferredMode(agent.backend);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
   const preferredAcpConfigSelection =
@@ -370,6 +404,7 @@ export async function buildCliAgentParams(
 
   return buildAgentConversationParams({
     backend: agent.backend,
+    agentKind: agent.kind,
     name: agent.name,
     agentName: agent.name,
     workspace,
@@ -394,6 +429,9 @@ export async function buildPresetAssistantParams(
   language: string
 ): Promise<ICreateConversationParams> {
   const { customAgentId, presetAgentType = 'gemini' } = agent;
+  const detectedAgent = agent.kind ? undefined : await resolveDetectedAgentForBackend(presetAgentType);
+  const agentKind = agent.kind || detectedAgent?.kind;
+  const cliPath = agent.cliPath || detectedAgent?.cliPath;
 
   // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
@@ -403,7 +441,7 @@ export async function buildPresetAssistantParams(
     localeKey,
   });
 
-  const type = getConversationTypeForBackend(presetAgentType);
+  const type = getConversationTypeForBackend(presetAgentType, agentKind);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
   const preferredAcpConfigSelection =
@@ -412,9 +450,11 @@ export async function buildPresetAssistantParams(
 
   return buildAgentConversationParams({
     backend: agent.backend,
+    agentKind,
     name: agent.name,
     agentName: agent.name,
     workspace,
+    cliPath,
     customAgentId,
     isPreset: true,
     presetAgentType,

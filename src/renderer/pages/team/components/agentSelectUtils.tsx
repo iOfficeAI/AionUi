@@ -4,6 +4,7 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AvailableAgent } from '@renderer/utils/model/agentTypes';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
 
 export function agentKey(agent: AvailableAgent): string {
@@ -30,11 +31,12 @@ export function filterTeamSupportedAgents(
 }
 
 export function resolveConversationType(
-  backend: string
+  backend: string,
+  agentKind?: DetectedAgentKind
 ): 'gemini' | 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
   if (backend === 'gemini') return 'gemini';
   if (backend === 'aionrs') return 'aionrs';
-  if (backend === 'codex') return 'acp';
+  if (backend === 'codex') return agentKind === 'codex' ? 'codex' : 'acp';
   if (backend === 'openclaw-gateway') return 'openclaw-gateway';
   if (backend === 'nanobot') return 'nanobot';
   if (backend === 'remote') return 'remote';

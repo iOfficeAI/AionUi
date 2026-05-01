@@ -7,6 +7,7 @@
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
@@ -16,6 +17,7 @@ export type BuildAgentConversationPresetResources = {
 
 export type BuildAgentConversationInput = {
   backend: string;
+  agentKind?: DetectedAgentKind;
   name: string;
   agentName?: string;
   presetAssistantId?: string;
@@ -32,7 +34,14 @@ export type BuildAgentConversationInput = {
   extra?: Partial<ICreateConversationParams['extra']>;
 };
 
-export function getConversationTypeForBackend(backend: string): ICreateConversationParams['type'] {
+export function getConversationTypeForBackend(
+  backend: string,
+  agentKind?: DetectedAgentKind
+): ICreateConversationParams['type'] {
+  if (backend === 'codex' && agentKind === 'codex') {
+    return 'codex';
+  }
+
   switch (backend) {
     case 'gemini':
       return 'gemini';
@@ -53,6 +62,7 @@ export function getConversationTypeForBackend(backend: string): ICreateConversat
 export function buildAgentConversationParams(input: BuildAgentConversationInput): ICreateConversationParams {
   const {
     backend,
+    agentKind,
     name,
     agentName,
     presetAssistantId,
@@ -71,7 +81,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   const effectivePresetType = presetAgentType || backend;
   const effectivePresetAssistantId = presetAssistantId || customAgentId;
-  const type = getConversationTypeForBackend(isPreset ? effectivePresetType : backend);
+  const type = getConversationTypeForBackend(isPreset ? effectivePresetType : backend, agentKind);
   const extra: ICreateConversationParams['extra'] = {
     workspace,
     customWorkspace,
@@ -84,12 +94,19 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra.presetAssistantId = effectivePresetAssistantId;
     if (type === 'gemini') {
       extra.presetRules = presetResources?.rules;
+    } else if (type === 'codex') {
+      extra.presetContext = presetResources?.rules;
+      extra.codexNative = true;
+      if (cliPath) extra.cliPath = cliPath;
     } else {
       extra.presetContext = presetResources?.rules;
       if (type === 'acp') {
         extra.backend = effectivePresetType as AcpBackend;
       }
     }
+  } else if (type === 'codex') {
+    extra.codexNative = true;
+    if (cliPath) extra.cliPath = cliPath;
   } else if (type === 'remote') {
     extra.remoteAgentId = customAgentId;
   } else if (type === 'acp' || type === 'openclaw-gateway') {

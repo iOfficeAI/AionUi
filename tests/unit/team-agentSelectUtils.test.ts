@@ -48,6 +48,10 @@ describe('resolveConversationType', () => {
     expect(resolveConversationType('codex')).toBe('acp');
   });
 
+  it('maps native codex detected agents to codex', () => {
+    expect(resolveConversationType('codex', 'codex')).toBe('codex');
+  });
+
   it('maps openclaw-gateway to openclaw-gateway', () => {
     expect(resolveConversationType('openclaw-gateway')).toBe('openclaw-gateway');
   });

@@ -1078,6 +1078,10 @@ export interface ICreateConversationParams {
     sessionMode?: string;
     /** User-selected Codex model from Guid page */
     codexModel?: string;
+    /** Native Codex app-server conversation marker */
+    codexNative?: boolean;
+    /** Native Codex app-server thread ID */
+    codexThreadId?: string;
     /** Pre-selected ACP model from Guid page (cached model list) */
     currentModelId?: string;
     /** Persisted ACP config options for resume support and callback-driven reapply */

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 
 /** SWR key for detected execution engines (from AgentRegistry). */
 export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
@@ -16,6 +17,7 @@ export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
  */
 export type AvailableAgent = {
   backend: string;
+  kind?: DetectedAgentKind;
   name: string;
   cliPath?: string;
   customAgentId?: string;

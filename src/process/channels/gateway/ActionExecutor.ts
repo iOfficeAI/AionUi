@@ -9,6 +9,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation } from '@/common/config/storage';
 import { getDatabase } from '@process/services/database';
 import { ProcessConfig } from '@process/utils/initStorage';
+import { agentRegistry } from '@process/agent/AgentRegistry';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
@@ -34,7 +35,11 @@ import { escapeHtml, markdownToTelegramHtml } from '../plugins/telegram/Telegram
 import { stripHtml } from '../plugins/weixin/WeixinAdapter';
 import type { ChannelAgentType, IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
-import { buildChannelConversationExtra, resolveChannelSendProtocol } from '../utils';
+import {
+  buildChannelConversationExtra,
+  buildChannelCreateConversationParams,
+  resolveChannelSendProtocol,
+} from '../utils';
 import i18n from '@process/services/i18n';
 
 // ==================== Platform-specific Helpers ====================
@@ -446,7 +451,9 @@ export class ActionExecutor {
         const model = await getChannelDefaultModel(platform);
 
         // Map backend to conversation type for lookup
-        const { convType, convBackend } = resolveChannelConvType(backend);
+        const detectedAgent = agentRegistry.getDetectedAgentForBackend(backend);
+        const detectedCliPath = detectedAgent && 'cliPath' in detectedAgent ? detectedAgent.cliPath : undefined;
+        const { convType, convBackend } = resolveChannelConvType(backend, detectedAgent?.kind);
         const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
         const conversationExtra = buildChannelConversationExtra({
           platform,
@@ -463,52 +470,18 @@ export class ActionExecutor {
         let sessionConversation: TChatConversation | null = existing ?? null;
         if (!sessionConversation) {
           try {
-            if (backend === 'gemini') {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'gemini',
+            sessionConversation = await conversationServiceSingleton.createConversation(
+              buildChannelCreateConversationParams({
+                backend,
+                detectedAgentKind: detectedAgent?.kind,
+                detectedCliPath,
                 model,
                 name: conversationName,
                 source,
                 channelChatId: chatId,
                 extra: conversationExtra,
-              });
-            } else if (backend === 'aionrs') {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'aionrs',
-                model,
-                name: conversationName,
-                source,
-                channelChatId: chatId,
-                extra: conversationExtra,
-              });
-            } else if (backend === 'codex') {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'acp',
-                model,
-                name: conversationName,
-                source,
-                channelChatId: chatId,
-                extra: { ...conversationExtra, backend: 'codex' },
-              });
-            } else if (backend === 'openclaw-gateway') {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'openclaw-gateway',
-                model,
-                name: conversationName,
-                source,
-                channelChatId: chatId,
-                extra: conversationExtra,
-              });
-            } else {
-              sessionConversation = await conversationServiceSingleton.createConversation({
-                type: 'acp',
-                model,
-                name: conversationName,
-                source,
-                channelChatId: chatId,
-                extra: conversationExtra,
-              });
-            }
+              })
+            );
           } catch (error) {
             console.error(`[ActionExecutor] Failed to create conversation:`, error);
             await context.sendMessage({
@@ -521,11 +494,10 @@ export class ActionExecutor {
         }
 
         if (sessionConversation) {
-          const { convType: agentType } = resolveChannelConvType(backend);
           session = await this.sessionManager.createSessionWithConversation(
             channelUser,
             sessionConversation.id,
-            agentType as ChannelAgentType,
+            convType as ChannelAgentType,
             undefined,
             chatId
           );

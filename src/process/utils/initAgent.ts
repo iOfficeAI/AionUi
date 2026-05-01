@@ -302,6 +302,47 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   };
 };
 
+export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const persistedCliPath = await resolveBuiltinCliPath('codex', extra.cliPath);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
+    `codex-temp-${Date.now()}`,
+    extra.workspace,
+    extra.defaultFiles,
+    extra.customWorkspace
+  );
+
+  if (!customWorkspace) {
+    await setupAssistantWorkspace(workspace, {
+      backend: 'codex',
+      enabledSkills: extra.enabledSkills,
+      extraSkillPaths: extra.extraSkillPaths,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
+    });
+  }
+
+  return {
+    type: 'codex',
+    extra: {
+      workspace,
+      customWorkspace,
+      cliPath: persistedCliPath,
+      codexNative: true,
+      codexThreadId: extra.codexThreadId,
+      presetContext: extra.presetContext,
+      enabledSkills: extra.enabledSkills,
+      presetAssistantId: extra.presetAssistantId,
+      sessionMode: extra.sessionMode,
+      codexModel: extra.codexModel,
+      isHealthCheck: extra.isHealthCheck,
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  };
+};
+
 export const createNanobotAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(

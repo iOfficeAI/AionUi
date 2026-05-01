@@ -12,6 +12,7 @@ import { getCronService } from './cron/cronServiceAccess';
 import {
   createGeminiAgent,
   createAcpAgent,
+  createCodexAgent,
   createOpenClawAgent,
   createNanobotAgent,
   createRemoteAgent,
@@ -149,6 +150,10 @@ export class ConversationServiceImpl implements IConversationService {
       }
       case 'acp': {
         conversation = await createAcpAgent(params as any);
+        break;
+      }
+      case 'codex': {
+        conversation = await createCodexAgent(params as any);
         break;
       }
       case 'openclaw-gateway': {

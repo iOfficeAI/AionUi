@@ -131,20 +131,15 @@ export function initConversationBridge(
       return undefined as unknown as TChatConversation;
     }
     try {
-      // Codex now runs through AcpAgentManager — remap type to 'acp' with backend hint
-      const createParams =
-        params.type === 'codex'
-          ? { ...params, type: 'acp' as const, extra: { ...params.extra, backend: 'codex' as const } }
-          : params;
       const conversation = await conversationService.createConversation({
-        ...createParams,
+        ...params,
         source: 'aionui',
       } as CreateConversationParams);
 
       // Discover and persist loaded skills snapshot at creation time
       // so the UI can display them immediately without waiting for the first message.
       try {
-        const extra = createParams.extra as {
+        const extra = params.extra as {
           enabledSkills?: string[];
           excludeBuiltinSkills?: string[];
         };

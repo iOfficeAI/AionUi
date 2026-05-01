@@ -19,6 +19,7 @@ const useOpenClawDraft = getSendBoxDraftHook('openclaw-gateway', {
 const useNanobotDraft = getSendBoxDraftHook('nanobot', { _type: 'nanobot', atPath: [], content: '', uploadFile: [] });
 const useRemoteDraft = getSendBoxDraftHook('remote', { _type: 'remote', atPath: [], content: '', uploadFile: [] });
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
+const useCodexDraft = getSendBoxDraftHook('codex', { _type: 'codex', atPath: [], content: '', uploadFile: [] });
 
 type Props = {
   conversationId: string;
@@ -38,8 +39,6 @@ const SUGGESTION_DEFAULTS: Record<string, string> = {
 
 /** Map a conversation.type onto a DetectedAgentKind so draft hooks stay exhaustive. */
 const toDetectedKind = (type: TChatConversation['type']): DetectedAgentKind => {
-  // Codex conversations are rendered via the ACP pipeline and share the acp draft store.
-  if (type === 'codex') return 'acp';
   return type;
 };
 
@@ -82,8 +81,10 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversationId }) => {
   const nanobotDraft = useNanobotDraft(conversationId);
   const remoteDraft = useRemoteDraft(conversationId);
   const openClawDraft = useOpenClawDraft(conversationId);
+  const codexDraft = useCodexDraft(conversationId);
   const setContentByKind = {
     acp: (text: string) => acpDraft.mutate((prev) => ({ ...prev, content: text })),
+    codex: (text: string) => codexDraft.mutate((prev) => ({ ...prev, content: text })),
     gemini: (text: string) => geminiDraft.mutate((prev) => ({ ...prev, content: text })),
     aionrs: (text: string) => aionrsDraft.mutate((prev) => ({ ...prev, content: text })),
     nanobot: (text: string) => nanobotDraft.mutate((prev) => ({ ...prev, content: text })),

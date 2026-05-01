@@ -10,9 +10,21 @@ import { describe, expect, it } from 'vitest';
 import {
   getChannelEnabledSkills,
   buildChannelConversationExtra,
+  buildChannelCreateConversationParams,
 } from '../../src/process/channels/utils/channelConversation';
+import { resolveChannelConvType } from '../../src/process/channels/types';
 
 describe('channelConversation real functions', () => {
+  describe('resolveChannelConvType', () => {
+    it('uses native codex conversation lookup only when detected codex is native', () => {
+      expect(resolveChannelConvType('codex', 'codex')).toEqual({ convType: 'codex' });
+    });
+
+    it('uses ACP codex lookup for codex fallback', () => {
+      expect(resolveChannelConvType('codex', 'acp')).toEqual({ convType: 'acp', convBackend: 'codex' });
+    });
+  });
+
   describe('getChannelEnabledSkills', () => {
     it('returns weixin-file-send skill for weixin platform', () => {
       const result = getChannelEnabledSkills('weixin');
@@ -156,6 +168,59 @@ describe('channelConversation real functions', () => {
         customAgentId: '',
         agentName: '',
         enabledSkills: ['weixin-file-send'],
+      });
+    });
+  });
+
+  describe('buildChannelCreateConversationParams', () => {
+    it('builds native codex channel conversation params when detected codex is native', () => {
+      const result = buildChannelCreateConversationParams({
+        backend: 'codex',
+        detectedAgentKind: 'codex',
+        detectedCliPath: '/native/codex',
+        model: {},
+        name: 'tg-codex-chat',
+        source: 'telegram',
+        channelChatId: 'chat-1',
+        extra: {
+          enabledSkills: ['weixin-file-send'],
+        },
+      });
+
+      expect(result).toEqual({
+        type: 'codex',
+        model: {},
+        name: 'tg-codex-chat',
+        source: 'telegram',
+        channelChatId: 'chat-1',
+        extra: {
+          enabledSkills: ['weixin-file-send'],
+          codexNative: true,
+          cliPath: '/native/codex',
+        },
+      });
+    });
+
+    it('keeps codex channel conversations on ACP when detected codex is ACP', () => {
+      const result = buildChannelCreateConversationParams({
+        backend: 'codex',
+        detectedAgentKind: 'acp',
+        model: {},
+        name: 'tg-acp-codex-chat',
+        source: 'telegram',
+        channelChatId: 'chat-1',
+        extra: {},
+      });
+
+      expect(result).toEqual({
+        type: 'acp',
+        model: {},
+        name: 'tg-acp-codex-chat',
+        source: 'telegram',
+        channelChatId: 'chat-1',
+        extra: {
+          backend: 'codex',
+        },
       });
     });
   });

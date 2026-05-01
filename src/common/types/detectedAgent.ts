@@ -24,7 +24,14 @@ export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp';
 export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';
 
 /** Execution engine kinds — each uses a different protocol or runtime */
-export type DetectedAgentKind = 'gemini' | 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nanobot';
+export type DetectedAgentKind =
+  | 'gemini'
+  | 'acp'
+  | 'remote'
+  | 'aionrs'
+  | 'openclaw-gateway'
+  | 'nanobot'
+  | 'codex';
 
 /** Kind-specific fields mapping */
 type KindFields = {
@@ -72,6 +79,15 @@ type KindFields = {
     /** Resolved CLI binary path */
     cliPath?: string;
   };
+
+  codex: {
+    /** Resolved CLI binary path */
+    cliPath?: string;
+    /** Native app-server support marker */
+    appServer: true;
+    /** Binary version string */
+    version?: string;
+  };
 };
 
 /**
@@ -96,6 +112,7 @@ export type RemoteDetectedAgent = DetectedAgent<'remote'>;
 export type AionrsDetectedAgent = DetectedAgent<'aionrs'>;
 export type NanobotDetectedAgent = DetectedAgent<'nanobot'>;
 export type OpenClawDetectedAgent = DetectedAgent<'openclaw-gateway'>;
+export type CodexDetectedAgent = DetectedAgent<'codex'>;
 
 // Type guard — narrows a generic DetectedAgent to a specific kind
 export function isAgentKind<K extends DetectedAgentKind>(agent: DetectedAgent, kind: K): agent is DetectedAgent<K> {
