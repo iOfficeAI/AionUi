@@ -226,6 +226,7 @@ vi.mock('@icon-park/react', () => ({
   ArrowUp: () => React.createElement('span', {}, 'ArrowUp'),
   CloseSmall: () => React.createElement('span', {}, 'CloseSmall'),
   Quote: () => React.createElement('span', {}, 'Quote'),
+  Square: () => React.createElement('span', {}, 'Square'),
 }));
 
 type SelectionItem = string | { path: string; name: string; isFile: boolean; relativePath?: string };

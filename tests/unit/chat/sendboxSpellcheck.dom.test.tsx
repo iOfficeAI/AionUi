@@ -200,6 +200,7 @@ vi.mock('@icon-park/react', () => ({
   ArrowUp: () => React.createElement('span', {}, 'ArrowUp'),
   CloseSmall: () => React.createElement('span', {}, 'CloseSmall'),
   Quote: () => React.createElement('span', {}, 'Quote'),
+  Square: () => React.createElement('span', {}, 'Square'),
 }));
 
 import SendBox from '@/renderer/components/chat/sendbox';
