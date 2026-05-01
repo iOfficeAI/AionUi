@@ -85,6 +85,7 @@ const mockWebServerModuleDeps = (options?: { createServerImpl?: () => MockServer
   }));
   vi.doMock('@process/webserver/routes/staticRoutes', () => ({
     registerStaticRoutes: vi.fn(),
+    resolveRendererPath: vi.fn(() => null),
   }));
   vi.doMock('@process/bridge/webuiBridge', () => ({
     generateQRLoginUrlDirect: vi.fn(() => ({
