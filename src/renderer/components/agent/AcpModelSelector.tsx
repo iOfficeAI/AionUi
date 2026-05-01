@@ -153,7 +153,7 @@ const AcpModelSelector: React.FC<{
         }
       }
 
-      if (backend) {
+      if (backend && !hasUserChangedModel.current) {
         await loadCachedModelInfo(backend, options);
       }
     },
@@ -180,7 +180,7 @@ const AcpModelSelector: React.FC<{
   }, [conversationId, initialModelId, isUsingLocalModelInfo, reloadModelInfo]);
 
   useEffect(() => {
-    if (isUsingLocalModelInfo || !conversationId || backend !== 'claude') return;
+    if (isUsingLocalModelInfo || !conversationId || (backend !== 'claude' && backend !== 'codex')) return;
 
     const refresh = () => {
       void reloadModelInfo().catch(() => {
@@ -244,6 +244,11 @@ const AcpModelSelector: React.FC<{
 
   const handleSelectModel = useCallback(
     (modelId: string) => {
+      if (modelInfo?.currentModelId === modelId) {
+        setDropdownVisible(false);
+        return;
+      }
+
       hasUserChangedModel.current = true;
       setModelInfo((prev) => {
         if (!prev) return prev;
@@ -275,7 +280,7 @@ const AcpModelSelector: React.FC<{
           console.error('[AcpModelSelector] Failed to set model:', error);
         });
     },
-    [conversationId, onSelectModel, updateModelInfo]
+    [conversationId, modelInfo?.currentModelId, onSelectModel, updateModelInfo]
   );
 
   const defaultModelLabel = t('common.defaultModel');

@@ -351,6 +351,8 @@ export type TChatConversation =
           sessionMode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
+          /** Current native Codex model for selector and resume support / 当前原生 Codex 模型，用于选择器与恢复 */
+          currentModelId?: string;
           /** Native Codex app-server conversation marker */
           codexNative?: boolean;
           /** Native Codex app-server thread ID */

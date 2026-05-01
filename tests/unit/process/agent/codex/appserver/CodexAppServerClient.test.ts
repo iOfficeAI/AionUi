@@ -191,7 +191,9 @@ describe('CodexAppServerClient', () => {
       await nextTick();
 
       expect(secondResolved).toBe(false);
-      expect(clientMessages.filter((message) => 'method' in message && message.method === 'initialize')).toHaveLength(1);
+      expect(clientMessages.filter((message) => 'method' in message && message.method === 'initialize')).toHaveLength(
+        1
+      );
 
       sendServerMessage(child, {
         jsonrpc: '2.0',
@@ -200,7 +202,9 @@ describe('CodexAppServerClient', () => {
       });
       await Promise.all([firstStart, secondStart]);
 
-      expect(clientMessages.filter((message) => 'method' in message && message.method === 'initialized')).toHaveLength(1);
+      expect(clientMessages.filter((message) => 'method' in message && message.method === 'initialized')).toHaveLength(
+        1
+      );
       expect(order).toEqual(['initialize:write', 'initialized:write', 'first:resolved', 'second:resolved']);
     } finally {
       await client.dispose();

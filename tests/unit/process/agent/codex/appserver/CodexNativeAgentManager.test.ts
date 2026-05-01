@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { ipcBridge } from '@/common';
 import { CodexNativeAgentManager } from '@/process/agent/codex/appserver/CodexNativeAgentManager';
 import type { CodexJsonRpcRequest, CodexServerRequestHandler } from '@/process/agent/codex/appserver/types';
 
@@ -24,6 +25,8 @@ const testDoubles = vi.hoisted(() => {
     clientStartGate: undefined as ReturnType<typeof createDeferred> | undefined,
     clients: [] as unknown[],
     failureListeners: new Set<(error: Error) => void>(),
+    modelInfos: [] as unknown[],
+    modelServiceInstances: [] as unknown[],
     sessionStartGate: undefined as ReturnType<typeof createDeferred> | undefined,
     sessions: [] as unknown[],
     turnGates: [] as ReturnType<typeof createDeferred>[],
@@ -56,6 +59,59 @@ const testDoubles = vi.hoisted(() => {
     }
 
     dispose = vi.fn(async () => {});
+  }
+
+  class FakeCodexModelService {
+    selectedModelId: string | undefined;
+
+    constructor(_client: unknown, selectedModelId?: string) {
+      this.selectedModelId = selectedModelId;
+      state.modelServiceInstances.push(this);
+    }
+
+    refresh = vi.fn(async () => {
+      const modelInfo =
+        state.modelInfos.shift() ||
+        ({
+          currentModelId: this.selectedModelId || 'gpt-5.2-codex',
+          currentModelLabel: this.selectedModelId || 'gpt-5.2-codex',
+          availableModels: [
+            { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+            { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'codex-stream',
+        } as const);
+      return modelInfo;
+    });
+
+    getModelInfo = vi.fn(() => ({
+      currentModelId: this.selectedModelId || 'gpt-5.2-codex',
+      currentModelLabel: this.selectedModelId || 'gpt-5.2-codex',
+      availableModels: [
+        { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+        { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+      ],
+      canSwitch: true,
+      source: 'models',
+      sourceDetail: 'codex-stream',
+    }));
+
+    selectModel = vi.fn((modelId: string) => {
+      this.selectedModelId = modelId;
+      return {
+        currentModelId: modelId,
+        currentModelLabel: modelId,
+        availableModels: [
+          { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+          { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+        ],
+        canSwitch: true,
+        source: 'models',
+        sourceDetail: 'codex-stream',
+      };
+    });
   }
 
   class FakeCodexThreadSession {
@@ -95,6 +151,7 @@ const testDoubles = vi.hoisted(() => {
   return {
     createDeferred,
     FakeCodexAppServerClient,
+    FakeCodexModelService,
     FakeCodexThreadSession,
     state,
   };
@@ -106,6 +163,10 @@ vi.mock('@/process/agent/codex/appserver/CodexAppServerClient', () => ({
 
 vi.mock('@/process/agent/codex/appserver/CodexThreadSession', () => ({
   CodexThreadSession: testDoubles.FakeCodexThreadSession,
+}));
+
+vi.mock('@/process/agent/codex/appserver/CodexModelService', () => ({
+  CodexModelService: testDoubles.FakeCodexModelService,
 }));
 
 vi.mock('@process/task/agentUtils', () => ({
@@ -161,6 +222,8 @@ describe('CodexNativeAgentManager', () => {
     testDoubles.state.clientStartGate = undefined;
     testDoubles.state.clients.length = 0;
     testDoubles.state.failureListeners.clear();
+    testDoubles.state.modelInfos.length = 0;
+    testDoubles.state.modelServiceInstances.length = 0;
     testDoubles.state.sessionStartGate = undefined;
     testDoubles.state.sessions.length = 0;
     testDoubles.state.turnGates.length = 0;
@@ -186,6 +249,80 @@ describe('CodexNativeAgentManager', () => {
     expect(session.startTurn).toHaveBeenCalledTimes(1);
 
     await manager.stop();
+    manager.kill();
+  });
+
+  it('emits non-persisted model info after app-server and session startup', async () => {
+    const manager = createManager('conversation-model-info');
+    const emitSpy = vi.spyOn(ipcBridge.acpConversation.responseStream, 'emit').mockImplementation(() => {});
+
+    const sendPromise = manager.sendMessage({ content: 'hello', msg_id: 'message-1' });
+    await waitForTurnStart();
+    testDoubles.state.turnGates[0].resolve();
+    await sendPromise;
+
+    expect(emitSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'acp_model_info',
+        conversation_id: 'conversation-model-info',
+        msg_id: 'conversation-model-info-model-info',
+        data: expect.objectContaining({
+          currentModelId: 'gpt-5.2-codex',
+          availableModels: expect.arrayContaining([{ id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' }]),
+        }),
+      })
+    );
+
+    emitSpy.mockRestore();
+    manager.kill();
+  });
+
+  it('selects and persists the next Codex model for future turns', async () => {
+    const manager = createManager('conversation-select-model');
+
+    await expect(manager.setModel('gpt-5.3-codex')).resolves.toMatchObject({
+      currentModelId: 'gpt-5.3-codex',
+      currentModelLabel: 'gpt-5.3-codex',
+    });
+    expect(manager.getModelInfo()).toMatchObject({ currentModelId: 'gpt-5.3-codex' });
+
+    manager.kill();
+  });
+
+  it('keeps selecting the current Codex model as a no-op', async () => {
+    const manager = createManager('conversation-same-model');
+    const modelService = testDoubles.state.modelServiceInstances[0] as {
+      selectModel: ReturnType<typeof vi.fn>;
+    };
+    const emitSpy = vi.spyOn(ipcBridge.acpConversation.responseStream, 'emit').mockImplementation(() => {});
+
+    await expect(manager.setModel('gpt-5.2-codex')).resolves.toMatchObject({
+      currentModelId: 'gpt-5.2-codex',
+    });
+
+    expect(modelService.selectModel).not.toHaveBeenCalled();
+    expect(emitSpy).not.toHaveBeenCalled();
+
+    emitSpy.mockRestore();
+    manager.kill();
+  });
+
+  it('rejects model changes while a Codex turn is running', async () => {
+    const manager = createManager('conversation-running-model-change');
+    const modelService = testDoubles.state.modelServiceInstances[0] as {
+      selectModel: ReturnType<typeof vi.fn>;
+    };
+
+    const firstSend = manager.sendMessage({ content: 'first', msg_id: 'message-1' });
+    await waitForTurnStart();
+
+    await expect(manager.setModel('gpt-5.3-codex')).rejects.toThrow(
+      'Cannot change Codex model while a turn is running'
+    );
+    expect(modelService.selectModel).not.toHaveBeenCalled();
+
+    testDoubles.state.turnGates[0].resolve();
+    await firstSend;
     manager.kill();
   });
 

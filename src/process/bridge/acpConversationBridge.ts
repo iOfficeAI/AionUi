@@ -12,12 +12,42 @@ import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import AcpAgentManager from '@process/task/AcpAgentManager';
 import { GeminiAgentManager } from '@process/task/GeminiAgentManager';
 import { AionrsManager } from '@process/task/AionrsManager';
+import CodexNativeAgentManager from '@process/agent/codex/appserver/CodexNativeAgentManager';
 import { mcpService } from '@/process/services/mcpServices/McpService';
 import { ipcBridge } from '@/common';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import { noopProtocolHandlers } from '@process/acp/types';
 import { mainLog, mainWarn } from '@process/utils/mainLogger';
 import * as os from 'os';
+import { getDatabase } from '@process/services/database';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+
+function createPersistedCodexModelInfo(modelId: string): AcpModelInfo {
+  return {
+    currentModelId: modelId,
+    currentModelLabel: modelId,
+    availableModels: [{ id: modelId, label: modelId }],
+    canSwitch: false,
+    source: 'models',
+    sourceDetail: 'codex-stream',
+  };
+}
+
+async function getPersistedCodexModelInfo(conversationId: string): Promise<AcpModelInfo | null> {
+  try {
+    const db = await getDatabase();
+    const result = db.getConversation(conversationId);
+    if (!result.success || !result.data) return null;
+
+    const conversation = result.data as { type?: string; extra?: Record<string, unknown> };
+    if (conversation.type !== 'codex' && conversation.extra?.codexNative !== true) return null;
+
+    const modelId = conversation.extra?.currentModelId || conversation.extra?.codexModel;
+    return typeof modelId === 'string' && modelId ? createPersistedCodexModelInfo(modelId) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
   // Debug provider to check environment variables
@@ -208,15 +238,21 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     }
   });
 
-  ipcBridge.acpConversation.getModelInfo.provider(({ conversationId }) => {
+  ipcBridge.acpConversation.getModelInfo.provider(async ({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
-    if (!task || !(task instanceof AcpAgentManager)) {
-      return Promise.resolve({ success: true, data: { modelInfo: null } });
+    if (task instanceof CodexNativeAgentManager) {
+      return {
+        success: true,
+        data: { modelInfo: task.getModelInfo() },
+      };
     }
-    return Promise.resolve({
+    if (!task || !(task instanceof AcpAgentManager)) {
+      return { success: true, data: { modelInfo: await getPersistedCodexModelInfo(conversationId) } };
+    }
+    return {
       success: true,
       data: { modelInfo: task.getModelInfo() },
-    });
+    };
   });
 
   ipcBridge.acpConversation.probeModelInfo.provider(async ({ backend }) => {
@@ -278,9 +314,20 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
       if (!task || !(task instanceof AcpAgentManager)) {
+        if (task instanceof CodexNativeAgentManager) {
+          const previousModelId = task.getModelInfo()?.currentModelId || null;
+          const modelInfo = await task.setModel(modelId);
+          if (previousModelId !== modelInfo.currentModelId) {
+            workerTaskManager.kill(conversationId);
+          }
+          return {
+            success: true,
+            data: { modelInfo },
+          };
+        }
         return {
           success: false,
-          msg: 'Conversation not found or not an ACP agent',
+          msg: 'Conversation not found or model switching is not supported',
         };
       }
       return {

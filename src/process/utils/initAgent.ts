@@ -304,6 +304,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
 
 export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
+  const selectedModelId = extra.currentModelId || extra.codexModel;
   const persistedCliPath = await resolveBuiltinCliPath('codex', extra.cliPath);
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
     `codex-temp-${Date.now()}`,
@@ -333,7 +334,8 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
       sessionMode: extra.sessionMode,
-      codexModel: extra.codexModel,
+      codexModel: selectedModelId,
+      currentModelId: selectedModelId,
       isHealthCheck: extra.isHealthCheck,
     },
     createTime: Date.now(),

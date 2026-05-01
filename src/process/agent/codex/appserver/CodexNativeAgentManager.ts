@@ -17,8 +17,10 @@ import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { CodexAppServerClient } from './CodexAppServerClient';
+import { CodexModelService } from './CodexModelService';
 import { CodexPermissionResolver } from './CodexPermissionResolver';
 import { CodexThreadSession } from './CodexThreadSession';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
 
 export type CodexNativeAgentManagerData = {
   conversation_id: string;
@@ -29,6 +31,7 @@ export type CodexNativeAgentManagerData = {
   codexThreadId?: string;
   sessionMode?: string;
   codexModel?: string;
+  currentModelId?: string;
   enabledSkills?: string[];
   presetContext?: string;
   yoloMode?: boolean;
@@ -38,6 +41,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   workspace: string;
   private readonly options: CodexNativeAgentManagerData;
   private readonly client: CodexAppServerClient;
+  private readonly modelService: CodexModelService;
   private readonly permissionResolver: CodexPermissionResolver;
   private readonly session: CodexThreadSession;
   private started = false;
@@ -57,6 +61,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       args: data.appServerCommand ? data.appServerArgs || [] : ['app-server', ...(data.appServerArgs || [])],
       cwd: this.workspace,
     });
+    const initialModelId = data.codexModel || data.currentModelId;
+    this.modelService = new CodexModelService(this.client, initialModelId);
     this.permissionResolver = new CodexPermissionResolver({
       addConfirmation: (confirmation) => this.addConfirmation(confirmation),
     });
@@ -73,7 +79,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
         threadId: data.codexThreadId,
         approvalPolicy: data.yoloMode ? 'never' : 'on-request',
         sandboxPolicy: 'workspace-write',
-        model: data.codexModel,
+        model: initialModelId,
       },
       emitMessage: (message, persist) => this.emitAndPersistMessage(message, persist),
       emitConfirmation: (confirmation) => this.addConfirmation(confirmation),
@@ -165,6 +171,27 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     this.permissionResolver.resolve(callId, data);
   }
 
+  getModelInfo(): AcpModelInfo | null {
+    return this.modelService.getModelInfo();
+  }
+
+  async setModel(modelId: string): Promise<AcpModelInfo> {
+    const currentModelInfo = this.modelService.getModelInfo();
+    if (currentModelInfo?.currentModelId === modelId) {
+      return currentModelInfo;
+    }
+    if (this.activeSendToken || this.status === 'running') {
+      throw new Error('Cannot change Codex model while a turn is running');
+    }
+
+    this.options.codexModel = modelId;
+    this.options.currentModelId = modelId;
+    await this.persistConversationExtra({ codexModel: modelId, currentModelId: modelId });
+    const modelInfo = this.modelService.selectModel(modelId);
+    this.emitModelInfo(modelInfo);
+    return modelInfo;
+  }
+
   kill(): void {
     this.session.dispose();
     this.unsubscribeClientFailure();
@@ -178,6 +205,7 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       this.startPromise = (async () => {
         await this.client.start();
         await this.session.start();
+        await this.emitCurrentModelInfo();
         this.started = true;
       })();
     }
@@ -204,6 +232,34 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       }
     }
     ipcBridge.conversation.responseStream.emit(normalized);
+  }
+
+  private async emitCurrentModelInfo(): Promise<void> {
+    try {
+      this.emitModelInfo(await this.modelService.refresh());
+    } catch (error) {
+      this.emitAndPersistMessage(
+        {
+          type: 'info',
+          conversation_id: this.conversation_id,
+          msg_id: `${this.conversation_id}-model-info-warning`,
+          data: {
+            level: 'warning',
+            message: error instanceof Error ? error.message : String(error),
+          },
+        },
+        false
+      );
+    }
+  }
+
+  private emitModelInfo(modelInfo: AcpModelInfo): void {
+    ipcBridge.acpConversation.responseStream.emit({
+      type: 'acp_model_info',
+      conversation_id: this.conversation_id,
+      msg_id: `${this.conversation_id}-model-info`,
+      data: modelInfo,
+    });
   }
 
   private async persistConversationExtra(extra: Record<string, unknown>): Promise<void> {

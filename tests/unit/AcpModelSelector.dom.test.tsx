@@ -14,6 +14,9 @@ const ipcMock = vi.hoisted(() => ({
   onResponseStream: vi.fn(() => () => {}),
   getModelConfig: vi.fn().mockResolvedValue([]),
 }));
+const storageMock = vi.hoisted(() => ({
+  get: vi.fn().mockResolvedValue(null),
+}));
 
 let responseHandler: ((message: any) => void) | null = null;
 
@@ -32,7 +35,7 @@ vi.mock('@/common', () => ({
 
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
-    get: vi.fn().mockResolvedValue(null),
+    get: storageMock.get,
   },
 }));
 
@@ -61,6 +64,7 @@ describe('AcpModelSelector', () => {
       success: true,
       data: { modelInfo: null },
     });
+    storageMock.get.mockResolvedValue(null);
   });
 
   it('shows the model source in the compact button label', async () => {
@@ -154,6 +158,56 @@ describe('AcpModelSelector', () => {
     });
   });
 
+  it('refreshes Codex model info when the window regains focus', async () => {
+    ipcMock.getModelInfo
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          modelInfo: {
+            currentModelId: 'gpt-5.2-codex',
+            currentModelLabel: 'GPT-5.2 Codex',
+            availableModels: [
+              { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+              { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+            ],
+            canSwitch: true,
+            source: 'models',
+            sourceDetail: 'codex-stream',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          modelInfo: {
+            currentModelId: 'gpt-5.3-codex',
+            currentModelLabel: 'GPT-5.3 Codex',
+            availableModels: [
+              { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+              { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+            ],
+            canSwitch: true,
+            source: 'models',
+            sourceDetail: 'codex-stream',
+          },
+        },
+      });
+
+    render(<AcpModelSelector conversationId='conv-1' backend='codex' />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GPT-5.2 Codex').length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GPT-5.3 Codex').length).toBeGreaterThan(0);
+    });
+  });
+
   it('updates the visible model label immediately after selecting a different model', async () => {
     ipcMock.getModelInfo.mockResolvedValue({
       success: true,
@@ -205,5 +259,121 @@ describe('AcpModelSelector', () => {
     await waitFor(() => {
       expect(screen.getAllByText('GLM 5.1x · cc-switch').length).toBeGreaterThan(0);
     });
+  });
+
+  it('does not request a model switch when selecting the current Codex model', async () => {
+    ipcMock.getModelInfo.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          currentModelId: 'gpt-5.2-codex',
+          currentModelLabel: 'GPT-5.2 Codex',
+          availableModels: [
+            { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+            { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'codex-stream',
+        },
+      },
+    });
+
+    render(<AcpModelSelector conversationId='conv-1' backend='codex' />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GPT-5.2 Codex').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getByRole('button'));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GPT-5.2 Codex').length).toBeGreaterThan(1);
+    });
+
+    fireEvent.click(screen.getAllByText('GPT-5.2 Codex').at(-1)!);
+
+    expect(ipcMock.setModel).not.toHaveBeenCalled();
+  });
+
+  it('keeps a just-selected Codex model when a post-rebuild refresh has no live task yet', async () => {
+    storageMock.get.mockResolvedValue({
+      codex: {
+        currentModelId: 'gpt-5.2-codex',
+        currentModelLabel: 'GPT-5.2 Codex',
+        availableModels: [
+          { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+          { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+        ],
+        canSwitch: true,
+        source: 'models',
+        sourceDetail: 'codex-stream',
+      },
+    });
+    ipcMock.getModelInfo
+      .mockResolvedValueOnce({
+        success: true,
+        data: {
+          modelInfo: {
+            currentModelId: 'gpt-5.2-codex',
+            currentModelLabel: 'GPT-5.2 Codex',
+            availableModels: [
+              { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+              { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+            ],
+            canSwitch: true,
+            source: 'models',
+            sourceDetail: 'codex-stream',
+          },
+        },
+      })
+      .mockResolvedValueOnce({
+        success: true,
+        data: { modelInfo: null },
+      });
+    ipcMock.setModel.mockResolvedValue({
+      success: true,
+      data: {
+        modelInfo: {
+          currentModelId: 'gpt-5.3-codex',
+          currentModelLabel: 'GPT-5.3 Codex',
+          availableModels: [
+            { id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' },
+            { id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' },
+          ],
+          canSwitch: true,
+          source: 'models',
+          sourceDetail: 'codex-stream',
+        },
+      },
+    });
+
+    render(<AcpModelSelector conversationId='conv-1' backend='codex' />);
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GPT-5.2 Codex').length).toBeGreaterThan(0);
+    });
+
+    fireEvent.click(screen.getByRole('button'));
+    fireEvent.click(screen.getByText('GPT-5.3 Codex'));
+
+    await waitFor(() => {
+      expect(screen.getAllByText('GPT-5.3 Codex').length).toBeGreaterThan(0);
+    });
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+
+    await waitFor(() => {
+      expect(ipcMock.getModelInfo).toHaveBeenCalledTimes(2);
+    });
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(storageMock.get).not.toHaveBeenCalled();
+    expect(screen.getAllByText('GPT-5.3 Codex').length).toBeGreaterThan(0);
   });
 });

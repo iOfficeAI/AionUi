@@ -5,11 +5,7 @@
  */
 
 import { EventEmitter } from 'events';
-import type {
-  CodexAppServerTransportStreams,
-  CodexJsonRpcMessage,
-  CodexJsonRpcOutgoing,
-} from './types';
+import type { CodexAppServerTransportStreams, CodexJsonRpcMessage, CodexJsonRpcOutgoing } from './types';
 
 type TransportEvents = {
   message: (message: CodexJsonRpcMessage) => void;

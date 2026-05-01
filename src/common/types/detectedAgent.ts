@@ -24,14 +24,7 @@ export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp';
 export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';
 
 /** Execution engine kinds — each uses a different protocol or runtime */
-export type DetectedAgentKind =
-  | 'gemini'
-  | 'acp'
-  | 'remote'
-  | 'aionrs'
-  | 'openclaw-gateway'
-  | 'nanobot'
-  | 'codex';
+export type DetectedAgentKind = 'gemini' | 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nanobot' | 'codex';
 
 /** Kind-specific fields mapping */
 type KindFields = {

@@ -3,6 +3,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
 const handlers: Record<string, (...args: any[]) => any> = {};
+const dbMock = vi.hoisted(() => ({
+  getDatabase: vi.fn(),
+}));
+
 function makeChannel(name: string) {
   return {
     provider: vi.fn((fn: (...args: any[]) => any) => {
@@ -56,9 +60,16 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
 }));
 vi.mock('../../src/process/task/AcpAgentManager', () => ({ default: class AcpAgentManager {} }));
 vi.mock('../../src/process/task/GeminiAgentManager', () => ({ GeminiAgentManager: class GeminiAgentManager {} }));
+vi.mock('../../src/process/agent/codex/appserver/CodexNativeAgentManager', () => ({
+  default: class CodexNativeAgentManager {},
+}));
 
 vi.mock('../../src/process/services/mcpServices/McpService', () => ({
   mcpService: { getSupportedTransportsForAgent: vi.fn(() => []) },
+}));
+
+vi.mock('@process/services/database', () => ({
+  getDatabase: dbMock.getDatabase,
 }));
 
 vi.mock('../../src/process/agent/aionrs/binaryResolver', () => ({
@@ -71,6 +82,7 @@ vi.mock('../../src/process/utils/mainLogger', () => ({
 }));
 
 import { initAcpConversationBridge } from '../../src/process/bridge/acpConversationBridge';
+import CodexNativeAgentManager from '../../src/process/agent/codex/appserver/CodexNativeAgentManager';
 import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
@@ -93,6 +105,7 @@ describe('acpConversationBridge', () => {
   beforeEach(async () => {
     vi.clearAllMocks();
     taskManager = makeTaskManager();
+    dbMock.getDatabase.mockReset();
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([]);
     initAcpConversationBridge(taskManager);
@@ -158,5 +171,109 @@ describe('acpConversationBridge', () => {
 
     const result = await handlers['getAvailableAgents']();
     expect(result).toEqual({ success: false, msg: 'detection failed' });
+  });
+
+  it('getModelInfo returns native Codex task model info', async () => {
+    const modelInfo = {
+      currentModelId: 'gpt-5.3-codex',
+      currentModelLabel: 'GPT-5.3 Codex',
+      availableModels: [{ id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' }],
+      canSwitch: false,
+      source: 'models',
+    };
+    const task = new CodexNativeAgentManager() as CodexNativeAgentManager & {
+      getModelInfo: ReturnType<typeof vi.fn>;
+    };
+    task.getModelInfo = vi.fn(() => modelInfo);
+    vi.mocked(taskManager.getTask).mockReturnValue(task as never);
+
+    const result = await handlers['getModelInfo']({ conversationId: 'codex-1' });
+
+    expect(taskManager.getTask).toHaveBeenCalledWith('codex-1');
+    expect(result).toEqual({ success: true, data: { modelInfo } });
+  });
+
+  it('getModelInfo returns persisted native Codex model info when the task was rebuilt away', async () => {
+    vi.mocked(taskManager.getTask).mockReturnValue(undefined);
+    dbMock.getDatabase.mockResolvedValue({
+      getConversation: vi.fn(() => ({
+        success: true,
+        data: {
+          type: 'codex',
+          extra: {
+            codexNative: true,
+            currentModelId: 'gpt-5.3-codex',
+          },
+        },
+      })),
+    });
+
+    const result = await handlers['getModelInfo']({ conversationId: 'codex-1' });
+
+    expect(result).toEqual({
+      success: true,
+      data: {
+        modelInfo: {
+          currentModelId: 'gpt-5.3-codex',
+          currentModelLabel: 'gpt-5.3-codex',
+          availableModels: [{ id: 'gpt-5.3-codex', label: 'gpt-5.3-codex' }],
+          canSwitch: false,
+          source: 'models',
+          sourceDetail: 'codex-stream',
+        },
+      },
+    });
+  });
+
+  it('setModel delegates native Codex model selection and rebuilds the task on next send', async () => {
+    const modelInfo = {
+      currentModelId: 'gpt-5.3-codex',
+      currentModelLabel: 'GPT-5.3 Codex',
+      availableModels: [{ id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' }],
+      canSwitch: false,
+      source: 'models',
+    };
+    const task = new CodexNativeAgentManager() as CodexNativeAgentManager & {
+      getModelInfo: ReturnType<typeof vi.fn>;
+      setModel: ReturnType<typeof vi.fn>;
+    };
+    task.getModelInfo = vi.fn(() => ({
+      currentModelId: 'gpt-5.2-codex',
+      currentModelLabel: 'GPT-5.2 Codex',
+      availableModels: [{ id: 'gpt-5.2-codex', label: 'GPT-5.2 Codex' }],
+      canSwitch: false,
+      source: 'models',
+    }));
+    task.setModel = vi.fn(async () => modelInfo);
+    vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(task as never);
+
+    const result = await handlers['setModel']({ conversationId: 'codex-1', modelId: 'gpt-5.3-codex' });
+
+    expect(task.setModel).toHaveBeenCalledWith('gpt-5.3-codex');
+    expect(taskManager.kill).toHaveBeenCalledWith('codex-1');
+    expect(result).toEqual({ success: true, data: { modelInfo } });
+  });
+
+  it('setModel does not rebuild a native Codex task when the selected model is unchanged', async () => {
+    const modelInfo = {
+      currentModelId: 'gpt-5.3-codex',
+      currentModelLabel: 'GPT-5.3 Codex',
+      availableModels: [{ id: 'gpt-5.3-codex', label: 'GPT-5.3 Codex' }],
+      canSwitch: false,
+      source: 'models',
+    };
+    const task = new CodexNativeAgentManager() as CodexNativeAgentManager & {
+      getModelInfo: ReturnType<typeof vi.fn>;
+      setModel: ReturnType<typeof vi.fn>;
+    };
+    task.getModelInfo = vi.fn(() => modelInfo);
+    task.setModel = vi.fn(async () => modelInfo);
+    vi.mocked(taskManager.getOrBuildTask).mockResolvedValue(task as never);
+
+    const result = await handlers['setModel']({ conversationId: 'codex-1', modelId: 'gpt-5.3-codex' });
+
+    expect(task.setModel).toHaveBeenCalledWith('gpt-5.3-codex');
+    expect(taskManager.kill).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: true, data: { modelInfo } });
   });
 });

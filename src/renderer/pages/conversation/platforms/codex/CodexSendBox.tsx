@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
+import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
@@ -227,6 +228,9 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      <div className='flex justify-end mb-8px'>
+        <AcpModelSelector conversationId={conversation_id} backend='codex' />
+      </div>
       <ThoughtDisplay running={isBusy} thought={messageState.thought} statusText={activityText} />
       <SendBox
         value={content}
