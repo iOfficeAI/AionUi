@@ -122,6 +122,25 @@ describe('WorkerTaskManager', () => {
     expect(mgr.getTask('c1')).toBeUndefined();
   });
 
+  it('reaps idle native Codex agents', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-02T10:00:00Z'));
+
+    const agent = {
+      ...makeAgent('codex-1', 'codex'),
+      status: 'finished',
+      lastActivityAt: Date.now() - 31 * 60 * 1000,
+    };
+    const mgr = new WorkerTaskManager(makeFactory(agent), repo);
+    mgr.addTask('codex-1', agent);
+
+    vi.advanceTimersByTime(1 * 60 * 1000 + 1);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(agent.kill).toHaveBeenCalledWith('idle_timeout');
+    expect(mgr.getTask('codex-1')).toBeUndefined();
+  });
+
   it('kill is a no-op for unknown id', () => {
     const mgr = new WorkerTaskManager(makeFactory(), repo);
     expect(() => mgr.kill('nonexistent')).not.toThrow();

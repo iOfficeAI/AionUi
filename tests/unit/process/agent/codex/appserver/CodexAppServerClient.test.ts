@@ -253,8 +253,50 @@ describe('CodexAppServerClient', () => {
     }
   });
 
+  it('clears the stale transport after transport errors so a later start can spawn again', async () => {
+    const firstChild = createFakeChild(1006);
+    const secondChild = createFakeChild(1007);
+    spawnMock.mockReturnValueOnce(firstChild).mockReturnValueOnce(secondChild);
+    collectClientMessages(firstChild);
+    const secondMessages = collectClientMessages(secondChild);
+    const client = new CodexAppServerClient({
+      command: 'codex',
+      args: ['app-server'],
+      cwd: process.cwd(),
+    });
+
+    try {
+      const firstStart = client.start();
+      await nextTick();
+      sendServerMessage(firstChild, {
+        jsonrpc: '2.0',
+        id: 1,
+        result: { serverInfo: { name: 'fake-codex-app-server', version: '0.0.0-test' } },
+      });
+      await firstStart;
+
+      firstChild.stdout.emit('error', new Error('stdout failed'));
+      await nextTick();
+
+      const secondStart = client.start();
+      await nextTick();
+      sendServerMessage(secondChild, {
+        jsonrpc: '2.0',
+        id: 2,
+        result: { serverInfo: { name: 'fake-codex-app-server', version: '0.0.0-test' } },
+      });
+      await secondStart;
+
+      expect(spawnMock).toHaveBeenCalledTimes(2);
+      expect(client.pid).toBe(1007);
+      expect(secondMessages).toContainEqual({ jsonrpc: '2.0', id: 2, method: 'initialize', params: {} });
+    } finally {
+      await client.dispose();
+    }
+  });
+
   it('notifies failure listeners when the app-server exits', async () => {
-    const child = createFakeChild(1006);
+    const child = createFakeChild(1008);
     spawnMock.mockReturnValueOnce(child);
     collectClientMessages(child);
     const client = new CodexAppServerClient({

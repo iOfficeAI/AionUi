@@ -193,8 +193,18 @@ export class CodexAppServerClient {
   }
 
   private handleTransportFailure(error: Error): void {
+    const child = this.child;
     this.rejectAll(error);
     this.emitter.emit('failure', error);
+    if (child && !child.killed) {
+      child.kill();
+    }
+    if (child) {
+      this.clearProcess(child);
+    } else {
+      this.transport?.dispose();
+      this.transport = null;
+    }
   }
 
   private handleChildFailure(child: ChildProcessWithoutNullStreams, error: Error): void {

@@ -349,6 +349,50 @@ describe('CodexThreadSession', () => {
     await turnPromise;
   });
 
+  it('resumes an existing thread and interrupts the active turn', async () => {
+    const notifications = createNotificationHarness();
+    const failures = createFailureHarness();
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ threadId: 'thread-existing' })
+      .mockResolvedValueOnce({ turnId: 'turn-existing' })
+      .mockResolvedValueOnce({ interrupted: true });
+    const session = new CodexThreadSession({
+      client: {
+        request,
+        onNotification: notifications.onNotification,
+        onFailure: failures.onFailure,
+        onServerRequest: vi.fn(),
+      },
+      options: {
+        conversationId: 'conversation-1',
+        workspace: '/workspace',
+        threadId: 'thread-existing',
+        approvalPolicy: 'on-request',
+        sandboxPolicy: 'workspace-write',
+      },
+      emitMessage: vi.fn(),
+      emitConfirmation: vi.fn(),
+      persistConversationExtra: vi.fn(),
+    });
+
+    await session.start();
+    const turnPromise = session.startTurn({ content: 'hello', msgId: 'user-1' });
+    await new Promise((resolve) => setImmediate(resolve));
+    await session.interrupt();
+    await turnPromise;
+
+    expect(request).toHaveBeenNthCalledWith(1, 'thread/resume', {
+      threadId: 'thread-existing',
+      cwd: '/workspace',
+    });
+    expect(request).toHaveBeenNthCalledWith(2, 'turn/start', expect.objectContaining({ threadId: 'thread-existing' }));
+    expect(request).toHaveBeenNthCalledWith(3, 'turn/interrupt', {
+      threadId: 'thread-existing',
+      turnId: 'turn-existing',
+    });
+  });
+
   it('rejects a concurrent turn before the first turn/start response resolves', async () => {
     const notifications = createNotificationHarness();
     const failures = createFailureHarness();
