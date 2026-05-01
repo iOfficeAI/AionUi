@@ -14,11 +14,11 @@ import { WorkerTaskManager } from './WorkerTaskManager';
 import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 import { GeminiAgentManager } from './GeminiAgentManager';
 import AcpAgentManager from './AcpAgentManager';
-import CodexAgentManager from './CodexAgentManager';
 import OpenClawAgentManager from './OpenClawAgentManager';
 import NanoBotAgentManager from './NanoBotAgentManager';
 import RemoteAgentManager from './RemoteAgentManager';
 import { AionrsManager } from './AionrsManager';
+import CodexNativeAgentManager from '@process/agent/codex/appserver/CodexNativeAgentManager';
 
 const agentFactory = new AgentFactory();
 
@@ -45,11 +45,10 @@ agentFactory.register('acp', (conv, opts) => {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 agentFactory.register('codex', (conv, opts) => {
   const c = conv as any;
-  return new CodexAgentManager({
+  return new CodexNativeAgentManager({
     ...c.extra,
     conversation_id: c.id,
     yoloMode: opts?.yoloMode,
-    sessionMode: c.extra?.sessionMode,
   }) as unknown as ReturnType<typeof agentFactory.create>;
 });
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
