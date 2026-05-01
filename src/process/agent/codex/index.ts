@@ -4,7 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Core Management Layer
+// Native app-server adapter. New Codex conversations use this path.
+export { default as CodexNativeAgentManager } from './appserver/CodexNativeAgentManager';
+export { CodexAppServerClient } from './appserver/CodexAppServerClient';
+export { CodexJsonlTransport } from './appserver/CodexJsonlTransport';
+export { CodexThreadSession } from './appserver/CodexThreadSession';
+export { CodexEventTranslator } from './appserver/CodexEventTranslator';
+export { CodexPermissionResolver } from './appserver/CodexPermissionResolver';
+export { CodexModelService } from './appserver/CodexModelService';
+export { CodexNativeDetector, codexNativeDetector } from './CodexNativeDetector';
+
+// Legacy MCP management layer kept for compatibility with historical sessions.
 export { default as CodexAgentManager } from '@process/task/CodexAgentManager';
 export { CodexAgent, type CodexAgentConfig } from './core/CodexAgent';
 // Export the app configuration function for use in main process

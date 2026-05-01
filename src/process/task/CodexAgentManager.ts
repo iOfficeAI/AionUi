@@ -49,10 +49,9 @@ const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
 const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 /**
- * @deprecated Legacy Codex agent manager. New Codex conversations are created
- * through ACP protocol and handled by {@link AcpAgentManager}.
- * This class is only kept for backward compatibility with existing sessions
- * that were created before the ACP migration.
+ * @deprecated Compatibility manager for historical Codex MCP sessions.
+ * New Codex conversations use CodexNativeAgentManager through codex app-server.
+ * This class is kept only so older MCP-backed sessions can still be opened.
  */
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   agent!: CodexAgent; // Initialized in bootstrap promise
