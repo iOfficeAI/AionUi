@@ -22,4 +22,10 @@ describe('common i18n config module', () => {
   it('should have enough supported languages', () => {
     expect(SUPPORTED_LANGUAGES.length).toBeGreaterThan(6);
   });
+
+  it('should normalize es to es-ES', () => {
+    expect(normalizeLanguageCode('es')).toBe('es-ES');
+    expect(normalizeLanguageCode('es-ES')).toBe('es-ES');
+    expect(normalizeLanguageCode('ES-ES')).toBe('es-ES');
+  });
 });

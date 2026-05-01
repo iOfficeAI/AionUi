@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - Iniciar sesión",
+  "brand": "AionUi",
+  "subtitle": "Bienvenido de nuevo, inicia sesión en tu cuenta",
+  "username": "Nombre de usuario",
+  "usernamePlaceholder": "Introduce tu nombre de usuario",
+  "password": "Contraseña",
+  "passwordPlaceholder": "Introduce tu contraseña",
+  "rememberMe": "Recordarme",
+  "submit": "Iniciar sesión",
+  "submitting": "Iniciando sesión...",
+  "success": "¡Inicio de sesión exitoso! Redirigiendo...",
+  "showPassword": "Mostrar contraseña",
+  "hidePassword": "Ocultar contraseña",
+  "languageToggle": "Cambiar idioma",
+  "footerPrimary": "Transforma tu IA de línea de comandos",
+  "footerSecondary": "Moderno y eficiente",
+  "errors": {
+    "empty": "Introduce nombre de usuario y contraseña",
+    "invalidCredentials": "Nombre de usuario o contraseña incorrectos",
+    "tooManyAttempts": "Demasiados intentos, inténtalo más tarde",
+    "networkError": "Error de conexión, inténtalo de nuevo",
+    "serverError": "Error del servidor, inténtalo más tarde",
+    "unknown": "Error al iniciar sesión, inténtalo de nuevo"
+  }
+}

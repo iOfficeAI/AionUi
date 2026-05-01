@@ -14,4 +14,8 @@ describe('i18n config', () => {
   it('should have zh-CN as the first language in this project', () => {
     expect(SUPPORTED_LANGUAGES[0]).toBe('zh-CN');
   });
+
+  it('should include es-ES in supported languages', () => {
+    expect(SUPPORTED_LANGUAGES).toContain('es-ES');
+  });
 });
