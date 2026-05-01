@@ -4,12 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Sentry must be initialized first
+import { isTruthyEnvFlag, shouldInitializeSentry } from '@/common/config/sentry';
+import { getRuntimeEnvValue } from '@/common/config/runtimeEnv';
+
+const sentryDsn = getRuntimeEnvValue('SENTRY_DSN');
+
 // Use electron-specific renderer package only inside Electron; fall back to the
 // browser SDK when running as a standalone web server (no window.electronAPI).
-if ((window as { electronAPI?: unknown }).electronAPI) {
+if (
+  (window as { electronAPI?: unknown }).electronAPI &&
+  shouldInitializeSentry({
+    dsn: sentryDsn,
+    enableInDevelopment: isTruthyEnvFlag(getRuntimeEnvValue('AIONUI_SENTRY_DEV')),
+    isE2ETestMode: getRuntimeEnvValue('AIONUI_E2E_TEST') === '1',
+    isPackaged: getRuntimeEnvValue('NODE_ENV') === 'production',
+  })
+) {
   // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
-  import('@sentry/electron/renderer').then((Sentry) => Sentry.init()).catch(() => {});
+  import('@sentry/electron/renderer').then((Sentry) => Sentry.init({ dsn: sentryDsn })).catch(() => {});
 }
 
 // Runtime patches must be imported early

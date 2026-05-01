@@ -4,23 +4,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execFileSync } from 'child_process';
+import path from 'path';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { CronMessageMeta, IConfirmation, TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import { ipcBridge } from '@/common';
+import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
+import {
+  createChatgptReasoningEffortConfigOption,
+  isChatgptReasoningEffortValue,
+  normalizeCodexConfigOptionValues,
+} from '@/common/types/codex/codexConfigOptions';
 import { uuid } from '@/common/utils';
 import { getDatabase } from '@process/services/database';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
+import {
+  getCodexSandboxModeForSessionMode,
+  type CodexSandboxMode,
+  writeCodexSandboxMode,
+} from '@process/task/codexConfig';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { CodexAppServerClient } from './CodexAppServerClient';
 import { CodexModelService } from './CodexModelService';
 import { CodexPermissionResolver } from './CodexPermissionResolver';
 import { CodexThreadSession } from './CodexThreadSession';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 
 export type CodexNativeAgentManagerData = {
   conversation_id: string;
@@ -30,12 +43,111 @@ export type CodexNativeAgentManagerData = {
   appServerArgs?: string[];
   codexThreadId?: string;
   sessionMode?: string;
+  sandboxMode?: CodexSandboxMode;
   codexModel?: string;
   currentModelId?: string;
+  configOptionValues?: Record<string, string>;
+  cachedConfigOptions?: AcpSessionConfigOption[];
+  pendingConfigOptions?: Record<string, string>;
   enabledSkills?: string[];
   presetContext?: string;
   yoloMode?: boolean;
 };
+
+const DEFAULT_CODEX_MODE = 'default';
+const CODEX_REASONING_EFFORT_CONFIG_ID = 'reasoning_effort';
+const LOGIN_SHELL_RESOLVE_TIMEOUT_MS = 1500;
+const CODEX_CLI_PROBE_TIMEOUT_MS = 1500;
+
+function resolveCodexCliCommand(cliPath?: string): string {
+  const command = cliPath?.trim() || 'codex';
+  if (!shouldPreferLoginShellCodex(command)) return command;
+
+  return resolveBestCodexCommand(command) || command;
+}
+
+function shouldPreferLoginShellCodex(command: string): boolean {
+  if (command === 'codex') return true;
+
+  const normalized = command.replace(/\\/g, '/');
+  return normalized.endsWith('/codex') && normalized.includes('/.nvm/versions/node/');
+}
+
+function resolveBestCodexCommand(command: string): string | undefined {
+  const candidates = collectCodexCommandCandidates(command);
+  const probes = candidates
+    .map((candidate) => ({ command: candidate, version: readCodexCliVersion(candidate) }))
+    .filter((probe): probe is { command: string; version: [number, number, number] } => probe.version !== undefined);
+
+  probes.sort((left, right) => compareVersionTuple(right.version, left.version));
+  return probes[0]?.command;
+}
+
+function collectCodexCommandCandidates(command: string): string[] {
+  const candidates = new Set<string>();
+  if (command !== 'codex') {
+    candidates.add(command);
+  }
+
+  const shellCommand = resolveCommandFromLoginShell(command);
+  if (shellCommand) {
+    candidates.add(shellCommand);
+  }
+
+  for (const candidate of ['/home/linuxbrew/.linuxbrew/bin/codex', '/opt/homebrew/bin/codex', '/usr/local/bin/codex']) {
+    candidates.add(candidate);
+  }
+
+  for (const entry of (process.env.PATH || '').split(path.delimiter)) {
+    if (entry.trim()) {
+      candidates.add(path.join(entry, 'codex'));
+    }
+  }
+
+  return [...candidates];
+}
+
+function readCodexCliVersion(command: string): [number, number, number] | undefined {
+  try {
+    const output = execFileSync(command, ['--version'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: CODEX_CLI_PROBE_TIMEOUT_MS,
+    });
+    const match = output.match(/(\d+)\.(\d+)\.(\d+)/);
+    if (!match) return undefined;
+    return [Number(match[1]), Number(match[2]), Number(match[3])];
+  } catch {
+    return undefined;
+  }
+}
+
+function compareVersionTuple(left: [number, number, number], right: [number, number, number]): number {
+  for (let index = 0; index < 3; index += 1) {
+    const delta = left[index] - right[index];
+    if (delta !== 0) return delta;
+  }
+  return 0;
+}
+
+function resolveCommandFromLoginShell(command: string): string | undefined {
+  if (process.platform === 'win32') {
+    return undefined;
+  }
+
+  const shell = process.env.SHELL?.trim() || '/bin/bash';
+  try {
+    const resolvedCommand = execFileSync(shell, ['-lc', 'command -v codex'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: LOGIN_SHELL_RESOLVE_TIMEOUT_MS,
+    }).trim();
+
+    return resolvedCommand || undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentManagerData, string> {
   workspace: string;
@@ -49,6 +161,8 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
   private readonly unsubscribeClientFailure: () => void;
   private isFirstMessage = true;
   private activeSendToken: symbol | undefined;
+  private currentMode: string;
+  private currentReasoningEffort: string;
 
   constructor(data: CodexNativeAgentManagerData) {
     super('codex', data, new IpcAgentEventEmitter(), false);
@@ -57,11 +171,19 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     this.options = data;
     this.status = 'pending';
     this.client = new CodexAppServerClient({
-      command: data.appServerCommand || data.cliPath || 'codex',
+      command: data.appServerCommand || resolveCodexCliCommand(data.cliPath),
       args: data.appServerCommand ? data.appServerArgs || [] : ['app-server', ...(data.appServerArgs || [])],
       cwd: this.workspace,
     });
     const initialModelId = data.codexModel || data.currentModelId;
+    this.currentMode = data.yoloMode ? 'yolo' : data.sessionMode || DEFAULT_CODEX_MODE;
+    const configOptionValues = normalizeCodexConfigOptionValues({
+      ...data.configOptionValues,
+      ...data.pendingConfigOptions,
+    });
+    const configuredEffort = configOptionValues[CODEX_REASONING_EFFORT_CONFIG_ID];
+    this.currentReasoningEffort = isChatgptReasoningEffortValue(configuredEffort) ? configuredEffort : 'medium';
+    const runtimeConfig = this.resolveRuntimeConfig(this.currentMode);
     this.modelService = new CodexModelService(this.client, initialModelId);
     this.permissionResolver = new CodexPermissionResolver({
       addConfirmation: (confirmation) => this.addConfirmation(confirmation),
@@ -77,9 +199,10 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
         conversationId: this.conversation_id,
         workspace: this.workspace,
         threadId: data.codexThreadId,
-        approvalPolicy: data.yoloMode ? 'never' : 'on-request',
-        sandboxPolicy: 'workspace-write',
+        approvalPolicy: runtimeConfig.approvalPolicy,
+        sandboxPolicy: runtimeConfig.sandboxPolicy,
         model: initialModelId,
+        reasoningEffort: this.currentReasoningEffort,
       },
       emitMessage: (message, persist) => this.emitAndPersistMessage(message, persist),
       emitConfirmation: (confirmation) => this.addConfirmation(confirmation),
@@ -188,8 +311,61 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     this.options.currentModelId = modelId;
     await this.persistConversationExtra({ codexModel: modelId, currentModelId: modelId });
     const modelInfo = this.modelService.selectModel(modelId);
+    this.session.updateRuntimeConfig({ model: modelId });
     this.emitModelInfo(modelInfo);
     return modelInfo;
+  }
+
+  getMode(): { mode: string; initialized: boolean } {
+    return { mode: this.currentMode, initialized: this.started };
+  }
+
+  async setMode(mode: string): Promise<{ success: boolean; msg?: string; data?: { mode: string } }> {
+    if (this.activeSendToken || this.status === 'running') {
+      return { success: false, msg: 'Cannot change Codex mode while a turn is running' };
+    }
+
+    this.currentMode = mode;
+    this.options.sessionMode = mode;
+    const runtimeConfig = this.resolveRuntimeConfig(mode);
+    this.options.sandboxMode = runtimeConfig.sandboxPolicy;
+    this.options.yoloMode = isCodexAutoApproveMode(mode);
+    await writeCodexSandboxMode(runtimeConfig.sandboxPolicy);
+    await this.persistConversationExtra({
+      sessionMode: mode,
+      sandboxMode: runtimeConfig.sandboxPolicy,
+      yoloMode: this.options.yoloMode,
+    });
+    this.session.updateRuntimeConfig(runtimeConfig);
+    return { success: true, data: { mode } };
+  }
+
+  getConfigOptions(): AcpSessionConfigOption[] {
+    return [createChatgptReasoningEffortConfigOption(this.currentReasoningEffort)];
+  }
+
+  async setConfigOption(configId: string, value: string): Promise<AcpSessionConfigOption[]> {
+    const normalized = normalizeCodexConfigOptionValues({ [configId]: value });
+    const effort = normalized[CODEX_REASONING_EFFORT_CONFIG_ID];
+    if (!isChatgptReasoningEffortValue(effort)) {
+      throw new Error(`Unsupported Codex config option: ${configId}`);
+    }
+    if (this.activeSendToken || this.status === 'running') {
+      throw new Error('Cannot change Codex reasoning effort while a turn is running');
+    }
+
+    this.currentReasoningEffort = effort;
+    this.options.configOptionValues = {
+      ...this.options.configOptionValues,
+      [CODEX_REASONING_EFFORT_CONFIG_ID]: effort,
+    };
+    this.session.updateRuntimeConfig({ reasoningEffort: effort });
+    const configOptions = this.getConfigOptions();
+    await this.persistConversationExtra({
+      configOptionValues: this.options.configOptionValues,
+      cachedConfigOptions: configOptions,
+    });
+    return configOptions;
   }
 
   kill(): void {
@@ -260,6 +436,13 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
       msg_id: `${this.conversation_id}-model-info`,
       data: modelInfo,
     });
+  }
+
+  private resolveRuntimeConfig(mode: string): { approvalPolicy: string; sandboxPolicy: CodexSandboxMode } {
+    return {
+      approvalPolicy: isCodexAutoApproveMode(mode) ? 'never' : 'on-request',
+      sandboxPolicy: getCodexSandboxModeForSessionMode(mode, this.options.sandboxMode),
+    };
   }
 
   private async persistConversationExtra(extra: Record<string, unknown>): Promise<void> {

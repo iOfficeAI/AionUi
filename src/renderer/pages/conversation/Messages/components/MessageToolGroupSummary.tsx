@@ -2,7 +2,12 @@ import type { BadgeProps } from '@arco-design/web-react';
 import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import React, { useEffect, useMemo, useState } from 'react';
-import type { IMessageAcpToolCall, IMessageToolGroup } from '@/common/chat/chatLib';
+import type {
+  CodexToolCallUpdate,
+  IMessageAcpToolCall,
+  IMessageCodexToolCall,
+  IMessageToolGroup,
+} from '@/common/chat/chatLib';
 import './MessageToolGroupSummary.css';
 
 type ToolItem = {
@@ -146,6 +151,69 @@ const ToolAcpMapper = (message: IMessageAcpToolCall): ToolItem | undefined => {
   };
 };
 
+const ToolCodexMapper = (message: IMessageCodexToolCall): ToolItem | undefined => {
+  const update = message.content;
+  if (!update) return;
+
+  const output = Array.isArray(update.content)
+    ? update.content
+        .map((item) => {
+          if (item.type === 'output') return item.output || '';
+          if (item.type === 'text') return item.text || '';
+          if (item.type === 'diff') return item.filePath ? `[diff] ${item.filePath}` : '';
+          return '';
+        })
+        .filter(Boolean)
+        .join('\n')
+    : undefined;
+
+  const data = update.data && typeof update.data === 'object' ? (update.data as Record<string, unknown>) : undefined;
+  const command = Array.isArray(data?.command)
+    ? data.command.filter((part): part is string => typeof part === 'string').join(' ')
+    : undefined;
+  const input = command
+    ? formatValue({ command, cwd: typeof data?.cwd === 'string' ? data.cwd : undefined })
+    : data
+      ? formatValue(data)
+      : undefined;
+
+  return {
+    key: update.toolCallId,
+    name: update.title || getCodexToolName(update),
+    desc: update.description || command || update.subtype,
+    status:
+      update.status === 'success'
+        ? 'success'
+        : update.status === 'error'
+          ? 'error'
+          : update.status === 'canceled'
+            ? 'default'
+            : ('processing' as BadgeProps['status']),
+    input,
+    output,
+  };
+};
+
+function getCodexToolName(update: CodexToolCallUpdate): string {
+  switch (update.subtype) {
+    case 'exec_command_begin':
+    case 'exec_command_output_delta':
+    case 'exec_command_end':
+      return 'Run';
+    case 'patch_apply_begin':
+    case 'patch_apply_end':
+      return 'Patch';
+    case 'mcp_tool_call_begin':
+    case 'mcp_tool_call_end':
+      return 'MCP';
+    case 'web_search_begin':
+    case 'web_search_end':
+      return 'Search';
+    default:
+      return update.kind || update.subtype;
+  }
+}
+
 const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
   const [expanded, setExpanded] = useState(false);
   const hasDetail = item.input || item.output;
@@ -194,9 +262,9 @@ const ToolItemDetail: React.FC<{ item: ToolItem }> = ({ item }) => {
   );
 };
 
-const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IMessageAcpToolCall> }> = ({
-  messages,
-}) => {
+const MessageToolGroupSummary: React.FC<{
+  messages: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall>;
+}> = ({ messages }) => {
   const hasRunningTools = messages.some(
     (m) =>
       (m.type === 'tool_group' &&
@@ -205,7 +273,11 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
       (m.type === 'acp_tool_call' &&
         !!m.content?.update &&
         m.content.update.status !== 'completed' &&
-        m.content.update.status !== 'failed')
+        m.content.update.status !== 'failed') ||
+      (m.type === 'codex_tool_call' &&
+        m.content.status !== 'success' &&
+        m.content.status !== 'error' &&
+        m.content.status !== 'canceled')
   );
   const [showMore, setShowMore] = useState(hasRunningTools);
 
@@ -217,7 +289,8 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
     return messages
       .flatMap((m) => {
         if (m.type === 'tool_group') return ToolGroupMapper(m);
-        return ToolAcpMapper(m);
+        if (m.type === 'acp_tool_call') return ToolAcpMapper(m);
+        return ToolCodexMapper(m);
       })
       .filter((item): item is ToolItem => item !== undefined);
   }, [messages]);

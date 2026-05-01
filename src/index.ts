@@ -7,11 +7,7 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import { cdpPort, verifyCdpReady } from './process/utils/configureChromium';
-import * as Sentry from '@sentry/electron/main';
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-});
+import type * as SentryMain from '@sentry/electron/main';
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, nativeImage, net, powerMonitor, protocol, screen } from 'electron';
@@ -42,6 +38,7 @@ import { startWebServer } from './process/webserver';
 import { cleanupWebAdapter } from './process/webserver/adapter';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
+import { isTruthyEnvFlag, shouldInitializeSentry } from './common/config/sentry';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -79,10 +76,36 @@ const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
 const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
+let sentryMain: typeof SentryMain | undefined;
+let sentryMainReady: Promise<void> | undefined;
+
+async function initializeSentryMain(): Promise<void> {
+  const dsn = process.env.SENTRY_DSN;
+  if (
+    !shouldInitializeSentry({
+      dsn,
+      enableInDevelopment: isTruthyEnvFlag(process.env.AIONUI_SENTRY_DEV),
+      isE2ETestMode,
+      isPackaged: app.isPackaged,
+    })
+  ) {
+    return;
+  }
+
+  try {
+    sentryMain = await import('@sentry/electron/main');
+    sentryMain.init({ dsn });
+  } catch (error) {
+    console.warn('[Sentry] Failed to initialize:', error);
+  }
+}
+
 if (!gotTheLock) {
   console.warn('[AionUi] Another instance is already running; current process will exit.');
   app.quit();
 } else {
+  sentryMainReady = initializeSentryMain();
+
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
     // Prefer additionalData (reliable on all platforms), fallback to argv scan
     const deepLinkUrl =
@@ -448,7 +471,9 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  Sentry.setUser({ id: getOrCreateAnalyticsId() });
+  void sentryMainReady?.then(() => {
+    sentryMain?.setUser({ id: getOrCreateAnalyticsId() });
+  });
 
   try {
     await initializeProcess();

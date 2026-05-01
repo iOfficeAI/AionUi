@@ -353,6 +353,14 @@ export type TChatConversation =
           codexModel?: string;
           /** Current native Codex model for selector and resume support / 当前原生 Codex 模型，用于选择器与恢复 */
           currentModelId?: string;
+          /** Persisted native Codex config option values for resume support */
+          configOptionValues?: Record<string, string>;
+          /** Cached native Codex config options for immediate conversation render */
+          cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+          /** Pending config option selections from Guid page */
+          pendingConfigOptions?: Record<string, string>;
+          /** Legacy/full-auto marker used by scheduled or remote-triggered runs */
+          yoloMode?: boolean;
           /** Native Codex app-server conversation marker */
           codexNative?: boolean;
           /** Native Codex app-server thread ID */

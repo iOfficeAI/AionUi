@@ -67,6 +67,12 @@ const mockAgentModeSelector = vi.fn(({ backend, initialMode }: { backend?: strin
     'data-initial-mode': initialMode || '',
   })
 );
+const mockAcpModelSelector = vi.fn(({ backend }: { backend?: string }) =>
+  React.createElement('div', { 'data-testid': `acp-model-selector-${backend || 'unknown'}` })
+);
+const mockAcpConfigSelector = vi.fn(({ backend }: { backend?: string }) =>
+  React.createElement('div', { 'data-testid': `acp-config-selector-${backend || 'unknown'}` })
+);
 const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
   files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
 );
@@ -202,7 +208,12 @@ vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
 
 vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
   __esModule: true,
-  default: () => React.createElement('div'),
+  default: (props: { backend?: string }) => mockAcpConfigSelector(props),
+}));
+
+vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
+  __esModule: true,
+  default: (props: { backend?: string }) => mockAcpModelSelector(props),
 }));
 
 vi.mock('@/renderer/components/agent/ContextUsageIndicator', () => ({
@@ -337,6 +348,18 @@ vi.mock('@/renderer/pages/conversation/platforms/aionrs/useAionrsMessage', () =>
   })),
 }));
 
+vi.mock('@/renderer/pages/conversation/platforms/codex/useCodexMessage', () => ({
+  useCodexMessage: vi.fn(() => ({
+    thought: { subject: '', description: '' },
+    running: false,
+    hasStreamingContent: false,
+    activity: null,
+    tokenUsage: 0,
+    contextLimit: 0,
+    resetState: vi.fn(),
+  })),
+}));
+
 vi.mock('@/renderer/pages/conversation/platforms/gemini/useGeminiQuotaFallback', () => ({
   useGeminiQuotaFallback: vi.fn(() => ({
     handleGeminiError: vi.fn(),
@@ -408,6 +431,7 @@ vi.mock('react-i18next', () => ({
 
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import AionrsSendBox from '@/renderer/pages/conversation/platforms/aionrs/AionrsSendBox';
+import CodexSendBox from '@/renderer/pages/conversation/platforms/codex/CodexSendBox';
 import GeminiSendBox from '@/renderer/pages/conversation/platforms/gemini/GeminiSendBox';
 import NanobotSendBox from '@/renderer/pages/conversation/platforms/nanobot/NanobotSendBox';
 import OpenClawSendBox from '@/renderer/pages/conversation/platforms/openclaw/OpenClawSendBox';
@@ -481,6 +505,8 @@ describe('platform send box queue integration', () => {
     mockDraftData.content = '';
     mockDraftData.uploadFile = [];
     mockAgentModeSelector.mockClear();
+    mockAcpModelSelector.mockClear();
+    mockAcpConfigSelector.mockClear();
   });
 
   afterEach(() => {
@@ -881,5 +907,21 @@ describe('platform send box queue integration', () => {
         initialMode: 'auto_edit',
       })
     );
+  });
+
+  it('renders native Codex permission mode and reasoning controls inside the sendbox tools', () => {
+    render(<CodexSendBox conversation_id='conv-codex' sessionMode='autoEdit' />);
+
+    const tools = screen.getByTestId('sendbox-tools');
+    expect(tools).toContainElement(screen.getByTestId('agent-mode-selector-codex'));
+    expect(tools).toContainElement(screen.getByTestId('acp-config-selector-codex'));
+    expect(tools).not.toContainElement(screen.queryByTestId('acp-model-selector-codex'));
+    expect(mockAgentModeSelector).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backend: 'codex',
+        initialMode: 'autoEdit',
+      })
+    );
+    expect(mockAcpModelSelector).not.toHaveBeenCalled();
   });
 });

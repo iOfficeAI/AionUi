@@ -2,6 +2,17 @@ import { describe, expect, it, vi } from 'vitest';
 import { CodexThreadSession } from '@/process/agent/codex/appserver/CodexThreadSession';
 import type { CodexJsonRpcNotification } from '@/process/agent/codex/appserver/types';
 
+const workspaceWriteSandboxPolicy = {
+  type: 'workspaceWrite',
+  writableRoots: [],
+  readOnlyAccess: { type: 'fullAccess' },
+  networkAccess: false,
+  excludeTmpdirEnvVar: false,
+  excludeSlashTmp: false,
+};
+
+const dangerFullAccessSandboxPolicy = { type: 'dangerFullAccess' };
+
 function createNotificationHarness(): {
   onNotification: (handler: (notification: CodexJsonRpcNotification) => void) => () => void;
   emitNotification: (notification: CodexJsonRpcNotification) => void;
@@ -86,9 +97,93 @@ describe('CodexThreadSession', () => {
     await turnPromise;
 
     expect(request).toHaveBeenNthCalledWith(1, 'thread/start', expect.objectContaining({ cwd: '/workspace' }));
-    expect(request).toHaveBeenNthCalledWith(2, 'turn/start', expect.objectContaining({ threadId: 'thread-1' }));
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      'turn/start',
+      expect.objectContaining({
+        threadId: 'thread-1',
+        sandboxPolicy: workspaceWriteSandboxPolicy,
+      })
+    );
     expect(messages).toContainEqual(expect.objectContaining({ type: 'start', conversation_id: 'conversation-1' }));
     expect(messages).toContainEqual(expect.objectContaining({ type: 'finish', conversation_id: 'conversation-1' }));
+  });
+
+  it('sends current model, effort, and permission settings with each turn', async () => {
+    const notifications = createNotificationHarness();
+    const failures = createFailureHarness();
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce({ thread: { id: 'thread-1' } })
+      .mockResolvedValueOnce({ turn: { id: 'turn-1' } })
+      .mockResolvedValueOnce({ turn: { id: 'turn-2' } });
+    const session = new CodexThreadSession({
+      client: {
+        request,
+        onNotification: notifications.onNotification,
+        onFailure: failures.onFailure,
+        onServerRequest: vi.fn(),
+      },
+      options: {
+        conversationId: 'conversation-1',
+        workspace: '/workspace',
+        approvalPolicy: 'on-request',
+        sandboxPolicy: 'workspace-write',
+        model: 'gpt-5.5',
+        reasoningEffort: 'high',
+      },
+      emitMessage: vi.fn(),
+      emitConfirmation: vi.fn(),
+      persistConversationExtra: vi.fn(),
+    });
+
+    await session.start();
+    const firstTurn = session.startTurn({ content: 'hello', msgId: 'user-1' });
+    await new Promise((resolve) => setImmediate(resolve));
+    notifications.emitNotification({
+      jsonrpc: '2.0',
+      method: 'turn/completed',
+      params: { threadId: 'thread-1', turn: { id: 'turn-1' } },
+    });
+    await firstTurn;
+
+    session.updateRuntimeConfig({
+      model: 'gpt-5.4',
+      reasoningEffort: 'xhigh',
+      approvalPolicy: 'never',
+      sandboxPolicy: 'danger-full-access',
+    });
+    const secondTurn = session.startTurn({ content: 'again', msgId: 'user-2' });
+    await new Promise((resolve) => setImmediate(resolve));
+    notifications.emitNotification({
+      jsonrpc: '2.0',
+      method: 'turn/completed',
+      params: { threadId: 'thread-1', turn: { id: 'turn-2' } },
+    });
+    await secondTurn;
+
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      'turn/start',
+      expect.objectContaining({
+        threadId: 'thread-1',
+        model: 'gpt-5.5',
+        effort: 'high',
+        approvalPolicy: 'on-request',
+        sandboxPolicy: workspaceWriteSandboxPolicy,
+      })
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      3,
+      'turn/start',
+      expect.objectContaining({
+        threadId: 'thread-1',
+        model: 'gpt-5.4',
+        effort: 'xhigh',
+        approvalPolicy: 'never',
+        sandboxPolicy: dangerFullAccessSandboxPolicy,
+      })
+    );
   });
 
   it('persists official nested token usage metadata from notifications', async () => {

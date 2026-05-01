@@ -6,7 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
-import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
@@ -23,10 +24,12 @@ import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
+import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCodexMessage, type UseCodexMessageReturn } from './useCodexMessage';
@@ -45,6 +48,7 @@ type CodexSendBoxBaseProps = {
   conversation_id: string;
   workspacePath?: string;
   sessionMode?: string;
+  cachedConfigOptions?: unknown[];
 };
 
 type CodexSendBoxProps = CodexSendBoxBaseProps & {
@@ -109,6 +113,8 @@ function formatActivityText(
 const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCodexMessageReturn }> = ({
   conversation_id,
   workspacePath,
+  sessionMode,
+  cachedConfigOptions,
   messageState,
 }) => {
   const { t } = useTranslation();
@@ -228,9 +234,6 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <div className='flex justify-end mb-8px'>
-        <AcpModelSelector conversationId={conversation_id} backend='codex' />
-      </div>
       <ThoughtDisplay running={isBusy} thought={messageState.thought} statusText={activityText} />
       <SendBox
         value={content}
@@ -250,7 +253,26 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
-        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        tools={
+          <div className='flex items-center gap-4px'>
+            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <AgentModeSelector
+              backend='codex'
+              conversationId={conversation_id}
+              compact
+              initialMode={sessionMode}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+            />
+            <AcpConfigSelector
+              backend='codex'
+              conversationId={conversation_id}
+              initialConfigOptions={cachedConfigOptions}
+            />
+          </div>
+        }
         prefix={
           <>
             {uploadFile.length > 0 && (

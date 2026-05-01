@@ -202,7 +202,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const task = workerTaskManager.getTask(conversationId);
     if (
       !task ||
-      !(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof AionrsManager)
+      !(
+        task instanceof AcpAgentManager ||
+        task instanceof GeminiAgentManager ||
+        task instanceof AionrsManager ||
+        task instanceof CodexNativeAgentManager
+      )
     ) {
       return Promise.resolve({
         success: true,
@@ -346,7 +351,14 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
       if (!task) {
         return { success: false, msg: 'Conversation not found' };
       }
-      if (!(task instanceof AcpAgentManager || task instanceof GeminiAgentManager || task instanceof AionrsManager)) {
+      if (
+        !(
+          task instanceof AcpAgentManager ||
+          task instanceof GeminiAgentManager ||
+          task instanceof AionrsManager ||
+          task instanceof CodexNativeAgentManager
+        )
+      ) {
         return {
           success: false,
           msg: 'Mode switching not supported for this agent type',
@@ -361,6 +373,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
 
   ipcBridge.acpConversation.getConfigOptions.provider(({ conversationId }) => {
     const task = workerTaskManager.getTask(conversationId);
+    if (task instanceof CodexNativeAgentManager) {
+      return Promise.resolve({
+        success: true,
+        data: { configOptions: task.getConfigOptions() },
+      });
+    }
     if (!task || !(task instanceof AcpAgentManager)) {
       return Promise.resolve({ success: true, data: { configOptions: [] } });
     }
@@ -373,6 +391,10 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   ipcBridge.acpConversation.setConfigOption.provider(async ({ conversationId, configId, value }) => {
     try {
       const task = await workerTaskManager.getOrBuildTask(conversationId);
+      if (task instanceof CodexNativeAgentManager) {
+        const configOptions = await task.setConfigOption(configId, value);
+        return { success: true, data: { configOptions } };
+      }
       if (!task || !(task instanceof AcpAgentManager)) {
         return {
           success: false,

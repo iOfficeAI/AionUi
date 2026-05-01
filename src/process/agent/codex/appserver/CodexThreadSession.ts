@@ -10,6 +10,7 @@ import type { CodexAppServerClient } from './CodexAppServerClient';
 import { CodexEventTranslator } from './CodexEventTranslator';
 import type {
   CodexJsonRpcNotification,
+  CodexSandboxPolicy,
   CodexThreadSessionOptions,
   CodexThreadStartResponse,
   CodexTurnStartResponse,
@@ -110,6 +111,10 @@ export class CodexThreadSession {
         threadId: this.threadId,
         cwd: this.deps.options.workspace,
         input: [{ type: 'text', text: input.content }],
+        approvalPolicy: this.deps.options.approvalPolicy,
+        sandboxPolicy: toTurnSandboxPolicy(this.deps.options.sandboxPolicy),
+        ...(this.deps.options.model ? { model: this.deps.options.model } : {}),
+        ...(this.deps.options.reasoningEffort ? { effort: this.deps.options.reasoningEffort } : {}),
       });
       if (this.disposed) {
         throw new Error('Codex thread session disposed');
@@ -129,6 +134,12 @@ export class CodexThreadSession {
     if (!this.threadId || !this.turnId) return;
     await this.deps.client.request('turn/interrupt', { threadId: this.threadId, turnId: this.turnId });
     this.completePendingTurn(this.turnId);
+  }
+
+  updateRuntimeConfig(
+    config: Partial<Pick<CodexThreadSessionOptions, 'approvalPolicy' | 'sandboxPolicy' | 'model' | 'reasoningEffort'>>
+  ): void {
+    Object.assign(this.deps.options, config);
   }
 
   dispose(): void {
@@ -204,6 +215,25 @@ function readThreadId(response: CodexThreadStartResponse): string {
 function readTurnId(response: CodexTurnStartResponse): string {
   if ('turn' in response) return response.turn.id;
   return response.turnId;
+}
+
+function toTurnSandboxPolicy(sandboxMode: CodexThreadSessionOptions['sandboxPolicy']): CodexSandboxPolicy {
+  if (sandboxMode === 'danger-full-access') {
+    return { type: 'dangerFullAccess' };
+  }
+
+  if (sandboxMode === 'read-only') {
+    return { type: 'readOnly', access: { type: 'fullAccess' }, networkAccess: false };
+  }
+
+  return {
+    type: 'workspaceWrite',
+    writableRoots: [],
+    readOnlyAccess: { type: 'fullAccess' },
+    networkAccess: false,
+    excludeTmpdirEnvVar: false,
+    excludeSlashTmp: false,
+  };
 }
 
 function readNotificationTurnId(params: unknown): string | undefined {

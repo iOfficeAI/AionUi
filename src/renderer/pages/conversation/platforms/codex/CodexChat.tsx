@@ -11,7 +11,6 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import ConversationChatConfirm from '../../components/ConversationChatConfirm';
-import CodexRuntimePanel from './CodexRuntimePanel';
 import CodexSendBox from './CodexSendBox';
 import { useCodexMessage } from './useCodexMessage';
 
@@ -19,10 +18,11 @@ const CodexChat: React.FC<{
   conversation_id: string;
   workspace?: string;
   sessionMode?: string;
+  cachedConfigOptions?: unknown[];
   cronJobId?: string;
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
-}> = ({ conversation_id, workspace, sessionMode, cronJobId, hideSendBox, emptySlot }) => {
+}> = ({ conversation_id, workspace, sessionMode, cachedConfigOptions, cronJobId, hideSendBox, emptySlot }) => {
   useMessageLstCache(conversation_id);
   const messageState = useCodexMessage(conversation_id);
 
@@ -41,18 +41,13 @@ const CodexChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot} />
         </FlexFullContainer>
-        <CodexRuntimePanel
-          activity={messageState.activity}
-          running={messageState.running}
-          tokenUsage={messageState.tokenUsage}
-          contextLimit={messageState.contextLimit}
-        />
         {!hideSendBox && (
           <ConversationChatConfirm conversation_id={conversation_id}>
             <CodexSendBox
               conversation_id={conversation_id}
               workspacePath={workspace}
               sessionMode={sessionMode}
+              cachedConfigOptions={cachedConfigOptions}
               messageState={messageState}
             />
           </ConversationChatConfirm>

@@ -31,11 +31,14 @@ const testDoubles = vi.hoisted(() => {
     sessions: [] as unknown[],
     turnGates: [] as ReturnType<typeof createDeferred>[],
   };
+  const execFileSync = vi.fn();
 
   class FakeCodexAppServerClient {
+    readonly options: { command: string; args: string[]; cwd?: string };
     serverRequestHandler: CodexServerRequestHandler | undefined;
 
-    constructor() {
+    constructor(options: { command: string; args: string[]; cwd?: string }) {
+      this.options = options;
       state.clients.push(this);
     }
 
@@ -143,6 +146,8 @@ const testDoubles = vi.hoisted(() => {
       state.turnGates.at(-1)?.resolve();
     });
 
+    updateRuntimeConfig = vi.fn();
+
     dispose = vi.fn(() => {
       state.turnGates.at(-1)?.resolve();
     });
@@ -153,7 +158,16 @@ const testDoubles = vi.hoisted(() => {
     FakeCodexAppServerClient,
     FakeCodexModelService,
     FakeCodexThreadSession,
+    execFileSync,
     state,
+  };
+});
+
+vi.mock('child_process', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('child_process')>();
+  return {
+    ...actual,
+    execFileSync: testDoubles.execFileSync,
   };
 });
 
@@ -180,6 +194,7 @@ vi.mock('@process/utils/message', () => ({
 
 type FakeClient = {
   start: ReturnType<typeof vi.fn>;
+  options: { command: string; args: string[]; cwd?: string };
   serverRequestHandler?: CodexServerRequestHandler;
   emitFailure: (error: Error) => void;
 };
@@ -218,6 +233,7 @@ function createManager(conversationId: string): CodexNativeAgentManager {
 
 describe('CodexNativeAgentManager', () => {
   beforeEach(() => {
+    vi.unstubAllEnvs();
     cronBusyGuard.clear();
     testDoubles.state.clientStartGate = undefined;
     testDoubles.state.clients.length = 0;
@@ -228,6 +244,63 @@ describe('CodexNativeAgentManager', () => {
     testDoubles.state.sessions.length = 0;
     testDoubles.state.turnGates.length = 0;
     vi.clearAllMocks();
+  });
+
+  it('resolves the default Codex command through the login shell', () => {
+    testDoubles.execFileSync.mockImplementation((_command: string, args: string[]) => {
+      if (args[1] === 'command -v codex') return '/home/linuxbrew/.linuxbrew/bin/codex\n';
+      return 'codex-cli 0.125.0\n';
+    });
+
+    const manager = new CodexNativeAgentManager({
+      conversation_id: 'conversation-login-shell-codex',
+      workspace: process.cwd(),
+      cliPath: 'codex',
+      sessionMode: 'default',
+    });
+
+    const client = testDoubles.state.clients[0] as FakeClient;
+
+    expect(client.options).toMatchObject({
+      command: '/home/linuxbrew/.linuxbrew/bin/codex',
+      args: ['app-server'],
+      cwd: process.cwd(),
+    });
+    expect(testDoubles.execFileSync).toHaveBeenCalledWith(
+      expect.any(String),
+      ['-lc', 'command -v codex'],
+      expect.objectContaining({ encoding: 'utf8', timeout: expect.any(Number) })
+    );
+
+    manager.kill();
+  });
+
+  it('migrates persisted nvm Codex shims to the login shell command', () => {
+    vi.stubEnv('PATH', '/home/taichu/.nvm/versions/node/v22.12.0/bin:/home/linuxbrew/.linuxbrew/bin:/usr/bin');
+    testDoubles.execFileSync.mockImplementation((command: string, args: string[]) => {
+      if (args[1] === 'command -v codex') return '/home/taichu/.nvm/versions/node/v22.12.0/bin/codex\n';
+      if (command === '/home/taichu/.nvm/versions/node/v22.12.0/bin/codex') return 'codex-cli 0.120.0\n';
+      if (command === '/home/linuxbrew/.linuxbrew/bin/codex') return 'codex-cli 0.125.0\n';
+      throw new Error(`Unexpected command probe: ${command}`);
+    });
+
+    const manager = new CodexNativeAgentManager({
+      conversation_id: 'conversation-nvm-codex',
+      workspace: process.cwd(),
+      cliPath: '/home/taichu/.nvm/versions/node/v22.12.0/bin/codex',
+      sessionMode: 'default',
+    });
+
+    const client = testDoubles.state.clients[0] as FakeClient;
+
+    expect(client.options.command).toBe('/home/linuxbrew/.linuxbrew/bin/codex');
+    expect(testDoubles.execFileSync).toHaveBeenCalledWith(
+      expect.any(String),
+      ['-lc', 'command -v codex'],
+      expect.objectContaining({ encoding: 'utf8', timeout: expect.any(Number) })
+    );
+
+    manager.kill();
   });
 
   it('implements the task manager contract for native Codex', async () => {
@@ -304,6 +377,47 @@ describe('CodexNativeAgentManager', () => {
     expect(emitSpy).not.toHaveBeenCalled();
 
     emitSpy.mockRestore();
+    manager.kill();
+  });
+
+  it('updates native Codex mode and reasoning options for future turns', async () => {
+    const manager = createManager('conversation-native-config');
+    const session = testDoubles.state.sessions[0] as FakeSession & {
+      updateRuntimeConfig: ReturnType<typeof vi.fn>;
+    };
+
+    expect(manager.getMode()).toMatchObject({ mode: 'default', initialized: false });
+    expect(manager.getConfigOptions()).toEqual([
+      expect.objectContaining({
+        id: 'reasoning_effort',
+        currentValue: 'medium',
+      }),
+    ]);
+
+    await expect(manager.setMode('yoloNoSandbox')).resolves.toMatchObject({
+      success: true,
+      data: { mode: 'yoloNoSandbox' },
+    });
+    await expect(manager.setConfigOption('reasoning_effort', 'xhigh')).resolves.toEqual([
+      expect.objectContaining({
+        id: 'reasoning_effort',
+        currentValue: 'xhigh',
+      }),
+    ]);
+
+    expect(manager.getMode()).toMatchObject({ mode: 'yoloNoSandbox' });
+    expect(session.updateRuntimeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        approvalPolicy: 'never',
+        sandboxPolicy: 'danger-full-access',
+      })
+    );
+    expect(session.updateRuntimeConfig).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reasoningEffort: 'xhigh',
+      })
+    );
+
     manager.kill();
   });
 

@@ -6,6 +6,7 @@
 
 import { spawn, type ChildProcessWithoutNullStreams } from 'child_process';
 import { EventEmitter } from 'events';
+import { getConfiguredAppClientName, getConfiguredAppClientVersion } from '@/common/utils/appConfig';
 import { CodexJsonlTransport } from './CodexJsonlTransport';
 import type {
   CodexAppServerClientOptions,
@@ -89,7 +90,7 @@ export class CodexAppServerClient {
     this.transport.onMessage((message) => void this.handleMessage(message));
     this.transport.onError((error) => this.handleTransportFailure(error));
     try {
-      await this.request('initialize', this.options.initializeParams || {});
+      await this.request('initialize', this.getInitializeParams());
       this.transport.write({ jsonrpc: '2.0', method: 'initialized', params: {} });
     } catch (error) {
       if (this.child === child && !child.killed) {
@@ -98,6 +99,16 @@ export class CodexAppServerClient {
       this.clearProcess(child);
       throw error;
     }
+  }
+
+  private getInitializeParams(): Record<string, unknown> {
+    return {
+      clientInfo: {
+        name: getConfiguredAppClientName(),
+        version: getConfiguredAppClientVersion(),
+      },
+      ...this.options.initializeParams,
+    };
   }
 
   request<TResult = unknown>(method: string, params?: unknown): Promise<TResult> {

@@ -14,6 +14,9 @@ type FakeChildProcess = EventEmitter & {
 };
 
 const spawnMock = vi.hoisted(() => vi.fn());
+const defaultInitializeParams = {
+  clientInfo: { name: 'AionUi', version: 'unknown' },
+};
 
 vi.mock('child_process', () => ({
   spawn: spawnMock,
@@ -90,7 +93,7 @@ describe('CodexAppServerClient', () => {
       });
       await startPromise;
       expect(clientMessages).toEqual([
-        { jsonrpc: '2.0', id: 1, method: 'initialize', params: {} },
+        { jsonrpc: '2.0', id: 1, method: 'initialize', params: defaultInitializeParams },
         { jsonrpc: '2.0', method: 'initialized', params: {} },
       ]);
 
@@ -247,7 +250,12 @@ describe('CodexAppServerClient', () => {
 
       expect(spawnMock).toHaveBeenCalledTimes(2);
       expect(client.pid).toBe(1005);
-      expect(secondMessages).toContainEqual({ jsonrpc: '2.0', id: 2, method: 'initialize', params: {} });
+      expect(secondMessages).toContainEqual({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'initialize',
+        params: defaultInitializeParams,
+      });
     } finally {
       await client.dispose();
     }
@@ -289,7 +297,12 @@ describe('CodexAppServerClient', () => {
 
       expect(spawnMock).toHaveBeenCalledTimes(2);
       expect(client.pid).toBe(1007);
-      expect(secondMessages).toContainEqual({ jsonrpc: '2.0', id: 2, method: 'initialize', params: {} });
+      expect(secondMessages).toContainEqual({
+        jsonrpc: '2.0',
+        id: 2,
+        method: 'initialize',
+        params: defaultInitializeParams,
+      });
     } finally {
       await client.dispose();
     }

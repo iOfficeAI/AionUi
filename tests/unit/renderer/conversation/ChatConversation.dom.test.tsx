@@ -17,6 +17,7 @@ const chatConversationMocks = vi.hoisted(() => ({
   codexChat: vi.fn(() => <div>codex-chat</div>),
   geminiChat: vi.fn(() => null),
   aionrsChat: vi.fn(() => null),
+  acpModelSelector: vi.fn(() => <div data-testid='acp-model-selector' />),
   useGeminiModelSelection: vi.fn(() => ({})),
   useAionrsModelSelection: vi.fn(() => ({})),
   useAionrsCapabilities: vi.fn(() => ({ capabilities: null, dynamicModes: [], initialized: true })),
@@ -83,8 +84,17 @@ vi.mock('@/renderer/utils/platform', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/components/ChatLayout', () => ({
-  default: ({ headerExtra, children }: { headerExtra?: React.ReactNode; children: React.ReactNode }) => (
+  default: ({
+    headerLeft,
+    headerExtra,
+    children,
+  }: {
+    headerLeft?: React.ReactNode;
+    headerExtra?: React.ReactNode;
+    children: React.ReactNode;
+  }) => (
     <div>
+      <div data-testid='header-left'>{headerLeft}</div>
       <div data-testid='header-extra'>{headerExtra}</div>
       <div>{children}</div>
     </div>
@@ -116,7 +126,7 @@ vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiChat', () => ({
 }));
 
 vi.mock('@/renderer/components/agent/AcpModelSelector', () => ({
-  default: () => <div>acp-model-selector</div>,
+  default: chatConversationMocks.acpModelSelector,
 }));
 
 vi.mock('@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector', () => ({
@@ -255,7 +265,7 @@ const createAionrsConversation = (sessionMode: string, useModel = 'gpt-4.1'): TC
     },
   }) as TChatConversation;
 
-const createCodexConversation = (sessionMode: string): TChatConversation =>
+const createCodexConversation = (sessionMode: string, currentModelId?: string): TChatConversation =>
   ({
     id: 'conv-codex',
     name: 'Codex Chat',
@@ -263,6 +273,7 @@ const createCodexConversation = (sessionMode: string): TChatConversation =>
     extra: {
       workspace: 'E:/code/demo',
       sessionMode,
+      currentModelId,
     },
   }) as TChatConversation;
 
@@ -274,6 +285,7 @@ describe('ChatConversation workspace launcher', () => {
     chatConversationMocks.codexChat.mockClear();
     chatConversationMocks.geminiChat.mockClear();
     chatConversationMocks.aionrsChat.mockClear();
+    chatConversationMocks.acpModelSelector.mockClear();
     chatConversationMocks.useGeminiModelSelection.mockReturnValue({
       providers: [{ id: 'provider-1', model: ['gemini-2.5-pro', 'glm-4.6'] }],
       getAvailableModels: (provider: { model?: string[] }) => provider.model ?? [],
@@ -442,5 +454,19 @@ describe('ChatConversation workspace launcher', () => {
       undefined
     );
     expect(chatConversationMocks.acpChat).not.toHaveBeenCalled();
+  });
+
+  it('renders native Codex model selection in the header-left slot', () => {
+    render(<ChatConversation conversation={createCodexConversation('yolo', 'gpt-5.5')} />);
+
+    expect(screen.getByTestId('header-left')).toContainElement(screen.getByTestId('acp-model-selector'));
+    expect(chatConversationMocks.acpModelSelector).toHaveBeenCalledWith(
+      expect.objectContaining({
+        conversationId: 'conv-codex',
+        backend: 'codex',
+        initialModelId: 'gpt-5.5',
+      }),
+      undefined
+    );
   });
 });

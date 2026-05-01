@@ -230,6 +230,58 @@ describe('CodexEventTranslator native tool events', () => {
     );
   });
 
+  it('maps app-server error notifications to plain persisted error messages', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'error',
+      params: {
+        error: {
+          message:
+            '{"type":"error","status":400,"error":{"type":"invalid_request_error","message":"The gpt-5.5 model requires a newer version of Codex."}}',
+          codexErrorInfo: 'other',
+          additionalDetails: null,
+        },
+        willRetry: false,
+        threadId: 'thread-1',
+        turnId: 'turn-1',
+      },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'error',
+          conversation_id: 'conversation-1',
+          msg_id: 'turn-1-error',
+          data: 'The gpt-5.5 model requires a newer version of Codex.',
+        }),
+      }),
+    ]);
+  });
+
+  it('ignores app-server internal status notifications instead of showing raw JSON cards', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    expect(
+      translator.translate({
+        jsonrpc: '2.0',
+        method: 'thread/status/changed',
+        params: { threadId: 'thread-1', status: { type: 'systemError' } },
+      })
+    ).toEqual([]);
+    expect(
+      translator.translate({
+        jsonrpc: '2.0',
+        method: 'mcpServer/startupStatus/updated',
+        params: { name: 'codex_apps', status: { type: 'starting' }, error: null },
+      })
+    ).toEqual([]);
+  });
+
   it('maps command output deltas to codex tool call updates', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
@@ -476,7 +528,7 @@ describe('CodexEventTranslator native tool events', () => {
     ]);
   });
 
-  it('keeps unknown event fallback as a safe generic codex tool call', () => {
+  it('ignores unknown native events instead of showing raw JSON cards', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
     const events = translator.translate({
@@ -485,22 +537,6 @@ describe('CodexEventTranslator native tool events', () => {
       params: { ok: true },
     });
 
-    expect(events).toEqual([
-      expect.objectContaining({
-        kind: 'message',
-        persist: true,
-        message: expect.objectContaining({
-          type: 'codex_tool_call',
-          data: expect.objectContaining({
-            status: 'success',
-            kind: 'execute',
-            subtype: 'generic',
-            title: 'unknown/nativeEvent',
-            description: 'unknown/nativeEvent',
-            data: { method: 'unknown/nativeEvent', params: { ok: true } },
-          }),
-        }),
-      }),
-    ]);
+    expect(events).toEqual([]);
   });
 });

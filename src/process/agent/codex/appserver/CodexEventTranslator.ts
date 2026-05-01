@@ -31,15 +31,21 @@ type NativeToolCallData = {
 };
 
 export class CodexEventTranslator {
+  private currentTurnId: string | undefined;
+
   constructor(private readonly conversationId: string) {}
 
   translate(notification: CodexJsonRpcNotification): CodexTranslatedEvent[] {
     switch (notification.method) {
-      case 'turn/started':
+      case 'turn/started': {
+        const params = asRecord(notification.params);
+        this.currentTurnId = readString(params?.turnId) || readString(params?.threadId) || uuid();
         return [this.message('start', notification.params, false)];
+      }
       case 'item/agentMessage/delta': {
-        const params = notification.params as { itemId?: string; delta?: string } | undefined;
-        return [this.message('content', { content: params?.delta || '' }, true, params?.itemId || uuid())];
+        const params = notification.params as { itemId?: string; turnId?: string; delta?: string } | undefined;
+        const contentMessageId = params?.itemId || params?.turnId || this.currentTurnId || 'codex_content';
+        return [this.message('content', { content: params?.delta || '' }, true, contentMessageId)];
       }
       case 'item/reasoning/summaryTextDelta':
       case 'item/reasoning/textDelta': {
@@ -78,11 +84,16 @@ export class CodexEventTranslator {
         const tokenUsage = readTokenUsageMetrics(notification.params);
         return [this.message('acp_context_usage', { used: tokenUsage.used, size: tokenUsage.size }, false)];
       }
+      case 'error':
+        return [this.errorEvent(notification)];
+      case 'thread/status/changed':
+      case 'mcpServer/startupStatus/updated':
+        return [];
       case 'item/started':
       case 'item/completed': {
         const itemEvent = this.translateItemLifecycle(notification);
         if (itemEvent) return [itemEvent];
-        return this.unknownEvent(notification);
+        return [];
       }
       case 'item/commandExecution/outputDelta': {
         const params = asRecord(notification.params);
@@ -128,6 +139,7 @@ export class CodexEventTranslator {
         ];
       }
       case 'turn/completed':
+        this.currentTurnId = undefined;
         return [this.message('finish', notification.params, false)];
       case 'warning':
         return [this.message('agent_status', { status: 'error', warning: notification.params }, true)];
@@ -144,7 +156,7 @@ export class CodexEventTranslator {
           return [this.genericNativeToolCall(notification, webSubtypeFromMethod(notification.method), 'web_search')];
         }
 
-        return this.unknownEvent(notification);
+        return [];
     }
   }
 
@@ -306,22 +318,10 @@ export class CodexEventTranslator {
     return this.message('codex_tool_call', data, true, data.toolCallId);
   }
 
-  private unknownEvent(notification: CodexJsonRpcNotification): CodexTranslatedEvent[] {
-    return [
-      this.message(
-        'codex_tool_call',
-        {
-          toolCallId: `native_${uuid()}`,
-          status: 'success',
-          kind: 'execute',
-          subtype: 'generic',
-          data: { method: notification.method, params: notification.params },
-          title: notification.method,
-          description: notification.method,
-        },
-        true
-      ),
-    ];
+  private errorEvent(notification: CodexJsonRpcNotification): CodexTranslatedEvent {
+    const params = asRecord(notification.params);
+    const turnId = readString(params?.turnId);
+    return this.message('error', extractErrorMessage(params), true, turnId ? `${turnId}-error` : uuid());
   }
 }
 
@@ -480,6 +480,25 @@ function describeNativeTool(params: Record<string, unknown> | undefined, fallbac
     readString(params?.query) ||
     fallback
   );
+}
+
+function extractErrorMessage(params: Record<string, unknown> | undefined): string {
+  const error = asRecord(params?.error);
+  const message = readString(error?.message);
+  if (!message) return 'Codex request failed';
+
+  return extractNestedJsonErrorMessage(message) || message;
+}
+
+function extractNestedJsonErrorMessage(message: string): string | undefined {
+  try {
+    const parsed = JSON.parse(message) as unknown;
+    const record = asRecord(parsed);
+    const nestedError = asRecord(record?.error);
+    return readString(nestedError?.message) || readString(record?.message);
+  } catch {
+    return undefined;
+  }
 }
 
 function durationFromMs(durationMs: number): { secs: number; nanos: number } {

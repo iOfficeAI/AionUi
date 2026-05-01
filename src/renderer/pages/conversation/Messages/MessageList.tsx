@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type {
+  CodexToolCallUpdate,
+  IMessageAcpToolCall,
+  IMessageCodexToolCall,
+  IMessageToolGroup,
+  TMessage,
+} from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
@@ -20,7 +26,7 @@ import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '@renderer/utils/common';
 import './messages.css';
 import HOC from '@renderer/utils/ui/HOC';
-import MessageCodexToolCall from './codex/MessageCodexToolCall';
+import MessageCodexToolCall, { shouldHideInternalNativeToolCall } from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
 import { useMessageList } from './hooks';
@@ -47,7 +53,7 @@ type IMessageVO =
   | {
       type: 'tool_summary';
       id: string;
-      messages: Array<IMessageToolGroup | IMessageAcpToolCall>;
+      messages: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall>;
       sourceMessageIds: string[];
     };
 
@@ -207,7 +213,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
     let diffsSourceMessageIds: string[] = [];
-    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall> = [];
+    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall> = [];
     let toolSourceMessageIds: string[] = [];
 
     const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string) => {
@@ -225,7 +231,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       toolList = [];
       toolSourceMessageIds = [];
     };
-    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall) => {
+    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall) => {
       if (!toolList.length) {
         toolSourceMessageIds = [];
         result.push({
@@ -240,6 +246,33 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       diffsChanges = [];
       diffsSourceMessageIds = [];
     };
+    const pushMessage = (message: TMessage) => {
+      if (conversationContext?.type !== 'codex' || message.type !== 'text' || message.position !== 'left') {
+        result.push(message);
+        return;
+      }
+
+      const previous = result[result.length - 1];
+      if (!previous || !('type' in previous) || previous.type !== 'text' || previous.position !== 'left') {
+        result.push(message);
+        return;
+      }
+
+      const previousContent = previous.content.content;
+      const nextContent = message.content.content;
+      if (typeof previousContent !== 'string' || typeof nextContent !== 'string') {
+        result.push(message);
+        return;
+      }
+
+      result[result.length - 1] = {
+        ...previous,
+        content: {
+          ...previous.content,
+          content: previousContent + nextContent,
+        },
+      };
+    };
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
@@ -248,6 +281,12 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       if (message.type === 'available_commands') continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
         pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
+        continue;
+      }
+      if (message.type === 'codex_tool_call') {
+        if (!shouldHideInternalNativeToolCall(message.content)) {
+          pushToolList(message);
+        }
         continue;
       }
       if (message.type === 'tool_group') {
@@ -277,10 +316,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       toolSourceMessageIds = [];
       diffsChanges = [];
       diffsSourceMessageIds = [];
-      result.push(message);
+      pushMessage(message);
     }
     return result;
-  }, [list]);
+  }, [conversationContext?.type, list]);
 
   // Use auto-scroll hook
   const {

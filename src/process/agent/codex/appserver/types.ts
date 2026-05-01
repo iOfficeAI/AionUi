@@ -54,6 +54,20 @@ export type CodexThreadStartResponse = { thread: { id: string } } | { threadId: 
 
 export type CodexTurnStartResponse = { turn: { id: string } } | { turnId: string };
 
+export type CodexSandboxMode = 'read-only' | 'workspace-write' | 'danger-full-access';
+
+export type CodexSandboxPolicy =
+  | { type: 'dangerFullAccess' }
+  | { type: 'readOnly'; access: { type: 'fullAccess' }; networkAccess: boolean }
+  | {
+      type: 'workspaceWrite';
+      writableRoots: string[];
+      readOnlyAccess: { type: 'fullAccess' };
+      networkAccess: boolean;
+      excludeTmpdirEnvVar: boolean;
+      excludeSlashTmp: boolean;
+    };
+
 export type CodexAppServerTransportStreams = {
   stdout: NodeJS.ReadableStream;
   stdin: NodeJS.WritableStream;
@@ -71,8 +85,9 @@ export type CodexThreadSessionOptions = {
   workspace: string;
   threadId?: string;
   approvalPolicy: string;
-  sandboxPolicy: string;
+  sandboxPolicy: CodexSandboxMode;
   model?: string;
+  reasoningEffort?: string;
 };
 
 export type CodexRuntimeDiagnostics = {

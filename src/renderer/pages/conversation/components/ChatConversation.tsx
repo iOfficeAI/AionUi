@@ -529,6 +529,7 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             sessionMode={conversation.extra?.sessionMode}
+            cachedConfigOptions={conversation.extra?.cachedConfigOptions}
             cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
             hideSendBox={hideSendBox}
           />
@@ -588,7 +589,16 @@ const ChatConversation: React.FC<{
         />
       );
     }
-    if (conversation.type === 'codex') return undefined;
+    if (conversation.type === 'codex') {
+      const extra = conversation.extra as { codexModel?: string; currentModelId?: string };
+      return (
+        <AcpModelSelector
+          conversationId={conversation.id}
+          backend='codex'
+          initialModelId={extra.currentModelId || extra.codexModel}
+        />
+      );
+    }
     return <GeminiModelSelector disabled={true} />;
   }, [conversation, isGeminiConversation, isAionrsConversation]);
 
