@@ -1,7 +1,7 @@
 import loginLogo from '@renderer/assets/logos/brand/app.png';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { changeLanguage } from '@/renderer/services/i18n';
+import { changeLanguage, languageLabels, supportedLanguages } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '../../hooks/context/AuthContext';
@@ -110,16 +110,12 @@ const LoginPage: React.FC = () => {
     [clearMessageLater]
   );
 
-  const supportedLanguages = useMemo<{ code: string; label: string }[]>(
-    () => [
-      { code: 'zh-CN', label: '简体中文' },
-      { code: 'zh-TW', label: '繁體中文' },
-      { code: 'ja-JP', label: '日本語' },
-      { code: 'ko-KR', label: '한국어' },
-      { code: 'tr-TR', label: 'Türkçe' },
-      { code: 'uk-UA', label: 'Українська' },
-      { code: 'en-US', label: 'English' },
-    ],
+  const languageOptions = useMemo<{ code: string; label: string }[]>(
+    () =>
+      supportedLanguages.map((code) => ({
+        code,
+        label: languageLabels[code] ?? code,
+      })),
     []
   );
 
@@ -207,7 +203,7 @@ const LoginPage: React.FC = () => {
             value={i18n.language}
             onChange={handleLanguageChange}
           >
-            {supportedLanguages.map((lang) => (
+            {languageOptions.map((lang) => (
               <option key={lang.code} value={lang.code}>
                 {lang.label}
               </option>

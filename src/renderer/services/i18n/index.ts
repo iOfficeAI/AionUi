@@ -31,6 +31,18 @@ export type { SupportedLanguage } from '@/common/config/i18n';
 
 export const supportedLanguages = i18nConfig.supportedLanguages;
 
+export const languageLabels: Record<string, string> = {
+  'zh-CN': '简体中文',
+  'zh-TW': '繁體中文',
+  'ja-JP': '日本語',
+  'ko-KR': '한국어',
+  'tr-TR': 'Türkçe',
+  'ru-RU': 'Русский',
+  'uk-UA': 'Українська',
+  'es-ES': 'Español',
+  'en-US': 'English',
+};
+
 const localeData: LocaleData = {
   'en-US': enUS,
   'zh-CN': zhCN,
