@@ -303,6 +303,36 @@ describe('CodexEventTranslator native tool events', () => {
     ]);
   });
 
+  it('maps collaboration spawn events to safe generic codex tool cards', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/collabAgentSpawn/begin',
+      params: { itemId: 'agent-1', label: 'Worker 1' },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'codex_tool_call',
+          msg_id: 'agent-1',
+          data: expect.objectContaining({
+            toolCallId: 'agent-1',
+            subtype: 'generic',
+            status: 'executing',
+            kind: 'execute',
+            title: 'Worker 1',
+            description: 'Worker 1',
+            data: { method: 'item/collabAgentSpawn/begin', params: { itemId: 'agent-1', label: 'Worker 1' } },
+          }),
+        }),
+      }),
+    ]);
+  });
+
   it('maps command execution item lifecycle to existing codex command subtypes', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
@@ -446,7 +476,7 @@ describe('CodexEventTranslator native tool events', () => {
     ]);
   });
 
-  it('keeps unknown event fallback as a native unknown codex tool call', () => {
+  it('keeps unknown event fallback as a safe generic codex tool call', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
     const events = translator.translate({
@@ -464,7 +494,8 @@ describe('CodexEventTranslator native tool events', () => {
           data: expect.objectContaining({
             status: 'success',
             kind: 'execute',
-            subtype: 'native_unknown_event',
+            subtype: 'generic',
+            title: 'unknown/nativeEvent',
             description: 'unknown/nativeEvent',
             data: { method: 'unknown/nativeEvent', params: { ok: true } },
           }),

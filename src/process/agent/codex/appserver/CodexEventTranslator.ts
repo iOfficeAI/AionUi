@@ -24,6 +24,7 @@ type NativeToolCallData = {
   status: NativeToolCallStatus;
   kind: NativeToolCallKind;
   subtype: string;
+  title?: string;
   description: string;
   content?: NativeToolCallContent[];
   data?: unknown;
@@ -131,6 +132,10 @@ export class CodexEventTranslator {
       case 'warning':
         return [this.message('agent_status', { status: 'error', warning: notification.params }, true)];
       default:
+        if (isCollaborationEvent(notification.method)) {
+          return [this.collaborationEvent(notification)];
+        }
+
         if (isMcpEvent(notification.method)) {
           return [this.genericNativeToolCall(notification, mcpSubtypeFromMethod(notification.method), 'mcp')];
         }
@@ -282,6 +287,21 @@ export class CodexEventTranslator {
     });
   }
 
+  private collaborationEvent(notification: CodexJsonRpcNotification): CodexTranslatedEvent {
+    const params = asRecord(notification.params);
+    const toolCallId = readToolCallId(params, 'collab');
+    const label = readString(params?.label) || readString(params?.name) || notification.method;
+    return this.nativeToolCall({
+      toolCallId,
+      status: statusFromMethod(notification.method),
+      kind: 'execute',
+      subtype: 'generic',
+      title: label,
+      description: label,
+      data: { method: notification.method, params: notification.params },
+    });
+  }
+
   private nativeToolCall(data: NativeToolCallData): CodexTranslatedEvent {
     return this.message('codex_tool_call', data, true, data.toolCallId);
   }
@@ -294,8 +314,9 @@ export class CodexEventTranslator {
           toolCallId: `native_${uuid()}`,
           status: 'success',
           kind: 'execute',
-          subtype: 'native_unknown_event',
+          subtype: 'generic',
           data: { method: notification.method, params: notification.params },
+          title: notification.method,
           description: notification.method,
         },
         true
@@ -315,6 +336,10 @@ function readString(value: unknown): string | undefined {
 
 function readNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function isCollaborationEvent(method: string): boolean {
+  return method.toLowerCase().includes('collab') || method.toLowerCase().includes('agentspawn');
 }
 
 type NormalizedPlanStatus = 'pending' | 'in_progress' | 'completed';
