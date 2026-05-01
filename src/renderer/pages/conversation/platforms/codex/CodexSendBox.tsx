@@ -9,6 +9,7 @@ import { uuid } from '@/common/utils';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
+import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
@@ -19,10 +20,16 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
+import { useCommandQueueEnabled } from '@/renderer/hooks/system/useCommandQueueEnabled';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { assertBridgeSuccess } from '@/renderer/pages/conversation/platforms/assertBridgeSuccess';
+import {
+  shouldEnqueueConversationCommand,
+  useConversationCommandQueue,
+  type ConversationCommandQueueItem,
+} from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -130,6 +137,7 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
     setAtPath,
     setUploadFile,
   });
+  const isCommandQueueEnabled = useCommandQueueEnabled();
 
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
@@ -172,7 +180,7 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
   });
 
   const executeCommand = useCallback(
-    async (input: string, files: string[]) => {
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const msg_id = uuid();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
@@ -211,8 +219,30 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
     [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
   );
 
+  const {
+    items: queuedCommands,
+    isPaused: isQueuePaused,
+    isInteractionLocked: isQueueInteractionLocked,
+    hasPendingCommands,
+    enqueue,
+    remove,
+    clear,
+    reorder,
+    pause,
+    resume,
+    lockInteraction,
+    unlockInteraction,
+    resetActiveExecution,
+  } = useConversationCommandQueue({
+    conversationId: conversation_id,
+    enabled: isCommandQueueEnabled,
+    isBusy,
+    isHydrated: messageState.hasHydratedRunningState,
+    onExecute: executeCommand,
+  });
+
   const handleSend = async (message: string) => {
-    if (isBusy) {
+    if (!isCommandQueueEnabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));
       return;
     }
@@ -221,19 +251,55 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
     clearFiles();
     emitter.emit('codex.selected.file.clear');
 
-    await executeCommand(message, filesToSend);
+    if (
+      shouldEnqueueConversationCommand({
+        enabled: isCommandQueueEnabled,
+        isBusy,
+        hasPendingCommands,
+      })
+    ) {
+      enqueue({ input: message, files: filesToSend });
+      return;
+    }
+
+    await executeCommand({ input: message, files: filesToSend });
   };
+
+  const handleEditQueuedCommand = useCallback(
+    (item: ConversationCommandQueueItem) => {
+      remove(item.id);
+      setContent(item.input);
+      setUploadFile(Array.from(new Set(item.files)));
+      setAtPath([]);
+      emitter.emit('codex.selected.file.clear');
+    },
+    [remove, setAtPath, setContent, setUploadFile]
+  );
 
   const handleStop = async (): Promise<void> => {
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
       messageState.resetState();
+      resetActiveExecution('stop');
     }
   };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      <CommandQueuePanel
+        items={queuedCommands}
+        paused={isQueuePaused}
+        interactionLocked={isQueueInteractionLocked}
+        onPause={pause}
+        onResume={resume}
+        onInteractionLock={lockInteraction}
+        onInteractionUnlock={unlockInteraction}
+        onEdit={handleEditQueuedCommand}
+        onReorder={reorder}
+        onRemove={remove}
+        onClear={clear}
+      />
       <ThoughtDisplay running={isBusy} thought={messageState.thought} statusText={activityText} />
       <SendBox
         value={content}
@@ -251,6 +317,7 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
+        allowSendWhileLoading={isCommandQueueEnabled}
         defaultMultiLine={true}
         lockMultiLine={true}
         tools={

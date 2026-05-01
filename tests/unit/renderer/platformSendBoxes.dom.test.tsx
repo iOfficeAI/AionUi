@@ -352,6 +352,7 @@ vi.mock('@/renderer/pages/conversation/platforms/codex/useCodexMessage', () => (
   useCodexMessage: vi.fn(() => ({
     thought: { subject: '', description: '' },
     running: false,
+    hasHydratedRunningState: true,
     hasStreamingContent: false,
     activity: null,
     tokenUsage: 0,
@@ -542,6 +543,7 @@ describe('platform send box queue integration', () => {
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
     ['remote', <RemoteSendBox conversation_id='conv-remote' />],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
+    ['codex', <CodexSendBox conversation_id='conv-codex' />],
   ])('renders queue panel above the processing indicator for %s', (_name, element) => {
     mockUseConversationCommandQueue.mockReturnValue({
       items: [
@@ -640,6 +642,15 @@ describe('platform send box queue integration', () => {
         expect(payload.conversation_id).toBe('conv-openclaw');
       },
     ],
+    [
+      'codex',
+      <CodexSendBox conversation_id='conv-codex' workspacePath='C:/workspace' />,
+      mockConversationSendInvoke,
+      (payload: { input: string; conversation_id: string }) => {
+        expect(payload.input).toContain('queued command');
+        expect(payload.conversation_id).toBe('conv-codex');
+      },
+    ],
   ])(
     'sends commands immediately for %s when queueing is not required',
     async (_name, element, sendSpy, assertPayload, shouldAssertBridgeSuccess = true) => {
@@ -723,6 +734,7 @@ describe('platform send box queue integration', () => {
     ],
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
+    ['codex', <CodexSendBox conversation_id='conv-codex' />],
   ])('enqueues commands for %s when the current turn is still busy', async (_name, element) => {
     mockShouldEnqueueConversationCommand.mockReturnValue(true);
 
@@ -756,6 +768,7 @@ describe('platform send box queue integration', () => {
     ],
     ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
     ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
+    ['codex', <CodexSendBox conversation_id='conv-codex' />],
   ])('resets active execution after stop for %s', async (_name, element) => {
     render(element);
 

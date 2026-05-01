@@ -186,7 +186,7 @@ describe('CodexThreadSession', () => {
     );
   });
 
-  it('persists official nested token usage metadata from notifications', async () => {
+  it('persists official nested native context usage metadata from notifications', async () => {
     const notifications = createNotificationHarness();
     const failures = createFailureHarness();
     const request = vi.fn().mockResolvedValueOnce({ thread: { id: 'thread-1' } });
@@ -217,15 +217,15 @@ describe('CodexThreadSession', () => {
         threadId: 'thread-1',
         turnId: 'turn-1',
         tokenUsage: {
-          total: { totalTokens: 1200 },
-          last: { totalTokens: 200 },
+          total: { totalTokens: 1_100_000 },
+          last: { totalTokens: 80_000 },
           modelContextWindow: 128000,
         },
       },
     });
 
     expect(persistConversationExtra).toHaveBeenLastCalledWith({
-      lastTokenUsage: { totalTokens: 1200 },
+      lastTokenUsage: { totalTokens: 80_000 },
       lastContextLimit: 128000,
     });
   });

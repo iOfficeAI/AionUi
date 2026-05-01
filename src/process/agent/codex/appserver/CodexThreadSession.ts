@@ -8,6 +8,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IConfirmation } from '@/common/chat/chatLib';
 import type { CodexAppServerClient } from './CodexAppServerClient';
 import { CodexEventTranslator } from './CodexEventTranslator';
+import { readCodexContextUsageMetrics } from './tokenUsageMetrics';
 import type {
   CodexJsonRpcNotification,
   CodexSandboxPolicy,
@@ -150,7 +151,7 @@ export class CodexThreadSession {
 
   private readonly handleNotification = (notification: CodexJsonRpcNotification): void => {
     if (notification.method === 'thread/tokenUsage/updated') {
-      const tokenUsage = readTokenUsageMetrics(notification.params);
+      const tokenUsage = readCodexContextUsageMetrics(notification.params);
       void this.deps.persistConversationExtra({
         lastTokenUsage: { totalTokens: tokenUsage.used },
         lastContextLimit: tokenUsage.size,
@@ -244,23 +245,4 @@ function readNotificationTurnId(params: unknown): string | undefined {
   }
   const turnId = (params as { turnId?: unknown }).turnId;
   return typeof turnId === 'string' ? turnId : undefined;
-}
-
-function readTokenUsageMetrics(params: unknown): { used: number; size: number } {
-  const record = asRecord(params);
-  const tokenUsage = asRecord(record?.tokenUsage);
-  const total = asRecord(tokenUsage?.total);
-  return {
-    used: readNumber(total?.totalTokens) ?? readNumber(record?.totalTokens) ?? 0,
-    size: readNumber(tokenUsage?.modelContextWindow) ?? readNumber(record?.contextWindow) ?? 0,
-  };
-}
-
-function asRecord(value: unknown): Record<string, unknown> | undefined {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined;
-  return value as Record<string, unknown>;
-}
-
-function readNumber(value: unknown): number | undefined {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
 }

@@ -6,6 +6,7 @@
 
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { uuid } from '@/common/utils';
+import { readCodexContextUsageMetrics } from './tokenUsageMetrics';
 import type { CodexJsonRpcNotification, CodexTranslatedEvent } from './types';
 
 type NativeToolCallStatus = 'pending' | 'executing' | 'success' | 'error' | 'canceled';
@@ -81,7 +82,7 @@ export class CodexEventTranslator {
           ),
         ];
       case 'thread/tokenUsage/updated': {
-        const tokenUsage = readTokenUsageMetrics(notification.params);
+        const tokenUsage = readCodexContextUsageMetrics(notification.params);
         return [this.message('acp_context_usage', { used: tokenUsage.used, size: tokenUsage.size }, false)];
       }
       case 'error':
@@ -394,16 +395,6 @@ function normalizeTurnDiff(params: unknown): { unified_diff: string } {
   const record = asRecord(params);
   return {
     unified_diff: readString(record?.diff) || readString(record?.unifiedDiff) || readString(record?.unified_diff) || '',
-  };
-}
-
-function readTokenUsageMetrics(params: unknown): { used: number; size: number } {
-  const record = asRecord(params);
-  const tokenUsage = asRecord(record?.tokenUsage);
-  const total = asRecord(tokenUsage?.total);
-  return {
-    used: readNumber(total?.totalTokens) ?? readNumber(record?.totalTokens) ?? 0,
-    size: readNumber(tokenUsage?.modelContextWindow) ?? readNumber(record?.contextWindow) ?? 0,
   };
 }
 

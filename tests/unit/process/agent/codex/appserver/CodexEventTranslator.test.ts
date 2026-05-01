@@ -138,7 +138,7 @@ describe('CodexEventTranslator native tool events', () => {
     ]);
   });
 
-  it('maps official nested token usage updates to non-persisted context usage messages', () => {
+  it('maps official nested token usage updates to non-persisted native context usage messages', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
     const events = translator.translate({
@@ -148,8 +148,8 @@ describe('CodexEventTranslator native tool events', () => {
         threadId: 'thread-1',
         turnId: 'turn-1',
         tokenUsage: {
-          total: { totalTokens: 1200 },
-          last: { totalTokens: 200 },
+          total: { totalTokens: 1_100_000 },
+          last: { totalTokens: 80_000 },
           modelContextWindow: 128000,
         },
       },
@@ -162,7 +162,7 @@ describe('CodexEventTranslator native tool events', () => {
         message: expect.objectContaining({
           type: 'acp_context_usage',
           conversation_id: 'conversation-1',
-          data: { used: 1200, size: 128000 },
+          data: { used: 80_000, size: 128000 },
         }),
       }),
     ]);

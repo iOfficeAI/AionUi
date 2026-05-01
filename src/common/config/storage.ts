@@ -365,6 +365,10 @@ export type TChatConversation =
           codexNative?: boolean;
           /** Native Codex app-server thread ID */
           codexThreadId?: string;
+          /** Last native Codex context usage from thread/tokenUsage/updated */
+          lastTokenUsage?: TokenUsageData;
+          /** Native Codex model context window from thread/tokenUsage/updated */
+          lastContextLimit?: number;
           /** Explicit marker for temporary health-check conversations */
           isHealthCheck?: boolean;
           /** Cron job ID that spawned this conversation */

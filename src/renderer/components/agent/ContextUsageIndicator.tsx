@@ -76,7 +76,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   const popoverContent = (
     <div className='p-8px min-w-160px'>
       <div className='text-14px font-medium text-t-primary'>
-        {percentage.toFixed(1)}% 路 {displayTotal} / {displayLimit}{' '}
+        {percentage.toFixed(1)}% {displayTotal} / {displayLimit}{' '}
         {t('conversation.contextUsage.contextUsed', 'context used')}
       </div>
       {compaction?.enabled && (
