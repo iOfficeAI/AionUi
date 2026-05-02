@@ -12,7 +12,7 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import { conversationServiceSingleton } from '@/process/services/conversationServiceSingleton';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
-import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
+import { getChannelDefaultModel, getChannelWorkspace, systemActions } from '../actions/SystemActions';
 import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
@@ -480,11 +480,13 @@ export class ActionExecutor {
         // Map backend to conversation type for lookup
         const { convType, convBackend } = resolveChannelConvType(backend);
         const conversationName = getChannelConversationName(platform, convType, convBackend, chatId);
+        const workspace = convType === 'acp' || convType === 'codex' ? await getChannelWorkspace(platform) : undefined;
         const conversationExtra = buildChannelConversationExtra({
           platform,
           backend,
           customAgentId,
           agentName,
+          workspace,
         });
 
         // Lookup existing conversation by source + chatId + type + backend (per-chat isolation)
@@ -558,7 +560,7 @@ export class ActionExecutor {
             channelUser,
             sessionConversation.id,
             agentType as ChannelAgentType,
-            undefined,
+            workspace,
             chatId
           );
         }

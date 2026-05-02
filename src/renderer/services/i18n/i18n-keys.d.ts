@@ -1041,6 +1041,8 @@ export type I18nKey =
   | 'settings.assistant.tokenRequired'
   | 'settings.assistant.tokenValid'
   | 'settings.assistant.userRevoked'
+  | 'settings.assistant.workspace'
+  | 'settings.assistant.workspaceDescription'
   | 'settings.assistantCreated'
   | 'settings.assistantDescription'
   | 'settings.assistantDescriptionPlaceholder'

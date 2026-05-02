@@ -208,6 +208,24 @@ export async function getChannelDefaultModel(platform: PluginType): Promise<TPro
  * They don't require AI processing - just system operations.
  */
 
+export async function getChannelWorkspace(platform: PluginType): Promise<string | undefined> {
+  try {
+    const key =
+      platform === 'lark'
+        ? 'assistant.lark.workspace'
+        : platform === 'dingtalk'
+          ? 'assistant.dingtalk.workspace'
+          : platform === 'weixin'
+            ? 'assistant.weixin.workspace'
+            : platform === 'wecom'
+              ? 'assistant.wecom.workspace'
+              : 'assistant.telegram.workspace';
+    return (await ProcessConfig.get(key)) ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Handle session.new - Create a new conversation session
  */
@@ -287,11 +305,13 @@ export const handleSessionNew: ActionHandler = async (context) => {
   const channelChatId = context.chatId;
   const { convType, convBackend } = resolveChannelConvType(backend);
   const name = getChannelConversationName(platform, convType, convBackend, channelChatId);
+  const workspace = convType === 'acp' || convType === 'codex' ? await getChannelWorkspace(platform) : undefined;
   const conversationExtra = buildChannelConversationExtra({
     platform,
     backend,
     customAgentId,
     agentName,
+    workspace,
   });
 
   let newConversation: TChatConversation;
@@ -352,7 +372,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
     context.channelUser,
     newConversation.id,
     agentType,
-    undefined,
+    workspace,
     channelChatId
   );
 
@@ -746,7 +766,9 @@ export const handleAgentSelect: ActionHandler = async (context, params) => {
   await sessionManager.clearSession(context.channelUser.id, context.chatId);
 
   // Create new session with the selected agent type (scoped by chatId)
-  const session = await sessionManager.createSession(context.channelUser, newAgentType, undefined, context.chatId);
+  const isAcp = newAgentType === 'acp' || newAgentType === 'codex';
+  const workspace = isAcp ? await getChannelWorkspace(context.platform) : undefined;
+  const session = await sessionManager.createSession(context.channelUser, newAgentType, workspace, context.chatId);
 
   const markup =
     context.platform === 'lark'

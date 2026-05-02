@@ -18,11 +18,13 @@ export function buildChannelConversationExtra(args: {
   backend: string;
   customAgentId?: string;
   agentName?: string;
+  workspace?: string;
 }): {
   backend?: AcpBackend;
   customAgentId?: string;
   agentName?: string;
   enabledSkills?: string[];
+  workspace?: string;
 } {
   const enabledSkills = getChannelEnabledSkills(args.platform);
 
@@ -32,13 +34,17 @@ export function buildChannelConversationExtra(args: {
     args.backend === 'codex' ||
     args.backend === 'openclaw-gateway'
   ) {
-    return enabledSkills ? { enabledSkills } : {};
+    return {
+      ...(args.workspace ? { workspace: args.workspace } : {}),
+      ...(enabledSkills ? { enabledSkills } : {}),
+    };
   }
 
   return {
     backend: args.backend as AcpBackend,
     customAgentId: args.customAgentId,
     agentName: args.agentName,
+    ...(args.workspace ? { workspace: args.workspace } : {}),
     ...(enabledSkills ? { enabledSkills } : {}),
   };
 }

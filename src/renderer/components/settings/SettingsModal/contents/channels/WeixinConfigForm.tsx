@@ -5,11 +5,12 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
+import { isAcpBackend } from './types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
 import type { GeminiModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGeminiModelSelection';
-import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -238,6 +239,11 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
             name: s.name,
           });
         }
+
+        const savedWorkspace = await ConfigStorage.get('assistant.weixin.workspace');
+        if (savedWorkspace && typeof savedWorkspace === 'string') {
+          setWorkspace(savedWorkspace);
+        }
       } catch (error) {
         console.error('[WeixinConfig] Failed to load agents:', error);
       }
@@ -254,6 +260,18 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[WeixinConfig] Failed to save agent:', error);
+      Message.error(t('common.saveFailed', 'Failed to save'));
+    }
+  };
+
+  const persistWorkspace = async (value: string) => {
+    try {
+      await ConfigStorage.set('assistant.weixin.workspace', value || undefined);
+      await channel.syncChannelSettings
+        .invoke({ platform: 'weixin', agent: selectedAgent })
+        .catch((err) => console.warn('[WeixinConfig] syncChannelSettings failed:', err));
+    } catch (error) {
+      console.error('[WeixinConfig] Failed to save workspace:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -372,6 +390,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   };
 
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const isAcpAgent = isAcpBackend(selectedAgent.backend);
+  const [workspace, setWorkspace] = useState('');
   const agentOptions: Array<{
     backend: string;
     name: string;
@@ -524,6 +544,21 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
           </Button>
         </Dropdown>
       </PreferenceRow>
+
+      {isAcpAgent && (
+        <PreferenceRow
+          label={t('settings.assistant.workspace', 'Working Directory')}
+          description={t('settings.assistant.workspaceDescription', 'Project directory for ACP agents')}
+        >
+          <Input
+            style={{ width: 240 }}
+            placeholder='/path/to/project'
+            value={workspace}
+            onChange={setWorkspace}
+            onBlur={() => void persistWorkspace(workspace)}
+          />
+        </PreferenceRow>
+      )}
 
       {/* Default Model Selection */}
       <PreferenceRow

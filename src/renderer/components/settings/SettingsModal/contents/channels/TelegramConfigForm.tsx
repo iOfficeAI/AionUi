@@ -5,6 +5,7 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
+import { isAcpBackend } from './types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import GeminiModelSelector from '@/renderer/pages/conversation/platforms/gemini/GeminiModelSelector';
@@ -144,6 +145,11 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         } else if (typeof saved === 'string') {
           setSelectedAgent({ backend: saved as string });
         }
+
+        const savedWorkspace = await ConfigStorage.get('assistant.telegram.workspace');
+        if (savedWorkspace && typeof savedWorkspace === 'string') {
+          setWorkspace(savedWorkspace);
+        }
       } catch (error) {
         console.error('[TelegramConfig] Failed to load agents:', error);
       }
@@ -161,6 +167,18 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[TelegramConfig] Failed to save agent:', error);
+      Message.error(t('common.saveFailed', 'Failed to save'));
+    }
+  };
+
+  const persistWorkspace = async (value: string) => {
+    try {
+      await ConfigStorage.set('assistant.telegram.workspace', value || undefined);
+      await channel.syncChannelSettings
+        .invoke({ platform: 'telegram', agent: selectedAgent })
+        .catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
+    } catch (error) {
+      console.error('[TelegramConfig] Failed to save workspace:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -321,6 +339,8 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   };
 
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const isAcpAgent = isAcpBackend(selectedAgent.backend);
+  const [workspace, setWorkspace] = useState('');
   const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
@@ -455,6 +475,21 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
           </Dropdown>
         </PreferenceRow>
       </div>
+
+      {isAcpAgent && (
+        <PreferenceRow
+          label={t('settings.assistant.workspace', 'Working Directory')}
+          description={t('settings.assistant.workspaceDescription', 'Project directory for ACP agents')}
+        >
+          <Input
+            style={{ width: 240 }}
+            placeholder='/path/to/project'
+            value={workspace}
+            onChange={setWorkspace}
+            onBlur={() => void persistWorkspace(workspace)}
+          />
+        </PreferenceRow>
+      )}
 
       {/* Default Model Selection */}
       <PreferenceRow

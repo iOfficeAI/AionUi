@@ -711,7 +711,9 @@
     "agentDescTelegram": "Used for Telegram conversations",
     "autoFollowCliModel": "Automatically follow the model when CLI is running",
     "agentSwitched": "Agent switched successfully",
-    "modelSwitched": "Model switched successfully"
+    "modelSwitched": "Model switched successfully",
+    "workspace": "Working Directory",
+    "workspaceDescription": "Project directory for ACP agents (Claude Code, OpenCode) to read project-level configs"
   },
   "lark": {
     "appId": "App ID",

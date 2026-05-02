@@ -5,6 +5,7 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
+import { isAcpBackend } from './types';
 import { acpConversation, channel, type IWebUIStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -152,6 +153,11 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
         } else if (typeof saved === 'string') {
           setSelectedAgent({ backend: saved as string });
         }
+
+        const savedWorkspace = await ConfigStorage.get('assistant.wecom.workspace');
+        if (savedWorkspace && typeof savedWorkspace === 'string') {
+          setWorkspace(savedWorkspace);
+        }
       } catch (error) {
         console.error('[WecomConfig] Failed to load agents:', error);
       }
@@ -169,6 +175,18 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[WecomConfig] Failed to save agent:', error);
+      Message.error(t('common.saveFailed', 'Failed to save'));
+    }
+  };
+
+  const persistWorkspace = async (value: string) => {
+    try {
+      await ConfigStorage.set('assistant.wecom.workspace', value || undefined);
+      await channel.syncChannelSettings
+        .invoke({ platform: 'wecom', agent: selectedAgent })
+        .catch((err) => console.warn('[WecomConfig] syncChannelSettings failed:', err));
+    } catch (error) {
+      console.error('[WecomConfig] Failed to save workspace:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -306,8 +324,10 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
     return `${remaining} min`;
   };
 
+  const [workspace, setWorkspace] = useState('');
   const hasExistingUsers = authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const isAcpAgent = isAcpBackend(selectedAgent.backend);
   const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
@@ -501,6 +521,21 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
           </Dropdown>
         </PreferenceRow>
       </div>
+
+      {isAcpAgent && (
+        <PreferenceRow
+          label={t('settings.assistant.workspace', 'Working Directory')}
+          description={t('settings.assistant.workspaceDescription', 'Project directory for ACP agents')}
+        >
+          <Input
+            style={{ width: 260 }}
+            placeholder='/path/to/project'
+            value={workspace}
+            onChange={setWorkspace}
+            onBlur={() => void persistWorkspace(workspace)}
+          />
+        </PreferenceRow>
+      )}
 
       {/* Default Model Selection */}
       <PreferenceRow

@@ -141,6 +141,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Telegram assistant working directory / Telegram 助手工作目录
+  'assistant.telegram.workspace'?: string;
   // Lark assistant default model / Lark 助手默认模型
   'assistant.lark.defaultModel'?: {
     id: string;
@@ -152,6 +154,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Lark assistant working directory / Lark 助手工作目录
+  'assistant.lark.workspace'?: string;
   // DingTalk assistant default model / DingTalk 助手默认模型
   'assistant.dingtalk.defaultModel'?: {
     id: string;
@@ -163,6 +167,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // DingTalk assistant working directory / DingTalk 助手工作目录
+  'assistant.dingtalk.workspace'?: string;
   // WeChat assistant default model / WeChat 助手默认模型
   'assistant.weixin.defaultModel'?: {
     id: string;
@@ -174,6 +180,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // WeChat assistant working directory / WeChat 助手工作目录
+  'assistant.weixin.workspace'?: string;
   // WeCom assistant default model / 企业微信助手默认模型
   'assistant.wecom.defaultModel'?: {
     id: string;
@@ -185,6 +193,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // WeCom assistant working directory / 企业微信助手工作目录
+  'assistant.wecom.workspace'?: string;
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
   // Desktop Pet: whether the desktop pet feature is enabled

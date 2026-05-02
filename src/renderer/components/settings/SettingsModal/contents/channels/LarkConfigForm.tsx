@@ -5,6 +5,7 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@process/channels/types';
+import { isAcpBackend } from './types';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -153,6 +154,11 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         } else if (typeof saved === 'string') {
           setSelectedAgent({ backend: saved as string });
         }
+
+        const savedWorkspace = await ConfigStorage.get('assistant.lark.workspace');
+        if (savedWorkspace && typeof savedWorkspace === 'string') {
+          setWorkspace(savedWorkspace);
+        }
       } catch (error) {
         console.error('[LarkConfig] Failed to load agents:', error);
       }
@@ -170,6 +176,18 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
       Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
     } catch (error) {
       console.error('[LarkConfig] Failed to save agent:', error);
+      Message.error(t('common.saveFailed', 'Failed to save'));
+    }
+  };
+
+  const persistWorkspace = async (value: string) => {
+    try {
+      await ConfigStorage.set('assistant.lark.workspace', value || undefined);
+      await channel.syncChannelSettings
+        .invoke({ platform: 'lark', agent: selectedAgent })
+        .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
+    } catch (error) {
+      console.error('[LarkConfig] Failed to save workspace:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -340,8 +358,10 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
     return `${remaining} min`;
   };
 
+  const [workspace, setWorkspace] = useState('');
   const hasExistingUsers = authorizedUsers.length > 0;
   const isGeminiAgent = selectedAgent.backend === 'gemini' || selectedAgent.backend === 'aionrs';
+  const isAcpAgent = isAcpBackend(selectedAgent.backend);
   const agentOptions: Array<{ backend: string; name: string; customAgentId?: string; isExtension?: boolean }> =
     availableAgents.length > 0 ? availableAgents : [{ backend: 'gemini', name: 'Gemini CLI' }];
 
@@ -652,6 +672,21 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
           </Dropdown>
         </PreferenceRow>
       </div>
+
+      {isAcpAgent && (
+        <PreferenceRow
+          label={t('settings.assistant.workspace', 'Working Directory')}
+          description={t('settings.assistant.workspaceDescription', 'Project directory for ACP agents')}
+        >
+          <Input
+            style={{ width: 240 }}
+            placeholder='/path/to/project'
+            value={workspace}
+            onChange={setWorkspace}
+            onBlur={() => void persistWorkspace(workspace)}
+          />
+        </PreferenceRow>
+      )}
 
       {/* Default Model Selection */}
       <PreferenceRow

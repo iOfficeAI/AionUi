@@ -711,7 +711,9 @@
     "agentDescTelegram": "用于与Channel进行对话",
     "autoFollowCliModel": "自动跟随CLI运行时的模型",
     "agentSwitched": "Agent 切换成功",
-    "modelSwitched": "模型切换成功"
+    "modelSwitched": "模型切换成功",
+    "workspace": "工作目录",
+    "workspaceDescription": "指定 ACP 智能体（Claude Code、OpenCode）的项目目录，用于读取项目级配置"
   },
   "lark": {
     "appId": "App ID",
