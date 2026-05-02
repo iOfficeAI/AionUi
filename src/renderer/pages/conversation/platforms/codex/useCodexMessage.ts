@@ -197,6 +197,14 @@ export const useCodexMessage = (conversationId: string): UseCodexMessageReturn =
           addTransformedMessage();
           break;
         }
+        case 'codex_context_event':
+          markActive({ phase: 'waiting' });
+          addTransformedMessage();
+          break;
+        case 'codex_agent_event':
+          markActive({ phase: 'tool' });
+          addTransformedMessage();
+          break;
         case 'acp_context_usage': {
           const usageData = message.data as { used?: unknown; size?: unknown };
           if (typeof usageData?.used === 'number') {

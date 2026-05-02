@@ -14,6 +14,38 @@
       "toolWithName": "도구 실행 중: {{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "컨텍스트 압축 중",
+    "compaction_completed": "컨텍스트 압축 완료",
+    "compaction_failed": "컨텍스트 압축 실패"
+  },
+  "agentEvent": {
+    "agentCount": "하위 에이전트 {{count}}개",
+    "reasoningEffort": "{{effort}} 추론",
+    "expand": "하위 에이전트 세부 정보 펼치기",
+    "collapse": "하위 에이전트 세부 정보 접기",
+    "action": {
+      "spawnAgent": "하위 에이전트 시작됨",
+      "sendInput": "하위 에이전트에 입력 전송됨",
+      "resumeAgent": "하위 에이전트 재개됨",
+      "wait": "하위 에이전트 대기 중",
+      "closeAgent": "하위 에이전트 종료됨",
+      "unknown": "하위 에이전트 활동"
+    },
+    "status": {
+      "running": "실행 중",
+      "completed": "완료됨",
+      "failed": "실패",
+      "canceled": "취소됨",
+      "closed": "닫힘",
+      "notFound": "찾을 수 없음",
+      "pendingInit": "시작 중",
+      "interrupted": "중단됨",
+      "errored": "오류",
+      "shutdown": "종료됨",
+      "unknown": "알 수 없음"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare 보호로 인해 {{service}} 접근이 차단되었습니다. 제안: 1) VPN 사용 2) 네트워크 전환 3) 나중에 재시도 4) 다른 AI 서비스로 전환",
     "network_timeout": "네트워크 시간 초과, 연결 자동 재시도 중...",

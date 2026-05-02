@@ -31,6 +31,31 @@ type NativeToolCallData = {
   data?: unknown;
 };
 
+type CodexContextEventData = {
+  event: 'compaction_started' | 'compaction_completed' | 'compaction_failed';
+  status: 'running' | 'completed' | 'failed';
+  threadId?: string;
+  itemId: string;
+};
+
+type CodexAgentEventData = {
+  callId: string;
+  action: string;
+  status: string;
+  senderThreadId?: string;
+  receiverThreadIds: string[];
+  prompt?: string;
+  model?: string;
+  reasoningEffort?: string;
+  agents: Array<{
+    threadId: string;
+    status?: string;
+    message?: string;
+    nickname?: string;
+    role?: string;
+  }>;
+};
+
 export class CodexEventTranslator {
   private currentTurnId: string | undefined;
 
@@ -168,6 +193,10 @@ export class CodexEventTranslator {
     if (!itemType) return undefined;
 
     switch (itemType) {
+      case 'contextCompaction':
+        return this.contextCompactionItem(notification.method, params, item);
+      case 'collabAgentToolCall':
+        return this.collabAgentToolCallItem(item);
       case 'commandExecution':
         return this.commandExecutionItem(notification.method, item);
       case 'fileChange':
@@ -179,6 +208,45 @@ export class CodexEventTranslator {
       default:
         return undefined;
     }
+  }
+
+  private contextCompactionItem(
+    method: string,
+    params: Record<string, unknown> | undefined,
+    item: Record<string, unknown>
+  ): CodexTranslatedEvent {
+    const itemId = readString(item.id) || readString(params?.itemId) || 'codex_context_compaction';
+    const status = statusFromCompactionLifecycle(method, item.status);
+    const data: CodexContextEventData = {
+      event:
+        status === 'failed'
+          ? 'compaction_failed'
+          : status === 'completed'
+            ? 'compaction_completed'
+            : 'compaction_started',
+      status,
+      threadId: readString(params?.threadId),
+      itemId,
+    };
+
+    return this.message('codex_context_event', data, true, itemId);
+  }
+
+  private collabAgentToolCallItem(item: Record<string, unknown>): CodexTranslatedEvent {
+    const callId = readToolCallId(item, 'agent');
+    const data: CodexAgentEventData = {
+      callId,
+      action: readString(item.tool) || 'unknown',
+      status: normalizeAgentEventStatus(item.status),
+      senderThreadId: readString(item.senderThreadId) || readString(item.sender_thread_id),
+      receiverThreadIds: readStringArray(item.receiverThreadIds || item.receiver_thread_ids),
+      prompt: readString(item.prompt),
+      model: readString(item.model),
+      reasoningEffort: readString(item.reasoningEffort) || readString(item.reasoning_effort),
+      agents: normalizeAgentStates(item.agentsStates || item.agents_states),
+    };
+
+    return this.message('codex_agent_event', data, true, callId);
   }
 
   private commandExecutionItem(method: string, item: Record<string, unknown>): CodexTranslatedEvent {
@@ -404,6 +472,51 @@ function readStringArray(value: unknown): string[] {
   }
   const command = readString(value);
   return command ? [command] : [];
+}
+
+function statusFromCompactionLifecycle(method: string, value: unknown): CodexContextEventData['status'] {
+  const normalized = readString(value);
+  if (normalized === 'failed') return 'failed';
+  if (method === 'item/completed') return 'completed';
+  return 'running';
+}
+
+function normalizeAgentEventStatus(value: unknown): string {
+  switch (readString(value)) {
+    case 'inProgress':
+    case 'running':
+      return 'running';
+    case 'completed':
+      return 'completed';
+    case 'failed':
+      return 'failed';
+    case 'cancelled':
+    case 'canceled':
+      return 'canceled';
+    default:
+      return readString(value) || 'unknown';
+  }
+}
+
+function normalizeAgentStates(value: unknown): CodexAgentEventData['agents'] {
+  const record = asRecord(value);
+  if (!record) return [];
+
+  return Object.entries(record).map(([threadId, state]) => {
+    const stateRecord = asRecord(state);
+    return {
+      threadId,
+      status: normalizeOptionalAgentStatus(stateRecord?.status),
+      message: readString(stateRecord?.message),
+      nickname: readString(stateRecord?.nickname),
+      role: readString(stateRecord?.role),
+    };
+  });
+}
+
+function normalizeOptionalAgentStatus(value: unknown): string | undefined {
+  const status = normalizeAgentEventStatus(value);
+  return status === 'unknown' ? undefined : status;
 }
 
 function readToolCallId(params: Record<string, unknown> | undefined, prefix: string): string {

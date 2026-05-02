@@ -14,6 +14,38 @@
       "toolWithName": "正在執行工具：{{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "正在壓縮上下文",
+    "compaction_completed": "上下文已壓縮",
+    "compaction_failed": "上下文壓縮失敗"
+  },
+  "agentEvent": {
+    "agentCount": "{{count}} 個子 agent",
+    "reasoningEffort": "{{effort}} 推理",
+    "expand": "展開子 agent 詳情",
+    "collapse": "收合子 agent 詳情",
+    "action": {
+      "spawnAgent": "已啟動子 agent",
+      "sendInput": "已向子 agent 傳送輸入",
+      "resumeAgent": "已恢復子 agent",
+      "wait": "正在等待子 agent",
+      "closeAgent": "已關閉子 agent",
+      "unknown": "子 agent 活動"
+    },
+    "status": {
+      "running": "執行中",
+      "completed": "已完成",
+      "failed": "失敗",
+      "canceled": "已取消",
+      "closed": "已關閉",
+      "notFound": "未找到",
+      "pendingInit": "啟動中",
+      "interrupted": "已中斷",
+      "errored": "出錯",
+      "shutdown": "已停止",
+      "unknown": "未知"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare 保護導致無法存取 {{service}}。建議：1）使用 VPN 2）切換網路 3）稍後重試 4）切換至其他 AI 服務",
     "network_timeout": "網路逾時，正在自動重試連線...",

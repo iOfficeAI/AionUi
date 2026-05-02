@@ -355,13 +355,93 @@ describe('CodexEventTranslator native tool events', () => {
     ]);
   });
 
-  it('maps collaboration spawn events to safe generic codex tool cards', () => {
+  it('maps context compaction lifecycle items to dedicated context events', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    const started = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/started',
+      params: {
+        threadId: 'thread-1',
+        item: {
+          type: 'contextCompaction',
+          id: 'compact-1',
+        },
+      },
+    });
+    const completed = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/completed',
+      params: {
+        threadId: 'thread-1',
+        item: {
+          type: 'contextCompaction',
+          id: 'compact-1',
+        },
+      },
+    });
+
+    expect(started[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'codex_context_event',
+          msg_id: 'compact-1',
+          data: {
+            event: 'compaction_started',
+            status: 'running',
+            threadId: 'thread-1',
+            itemId: 'compact-1',
+          },
+        }),
+      })
+    );
+    expect(completed[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'codex_context_event',
+          msg_id: 'compact-1',
+          data: {
+            event: 'compaction_completed',
+            status: 'completed',
+            threadId: 'thread-1',
+            itemId: 'compact-1',
+          },
+        }),
+      })
+    );
+  });
+
+  it('maps collaboration agent lifecycle items to dedicated agent events', () => {
     const translator = new CodexEventTranslator('conversation-1');
 
     const events = translator.translate({
       jsonrpc: '2.0',
-      method: 'item/collabAgentSpawn/begin',
-      params: { itemId: 'agent-1', label: 'Worker 1' },
+      method: 'item/completed',
+      params: {
+        item: {
+          type: 'collabAgentToolCall',
+          id: 'spawn-call-1',
+          tool: 'spawnAgent',
+          status: 'completed',
+          senderThreadId: 'parent-thread',
+          receiverThreadIds: ['child-thread'],
+          prompt: 'Inspect the renderer state.',
+          model: 'gpt-5.2',
+          reasoningEffort: 'low',
+          agentsStates: {
+            'child-thread': {
+              status: 'running',
+              message: null,
+              nickname: 'Worker 1',
+              role: 'explorer',
+            },
+          },
+        },
+      },
     });
 
     expect(events).toEqual([
@@ -369,17 +449,27 @@ describe('CodexEventTranslator native tool events', () => {
         kind: 'message',
         persist: true,
         message: expect.objectContaining({
-          type: 'codex_tool_call',
-          msg_id: 'agent-1',
-          data: expect.objectContaining({
-            toolCallId: 'agent-1',
-            subtype: 'generic',
-            status: 'executing',
-            kind: 'execute',
-            title: 'Worker 1',
-            description: 'Worker 1',
-            data: { method: 'item/collabAgentSpawn/begin', params: { itemId: 'agent-1', label: 'Worker 1' } },
-          }),
+          type: 'codex_agent_event',
+          msg_id: 'spawn-call-1',
+          data: {
+            callId: 'spawn-call-1',
+            action: 'spawnAgent',
+            status: 'completed',
+            senderThreadId: 'parent-thread',
+            receiverThreadIds: ['child-thread'],
+            prompt: 'Inspect the renderer state.',
+            model: 'gpt-5.2',
+            reasoningEffort: 'low',
+            agents: [
+              {
+                threadId: 'child-thread',
+                status: 'running',
+                message: undefined,
+                nickname: 'Worker 1',
+                role: 'explorer',
+              },
+            ],
+          },
         }),
       }),
     ]);

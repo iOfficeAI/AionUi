@@ -14,6 +14,38 @@
       "toolWithName": "ツールを実行中: {{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "コンテキストを圧縮中",
+    "compaction_completed": "コンテキストを圧縮しました",
+    "compaction_failed": "コンテキスト圧縮に失敗しました"
+  },
+  "agentEvent": {
+    "agentCount": "{{count}} 件のサブエージェント",
+    "reasoningEffort": "{{effort}} 推論",
+    "expand": "サブエージェント詳細を展開",
+    "collapse": "サブエージェント詳細を折りたたむ",
+    "action": {
+      "spawnAgent": "サブエージェントを起動しました",
+      "sendInput": "サブエージェントへ入力を送信しました",
+      "resumeAgent": "サブエージェントを再開しました",
+      "wait": "サブエージェントを待機中",
+      "closeAgent": "サブエージェントを閉じました",
+      "unknown": "サブエージェントのアクティビティ"
+    },
+    "status": {
+      "running": "実行中",
+      "completed": "完了",
+      "failed": "失敗",
+      "canceled": "キャンセル済み",
+      "closed": "終了",
+      "notFound": "見つかりません",
+      "pendingInit": "起動中",
+      "interrupted": "中断",
+      "errored": "エラー",
+      "shutdown": "停止",
+      "unknown": "不明"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflareの保護により{{service}}へのアクセスがブロックされました。対処: 1) VPN を利用 2) ネットワークを切替 3) 時間をおいて再試行 4) 別の AI サービスへ切替",
     "network_timeout": "ネットワークがタイムアウトしました。接続を自動的に再試行しています...",

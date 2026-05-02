@@ -14,6 +14,38 @@
       "toolWithName": "Выполняется инструмент: {{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "Сжатие контекста",
+    "compaction_completed": "Контекст сжат",
+    "compaction_failed": "Не удалось сжать контекст"
+  },
+  "agentEvent": {
+    "agentCount": "Субагентов: {{count}}",
+    "reasoningEffort": "Рассуждение {{effort}}",
+    "expand": "Развернуть детали субагента",
+    "collapse": "Свернуть детали субагента",
+    "action": {
+      "spawnAgent": "Субагент запущен",
+      "sendInput": "Ввод отправлен субагенту",
+      "resumeAgent": "Субагент возобновлен",
+      "wait": "Ожидание субагента",
+      "closeAgent": "Субагент закрыт",
+      "unknown": "Активность субагента"
+    },
+    "status": {
+      "running": "Выполняется",
+      "completed": "Завершено",
+      "failed": "Ошибка",
+      "canceled": "Отменено",
+      "closed": "Закрыто",
+      "notFound": "Не найдено",
+      "pendingInit": "Запуск",
+      "interrupted": "Прервано",
+      "errored": "Ошибка",
+      "shutdown": "Остановлено",
+      "unknown": "Неизвестно"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Защита Cloudflare заблокировала доступ к {{service}}. Варианты: 1) Использовать VPN 2) Сменить сеть 3) Попробовать позже 4) Переключиться на другие ИИ-сервисы",
     "network_timeout": "Таймаут сети, автоматическое повторное подключение...",

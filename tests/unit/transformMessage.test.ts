@@ -37,6 +37,48 @@ describe('transformMessage', () => {
     expect(result!.position).toBe('right');
   });
 
+  it('transforms Codex context events into center timeline messages', () => {
+    const result = transformMessage(
+      makeMessage('codex_context_event', {
+        event: 'compaction_completed',
+        status: 'completed',
+        itemId: 'compact-1',
+      })
+    );
+
+    expect(result).toMatchObject({
+      type: 'codex_context_event',
+      position: 'center',
+      content: {
+        event: 'compaction_completed',
+        status: 'completed',
+        itemId: 'compact-1',
+      },
+    });
+  });
+
+  it('transforms Codex agent events without using generic tool cards', () => {
+    const result = transformMessage(
+      makeMessage('codex_agent_event', {
+        callId: 'spawn-1',
+        action: 'spawnAgent',
+        status: 'running',
+        receiverThreadIds: ['thread-2'],
+        agents: [{ threadId: 'thread-2', status: 'running' }],
+      })
+    );
+
+    expect(result).toMatchObject({
+      type: 'codex_agent_event',
+      position: 'left',
+      content: {
+        callId: 'spawn-1',
+        action: 'spawnAgent',
+        receiverThreadIds: ['thread-2'],
+      },
+    });
+  });
+
   it('returns undefined for transient message types', () => {
     for (const type of ['start', 'finish', 'thought', 'info', 'system', 'acp_model_info', 'request_trace']) {
       expect(transformMessage(makeMessage(type))).toBeUndefined();

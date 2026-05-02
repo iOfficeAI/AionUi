@@ -14,6 +14,38 @@
       "toolWithName": "Виконується інструмент: {{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "Стиснення контексту",
+    "compaction_completed": "Контекст стиснуто",
+    "compaction_failed": "Не вдалося стиснути контекст"
+  },
+  "agentEvent": {
+    "agentCount": "Субагентів: {{count}}",
+    "reasoningEffort": "Міркування {{effort}}",
+    "expand": "Розгорнути деталі субагента",
+    "collapse": "Згорнути деталі субагента",
+    "action": {
+      "spawnAgent": "Субагента запущено",
+      "sendInput": "Введення надіслано субагенту",
+      "resumeAgent": "Субагента відновлено",
+      "wait": "Очікування субагента",
+      "closeAgent": "Субагента закрито",
+      "unknown": "Активність субагента"
+    },
+    "status": {
+      "running": "Виконується",
+      "completed": "Завершено",
+      "failed": "Помилка",
+      "canceled": "Скасовано",
+      "closed": "Закрито",
+      "notFound": "Не знайдено",
+      "pendingInit": "Запуск",
+      "interrupted": "Перервано",
+      "errored": "Помилка",
+      "shutdown": "Зупинено",
+      "unknown": "Невідомо"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Захист Cloudflare заблокував доступ до {{service}}. Поради: 1) Використовуйте VPN 2) Змініть мережу 3) Спробуйте пізніше 4) Перемкніться на інші сервіси ШІ",
     "network_timeout": "Таймаут мережі, автоматична спроба повторного підключення...",

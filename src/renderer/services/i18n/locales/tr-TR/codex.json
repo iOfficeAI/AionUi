@@ -14,6 +14,38 @@
       "toolWithName": "Araç çalıştırılıyor: {{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "Bağlam sıkıştırılıyor",
+    "compaction_completed": "Bağlam sıkıştırıldı",
+    "compaction_failed": "Bağlam sıkıştırma başarısız"
+  },
+  "agentEvent": {
+    "agentCount": "{{count}} alt ajan",
+    "reasoningEffort": "{{effort}} akıl yürütme",
+    "expand": "Alt ajan ayrıntılarını genişlet",
+    "collapse": "Alt ajan ayrıntılarını daralt",
+    "action": {
+      "spawnAgent": "Alt ajan başlatıldı",
+      "sendInput": "Alt ajana giriş gönderildi",
+      "resumeAgent": "Alt ajan sürdürüldü",
+      "wait": "Alt ajan bekleniyor",
+      "closeAgent": "Alt ajan kapatıldı",
+      "unknown": "Alt ajan etkinliği"
+    },
+    "status": {
+      "running": "Çalışıyor",
+      "completed": "Tamamlandı",
+      "failed": "Başarısız",
+      "canceled": "İptal edildi",
+      "closed": "Kapalı",
+      "notFound": "Bulunamadı",
+      "pendingInit": "Başlatılıyor",
+      "interrupted": "Kesildi",
+      "errored": "Hata verdi",
+      "shutdown": "Kapatıldı",
+      "unknown": "Bilinmiyor"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare koruması {{service}} erişimini engelledi. Öneriler: 1) VPN kullanın 2) Ağı değiştirin 3) Daha sonra tekrar deneyin 4) Diğer AI servislerine geçin",
     "network_timeout": "Ağ zaman aşımı, bağlantı otomatik olarak tekrar deneniyor...",

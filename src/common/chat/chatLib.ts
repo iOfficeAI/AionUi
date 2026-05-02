@@ -81,6 +81,8 @@ type TMessageType =
   | 'acp_tool_call'
   | 'codex_permission'
   | 'codex_tool_call'
+  | 'codex_context_event'
+  | 'codex_agent_event'
   | 'plan'
   | 'thinking'
   | 'available_commands'
@@ -236,6 +238,35 @@ export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
 export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
+export type CodexContextEvent = {
+  event: 'compaction_started' | 'compaction_completed' | 'compaction_failed';
+  status: 'running' | 'completed' | 'failed';
+  threadId?: string;
+  itemId: string;
+};
+
+export type CodexAgentEvent = {
+  callId: string;
+  action: string;
+  status: string;
+  senderThreadId?: string;
+  receiverThreadIds: string[];
+  prompt?: string;
+  model?: string;
+  reasoningEffort?: string;
+  agents: Array<{
+    threadId: string;
+    status?: string;
+    message?: string;
+    nickname?: string;
+    role?: string;
+  }>;
+};
+
+export type IMessageCodexContextEvent = IMessage<'codex_context_event', CodexContextEvent>;
+
+export type IMessageCodexAgentEvent = IMessage<'codex_agent_event', CodexAgentEvent>;
+
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
   toolCallId: string;
@@ -371,6 +402,8 @@ export type TMessage =
   | IMessageAcpToolCall
   | IMessageCodexPermission
   | IMessageCodexToolCall
+  | IMessageCodexContextEvent
+  | IMessageCodexAgentEvent
   | IMessagePlan
   | IMessageThinking
   | IMessageAvailableCommands
@@ -500,6 +533,26 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
+      };
+    }
+    case 'codex_context_event': {
+      return {
+        id: uuid(),
+        type: 'codex_context_event',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data as CodexContextEvent,
+      };
+    }
+    case 'codex_agent_event': {
+      return {
+        id: uuid(),
+        type: 'codex_agent_event',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data as CodexAgentEvent,
       };
     }
     case 'plan': {
@@ -684,6 +737,26 @@ export const composeMessage = (
       }
     }
     // If no existing tool call found, add new one
+    return pushMessage(message);
+  }
+
+  if (message.type === 'codex_context_event') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (msg.type === 'codex_context_event' && msg.content.itemId === message.content.itemId) {
+        return updateMessage(i, { ...msg, content: { ...msg.content, ...message.content } });
+      }
+    }
+    return pushMessage(message);
+  }
+
+  if (message.type === 'codex_agent_event') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (msg.type === 'codex_agent_event' && msg.content.callId === message.content.callId) {
+        return updateMessage(i, { ...msg, content: { ...msg.content, ...message.content } });
+      }
+    }
     return pushMessage(message);
   }
 

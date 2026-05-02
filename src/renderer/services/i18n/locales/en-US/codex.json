@@ -14,6 +14,38 @@
       "toolWithName": "Running tool: {{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "Compacting context",
+    "compaction_completed": "Context compacted",
+    "compaction_failed": "Context compaction failed"
+  },
+  "agentEvent": {
+    "agentCount": "{{count}} agent(s)",
+    "reasoningEffort": "{{effort}} reasoning",
+    "expand": "Expand subagent details",
+    "collapse": "Collapse subagent details",
+    "action": {
+      "spawnAgent": "Spawned subagent",
+      "sendInput": "Sent input to subagent",
+      "resumeAgent": "Resumed subagent",
+      "wait": "Waiting for subagent",
+      "closeAgent": "Closed subagent",
+      "unknown": "Subagent activity"
+    },
+    "status": {
+      "running": "Running",
+      "completed": "Completed",
+      "failed": "Failed",
+      "canceled": "Canceled",
+      "closed": "Closed",
+      "notFound": "Not found",
+      "pendingInit": "Starting",
+      "interrupted": "Interrupted",
+      "errored": "Errored",
+      "shutdown": "Shut down",
+      "unknown": "Unknown"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare protection blocked access to {{service}}. Suggestions: 1) Use VPN 2) Switch network 3) Retry later 4) Switch to other AI services",
     "network_timeout": "Network timeout, automatically retrying connection...",

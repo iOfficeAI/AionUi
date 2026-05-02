@@ -26,6 +26,8 @@ import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '@renderer/utils/common';
 import './messages.css';
 import HOC from '@renderer/utils/ui/HOC';
+import MessageCodexAgentEvent from './codex/MessageCodexAgentEvent';
+import MessageCodexContextEvent from './codex/MessageCodexContextEvent';
 import MessageCodexToolCall, { shouldHideInternalNativeToolCall } from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
@@ -170,6 +172,10 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStream
         return null;
       case 'codex_tool_call':
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
+      case 'codex_context_event':
+        return <MessageCodexContextEvent message={message} />;
+      case 'codex_agent_event':
+        return <MessageCodexAgentEvent message={message} />;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':

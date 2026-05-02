@@ -14,6 +14,38 @@
       "toolWithName": "正在运行工具：{{tool}}"
     }
   },
+  "contextEvent": {
+    "compaction_started": "正在压缩上下文",
+    "compaction_completed": "上下文已压缩",
+    "compaction_failed": "上下文压缩失败"
+  },
+  "agentEvent": {
+    "agentCount": "{{count}} 个子 agent",
+    "reasoningEffort": "{{effort}} 推理",
+    "expand": "展开子 agent 详情",
+    "collapse": "收起子 agent 详情",
+    "action": {
+      "spawnAgent": "已启动子 agent",
+      "sendInput": "已向子 agent 发送输入",
+      "resumeAgent": "已恢复子 agent",
+      "wait": "正在等待子 agent",
+      "closeAgent": "已关闭子 agent",
+      "unknown": "子 agent 活动"
+    },
+    "status": {
+      "running": "运行中",
+      "completed": "已完成",
+      "failed": "失败",
+      "canceled": "已取消",
+      "closed": "已关闭",
+      "notFound": "未找到",
+      "pendingInit": "启动中",
+      "interrupted": "已中断",
+      "errored": "出错",
+      "shutdown": "已停止",
+      "unknown": "未知"
+    }
+  },
   "network": {
     "cloudflare_blocked": "Cloudflare防护机制阻止了对{{service}}的访问。建议：1) 使用VPN 2) 更换网络 3) 稍后重试 4) 切换到其他AI服务",
     "network_timeout": "网络超时，正在自动重试连接...",
