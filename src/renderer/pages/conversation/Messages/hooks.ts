@@ -44,6 +44,9 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
     if (msg.type === 'codex_tool_call' && msg.content?.toolCallId) {
       toolCallIdIndex.set(msg.content.toolCallId, i);
     }
+    if (msg.type === 'codex_agent_transcript' && msg.msg_id) {
+      msgIdIndex.set(msg.msg_id, i);
+    }
     if (msg.type === 'acp_tool_call' && msg.content?.update?.toolCallId) {
       toolCallIdIndex.set(msg.content.update.toolCallId, i);
     }
@@ -155,6 +158,32 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
     index.toolCallIdIndex.set(message.content.update.toolCallId, newIdx);
+    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    return list.concat(message);
+  }
+
+  if (message.type === 'codex_agent_transcript') {
+    const existingIdx = message.msg_id ? index.msgIdIndex.get(message.msg_id) : undefined;
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      if (
+        existingMsg.type === 'codex_agent_transcript' &&
+        existingMsg.content.callId === message.content.callId &&
+        existingMsg.content.threadId === message.content.threadId &&
+        existingMsg.content.itemId === message.content.itemId
+      ) {
+        const newList = list.slice();
+        newList[existingIdx] = {
+          ...existingMsg,
+          content: {
+            ...existingMsg.content,
+            content: existingMsg.content.content + message.content.content,
+          },
+        };
+        return newList;
+      }
+    }
+    const newIdx = list.length;
     if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
   }
@@ -398,9 +427,11 @@ export const useMessageLstCache = (key: string) => {
         conversation_id: key,
         page: 0,
         pageSize: 10000, // Load all messages (up to 10k per conversation)
+        order: 'DESC',
       })
       .then((messages) => {
         if (messages && Array.isArray(messages)) {
+          const chronologicalMessages = messages.toReversed();
           // Merge DB messages with any real-time streaming messages already in the list.
           // This prevents a race condition where streaming messages (added via IPC before
           // the DB load completes) could cause DB-only messages (e.g. cron user messages
@@ -409,13 +440,13 @@ export const useMessageLstCache = (key: string) => {
           // messages share the same msg_id but may have different id values
           // (streaming messages get new UUIDs from transformMessage).
           update((currentList) => {
-            if (!currentList.length) return messages;
+            if (!currentList.length) return chronologicalMessages;
             // Only keep streaming messages that belong to the current conversation
             // to prevent messages from a previous conversation leaking into the new one
             const sameConversation = currentList.filter((m) => m.conversation_id === key);
-            if (!sameConversation.length) return messages;
-            const dbIds = new Set(messages.map((m) => m.id));
-            const dbMsgIds = new Set(messages.map((m) => m.msg_id).filter(Boolean));
+            if (!sameConversation.length) return chronologicalMessages;
+            const dbIds = new Set(chronologicalMessages.map((m) => m.id));
+            const dbMsgIds = new Set(chronologicalMessages.map((m) => m.msg_id).filter(Boolean));
 
             // Build a map of streaming messages by msg_id for content-length comparison.
             // During streaming, the DB may have an older snapshot (due to 2000ms save debounce),
@@ -428,7 +459,7 @@ export const useMessageLstCache = (key: string) => {
             }
 
             // Replace DB messages with streaming versions when streaming has more content
-            const mergedMessages = messages.map((dbMsg) => {
+            const mergedMessages = chronologicalMessages.map((dbMsg) => {
               if (!dbMsg.msg_id || dbMsg.type !== 'text') return dbMsg;
               const streamMsg = streamingByMsgId.get(dbMsg.msg_id);
               if (!streamMsg) return dbMsg;
@@ -446,7 +477,7 @@ export const useMessageLstCache = (key: string) => {
             const streamingOnly = sameConversation.filter(
               (m) => !dbIds.has(m.id) && !(m.msg_id && dbMsgIds.has(m.msg_id))
             );
-            if (!streamingOnly.length && !streamingByMsgId.size) return messages;
+            if (!streamingOnly.length && !streamingByMsgId.size) return chronologicalMessages;
             return [...mergedMessages, ...streamingOnly];
           });
         }

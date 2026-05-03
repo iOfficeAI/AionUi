@@ -24,6 +24,9 @@
     "reasoningEffort": "{{effort}} 推理",
     "expand": "展开子 agent 详情",
     "collapse": "收起子 agent 详情",
+    "diagnostics": "诊断信息",
+    "expandDiagnostics": "展开诊断详情",
+    "collapseDiagnostics": "收起诊断详情",
     "action": {
       "spawnAgent": "已启动子 agent",
       "sendInput": "已向子 agent 发送输入",

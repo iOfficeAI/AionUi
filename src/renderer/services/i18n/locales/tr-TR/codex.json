@@ -24,6 +24,9 @@
     "reasoningEffort": "{{effort}} akıl yürütme",
     "expand": "Alt ajan ayrıntılarını genişlet",
     "collapse": "Alt ajan ayrıntılarını daralt",
+    "diagnostics": "Tanılama",
+    "expandDiagnostics": "Tanılama ayrıntılarını genişlet",
+    "collapseDiagnostics": "Tanılama ayrıntılarını daralt",
     "action": {
       "spawnAgent": "Alt ajan başlatıldı",
       "sendInput": "Alt ajana giriş gönderildi",

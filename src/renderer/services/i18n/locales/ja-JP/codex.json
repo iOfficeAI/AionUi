@@ -24,6 +24,9 @@
     "reasoningEffort": "{{effort}} 推論",
     "expand": "サブエージェント詳細を展開",
     "collapse": "サブエージェント詳細を折りたたむ",
+    "diagnostics": "診断情報",
+    "expandDiagnostics": "診断詳細を展開",
+    "collapseDiagnostics": "診断詳細を折りたたむ",
     "action": {
       "spawnAgent": "サブエージェントを起動しました",
       "sendInput": "サブエージェントへ入力を送信しました",

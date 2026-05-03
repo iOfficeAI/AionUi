@@ -24,6 +24,9 @@
     "reasoningEffort": "{{effort}} 추론",
     "expand": "하위 에이전트 세부 정보 펼치기",
     "collapse": "하위 에이전트 세부 정보 접기",
+    "diagnostics": "진단 정보",
+    "expandDiagnostics": "진단 세부 정보 펼치기",
+    "collapseDiagnostics": "진단 세부 정보 접기",
     "action": {
       "spawnAgent": "하위 에이전트 시작됨",
       "sendInput": "하위 에이전트에 입력 전송됨",

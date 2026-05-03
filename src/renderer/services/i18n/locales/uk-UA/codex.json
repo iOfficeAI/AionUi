@@ -24,6 +24,9 @@
     "reasoningEffort": "Міркування {{effort}}",
     "expand": "Розгорнути деталі субагента",
     "collapse": "Згорнути деталі субагента",
+    "diagnostics": "Діагностика",
+    "expandDiagnostics": "Розгорнути деталі діагностики",
+    "collapseDiagnostics": "Згорнути деталі діагностики",
     "action": {
       "spawnAgent": "Субагента запущено",
       "sendInput": "Введення надіслано субагенту",

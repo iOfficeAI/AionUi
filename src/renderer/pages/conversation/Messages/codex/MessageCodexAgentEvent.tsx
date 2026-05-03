@@ -4,12 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexAgentEvent, IMessageCodexAgentEvent } from '@/common/chat/chatLib';
+import type {
+  CodexAgentEvent,
+  IMessageCodexAgentEvent,
+  IMessageCodexAgentTranscript,
+  IMessageCodexToolCall,
+} from '@/common/chat/chatLib';
 import { Badge, Button, Tag } from '@arco-design/web-react';
 import type { BadgeProps } from '@arco-design/web-react';
 import { Down, Right, Robot } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import MessageToolGroupSummary from '../components/MessageToolGroupSummary';
 
 type AgentState = CodexAgentEvent['agents'][number];
 
@@ -50,11 +56,31 @@ const AgentLine: React.FC<{ agent: AgentState }> = ({ agent }) => {
   );
 };
 
-const MessageCodexAgentEvent: React.FC<{ message: IMessageCodexAgentEvent }> = ({ message }) => {
+const buildTranscriptContent = (transcripts: IMessageCodexAgentTranscript[]): string => {
+  const contentByItemId = new Map<string, string>();
+  for (const transcript of transcripts) {
+    const itemId = `${transcript.content.threadId}:${transcript.content.itemId}`;
+    contentByItemId.set(itemId, (contentByItemId.get(itemId) || '') + transcript.content.content);
+  }
+  return Array.from(contentByItemId.values())
+    .filter((content) => content.trim().length > 0)
+    .join('\n\n');
+};
+
+const MessageCodexAgentEvent: React.FC<{
+  message: IMessageCodexAgentEvent;
+  transcripts?: IMessageCodexAgentTranscript[];
+  toolCalls?: IMessageCodexToolCall[];
+}> = ({ message, transcripts = [], toolCalls = [] }) => {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(false);
+  const [agentsExpanded, setAgentsExpanded] = useState(false);
+  const [diagnosticsExpanded, setDiagnosticsExpanded] = useState(false);
   const { action, status, receiverThreadIds, prompt, model, reasoningEffort, agents } = message.content;
   const visibleAgents = agents.length > 0 ? agents : receiverThreadIds.map((threadId) => ({ threadId }));
+  const transcriptContent = buildTranscriptContent(transcripts);
+  const hasDiagnostics = Boolean(
+    prompt || transcriptContent || toolCalls.length > 0 || message.content.callId || message.content.senderThreadId
+  );
   const title = t(`codex.agentEvent.action.${action}`, {
     defaultValue: t('codex.agentEvent.action.unknown'),
   });
@@ -66,6 +92,14 @@ const MessageCodexAgentEvent: React.FC<{ message: IMessageCodexAgentEvent }> = (
     ].filter((part): part is string => Boolean(part));
     return parts.join(' · ');
   }, [model, reasoningEffort, t, visibleAgents.length]);
+  const toggleAgentsExpanded = () => {
+    setAgentsExpanded((value) => {
+      if (value) {
+        setDiagnosticsExpanded(false);
+      }
+      return !value;
+    });
+  };
 
   return (
     <div className='w-full rounded-8px border border-solid border-b-base bg-1 px-12px py-10px'>
@@ -73,9 +107,9 @@ const MessageCodexAgentEvent: React.FC<{ message: IMessageCodexAgentEvent }> = (
         <Button
           type='text'
           size='mini'
-          icon={expanded ? <Down theme='outline' /> : <Right theme='outline' />}
-          onClick={() => setExpanded((value) => !value)}
-          title={expanded ? t('codex.agentEvent.collapse') : t('codex.agentEvent.expand')}
+          icon={agentsExpanded ? <Down theme='outline' /> : <Right theme='outline' />}
+          onClick={toggleAgentsExpanded}
+          title={agentsExpanded ? t('codex.agentEvent.collapse') : t('codex.agentEvent.expand')}
         />
         <div className='flex-1 min-w-0'>
           <div className='flex flex-wrap items-center gap-8px'>
@@ -86,30 +120,54 @@ const MessageCodexAgentEvent: React.FC<{ message: IMessageCodexAgentEvent }> = (
             />
             {summary ? <span className='text-12px text-t-secondary truncate'>{summary}</span> : null}
           </div>
-          {visibleAgents.length > 0 ? (
+          {agentsExpanded && visibleAgents.length > 0 ? (
             <div className='mt-8px flex flex-col gap-6px'>
               {visibleAgents.map((agent) => (
                 <AgentLine key={agent.threadId} agent={agent} />
               ))}
             </div>
           ) : null}
-          {expanded ? (
-            <div className='mt-10px flex flex-col gap-8px text-12px text-t-secondary'>
-              {prompt ? (
-                <div className='bg-2 border border-solid border-b-base rd-6px p-8px whitespace-pre-wrap break-words'>
-                  {prompt}
-                </div>
+          {agentsExpanded && hasDiagnostics ? (
+            <div className='mt-8px flex flex-col gap-8px text-12px text-t-secondary'>
+              <Button
+                type='text'
+                size='mini'
+                className='self-start'
+                icon={diagnosticsExpanded ? <Down theme='outline' /> : <Right theme='outline' />}
+                onClick={() => setDiagnosticsExpanded((value) => !value)}
+                title={
+                  diagnosticsExpanded
+                    ? t('codex.agentEvent.collapseDiagnostics')
+                    : t('codex.agentEvent.expandDiagnostics')
+                }
+              >
+                {t('codex.agentEvent.diagnostics')}
+              </Button>
+              {diagnosticsExpanded ? (
+                <>
+                  {prompt ? (
+                    <div className='bg-2 border border-solid border-b-base rd-6px p-8px whitespace-pre-wrap break-words'>
+                      {prompt}
+                    </div>
+                  ) : null}
+                  {transcriptContent ? (
+                    <div className='bg-2 border border-solid border-b-base rd-6px p-8px whitespace-pre-wrap break-words'>
+                      {transcriptContent}
+                    </div>
+                  ) : null}
+                  {toolCalls.length > 0 ? <MessageToolGroupSummary messages={toolCalls} /> : null}
+                  <div className='flex flex-wrap gap-6px'>
+                    <Tag size='small' color='gray'>
+                      {message.content.callId}
+                    </Tag>
+                    {message.content.senderThreadId ? (
+                      <Tag size='small' color='gray'>
+                        {message.content.senderThreadId}
+                      </Tag>
+                    ) : null}
+                  </div>
+                </>
               ) : null}
-              <div className='flex flex-wrap gap-6px'>
-                <Tag size='small' color='gray'>
-                  {message.content.callId}
-                </Tag>
-                {message.content.senderThreadId ? (
-                  <Tag size='small' color='gray'>
-                    {message.content.senderThreadId}
-                  </Tag>
-                ) : null}
-              </div>
             </div>
           ) : null}
         </div>

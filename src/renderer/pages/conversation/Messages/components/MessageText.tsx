@@ -93,28 +93,28 @@ const useFormatContent = (content: string) => {
 };
 
 const MessageText: React.FC<{ message: IMessageText; isStreaming?: boolean }> = ({ message, isStreaming = false }) => {
+  const isUserMessage = message.position === 'right';
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
     let content = message.content.content;
     if (typeof content === 'string') {
-      if (hasThinkTags(content)) {
+      if (!isUserMessage && hasThinkTags(content)) {
         content = stripThinkTags(content);
       }
       // Strip any inline [SKILL_SUGGEST] blocks (now handled via separate skill_suggest message type)
-      if (hasSkillSuggest(content)) {
+      if (!isUserMessage && hasSkillSuggest(content)) {
         content = stripSkillSuggest(content);
       }
       return content;
     }
     return content;
-  }, [message.content.content]);
+  }, [isUserMessage, message.content.content]);
 
   const { text, files } = parseFileMarker(contentToRender);
   const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
-  const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const shouldRenderPlainText = isUserMessage;
   const shouldRenderStreamingText = isStreaming && !isUserMessage && !isTeammateMessage;

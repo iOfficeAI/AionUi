@@ -22,6 +22,8 @@ type NativeToolCallContent = {
 
 type NativeToolCallData = {
   toolCallId: string;
+  agentCallId?: string;
+  threadId?: string;
   status: NativeToolCallStatus;
   kind: NativeToolCallKind;
   subtype: string;
@@ -58,6 +60,8 @@ type CodexAgentEventData = {
 
 export class CodexEventTranslator {
   private currentTurnId: string | undefined;
+  private readonly agentCallByThreadId = new Map<string, string>();
+  private readonly agentToolByToolCallId = new Map<string, { callId: string; threadId: string }>();
 
   constructor(private readonly conversationId: string) {}
 
@@ -69,9 +73,30 @@ export class CodexEventTranslator {
         return [this.message('start', notification.params, false)];
       }
       case 'item/agentMessage/delta': {
-        const params = notification.params as { itemId?: string; turnId?: string; delta?: string } | undefined;
-        const contentMessageId = params?.itemId || params?.turnId || this.currentTurnId || 'codex_content';
-        return [this.message('content', { content: params?.delta || '' }, true, contentMessageId)];
+        const params = asRecord(notification.params);
+        const contentMessageId =
+          readString(params?.itemId) || readString(params?.turnId) || this.currentTurnId || 'codex_content';
+        const threadId = readString(params?.threadId);
+        const callId = threadId ? this.agentCallByThreadId.get(threadId) : undefined;
+        const content = readString(params?.delta) || '';
+
+        if (callId && threadId) {
+          return [
+            this.message(
+              'codex_agent_transcript',
+              {
+                callId,
+                threadId,
+                itemId: contentMessageId,
+                content,
+              },
+              true,
+              contentMessageId
+            ),
+          ];
+        }
+
+        return [this.message('content', { content }, true, contentMessageId)];
       }
       case 'item/reasoning/summaryTextDelta':
       case 'item/reasoning/textDelta': {
@@ -124,11 +149,13 @@ export class CodexEventTranslator {
       case 'item/commandExecution/outputDelta': {
         const params = asRecord(notification.params);
         const toolCallId = readToolCallId(params, 'command');
+        const agentTool = this.readAgentToolCall(params, toolCallId);
         const stream = readString(params?.stream) === 'stderr' ? 'stderr' : 'stdout';
         const delta = readString(params?.delta) || '';
         return [
           this.nativeToolCall({
             toolCallId,
+            ...agentTool,
             status: 'executing',
             kind: 'execute',
             subtype: 'exec_command_output_delta',
@@ -146,11 +173,13 @@ export class CodexEventTranslator {
       case 'item/fileChange/patchUpdated': {
         const params = asRecord(notification.params);
         const toolCallId = readToolCallId(params, 'file');
+        const agentTool = this.readAgentToolCall(params, toolCallId);
         const patch = readString(params?.patch) || formatChanges(params?.changes);
         const filePath = readString(params?.filePath) || readString(params?.path);
         return [
           this.nativeToolCall({
             toolCallId,
+            ...agentTool,
             status: 'executing',
             kind: 'patch',
             subtype: 'patch_apply_begin',
@@ -198,13 +227,13 @@ export class CodexEventTranslator {
       case 'collabAgentToolCall':
         return this.collabAgentToolCallItem(item);
       case 'commandExecution':
-        return this.commandExecutionItem(notification.method, item);
+        return this.commandExecutionItem(notification.method, params, item);
       case 'fileChange':
-        return this.fileChangeItem(notification.method, item);
+        return this.fileChangeItem(notification.method, params, item);
       case 'mcpToolCall':
-        return this.mcpToolCallItem(notification.method, item);
+        return this.mcpToolCallItem(notification.method, params, item);
       case 'webSearch':
-        return this.webSearchItem(notification.method, item);
+        return this.webSearchItem(notification.method, params, item);
       default:
         return undefined;
     }
@@ -234,12 +263,16 @@ export class CodexEventTranslator {
 
   private collabAgentToolCallItem(item: Record<string, unknown>): CodexTranslatedEvent {
     const callId = readToolCallId(item, 'agent');
+    const receiverThreadIds = readStringArray(item.receiverThreadIds || item.receiver_thread_ids);
+    for (const threadId of receiverThreadIds) {
+      this.agentCallByThreadId.set(threadId, callId);
+    }
     const data: CodexAgentEventData = {
       callId,
       action: readString(item.tool) || 'unknown',
       status: normalizeAgentEventStatus(item.status),
       senderThreadId: readString(item.senderThreadId) || readString(item.sender_thread_id),
-      receiverThreadIds: readStringArray(item.receiverThreadIds || item.receiver_thread_ids),
+      receiverThreadIds,
       prompt: readString(item.prompt),
       model: readString(item.model),
       reasoningEffort: readString(item.reasoningEffort) || readString(item.reasoning_effort),
@@ -249,8 +282,13 @@ export class CodexEventTranslator {
     return this.message('codex_agent_event', data, true, callId);
   }
 
-  private commandExecutionItem(method: string, item: Record<string, unknown>): CodexTranslatedEvent {
+  private commandExecutionItem(
+    method: string,
+    params: Record<string, unknown> | undefined,
+    item: Record<string, unknown>
+  ): CodexTranslatedEvent {
     const toolCallId = readToolCallId(item, 'command');
+    const agentTool = this.readAgentToolCall(params, toolCallId, item);
     const command = readStringArray(item.command);
     const cwd = readString(item.cwd) || '';
     const aggregatedOutput = readString(item.aggregatedOutput) || readString(item.aggregated_output) || '';
@@ -259,6 +297,7 @@ export class CodexEventTranslator {
 
     return this.nativeToolCall({
       toolCallId,
+      ...agentTool,
       status: isCompleted ? statusFromItem(item.status) : 'executing',
       kind: 'execute',
       subtype: isCompleted ? 'exec_command_end' : 'exec_command_begin',
@@ -278,12 +317,18 @@ export class CodexEventTranslator {
     });
   }
 
-  private fileChangeItem(method: string, item: Record<string, unknown>): CodexTranslatedEvent {
+  private fileChangeItem(
+    method: string,
+    params: Record<string, unknown> | undefined,
+    item: Record<string, unknown>
+  ): CodexTranslatedEvent {
     const toolCallId = readToolCallId(item, 'file');
+    const agentTool = this.readAgentToolCall(params, toolCallId, item);
     const isCompleted = method === 'item/completed';
     const changes = normalizeFileChanges(item.changes);
     return this.nativeToolCall({
       toolCallId,
+      ...agentTool,
       status: isCompleted ? statusFromItem(item.status) : 'executing',
       kind: 'patch',
       subtype: isCompleted ? 'patch_apply_end' : 'patch_apply_begin',
@@ -298,8 +343,13 @@ export class CodexEventTranslator {
     });
   }
 
-  private mcpToolCallItem(method: string, item: Record<string, unknown>): CodexTranslatedEvent {
+  private mcpToolCallItem(
+    method: string,
+    params: Record<string, unknown> | undefined,
+    item: Record<string, unknown>
+  ): CodexTranslatedEvent {
     const toolCallId = readToolCallId(item, 'mcp');
+    const agentTool = this.readAgentToolCall(params, toolCallId, item);
     const isCompleted = method === 'item/completed';
     const invocation = {
       server: readString(item.server),
@@ -310,6 +360,7 @@ export class CodexEventTranslator {
 
     return this.nativeToolCall({
       toolCallId,
+      ...agentTool,
       status: isCompleted ? statusFromItem(item.status) : 'executing',
       kind: 'mcp',
       subtype: isCompleted ? 'mcp_tool_call_end' : 'mcp_tool_call_begin',
@@ -323,12 +374,18 @@ export class CodexEventTranslator {
     });
   }
 
-  private webSearchItem(method: string, item: Record<string, unknown>): CodexTranslatedEvent {
+  private webSearchItem(
+    method: string,
+    params: Record<string, unknown> | undefined,
+    item: Record<string, unknown>
+  ): CodexTranslatedEvent {
     const toolCallId = readToolCallId(item, 'web');
+    const agentTool = this.readAgentToolCall(params, toolCallId, item);
     const isCompleted = method === 'item/completed';
     const query = readString(item.query) || 'web search';
     return this.nativeToolCall({
       toolCallId,
+      ...agentTool,
       status: isCompleted ? statusFromItem(item.status) : 'executing',
       kind: 'web_search',
       subtype: isCompleted ? 'web_search_end' : 'web_search_begin',
@@ -358,8 +415,10 @@ export class CodexEventTranslator {
   ): CodexTranslatedEvent {
     const params = asRecord(notification.params);
     const toolCallId = readToolCallId(params, kind);
+    const agentTool = this.readAgentToolCall(params, toolCallId);
     return this.nativeToolCall({
       toolCallId,
+      ...agentTool,
       status: statusFromMethod(notification.method),
       kind,
       subtype,
@@ -385,6 +444,23 @@ export class CodexEventTranslator {
 
   private nativeToolCall(data: NativeToolCallData): CodexTranslatedEvent {
     return this.message('codex_tool_call', data, true, data.toolCallId);
+  }
+
+  private readAgentToolCall(
+    params: Record<string, unknown> | undefined,
+    toolCallId: string,
+    item?: Record<string, unknown>
+  ): { agentCallId?: string; threadId?: string } {
+    const threadId = readString(params?.threadId) || readString(item?.threadId) || readString(item?.thread_id);
+    const callId = threadId ? this.agentCallByThreadId.get(threadId) : undefined;
+
+    if (callId && threadId) {
+      this.agentToolByToolCallId.set(toolCallId, { callId, threadId });
+      return { agentCallId: callId, threadId };
+    }
+
+    const existing = this.agentToolByToolCallId.get(toolCallId);
+    return existing ? { agentCallId: existing.callId, threadId: existing.threadId } : {};
   }
 
   private errorEvent(notification: CodexJsonRpcNotification): CodexTranslatedEvent {

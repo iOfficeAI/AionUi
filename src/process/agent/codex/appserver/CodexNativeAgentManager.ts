@@ -400,7 +400,11 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
     if (persist) {
       const transformed = transformMessage(normalized);
       if (transformed) {
-        if (transformed.type === 'agent_status' || transformed.type === 'codex_tool_call') {
+        if (
+          transformed.type === 'agent_status' ||
+          transformed.type === 'codex_tool_call' ||
+          (transformed.type === 'text' && transformed.position === 'left')
+        ) {
           addOrUpdateMessage(this.conversation_id, transformed);
         } else {
           addMessage(this.conversation_id, transformed);

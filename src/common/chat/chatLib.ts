@@ -83,6 +83,7 @@ type TMessageType =
   | 'codex_tool_call'
   | 'codex_context_event'
   | 'codex_agent_event'
+  | 'codex_agent_transcript'
   | 'plan'
   | 'thinking'
   | 'available_commands'
@@ -267,9 +268,20 @@ export type IMessageCodexContextEvent = IMessage<'codex_context_event', CodexCon
 
 export type IMessageCodexAgentEvent = IMessage<'codex_agent_event', CodexAgentEvent>;
 
+export type CodexAgentTranscript = {
+  callId: string;
+  threadId: string;
+  itemId: string;
+  content: string;
+};
+
+export type IMessageCodexAgentTranscript = IMessage<'codex_agent_transcript', CodexAgentTranscript>;
+
 // Base interface for all tool call updates
 interface BaseCodexToolCallUpdate {
   toolCallId: string;
+  agentCallId?: string;
+  threadId?: string;
   status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
   title?: string; // Optional - can be derived from data or kind
   kind: 'execute' | 'patch' | 'mcp' | 'web_search';
@@ -404,6 +416,7 @@ export type TMessage =
   | IMessageCodexToolCall
   | IMessageCodexContextEvent
   | IMessageCodexAgentEvent
+  | IMessageCodexAgentTranscript
   | IMessagePlan
   | IMessageThinking
   | IMessageAvailableCommands
@@ -553,6 +566,16 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as CodexAgentEvent,
+      };
+    }
+    case 'codex_agent_transcript': {
+      return {
+        id: uuid(),
+        type: 'codex_agent_transcript',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data as CodexAgentTranscript,
       };
     }
     case 'plan': {
@@ -755,6 +778,27 @@ export const composeMessage = (
       const msg = list[i];
       if (msg.type === 'codex_agent_event' && msg.content.callId === message.content.callId) {
         return updateMessage(i, { ...msg, content: { ...msg.content, ...message.content } });
+      }
+    }
+    return pushMessage(message);
+  }
+
+  if (message.type === 'codex_agent_transcript') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (
+        msg.type === 'codex_agent_transcript' &&
+        msg.content.callId === message.content.callId &&
+        msg.content.threadId === message.content.threadId &&
+        msg.content.itemId === message.content.itemId
+      ) {
+        return updateMessage(i, {
+          ...msg,
+          content: {
+            ...msg.content,
+            content: msg.content.content + message.content.content,
+          },
+        });
       }
     }
     return pushMessage(message);

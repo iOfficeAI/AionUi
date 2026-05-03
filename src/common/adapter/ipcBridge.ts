@@ -726,7 +726,7 @@ export const remoteAgent = {
 export const database = {
   getConversationMessages: bridge.buildProvider<
     import('@/common/chat/chatLib').TMessage[],
-    { conversation_id: string; page?: number; pageSize?: number }
+    { conversation_id: string; page?: number; pageSize?: number; order?: 'ASC' | 'DESC' }
   >('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<
     import('@/common/config/storage').TChatConversation[],

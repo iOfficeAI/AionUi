@@ -7,6 +7,7 @@
 import type {
   CodexToolCallUpdate,
   IMessageAcpToolCall,
+  IMessageCodexAgentTranscript,
   IMessageCodexToolCall,
   IMessageToolGroup,
   TMessage,
@@ -51,6 +52,14 @@ type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 type IMessageVO =
   | TMessage
+  | {
+      type: 'codex_agent_event_with_transcripts';
+      id: string;
+      message: Extract<TMessage, { type: 'codex_agent_event' }>;
+      transcripts: IMessageCodexAgentTranscript[];
+      toolCalls: IMessageCodexToolCall[];
+      sourceMessageIds: string[];
+    }
   | { type: 'file_summary'; id: string; diffs: FileChangeInfo[]; sourceMessageIds: string[] }
   | {
       type: 'tool_summary';
@@ -69,6 +78,9 @@ const getProcessedItemSourceMessageIds = (item: IMessageVO): string[] => {
     return item.sourceMessageIds;
   }
   if ('type' in item && item.type === 'file_summary') {
+    return item.sourceMessageIds;
+  }
+  if ('type' in item && item.type === 'codex_agent_event_with_transcripts') {
     return item.sourceMessageIds;
   }
   return 'id' in item ? [item.id] : [];
@@ -124,10 +136,169 @@ const getStreamingAssistantTextMessageId = (
   return undefined;
 };
 
+export const buildProcessedMessageList = (list: TMessage[], conversationType?: string): Array<IMessageVO> => {
+  const result: Array<IMessageVO> = [];
+  const transcriptsByCallId = new Map<string, IMessageCodexAgentTranscript[]>();
+  const toolCallsByAgentCallId = new Map<string, IMessageCodexToolCall[]>();
+  for (const message of list) {
+    if (message.type === 'codex_agent_transcript') {
+      const transcripts = transcriptsByCallId.get(message.content.callId) || [];
+      transcripts.push(message);
+      transcriptsByCallId.set(message.content.callId, transcripts);
+    }
+    if (message.type === 'codex_tool_call' && message.content.agentCallId) {
+      const toolCalls = toolCallsByAgentCallId.get(message.content.agentCallId) || [];
+      toolCalls.push(message);
+      toolCallsByAgentCallId.set(message.content.agentCallId, toolCalls);
+    }
+  }
+  let diffsChanges: FileChangeInfo[] = [];
+  let diffsSourceMessageIds: string[] = [];
+  let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall> = [];
+  let toolSourceMessageIds: string[] = [];
+
+  const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string) => {
+    if (!diffsChanges.length) {
+      diffsSourceMessageIds = [];
+      result.push({
+        type: 'file_summary',
+        id: `summary-${sourceMessageId}`,
+        diffs: diffsChanges,
+        sourceMessageIds: diffsSourceMessageIds,
+      });
+    }
+    diffsChanges.push(changes);
+    diffsSourceMessageIds.push(sourceMessageId);
+    toolList = [];
+    toolSourceMessageIds = [];
+  };
+  const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall) => {
+    if (!toolList.length) {
+      toolSourceMessageIds = [];
+      result.push({
+        type: 'tool_summary',
+        id: `tool-summary-${message.id}`,
+        messages: toolList,
+        sourceMessageIds: toolSourceMessageIds,
+      });
+    }
+    toolList.push(message);
+    toolSourceMessageIds.push(message.id);
+    diffsChanges = [];
+    diffsSourceMessageIds = [];
+  };
+  const pushMessage = (message: TMessage) => {
+    if (conversationType !== 'codex' || message.type !== 'text' || message.position !== 'left') {
+      result.push(message);
+      return;
+    }
+
+    const previous = result[result.length - 1];
+    if (!previous || !('type' in previous) || previous.type !== 'text' || previous.position !== 'left') {
+      result.push(message);
+      return;
+    }
+
+    const previousContent = previous.content.content;
+    const nextContent = message.content.content;
+    if (typeof previousContent !== 'string' || typeof nextContent !== 'string') {
+      result.push(message);
+      return;
+    }
+
+    result[result.length - 1] = {
+      ...previous,
+      content: {
+        ...previous.content,
+        content: previousContent + nextContent,
+      },
+    };
+  };
+
+  for (let i = 0, len = list.length; i < len; i++) {
+    const message = list[i];
+    // Skip hidden and available_commands messages
+    if (message.hidden) continue;
+    if (message.type === 'available_commands') continue;
+    if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
+      pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
+      continue;
+    }
+    if (message.type === 'codex_agent_transcript') {
+      continue;
+    }
+    if (message.type === 'codex_tool_call' && message.content.agentCallId) {
+      continue;
+    }
+    if (message.type === 'codex_agent_event') {
+      const transcripts = transcriptsByCallId.get(message.content.callId) || [];
+      const toolCalls = toolCallsByAgentCallId.get(message.content.callId) || [];
+      result.push({
+        type: 'codex_agent_event_with_transcripts',
+        id: message.id,
+        message,
+        transcripts,
+        toolCalls,
+        sourceMessageIds: [
+          message.id,
+          ...transcripts.map((transcript) => transcript.id),
+          ...toolCalls.map((toolCall) => toolCall.id),
+        ],
+      });
+      toolList = [];
+      toolSourceMessageIds = [];
+      diffsChanges = [];
+      diffsSourceMessageIds = [];
+      continue;
+    }
+    if (message.type === 'codex_tool_call') {
+      if (!shouldHideInternalNativeToolCall(message.content)) {
+        pushToolList(message);
+      }
+      continue;
+    }
+    if (message.type === 'tool_group') {
+      if (message.content.length === 1) {
+        const writeFileResults = message.content
+          .filter(
+            (item) =>
+              item.name === 'WriteFile' &&
+              item.resultDisplay &&
+              typeof item.resultDisplay === 'object' &&
+              'fileDiff' in item.resultDisplay
+          )
+          .map((item) => item.resultDisplay as WriteFileResult);
+        if (writeFileResults.length && writeFileResults[0].fileDiff) {
+          pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName), message.id);
+          continue;
+        }
+      }
+      pushToolList(message);
+      continue;
+    }
+    if (message.type === 'acp_tool_call') {
+      pushToolList(message);
+      continue;
+    }
+    toolList = [];
+    toolSourceMessageIds = [];
+    diffsChanges = [];
+    diffsSourceMessageIds = [];
+    pushMessage(message);
+  }
+  return result;
+};
+
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStreaming?: boolean }> = React.memo(
+const MessageItem: React.FC<{
+  message: TMessage;
+  highlighted?: boolean;
+  isStreaming?: boolean;
+  codexAgentTranscripts?: IMessageCodexAgentTranscript[];
+  codexAgentToolCalls?: IMessageCodexToolCall[];
+}> = React.memo(
   HOC((props) => {
     const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
     return (
@@ -150,7 +321,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStream
         {props.children}
       </div>
     );
-  })(({ message, isStreaming }) => {
+  })(({ message, isStreaming, codexAgentTranscripts, codexAgentToolCalls }) => {
     const { t } = useTranslation();
     switch (message.type) {
       case 'text':
@@ -175,7 +346,15 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStream
       case 'codex_context_event':
         return <MessageCodexContextEvent message={message} />;
       case 'codex_agent_event':
-        return <MessageCodexAgentEvent message={message} />;
+        return (
+          <MessageCodexAgentEvent
+            message={message}
+            transcripts={codexAgentTranscripts}
+            toolCalls={codexAgentToolCalls}
+          />
+        );
+      case 'codex_agent_transcript':
+        return null;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':
@@ -196,7 +375,9 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; isStream
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
     prev.highlighted === next.highlighted &&
-    prev.isStreaming === next.isStreaming
+    prev.isStreaming === next.isStreaming &&
+    prev.codexAgentTranscripts === next.codexAgentTranscripts &&
+    prev.codexAgentToolCalls === next.codexAgentToolCalls
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -214,118 +395,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     [conversationContext?.isStreamingContent, list]
   );
 
-  // Pre-process message list to group Codex turn_diff messages
-  const processedList = useMemo(() => {
-    const result: Array<IMessageVO> = [];
-    let diffsChanges: FileChangeInfo[] = [];
-    let diffsSourceMessageIds: string[] = [];
-    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall> = [];
-    let toolSourceMessageIds: string[] = [];
-
-    const pushFileDffChanges = (changes: FileChangeInfo, sourceMessageId: string) => {
-      if (!diffsChanges.length) {
-        diffsSourceMessageIds = [];
-        result.push({
-          type: 'file_summary',
-          id: `summary-${sourceMessageId}`,
-          diffs: diffsChanges,
-          sourceMessageIds: diffsSourceMessageIds,
-        });
-      }
-      diffsChanges.push(changes);
-      diffsSourceMessageIds.push(sourceMessageId);
-      toolList = [];
-      toolSourceMessageIds = [];
-    };
-    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall | IMessageCodexToolCall) => {
-      if (!toolList.length) {
-        toolSourceMessageIds = [];
-        result.push({
-          type: 'tool_summary',
-          id: `tool-summary-${message.id}`,
-          messages: toolList,
-          sourceMessageIds: toolSourceMessageIds,
-        });
-      }
-      toolList.push(message);
-      toolSourceMessageIds.push(message.id);
-      diffsChanges = [];
-      diffsSourceMessageIds = [];
-    };
-    const pushMessage = (message: TMessage) => {
-      if (conversationContext?.type !== 'codex' || message.type !== 'text' || message.position !== 'left') {
-        result.push(message);
-        return;
-      }
-
-      const previous = result[result.length - 1];
-      if (!previous || !('type' in previous) || previous.type !== 'text' || previous.position !== 'left') {
-        result.push(message);
-        return;
-      }
-
-      const previousContent = previous.content.content;
-      const nextContent = message.content.content;
-      if (typeof previousContent !== 'string' || typeof nextContent !== 'string') {
-        result.push(message);
-        return;
-      }
-
-      result[result.length - 1] = {
-        ...previous,
-        content: {
-          ...previous.content,
-          content: previousContent + nextContent,
-        },
-      };
-    };
-
-    for (let i = 0, len = list.length; i < len; i++) {
-      const message = list[i];
-      // Skip hidden and available_commands messages
-      if (message.hidden) continue;
-      if (message.type === 'available_commands') continue;
-      if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
-        continue;
-      }
-      if (message.type === 'codex_tool_call') {
-        if (!shouldHideInternalNativeToolCall(message.content)) {
-          pushToolList(message);
-        }
-        continue;
-      }
-      if (message.type === 'tool_group') {
-        if (message.content.length === 1) {
-          const writeFileResults = message.content
-            .filter(
-              (item) =>
-                item.name === 'WriteFile' &&
-                item.resultDisplay &&
-                typeof item.resultDisplay === 'object' &&
-                'fileDiff' in item.resultDisplay
-            )
-            .map((item) => item.resultDisplay as WriteFileResult);
-          if (writeFileResults.length && writeFileResults[0].fileDiff) {
-            pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName), message.id);
-            continue;
-          }
-        }
-        pushToolList(message);
-        continue;
-      }
-      if (message.type === 'acp_tool_call') {
-        pushToolList(message);
-        continue;
-      }
-      toolList = [];
-      toolSourceMessageIds = [];
-      diffsChanges = [];
-      diffsSourceMessageIds = [];
-      pushMessage(message);
-    }
-    return result;
-  }, [conversationContext?.type, list]);
+  const processedList = useMemo(
+    () => buildProcessedMessageList(list, conversationContext?.type),
+    [conversationContext?.type, list]
+  );
 
   // Use auto-scroll hook
   const {
@@ -389,6 +462,19 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         ) {
           return false;
         }
+        if ((item as { type?: string }).type === 'codex_agent_event_with_transcripts') {
+          const agentItem = item as Extract<IMessageVO, { type: 'codex_agent_event_with_transcripts' }>;
+          if (detail.messageId && agentItem.sourceMessageIds.includes(detail.messageId)) return true;
+          if (
+            detail.msgId &&
+            [agentItem.message, ...agentItem.transcripts, ...agentItem.toolCalls].some(
+              (message) => message.msg_id === detail.msgId
+            )
+          ) {
+            return true;
+          }
+          return false;
+        }
         const message = item as TMessage;
         if (detail.messageId && message.id === detail.messageId) return true;
         if (detail.msgId && message.msg_id === detail.msgId) return true;
@@ -431,6 +517,18 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
           {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
         </div>
+      );
+    }
+    if ('type' in item && item.type === 'codex_agent_event_with_transcripts') {
+      return (
+        <MessageItem
+          message={item.message}
+          key={item.id}
+          highlighted={highlighted}
+          isStreaming={item.message.id === streamingMessageId}
+          codexAgentTranscripts={item.transcripts}
+          codexAgentToolCalls={item.toolCalls}
+        ></MessageItem>
       );
     }
     return (

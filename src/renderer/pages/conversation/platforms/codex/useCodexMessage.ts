@@ -205,6 +205,10 @@ export const useCodexMessage = (conversationId: string): UseCodexMessageReturn =
           markActive({ phase: 'tool' });
           addTransformedMessage();
           break;
+        case 'codex_agent_transcript':
+          markActive({ phase: 'tool' });
+          addTransformedMessage();
+          break;
         case 'acp_context_usage': {
           const usageData = message.data as { used?: unknown; size?: unknown };
           if (typeof usageData?.used === 'number') {

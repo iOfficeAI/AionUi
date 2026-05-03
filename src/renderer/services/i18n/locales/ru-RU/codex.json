@@ -24,6 +24,9 @@
     "reasoningEffort": "Рассуждение {{effort}}",
     "expand": "Развернуть детали субагента",
     "collapse": "Свернуть детали субагента",
+    "diagnostics": "Диагностика",
+    "expandDiagnostics": "Развернуть диагностические детали",
+    "collapseDiagnostics": "Свернуть диагностические детали",
     "action": {
       "spawnAgent": "Субагент запущен",
       "sendInput": "Ввод отправлен субагенту",

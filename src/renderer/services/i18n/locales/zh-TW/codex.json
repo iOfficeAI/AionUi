@@ -24,6 +24,9 @@
     "reasoningEffort": "{{effort}} 推理",
     "expand": "展開子 agent 詳情",
     "collapse": "收合子 agent 詳情",
+    "diagnostics": "診斷資訊",
+    "expandDiagnostics": "展開診斷詳情",
+    "collapseDiagnostics": "收合診斷詳情",
     "action": {
       "spawnAgent": "已啟動子 agent",
       "sendInput": "已向子 agent 傳送輸入",

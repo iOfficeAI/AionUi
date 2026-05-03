@@ -24,6 +24,9 @@
     "reasoningEffort": "{{effort}} reasoning",
     "expand": "Expand subagent details",
     "collapse": "Collapse subagent details",
+    "diagnostics": "Diagnostics",
+    "expandDiagnostics": "Expand diagnostic details",
+    "collapseDiagnostics": "Collapse diagnostic details",
     "action": {
       "spawnAgent": "Spawned subagent",
       "sendInput": "Sent input to subagent",
