@@ -1,0 +1,133 @@
+{
+  "sendbox": {},
+  "network": {
+    "cloudflare_blocked": "Cloudflare-Schutz hat den Zugriff auf {{service}} blockiert. Empfehlungen: 1) VPN verwenden 2) Netzwerk wechseln 3) Später erneut versuchen 4) Zu anderen KI-Diensten wechseln",
+    "network_timeout": "Netzwerkzeitüberschreitung, Verbindung wird automatisch erneut versucht...",
+    "connection_refused": "Verbindung abgelehnt, bitte prüfe ob der Codex-Dienst ordnungsgemäß läuft.",
+    "unknown_error": "Netzwerkverbindungsfehler, bitte überprüfe deine Netzwerkeinstellungen.",
+    "retry_attempt": "Erneuter Versuch {{current}}...",
+    "cloudflare_blocked_title": "🚫 {{service}}-Dienst durch Cloudflare-Schutz blockiert",
+    "network_timeout_title": "⏱️ Netzwerkverbindung zeitüberschreitung",
+    "connection_refused_title": "❌ Dienst-Verbindung abgelehnt",
+    "unknown_error_title": "🔌 Netzwerkverbindungsfehler",
+    "recovery_suggestions": "**Lösungsvorschläge:**",
+    "technical_info": "**Technische Informationen:**",
+    "error_type": "Fehlertyp",
+    "retry_count": "Anzahl Versuche",
+    "error_details": "Fehlerdetails",
+    "quick_switch_title": "💡 **Schnellwechsel-Optionen:**",
+    "quick_switch_content": "Wenn der aktuelle Dienst auf Netzwerkbeschränkungen stößt, kannst du:\n\n1. **Sofort zum KI-Assistenten wechseln**: Wähle andere verfügbare Assistenten im linken Panel\n2. **Dienststatus prüfen**: Die Verfügbarkeit verschiedener KI-Dienste kann je nach Region variieren\n3. **Netzwerk optimieren**: Verwende eine stabile Netzwerkumgebung für bessere Verbindungsqualität\n4. **Später erneut versuchen**: Netzwerkbeschränkungen sind meist vorübergehend\n\n**Tipp**: Es wird empfohlen, mehrere KI-Dienste als Alternativen zu konfigurieren, um die Arbeitskontinuität sicherzustellen.",
+    "recovery_actions": {
+      "cloudflare_blocked": [
+        "• VPN oder Proxy-Dienst verwenden",
+        "• Netzwerkumgebung wechseln (z. B. mobiler Hotspot)",
+        "• 10–30 Minuten warten und erneut versuchen",
+        "• Browser-Cache und Cookies löschen",
+        "• Zu anderen verfügbaren Diensten wechseln: ChatGPT, Claude, Qwen, Gemini"
+      ],
+      "network_timeout": [
+        "• Prüfen ob die Netzwerkverbindung stabil ist",
+        "• Verbindungsvorgang erneut versuchen",
+        "• Zu einer stabileren Netzwerkumgebung wechseln",
+        "• Firewall-Einstellungen überprüfen"
+      ],
+      "connection_refused": [
+        "• Prüfen ob Codex CLI ordnungsgemäß installiert ist",
+        "• Dienstkonfiguration und API-Schlüssel überprüfen",
+        "• Anwendung neu starten",
+        "• Prüfen ob lokale Ports belegt sind"
+      ],
+      "unknown": [
+        "• Netzwerkverbindungsstatus prüfen",
+        "• Aktuellen Vorgang erneut versuchen",
+        "• Netzwerkumgebung wechseln",
+        "• Technischen Support kontaktieren"
+      ]
+    }
+  },
+  "thinking": {
+    "processing": "🤔 Codex denkt nach...",
+    "completed": "💭 Denkprozess abgeschlossen",
+    "analyzing": "Problem wird analysiert und Lösungen werden erarbeitet...",
+    "composing": "Antwort wird formuliert..."
+  },
+  "error": {
+    "system_init_failed": "Codex-System konnte nicht initialisiert werden",
+    "invalid_message_format": "Ungültiges Nachrichtenformat",
+    "invalid_input": "Ungültige Eingabe",
+    "session_timeout": "Sitzung abgelaufen, bitte erneut versuchen",
+    "permission_denied": "Berechtigung für diesen Vorgang verweigert",
+    "context_error": "Fehler in {{context}}, bitte aktualisieren oder erneut versuchen.",
+    "generic": "Codex-Komponente hat eine Ausnahme ausgelöst, bitte später erneut versuchen.",
+    "troubleshooting": "Lösungsvorschläge",
+    "suggestion_1": "Prüfen ob die Netzwerkverbindung stabil ist",
+    "suggestion_2": "Sicherstellen, dass der Codex-Dienst ordnungsgemäß läuft",
+    "suggestion_3": "Versuche, die Anwendung neu zu starten",
+    "suggestion_4": "Browser-Cache und lokalen Speicher löschen"
+  },
+  "performance": {
+    "virtualization_enabled": "Listenvirtualisierung für bessere Leistung aktiviert",
+    "virtualization_disabled": "Listenvirtualisierung deaktiviert, alle Einträge werden angezeigt",
+    "debounce_enabled": "Eingabe-Entprellung aktiviert ({{delay}} ms Verzögerung)",
+    "debounce_disabled": "Eingabe-Entprellung deaktiviert"
+  },
+  "config": {
+    "loaded": "Konfiguration erfolgreich geladen",
+    "updated": "Konfiguration erfolgreich aktualisiert",
+    "reset": "Konfiguration auf Standardwerte zurückgesetzt",
+    "validation_failed": "Konfigurationsvalidierung fehlgeschlagen",
+    "import_success": "Konfiguration erfolgreich importiert",
+    "import_failed": "Konfigurationsimport fehlgeschlagen",
+    "export_success": "Konfiguration erfolgreich exportiert"
+  },
+  "permissions": {
+    "allow_once": "Einmal erlauben",
+    "allow_always": "Immer erlauben",
+    "reject_once": "Einmal ablehnen",
+    "reject_always": "Immer ablehnen",
+    "allow_once_desc": "Berechtigung nur für diese Anfrage erteilen",
+    "allow_always_desc": "Berechtigung für ähnliche Anfragen immer erteilen",
+    "reject_once_desc": "Nur diese Anfrage ablehnen",
+    "reject_always_desc": "Ähnliche Anfragen immer ablehnen",
+    "processing": "Wird verarbeitet...",
+    "response_sent": "Antwort erfolgreich gesendet",
+    "choose_action": "Aktion auswählen:",
+    "titles": {
+      "exec_approval_request": "Befehlsausführungsberechtigung",
+      "apply_patch_approval_request": "Berechtigung zur Dateiänderung",
+      "command_execution": "Befehlsausführungsberechtigung",
+      "file_write": "Datei-Schreibberechtigung",
+      "file_read": "Datei-Leseberechtigung"
+    },
+    "labels": {
+      "command": "Befehl:",
+      "directory": "Verzeichnis:",
+      "reason": "Grund:",
+      "files_to_modify": "Zu ändernde Dateien",
+      "summary": "Zusammenfassung:"
+    },
+    "descriptions": {
+      "command_execution": "Codex fordert die Ausführung von Systembefehlen an",
+      "file_write": "Codex fordert die Änderung oder Erstellung von Dateien an",
+      "file_read": "Codex fordert das Lesen von Dateiinhalten an"
+    },
+    "command_execution": {
+      "allow_once_desc": "Nur diese Befehlsausführung erlauben",
+      "allow_always_desc": "Alle Befehlsausführungsanfragen immer erlauben",
+      "reject_once_desc": "Nur diese Befehlsausführung ablehnen",
+      "reject_always_desc": "Alle Befehlsausführungsanfragen immer ablehnen"
+    },
+    "file_write": {
+      "allow_once_desc": "Nur diesen Datei-Schreibvorgang erlauben",
+      "allow_always_desc": "Alle Datei-Schreibanfragen immer erlauben",
+      "reject_once_desc": "Nur diesen Datei-Schreibvorgang ablehnen",
+      "reject_always_desc": "Alle Datei-Schreibanfragen immer ablehnen"
+    },
+    "file_read": {
+      "allow_once_desc": "Nur diesen Datei-Lesevorgang erlauben",
+      "allow_always_desc": "Alle Datei-Leseanfragen immer erlauben",
+      "reject_once_desc": "Nur diesen Datei-Lesevorgang ablehnen",
+      "reject_always_desc": "Alle Datei-Leseanfragen immer ablehnen"
+    }
+  }
+}

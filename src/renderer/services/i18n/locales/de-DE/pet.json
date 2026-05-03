@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Desktop-Begleiter",
+  "enable": "Desktop-Begleiter aktivieren",
+  "size": "Begleitergröße",
+  "sizeSmall": "Klein ({{px}}px)",
+  "sizeMedium": "Mittel ({{px}}px)",
+  "sizeLarge": "Groß ({{px}}px)",
+  "dnd": "Nicht stören",
+  "dndDescription": "Begleiter bleibt inaktiv, ignoriert KI-Ereignisse",
+  "confirmBubble": "Genehmigungen beim Begleiter anzeigen",
+  "confirmBubbleDescription": "Wenn deaktiviert, bleiben KI-Tool-Genehmigungen im Hauptchat-Fenster",
+  "pat": "Streicheln",
+  "resetPosition": "Position zurücksetzen",
+  "hide": "Ausblenden",
+  "showHide": "Anzeigen/Ausblenden",
+  "desktopOnly": "Desktop-Begleiter ist nur in der Desktop-Anwendung verfügbar. Er kann nicht im WebUI-Browser-Modus verwendet werden."
+}
