@@ -36,6 +36,43 @@ import { getPlatformServices } from '@/common/platform';
 
 const execFile = promisify(execFileCb);
 
+const WSL_AGENT_BIN_DIR = 'C:\\AI_LAB\\bin';
+const CLAUDE_WSL_EXECUTABLE = 'C:\\AI_LAB\\bin\\claude-wsl.exe';
+
+type AcpRuntimePreference = 'windows' | 'wsl' | 'auto';
+
+function resolveAcpRuntimePreference(env: NodeJS.ProcessEnv = process.env): AcpRuntimePreference {
+  const raw = (env.AIONUI_ACP_RUNTIME || '').trim().toLowerCase();
+  if (raw === 'wsl' || raw === 'auto') return raw;
+  return 'windows';
+}
+
+function prependWindowsPath(env: Record<string, string | undefined>, dir: string): void {
+  const currentPath = env.PATH || env.Path || '';
+  const parts = currentPath.split(';').filter(Boolean);
+  const alreadyFirst = parts[0]?.toLowerCase() === dir.toLowerCase();
+  const nextPath = alreadyFirst ? currentPath : [dir, ...parts.filter((part) => part.toLowerCase() !== dir.toLowerCase())].join(';');
+
+  env.PATH = nextPath;
+  env.Path = nextPath;
+}
+
+export function applyAcpRuntimePreferenceToBridgeEnv(
+  backend: 'claude' | 'codex',
+  cleanEnv: Record<string, string | undefined>,
+  sourceEnv: NodeJS.ProcessEnv = process.env
+): Record<string, string | undefined> {
+  const preference = resolveAcpRuntimePreference(sourceEnv);
+  if (preference !== 'wsl') return cleanEnv;
+
+  prependWindowsPath(cleanEnv, WSL_AGENT_BIN_DIR);
+  if (backend === 'claude') {
+    cleanEnv.CLAUDE_CODE_EXECUTABLE = CLAUDE_WSL_EXECUTABLE;
+  }
+
+  return cleanEnv;
+}
+
 function normalizeWindowsCommand(command: string): string {
   const trimmed = command.trim();
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -433,12 +470,14 @@ export function spawnNpxBackend(
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
+  applyAcpRuntimePreferenceToBridgeEnv('claude', cleanEnv);
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
 async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
+  applyAcpRuntimePreferenceToBridgeEnv('codex', cleanEnv);
 
   const diagStart = Date.now();
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';
