@@ -24,6 +24,7 @@ import directoryApi from '../directoryApi';
 import { apiRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 import { registerWecomChannelRoutes } from './wecomChannelRoutes';
+import { moveFileWithRenameFallback } from './uploadUtils';
 
 /** Temp directory used by multer disk storage — validated at runtime to prevent path traversal */
 const MULTER_TEMP_DIR = os.tmpdir();
@@ -367,7 +368,7 @@ export function registerApiRoutes(app: Express): void {
         // This breaks the taint chain: path.basename() strips any directory traversal sequences,
         // and MULTER_TEMP_DIR is a constant set at startup, not user-provided.
         const safeTempPath = path.join(path.resolve(MULTER_TEMP_DIR), path.basename(file.path));
-        await fsPromises.rename(safeTempPath, targetPath);
+        await moveFileWithRenameFallback(safeTempPath, targetPath);
 
         res.json({
           success: true,
