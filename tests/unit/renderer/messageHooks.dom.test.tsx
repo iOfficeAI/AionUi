@@ -72,9 +72,94 @@ const MutationProbe = () => {
   );
 };
 
+const TranscriptProbe = () => {
+  const addOrUpdateMessage = useAddOrUpdateMessage();
+  const messages = useMessageList();
+
+  return (
+    <div>
+      <button
+        type='button'
+        onClick={() => {
+          addOrUpdateMessage({
+            id: 'transcript-1',
+            msg_id: 'agent-message-1',
+            conversation_id: 'conv-1',
+            type: 'codex_agent_transcript',
+            position: 'left',
+            content: {
+              callId: 'wait-call-1',
+              threadId: 'worker-thread-1',
+              itemId: 'agent-message-1',
+              content: 'first ',
+            },
+          });
+          addOrUpdateMessage({
+            id: 'transcript-2',
+            msg_id: 'agent-message-1',
+            conversation_id: 'conv-1',
+            type: 'codex_agent_transcript',
+            position: 'left',
+            content: {
+              callId: 'wait-call-1',
+              threadId: 'worker-thread-1',
+              itemId: 'agent-message-1',
+              content: 'second',
+            },
+          });
+        }}
+      >
+        add-transcript
+      </button>
+      <pre data-testid='transcript-messages'>{JSON.stringify(messages)}</pre>
+    </div>
+  );
+};
+
 describe('message hooks cache merge', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+  });
+
+  it('loads the latest database page and restores chronological display order', async () => {
+    const dbMessages: TestMessage[] = [
+      {
+        id: 'new-message',
+        msg_id: 'new-message',
+        conversation_id: 'conv-latest',
+        type: 'text',
+        content: { content: 'new' },
+      },
+      {
+        id: 'old-message',
+        msg_id: 'old-message',
+        conversation_id: 'conv-latest',
+        type: 'text',
+        content: { content: 'old' },
+      },
+    ];
+
+    mockGetConversationMessagesInvoke.mockResolvedValue(dbMessages);
+
+    render(
+      <MessageListProvider value={[]}>
+        <CacheProbe conversationId='conv-latest' />
+      </MessageListProvider>
+    );
+
+    await waitFor(() => {
+      expect(mockGetConversationMessagesInvoke).toHaveBeenCalledWith({
+        conversation_id: 'conv-latest',
+        page: 0,
+        pageSize: 10000,
+        order: 'DESC',
+      });
+    });
+
+    await waitFor(() => {
+      const merged = JSON.parse(screen.getByTestId('messages').textContent ?? '[]') as TestMessage[];
+      expect(merged.map((message) => message.id)).toEqual(['old-message', 'new-message']);
+    });
   });
 
   it('keeps same-conversation streaming messages while filtering out messages from the previous conversation', async () => {
@@ -143,6 +228,24 @@ describe('message hooks cache merge', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('mutated-messages').textContent).not.toContain('msg-1');
+    });
+  });
+
+  it('accumulates Codex subagent transcript chunks by message id', async () => {
+    mockGetConversationMessagesInvoke.mockResolvedValue([]);
+
+    render(
+      <MessageListProvider value={[]}>
+        <TranscriptProbe />
+      </MessageListProvider>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'add-transcript' }));
+
+    await waitFor(() => {
+      const messages = JSON.parse(screen.getByTestId('transcript-messages').textContent ?? '[]') as TestMessage[];
+      expect(messages).toHaveLength(1);
+      expect(messages[0].content.content).toBe('first second');
     });
   });
 });

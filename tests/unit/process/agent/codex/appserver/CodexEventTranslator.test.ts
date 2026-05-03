@@ -475,6 +475,166 @@ describe('CodexEventTranslator native tool events', () => {
     ]);
   });
 
+  it('routes child-thread agent message deltas to the matching agent transcript', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/completed',
+      params: {
+        item: {
+          type: 'collabAgentToolCall',
+          id: 'wait-call-1',
+          tool: 'wait',
+          status: 'running',
+          senderThreadId: 'parent-thread',
+          receiverThreadIds: ['child-thread'],
+        },
+      },
+    });
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/agentMessage/delta',
+      params: {
+        threadId: 'child-thread',
+        turnId: 'turn-1',
+        itemId: 'message-1',
+        delta: 'worker output',
+      },
+    });
+
+    expect(events).toEqual([
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'codex_agent_transcript',
+          conversation_id: 'conversation-1',
+          msg_id: 'message-1',
+          data: {
+            callId: 'wait-call-1',
+            threadId: 'child-thread',
+            itemId: 'message-1',
+            content: 'worker output',
+          },
+        }),
+      }),
+    ]);
+  });
+
+  it('tags child-thread command tool calls with the matching agent call', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/completed',
+      params: {
+        item: {
+          type: 'collabAgentToolCall',
+          id: 'wait-call-1',
+          tool: 'wait',
+          status: 'running',
+          senderThreadId: 'parent-thread',
+          receiverThreadIds: ['child-thread'],
+        },
+      },
+    });
+
+    const started = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/started',
+      params: {
+        threadId: 'child-thread',
+        item: {
+          type: 'commandExecution',
+          id: 'cmd-1',
+          command: ['sed', '-n', '1,120p', 'SKILL.md'],
+          cwd: '/workspace',
+          status: 'inProgress',
+        },
+      },
+    });
+    const output = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/commandExecution/outputDelta',
+      params: {
+        itemId: 'cmd-1',
+        stream: 'stdout',
+        delta: 'skill contents',
+      },
+    });
+
+    expect(started[0]).toEqual(
+      expect.objectContaining({
+        message: expect.objectContaining({
+          type: 'codex_tool_call',
+          msg_id: 'cmd-1',
+          data: expect.objectContaining({
+            toolCallId: 'cmd-1',
+            agentCallId: 'wait-call-1',
+            threadId: 'child-thread',
+          }),
+        }),
+      })
+    );
+    expect(output[0]).toEqual(
+      expect.objectContaining({
+        message: expect.objectContaining({
+          type: 'codex_tool_call',
+          msg_id: 'cmd-1',
+          data: expect.objectContaining({
+            toolCallId: 'cmd-1',
+            agentCallId: 'wait-call-1',
+            threadId: 'child-thread',
+          }),
+        }),
+      })
+    );
+  });
+
+  it('keeps main-thread agent message deltas as normal assistant content', () => {
+    const translator = new CodexEventTranslator('conversation-1');
+
+    translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/completed',
+      params: {
+        item: {
+          type: 'collabAgentToolCall',
+          id: 'wait-call-1',
+          tool: 'wait',
+          status: 'running',
+          senderThreadId: 'parent-thread',
+          receiverThreadIds: ['child-thread'],
+        },
+      },
+    });
+
+    const events = translator.translate({
+      jsonrpc: '2.0',
+      method: 'item/agentMessage/delta',
+      params: {
+        threadId: 'parent-thread',
+        turnId: 'turn-1',
+        itemId: 'message-1',
+        delta: 'main output',
+      },
+    });
+
+    expect(events[0]).toEqual(
+      expect.objectContaining({
+        kind: 'message',
+        persist: true,
+        message: expect.objectContaining({
+          type: 'content',
+          msg_id: 'message-1',
+          data: { content: 'main output' },
+        }),
+      })
+    );
+  });
+
   it('maps command execution item lifecycle to existing codex command subtypes', () => {
     const translator = new CodexEventTranslator('conversation-1');
 

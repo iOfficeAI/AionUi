@@ -37,6 +37,17 @@ describe('transformMessage', () => {
     expect(result!.position).toBe('right');
   });
 
+  it('preserves user_content text exactly', () => {
+    const content = '<think>\ninternal reasoning\n</think>\nvisible answer\n[SKILL_SUGGEST]raw[/SKILL_SUGGEST]';
+    const result = transformMessage(makeMessage('user_content', content));
+
+    expect(result).toMatchObject({
+      type: 'text',
+      position: 'right',
+      content: { content },
+    });
+  });
+
   it('transforms Codex context events into center timeline messages', () => {
     const result = transformMessage(
       makeMessage('codex_context_event', {
@@ -75,6 +86,29 @@ describe('transformMessage', () => {
         callId: 'spawn-1',
         action: 'spawnAgent',
         receiverThreadIds: ['thread-2'],
+      },
+    });
+  });
+
+  it('transforms Codex agent transcripts into dedicated left-aligned messages', () => {
+    const result = transformMessage(
+      makeMessage('codex_agent_transcript', {
+        callId: 'wait-1',
+        threadId: 'thread-2',
+        itemId: 'message-1',
+        content: 'worker output',
+      })
+    );
+
+    expect(result).toMatchObject({
+      type: 'codex_agent_transcript',
+      msg_id: 'msg-1',
+      position: 'left',
+      content: {
+        callId: 'wait-1',
+        threadId: 'thread-2',
+        itemId: 'message-1',
+        content: 'worker output',
       },
     });
   });

@@ -45,6 +45,11 @@ describe('ThinkTagDetector', () => {
       expect(hasThinkTags('This is normal text')).toBe(false);
     });
 
+    it('should ignore literal think tags inside markdown code spans', () => {
+      expect(hasThinkTags('The backend splits `<think>` streams.')).toBe(false);
+      expect(hasThinkTags('Use `</thinking>` only as an example.')).toBe(false);
+    });
+
     it('should handle empty or null input', () => {
       expect(hasThinkTags('')).toBe(false);
       expect(hasThinkTags(null as unknown as string)).toBe(false);
@@ -161,6 +166,22 @@ After`;
     it('should preserve list-leading newlines after removing think tags', () => {
       const input = '<think>internal</think>\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟';
       const expected = '\n\n当前服务：\n- `aionui-webui.service` 已运行约 15 分钟';
+
+      expect(stripThinkTags(input)).toBe(expected);
+      expect(stripRendererThinkTags(input)).toBe(expected);
+    });
+
+    it('should preserve literal think tags in inline code while removing real think blocks', () => {
+      const input = 'Before <think>hidden</think> after `<think>` and `</thinking>`.';
+      const expected = 'Before  after `<think>` and `</thinking>`.';
+
+      expect(stripThinkTags(input)).toBe(expected);
+      expect(stripRendererThinkTags(input)).toBe(expected);
+    });
+
+    it('should preserve literal think tags in fenced code while removing real think blocks', () => {
+      const input = '<think>hidden</think>\n```xml\n<think>literal</think>\n```\nDone';
+      const expected = '\n```xml\n<think>literal</think>\n```\nDone';
 
       expect(stripThinkTags(input)).toBe(expected);
       expect(stripRendererThinkTags(input)).toBe(expected);

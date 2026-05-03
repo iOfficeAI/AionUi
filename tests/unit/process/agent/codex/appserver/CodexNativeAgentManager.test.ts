@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { ipcBridge } from '@/common';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import { CodexNativeAgentManager } from '@/process/agent/codex/appserver/CodexNativeAgentManager';
 import type { CodexJsonRpcRequest, CodexServerRequestHandler } from '@/process/agent/codex/appserver/types';
+import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 
 type Deferred = {
   promise: Promise<void>;
@@ -208,6 +210,10 @@ type StartableManager = {
   ensureStarted: () => Promise<void>;
 };
 
+type PersistableManager = {
+  emitAndPersistMessage: (message: IResponseMessage, persist: boolean) => void;
+};
+
 async function flushPromises(): Promise<void> {
   await Promise.resolve();
   await Promise.resolve();
@@ -347,6 +353,33 @@ describe('CodexNativeAgentManager', () => {
     );
 
     emitSpy.mockRestore();
+    manager.kill();
+  });
+
+  it('persists native assistant text deltas by updating the same message', () => {
+    const manager = createManager('conversation-assistant-text-persist');
+
+    (manager as unknown as PersistableManager).emitAndPersistMessage(
+      {
+        type: 'content',
+        conversation_id: 'conversation-assistant-text-persist',
+        msg_id: 'assistant-message-1',
+        data: 'streaming assistant text',
+      },
+      true
+    );
+
+    expect(addOrUpdateMessage).toHaveBeenCalledWith(
+      'conversation-assistant-text-persist',
+      expect.objectContaining({
+        type: 'text',
+        position: 'left',
+        msg_id: 'assistant-message-1',
+        content: { content: 'streaming assistant text' },
+      })
+    );
+    expect(addMessage).not.toHaveBeenCalled();
+
     manager.kill();
   });
 

@@ -112,6 +112,38 @@ describe('MessageText', () => {
     expect(markdownViewMock).not.toHaveBeenCalled();
   });
 
+  it('preserves user-authored think tags as plain text', () => {
+    const content = 'quoted output: <think>\ninternal reasoning\n</think>\nvisible answer';
+
+    const { container } = render(
+      <MessageText
+        message={createMessage({
+          position: 'right',
+          content: { content },
+        })}
+      />
+    );
+
+    expect(container.querySelector('.whitespace-pre-wrap')?.textContent).toBe(content);
+    expect(markdownViewMock).not.toHaveBeenCalled();
+  });
+
+  it('preserves user-authored skill suggestion blocks as plain text', () => {
+    const content = '[SKILL_SUGGEST]\nname: demo\ncontent:\n---\nname: demo\n---\nbody\n[/SKILL_SUGGEST]';
+
+    const { container } = render(
+      <MessageText
+        message={createMessage({
+          position: 'right',
+          content: { content },
+        })}
+      />
+    );
+
+    expect(container.querySelector('.whitespace-pre-wrap')?.textContent).toBe(content);
+    expect(markdownViewMock).not.toHaveBeenCalled();
+  });
+
   it('continues to use MarkdownView for assistant messages', () => {
     render(
       <MessageText
