@@ -41,9 +41,15 @@ const CLAUDE_WSL_EXECUTABLE = 'C:\\AI_LAB\\bin\\claude-wsl.exe';
 
 type AcpRuntimePreference = 'windows' | 'wsl' | 'auto';
 
+function isAutoWslReady(env: NodeJS.ProcessEnv): boolean {
+  const raw = (env.AIONUI_ACP_AUTO_WSL_READY || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes';
+}
+
 function resolveAcpRuntimePreference(env: NodeJS.ProcessEnv = process.env): AcpRuntimePreference {
   const raw = (env.AIONUI_ACP_RUNTIME || '').trim().toLowerCase();
-  if (raw === 'wsl' || raw === 'auto') return raw;
+  if (raw === 'wsl') return 'wsl';
+  if (raw === 'auto') return isAutoWslReady(env) ? 'wsl' : 'windows';
   return 'windows';
 }
 
@@ -51,7 +57,9 @@ function prependWindowsPath(env: Record<string, string | undefined>, dir: string
   const currentPath = env.PATH || env.Path || '';
   const parts = currentPath.split(';').filter(Boolean);
   const alreadyFirst = parts[0]?.toLowerCase() === dir.toLowerCase();
-  const nextPath = alreadyFirst ? currentPath : [dir, ...parts.filter((part) => part.toLowerCase() !== dir.toLowerCase())].join(';');
+  const nextPath = alreadyFirst
+    ? currentPath
+    : [dir, ...parts.filter((part) => part.toLowerCase() !== dir.toLowerCase())].join(';');
 
   env.PATH = nextPath;
   env.Path = nextPath;
@@ -275,12 +283,12 @@ export function ensureMinNodeVersion(
 
       // Verify the corrected PATH actually resolves to a good node (npx uses the same PATH)
       try {
-        const correctedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], {
+        execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], {
           env: cleanEnv,
           encoding: 'utf-8',
           timeout: 5000,
           stdio: ['pipe', 'pipe', 'pipe'],
-        }).trim();
+        });
         // Version auto-corrected silently
       } catch {
         console.warn(`[ACP] PATH corrected with ${suitableBinDir} but node verification failed — proceeding anyway`);

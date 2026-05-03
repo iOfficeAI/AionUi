@@ -158,7 +158,10 @@ export class AcpAgentV2 {
       // Claude is bridged through WSL. claude-agent-acp forwards the MCP config
       // as JSON to the CLI, but WSL Claude Code treats --mcp-config as a file
       // path and also cannot execute Windows node paths from inside WSL.
-      if (this.agentConfig.agentBackend !== 'claude' && await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
+      if (
+        this.agentConfig.agentBackend !== 'claude' &&
+        (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend))
+      ) {
         const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const guideServer: McpServer = {

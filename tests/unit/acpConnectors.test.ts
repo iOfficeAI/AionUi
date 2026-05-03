@@ -184,7 +184,11 @@ describe('ACP runtime preference helpers', () => {
   });
 
   it('points Claude ACP at the WSL executable shim only when explicitly requested', () => {
-    const result = applyAcpRuntimePreferenceToBridgeEnv('claude', { PATH: 'C:\\Windows' }, { AIONUI_ACP_RUNTIME: 'wsl' });
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'wsl' }
+    );
 
     expect(result.CLAUDE_CODE_EXECUTABLE).toBe('C:\\AI_LAB\\bin\\claude-wsl.exe');
     expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
@@ -192,9 +196,37 @@ describe('ACP runtime preference helpers', () => {
   });
 
   it('points Codex ACP at WSL wrappers via PATH only when explicitly requested', () => {
-    const result = applyAcpRuntimePreferenceToBridgeEnv('codex', { PATH: 'C:\\Windows' }, { AIONUI_ACP_RUNTIME: 'wsl' });
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'codex',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'wsl' }
+    );
 
     expect(result.CLAUDE_CODE_EXECUTABLE).toBeUndefined();
+    expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+    expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+  });
+
+  it('falls back to Windows-native ACP when auto mode has not been marked WSL-ready', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'auto' }
+    );
+
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBeUndefined();
+    expect(result.PATH).toBe('C:\\Windows');
+    expect(result.Path).toBeUndefined();
+  });
+
+  it('uses WSL ACP when auto mode has been marked WSL-ready by the launcher preflight', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'auto', AIONUI_ACP_AUTO_WSL_READY: '1' }
+    );
+
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBe('C:\\AI_LAB\\bin\\claude-wsl.exe');
     expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
     expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
   });

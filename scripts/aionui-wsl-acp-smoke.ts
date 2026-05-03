@@ -95,7 +95,6 @@ function writeMessage(child: ChildProcess, message: Record<string, unknown>): vo
   child.stdin?.write(`${JSON.stringify(message)}\n`);
 }
 
-
 function extractTextFromUpdate(msg: Record<string, unknown>): string {
   const params = msg.params as Record<string, unknown> | undefined;
   const update = params?.update as Record<string, unknown> | undefined;
@@ -120,7 +119,11 @@ function waitForPromptOutcome(
     let accumulatedText = '';
     const timer = setTimeout(() => {
       child.stdout?.removeListener('data', onData);
-      reject(new Error(`timed out after ${timeoutMs}ms waiting for prompt response or marker; accumulated=${JSON.stringify(accumulatedText.slice(-200))}`));
+      reject(
+        new Error(
+          `timed out after ${timeoutMs}ms waiting for prompt response or marker; accumulated=${JSON.stringify(accumulatedText.slice(-200))}`
+        )
+      );
     }, timeoutMs);
 
     const finish = (detail: string) => {
@@ -205,7 +208,12 @@ async function runStep(name: string, fn: () => Promise<string>): Promise<StepRes
     const detail = await fn();
     return { name, ok: true, detail, elapsedMs: Date.now() - start };
   } catch (error) {
-    return { name, ok: false, detail: error instanceof Error ? error.message : String(error), elapsedMs: Date.now() - start };
+    return {
+      name,
+      ok: false,
+      detail: error instanceof Error ? error.message : String(error),
+      elapsedMs: Date.now() - start,
+    };
   }
 }
 
@@ -292,7 +300,8 @@ async function smokeTarget(target: SmokeTarget, options: SmokeOptions): Promise<
         });
         const response = await waitForResponse(child, (msg) => msg.id === 2, options.timeoutMs);
         const result = response.result as Record<string, unknown> | undefined;
-        if (typeof result?.sessionId !== 'string') throw new Error(`session/new had no sessionId: ${JSON.stringify(response)}`);
+        if (typeof result?.sessionId !== 'string')
+          throw new Error(`session/new had no sessionId: ${JSON.stringify(response)}`);
         sessionId = result.sessionId;
         return `created session ${sessionId}`;
       })
@@ -339,7 +348,11 @@ function parseArgs(argv: string[]): SmokeOptions {
     const arg = argv[index];
     if (arg === '--prompt') prompt = true;
     else if (arg === '--timeout-ms') timeoutMs = Number(argv[++index] || timeoutMs);
-    else if (arg === '--target') targets = (argv[++index] || '').split(',').map((v) => v.trim()).filter(Boolean);
+    else if (arg === '--target')
+      targets = (argv[++index] || '')
+        .split(',')
+        .map((v) => v.trim())
+        .filter(Boolean);
     else if (arg === '--report') reportPath = argv[++index] || reportPath;
   }
 
@@ -370,7 +383,9 @@ function renderReport(results: TargetResult[], options: SmokeOptions): string {
     lines.push('| Step | Result | Detail | ms |');
     lines.push('|---|---:|---|---:|');
     for (const step of result.steps) {
-      lines.push(`| ${step.name} | ${step.ok ? 'OK' : 'FAIL'} | ${step.detail.replace(/\|/g, '\\|')} | ${step.elapsedMs ?? ''} |`);
+      lines.push(
+        `| ${step.name} | ${step.ok ? 'OK' : 'FAIL'} | ${step.detail.replace(/\|/g, '\\|')} | ${step.elapsedMs ?? ''} |`
+      );
     }
     if (result.stderr.trim()) {
       lines.push('');
@@ -388,8 +403,12 @@ function renderReport(results: TargetResult[], options: SmokeOptions): string {
   lines.push('');
   lines.push('- This harness is additive and does not change AionUi default Claude/Codex backends.');
   lines.push('- `handshake-only` proves process launch + ACP initialize only. It does not prove full chat stability.');
-  lines.push('- `--prompt` additionally creates a session and sends a marker prompt; use it when model/API cost and auth side effects are acceptable.');
-  lines.push('- Only consider switching defaults after initialize, marker prompt, second-message/resume, abort/cancel, and Windows-native regression checks pass.');
+  lines.push(
+    '- `--prompt` additionally creates a session and sends a marker prompt; use it when model/API cost and auth side effects are acceptable.'
+  );
+  lines.push(
+    '- Only consider switching defaults after initialize, marker prompt, second-message/resume, abort/cancel, and Windows-native regression checks pass.'
+  );
   lines.push('');
   return `${lines.join('\n')}\n`;
 }
@@ -398,7 +417,11 @@ export async function main(argv = process.argv.slice(2)): Promise<number> {
   const options = parseArgs(argv);
   const selected = buildSmokeTargets().filter((target) => !options.targets || options.targets.includes(target.id));
   if (selected.length === 0) {
-    console.error(`No targets selected. Available: ${buildSmokeTargets().map((target) => target.id).join(', ')}`);
+    console.error(
+      `No targets selected. Available: ${buildSmokeTargets()
+        .map((target) => target.id)
+        .join(', ')}`
+    );
     return 2;
   }
 
