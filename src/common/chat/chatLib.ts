@@ -241,6 +241,10 @@ type ResponseTextData = {
   content: string;
   replace?: boolean;
   cronMeta?: CronMessageMeta;
+  teammate_message?: boolean;
+  sender_name?: string;
+  sender_backend?: string;
+  sender_conversation_id?: string;
 };
 
 const isResponseTextData = (data: unknown): data is ResponseTextData =>
@@ -396,6 +400,10 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
               content: data.content,
               cronMeta: data.cronMeta,
               ...(shouldReplace ? { replace: true } : {}),
+              ...(data.teammate_message ? { teammateMessage: true } : {}),
+              ...(data.sender_name ? { senderName: data.sender_name } : {}),
+              ...(data.sender_backend ? { senderAgentType: data.sender_backend } : {}),
+              ...(data.sender_conversation_id ? { senderConversationId: data.sender_conversation_id } : {}),
             }
           : {
               content: data as string,

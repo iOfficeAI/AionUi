@@ -17,9 +17,16 @@ export function useTeamList() {
 
   // Refresh list when backend creates/removes a team (e.g. via MCP)
   useEffect(() => {
-    return ipcBridge.team.listChanged.on(() => {
+    const unsubListChanged = ipcBridge.team.listChanged.on(() => {
       void mutate();
     });
+    const unsubCreated = ipcBridge.team.created.on(() => {
+      void mutate();
+    });
+    return () => {
+      unsubListChanged();
+      unsubCreated();
+    };
   }, [mutate]);
 
   const removeTeam = useCallback(

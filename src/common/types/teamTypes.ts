@@ -115,6 +115,20 @@ export type ITeamListChangedEvent = {
   action: 'created' | 'removed' | 'agent_added' | 'agent_removed';
 };
 
+/** IPC event pushed when a new team is created (backend `team.created` WS event) */
+export type ITeamCreatedEvent = {
+  team_id: string;
+  team_name: string;
+};
+
+/** IPC event for real-time teammate-to-teammate messages (`team.teammate.message` WS event) */
+export type ITeamTeammateMessageEvent = {
+  conversation_id: string;
+  content: string;
+  from_slot_id: string;
+  from_name: string;
+};
+
 /** IPC event for streaming agent messages to renderer */
 export type ITeamMessageEvent = {
   team_id: string;

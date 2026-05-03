@@ -336,6 +336,32 @@ export const useRemoveMessageByMsgId = () => {
   );
 };
 
+/**
+ * Normalize a message loaded from backend DB: if `content` is a JSON string,
+ * parse it and map snake_case fields to camelCase for the renderer.
+ */
+function normalizeDbMessage(msg: TMessage): TMessage {
+  if (msg.type !== 'text') return msg;
+  const raw = msg.content as unknown;
+  if (typeof raw !== 'string') return msg;
+  try {
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    if (typeof parsed.content !== 'string') return msg;
+    return {
+      ...msg,
+      content: {
+        content: parsed.content as string,
+        ...(parsed.teammate_message ? { teammateMessage: true } : {}),
+        ...(parsed.sender_name ? { senderName: parsed.sender_name as string } : {}),
+        ...(parsed.sender_backend ? { senderAgentType: parsed.sender_backend as string } : {}),
+        ...(parsed.sender_conversation_id ? { senderConversationId: parsed.sender_conversation_id as string } : {}),
+      },
+    };
+  } catch {
+    return msg;
+  }
+}
+
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
@@ -344,7 +370,7 @@ export const useMessageLstCache = (key: string) => {
       page: 0,
       page_size: 10000,
     });
-    const messages = result?.items;
+    const messages = result?.items?.map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
       update((currentList) => {
         if (!currentList.length) return messages;

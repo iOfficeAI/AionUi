@@ -27,21 +27,25 @@ export function useTeamCreatedRedirect() {
   pathnameRef.current = location.pathname;
 
   useEffect(() => {
-    return ipcBridge.team.listChanged.on((event) => {
-      if (event.action !== 'created') return;
-
-      const teamId = event.team_id;
+    const navigateToTeam = (teamId: string) => {
       if (!teamId) return;
-
-      // Avoid double-navigation if already on this team page
-      // (e.g. user created team via modal which already navigated)
       if (pathnameRef.current === `/team/${teamId}`) return;
-
-      // Refresh conversation list so the converted conversation disappears
       emitter.emit('chat.history.refresh');
-
-      // Navigate to the new team
       Promise.resolve(navigate(`/team/${teamId}`)).catch(console.error);
+    };
+
+    const unsubListChanged = ipcBridge.team.listChanged.on((event) => {
+      if (event.action !== 'created') return;
+      navigateToTeam(event.team_id);
     });
+
+    const unsubCreated = ipcBridge.team.created.on((event) => {
+      navigateToTeam(event.team_id);
+    });
+
+    return () => {
+      unsubListChanged();
+      unsubCreated();
+    };
   }, [navigate]);
 }

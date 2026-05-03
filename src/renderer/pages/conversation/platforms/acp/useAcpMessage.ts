@@ -230,6 +230,40 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         case 'teammate_message': {
           const tmMsg = message.data as import('@/common/chat/chatLib').TMessage;
           if (tmMsg && tmMsg.conversation_id === conversation_id) {
+            if (tmMsg.type === 'text') {
+              const raw = tmMsg.content as unknown;
+              if (typeof raw === 'string') {
+                try {
+                  const parsed = JSON.parse(raw) as Record<string, unknown>;
+                  if (typeof parsed.content === 'string') {
+                    tmMsg.content = {
+                      content: parsed.content,
+                      ...(parsed.teammate_message ? { teammateMessage: true } : {}),
+                      ...(parsed.sender_name ? { senderName: parsed.sender_name as string } : {}),
+                      ...(parsed.sender_backend ? { senderAgentType: parsed.sender_backend as string } : {}),
+                      ...(parsed.sender_conversation_id
+                        ? { senderConversationId: parsed.sender_conversation_id as string }
+                        : {}),
+                    };
+                  }
+                } catch {
+                  /* keep original */
+                }
+              } else if (typeof raw === 'object' && raw !== null) {
+                const obj = raw as Record<string, unknown>;
+                if (obj.teammate_message && !obj.teammateMessage) {
+                  tmMsg.content = {
+                    content: (obj.content as string) ?? '',
+                    teammateMessage: true,
+                    ...(obj.sender_name ? { senderName: obj.sender_name as string } : {}),
+                    ...(obj.sender_backend ? { senderAgentType: obj.sender_backend as string } : {}),
+                    ...(obj.sender_conversation_id
+                      ? { senderConversationId: obj.sender_conversation_id as string }
+                      : {}),
+                  };
+                }
+              }
+            }
             addOrUpdateMessage(tmMsg);
           }
           break;
