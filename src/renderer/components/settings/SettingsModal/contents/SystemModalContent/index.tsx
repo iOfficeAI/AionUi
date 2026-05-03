@@ -12,7 +12,23 @@ import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Form,
+  InputNumber,
+  Message,
+  Modal,
+  Select,
+  Switch,
+  Tooltip,
+} from '@arco-design/web-react';
+import {
+  soundNotificationService,
+  SOUND_PRESETS,
+  type SoundPreset,
+} from '@renderer/services/sound/SoundNotificationService';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +63,8 @@ const SystemModalContent: React.FC = () => {
   const [closeToTray, setCloseToTray] = useState(false);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [soundPreset, setSoundPreset] = useState<SoundPreset>('chime');
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
@@ -85,6 +103,20 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getCronNotificationEnabled
       .invoke()
       .then((enabled) => setCronNotificationEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getSoundEnabled
+      .invoke()
+      .then((enabled) => setSoundEnabled(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getSoundPreset
+      .invoke()
+      .then((preset) => setSoundPreset((preset as SoundPreset) ?? 'chime'))
       .catch(() => {});
   }, []);
 
@@ -161,6 +193,20 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.setCronNotificationEnabled.invoke({ enabled: checked }).catch(() => {
       setCronNotificationEnabled(!checked);
     });
+  }, []);
+
+  const handleSoundEnabledChange = useCallback((checked: boolean) => {
+    setSoundEnabled(checked);
+    ipcBridge.systemSettings.setSoundEnabled.invoke({ enabled: checked }).catch(() => {
+      setSoundEnabled(!checked);
+    });
+  }, []);
+
+  const handleSoundPresetChange = useCallback((value: string) => {
+    const preset = value as SoundPreset;
+    setSoundPreset(preset);
+    soundNotificationService.play(preset);
+    ipcBridge.systemSettings.setSoundPreset.invoke({ preset }).catch(() => {});
   }, []);
 
   const handlePromptTimeoutChange = useCallback((val: number | undefined) => {
@@ -371,6 +417,29 @@ const SystemModalContent: React.FC = () => {
                       onChange={handleCronNotificationEnabledChange}
                     />
                   </PreferenceRow>
+                  <PreferenceRow label={t('settings.soundNotificationEnabled')}>
+                    <Switch
+                      checked={soundEnabled}
+                      disabled={!notificationEnabled}
+                      onChange={handleSoundEnabledChange}
+                    />
+                  </PreferenceRow>
+                  {soundEnabled && notificationEnabled && (
+                    <PreferenceRow label={t('settings.soundNotificationPreset')}>
+                      <Select
+                        value={soundPreset}
+                        onChange={handleSoundPresetChange}
+                        style={{ width: 120 }}
+                        size='small'
+                      >
+                        {SOUND_PRESETS.map((p) => (
+                          <Select.Option key={p} value={p}>
+                            {p.charAt(0).toUpperCase() + p.slice(1)}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </PreferenceRow>
+                  )}
                 </div>
               </Collapse.Item>
             </Collapse>

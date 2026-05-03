@@ -165,6 +165,8 @@
   "closeToTray": "Сворачивать в трей",
   "notification": "Уведомления",
   "cronNotificationEnabled": "Уведомление о завершении запланированных задач",
+  "soundNotificationEnabled": "Звуковое уведомление",
+  "soundNotificationPreset": "Звуковой пресет",
   "promptTimeout": "Таймаут запроса LLM (сек)",
   "agentIdleTimeout": "Таймаут простоя Agent (мин)",
   "agentIdleTimeoutDesc": "Завершить простаивающие процессы Agent после этого времени для освобождения памяти",

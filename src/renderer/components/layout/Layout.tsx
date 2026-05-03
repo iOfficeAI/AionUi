@@ -18,6 +18,7 @@ import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
+import { useSoundNotification } from '@renderer/hooks/system/useSoundNotification';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetection';
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
@@ -98,6 +99,7 @@ const Layout: React.FC<{
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
+  useSoundNotification();
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();

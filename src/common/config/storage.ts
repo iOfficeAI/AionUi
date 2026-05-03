@@ -130,6 +130,10 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  // Play a sound when an agent turn completes
+  'system.soundEnabled'?: boolean;
+  // Which synthesized sound preset to play ('chime' | 'ding' | 'bell' | 'pop')
+  'system.soundPreset'?: string;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

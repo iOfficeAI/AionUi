@@ -165,6 +165,8 @@
   "closeToTray": "In Taskleiste schließen",
   "notification": "Benachrichtigungen",
   "cronNotificationEnabled": "Geplante Aufgabe abgeschlossen",
+  "soundNotificationEnabled": "Ton-Benachrichtigung",
+  "soundNotificationPreset": "Ton auswählen",
   "promptTimeout": "LLM-Prompt-Zeitüberschreitung (s)",
   "groupAiCore": "KI-Kern",
   "groupApp": "Anwendung",

@@ -165,6 +165,8 @@
   "closeToTray": "Close to Tray",
   "notification": "Notifications",
   "cronNotificationEnabled": "Scheduled Task Completion",
+  "soundNotificationEnabled": "Sound Notification",
+  "soundNotificationPreset": "Sound Preset",
   "promptTimeout": "LLM Prompt Timeout (s)",
   "groupAiCore": "AI Core",
   "groupApp": "Application",

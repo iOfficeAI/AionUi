@@ -1587,6 +1587,8 @@ export type I18nKey =
   | 'settings.skillsHub.tipTitle'
   | 'settings.skillsHub.title'
   | 'settings.skippedCount'
+  | 'settings.soundNotificationEnabled'
+  | 'settings.soundNotificationPreset'
   | 'settings.speechToText'
   | 'settings.speechToTextApiKey'
   | 'settings.speechToTextBaseUrl'

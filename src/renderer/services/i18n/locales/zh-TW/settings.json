@@ -165,6 +165,8 @@
   "closeToTray": "關閉到托盤",
   "notification": "通知",
   "cronNotificationEnabled": "定時任務完成通知",
+  "soundNotificationEnabled": "聲音通知",
+  "soundNotificationPreset": "聲音預設",
   "promptTimeout": "LLM 請求逾時時間（秒）",
   "groupAiCore": "AI 核心",
   "groupApp": "應用",
