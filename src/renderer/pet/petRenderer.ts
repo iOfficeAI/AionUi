@@ -1,10 +1,16 @@
 const LOAD_TIMEOUT = 3000;
 const FADE_MS = 150;
-const PET_STATES_BASE_PATH = '../pet-states';
+const DEFAULT_STATES_PATH = '../pet-states';
+const skin = new URLSearchParams(window.location.search).get('skin') || 'default';
+const COMMUNITY_SKIN_PATH = skin !== 'default' ? `../community-skins/${encodeURIComponent(skin)}` : null;
 let currentObject: HTMLObjectElement | null = document.getElementById('pet') as HTMLObjectElement;
 
 function getStateAssetPath(state: string): string {
-  return `${PET_STATES_BASE_PATH}/${state}.svg`;
+  return COMMUNITY_SKIN_PATH ? `${COMMUNITY_SKIN_PATH}/${state}.svg` : `${DEFAULT_STATES_PATH}/${state}.svg`;
+}
+
+function getDefaultAssetPath(state: string): string {
+  return `${DEFAULT_STATES_PATH}/${state}.svg`;
 }
 
 function setupTransitions(_target: HTMLObjectElement | null): void {
@@ -36,6 +42,11 @@ function loadSvg(svgPath: string): void {
   const timeout = setTimeout(() => {
     if (!loaded) {
       newObj.remove();
+      // Community skin SVG missing — retry with default
+      if (COMMUNITY_SKIN_PATH && !svgPath.startsWith(DEFAULT_STATES_PATH)) {
+        const state = svgPath.split('/').pop()?.replace('.svg', '') ?? '';
+        if (state) loadSvg(getDefaultAssetPath(state));
+      }
     }
   }, LOAD_TIMEOUT);
 
@@ -80,6 +91,13 @@ if (currentObject) {
   currentObject.addEventListener('load', () => {
     setupTransitions(currentObject);
   });
+}
+
+// Replace the hardcoded initial SVG with the community skin version on load.
+// pet.html always references the default idle.svg; without this the skin only
+// takes effect after the first onStateChange event fires.
+if (COMMUNITY_SKIN_PATH) {
+  loadSvg(getStateAssetPath('idle'));
 }
 
 window.petAPI.onStateChange((state: string) => {

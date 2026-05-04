@@ -13,5 +13,8 @@
   "resetPosition": "Konumu Sıfırla",
   "hide": "Gizle",
   "showHide": "Göster/Gizle",
-  "desktopOnly": "Masaüstü evcil hayvanı yalnızca masaüstü uygulamasında kullanılabilir. WebUI tarayıcı modunda kullanılamaz."
+  "desktopOnly": "Masaüstü evcil hayvanı yalnızca masaüstü uygulamasında kullanılabilir. WebUI tarayıcı modunda kullanılamaz.",
+  "skin": "Evcil Hayvan Görünümü",
+  "skinDefault": "Varsayılan",
+  "skinDragon": "Ejderha"
 }

@@ -1,0 +1,55 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .idle-body { transform-origin: 11px 14px; animation: d-float 3.2s ease-in-out infinite, d-sway 6s ease-in-out infinite; }
+      .idle-eye  { transform-origin: 11px 8px; animation: d-blink 4s ease-in-out infinite; }
+      .idle-shadow { transform-origin: 11px 23px; animation: d-shadow 3.2s ease-in-out infinite; }
+      .d-wing-l { transform-origin: 7px 15px; animation: d-wingbeat 3.2s ease-in-out infinite; }
+      .d-wing-r { transform-origin: 15px 15px; animation: d-wingbeat 3.2s ease-in-out infinite reverse; }
+      @keyframes d-float  { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-1px)} }
+      @keyframes d-sway   { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(1deg)} 75%{transform:rotate(-1deg)} }
+      @keyframes d-blink  { 0%,8%,100%{transform:scaleY(1)} 4%{transform:scaleY(0.08)} }
+      @keyframes d-shadow { 0%,100%{transform:scaleX(1);opacity:.3} 50%{transform:scaleX(.93);opacity:.2} }
+      @keyframes d-wingbeat { 0%,100%{transform:scaleX(1)} 50%{transform:scaleX(.85)} }
+    </style>
+  </defs>
+  <ellipse class="idle-shadow" cx="11" cy="23" rx="5" ry=".8" fill="#a0a0a0"/>
+  <g class="idle-track">
+    <g class="idle-body">
+      <!-- wings -->
+      <polygon class="d-wing-l" points="7,13 0,18 7,20" fill="#3a7a44"/>
+      <polygon class="d-wing-r" points="15,13 22,18 15,20" fill="#3a7a44"/>
+      <!-- tail -->
+      <path d="M13 20 Q17 22 15 25 Q12 24 13 21" fill="#3a7a44"/>
+      <!-- body -->
+      <ellipse cx="11" cy="16" rx="5" ry="4.5" fill="#4e9e5a"/>
+      <!-- belly -->
+      <ellipse cx="11" cy="16.5" rx="3" ry="2.8" fill="#7fbf8a"/>
+      <!-- neck -->
+      <rect x="9" y="10.5" width="4" height="3" rx="1.5" fill="#4e9e5a"/>
+      <!-- head -->
+      <circle cx="11" cy="8.5" r="5" fill="#4e9e5a"/>
+      <!-- horns -->
+      <polygon points="8.5,4.5 9.5,1.5 11,4.5" fill="#ff7043"/>
+      <polygon points="11,4.5 12.5,1.5 13.5,4.5" fill="#ff7043"/>
+      <!-- snout -->
+      <ellipse cx="11" cy="11" rx="2.2" ry="1.3" fill="#3a7a44"/>
+      <circle cx="10.2" cy="11" r=".4" fill="#2d5e35"/>
+      <circle cx="11.8" cy="11" r=".4" fill="#2d5e35"/>
+      <!-- eye whites -->
+      <circle cx="9" cy="8" r="2" fill="#f0f0f0"/>
+      <circle cx="13" cy="8" r="2" fill="#f0f0f0"/>
+      <!-- pupils with blink + tracking -->
+      <g class="idle-eye">
+        <g class="idle-pupil">
+          <circle cx="9" cy="8" r="1.1" fill="#111827"/>
+          <circle cx="13" cy="8" r="1.1" fill="#111827"/>
+          <circle cx="9.4" cy="7.6" r=".35" fill="white"/>
+          <circle cx="13.4" cy="7.6" r=".35" fill="white"/>
+        </g>
+      </g>
+      <!-- smile -->
+      <path d="M9 12.5 Q11 14.5 13 12.5" stroke="#2d5e35" stroke-width=".8" stroke-linecap="round" fill="none"/>
+    </g>
+  </g>
+</svg>

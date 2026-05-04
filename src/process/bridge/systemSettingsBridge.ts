@@ -203,4 +203,15 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  ipcBridge.systemSettings.getPetSkin.provider(async () => {
+    const value = await ProcessConfig.get('pet.skin');
+    return (value as string | null) ?? 'default';
+  });
+
+  ipcBridge.systemSettings.setPetSkin.provider(async ({ skin }) => {
+    await ProcessConfig.set('pet.skin', skin);
+    const { reloadPetSkin } = await import('@process/pet/petManager');
+    reloadPetSkin(skin);
+  });
 }

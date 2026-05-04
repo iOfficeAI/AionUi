@@ -14,11 +14,15 @@ import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 
+const AVAILABLE_SKINS = ['default', 'dragon'] as const;
+type PetSkin = (typeof AVAILABLE_SKINS)[number];
+
 const PetSettings: React.FC = () => {
   const [enabled, setEnabled] = useState(true);
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [skin, setSkin] = useState<PetSkin>('default');
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -53,6 +57,13 @@ const PetSettings: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    systemSettings.getPetSkin
+      .invoke()
+      .then((val) => setSkin((val as PetSkin) || 'default'))
+      .catch(() => {});
+  }, []);
+
   const handleEnabledChange = useCallback((checked: boolean) => {
     setEnabled(checked);
     systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
@@ -84,6 +95,17 @@ const PetSettings: React.FC = () => {
       setConfirmEnabled(!checked);
     });
   }, []);
+
+  const handleSkinChange = useCallback(
+    (val: PetSkin) => {
+      const prev = skin;
+      setSkin(val);
+      systemSettings.setPetSkin.invoke({ skin: val }).catch(() => {
+        setSkin(prev);
+      });
+    },
+    [skin]
+  );
 
   if (!isDesktop) {
     return (
@@ -127,6 +149,19 @@ const PetSettings: React.FC = () => {
       label: t('pet.confirmBubble'),
       description: t('pet.confirmBubbleDescription'),
       component: <Switch checked={confirmEnabled} onChange={handleConfirmEnabledChange} disabled={!enabled} />,
+    },
+    {
+      key: 'skin',
+      label: t('pet.skin'),
+      component: (
+        <Radio.Group value={skin} onChange={handleSkinChange} disabled={!enabled}>
+          {AVAILABLE_SKINS.map((s) => (
+            <Radio key={s} value={s}>
+              {t(`pet.skin${s.charAt(0).toUpperCase()}${s.slice(1)}`)}
+            </Radio>
+          ))}
+        </Radio.Group>
+      ),
     },
   ];
 

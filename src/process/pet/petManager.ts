@@ -6,6 +6,7 @@
 
 import path from 'node:path';
 import { app, BrowserWindow, ipcMain, Menu, screen } from 'electron';
+import { ProcessConfig } from '@process/utils/initStorage';
 import i18n from '@process/services/i18n';
 import { PetStateMachine } from './petStateMachine';
 import { PetIdleTicker } from './petIdleTicker';
@@ -41,6 +42,14 @@ const RENDERER_DIR = path.join(__dirname, '..', '..', 'renderer', 'pet');
 
 let petWindow: BrowserWindow | null = null;
 let petHitWindow: BrowserWindow | null = null;
+let currentPetSkin = 'default';
+
+// Pre-load saved skin so createPetWindow() can use it synchronously.
+ProcessConfig.get('pet.skin')
+  .then((skin) => {
+    currentPetSkin = (skin as string | undefined) ?? 'default';
+  })
+  .catch(() => {});
 let stateMachine: PetStateMachine | null = null;
 let idleTicker: PetIdleTicker | null = null;
 let eventBridge: PetEventBridge | null = null;
@@ -193,7 +202,7 @@ export function createPetWindow(): void {
   idleTicker.start();
   registerIpcHandlers();
   startHitIgnoreWatchdog();
-  loadContent();
+  loadContent(currentPetSkin);
 
   // Initialize confirm manager only if the user opted in.
   // When disabled, AI tool-call confirmations remain in the main chat window
@@ -337,25 +346,37 @@ function computeInitialPosition(size: number): { x: number; y: number } {
 // Window content loading
 // ---------------------------------------------------------------------------
 
-function loadContent(): void {
+function loadContent(skin: string): void {
   if (!petWindow || !petHitWindow) return;
+  const skinParam = skin !== 'default' ? `?skin=${encodeURIComponent(skin)}` : '';
   const rendererUrl = process.env['ELECTRON_RENDERER_URL'];
 
   if (!app.isPackaged && rendererUrl) {
-    petWindow.loadURL(`${rendererUrl}/pet/pet.html`).catch((error) => {
+    petWindow.loadURL(`${rendererUrl}/pet/pet.html${skinParam}`).catch((error) => {
       console.error('[Pet] loadURL failed for pet window:', error);
     });
     petHitWindow.loadURL(`${rendererUrl}/pet/pet-hit.html`).catch((error) => {
       console.error('[Pet] loadURL failed for pet-hit window:', error);
     });
   } else {
-    petWindow.loadFile(path.join(RENDERER_DIR, 'pet.html')).catch((error) => {
+    const query = skin !== 'default' ? { skin } : undefined;
+    petWindow.loadFile(path.join(RENDERER_DIR, 'pet.html'), query ? { query } : undefined).catch((error) => {
       console.error('[Pet] loadFile failed for pet window:', error);
     });
     petHitWindow.loadFile(path.join(RENDERER_DIR, 'pet-hit.html')).catch((error) => {
       console.error('[Pet] loadFile failed for pet-hit window:', error);
     });
   }
+}
+
+/**
+ * Reload the pet window content with a new skin without destroying the window.
+ * Called when the user switches skin in settings.
+ */
+export function reloadPetSkin(skin: string): void {
+  currentPetSkin = skin;
+  if (!petWindow || petWindow.isDestroyed()) return;
+  loadContent(skin);
 }
 
 // ---------------------------------------------------------------------------

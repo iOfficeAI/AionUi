@@ -1,0 +1,39 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .s-body { transform-origin: 11px 16px; animation: s-breathe 4s ease-in-out infinite; }
+      .s-z1 { animation: s-float 2s ease-in-out infinite; }
+      .s-z2 { animation: s-float 2s ease-in-out .5s infinite; }
+      .s-z3 { animation: s-float 2s ease-in-out 1s infinite; }
+      @keyframes s-breathe { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.04)} }
+      @keyframes s-float   { 0%{opacity:0;transform:translate(0,0) scale(.6)} 50%{opacity:1} 100%{opacity:0;transform:translate(4px,-8px) scale(1.2)} }
+    </style>
+  </defs>
+  <g class="s-body">
+    <!-- wings folded -->
+    <polygon points="7,14 3,19 7,21" fill="#3a7a44" opacity=".7"/>
+    <polygon points="15,14 19,19 15,21" fill="#3a7a44" opacity=".7"/>
+    <!-- curled tail -->
+    <path d="M13 21 Q18 24 17 27 Q14 27 13 24 Q13 22 14 21" fill="#3a7a44"/>
+    <!-- body slightly slumped -->
+    <ellipse cx="11" cy="17" rx="5.5" ry="4" fill="#4e9e5a"/>
+    <ellipse cx="11" cy="17.5" rx="3.2" ry="2.5" fill="#7fbf8a"/>
+    <rect x="9" y="11" width="4" height="3" rx="1.5" fill="#4e9e5a"/>
+    <!-- head drooped slightly -->
+    <circle cx="11" cy="9" r="5" fill="#4e9e5a"/>
+    <polygon points="8.5,5 9.5,2 11,5" fill="#ff7043"/>
+    <polygon points="11,5 12.5,2 13.5,5" fill="#ff7043"/>
+    <ellipse cx="11" cy="11.5" rx="2.2" ry="1.3" fill="#3a7a44"/>
+    <circle cx="10.2" cy="11.5" r=".4" fill="#2d5e35"/>
+    <circle cx="11.8" cy="11.5" r=".4" fill="#2d5e35"/>
+    <!-- closed eyes (lines) -->
+    <path d="M7.2 8 Q9 9 10.8 8" stroke="#3a7a44" stroke-width="1" stroke-linecap="round" fill="none"/>
+    <path d="M11.2 8 Q13 9 14.8 8" stroke="#3a7a44" stroke-width="1" stroke-linecap="round" fill="none"/>
+    <!-- peaceful mouth -->
+    <path d="M9.5 13 Q11 14 12.5 13" stroke="#2d5e35" stroke-width=".7" stroke-linecap="round" fill="none"/>
+  </g>
+  <!-- Z Z Z -->
+  <text class="s-z1" x="16" y="3" font-size="4" fill="#97c4a0" font-weight="bold">z</text>
+  <text class="s-z2" x="18" y="-1" font-size="5" fill="#7fbf8a" font-weight="bold">z</text>
+  <text class="s-z3" x="20" y="-5" font-size="6" fill="#4e9e5a" font-weight="bold">z</text>
+</svg>

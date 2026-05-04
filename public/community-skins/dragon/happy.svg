@@ -1,0 +1,32 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .h-body { transform-origin: 11px 14px; animation: h-jump .5s ease-out infinite alternate; }
+      .h-heart { animation: h-float 1s ease-in-out infinite alternate; }
+      @keyframes h-jump  { 0%{transform:translateY(0)} 100%{transform:translateY(-6px)} }
+      @keyframes h-float { 0%{transform:translateY(0) scale(1)} 100%{transform:translateY(-3px) scale(1.1)} }
+    </style>
+  </defs>
+  <!-- heart -->
+  <g class="h-heart">
+    <path d="M11 1 Q11 -3 8 -3 Q5 -3 5 0 Q5 2 11 6 Q17 2 17 0 Q17 -3 14 -3 Q11 -3 11 1Z" fill="#ff4d6d"/>
+  </g>
+  <g class="h-body">
+    <polygon points="7,13 0,18 7,20" fill="#3a7a44"/>
+    <polygon points="15,13 22,18 15,20" fill="#3a7a44"/>
+    <path d="M13 20 Q17 22 15 25 Q12 24 13 21" fill="#3a7a44"/>
+    <ellipse cx="11" cy="16" rx="5" ry="4.5" fill="#4e9e5a"/>
+    <ellipse cx="11" cy="16.5" rx="3" ry="2.8" fill="#7fbf8a"/>
+    <rect x="9" y="10.5" width="4" height="3" rx="1.5" fill="#4e9e5a"/>
+    <circle cx="11" cy="8.5" r="5" fill="#4e9e5a"/>
+    <polygon points="8.5,4.5 9.5,1.5 11,4.5" fill="#ff7043"/>
+    <polygon points="11,4.5 12.5,1.5 13.5,4.5" fill="#ff7043"/>
+    <ellipse cx="11" cy="11" rx="2.2" ry="1.3" fill="#3a7a44"/>
+    <circle cx="10.2" cy="11" r=".4" fill="#2d5e35"/>
+    <circle cx="11.8" cy="11" r=".4" fill="#2d5e35"/>
+    <!-- ^^ happy eyes -->
+    <path d="M7.5 7.5 Q9 6 10.5 7.5" stroke="#111827" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <path d="M11.5 7.5 Q13 6 14.5 7.5" stroke="#111827" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+    <path d="M8.5 12 Q11 15 13.5 12" stroke="#2d5e35" stroke-width="1" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

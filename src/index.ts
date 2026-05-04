@@ -364,6 +364,13 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   mainWindow.on('closed', () => {
     console.log('[AionUi] Main window closed');
+    // The pet window is a BrowserWindow too, so window-all-closed won't fire
+    // until both windows are gone. Calling app.quit() here ensures that closing
+    // the main window exits the app instead of leaving an invisible process with
+    // only the pet window keeping it alive.
+    if (!getIsQuitting() && !isWebUIMode && process.platform !== 'darwin') {
+      app.quit();
+    }
   });
 
   // DevTools is no longer auto-opened at startup.
