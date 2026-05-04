@@ -73,6 +73,10 @@ const mockAcpModelSelector = vi.fn(({ backend }: { backend?: string }) =>
 const mockAcpConfigSelector = vi.fn(({ backend }: { backend?: string }) =>
   React.createElement('div', { 'data-testid': `acp-config-selector-${backend || 'unknown'}` })
 );
+const mockFileAttachButton = vi.fn(
+  (_props: { openFileSelector: () => void; openDirectorySelector?: () => void; onLocalFilesAdded?: () => void }) =>
+    React.createElement('div')
+);
 const mockBuildDisplayMessage = vi.fn((input: string, files: string[], workspacePath: string) =>
   files.length > 0 ? `${input}|${files.join(',')}|${workspacePath}` : input
 );
@@ -198,7 +202,11 @@ vi.mock('@/renderer/components/media/HorizontalFileList', () => ({
 
 vi.mock('@/renderer/components/media/FileAttachButton', () => ({
   __esModule: true,
-  default: () => React.createElement('div'),
+  default: (props: {
+    openFileSelector: () => void;
+    openDirectorySelector?: () => void;
+    onLocalFilesAdded?: () => void;
+  }) => mockFileAttachButton(props),
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
@@ -256,6 +264,7 @@ vi.mock('@/renderer/hooks/chat/useSlashCommands', () => ({
 vi.mock('@/renderer/hooks/file/useOpenFileSelector', () => ({
   useOpenFileSelector: vi.fn(() => ({
     openFileSelector: vi.fn(),
+    openDirectorySelector: vi.fn(),
     onSlashBuiltinCommand: vi.fn(),
   })),
 }));
@@ -508,10 +517,52 @@ describe('platform send box queue integration', () => {
     mockAgentModeSelector.mockClear();
     mockAcpModelSelector.mockClear();
     mockAcpConfigSelector.mockClear();
+    mockFileAttachButton.mockClear();
   });
 
   afterEach(() => {
     sessionStorage.clear();
+  });
+
+  it.each([
+    ['acp', <AcpSendBox conversation_id='conv-acp' backend='claude' />],
+    [
+      'gemini',
+      <GeminiSendBox
+        conversation_id='conv-gemini'
+        modelSelection={{
+          currentModel: { useModel: 'gemini-2.5' },
+          getDisplayModelName: (modelId: string) => modelId,
+          providers: ['google'],
+          geminiModeLookup: {},
+          getAvailableModels: () => [],
+          handleSelectModel: vi.fn(),
+        }}
+      />,
+    ],
+    [
+      'aionrs',
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+      />,
+    ],
+    ['nanobot', <NanobotSendBox conversation_id='conv-nanobot' />],
+    ['remote', <RemoteSendBox conversation_id='conv-remote' />],
+    ['openclaw', <OpenClawSendBox conversation_id='conv-openclaw' />],
+    ['codex', <CodexSendBox conversation_id='conv-codex' workspacePath='C:/workspace' />],
+  ])('wires a directory selector into %s attachments', (_name, element) => {
+    render(element);
+
+    expect(mockFileAttachButton).toHaveBeenCalledWith(
+      expect.objectContaining({
+        openFileSelector: expect.any(Function),
+        openDirectorySelector: expect.any(Function),
+      })
+    );
   });
 
   it.each([

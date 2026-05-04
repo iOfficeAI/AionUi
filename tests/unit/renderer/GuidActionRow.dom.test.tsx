@@ -17,7 +17,12 @@ vi.mock('@arco-design/web-react', () => ({
   }: React.ComponentProps<'button'> & { icon?: React.ReactNode; loading?: boolean }) => (
     <button {...props}>{icon ?? children}</button>
   ),
-  Dropdown: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  Dropdown: ({ children, droplist }: React.PropsWithChildren<{ droplist?: React.ReactNode }>) => (
+    <>
+      {children}
+      {droplist}
+    </>
+  ),
   Menu: Object.assign(({ children }: React.PropsWithChildren) => <div>{children}</div>, {
     Item: ({ children }: React.PropsWithChildren) => <div>{children}</div>,
   }),
@@ -137,5 +142,13 @@ describe('GuidActionRow', () => {
     await fireEvent.change(fileInput);
 
     expect(Message.error).toHaveBeenCalledWith('common.fileAttach.failed');
+  });
+
+  it('shows workspace selection in the WebUI attach menu', () => {
+    mockIsElectronDesktop.mockReturnValueOnce(false);
+
+    render(<GuidActionRow {...defaultProps} />);
+
+    expect(screen.getByText('conversation.welcome.specifyWorkspace')).toBeInTheDocument();
   });
 });

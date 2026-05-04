@@ -175,7 +175,7 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
     [setUploadFile]
   );
 
-  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+  const { openFileSelector, openDirectorySelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
 
@@ -322,7 +322,11 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <FileAttachButton
+              openFileSelector={openFileSelector}
+              openDirectorySelector={openDirectorySelector}
+              onLocalFilesAdded={handleFilesAdded}
+            />
             <AgentModeSelector
               backend='codex'
               conversationId={conversation_id}

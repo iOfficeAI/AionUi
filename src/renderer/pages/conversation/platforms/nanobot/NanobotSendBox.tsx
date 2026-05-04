@@ -327,7 +327,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     },
     [setUploadFile]
   );
-  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+  const { openFileSelector, openDirectorySelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
 
@@ -434,7 +434,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
-        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        tools={
+          <FileAttachButton
+            openFileSelector={openFileSelector}
+            openDirectorySelector={openDirectorySelector}
+            onLocalFilesAdded={handleFilesAdded}
+          />
+        }
         prefix={
           <>
             {uploadFile.length > 0 && (

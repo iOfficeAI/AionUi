@@ -17,6 +17,8 @@ import { useTranslation } from 'react-i18next';
 interface FileAttachButtonProps {
   /** Open server/host file browser (existing ipcBridge.dialog.showOpen behavior) */
   openFileSelector: () => void;
+  /** Open server/host directory browser for agents that accept folder context */
+  openDirectorySelector?: () => void;
   /** Callback when local device files are selected via browser file picker */
   onLocalFilesAdded?: (files: FileMetadata[]) => void;
 }
@@ -28,7 +30,11 @@ interface FileAttachButtonProps {
  * - **WebUI (desktop/mobile browser)**: "+" button with dropdown → choose between
  *   host machine files (server-side directory browser) or local device files (browser file picker).
  */
-const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, onLocalFilesAdded }) => {
+const FileAttachButton: React.FC<FileAttachButtonProps> = ({
+  openFileSelector,
+  openDirectorySelector,
+  onLocalFilesAdded,
+}) => {
   const conversationContext = useConversationContextSafe();
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -57,20 +63,40 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
 
   const plusIcon = <Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />;
 
-  // Electron desktop: simple button, no dropdown needed
-  if (isElectronDesktop()) {
+  const handleMenuClick = (key: string) => {
+    if (key === 'host') openFileSelector();
+    if (key === 'directory') openDirectorySelector?.();
+    if (key === 'device') fileInputRef.current?.click();
+  };
+
+  const hostMenuItems = (
+    <>
+      <Menu.Item key='host'>{t('common.fileAttach.hostFiles')}</Menu.Item>
+      {openDirectorySelector && <Menu.Item key='directory'>{t('fileSelection.selectDirectory')}</Menu.Item>}
+    </>
+  );
+
+  // Electron desktop: simple button unless the caller also supports directory selection.
+  if (isElectronDesktop() && !openDirectorySelector) {
     return <Button type='secondary' shape='circle' icon={plusIcon} onClick={openFileSelector} />;
+  }
+
+  if (isElectronDesktop()) {
+    return (
+      <Dropdown
+        droplist={<Menu onClickMenuItem={handleMenuClick}>{hostMenuItems}</Menu>}
+        trigger='click'
+        position='top'
+      >
+        <Button type='secondary' shape='circle' icon={plusIcon} />
+      </Dropdown>
+    );
   }
 
   // WebUI: dropdown with two options
   const dropdownMenu = (
-    <Menu
-      onClickMenuItem={(key) => {
-        if (key === 'host') openFileSelector();
-        if (key === 'device') fileInputRef.current?.click();
-      }}
-    >
-      <Menu.Item key='host'>{t('common.fileAttach.hostFiles')}</Menu.Item>
+    <Menu onClickMenuItem={handleMenuClick}>
+      {hostMenuItems}
       <Menu.Item key='device'>{t('common.fileAttach.myDevice')}</Menu.Item>
     </Menu>
   );

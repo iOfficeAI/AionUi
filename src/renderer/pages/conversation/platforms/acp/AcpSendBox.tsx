@@ -356,7 +356,7 @@ Please check your local CLI tool authentication status`,
     [setUploadFile]
   );
 
-  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+  const { openFileSelector, openDirectorySelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
 
@@ -422,7 +422,11 @@ Please check your local CLI tool authentication status`,
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <FileAttachButton
+              openFileSelector={openFileSelector}
+              openDirectorySelector={openDirectorySelector}
+              onLocalFilesAdded={handleFilesAdded}
+            />
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}

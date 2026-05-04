@@ -379,7 +379,7 @@ const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseG
     },
     [setUploadFile]
   );
-  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+  const { openFileSelector, openDirectorySelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
 
@@ -460,7 +460,11 @@ const GeminiSendBoxInner: React.FC<GeminiSendBoxBaseProps & { messageState: UseG
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <FileAttachButton
+              openFileSelector={openFileSelector}
+              openDirectorySelector={openDirectorySelector}
+              onLocalFilesAdded={handleFilesAdded}
+            />
             {showModeSelector && (
               <AgentModeSelector
                 backend='gemini'

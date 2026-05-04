@@ -344,7 +344,7 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
     [setUploadFile]
   );
 
-  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+  const { openFileSelector, openDirectorySelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
 
@@ -406,7 +406,11 @@ const AionrsSendBoxInner: React.FC<AionrsSendBoxInnerProps> = ({
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <FileAttachButton
+              openFileSelector={openFileSelector}
+              openDirectorySelector={openDirectorySelector}
+              onLocalFilesAdded={handleFilesAdded}
+            />
             <AionrsEffortSelector
               conversationId={conversation_id}
               capabilities={capabilities}

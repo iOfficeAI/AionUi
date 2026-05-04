@@ -150,6 +150,17 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             .catch((error) => {
               console.error('Failed to open file dialog:', error);
             });
+        } else if (key === 'workspace') {
+          ipcBridge.dialog.showOpen
+            .invoke({ properties: ['openDirectory', 'createDirectory'] })
+            .then((dirs) => {
+              if (dirs && dirs[0]) {
+                onSelectWorkspace(dirs[0]);
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to open directory dialog:', error);
+            });
         } else if (key === 'device') {
           fileInputRef.current?.click();
         }
@@ -167,6 +178,12 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             <div className='flex items-center gap-8px'>
               <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
               <span>{t('common.fileAttach.myDevice')}</span>
+            </div>
+          </Menu.Item>
+          <Menu.Item key='workspace'>
+            <div className='flex items-center gap-8px'>
+              <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+              <span>{t('conversation.welcome.specifyWorkspace')}</span>
             </div>
           </Menu.Item>
         </>

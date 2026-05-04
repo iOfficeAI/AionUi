@@ -519,7 +519,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     },
     [setUploadFile]
   );
-  const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
+  const { openFileSelector, openDirectorySelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
 
@@ -645,7 +645,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
-        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        tools={
+          <FileAttachButton
+            openFileSelector={openFileSelector}
+            openDirectorySelector={openDirectorySelector}
+            onLocalFilesAdded={handleFilesAdded}
+          />
+        }
         prefix={
           <>
             {uploadFile.length > 0 && (
