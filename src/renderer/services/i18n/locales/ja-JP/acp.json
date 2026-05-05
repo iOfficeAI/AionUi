@@ -8,6 +8,7 @@
     "placeholder": "{{backend}}にメッセージを送信..."
   },
   "status": {
+    "agentFallback": "エージェント",
     "connecting": "{{agent}} に接続中...",
     "connected": "{{agent}} に接続しました",
     "authenticated": "{{agent}} 認証が完了しました",

@@ -279,6 +279,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         return 'nanobot';
       case 'remote':
         return 'remote';
+      case 'codex':
+        return 'codex';
       default:
         return 'acp';
     }
@@ -498,6 +500,8 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         const latestConv = await convService.getConversation(childConversations[0].id);
         if (latestConv) {
           const config = job.metadata.agentConfig!;
+          const expectedAgentType = this.getAgentType(config.backend);
+          const conversationTypeChanged = latestConv.type !== expectedAgentType;
           const extra = latestConv.extra as Record<string, unknown> | undefined;
           const convBackend = extra?.backend as string | undefined;
           const configWorkspace = config.workspace || '';
@@ -508,10 +512,10 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
           const workspaceChanged = prevCronWorkspace !== configWorkspace;
 
           console.log(
-            `[CronExecutor] resolveConversation: convBackend=${convBackend}, configBackend=${config.backend}, agentChanged=${agentChanged}, prevCronWorkspace=${prevCronWorkspace}, configWorkspace=${configWorkspace}, workspaceChanged=${workspaceChanged}`
+            `[CronExecutor] resolveConversation: convType=${latestConv.type}, expectedType=${expectedAgentType}, conversationTypeChanged=${conversationTypeChanged}, convBackend=${convBackend}, configBackend=${config.backend}, agentChanged=${agentChanged}, prevCronWorkspace=${prevCronWorkspace}, configWorkspace=${configWorkspace}, workspaceChanged=${workspaceChanged}`
           );
 
-          if (agentChanged || workspaceChanged) {
+          if (conversationTypeChanged || agentChanged || workspaceChanged) {
             const conv = await this.buildConversationForJob(job);
             return conv.id;
           }

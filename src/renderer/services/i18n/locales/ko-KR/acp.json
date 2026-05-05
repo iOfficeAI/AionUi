@@ -8,6 +8,7 @@
     "placeholder": "{{backend}}에게 메시지 보내기..."
   },
   "status": {
+    "agentFallback": "에이전트",
     "connecting": "{{agent}}에 연결 중...",
     "connected": "{{agent}}에 연결됨",
     "authenticated": "{{agent}} 인증됨",

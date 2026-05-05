@@ -8,6 +8,7 @@
     "placeholder": "Send message to {{backend}}..."
   },
   "status": {
+    "agentFallback": "Agent",
     "connecting": "Connecting to {{agent}}...",
     "connected": "Connected to {{agent}}",
     "authenticated": "Authenticated with {{agent}}",

@@ -8,6 +8,7 @@
     "placeholder": "Отправить сообщение {{backend}}..."
   },
   "status": {
+    "agentFallback": "Агент",
     "connecting": "Подключение к {{agent}}...",
     "connected": "Подключено к {{agent}}",
     "authenticated": "Аутентифицировано с {{agent}}",

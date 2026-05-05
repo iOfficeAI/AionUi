@@ -977,6 +977,7 @@ export interface ICronJob {
   target: {
     payload: { kind: 'message'; text: string };
     executionMode?: 'existing' | 'new_conversation';
+    queueMode?: boolean;
   };
   metadata: {
     conversationId: string;
@@ -990,7 +991,7 @@ export interface ICronJob {
   state: {
     nextRunAtMs?: number;
     lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
+    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed' | 'queued';
     lastError?: string;
     runCount: number;
     retryCount: number;
@@ -1024,6 +1025,7 @@ export interface ICreateCronJobParams {
   agentType: AgentBackend;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';
+  queueMode?: boolean;
   agentConfig?: ICronAgentConfig;
 }
 

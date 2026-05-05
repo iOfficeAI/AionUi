@@ -11,6 +11,7 @@
     "active": "Активне",
     "paused": "Призупинено",
     "error": "Помилка",
+    "queued": "У черзі",
     "unread": "Нове виконання",
     "unconfigured": "Немає запланованих завдань",
     "unconfiguredHint": "Запланованих завдань ще немає. Створіть одне за допомогою свого Агента!",
@@ -99,6 +100,8 @@
       "existingConversationHint": "Продовжувати в одному діалозі",
       "executionModeEditHint": "Режим виконання неможливо змінити після створення. Видаліть та створіть завдання знову, щоб змінити режим.",
       "advancedSettings": "Додаткові налаштування",
+      "queueMode": "Режим черги",
+      "queueModeHint": "Якщо попередній запуск ще активний, дочекатися його завершення перед наступним запуском.",
       "workspace": "Робоча область",
       "workspacePlaceholder": "Виберіть папку",
       "workspaceHint": "Опціонально: встановіть папку робочої області для операцій з файлами",
@@ -144,7 +147,8 @@
     "jobNotFound": "Завдання не знайдено: {{id}}",
     "conversationNotFound": "Діалог не знайдено",
     "scheduledTimePassed": "Запланований час минув",
-    "conversationBusy": "Діалог зайнятий після {{count}} спроб"
+    "conversationBusy": "Діалог зайнятий після {{count}} спроб",
+    "previousRunActive": "Попередній запуск за розкладом ще активний; цей запуск додано до черги."
   },
   "confirmDelete": "Are you sure you want to delete this scheduled task?",
   "drawer.title": "Scheduled Task Details",

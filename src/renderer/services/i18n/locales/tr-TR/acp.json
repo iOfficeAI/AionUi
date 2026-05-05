@@ -8,6 +8,7 @@
     "placeholder": "{{backend}}'a mesaj gönder..."
   },
   "status": {
+    "agentFallback": "Ajan",
     "connecting": "{{agent}} ajanına bağlanılıyor...",
     "connected": "{{agent}} ajanına bağlanıldı",
     "authenticated": "{{agent}} ile kimlik doğrulandı",

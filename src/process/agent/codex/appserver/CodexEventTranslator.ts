@@ -197,7 +197,9 @@ export class CodexEventTranslator {
         this.currentTurnId = undefined;
         return [this.message('finish', notification.params, false)];
       case 'warning':
-        return [this.message('agent_status', { status: 'error', warning: notification.params }, true)];
+        return [
+          this.message('agent_status', { backend: 'codex', status: 'error', warning: notification.params }, true),
+        ];
       default:
         if (isCollaborationEvent(notification.method)) {
           return [this.collaborationEvent(notification)];

@@ -22,12 +22,13 @@ interface MessageAgentStatusProps {
 const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const { t } = useTranslation();
   const { backend, status, agentName } = message.content;
+  const backendId = typeof backend === 'string' && backend.length > 0 ? backend : undefined;
 
   // Resolve display name: agentName (extension/custom) > ACP_BACKENDS_ALL name > capitalized backend
   const displayName =
     agentName ||
-    ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
-    backend.charAt(0).toUpperCase() + backend.slice(1);
+    (backendId ? ACP_BACKENDS_ALL[backendId as keyof typeof ACP_BACKENDS_ALL]?.name : undefined) ||
+    (backendId ? backendId.charAt(0).toUpperCase() + backendId.slice(1) : t('acp.status.agentFallback'));
 
   // Hide disconnected status from historical messages (no longer emitted but may exist in DB)
   if ((status as string) === 'disconnected') return null;

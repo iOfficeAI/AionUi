@@ -11,6 +11,7 @@
     "active": "Active",
     "paused": "Paused",
     "error": "Error",
+    "queued": "Queued",
     "unread": "New execution",
     "unconfigured": "No scheduled task",
     "unconfiguredHint": "No scheduled task yet. Create one with your Agent!",
@@ -97,7 +98,8 @@
     "jobNotFound": "Betik bulunamadı: {{id}}",
     "conversationNotFound": "Konuşma bulunamadı",
     "scheduledTimePassed": "Zamanlanmış saat geçti",
-    "conversationBusy": "Konuşma meşgul, {{count}} denemeden sonra atlandı"
+    "conversationBusy": "Konuşma meşgul, {{count}} denemeden sonra atlandı",
+    "previousRunActive": "Önceki zamanlanmış çalışma hâlâ etkin; bu çalışma sıraya alındı."
   },
   "confirmDeleteWithConversations": "Bu zamanlanmış görevi silmek istediğinizden emin misiniz? Bu görevdeki tüm konuşmalar da silinecektir.",
   "detail": {
@@ -162,6 +164,8 @@
       "existingConversationHint": "Aynı konuşmada devam eder",
       "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun.",
       "advancedSettings": "Gelişmiş Ayarlar",
+      "queueMode": "Sıra modu",
+      "queueModeHint": "Önceki çalışma hâlâ etkinse, sonraki çalışmayı başlatmadan önce bitmesini bekle.",
       "workspace": "Çalışma Alanı",
       "workspacePlaceholder": "Klasör seç",
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",

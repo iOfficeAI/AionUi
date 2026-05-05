@@ -5,6 +5,7 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 
 const mockShowOpen = vi.hoisted(() => vi.fn().mockResolvedValue([]));
 const mockIsElectronDesktop = vi.hoisted(() => vi.fn(() => true));
+const mockAgentModeSelector = vi.hoisted(() => vi.fn());
 const mockConfigStorageGet = vi.hoisted(() =>
   vi.fn((key: string) => {
     if (key === 'acp.cachedConfigOptions') {
@@ -48,6 +49,8 @@ vi.mock('react-i18next', () => ({
       if (key === 'cron.page.form.existingConversation') return 'Ongoing conversation';
       if (key === 'cron.page.form.newConversationHint') return 'Start fresh on every run';
       if (key === 'cron.page.form.existingConversationHint') return 'Keep building in one conversation';
+      if (key === 'cron.page.form.queueMode') return 'Queue mode';
+      if (key === 'cron.page.form.queueModeHint') return 'Wait for the previous run to finish before starting again.';
       if (key === 'cron.page.form.executionModeEditHint') return 'Execution mode cannot be changed after creation.';
       if (key === 'cron.detail.executionModeDescriptionNew') {
         return 'Each run starts a fresh conversation, so previous context does not carry over.';
@@ -267,6 +270,22 @@ vi.mock('@arco-design/web-react', () => ({
       {children}
     </button>
   ),
+  Switch: ({
+    checked,
+    onChange,
+  }: {
+    checked?: boolean;
+    onChange?: (checked: boolean) => void;
+    [key: string]: unknown;
+  }) => (
+    <input
+      type='checkbox'
+      role='switch'
+      data-testid='mock-switch'
+      checked={checked}
+      onChange={(event) => onChange?.(event.currentTarget.checked)}
+    />
+  ),
   Radio: Object.assign(
     ({
       value,
@@ -339,7 +358,25 @@ vi.mock('@renderer/components/base/ModalWrapper', () => ({
 
 // Mock agent components
 vi.mock('@renderer/components/agent/AgentModeSelector', () => ({
-  default: () => <div data-testid='agent-mode-selector'>AgentModeSelector</div>,
+  default: (props: {
+    backend?: string;
+    initialMode?: string;
+    onModeSelect?: (mode: string) => void;
+    modeLabelFormatter?: (mode: { value: string; label: string }) => string;
+  }) => {
+    mockAgentModeSelector(props);
+    return (
+      <button
+        type='button'
+        data-testid='agent-mode-selector'
+        data-backend={props.backend}
+        data-initial-mode={props.initialMode}
+        onClick={() => props.onModeSelect?.('yoloNoSandbox')}
+      >
+        AgentModeSelector
+      </button>
+    );
+  },
 }));
 
 vi.mock('@renderer/components/agent/AcpConfigSelector', () => ({
@@ -348,8 +385,17 @@ vi.mock('@renderer/components/agent/AcpConfigSelector', () => ({
 
 // Mock agent utils
 vi.mock('@renderer/utils/model/agentModes', () => ({
-  supportsModeSwitch: () => false,
-  getFullAutoMode: () => 'full-auto',
+  supportsModeSwitch: (backend?: string) => backend === 'codex',
+  getAgentModes: (backend?: string) =>
+    backend === 'codex'
+      ? [
+          { value: 'default', label: 'Plan' },
+          { value: 'autoEdit', label: 'Auto Edit' },
+          { value: 'yolo', label: 'Full Auto' },
+          { value: 'yoloNoSandbox', label: 'Full Auto (No Sandbox)' },
+        ]
+      : [],
+  getFullAutoMode: (backend?: string) => (backend === 'codex' ? 'yolo' : 'full-auto'),
 }));
 
 // Mock ConfigStorage
@@ -379,6 +425,7 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
   useConversationAgents: () => ({
     cliAgents: [
       { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
+      { backend: 'codex', name: 'Codex', cliPath: '/usr/bin/codex' },
       { backend: 'openai', name: 'OpenAI', cliPath: '/usr/bin/openai' },
     ],
     presetAssistants: [
@@ -1528,5 +1575,60 @@ describe('CreateTaskDialog - advanced settings panel', () => {
     render(<CreateTaskDialog visible onClose={vi.fn()} editJob={editJob} conversationId='conv-1' />);
 
     expect(screen.getByTestId('cron-workspace-trigger')).toBeInTheDocument();
+  });
+
+  it('lets Codex scheduled tasks choose the no-sandbox full-auto mode', async () => {
+    mockAddJob.mockResolvedValue(undefined);
+    mockFormValidate.mockResolvedValueOnce({
+      name: 'Codex Task',
+      description: 'Use Codex',
+      prompt: 'Run with selected mode',
+      agent: 'cli:codex',
+    });
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+
+    const agentSelect = screen
+      .getAllByTestId('mock-select')
+      .find((el) => Array.from(el.querySelectorAll('option')).some((opt) => opt.value === 'cli:codex'));
+    expect(agentSelect).toBeDefined();
+    fireEvent.change(agentSelect!, { target: { value: 'cli:codex' } });
+
+    fireEvent.click(screen.getByText('Advanced settings').closest('button') as HTMLButtonElement);
+
+    const modeSelector = screen.getByTestId('agent-mode-selector');
+    expect(modeSelector).toHaveAttribute('data-backend', 'codex');
+    expect(modeSelector).toHaveAttribute('data-initial-mode', 'yolo');
+
+    fireEvent.click(modeSelector);
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockAddJob).toHaveBeenCalled();
+    });
+
+    expect(mockAddJob.mock.calls[0][0].agentConfig).toEqual(
+      expect.objectContaining({
+        backend: 'codex',
+        mode: 'yoloNoSandbox',
+      })
+    );
+  });
+
+  it('stores queue mode when the advanced setting is enabled', async () => {
+    mockAddJob.mockResolvedValue(undefined);
+
+    render(<CreateTaskDialog visible={true} onClose={vi.fn()} conversationId='conv-1' />);
+
+    fireEvent.click(screen.getByText('Advanced settings').closest('button') as HTMLButtonElement);
+    expect(screen.getByText('Queue mode')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('mock-switch'));
+    fireEvent.click(screen.getByTestId('modal-ok'));
+
+    await waitFor(() => {
+      expect(mockAddJob).toHaveBeenCalled();
+    });
+
+    expect(mockAddJob.mock.calls[0][0]).toEqual(expect.objectContaining({ queueMode: true }));
   });
 });

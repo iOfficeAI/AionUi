@@ -134,7 +134,7 @@ describe('useGuidSend', () => {
         await result.current.handleSend();
       });
 
-      const stored = sessionStorage.getItem('acp_initial_message_new-conv');
+      const stored = sessionStorage.getItem('remote_initial_message_new-conv');
       expect(stored).toBeTruthy();
       const parsed = JSON.parse(stored!);
       expect(parsed.input).toBe('test message');
@@ -196,9 +196,34 @@ describe('useGuidSend', () => {
         await result.current.handleSend();
       });
 
-      const stored = sessionStorage.getItem('acp_initial_message_new-conv');
+      const stored = sessionStorage.getItem('remote_initial_message_new-conv');
       const parsed = JSON.parse(stored!);
       expect(parsed.files).toEqual(['/tmp/a.ts']);
+    });
+
+    it('stores Codex initial messages under the Codex storage key', async () => {
+      mockCreate.mockResolvedValueOnce({ id: 'new-conv', type: 'codex', extra: { workspace: '' } });
+      const deps = makeDeps({
+        selectedAgent: 'codex',
+        selectedAgentKey: 'codex',
+        selectedAgentInfo: {
+          backend: 'codex',
+          kind: 'codex',
+          name: 'Codex',
+        } as GuidSendDeps['selectedAgentInfo'],
+        getEffectiveAgentType: vi.fn(() => ({ agentType: 'codex', isAvailable: true })),
+        currentEffectiveAgentInfo: { agentType: 'codex', isAvailable: true },
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      const stored = sessionStorage.getItem('codex_initial_message_new-conv');
+      expect(stored).toBeTruthy();
+      expect(sessionStorage.getItem('acp_initial_message_new-conv')).toBeNull();
+      expect(JSON.parse(stored!).input).toBe('test message');
     });
 
     it('opens tab for custom workspace', async () => {

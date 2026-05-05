@@ -11,6 +11,7 @@
     "active": "Active",
     "paused": "Paused",
     "error": "Error",
+    "queued": "Queued",
     "unread": "New execution",
     "unconfigured": "No scheduled task",
     "unconfiguredHint": "No scheduled task yet. Create one with your Agent!",
@@ -97,7 +98,8 @@
     "jobNotFound": "Task not found: {{id}}",
     "conversationNotFound": "Conversation not found",
     "scheduledTimePassed": "Scheduled time has passed",
-    "conversationBusy": "Conversation busy after {{count}} retries"
+    "conversationBusy": "Conversation busy after {{count}} retries",
+    "previousRunActive": "Previous scheduled run is still active; this run is queued."
   },
   "confirmDeleteWithConversations": "Are you sure you want to delete this scheduled task? All conversations from this task will also be deleted.",
   "detail": {
@@ -162,6 +164,8 @@
       "existingConversationHint": "Keep building in one conversation",
       "executionModeEditHint": "Execution mode cannot be changed after creation. Delete and recreate the task to switch modes.",
       "advancedSettings": "Advanced Settings",
+      "queueMode": "Queue mode",
+      "queueModeHint": "When the previous run is still active, wait until it finishes before starting the next run.",
       "workspace": "Workspace",
       "workspacePlaceholder": "Select a folder",
       "workspaceHint": "Optional: set a workspace folder for file operations",

@@ -52,6 +52,7 @@ describe('CronStore', () => {
         target: {
           payload: { kind: 'message', text: 'Hello' },
           executionMode: 'existing',
+          queueMode: true,
         },
         metadata: {
           conversationId: 'conv-1',
@@ -100,20 +101,21 @@ describe('CronStore', () => {
       expect(runArgs[8]).toBe('Every minute'); // schedule_description
       expect(runArgs[9]).toBe('Hello'); // payload_message
       expect(runArgs[10]).toBe('existing'); // execution_mode
-      expect(runArgs[11]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
-      expect(runArgs[12]).toBe('conv-1'); // conversation_id
-      expect(runArgs[13]).toBe('Test Conversation'); // conversation_title
-      expect(runArgs[14]).toBe('gemini'); // agent_type
-      expect(runArgs[15]).toBe('user'); // created_by
-      expect(runArgs[16]).toBe(1000); // created_at
-      expect(runArgs[17]).toBe(2000); // updated_at
-      expect(runArgs[18]).toBe(3000); // next_run_at
-      expect(runArgs[19]).toBe(4000); // last_run_at
-      expect(runArgs[20]).toBe('ok'); // last_status
-      expect(runArgs[21]).toBeNull(); // last_error (undefined -> null in jobToRow)
-      expect(runArgs[22]).toBe(5); // run_count
-      expect(runArgs[23]).toBe(0); // retry_count
-      expect(runArgs[24]).toBe(3); // max_retries
+      expect(runArgs[11]).toBe(1); // queue_mode
+      expect(runArgs[12]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
+      expect(runArgs[13]).toBe('conv-1'); // conversation_id
+      expect(runArgs[14]).toBe('Test Conversation'); // conversation_title
+      expect(runArgs[15]).toBe('gemini'); // agent_type
+      expect(runArgs[16]).toBe('user'); // created_by
+      expect(runArgs[17]).toBe(1000); // created_at
+      expect(runArgs[18]).toBe(2000); // updated_at
+      expect(runArgs[19]).toBe(3000); // next_run_at
+      expect(runArgs[20]).toBe(4000); // last_run_at
+      expect(runArgs[21]).toBe('ok'); // last_status
+      expect(runArgs[22]).toBeNull(); // last_error (undefined -> null in jobToRow)
+      expect(runArgs[23]).toBe(5); // run_count
+      expect(runArgs[24]).toBe(0); // retry_count
+      expect(runArgs[25]).toBe(3); // max_retries
 
       // Now test retrieval (round-trip)
       mockPrepareInstance.get.mockReturnValue({
@@ -127,6 +129,7 @@ describe('CronStore', () => {
         schedule_description: 'Every minute',
         payload_message: 'Hello',
         execution_mode: 'existing',
+        queue_mode: 1,
         agent_config: JSON.stringify({
           backend: 'gemini',
           name: 'Test Agent',
@@ -161,6 +164,7 @@ describe('CronStore', () => {
       });
       expect(retrieved!.target.payload.text).toBe('Hello');
       expect(retrieved!.target.executionMode).toBe('existing');
+      expect(retrieved!.target.queueMode).toBe(true);
       expect(retrieved!.metadata.agentConfig).toEqual({
         backend: 'gemini',
         name: 'Test Agent',
@@ -288,7 +292,8 @@ describe('CronStore', () => {
       expect(runArgs[6]).toBe('America/New_York'); // schedule_tz
       expect(runArgs[7]).toBeNull(); // schedule_start_at
       expect(runArgs[10]).toBe('new_conversation'); // execution_mode
-      expect(runArgs[11]).toBeNull(); // agent_config (undefined)
+      expect(runArgs[11]).toBe(0); // queue_mode
+      expect(runArgs[12]).toBeNull(); // agent_config (undefined)
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({

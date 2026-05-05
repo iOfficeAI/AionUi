@@ -11,6 +11,7 @@
     "active": "실행 중",
     "paused": "일시 중지됨",
     "error": "오류",
+    "queued": "대기 중",
     "unread": "새 실행",
     "unconfigured": "예약 작업 미설정",
     "unconfiguredHint": "이 채팅에는 아직 예약 작업이 없습니다. Agent와 함께 만들어 보세요!",
@@ -97,7 +98,8 @@
     "jobNotFound": "스크립트를 찾을 수 없음: {{id}}",
     "conversationNotFound": "대화를 찾을 수 없음",
     "scheduledTimePassed": "예약 시간이 지났습니다",
-    "conversationBusy": "대화가 사용 중이며 {{count}}번 시도 후 건너뜁니다"
+    "conversationBusy": "대화가 사용 중이며 {{count}}번 시도 후 건너뜁니다",
+    "previousRunActive": "이전 예약 실행이 아직 진행 중이어서 이번 실행은 대기열에 추가되었습니다."
   },
   "confirmDeleteWithConversations": "이 예약 작업을 삭제하시겠습니까? 이 작업의 모든 대화도 삭제됩니다.",
   "detail": {
@@ -162,6 +164,8 @@
       "existingConversationHint": "같은 대화에서 계속 실행합니다",
       "executionModeEditHint": "생성 후에는 실행 모드를 변경할 수 없습니다. 모드를 전환하려면 작업을 삭제한 후 다시 만드세요.",
       "advancedSettings": "고급 설정",
+      "queueMode": "대기열 모드",
+      "queueModeHint": "이전 실행이 아직 진행 중이면 완료될 때까지 기다린 뒤 다음 실행을 시작합니다.",
       "workspace": "워크스페이스",
       "workspacePlaceholder": "폴더 선택",
       "workspaceHint": "선택 사항: 파일 작업을 위한 워크스페이스 폴더 설정",

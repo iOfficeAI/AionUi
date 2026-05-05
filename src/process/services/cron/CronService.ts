@@ -35,12 +35,19 @@ export type CreateCronJobParams = {
   agentType: import('@/common/types/acpTypes').AgentBackend;
   createdBy: 'user' | 'agent';
   executionMode?: 'existing' | 'new_conversation';
+  queueMode?: boolean;
   agentConfig?: import('./CronStore').CronJob['metadata']['agentConfig'];
 };
 
 type ExecuteJobOptions = {
   preserveNextRunAtMs?: boolean;
   preparedConversationId?: string;
+  queuedRun?: boolean;
+};
+
+type QueueConversationState = {
+  id: string;
+  active: boolean;
 };
 
 /**
@@ -52,7 +59,9 @@ type ExecuteJobOptions = {
 export class CronService {
   private timers: Map<string, Cron | NodeJS.Timeout> = new Map();
   private retryTimers: Map<string, NodeJS.Timeout> = new Map();
+  private queueTimers: Map<string, NodeJS.Timeout> = new Map();
   private retryCounts: Map<string, number> = new Map();
+  private queuedRuns: Set<string> = new Set();
   private initialized = false;
   private powerSaveBlockerId: number | null = null;
 
@@ -232,6 +241,7 @@ export class CronService {
       target: {
         payload: { kind: 'message', text: params.prompt ?? params.message ?? '' },
         executionMode: params.executionMode ?? 'existing',
+        queueMode: params.queueMode ?? false,
       },
       metadata: {
         conversationId: params.conversationId,
@@ -575,8 +585,15 @@ export class CronService {
       this.retryTimers.delete(jobId);
     }
 
+    const queueTimer = this.queueTimers.get(jobId);
+    if (queueTimer) {
+      clearTimeout(queueTimer);
+      this.queueTimers.delete(jobId);
+    }
+
     // Clear retry count for this job
     this.retryCounts.delete(jobId);
+    this.queuedRuns.delete(jobId);
   }
 
   /**
@@ -586,6 +603,14 @@ export class CronService {
   private async executeJob(job: CronJob, options: ExecuteJobOptions = {}): Promise<void> {
     const conversationId = options.preparedConversationId ?? job.metadata.conversationId;
     const preservedNextRunAtMs = options.preserveNextRunAtMs ? job.state.nextRunAtMs : undefined;
+
+    if (job.target.queueMode && !options.queuedRun) {
+      const queueConversation = await this.getQueueConversationState(job, conversationId);
+      if (queueConversation?.active) {
+        await this.queueRunAfterIdle(job, options, queueConversation.id, preservedNextRunAtMs);
+        return;
+      }
+    }
 
     // Check if conversation is busy
     const isBusy = this.executor.isConversationBusy(conversationId);
@@ -694,6 +719,103 @@ export class CronService {
       this.emitter.emitJobUpdated(updatedJob);
     }
     this.emitter.emitJobExecuted(job.id, lastStatus, lastError);
+  }
+
+  private async getQueueConversationState(
+    job: CronJob,
+    fallbackConversationId: string
+  ): Promise<QueueConversationState | undefined> {
+    if (job.target.executionMode === 'new_conversation' || job.target.executionMode === 'existing') {
+      const childConversations = await this.conversationRepo.getConversationsByCronJob(job.id);
+      const latestChild = childConversations[0];
+      if (latestChild?.id) {
+        return {
+          id: latestChild.id,
+          active: this.executor.isConversationBusy(latestChild.id) || this.isConversationStatusActive(latestChild),
+        };
+      }
+    }
+
+    if (!fallbackConversationId) {
+      return undefined;
+    }
+
+    return {
+      id: fallbackConversationId,
+      active: await this.isQueueConversationActive(fallbackConversationId),
+    };
+  }
+
+  private async isQueueConversationActive(conversationId: string): Promise<boolean> {
+    if (this.executor.isConversationBusy(conversationId)) {
+      return true;
+    }
+
+    const conversation = await this.conversationRepo.getConversation(conversationId);
+    return this.isConversationStatusActive(conversation);
+  }
+
+  private isConversationStatusActive(conversation: Pick<TChatConversation, 'status'> | null | undefined): boolean {
+    return conversation?.status === 'running' || conversation?.status === 'pending';
+  }
+
+  private async queueRunAfterIdle(
+    job: CronJob,
+    options: ExecuteJobOptions,
+    activeConversationId: string,
+    preservedNextRunAtMs: number | undefined
+  ): Promise<void> {
+    if (!this.queuedRuns.has(job.id)) {
+      this.queuedRuns.add(job.id);
+      this.executor.onceIdle(activeConversationId, () => this.runQueuedJobWhenIdle(job, options, activeConversationId));
+    }
+
+    if (options.preserveNextRunAtMs) {
+      job.state.nextRunAtMs = preservedNextRunAtMs;
+    } else {
+      this.updateNextRunTime(job);
+    }
+
+    await this.repo.update(job.id, {
+      state: {
+        ...job.state,
+        lastStatus: 'queued',
+        lastError: i18n.t('cron:error.previousRunActive'),
+      },
+    });
+    const queuedJob = await this.repo.getById(job.id);
+    if (queuedJob) {
+      this.emitter.emitJobUpdated(queuedJob);
+    }
+  }
+
+  private async runQueuedJobWhenIdle(
+    job: CronJob,
+    options: ExecuteJobOptions,
+    activeConversationId: string
+  ): Promise<void> {
+    if (await this.isQueueConversationActive(activeConversationId)) {
+      const existingTimer = this.queueTimers.get(job.id);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
+
+      const timer = setTimeout(() => {
+        this.queueTimers.delete(job.id);
+        void this.runQueuedJobWhenIdle(job, options, activeConversationId);
+      }, 30000);
+      this.queueTimers.set(job.id, timer);
+      return;
+    }
+
+    this.queuedRuns.delete(job.id);
+    const latestJob = await this.repo.getById(job.id);
+    const jobToRun = latestJob ?? job;
+    if (!jobToRun.enabled && !options.preserveNextRunAtMs) {
+      return;
+    }
+
+    await this.executeJob(jobToRun, { ...options, queuedRun: true });
   }
 
   /**

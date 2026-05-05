@@ -224,7 +224,7 @@ describe('CodexEventTranslator native tool events', () => {
         persist: true,
         message: expect.objectContaining({
           type: 'agent_status',
-          data: { status: 'error', warning: { message: 'low context' } },
+          data: { backend: 'codex', status: 'error', warning: { message: 'low context' } },
         }),
       })
     );

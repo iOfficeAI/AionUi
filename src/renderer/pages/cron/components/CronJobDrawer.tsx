@@ -13,6 +13,7 @@ import {
   buildPresetAssistantParams,
 } from '@/renderer/pages/conversation/utils/createConversationParams';
 import MarkdownView from '@/renderer/components/Markdown';
+import { WorkspaceFolderSelect } from '@/renderer/components/workspace';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { getAgentKey } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
@@ -40,7 +41,7 @@ import {
   Switch,
   Tabs,
 } from '@arco-design/web-react';
-import { AlarmClock, FolderOpen, Play } from '@icon-park/react';
+import { AlarmClock, Play } from '@icon-park/react';
 import dayjs from 'dayjs';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,7 @@ type CronJobDrawerProps = {
 type CronJobFormValues = {
   name: string;
   enabled: boolean;
+  queueMode: boolean;
   agentKey?: string;
   workspace?: string;
   firstRunAt: dayjs.Dayjs;
@@ -101,6 +103,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>([]);
   const [selectedConfigOptionValues, setSelectedConfigOptionValues] = useState<Record<string, string>>({});
   const [loadingAgentConfig, setLoadingAgentConfig] = useState(false);
+  const [workspaceValue, setWorkspaceValue] = useState('');
 
   const linkedConversation = mode === 'edit' ? conversation : seedConversation;
 
@@ -114,6 +117,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
       return {
         name: job.name,
         enabled: job.enabled,
+        queueMode: Boolean(job.target.queueMode),
         agentKey: selectedConversationAgentKey,
         workspace: getConversationWorkspace(linkedConversation) ?? '',
         firstRunAt: dayjs(draft.firstRunAtMs),
@@ -126,6 +130,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
     return {
       name: '',
       enabled: true,
+      queueMode: false,
       agentKey: selectedConversationAgentKey ?? (availableAgents[0] ? getAgentKey(availableAgents[0]) : undefined),
       workspace: getConversationWorkspace(linkedConversation) ?? '',
       firstRunAt: defaultStartAt,
@@ -143,6 +148,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
     setMessageText(mode === 'edit' && job ? job.target.payload.text : '');
     setPromptTab('markdown');
     setSelectedAgentKey(initialValues.agentKey);
+    setWorkspaceValue(initialValues.workspace ?? '');
   }, [form, initialValues, job, mode, visible]);
 
   const agentOptions = useMemo(
@@ -249,17 +255,6 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
     };
   }, [linkedConversation, selectedAgentBackend, visible]);
 
-  const handleSelectWorkspace = async () => {
-    try {
-      const directories = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory'] });
-      if (directories && directories[0]) {
-        form.setFieldValue('workspace', directories[0]);
-      }
-    } catch (error) {
-      console.error('[CronJobDrawer] Failed to select workspace:', error);
-    }
-  };
-
   const handleRunNow = async () => {
     if (!job) {
       return;
@@ -343,6 +338,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
           conversationTitle: createdConversation.name,
           agentType: resolveCronAgentType(createdConversation),
           createdBy: 'user',
+          queueMode: values.queueMode,
         });
 
         Message.success(t('cron.panel.createSuccess'));
@@ -358,6 +354,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
                 kind: 'message',
                 text: trimmedMessage,
               },
+              queueMode: values.queueMode,
             },
           },
         });
@@ -461,21 +458,26 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
             rules={mode === 'create' ? [{ required: true, message: t('cron.panel.workspaceRequired') }] : undefined}
             className='!mb-0'
           >
-            <Input
+            <WorkspaceFolderSelect
+              value={workspaceValue}
+              onChange={(value) => {
+                setWorkspaceValue(value);
+                form.setFieldValue('workspace', value);
+              }}
+              onClear={() => {
+                setWorkspaceValue('');
+                form.setFieldValue('workspace', '');
+              }}
               placeholder={t('cron.panel.workspacePlaceholder')}
+              inputPlaceholder={t('cron.panel.workspacePlaceholder')}
+              recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
+              chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
+                defaultValue: 'Choose a different folder',
+              })}
               disabled={mode === 'edit'}
-              suffix={
-                mode === 'create' ? (
-                  <Button
-                    type='text'
-                    size='small'
-                    icon={<FolderOpen theme='outline' size={14} />}
-                    onClick={handleSelectWorkspace}
-                  >
-                    {t('common.browse')}
-                  </Button>
-                ) : undefined
-              }
+              triggerTestId='cron-drawer-workspace-trigger'
+              menuTestId='cron-drawer-workspace-menu'
+              menuZIndex={10020}
             />
           </FormItem>
 
@@ -540,6 +542,16 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({
         ) : null}
 
         <div className='bg-2 rd-16px px-16px py-16px space-y-12px'>
+          <div className='flex items-start justify-between gap-12px'>
+            <div className='min-w-0'>
+              <div className='text-14px font-medium'>{t('cron.page.form.queueMode')}</div>
+              <div className='mt-4px text-12px leading-18px text-t-secondary'>{t('cron.page.form.queueModeHint')}</div>
+            </div>
+            <FormItem field='queueMode' triggerPropName='checked' noStyle>
+              <Switch />
+            </FormItem>
+          </div>
+
           <FormItem
             field='firstRunAt'
             label={t('cron.panel.firstRunAtLabel')}

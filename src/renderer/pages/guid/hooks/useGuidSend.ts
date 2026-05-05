@@ -481,7 +481,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           input,
           files: files.length > 0 ? files : undefined,
         };
-        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        const initialConversationType = conversation.type ?? agentConversationParams.type;
+        const initialMessagePrefix =
+          initialConversationType === 'codex'
+            ? 'codex_initial_message'
+            : initialConversationType === 'remote'
+              ? 'remote_initial_message'
+              : 'acp_initial_message';
+        sessionStorage.setItem(`${initialMessagePrefix}_${conversation.id}`, JSON.stringify(initialMessage));
 
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {

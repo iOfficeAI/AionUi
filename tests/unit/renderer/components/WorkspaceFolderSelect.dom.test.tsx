@@ -131,43 +131,47 @@ describe('WorkspaceFolderSelect', () => {
   });
 });
 
-describe('WorkspaceFolderSelect - non-desktop fallback', () => {
+describe('WorkspaceFolderSelect - non-desktop picker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
     mockShowOpen.mockResolvedValue([]);
   });
 
-  it('renders a plain Input in non-desktop environments', () => {
+  it('renders the shared folder picker trigger in non-desktop environments', () => {
     mockIsElectronDesktop.mockReturnValue(false);
-    const onChange = vi.fn();
     render(
       <WorkspaceFolderSelect
         value='/some/path'
-        onChange={onChange}
+        onChange={vi.fn()}
         placeholder='Select folder'
         inputPlaceholder='Enter workspace path'
         recentLabel='Recent'
         chooseDifferentLabel='Browse'
+        triggerTestId='workspace-trigger'
       />
     );
-    const input = screen.getByPlaceholderText('Enter workspace path');
-    expect(input).toBeInTheDocument();
-    expect(input).toHaveValue('/some/path');
+    expect(screen.getByTestId('workspace-trigger')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Enter workspace path')).not.toBeInTheDocument();
   });
 
-  it('falls back to placeholder when inputPlaceholder is absent', () => {
+  it('opens the server-side directory picker in non-desktop environments', async () => {
     mockIsElectronDesktop.mockReturnValue(false);
+    mockShowOpen.mockResolvedValue(['/webui/workspace']);
+    const onChange = vi.fn();
     render(
       <WorkspaceFolderSelect
         value=''
-        onChange={vi.fn()}
-        placeholder='Fallback placeholder'
+        onChange={onChange}
+        placeholder='Select folder'
         recentLabel='Recent'
         chooseDifferentLabel='Browse'
+        triggerTestId='workspace-trigger'
       />
     );
-    expect(screen.getByPlaceholderText('Fallback placeholder')).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('workspace-trigger'));
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith('/webui/workspace'));
+    expect(mockShowOpen).toHaveBeenCalledWith({ properties: ['openDirectory', 'createDirectory'] });
   });
 });
 

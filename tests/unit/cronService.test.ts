@@ -106,6 +106,7 @@ function makeExecutor(overrides?: Partial<ICronJobExecutor>): ICronJobExecutor {
   return {
     isConversationBusy: vi.fn(() => false),
     executeJob: vi.fn(async () => {}),
+    prepareConversation: vi.fn(async () => 'conv-1'),
     onceIdle: vi.fn(),
     setProcessing: vi.fn(),
     ...overrides,
@@ -494,6 +495,45 @@ describe('CronService', () => {
 
     // Executor must not have been called — still waiting for retry
     expect(executor.executeJob).not.toHaveBeenCalled();
+  });
+
+  it('queues a scheduled new-conversation run until the previous run finishes when queue mode is enabled', async () => {
+    const idleCallbacks: Array<() => Promise<void>> = [];
+    const job = makeJob({
+      id: 'queued-job',
+      target: {
+        payload: { kind: 'message', text: 'queued prompt' },
+        executionMode: 'new_conversation',
+        queueMode: true,
+      } as CronJob['target'] & { queueMode: boolean },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(job);
+    vi.mocked(conversationRepo.getConversationsByCronJob).mockResolvedValue([
+      {
+        id: 'previous-run',
+        name: 'Previous run',
+        type: 'codex',
+        status: 'running',
+        extra: { cronJobId: 'queued-job' },
+      } as Awaited<ReturnType<IConversationRepository['getConversationsByCronJob']>>[number],
+    ]);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(false);
+    vi.mocked(executor.onceIdle).mockImplementation((_conversationId, callback) => {
+      idleCallbacks.push(callback);
+    });
+    vi.mocked(executor.executeJob).mockResolvedValue('next-run');
+
+    await service.init();
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(executor.executeJob).not.toHaveBeenCalled();
+    expect(executor.onceIdle).toHaveBeenCalledWith('previous-run', expect.any(Function));
+
+    await idleCallbacks[0]();
+
+    expect(executor.executeJob).toHaveBeenCalledTimes(1);
+    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
   });
 
   it('starts every timers from schedule.startAtMs before switching to the fixed interval', async () => {

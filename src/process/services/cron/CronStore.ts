@@ -34,6 +34,7 @@ export type CronJob = {
   target: {
     payload: { kind: 'message'; text: string };
     executionMode?: 'existing' | 'new_conversation';
+    queueMode?: boolean;
   };
   metadata: {
     conversationId: string;
@@ -59,7 +60,7 @@ export type CronJob = {
   state: {
     nextRunAtMs?: number;
     lastRunAtMs?: number;
-    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed';
+    lastStatus?: 'ok' | 'error' | 'skipped' | 'missed' | 'queued';
     lastError?: string;
     runCount: number;
     retryCount: number;
@@ -82,6 +83,7 @@ type CronJobRow = {
   schedule_description: string;
   payload_message: string;
   execution_mode: string | null;
+  queue_mode: number | null;
   agent_config: string | null;
   conversation_id: string;
   conversation_title: string | null;
@@ -130,6 +132,7 @@ function jobToRow(job: CronJob): CronJobRow {
     schedule_description: job.schedule.description,
     payload_message: job.target.payload.text,
     execution_mode: job.target.executionMode ?? 'existing',
+    queue_mode: job.target.queueMode ? 1 : 0,
     agent_config: job.metadata.agentConfig ? JSON.stringify(job.metadata.agentConfig) : null,
     conversation_id: job.metadata.conversationId,
     conversation_title: job.metadata.conversationTitle ?? null,
@@ -204,6 +207,7 @@ function rowToJob(row: CronJobRow): CronJob {
     target: {
       payload: { kind: 'message', text: row.payload_message },
       executionMode: (row.execution_mode as 'existing' | 'new_conversation') ?? 'existing',
+      queueMode: row.queue_mode === 1,
     },
     metadata: {
       conversationId: row.conversation_id,
@@ -217,7 +221,7 @@ function rowToJob(row: CronJobRow): CronJob {
     state: {
       nextRunAtMs: row.next_run_at ?? undefined,
       lastRunAtMs: row.last_run_at ?? undefined,
-      lastStatus: row.last_status as 'ok' | 'error' | 'skipped' | 'missed' | undefined,
+      lastStatus: row.last_status as 'ok' | 'error' | 'skipped' | 'missed' | 'queued' | undefined,
       lastError: row.last_error ?? undefined,
       runCount: row.run_count,
       retryCount: row.retry_count,
@@ -243,12 +247,12 @@ class CronStore {
       INSERT INTO cron_jobs (
         id, name, description, enabled,
         schedule_kind, schedule_value, schedule_tz, schedule_start_at, schedule_description,
-        payload_message, execution_mode, agent_config,
+        payload_message, execution_mode, queue_mode, agent_config,
         conversation_id, conversation_title, agent_type, created_by,
         created_at, updated_at,
         next_run_at, last_run_at, last_status, last_error,
         run_count, retry_count, max_retries
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `
       )
       .run(
@@ -263,6 +267,7 @@ class CronStore {
         row.schedule_description,
         row.payload_message,
         row.execution_mode,
+        row.queue_mode,
         row.agent_config,
         row.conversation_id,
         row.conversation_title,
@@ -297,6 +302,11 @@ class CronStore {
         ...updates.metadata,
         updatedAt: Date.now(),
       },
+      target: {
+        ...existing.target,
+        ...updates.target,
+        payload: updates.target?.payload ?? existing.target.payload,
+      },
       state: {
         ...existing.state,
         ...updates.state,
@@ -317,7 +327,7 @@ class CronStore {
       UPDATE cron_jobs SET
         name = ?, description = ?, enabled = ?,
         schedule_kind = ?, schedule_value = ?, schedule_tz = ?, schedule_start_at = ?, schedule_description = ?,
-        payload_message = ?, execution_mode = ?, agent_config = ?,
+        payload_message = ?, execution_mode = ?, queue_mode = ?, agent_config = ?,
         conversation_id = ?, conversation_title = ?, agent_type = ?,
         updated_at = ?,
         next_run_at = ?, last_run_at = ?, last_status = ?, last_error = ?,
@@ -336,6 +346,7 @@ class CronStore {
         row.schedule_description,
         row.payload_message,
         row.execution_mode,
+        row.queue_mode,
         row.agent_config,
         row.conversation_id,
         row.conversation_title,

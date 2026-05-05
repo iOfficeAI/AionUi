@@ -16,6 +16,7 @@ import {
   Button,
   DatePicker,
   InputNumber,
+  Switch,
 } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
@@ -26,7 +27,8 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
-import { getFullAutoMode } from '@renderer/utils/model/agentModes';
+import AgentModeSelector from '@renderer/components/agent/AgentModeSelector';
+import { getFullAutoMode, supportsModeSwitch } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
@@ -258,11 +260,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
+  const [queueMode, setQueueMode] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   // Advanced settings state
   const [modelId, setModelId] = useState<string | undefined>(undefined);
   const [configOptions, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
+  const [selectedMode, setSelectedMode] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
   const [defaultFiles, setDefaultFiles] = useState<string[]>([]);
   const [cachedConfigOptions, setCachedConfigOptions] = useState<AcpSessionConfigOption[] | undefined>(undefined);
@@ -286,10 +290,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setCustomIntervalUnit(customState.intervalUnit);
       setScheduleDirty(false);
       setExecutionMode(editJob.target.executionMode || 'existing');
+      setQueueMode(Boolean(editJob.target.queueMode));
       setAdvancedOpen(
         Boolean(
           editJob.metadata.agentConfig?.modelId ||
+          editJob.metadata.agentConfig?.mode ||
           editJob.metadata.agentConfig?.workspace ||
+          editJob.target.queueMode ||
           (editJob.metadata.agentConfig?.configOptions &&
             Object.keys(editJob.metadata.agentConfig.configOptions).length > 0)
         )
@@ -305,6 +312,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       // Populate advanced settings from editJob
       setModelId(editJob.metadata.agentConfig?.modelId);
       setConfigOptions(editJob.metadata.agentConfig?.configOptions);
+      setSelectedMode(editJob.metadata.agentConfig?.mode);
       setWorkspace(editJob.metadata.agentConfig?.workspace);
       setDefaultFiles(editJob.metadata.agentConfig?.defaultFiles ?? []);
     } else {
@@ -318,9 +326,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setCustomIntervalUnit(DEFAULT_CUSTOM_INTERVAL_UNIT);
       setScheduleDirty(false);
       setExecutionMode('new_conversation');
+      setQueueMode(false);
       setAdvancedOpen(false);
       setModelId(undefined);
       setConfigOptions(undefined);
+      setSelectedMode(undefined);
       setWorkspace(undefined);
       setDefaultFiles([]);
       setSelectedAgent(undefined);
@@ -341,6 +351,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     // CLI agent: agentId is the backend
     return agentId;
   }, [selectedAgent, presetAssistants]);
+
+  useEffect(() => {
+    if (!resolvedBackend) {
+      setSelectedMode(undefined);
+      return;
+    }
+
+    setSelectedMode((current) => current ?? getFullAutoMode(resolvedBackend));
+  }, [resolvedBackend]);
 
   // Load cached config options when backend changes
   useEffect(() => {
@@ -509,8 +528,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const selectedExecutionModeOption =
     executionModeOptions.find((option) => option.value === executionMode) ?? executionModeOptions[0];
   const showModelSelector = Boolean(resolvedBackend && (isGeminiMode || acpCachedModelInfo));
+  const showModeSelector = supportsModeSwitch(resolvedBackend);
   const showConfigSelector = resolvedBackend === 'codex';
-  const advancedFieldCount = Number(showModelSelector) + Number(showConfigSelector) + 1;
+  const advancedFieldCount = Number(showModelSelector) + Number(showModeSelector) + Number(showConfigSelector) + 1;
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
@@ -522,6 +542,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     // Reset model and configOptions when agent changes
     setModelId(undefined);
     setConfigOptions(undefined);
+    setSelectedMode(undefined);
     // Workspace remains unchanged (agent-agnostic)
   }, []);
 
@@ -560,7 +581,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             backend: agent.backend as AgentBackend,
             name: agent.name,
             cliPath: agent.cliPath,
-            mode: getFullAutoMode(agent.backend as AgentBackend),
+            mode: selectedMode ?? getFullAutoMode(agent.backend as AgentBackend),
             modelId,
             configOptions: mergedConfigOptions,
             workspace,
@@ -577,7 +598,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             isPreset: true,
             customAgentId: agent.customAgentId,
             presetAgentType: agent.presetAgentType,
-            mode: getFullAutoMode(agent.backend as AgentBackend),
+            mode: selectedMode ?? getFullAutoMode(agent.backend as AgentBackend),
             modelId,
             configOptions: mergedConfigOptions,
             workspace,
@@ -588,7 +609,17 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       return { agentConfig, resolvedAgentType };
     },
-    [agentType, cachedConfigOptions, cliAgents, configOptions, defaultFiles, modelId, presetAssistants, workspace]
+    [
+      agentType,
+      cachedConfigOptions,
+      cliAgents,
+      configOptions,
+      defaultFiles,
+      modelId,
+      presetAssistants,
+      selectedMode,
+      workspace,
+    ]
   );
 
   const handleSubmit = async () => {
@@ -611,6 +642,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               ...editJob!.target,
               payload: { kind: 'message', text: values.prompt },
               executionMode,
+              queueMode,
             },
             metadata: {
               ...editJob!.metadata,
@@ -633,6 +665,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           agentType: resolvedAgentType,
           createdBy: 'user',
           executionMode,
+          queueMode,
           agentConfig,
         };
         await ipcBridge.cron.addJob.invoke(params);
@@ -950,6 +983,22 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   </div>
                 )}
 
+                {showModeSelector && resolvedBackend && (
+                  <div className='min-w-0'>
+                    <label className='mb-8px block text-14px font-medium text-t-primary'>
+                      {t('agentMode.switchMode')}
+                    </label>
+                    <AgentModeSelector
+                      backend={resolvedBackend}
+                      compact
+                      initialMode={selectedMode ?? getFullAutoMode(resolvedBackend)}
+                      onModeSelect={setSelectedMode}
+                      modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                      compactLabelPrefix={t('agentMode.permission')}
+                    />
+                  </div>
+                )}
+
                 {showConfigSelector && (
                   <div className='min-w-0'>
                     <label className='mb-8px block text-14px font-medium text-t-primary'>
@@ -982,6 +1031,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     menuTestId='cron-workspace-menu'
                     menuZIndex={10020}
                   />
+                </div>
+
+                <div className='md:col-span-2 rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+                  <div className='flex items-center justify-between gap-12px'>
+                    <div className='min-w-0'>
+                      <div className='text-14px font-medium text-t-primary'>{t('cron.page.form.queueMode')}</div>
+                      <p className='m-0 mt-4px text-12px leading-18px text-t-secondary'>
+                        {t('cron.page.form.queueModeHint')}
+                      </p>
+                    </div>
+                    <Switch checked={queueMode} onChange={setQueueMode} />
+                  </div>
                 </div>
               </div>
             )}

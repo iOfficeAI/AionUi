@@ -8,6 +8,7 @@
     "placeholder": "發送訊息到 {{backend}}..."
   },
   "status": {
+    "agentFallback": "Agent",
     "connecting": "正在連線至 {{agent}}...",
     "connected": "已連線至 {{agent}}",
     "authenticated": "已通過 {{agent}} 身份驗證",

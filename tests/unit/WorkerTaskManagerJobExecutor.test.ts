@@ -10,7 +10,7 @@ vi.mock('@process/utils/initStorage', () => ({
 vi.mock('@process/utils/message', () => ({ addMessage: vi.fn() }));
 vi.mock('@/common', () => ({
   ipcBridge: {
-    conversation: { responseStream: { emit: vi.fn() } },
+    conversation: { responseStream: { emit: vi.fn() }, listChanged: { emit: vi.fn() } },
     geminiConversation: { responseStream: { emit: vi.fn() } },
     acpConversation: { responseStream: { emit: vi.fn() } },
     openclawConversation: { responseStream: { emit: vi.fn() } },
@@ -30,6 +30,15 @@ vi.mock('@/process/services/cron/SkillSuggestWatcher', () => ({
     onFinish: vi.fn(),
     setLastHash: vi.fn(),
   },
+}));
+const mockConversationService = vi.hoisted(() => ({
+  createConversation: vi.fn(),
+  getConversation: vi.fn(),
+  getConversationsByCronJob: vi.fn(),
+  updateConversation: vi.fn(),
+}));
+vi.mock('@process/services/conversationServiceSingleton', () => ({
+  conversationServiceSingleton: mockConversationService,
 }));
 
 import { WorkerTaskManagerJobExecutor } from '../../src/process/services/cron/WorkerTaskManagerJobExecutor';
@@ -85,6 +94,14 @@ describe('WorkerTaskManagerJobExecutor', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     busyGuard = new CronBusyGuard();
+    mockConversationService.createConversation.mockResolvedValue({
+      id: 'created-conv',
+      type: 'codex',
+      name: 'Created Conversation',
+      extra: { backend: 'codex', cronWorkspace: '/workspace', workspace: '/workspace' },
+    });
+    mockConversationService.getConversation.mockResolvedValue(undefined);
+    mockConversationService.getConversationsByCronJob.mockResolvedValue([]);
   });
 
   it('throws a contextual error when getOrBuildTask rejects (conversation deleted)', async () => {
@@ -170,6 +187,70 @@ describe('WorkerTaskManagerJobExecutor', () => {
         files: ['/workspace/spec.md'],
       })
     );
+  });
+
+  describe('Codex routing', () => {
+    it('creates native Codex conversations for new-conversation Codex jobs', async () => {
+      const task = makeTask('codex');
+      const taskManager = makeTaskManager({
+        getTask: vi.fn(() => undefined),
+        getOrBuildTask: vi.fn(async () => task as any),
+      });
+      const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
+      const job = makeJob('');
+      job.target.executionMode = 'new_conversation';
+      job.metadata.agentConfig = {
+        backend: 'codex',
+        name: 'Codex',
+        workspace: '/workspace',
+        mode: 'yolo',
+      };
+
+      await executor.executeJob(job);
+
+      expect(mockConversationService.createConversation).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'codex',
+          extra: expect.objectContaining({
+            backend: 'codex',
+            workspace: '/workspace',
+            sessionMode: 'yolo',
+          }),
+        })
+      );
+      expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('created-conv', { yoloMode: true });
+      expect(task.sendMessage).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not reuse legacy ACP child conversations for existing Codex jobs', async () => {
+      mockConversationService.getConversationsByCronJob.mockResolvedValueOnce([{ id: 'legacy-acp-conv' }]);
+      mockConversationService.getConversation.mockResolvedValueOnce({
+        id: 'legacy-acp-conv',
+        type: 'acp',
+        name: 'Legacy ACP Codex',
+        extra: { backend: 'codex', cronWorkspace: '/workspace', workspace: '/workspace' },
+      });
+      const task = makeTask('codex');
+      const taskManager = makeTaskManager({
+        getTask: vi.fn(() => undefined),
+        getOrBuildTask: vi.fn(async () => task as any),
+      });
+      const executor = new WorkerTaskManagerJobExecutor(taskManager, busyGuard);
+      const job = makeJob('seed-conv');
+      job.target.executionMode = 'existing';
+      job.metadata.agentConfig = {
+        backend: 'codex',
+        name: 'Codex',
+        workspace: '/workspace',
+      };
+
+      await executor.executeJob(job);
+
+      expect(mockConversationService.createConversation).toHaveBeenCalledWith(
+        expect.objectContaining({ type: 'codex' })
+      );
+      expect(taskManager.getOrBuildTask).toHaveBeenCalledWith('created-conv', { yoloMode: true });
+    });
   });
 
   describe('buildMessageText behavior', () => {

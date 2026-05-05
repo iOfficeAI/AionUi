@@ -988,4 +988,45 @@ describe('platform send box queue integration', () => {
     );
     expect(mockAcpModelSelector).not.toHaveBeenCalled();
   });
+
+  it('sends the initial Codex message created from the guide page', async () => {
+    sessionStorage.setItem(
+      'codex_initial_message_conv-codex',
+      JSON.stringify({
+        input: 'start this Codex task',
+        files: ['C:/workspace/src/main.ts'],
+      })
+    );
+
+    render(<CodexSendBox conversation_id='conv-codex' workspacePath='C:/workspace' />);
+
+    await waitFor(() => {
+      expect(mockConversationSendInvoke).toHaveBeenCalledTimes(1);
+    });
+
+    expect(mockBuildDisplayMessage).toHaveBeenCalledWith(
+      'start this Codex task',
+      ['C:/workspace/src/main.ts'],
+      'C:/workspace'
+    );
+    expect(mockAddOrUpdateMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'text',
+        position: 'right',
+        conversation_id: 'conv-codex',
+        content: {
+          content: 'start this Codex task|C:/workspace/src/main.ts|C:/workspace',
+        },
+      }),
+      true
+    );
+    expect(mockConversationSendInvoke).toHaveBeenCalledWith({
+      input: 'start this Codex task|C:/workspace/src/main.ts|C:/workspace',
+      msg_id: 'uuid-1',
+      conversation_id: 'conv-codex',
+      files: ['C:/workspace/src/main.ts'],
+    });
+    expect(mockEmitterEmit).toHaveBeenCalledWith('chat.history.refresh');
+    expect(sessionStorage.getItem('codex_initial_message_conv-codex')).toBeNull();
+  });
 });

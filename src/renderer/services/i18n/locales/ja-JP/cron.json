@@ -11,6 +11,7 @@
     "active": "実行中",
     "paused": "一時停止中",
     "error": "エラー",
+    "queued": "キュー待ち",
     "unread": "新しい実行",
     "unconfigured": "スケジュールタスク未設定",
     "unconfiguredHint": "このチャットにはまだスケジュールタスクがありません。Agentと一緒に作成しましょう！",
@@ -97,7 +98,8 @@
     "jobNotFound": "スクリプトが見つかりません: {{id}}",
     "conversationNotFound": "会話が見つかりません",
     "scheduledTimePassed": "予定時刻が過ぎました",
-    "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました"
+    "conversationBusy": "会話がビジーです。{{count}} 回の試行後にスキップしました",
+    "previousRunActive": "前回のスケジュール実行がまだ進行中のため、今回の実行はキューに入りました。"
   },
   "confirmDeleteWithConversations": "このスケジュールタスクを削除しますか？このタスクのすべての会話も削除されます。",
   "detail": {
@@ -162,6 +164,8 @@
       "existingConversationHint": "同じ会話で続きを実行します",
       "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。",
       "advancedSettings": "詳細設定",
+      "queueMode": "キューモード",
+      "queueModeHint": "前回の実行がまだ進行中の場合、完了してから次の実行を開始します。",
       "workspace": "ワークスペース",
       "workspacePlaceholder": "フォルダを選択",
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",

@@ -1444,6 +1444,28 @@ const migration_v30: IMigration = {
 };
 
 /**
+ * Migration v30 -> v31: Add queue_mode to cron_jobs
+ * When enabled, scheduled runs wait for the previous run to finish before starting another conversation.
+ */
+const migration_v31: IMigration = {
+  version: 31,
+  name: 'Add queue_mode to cron_jobs table',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(cron_jobs)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('queue_mode')) {
+      db.exec('ALTER TABLE cron_jobs ADD COLUMN queue_mode INTEGER NOT NULL DEFAULT 0');
+      console.log('[Migration v31] Added queue_mode column to cron_jobs table');
+    } else {
+      console.log('[Migration v31] queue_mode column already exists, skipping');
+    }
+  },
+  down: (_db) => {
+    // SQLite does not support DROP COLUMN before 3.35.0; skip rollback to prevent data loss.
+    console.warn('[Migration v31] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1452,7 +1474,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18, migration_v19,
   migration_v20, migration_v21, migration_v22, migration_v23, migration_v24, migration_v25, migration_v26,
-  migration_v27, migration_v28, migration_v29, migration_v30,
+  migration_v27, migration_v28, migration_v29, migration_v30, migration_v31,
 ];
 
 /**

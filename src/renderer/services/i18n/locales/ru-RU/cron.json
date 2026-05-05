@@ -11,6 +11,7 @@
     "active": "Активна",
     "paused": "Приостановлена",
     "error": "Ошибка",
+    "queued": "В очереди",
     "unread": "Новое выполнение",
     "unconfigured": "Нет запланированной задачи",
     "unconfiguredHint": "Запланированных задач пока нет. Создайте с вашим агентом!",
@@ -100,6 +101,8 @@
       "existingConversationHint": "Продолжать в одном диалоге",
       "executionModeEditHint": "Режим выполнения нельзя изменить после создания. Удалите и создайте задачу заново для смены режима.",
       "advancedSettings": "Расширенные настройки",
+      "queueMode": "Режим очереди",
+      "queueModeHint": "Если предыдущий запуск еще активен, дождаться его завершения перед следующим запуском.",
       "workspace": "Рабочая область",
       "workspacePlaceholder": "Выберите рабочую область",
       "workspaceHint": "[Optional: set a workspace folder for file operations]",
@@ -144,7 +147,8 @@
     "jobNotFound": "Задача не найдена: {{id}}",
     "conversationNotFound": "Диалог не найден",
     "scheduledTimePassed": "Запланированное время прошло",
-    "conversationBusy": "Диалог занят после {{count}} попыток"
+    "conversationBusy": "Диалог занят после {{count}} попыток",
+    "previousRunActive": "Предыдущий запуск по расписанию еще активен; этот запуск поставлен в очередь."
   },
   "confirmDelete": "Are you sure you want to delete this scheduled task?",
   "drawer.title": "Scheduled Task Details",

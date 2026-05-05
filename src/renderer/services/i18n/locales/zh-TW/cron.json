@@ -11,6 +11,7 @@
     "active": "執行中",
     "paused": "已暫停",
     "error": "執行出錯",
+    "queued": "排隊中",
     "unread": "有新執行",
     "unconfigured": "未配置定時任務",
     "unconfiguredHint": "目前對話暫無定時任務，和 Agent 一起建立一個吧",
@@ -97,7 +98,8 @@
     "jobNotFound": "未找到腳本: {{id}}",
     "conversationNotFound": "未找到對話",
     "scheduledTimePassed": "定時時間已過",
-    "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過"
+    "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過",
+    "previousRunActive": "上一次定時執行仍在執行，本次執行已進入佇列。"
   },
   "confirmDeleteWithConversations": "確定要刪除此定時任務嗎？該任務下的所有對話也將被刪除。",
   "detail": {
@@ -162,6 +164,8 @@
       "existingConversationHint": "在同一對話中持續執行",
       "executionModeEditHint": "建立後無法更改執行模式，如需切換請刪除任務後重新建立。",
       "advancedSettings": "進階設定",
+      "queueMode": "佇列模式",
+      "queueModeHint": "上一次執行未結束時，先等待它結束，再啟動下一次執行。",
       "workspace": "工作空間",
       "workspacePlaceholder": "選擇資料夾",
       "workspaceHint": "選填：設定檔案操作的工作空間資料夾",

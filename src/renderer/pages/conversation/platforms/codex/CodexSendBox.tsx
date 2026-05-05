@@ -241,6 +241,36 @@ const CodexSendBoxInner: React.FC<CodexSendBoxBaseProps & { messageState: UseCod
     onExecute: executeCommand,
   });
 
+  useEffect(() => {
+    if (!conversation_id) return;
+
+    const storageKey = `codex_initial_message_${conversation_id}`;
+    const processedKey = `codex_initial_processed_${conversation_id}`;
+
+    const processInitialMessage = async () => {
+      if (sessionStorage.getItem(processedKey)) return;
+
+      const storedMessage = sessionStorage.getItem(storageKey);
+      if (!storedMessage) return;
+
+      sessionStorage.setItem(processedKey, '1');
+      sessionStorage.removeItem(storageKey);
+
+      try {
+        const { input, files: initialFiles } = JSON.parse(storedMessage) as { input: string; files?: string[] };
+        await executeCommand({
+          input,
+          files: Array.isArray(initialFiles) ? initialFiles : [],
+        });
+      } catch (error) {
+        console.error('[CodexSendBox] Failed to send initial message:', error);
+        sessionStorage.removeItem(processedKey);
+      }
+    };
+
+    void processInitialMessage();
+  }, [conversation_id, executeCommand]);
+
   const handleSend = async (message: string) => {
     if (!isCommandQueueEnabled && isBusy) {
       Message.warning(t('messages.conversationInProgress'));

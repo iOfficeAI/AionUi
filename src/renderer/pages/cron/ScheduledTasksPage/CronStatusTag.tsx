@@ -9,8 +9,8 @@ import { Tag } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 
-type StatusColor = 'gray' | 'red' | 'green';
-type StatusTone = 'paused' | 'error' | 'active';
+type StatusColor = 'gray' | 'red' | 'green' | 'blue';
+type StatusTone = 'paused' | 'error' | 'active' | 'queued';
 
 const CronStatusTag: React.FC<{ job: ICronJob }> = ({ job }) => {
   const { t } = useTranslation();
@@ -27,6 +27,10 @@ const CronStatusTag: React.FC<{ job: ICronJob }> = ({ job }) => {
     color = 'red';
     tone = 'error';
     label = t('cron.status.error');
+  } else if (job.state.lastStatus === 'queued') {
+    color = 'blue';
+    tone = 'queued';
+    label = t('cron.status.queued');
   }
 
   return (
@@ -39,7 +43,9 @@ const CronStatusTag: React.FC<{ job: ICronJob }> = ({ job }) => {
           ? '!bg-fill-1 !border-arco-3 !text-3'
           : tone === 'error'
             ? '!bg-danger-light-1 !border-danger-4 !text-danger-6'
-            : '!bg-success-light-1 !border-success-4 !text-success-6'
+            : tone === 'queued'
+              ? '!bg-primary-light-1 !border-primary-4 !text-primary-6'
+              : '!bg-success-light-1 !border-success-4 !text-success-6'
       }`}
     >
       {label}

@@ -5,9 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { Input } from '@arco-design/web-react';
 import { Check, Close, Down, Folder, FolderOpen, FolderPlus } from '@icon-park/react';
-import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 const DEFAULT_RECENT_WS_KEY = 'aionui:recent-workspaces';
@@ -54,6 +52,7 @@ type WorkspaceFolderSelectProps = {
   inputPlaceholder?: string;
   recentLabel: string;
   chooseDifferentLabel: string;
+  disabled?: boolean;
   recentStorageKey?: string;
   triggerTestId?: string;
   menuTestId?: string;
@@ -65,9 +64,9 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   onChange,
   onClear,
   placeholder,
-  inputPlaceholder,
   recentLabel,
   chooseDifferentLabel,
+  disabled = false,
   recentStorageKey = DEFAULT_RECENT_WS_KEY,
   triggerTestId,
   menuTestId,
@@ -76,7 +75,6 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition>({ top: 0, left: 0, width: 0, maxHeight: MAX_MENU_HEIGHT });
   const triggerRef = useRef<HTMLDivElement>(null);
-  const isDesktop = isElectronDesktop();
   const recentWorkspaces = getRecentWorkspaces(recentStorageKey);
 
   const updateMenuPosition = useCallback(() => {
@@ -123,6 +121,8 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   }, [menuVisible, updateMenuPosition]);
 
   const handleBrowse = async () => {
+    if (disabled) return;
+
     setMenuVisible(false);
 
     const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
@@ -133,6 +133,8 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   };
 
   const handleSelectRecent = (path: string) => {
+    if (disabled) return;
+
     onChange(path);
     addRecentWorkspace(path, recentStorageKey);
     setMenuVisible(false);
@@ -140,6 +142,8 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
 
   const handleClear = (event: React.MouseEvent) => {
     event.stopPropagation();
+    if (disabled) return;
+
     onClear?.();
     if (!onClear) {
       onChange('');
@@ -149,15 +153,15 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
 
   const folderName = value ? value.split(/[\\/]/).pop() || value : '';
 
-  if (!isDesktop) {
-    return <Input placeholder={inputPlaceholder ?? placeholder} value={value ?? ''} onChange={onChange} />;
-  }
-
   return (
     <div className='relative' ref={triggerRef}>
       <div
         data-testid={triggerTestId}
         onClick={() => {
+          if (disabled) {
+            return;
+          }
+
           if (recentWorkspaces.length === 0) {
             void handleBrowse();
             return;
@@ -169,6 +173,8 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
           setMenuVisible((visible) => !visible);
         }}
         className={`flex min-h-44px items-center gap-10px rounded-10px border px-12px py-0 transition-all ${
+          disabled ? 'cursor-not-allowed opacity-60' : ''
+        } ${
           menuVisible
             ? 'border-primary-5 bg-fill-2 shadow-sm'
             : 'border-border-2 bg-fill-1 hover:border-border-1 hover:bg-fill-2'
@@ -185,7 +191,7 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
             <span className='text-sm text-t-secondary'>{placeholder}</span>
           )}
         </div>
-        {value ? (
+        {value && !disabled ? (
           <Close
             theme='outline'
             size='14'
