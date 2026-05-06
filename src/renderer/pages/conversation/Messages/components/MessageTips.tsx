@@ -52,8 +52,6 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { content, type } = message.content;
   const { json, data } = useFormatContent(content);
 
-  const displayContent = json ? '' : content;
-
   if (json)
     return (
       <div className='w-full'>
@@ -68,12 +66,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
       <div className={classNames('bg-message-tips rd-8px  p-x-12px p-y-8px flex items-start gap-4px')}>
         {icon[type] || icon.warning}
         <CollapsibleContent maxHeight={48} defaultCollapsed={true} className='flex-1' useMask={true}>
-          <span
-            className='whitespace-break-spaces text-t-primary [word-break:break-word]'
-            dangerouslySetInnerHTML={{
-              __html: displayContent,
-            }}
-          ></span>
+          <span className='whitespace-break-spaces text-t-primary [word-break:break-word]'>{content}</span>
         </CollapsibleContent>
       </div>
     </div>

@@ -165,6 +165,14 @@ describe('shellBridge', () => {
       warnSpy.mockRestore();
     });
 
+    it('rejects unsupported URL protocols without calling shell.openExternal', async () => {
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await openExternalProvider.fn!('file:///etc/passwd');
+      expect(shellMock.openExternal).not.toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith('[shellBridge] Invalid URL passed to openExternal: file:///etc/passwd');
+      warnSpy.mockRestore();
+    });
+
     it('rejects empty string URLs without calling shell.openExternal', async () => {
       const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       await openExternalProvider.fn!('');

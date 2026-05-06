@@ -140,7 +140,7 @@ const Diff2Html = ({
 
       const name = header.querySelector('.d2h-file-name') as HTMLDivElement;
       if (name && title) {
-        name.innerHTML = title;
+        name.textContent = title;
       }
     } else {
       console.warn('[Diff2Html] Header or operatorRef missing', { hasHeader: !!header, hasRef: !!operatorRef.current });

@@ -360,7 +360,7 @@ const UpdateModal: React.FC = () => {
               {updateInfo?.name && <div className='text-14px font-500 text-t-primary mb-12px'>{updateInfo.name}</div>}
               {updateInfo?.body || autoUpdateInfo?.releaseNotes ? (
                 <div className='text-13px text-t-secondary leading-relaxed'>
-                  <MarkdownView allowHtml>{updateInfo?.body || autoUpdateInfo?.releaseNotes || ''}</MarkdownView>
+                  <MarkdownView>{updateInfo?.body || autoUpdateInfo?.releaseNotes || ''}</MarkdownView>
                 </div>
               ) : (
                 <div className='text-13px text-t-tertiary italic'>{t('update.noReleaseNotes')}</div>
