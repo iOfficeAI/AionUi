@@ -447,6 +447,13 @@ export const mode = {
   ),
 };
 
+export const kscAuth = {
+  loginAndSync: bridge.buildProvider<
+    IBridgeResponse<{ syncedModels: number; userName?: string; companyName?: string }>,
+    { baseUrl: string; companyCode?: string; client?: string; inferenceChatPath?: string }
+  >('ksc.auth.login-sync'),
+};
+
 // ACP对话相关接口 - 复用统一的conversation接口
 export const acpConversation = {
   sendMessage: conversation.sendMessage,

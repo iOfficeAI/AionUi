@@ -83,5 +83,9 @@
   "import": "导入",
   "processing": "处理中...",
   "optional": "（可选）",
-  "clear": "清除"
+  "clear": "清除",
+  "login": "登录",
+  "signIn": "登录",
+  "signOut": "Sign Out",
+  "signedOut": "已退出"
 }

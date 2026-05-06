@@ -744,13 +744,7 @@ const ChannelModalContent: React.FC = () => {
         content: renderExtensionConfigForm(status),
       }));
 
-    return [
-      larkChannel,
-      dingtalkChannel,
-      weixinChannel,
-      wecomChannel,
-      ...extensionChannels,
-    ];
+    return [larkChannel, dingtalkChannel, weixinChannel, wecomChannel, ...extensionChannels];
   }, [
     larkPluginStatus,
     dingtalkPluginStatus,

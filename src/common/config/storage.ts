@@ -503,6 +503,10 @@ export interface IProvider {
   name: string;
   baseUrl: string;
   apiKey: string;
+  /** Optional upstream base URL used by local proxy providers such as KSC. */
+  upstreamBaseUrl?: string;
+  /** Optional static headers injected by local proxy providers. */
+  customHeaders?: Record<string, string>;
   model: string[];
   /**
    * 模型能力标签列表。打了标签就是支持，没打就是不支持

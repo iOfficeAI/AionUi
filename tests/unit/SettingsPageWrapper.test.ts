@@ -22,7 +22,6 @@ describe('getBuiltinSettingsNavItems', () => {
     const items = getBuiltinSettingsNavItems(false, t);
 
     expect(items.map((item) => item.id)).toEqual([
-      'gemini',
       'agent',
       'model',
       'assistants',
@@ -33,7 +32,6 @@ describe('getBuiltinSettingsNavItems', () => {
     ]);
 
     expect(items.map((item) => item.label)).toEqual([
-      'Gemini',
       'Agents',
       'Models',
       'Assistants',

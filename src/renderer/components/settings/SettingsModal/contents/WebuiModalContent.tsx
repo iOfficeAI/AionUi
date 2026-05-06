@@ -732,9 +732,7 @@ const WebuiModalContent: React.FC = () => {
           {/* 允许局域网访问 / Allow LAN Access */}
           <PreferenceRow
             label={t('settings.webui.allowRemote')}
-            description={
-              <span className='text-t-secondary'>{t('settings.webui.allowRemoteDesc')}</span>
-            }
+            description={<span className='text-t-secondary'>{t('settings.webui.allowRemoteDesc')}</span>}
           >
             <Switch checked={allowRemotePreference} onChange={handleAllowRemoteChange} />
           </PreferenceRow>

@@ -854,6 +854,7 @@
     "marketContributionAction": "前往 AionHub 提交 PR",
     "marketComingSoon": "AionHub 市場即將上線。",
     "detectCustomAgent": "識別自訂 Agent",
+    "addCursorCookbookAgent": "新增 Cursor Cookbook Agent",
     "editCustomAgent": "編輯自訂 Agent",
     "localAgentsEmpty": "未檢測到本機 Agent",
     "detected": "已偵測",

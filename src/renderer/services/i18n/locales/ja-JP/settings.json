@@ -854,6 +854,7 @@
     "marketContributionAction": "AionHub に PR を送る",
     "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "カスタムエージェントを検出",
+    "addCursorCookbookAgent": "Cursor Cookbook Agentを追加",
     "editCustomAgent": "カスタムエージェントを編集",
     "localAgentsEmpty": "ローカルエージェントが検出されていません",
     "detected": "検出済み",

@@ -14,6 +14,9 @@ interface OneClickImportModalProps {
   onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => void;
 }
 
+const HIDDEN_SETTINGS_MENU_AGENT_BACKENDS = new Set(['gemini', 'copilot', 'google-cli', 'github-copilot']);
+const HIDDEN_SETTINGS_MENU_AGENT_NAMES = new Set(['gemini cli', 'github copilot']);
+
 const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCancel, onBatchImport }) => {
   const { t } = useTranslation();
   const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
@@ -35,7 +38,14 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
         try {
           const response = await acpConversation.getAvailableAgents.invoke();
           if (response.success && response.data) {
-            const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
+            const agents = response.data
+              .filter((agent) => {
+                if (HIDDEN_SETTINGS_MENU_AGENT_BACKENDS.has(agent.backend)) {
+                  return false;
+                }
+                return !HIDDEN_SETTINGS_MENU_AGENT_NAMES.has(agent.name.trim().toLowerCase());
+              })
+              .map((agent) => ({ backend: agent.backend, name: agent.name }));
             setDetectedAgents(agents);
             // 设置第一个agent为默认值
             if (agents.length > 1) {

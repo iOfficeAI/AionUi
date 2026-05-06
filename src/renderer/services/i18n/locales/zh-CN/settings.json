@@ -853,6 +853,7 @@
     "marketContributionAction": "前往 AionHub 提交 PR",
     "marketComingSoon": "AionHub 市场即将上线。",
     "detectCustomAgent": "识别自定义 Agent",
+    "addCursorCookbookAgent": "添加 Cursor Cookbook Agent",
     "editCustomAgent": "编辑自定义 Agent",
     "localAgentsEmpty": "未检测到本地 Agent",
     "detected": "已检测",

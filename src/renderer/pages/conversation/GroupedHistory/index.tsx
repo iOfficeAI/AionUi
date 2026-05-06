@@ -454,7 +454,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
               })}
           </div>
         ))}
-
       </div>
     </>
   );

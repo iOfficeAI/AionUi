@@ -2,18 +2,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import {
-  Communication,
-  Computer,
-  Earth,
-  Gemini,
-  Lightning,
-  LinkCloud,
-  Puzzle,
-  Robot,
-  Speed,
-  System,
-} from '@icon-park/react';
+import { Communication, Computer, Earth, Lightning, LinkCloud, Puzzle, Robot, Speed, System } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,16 +11,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
-export const BUILTIN_TAB_IDS = [
-  'gemini',
-  'agent',
-  'model',
-  'assistants',
-  'capabilities',
-  'display',
-  'webui',
-  'system',
-] as const;
+export const BUILTIN_TAB_IDS = ['agent', 'model', 'assistants', 'capabilities', 'display', 'webui', 'system'] as const;
 
 /**
  * Legacy anchor IDs that have been merged into other tabs.
@@ -49,7 +29,7 @@ export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
  * Extension tabs anchored between these builtins inherit the enclosing group visually.
  */
 const GROUP_HEADER_BEFORE: Record<string, string> = {
-  gemini: 'settings.groupAiCore',
+  agent: 'settings.groupAiCore',
   display: 'settings.groupApp',
   system: 'settings.groupAbout',
 };
@@ -133,7 +113,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
-      gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini />, path: 'gemini' },
       model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
       assistants: {
         id: 'assistants',

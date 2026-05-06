@@ -5,7 +5,6 @@
     "uploadFile": "파일 업로드",
     "linkFolder": "폴더 열기",
     "newConversation": "새 채팅",
-    "multiAgentModeEnabled": "멀티 에이전트 모드 진입",
     "selectModel": "모델 선택",
     "useCliModel": "모델 선택",
     "modelSwitchNotSupported": "첫 연결 후 사용 가능한 모델 목록이 표시됩니다. 먼저 메시지를 보내 연결하고 사용 가능한 모델을 로드하세요.",

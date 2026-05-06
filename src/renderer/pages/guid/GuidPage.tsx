@@ -651,7 +651,7 @@ const GuidPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <p className='text-2xl font-semibold mb-0 text-0 text-center'>{heroTitle}</p>
+              <p className='text-lg font-medium mb-0 text-2 text-center'>{heroTitle}</p>
             )}
           </div>
 

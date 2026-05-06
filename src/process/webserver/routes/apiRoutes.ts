@@ -10,6 +10,7 @@ import fsPromises from 'fs/promises';
 import http from 'node:http';
 import os from 'os';
 import path from 'path';
+import { Readable } from 'node:stream';
 import multer from 'multer';
 import { getDatabase } from '@process/services/database';
 import { getSystemDir } from '@process/utils/initStorage';
@@ -70,6 +71,12 @@ function isPathInsideRoot(targetPath: string, rootPath: string): boolean {
   const normalizedTarget = path.resolve(targetPath);
   const normalizedRoot = path.resolve(rootPath);
   return normalizedTarget === normalizedRoot || normalizedTarget.startsWith(`${normalizedRoot}${path.sep}`);
+}
+
+function isLoopbackRequest(req: Request): boolean {
+  const rawIp = req.ip || req.socket.remoteAddress || '';
+  const ip = rawIp.replace(/^::ffff:/, '');
+  return ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
 }
 
 export async function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): Promise<string> {
@@ -642,6 +649,85 @@ export function registerApiRoutes(app: Express): void {
    * GET /api/office-watch-proxy/:port/*
    */
   registerOfficecliWatchProxy('/api/office-watch-proxy', isActiveOfficeWatchPort, 'Office watch preview');
+
+  app.use('/api/ksc-proxy/:providerId', apiRateLimiter, async (req: Request, res: Response) => {
+    if (!isLoopbackRequest(req)) {
+      res.status(403).json({ message: 'KSC proxy only allows local requests' });
+      return;
+    }
+
+    const providerId = typeof req.params.providerId === 'string' ? decodeURIComponent(req.params.providerId) : '';
+    if (!providerId) {
+      res.status(400).json({ message: 'Missing provider id' });
+      return;
+    }
+
+    const providers = await ProcessConfig.get('model.config');
+    const provider = Array.isArray(providers)
+      ? providers.find((item) => item.id === providerId && item.upstreamBaseUrl)
+      : undefined;
+
+    if (!provider?.upstreamBaseUrl) {
+      res.status(404).json({ message: 'KSC provider not found' });
+      return;
+    }
+
+    const originalUrl = req.originalUrl || req.url;
+    const mountPrefix = `/api/ksc-proxy/${encodeURIComponent(providerId)}`;
+    const suffixWithQuery = originalUrl.startsWith(mountPrefix) ? originalUrl.slice(mountPrefix.length) : '';
+    const targetUrl = `${provider.upstreamBaseUrl.replace(/\/+$/, '')}${suffixWithQuery || ''}`;
+
+    try {
+      const headers = new Headers();
+      const contentType = req.headers['content-type'];
+      const accept = req.headers.accept;
+      if (typeof contentType === 'string' && contentType) {
+        headers.set('Content-Type', contentType);
+      }
+      if (typeof accept === 'string' && accept) {
+        headers.set('Accept', accept);
+      }
+      headers.set('Authorization', `Bearer ${provider.apiKey}`);
+      Object.entries(provider.customHeaders || {}).forEach(([key, value]) => {
+        headers.set(key, value);
+      });
+
+      const body =
+        req.method === 'GET' || req.method === 'HEAD'
+          ? undefined
+          : JSON.stringify(req.body && typeof req.body === 'object' ? req.body : {});
+
+      const upstream = await fetch(targetUrl, {
+        method: req.method,
+        headers,
+        body,
+      });
+
+      res.status(upstream.status);
+      upstream.headers.forEach((value, key) => {
+        if (key.toLowerCase() === 'transfer-encoding') {
+          return;
+        }
+        res.setHeader(key, value);
+      });
+
+      if (!upstream.body) {
+        res.end();
+        return;
+      }
+
+      Readable.fromWeb(upstream.body as any).pipe(res);
+    } catch (error) {
+      console.error('[API] KSC proxy error:', error);
+      if (!res.headersSent) {
+        res.status(502).json({
+          message: error instanceof Error ? error.message : 'KSC proxy failed',
+        });
+      } else {
+        res.destroy();
+      }
+    }
+  });
 
   /**
    * WeChat QR-code login (WebUI mode)

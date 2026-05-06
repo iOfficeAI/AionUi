@@ -16,6 +16,9 @@ import useSWR from 'swr';
 import AgentCard from './AgentCard';
 import InlineAgentEditor from './InlineAgentEditor';
 
+const HIDDEN_LOCAL_AGENT_BACKENDS = new Set(['copilot', 'github-copilot']);
+const HIDDEN_LOCAL_AGENT_NAMES = new Set(['github copilot']);
+
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -74,15 +77,45 @@ const LocalAgents: React.FC = () => {
     [mutateCustomAgents]
   );
 
-  // Aion CLI and Gemini CLI first among detected agents
+  // Aion CLI first among detected agents
   const aionrsAgent = detectedAgents?.find((a) => a.backend === 'aionrs');
-  const geminiAgent = detectedAgents?.find((a) => a.backend === 'gemini');
-  const otherDetected = detectedAgents?.filter((a) => a.backend !== 'gemini' && a.backend !== 'aionrs') ?? [];
+  const otherDetected =
+    detectedAgents?.filter((agent) => {
+      if (agent.backend === 'aionrs') {
+        return false;
+      }
+      if (HIDDEN_LOCAL_AGENT_BACKENDS.has(agent.backend)) {
+        return false;
+      }
+      return !HIDDEN_LOCAL_AGENT_NAMES.has(agent.name.trim().toLowerCase());
+    }) ?? [];
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
     setEditorVisible(true);
   }, []);
+
+  const handleAddCursorCookbookAgent = useCallback(async () => {
+    const current = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
+    const existing = current.find((agent) => agent.id === 'cursor-cookbook');
+    if (existing) {
+      setEditingAgent(existing);
+      setEditorVisible(true);
+      return;
+    }
+
+    const preset: AcpBackendConfig = {
+      id: 'cursor-cookbook',
+      name: 'Cursor Cookbook',
+      avatar: '📚',
+      defaultCliPath: 'agent',
+      acpArgs: ['acp'],
+      enabled: true,
+    };
+
+    await ConfigStorage.set('acp.customAgents', [...current, preset]);
+    await mutateCustomAgents();
+  }, [mutateCustomAgents]);
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
@@ -95,6 +128,15 @@ const LocalAgents: React.FC = () => {
           onClick={openCustomAgentEditor}
         >
           {t('settings.agentManagement.detectCustomAgent')}
+        </Button>
+        <span className='mx-6px'>·</span>
+        <Button
+          type='text'
+          size='mini'
+          className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
+          onClick={() => void handleAddCursorCookbookAgent()}
+        >
+          {t('settings.agentManagement.addCursorCookbookAgent')}
         </Button>
       </div>
 
@@ -111,15 +153,6 @@ const LocalAgents: React.FC = () => {
             agent={aionrsAgent}
             settingsDisabled={false}
             onSettings={() => navigate('/settings/aionrs')}
-            variant='grid'
-          />
-        )}
-        {geminiAgent && (
-          <AgentCard
-            type='detected'
-            agent={geminiAgent}
-            settingsDisabled={false}
-            onSettings={() => navigate('/settings/gemini')}
             variant='grid'
           />
         )}

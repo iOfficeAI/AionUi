@@ -122,6 +122,39 @@
   min-height: var(--titlebar-height);
 }
 
+.app-titlebar__login-entry {
+  -webkit-app-region: no-drag;
+  height: 28px;
+  min-width: 64px;
+  padding: 0 10px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  background: var(--bg-2);
+  color: var(--text-primary);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.app-titlebar__login-entry:hover {
+  background: var(--bg-3);
+  border-color: var(--color-border-3);
+}
+
+.app-titlebar__login-entry:active {
+  background: var(--bg-4);
+}
+
+.app-titlebar__login-entry--mobile {
+  height: 32px;
+  min-width: 72px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
 .app-titlebar__button {
   -webkit-app-region: no-drag;
   width: var(--titlebar-height);

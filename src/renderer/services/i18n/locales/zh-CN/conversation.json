@@ -5,7 +5,6 @@
     "uploadFile": "上传文件",
     "linkFolder": "打开文件夹",
     "newConversation": "新会话",
-    "multiAgentModeEnabled": "已进入多智能体模式",
     "selectModel": "选择模型",
     "useCliModel": "选择模型",
     "modelSwitchNotSupported": "首次连接后将显示可用模型列表。请先发送消息以连接并加载可用模型。",

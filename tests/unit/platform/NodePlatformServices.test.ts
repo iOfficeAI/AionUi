@@ -29,7 +29,9 @@ describe('NodePlatformServices.paths', () => {
 
   it('getLogsDir falls back to homedir/.aicoredesktop-server/logs', async () => {
     const { NodePlatformServices } = await import('../../../src/common/platform/NodePlatformServices');
-    expect(new NodePlatformServices().paths.getLogsDir()).toBe(path.join(os.homedir(), '.aicoredesktop-server', 'logs'));
+    expect(new NodePlatformServices().paths.getLogsDir()).toBe(
+      path.join(os.homedir(), '.aicoredesktop-server', 'logs')
+    );
   });
 
   it('getAppPath returns process.cwd()', async () => {

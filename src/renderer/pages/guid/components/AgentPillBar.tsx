@@ -56,7 +56,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
         }}
       >
         {availableAgents
-          .filter((agent) => !agent.isPreset)
+          .filter((agent) => !agent.isPreset && agent.backend !== 'copilot' && agent.backend !== 'github-copilot')
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);

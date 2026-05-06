@@ -258,7 +258,8 @@ const ChatConversation: React.FC<{
 }> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
-  const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const workspacePath = conversation?.extra?.workspace;
+  const workspaceEnabled = Boolean(workspacePath);
 
   const isGeminiConversation = conversation?.type === 'gemini';
   const isAionrsConversation = conversation?.type === 'aionrs';
@@ -341,11 +342,16 @@ const ChatConversation: React.FC<{
 
   const sliderTitle = useMemo(() => {
     return (
-      <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+      <div className='flex min-w-0 items-center gap-8px'>
+        <span className='shrink-0 text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+        {workspacePath && (
+          <Tooltip content={workspacePath}>
+            <span className='min-w-0 flex-1 truncate text-12px font-normal text-t-secondary'>{workspacePath}</span>
+          </Tooltip>
+        )}
       </div>
     );
-  }, [t]);
+  }, [t, workspacePath]);
 
   // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
   // For other non-Gemini conversations, show disabled GeminiModelSelector.
@@ -445,7 +451,7 @@ const ChatConversation: React.FC<{
       siderTitle={sliderTitle}
       sider={<ChatSider conversation={conversation} />}
       workspaceEnabled={workspaceEnabled}
-      workspacePath={conversation?.extra?.workspace}
+      workspacePath={workspacePath}
       conversationId={conversation?.id}
     >
       {conversationNode}

@@ -852,6 +852,7 @@
     "marketContributionAction": "Open a PR on AionHub",
     "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "Detect Custom Agent",
+    "addCursorCookbookAgent": "Add Cursor Cookbook Agent",
     "editCustomAgent": "Edit Custom Agent",
     "localAgentsEmpty": "No local agents detected",
     "detected": "Detected",

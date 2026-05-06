@@ -390,6 +390,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   const isFile = node.dataRef.isFile;
                   const isPasteTarget = !isFile && pasteHook.pasteTargetFolder === relativePath;
                   const nodeData = node.dataRef as IDirOrFile;
+                  const displayTitle = node.title === '.aionrs' ? '.aicore' : node.title;
 
                   return (
                     <div
@@ -407,7 +408,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       }}
                     >
                       <span className='flex items-center gap-4px min-w-0'>
-                        <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
+                        <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{displayTitle}</span>
                         {isPasteTarget && (
                           <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
                             PASTE

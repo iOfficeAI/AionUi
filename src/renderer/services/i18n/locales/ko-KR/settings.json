@@ -854,6 +854,7 @@
     "marketContributionAction": "AionHub에 PR 보내기",
     "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "커스텀 에이전트 감지",
+    "addCursorCookbookAgent": "Cursor Cookbook Agent 추가",
     "editCustomAgent": "커스텀 에이전트 편집",
     "localAgentsEmpty": "로컬 에이전트가 감지되지 않았습니다",
     "detected": "감지됨",

@@ -45,25 +45,29 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   // Get all detected execution engines, enriched with MCP transport support info.
   ipcBridge.acpConversation.getAvailableAgents.provider(() => {
     try {
-      const agents = agentRegistry.getDetectedAgents();
-      const enriched = agents.map((agent) => ({
-        ...agent,
-        supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
-      }));
+      // Refresh builtin CLI detection on each query so newly installed tools
+      // (e.g. Cursor CLI installed after app launch) appear without restart.
+      return agentRegistry.refreshBuiltinAgents().then(() => {
+        const agents = agentRegistry.getDetectedAgents();
+        const enriched = agents.map((agent) => ({
+          ...agent,
+          supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
+        }));
 
-      // Map to the IPC bridge response shape explicitly
-      const data = enriched.map((agent) => ({
-        backend: agent.backend,
-        name: agent.name,
-        kind: agent.kind,
-        cliPath: 'cliPath' in agent ? (agent.cliPath as string | undefined) : undefined,
-        supportedTransports: agent.supportedTransports,
-        isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
-        extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
-        isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
-        customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
-      }));
-      return Promise.resolve({ success: true as const, data });
+        // Map to the IPC bridge response shape explicitly
+        const data = enriched.map((agent) => ({
+          backend: agent.backend,
+          name: agent.name,
+          kind: agent.kind,
+          cliPath: 'cliPath' in agent ? (agent.cliPath as string | undefined) : undefined,
+          supportedTransports: agent.supportedTransports,
+          isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
+          extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
+          isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
+          customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
+        }));
+        return { success: true as const, data };
+      });
     } catch (error) {
       return Promise.resolve({
         success: false as const,

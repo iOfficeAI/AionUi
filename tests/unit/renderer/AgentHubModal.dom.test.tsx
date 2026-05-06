@@ -100,8 +100,8 @@ describe('AgentHubModal', () => {
     mockUseHubAgents.mockReturnValue({
       agents: [
         createAgent({ name: 'claude-code', displayName: 'Claude Code', status: 'installed' }),
-        createAgent({ name: 'github-copilot', displayName: 'GitHub Copilot', status: 'not_installed' }),
-        createAgent({ name: 'google-cli', displayName: 'Google CLI', status: 'update_available' }),
+        createAgent({ name: 'goose', displayName: 'Goose', status: 'not_installed' }),
+        createAgent({ name: 'qwen-code', displayName: 'Qwen Code', status: 'update_available' }),
       ],
       loading: false,
       error: undefined,
@@ -115,13 +115,13 @@ describe('AgentHubModal', () => {
     expect(screen.getByTestId('agent-hub-grid')).toBeTruthy();
     expect(screen.getAllByTestId('agent-hub-card')).toHaveLength(3);
     expect(screen.getByText('Claude Code')).toBeTruthy();
-    expect(screen.getByText('GitHub Copilot')).toBeTruthy();
+    expect(screen.getByText('Goose')).toBeTruthy();
 
     fireEvent.click(screen.getByRole('button', { name: 'Install' }));
     fireEvent.click(screen.getByRole('button', { name: 'Update' }));
 
-    expect(mockInstall).toHaveBeenCalledWith('github-copilot');
-    expect(mockUpdate).toHaveBeenCalledWith('google-cli');
+    expect(mockInstall).toHaveBeenCalledWith('goose');
+    expect(mockUpdate).toHaveBeenCalledWith('qwen-code');
   });
 
   it('renders retry action for failed installations', () => {

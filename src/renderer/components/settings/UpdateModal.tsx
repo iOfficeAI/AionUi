@@ -18,6 +18,7 @@ type UpdateStatus = 'checking' | 'upToDate' | 'available' | 'downloading' | 'dow
 type UpdateInfo = UpdateReleaseInfo;
 
 const UpdateModal: React.FC = () => {
+  const isUpdateEntryDisabled = true;
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState<UpdateStatus>('checking');
@@ -177,6 +178,7 @@ const UpdateModal: React.FC = () => {
   };
 
   const handleOpenUpdateModal = () => {
+    if (isUpdateEntryDisabled) return;
     setVisible(true);
     resetState();
     void checkForUpdates();
@@ -201,6 +203,7 @@ const UpdateModal: React.FC = () => {
         case 'checking':
           break;
         case 'available':
+          if (isUpdateEntryDisabled) return;
           setAutoUpdateAvailable(true);
           setAutoUpdateInfo({
             version: evt.version || '',
@@ -235,7 +238,7 @@ const UpdateModal: React.FC = () => {
     return () => {
       removeListener();
     };
-  }, [t]);
+  }, [isUpdateEntryDisabled, t]);
 
   useEffect(() => {
     const removeProgressListener = ipcBridge.update.downloadProgress.on((evt: UpdateDownloadProgressEvent) => {

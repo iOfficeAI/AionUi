@@ -4,6 +4,8 @@ import type { IHubAgentItem } from '@/common/types/hub';
 import { ipcBridge } from '@/common';
 import { DETECTED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
 
+const HIDDEN_AGENT_NAMES = new Set(['github-copilot', 'google-cli']);
+
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);
   const [loading, setLoading] = useState(false);
@@ -16,7 +18,9 @@ export function useHubAgents() {
       const response = await ipcBridge.hub.getExtensionList.invoke();
       if (response.success && response.data) {
         // Filter agents
-        const agentExtensions = response.data.filter((ext: IHubAgentItem) => ext.hubs?.includes('acpAdapters'));
+        const agentExtensions = response.data.filter(
+          (ext: IHubAgentItem) => ext.hubs?.includes('acpAdapters') && !HIDDEN_AGENT_NAMES.has(ext.name)
+        );
         setAgents(agentExtensions);
       } else {
         setError(response.msg || 'Failed to fetch hub extensions');

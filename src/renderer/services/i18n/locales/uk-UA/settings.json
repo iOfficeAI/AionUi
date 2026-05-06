@@ -770,6 +770,7 @@
     "marketContributionAction": "Открийте PR в AionHub",
     "marketComingSoon": "Маркет AionHub скоро з'явиться.",
     "detectCustomAgent": "Виявити власного агента",
+    "addCursorCookbookAgent": "Додати Agent Cursor Cookbook",
     "editCustomAgent": "Редагувати власного агента",
     "localAgentsEmpty": "Локальні агенти не виявлені",
     "detected": "Виявлено",

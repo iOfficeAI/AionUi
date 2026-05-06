@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Divider, Typography, Button, Switch } from '@arco-design/web-react';
+import { Divider, Typography } from '@arco-design/web-react';
 import { Github, Right } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
+import { openExternalUrl } from '@/renderer/utils/platform';
 import packageJson from '../../../../../../package.json';
 import FeedbackReportModal from './FeedbackReportModal';
 
@@ -22,20 +22,7 @@ const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
-  const isElectron = isElectronDesktop();
-
-  const [includePrerelease, setIncludePrerelease] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-
-  useEffect(() => {
-    const saved = localStorage.getItem('update.includePrerelease');
-    setIncludePrerelease(saved === 'true');
-  }, []);
-
-  const handlePrereleaseChange = (val: boolean) => {
-    setIncludePrerelease(val);
-    localStorage.setItem('update.includePrerelease', String(val));
-  };
 
   const openLink = async (url: string) => {
     try {
@@ -43,12 +30,6 @@ const AboutModalContent: React.FC = () => {
     } catch (error) {
       console.log('Failed to open link:', error);
     }
-  };
-
-  const checkUpdate = () => {
-    // 使用 window 自定义事件在渲染进程内部通信（buildEmitter 只支持主进程->渲染进程）
-    // Use window custom event for renderer-side communication (buildEmitter only works main->renderer)
-    window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'about' } }));
   };
 
   const linkItems: LinkItem[] = [
@@ -118,20 +99,6 @@ const AboutModalContent: React.FC = () => {
               </div>
             </div>
 
-            {/* Check Update Section */}
-            {isElectron && (
-              <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
-                <Button type='primary' long onClick={checkUpdate}>
-                  {t('settings.checkForUpdates')}
-                </Button>
-                <div className='flex items-center justify-between w-full'>
-                  <Typography.Text className='text-12px text-t-secondary'>
-                    {t('settings.includePrereleaseUpdates')}
-                  </Typography.Text>
-                  <Switch size='small' checked={includePrerelease} onChange={handlePrereleaseChange} />
-                </div>
-              </div>
-            )}
           </div>
 
           {/* Divider */}

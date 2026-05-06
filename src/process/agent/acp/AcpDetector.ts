@@ -214,10 +214,20 @@ class AcpDetector {
         });
       }
 
-      // Extension adapters are trusted — skip CLI availability check.
-      // They declare a defaultCliPath (e.g. "bunx @augmentcode/auggie") as fallback,
-      // so the CLI doesn't need to be on PATH.
-      return candidates.map((c) => c.agent);
+      const available = await this.batchCheckCliAvailability(candidates.map((c) => c.cliCommand));
+      const missing = candidates
+        .map((c) => c.cliCommand)
+        .filter((cmd, index, arr) => arr.indexOf(cmd) === index && !available.has(cmd));
+
+      if (missing.length > 0) {
+        const envPath = this.enhancedEnv?.PATH ?? process.env.PATH ?? '(empty)';
+        console.info(
+          `[AcpDetector] Extension adapter CLI not found: [${missing.join(', ')}]. ` +
+            `PATH(${envPath.length} chars): ${envPath.substring(0, 500)}`
+        );
+      }
+
+      return candidates.filter((c) => available.has(c.cliCommand)).map((c) => c.agent);
     } catch (error) {
       console.warn('[AcpDetector] Failed to load extension ACP adapters:', error);
       return [];
