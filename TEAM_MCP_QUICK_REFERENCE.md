@@ -72,7 +72,7 @@ Agent:  Call MCP tool: team_send_message
   ↓
 TCP:    Validate auth token → handleToolCall()
   ↓
-主进程: 
+主进程:
   ├─ resolveSlotId(to) → match target slot_id
   ├─ Write to target's mailbox
   ├─ Call safeWake(target_slot_id)
@@ -114,18 +114,18 @@ Agent:  stdio-mcp-bridge.js
 
 ## MCP 工具速查
 
-| 工具 | 调用者 | 参数 | 用途 |
-|------|--------|------|------|
-| `team_send_message` | Agent | `{to, message, summary?}` | 单聊/广播 |
-| `team_spawn_agent` | Leader | `{agent_type, agent_name, ...}` | 运行时添加 agent |
-| `team_task_create` | Agent | `{subject, description?, metadata?}` | 创建任务 |
-| `team_task_update` | Agent | `{id, status?, owner?, ...}` | 更新任务 |
-| `team_task_list` | Agent | `{}` | 查看任务 |
-| `team_members` | Agent | `{}` | 查看成员 |
-| `team_rename_agent` | Leader | `{slot_id, new_name}` | 重命名 agent |
-| `team_shutdown_agent` | Agent | `{slot_id}` | 请求 shutdown |
-| `team_describe_assistant` | Agent | `{assistant_id}` | 查询 assistant |
-| `team_list_models` | Agent | `{backend}` | 列模型 |
+| 工具                      | 调用者 | 参数                                 | 用途             |
+| ------------------------- | ------ | ------------------------------------ | ---------------- |
+| `team_send_message`       | Agent  | `{to, message, summary?}`            | 单聊/广播        |
+| `team_spawn_agent`        | Leader | `{agent_type, agent_name, ...}`      | 运行时添加 agent |
+| `team_task_create`        | Agent  | `{subject, description?, metadata?}` | 创建任务         |
+| `team_task_update`        | Agent  | `{id, status?, owner?, ...}`         | 更新任务         |
+| `team_task_list`          | Agent  | `{}`                                 | 查看任务         |
+| `team_members`            | Agent  | `{}`                                 | 查看成员         |
+| `team_rename_agent`       | Leader | `{slot_id, new_name}`                | 重命名 agent     |
+| `team_shutdown_agent`     | Agent  | `{slot_id}`                          | 请求 shutdown    |
+| `team_describe_assistant` | Agent  | `{assistant_id}`                     | 查询 assistant   |
+| `team_list_models`        | Agent  | `{backend}`                          | 列模型           |
 
 ---
 
@@ -163,12 +163,12 @@ POST   /api/teams/{team_id}/workspace       // 更新 workspace
 
 ```typescript
 // 订阅频道
-'team.agent.status'       // Agent 状态变更
-'team.agent.spawned'      // 新 agent 加入
-'team.agent.removed'      // Agent 被移除
-'team.agent.renamed'      // Agent 被重命名
-'team.list-changed'       // Team 列表变更
-'team.mcp.status'         // MCP 状态更新
+'team.agent.status'; // Agent 状态变更
+'team.agent.spawned'; // 新 agent 加入
+'team.agent.removed'; // Agent 被移除
+'team.agent.renamed'; // Agent 被重命名
+'team.list-changed'; // Team 列表变更
+'team.mcp.status'; // MCP 状态更新
 ```
 
 ---
@@ -181,23 +181,23 @@ type TTeam = {
   id: string;
   user_id: string;
   name: string;
-  workspace: string;                      // 工作目录
+  workspace: string; // 工作目录
   workspace_mode: 'shared' | 'isolated';
-  leader_agent_id: string;                // 指向 agents[*].slot_id
+  leader_agent_id: string; // 指向 agents[*].slot_id
   agents: TeamAgent[];
-  session_mode?: string;                  // 'plan', 'auto', etc
+  session_mode?: string; // 'plan', 'auto', etc
   created_at: number;
   updated_at: number;
 };
 
 // 单个 Agent
 type TeamAgent = {
-  slot_id: string;                        // 运行时唯一 ID
-  conversation_id: string;                // 对应聊天记录
+  slot_id: string; // 运行时唯一 ID
+  conversation_id: string; // 对应聊天记录
   role: 'leader' | 'teammate';
-  agent_type: string;                     // 'claude', 'gemini', 'acp'
-  agent_name: string;                     // 用户显示名称
-  conversation_type: string;              // 'acp', 'aionrs', 'codex'
+  agent_type: string; // 'claude', 'gemini', 'acp'
+  agent_name: string; // 用户显示名称
+  conversation_type: string; // 'acp', 'aionrs', 'codex'
   status: 'pending' | 'idle' | 'active' | 'completed' | 'failed';
   model?: TProviderWithModel;
 };
@@ -207,7 +207,7 @@ type MailboxMessage = {
   id: string;
   team_id: string;
   to_agent_id: string;
-  from_agent_id: string;                  // 'user' | slot_id
+  from_agent_id: string; // 'user' | slot_id
   type: 'message' | 'idle_notification' | 'shutdown_request';
   content: string;
   read: boolean;
@@ -220,8 +220,8 @@ type TeamTask = {
   team_id: string;
   subject: string;
   status: 'pending' | 'in_progress' | 'completed' | 'deleted';
-  owner?: string;                         // slot_id
-  blocked_by: string[];                   // task dependencies
+  owner?: string; // slot_id
+  blocked_by: string[]; // task dependencies
   blocks: string[];
   metadata: Record<string, unknown>;
   created_at: number;
@@ -237,8 +237,7 @@ type TeamTask = {
 const { teams, mutate, removeTeam } = useTeamList();
 
 // 管理单个 Team 的会话
-const { statusMap, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam } 
-  = useTeamSession(team);
+const { statusMap, sendMessage, addAgent, renameAgent, removeAgent, mutateTeam } = useTeamSession(team);
 
 // 监听 Agent 状态
 useEffect(() => {
@@ -251,7 +250,7 @@ useEffect(() => {
 // 监听 Team 列表变更
 useEffect(() => {
   return ipcBridge.team.listChanged.on(() => {
-    void mutate();  // Refresh list
+    void mutate(); // Refresh list
   });
 }, [mutate]);
 ```
@@ -262,53 +261,58 @@ useEffect(() => {
 
 ### 前端关键文件
 
-| 路径 | 功能 |
-|------|------|
-| `src/renderer/pages/team/TeamPage.tsx` | 主页面组件 |
-| `src/renderer/pages/team/hooks/useTeamSession.ts` | 核心 hook |
-| `src/renderer/pages/team/hooks/useTeamList.ts` | 列表 hook |
+| 路径                                                     | 功能       |
+| -------------------------------------------------------- | ---------- |
+| `src/renderer/pages/team/TeamPage.tsx`                   | 主页面组件 |
+| `src/renderer/pages/team/hooks/useTeamSession.ts`        | 核心 hook  |
+| `src/renderer/pages/team/hooks/useTeamList.ts`           | 列表 hook  |
 | `src/renderer/pages/team/components/TeamCreateModal.tsx` | 创建 Modal |
-| `src/renderer/pages/team/components/TeamChatView.tsx` | 聊天视图 |
-| `src/renderer/pages/team/components/TeamTabs.tsx` | Agent tabs |
+| `src/renderer/pages/team/components/TeamChatView.tsx`    | 聊天视图   |
+| `src/renderer/pages/team/components/TeamTabs.tsx`        | Agent tabs |
 
 ### 后端关键文件
 
-| 路径 | 功能 |
-|------|------|
-| `src/process/team/TeamSession.ts` | Team 协调核心 |
-| `src/process/team/mcp/team/TeamMcpServer.ts` | MCP TCP 服务器 |
-| `src/process/team/TeammateManager.ts` | Agent 生命周期 |
-| `src/process/team/Mailbox.ts` | Mailbox 接口 |
-| `src/process/team/TaskManager.ts` | 任务板 |
-| `src/process/team/mcpReadiness.ts` | 就绪同步 |
-| `src/process/team/repository/SqliteTeamRepository.ts` | 数据库 |
+| 路径                                                  | 功能           |
+| ----------------------------------------------------- | -------------- |
+| `src/process/team/TeamSession.ts`                     | Team 协调核心  |
+| `src/process/team/mcp/team/TeamMcpServer.ts`          | MCP TCP 服务器 |
+| `src/process/team/TeammateManager.ts`                 | Agent 生命周期 |
+| `src/process/team/Mailbox.ts`                         | Mailbox 接口   |
+| `src/process/team/TaskManager.ts`                     | 任务板         |
+| `src/process/team/mcpReadiness.ts`                    | 就绪同步       |
+| `src/process/team/repository/SqliteTeamRepository.ts` | 数据库         |
 
 ### 类型定义
 
-| 路径 | 内容 |
-|------|------|
-| `src/common/types/teamTypes.ts` | 前后端共享类型 |
-| `src/process/team/types.ts` | Process-only 类型 |
-| `src/common/adapter/teamMapper.ts` | 数据映射 |
-| `src/common/adapter/ipcBridge.ts` (L1429+) | IPC Bridge API |
+| 路径                                       | 内容              |
+| ------------------------------------------ | ----------------- |
+| `src/common/types/teamTypes.ts`            | 前后端共享类型    |
+| `src/process/team/types.ts`                | Process-only 类型 |
+| `src/common/adapter/teamMapper.ts`         | 数据映射          |
+| `src/common/adapter/ipcBridge.ts` (L1429+) | IPC Bridge API    |
 
 ---
 
 ## 常见问题速答
 
 ### Q: Agent 为什么收不到消息?
+
 A: 检查 mailbox 是否写入 → wake() 是否被调用 → agent process 是否还活着
 
 ### Q: MCP 工具调不了?
+
 A: 检查 TCP 连接是否建立 → auth token 是否正确 → mcp_ready 是否发送
 
 ### Q: Agent 状态不更新?
+
 A: 检查 WebSocket 连接 → team.agent.status 事件是否广播 → 前端订阅是否正确
 
 ### Q: 新 Agent 不显示?
+
 A: 检查 team.agent.spawned 事件 → useTeamSession mutateTeam() 是否执行
 
 ### Q: 消息顺序错乱?
+
 A: mailbox 表无显式排序，需在查询时 ORDER BY created_at DESC
 
 ---

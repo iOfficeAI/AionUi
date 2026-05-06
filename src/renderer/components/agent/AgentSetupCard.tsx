@@ -18,34 +18,8 @@ import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { AgentBackend } from '@/common/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
-
-// Agent logos
-import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
-import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
-import CodexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
-import OpenCodeLogo from '@/renderer/assets/logos/tools/coding/opencode.svg';
-import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
-import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
-import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
-import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
-import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
-import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
-import SnowLogo from '@/renderer/assets/logos/tools/coding/snow.png';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
-
-const AGENT_LOGOS: Partial<Record<AgentBackend, string>> = {
-  claude: ClaudeLogo,
-  codebuddy: CodeBuddyLogo,
-  codex: CodexLogo,
-  opencode: OpenCodeLogo,
-  gemini: GeminiLogo,
-  qwen: QwenLogo,
-  droid: DroidLogo,
-  goose: GooseLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  snow: SnowLogo,
-};
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 type AgentSetupCardProps = {
   conversation_id: string;
@@ -315,6 +289,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
                         statusClass = 'text-success-6';
                       }
 
+                      const logoSrc = getAgentLogo(result.backend as AgentBackend);
+
                       return (
                         <div
                           key={result.backend}
@@ -328,8 +304,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
                         >
                           <div className='flex flex-col items-center text-center'>
                             <div className='relative w-32px h-32px mb-6px'>
-                              {AGENT_LOGOS[result.backend] ? (
-                                <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-full h-full' />
+                              {logoSrc ? (
+                                <img src={logoSrc} alt={result.name} className='w-full h-full object-contain' />
                               ) : (
                                 <div className='w-full h-full rounded-full bg-fill-2 flex items-center justify-center text-14px text-t-primary'>
                                   {result.name.charAt(0)}

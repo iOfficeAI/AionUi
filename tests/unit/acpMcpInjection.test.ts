@@ -407,7 +407,6 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
   });
 });
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // Checklist #8: End-to-end falsification plan
 //

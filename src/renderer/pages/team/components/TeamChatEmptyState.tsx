@@ -7,6 +7,7 @@ import type { DetectedAgentKind } from '@/common/types/detectedAgent';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
 const useOpenClawDraft = getSendBoxDraftHook('openclaw-gateway', {
@@ -21,6 +22,7 @@ const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: 
 
 type Props = {
   conversation_id: string;
+  icon?: string;
 };
 
 const SUGGESTIONS = [
@@ -66,7 +68,7 @@ const resolveAgentName = (conversation: TChatConversation, presetName: string | 
   return 'Leader';
 };
 
-const TeamChatEmptyState: React.FC<Props> = ({ conversation_id }) => {
+const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon }) => {
   const { t } = useTranslation();
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
@@ -105,6 +107,7 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id }) => {
 
   const agent_type = resolveAgentTypeFromConversation(conversation);
   const agent_name = resolveAgentName(conversation, presetInfo?.name ?? null);
+  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = getAgentLogo(agent_type);
 
   const renderAvatar = () => {
@@ -122,6 +125,11 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id }) => {
           alt={presetInfo.name}
           className='w-48px h-48px object-contain rounded-8px opacity-90'
         />
+      );
+    }
+    if (explicitLogo) {
+      return (
+        <img src={explicitLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />
       );
     }
     if (backendLogo) {

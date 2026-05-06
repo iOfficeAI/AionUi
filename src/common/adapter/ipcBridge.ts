@@ -1565,9 +1565,7 @@ export const team = {
     fromBackendTeam
   ),
   list: withResponseMap(
-    httpGet<TTeam[], { user_id: string }>(
-      (p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`
-    ),
+    httpGet<TTeam[], { user_id: string }>((p) => `/api/teams?user_id=${encodeURIComponent(p.user_id)}`),
     fromBackendTeamList
   ),
   get: withResponseMap(

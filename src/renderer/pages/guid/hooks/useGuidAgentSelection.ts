@@ -431,7 +431,11 @@ export const useGuidAgentSelection = ({
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    if (handshakeModels && Array.isArray(handshakeModels.available_models) && handshakeModels.available_models.length > 0) {
+    if (
+      handshakeModels &&
+      Array.isArray(handshakeModels.available_models) &&
+      handshakeModels.available_models.length > 0
+    ) {
       return handshakeModels;
     }
 

@@ -1546,12 +1546,7 @@ export class AcpAgent {
       }
     };
 
-    try {
-      await doSession();
-    } catch (err) {
-      throw err;
-    }
-
+    await doSession();
   }
 
   private async loadBuiltinSessionMcpServers(): Promise<AcpSessionMcpServer[]> {

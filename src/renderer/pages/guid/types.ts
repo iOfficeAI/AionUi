@@ -14,6 +14,7 @@ import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
 export type AvailableAgent = {
   agent_type: string;
   backend?: string;
+  icon?: string;
   name: string;
   cli_path?: string;
   custom_agent_id?: string;

@@ -12,6 +12,7 @@
 本次研究通过深度分析 AionUi 主分支的 TypeScript 源码，完整反推了 **Team MCP (Model Context Protocol) 多 Agent 协作框架**的设计和实现。
 
 **核心发现**：
+
 - ✅ Team 生命周期管理完整（创建、删除、agent 增删改）
 - ✅ MCP 注入链路清晰（TCP server + stdio bridge + 认证）
 - ✅ 成员通信架构成熟（群聊、单聊、广播、shutdown 机制）
@@ -26,14 +27,14 @@
 
 ### 信息源
 
-| 来源 | 文件数 | 关键发现 |
-|------|--------|---------|
-| 类型定义 | 4 | TTeam、TeamAgent、MailboxMessage、MCP 状态枚举 |
-| 后端核心 | 6 | TeamSession、TeamMcpServer、TeammateManager、Mailbox |
-| 前端页面 | 5 | TeamPage、TeamCreateModal、TeamChatView、Team hooks |
-| IPC Bridge | 1 | 18 个 REST 端点、10 个 MCP 工具、6 个 WebSocket 事件 |
-| 数据库 | 1 | SQLite schema (teams, mailbox, tasks) |
-| **总计** | **17** | — |
+| 来源       | 文件数 | 关键发现                                             |
+| ---------- | ------ | ---------------------------------------------------- |
+| 类型定义   | 4      | TTeam、TeamAgent、MailboxMessage、MCP 状态枚举       |
+| 后端核心   | 6      | TeamSession、TeamMcpServer、TeammateManager、Mailbox |
+| 前端页面   | 5      | TeamPage、TeamCreateModal、TeamChatView、Team hooks  |
+| IPC Bridge | 1      | 18 个 REST 端点、10 个 MCP 工具、6 个 WebSocket 事件 |
+| 数据库     | 1      | SQLite schema (teams, mailbox, tasks)                |
+| **总计**   | **17** | —                                                    |
 
 ### 分析流程
 
@@ -90,29 +91,29 @@
 
 **10 个工具**，分为 3 类：
 
-| 类别 | 工具 | 用途 |
-|------|------|------|
-| **通信** | team_send_message | 单聊/广播 |
-| **生命周期** | team_spawn_agent | 运行时添加 agent |
-| | team_shutdown_agent | 请求 agent 关闭 |
-| | team_rename_agent | 重命名 agent |
-| **协作** | team_task_create | 创建任务 |
-| | team_task_update | 更新任务 |
-| | team_task_list | 查看任务 |
-| | team_members | 查看成员 |
-| **查询** | team_describe_assistant | Assistant 元数据 |
-| | team_list_models | 后端支持的模型 |
+| 类别         | 工具                    | 用途             |
+| ------------ | ----------------------- | ---------------- |
+| **通信**     | team_send_message       | 单聊/广播        |
+| **生命周期** | team_spawn_agent        | 运行时添加 agent |
+|              | team_shutdown_agent     | 请求 agent 关闭  |
+|              | team_rename_agent       | 重命名 agent     |
+| **协作**     | team_task_create        | 创建任务         |
+|              | team_task_update        | 更新任务         |
+|              | team_task_list          | 查看任务         |
+|              | team_members            | 查看成员         |
+| **查询**     | team_describe_assistant | Assistant 元数据 |
+|              | team_list_models        | 后端支持的模型   |
 
 ### WebSocket 事件矩阵
 
-| 事件 | 触发者 | 消费者 | 数据 |
-|------|--------|--------|------|
-| `team.agent.status` | TeammateManager | useTeamSession | status + last_message |
-| `team.agent.spawned` | TeammateManager | useTeamSession | agent 完整记录 |
-| `team.agent.removed` | TeamMcpServer | useTeamSession | slot_id |
-| `team.agent.renamed` | TeammateManager | useTeamSession | old_name + new_name |
-| `team.list-changed` | TeamSession | useTeamList | action (created/removed/...) |
-| `team.mcp.status` | TeamMcpServer | — | phase + port/error |
+| 事件                 | 触发者          | 消费者         | 数据                         |
+| -------------------- | --------------- | -------------- | ---------------------------- |
+| `team.agent.status`  | TeammateManager | useTeamSession | status + last_message        |
+| `team.agent.spawned` | TeammateManager | useTeamSession | agent 完整记录               |
+| `team.agent.removed` | TeamMcpServer   | useTeamSession | slot_id                      |
+| `team.agent.renamed` | TeammateManager | useTeamSession | old_name + new_name          |
+| `team.list-changed`  | TeamSession     | useTeamList    | action (created/removed/...) |
+| `team.mcp.status`    | TeamMcpServer   | —              | phase + port/error           |
 
 ---
 
@@ -128,29 +129,30 @@
 Step 1: TeamSession.startMcpServer()
   → net.createServer() on localhost:random
   → 生成一次性 UUID token
-  
+
 Step 2: TeamMcpServer.getStdioConfig(agentSlotId)
   → 返回配置对象，包含:
     - command: 'node'
     - args: ['scripts/team-mcp-stdio.js']
     - env: [TEAM_MCP_PORT={port}, TEAM_MCP_TOKEN={token}, TEAM_AGENT_SLOT_ID={slotId}]
-    
+
 Step 3: Inject into session/new
   → agent CLI 接收 mcpServers 配置
   → 启动 stdio 脚本，将 env vars 传入
-  
+
 Step 4: stdio-mcp-bridge.js
   → 读环境变量
   → 连接 TCP socket
   → 验证 token (防止未授权访问)
   → 发送 mcp_ready 通知
-  
+
 Step 5: waitForMcpReady(slot_id)
   → 等待 mcp_ready 信号（30s timeout）
   → 解除等待后，MCP 工具对 agent 可用
 ```
 
 **为什么这样设计**:
+
 - ✅ 隔离安全：每个 team 独立 TCP server + 认证 token
 - ✅ 隔离故障：一个 agent 进程崩溃不影响其他
 - ✅ 动态生成：无需提前约定端口，避免端口冲突
@@ -163,6 +165,7 @@ Step 5: waitForMcpReady(slot_id)
 **三种模式**:
 
 #### 群聊 (User → Leader)
+
 ```
 user sends message
   → HTTP POST /api/teams/{team_id}/messages
@@ -174,6 +177,7 @@ user sends message
 ```
 
 #### 单聊 (Agent → Agent)
+
 ```
 Agent A calls MCP tool: team_send_message({to: 'Agent B', message: '...'})
   → TCP request to TeamMcpServer
@@ -184,7 +188,8 @@ Agent A calls MCP tool: team_send_message({to: 'Agent B', message: '...'})
   → Agent B 的下一次 wake 会 readUnread() 获取消息
 ```
 
-#### 广播 (Agent → *)
+#### 广播 (Agent → \*)
+
 ```
 Agent A calls MCP tool: team_send_message({to: '*', message: '...'})
   → handleSendMessage() recognizes to='*'
@@ -194,16 +199,17 @@ Agent A calls MCP tool: team_send_message({to: '*', message: '...'})
 ```
 
 **特殊流程：Shutdown**
+
 ```
 Agent A: team_shutdown_agent({slot_id: A})
   → TeamMcpServer sends idle_notification to leader
-  
+
 Leader: Decides → team_send_message('shutdown_approved')
   → TeamMcpServer recognizes "shutdown_approved"
   → Calls removeAgent(A.slot_id)
   → Emits WebSocket: team.agent.removed
   → Frontend: Remove A's tab
-  
+
 或 Leader: team_send_message('shutdown_rejected: still working')
   → Agent remains in team
 ```
@@ -225,6 +231,7 @@ removed (从 team 移除)
 ```
 
 **Front-end 反映**:
+
 - pending → 灰色 + 无 badge
 - idle → 灰色 + "idle"
 - active → 蓝色 + 加载圈
@@ -236,9 +243,11 @@ removed (从 team 移除)
 ## 文档产出物
 
 ### 1. TEAM_MCP_PRD.md (1200+ 行)
+
 **用途**: 完整的功能规格，供后端开发、前端联调、测试人员参考
 
 **内容**:
+
 - Team 生命周期全流程
 - MCP 注入链路详细分解
 - 成员通信三种模式
@@ -250,9 +259,11 @@ removed (从 team 移除)
 - 已知限制和 TODOs
 
 ### 2. TEAM_MCP_VERIFICATION_CHECKLIST.md (500+ 行)
+
 **用途**: 回归测试检查清单，驱动 QA / 开发验证
 
 **内容**:
+
 - 12 个测试类别（Team 生命周期、MCP、通信、UI、WebSocket 等）
 - 109 个具体检查项
 - 每项包含：前端、HTTP、后端、IPC 事件的验证步骤
@@ -262,9 +273,11 @@ removed (从 team 移除)
 - 并发场景
 
 ### 3. TEAM_MCP_QUICK_REFERENCE.md (300+ 行)
+
 **用途**: 快速查询卡片，供开发快速定位
 
 **内容**:
+
 - 架构图
 - 3 个核心数据流
 - MCP 工具速查表
@@ -281,18 +294,18 @@ removed (从 team 移除)
 
 ### 覆盖度
 
-| 维度 | 覆盖 | 评分 |
-|------|------|------|
-| 前端页面布局 | 100% | ✅✅✅ |
-| 前端 hooks | 100% | ✅✅✅ |
-| 后端 Team 生命周期 | 100% | ✅✅✅ |
-| MCP 注入流程 | 95% | ✅✅✅ (stdio 脚本未阅读源码，基于推理) |
-| 成员通信 | 100% | ✅✅✅ |
-| WebSocket 事件 | 100% | ✅✅✅ |
-| IPC Bridge API | 100% | ✅✅✅ |
-| SQLite schema | 100% | ✅✅✅ |
-| 错误处理 | 70% | ✅✅ (部分推理) |
-| **总体** | **95%** | **✅✅✅** |
+| 维度               | 覆盖    | 评分                                    |
+| ------------------ | ------- | --------------------------------------- |
+| 前端页面布局       | 100%    | ✅✅✅                                  |
+| 前端 hooks         | 100%    | ✅✅✅                                  |
+| 后端 Team 生命周期 | 100%    | ✅✅✅                                  |
+| MCP 注入流程       | 95%     | ✅✅✅ (stdio 脚本未阅读源码，基于推理) |
+| 成员通信           | 100%    | ✅✅✅                                  |
+| WebSocket 事件     | 100%    | ✅✅✅                                  |
+| IPC Bridge API     | 100%    | ✅✅✅                                  |
+| SQLite schema      | 100%    | ✅✅✅                                  |
+| 错误处理           | 70%     | ✅✅ (部分推理)                         |
+| **总体**           | **95%** | **✅✅✅**                              |
 
 ### 准确性验证点
 
@@ -309,13 +322,16 @@ removed (从 team 移除)
 ### 风险等级: 🟢 低
 
 **P0 (Critical)**
+
 - ❌ 未发现
 
 **P1 (High)**
+
 - ⚠️ MCP 就绪 30 秒硬超时 — 若 agent 启动慢，可能降级
   - 建议: 可考虑动态调整或提供配置选项
 
 **P2 (Medium)**
+
 - ⚠️ Mailbox 表无索引 — 大量消息时查询性能堪忧
   - 建议: 在 `(team_id, to_agent_id)` 建立组合索引
 
@@ -341,18 +357,22 @@ removed (从 team 移除)
 ## 下一步行动计划
 
 ### Phase 1: 验证 (1 周)
+
 - [ ] **回归测试** (Task #1)：对照清单逐条验证（优先 P0 项）
 - [ ] **后端确认** (Task #2)：确保后端 API 覆盖所有端点 + WebSocket 事件
 
 ### Phase 2: 准备 (1 周)
+
 - [ ] **前端准备** (Task #4)：类型抽取、ipcBridge import 修复
 - [ ] **接口契约** (Task #3)：产出前后端接口文档
 
 ### Phase 3: 联调 (1 周)
+
 - [ ] **联调测试** (Task #6)：前后端全链路跑通
 - [ ] **端到端测试**：真实 agent 协作场景验证
 
 ### Phase 4: 上线 (1 周)
+
 - [ ] 性能测试
 - [ ] 安全审计
 - [ ] 上线和 monitoring
@@ -364,22 +384,26 @@ removed (从 team 移除)
 ## 关键依赖检查
 
 **后端 API 必须实现**:
+
 - [ ] 18 个 REST 端点（CRUD + session + messages）
 - [ ] 6 个 WebSocket 事件转发
 - [ ] 错误处理和异常响应
 
 **SQLite 数据库**:
+
 - [ ] teams 表（含 agents JSON 列）
 - [ ] mailbox 表
 - [ ] tasks 表
 - [ ] 建议的索引优化
 
 **Electron 主进程**:
+
 - [ ] TeamSession / TeamMcpServer / TeammateManager 完整实现
 - [ ] mcpReadiness 同步机制
 - [ ] 数据库连接池
 
 **Agent CLI**:
+
 - [ ] stdio-mcp-bridge.js 脚本部署
 - [ ] 环境变量正确传入
 
@@ -388,12 +412,14 @@ removed (从 team 移除)
 ## 研究团队反思
 
 ### 做得好的地方
+
 ✅ 使用"反推 PRD"方法而不是"猜测"，确保准确性  
 ✅ 建立了完整的数据流图，便于理解复杂系统  
 ✅ 产出了 3 份不同层次的文档，满足不同角色需求  
-✅ 包含了具体的代码路径和行号，便于快速定位  
+✅ 包含了具体的代码路径和行号，便于快速定位
 
 ### 可以改进的地方
+
 - 可以更深入 stdio-mcp-bridge.js（虽然在 scripts/ 目录，可能需要额外查找）
 - 可以分析测试用例了解边界条件
 - 可以梳理 git blame 了解设计演进过程
@@ -415,6 +441,7 @@ removed (从 team 移除)
 ### 源码位置
 
 **前端** (src/renderer/):
+
 ```
 pages/team/
 ├── index.tsx                    # 路由入口
@@ -433,6 +460,7 @@ pages/team/
 ```
 
 **后端** (src/process/team/):
+
 ```
 ├── TeamSession.ts               # 协调核心
 ├── TeammateManager.ts           # Agent 生命周期
@@ -451,6 +479,7 @@ pages/team/
 ```
 
 **类型和适配** (src/common/):
+
 ```
 types/
 └── teamTypes.ts                 # 共享类型定义

@@ -86,9 +86,7 @@ test.describe('Team Delete - Full UI Flow', () => {
     await page.screenshot({ path: 'tests/e2e/results/case5-04-after-delete.png' });
 
     // Step 9: Backend confirms team is gone
-    const teamState = await invokeBridge<unknown>(page, 'team.get', { id: teamId }).catch(
-      () => null
-    );
+    const teamState = await invokeBridge<unknown>(page, 'team.get', { id: teamId }).catch(() => null);
     expect(teamState).toBeNull();
   });
 });

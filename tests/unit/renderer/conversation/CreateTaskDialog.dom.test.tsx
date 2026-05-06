@@ -330,6 +330,8 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
 // Mock utils
 vi.mock('@renderer/utils/model/agentLogo', () => ({
   getAgentLogo: (backend: string) => (backend === 'claude' ? '/logo/claude.png' : null),
+  resolveAgentLogo: (opts: { icon?: string; backend?: string }) =>
+    opts.icon || (opts.backend === 'claude' ? '/logo/claude.png' : null),
 }));
 
 vi.mock('@/renderer/pages/guid/constants', () => ({

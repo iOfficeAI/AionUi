@@ -6,6 +6,7 @@ import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
 import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import { isTeamCapableBackend } from '@/common/types/teamTypes';
+import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 /**
  * Team leader selector entry — unified view over CLI agents and preset
@@ -70,13 +71,21 @@ export function resolveConversationType(
 export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }) => {
   const logo = getAgentLogo(agent.backend);
   const avatarImage = agent.icon ? CUSTOM_AVATAR_IMAGE_MAP[agent.icon] : undefined;
-  const isEmoji = agent.icon && !avatarImage && !agent.icon.endsWith('.svg');
+  const directIcon =
+    agent.icon &&
+    !avatarImage &&
+    (/^(?:[a-z][a-z\d+.-]*:|\/)/i.test(agent.icon) || /\.(svg|png|jpe?g|gif|webp)$/i.test(agent.icon))
+      ? (resolveBackendAssetUrl(agent.icon) ?? agent.icon)
+      : undefined;
+  const isEmoji = Boolean(agent.icon && !avatarImage && !directIcon);
   return (
     <div className='flex items-center gap-8px'>
       {avatarImage ? (
         <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : isEmoji ? (
         <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.icon}</span>
+      ) : directIcon ? (
+        <img src={directIcon} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : logo ? (
         <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (

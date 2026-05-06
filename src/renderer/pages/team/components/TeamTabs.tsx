@@ -13,6 +13,7 @@ type TeamTabViewProps = {
   slot_id: string;
   agent_name: string;
   agent_type: string;
+  icon?: string;
   conversation_id?: string;
   isActive: boolean;
   status: TeammateStatus;
@@ -32,6 +33,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   slot_id,
   agent_name,
   agent_type,
+  icon,
   conversation_id,
   isActive,
   status,
@@ -137,6 +139,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
           <TeamAgentIdentity
             agent_name={agent_name}
             agent_type={agent_type}
+            icon={icon}
             conversation_id={conversation_id}
             isLeader={isLeader}
             className='min-w-0 flex-1'
@@ -252,6 +255,7 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
                 slot_id={agent.slot_id}
                 agent_name={agent.agent_name}
                 agent_type={agent.agent_type}
+                icon={agent.icon}
                 conversation_id={agent.conversation_id}
                 isActive={agent.slot_id === activeSlotId}
                 status={statusInfo?.status ?? agent.status}

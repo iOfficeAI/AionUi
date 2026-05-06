@@ -88,15 +88,7 @@ const AcpSendBox: React.FC<{
   agent_name?: string;
   workspacePath?: string;
   messageState: UseAcpMessageReturn;
-}> = ({
-  conversation_id,
-  backend,
-  session_mode,
-  cached_config_options,
-  agent_name,
-  workspacePath,
-  messageState,
-}) => {
+}> = ({ conversation_id, backend, session_mode, cached_config_options, agent_name, workspacePath, messageState }) => {
   const {
     running,
     hasHydratedRunningState,

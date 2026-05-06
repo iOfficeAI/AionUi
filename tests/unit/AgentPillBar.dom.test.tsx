@@ -136,6 +136,20 @@ describe('AgentPillBar', () => {
     expect(img.src).toContain('/claude.svg');
   });
 
+  it('prefers the backend-provided icon over the fallback backend mapping', () => {
+    const agents: AvailableAgent[] = [
+      makeAgent({
+        agent_type: 'acp',
+        backend: 'claude',
+        icon: '/api/assets/logos/custom/claude.svg',
+        name: 'Claude',
+      }),
+    ];
+    render(<AgentPillBar {...defaultProps} availableAgents={agents} />);
+    const img = screen.getByAltText('claude logo') as HTMLImageElement;
+    expect(img.src).toContain('/api/assets/logos/custom/claude.svg');
+  });
+
   it('renders Robot icon when no logo available', () => {
     const agents: AvailableAgent[] = [makeAgent({ agent_type: 'remote', name: 'Unknown' })];
     render(<AgentPillBar {...defaultProps} availableAgents={agents} selectedAgentKey='remote' />);

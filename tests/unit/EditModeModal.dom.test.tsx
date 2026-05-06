@@ -48,29 +48,6 @@ vi.mock('@renderer/hooks/agent/useModeModeList', () => ({
   default: () => mockUseModeModeList(),
 }));
 
-// Mock SVG and PNG imports
-vi.mock('@/renderer/assets/logos/ai-major/gemini.svg', () => ({ default: 'gemini.svg' }));
-vi.mock('@/renderer/assets/logos/ai-major/openai.svg', () => ({ default: 'openai.svg' }));
-vi.mock('@/renderer/assets/logos/ai-major/anthropic.svg', () => ({ default: 'anthropic.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/bedrock.svg', () => ({ default: 'bedrock.svg' }));
-vi.mock('@/renderer/assets/logos/ai-major/deepseek.svg', () => ({ default: 'deepseek.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/openrouter.svg', () => ({ default: 'openrouter.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/siliconflow.png', () => ({ default: 'siliconflow.png' }));
-vi.mock('@/renderer/assets/logos/ai-china/qwen.svg', () => ({ default: 'qwen.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/kimi.svg', () => ({ default: 'kimi.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/zhipu.svg', () => ({ default: 'zhipu.svg' }));
-vi.mock('@/renderer/assets/logos/ai-major/xai.svg', () => ({ default: 'xai.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/volcengine.svg', () => ({ default: 'volcengine.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/baidu.svg', () => ({ default: 'baidu.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/tencent.svg', () => ({ default: 'tencent.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/lingyiwanwu.svg', () => ({ default: 'lingyiwanwu.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/poe.svg', () => ({ default: 'poe.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/modelscope.svg', () => ({ default: 'modelscope.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/infiniai.svg', () => ({ default: 'infiniai.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/ctyun.svg', () => ({ default: 'ctyun.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/stepfun.svg', () => ({ default: 'stepfun.svg' }));
-vi.mock('@/renderer/assets/logos/ai-cloud/newapi.svg', () => ({ default: 'newapi.svg' }));
-
 // Track unhandled rejections
 let unhandledRejection: Error | undefined;
 const rejectionHandler = (event: PromiseRejectionEvent) => {

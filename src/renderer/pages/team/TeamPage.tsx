@@ -88,6 +88,7 @@ const AgentChatSlot: React.FC<{
         <TeamAgentIdentity
           agent_name={agent.agent_name}
           agent_type={agent.agent_type}
+          icon={agent.icon}
           conversation_id={agent.conversation_id}
           isLeader={isLeader}
           className='min-w-0'
@@ -135,6 +136,7 @@ const AgentChatSlot: React.FC<{
             conversation={conversation as TChatConversation}
             team_id={team_id}
             agent_name={agent.agent_name}
+            agent_icon={agent.icon}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>

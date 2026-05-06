@@ -73,6 +73,14 @@ describe('TeamAgentIdentity', () => {
     expect(avatar.src).toContain('/assets/cowork.svg');
   });
 
+  it('prefers the explicit agent icon over the backend fallback logo', () => {
+    render(<TeamAgentIdentity agent_name='eve' agent_type='gemini' icon='/api/assets/logos/tools/goose.svg' />);
+
+    const avatar = screen.getByAltText('eve') as HTMLImageElement;
+    expect(avatar.src).toContain('/api/assets/logos/tools/goose.svg');
+    expect(screen.queryByAltText('gemini')).toBeNull();
+  });
+
   it('falls back to the first-letter circle when no preset and no backend logo exist', () => {
     render(<TeamAgentIdentity agent_name='dave' agent_type='no-logo' />);
 

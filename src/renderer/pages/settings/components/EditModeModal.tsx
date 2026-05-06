@@ -7,90 +7,7 @@ import AionModal from '@/renderer/components/base/AionModal';
 import { LinkCloud } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import useModeModeList from '@renderer/hooks/agent/useModeModeList';
-
-// Provider Logo imports
-import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
-import OpenAILogo from '@/renderer/assets/logos/ai-major/openai.svg';
-import AnthropicLogo from '@/renderer/assets/logos/ai-major/anthropic.svg';
-import BedrockLogo from '@/renderer/assets/logos/ai-cloud/bedrock.svg';
-import DeepSeekLogo from '@/renderer/assets/logos/ai-major/deepseek.svg';
-import OpenRouterLogo from '@/renderer/assets/logos/ai-cloud/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/ai-cloud/siliconflow.png';
-import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
-import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
-import ZhipuLogo from '@/renderer/assets/logos/ai-china/zhipu.svg';
-import XaiLogo from '@/renderer/assets/logos/ai-major/xai.svg';
-import VolcengineLogo from '@/renderer/assets/logos/ai-china/volcengine.svg';
-import BaiduLogo from '@/renderer/assets/logos/ai-china/baidu.svg';
-import TencentLogo from '@/renderer/assets/logos/ai-china/tencent.svg';
-import LingyiLogo from '@/renderer/assets/logos/ai-china/lingyiwanwu.svg';
-import PoeLogo from '@/renderer/assets/logos/ai-cloud/poe.svg';
-import ModelScopeLogo from '@/renderer/assets/logos/ai-cloud/modelscope.svg';
-import InfiniAILogo from '@/renderer/assets/logos/ai-cloud/infiniai.svg';
-import CtyunLogo from '@/renderer/assets/logos/ai-cloud/ctyun.svg';
-import StepFunLogo from '@/renderer/assets/logos/ai-china/stepfun.svg';
-import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
-
-/**
- * 供应商配置（包含名称、URL、Logo）
- * Provider config (includes name, URL, logo)
- */
-const PROVIDER_CONFIGS = [
-  { name: 'Gemini', url: '', logo: GeminiLogo, platform: 'gemini' },
-  { name: 'Gemini (Vertex AI)', url: '', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
-  { name: 'New API', url: '', logo: NewApiLogo, platform: 'new-api' },
-  { name: 'OpenAI', url: 'https://api.openai.com/v1', logo: OpenAILogo },
-  { name: 'Anthropic', url: 'https://api.anthropic.com/v1', logo: AnthropicLogo },
-  { name: 'AWS Bedrock', url: '', logo: BedrockLogo, platform: 'bedrock' },
-  { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },
-  { name: 'OpenRouter', url: 'https://openrouter.ai/api/v1', logo: OpenRouterLogo },
-  { name: 'SiliconFlow-CN', url: 'https://api.siliconflow.cn/v1', logo: SiliconFlowLogo },
-  { name: 'SiliconFlow', url: 'https://api.siliconflow.com/v1', logo: SiliconFlowLogo },
-  { name: 'Dashscope', url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', logo: QwenLogo },
-  { name: 'Moonshot (China)', url: 'https://api.moonshot.cn/v1', logo: KimiLogo },
-  { name: 'Moonshot (Global)', url: 'https://api.moonshot.ai/v1', logo: KimiLogo },
-  { name: 'Zhipu', url: 'https://open.bigmodel.cn/api/paas/v4', logo: ZhipuLogo },
-  { name: 'xAI', url: 'https://api.x.ai/v1', logo: XaiLogo },
-  { name: 'Ark', url: 'https://ark.cn-beijing.volces.com/api/v3', logo: VolcengineLogo },
-  { name: 'Qianfan', url: 'https://qianfan.baidubce.com/v2', logo: BaiduLogo },
-  { name: 'Hunyuan', url: 'https://api.hunyuan.cloud.tencent.com/v1', logo: TencentLogo },
-  { name: 'Lingyi', url: 'https://api.lingyiwanwu.com/v1', logo: LingyiLogo },
-  { name: 'Poe', url: 'https://api.poe.com/v1', logo: PoeLogo },
-  { name: 'ModelScope', url: 'https://api-inference.modelscope.cn/v1', logo: ModelScopeLogo },
-  { name: 'InfiniAI', url: 'https://cloud.infini-ai.com/maas/v1', logo: InfiniAILogo },
-  { name: 'Ctyun', url: 'https://wishub-x1.ctyun.cn/v1', logo: CtyunLogo },
-  { name: 'StepFun', url: 'https://api.stepfun.com/v1', logo: StepFunLogo },
-];
-
-/**
- * 根据名称或 URL 获取供应商 Logo
- * Get provider logo by name or URL
- */
-const getProviderLogo = (name?: string, base_url?: string, platform?: string): string | null => {
-  if (!name && !base_url && !platform) return null;
-
-  // 优先按 platform 匹配（Gemini 系列）
-  if (platform) {
-    const byPlatform = PROVIDER_CONFIGS.find((p) => p.platform === platform);
-    if (byPlatform) return byPlatform.logo;
-  }
-
-  // 按名称精确匹配
-  const byName = PROVIDER_CONFIGS.find((p) => p.name === name);
-  if (byName) return byName.logo;
-
-  // 按名称模糊匹配（忽略大小写）
-  const byNameLower = PROVIDER_CONFIGS.find((p) => p.name.toLowerCase() === name?.toLowerCase());
-  if (byNameLower) return byNameLower.logo;
-
-  // 按 URL 匹配
-  if (base_url) {
-    const byUrl = PROVIDER_CONFIGS.find((p) => p.url && base_url.includes(p.url.replace('https://', '').split('/')[0]));
-    if (byUrl) return byUrl.logo;
-  }
-
-  return null;
-};
+import { getProviderLogo } from '@/renderer/utils/model/modelPlatforms';
 
 /**
  * 供应商 Logo 组件
@@ -116,7 +33,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
     // 获取供应商 Logo / Get provider logo
     const providerLogo = useMemo(() => {
-      return getProviderLogo(data?.name, data?.base_url, data?.platform);
+      return getProviderLogo({ name: data?.name, base_url: data?.base_url, platform: data?.platform });
     }, [data?.name, data?.base_url, data?.platform]);
 
     // For Bedrock, don't pass bedrock_config to avoid auto-refresh on input changes

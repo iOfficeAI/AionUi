@@ -750,7 +750,6 @@ app.on('before-quit', async () => {
       /* pet not initialized */
     }
 
-
     // Web Server lifecycle is managed by aionui-backend subprocess
 
     // Stop Office Watch processes (Word / Excel / PPT preview)

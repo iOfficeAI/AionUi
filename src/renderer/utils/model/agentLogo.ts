@@ -10,26 +10,7 @@
  * All places that need to display agent icons should use this utility instead of maintaining separate lists
  */
 
-import AionLogo from '@/renderer/assets/logos/brand/aion.svg';
-import AuggieLogo from '@/renderer/assets/logos/brand/auggie.svg';
-import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
-import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';
-import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
-import CodexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
-import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
-import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
-import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
-import GooseLogo from '@/renderer/assets/logos/tools/goose.svg';
-import HermesLogo from '@/renderer/assets/logos/brand/hermes.svg';
-import SnowLogo from '@/renderer/assets/logos/tools/coding/snow.png';
-import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
-import MistralLogo from '@/renderer/assets/logos/ai-major/mistral.svg';
-import NanobotLogo from '@/renderer/assets/logos/tools/nanobot.svg';
-import OpenClawLogo from '@/renderer/assets/logos/tools/openclaw.svg';
-import OpenCodeLogoDark from '@/renderer/assets/logos/tools/coding/opencode-dark.svg';
-import OpenCodeLogoLight from '@/renderer/assets/logos/tools/coding/opencode-light.svg';
-import QoderLogo from '@/renderer/assets/logos/tools/coding/qoder.png';
-import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
+import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
 
 /**
  * Agent Logo 映射表
@@ -38,29 +19,47 @@ import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
  * 注意：key 使用小写，支持多种变体（如 openclaw-gateway 和 openclaw）
  * Note: keys are lowercase, supports multiple variants (e.g., openclaw-gateway and openclaw)
  */
-const AGENT_LOGO_MAP = {
-  aionrs: AionLogo,
-  claude: ClaudeLogo,
-  gemini: GeminiLogo,
-  qwen: QwenLogo,
-  codex: CodexLogo,
-  codebuddy: CodeBuddyLogo,
-  droid: DroidLogo,
-  goose: GooseLogo,
-  hermes: HermesLogo,
-  snow: SnowLogo,
-  auggie: AuggieLogo,
-  kimi: KimiLogo,
-  opencode: OpenCodeLogoLight,
-  copilot: GitHubLogo,
-  openclaw: OpenClawLogo,
-  'openclaw-gateway': OpenClawLogo,
-  vibe: MistralLogo,
-  nanobot: NanobotLogo,
-  remote: OpenClawLogo,
-  qoder: QoderLogo,
-  cursor: CursorLogo,
+const AGENT_LOGO_PATH_MAP = {
+  aionrs: 'brand/aion.svg',
+  claude: 'ai-major/claude.svg',
+  gemini: 'ai-major/gemini.svg',
+  qwen: 'ai-china/qwen.svg',
+  codex: 'tools/coding/codex.svg',
+  codebuddy: 'tools/coding/codebuddy.svg',
+  droid: 'brand/droid.svg',
+  goose: 'tools/goose.svg',
+  hermes: 'brand/hermes.svg',
+  snow: 'tools/coding/snow.png',
+  auggie: 'brand/auggie.svg',
+  kimi: 'ai-china/kimi.svg',
+  opencode: 'tools/coding/opencode-light.svg',
+  'opencode-dark': 'tools/coding/opencode-dark.svg',
+  copilot: 'tools/github.svg',
+  openclaw: 'tools/openclaw.svg',
+  'openclaw-gateway': 'tools/openclaw.svg',
+  vibe: 'ai-major/mistral.svg',
+  nanobot: 'tools/nanobot.svg',
+  remote: 'tools/openclaw.svg',
+  qoder: 'tools/coding/qoder.png',
+  cursor: 'tools/coding/cursor.png',
 } as const satisfies Record<string, string>;
+
+const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
+const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
+
+function buildAssetUrl(path: string): string {
+  return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
+}
+
+function applyThemeVariant(logo: string): string {
+  if (!isDarkTheme()) return logo;
+  if (!logo.endsWith(OPEN_CODE_LIGHT_FILE_NAME)) return logo;
+  return logo.replace(new RegExp(`${OPEN_CODE_LIGHT_FILE_NAME}$`), OPEN_CODE_DARK_FILE_NAME);
+}
+
+function normalizeLogoUrl(logo: string): string {
+  return applyThemeVariant(resolveBackendAssetUrl(logo) ?? logo);
+}
 
 function isDarkTheme(): boolean {
   if (typeof document === 'undefined') return false;
@@ -82,11 +81,9 @@ function isDarkTheme(): boolean {
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
   if (!agent || typeof agent !== 'string') return null;
-  const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_MAP;
-  if (key === 'opencode') {
-    return isDarkTheme() ? OpenCodeLogoDark : OpenCodeLogoLight;
-  }
-  return AGENT_LOGO_MAP[key] || null;
+  const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_PATH_MAP;
+  const path = AGENT_LOGO_PATH_MAP[key];
+  return path ? normalizeLogoUrl(buildAssetUrl(path)) : null;
 }
 
 /**
@@ -104,7 +101,7 @@ export function resolveAgentLogo(opts: {
   custom_agent_id?: string | null;
   isExtension?: boolean;
 }): string | null {
-  if (opts.icon) return opts.icon;
+  if (opts.icon) return normalizeLogoUrl(opts.icon);
 
   // For extension agents, extract adapter ID from custom_agent_id
   if (opts.isExtension && opts.custom_agent_id) {

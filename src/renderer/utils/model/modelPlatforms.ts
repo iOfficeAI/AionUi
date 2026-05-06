@@ -12,31 +12,11 @@
  * Centralized management of all model platform configurations for extensibility and maintainability
  */
 
-// Provider Logo imports
-import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
-import OpenAILogo from '@/renderer/assets/logos/ai-major/openai.svg';
-import AnthropicLogo from '@/renderer/assets/logos/ai-major/anthropic.svg';
-import BedrockLogo from '@/renderer/assets/logos/ai-cloud/bedrock.svg';
-import DeepSeekLogo from '@/renderer/assets/logos/ai-major/deepseek.svg';
-import OpenRouterLogo from '@/renderer/assets/logos/ai-cloud/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/ai-cloud/siliconflow.png';
-import QwenLogo from '@/renderer/assets/logos/ai-china/qwen.svg';
-import KimiLogo from '@/renderer/assets/logos/ai-china/kimi.svg';
-import ZhipuLogo from '@/renderer/assets/logos/ai-china/zhipu.svg';
-import XaiLogo from '@/renderer/assets/logos/ai-major/xai.svg';
-import VolcengineLogo from '@/renderer/assets/logos/ai-china/volcengine.svg';
-import BaiduLogo from '@/renderer/assets/logos/ai-china/baidu.svg';
-import TencentLogo from '@/renderer/assets/logos/ai-china/tencent.svg';
-import LingyiLogo from '@/renderer/assets/logos/ai-china/lingyiwanwu.svg';
-import PoeLogo from '@/renderer/assets/logos/ai-cloud/poe.svg';
-import ModelScopeLogo from '@/renderer/assets/logos/ai-cloud/modelscope.svg';
-import InfiniAILogo from '@/renderer/assets/logos/ai-cloud/infiniai.svg';
-import CtyunLogo from '@/renderer/assets/logos/ai-cloud/ctyun.svg';
-import StepFunLogo from '@/renderer/assets/logos/ai-china/stepfun.svg';
-import MiniMaxLogo from '@/renderer/assets/logos/ai-china/minimax.png';
-import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
-import NovitaLogo from '@/renderer/assets/logos/ai-cloud/novita.svg';
-import PPIOLogo from '@/renderer/assets/logos/ai-cloud/ppio.svg';
+import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+
+const buildLogoAssetUrl = (path: string): string => {
+  return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
+};
 
 /**
  * 平台类型
@@ -78,146 +58,205 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
 
   // New API 多模型网关 / New API multi-model gateway
-  { name: 'New API', value: 'new-api', logo: NewApiLogo, platform: 'new-api', i18nKey: 'settings.platformNewApi' },
+  {
+    name: 'New API',
+    value: 'new-api',
+    logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
+    platform: 'new-api',
+    i18nKey: 'settings.platformNewApi',
+  },
 
   // 官方 Gemini 平台
   {
     name: 'Gemini',
     value: 'gemini',
-    logo: GeminiLogo,
+    logo: buildLogoAssetUrl('ai-major/gemini.svg'),
     platform: 'gemini',
     base_url: 'https://generativelanguage.googleapis.com',
   },
-  { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
+  {
+    name: 'Gemini (Vertex AI)',
+    value: 'gemini-vertex-ai',
+    logo: buildLogoAssetUrl('ai-major/gemini.svg'),
+    platform: 'gemini-vertex-ai',
+  },
 
   // 预设供应商（按字母顺序排列）
-  { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', base_url: 'https://api.openai.com/v1' },
+  {
+    name: 'OpenAI',
+    value: 'OpenAI',
+    logo: buildLogoAssetUrl('ai-major/openai.svg'),
+    platform: 'custom',
+    base_url: 'https://api.openai.com/v1',
+  },
   {
     name: 'Anthropic',
     value: 'Anthropic',
-    logo: AnthropicLogo,
+    logo: buildLogoAssetUrl('ai-major/anthropic.svg'),
     platform: 'anthropic',
     base_url: 'https://api.anthropic.com',
   },
   {
     name: 'AWS Bedrock',
     value: 'AWS-Bedrock',
-    logo: BedrockLogo,
+    logo: buildLogoAssetUrl('ai-cloud/bedrock.svg'),
     platform: 'bedrock',
     i18nKey: 'settings.platformBedrock',
   },
   {
     name: 'DeepSeek',
     value: 'DeepSeek',
-    logo: DeepSeekLogo,
+    logo: buildLogoAssetUrl('ai-major/deepseek.svg'),
     platform: 'custom',
     base_url: 'https://api.deepseek.com/v1',
   },
-  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', base_url: 'https://api.minimaxi.com/v1' },
+  {
+    name: 'MiniMax',
+    value: 'MiniMax',
+    logo: buildLogoAssetUrl('ai-china/minimax.png'),
+    platform: 'custom',
+    base_url: 'https://api.minimaxi.com/v1',
+  },
   {
     name: 'Novita',
     value: 'Novita',
-    logo: NovitaLogo,
+    logo: buildLogoAssetUrl('ai-cloud/novita.svg'),
     platform: 'custom',
     base_url: 'https://api.novita.ai/openai/v1',
   },
   {
     name: 'OpenRouter',
     value: 'OpenRouter',
-    logo: OpenRouterLogo,
+    logo: buildLogoAssetUrl('ai-cloud/openrouter.svg'),
     platform: 'custom',
     base_url: 'https://openrouter.ai/api/v1',
   },
   {
     name: 'Dashscope',
     value: 'Dashscope',
-    logo: QwenLogo,
+    logo: buildLogoAssetUrl('ai-china/qwen.svg'),
     platform: 'custom',
     base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
   },
   {
     name: 'Dashscope Coding Plan',
     value: 'Dashscope-Coding',
-    logo: QwenLogo,
+    logo: buildLogoAssetUrl('ai-china/qwen.svg'),
     platform: 'custom',
     base_url: 'https://coding.dashscope.aliyuncs.com/v1',
   },
   {
     name: 'SiliconFlow-CN',
     value: 'SiliconFlow-CN',
-    logo: SiliconFlowLogo,
+    logo: buildLogoAssetUrl('ai-cloud/siliconflow.png'),
     platform: 'custom',
     base_url: 'https://api.siliconflow.cn/v1',
   },
   {
     name: 'SiliconFlow',
     value: 'SiliconFlow',
-    logo: SiliconFlowLogo,
+    logo: buildLogoAssetUrl('ai-cloud/siliconflow.png'),
     platform: 'custom',
     base_url: 'https://api.siliconflow.com/v1',
   },
   {
     name: 'Zhipu',
     value: 'Zhipu',
-    logo: ZhipuLogo,
+    logo: buildLogoAssetUrl('ai-china/zhipu.svg'),
     platform: 'custom',
     base_url: 'https://open.bigmodel.cn/api/paas/v4',
   },
   {
     name: 'Moonshot (China)',
     value: 'Moonshot',
-    logo: KimiLogo,
+    logo: buildLogoAssetUrl('ai-china/kimi.svg'),
     platform: 'custom',
     base_url: 'https://api.moonshot.cn/v1',
   },
   {
     name: 'Moonshot (Global)',
     value: 'Moonshot-Global',
-    logo: KimiLogo,
+    logo: buildLogoAssetUrl('ai-china/kimi.svg'),
     platform: 'custom',
     base_url: 'https://api.moonshot.ai/v1',
   },
-  { name: 'xAI', value: 'xAI', logo: XaiLogo, platform: 'custom', base_url: 'https://api.x.ai/v1' },
+  {
+    name: 'xAI',
+    value: 'xAI',
+    logo: buildLogoAssetUrl('ai-major/xai.svg'),
+    platform: 'custom',
+    base_url: 'https://api.x.ai/v1',
+  },
   {
     name: 'Ark',
     value: 'Ark',
-    logo: VolcengineLogo,
+    logo: buildLogoAssetUrl('ai-china/volcengine.svg'),
     platform: 'custom',
     base_url: 'https://ark.cn-beijing.volces.com/api/v3',
   },
   {
     name: 'Qianfan',
     value: 'Qianfan',
-    logo: BaiduLogo,
+    logo: buildLogoAssetUrl('ai-china/baidu.svg'),
     platform: 'custom',
     base_url: 'https://qianfan.baidubce.com/v2',
   },
   {
     name: 'Hunyuan',
     value: 'Hunyuan',
-    logo: TencentLogo,
+    logo: buildLogoAssetUrl('ai-china/tencent.svg'),
     platform: 'custom',
     base_url: 'https://api.hunyuan.cloud.tencent.com/v1',
   },
-  { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', base_url: 'https://api.lingyiwanwu.com/v1' },
-  { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', base_url: 'https://api.poe.com/v1' },
-  { name: 'PPIO', value: 'PPIO', logo: PPIOLogo, platform: 'custom', base_url: 'https://api.ppinfra.com/v3/openai' },
+  {
+    name: 'Lingyi',
+    value: 'Lingyi',
+    logo: buildLogoAssetUrl('ai-china/lingyiwanwu.svg'),
+    platform: 'custom',
+    base_url: 'https://api.lingyiwanwu.com/v1',
+  },
+  {
+    name: 'Poe',
+    value: 'Poe',
+    logo: buildLogoAssetUrl('ai-cloud/poe.svg'),
+    platform: 'custom',
+    base_url: 'https://api.poe.com/v1',
+  },
+  {
+    name: 'PPIO',
+    value: 'PPIO',
+    logo: buildLogoAssetUrl('ai-cloud/ppio.svg'),
+    platform: 'custom',
+    base_url: 'https://api.ppinfra.com/v3/openai',
+  },
   {
     name: 'ModelScope',
     value: 'ModelScope',
-    logo: ModelScopeLogo,
+    logo: buildLogoAssetUrl('ai-cloud/modelscope.svg'),
     platform: 'custom',
     base_url: 'https://api-inference.modelscope.cn/v1',
   },
   {
     name: 'InfiniAI',
     value: 'InfiniAI',
-    logo: InfiniAILogo,
+    logo: buildLogoAssetUrl('ai-cloud/infiniai.svg'),
     platform: 'custom',
     base_url: 'https://cloud.infini-ai.com/maas/v1',
   },
-  { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', base_url: 'https://wishub-x1.ctyun.cn/v1' },
-  { name: 'StepFun', value: 'StepFun', logo: StepFunLogo, platform: 'custom', base_url: 'https://api.stepfun.com/v1' },
+  {
+    name: 'Ctyun',
+    value: 'Ctyun',
+    logo: buildLogoAssetUrl('ai-cloud/ctyun.svg'),
+    platform: 'custom',
+    base_url: 'https://wishub-x1.ctyun.cn/v1',
+  },
+  {
+    name: 'StepFun',
+    value: 'StepFun',
+    logo: buildLogoAssetUrl('ai-china/stepfun.svg'),
+    platform: 'custom',
+    base_url: 'https://api.stepfun.com/v1',
+  },
 ];
 
 /**
@@ -258,6 +297,46 @@ export const getPlatformByValue = (value: string): PlatformConfig | undefined =>
  */
 export const getPresetProviders = (): PlatformConfig[] => {
   return MODEL_PLATFORMS.filter((p) => p.base_url);
+};
+
+export const getProviderLogo = ({
+  name,
+  base_url,
+  platform,
+}: {
+  name?: string;
+  base_url?: string;
+  platform?: string;
+}): string | null => {
+  if (!name && !base_url && !platform) return null;
+
+  if (platform) {
+    const byPlatform = MODEL_PLATFORMS.find((item) => item.platform === platform && item.logo);
+    if (byPlatform?.logo) return byPlatform.logo;
+  }
+
+  if (name) {
+    const byName = MODEL_PLATFORMS.find((item) => item.name === name && item.logo);
+    if (byName?.logo) return byName.logo;
+
+    const lowerName = name.toLowerCase();
+    const byLowerName = MODEL_PLATFORMS.find((item) => item.name.toLowerCase() === lowerName && item.logo);
+    if (byLowerName?.logo) return byLowerName.logo;
+  }
+
+  if (base_url) {
+    const byUrl = MODEL_PLATFORMS.find((item) => {
+      if (!item.base_url || !item.logo) return false;
+      try {
+        return base_url.includes(new URL(item.base_url).hostname);
+      } catch {
+        return false;
+      }
+    });
+    if (byUrl?.logo) return byUrl.logo;
+  }
+
+  return null;
 };
 
 /**

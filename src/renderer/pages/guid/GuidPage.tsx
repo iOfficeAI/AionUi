@@ -29,7 +29,7 @@ import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { configService } from '@/common/config/configService';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import type { AcpBackendConfig } from './types';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
@@ -415,13 +415,29 @@ const GuidPage: React.FC = () => {
       .map((a) => ({
         key: a.backend,
         label: a.name,
+        icon: a.icon,
+        custom_agent_id: a.custom_agent_id,
         isCurrent: a.backend === currentPresetAgentType,
         isExtension: a.isExtension,
       }));
   }, [agentSelection.availableAgents, currentPresetAgentType]);
+
+  const effectiveAgentRecord = useMemo(() => {
+    return agentSelection.availableAgents?.find(
+      (agent) =>
+        !agent.is_preset && (agent.backend || agent.agent_type) === agentSelection.currentEffectiveAgentInfo.agent_type
+    );
+  }, [agentSelection.availableAgents, agentSelection.currentEffectiveAgentInfo.agent_type]);
+
   const effectiveAgentLogo = useMemo(
-    () => getAgentLogo(agentSelection.currentEffectiveAgentInfo.agent_type),
-    [agentSelection.currentEffectiveAgentInfo.agent_type]
+    () =>
+      resolveAgentLogo({
+        icon: effectiveAgentRecord?.icon,
+        backend: effectiveAgentRecord?.backend || agentSelection.currentEffectiveAgentInfo.agent_type,
+        custom_agent_id: effectiveAgentRecord?.custom_agent_id,
+        isExtension: effectiveAgentRecord?.isExtension,
+      }),
+    [effectiveAgentRecord, agentSelection.currentEffectiveAgentInfo.agent_type]
   );
   const handlePresetAgentTypeSwitch = useCallback(
     async (nextType: string) => {
@@ -583,7 +599,12 @@ const GuidPage: React.FC = () => {
                         }}
                       >
                         {agentSwitcherItems.map((item) => {
-                          const logo = getAgentLogo(item.key);
+                          const logo = resolveAgentLogo({
+                            icon: item.icon,
+                            backend: item.key,
+                            custom_agent_id: item.custom_agent_id,
+                            isExtension: item.isExtension,
+                          });
                           return (
                             <Menu.Item key={item.key}>
                               <div className='flex items-center justify-between gap-12px min-w-120px'>

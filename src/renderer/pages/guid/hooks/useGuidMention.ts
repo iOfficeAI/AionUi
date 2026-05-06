@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import type { AvailableAgent, MentionOption } from '../types';
 import { getAgentKey } from './agentSelectionUtils';
@@ -88,7 +88,13 @@ export const useGuidMention = ({
         tokens,
         avatar,
         avatarImage,
-        logo: getAgentLogo(agent.backend || agent.agent_type) || undefined,
+        logo:
+          resolveAgentLogo({
+            icon: agent.icon,
+            backend: agent.backend || agent.agent_type,
+            custom_agent_id: agent.custom_agent_id,
+            isExtension: agent.isExtension,
+          }) || undefined,
         isExtension: agent.isExtension,
       };
     });

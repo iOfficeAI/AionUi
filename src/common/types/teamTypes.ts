@@ -57,6 +57,7 @@ export type TeamAgent = {
   conversation_id: string;
   role: TeammateRole;
   agent_type: string;
+  icon?: string;
   agent_name: string;
   conversation_type: string;
   status: TeammateStatus;

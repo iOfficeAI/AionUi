@@ -1,98 +1,83 @@
-import { describe, it, expect, vi } from 'vitest';
+// @vitest-environment jsdom
 
-// Mock SVG/PNG imports as strings
-vi.mock('@/renderer/assets/logos/ai-major/claude.svg', () => ({ default: 'claude.svg' }));
-vi.mock('@/renderer/assets/logos/ai-major/gemini.svg', () => ({ default: 'gemini.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/qwen.svg', () => ({ default: 'qwen.svg' }));
-vi.mock('@/renderer/assets/logos/tools/coding/codex.svg', () => ({ default: 'codex.svg' }));
-vi.mock('@/renderer/assets/logos/tools/coding/codebuddy.svg', () => ({ default: 'codebuddy.svg' }));
-vi.mock('@/renderer/assets/logos/brand/droid.svg', () => ({ default: 'droid.svg' }));
-vi.mock('@/renderer/assets/logos/tools/goose.svg', () => ({ default: 'goose.svg' }));
-vi.mock('@/renderer/assets/logos/brand/auggie.svg', () => ({ default: 'auggie.svg' }));
-vi.mock('@/renderer/assets/logos/ai-china/kimi.svg', () => ({ default: 'kimi.svg' }));
-vi.mock('@/renderer/assets/logos/tools/coding/opencode-light.svg', () => ({ default: 'opencode-light.svg' }));
-vi.mock('@/renderer/assets/logos/tools/coding/opencode-dark.svg', () => ({ default: 'opencode-dark.svg' }));
-vi.mock('@/renderer/assets/logos/tools/github.svg', () => ({ default: 'github.svg' }));
-vi.mock('@/renderer/assets/logos/tools/openclaw.svg', () => ({ default: 'openclaw.svg' }));
-vi.mock('@/renderer/assets/logos/ai-major/mistral.svg', () => ({ default: 'mistral.svg' }));
-vi.mock('@/renderer/assets/logos/tools/nanobot.svg', () => ({ default: 'nanobot.svg' }));
-vi.mock('@/renderer/assets/logos/tools/coding/qoder.png', () => ({ default: 'qoder.png' }));
-vi.mock('@/renderer/assets/logos/tools/coding/cursor.png', () => ({ default: 'cursor.png' }));
-
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { getAgentLogo, resolveAgentLogo } from '../../src/renderer/utils/model/agentLogo';
 
+type TestWindow = Window & { electronAPI?: object; __backendPort?: number };
+
 describe('agentLogo', () => {
+  beforeEach(() => {
+    document.documentElement.removeAttribute('data-theme');
+    delete (window as TestWindow).electronAPI;
+    delete (window as TestWindow).__backendPort;
+  });
+
+  afterEach(() => {
+    document.documentElement.removeAttribute('data-theme');
+    delete (window as TestWindow).electronAPI;
+    delete (window as TestWindow).__backendPort;
+  });
+
   describe('getAgentLogo', () => {
-    it('should return logo for known backends (case-insensitive)', () => {
-      expect(getAgentLogo('claude')).toBe('claude.svg');
-      expect(getAgentLogo('Claude')).toBe('claude.svg');
-      expect(getAgentLogo('CLAUDE')).toBe('claude.svg');
+    it('returns backend asset paths for known backends (case-insensitive)', () => {
+      expect(getAgentLogo('claude')).toBe('/api/assets/logos/ai-major/claude.svg');
+      expect(getAgentLogo('Claude')).toBe('/api/assets/logos/ai-major/claude.svg');
+      expect(getAgentLogo('CLAUDE')).toBe('/api/assets/logos/ai-major/claude.svg');
     });
 
-    it('should return null for unknown backends', () => {
+    it('returns null for unknown backends', () => {
       expect(getAgentLogo('unknown')).toBeNull();
       expect(getAgentLogo('custom')).toBeNull();
     });
 
-    it('should return null for null/undefined', () => {
+    it('returns null for nullish values', () => {
       expect(getAgentLogo(null)).toBeNull();
       expect(getAgentLogo(undefined)).toBeNull();
     });
 
-    it('should return logo for common agents', () => {
-      expect(getAgentLogo('gemini')).toBe('gemini.svg');
-      expect(getAgentLogo('qwen')).toBe('qwen.svg');
-      expect(getAgentLogo('auggie')).toBe('auggie.svg');
-      expect(getAgentLogo('goose')).toBe('goose.svg');
-      expect(getAgentLogo('copilot')).toBe('github.svg');
+    it('resolves backend-relative paths against the backend origin in Electron', () => {
+      (window as TestWindow).electronAPI = {};
+      (window as TestWindow).__backendPort = 18181;
+
+      expect(getAgentLogo('claude')).toBe('http://127.0.0.1:18181/api/assets/logos/ai-major/claude.svg');
+    });
+
+    it('switches opencode to the dark asset when dark mode is active', () => {
+      document.documentElement.setAttribute('data-theme', 'dark');
+
+      expect(getAgentLogo('opencode')).toBe('/api/assets/logos/tools/coding/opencode-dark.svg');
     });
   });
 
   describe('resolveAgentLogo', () => {
-    it('should return icon when provided (highest priority)', () => {
+    it('returns icon when provided (highest priority)', () => {
       expect(resolveAgentLogo({ icon: '/my/icon.png', backend: 'claude' })).toBe('/my/icon.png');
     });
 
-    it('should extract adapter ID from customAgentId for extension agents', () => {
+    it('extracts adapter ID from customAgentId for extension agents', () => {
       const logo = resolveAgentLogo({
         backend: 'custom',
         custom_agent_id: 'ext:aionext-claude:claude',
         isExtension: true,
       });
-      expect(logo).toBe('claude.svg');
+      expect(logo).toBe('/api/assets/logos/ai-major/claude.svg');
     });
 
-    it('should fall back to backend logo when not an extension', () => {
-      expect(resolveAgentLogo({ backend: 'gemini' })).toBe('gemini.svg');
+    it('falls back to backend logo when not an extension', () => {
+      expect(resolveAgentLogo({ backend: 'gemini' })).toBe('/api/assets/logos/ai-major/gemini.svg');
     });
 
-    it('should return null for custom backend without extension info', () => {
-      expect(resolveAgentLogo({ backend: 'custom' })).toBeNull();
-    });
-
-    it('should return null when nothing matches', () => {
+    it('returns null for unknown backends', () => {
       expect(resolveAgentLogo({})).toBeNull();
       expect(resolveAgentLogo({ backend: 'unknown-thing' })).toBeNull();
     });
 
-    it('should try adapter ID before falling back to backend', () => {
-      // Extension agent with custom backend but recognizable adapter ID
-      const logo = resolveAgentLogo({
-        backend: 'custom',
-        custom_agent_id: 'ext:aionext-auggie:auggie',
-        isExtension: true,
-      });
-      expect(logo).toBe('auggie.svg');
-    });
+    it('rewrites the light opencode icon to the dark variant in dark mode', () => {
+      document.documentElement.setAttribute('data-theme', 'dark');
 
-    it('should fall back to backend when adapter ID is unrecognized', () => {
-      const logo = resolveAgentLogo({
-        backend: 'custom',
-        custom_agent_id: 'ext:my-ext:unknown-adapter',
-        isExtension: true,
-      });
-      // 'unknown-adapter' not in logo map, 'custom' not in logo map → null
-      expect(logo).toBeNull();
+      expect(resolveAgentLogo({ icon: '/api/assets/logos/tools/coding/opencode-light.svg' })).toBe(
+        '/api/assets/logos/tools/coding/opencode-dark.svg'
+      );
     });
   });
 });

@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { emitter } from '@/renderer/utils/emitter';
 import { cleanupSiderTooltips } from '@/renderer/utils/ui/siderTooltip';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -275,7 +275,10 @@ const ConversationTabs: React.FC = () => {
         {cliAgents.length > 0 && (
           <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
             {cliAgents.map((agent) => {
-              const logo = getAgentLogo(agent.backend);
+              const logo = resolveAgentLogo({
+                icon: agent.icon,
+                backend: agent.backend || agent.agent_type,
+              });
               return (
                 <Menu.Item key={`cli:${agent.backend}`}>
                   <div className='flex items-center gap-8px'>

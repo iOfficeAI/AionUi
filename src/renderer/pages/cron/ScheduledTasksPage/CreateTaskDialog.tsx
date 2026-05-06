@@ -12,7 +12,7 @@ import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
@@ -542,7 +542,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   const agent = cliAgents.find((a) => a.backend === id);
                   if (agent) {
                     name = agent.name;
-                    const logoSrc = getAgentLogo(agent.backend);
+                    const logoSrc = resolveAgentLogo({
+                      icon: agent.icon,
+                      backend: agent.backend || agent.agent_type,
+                    });
                     if (logoSrc) {
                       logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
                     }
@@ -571,7 +574,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {cliAgents.length > 0 && (
                 <OptGroup label={t('conversation.dropdown.cliAgents')}>
                   {cliAgents.map((agent) => {
-                    const logo = getAgentLogo(agent.backend);
+                    const logo = resolveAgentLogo({
+                      icon: agent.icon,
+                      backend: agent.backend || agent.agent_type,
+                    });
                     return (
                       <Option key={`cli:${agent.backend}`} value={`cli:${agent.backend}`}>
                         <div className='flex items-center gap-8px'>

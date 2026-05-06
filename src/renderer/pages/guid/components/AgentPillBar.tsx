@@ -66,6 +66,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               extensionAvatar ||
               (!emojiAvatar
                 ? resolveAgentLogo({
+                    icon: agent.icon,
                     backend: agent.backend || agent.agent_type,
                     custom_agent_id: agent.custom_agent_id,
                     isExtension: agent.isExtension,

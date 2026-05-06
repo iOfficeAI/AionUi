@@ -9,6 +9,8 @@
  * 平台检测工具函数
  */
 
+import { getBaseUrl } from '@/common/adapter/httpBridge';
+
 /**
  * Check if running in Electron desktop environment
  * 检测是否运行在 Electron 桌面环境
@@ -41,6 +43,24 @@ export const isLinux = (): boolean => {
   return typeof navigator !== 'undefined' && /linux/i.test(navigator.userAgent);
 };
 
+function isAbsoluteAssetUrl(url: string): boolean {
+  return /^[a-z][a-z\d+.-]*:/i.test(url) || url.startsWith('//');
+}
+
+/**
+ * Resolve a backend-served asset URL for the current environment.
+ * In Electron, renderer pages are file:// based, so backend-relative paths
+ * must be expanded against the backend HTTP origin.
+ */
+export const resolveBackendAssetUrl = (url: string | undefined): string | undefined => {
+  if (!url) return url;
+  if (isAbsoluteAssetUrl(url) || /^data:/i.test(url)) return url;
+  if (url.startsWith('/')) {
+    return isElectronDesktop() ? `${getBaseUrl()}${url}` : url;
+  }
+  return url;
+};
+
 /**
  * Resolve an extension asset URL for the current environment.
  * Backend-managed extension assets are already emitted as HTTP URLs, so this
@@ -50,18 +70,7 @@ export const isLinux = (): boolean => {
  * 将扩展资源 URL 转换为当前环境可用的地址
  */
 export const resolveExtensionAssetUrl = (url: string | undefined): string | undefined => {
-  if (!url) return url;
-  if (/^https?:\/\//i.test(url) || /^data:/i.test(url)) return url;
-  if (url.startsWith('/')) {
-    if (isElectronDesktop()) {
-      const port = window.__backendPort;
-      if (port) {
-        return `http://127.0.0.1:${port}${url}`;
-      }
-    }
-    return url;
-  }
-  return url;
+  return resolveBackendAssetUrl(url);
 };
 
 /**

@@ -3,10 +3,12 @@ import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 type Props = {
   agent_name: string;
   agent_type: string;
+  icon?: string;
   /** When provided, enables preset-aware avatar (emoji / custom svg) via the agent's conversation extras. */
   conversation_id?: string;
   isLeader?: boolean;
@@ -21,6 +23,7 @@ type Props = {
 const TeamAgentIdentity: React.FC<Props> = ({
   agent_name,
   agent_type,
+  icon,
   conversation_id,
   isLeader = false,
   className,
@@ -34,6 +37,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
     ipcBridge.conversation.get.invoke({ id: conversation_id! })
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
+  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = getAgentLogo(agent_type);
 
   const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
@@ -48,6 +52,9 @@ const TeamAgentIdentity: React.FC<Props> = ({
         return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
       }
       return <img src={presetInfo.logo} alt={presetInfo.name} className={resolvedLogoClassName} />;
+    }
+    if (explicitLogo) {
+      return <img src={explicitLogo} alt={agent_name} className={resolvedLogoClassName} />;
     }
     if (backendLogo) {
       return <img src={backendLogo} alt={agent_type} className={resolvedLogoClassName} />;

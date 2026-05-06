@@ -59,6 +59,7 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
     conversation_id: (r.conversation_id as string | undefined) ?? '',
     role: toRole(r.role as string | undefined),
     agent_type: agentType,
+    icon: r.icon as string | undefined,
     agent_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
     conversation_type: conversationType,
     status: toStatus(r.status as string | undefined),
