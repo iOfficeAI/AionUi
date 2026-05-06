@@ -1,0 +1,183 @@
+/* NovaMaster Custom Theme - Trinity Edition */
+/* Inspired by the Trinity: Hermes, JARVIS, NovaCore */
+
+:root {
+  /* NovaMaster Brand Colors */
+  --nova-primary: #8F7CFF;       /* Purple - AI Intelligence */
+  --nova-secondary: #48CAFF;     /* Cyan - Flow/Communication */
+  --nova-accent: #67DFB4;        /* Green - Growth/Success */
+  --nova-danger: #FF6B6B;        /* Red - Alerts */
+  --nova-warning: #FFD93D;       /* Yellow - Warnings */
+
+  /* Trinity Gradients */
+  --nova-gradient-primary: linear-gradient(135deg, #8F7CFF 0%, #48CAFF 100%);
+  --nova-gradient-trinity: linear-gradient(135deg, #8F7CFF 33%, #48CAFF 33%, #48CAFF 66%, #67DFB4 66%);
+  --nova-gradient-bg: linear-gradient(180deg, #0a0e1a 0%, #111525 50%, #0d1324 100%);
+
+  /* Logo Reference */
+  --nova-logo-url: url('/novamaster-logo.svg');
+  --nova-icon-url: url('/novamaster-icon.svg');
+}
+
+/* Dark Mode - NovaMaster Trinity */
+[data-color-scheme='default'][data-theme='dark'] {
+  /* AOU Brand Colors - NovaMaster Purple */
+  --aou-1: #0a0e1a;
+  --aou-2: #0d1324;
+  --color-guid-agent-bar: #111525;
+  --aou-3: #1a2240;
+  --aou-4: #2a3555;
+  --aou-5: #3d4a6d;
+  --aou-6: #8F7CFF;
+  --aou-7: #a89bff;
+  --aou-8: #c4baff;
+  --aou-9: #e0dcff;
+  --aou-10: #f5f3ff;
+
+  /* Background Colors - Deep Space */
+  --bg-base: #05070c;
+  --bg-1: #0a0e1a;
+  --bg-2: #0d1324;
+  --bg-3: #1a2240;
+  --bg-4: #2a3555;
+  --bg-5: #3d4a6d;
+  --bg-6: #5a6885;
+  --bg-8: #8a96b0;
+  --bg-9: #c4baff;
+  --bg-10: #f5f3ff;
+
+  /* Interactive States */
+  --bg-hover: #1a2240;
+  --bg-active: #2a3555;
+
+  /* Text Colors */
+  --text-primary: #e0dcff;
+  --text-secondary: #a89bff;
+  --text-disabled: #3d4a6d;
+
+  /* Semantic Colors - Trinity */
+  --primary: #8F7CFF;    /* Hermes - Intelligence */
+  --success: #67DFB4;    /* NovaCore - Growth */
+  --warning: #FFD93D;    /* JARVIS - Awareness */
+  --danger: #FF6B6B;
+  --info: #48CAFF;       /* Communication Flow */
+
+  /* Borders */
+  --border-base: rgba(143, 124, 255, 0.3);
+  --border-light: rgba(143, 124, 255, 0.15);
+
+  /* Brand */
+  --brand: #8F7CFF;
+  --brand-light: rgba(143, 124, 255, 0.12);
+  --brand-hover: #a89bff;
+
+  /* Messages */
+  --message-user-bg: rgba(143, 124, 255, 0.12);
+  --message-tips-bg: rgba(72, 202, 255, 0.1);
+  --workspace-btn-bg: #0f1420;
+
+  /* Special */
+  --fill: #0f1420;
+  --inverse: #f5f3ff;
+
+  /* Custom */
+  --dialog-fill-0: #0d1324;
+  --text-0: #f5f3ff;
+  --text-white: #f5f3ff;
+  --fill-0: rgba(143, 124, 255, 0.15);
+  --fill-white-to-black: #05070c;
+  --border-special: rgba(143, 124, 255, 0.5);
+}
+
+/* NovaMaster Custom UI Elements */
+.novamaster-brand {
+  background: var(--nova-gradient-bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.novamaster-brand::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(143, 124, 255, 0.08) 0%, transparent 70%);
+  animation: nova-pulse 8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes nova-pulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Trinity Glow Effect */
+.novamaster-glow {
+  box-shadow:
+    0 0 20px rgba(143, 124, 255, 0.3),
+    0 0 40px rgba(72, 202, 255, 0.2),
+    0 0 60px rgba(103, 223, 180, 0.1);
+}
+
+/* Logo Container */
+.novamaster-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.novamaster-logo-container img {
+  height: 32px;
+  width: auto;
+  filter: drop-shadow(0 0 8px rgba(143, 124, 255, 0.5));
+}
+
+/* Agent Cards - Trinity Style */
+.novamaster-agent-card {
+  background: linear-gradient(135deg, rgba(143, 124, 255, 0.1) 0%, rgba(72, 202, 255, 0.08) 100%);
+  border: 1px solid rgba(143, 124, 255, 0.2);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+.novamaster-agent-card:hover {
+  border-color: rgba(143, 124, 255, 0.5);
+  box-shadow:
+    0 0 20px rgba(143, 124, 255, 0.2),
+    0 8px 32px rgba(0, 0, 0, 0.3);
+  transform: translateY(-2px);
+}
+
+/* Buttons - NovaMaster Style */
+.novamaster-btn-primary {
+  background: var(--nova-gradient-primary);
+  border: none;
+  color: white;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+}
+
+.novamaster-btn-primary:hover {
+  box-shadow: 0 0 24px rgba(143, 124, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+/* Status Indicators */
+.novamaster-status-online {
+  color: #67DFB4;
+  text-shadow: 0 0 8px rgba(103, 223, 180, 0.5);
+}
+
+.novamaster-status-processing {
+  color: #48CAFF;
+  text-shadow: 0 0 8px rgba(72, 202, 255, 0.5);
+}
+
+.novamaster-status-error {
+  color: #FF6B6B;
+  text-shadow: 0 0 8px rgba(255, 107, 107, 0.5);
+}

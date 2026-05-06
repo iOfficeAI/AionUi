@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#161c34"/>
+      <stop offset="1" stop-color="#0d1324"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="128" y1="96" x2="384" y2="384" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B8ACFF"/>
+      <stop offset="0.52" stop-color="#8F7CFF"/>
+      <stop offset="1" stop-color="#48CAFF"/>
+    </linearGradient>
+    <linearGradient id="accentSoft" x1="164" y1="116" x2="350" y2="370" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F0EDFF" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#6DE0FF" stop-opacity="0.92"/>
+    </linearGradient>
+    <filter id="glow" x="54" y="54" width="404" height="404" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <rect x="18" y="18" width="476" height="476" rx="94" stroke="rgba(255,255,255,0.10)" stroke-width="2"/>
+
+  <g filter="url(#glow)" opacity="0.28">
+    <circle cx="256" cy="256" r="116" fill="url(#accent)"/>
+  </g>
+
+  <path d="M146 352V160c0-10.5 12.5-15.9 20.1-8.7l89.9 85.1 89.9-85.1c7.6-7.2 20.1-1.8 20.1 8.7v192" stroke="url(#accent)" stroke-width="34" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M172 338V188l84 80 84-80v150" stroke="url(#accentSoft)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" opacity="0.95"/>
+
+  <circle cx="146" cy="160" r="11" fill="#B8ACFF"/>
+  <circle cx="256" cy="236" r="13" fill="#F6F4FF"/>
+  <circle cx="366" cy="160" r="11" fill="#48CAFF"/>
+  <circle cx="366" cy="352" r="11" fill="#67DFB4"/>
+</svg>

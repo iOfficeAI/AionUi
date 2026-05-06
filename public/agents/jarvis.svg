@@ -1,0 +1,21 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="orbGradient" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="#00ffff" />
+      <stop offset="60%" stop-color="#0072ff" />
+      <stop offset="100%" stop-color="#00040a" />
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="10" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <rect width="256" height="256" fill="#00040a" />
+  <circle cx="128" cy="128" r="80" fill="url(#orbGradient)" filter="url(#glow)">
+    <animate attributeName="r" values="80;85;80" dur="3s" repeatCount="indefinite" />
+  </circle>
+  <circle cx="128" cy="128" r="40" fill="none" stroke="#00ffff" stroke-width="2" opacity="0.5">
+    <animateTransform attributeName="transform" type="rotate" from="0 128 128" to="360 128 128" dur="10s" repeatCount="indefinite" />
+  </circle>
+  <text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="#fff" font-family="Orbitron, sans-serif" font-size="40" font-weight="bold" filter="url(#glow)">J</text>
+</svg>

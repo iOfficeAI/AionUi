@@ -11,6 +11,7 @@ import { ArrowCircleLeft, CloseOne, Moon, SettingTwo, SunOne } from '@icon-park/
 import classNames from 'classnames';
 import { iconColors } from '@renderer/styles/colors';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
+import ServiceHealthIndicator from './ServiceHealthIndicator';
 
 interface SiderFooterProps {
   isMobile: boolean;
@@ -59,6 +60,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
 
   return (
     <div className='shrink-0 sider-footer mt-auto pt-4px pb-8px'>
+      {!isSettings && !collapsed && <ServiceHealthIndicator />}
       <div className={classNames('flex', collapsed ? 'flex-col gap-2px' : 'items-center gap-2px')}>
         <Tooltip {...siderTooltipProps} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div
