@@ -3,8 +3,16 @@
 /* Layout sider base styles */
 .layout-sider {
   overflow-x: hidden;
-  box-shadow: none !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-2) 94%, var(--brand-light)) 0%, var(--bg-1) 100%),
+    var(--bg-2) !important;
+  box-shadow: 18px 0 45px rgba(0, 0, 0, 0.18) !important;
   border-right: 1px solid var(--border-base);
+  backdrop-filter: saturate(118%);
+}
+
+[data-theme='dark'] .layout-sider {
+  box-shadow: 22px 0 56px rgba(0, 0, 0, 0.4) !important;
 }
 
 /* Arco Layout inner container needs flex layout so Header + Content + Footer
@@ -44,7 +52,14 @@
   transition:
     padding 0.2s ease,
     margin 0.2s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.chat-history__item:hover,
+.settings-sider__item:hover {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-base) 55%, transparent);
+  background-color: color-mix(in srgb, var(--bg-hover) 84%, transparent);
 }
 
 .chat-history__item-name,
@@ -136,7 +151,8 @@
 .arco-input-inner-wrapper,
 .arco-input-group-addafter,
 .arco-input-group-addbefore {
-  background-color: var(--fill-0) !important;
+  background-color: color-mix(in srgb, var(--fill-0) 88%, var(--bg-base)) !important;
+  border-color: var(--border-base) !important;
 }
 
 /* Grouped inputs should share one surface across the field and its add-ons. */
@@ -149,6 +165,32 @@
 .arco-input-group-addafter .arco-select .arco-select-view,
 .arco-input-group-addbefore .arco-select .arco-select-view {
   background-color: transparent !important;
+}
+
+[data-theme='dark'] .layout-content {
+  background:
+    radial-gradient(circle at 10% -8%, rgba(76, 201, 255, 0.12), transparent 30%),
+    radial-gradient(circle at 88% 10%, rgba(59, 130, 246, 0.08), transparent 26%),
+    linear-gradient(180deg, var(--bg-1) 0%, var(--bg-base) 58%),
+    var(--bg-base) !important;
+}
+
+[data-theme='dark'] .arco-card,
+[data-theme='dark'] .arco-modal,
+[data-theme='dark'] .arco-drawer,
+[data-theme='dark'] .arco-popover-content,
+[data-theme='dark'] .arco-dropdown-menu {
+  background-color: color-mix(in srgb, var(--bg-2) 90%, black) !important;
+  border-color: var(--border-base) !important;
+  box-shadow: 0 20px 52px rgba(0, 0, 0, 0.4) !important;
+}
+
+[data-theme='dark'] .arco-input:focus,
+[data-theme='dark'] .arco-input:hover,
+[data-theme='dark'] .arco-select-view:hover,
+[data-theme='dark'] .arco-input-inner-wrapper.arco-input-focus {
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--border-base)) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 22%, transparent) !important;
 }
 
 /* Mobile sidebar positioning */

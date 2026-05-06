@@ -11,6 +11,10 @@
   user-select: none;
   position: relative;
   z-index: 10;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--bg-base) 95%, var(--brand-light)) 0%, var(--bg-1) 100%),
+    var(--bg-base);
+  border-bottom: 1px solid var(--border-light);
 }
 
 .app-titlebar--desktop {
@@ -55,7 +59,7 @@
 .app-titlebar__brand {
   font-weight: 600;
   font-size: 13px;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   color: var(--text-primary);
   flex: 1;
   display: flex;
@@ -134,7 +138,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .app-titlebar__button:hover {
@@ -146,11 +152,11 @@
 }
 
 [data-theme='dark'] .app-titlebar__button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: color-mix(in srgb, var(--bg-hover) 72%, white 8%);
 }
 
 [data-theme='dark'] .app-titlebar__button:active {
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: color-mix(in srgb, var(--bg-active) 78%, white 10%);
 }
 
 .app-titlebar__button:disabled,
@@ -212,6 +218,14 @@
 
 .app-window-controls__button:active {
   background-color: rgba(128, 128, 128, 0.3);
+}
+
+[data-theme='dark'] .app-window-controls__button:hover {
+  background-color: color-mix(in srgb, var(--bg-hover) 78%, white 8%);
+}
+
+[data-theme='dark'] .app-window-controls__button:active {
+  background-color: color-mix(in srgb, var(--bg-active) 80%, white 8%);
 }
 
 .app-window-controls__button--close:hover {
