@@ -6,7 +6,6 @@
 
 import React from 'react';
 import { Tooltip } from '@arco-design/web-react';
-import { useTranslation } from 'react-i18next';
 import { useServiceHealth } from '@renderer/hooks/context/ServiceHealthContext';
 import type { ServiceStatus } from '@renderer/hooks/context/ServiceHealthContext';
 
@@ -18,7 +17,6 @@ const STATUS_DOT: Record<ServiceStatus, string> = {
 };
 
 const ServiceHealthIndicator: React.FC = () => {
-  const { t } = useTranslation();
   const { services, onlineCount, totalCount } = useServiceHealth();
 
   if (totalCount === 0) return null;
@@ -29,13 +27,18 @@ const ServiceHealthIndicator: React.FC = () => {
         {onlineCount}/{totalCount}
       </span>
       <div className='flex items-center gap-2px'>
-        {services.map((svc) => (
-          <Tooltip key={svc.id} content={`${svc.name}: ${svc.status}${svc.latencyMs ? ` (${svc.latencyMs}ms)` : ''}`}>
-            <span
-              className={`inline-block w-6px h-6px rounded-full ${STATUS_DOT[svc.status]}`}
-            />
-          </Tooltip>
-        ))}
+        {services.map((svc) => {
+          const latencyLabel = svc.latencyMs ? ` (${svc.latencyMs}ms)` : '';
+          const tooltipContent = `${svc.name}: ${svc.status}${latencyLabel}`;
+
+          return (
+            <Tooltip key={svc.id} content={tooltipContent}>
+              <span
+                className={`inline-block w-6px h-6px rounded-full ${STATUS_DOT[svc.status]}`}
+              />
+            </Tooltip>
+          );
+        })}
       </div>
     </div>
   );

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 export type ServiceStatus = 'online' | 'offline' | 'degraded' | 'checking';
 
@@ -83,9 +83,13 @@ export const ServiceHealthProvider: React.FC<{ children: React.ReactNode }> = ({
   }, []);
 
   const onlineCount = services.filter((s) => s.status === 'online').length;
+  const value = useMemo(
+    () => ({ services, onlineCount, totalCount: services.length }),
+    [onlineCount, services]
+  );
 
   return (
-    <ServiceHealthContext.Provider value={{ services, onlineCount, totalCount: services.length }}>
+    <ServiceHealthContext.Provider value={value}>
       {children}
     </ServiceHealthContext.Provider>
   );
