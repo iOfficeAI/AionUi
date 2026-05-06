@@ -510,6 +510,60 @@ describe('createConversationParams', () => {
     expect(next.extra.pendingConfigOptions).toBeUndefined();
   });
 
+  it('inherits native Codex config options from the active workspace conversation', () => {
+    const params = {
+      type: 'codex',
+      model: {},
+      name: 'New Codex Chat',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        codexNative: true,
+        configOptionValues: {
+          reasoning_effort: 'medium',
+        },
+      },
+    } as any;
+    const sourceConversation = {
+      id: 'conv-active',
+      type: 'codex',
+      extra: {
+        workspace: '/tmp/workspace',
+        customWorkspace: true,
+        codexNative: true,
+        configOptionValues: {
+          reasoning_effort: 'high',
+        },
+        cachedConfigOptions: [
+          {
+            id: 'reasoning_effort',
+            category: 'reasoning',
+            type: 'select',
+            currentValue: 'high',
+            selectedValue: 'high',
+          },
+        ],
+        pendingConfigOptions: {
+          reasoning_effort: 'xhigh',
+        },
+      },
+    } as any;
+
+    const next = applyWorkspaceConversationConfigDefaults(params, sourceConversation, 'codex');
+
+    expect(next.extra.configOptionValues).toEqual({
+      reasoning_effort: 'high',
+    });
+    expect(next.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'reasoning_effort',
+        currentValue: 'high',
+        selectedValue: 'high',
+      }),
+    ]);
+    expect(next.extra.pendingConfigOptions).toBeUndefined();
+  });
+
   it('does not inherit workspace config options from a different ACP backend', () => {
     const params = {
       type: 'acp',

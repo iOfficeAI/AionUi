@@ -35,6 +35,10 @@ interface CronJobSiderItemProps {
   onNavigate: (path: string) => void;
   /** Pre-fetched conversation for existing mode (fetched by parent to avoid N+1 IPC) */
   existingConversation?: TChatConversation;
+  batchMode?: boolean;
+  selectedConversationIds?: Set<string>;
+  onToggleSelectedConversation?: (conversation: TChatConversation) => void;
+  onChildConversationIdsChange?: (jobId: string, conversationIds: string[]) => void;
 }
 
 const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
@@ -42,6 +46,10 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   pathname,
   onNavigate,
   existingConversation: existingConversationProp,
+  batchMode = false,
+  selectedConversationIds,
+  onToggleSelectedConversation,
+  onChildConversationIdsChange,
 }) => {
   const { t } = useTranslation();
   const { id: currentConversationId } = useParams();
@@ -64,6 +72,13 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
   const childConversationIds = useMemo(() => new Set(childConversations.map((c) => c.id)), [childConversations]);
   const isActiveChild = pathname.startsWith('/conversation/') && childConversationIds.has(pathname.split('/')[2]);
   const isActiveDetail = pathname === `/scheduled/${job.id}`;
+
+  useEffect(() => {
+    onChildConversationIdsChange?.(
+      job.id,
+      childConversations.map((conversation) => conversation.id)
+    );
+  }, [childConversations, job.id, onChildConversationIdsChange]);
 
   const [expanded, setExpanded] = useState(false);
 
@@ -212,7 +227,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
     storageKey: buildCronConversationOrderKey(job.id),
     getId: getConversationId,
     getGroupKey: getConversationGroupKey,
-    enabled: !isMobile,
+    enabled: !isMobile && !batchMode,
   });
 
   // Group child conversations by workspace (matching WorkspaceGroupedHistory logic)
@@ -256,18 +271,23 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
 
   const renderConversationRow = useCallback(
     (conv: TChatConversation) => (
-      <SortableSiderEntry key={conv.id} id={conv.id} disabled={isMobile} testId={`cron-child-sortable-${conv.id}`}>
+      <SortableSiderEntry
+        key={conv.id}
+        id={conv.id}
+        disabled={isMobile || batchMode}
+        testId={`cron-child-sortable-${conv.id}`}
+      >
         <ConversationRow
           conversation={conv}
           isGenerating={isConversationGenerating(conv.id)}
           hasCompletionUnread={hasCompletionUnread(conv.id)}
           collapsed={false}
           tooltipEnabled={false}
-          batchMode={false}
-          checked={false}
+          batchMode={batchMode}
+          checked={selectedConversationIds?.has(conv.id) ?? false}
           selected={currentConversationId === conv.id}
           menuVisible={dropdownVisibleId === conv.id}
-          onToggleChecked={() => {}}
+          onToggleChecked={onToggleSelectedConversation ?? (() => {})}
           onConversationClick={handleConversationClick}
           onOpenMenu={handleOpenMenu}
           onMenuVisibleChange={handleMenuVisibleChange}
@@ -280,6 +300,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
     ),
     [
       isMobile,
+      batchMode,
       isConversationGenerating,
       hasCompletionUnread,
       currentConversationId,
@@ -290,6 +311,8 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
       handleEditStart,
       handleDelete,
       handleTogglePin,
+      selectedConversationIds,
+      onToggleSelectedConversation,
     ]
   );
 

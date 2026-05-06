@@ -11,6 +11,24 @@ import { ipcBridge } from '@/common';
 import fs from 'fs/promises';
 import path from 'path';
 
+export function appendCodexFileReferences(content: string, files?: string[]): string {
+  const uniqueFiles = Array.from(new Set((files ?? []).filter((filePath) => filePath.trim().length > 0)));
+  if (uniqueFiles.length === 0) {
+    return content;
+  }
+
+  const refsToAppend = uniqueFiles.filter((filePath) => {
+    const fileName = path.basename(filePath);
+    return !content.includes(`@${filePath}`) && !content.includes(`@${fileName}`);
+  });
+
+  if (refsToAppend.length === 0) {
+    return content;
+  }
+
+  return `${content.trimEnd()} ${refsToAppend.map((filePath) => `@${filePath}`).join(' ')}`;
+}
+
 export interface FileOperation {
   method: string;
   path: string;
@@ -189,29 +207,31 @@ export class CodexFileOperationHandler {
    * 处理智能文件引用 - 参考 ACP 的 @filename 处理
    */
   processFileReferences(content: string, files?: string[]): string {
-    if (!files || files.length === 0 || !content.includes('@')) {
+    if (!files || files.length === 0) {
       return content;
     }
 
     let processedContent = content;
 
-    // 获取实际文件名
-    const actualFilenames = files.map((filePath) => {
-      return filePath.split('/').pop() || filePath;
-    });
+    if (processedContent.includes('@')) {
+      // 获取实际文件名
+      const actualFilenames = files.map((filePath) => {
+        return path.basename(filePath);
+      });
 
-    // 替换 @actualFilename 为 actualFilename
-    actualFilenames.forEach((filename) => {
-      const atFilename = `@${filename}`;
-      if (processedContent.includes(atFilename)) {
-        processedContent = processedContent.replace(
-          new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-          filename
-        );
-      }
-    });
+      // 替换 @actualFilename 为 actualFilename
+      actualFilenames.forEach((filename) => {
+        const atFilename = `@${filename}`;
+        if (processedContent.includes(atFilename)) {
+          processedContent = processedContent.replace(
+            new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
+            filename
+          );
+        }
+      });
+    }
 
-    return processedContent;
+    return appendCodexFileReferences(processedContent, files);
   }
 
   /**

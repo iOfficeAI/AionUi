@@ -44,6 +44,18 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "모든 예약 작업",
   "noTasks": "예약 작업 없음",
+  "batch": {
+    "selectedCount": "{{count}}개 선택됨",
+    "selectAll": "예약 대화 모두 선택",
+    "batchDelete": "일괄 삭제",
+    "clearAll": "모두 비우기",
+    "noSelection": "먼저 대화를 선택하세요",
+    "deleteTitle": "예약 대화 삭제",
+    "deleteConfirm": "선택한 예약 대화 {{count}}개를 삭제하시겠습니까?",
+    "deleteSuccess": "예약 대화 {{count}}개가 삭제되었습니다",
+    "clearAllConfirm": "예약 작업 아래의 대화 {{count}}개를 모두 비우시겠습니까?",
+    "clearAllSuccess": "예약 대화 {{count}}개를 비웠습니다"
+  },
   "runNowSuccess": "작업 실행이 트리거되었습니다",
   "panel": {
     "pageTitle": "예약 작업 제어판",
@@ -165,7 +177,7 @@
       "executionModeEditHint": "생성 후에는 실행 모드를 변경할 수 없습니다. 모드를 전환하려면 작업을 삭제한 후 다시 만드세요.",
       "advancedSettings": "고급 설정",
       "queueMode": "대기열 모드",
-      "queueModeHint": "이전 실행이 아직 진행 중이면 완료될 때까지 기다린 뒤 다음 실행을 시작합니다.",
+      "queueModeHint": "대기열의 예약 작업을 하나씩 실행하고, 현재 작업이 끝난 뒤 다음 작업을 시작합니다.",
       "workspace": "워크스페이스",
       "workspacePlaceholder": "폴더 선택",
       "workspaceHint": "선택 사항: 파일 작업을 위한 워크스페이스 폴더 설정",

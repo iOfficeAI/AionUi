@@ -44,6 +44,18 @@
   "message.badge": "定时任务",
   "allScheduledTasks": "全部定时任务",
   "noTasks": "暂无定时任务",
+  "batch": {
+    "selectedCount": "已选 {{count}} 项",
+    "selectAll": "全选定时会话",
+    "batchDelete": "批量删除",
+    "clearAll": "一键清空",
+    "noSelection": "请先选择会话",
+    "deleteTitle": "删除定时会话",
+    "deleteConfirm": "确定删除已选的 {{count}} 个定时会话吗？",
+    "deleteSuccess": "已删除 {{count}} 个定时会话",
+    "clearAllConfirm": "确定清空定时任务目录下的 {{count}} 个会话吗？",
+    "clearAllSuccess": "已清空 {{count}} 个定时会话"
+  },
   "runNowSuccess": "任务已触发执行",
   "panel": {
     "pageTitle": "定时任务控制面板",
@@ -99,7 +111,7 @@
     "conversationNotFound": "未找到会话",
     "scheduledTimePassed": "定时时间已过",
     "conversationBusy": "会话繁忙，在 {{count}} 次尝试后跳过",
-    "previousRunActive": "上一次定时执行仍在运行，本次执行已进入队列。"
+    "previousRunActive": "队列中已有定时任务正在运行，本次执行已进入队列。"
   },
   "confirmDeleteWithConversations": "确定要删除此定时任务吗？该任务下的所有会话也将被删除。",
   "detail": {
@@ -165,7 +177,7 @@
       "executionModeEditHint": "创建后无法更改执行模式，如需切换请删除任务后重新创建。",
       "advancedSettings": "高级设置",
       "queueMode": "队列模式",
-      "queueModeHint": "上一次执行未结束时，先等待它结束，再启动下一次执行。",
+      "queueModeHint": "队列中的定时任务会逐个运行；当前任务结束后，再启动下一个。",
       "workspace": "工作空间",
       "workspacePlaceholder": "选择文件夹",
       "workspaceHint": "可选：设置文件操作的工作空间文件夹",

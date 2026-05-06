@@ -30,6 +30,7 @@ import {
 } from '@process/task/codexConfig';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
 import { CodexAppServerClient } from './CodexAppServerClient';
+import { appendCodexFileReferences } from '../handlers/CodexFileOperationHandler';
 import { CodexModelService } from './CodexModelService';
 import { CodexPermissionResolver } from './CodexPermissionResolver';
 import { CodexThreadSession } from './CodexThreadSession';
@@ -253,15 +254,16 @@ export class CodexNativeAgentManager extends BaseAgentManager<CodexNativeAgentMa
 
       const contentToSend = data.content?.includes(AIONUI_FILES_MARKER)
         ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd()
-        : data.content;
+        : (data.content ?? '');
+      const contentWithFileReferences = appendCodexFileReferences(contentToSend, data.files);
       const content = this.isFirstMessage
         ? (
-            await prepareFirstMessageWithSkillsIndex(contentToSend, {
+            await prepareFirstMessageWithSkillsIndex(contentWithFileReferences, {
               presetContext: this.options.presetContext,
               enabledSkills: this.options.enabledSkills,
             })
           ).content
-        : contentToSend;
+        : contentWithFileReferences;
       this.isFirstMessage = false;
       await this.session.startTurn({ content, msgId, files: data.files });
     } catch (error) {

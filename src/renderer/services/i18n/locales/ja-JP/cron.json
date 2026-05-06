@@ -44,6 +44,18 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "すべてのスケジュールタスク",
   "noTasks": "スケジュールタスクがありません",
+  "batch": {
+    "selectedCount": "{{count}} 件選択済み",
+    "selectAll": "スケジュール会話をすべて選択",
+    "batchDelete": "一括削除",
+    "clearAll": "すべてクリア",
+    "noSelection": "先に会話を選択してください",
+    "deleteTitle": "スケジュール会話を削除",
+    "deleteConfirm": "選択した {{count}} 件のスケジュール会話を削除しますか？",
+    "deleteSuccess": "{{count}} 件のスケジュール会話を削除しました",
+    "clearAllConfirm": "スケジュールタスク配下の {{count}} 件の会話をすべてクリアしますか？",
+    "clearAllSuccess": "{{count}} 件のスケジュール会話をクリアしました"
+  },
   "runNowSuccess": "タスクの実行をトリガーしました",
   "panel": {
     "pageTitle": "定期タスク管理パネル",
@@ -165,7 +177,7 @@
       "executionModeEditHint": "作成後に実行モードは変更できません。モードを切り替えるには、タスクを削除して再作成してください。",
       "advancedSettings": "詳細設定",
       "queueMode": "キューモード",
-      "queueModeHint": "前回の実行がまだ進行中の場合、完了してから次の実行を開始します。",
+      "queueModeHint": "キュー内のスケジュールタスクを1つずつ実行し、実行中のタスクが完了してから次を開始します。",
       "workspace": "ワークスペース",
       "workspacePlaceholder": "フォルダを選択",
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",

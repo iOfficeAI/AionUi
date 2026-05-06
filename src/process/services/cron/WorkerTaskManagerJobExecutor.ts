@@ -38,7 +38,11 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     return this.busyGuard.isProcessing(conversationId);
   }
 
-  async executeJob(job: CronJob, onAcquired?: () => void, preparedConversationId?: string): Promise<string | void> {
+  async executeJob(
+    job: CronJob,
+    onAcquired?: (conversationId: string) => void,
+    preparedConversationId?: string
+  ): Promise<string | void> {
     let conversationId = preparedConversationId ?? job.metadata.conversationId;
 
     // Create a conversation when needed (skip if already prepared by runNow):
@@ -104,7 +108,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     this.busyGuard.setProcessing(conversationId, true);
     // Notify caller so it can register onceIdle callbacks while the conversation
     // is already marked busy (prevents premature idle fires).
-    onAcquired?.();
+    onAcquired?.(conversationId);
 
     // Apply mode and config options if configured (must succeed before sendMessage).
     // If the task's agent is stale/disconnected, settings may fail — kill and retry

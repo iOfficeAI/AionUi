@@ -536,6 +536,75 @@ describe('CronService', () => {
     expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
   });
 
+  it('serializes separate queue-mode jobs so only one scheduled task runs at a time', async () => {
+    const idleCallbacks = new Map<string, Array<() => Promise<void>>>();
+    const jobA = makeJob({
+      id: 'queued-job-a',
+      name: 'Queued Job A',
+      target: {
+        payload: { kind: 'message', text: 'first queued prompt' },
+        executionMode: 'new_conversation',
+        queueMode: true,
+      } as CronJob['target'] & { queueMode: boolean },
+      metadata: {
+        conversationId: 'seed-conv-a',
+        agentType: 'gemini',
+        createdBy: 'user',
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+    });
+    const jobB = makeJob({
+      id: 'queued-job-b',
+      name: 'Queued Job B',
+      target: {
+        payload: { kind: 'message', text: 'second queued prompt' },
+        executionMode: 'new_conversation',
+        queueMode: true,
+      } as CronJob['target'] & { queueMode: boolean },
+      metadata: {
+        conversationId: 'seed-conv-b',
+        agentType: 'gemini',
+        createdBy: 'user',
+        createdAt: 1000,
+        updatedAt: 1000,
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([jobA, jobB]);
+    vi.mocked(repo.getById).mockImplementation((jobId: string) => {
+      if (jobId === jobA.id) return jobA;
+      if (jobId === jobB.id) return jobB;
+      return null;
+    });
+    vi.mocked(executor.onceIdle).mockImplementation((conversationId, callback) => {
+      idleCallbacks.set(conversationId, [...(idleCallbacks.get(conversationId) ?? []), callback]);
+    });
+    vi.mocked(executor.executeJob).mockImplementation(async (job, onAcquired) => {
+      const runConversationId = `${job.id}-run`;
+      onAcquired?.(runConversationId);
+      return runConversationId;
+    });
+
+    await service.init();
+    await vi.advanceTimersByTimeAsync(60000);
+
+    expect(executor.executeJob).toHaveBeenCalledTimes(1);
+    expect(executor.executeJob).toHaveBeenCalledWith(jobA, expect.any(Function), undefined);
+    expect(repo.update).toHaveBeenCalledWith(
+      jobB.id,
+      expect.objectContaining({
+        state: expect.objectContaining({ lastStatus: 'queued' }),
+      })
+    );
+
+    for (const callback of idleCallbacks.get('queued-job-a-run') ?? []) {
+      await callback();
+    }
+
+    expect(executor.executeJob).toHaveBeenCalledTimes(2);
+    expect(executor.executeJob).toHaveBeenNthCalledWith(2, jobB, expect.any(Function), undefined);
+  });
+
   it('starts every timers from schedule.startAtMs before switching to the fixed interval', async () => {
     vi.setSystemTime(new Date('2026-03-25T08:00:00Z'));
 

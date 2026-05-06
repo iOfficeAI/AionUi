@@ -179,7 +179,7 @@ export function applyWorkspaceConversationConfigDefaults(
     };
   }
 
-  if (params.type !== 'acp') {
+  if (params.type !== 'acp' && params.type !== 'codex') {
     return params;
   }
 

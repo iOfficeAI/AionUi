@@ -44,6 +44,18 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "全部定時任務",
   "noTasks": "暫無定時任務",
+  "batch": {
+    "selectedCount": "已選 {{count}} 項",
+    "selectAll": "全選定時對話",
+    "batchDelete": "批次刪除",
+    "clearAll": "一鍵清空",
+    "noSelection": "請先選擇對話",
+    "deleteTitle": "刪除定時對話",
+    "deleteConfirm": "確定刪除已選的 {{count}} 個定時對話嗎？",
+    "deleteSuccess": "已刪除 {{count}} 個定時對話",
+    "clearAllConfirm": "確定清空定時任務目錄下的 {{count}} 個對話嗎？",
+    "clearAllSuccess": "已清空 {{count}} 個定時對話"
+  },
   "runNowSuccess": "任務已觸發執行",
   "panel": {
     "pageTitle": "定時任務控制面板",
@@ -99,7 +111,7 @@
     "conversationNotFound": "未找到對話",
     "scheduledTimePassed": "定時時間已過",
     "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過",
-    "previousRunActive": "上一次定時執行仍在執行，本次執行已進入佇列。"
+    "previousRunActive": "佇列中已有定時任務正在執行，本次執行已進入佇列。"
   },
   "confirmDeleteWithConversations": "確定要刪除此定時任務嗎？該任務下的所有對話也將被刪除。",
   "detail": {
@@ -165,7 +177,7 @@
       "executionModeEditHint": "建立後無法更改執行模式，如需切換請刪除任務後重新建立。",
       "advancedSettings": "進階設定",
       "queueMode": "佇列模式",
-      "queueModeHint": "上一次執行未結束時，先等待它結束，再啟動下一次執行。",
+      "queueModeHint": "佇列中的定時任務會逐一執行；目前任務結束後，再啟動下一個。",
       "workspace": "工作空間",
       "workspacePlaceholder": "選擇資料夾",
       "workspaceHint": "選填：設定檔案操作的工作空間資料夾",

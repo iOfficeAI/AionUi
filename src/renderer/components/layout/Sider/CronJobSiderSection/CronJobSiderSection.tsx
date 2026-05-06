@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Button, Message, Modal } from '@arco-design/web-react';
 import { Down, Right } from '@icon-park/react';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
@@ -17,11 +18,21 @@ interface CronJobSiderSectionProps {
   jobs: ICronJob[];
   pathname: string;
   onNavigate: (path: string) => void;
+  batchMode?: boolean;
+  onBatchModeChange?: (value: boolean) => void;
 }
 
-const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathname, onNavigate }) => {
+const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({
+  jobs,
+  pathname,
+  onNavigate,
+  batchMode = false,
+  onBatchModeChange,
+}) => {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
+  const [selectedConversationIds, setSelectedConversationIds] = useState<Set<string>>(() => new Set());
+  const [conversationIdsByJobId, setConversationIdsByJobId] = useState<Map<string, string[]>>(() => new Map());
 
   // Collect all conversation IDs that belong to cron jobs (for auto-expand detection)
   const cronConversationIds = useMemo(() => {
@@ -55,6 +66,12 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
       });
     }
   }, [pathname, cronConversationIds]);
+
+  useEffect(() => {
+    if (!batchMode) {
+      setSelectedConversationIds(new Set());
+    }
+  }, [batchMode]);
 
   // Batch-fetch conversations for all "existing" mode jobs to avoid N+1 IPC calls
   const existingModeConvIds = useMemo(
@@ -95,6 +112,138 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
     };
   }, []);
 
+  const allConversationIds = useMemo(() => {
+    const ids = new Set<string>();
+    conversationIdsByJobId.forEach((conversationIds, jobId) => {
+      if (!jobs.some((job) => job.id === jobId)) return;
+      conversationIds.forEach((conversationId) => ids.add(conversationId));
+    });
+    return Array.from(ids);
+  }, [conversationIdsByJobId, jobs]);
+
+  const selectedCount = selectedConversationIds.size;
+  const allSelected = allConversationIds.length > 0 && selectedCount === allConversationIds.length;
+
+  useEffect(() => {
+    if (!batchMode || selectedConversationIds.size === 0) return;
+    const existingIds = new Set(allConversationIds);
+    setSelectedConversationIds((prev) => {
+      const next = new Set<string>();
+      prev.forEach((conversationId) => {
+        if (existingIds.has(conversationId)) {
+          next.add(conversationId);
+        }
+      });
+      return next;
+    });
+  }, [allConversationIds, batchMode, selectedConversationIds.size]);
+
+  const handleChildConversationIdsChange = useCallback((jobId: string, conversationIds: string[]) => {
+    setConversationIdsByJobId((prev) => {
+      const prevIds = prev.get(jobId) ?? [];
+      if (prevIds.length === conversationIds.length && prevIds.every((id, index) => id === conversationIds[index])) {
+        return prev;
+      }
+      const next = new Map(prev);
+      next.set(jobId, conversationIds);
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectedConversation = useCallback((conversation: TChatConversation) => {
+    setSelectedConversationIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(conversation.id)) {
+        next.delete(conversation.id);
+      } else {
+        next.add(conversation.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const handleToggleSelectAll = useCallback(() => {
+    setSelectedConversationIds((prev) => {
+      if (prev.size === allConversationIds.length) {
+        return new Set();
+      }
+      return new Set(allConversationIds);
+    });
+  }, [allConversationIds]);
+
+  const removeConversations = useCallback(
+    async (conversationIds: string[]) => {
+      const results = await Promise.all(
+        conversationIds.map(async (conversationId) => {
+          const success = await ipcBridge.conversation.remove.invoke({ id: conversationId });
+          if (success) {
+            emitter.emit('conversation.deleted', conversationId);
+          }
+          return success;
+        })
+      );
+      const successCount = results.filter(Boolean).length;
+      if (successCount > 0) {
+        emitter.emit('chat.history.refresh');
+        const activeConversationId = pathname.startsWith('/conversation/') ? pathname.split('/')[2] : undefined;
+        if (activeConversationId && conversationIds.includes(activeConversationId)) {
+          onNavigate('/');
+        }
+      }
+      return successCount;
+    },
+    [onNavigate, pathname]
+  );
+
+  const confirmRemoveConversations = useCallback(
+    (conversationIds: string[], confirmKey: string, successKey: string) => {
+      if (conversationIds.length === 0) {
+        Message.warning(t('cron.batch.noSelection'));
+        return;
+      }
+
+      Modal.confirm({
+        title: t('cron.batch.deleteTitle'),
+        content: t(confirmKey, { count: conversationIds.length }),
+        okText: t('conversation.history.confirmDelete'),
+        cancelText: t('conversation.history.cancelDelete'),
+        okButtonProps: { status: 'warning' },
+        onOk: async () => {
+          try {
+            const successCount = await removeConversations(conversationIds);
+            if (successCount > 0) {
+              Message.success(t(successKey, { count: successCount }));
+            } else {
+              Message.error(t('conversation.history.deleteFailed'));
+            }
+          } catch (error) {
+            console.error('Failed to delete scheduled task conversations:', error);
+            Message.error(t('conversation.history.deleteFailed'));
+          } finally {
+            setSelectedConversationIds(new Set());
+            onBatchModeChange?.(false);
+          }
+        },
+        style: { borderRadius: '12px' },
+        alignCenter: true,
+        getPopupContainer: () => document.body,
+      });
+    },
+    [onBatchModeChange, removeConversations, t]
+  );
+
+  const handleBatchDelete = useCallback(() => {
+    confirmRemoveConversations(
+      Array.from(selectedConversationIds),
+      'cron.batch.deleteConfirm',
+      'cron.batch.deleteSuccess'
+    );
+  }, [confirmRemoveConversations, selectedConversationIds]);
+
+  const handleClearAll = useCallback(() => {
+    confirmRemoveConversations(allConversationIds, 'cron.batch.clearAllConfirm', 'cron.batch.clearAllSuccess');
+  }, [allConversationIds, confirmRemoveConversations]);
+
   if (jobs.length === 0) return null;
 
   return (
@@ -108,6 +257,44 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
           {expanded ? <Down theme='outline' size={12} /> : <Right theme='outline' size={12} />}
         </div>
       </div>
+      {batchMode && expanded && (
+        <div className='px-12px pb-8px'>
+          <div className='rd-8px bg-fill-1 p-10px flex flex-col gap-8px border border-solid border-[rgba(var(--primary-6),0.08)]'>
+            <div className='text-12px leading-18px text-t-secondary'>
+              {t('cron.batch.selectedCount', { count: selectedCount })}
+            </div>
+            <div className='grid grid-cols-2 gap-6px'>
+              <Button
+                className='!col-span-2 !w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
+                size='mini'
+                type='secondary'
+                disabled={allConversationIds.length === 0}
+                onClick={handleToggleSelectAll}
+              >
+                {allSelected ? t('common.cancel') : t('cron.batch.selectAll')}
+              </Button>
+              <Button
+                className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
+                size='mini'
+                status='warning'
+                disabled={selectedCount === 0}
+                onClick={handleBatchDelete}
+              >
+                {t('cron.batch.batchDelete')}
+              </Button>
+              <Button
+                className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
+                size='mini'
+                status='warning'
+                disabled={allConversationIds.length === 0}
+                onClick={handleClearAll}
+              >
+                {t('cron.batch.clearAll')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
       {expanded &&
         jobs.map((job) => (
           <CronJobSiderItem
@@ -116,6 +303,10 @@ const CronJobSiderSection: React.FC<CronJobSiderSectionProps> = ({ jobs, pathnam
             pathname={pathname}
             onNavigate={onNavigate}
             existingConversation={existingConversations.get(job.metadata.conversationId)}
+            batchMode={batchMode}
+            selectedConversationIds={selectedConversationIds}
+            onToggleSelectedConversation={handleToggleSelectedConversation}
+            onChildConversationIdsChange={handleChildConversationIdsChange}
           />
         ))}
     </div>

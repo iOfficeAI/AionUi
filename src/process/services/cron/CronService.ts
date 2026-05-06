@@ -50,6 +50,12 @@ type QueueConversationState = {
   active: boolean;
 };
 
+type QueuedRunEntry = {
+  job: CronJob;
+  options: ExecuteJobOptions;
+  preservedNextRunAtMs?: number;
+};
+
 /**
  * CronService - Core scheduling service for AionUI
  *
@@ -62,6 +68,11 @@ export class CronService {
   private queueTimers: Map<string, NodeJS.Timeout> = new Map();
   private retryCounts: Map<string, number> = new Map();
   private queuedRuns: Set<string> = new Set();
+  private queuedRunEntries: Map<string, QueuedRunEntry> = new Map();
+  private queuedRunOrder: string[] = [];
+  private queueActive = false;
+  private queueActiveConversationId: string | null = null;
+  private queueReleaseConversationId: string | null = null;
   private initialized = false;
   private powerSaveBlockerId: number | null = null;
 
@@ -594,6 +605,8 @@ export class CronService {
     // Clear retry count for this job
     this.retryCounts.delete(jobId);
     this.queuedRuns.delete(jobId);
+    this.queuedRunEntries.delete(jobId);
+    this.queuedRunOrder = this.queuedRunOrder.filter((queuedJobId) => queuedJobId !== jobId);
   }
 
   /**
@@ -603,18 +616,34 @@ export class CronService {
   private async executeJob(job: CronJob, options: ExecuteJobOptions = {}): Promise<void> {
     const conversationId = options.preparedConversationId ?? job.metadata.conversationId;
     const preservedNextRunAtMs = options.preserveNextRunAtMs ? job.state.nextRunAtMs : undefined;
+    const participatesInQueue = job.target.queueMode === true;
 
-    if (job.target.queueMode && !options.queuedRun) {
+    if (participatesInQueue && !options.queuedRun) {
       const queueConversation = await this.getQueueConversationState(job, conversationId);
-      if (queueConversation?.active) {
-        await this.queueRunAfterIdle(job, options, queueConversation.id, preservedNextRunAtMs);
+      if (this.queueActive || this.queuedRunOrder.length > 0 || queueConversation?.active) {
+        await this.queueRunAfterIdle(
+          job,
+          options,
+          this.queueActiveConversationId ?? queueConversation?.id,
+          preservedNextRunAtMs
+        );
         return;
       }
+    }
+
+    let queueAcquiredConversationId: string | undefined;
+    if (participatesInQueue) {
+      this.queueActive = true;
+      this.queueActiveConversationId = null;
+      this.queueReleaseConversationId = null;
     }
 
     // Check if conversation is busy
     const isBusy = this.executor.isConversationBusy(conversationId);
     if (isBusy) {
+      if (participatesInQueue) {
+        this.releaseQueueExecution();
+      }
       const currentRetry = (this.retryCounts.get(job.id) ?? 0) + 1;
       this.retryCounts.set(job.id, currentRetry);
 
@@ -662,11 +691,21 @@ export class CronService {
       // conversation is already busy, preventing premature onceIdle fires.
       const newConversationId = await this.executor.executeJob(
         job,
-        () => {
-          this.registerCompletionNotification(job);
+        (acquiredConversationId) => {
+          queueAcquiredConversationId = acquiredConversationId;
+          if (participatesInQueue) {
+            this.queueActiveConversationId = acquiredConversationId;
+            this.registerQueueRelease(acquiredConversationId);
+          }
+          this.registerCompletionNotification(job, acquiredConversationId);
         },
         options.preparedConversationId
       );
+
+      if (participatesInQueue && !queueAcquiredConversationId) {
+        this.releaseQueueExecution();
+        void this.runNextQueuedJob();
+      }
 
       // For "existing" mode: persist the newly created conversationId so subsequent executions reuse it
       if (newConversationId && job.target.executionMode === 'existing') {
@@ -691,6 +730,10 @@ export class CronService {
         console.warn('[CronService] Failed to update conversation modifyTime after execution:', err);
       }
     } catch (error) {
+      if (participatesInQueue && !queueAcquiredConversationId) {
+        this.releaseQueueExecution();
+        void this.runNextQueuedJob();
+      }
       // Error
       lastStatus = 'error';
       lastError = error instanceof Error ? error.message : String(error);
@@ -762,12 +805,18 @@ export class CronService {
   private async queueRunAfterIdle(
     job: CronJob,
     options: ExecuteJobOptions,
-    activeConversationId: string,
+    activeConversationId: string | null | undefined,
     preservedNextRunAtMs: number | undefined
   ): Promise<void> {
-    if (!this.queuedRuns.has(job.id)) {
+    const alreadyQueued = this.queuedRuns.has(job.id);
+    if (!alreadyQueued) {
       this.queuedRuns.add(job.id);
-      this.executor.onceIdle(activeConversationId, () => this.runQueuedJobWhenIdle(job, options, activeConversationId));
+      this.queuedRunOrder.push(job.id);
+    }
+    this.queuedRunEntries.set(job.id, { job, options, preservedNextRunAtMs });
+
+    if (activeConversationId) {
+      this.registerQueueRelease(activeConversationId);
     }
 
     if (options.preserveNextRunAtMs) {
@@ -789,42 +838,73 @@ export class CronService {
     }
   }
 
-  private async runQueuedJobWhenIdle(
-    job: CronJob,
-    options: ExecuteJobOptions,
-    activeConversationId: string
-  ): Promise<void> {
+  private registerQueueRelease(activeConversationId: string): void {
+    if (this.queueReleaseConversationId === activeConversationId) {
+      return;
+    }
+    this.queueReleaseConversationId = activeConversationId;
+    this.executor.onceIdle(activeConversationId, () => this.runQueuedJobWhenIdle(activeConversationId));
+  }
+
+  private async runQueuedJobWhenIdle(activeConversationId: string): Promise<void> {
     if (await this.isQueueConversationActive(activeConversationId)) {
-      const existingTimer = this.queueTimers.get(job.id);
+      const existingTimer = this.queueTimers.get(activeConversationId);
       if (existingTimer) {
         clearTimeout(existingTimer);
       }
 
       const timer = setTimeout(() => {
-        this.queueTimers.delete(job.id);
-        void this.runQueuedJobWhenIdle(job, options, activeConversationId);
+        this.queueTimers.delete(activeConversationId);
+        void this.runQueuedJobWhenIdle(activeConversationId);
       }, 30000);
-      this.queueTimers.set(job.id, timer);
+      this.queueTimers.set(activeConversationId, timer);
       return;
     }
 
-    this.queuedRuns.delete(job.id);
-    const latestJob = await this.repo.getById(job.id);
-    const jobToRun = latestJob ?? job;
-    if (!jobToRun.enabled && !options.preserveNextRunAtMs) {
+    this.releaseQueueExecution(activeConversationId);
+    await this.runNextQueuedJob();
+  }
+
+  private releaseQueueExecution(activeConversationId?: string): void {
+    if (
+      activeConversationId &&
+      this.queueActiveConversationId &&
+      this.queueActiveConversationId !== activeConversationId
+    ) {
       return;
     }
 
-    await this.executeJob(jobToRun, { ...options, queuedRun: true });
+    this.queueActive = false;
+    this.queueActiveConversationId = null;
+    this.queueReleaseConversationId = null;
+  }
+
+  private async runNextQueuedJob(): Promise<void> {
+    while (this.queuedRunOrder.length > 0) {
+      const jobId = this.queuedRunOrder.shift()!;
+      const entry = this.queuedRunEntries.get(jobId);
+      if (!entry) {
+        continue;
+      }
+
+      this.queuedRunEntries.delete(jobId);
+      this.queuedRuns.delete(jobId);
+      const latestJob = await this.repo.getById(jobId);
+      const jobToRun = latestJob ?? entry.job;
+      if (!jobToRun.enabled && !entry.options.preserveNextRunAtMs) {
+        continue;
+      }
+
+      await this.executeJob(jobToRun, { ...entry.options, queuedRun: true });
+      return;
+    }
   }
 
   /**
    * Register a callback on executor to send notification when the agent finishes.
    * Must be called BEFORE sendMessage to avoid race conditions.
    */
-  private registerCompletionNotification(job: CronJob): void {
-    const { conversationId } = job.metadata;
-
+  private registerCompletionNotification(job: CronJob, conversationId: string): void {
     this.executor.onceIdle(conversationId, async () => {
       // Check if cron notification is enabled
       const cronNotificationEnabled = await ProcessConfig.get('system.cronNotificationEnabled');

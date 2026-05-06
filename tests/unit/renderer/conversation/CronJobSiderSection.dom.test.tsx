@@ -17,11 +17,20 @@ vi.mock('@icon-park/react', () => ({
   ),
 }));
 
+const mockItemProps = vi.hoisted(() => new Map<string, Record<string, unknown>>());
+
 // Mock CronJobSiderItem component to isolate section behavior
 vi.mock('@/renderer/components/layout/Sider/CronJobSiderSection/CronJobSiderItem', () => ({
-  default: ({ job }: { job: { id: string; name: string } }) => (
-    <div data-testid={`cron-job-item-${job.id}`}>{job.name}</div>
-  ),
+  default: (props: {
+    job: { id: string; name: string };
+    onChildConversationIdsChange?: (jobId: string, conversationIds: string[]) => void;
+  }) => {
+    mockItemProps.set(props.job.id, props as unknown as Record<string, unknown>);
+    React.useEffect(() => {
+      props.onChildConversationIdsChange?.(props.job.id, [`${props.job.id}-conv`]);
+    }, [props.job.id, props.onChildConversationIdsChange]);
+    return <div data-testid={`cron-job-item-${props.job.id}`}>{props.job.name}</div>;
+  },
 }));
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
@@ -104,6 +113,7 @@ describe('CronJobSiderSection', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockItemProps.clear();
   });
 
   it('returns null when jobs array is empty', () => {
@@ -237,6 +247,18 @@ describe('CronJobSiderSection', () => {
 
     // Section auto-expands when pathname starts with /scheduled/, no click needed
     expect(screen.getByTestId('cron-job-item-job-1')).toBeInTheDocument();
+  });
+
+  it('shows cron batch controls and forwards selected state to child items', async () => {
+    render(<CronJobSiderSection jobs={[mockJobs[0]]} pathname='/' onNavigate={mockOnNavigate} batchMode={true} />);
+
+    const header = screen.getByText('cron.scheduledTasks').closest('div');
+    fireEvent.click(header!);
+
+    expect(await screen.findByText('cron.batch.selectedCount')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('cron.batch.selectAll'));
+
+    expect(mockItemProps.get('job-1')?.selectedConversationIds).toEqual(new Set(['job-1-conv']));
   });
 
   it('maintains correct structure with mb-8px wrapper', () => {

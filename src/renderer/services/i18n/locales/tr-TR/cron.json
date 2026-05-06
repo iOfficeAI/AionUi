@@ -44,6 +44,18 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "Tüm zamanlanmış görevler",
   "noTasks": "Zamanlanmış görev yok",
+  "batch": {
+    "selectedCount": "{{count}} seçildi",
+    "selectAll": "Tüm zamanlanmış konuşmaları seç",
+    "batchDelete": "Toplu sil",
+    "clearAll": "Tümünü temizle",
+    "noSelection": "Önce konuşmaları seçin",
+    "deleteTitle": "Zamanlanmış konuşmaları sil",
+    "deleteConfirm": "Seçili {{count}} zamanlanmış konuşma silinsin mi?",
+    "deleteSuccess": "{{count}} zamanlanmış konuşma silindi",
+    "clearAllConfirm": "Zamanlanmış görevler altındaki {{count}} konuşmanın tümü temizlensin mi?",
+    "clearAllSuccess": "{{count}} zamanlanmış konuşma temizlendi"
+  },
   "runNowSuccess": "Görev çalıştırma tetiklendi",
   "panel": {
     "pageTitle": "Zamanlanmış Görev Kontrol Paneli",
@@ -165,7 +177,7 @@
       "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun.",
       "advancedSettings": "Gelişmiş Ayarlar",
       "queueMode": "Sıra modu",
-      "queueModeHint": "Önceki çalışma hâlâ etkinse, sonraki çalışmayı başlatmadan önce bitmesini bekle.",
+      "queueModeHint": "Kuyruktaki zamanlanmış görevleri tek tek çalıştır; sonraki görev, etkin görev bitince başlar.",
       "workspace": "Çalışma Alanı",
       "workspacePlaceholder": "Klasör seç",
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",

@@ -44,6 +44,18 @@
   "message.badge": "Scheduled",
   "allScheduledTasks": "All Scheduled Tasks",
   "noTasks": "No scheduled tasks",
+  "batch": {
+    "selectedCount": "{{count}} selected",
+    "selectAll": "Select all scheduled conversations",
+    "batchDelete": "Batch delete",
+    "clearAll": "Clear all",
+    "noSelection": "Select conversations first",
+    "deleteTitle": "Delete scheduled conversations",
+    "deleteConfirm": "Delete {{count}} selected scheduled conversations?",
+    "deleteSuccess": "{{count}} scheduled conversations deleted",
+    "clearAllConfirm": "Clear all {{count}} conversations under scheduled tasks?",
+    "clearAllSuccess": "{{count}} scheduled conversations cleared"
+  },
   "runNowSuccess": "Task execution triggered",
   "panel": {
     "pageTitle": "Scheduled Task Control Panel",
@@ -99,7 +111,7 @@
     "conversationNotFound": "Conversation not found",
     "scheduledTimePassed": "Scheduled time has passed",
     "conversationBusy": "Conversation busy after {{count}} retries",
-    "previousRunActive": "Previous scheduled run is still active; this run is queued."
+    "previousRunActive": "Another queued scheduled task is still active; this run is queued."
   },
   "confirmDeleteWithConversations": "Are you sure you want to delete this scheduled task? All conversations from this task will also be deleted.",
   "detail": {
@@ -165,7 +177,7 @@
       "executionModeEditHint": "Execution mode cannot be changed after creation. Delete and recreate the task to switch modes.",
       "advancedSettings": "Advanced Settings",
       "queueMode": "Queue mode",
-      "queueModeHint": "When the previous run is still active, wait until it finishes before starting the next run.",
+      "queueModeHint": "Run queued scheduled tasks one at a time; wait for the active task to finish before starting the next.",
       "workspace": "Workspace",
       "workspacePlaceholder": "Select a folder",
       "workspaceHint": "Optional: set a workspace folder for file operations",

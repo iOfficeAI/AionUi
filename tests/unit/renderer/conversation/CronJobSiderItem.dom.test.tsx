@@ -9,6 +9,7 @@ const mockConversationRemove = vi.hoisted(() => vi.fn());
 const mockConversationListByCronJob = vi.hoisted(() => vi.fn());
 const mockOnJobExecuted = vi.hoisted(() => vi.fn());
 const mockConversationListChanged = vi.hoisted(() => vi.fn());
+const mockChildIdsChange = vi.hoisted(() => vi.fn());
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -167,12 +168,18 @@ vi.mock('@/renderer/components/layout/Sider/SortableSiderEntry', () => ({
 vi.mock('@renderer/pages/conversation/GroupedHistory/ConversationRow', () => ({
   default: ({
     conversation,
+    batchMode,
+    checked,
+    onToggleChecked,
     onConversationClick,
     onEditStart,
     onDelete,
     onTogglePin,
   }: {
     conversation: { id: string; name: string };
+    batchMode?: boolean;
+    checked?: boolean;
+    onToggleChecked: (conv: { id: string; name: string }) => void;
     onConversationClick: (conv: { id: string; name: string }) => void;
     onEditStart: (conv: { id: string; name: string }) => void;
     onDelete: (id: string) => void;
@@ -180,6 +187,11 @@ vi.mock('@renderer/pages/conversation/GroupedHistory/ConversationRow', () => ({
   }) => (
     <div data-testid={`conversation-row-${conversation.id}`}>
       <span data-testid='conversation-name'>{conversation.name}</span>
+      <span data-testid={`conversation-batch-${conversation.id}`}>{String(!!batchMode)}</span>
+      <span data-testid={`conversation-checked-${conversation.id}`}>{String(!!checked)}</span>
+      <button onClick={() => onToggleChecked(conversation)} data-testid='toggle-checked'>
+        Toggle
+      </button>
       <button onClick={() => onConversationClick(conversation)} data-testid='click-conversation'>
         Click
       </button>
@@ -618,5 +630,38 @@ describe('CronJobSiderItem', () => {
         })
       );
     });
+  });
+
+  it('enables batch selection for child conversations when batch mode is active', async () => {
+    const selectedConversationIds = new Set(['conv-2']);
+    const toggleSelected = vi.fn();
+
+    render(
+      <CronJobSiderItem
+        job={mockJobNewConversation}
+        pathname='/'
+        onNavigate={mockOnNavigate}
+        batchMode={true}
+        selectedConversationIds={selectedConversationIds}
+        onToggleSelectedConversation={toggleSelected}
+        onChildConversationIdsChange={mockChildIdsChange}
+      />
+    );
+
+    await waitFor(() => {
+      const arrow = screen.getByTestId('icon-down');
+      fireEvent.click(arrow);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByTestId('conversation-batch-conv-1')).toHaveTextContent('true');
+      expect(screen.getByTestId('conversation-checked-conv-1')).toHaveTextContent('false');
+      expect(screen.getByTestId('conversation-checked-conv-2')).toHaveTextContent('true');
+    });
+
+    fireEvent.click(screen.getAllByTestId('toggle-checked')[0]);
+
+    expect(toggleSelected).toHaveBeenCalledWith(mockConversations[0]);
+    expect(mockChildIdsChange).toHaveBeenCalledWith('job-1', ['conv-1', 'conv-2']);
   });
 });
