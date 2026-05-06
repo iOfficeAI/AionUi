@@ -581,7 +581,6 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       preset.id === 'morph-ppt' ||
       preset.id === 'cowork' ||
       preset.id === 'openclaw-setup' ||
-      preset.id === 'star-office-helper' ||
       preset.id === 'story-roleplay' ||
       preset.id === 'moltbook' ||
       preset.id === 'beautiful-mermaid';
@@ -953,8 +952,15 @@ const initStorage = async () => {
 
     // 更新或添加内置助手配置
     // Update or add built-in assistant configurations
-    const updatedAgents = [...existingAgents];
+    const builtinAssistantIds = new Set(builtinAssistants.map((assistant) => assistant.id));
+    const updatedAgents = existingAgents.filter((agent: AcpBackendConfig) => {
+      if (!agent.isPreset) return true;
+      return builtinAssistantIds.has(agent.id);
+    });
     let hasChanges = false;
+    if (updatedAgents.length !== existingAgents.length) {
+      hasChanges = true;
+    }
 
     for (const builtin of builtinAssistants) {
       const index = updatedAgents.findIndex((a: AcpBackendConfig) => a.id === builtin.id);

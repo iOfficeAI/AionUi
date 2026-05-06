@@ -160,47 +160,4 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
     showOnHome: true,
   },
-  {
-    id: 'star-office-helper',
-    avatar: '📺',
-    presetAgentType: 'gemini',
-    resourceDir: 'src/process/resources/assistant/star-office-helper',
-    ruleFiles: {
-      'en-US': 'star-office-helper.md',
-      'zh-CN': 'star-office-helper.zh-CN.md',
-    },
-    defaultEnabledSkills: ['star-office-helper'],
-    nameI18n: {
-      'en-US': 'Star Office Helper',
-      'zh-CN': 'Star Office 助手',
-      'ru-RU': 'Помощник Star Office',
-      'uk-UA': 'Помічник Star Office',
-    },
-    descriptionI18n: {
-      'en-US': 'Install, connect, and troubleshoot Star-Office-UI visualization for Aion preview.',
-      'zh-CN': '用于在 Aion 预览中安装、连接并排查 Star-Office-UI 可视化问题。',
-      'ru-RU':
-        'Помогает установить, подключить и диагностировать визуализацию Star-Office-UI для предпросмотра в Aion.',
-      'uk-UA':
-        'Допомагає встановлювати, підключати та діагностувати візуалізацію Star-Office-UI для попереднього перегляду в Aion.',
-    },
-    promptsI18n: {
-      'en-US': [
-        'Set up Star Office on my machine',
-        'Fix Unauthorized on Star Office page',
-        'Connect Aion preview to http://127.0.0.1:19000',
-      ],
-      'zh-CN': ['帮我安装 Star Office', '排查 Star Office Unauthorized', '把 Aion 预览连接到 http://127.0.0.1:19000'],
-      'ru-RU': [
-        'Настрой Star Office на моём компьютере',
-        'Исправь ошибку Unauthorized на странице Star Office',
-        'Подключи предпросмотр Aion к http://127.0.0.1:19000',
-      ],
-      'uk-UA': [
-        "Налаштувати Star Office на моєму комп'ютері",
-        'Виправити помилку Unauthorized на сторінці Star Office',
-        'Підключити попередній перегляд Aion до http://127.0.0.1:19000',
-      ],
-    },
-  },
 ];

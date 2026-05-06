@@ -40,6 +40,21 @@ export function getWebServerInstance(): typeof webServerInstance {
 }
 
 /**
+ * Ensure a loopback WebUI server exists for internal routes such as KSC proxy.
+ */
+export async function ensureLocalWebServerRunning(
+  preferredPort?: number
+): Promise<NonNullable<typeof webServerInstance>> {
+  if (webServerInstance) {
+    return webServerInstance;
+  }
+
+  const instance = await startWebServerWithInstance(preferredPort ?? SERVER_CONFIG.DEFAULT_PORT, false);
+  webServerInstance = instance;
+  return instance;
+}
+
+/**
  * 初始化 WebUI IPC 桥接
  * Initialize WebUI IPC bridge
  */

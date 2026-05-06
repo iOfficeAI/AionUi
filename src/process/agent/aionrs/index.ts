@@ -12,6 +12,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
+import { ensureKscProxyModel } from './kscProxy';
 import type { AionrsEvent, AionrsCommand, AionrsCapabilities } from './protocol';
 
 const AIONRS_PROJECT_CONFIG = '.aionrs.toml';
@@ -95,7 +96,10 @@ export class AionrsAgent {
       throw new Error('aionrs binary not found');
     }
 
-    const { args, env, projectConfig } = buildSpawnConfig(this.options.model, {
+    const model = await ensureKscProxyModel(this.options.model);
+    this.options = { ...this.options, model };
+
+    const { args, env, projectConfig } = buildSpawnConfig(model, {
       workspace: this.options.workspace,
       maxTokens: this.options.maxTokens,
       maxTurns: this.options.maxTurns,

@@ -116,6 +116,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
+    if (!dir.trim()) {
+      Message.warning(t('conversation.welcome.specifyWorkspace', { defaultValue: '关联文件夹' }));
+      return;
+    }
+
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
 
@@ -493,6 +498,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
   const sendMessageHandler = useCallback(() => {
     if (loading || sendingRef.current) return;
+    if (!dir.trim()) {
+      Message.warning(t('conversation.welcome.specifyWorkspace', { defaultValue: '关联文件夹' }));
+      return;
+    }
     sendingRef.current = true;
     setLoading(true);
     handleSend()
@@ -528,6 +537,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   // Calculate button disabled state
   const isButtonDisabled =
     loading ||
+    !dir.trim() ||
     !input.trim() ||
     ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) ||
       (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&

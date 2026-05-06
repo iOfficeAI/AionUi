@@ -11,13 +11,7 @@ import { mainError, mainLog, mainWarn } from '@process/utils/mainLogger';
 import { SERVER_CONFIG } from '@process/webserver/config/constants';
 import { shell } from 'electron';
 import { createHash } from 'node:crypto';
-
-type KscLoginParams = {
-  baseUrl: string;
-  companyCode?: string;
-  client?: string;
-  inferenceChatPath?: string;
-};
+import { ensureLocalWebServerRunning } from './webuiBridge';
 
 type KscResponse<T> = {
   code?: string;
@@ -200,6 +194,8 @@ export function initKscBridge(): void {
     const chosenClient = (client || DEFAULT_CLIENT).trim() || DEFAULT_CLIENT;
 
     try {
+      await ensureLocalWebServerRunning();
+
       const loginHeaders = new Headers();
       applyKscHeaders(loginHeaders, companyCode);
       mainLog(KSC_LOG_TAG, 'requesting login URL');

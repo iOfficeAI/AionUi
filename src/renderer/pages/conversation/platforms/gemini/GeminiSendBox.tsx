@@ -333,6 +333,11 @@ const GeminiSendBox: React.FC<{
   });
 
   const onSendHandler = async (message: string) => {
+    if (!workspacePath.trim()) {
+      Message.warning(t('conversation.welcome.specifyWorkspace', { defaultValue: '关联文件夹' }));
+      return;
+    }
+
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('gemini.selected.file.clear');

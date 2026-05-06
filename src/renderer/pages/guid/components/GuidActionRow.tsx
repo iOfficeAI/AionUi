@@ -26,6 +26,7 @@ type GuidActionRowProps = {
   files: string[];
   onFilesUploaded: (paths: string[]) => void;
   onSelectWorkspace: (dir: string) => void;
+  hasWorkspace: boolean;
 
   // Model selector node (rendered by parent)
   modelSelectorNode: React.ReactNode;
@@ -68,6 +69,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   files,
   onFilesUploaded,
   onSelectWorkspace,
+  hasWorkspace,
   modelSelectorNode,
   selectedAgent,
   effectiveModeAgent,
@@ -311,19 +313,23 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       </div>
       <div className={styles.actionSubmit}>
         {speechInputNode}
-        <Button
-          shape='circle'
-          type='primary'
-          loading={loading}
-          disabled={isButtonDisabled}
-          className='send-button-custom'
-          style={{
-            backgroundColor: isButtonDisabled ? undefined : '#000000',
-            borderColor: isButtonDisabled ? undefined : '#000000',
-          }}
-          icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-          onClick={onSend}
-        />
+        <Tooltip content={!hasWorkspace ? '请先关联文件夹' : null}>
+          <span>
+            <Button
+              shape='circle'
+              type='primary'
+              loading={loading}
+              disabled={isButtonDisabled}
+              className='send-button-custom'
+              style={{
+                backgroundColor: isButtonDisabled ? undefined : '#000000',
+                borderColor: isButtonDisabled ? undefined : '#000000',
+              }}
+              icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+              onClick={onSend}
+            />
+          </span>
+        </Tooltip>
       </div>
     </div>
   );

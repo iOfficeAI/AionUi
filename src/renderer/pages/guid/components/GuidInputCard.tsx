@@ -11,7 +11,6 @@ import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
 import { Input, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { FolderOpen } from '@icon-park/react';
-import { iconColors } from '@/renderer/styles/colors';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -138,24 +137,26 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       {actionRow}
       {dir && (
         <div
-          className='flex items-start justify-between gap-10px mt-8px px-10px py-6px text-13px text-t-secondary'
-          style={{ borderTop: '1px solid var(--border-base)' }}
+          className='mt-10px flex items-start justify-between gap-10px rounded-10px border border-[rgba(var(--primary-6),0.24)] bg-[rgba(var(--primary-6),0.08)] px-10px py-8px text-13px text-t-primary'
         >
           <div className='flex items-start min-w-0 flex-1 gap-8px'>
             <FolderOpen
               className='mt-1px flex-shrink-0'
               theme='outline'
               size='16'
-              fill={iconColors.secondary}
+              fill='rgb(var(--primary-6))'
               style={{ lineHeight: 0 }}
             />
             <Tooltip content={dir} position='top' disabled={isMobile}>
-              <span className='block min-w-0 whitespace-normal break-all leading-18px'>
+              <span className='block min-w-0 whitespace-normal break-all leading-20px'>
                 {isMobile ? (
-                  <span className='text-12px lh-18px'>{dir}</span>
+                  <span className='text-13px font-semibold lh-20px'>{dir}</span>
                 ) : (
                   <>
-                    {t('conversation.welcome.currentWorkspace')}: {dir}
+                    <span className='font-semibold text-[rgb(var(--primary-6))]'>
+                      {t('conversation.welcome.currentWorkspace')}:
+                    </span>{' '}
+                    <span className='font-semibold'>{dir}</span>
                   </>
                 )}
               </span>
