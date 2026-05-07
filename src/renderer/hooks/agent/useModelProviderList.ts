@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import { GOOGLE_AUTH_PROVIDER_ID } from '@/common/config/constants';
 import type { IProvider } from '@/common/config/storage';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
-import useSWR from 'swr';
+import useSWR, { type SWRConfiguration } from 'swr';
 import { useGoogleAuthModels } from './useGoogleAuthModels';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
@@ -12,6 +12,24 @@ export interface ModelProviderListResult {
   formatModelLabel: (provider: { platform?: string } | undefined, modelName?: string) => string;
 }
 
+export const PROVIDERS_SWR_KEY = 'providers';
+
+// Provider config is local application state. Keep it stable after the initial
+// load and refresh only through explicit mutate() calls after CRUD operations.
+export const PROVIDERS_SWR_OPTIONS: SWRConfiguration<IProvider[], Error> = {
+  revalidateOnFocus: false,
+  revalidateOnReconnect: false,
+  shouldRetryOnError: false,
+};
+
+export const fetchProviders = async (): Promise<IProvider[]> => {
+  return (await ipcBridge.mode.listProviders.invoke()) ?? [];
+};
+
+export const useProvidersQuery = () => {
+  return useSWR<IProvider[]>(PROVIDERS_SWR_KEY, fetchProviders, PROVIDERS_SWR_OPTIONS);
+};
+
 /**
  * Shared hook that builds the provider list (including Google Auth)
  * and exposes helpers consumed by both conversation and channel settings.
@@ -19,7 +37,7 @@ export interface ModelProviderListResult {
 export const useModelProviderList = (): ModelProviderListResult => {
   const { isGoogleAuth } = useGoogleAuthModels();
 
-  const { data: modelConfig } = useSWR('providers', () => ipcBridge.mode.listProviders.invoke());
+  const { data: modelConfig } = useProvidersQuery();
 
   // Mutable cache for available-model filtering
   const available_modelsCacheRef = useRef(new Map<string, string[]>());

@@ -12,9 +12,7 @@ import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-import useSWR from 'swr';
-import { ipcBridge } from '@/common';
-import type { IProvider } from '@/common/config/storage';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 
 const AionrsModelSelector: React.FC<{
   selection?: AionrsModelSelection;
@@ -27,7 +25,7 @@ const AionrsModelSelector: React.FC<{
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
 
-  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
+  const { data: modelConfig } = useProvidersQuery();
 
   const current_model = selection?.current_model;
   const current_modelHealth = useMemo(() => {

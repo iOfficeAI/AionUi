@@ -13,8 +13,8 @@ import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 import MarqueePillLabel from './MarqueePillLabel';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 
 function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | null | undefined): boolean {
   if (a === b) return true;
@@ -249,7 +249,7 @@ const AcpModelSelector: React.FC<{
   });
   const tooltipContent = display_label;
   // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
+  const { data: modelConfig } = useProvidersQuery();
 
   // 获取当前模型的健康状态
   const current_modelHealth = React.useMemo(() => {

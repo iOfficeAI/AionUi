@@ -4,13 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { hasAvailableModels } from '../utils/modelUtils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
 
 /**
  * Build a unique key for a provider/model pair.
@@ -53,14 +52,10 @@ export type GuidModelSelectionResult = {
  */
 export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): GuidModelSelectionResult => {
   const { isGoogleAuth } = useGoogleAuthModels();
-  const { data: modelConfig } = useSWR('model.config.welcome', () => {
-    return ipcBridge.mode.listProviders.invoke().then((data) => {
-      return (data || []).filter((platform) => !!platform.models.length);
-    });
-  });
+  const { data: modelConfig } = useProvidersQuery();
 
   const modelList = useMemo(() => {
-    const allProviders: IProvider[] = modelConfig || [];
+    const allProviders: IProvider[] = (modelConfig || []).filter((platform) => !!platform.models.length);
     return allProviders.filter(hasAvailableModels);
   }, [modelConfig]);
 
