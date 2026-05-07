@@ -7,9 +7,8 @@ import { Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-import useSWR from 'swr';
-import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/config/storage';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 
 // Unified model dropdown for chat header, send box, and channel settings
 const GoogleModelSelector: React.FC<{
@@ -26,7 +25,7 @@ const GoogleModelSelector: React.FC<{
   const defaultModelLabel = t('common.defaultModel');
 
   // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
+  const { data: modelConfig } = useProvidersQuery();
 
   // 获取当前模型的健康状态 (must be called before any early return to keep hooks count stable)
   const current_model = selection?.current_model;

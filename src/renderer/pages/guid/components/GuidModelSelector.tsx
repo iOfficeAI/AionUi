@@ -15,7 +15,7 @@ import { Brain, Down, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import useSWR from 'swr';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 
 type GuidModelSelectorProps = {
   // Gemini model state
@@ -44,7 +44,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   const defaultModelLabel = t('common.defaultModel');
 
   // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useSWR<IProvider[]>('providers', () => ipcBridge.mode.listProviders.invoke());
+  const { data: modelConfig } = useProvidersQuery();
 
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {
