@@ -101,7 +101,7 @@ jobs:
           retention-days: 7
 
   smoke-test:
-    name: Smoke test (Linux x86_64)
+    name: Smoke test web-cli tarball (Linux x86_64)
     runs-on: ubuntu-latest
     needs: pack-web-cli
     container:
@@ -128,3 +128,37 @@ jobs:
           chmod +x scripts/smoke-test-web-cli.sh
           TARBALL=$(ls dist-web-cli/*.tar.gz | head -1)
           bash scripts/smoke-test-web-cli.sh "$TARBALL"
+
+  smoke-test-install:
+    name: Smoke test install-web.sh (Linux x86_64)
+    runs-on: ubuntu-latest
+    needs: [pack-web-cli, prepare-install-script]
+    container:
+      image: debian:bookworm-slim
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl tar gzip nodejs coreutils
+
+      - name: Download linux-x86_64 tarball
+        uses: actions/download-artifact@v7
+        with:
+          name: web-cli-linux-x64
+          path: /tmp/releases/v0.0.0
+
+      - name: Download install-web.sh
+        uses: actions/download-artifact@v7
+        with:
+          name: install-web-script
+          path: /tmp/releases
+
+      - name: Run smoke test
+        shell: bash
+        run: |
+          chmod +x scripts/smoke-test-install-web.sh
+          bash scripts/smoke-test-install-web.sh file:///tmp/releases 0.0.0
