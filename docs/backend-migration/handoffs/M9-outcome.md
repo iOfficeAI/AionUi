@@ -3,9 +3,9 @@
 ## Branch & Baseline
 
 - **Branch**: `feat/m9-install-web-script`
-- **HEAD**: `780c7553e`
+- **HEAD**: `4d6cc3197`
 - **Base**: `origin/feat/m8-web-cli-tarball` @ `d71697fc5`
-- **Baseline sync status**: Not yet synced (to be done before push)
+- **Baseline sync status**: ✅ Synced with `origin/feat/backend-migration` @ `de0c7b87d` (already up to date)
 
 ## Deliverables
 
@@ -80,6 +80,8 @@ bash scripts/smoke-test-install-web.sh file:///tmp/mock-releases 1.0.0
 ### 4. Commits
 
 ```
+4d6cc3197 docs(m9): update handoff with Docker unavailability note
+d8576c488 docs(m9): add M9 handoff document
 780c7553e feat(ci): add smoke test for install-web.sh
 14559c2ef feat(ci): add prepare-install-script job to pack-web-cli workflow
 7ad1bb5cc feat(install-web): implement core installation functions
