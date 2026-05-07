@@ -403,6 +403,44 @@ describe('ModelModalContent — /api/providers CRUD wiring', () => {
     await new Promise((r) => setTimeout(r, 50));
     expect(listProvidersInvoke.mock.calls.length).toBe(initialCount);
   });
+
+  it('does not revalidate providers when the window returns to foreground', async () => {
+    await renderWithProviders([makeProvider()]);
+    expect(listProvidersInvoke).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(listProvidersInvoke).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not background-retry providers after the initial request fails', async () => {
+    vi.useFakeTimers();
+    listProvidersInvoke.mockRejectedValueOnce(new Error('boom'));
+
+    render(
+      <SWRConfig value={{ provider: () => new Map(), dedupingInterval: 0 }}>
+        <ModelModalContent />
+      </SWRConfig>
+    );
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(listProvidersInvoke).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      vi.advanceTimersByTime(10000);
+      await Promise.resolve();
+    });
+
+    expect(listProvidersInvoke).toHaveBeenCalledTimes(1);
+    vi.useRealTimers();
+  });
 });
 
 // Keep `within` referenced so Vitest doesn't warn about the unused import

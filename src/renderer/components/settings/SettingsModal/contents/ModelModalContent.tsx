@@ -12,12 +12,12 @@ import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } 
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import { classifyHealthCheckMessage } from './healthCheckUtils';
@@ -97,20 +97,13 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
 
-const SWR_KEY = 'providers';
-
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
-  const { data, mutate } = useSWR(SWR_KEY, () => {
-    return ipcBridge.mode.listProviders.invoke().then((data) => {
-      if (!data) return [];
-      return data;
-    });
-  });
+  const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
 
   /**
