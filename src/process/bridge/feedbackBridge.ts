@@ -37,6 +37,44 @@ const getRecentLogPaths = (logsDir: string, days: number): string[] => {
 
 const LOG_DAYS = 3;
 
+const capturePageWithDebugger = async (browserWindow: BrowserWindow): Promise<Buffer | null> => {
+  const debuggerClient = browserWindow.webContents.debugger;
+  if (!debuggerClient) {
+    return null;
+  }
+
+  const shouldDetach = !debuggerClient.isAttached();
+
+  try {
+    if (shouldDetach) {
+      debuggerClient.attach('1.3');
+    }
+
+    await debuggerClient.sendCommand('Page.enable');
+    const result = (await debuggerClient.sendCommand('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+    })) as { data?: string };
+
+    if (!result.data) {
+      return null;
+    }
+
+    return Buffer.from(result.data, 'base64');
+  } catch (error) {
+    console.warn('[feedbackBridge] Debugger screenshot failed, falling back to capturePage:', error);
+    return null;
+  } finally {
+    if (shouldDetach) {
+      try {
+        debuggerClient.detach();
+      } catch {
+        // Ignore detach failures.
+      }
+    }
+  }
+};
+
 ipcMain.handle('feedback:collect-logs', async () => {
   try {
     let logsDir: string;
@@ -84,8 +122,8 @@ ipcMain.handle('feedback:capture-current-page', async (event) => {
       return null;
     }
 
-    const image = await browserWindow.webContents.capturePage();
-    const pngBuffer = image.toPNG();
+    const pngBuffer =
+      (await capturePageWithDebugger(browserWindow)) ?? (await browserWindow.webContents.capturePage()).toPNG();
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
 
     return {
