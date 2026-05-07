@@ -6,7 +6,7 @@
 
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { FEEDBACK_MODULES } from './feedbackModules';
-import { Input, Select, Message, Upload } from '@arco-design/web-react';
+import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
 import { Info, Plus } from '@icon-park/react';
 import React, { useState, useCallback, useEffect } from 'react';
@@ -16,6 +16,13 @@ const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
 const SUMMARY_PREVIEW_LENGTH = 60;
+const FEEDBACK_REPORT_MODAL_CLASS = 'feedback-report-modal';
+
+type ScreenshotCaptureResult = {
+  filename: string;
+  data: number[];
+  type: string;
+};
 
 type ScreenshotBuffer = {
   name: string;
@@ -48,6 +55,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   const [description, setDescription] = useState('');
   const [screenshots, setScreenshots] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const [error, setError] = useState('');
 
   const resetForm = useCallback(() => {
@@ -198,6 +206,72 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
     });
   }, []);
 
+  const temporarilyHideModalForCapture = useCallback(() => {
+    const nodes = Array.from(
+      document.querySelectorAll<HTMLElement>(`.${FEEDBACK_REPORT_MODAL_CLASS}, .arco-modal-mask`)
+    );
+    const snapshots = nodes.map((node) => ({
+      node,
+      display: node.style.display,
+    }));
+
+    nodes.forEach((node) => {
+      node.style.display = 'none';
+    });
+
+    return () => {
+      snapshots.forEach(({ node, display }) => {
+        if (display) {
+          node.style.display = display;
+        } else {
+          node.style.removeProperty('display');
+        }
+      });
+    };
+  }, []);
+
+  const waitForPaint = useCallback(
+    () =>
+      new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()))),
+    []
+  );
+
+  const handleCaptureCurrentPage = useCallback(async () => {
+    if (screenshots.length >= MAX_SCREENSHOTS) {
+      return;
+    }
+
+    setError('');
+    setCapturingScreenshot(true);
+    let restoreVisibility = () => {};
+
+    try {
+      if (!window.electronAPI?.captureCurrentPageScreenshot) {
+        throw new Error('capture api unavailable');
+      }
+
+      restoreVisibility = temporarilyHideModalForCapture();
+      await waitForPaint();
+
+      const screenshot = (await window.electronAPI.captureCurrentPageScreenshot()) as ScreenshotCaptureResult | null;
+
+      if (!screenshot) {
+        throw new Error('capture returned empty result');
+      }
+
+      const file = new File([new Uint8Array(screenshot.data)], screenshot.filename, {
+        type: screenshot.type,
+      });
+
+      appendScreenshotFiles([file]);
+    } catch {
+      setError(t('settings.bugReportCaptureScreenshotError'));
+    } finally {
+      restoreVisibility();
+      setCapturingScreenshot(false);
+    }
+  }, [appendScreenshotFiles, screenshots.length, t, temporarilyHideModalForCapture, waitForPaint]);
+
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
     // Deduplicate by file name + size, then mark as 'done' to hide progress indicators
@@ -247,7 +321,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       cancelText={t('settings.bugReportCancel')}
       okButtonProps={{ disabled: !isFormValid }}
       alignCenter
-      className='w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px'
+      className={`${FEEDBACK_REPORT_MODAL_CLASS} w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px`}
       autoFocus={false}
     >
       <div
@@ -299,7 +373,21 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
 
           {/* Screenshot Upload */}
           <div className='flex flex-col gap-4px'>
-            <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
+            <div className='flex items-center justify-between gap-12px'>
+              <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
+              <Button
+                size='small'
+                type='secondary'
+                onClick={() => {
+                  void handleCaptureCurrentPage();
+                }}
+                loading={capturingScreenshot}
+                disabled={capturingScreenshot || screenshots.length >= MAX_SCREENSHOTS}
+                data-testid='feedback-report-capture-button'
+              >
+                {t('settings.bugReportCaptureScreenshot')}
+              </Button>
+            </div>
             <Upload
               className='[&_.arco-upload-trigger]:w-full'
               drag
