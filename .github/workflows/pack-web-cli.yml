@@ -67,6 +67,39 @@ jobs:
             dist-web-cli/*.sha256
           retention-days: 7
 
+  prepare-install-script:
+    name: Prepare install-web.sh for release
+    runs-on: ubuntu-latest
+    needs: pack-web-cli
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Replace __VERSION__ placeholder in install-web.sh
+        run: |
+          mkdir -p dist-scripts
+          sed "s/__VERSION__/${{ steps.version.outputs.version }}/g" scripts/install-web.sh > dist-scripts/install-web.sh
+          chmod +x dist-scripts/install-web.sh
+
+      - name: Upload install-web.sh artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: install-web-script
+          path: dist-scripts/install-web.sh
+          retention-days: 7
+
   smoke-test:
     name: Smoke test (Linux x86_64)
     runs-on: ubuntu-latest
