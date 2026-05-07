@@ -104,4 +104,41 @@ describe('feedbackBridge', () => {
     expect(result?.filename).toMatch(/^page-screenshot-.*\.png$/);
     expect(result?.data).toEqual([1, 2, 3]);
   });
+
+  it('should prefer debugger screenshot when available', async () => {
+    const { BrowserWindow } = await import('electron');
+    const attach = vi.fn();
+    const detach = vi.fn();
+    const sendCommand = vi.fn(async (command: string) => {
+      if (command === 'Page.captureScreenshot') {
+        return { data: Buffer.from([4, 5, 6]).toString('base64') };
+      }
+
+      return {};
+    });
+
+    vi.mocked(BrowserWindow.fromWebContents).mockReturnValue({
+      webContents: {
+        debugger: {
+          isAttached: vi.fn().mockReturnValue(false),
+          attach,
+          detach,
+          sendCommand,
+        },
+        capturePage: vi.fn(),
+      },
+    } as never);
+
+    const result = await screenshotHandler({ sender: {} });
+
+    expect(result).not.toBeNull();
+    expect(result?.data).toEqual([4, 5, 6]);
+    expect(attach).toHaveBeenCalledWith('1.3');
+    expect(sendCommand).toHaveBeenCalledWith('Page.enable');
+    expect(sendCommand).toHaveBeenCalledWith('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+    });
+    expect(detach).toHaveBeenCalled();
+  });
 });
