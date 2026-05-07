@@ -63,29 +63,6 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     <>
       <div className='shrink-0 sider-footer mt-auto pt-4px pb-8px'>
         <div className='flex flex-col gap-2px'>
-          <Tooltip
-            {...siderTooltipProps}
-            content={isSettings ? t('common.back') : t('common.settings')}
-            position='right'
-          >
-            <div
-              onClick={onSettingsClick}
-              className={classNames(
-                'h-40px flex items-center rd-0.5rem cursor-pointer transition-colors',
-                collapsed ? 'w-full justify-center' : 'w-full min-w-0 justify-start gap-8px px-10px',
-                isMobile && 'sider-footer-btn-mobile',
-                {
-                  'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
-                  'hover:bg-[rgba(var(--primary-6),0.14)] active:bg-fill-2': !isSettings,
-                }
-              )}
-            >
-              <span className='w-28px h-24px flex items-center justify-center shrink-0'>{settingsIcon}</span>
-              <span className='collapsed-hidden text-t-primary text-14px font-medium leading-24px truncate'>
-                {isSettings ? t('common.back') : t('common.settings')}
-              </span>
-            </div>
-          </Tooltip>
           <Tooltip {...siderTooltipProps} content={t('settings.bugReport')} position='right'>
             <div
               onClick={() => setShowFeedbackModal(true)}
@@ -106,6 +83,29 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
               </span>
               <span className='collapsed-hidden text-t-primary text-14px font-medium leading-24px truncate'>
                 {t('settings.bugReport')}
+              </span>
+            </div>
+          </Tooltip>
+          <Tooltip
+            {...siderTooltipProps}
+            content={isSettings ? t('common.back') : t('common.settings')}
+            position='right'
+          >
+            <div
+              onClick={onSettingsClick}
+              className={classNames(
+                'h-40px flex items-center rd-0.5rem cursor-pointer transition-colors',
+                collapsed ? 'w-full justify-center' : 'w-full min-w-0 justify-start gap-8px px-10px',
+                isMobile && 'sider-footer-btn-mobile',
+                {
+                  'bg-[rgba(var(--primary-6),0.12)] text-primary': isSettings,
+                  'hover:bg-[rgba(var(--primary-6),0.14)] active:bg-fill-2': !isSettings,
+                }
+              )}
+            >
+              <span className='w-28px h-24px flex items-center justify-center shrink-0'>{settingsIcon}</span>
+              <span className='collapsed-hidden text-t-primary text-14px font-medium leading-24px truncate'>
+                {isSettings ? t('common.back') : t('common.settings')}
               </span>
             </div>
           </Tooltip>
