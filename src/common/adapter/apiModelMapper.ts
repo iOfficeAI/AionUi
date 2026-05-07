@@ -12,6 +12,18 @@ export type ApiProviderWithModel = {
   use_model?: string;
 };
 
+function hasCompleteModelIdentity(
+  model?: TProviderWithModel
+): model is TProviderWithModel & { id: string; use_model: string } {
+  return Boolean(
+    model &&
+    typeof model.id === 'string' &&
+    model.id.trim().length > 0 &&
+    typeof model.use_model === 'string' &&
+    model.use_model.trim().length > 0
+  );
+}
+
 // ── Frontend → Backend ──────────────────────────────────────────────────
 
 export function toApiModel(m: TProviderWithModel): ApiProviderWithModel {
@@ -22,7 +34,7 @@ export function toApiModel(m: TProviderWithModel): ApiProviderWithModel {
 }
 
 export function toApiModelOptional(m?: TProviderWithModel): ApiProviderWithModel | undefined {
-  return m ? toApiModel(m) : undefined;
+  return hasCompleteModelIdentity(m) ? toApiModel(m) : undefined;
 }
 
 // ── Backend → Frontend ──────────────────────────────────────────────────
@@ -43,12 +55,32 @@ function fromApiModelOptional(raw?: ApiProviderWithModel | null): TProviderWithM
 }
 
 export function fromApiConversation<T>(raw: T): T {
-  if (!raw || typeof raw !== 'object' || !('model' in raw)) return raw;
-  const r = raw as T & { model?: ApiProviderWithModel | null };
-  return {
-    ...r,
-    model: fromApiModelOptional(r.model),
+  if (!raw || typeof raw !== 'object') return raw;
+
+  const r = raw as T & {
+    model?: ApiProviderWithModel | null;
+    extra?: Record<string, unknown> | null;
   };
+  const next = { ...r } as unknown as T & {
+    model?: TProviderWithModel;
+    extra?: Record<string, unknown> | null;
+  };
+
+  if ('model' in r) {
+    next.model = fromApiModelOptional(r.model);
+  }
+
+  const extra = r.extra;
+  if (extra && typeof extra === 'object' && !('custom_workspace' in extra)) {
+    const workspace = typeof extra.workspace === 'string' ? extra.workspace : '';
+    const isTemporary = extra.is_temporary_workspace === true;
+    next.extra = {
+      ...extra,
+      custom_workspace: workspace.length > 0 && !isTemporary,
+    };
+  }
+
+  return next;
 }
 
 export function fromApiPaginatedConversations<T>(result: { items: T[]; total: number; has_more: boolean }): {
