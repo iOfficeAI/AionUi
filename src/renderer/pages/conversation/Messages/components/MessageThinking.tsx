@@ -39,7 +39,8 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
     return `${minutes}${mUnit} ${remaining}${sUnit}`;
   };
 
-  const { content: text, status, duration, subject } = message.content;
+  const { content: text, status, subject } = message.content;
+  const duration = message.content.duration ?? (message.content as { duration_ms?: number }).duration_ms;
   const isDone = status === 'done';
   const [expanded, setExpanded] = useState(!isDone);
   const [elapsedTime, setElapsedTime] = useState(0);

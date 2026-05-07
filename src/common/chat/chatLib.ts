@@ -493,6 +493,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: string;
         subject?: string;
         duration?: number;
+        duration_ms?: number;
         status: 'thinking' | 'done';
       };
       return {
@@ -505,7 +506,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: {
           content: data.content,
           subject: data.subject,
-          duration: data.duration,
+          duration: data.duration ?? data.duration_ms,
           status: data.status,
         },
       };
