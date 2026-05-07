@@ -2,6 +2,10 @@
   "sendbox": {
     "placeholder": "Send message to Codex..."
   },
+  "slash": {
+    "compactDescription": "Compact the current Codex context",
+    "goalDescription": "Set or inspect the current Codex goal"
+  },
   "runtime": {
     "contextUsage": "{{used}} / {{limit}} context",
     "activity": {

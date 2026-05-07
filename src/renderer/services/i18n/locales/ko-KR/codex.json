@@ -2,6 +2,10 @@
   "sendbox": {
     "placeholder": "Codex에 메시지 보내기..."
   },
+  "slash": {
+    "compactDescription": "현재 Codex 컨텍스트 압축",
+    "goalDescription": "현재 Codex 목표 설정 또는 확인"
+  },
   "runtime": {
     "contextUsage": "{{used}} / {{limit}} 컨텍스트",
     "activity": {

@@ -194,6 +194,8 @@ export type I18nKey =
   | 'codex.runtime.activity.waiting'
   | 'codex.runtime.contextUsage'
   | 'codex.sendbox.placeholder'
+  | 'codex.slash.compactDescription'
+  | 'codex.slash.goalDescription'
   | 'codex.thinking.analyzing'
   | 'codex.thinking.completed'
   | 'codex.thinking.composing'

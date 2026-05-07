@@ -2,6 +2,10 @@
   "sendbox": {
     "placeholder": "Codex'e mesaj gönder..."
   },
+  "slash": {
+    "compactDescription": "Geçerli Codex bağlamını sıkıştır",
+    "goalDescription": "Geçerli Codex hedefini ayarla veya görüntüle"
+  },
   "runtime": {
     "contextUsage": "{{used}} / {{limit}} bağlam",
     "activity": {

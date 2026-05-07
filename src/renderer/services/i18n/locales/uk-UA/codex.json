@@ -2,6 +2,10 @@
   "sendbox": {
     "placeholder": "Надіслати повідомлення Codex..."
   },
+  "slash": {
+    "compactDescription": "Стиснути поточний контекст Codex",
+    "goalDescription": "Задати або переглянути поточну ціль Codex"
+  },
   "runtime": {
     "contextUsage": "{{used}} / {{limit}} контексту",
     "activity": {

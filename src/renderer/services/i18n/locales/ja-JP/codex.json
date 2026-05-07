@@ -2,6 +2,10 @@
   "sendbox": {
     "placeholder": "Codex にメッセージを送信..."
   },
+  "slash": {
+    "compactDescription": "現在の Codex コンテキストを圧縮",
+    "goalDescription": "現在の Codex ゴールを設定または確認"
+  },
   "runtime": {
     "contextUsage": "{{used}} / {{limit}} コンテキスト",
     "activity": {

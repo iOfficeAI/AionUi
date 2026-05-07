@@ -11,6 +11,7 @@ import type { IConversationService, CreateConversationParams } from '@process/se
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 import { ipcBridge } from '@/common';
+import { buildCodexSlashCommands } from '@/common/chat/slash/codexCommands';
 import { removeFromMessageCache } from '@process/utils/message';
 import { getChannelManager } from '@process/channels/core/ChannelManager';
 import {
@@ -461,6 +462,14 @@ export function initConversationBridge(
       const conversation = await conversationService.getConversation(conversation_id);
       if (!conversation) {
         return { success: true, data: { commands: [] } };
+      }
+
+      if (conversation.type === 'codex') {
+        const commands = buildCodexSlashCommands({
+          enabledSkills: conversation.extra?.enabledSkills,
+          loadedSkills: conversation.extra?.loadedSkills,
+        });
+        return { success: true, data: { commands } };
       }
 
       if (conversation.type !== 'acp') {

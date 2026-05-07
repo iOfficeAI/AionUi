@@ -22,8 +22,10 @@ export type SlashCommandSelectionBehavior = 'execute' | 'insert';
  * Indicates where the slash command originates from.
  * - `acp`: Provided by the ACP agent (e.g., Claude)
  * - `builtin`: Built into the application
+ * - `codex`: Built-in Codex CLI/app-server command
+ * - `skill`: Enabled skill shortcut
  */
-export type SlashCommandSource = 'acp' | 'builtin';
+export type SlashCommandSource = 'acp' | 'builtin' | 'codex' | 'skill';
 
 /**
  * Represents a single slash command item in the autocomplete list.
@@ -33,6 +35,8 @@ export interface SlashCommandItem {
   name: string;
   /** Human-readable description shown in the dropdown */
   description: string;
+  /** Optional i18n key used by the renderer for app-owned command descriptions */
+  descriptionI18nKey?: string;
   /** How the command is executed */
   kind: SlashCommandKind;
   /** Where the command comes from */

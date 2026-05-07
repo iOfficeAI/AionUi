@@ -487,10 +487,10 @@ const SendBox: React.FC<{
       slashController.filteredCommands.map((command) => ({
         key: command.name,
         label: `/${command.name}`,
-        description: command.description,
+        description: command.descriptionI18nKey ? t(command.descriptionI18nKey) : command.description,
         badge: command.hint,
       })),
-    [slashController.filteredCommands]
+    [slashController.filteredCommands, t]
   );
 
   const isCommandMenuOpen = conversationExport.isOpen || slashController.isOpen;

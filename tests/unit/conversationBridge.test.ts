@@ -155,6 +155,40 @@ describe('conversationBridge', () => {
     });
   });
 
+  describe('getSlashCommands', () => {
+    it('returns Codex slash commands from conversation extra without starting a task', async () => {
+      vi.mocked(service.getConversation).mockResolvedValue({
+        id: 'codex-1',
+        type: 'codex',
+        name: 'codex',
+        extra: {
+          workspace: '/ws',
+          enabledSkills: ['officecli-docx'],
+          loadedSkills: [{ name: 'officecli-docx', description: 'Work with Word documents' }],
+        },
+      } as unknown as TChatConversation);
+
+      const handler = handlers['getSlashCommands'];
+      const result = await handler({ conversation_id: 'codex-1' });
+
+      expect(taskManager.getTask).not.toHaveBeenCalled();
+      expect(result).toEqual({
+        success: true,
+        data: {
+          commands: expect.arrayContaining([
+            expect.objectContaining({ name: 'compact', source: 'codex' }),
+            expect.objectContaining({ name: 'goal', source: 'codex' }),
+            expect.objectContaining({
+              name: 'officecli-docx',
+              description: 'Work with Word documents',
+              source: 'skill',
+            }),
+          ]),
+        },
+      });
+    });
+  });
+
   describe('getAssociateConversation — listAllConversations path', () => {
     it('returns data from injected service without calling getDatabase()', async () => {
       const current = makeConversation('c1', '/ws/project');

@@ -2,6 +2,10 @@
   "sendbox": {
     "placeholder": "发送消息给 Codex..."
   },
+  "slash": {
+    "compactDescription": "压缩当前 Codex 上下文",
+    "goalDescription": "设置或查看当前 Codex 目标"
+  },
   "runtime": {
     "contextUsage": "{{used}} / {{limit}} 上下文",
     "activity": {
