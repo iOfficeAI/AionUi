@@ -216,7 +216,7 @@ const ConversationTabs: React.FC = () => {
         if (key.startsWith('cli:')) {
           const backend = key.slice(4);
           // [BUG-6] Null check: find() may return undefined
-          const agent = cliAgents.find((a) => a.backend === backend);
+          const agent = cliAgents.find((a) => (a.backend || a.agent_type) === backend);
           if (!agent) {
             Message.error(t('conversation.createFailed'));
             return;
@@ -279,8 +279,9 @@ const ConversationTabs: React.FC = () => {
                 icon: agent.icon,
                 backend: agent.backend || agent.agent_type,
               });
+              const agentKey = agent.backend || agent.agent_type;
               return (
-                <Menu.Item key={`cli:${agent.backend}`}>
+                <Menu.Item key={`cli:${agentKey}`}>
                   <div className='flex items-center gap-8px'>
                     {logo ? (
                       <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />

@@ -7,7 +7,7 @@
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
@@ -20,6 +20,7 @@ import {
 } from '@/common/utils/buildAgentConversationParams';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
+import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
 type ModePreference = {
   preferredMode?: string;
@@ -82,10 +83,30 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   return undefined;
 }
 
+function getAvailableAionrsModels(provider: IProvider): string[] {
+  return (provider.models || []).filter((modelName) => {
+    if (provider.model_enabled?.[modelName] === false) {
+      return false;
+    }
+    const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
+    const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
+    return (functionCalling === true || functionCalling === undefined) && excluded !== true;
+  });
+}
+
+function isAionrsCompatibleProvider(provider: IProvider): boolean {
+  const platform = provider.platform?.toLowerCase() ?? '';
+  if (provider.enabled === false || platform.includes('gemini-with-google-auth')) {
+    return false;
+  }
+  return getAvailableAionrsModels(provider).length > 0;
+}
+
 /**
  * Get a model from configured providers that is compatible with aionrs.
- * aionrs supports all platforms via OpenAI-compatible protocol.
- * Throws if no compatible provider is configured.
+ * Respects the user's saved `aionrs.defaultModel` selection when it still
+ * exists in the current provider list, otherwise falls back to the first
+ * compatible provider/model pair.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   const providers = await ipcBridge.mode.listProviders.invoke();
@@ -94,13 +115,24 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No model provider configured');
   }
 
-  // aionrs supports all platforms via OpenAI-compatible protocol
-  const provider = providers.find((p) => p.enabled !== false);
-  if (!provider) {
+  const compatibleProviders = providers.filter(isAionrsCompatibleProvider);
+  if (compatibleProviders.length === 0) {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
-  const enabledModel = provider.models.find((m) => provider.model_enabled?.[m] !== false);
+  const savedDefault = configService.get('aionrs.defaultModel');
+  if (savedDefault?.id && savedDefault.use_model) {
+    const savedProvider = compatibleProviders.find((provider) => provider.id === savedDefault.id);
+    if (savedProvider && getAvailableAionrsModels(savedProvider).includes(savedDefault.use_model)) {
+      return {
+        ...savedProvider,
+        use_model: savedDefault.use_model,
+      };
+    }
+  }
+
+  const provider = compatibleProviders[0];
+  const enabledModel = getAvailableAionrsModels(provider)[0];
 
   return {
     id: provider.id,
@@ -124,9 +156,10 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
  * The backend will automatically fill in derived fields (gateway.cli_path, runtimeValidation, etc.).
  */
 export async function buildCliAgentParams(agent: AgentMetadata, workspace: string): Promise<ICreateConversationParams> {
-  const type = getConversationTypeForBackend(agent.agent_type);
-  const preferredMode = await resolvePreferredMode(agent.agent_type);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.agent_type) : undefined;
+  const agentKey = agent.backend || agent.agent_type;
+  const type = getConversationTypeForBackend(agentKey);
+  const preferredMode = await resolvePreferredMode(agentKey);
+  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agentKey) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'aionrs') {
@@ -137,7 +170,7 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
   }
 
   return buildAgentConversationParams({
-    backend: agent.backend,
+    backend: agentKey,
     name: agent.name,
     agent_id: agent.id,
     agent_name: agent.name,

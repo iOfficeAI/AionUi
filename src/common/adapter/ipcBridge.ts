@@ -136,7 +136,9 @@ export const conversation = {
       conversation: {
         ...p.conversation,
         model:
-          'model' in p.conversation ? toApiModel((p.conversation as { model: TProviderWithModel }).model) : undefined,
+          'model' in p.conversation
+            ? toApiModelOptional((p.conversation as { model?: TProviderWithModel }).model)
+            : undefined,
       },
     })),
     fromApiConversation
@@ -161,9 +163,10 @@ export const conversation = {
     (p) => {
       const updates = p.updates as Record<string, unknown>;
       const { model: rawModel, ...rest } = updates;
+      const model = toApiModelOptional(rawModel as TProviderWithModel | undefined);
       return {
         ...rest,
-        ...(rawModel ? { model: toApiModel(rawModel as TProviderWithModel) } : {}),
+        ...(model ? { model } : {}),
         merge_extra: p.merge_extra,
       };
     }
