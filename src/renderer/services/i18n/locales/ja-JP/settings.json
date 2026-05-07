@@ -911,5 +911,7 @@
     "version": "バージョン",
     "path": "パス",
     "providerNote": "プロバイダーとAPIキーの設定はモデルページで管理します。Aion CLIは以下をサポート：Anthropic、OpenAI、AWS Bedrock。"
-  }
+  },
+  "bugReportCaptureScreenshot": "現在のページを撮影",
+  "bugReportCaptureScreenshotError": "スクリーンショットに失敗しました。しばらくしてから再試行してください"
 }
