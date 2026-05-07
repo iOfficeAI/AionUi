@@ -56,6 +56,7 @@ import type {
   UpdateAssistantRequest,
 } from '../types/assistantTypes';
 import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
+import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 import {
   fromBackendAgent,
@@ -823,12 +824,15 @@ export const database = {
     ),
     fromApiPaginatedConversations
   ),
-  searchConversationMessages: httpGet<
-    PaginatedResult<import('../types/database').IMessageSearchItem>,
-    { keyword: string; page?: number; page_size?: number }
-  >(
-    (p) =>
-      `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&page_size=${p.page_size ?? 50}`
+  searchConversationMessages: withResponseMap(
+    httpGet<
+      PaginatedResult<ApiMessageSearchItem>,
+      { keyword: string; page?: number; page_size?: number }
+    >(
+      (p) =>
+        `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&page_size=${p.page_size ?? 50}`
+    ),
+    fromApiSearchResult
   ),
 };
 
