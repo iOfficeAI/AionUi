@@ -16,8 +16,6 @@ const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
 const SUMMARY_PREVIEW_LENGTH = 60;
-const FEEDBACK_REPORT_MODAL_CLASS = 'feedback-report-modal';
-
 type ScreenshotCaptureResult = {
   filename: string;
   data: number[];
@@ -56,6 +54,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   const [screenshots, setScreenshots] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [capturingScreenshot, setCapturingScreenshot] = useState(false);
+  const [captureHidden, setCaptureHidden] = useState(false);
   const [error, setError] = useState('');
 
   const resetForm = useCallback(() => {
@@ -66,6 +65,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   }, []);
 
   const handleCancel = useCallback(() => {
+    setCaptureHidden(false);
     resetForm();
     onCancel();
   }, [onCancel, resetForm]);
@@ -206,30 +206,6 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
     });
   }, []);
 
-  const temporarilyHideModalForCapture = useCallback(() => {
-    const nodes = Array.from(
-      document.querySelectorAll<HTMLElement>(`.${FEEDBACK_REPORT_MODAL_CLASS}, .arco-modal-mask`)
-    );
-    const snapshots = nodes.map((node) => ({
-      node,
-      display: node.style.display,
-    }));
-
-    nodes.forEach((node) => {
-      node.style.display = 'none';
-    });
-
-    return () => {
-      snapshots.forEach(({ node, display }) => {
-        if (display) {
-          node.style.display = display;
-        } else {
-          node.style.removeProperty('display');
-        }
-      });
-    };
-  }, []);
-
   const waitForPaint = useCallback(
     () =>
       new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()))),
@@ -237,40 +213,14 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   );
 
   const handleCaptureCurrentPage = useCallback(async () => {
-    if (screenshots.length >= MAX_SCREENSHOTS) {
+    if (capturingScreenshot || screenshots.length >= MAX_SCREENSHOTS) {
       return;
     }
 
     setError('');
     setCapturingScreenshot(true);
-    let restoreVisibility = () => {};
-
-    try {
-      if (!window.electronAPI?.captureCurrentPageScreenshot) {
-        throw new Error('capture api unavailable');
-      }
-
-      restoreVisibility = temporarilyHideModalForCapture();
-      await waitForPaint();
-
-      const screenshot = (await window.electronAPI.captureCurrentPageScreenshot()) as ScreenshotCaptureResult | null;
-
-      if (!screenshot) {
-        throw new Error('capture returned empty result');
-      }
-
-      const file = new File([new Uint8Array(screenshot.data)], screenshot.filename, {
-        type: screenshot.type,
-      });
-
-      appendScreenshotFiles([file]);
-    } catch {
-      setError(t('settings.bugReportCaptureScreenshotError'));
-    } finally {
-      restoreVisibility();
-      setCapturingScreenshot(false);
-    }
-  }, [appendScreenshotFiles, screenshots.length, t, temporarilyHideModalForCapture, waitForPaint]);
+    setCaptureHidden(true);
+  }, [capturingScreenshot, screenshots.length]);
 
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
@@ -310,10 +260,59 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
     };
   }, [handlePaste, visible]);
 
+  useEffect(() => {
+    if (!visible || !captureHidden || !capturingScreenshot) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const captureCurrentPage = async () => {
+      try {
+        if (!window.electronAPI?.captureCurrentPageScreenshot) {
+          throw new Error('capture api unavailable');
+        }
+
+        await waitForPaint();
+
+        const screenshot = (await window.electronAPI.captureCurrentPageScreenshot()) as ScreenshotCaptureResult | null;
+
+        if (!screenshot) {
+          throw new Error('capture returned empty result');
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const file = new File([new Uint8Array(screenshot.data)], screenshot.filename, {
+          type: screenshot.type,
+        });
+
+        appendScreenshotFiles([file]);
+      } catch {
+        if (!cancelled) {
+          setError(t('settings.bugReportCaptureScreenshotError'));
+        }
+      } finally {
+        if (!cancelled) {
+          setCaptureHidden(false);
+          setCapturingScreenshot(false);
+        }
+      }
+    };
+
+    void captureCurrentPage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [appendScreenshotFiles, captureHidden, capturingScreenshot, t, visible, waitForPaint]);
+
   return (
     <ModalWrapper
       title={t('settings.bugReportTitle')}
-      visible={visible}
+      visible={visible && !captureHidden}
       onCancel={handleCancel}
       onOk={handleSubmit}
       confirmLoading={submitting}
@@ -321,7 +320,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       cancelText={t('settings.bugReportCancel')}
       okButtonProps={{ disabled: !isFormValid }}
       alignCenter
-      className={`${FEEDBACK_REPORT_MODAL_CLASS} w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px`}
+      className='w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px'
       autoFocus={false}
     >
       <div
