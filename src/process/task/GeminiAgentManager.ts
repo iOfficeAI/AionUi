@@ -49,6 +49,7 @@ export class GeminiAgentManager extends BaseAgentManager<
   {
     workspace: string;
     model: TProviderWithModel;
+    proxy?: string;
     webSearchEngine?: 'google' | 'default';
     mcpServers?: Record<string, UiMcpServerConfig>;
     contextFileName?: string;
@@ -195,8 +196,10 @@ export class GeminiAgentManager extends BaseAgentManager<
    * Extracted to allow re-bootstrapping when MCP config changes.
    */
   private createBootstrap(): Promise<void> {
-    return Promise.all([ProcessConfig.get('gemini.config'), this.getMcpServers()])
-      .then(async ([config, mcpServers]) => {
+    return Promise.all([ProcessConfig.get('gemini.config'), this.getMcpServers(), ProcessConfig.get('network.proxy')])
+      .then(async ([config, mcpServers, globalProxy]) => {
+        const effectiveProxy =
+          typeof globalProxy === 'string' && globalProxy.trim() ? globalProxy.trim() : config?.proxy;
         let projectId: string | undefined;
         const authType = getProviderAuthType(this.model);
         const needsGoogleOAuth = authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI;
@@ -205,7 +208,7 @@ export class GeminiAgentManager extends BaseAgentManager<
           try {
             const credsPath = Storage.getOAuthCredsPath();
             if (fs.existsSync(credsPath)) {
-              const oauthInfo = await getOauthInfoWithCache(config?.proxy);
+              const oauthInfo = await getOauthInfoWithCache(effectiveProxy);
               if (oauthInfo && oauthInfo.email && config?.accountProjects) {
                 projectId = config.accountProjects[oauthInfo.email];
               }
@@ -257,6 +260,7 @@ export class GeminiAgentManager extends BaseAgentManager<
 
         return this.start({
           ...config,
+          proxy: effectiveProxy,
           GOOGLE_CLOUD_PROJECT: projectId,
           workspace: this.workspace,
           model: this.model,

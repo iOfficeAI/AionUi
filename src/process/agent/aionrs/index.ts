@@ -102,6 +102,7 @@ export class AionrsAgent {
       autoApprove: this.options.yoloMode,
       sessionId: this.options.sessionId,
       resume: this.options.resume,
+      proxy: this.options.proxy,
     });
 
     // Write temporary .aionrs.toml for provider compat overrides

@@ -130,6 +130,8 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  // Global HTTP/HTTPS proxy used by agent network requests
+  'network.proxy'?: string;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

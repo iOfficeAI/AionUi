@@ -12,7 +12,18 @@ import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Form,
+  Input,
+  InputNumber,
+  Message,
+  Modal,
+  Switch,
+  Tooltip,
+} from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +32,11 @@ import { useSettingsViewMode } from '../../settingsViewContext';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
+
+const isValidProxyUrl = (value: string): boolean => {
+  const proxy = value.trim();
+  return !proxy || /^https?:\/\/\S+$/i.test(proxy);
+};
 
 /**
  * System settings content component
@@ -51,6 +67,7 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const [proxy, setProxy] = useState('');
 
   useEffect(() => {
     if (!isDesktop) {
@@ -115,6 +132,13 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getAutoPreviewOfficeFiles
       .invoke()
       .then((enabled) => setAutoPreviewOfficeFiles(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    ipcBridge.systemSettings.getProxy
+      .invoke()
+      .then((value) => setProxy(value))
       .catch(() => {});
   }, []);
 
@@ -203,6 +227,17 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleProxyBlur = useCallback(() => {
+    const trimmedProxy = proxy.trim();
+    if (!isValidProxyUrl(trimmedProxy)) {
+      Message.warning(t('settings.proxyHttpOnly'));
+      return;
+    }
+
+    setProxy(trimmedProxy);
+    ipcBridge.systemSettings.setProxy.invoke({ proxy: trimmedProxy }).catch(() => {});
+  }, [proxy, t]);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -273,6 +308,21 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.autoPreviewOfficeFiles'),
       description: t('settings.autoPreviewOfficeFilesDesc'),
       component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
+    },
+    {
+      key: 'globalProxy',
+      label: t('settings.globalProxy'),
+      description: t('settings.globalProxyDesc'),
+      component: (
+        <Input
+          allowClear
+          value={proxy}
+          onChange={setProxy}
+          onBlur={handleProxyBlur}
+          placeholder={t('settings.globalProxyPlaceholder')}
+          style={{ width: 280 }}
+        />
+      ),
     },
   ];
 

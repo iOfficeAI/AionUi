@@ -27,6 +27,7 @@ import { extractAndStripThinkTags } from './ThinkTagDetector';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
@@ -140,6 +141,14 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     }
 
     const mergedData = { ...this.data.data, ...sessionArgs };
+    let globalProxy: string | undefined;
+    try {
+      const proxy = await ProcessConfig.get('network.proxy');
+      globalProxy = typeof proxy === 'string' ? proxy.trim() : undefined;
+    } catch {
+      globalProxy = undefined;
+    }
+    const effectiveProxy = globalProxy || mergedData.proxy;
 
     // Collect stdio MCP servers to inject. In-team sessions get the team_*
     // coordination MCP (with slot handshake). Solo sessions get the team-guide
@@ -156,7 +165,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     const agent = new AionrsAgent({
       workspace: mergedData.workspace,
       model: mergedData.model,
-      proxy: mergedData.proxy,
+      proxy: effectiveProxy,
       yoloMode: mergedData.yoloMode,
       presetRules: mergedData.presetRules,
       maxTokens: mergedData.maxTokens,

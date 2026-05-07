@@ -70,6 +70,7 @@ export function buildSpawnConfig(
     autoApprove?: boolean;
     sessionId?: string;
     resume?: string;
+    proxy?: string;
   }
 ): { args: string[]; env: Record<string, string>; projectConfig: string } {
   const provider = mapProvider(model);
@@ -131,6 +132,16 @@ export function buildSpawnConfig(
     case 'vertex':
       // Vertex uses service account or ADC — no explicit env vars needed
       break;
+  }
+
+  const proxy = options.proxy?.trim();
+  if (proxy) {
+    env.HTTP_PROXY = proxy;
+    env.HTTPS_PROXY = proxy;
+    env.ALL_PROXY = proxy;
+    env.http_proxy = proxy;
+    env.https_proxy = proxy;
+    env.all_proxy = proxy;
   }
 
   // Generate project config for compat overrides (e.g., max_tokens_field)

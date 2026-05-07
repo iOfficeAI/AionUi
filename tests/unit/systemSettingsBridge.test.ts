@@ -155,4 +155,24 @@ describe('systemSettingsBridge', () => {
       expect(await handler!()).toBe(true);
     });
   });
+
+  describe('proxy settings', () => {
+    it('should return empty string as default', async () => {
+      mockProcessConfig.get.mockResolvedValue(undefined);
+      const handler = providerMap.get('systemSettings.getProxy');
+      expect(await handler!()).toBe('');
+    });
+
+    it('should return stored proxy', async () => {
+      mockProcessConfig.get.mockResolvedValue('http://proxy.example.com:8080');
+      const handler = providerMap.get('systemSettings.getProxy');
+      expect(await handler!()).toBe('http://proxy.example.com:8080');
+    });
+
+    it('should trim proxy before saving', async () => {
+      const handler = providerMap.get('systemSettings.setProxy');
+      await handler!({ proxy: '  http://proxy.example.com:8080  ' });
+      expect(mockProcessConfig.set).toHaveBeenCalledWith('network.proxy', 'http://proxy.example.com:8080');
+    });
+  });
 });

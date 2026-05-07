@@ -149,6 +149,15 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('system.autoPreviewOfficeFiles', enabled);
   });
 
+  ipcBridge.systemSettings.getProxy.provider(async () => {
+    const value = await ProcessConfig.get('network.proxy');
+    return typeof value === 'string' ? value : '';
+  });
+
+  ipcBridge.systemSettings.setProxy.provider(async ({ proxy }) => {
+    await ProcessConfig.set('network.proxy', proxy.trim());
+  });
+
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
     const value = await ProcessConfig.get('pet.enabled');

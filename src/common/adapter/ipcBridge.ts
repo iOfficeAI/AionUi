@@ -729,6 +729,8 @@ export const systemSettings = {
   setAutoPreviewOfficeFiles: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-auto-preview-office-files'
   ),
+  getProxy: bridge.buildProvider<string, void>('system-settings:get-proxy'),
+  setProxy: bridge.buildProvider<void, { proxy: string }>('system-settings:set-proxy'),
   // Desktop pet settings
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
   setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),
