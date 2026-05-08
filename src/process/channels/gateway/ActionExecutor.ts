@@ -202,8 +202,13 @@ function getConfirmationPrompt(details: { type: string; title?: string; [key: st
 /**
  * 将 TMessage 转换为 IUnifiedOutgoingMessage
  * Convert TMessage to IUnifiedOutgoingMessage for platform
+ *
+ * Returning `null` instructs the streaming caller to skip this frame
+ * (i.e., the message is suppressed for this platform).
+ *
+ * @internal Exported only for unit tests; do not import from app code.
  */
-function convertTMessageToOutgoing(
+export function convertTMessageToOutgoing(
   message: TMessage,
   platform: PluginType,
   isComplete = false
@@ -322,15 +327,33 @@ function convertTMessageToOutgoing(
           };
 
     case 'agent_status':
+      // Suppress non-error agent status frames on all IM channels.
+      //
+      // Background: the agent emits a trailing `agent_status` event (e.g.
+      // "{agent} 会话活跃中" / "session active") after a turn completes.
+      // Previously this case only returned null for WeChat/WeCom; on Lark,
+      // Telegram and DingTalk the status text was sent to the IM platform
+      // and, because each streaming frame edits the SAME message, it would
+      // overwrite the real reply that arrived just before it. Users saw the
+      // bot's final answer become "⏳ Claude Code" / "⏳ Claude Code 会话活跃中".
+      //
+      // The companion guard `isNonAnswerMessage()` in ChannelMessageService
+      // already classifies non-error agent_status frames as "non-answer";
+      // suppressing them here keeps the visible message as the previous
+      // assistant content. Errors are still surfaced so users can react.
+      //
+      // Fixes: https://github.com/iOfficeAI/AionUi/issues/2756
+      if (message.content.status !== 'error') {
+        return null;
+      }
+      // Preserve the WeChat-specific suppression: WeChat/WeCom platforms do
+      // not surface agent status frames at all, including errors.
       if (isWeixinPlatform(platform)) {
         return null;
       }
       return {
         type: 'text',
-        text:
-          message.content.status === 'error'
-            ? `❌ ${formatTextForPlatform(message.content.agentName || message.content.backend || 'Agent error', platform)}`
-            : `⏳ ${formatTextForPlatform(message.content.agentName || message.content.backend || 'Agent', platform)}`,
+        text: `❌ ${formatTextForPlatform(message.content.agentName || message.content.backend || 'Agent error', platform)}`,
         parseMode: 'HTML',
       };
 
