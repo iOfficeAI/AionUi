@@ -17,6 +17,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+import type { GeminiModeOption } from '@/renderer/hooks/agent/useModeModeList';
 
 type GuidModelSelectorProps = {
   // Gemini model state
@@ -24,7 +25,7 @@ type GuidModelSelectorProps = {
   modelList: IProvider[];
   currentModel: TProviderWithModel | undefined;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
-  geminiModeLookup: Map<string, any>;
+  geminiModeLookup: Map<string, GeminiModeOption>;
 
   // ACP model state
   currentAcpCachedModelInfo: AcpModelInfo | null;

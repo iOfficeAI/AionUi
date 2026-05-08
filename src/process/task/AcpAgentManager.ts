@@ -517,8 +517,8 @@ ${collectedResponses.join('\n')}`;
       cliPath: customAgentConfig.defaultCliPath.trim(),
       customArgs: customAgentConfig.acpArgs,
       customEnv: {
-        ...(sharedModelEnv || {}),
-        ...(customAgentConfig.env || {}),
+        ...sharedModelEnv,
+        ...customAgentConfig.env,
       },
     };
   }
