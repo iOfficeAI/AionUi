@@ -81,7 +81,10 @@ export default defineConfig(({ mode }) => {
       plugins: [
         // externalizeDepsPlugin replaces our custom getExternalDeps() + pluginExternalizeDynamicImports.
         // 'fix-path' excluded so it gets bundled inline (only 3KB).
-        externalizeDepsPlugin({ exclude: ['fix-path'] }),
+        // '@aionui/web-host' excluded so its TS sources (which use ESM ".js" import specifiers)
+        // are bundled by esbuild rather than left as `require('@aionui/web-host')`, which Node
+        // cannot resolve because the package ships no compiled .js files (workspace-only).
+        externalizeDepsPlugin({ exclude: ['fix-path', '@aionui/web-host'] }),
         ...(isDevelopment
           ? [
               {

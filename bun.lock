@@ -6,6 +6,7 @@
       "name": "AionUi",
       "dependencies": {
         "@agentclientprotocol/sdk": "^0.18.2",
+        "@aionui/web-host": "workspace:*",
         "@anthropic-ai/sdk": "^0.71.2",
         "@arco-design/web-react": "^2.66.1",
         "@aws-sdk/client-bedrock": "^3.987.0",
@@ -161,6 +162,30 @@
         "@aionui/web-host": "workspace:*",
       },
     },
+    "packages/shared-scripts": {
+      "name": "@aionui/shared-scripts",
+      "version": "0.0.0",
+      "devDependencies": {
+        "@types/node": "^22.10.2",
+        "vitest": "^4.1.0",
+      },
+    },
+    "packages/web-cli": {
+      "name": "@aionui/web-cli",
+      "version": "0.0.0",
+      "bin": {
+        "aionui-web": "./bin/aionui-web.js",
+      },
+      "dependencies": {
+        "@aionui/shared-scripts": "workspace:*",
+        "@aionui/web-host": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/node": "^22.10.2",
+        "typescript": "^5.7.3",
+        "vitest": "^4.1.0",
+      },
+    },
     "packages/web-host": {
       "name": "@aionui/web-host",
       "version": "0.0.0",
@@ -204,6 +229,10 @@
     "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@0.18.2", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-l/o9NKvUc00GPa6RFJ4AccQq2O/PAf83xQ75mThHuL3H571iN4+PEdwnTBez67sS8Nv2aSA373xCZ5CbTXEwzA=="],
 
     "@aionui/desktop": ["@aionui/desktop@workspace:packages/desktop"],
+
+    "@aionui/shared-scripts": ["@aionui/shared-scripts@workspace:packages/shared-scripts"],
+
+    "@aionui/web-cli": ["@aionui/web-cli@workspace:packages/web-cli"],
 
     "@aionui/web-host": ["@aionui/web-host@workspace:packages/web-host"],
 
@@ -3691,6 +3720,10 @@
 
     "@a2a-js/sdk/uuid": ["uuid@11.1.0", "", { "bin": { "uuid": "dist/esm/bin/uuid" } }, "sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A=="],
 
+    "@aionui/shared-scripts/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
+
+    "@aionui/web-cli/@types/node": ["@types/node@22.19.15", "", { "dependencies": { "undici-types": "~6.21.0" } }, "sha512-F0R/h2+dsy5wJAUe3tAU6oqa2qbWY5TpNfL/RGmo1y38hiyO1w3x2jPtt76wmuaJI4DQnOBu21cNXQ2STIUUWg=="],
+
     "@aionui/web-host/@types/bcryptjs": ["@types/bcryptjs@3.0.0", "", { "dependencies": { "bcryptjs": "*" } }, "sha512-WRZOuCuaz8UcZZE4R5HXTco2goQSI2XxjGY3hbM/xDvwmqFWd4ivooImsMx65OKM6CtNKbnZ5YL+YwAwK7c1dg=="],
 
     "@aionui/web-host/@types/cookie": ["@types/cookie@0.6.0", "", {}, "sha512-4Kh9a6B2bQciAhf7FSuMRRkUWecJgJu9nPnx3yzpsfXX/c50REIqpHY4C82bXP90qrLtXtkDxTZosYO3UpOwlA=="],
@@ -4268,6 +4301,10 @@
     "wsl-utils/is-wsl": ["is-wsl@3.1.1", "", { "dependencies": { "is-inside-container": "^1.0.0" } }, "sha512-e6rvdUCiQCAuumZslxRJWR/Doq4VpPR82kqclvcS0efgt430SlGIk05vdCN58+VrzgtIcfNODjozVielycD4Sw=="],
 
     "xml2js/xmlbuilder": ["xmlbuilder@11.0.1", "", {}, "sha512-fDlsI/kFEx7gLvbecc0/ohLG50fugQp8ryHzMTuW9vSa1GJ0XYWKnhsUx7oie3G98+r56aTQIUB4kht42R3JvA=="],
+
+    "@aionui/shared-scripts/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
+
+    "@aionui/web-cli/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
     "@aionui/web-host/@types/node/undici-types": ["undici-types@6.21.0", "", {}, "sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ=="],
 
