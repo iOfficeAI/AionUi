@@ -9,6 +9,7 @@ import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 import { generateInspectScript } from './htmlInspectScript';
+import { HTML_PREVIEW_WEBPREFERENCES } from './htmlPreviewSecurity';
 
 /** 选中元素的数据结构 / Selected element data structure */
 export interface InspectedElement {
@@ -605,7 +606,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
               bottom: 0,
               height: '100%',
             }}
-            webpreferences='allowRunningInsecureContent, javascript=yes'
+            webpreferences={HTML_PREVIEW_WEBPREFERENCES}
           />
         </>
       ) : (

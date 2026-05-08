@@ -22,8 +22,9 @@ import { pathToFileURL } from 'url';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { AION_ASSET_PROTOCOL } from '@process/extensions';
+import { isAllowedAssetPath } from '@process/extensions/sandbox/assetProtocolSafety';
 import { initializeProcess } from './process';
-import { ProcessConfig } from './process/utils/initStorage';
+import { getSystemDir, ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
 import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
 import './process/bridge/feedbackBridge';
@@ -420,6 +421,18 @@ const handleAppReady = async (): Promise<void> => {
     let filePath = decodeURIComponent(url.pathname);
     if (process.platform === 'win32' && filePath.startsWith('/') && /^\/[A-Za-z]:/.test(filePath)) {
       filePath = filePath.slice(1);
+    }
+    const systemDir = getSystemDir();
+    const allowedAssetRoots = [
+      systemDir.workDir,
+      systemDir.cacheDir,
+      path.join(process.cwd(), 'public'),
+      path.join(process.cwd(), 'resources'),
+      app.isPackaged ? path.join(process.resourcesPath, 'hub') : '',
+    ].filter(Boolean);
+    if (!isAllowedAssetPath(filePath, allowedAssetRoots)) {
+      console.warn(`[aion-asset] Blocked path outside allowed roots: ${request.url} -> ${filePath}`);
+      return new Response('Forbidden', { status: 403 });
     }
     if (!fs.existsSync(filePath)) {
       console.warn(`[aion-asset] File not found: ${request.url} -> ${filePath}`);

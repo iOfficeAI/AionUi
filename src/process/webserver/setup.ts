@@ -104,7 +104,7 @@ export function setupBasicMiddleware(app: Express): void {
  * 配置 CORS（跨域资源共享）
  * Configure CORS based on server mode
  */
-function normalizeOrigin(origin: string): string | null {
+export function normalizeOrigin(origin: string): string | null {
   try {
     const url = new URL(origin);
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {
@@ -117,7 +117,7 @@ function normalizeOrigin(origin: string): string | null {
   }
 }
 
-function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
+export function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
   const baseOrigins = new Set<string>([`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
 
   // 允许远程访问时，自动添加所有网络接口 IP（LAN、VPN、Tailscale 等）
@@ -156,27 +156,24 @@ export function setupCors(app: Express, port: number, allowRemote: boolean): voi
     cors({
       credentials: true,
       origin(origin, callback) {
-        if (!origin) {
-          // Requests like curl or same-origin don't send an Origin header
-          callback(null, true);
-          return;
-        }
-
-        if (origin === 'null') {
-          callback(null, true);
-          return;
-        }
-
-        const normalizedOrigin = normalizeOrigin(origin);
-        if (normalizedOrigin && allowedOrigins.has(normalizedOrigin)) {
-          callback(null, true);
-          return;
-        }
-
-        callback(null, false);
+        callback(null, isCorsOriginAllowed(origin, allowedOrigins));
       },
     })
   );
+}
+
+export function isCorsOriginAllowed(origin: string | undefined, allowedOrigins: ReadonlySet<string>): boolean {
+  if (!origin) {
+    // Requests like curl or same-origin don't send an Origin header.
+    return true;
+  }
+
+  if (origin === 'null') {
+    return false;
+  }
+
+  const normalizedOrigin = normalizeOrigin(origin);
+  return Boolean(normalizedOrigin && allowedOrigins.has(normalizedOrigin));
 }
 
 /**
