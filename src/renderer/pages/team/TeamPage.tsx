@@ -63,7 +63,8 @@ const AgentChatSlot: React.FC<{
 
   const isAionrs = conversation?.type === 'aionrs';
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
-  const isAcpLike = agent.conversation_type === 'acp' || agent.conversation_type === 'codex';
+  const isAcpLike =
+    agent.conversation_type === 'acp' || agent.conversation_type === 'codex' || conversation?.type === 'acp';
 
   return (
     <div
