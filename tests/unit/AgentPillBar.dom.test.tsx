@@ -54,7 +54,7 @@ vi.mock('@icon-park/react', () => ({
   Robot: () => <span data-testid='icon-robot'>RobotIcon</span>,
 }));
 
-vi.mock('../../src/renderer/pages/guid/index.module.css', () => ({
+vi.mock('@renderer/pages/guid/index.module.css', () => ({
   default: { agentItemSelected: 'selected-class' },
 }));
 
@@ -65,8 +65,8 @@ vi.mock('../../src/renderer/pages/guid/index.module.css', () => ({
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-import AgentPillBar from '../../src/renderer/pages/guid/components/AgentPillBar';
-import type { AvailableAgent } from '../../src/renderer/pages/guid/types';
+import AgentPillBar from '@renderer/pages/guid/components/AgentPillBar';
+import type { AvailableAgent } from '@renderer/pages/guid/types';
 
 // ---------------------------------------------------------------------------
 // Helpers

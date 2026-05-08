@@ -37,7 +37,7 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getPath: vi.fn(() => '/tmp') },
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     pptPreview: {
       start: {
@@ -97,7 +97,7 @@ vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({ PATH: '/usr/bin' })),
 }));
 
-vi.mock('../../src/common/platform/index', () => ({
+vi.mock('@/common/platform/index', () => ({
   getPlatformServices: vi.fn(() => ({
     paths: {
       getDataDir: vi.fn(() => '/mock/data'),
@@ -136,9 +136,9 @@ async function emitWatchReady(child: ReturnType<typeof createMockChildProcess>) 
 
 // --- Tests ---
 
-let initPptPreviewBridge: typeof import('../../src/process/bridge/pptPreviewBridge').initPptPreviewBridge;
-let stopAllWatchSessions: typeof import('../../src/process/bridge/pptPreviewBridge').stopAllWatchSessions;
-let isActivePreviewPort: typeof import('../../src/process/bridge/pptPreviewBridge').isActivePreviewPort;
+let initPptPreviewBridge: typeof import('@process/bridge/pptPreviewBridge').initPptPreviewBridge;
+let stopAllWatchSessions: typeof import('@process/bridge/pptPreviewBridge').stopAllWatchSessions;
+let isActivePreviewPort: typeof import('@process/bridge/pptPreviewBridge').isActivePreviewPort;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -146,7 +146,7 @@ beforeEach(async () => {
   realpathSyncMock.mockImplementation((p: string) => p);
   fakePort.value = 55555;
 
-  const mod = await import('../../src/process/bridge/pptPreviewBridge');
+  const mod = await import('@process/bridge/pptPreviewBridge');
   initPptPreviewBridge = mod.initPptPreviewBridge;
   stopAllWatchSessions = mod.stopAllWatchSessions;
   isActivePreviewPort = mod.isActivePreviewPort;

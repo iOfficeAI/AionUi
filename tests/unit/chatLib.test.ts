@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import type { IResponseMessage } from '../../src/common/adapter/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import {
   transformMessage,
   composeMessage,
@@ -13,7 +13,7 @@ import {
   type IMessageText,
   type IMessageTips,
   type CronMessageMeta,
-} from '../../src/common/chat/chatLib';
+} from '@/common/chat/chatLib';
 
 // ---------------------------------------------------------------------------
 // joinPath

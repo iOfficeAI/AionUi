@@ -1,7 +1,7 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BackendHttpError } from '../../src/common/adapter/httpBridge';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 
 const startInvokeMock = vi.fn();
 const stopInvokeMock = vi.fn();
@@ -10,7 +10,7 @@ const statusUnsubMock = vi.fn();
 const openExternalUrlMock = vi.fn();
 const translate = (key: string) => key;
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     wordPreview: {
       start: { invoke: (...args: unknown[]) => startInvokeMock(...args) },
@@ -20,9 +20,9 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/adapter/httpBridge', async () => {
-  const actual = await vi.importActual<typeof import('../../src/common/adapter/httpBridge')>(
-    '../../src/common/adapter/httpBridge'
+vi.mock('@/common/adapter/httpBridge', async () => {
+  const actual = await vi.importActual<typeof import('@/common/adapter/httpBridge')>(
+    '../../packages/desktop/src/common/adapter/httpBridge'
   );
   return {
     ...actual,
@@ -30,7 +30,7 @@ vi.mock('../../src/common/adapter/httpBridge', async () => {
   };
 });
 
-vi.mock('../../src/renderer/utils/platform', () => ({
+vi.mock('@renderer/utils/platform', () => ({
   isElectronDesktop: () => true,
   openExternalUrl: (...args: unknown[]) => openExternalUrlMock(...args),
 }));
@@ -48,11 +48,11 @@ vi.mock('@arco-design/web-react', () => ({
   ),
 }));
 
-vi.mock('../../src/renderer/components/media/WebviewHost', () => ({
+vi.mock('@renderer/components/media/WebviewHost', () => ({
   default: ({ url }: { url: string }) => <div data-testid='webview-host' data-url={url} />,
 }));
 
-import OfficeWatchViewer from '../../src/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer';
+import OfficeWatchViewer from '@renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer';
 
 describe('OfficeWatchViewer', () => {
   beforeEach(() => {

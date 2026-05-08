@@ -10,7 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   NavigationHistoryProvider,
   useNavigationHistory,
-} from '../../../src/renderer/hooks/context/NavigationHistoryContext';
+} from '@renderer/hooks/context/NavigationHistoryContext';
 
 // ---------------------------------------------------------------------------
 // Mocks

@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { AcpAdapter } from '../../src/process/agent/acp/AcpAdapter';
-import type { AcpSessionUpdate } from '../../src/common/types/acpTypes';
+import { AcpAdapter } from '@process/agent/acp/AcpAdapter';
+import type { AcpSessionUpdate } from '@/common/types/acpTypes';
 
 describe('AcpAdapter - user_message_chunk handling', () => {
   let adapter: AcpAdapter;

@@ -21,7 +21,7 @@ vi.mock('@process/utils/shellEnv', () => ({
 // Mock killChild to simulate process exit synchronously
 const mockKillChild = vi.fn();
 vi.mock('@process/agent/acp/utils', async (importOriginal) => {
-  const orig = await importOriginal<typeof import('../../src/process/agent/acp/utils')>();
+  const orig = await importOriginal<typeof import('@process/agent/acp/utils')>();
   return { ...orig, killChild: (...args: unknown[]) => mockKillChild(...args) };
 });
 
@@ -34,7 +34,7 @@ vi.mock('@process/agent/acp/acpConnectors', () => ({
   prepareCleanEnv: vi.fn(async () => ({})),
 }));
 
-import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
 
 /** Create a minimal fake ChildProcess with an EventEmitter for 'exit' events */
 function createFakeChild(): ChildProcess & EventEmitter {

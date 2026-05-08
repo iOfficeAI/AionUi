@@ -15,7 +15,7 @@ Determine correct file placement and structure for an Electron multi-process pro
 
 - **Renderer layer** (components, hooks, utils, pages, CSS): [references/renderer.md](references/renderer.md)
 - **Main process & shared layer** (bridges, services, worker, preload): [references/process.md](references/process.md)
-- **Project root & src/ layout** (directory structure, migration status): [references/project-layout.md](references/project-layout.md)
+- **Project root & monorepo layout** (directory structure, migration status): [references/project-layout.md](references/project-layout.md)
 
 ---
 
@@ -23,31 +23,31 @@ Determine correct file placement and structure for an Electron multi-process pro
 
 ```
 Is it UI (React components, hooks, pages)?
-  └── YES → src/renderer/              → see references/renderer.md
+  └── YES → packages/desktop/src/renderer/              → see references/renderer.md
 
 Is it an IPC handler responding to renderer calls?
-  └── YES → src/process/bridge/        → see references/process.md
+  └── YES → packages/desktop/src/process/bridge/        → see references/process.md
 
 Is it business logic running in the main process?
-  └── YES → src/process/services/      → see references/process.md
+  └── YES → packages/desktop/src/process/services/      → see references/process.md
 
 Is it an AI platform connection (API client, message protocol)?
-  └── YES → src/process/agent/<platform>/
+  └── YES → packages/desktop/src/process/agent/<platform>/
 
 Is it a background task that runs in a worker thread?
-  └── YES → src/process/worker/
+  └── YES → packages/desktop/src/process/worker/
 
 Is it used by BOTH main and renderer processes?
-  └── YES → src/common/
+  └── YES → packages/desktop/src/common/
 
 Is it an HTTP/WebSocket endpoint?
-  └── YES → src/process/webserver/
+  └── YES → packages/desktop/src/process/webserver/
 
 Is it a plugin/extension resolver or loader?
-  └── YES → src/process/extensions/
+  └── YES → packages/desktop/src/process/extensions/
 
 Is it a messaging channel (Lark, DingTalk, Telegram)?
-  └── YES → src/process/channels/
+  └── YES → packages/desktop/src/process/channels/
 ```
 
 ---
@@ -58,15 +58,15 @@ Is it a messaging channel (Lark, DingTalk, Telegram)?
 
 | Process                            | Can use                                                    | Cannot use                                      |
 | ---------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- |
-| **Main** (`src/process/`)          | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React)          |
-| **Renderer** (`src/renderer/`)     | DOM APIs, React, browser APIs                              | Node.js APIs (`fs`, `path`), Electron main APIs |
-| **Worker** (`src/process/worker/`) | Node.js APIs                                               | DOM APIs, Electron APIs                         |
-| **Preload** (`src/preload.ts`)     | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
+| **Main** (`packages/desktop/src/process/`)          | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React)          |
+| **Renderer** (`packages/desktop/src/renderer/`)     | DOM APIs, React, browser APIs                              | Node.js APIs (`fs`, `path`), Electron main APIs |
+| **Worker** (`packages/desktop/src/process/worker/`) | Node.js APIs                                               | DOM APIs, Electron APIs                         |
+| **Preload** (`packages/desktop/src/preload/`)     | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
 
 Cross-process communication:
 
-- Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
-- Main ↔ Worker: fork protocol via `src/process/worker/WorkerProtocol.ts`
+- Main ↔ Renderer: IPC via `packages/desktop/src/preload/` + `packages/desktop/src/process/bridge/*.ts`
+- Main ↔ Worker: fork protocol via `packages/desktop/src/process/worker/WorkerProtocol.ts`
 
 ```typescript
 // NEVER in renderer
@@ -89,7 +89,7 @@ const result = await window.api.someMethod(); // goes through preload
 | **Categorical dirs** (everywhere)  | lowercase  | `components/`, `hooks/`, `utils/`, `services/`          |
 | **Platform dirs** (everywhere)     | lowercase  | `acp/`, `codex/`, `gemini/` — cross-process consistency |
 
-> Quick test: "Inside `src/renderer/` AND represents a specific component/feature (not a category)?" → PascalCase. Otherwise → lowercase.
+> Quick test: "Inside `packages/desktop/src/renderer/` AND represents a specific component/feature (not a category)?" → PascalCase. Otherwise → lowercase.
 
 ### Files
 
@@ -117,9 +117,9 @@ Tests mirror source files in `tests/` subdirectories:
 
 | Source                                      | Test                                            |
 | ------------------------------------------- | ----------------------------------------------- |
-| `src/process/services/CronService.ts`       | `tests/unit/cronService.test.ts`                |
-| `src/renderer/hooks/ui/useAutoScroll.ts`    | `tests/unit/useAutoScroll.dom.test.ts`          |
-| `src/process/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
+| `packages/desktop/src/process/services/CronService.ts`       | `tests/unit/cronService.test.ts`                |
+| `packages/desktop/src/renderer/hooks/ui/useAutoScroll.ts`    | `tests/unit/useAutoScroll.dom.test.ts`          |
+| `packages/desktop/src/process/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |
 
 When `tests/unit/` exceeds 10 direct children, group into subdirectories matching source structure.
 

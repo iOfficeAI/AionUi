@@ -13,7 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 const getImageBase64Mock = vi.fn();
 const getFileMetadataMock = vi.fn();
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       getImageBase64: {
@@ -26,7 +26,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/renderer/services/FileService', () => ({
+vi.mock('@renderer/services/FileService', () => ({
   getFileExtension: (name: string) => {
     const dot = name.lastIndexOf('.');
     return dot >= 0 ? name.slice(dot) : '';
@@ -49,7 +49,7 @@ const PLACEHOLDER_SVG =
 
 const REAL_IMAGE_B64 = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==';
 
-import FilePreview from '../../src/renderer/components/media/FilePreview';
+import FilePreview from '@renderer/components/media/FilePreview';
 
 // Helper: flush microtasks (promise callbacks)
 const flushMicrotasks = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 0)));

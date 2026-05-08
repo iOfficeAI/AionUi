@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import type { IAgentEventEmitter } from '../../src/process/task/IAgentEventEmitter';
+import type { IAgentEventEmitter } from '@process/task/IAgentEventEmitter';
 
 vi.mock('@/common/platform', () => ({
   getPlatformServices: () => ({
@@ -23,7 +23,7 @@ vi.mock('@/common/platform', () => ({
     },
   }),
 }));
-vi.mock('../../src/process/utils/shellEnv', () => ({
+vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({})),
 }));
 
@@ -36,7 +36,7 @@ function makeMockEmitter(): IAgentEventEmitter {
   };
 }
 
-import BaseAgentManager from '../../src/process/task/BaseAgentManager';
+import BaseAgentManager from '@process/task/BaseAgentManager';
 
 function makeAgent(type: any = 'gemini', data: any = {}) {
   const emitter = makeMockEmitter();

@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { BackendHttpError } from '../../../../src/common/adapter/httpBridge';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
 
 const mockReadFile = vi.fn();
 const mockGetImageBase64 = vi.fn();
@@ -27,7 +27,7 @@ vi.mock('@/renderer/pages/conversation/Preview', () => ({
   }),
 }));
 
-import { usePreviewLauncher } from '../../../../src/renderer/hooks/file/usePreviewLauncher';
+import { usePreviewLauncher } from '@renderer/hooks/file/usePreviewLauncher';
 
 describe('usePreviewLauncher', () => {
   beforeEach(() => {

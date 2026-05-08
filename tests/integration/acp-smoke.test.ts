@@ -15,7 +15,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { spawn, execFileSync, type ChildProcess } from 'child_process';
 import path from 'path';
-import { ACP_BACKENDS_ALL } from '../../src/common/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 
 const FAKE_CLI_PATH = path.resolve(__dirname, '../fixtures/fake-acp-cli/index.js');
 const JSONRPC_VERSION = '2.0';

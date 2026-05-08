@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import type { AcpBackendConfig } from '../../../src/common/types/acpTypes';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 /**
  * Test the one-time split migration in initStorage.ts §5.2.

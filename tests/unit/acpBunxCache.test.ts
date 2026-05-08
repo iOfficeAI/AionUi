@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { isBunxCacheCorruption, clearBunxCache, isBunCacheMoveFailed } from '../../src/process/agent/acp/acpConnectors';
+import { isBunxCacheCorruption, clearBunxCache, isBunCacheMoveFailed } from '@process/agent/acp/acpConnectors';
 
 vi.mock('fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('fs')>();

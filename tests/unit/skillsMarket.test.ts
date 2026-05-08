@@ -21,7 +21,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest';
 
 // Mock Electron app and initStorage before importing AcpSkillManager
 vi.mock('electron', () => ({ app: { setName: vi.fn(), getPath: () => '/tmp/aionui-test' } }));
-vi.mock('../../src/process/utils/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   getSkillsDir: () => path.join('/tmp/aionui-test', 'skills'),
   getAutoSkillsDir: () => path.join('/tmp/aionui-test', 'skills', '_builtin'),
   getBuiltinSkillsCopyDir: () => path.join('/tmp/aionui-test', 'builtin-skills'),

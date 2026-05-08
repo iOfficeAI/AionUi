@@ -199,7 +199,6 @@ worktrees/
 .superpowers/
 docs/superpowers/
 resources/bundled-bun
-resources/bundled-aionrs
 resources/hub
 
 # Server build output

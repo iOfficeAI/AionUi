@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
-import AgentStatusBadge from '../../src/renderer/pages/team/components/AgentStatusBadge';
-import type { TeammateStatus } from '../../src/common/types/teamTypes';
+import AgentStatusBadge from '@renderer/pages/team/components/AgentStatusBadge';
+import type { TeammateStatus } from '@/common/types/teamTypes';
 
 describe('AgentStatusBadge', () => {
   it('renders with a known status', () => {

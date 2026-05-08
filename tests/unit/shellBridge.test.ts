@@ -86,7 +86,7 @@ vi.mock('fs', () => ({
 
 // --- Tests ---
 
-let initShellBridge: typeof import('../../src/process/bridge/shellBridge').initShellBridge;
+let initShellBridge: typeof import('@process/bridge/shellBridge').initShellBridge;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -100,7 +100,7 @@ beforeEach(async () => {
   // Default mocks
   Object.defineProperty(process, 'platform', { value: 'win32' });
 
-  const mod = await import('../../src/process/bridge/shellBridge');
+  const mod = await import('@process/bridge/shellBridge');
   initShellBridge = mod.initShellBridge;
 });
 

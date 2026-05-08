@@ -41,7 +41,7 @@ vi.mock('electron', () => ({
   app: { isPackaged: false, getPath: vi.fn(() => '/tmp') },
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     wordPreview: {
       start: {
@@ -146,9 +146,9 @@ async function emitWatchReady(child: ReturnType<typeof createMockChildProcess>) 
 
 // --- Tests ---
 
-let initOfficeWatchBridge: typeof import('../../src/process/bridge/officeWatchBridge').initOfficeWatchBridge;
-let stopAllOfficeWatchSessions: typeof import('../../src/process/bridge/officeWatchBridge').stopAllOfficeWatchSessions;
-let isActiveOfficeWatchPort: typeof import('../../src/process/bridge/officeWatchBridge').isActiveOfficeWatchPort;
+let initOfficeWatchBridge: typeof import('@process/bridge/officeWatchBridge').initOfficeWatchBridge;
+let stopAllOfficeWatchSessions: typeof import('@process/bridge/officeWatchBridge').stopAllOfficeWatchSessions;
+let isActiveOfficeWatchPort: typeof import('@process/bridge/officeWatchBridge').isActiveOfficeWatchPort;
 
 beforeEach(async () => {
   vi.resetModules();
@@ -157,7 +157,7 @@ beforeEach(async () => {
   fakePort.value = 55555;
   portConnectSucceeds.value = true;
 
-  const mod = await import('../../src/process/bridge/officeWatchBridge');
+  const mod = await import('@process/bridge/officeWatchBridge');
   initOfficeWatchBridge = mod.initOfficeWatchBridge;
   stopAllOfficeWatchSessions = mod.stopAllOfficeWatchSessions;
   isActiveOfficeWatchPort = mod.isActiveOfficeWatchPort;

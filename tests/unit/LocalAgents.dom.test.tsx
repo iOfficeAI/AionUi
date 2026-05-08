@@ -34,7 +34,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
       getAvailableAgents: { invoke: mockGetAvailableAgents },
@@ -109,7 +109,7 @@ vi.mock('@/renderer/hooks/agent/useHubAgents', () => ({
   useHubAgents: () => ({ agents: [], loading: false, install: vi.fn(), retryInstall: vi.fn(), update: vi.fn() }),
 }));
 
-vi.mock('../../src/renderer/pages/settings/AgentSettings/AgentHubModal', () => ({
+vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({
   AgentHubModal: ({ visible }: { visible: boolean }) => (visible ? <div data-testid='hub-modal' /> : null),
 }));
 
@@ -122,7 +122,7 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'light' }),
 }));
 
-vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({
+vi.mock('@renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({
   default: () => <div data-testid='inline-agent-editor' />,
 }));
 
@@ -133,7 +133,7 @@ vi.mock('../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor', () 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import React from 'react';
-import LocalAgents from '../../src/renderer/pages/settings/AgentSettings/LocalAgents';
+import LocalAgents from '@renderer/pages/settings/AgentSettings/LocalAgents';
 
 // ---------------------------------------------------------------------------
 // Tests

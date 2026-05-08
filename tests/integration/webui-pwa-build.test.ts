@@ -109,9 +109,9 @@ function getAsarEntries(asarPath: string): Set<string> {
 
 const rendererIndexPath = path.resolve(__dirname, '../../out/renderer/index.html');
 const pwaSourceFiles = [
-  path.resolve(__dirname, '../../src/renderer/index.html'),
-  path.resolve(__dirname, '../../src/renderer/main.tsx'),
-  path.resolve(__dirname, '../../src/renderer/services/registerPwa.ts'),
+  path.resolve(__dirname, '../../packages/desktop/src/renderer/index.html'),
+  path.resolve(__dirname, '../../packages/desktop/src/renderer/main.tsx'),
+  path.resolve(__dirname, '../../packages/desktop/src/renderer/services/registerPwa.ts'),
   path.resolve(__dirname, '../../public/manifest.webmanifest'),
   path.resolve(__dirname, '../../public/sw.js'),
 ];

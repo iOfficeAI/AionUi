@@ -118,8 +118,8 @@ function extractModuleScriptPath(html: string): string {
 describe('Built pet renderer assets', () => {
   const petHtmlPath = path.resolve(__dirname, '../../out/renderer/pet/pet.html');
   const petSourceFiles = [
-    path.resolve(__dirname, '../../src/renderer/pet/pet.html'),
-    path.resolve(__dirname, '../../src/renderer/pet/petRenderer.ts'),
+    path.resolve(__dirname, '../../packages/desktop/src/renderer/pet/pet.html'),
+    path.resolve(__dirname, '../../packages/desktop/src/renderer/pet/petRenderer.ts'),
     path.resolve(__dirname, '../../public/pet-states/idle.svg'),
   ];
   const envAsar = process.env.APP_ASAR_PATH;

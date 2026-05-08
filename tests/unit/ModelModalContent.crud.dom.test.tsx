@@ -180,11 +180,11 @@ vi.mock('@/renderer/utils/model/modelPlatforms', () => ({
   ],
 }));
 
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/healthCheckUtils', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/healthCheckUtils', () => ({
   classifyHealthCheckMessage: () => 'skip',
 }));
 
-vi.mock('../../src/renderer/components/settings/SettingsModal/settingsViewContext', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/settingsViewContext', () => ({
   useSettingsViewMode: () => 'modal',
 }));
 
@@ -197,9 +197,9 @@ vi.mock('@/common/utils', async (importOriginal) => {
 });
 
 // Silence the empty model-provider.css side-effect import.
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/../model-provider.css', () => ({}));
+vi.mock('@renderer/components/settings/SettingsModal/contents/../model-provider.css', () => ({}));
 
-import ModelModalContent from '../../src/renderer/components/settings/SettingsModal/contents/ModelModalContent';
+import ModelModalContent from '@renderer/components/settings/SettingsModal/contents/ModelModalContent';
 
 // ---------------------------------------------------------------------------
 // Test helpers

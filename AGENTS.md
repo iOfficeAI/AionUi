@@ -30,7 +30,7 @@ See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for
 - Prefer **UnoCSS utility classes**; complex styles use **CSS Modules** (`ComponentName.module.css`)
 - Colors must use **semantic tokens** from `uno.config.ts` or CSS variables — no hardcoded values
 - Arco overrides go in the component's CSS Module via `:global()` — no global override files
-- Global styles only in `src/renderer/styles/`
+- Global styles only in `packages/desktop/src/renderer/styles/`
 
 See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for full CSS and UI library rules.
 
@@ -45,11 +45,11 @@ See [docs/conventions/file-structure.md](docs/conventions/file-structure.md) for
 
 Three process types — never mix their APIs:
 
-- `src/process/` — main process, no DOM APIs
-- `src/renderer/` — renderer, no Node.js APIs
-- `src/process/worker/` — fork workers, no Electron APIs
+- `packages/desktop/src/process/` — main process, no DOM APIs
+- `packages/desktop/src/renderer/` — renderer, no Node.js APIs
+- `packages/desktop/src/process/worker/` — fork workers, no Electron APIs
 
-Cross-process communication must go through the IPC bridge (`src/preload.ts`).
+Cross-process communication must go through the IPC bridge (`packages/desktop/src/preload/`).
 See [docs/tech/architecture.md](docs/tech/architecture.md) for details.
 
 ## Testing
@@ -81,7 +81,7 @@ prek run --from-ref origin/main --to-ref HEAD
 > Note: `prek` uses `lint` (check only) and `format:check` (check only) — it will fail if there are issues but won't fix them.
 > If prek reports formatting or lint issues, run the auto-fix commands above first, then re-run prek to verify.
 
-**i18n validation:** If your changes touch `src/renderer/`, `locales/`, or `src/common/config/i18n`, run:
+**i18n validation:** If your changes touch `packages/desktop/src/renderer/`, `locales/`, or `packages/desktop/src/common/config/i18n`, run:
 
 ```bash
 bun run i18n:types
@@ -109,7 +109,7 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | Skill             | Purpose                                                                               | Triggers                                                                  |
 | ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- |
 | **architecture**  | File & directory structure conventions for all process types                          | Creating files, adding modules, architectural decisions                   |
-| **i18n**          | Internationalization workflow and standards                                           | Adding user-facing text, modifying `locales/` or `src/common/config/i18n` |
+| **i18n**          | Internationalization workflow and standards                                           | Adding user-facing text, modifying `locales/` or `packages/desktop/src/common/config/i18n` |
 | **testing**       | Testing workflow and quality standards                                                | Writing tests, adding features, before claiming completion                |
 | **oss-pr**        | Full commit + PR workflow: branch management, quality checks, issue linking, PR       | Creating pull requests, after committing, `/oss-pr`                       |
 | **bump-version**  | Version bump workflow: update package.json, checks, branch, PR, tag release           | Bumping version, `/bump-version`                                          |
@@ -130,6 +130,6 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 
 ## Internationalization
 
-All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `src/common/config/i18n-config.json`.
+All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
 
 See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.

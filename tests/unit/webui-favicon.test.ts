@@ -6,7 +6,7 @@ const ROOT = path.resolve(__dirname, '../..');
 
 describe('WebUI favicon', () => {
   it('index.html favicon href resolves to a file inside the public directory', () => {
-    const html = fs.readFileSync(path.join(ROOT, 'src/renderer/index.html'), 'utf8');
+    const html = fs.readFileSync(path.join(ROOT, 'packages/desktop/src/renderer/index.html'), 'utf8');
 
     // Extract the favicon href
     const match = html.match(/<link\s+rel="icon"[^>]+href="([^"]+)"/);

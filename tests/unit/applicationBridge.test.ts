@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
   return {
@@ -222,7 +222,7 @@ describe('CDP configuration functions', () => {
     // Capture handlers using hoisted provider mock
     const capturedHandlers: Record<string, (...args: any[]) => any> = {};
     vi.doMock('electron', () => mockElectronApp({ relaunch: vi.fn(), exit: vi.fn() }));
-    vi.doMock('../../src/common', () => ({
+    vi.doMock('@/common', () => ({
       ipcBridge: {
         application: {
           restart: {
@@ -262,7 +262,7 @@ describe('CDP configuration functions', () => {
     }));
 
     vi.resetModules();
-    const { initApplicationBridge } = await import('../../src/process/bridge/applicationBridge');
+    const { initApplicationBridge } = await import('@process/bridge/applicationBridge');
     const taskMgr = makeTaskManager();
     initApplicationBridge(taskMgr);
 

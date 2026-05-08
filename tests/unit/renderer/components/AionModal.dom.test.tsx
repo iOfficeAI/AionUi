@@ -60,7 +60,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 import AionModal from '@/renderer/components/base/AionModal';
 
-const arcoOverrideCss = readFileSync(resolve(process.cwd(), 'src/renderer/styles/arco-override.css'), 'utf8');
+const arcoOverrideCss = readFileSync(resolve(process.cwd(), 'packages/desktop/src/renderer/styles/arco-override.css'), 'utf8');
 
 describe('AionModal', () => {
   it('uses dialog fill as the default content background', () => {

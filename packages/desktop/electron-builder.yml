@@ -1,0 +1,229 @@
+appId: com.aionui.app
+productName: AionUi
+executableName: AionUi
+copyright: Copyright © 2024 AionUi
+
+protocols:
+  - name: AionUi Protocol
+    schemes:
+      - aionui
+
+asar:
+  smartUnpack: true
+
+directories:
+  app: .
+  output: out
+  buildResources: resources
+
+files:
+  # electron-vite build output (main process + preload + renderer)
+  - out/main/**/*
+  - out/preload/**/*
+  - out/renderer/**/*
+  # Static resources — use explicit directory inclusion to prevent resource loss
+  - public/**/*
+  - package.json
+  # Native modules and their runtime dependencies
+  - node_modules/better-sqlite3/**/*
+  - node_modules/bcrypt/**/*
+  - node_modules/node-pty/**/*
+  - node_modules/@mapbox/**/*
+  - node_modules/detect-libc/**/*
+  - node_modules/prebuild-install/**/*
+  - node_modules/node-gyp-build/**/*
+  - node_modules/bindings/**/*
+  # CLI dependencies (needed by nested jackspeak/glob)
+  - node_modules/@isaacs/cliui/**/*
+  - node_modules/ansi-regex/**/*
+  - node_modules/ansi-styles/**/*
+  - node_modules/strip-ansi/**/*
+  - node_modules/wrap-ansi/**/*
+  - node_modules/string-width/**/*
+  - node_modules/eastasianwidth/**/*
+  - node_modules/emoji-regex/**/*
+  # open library - needs to be external for Windows asar compatibility
+  - node_modules/open/**/*
+  - node_modules/default-browser/**/*
+  - node_modules/default-browser-id/**/*
+  - node_modules/run-applescript/**/*
+  - node_modules/bundle-name/**/*
+  # tree-sitter WASM dependencies
+  - node_modules/web-tree-sitter/**/*
+  - node_modules/tree-sitter-bash/**/*
+  # CRITICAL: Exclude ALL tree-sitter native binaries to prevent signing issues
+  - '!**/node_modules/tree-sitter-*/prebuilds/**'
+  - '!**/node_modules/tree-sitter-*/build/**'
+  - '!**/node_modules/tree-sitter-*/src/**'
+  - '!**/node_modules/tree-sitter-*/**/*.node'
+  - '!**/node_modules/tree-sitter-*/**/*.obj'
+  - '!**/node_modules/tree-sitter-*/**/*.o'
+  - '!**/node_modules/tree-sitter-*/**/*.cc'
+  - '!**/node_modules/tree-sitter-*/**/*.c'
+  # Exclude dev/test files
+  - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
+  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
+  - '!**/node_modules/*/{*.test.js,*.spec.js,*.test.ts,*.spec.ts}'
+  # Defensive: exclude sibling packages from desktop bundle
+  - '!packages/web-host/**'
+  - '!packages/web-cli/**'
+  - '!packages/shared-scripts/**'
+  - '!packages/desktop/src/**'
+  - '!**/node_modules/*.d.ts'
+  - '!**/node_modules/.bin'
+  - '!**/node_modules/*/{docs,documentation,doc}'
+  # Exclude system files
+  - '!**/{.DS_Store,.git,.gitignore,.gitattributes}'
+  - '!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}'
+  - '!**/{appveyor.yml,.travis.yml,circle.yml}'
+  - '!**/{npm-debug.log,yarn.lock,.yarn-metadata.json,yarn-error.log}'
+  # Exclude large packages
+  - '!**/node_modules/{@img,@emnapi}/**'
+  - '!**/node_modules/@img/sharp-*/**'
+  - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
+  - '!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/**'
+  # Exclude JAR files and JNI libraries that cause notarization issues
+  - '!**/*.jar'
+  - '!**/*.jnilib'
+  # Exclude all vendor directories to prevent unsigned binaries
+  - '!**/node_modules/*/vendor/**'
+  - '!**/node_modules/@*/*/vendor/**'
+  # Re-include vendor dirs for native modules that need them (if any)
+  - 'node_modules/better-sqlite3/vendor/**'
+  - 'node_modules/bcrypt/vendor/**'
+  - 'node_modules/node-pty/vendor/**'
+  # Exclude vite source maps
+  - '!**/*.map'
+  # Exclude syntax highlighter languages (keep common ones)
+  - '!**/out/**/react-syntax-highlighter_languages_highlight_*'
+  - 'out/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
+  # Ensure vendor chunks from manual splitting are included
+  - 'out/renderer/**/vendor-*.js'
+  # Remap viteStaticCopy output (out/main/static/)
+  # to root-level directories inside the asar, so runtime path resolution stays simple.
+  - from: out/main/static
+    to: static
+
+extraResources:
+  - from: public
+    to: .
+  - from: resources/app.png
+    to: app.png
+  - from: resources/bundled-bun
+    to: bundled-bun
+  # aionui-backend binary (pre-compiled per platform/arch)
+  - from: resources/bundled-aionui-backend
+    to: bundled-aionui-backend
+  - from: resources/hub
+    to: hub
+win:
+  target:
+    - nsis
+    #    - msi
+    - zip
+  icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  differentialPackage: false
+
+mac:
+  target:
+    - dmg
+    - zip
+  icon: resources/app.icns
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  category: public.app-category.productivity
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: entitlements.plist
+  entitlementsInherit: entitlements.plist
+
+dmg:
+  # Use UDZO format which is more reliable on CI
+  format: UDZO
+  # Disable internet-enabled DMG to avoid network issues
+  internetEnabled: false
+  # Simple window settings to avoid layout issues
+  window:
+    width: 540
+    height: 380
+  # Contents positioning
+  contents:
+    - x: 140
+      y: 180
+      type: file
+    - x: 400
+      y: 180
+      type: link
+      path: /Applications
+
+afterPack: scripts/afterPack.js
+afterSign: scripts/afterSign.js
+
+linux:
+  target:
+    - deb
+  icon: resources/app.png
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  category: Utility
+  maintainer: aionui
+  vendor: aionui
+  synopsis: ${description}
+  description: ${description}
+  desktop:
+    entry:
+      Name: AionUi
+      Comment: ${description}
+      Icon: aionui
+      Categories: Office;Utility;
+      MimeType: x-scheme-handler/aionui;
+
+npmRebuild: false
+buildDependenciesFromSource: false
+nodeGypRebuild: false
+
+asarUnpack:
+  - '**/node_modules/better-sqlite3/**/*'
+  - '**/node_modules/bcrypt/**/*'
+  - '**/node_modules/node-pty/**/*'
+  - '**/node_modules/@mapbox/**/*'
+  - '**/node_modules/detect-libc/**/*'
+  - '**/node_modules/prebuild-install/**/*'
+  - '**/node_modules/node-gyp-build/**/*'
+  - '**/node_modules/bindings/**/*'
+  # open library and dependencies - needed for Windows asar compatibility
+  - '**/node_modules/open/**/*'
+  - '**/node_modules/default-browser/**/*'
+  - '**/node_modules/default-browser-id/**/*'
+  - '**/node_modules/run-applescript/**/*'
+  - '**/node_modules/bundle-name/**/*'
+  # tree-sitter WASM files need to be unpacked for fs.readFile access
+  - '**/node_modules/web-tree-sitter/**/*'
+  - '**/node_modules/tree-sitter-bash/**/*'
+  # Builtin MCP server scripts must be unpacked so external node processes can execute them
+  - 'out/main/builtin-mcp-image-gen.js'
+  - 'out/main/team-mcp-stdio.js'
+  - 'out/main/team-guide-mcp-stdio.js'
+
+# Compression level: normal for faster builds, maximum for smallest size
+# Note: electron-builder doesn't support YAML template syntax for env vars
+# The build script sets ELECTRON_BUILDER_COMPRESSION_LEVEL env var which takes precedence
+compression: normal
+removePackageScripts: true
+electronDownload:
+  cache: ${env.ELECTRON_CACHE}
+
+publish:
+  provider: github
+  owner: iOfficeAI
+  repo: AionUi
+  publishAutoUpdate: true
+  releaseType: release

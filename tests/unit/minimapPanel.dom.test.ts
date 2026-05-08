@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
   dispatchChatMessageJump: vi.fn(),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     database: {
       getConversationMessages: {
@@ -23,12 +23,12 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/renderer/utils/chat/chatMinimapEvents', () => ({
+vi.mock('@renderer/utils/chat/chatMinimapEvents', () => ({
   dispatchChatMessageJump: mocks.dispatchChatMessageJump,
 }));
 
-import { useMinimapPanel } from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel';
-import type { TurnPreviewItem } from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes';
+import { useMinimapPanel } from '@renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel';
+import type { TurnPreviewItem } from '@renderer/pages/conversation/components/ConversationTitleMinimap/minimapTypes';
 
 // Helper: build a paginated response that useMinimapPanel can process
 const makeFakeMessages = (turns: { question: string; answer: string }[]) => {

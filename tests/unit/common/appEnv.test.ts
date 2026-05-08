@@ -10,7 +10,7 @@ describe('common/appEnv', () => {
   });
 
   it('appends -dev suffix in dev builds', async () => {
-    const { getEnvAwareName } = await import('../../../src/common/config/appEnv');
+    const { getEnvAwareName } = await import('@/common/config/appEnv');
     expect(getEnvAwareName('.aionui')).toBe('.aionui-dev');
     expect(getEnvAwareName('.aionui-config')).toBe('.aionui-config-dev');
   });
@@ -19,7 +19,7 @@ describe('common/appEnv', () => {
     vi.doMock('@/common/platform', () => ({
       getPlatformServices: () => ({ paths: { isPackaged: () => true } }),
     }));
-    const { getEnvAwareName } = await import('../../../src/common/config/appEnv');
+    const { getEnvAwareName } = await import('@/common/config/appEnv');
     expect(getEnvAwareName('.aionui')).toBe('.aionui');
     expect(getEnvAwareName('.aionui-config')).toBe('.aionui-config');
   });

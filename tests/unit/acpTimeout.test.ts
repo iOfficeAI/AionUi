@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
-import { AcpAgent } from '../../src/process/agent/acp/index';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { AcpAgent } from '@process/agent/acp/index';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 

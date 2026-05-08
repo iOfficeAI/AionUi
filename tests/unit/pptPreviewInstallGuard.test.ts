@@ -134,7 +134,7 @@ describe('pptPreviewBridge install guard', () => {
   });
 
   async function loadAndInit() {
-    const mod = await import('../../src/process/bridge/pptPreviewBridge');
+    const mod = await import('@process/bridge/pptPreviewBridge');
     mod.initPptPreviewBridge();
     return mod;
   }

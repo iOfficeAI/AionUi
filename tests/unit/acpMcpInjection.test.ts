@@ -16,18 +16,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // ─── shared mocks ────────────────────────────────────────────────────────────
 
-vi.mock('../../src/process/utils/mainLogger', () => ({
+vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
   mainWarn: vi.fn(),
   mainError: vi.fn(),
 }));
 
-vi.mock('../../src/process/utils/shellEnv', () => ({
+vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn().mockResolvedValue({}),
   resolveNpxPath: vi.fn().mockResolvedValue('/usr/local/bin/npx'),
 }));
 
-vi.mock('../../src/process/utils/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: { get: vi.fn().mockResolvedValue(null) },
 }));
 
@@ -39,7 +39,7 @@ vi.mock('fs', () => ({
   promises: { readFile: vi.fn(), access: vi.fn() },
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     team: {
       agentSpawned: { emit: vi.fn() },
@@ -49,7 +49,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/adapter/ipcBridge', () => ({
+vi.mock('@/common/adapter/ipcBridge', () => ({
   team: {
     agentSpawned: { emit: vi.fn() },
     agentRemoved: { emit: vi.fn() },
@@ -66,7 +66,7 @@ const mockGetAgentCapabilities = vi.fn().mockReturnValue(null);
 const mockOn = vi.fn();
 const mockDestroy = vi.fn();
 
-vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
+vi.mock('@process/agent/acp/AcpConnection', () => ({
   AcpConnection: class MockAcpConnection {
     backend: string = 'codex';
     loadSession = mockLoadSession;
@@ -106,25 +106,25 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   },
 }));
 
-vi.mock('../../src/process/agent/acp/modelInfo', () => ({
+vi.mock('@process/agent/acp/modelInfo', () => ({
   buildAcpModelInfo: vi.fn(),
   summarizeAcpModelInfo: vi.fn(),
 }));
 
-vi.mock('../../src/process/agent/acp/utils', () => ({
+vi.mock('@process/agent/acp/utils', () => ({
   getClaudeModel: vi.fn(),
 }));
 
-vi.mock('../../src/process/team/mcpReadiness', () => ({
+vi.mock('@process/team/mcpReadiness', () => ({
   waitForMcpReady: vi.fn().mockResolvedValue(undefined),
   notifyMcpReady: vi.fn(),
 }));
 
 // ─── imports ─────────────────────────────────────────────────────────────────
 
-import { AcpAgent } from '../../src/process/agent/acp';
-import { buildTeamMcpServer } from '../../src/process/agent/acp/mcpSessionConfig';
-import { ProcessConfig } from '../../src/process/utils/initStorage';
+import { AcpAgent } from '@process/agent/acp';
+import { buildTeamMcpServer } from '@process/agent/acp/mcpSessionConfig';
+import { ProcessConfig } from '@process/utils/initStorage';
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
 

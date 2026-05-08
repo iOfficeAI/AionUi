@@ -9,10 +9,10 @@ import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { NavigateFunction } from 'react-router-dom';
 import { MemoryRouter } from 'react-router-dom';
-import { useConversationShortcuts } from '../../../src/renderer/hooks/ui/useConversationShortcuts';
-import { useVisibleConversationIds } from '../../../src/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
+import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
+import { useVisibleConversationIds } from '@renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
 
-vi.mock('../../../src/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds', () => ({
+vi.mock('@renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds', () => ({
   useVisibleConversationIds: vi.fn(),
 }));
 

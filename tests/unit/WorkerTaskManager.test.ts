@@ -2,9 +2,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
-import { WorkerTaskManager } from '../../src/process/task/WorkerTaskManager';
-import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';
-import type { AgentType } from '../../src/process/task/agentTypes';
+import { WorkerTaskManager } from '@process/task/WorkerTaskManager';
+import type { IConversationRepository } from '@process/services/database/IConversationRepository';
+import type { AgentType } from '@process/task/agentTypes';
 
 function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRepository {
   return {

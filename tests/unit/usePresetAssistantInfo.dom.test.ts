@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
-import type { TChatConversation } from '../../src/common/config/storage';
+import type { TChatConversation } from '@/common/config/storage';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -28,7 +28,7 @@ vi.mock('swr', () => ({
   }),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     extensions: {
       getAssistants: { invoke: vi.fn().mockResolvedValue([]) },
@@ -40,21 +40,21 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/configService', () => ({
+vi.mock('@/common/config/configService', () => ({
   configService: { get: vi.fn().mockReturnValue([]) },
 }));
 
-vi.mock('../../src/common/config/presets/assistantPresets', () => ({
+vi.mock('@/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: [],
 }));
 
-vi.mock('../../src/renderer/assets/icons/cowork.svg', () => ({ default: 'cowork.svg' }));
+vi.mock('@renderer/assets/icons/cowork.svg', () => ({ default: 'cowork.svg' }));
 
-vi.mock('../../src/renderer/utils/platform', () => ({
+vi.mock('@renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: vi.fn(() => null),
 }));
 
-import { usePresetAssistantInfo } from '../../src/renderer/hooks/agent/usePresetAssistantInfo';
+import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 
 // ---------------------------------------------------------------------------
 // Helpers

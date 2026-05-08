@@ -1,7 +1,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { BackendHttpError } from '../../../../src/common/adapter/httpBridge';
-import type { IDirOrFile } from '../../../../src/common/adapter/ipcBridge';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
+import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 
 const mockReadFile = vi.fn();
 const mockGetImageBase64 = vi.fn();
@@ -25,7 +25,7 @@ vi.mock('@/renderer/utils/emitter', () => ({
   },
 }));
 
-import { useWorkspaceFileOps } from '../../../../src/renderer/pages/conversation/Workspace/hooks/useWorkspaceFileOps';
+import { useWorkspaceFileOps } from '@renderer/pages/conversation/Workspace/hooks/useWorkspaceFileOps';
 
 const translations: Record<string, string> = {
   'conversation.workspace.preview.errors.outsideSandbox': 'Outside sandbox',

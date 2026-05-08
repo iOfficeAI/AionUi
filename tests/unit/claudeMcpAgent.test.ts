@@ -5,8 +5,8 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { IMcpServer } from '../../src/common/config/storage';
-import { buildClaudeStdioJsonConfig } from '../../src/process/services/mcpServices/agents/ClaudeMcpAgent';
+import type { IMcpServer } from '@/common/config/storage';
+import { buildClaudeStdioJsonConfig } from '@process/services/mcpServices/agents/ClaudeMcpAgent';
 
 describe('ClaudeMcpAgent helpers', () => {
   it('builds stdio MCP JSON config including env vars', () => {

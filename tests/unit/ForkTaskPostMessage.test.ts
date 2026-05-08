@@ -14,11 +14,11 @@ vi.mock('@/common/platform', () => ({
     },
   }),
 }));
-vi.mock('../../src/process/utils/shellEnv', () => ({
+vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn(() => ({})),
 }));
 
-import { ForkTask } from '../../src/process/worker/fork/ForkTask';
+import { ForkTask } from '@process/worker/fork/ForkTask';
 
 describe('ForkTask.postMessagePromise when fcp is undefined', () => {
   it('rejects with a promise instead of throwing synchronously', async () => {

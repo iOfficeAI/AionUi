@@ -34,7 +34,7 @@ import {
   removeFromMessageCache,
   executePendingCallbacks,
   nextTickToLocalFinish,
-} from '../../src/process/utils/message';
+} from '@process/utils/message';
 
 describe('message queue (ConversationManageWithDB)', () => {
   beforeEach(() => {

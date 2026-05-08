@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { applyDefaultConversationName } from '../../src/renderer/pages/conversation/utils/newConversationName';
+import { applyDefaultConversationName } from '@renderer/pages/conversation/utils/newConversationName';
 
 describe('applyDefaultConversationName', () => {
   it('overrides an existing name with the localized default title', () => {

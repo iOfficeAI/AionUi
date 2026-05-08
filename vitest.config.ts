@@ -2,13 +2,13 @@ import { defineConfig } from 'vitest/config';
 import path from 'path';
 
 const aliases = {
-  '@/': path.resolve(__dirname, './src') + '/',
-  '@process/': path.resolve(__dirname, './src/process') + '/',
-  '@renderer/': path.resolve(__dirname, './src/renderer') + '/',
-  '@worker/': path.resolve(__dirname, './src/process/worker') + '/',
-  '@mcp/models/': path.resolve(__dirname, './src/common/models') + '/',
-  '@mcp/types/': path.resolve(__dirname, './src/common') + '/',
-  '@mcp/': path.resolve(__dirname, './src/common') + '/',
+  '@/': path.resolve(__dirname, './packages/desktop/src') + '/',
+  '@process/': path.resolve(__dirname, './packages/desktop/src/process') + '/',
+  '@renderer/': path.resolve(__dirname, './packages/desktop/src/renderer') + '/',
+  '@worker/': path.resolve(__dirname, './packages/desktop/src/process/worker') + '/',
+  '@mcp/models/': path.resolve(__dirname, './packages/desktop/src/common/models') + '/',
+  '@mcp/types/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
+  '@mcp/': path.resolve(__dirname, './packages/desktop/src/common') + '/',
 };
 
 export default defineConfig({
@@ -58,28 +58,28 @@ export default defineConfig({
       // Cover ALL source code by default — new files are automatically included.
       // Only exclude files that genuinely cannot be unit-tested (entry points,
       // type-only files, static assets, etc.).
-      include: ['src/**/*.{ts,tsx}', 'scripts/prepareBundledBun.js'],
+      include: ['packages/desktop/src/**/*.{ts,tsx}', 'packages/**/src/**/*.{ts,tsx}', 'scripts/prepareBundledBun.js'],
       exclude: [
         // Type declaration files (no runtime code)
-        'src/**/*.d.ts',
+        'packages/**/src/**/*.d.ts',
 
         // Electron entry points (require Electron runtime)
-        'src/index.ts',
-        'src/preload.ts',
+        'packages/desktop/src/index.ts',
+        'packages/desktop/src/preload.ts',
 
         // Shims / polyfills
-        'src/common/utils/shims/**',
+        'packages/desktop/src/common/utils/shims/**',
 
         // Pure type / constant files
-        'src/common/types/**',
+        'packages/desktop/src/common/types/**',
 
         // Static assets and i18n JSON (no logic)
-        'src/renderer/**/*.json',
-        'src/renderer/**/*.svg',
-        'src/renderer/**/*.css',
+        'packages/desktop/src/renderer/**/*.json',
+        'packages/desktop/src/renderer/**/*.svg',
+        'packages/desktop/src/renderer/**/*.css',
 
         // i18n config (JSON-only)
-        'src/common/config/i18n-config.json',
+        'packages/desktop/src/common/config/i18n-config.json',
       ],
       // Thresholds apply to the included file set.
       // Keeping them informational until coverage ramps up across all files.

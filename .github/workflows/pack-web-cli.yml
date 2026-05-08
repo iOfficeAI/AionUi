@@ -1,0 +1,164 @@
+name: Pack Web CLI
+
+on:
+  push:
+    branches: [feat/m8-web-cli-tarball]
+  workflow_dispatch:
+
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+jobs:
+  pack-web-cli:
+    name: Pack web-cli ${{ matrix.platform }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { platform: darwin, arch: arm64, os: macos-14 }
+          - { platform: darwin, arch: x64, os: macos-14 }
+          - { platform: linux, arch: x64, os: ubuntu-latest }
+          - { platform: linux, arch: arm64, os: ubuntu-latest }
+          - { platform: win32, arch: x64, os: windows-2022 }
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build desktop renderer (for static files)
+        run: bunx electron-vite build
+        working-directory: packages/desktop
+
+      - name: Set up QEMU (Linux ARM64 only)
+        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+
+      - name: Pack web-cli tarball
+        shell: bash
+        run: node scripts/pack-web-cli.js
+        env:
+          PACK_PLATFORM: ${{ matrix.platform }}
+          PACK_ARCH: ${{ matrix.arch }}
+          AIONUI_BACKEND_VERSION: latest
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: web-cli-${{ matrix.platform }}-${{ matrix.arch }}
+          path: |
+            dist-web-cli/*.tar.gz
+            dist-web-cli/*.sha256
+          retention-days: 7
+
+  prepare-install-script:
+    name: Prepare install-web.sh for release
+    runs-on: ubuntu-latest
+    needs: pack-web-cli
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Get version from package.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Replace __VERSION__ placeholder in install-web.sh
+        run: |
+          mkdir -p dist-scripts
+          sed "s/__VERSION__/${{ steps.version.outputs.version }}/g" scripts/install-web.sh > dist-scripts/install-web.sh
+          chmod +x dist-scripts/install-web.sh
+
+      - name: Upload install-web.sh artifact
+        uses: actions/upload-artifact@v6
+        with:
+          name: install-web-script
+          path: dist-scripts/install-web.sh
+          retention-days: 7
+
+  smoke-test:
+    name: Smoke test web-cli tarball (Linux x86_64)
+    runs-on: ubuntu-latest
+    needs: pack-web-cli
+    container:
+      image: debian:bookworm-slim
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl tar gzip nodejs
+
+      - name: Download linux-x86_64 tarball
+        uses: actions/download-artifact@v7
+        with:
+          name: web-cli-linux-x64
+          path: dist-web-cli
+
+      - name: Run smoke test
+        shell: bash
+        run: |
+          chmod +x scripts/smoke-test-web-cli.sh
+          TARBALL=$(ls dist-web-cli/*.tar.gz | head -1)
+          bash scripts/smoke-test-web-cli.sh "$TARBALL"
+
+  smoke-test-install:
+    name: Smoke test install-web.sh (Linux x86_64)
+    runs-on: ubuntu-latest
+    needs: [pack-web-cli, prepare-install-script]
+    container:
+      image: debian:bookworm-slim
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Install dependencies
+        run: |
+          apt-get update
+          apt-get install -y curl tar gzip nodejs coreutils
+
+      - name: Download linux-x86_64 tarball
+        uses: actions/download-artifact@v7
+        with:
+          name: web-cli-linux-x64
+          path: /tmp/releases/v0.0.0
+
+      - name: Download install-web.sh
+        uses: actions/download-artifact@v7
+        with:
+          name: install-web-script
+          path: /tmp/releases
+
+      - name: Run smoke test
+        shell: bash
+        run: |
+          chmod +x scripts/smoke-test-install-web.sh
+          bash scripts/smoke-test-install-web.sh file:///tmp/releases 0.0.0

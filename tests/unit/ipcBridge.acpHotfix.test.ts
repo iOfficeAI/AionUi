@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { acpConversation } from '../../src/common/adapter/ipcBridge';
+import { acpConversation } from '@/common/adapter/ipcBridge';
 
 describe('ipcBridge.acpConversation — wire body uses snake_case', () => {
   beforeEach(() => {

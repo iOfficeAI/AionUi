@@ -46,7 +46,7 @@ vi.mock('swr', () => ({
   default: () => ({ data: [], error: undefined, mutate: vi.fn() }),
 }));
 
-import AcpModelSelector from '../../src/renderer/components/agent/AcpModelSelector';
+import AcpModelSelector from '@renderer/components/agent/AcpModelSelector';
 
 describe('AcpModelSelector', () => {
   beforeEach(() => {

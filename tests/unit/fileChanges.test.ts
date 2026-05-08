@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import type { CompareResult, FileChangeInfo, SnapshotInfo } from '../../src/common/types/fileSnapshot';
+import type { CompareResult, FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
 
 describe('FileChangeInfo type', () => {
   it('represents a created file', () => {

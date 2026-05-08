@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 
-import { buildCrashMessage } from '../../../../../src/process/acp/session/AcpSession';
+import { buildCrashMessage } from '@process/acp/session/AcpSession';
 
 describe('buildCrashMessage', () => {
   it('returns message for process_exit with code', () => {

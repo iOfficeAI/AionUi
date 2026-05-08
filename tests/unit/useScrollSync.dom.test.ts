@@ -7,8 +7,8 @@
 import { renderHook, act } from '@testing-library/react';
 import type { RefObject } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { SCROLL_SYNC_DEBOUNCE } from '../../src/renderer/pages/conversation/Preview/constants';
-import { useScrollSync } from '../../src/renderer/pages/conversation/Preview/hooks/useScrollSync';
+import { SCROLL_SYNC_DEBOUNCE } from '@renderer/pages/conversation/Preview/constants';
+import { useScrollSync } from '@renderer/pages/conversation/Preview/hooks/useScrollSync';
 
 type RafCallback = FrameRequestCallback;
 

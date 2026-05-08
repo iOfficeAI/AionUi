@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fs, shell } from '../../src/common/adapter/ipcBridge';
+import { fs, shell } from '@/common/adapter/ipcBridge';
 
 describe('ipcBridge.fs — createTempFile/createUploadFile use snake_case body', () => {
   beforeEach(() => {

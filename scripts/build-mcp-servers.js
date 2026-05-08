@@ -34,7 +34,7 @@ async function main() {
   await Promise.all([
     esbuild.build({
       ...SHARED_OPTIONS,
-      entryPoints: [path.join(ROOT, 'src/process/resources/builtinMcp/imageGenServer.ts')],
+      entryPoints: [path.join(ROOT, 'packages/desktop/src/process/resources/builtinMcp/imageGenServer.ts')],
       outfile: path.join(ROOT, 'out/main/builtin-mcp-image-gen.js'),
     }),
   ]);

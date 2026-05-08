@@ -144,8 +144,8 @@ rebuildSingleModule({
 
 **Solution**: Check that:
 
-1. Module is in `electron-builder.yml` → `files` section
-2. Module is in `electron-builder.yml` → `asarUnpack` section
+1. Module is in `packages/desktop/electron-builder.yml` → `files` section
+2. Module is in `packages/desktop/electron-builder.yml` → `asarUnpack` section
 3. `beforeBuild.js` ran successfully during build
 4. For Linux: `afterPack.js` ran successfully
 
@@ -198,7 +198,7 @@ When modifying build scripts:
 
 ## Related Files
 
-- `/electron-builder.yml` - electron-builder configuration
+- `/packages/desktop/electron-builder.yml` - electron-builder configuration
 - `/forge.config.ts` - Electron Forge configuration
 - `/.github/workflows/build-and-release.yml` - CI/CD pipeline
 - `/package.json` - Build scripts and dependencies

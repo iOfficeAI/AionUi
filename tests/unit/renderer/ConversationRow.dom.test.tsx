@@ -62,9 +62,9 @@ vi.mock('@arco-design/web-react', () => {
   };
 });
 
-import type { TChatConversation } from '../../../src/common/config/storage';
-import ConversationRow from '../../../src/renderer/pages/conversation/GroupedHistory/ConversationRow';
-import type { ConversationRowProps } from '../../../src/renderer/pages/conversation/GroupedHistory/types';
+import type { TChatConversation } from '@/common/config/storage';
+import ConversationRow from '@renderer/pages/conversation/GroupedHistory/ConversationRow';
+import type { ConversationRowProps } from '@renderer/pages/conversation/GroupedHistory/types';
 
 const makeConversation = (overrides: Partial<TChatConversation> = {}): TChatConversation =>
   ({

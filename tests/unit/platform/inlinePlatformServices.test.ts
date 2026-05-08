@@ -13,7 +13,7 @@ import path from 'path';
  * the inline path diverges from ElectronPlatformServices.
  */
 describe('inline platform services getLogsDir fallback', () => {
-  const indexSource = fs.readFileSync(path.resolve(__dirname, '../../../src/common/platform/index.ts'), 'utf-8');
+  const indexSource = fs.readFileSync(path.resolve(__dirname, '../../../packages/desktop/src/common/platform/index.ts'), 'utf-8');
 
   it('contains try-catch around getPath("logs") in the inline path', () => {
     // Verify the inline getLogsDir uses a try-catch, not a bare call

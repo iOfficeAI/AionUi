@@ -56,7 +56,7 @@ vi.mock('@process/utils/shellEnv', () => ({
   })),
 }));
 
-import { OpenClawGatewayManager } from '../../src/process/agent/openclaw/OpenClawGatewayManager';
+import { OpenClawGatewayManager } from '@process/agent/openclaw/OpenClawGatewayManager';
 
 // Helper: create a mock ChildProcess
 function createMockProcess(): ChildProcess {

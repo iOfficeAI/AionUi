@@ -48,7 +48,7 @@ vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
   useThemeContext: () => ({ theme: 'dark' }),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     remoteAgent: {
       list: { invoke: (...args: unknown[]) => mockIpc.list(...args) },
@@ -80,7 +80,7 @@ vi.mock('swr', () => ({
   }),
 }));
 
-vi.mock('../../src/renderer/components/chat/EmojiPicker', () => ({
+vi.mock('@renderer/components/chat/EmojiPicker', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid='emoji-picker'>{children}</div>,
 }));
 
@@ -94,13 +94,13 @@ vi.mock('@icon-park/react', () => ({
   Speed: () => <span>SpeedIcon</span>,
 }));
 
-vi.mock('../../src/process/agent/remote/types', () => ({}));
+vi.mock('@process/agent/remote/types', () => ({}));
 
 vi.mock('@/renderer/utils/platform', () => ({
   openExternalUrl: (...args: unknown[]) => mockOpenExternalUrl(...args),
 }));
 
-import RemoteAgentManagement from '../../src/renderer/pages/settings/AgentSettings/RemoteAgentManagement';
+import RemoteAgentManagement from '@renderer/pages/settings/AgentSettings/RemoteAgentManagement';
 
 // ---------------------------------------------------------------------------
 // Tests

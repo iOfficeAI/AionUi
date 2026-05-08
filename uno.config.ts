@@ -98,8 +98,8 @@ export default defineConfig({
     pipeline: {
       // Use RegExp instead of glob strings so patterns match against absolute
       // module IDs regardless of the Vite root directory.  electron-vite sets
-      // the renderer root to src/renderer/, which causes glob patterns like
-      // 'src/**/*.tsx' to resolve to the non-existent src/renderer/src/ path.
+      // the renderer root to packages/desktop/src/renderer/, which causes glob patterns like
+      // 'packages/desktop/src/**/*.tsx' to resolve to the wrong nested path.
       include: [/\.[jt]sx?($|\?)/, /\.vue($|\?)/, /\.css($|\?)/],
       exclude: [/[\\/]node_modules[\\/]/, /\.html($|\?)/],
     },

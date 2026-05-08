@@ -7,14 +7,14 @@
 import { renderHook } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { TChatConversation } from '../../../src/common/config/storage';
-import { ConversationHistoryProvider } from '../../../src/renderer/hooks/context/ConversationHistoryContext';
-import { LayoutContext } from '../../../src/renderer/hooks/context/LayoutContext';
-import { useConversations } from '../../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversations';
-import { useVisibleConversationIds } from '../../../src/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
-import type { GroupedHistoryResult } from '../../../src/renderer/pages/conversation/GroupedHistory/types';
-import { useConversationListSync } from '../../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
-import { buildGroupedHistory } from '../../../src/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
+import type { TChatConversation } from '@/common/config/storage';
+import { ConversationHistoryProvider } from '@renderer/hooks/context/ConversationHistoryContext';
+import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { useConversations } from '@renderer/pages/conversation/GroupedHistory/hooks/useConversations';
+import { useVisibleConversationIds } from '@renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds';
+import type { GroupedHistoryResult } from '@renderer/pages/conversation/GroupedHistory/types';
+import { useConversationListSync } from '@renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync';
+import { buildGroupedHistory } from '@renderer/pages/conversation/GroupedHistory/utils/groupingHelpers';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (key: string) => key }),
@@ -24,11 +24,11 @@ vi.mock('react-router-dom', () => ({
   useParams: () => ({}),
 }));
 
-vi.mock('../../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
+vi.mock('@renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
   useConversationListSync: vi.fn(),
 }));
 
-vi.mock('../../../src/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
+vi.mock('@renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
   buildGroupedHistory: vi.fn(),
 }));
 

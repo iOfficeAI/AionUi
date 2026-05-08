@@ -27,8 +27,6 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
-  # aionrs binary version to bundle (used by scripts/prepareAionrs.js)
-  AIONRS_VERSION: 'latest'
 
 jobs:
   code-quality:
@@ -305,6 +303,15 @@ jobs:
           # Don't force build_from_source - let prebuild-install try first
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
+
+      - name: Prepare aionui-backend binary
+        shell: bash
+        run: node scripts/prepareAionuiBackend.js
+        env:
+          AIONUI_BACKEND_VERSION: latest
+          AIONUI_BACKEND_ALLOW_MISSING: '1'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')

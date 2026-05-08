@@ -52,7 +52,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { useAutoPreviewOfficeFiles } from '../../src/renderer/hooks/file/useAutoPreviewOfficeFiles';
+import { useAutoPreviewOfficeFiles } from '@renderer/hooks/file/useAutoPreviewOfficeFiles';
 
 describe('useAutoPreviewOfficeFiles', () => {
   const flushEffects = async () => {

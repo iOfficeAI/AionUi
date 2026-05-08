@@ -15,7 +15,6 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const prepareBundledBun = require('./prepareBundledBun');
-const prepareAionrs = require('./prepareAionrs');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
@@ -51,8 +50,8 @@ function computeSourceHash() {
     'package-lock.json',
     'bun.lock',
     'tsconfig.json',
-    'electron.vite.config.ts',
-    'electron-builder.yml',
+    'packages/desktop/electron.vite.config.ts',
+    'packages/desktop/electron-builder.yml',
     'justfile',
   ];
 
@@ -65,7 +64,7 @@ function computeSourceHash() {
     }
   }
 
-  const hashDirs = ['src', 'public', 'scripts'];
+  const hashDirs = ['packages/desktop/src', 'packages', 'public', 'scripts'];
   for (const dir of hashDirs) {
     const dirPath = path.resolve(rootDir, dir);
     if (!fs.existsSync(dirPath)) continue;
@@ -223,10 +222,13 @@ function createDmgWithPrepackaged(appDir, targetArch) {
   if (!appName) throw new Error(`No .app found in ${appDir}`);
   const appPath = path.join(appDir, appName);
 
-  execSync(`bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-  });
+  execSync(
+    `bunx electron-builder --config packages/desktop/electron-builder.yml --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`,
+    {
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    }
+  );
 }
 
 function buildWithDmgRetry(cmd, targetArch) {
@@ -319,7 +321,7 @@ const builderArgs = args
 // Get target architecture from electron-builder.yml
 function getTargetArchFromConfig(platform) {
   try {
-    const configPath = path.resolve(__dirname, '../electron-builder.yml');
+    const configPath = path.resolve(__dirname, '../packages/desktop/electron-builder.yml');
     const content = fs.readFileSync(configPath, 'utf8');
 
     const platformRegex = new RegExp(`^${platform}:\\s*$`, 'm');
@@ -399,7 +401,7 @@ try {
   if (!skipViteBuild) {
     // Run electron-vite to build all bundles (main + preload + renderer)
     console.log(`📦 Building ${targetArch}...`);
-    execSync(`bunx electron-vite build`, {
+    execSync(`bunx electron-vite build --config packages/desktop/electron.vite.config.ts`, {
       stdio: 'inherit',
       shell: process.platform === 'win32',
       env: {
@@ -450,14 +452,16 @@ try {
     return;
   }
 
-  // 5. Prepare bundled bun/bunx binaries (for packaged runtime usage)
+  // 5. Prepare aionui-backend binary (for packaged runtime usage)
+  const prepareAionuiBackend = require('./prepareAionuiBackend');
+  prepareAionuiBackend();
+
+  // 5a. Prepare bundled bun/bunx binaries (for packaged runtime usage)
   // This only affects packaging assets; runtime integration will be added in a future PR.
   prepareBundledBun();
 
   // 5b. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
-  // 5b. Prepare aionrs binary (Rust CLI for agent integration)
-  prepareAionrs();
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
@@ -541,7 +545,7 @@ try {
     cleanupWindowsPackOutput();
   }
 
-  const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+  const builderCommand = `bunx electron-builder --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
   try {
     buildWithDmgRetry(builderCommand, targetArch);
   } catch (error) {

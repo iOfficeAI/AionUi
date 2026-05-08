@@ -19,7 +19,7 @@ vi.mock('react-router-dom', () => ({
   useNavigate: () => mockNavigate,
 }));
 
-vi.mock('../../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     deepLink: {
       received: {
@@ -32,7 +32,7 @@ vi.mock('../../../src/common', () => ({
   },
 }));
 
-import { useDeepLink } from '../../../src/renderer/hooks/system/useDeepLink';
+import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 
 describe('useDeepLink — navigate action', () => {
   let capturedHandler: ((payload: { action: string; params: Record<string, string> }) => void) | null = null;

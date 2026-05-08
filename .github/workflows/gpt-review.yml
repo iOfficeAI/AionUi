@@ -107,7 +107,7 @@ jobs:
               '- IPC via secure contextBridge isolation',
               '- WebUI: Express + WebSocket + JWT auth',
               '- Agent system: channels/, agent/ directories',
-              '- Security-sensitive paths: src/process/, src/agent/, src/webserver/auth/',
+              '- Security-sensitive paths: packages/desktop/src/process/, packages/desktop/src/process/agent/, packages/desktop/src/process/webserver/auth/',
               '',
               '## Code Conventions',
               '- TypeScript strict mode, prefer `type` over `interface`',

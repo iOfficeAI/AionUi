@@ -88,29 +88,29 @@ vi.mock('@/renderer/components/base/AionScrollArea', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
 }));
 
-vi.mock('../../src/renderer/components/settings/SettingsModal/settingsViewContext', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/settingsViewContext', () => ({
   useSettingsViewMode: () => 'modal',
 }));
 
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/ChannelItem', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/channels/ChannelItem', () => ({
   default: ({ channel }: { channel: { id: string; title: string } }) => (
     <div data-testid={`channel-${channel.id}`}>{channel.title}</div>
   ),
 }));
 
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/TelegramConfigForm', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/channels/TelegramConfigForm', () => ({
   default: () => <div>TelegramForm</div>,
 }));
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/LarkConfigForm', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/channels/LarkConfigForm', () => ({
   default: () => <div>LarkForm</div>,
 }));
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/DingTalkConfigForm', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/channels/DingTalkConfigForm', () => ({
   default: () => <div>DingTalkForm</div>,
 }));
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm', () => ({
   default: () => <div>WeixinForm</div>,
 }));
-vi.mock('../../src/renderer/components/settings/SettingsModal/contents/channels/WecomConfigForm', () => ({
+vi.mock('@renderer/components/settings/SettingsModal/contents/channels/WecomConfigForm', () => ({
   default: () => <div>WecomForm</div>,
 }));
 

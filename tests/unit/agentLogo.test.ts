@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { getAgentLogo, resolveAgentLogo } from '../../src/renderer/utils/model/agentLogo';
+import { getAgentLogo, resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 
 type TestWindow = Window & { electronAPI?: object; __backendPort?: number };
 

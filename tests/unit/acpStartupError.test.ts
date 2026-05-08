@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { buildStartupErrorMessage } from '../../src/process/agent/acp/AcpConnection';
+import { buildStartupErrorMessage } from '@process/agent/acp/AcpConnection';
 
 describe('buildStartupErrorMessage', () => {
   it('should return generic message with stderr when present', () => {

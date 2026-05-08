@@ -8,12 +8,12 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { BetterSqlite3Driver } from '../../../../src/process/services/database/drivers/BetterSqlite3Driver';
+import { BetterSqlite3Driver } from '@process/services/database/drivers/BetterSqlite3Driver';
 import {
   buildClaudeModelInfoFromCcSwitchConfig,
   readClaudeProviderEnvFromCcSwitch,
   readClaudeModelInfoFromCcSwitch,
-} from '../../../../src/process/services/ccSwitchModelSource';
+} from '@process/services/ccSwitchModelSource';
 
 let nativeModuleAvailable = true;
 try {

@@ -7,14 +7,14 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import ConversationTitleMinimap from '../../src/renderer/pages/conversation/components/ConversationTitleMinimap';
+import ConversationTitleMinimap from '@renderer/pages/conversation/components/ConversationTitleMinimap';
 
 const minimapMocks = vi.hoisted(() => ({
   getConversationMessages: vi.fn(),
   dispatchChatMessageJump: vi.fn(),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     database: {
       getConversationMessages: {
@@ -24,7 +24,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/renderer/utils/chatMinimapEvents', () => ({
+vi.mock('@renderer/utils/chatMinimapEvents', () => ({
   dispatchChatMessageJump: minimapMocks.dispatchChatMessageJump,
 }));
 

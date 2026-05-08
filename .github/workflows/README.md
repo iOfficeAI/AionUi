@@ -50,11 +50,11 @@
 
 文件读取优先级（由高到低）：
 
-1. `src/process/`, `src/agent/`, `src/webserver/` — 核心后端
-2. `src/channels/` — Agent 通信
-3. `src/common/` — 公共模块
-4. `src/worker/` — Worker 进程
-5. `src/renderer/` — 前端 UI
+1. `packages/desktop/src/process/`, `packages/desktop/src/process/agent/`, `packages/desktop/src/process/webserver/` — 核心后端
+2. `packages/desktop/src/process/channels/` — Agent 通信
+3. `packages/desktop/src/common/` — 公共模块
+4. `packages/desktop/src/process/worker/` — Worker 进程
+5. `packages/desktop/src/renderer/` — 前端 UI
 6. 其他 `.ts/.tsx/.js/.jsx` 文件
 7. 其余文件
 

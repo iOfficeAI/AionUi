@@ -33,7 +33,7 @@ vi.mock('@process/webserver/auth/middleware/TokenMiddleware', () => ({
 }));
 
 // Import actual functions after mocks
-import { resolveUploadWorkspace } from '../../src/process/webserver/routes/apiRoutes';
+import { resolveUploadWorkspace } from '@process/webserver/routes/apiRoutes';
 import { ipcBridge } from '@/common';
 
 describe('apiRoutes - resolveUploadWorkspace', () => {

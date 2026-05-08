@@ -56,7 +56,7 @@ vi.mock('@/renderer/utils/emitter', () => ({
 import {
   PreviewProvider,
   usePreviewContext,
-} from '../../src/renderer/pages/conversation/Preview/context/PreviewContext';
+} from '@renderer/pages/conversation/Preview/context/PreviewContext';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 

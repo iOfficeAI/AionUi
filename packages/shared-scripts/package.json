@@ -1,0 +1,20 @@
+{
+  "name": "@aionui/shared-scripts",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shared build scripts for AionUi packages",
+  "type": "commonjs",
+  "exports": {
+    "./prepare-aionui-backend": "./src/prepare-aionui-backend.js",
+    "./prepare-bundled-bun": "./src/prepare-bundled-bun.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "vitest": "^4.1.0"
+  }
+}

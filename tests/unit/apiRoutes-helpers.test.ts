@@ -58,7 +58,7 @@ vi.mock('./weixinLoginRoutes', () => ({
   registerWeixinLoginRoutes: vi.fn(),
 }));
 
-import { registerApiRoutes, resolveUploadWorkspace } from '../../src/process/webserver/routes/apiRoutes';
+import { registerApiRoutes, resolveUploadWorkspace } from '@process/webserver/routes/apiRoutes';
 import { ipcBridge } from '@/common';
 import type { Express } from 'express';
 

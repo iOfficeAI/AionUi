@@ -29,7 +29,7 @@ describe('ElectronPlatformServices.paths.getLogsDir', () => {
       return `/mock/${name}`;
     });
 
-    const { ElectronPlatformServices } = await import('../../../src/common/platform/ElectronPlatformServices');
+    const { ElectronPlatformServices } = await import('@/common/platform/ElectronPlatformServices');
     const svc = new ElectronPlatformServices();
     expect(svc.paths.getLogsDir()).toBe('/Users/test/Library/Logs/AionUi');
   });
@@ -43,7 +43,7 @@ describe('ElectronPlatformServices.paths.getLogsDir', () => {
     });
 
     vi.resetModules();
-    const { ElectronPlatformServices } = await import('../../../src/common/platform/ElectronPlatformServices');
+    const { ElectronPlatformServices } = await import('@/common/platform/ElectronPlatformServices');
     const svc = new ElectronPlatformServices();
     expect(svc.paths.getLogsDir()).toBe(path.join(userData, 'logs'));
   });

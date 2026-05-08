@@ -1,11 +1,11 @@
-# Renderer Layer (`src/renderer/`)
+# Renderer Layer (`packages/desktop/src/renderer/`)
 
 ## Root Directory — Standard Layout
 
 At most 3 entry files + 7 directories = 10 items:
 
 ```
-src/renderer/
+packages/desktop/src/renderer/
 ├── index.html      # Vite HTML entry
 ├── main.tsx        # React mount + app bootstrap
 ├── types.d.ts      # Ambient type declarations
@@ -39,7 +39,7 @@ src/renderer/
 - **Semantic color tokens only**: Use `uno.config.ts` tokens (`text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. No hardcoded colors. Exception: `CssThemeSettings/presets/`
 - **No inline styles** except dynamically computed values
 - **Arco overrides**: In component's CSS Module via `:global(.arco-xxx)`. No global override files
-- **Global styles**: Only in `src/renderer/styles/`
+- **Global styles**: Only in `packages/desktop/src/renderer/styles/`
 
 ## `components/` — Layered Structure
 
@@ -61,7 +61,7 @@ Two layers:
 - Single-page components → `pages/<PageName>/components/`
 
 ```
-src/renderer/components/
+packages/desktop/src/renderer/components/
 ├── base/           # UI primitives
 ├── chat/           # Conversation/message domain
 ├── agent/          # Agent selection/configuration
@@ -127,12 +127,12 @@ Only create sub-directories you need. Use these exact names.
 | ------------------------------- | ---------- | -------------------------------------------------- |
 | **Categorical** (standard role) | lowercase  | `components/`, `hooks/`, `context/`, `utils/`      |
 | **Feature module** (business)   | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`        |
-| **Platform directory**          | lowercase  | `acp/`, `codex/`, `gemini/` (mirrors `src/agent/`) |
+| **Platform directory**          | lowercase  | `acp/`, `codex/`, `gemini/` (mirrors `packages/desktop/src/process/agent/`) |
 
 ### Example
 
 ```
-src/renderer/
+packages/desktop/src/renderer/
 ├── components/              # categorical → lowercase
 │   ├── SettingsModal/       # component → PascalCase
 │   └── EmojiPicker/         # component → PascalCase
@@ -153,7 +153,7 @@ src/renderer/
 | Scope                      | Location                                          |
 | -------------------------- | ------------------------------------------------- |
 | Used by **one** page       | `pages/<PageName>/components/`, `hooks/`, etc.    |
-| Used by **multiple** pages | `src/renderer/components/`, `src/renderer/hooks/` |
+| Used by **multiple** pages | `packages/desktop/src/renderer/components/`, `packages/desktop/src/renderer/hooks/` |
 
 **Promotion rule**: Start page-private. Move to shared only when a second consumer appears.
 

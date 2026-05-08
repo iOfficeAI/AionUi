@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BackendHttpError } from '../../src/common/adapter/httpBridge';
-import { classifyPreviewError, previewErrorToI18nKey } from '../../src/renderer/utils/previewError';
+import { BackendHttpError } from '@/common/adapter/httpBridge';
+import { classifyPreviewError, previewErrorToI18nKey } from '@renderer/utils/previewError';
 
 describe('previewError', () => {
   it('maps backend codes to preview error kinds', () => {

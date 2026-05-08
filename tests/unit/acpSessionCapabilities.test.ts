@@ -5,10 +5,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
-import { AcpAgent } from '../../src/process/agent/acp/index';
-import { parseInitializeResult } from '../../src/common/types/acpTypes';
-import type { AcpSessionConfigOption, AcpSessionModels } from '../../src/types/acpTypes';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { AcpAgent } from '@process/agent/acp/index';
+import { parseInitializeResult } from '@/common/types/acpTypes';
+import type { AcpSessionConfigOption, AcpSessionModels } from '@/types/acpTypes';
 
 vi.mock('@process/utils/initStorage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@process/utils/initStorage')>();

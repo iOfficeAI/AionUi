@@ -15,7 +15,7 @@ const bridgeMocks = vi.hoisted(() => ({
   readBuiltinSkill: vi.fn(),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     fs: {
       readAssistantRule: { invoke: bridgeMocks.readAssistantRule },
@@ -26,14 +26,14 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/configService', () => ({
+vi.mock('@/common/config/configService', () => ({
   configService: {
     get: vi.fn(),
     set: vi.fn(),
   },
 }));
 
-vi.mock('../../src/common/config/presets/assistantPresets', () => ({
+vi.mock('@/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: [
     {
       id: 'test-preset',
@@ -47,11 +47,11 @@ vi.mock('../../src/common/config/presets/assistantPresets', () => ({
   ],
 }));
 
-import { useAgentAvailability } from '../../src/renderer/pages/guid/hooks/useAgentAvailability';
-import { usePresetAssistantResolver } from '../../src/renderer/pages/guid/hooks/usePresetAssistantResolver';
-import type { AvailableAgent } from '../../src/renderer/pages/guid/types';
-import type { Assistant } from '../../src/common/types/assistantTypes';
-import type { IProvider } from '../../src/common/config/storage';
+import { useAgentAvailability } from '@renderer/pages/guid/hooks/useAgentAvailability';
+import { usePresetAssistantResolver } from '@renderer/pages/guid/hooks/usePresetAssistantResolver';
+import type { AvailableAgent } from '@renderer/pages/guid/types';
+import type { Assistant } from '@/common/types/assistantTypes';
+import type { IProvider } from '@/common/config/storage';
 
 // ---------------------------------------------------------------------------
 // useAgentAvailability

@@ -79,9 +79,9 @@ function ensureLocalStorage() {
 ensureLocalStorage();
 
 // Import hooks after mocks are set up
-import { useTitleRename } from '../../src/renderer/pages/conversation/hooks/useTitleRename';
-import { useContainerWidth } from '../../src/renderer/pages/conversation/hooks/useContainerWidth';
-import { useWorkspaceCollapse } from '../../src/renderer/pages/conversation/hooks/useWorkspaceCollapse';
+import { useTitleRename } from '@renderer/pages/conversation/hooks/useTitleRename';
+import { useContainerWidth } from '@renderer/pages/conversation/hooks/useContainerWidth';
+import { useWorkspaceCollapse } from '@renderer/pages/conversation/hooks/useWorkspaceCollapse';
 
 // ── useTitleRename ─────────────────────────────────────────────────────────
 

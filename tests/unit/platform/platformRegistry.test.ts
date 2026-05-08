@@ -6,12 +6,12 @@ describe('platformRegistry', () => {
   });
 
   it('getPlatformServices throws before registration', async () => {
-    const { getPlatformServices } = await import('../../../src/common/platform/index');
+    const { getPlatformServices } = await import('@/common/platform/index');
     expect(() => getPlatformServices()).toThrow('[Platform] Services not registered');
   });
 
   it('getPlatformServices returns the registered instance', async () => {
-    const { registerPlatformServices, getPlatformServices } = await import('../../../src/common/platform/index');
+    const { registerPlatformServices, getPlatformServices } = await import('@/common/platform/index');
     const mock = {
       paths: {},
       worker: {},
@@ -24,7 +24,7 @@ describe('platformRegistry', () => {
   });
 
   it('re-registering replaces the previous instance', async () => {
-    const { registerPlatformServices, getPlatformServices } = await import('../../../src/common/platform/index');
+    const { registerPlatformServices, getPlatformServices } = await import('@/common/platform/index');
     const first = { paths: {}, worker: {}, power: {}, notification: {}, network: {} } as Parameters<
       typeof registerPlatformServices
     >[0];

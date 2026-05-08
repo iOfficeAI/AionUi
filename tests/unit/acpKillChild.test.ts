@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { spawn } from 'child_process';
-import { killChild, isProcessAlive } from '../../src/process/agent/acp/utils';
+import { killChild, isProcessAlive } from '@process/agent/acp/utils';
 
 // These tests rely on POSIX commands (sleep, bash, pgrep) unavailable on Windows.
 // Windows kill path uses taskkill which is covered by the implementation itself.

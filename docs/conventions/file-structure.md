@@ -2,6 +2,16 @@
 
 Rules for organizing files and directories across the entire Electron project.
 
+## Monorepo Layout
+
+After M1, the repository uses a bun workspaces monorepo:
+
+- `packages/desktop/` — Electron desktop application
+- `packages/web-host/` — shared WebUI host package (added in later milestones)
+- `packages/web-cli/` — standalone web CLI package (added in later milestones)
+
+Unless noted otherwise, desktop source paths in this document are rooted at `packages/desktop/src/`.
+
 ## Repository Root
 
 ### Root Directory Rules
@@ -18,14 +28,14 @@ Rules for organizing files and directories across the entire Electron project.
 | Move readme translations to `docs/readme/` | `readme_{ch,es,jp,ko,pt,tr,tw}.md`                          |
 | Move guides to `docs/`                     | `CODE_STYLE.md`, `SERVER_DEPLOY_GUIDE.md`, `WEBUI_GUIDE.md` |
 
-## Project Layout (`src/`)
+## Project Layout (`packages/desktop/src/`)
 
 AionUi is a multi-process Electron app with three core layers: **renderer**, **main process**, and **preload/shared**.
 
 ### Target Structure
 
 ```
-src/
+packages/desktop/src/
 ├── renderer/          # Renderer layer — React UI, no Node.js APIs
 ├── process/           # Main process layer — all Node.js / Electron business
 │   ├── bridge/        #   IPC handlers
@@ -45,7 +55,7 @@ src/
 
 ### Current Structure
 
-All main-process modules now live under `src/process/`. The `src/` root contains only the three core layers (`renderer/`, `process/`, `common/`), the entry files (`index.ts`, `preload.ts`), and the ambient type declaration (`types.d.ts`).
+All main-process modules now live under `packages/desktop/src/process/`. The `packages/desktop/src/` root contains only the three core layers (`renderer/`, `process/`, `common/`), the entry files (`index.ts`, `preload.ts`), and the ambient type declaration (`types.d.ts`).
 
 ## Directory Naming — Two Conventions by Process
 
@@ -53,23 +63,23 @@ This project straddles two ecosystems. Each follows its own convention:
 
 | Scope                              | Directory naming                         | Reason                                                                      |
 | ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
-| **Renderer** (`src/renderer/`)     | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
+| **Renderer** (`packages/desktop/src/renderer/`)     | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
 | **Everything else**                | **lowercase**                            | Node.js ecosystem                                                           |
 | **Categorical dirs** (everywhere)  | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
-| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `src/process/agent/<platform>/` naming for cross-process consistency |
+| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `packages/desktop/src/process/agent/<platform>/` naming for cross-process consistency |
 
 ### Quick test
 
-> "Is this directory inside `src/renderer/` AND does it represent a specific component or feature module (not a category)?"
+> "Is this directory inside `packages/desktop/src/renderer/` AND does it represent a specific component or feature module (not a category)?"
 >
 > **YES** → PascalCase. **NO** → lowercase.
 >
-> **Exception**: Platform directories (`acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) always use lowercase, even inside renderer, to match `src/process/agent/`.
+> **Exception**: Platform directories (`acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/`) always use lowercase, even inside renderer, to match `packages/desktop/src/process/agent/`.
 
 ### Renderer examples
 
 ```
-src/renderer/
+packages/desktop/src/renderer/
 ├── components/              # categorical → lowercase
 │   ├── SettingsModal/       # component → PascalCase
 │   └── EmojiPicker/         # component → PascalCase
@@ -80,7 +90,7 @@ src/renderer/
 │   └── conversation/        # top-level page → lowercase
 │       ├── GroupedHistory/  # feature module → PascalCase
 │       ├── Workspace/       # feature module → PascalCase
-│       ├── acp/             # platform dir → lowercase (mirrors src/agent/acp/)
+│       ├── acp/             # platform dir → lowercase (mirrors packages/desktop/src/process/agent/acp/)
 │       └── components/      # categorical → lowercase
 └── hooks/                   # categorical → lowercase
 ```
@@ -88,9 +98,9 @@ src/renderer/
 ### Non-renderer examples
 
 ```
-src/process/services/cron/            # lowercase
-src/process/agent/acp/               # lowercase
-src/process/channels/plugins/dingtalk/  # lowercase
+packages/desktop/src/process/services/cron/            # lowercase
+packages/desktop/src/process/agent/acp/               # lowercase
+packages/desktop/src/process/channels/plugins/dingtalk/  # lowercase
 ```
 
 ## File Naming — Same Everywhere
@@ -110,14 +120,14 @@ src/process/channels/plugins/dingtalk/  # lowercase
 
 | Process                            | Can use                       | Cannot use                       |
 | ---------------------------------- | ----------------------------- | -------------------------------- |
-| **Main** (`src/process/`)          | Node.js, Electron main APIs   | DOM APIs, React                  |
-| **Renderer** (`src/renderer/`)     | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
-| **Worker** (`src/process/worker/`) | Node.js APIs                  | DOM APIs, Electron APIs          |
+| **Main** (`packages/desktop/src/process/`)          | Node.js, Electron main APIs   | DOM APIs, React                  |
+| **Renderer** (`packages/desktop/src/renderer/`)     | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
+| **Worker** (`packages/desktop/src/process/worker/`) | Node.js APIs                  | DOM APIs, Electron APIs          |
 
 Cross-process communication MUST go through:
 
-- Main ↔ Renderer: IPC via `src/preload.ts` + `src/process/bridge/*.ts`
-- Main ↔ Worker: fork protocol via `src/process/worker/WorkerProtocol.ts`
+- Main ↔ Renderer: IPC via `packages/desktop/src/preload/` + `packages/desktop/src/process/bridge/*.ts`
+- Main ↔ Worker: fork protocol via `packages/desktop/src/process/worker/WorkerProtocol.ts`
 
 ## Main Process Naming
 
@@ -163,11 +173,11 @@ Test files must mirror the source file they test:
 
 | Source                                       | Test                                            |
 | -------------------------------------------- | ----------------------------------------------- |
-| `src/process/services/CronService.ts`        | `tests/unit/cronService.test.ts`                |
-| `src/process/bridge/fsBridge.ts`             | `tests/unit/fsBridge.test.ts`                   |
-| `src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts`            |
-| `src/renderer/hooks/ui/useAutoScroll.ts`     | `tests/unit/useAutoScroll.dom.test.ts`          |
-| `src/process/extensions/ExtensionLoader.ts`  | `tests/unit/extensions/extensionLoader.test.ts` |
+| `packages/desktop/src/process/services/CronService.ts`        | `tests/unit/cronService.test.ts`                |
+| `packages/desktop/src/process/bridge/fsBridge.ts`             | `tests/unit/fsBridge.test.ts`                   |
+| `packages/desktop/src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts`            |
+| `packages/desktop/src/renderer/hooks/ui/useAutoScroll.ts`     | `tests/unit/useAutoScroll.dom.test.ts`          |
+| `packages/desktop/src/process/extensions/ExtensionLoader.ts`  | `tests/unit/extensions/extensionLoader.test.ts` |
 
 When `tests/unit/` exceeds 10 direct children, group into subdirectories matching the source structure (e.g., `tests/unit/extensions/`). New source files with logic should be added to `vitest.config.ts` → `coverage.include`.
 
@@ -186,17 +196,17 @@ A single directory must not contain more than **10** direct children (files + su
 
 - **Prefer UnoCSS utility classes**: Use atomic classes for simple styles (`flex items-center gap-8px`).
 - **Complex/reusable styles**: Must use **CSS Modules** (`ComponentName.module.css`). Plain `.css` files are not allowed for component styles.
-- **Semantic color tokens only**: Use colors from `uno.config.ts` (e.g., `text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. **Hardcoded color values are forbidden** (e.g., `#86909C`, `rgb(0,0,0)`). Exception: theme preset files under `src/renderer/pages/settings/CssThemeSettings/presets/` may use hardcoded values since they define the theme tokens themselves.
+- **Semantic color tokens only**: Use colors from `uno.config.ts` (e.g., `text-t-primary`, `bg-base`, `border-b-base`) or CSS variables. **Hardcoded color values are forbidden** (e.g., `#86909C`, `rgb(0,0,0)`). Exception: theme preset files under `packages/desktop/src/renderer/pages/settings/CssThemeSettings/presets/` may use hardcoded values since they define the theme tokens themselves.
 - **No inline styles**: Do not use `style={{}}` except for dynamically computed values (e.g., calculated widths, positions).
 - **Arco style overrides**: Co-locate in the component's CSS Module using `:global(.arco-xxx)`. Do not use a global override file.
-- **Global styles**: Only allowed in `src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `src/renderer/` root.
+- **Global styles**: Only allowed in `packages/desktop/src/renderer/styles/` (themes, reset, layout base). No CSS files directly in `packages/desktop/src/renderer/` root.
 
 ## Renderer Root Directory — Standard Layout
 
 The renderer root must contain **at most 3 entry files + 7 directories = 10 items**.
 
 ```
-src/renderer/
+packages/desktop/src/renderer/
 ├── index.html      # Vite HTML entry
 ├── main.tsx        # React mount + app bootstrap
 ├── types.d.ts      # Ambient type declarations
@@ -223,7 +233,7 @@ src/renderer/
 - **Single-file directory rule**: A directory containing only 1 file should be merged into its parent or a related directory
 - Page-private code stays under `pages/<PageName>/`; move to shared only when a second consumer appears
 
-### `src/renderer/components/` Structure
+### `packages/desktop/src/renderer/components/` Structure
 
 `components/` is for shared components used across multiple pages. It has two layers:
 
@@ -243,7 +253,7 @@ src/renderer/
 - Components used by only **one** page must live in `pages/<PageName>/components/`, not here
 
 ```
-src/renderer/components/
+packages/desktop/src/renderer/components/
 ├── base/           # UI primitives — AionModal, AionSelect, FlexFullContainer, etc.
 ├── chat/           # Conversation/message domain (example, not exhaustive)
 ├── agent/          # Agent selection/configuration domain
@@ -255,7 +265,7 @@ src/renderer/components/
 
 > The business subdirectory list above is illustrative. New domains are created as needed following the same rules.
 
-### `src/renderer/hooks/` — Grouping by Business Domain
+### `packages/desktop/src/renderer/hooks/` — Grouping by Business Domain
 
 When `hooks/` exceeds 10 direct children, group hooks into business domain subdirectories. Generic hooks with no clear domain stay at the root. The root must stay ≤ 10 direct children.
 
@@ -272,7 +282,7 @@ hooks/
 
 > Domain names are recommendations. Create new domains as needed following the same pattern.
 
-### `src/renderer/utils/` — Grouping by Business Domain
+### `packages/desktop/src/renderer/utils/` — Grouping by Business Domain
 
 Same principle as `hooks/`. When `utils/` exceeds 10 direct children, group into domain subdirectories. The root must stay ≤ 10 direct children.
 
@@ -308,6 +318,6 @@ Inside a page module (e.g., `pages/conversation/`), three types of subdirectorie
 | ----------------------------------------------------- | ---------- | ---------------------------------------------------- |
 | **Categorical** (standard role)                       | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
 | **Feature module** (business feature)                 | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
-| **Platform directory** (mirrors `src/process/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
+| **Platform directory** (mirrors `packages/desktop/src/process/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
 
-Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `src/process/agent/<platform>/`.
+Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `packages/desktop/src/process/agent/<platform>/`.

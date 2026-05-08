@@ -5,9 +5,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { buildAcpModelInfo, summarizeAcpModelInfo } from '../../src/process/agent/acp/modelInfo';
-import type { AcpModelInfo } from '../../src/common/types/acpTypes';
-import type { AcpSessionConfigOption, AcpSessionModels } from '../../src/types/acpTypes';
+import { buildAcpModelInfo, summarizeAcpModelInfo } from '@process/agent/acp/modelInfo';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpSessionConfigOption, AcpSessionModels } from '@/types/acpTypes';
 
 describe('buildAcpModelInfo', () => {
   it('prefers externally provided model info before ACP data', () => {

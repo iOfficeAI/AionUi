@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import type { GuidSendDeps } from '../../src/renderer/pages/guid/hooks/useGuidSend';
+import type { GuidSendDeps } from '@renderer/pages/guid/hooks/useGuidSend';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -15,7 +15,7 @@ import type { GuidSendDeps } from '../../src/renderer/pages/guid/hooks/useGuidSe
 const mockCreate = vi.fn().mockResolvedValue({ id: 'new-conv', extra: { workspace: '' } });
 const mockWarmup = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
       create: { invoke: (...args: unknown[]) => mockCreate(...args) },
@@ -24,15 +24,15 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/renderer/utils/emitter', () => ({
+vi.mock('@renderer/utils/emitter', () => ({
   emitter: { emit: vi.fn() },
 }));
 
-vi.mock('../../src/renderer/utils/file/messageFiles', () => ({
+vi.mock('@renderer/utils/file/messageFiles', () => ({
   buildDisplayMessage: vi.fn((input: string) => input),
 }));
 
-vi.mock('../../src/renderer/utils/workspace/workspaceHistory', () => ({
+vi.mock('@renderer/utils/workspace/workspaceHistory', () => ({
   updateWorkspaceTime: vi.fn(),
 }));
 
@@ -47,7 +47,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-import { useGuidSend } from '../../src/renderer/pages/guid/hooks/useGuidSend';
+import { useGuidSend } from '@renderer/pages/guid/hooks/useGuidSend';
 
 // ---------------------------------------------------------------------------
 // Helpers

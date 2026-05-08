@@ -18,13 +18,13 @@ function getBuildOutputFiles(): string[] {
  * Extract asarUnpack entries from electron-builder.yml that match out/main/*.js
  */
 function getAsarUnpackEntries(): string[] {
-  const yml = fs.readFileSync(path.join(ROOT, 'electron-builder.yml'), 'utf-8');
+  const yml = fs.readFileSync(path.join(ROOT, 'packages/desktop/electron-builder.yml'), 'utf-8');
   const matches = [...yml.matchAll(/-\s*'(out\/main\/[^']+\.js)'/g)];
   return matches.map((m) => m[1]);
 }
 
 describe('MCP asar unpack consistency', () => {
-  it('every MCP build output must be listed in electron-builder.yml asarUnpack', () => {
+  it('every MCP build output must be listed in packages/desktop/electron-builder.yml asarUnpack', () => {
     const buildOutputs = getBuildOutputFiles();
     const asarEntries = getAsarUnpackEntries();
 
@@ -35,7 +35,7 @@ describe('MCP asar unpack consistency', () => {
       throw new Error(
         `MCP scripts built but NOT in asarUnpack:\n` +
           missing.map((f) => `  - ${f}`).join('\n') +
-          `\n\nAdd them to electron-builder.yml asarUnpack section.`
+          `\n\nAdd them to packages/desktop/electron-builder.yml asarUnpack section.`
       );
     }
   });

@@ -45,7 +45,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import { SqliteConversationRepository } from '../../src/process/services/database/SqliteConversationRepository';
+import { SqliteConversationRepository } from '@process/services/database/SqliteConversationRepository';
 
 describe('SqliteConversationRepository', () => {
   beforeEach(() => vi.clearAllMocks());

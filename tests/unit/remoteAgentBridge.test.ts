@@ -42,7 +42,7 @@ const mockDb = vi.hoisted(() => ({
   deleteRemoteAgent: vi.fn(() => ({ success: true })),
 }));
 
-vi.mock('../../src/common', () => {
+vi.mock('@/common', () => {
   const makeChannel = (name: string) => ({
     provider: (fn: (...args: unknown[]) => unknown) => {
       providerMap.set(name, fn);
@@ -64,16 +64,16 @@ vi.mock('../../src/common', () => {
   };
 });
 
-vi.mock('../../src/process/services/database', () => ({
+vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn().mockResolvedValue(mockDb),
 }));
 
-vi.mock('../../src/common/utils', () => {
+vi.mock('@/common/utils', () => {
   let counter = 0;
   return { uuid: () => `test-uuid-${++counter}` };
 });
 
-vi.mock('../../src/process/agent/openclaw/deviceIdentity', () => ({
+vi.mock('@process/agent/openclaw/deviceIdentity', () => ({
   generateIdentity: vi.fn(() => ({
     deviceId: 'dev-id',
     publicKeyPem: 'pub-pem',
@@ -97,7 +97,7 @@ const mockWebSocketState = vi.hoisted(() => ({
   throwOnUrl: undefined as string | undefined,
 }));
 
-vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
+vi.mock('@process/agent/openclaw/OpenClawGatewayConnection', () => ({
   OpenClawGatewayConnection: class {
     start = vi.fn();
     stop = vi.fn();
@@ -132,7 +132,7 @@ vi.mock('ws', () => ({
   },
 }));
 
-import { initRemoteAgentBridge } from '../../src/process/bridge/remoteAgentBridge';
+import { initRemoteAgentBridge } from '@process/bridge/remoteAgentBridge';
 
 // ---------------------------------------------------------------------------
 // Tests

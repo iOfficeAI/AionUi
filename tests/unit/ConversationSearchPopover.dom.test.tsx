@@ -16,7 +16,7 @@ const openTabMock = vi.fn();
 const blockMobileInputFocusMock = vi.fn();
 const blurActiveElementMock = vi.fn();
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     database: {
       searchConversationMessages: {
@@ -26,16 +26,16 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/renderer/components/base/AionModal', () => ({
+vi.mock('@renderer/components/base/AionModal', () => ({
   default: ({ visible, children }: { visible?: boolean; children?: ReactNode }) =>
     visible ? <div data-testid='conversation-search-modal'>{children}</div> : null,
 }));
 
-vi.mock('../../src/renderer/hooks/usePresetAssistantInfo', () => ({
+vi.mock('@renderer/hooks/usePresetAssistantInfo', () => ({
   usePresetAssistantInfo: () => ({ info: null }),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/hooks/ConversationTabsContext', () => ({
+vi.mock('@renderer/pages/conversation/hooks/ConversationTabsContext', () => ({
   useOptionalConversationTabs: () => ({
     closeAllTabs: closeAllTabsMock,
     openTab: openTabMock,
@@ -43,11 +43,11 @@ vi.mock('../../src/renderer/pages/conversation/hooks/ConversationTabsContext', (
   }),
 }));
 
-vi.mock('../../src/renderer/utils/agentLogo', () => ({
+vi.mock('@renderer/utils/agentLogo', () => ({
   getAgentLogo: () => null,
 }));
 
-vi.mock('../../src/renderer/utils/ui/focus', () => ({
+vi.mock('@renderer/utils/ui/focus', () => ({
   blockMobileInputFocus: () => blockMobileInputFocusMock(),
   blurActiveElement: () => blurActiveElementMock(),
 }));
@@ -67,7 +67,7 @@ vi.mock('react-router-dom', async () => {
   };
 });
 
-import ConversationSearchPopover from '../../src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
+import ConversationSearchPopover from '@renderer/pages/conversation/GroupedHistory/ConversationSearchPopover';
 
 const setElectronAPI = (value?: object) => {
   Object.defineProperty(window, 'electronAPI', {

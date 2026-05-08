@@ -69,7 +69,7 @@ import {
   createGenericSpawnConfig,
   spawnGenericBackend,
   spawnNpxBackend,
-} from '../../src/process/agent/acp/acpConnectors';
+} from '@process/agent/acp/acpConnectors';
 
 const mockExecFile = vi.mocked(execFileCb);
 const mockExecFileSync = vi.mocked(execFileSync);

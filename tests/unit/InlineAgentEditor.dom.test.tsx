@@ -60,8 +60,8 @@ vi.mock('@codemirror/lang-json', () => ({ json: () => [] }));
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import React from 'react';
-import InlineAgentEditor from '../../src/renderer/pages/settings/AgentSettings/InlineAgentEditor';
-import type { AcpBackendConfig } from '../../src/common/types/acpTypes';
+import InlineAgentEditor from '@renderer/pages/settings/AgentSettings/InlineAgentEditor';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 // ---------------------------------------------------------------------------
 // Helpers

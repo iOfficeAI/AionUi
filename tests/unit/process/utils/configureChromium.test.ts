@@ -39,7 +39,7 @@ async function loadModuleWithArgs(args: string[], platform: NodeJS.Platform): Pr
 
   vi.doMock('electron', () => ({ app: mockApp }));
 
-  await import('../../../../src/process/utils/configureChromium');
+  await import('@process/utils/configureChromium');
 
   return mockApp;
 }

@@ -13,7 +13,7 @@ function makeChannel(name: string) {
   };
 }
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     task: {
       stopAll: makeChannel('stopAll'),
@@ -22,8 +22,8 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-import { initTaskBridge } from '../../src/process/bridge/taskBridge';
-import type { IWorkerTaskManager } from '../../src/process/task/IWorkerTaskManager';
+import { initTaskBridge } from '@process/bridge/taskBridge';
+import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 function makeTaskManager(overrides?: Partial<IWorkerTaskManager>): IWorkerTaskManager {
   return {

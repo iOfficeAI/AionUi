@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '../../src/renderer/utils/model/modelSource';
+import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@renderer/utils/model/modelSource';
 
 describe('modelSourceLabel', () => {
   it('maps cc-switch model info to a readable source label', () => {

@@ -12,7 +12,7 @@ const ipcMock = vi.hoisted(() => ({
   listProviders: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     mode: {
       listProviders: { invoke: ipcMock.listProviders },
@@ -34,7 +34,7 @@ vi.mock('swr', () => ({
   default: () => ({ data: [], error: undefined, mutate: vi.fn() }),
 }));
 
-import GuidModelSelector from '../../src/renderer/pages/guid/components/GuidModelSelector';
+import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 
 describe('GuidModelSelector', () => {
   beforeEach(() => {

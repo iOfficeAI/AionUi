@@ -5,7 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { assistants } from '../../src/common/adapter/ipcBridge';
+import { assistants } from '@/common/adapter/ipcBridge';
 import type {
   Assistant,
   CreateAssistantRequest,
@@ -13,7 +13,7 @@ import type {
   ImportAssistantsResult,
   SetAssistantStateRequest,
   UpdateAssistantRequest,
-} from '../../src/common/types/assistantTypes';
+} from '@/common/types/assistantTypes';
 
 // ---------------------------------------------------------------------------
 // fetch stub

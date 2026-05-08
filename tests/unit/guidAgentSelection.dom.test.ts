@@ -6,8 +6,8 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
-import type { AcpBackendConfig, AcpModelInfo, AvailableAgent } from '../../src/renderer/pages/guid/types';
-import type { IProvider } from '../../src/common/config/storage';
+import type { AcpBackendConfig, AcpModelInfo, AvailableAgent } from '@renderer/pages/guid/types';
+import type { IProvider } from '@/common/config/storage';
 
 // ---------------------------------------------------------------------------
 // Hoisted mocks
@@ -33,7 +33,7 @@ const ipcMock = vi.hoisted(() => ({
 // Module mocks
 // ---------------------------------------------------------------------------
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
       getAvailableAgents: { invoke: ipcMock.getAvailableAgents },
@@ -51,24 +51,24 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/config/configService', () => ({
+vi.mock('@/common/config/configService', () => ({
   configService: configServiceMock,
 }));
 
 // useCustomAgentsLoader now reads 'acp.customAgents' via ConfigStorage (not
 // configService) — mock both so neither path blocks on the real storage impl.
-vi.mock('../../src/common/config/storage', () => ({
+vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
     get: vi.fn().mockResolvedValue([]),
     set: vi.fn().mockResolvedValue(undefined),
   },
 }));
 
-vi.mock('../../src/common/config/presets/assistantPresets', () => ({
+vi.mock('@/common/config/presets/assistantPresets', () => ({
   ASSISTANT_PRESETS: [],
 }));
 
-vi.mock('../../src/common/types/codex/codexModels', () => ({
+vi.mock('@/common/types/codex/codexModels', () => ({
   DEFAULT_CODEX_MODELS: defaultCodexModels,
 }));
 
@@ -93,7 +93,7 @@ vi.mock('swr', () => ({
   mutate: vi.fn(),
 }));
 
-vi.mock('../../src/renderer/utils/model/agentModes', () => ({
+vi.mock('@renderer/utils/model/agentModes', () => ({
   getAgentModes: (backend?: string) => {
     if (backend === 'claude') {
       return [
@@ -116,7 +116,7 @@ vi.mock('../../src/renderer/utils/model/agentModes', () => ({
   supportsModeSwitch: () => true,
 }));
 
-import { useGuidAgentSelection } from '../../src/renderer/pages/guid/hooks/useGuidAgentSelection';
+import { useGuidAgentSelection } from '@renderer/pages/guid/hooks/useGuidAgentSelection';
 
 // ---------------------------------------------------------------------------
 // Test data

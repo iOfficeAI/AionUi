@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { VersionInfo } from '../../src/common/update/models/VersionInfo';
+import { VersionInfo } from '@/common/update/models/VersionInfo';
 
 describe('VersionInfo Model', () => {
   describe('Basic Creation and Validation', () => {

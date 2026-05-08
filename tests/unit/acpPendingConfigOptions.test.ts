@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
-import { AcpAgent } from '../../src/process/agent/acp/index';
+import type { AcpConnection } from '@process/agent/acp/AcpConnection';
+import { AcpAgent } from '@process/agent/acp/index';
 
 vi.mock('@process/utils/initStorage', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@process/utils/initStorage')>();

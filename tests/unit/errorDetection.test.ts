@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { isQuotaErrorMessage, isApiKeyError, isApiErrorMessage } from '../../src/renderer/utils/model/errorDetection';
+import { isQuotaErrorMessage, isApiKeyError, isApiErrorMessage } from '@renderer/utils/model/errorDetection';
 
 describe('isQuotaErrorMessage', () => {
   // Requires BOTH a quota-related keyword AND a limit/exceeded indicator

@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 
-import type { TimelineSection } from '../../src/renderer/pages/conversation/GroupedHistory/types';
+import type { TimelineSection } from '@renderer/pages/conversation/GroupedHistory/types';
 
 // ── localStorage mock ────────────────────────────────────────────────────────
 
@@ -35,7 +35,7 @@ const testState = { sections: [] as TimelineSection[] };
 
 const mockSetActiveConversation = vi.fn();
 
-vi.mock('../../src/renderer/hooks/context/ConversationHistoryContext', () => ({
+vi.mock('@renderer/hooks/context/ConversationHistoryContext', () => ({
   useConversationHistoryContext: () => ({
     conversations: [],
     isConversationGenerating: () => false,
@@ -49,11 +49,11 @@ vi.mock('../../src/renderer/hooks/context/ConversationHistoryContext', () => ({
   }),
 }));
 
-vi.mock('../../src/renderer/utils/emitter', () => ({
+vi.mock('@renderer/utils/emitter', () => ({
   addEventListener: () => () => {},
 }));
 
-vi.mock('../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
+vi.mock('@renderer/pages/conversation/GroupedHistory/hooks/useConversationListSync', () => ({
   useConversationListSync: () => ({
     conversations: [],
     isConversationGenerating: () => false,
@@ -63,7 +63,7 @@ vi.mock('../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversat
   }),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
+vi.mock('@renderer/pages/conversation/GroupedHistory/utils/groupingHelpers', () => ({
   buildGroupedHistory: () => ({
     pinnedConversations: [],
     timelineSections: testState.sections,
@@ -92,7 +92,7 @@ const makeWorkspaceSection = (workspaces: string[]): TimelineSection[] => [
 // ── Tests ────────────────────────────────────────────────────────────────────
 
 // Import the hook statically since mocks are hoisted
-import { useConversations } from '../../src/renderer/pages/conversation/GroupedHistory/hooks/useConversations';
+import { useConversations } from '@renderer/pages/conversation/GroupedHistory/hooks/useConversations';
 
 describe('useConversations - workspace expansion', () => {
   beforeEach(() => {

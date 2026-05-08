@@ -5,7 +5,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cron, type ICronJob } from '../../../src/common/adapter/ipcBridge';
+import { cron, type ICronJob } from '@/common/adapter/ipcBridge';
 
 describe('ipcBridge.cron', () => {
   beforeEach(() => {

@@ -15,21 +15,21 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@process/*": ["./src/process/*"],
-      "@renderer/*": ["./src/renderer/*"],
-      "@worker/*": ["./src/process/worker/*"]
+      "@/*": ["./packages/desktop/src/*"],
+      "@process/*": ["./packages/desktop/src/process/*"],
+      "@renderer/*": ["./packages/desktop/src/renderer/*"],
+      "@worker/*": ["./packages/desktop/src/process/worker/*"]
     }
   },
   "include": [
-    "src/**/*",
+    "packages/desktop/src/**/*",
     "uno.config.ts",
-    "electron.vite.config.ts",
+    "packages/desktop/electron.vite.config.ts",
     "playwright.config.ts",
-    "src/renderer/types.d.ts"
+    "packages/desktop/src/renderer/types.d.ts"
   ],
   "exclude": [
-    "src/process/services/database/drivers/BunSqliteDriver.ts",
-    "src/process/services/database/drivers/BunSqliteDriver.bun.test.ts"
+    "packages/desktop/src/process/services/database/drivers/BunSqliteDriver.ts",
+    "packages/desktop/src/process/services/database/drivers/BunSqliteDriver.bun.test.ts"
   ]
 }

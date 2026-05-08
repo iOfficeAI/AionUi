@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ISqliteDriver } from '../../src/process/services/database/drivers/ISqliteDriver';
-import { initSchema } from '../../src/process/services/database/schema';
+import type { ISqliteDriver } from '@process/services/database/drivers/ISqliteDriver';
+import { initSchema } from '@process/services/database/schema';
 
 function createMockDriver(): ISqliteDriver & { pragma: ReturnType<typeof vi.fn>; exec: ReturnType<typeof vi.fn> } {
   return {

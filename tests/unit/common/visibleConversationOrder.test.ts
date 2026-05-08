@@ -5,9 +5,9 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import type { TChatConversation } from '../../../src/common/config/storage';
-import type { TimelineSection, WorkspaceGroup } from '../../../src/renderer/pages/conversation/GroupedHistory/types';
-import { buildVisibleConversationIds } from '../../../src/renderer/pages/conversation/GroupedHistory/utils/visibleConversationOrder';
+import type { TChatConversation } from '@/common/config/storage';
+import type { TimelineSection, WorkspaceGroup } from '@renderer/pages/conversation/GroupedHistory/types';
+import { buildVisibleConversationIds } from '@renderer/pages/conversation/GroupedHistory/utils/visibleConversationOrder';
 
 const createConversation = (id: string): TChatConversation => ({
   createTime: 1,

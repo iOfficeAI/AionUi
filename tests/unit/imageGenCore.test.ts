@@ -7,7 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as fsModule from 'fs';
 import * as path from 'path';
-import { ClientFactory } from '../../src/common/api/ClientFactory';
+import { ClientFactory } from '@/common/api/ClientFactory';
 import {
   safeJsonParse,
   isImageFile,
@@ -15,7 +15,7 @@ import {
   getFileExtensionFromDataUrl,
   processImageUri,
   executeImageGeneration,
-} from '../../src/common/chat/imageGenCore';
+} from '@/common/chat/imageGenCore';
 
 // ---------------------------------------------------------------------------
 // safeJsonParse

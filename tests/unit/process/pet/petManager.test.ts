@@ -77,7 +77,7 @@ vi.mock('electron', () => {
   };
 });
 
-vi.mock('../../../../src/common/adapter/main', () => ({
+vi.mock('@/common/adapter/main', () => ({
   setPetNotifyHook: vi.fn(),
 }));
 
@@ -92,7 +92,7 @@ import {
   isPetSupported,
 } from '@process/pet/petManager';
 import { app, ipcMain, Menu, screen } from 'electron';
-import { setPetNotifyHook } from '../../../../src/common/adapter/main';
+import { setPetNotifyHook } from '@/common/adapter/main';
 
 describe('petManager', () => {
   beforeEach(() => {

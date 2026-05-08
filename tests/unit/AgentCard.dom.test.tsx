@@ -49,8 +49,8 @@ vi.mock('@icon-park/react', () => ({
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
-import AgentCard from '../../src/renderer/pages/settings/AgentSettings/AgentCard';
-import type { AcpBackendConfig } from '../../src/common/types/acpTypes';
+import AgentCard from '@renderer/pages/settings/AgentSettings/AgentCard';
+import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 // ---------------------------------------------------------------------------
 // Helpers

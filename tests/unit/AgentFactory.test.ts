@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { AgentFactory } from '../../src/process/task/AgentFactory';
-import { UnknownAgentTypeError } from '../../src/process/task/IAgentFactory';
+import { AgentFactory } from '@process/task/AgentFactory';
+import { UnknownAgentTypeError } from '@process/task/IAgentFactory';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 

@@ -5,24 +5,24 @@
  */
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import type { ChatEvent, EventFrame } from '../../src/process/agent/openclaw/types';
-import type { IResponseMessage } from '../../src/common/adapter/ipcBridge';
+import type { ChatEvent, EventFrame } from '@process/agent/openclaw/types';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 
 // Mock dependencies before importing the module under test
-vi.mock('../../src/process/agent/acp/AcpAdapter', () => ({
+vi.mock('@process/agent/acp/AcpAdapter', () => ({
   AcpAdapter: class MockAcpAdapter {
     resetMessageTracking = vi.fn();
     convertSessionUpdate = vi.fn().mockReturnValue([]);
   },
 }));
 
-vi.mock('../../src/process/agent/acp/ApprovalStore', () => ({
+vi.mock('@process/agent/acp/ApprovalStore', () => ({
   AcpApprovalStore: class MockAcpApprovalStore {
     clear = vi.fn();
   },
 }));
 
-vi.mock('../../src/common/chat/navigation', () => ({
+vi.mock('@/common/chat/navigation', () => ({
   NavigationInterceptor: {
     isNavigationTool: vi.fn().mockReturnValue(false),
     extractUrl: vi.fn(),
@@ -30,17 +30,17 @@ vi.mock('../../src/common/chat/navigation', () => ({
   },
 }));
 
-vi.mock('../../src/process/agent/openclaw/openclawConfig', () => ({
+vi.mock('@process/agent/openclaw/openclawConfig', () => ({
   getGatewayAuthPassword: vi.fn(),
   getGatewayAuthToken: vi.fn(),
   getGatewayPort: vi.fn().mockReturnValue(18789),
 }));
 
-vi.mock('../../src/process/agent/openclaw/OpenClawGatewayConnection', () => ({
+vi.mock('@process/agent/openclaw/OpenClawGatewayConnection', () => ({
   OpenClawGatewayConnection: vi.fn(),
 }));
 
-vi.mock('../../src/process/agent/openclaw/OpenClawGatewayManager', () => ({
+vi.mock('@process/agent/openclaw/OpenClawGatewayManager', () => ({
   OpenClawGatewayManager: vi.fn(),
 }));
 
@@ -48,7 +48,7 @@ vi.mock('node:net', () => ({
   default: { createConnection: vi.fn() },
 }));
 
-import { OpenClawAgent } from '../../src/process/agent/openclaw/index';
+import { OpenClawAgent } from '@process/agent/openclaw/index';
 
 /**
  * Simulate a chat event frame through the agent's event handler.

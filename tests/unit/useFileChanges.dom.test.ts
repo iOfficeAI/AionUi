@@ -14,7 +14,7 @@ const unstageAllInvoke = vi.fn().mockResolvedValue(undefined);
 const discardFileInvoke = vi.fn().mockResolvedValue(undefined);
 const resetFileInvoke = vi.fn().mockResolvedValue(undefined);
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     fileSnapshot: {
       init: { invoke: (...args: unknown[]) => initInvoke(...args) },
@@ -31,7 +31,7 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-import { useFileChanges } from '../../src/renderer/pages/conversation/Workspace/hooks/useFileChanges';
+import { useFileChanges } from '@renderer/pages/conversation/Workspace/hooks/useFileChanges';
 
 describe('useFileChanges (#2159)', () => {
   beforeEach(() => {

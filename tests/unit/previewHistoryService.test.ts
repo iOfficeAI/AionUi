@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
-import type { PreviewHistoryTarget } from '../../src/common/types/preview';
+import type { PreviewHistoryTarget } from '@/common/types/preview';
 
 let tmpDir: string;
 
@@ -11,7 +11,7 @@ const mockTarget: PreviewHistoryTarget = {
   fileName: 'test.md',
 };
 
-vi.mock('../../src/process/utils/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   getSystemDir: () => ({
     cacheDir: tmpDir,
   }),
@@ -28,7 +28,7 @@ describe('PreviewHistoryService', () => {
   });
 
   it('saves and lists snapshots in a normal directory', async () => {
-    const { previewHistoryService } = await import('../../src/process/services/previewHistoryService');
+    const { previewHistoryService } = await import('@process/services/previewHistoryService');
     const snapshot = await previewHistoryService.save(mockTarget, '# Hello');
     expect(snapshot.id).toBeTruthy();
     expect(snapshot.contentType).toBe('markdown');
@@ -44,7 +44,7 @@ describe('PreviewHistoryService', () => {
     await fs.rm(tmpDir, { recursive: true, force: true });
     await fs.writeFile(tmpDir, 'blocking file');
 
-    const { previewHistoryService } = await import('../../src/process/services/previewHistoryService');
+    const { previewHistoryService } = await import('@process/services/previewHistoryService');
     const snapshot = await previewHistoryService.save(mockTarget, '# Recovered');
     expect(snapshot.id).toBeTruthy();
 
@@ -53,7 +53,7 @@ describe('PreviewHistoryService', () => {
   });
 
   it('retrieves saved snapshot content', async () => {
-    const { previewHistoryService } = await import('../../src/process/services/previewHistoryService');
+    const { previewHistoryService } = await import('@process/services/previewHistoryService');
     const content = '# Snapshot content';
     const snapshot = await previewHistoryService.save(mockTarget, content);
 
@@ -64,7 +64,7 @@ describe('PreviewHistoryService', () => {
   });
 
   it('returns null for non-existent snapshot', async () => {
-    const { previewHistoryService } = await import('../../src/process/services/previewHistoryService');
+    const { previewHistoryService } = await import('@process/services/previewHistoryService');
     const result = await previewHistoryService.getContent(mockTarget, 'non-existent-id');
     expect(result).toBeNull();
   });

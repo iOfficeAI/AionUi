@@ -34,7 +34,7 @@ vi.mock('@process/agent/acp/acpConnectors', () => ({
   prepareCleanEnv: vi.fn(async () => ({})),
 }));
 
-import { AcpConnection } from '../../src/process/agent/acp/AcpConnection';
+import { AcpConnection } from '@process/agent/acp/AcpConnection';
 
 /**
  * Create a fake ChildProcess backed by an EventEmitter.

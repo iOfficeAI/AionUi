@@ -43,7 +43,7 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-vi.mock('../../src/common', () => ({
+vi.mock('@/common', () => ({
   ipcBridge: {
     conversation: {
       get: { invoke: (...args: unknown[]) => mockConvGet(...args) },
@@ -64,38 +64,38 @@ vi.mock('../../src/common', () => ({
   },
 }));
 
-vi.mock('../../src/common/utils', () => ({
+vi.mock('@/common/utils', () => ({
   uuid: () => 'test-uuid',
 }));
 
-vi.mock('../../src/common/chat/chatLib', () => ({
+vi.mock('@/common/chat/chatLib', () => ({
   transformMessage: (msg: unknown) => msg,
 }));
 
 const mockMutateDraft = vi.fn();
-vi.mock('../../src/renderer/hooks/chat/useSendBoxDraft', () => ({
+vi.mock('@renderer/hooks/chat/useSendBoxDraft', () => ({
   getSendBoxDraftHook: () => () => ({
     data: { _type: 'remote', atPath: [], content: '', uploadFile: [] },
     mutate: mockMutateDraft,
   }),
 }));
 
-vi.mock('../../src/renderer/hooks/chat/useSendBoxFiles', () => ({
+vi.mock('@renderer/hooks/chat/useSendBoxFiles', () => ({
   createSetUploadFile: () => vi.fn(),
 }));
 
 const mockAddOrUpdateMessage = vi.fn();
 const mockRemoveMessageByMsgId = vi.fn();
-vi.mock('../../src/renderer/pages/conversation/Messages/hooks', () => ({
+vi.mock('@renderer/pages/conversation/Messages/hooks', () => ({
   useAddOrUpdateMessage: () => mockAddOrUpdateMessage,
   useRemoveMessageByMsgId: () => mockRemoveMessageByMsgId,
 }));
 
-vi.mock('../../src/renderer/hooks/system/useCommandQueueEnabled', () => ({
+vi.mock('@renderer/hooks/system/useCommandQueueEnabled', () => ({
   useCommandQueueEnabled: () => true,
 }));
 
-vi.mock('../../src/renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
+vi.mock('@renderer/pages/conversation/platforms/useConversationCommandQueue', () => ({
   shouldEnqueueConversationCommand: () => false,
   useConversationCommandQueue: () => ({
     items: [],
@@ -115,41 +115,41 @@ vi.mock('../../src/renderer/pages/conversation/platforms/useConversationCommandQ
   }),
 }));
 
-vi.mock('../../src/renderer/services/FileService', () => ({
+vi.mock('@renderer/services/FileService', () => ({
   allSupportedExts: ['.ts', '.tsx'],
 }));
 
-vi.mock('../../src/renderer/utils/emitter', () => ({
+vi.mock('@renderer/utils/emitter', () => ({
   emitter: { emit: vi.fn() },
   useAddEventListener: vi.fn(),
 }));
 
-vi.mock('../../src/renderer/utils/file/fileSelection', () => ({
+vi.mock('@renderer/utils/file/fileSelection', () => ({
   mergeFileSelectionItems: vi.fn((a: unknown) => a),
 }));
 
-vi.mock('../../src/renderer/utils/file/messageFiles', () => ({
+vi.mock('@renderer/utils/file/messageFiles', () => ({
   buildDisplayMessage: vi.fn((input: string) => input),
 }));
 
-vi.mock('../../src/renderer/pages/conversation/Preview', () => ({
+vi.mock('@renderer/pages/conversation/Preview', () => ({
   usePreviewContext: () => ({ setSendBoxHandler: vi.fn() }),
 }));
 
-vi.mock('../../src/renderer/hooks/ui/useLatestRef', () => ({
+vi.mock('@renderer/hooks/ui/useLatestRef', () => ({
   useLatestRef: (val: unknown) => ({ current: val }),
 }));
 
-vi.mock('../../src/renderer/hooks/file/useOpenFileSelector', () => ({
+vi.mock('@renderer/hooks/file/useOpenFileSelector', () => ({
   useOpenFileSelector: () => ({ openFileSelector: vi.fn() }),
 }));
 
-vi.mock('../../src/renderer/hooks/chat/useAutoTitle', () => ({
+vi.mock('@renderer/hooks/chat/useAutoTitle', () => ({
   useAutoTitle: () => ({ checkAndUpdateTitle: vi.fn() }),
 }));
 
 // Mock the child components
-vi.mock('../../src/renderer/components/chat/sendbox', () => ({
+vi.mock('@renderer/components/chat/sendbox', () => ({
   default: (props: {
     value: string;
     placeholder: string;
@@ -173,7 +173,7 @@ vi.mock('../../src/renderer/components/chat/sendbox', () => ({
   ),
 }));
 
-vi.mock('../../src/renderer/components/chat/ThoughtDisplay', () => ({
+vi.mock('@renderer/components/chat/ThoughtDisplay', () => ({
   default: ({ thought, running }: { thought: { subject: string; description: string }; running: boolean }) => (
     <div data-testid='thought-display'>
       {running && <span data-testid='thought-running'>Running</span>}
@@ -182,23 +182,23 @@ vi.mock('../../src/renderer/components/chat/ThoughtDisplay', () => ({
   ),
 }));
 
-vi.mock('../../src/renderer/components/chat/CommandQueuePanel', () => ({
+vi.mock('@renderer/components/chat/CommandQueuePanel', () => ({
   default: () => <div data-testid='queue-panel' />,
 }));
 
-vi.mock('../../src/renderer/components/media/FilePreview', () => ({
+vi.mock('@renderer/components/media/FilePreview', () => ({
   default: () => <div data-testid='file-preview' />,
 }));
 
-vi.mock('../../src/renderer/components/media/HorizontalFileList', () => ({
+vi.mock('@renderer/components/media/HorizontalFileList', () => ({
   default: ({ children }: { children: React.ReactNode }) => <div data-testid='file-list'>{children}</div>,
 }));
 
-vi.mock('../../src/renderer/components/media/FileAttachButton', () => ({
+vi.mock('@renderer/components/media/FileAttachButton', () => ({
   default: () => <button data-testid='file-attach'>Attach</button>,
 }));
 
-import RemoteSendBox from '../../src/renderer/pages/conversation/platforms/remote/RemoteSendBox';
+import RemoteSendBox from '@renderer/pages/conversation/platforms/remote/RemoteSendBox';
 
 // ---------------------------------------------------------------------------
 // Tests

@@ -14,7 +14,7 @@ const { mockConnect, mockSetSessionMode, mockSetModel, mockDisconnect, mockGetIn
   mockGetInitializeResponse: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
+vi.mock('@process/agent/acp/AcpConnection', () => ({
   AcpConnection: class {
     has_active_session = true;
     is_connected = true;
@@ -40,20 +40,20 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
   },
 }));
 
-vi.mock('../../src/process/agent/acp/AcpAdapter', () => ({
+vi.mock('@process/agent/acp/AcpAdapter', () => ({
   AcpAdapter: class {
     constructor() {}
   },
 }));
 
-vi.mock('../../src/process/agent/acp/ApprovalStore', () => ({
+vi.mock('@process/agent/acp/ApprovalStore', () => ({
   AcpApprovalStore: class {
     constructor() {}
   },
   createAcpApprovalKey: vi.fn(),
 }));
 
-vi.mock('../../src/process/agent/acp/utils', () => ({
+vi.mock('@process/agent/acp/utils', () => ({
   getClaudeModel: vi.fn().mockReturnValue(null),
   getClaudeModelSlot: vi.fn().mockReturnValue(null),
   killChild: vi.fn(),
@@ -62,40 +62,40 @@ vi.mock('../../src/process/agent/acp/utils', () => ({
   writeTextFile: vi.fn(),
 }));
 
-vi.mock('../../src/process/services/ccSwitchModelSource', () => ({
+vi.mock('@process/services/ccSwitchModelSource', () => ({
   readClaudeModelInfoFromCcSwitch: vi.fn().mockReturnValue(null),
 }));
 
-vi.mock('../../src/process/agent/acp/modelInfo', () => ({
+vi.mock('@process/agent/acp/modelInfo', () => ({
   buildAcpModelInfo: vi.fn().mockReturnValue(null),
   summarizeAcpModelInfo: vi.fn(),
 }));
 
-vi.mock('../../src/process/agent/acp/mcpSessionConfig', () => ({
+vi.mock('@process/agent/acp/mcpSessionConfig', () => ({
   buildBuiltinAcpSessionMcpServers: vi.fn().mockResolvedValue([]),
 }));
 
-vi.mock('../../src/process/utils/mainLogger', () => ({
+vi.mock('@process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
 }));
 
-vi.mock('../../src/common/utils', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../src/common/utils')>();
+vi.mock('@/common/utils', async (importOriginal) => {
+  const original = await importOriginal<typeof import('@/common/utils')>();
   return { ...original, uuid: vi.fn().mockReturnValue('test-uuid') };
 });
 
-vi.mock('../../src/process/utils/shellEnv', () => ({
+vi.mock('@process/utils/shellEnv', () => ({
   getEnhancedEnv: vi.fn().mockReturnValue({}),
   resolveNpxPath: vi.fn().mockReturnValue('npx'),
   getNpxCacheDir: vi.fn().mockReturnValue('/tmp/.npx-cache'),
   getWindowsShellExecutionOptions: vi.fn().mockReturnValue({}),
 }));
 
-vi.mock('../../src/process/utils/initStorage', () => ({
+vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: { get: vi.fn().mockResolvedValue(null) },
 }));
 
-import { AcpAgent } from '../../src/process/agent/acp/index';
+import { AcpAgent } from '@process/agent/acp/index';
 
 describe('AcpAgent.start() — applySessionMode', () => {
   const baseConfig = {

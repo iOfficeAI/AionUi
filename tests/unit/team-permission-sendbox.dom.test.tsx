@@ -70,7 +70,7 @@ vi.mock('@icon-park/react', () => ({
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { TeamPermissionProvider, useTeamPermission } from '../../src/renderer/pages/team/hooks/TeamPermissionContext';
+import { TeamPermissionProvider, useTeamPermission } from '@renderer/pages/team/hooks/TeamPermissionContext';
 
 // ---------------------------------------------------------------------------
 // Test helper: component to inspect useTeamPermission inside a provider

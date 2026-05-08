@@ -5,9 +5,9 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { IMcpServer } from '../../src/common/config/storage';
-import { buildBuiltinAcpSessionMcpServers } from '../../src/process/agent/acp/mcpSessionConfig';
-import { parseAgentCapabilities } from '../../src/common/types/acpTypes';
+import type { IMcpServer } from '@/common/config/storage';
+import { buildBuiltinAcpSessionMcpServers } from '@process/agent/acp/mcpSessionConfig';
+import { parseAgentCapabilities } from '@/common/types/acpTypes';
 
 describe('ACP built-in MCP session config', () => {
   it('injects only enabled built-in MCP servers and converts transport shape for session/new', () => {
@@ -156,19 +156,19 @@ const makeAgentClass = (detectMcpServers: () => Promise<IMcpServer[]>) =>
   };
 
 const mockUnrelatedMcpAgents = (emptyDetect: () => Promise<IMcpServer[]>) => {
-  vi.doMock('../../src/process/services/mcpServices/agents/ClaudeMcpAgent', () => ({
+  vi.doMock('@process/services/mcpServices/agents/ClaudeMcpAgent', () => ({
     ClaudeMcpAgent: makeAgentClass(emptyDetect),
   }));
-  vi.doMock('../../src/process/services/mcpServices/agents/CodebuddyMcpAgent', () => ({
+  vi.doMock('@process/services/mcpServices/agents/CodebuddyMcpAgent', () => ({
     CodebuddyMcpAgent: makeAgentClass(emptyDetect),
   }));
-  vi.doMock('../../src/process/services/mcpServices/agents/QwenMcpAgent', () => ({
+  vi.doMock('@process/services/mcpServices/agents/QwenMcpAgent', () => ({
     QwenMcpAgent: makeAgentClass(emptyDetect),
   }));
-  vi.doMock('../../src/process/services/mcpServices/agents/CodexMcpAgent', () => ({
+  vi.doMock('@process/services/mcpServices/agents/CodexMcpAgent', () => ({
     CodexMcpAgent: makeAgentClass(emptyDetect),
   }));
-  vi.doMock('../../src/process/services/mcpServices/agents/AionrsMcpAgent', () => ({
+  vi.doMock('@process/services/mcpServices/agents/AionrsMcpAgent', () => ({
     AionrsMcpAgent: makeAgentClass(emptyDetect),
   }));
 };
@@ -189,11 +189,11 @@ describe('McpService Gemini detection', () => {
       }),
     }));
     mockUnrelatedMcpAgents(emptyDetect);
-    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
+    vi.doMock('@process/services/mcpServices/agents/AionuiMcpAgent', () => ({
       AionuiMcpAgent: makeAgentClass(builtinDetect),
     }));
 
-    const { McpService } = await import('../../src/process/services/mcpServices/McpService');
+    const { McpService } = await import('@process/services/mcpServices/McpService');
     const service = new McpService();
 
     const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cli_path: undefined }]);
@@ -219,11 +219,11 @@ describe('McpService Gemini detection', () => {
       }),
     }));
     mockUnrelatedMcpAgents(emptyDetect);
-    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
+    vi.doMock('@process/services/mcpServices/agents/AionuiMcpAgent', () => ({
       AionuiMcpAgent: makeAgentClass(builtinDetect),
     }));
 
-    const { McpService } = await import('../../src/process/services/mcpServices/McpService');
+    const { McpService } = await import('@process/services/mcpServices/McpService');
     const service = new McpService();
 
     const result = await service.getAgentMcpConfigs([{ backend: 'gemini', name: 'Gemini CLI', cli_path: undefined }]);
@@ -249,14 +249,14 @@ describe('McpService OpenCode detection', () => {
       }),
     }));
     mockUnrelatedMcpAgents(emptyDetect);
-    vi.doMock('../../src/process/services/mcpServices/agents/AionuiMcpAgent', () => ({
+    vi.doMock('@process/services/mcpServices/agents/AionuiMcpAgent', () => ({
       AionuiMcpAgent: makeAgentClass(emptyDetect),
     }));
-    vi.doMock('../../src/process/services/mcpServices/agents/OpencodeMcpAgent', () => ({
+    vi.doMock('@process/services/mcpServices/agents/OpencodeMcpAgent', () => ({
       OpencodeMcpAgent: makeAgentClass(opencodeDetect),
     }));
 
-    const { McpService } = await import('../../src/process/services/mcpServices/McpService');
+    const { McpService } = await import('@process/services/mcpServices/McpService');
     const service = new McpService();
 
     const result = await service.getAgentMcpConfigs([{ backend: 'opencode', name: 'OpenCode', cli_path: 'opencode' }]);

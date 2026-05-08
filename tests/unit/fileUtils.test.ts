@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getContentTypeByExtension } from '../../src/renderer/pages/conversation/Preview/fileUtils';
+import { getContentTypeByExtension } from '@renderer/pages/conversation/Preview/fileUtils';
 
 describe('fileUtils', () => {
   it('resolves extended office and image formats', () => {

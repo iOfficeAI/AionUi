@@ -4,8 +4,8 @@
  */
 
 // Register NodePlatformServices so modules that call getPlatformServices() work in tests.
-import { registerPlatformServices } from '../src/common/platform';
-import { NodePlatformServices } from '../src/common/platform/NodePlatformServices';
+import { registerPlatformServices } from '@/common/platform';
+import { NodePlatformServices } from '@/common/platform/NodePlatformServices';
 registerPlatformServices(new NodePlatformServices());
 
 // Make this a module
