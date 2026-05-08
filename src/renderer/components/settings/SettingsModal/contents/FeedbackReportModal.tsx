@@ -9,7 +9,7 @@ import { FEEDBACK_MODULES } from './feedbackModules';
 import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
 import { Info, Plus } from '@icon-park/react';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -48,6 +48,30 @@ type FeedbackReportModalProps = {
   onCancel: () => void;
 };
 
+const isBlobUrl = (url?: string) => typeof url === 'string' && url.startsWith('blob:');
+
+const revokePreviewUrl = (item: Pick<UploadItem, 'url'>) => {
+  if (isBlobUrl(item.url)) {
+    URL.revokeObjectURL(item.url);
+  }
+};
+
+const ensurePreviewUrl = (item: UploadItem, existingUrl?: string) => {
+  if (item.url) {
+    return item.url;
+  }
+
+  if (existingUrl) {
+    return existingUrl;
+  }
+
+  if (item.originFile) {
+    return URL.createObjectURL(item.originFile);
+  }
+
+  return undefined;
+};
+
 const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
 
@@ -57,6 +81,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   const [submitting, setSubmitting] = useState(false);
   const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const [error, setError] = useState('');
+  const previousScreenshotsRef = useRef<UploadItem[]>([]);
 
   const resetForm = useCallback(() => {
     setModule(undefined);
@@ -199,7 +224,10 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
         }
 
         seen.add(key);
-        merged.push(nextItem);
+        merged.push({
+          ...nextItem,
+          url: URL.createObjectURL(normalizedFile),
+        });
       });
 
       return merged;
@@ -282,15 +310,27 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
 
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
-    // Deduplicate by file name + size, then mark as 'done' to hide progress indicators
-    const seen = new Set<string>();
-    const deduped = fileList.filter((f) => {
-      const key = `${f.originFile?.name ?? f.name}_${f.originFile?.size ?? 0}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    setScreenshots((current) => {
+      const currentByKey = new Map(current.map((item) => [getUploadItemKey(item), item]));
+      const seen = new Set<string>();
+
+      return fileList.reduce<UploadItem[]>((deduped, item, index) => {
+        const key = getUploadItemKey(item);
+        if (seen.has(key)) {
+          return deduped;
+        }
+
+        seen.add(key);
+        const existingItem = currentByKey.get(key);
+        deduped.push({
+          ...item,
+          uid: item.uid ?? existingItem?.uid ?? `upload-${Date.now()}-${index}`,
+          status: 'done',
+          url: ensurePreviewUrl(item, existingItem?.url),
+        });
+        return deduped;
+      }, []);
     });
-    setScreenshots(deduped.map((f) => (f.status === 'done' ? f : Object.assign({}, f, { status: 'done' as const }))));
   }, []);
 
   const handlePaste = useCallback(
@@ -308,6 +348,19 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   );
 
   useEffect(() => {
+    const previousScreenshots = previousScreenshotsRef.current;
+    const currentKeys = new Set(screenshots.map(getUploadItemKey));
+
+    previousScreenshots.forEach((item) => {
+      if (!currentKeys.has(getUploadItemKey(item))) {
+        revokePreviewUrl(item);
+      }
+    });
+
+    previousScreenshotsRef.current = screenshots;
+  }, [screenshots]);
+
+  useEffect(() => {
     if (!visible) {
       return;
     }
@@ -317,6 +370,14 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       document.removeEventListener('paste', handlePaste);
     };
   }, [handlePaste, visible]);
+
+  useEffect(() => {
+    return () => {
+      previousScreenshotsRef.current.forEach((item) => {
+        revokePreviewUrl(item);
+      });
+    };
+  }, []);
 
   return (
     <ModalWrapper
@@ -401,6 +462,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
               className='[&_.arco-upload-trigger]:w-full'
               drag
               multiple
+              listType='picture-list'
               accept={ACCEPTED_IMAGE_TYPES}
               autoUpload={false}
               fileList={screenshots}
