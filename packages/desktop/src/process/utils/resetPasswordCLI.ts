@@ -7,12 +7,9 @@
  * 打包应用的密码重置命令行工具
  */
 
-import crypto from 'crypto';
-import bcrypt from 'bcryptjs';
-import { getDataPath } from '@process/utils';
-// TODO M6-cleanup: Migrate to @aionui/web-host
-// import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
-import path from 'path';
+import { app } from 'electron';
+import { resetPassword } from '@aionui/web-host';
+import { getDataPath } from './utils';
 
 // 颜色输出 / Color output
 const colors = {
@@ -33,33 +30,6 @@ const log = {
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
-const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
-  new Promise((resolve, reject) => {
-    bcrypt.hash(password, saltRounds, (error, hash) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-      resolve(hash);
-    });
-  });
-
-// Hash password using bcrypt
-// 使用 bcrypt 哈希密码
-async function hashPassword(password: string): Promise<string> {
-  return await hashPasswordAsync(password, 10);
-}
-
-// 生成随机密码 / Generate random password
-function generatePassword(): string {
-  const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let password = '';
-  for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return password;
-}
-
 export function resolveResetPasswordUsername(argv: string[]): string {
   const resetPasswordIndex = argv.indexOf('--resetpass');
   if (resetPasswordIndex === -1) {
@@ -74,14 +44,31 @@ export function resolveResetPasswordUsername(argv: string[]): string {
  * Reset password for a user (CLI mode, works in packaged apps)
  * 重置用户密码（CLI模式,在打包应用中可用）
  *
- * @param username - Username to reset password for
+ * Backed by @aionui/web-host resetPassword (UC-3).
  */
 export async function resetPasswordCLI(username: string): Promise<void> {
-  // TODO M6-cleanup: Migrate to @aionui/web-host
-  log.error('resetPasswordCLI not implemented - TODO M6-cleanup');
-  log.info(`Target user: ${username} (feature disabled)`);
-  log.info('');
-  log.info('This feature depends on legacy webserver components that were removed in M6.');
-  log.info('It will be re-implemented with @aionui/web-host in a future milestone.');
-  process.exit(1);
+  log.info(`Target user: ${username}`);
+
+  try {
+    const newPassword = await resetPassword({
+      app: {
+        version: app.getVersion(),
+        isPackaged: app.isPackaged,
+        resourcesPath: app.getAppPath(),
+        // webui.config.json must live alongside the backend's SQLite DB so
+        // Electron-launched WebUI reads the same auth state whether you change
+        // the password via `--resetpass`, the settings toggle, or the browser.
+        // getDataPath() returns the CLI-safe symlink (~/.aionui[-dev]) on macOS.
+        userDataPath: getDataPath(),
+      },
+    });
+    log.success('Password reset successfully.');
+    log.info('New password:');
+    log.highlight(newPassword);
+    log.info('');
+    log.warning('Please change this password after next login.');
+  } catch (error) {
+    log.error(error instanceof Error ? error.message : 'Password reset failed');
+    process.exit(1);
+  }
 }

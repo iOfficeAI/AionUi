@@ -540,19 +540,38 @@ const handleAppReady = async (): Promise<void> => {
     const resolvedPort = resolveWebUIPort(userConfigInfo.config, getSwitchValue);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config, isRemoteMode);
     try {
+      // Inside Electron (`AionUi --webui` or packaged `aionui-web` mode that
+      // launches via the Electron shell), reuse the desktop app's data-dir so
+      // that conversations / cron jobs created in any path show up everywhere.
+      // Matches the desktop IPC path at line 493 above.
+      const { getDataPath } = await import('./process/utils/utils');
+      const { getSystemDir } = await import('./process/utils/initStorage');
+      const sysDirWebUI = getSystemDir();
       // M6: Switch to @aionui/web-host
       const handle = await startWebHost({
         app: {
           version: app.getVersion(),
           isPackaged: app.isPackaged,
           resourcesPath: app.getAppPath(),
-          userDataPath: app.getPath('userData'),
+          // Same reason as dataDir below: webui.config.json must live next to
+          // the DB under the CLI-safe symlink path, so every password-change
+          // entry point (CLI --resetpass, settings-toggle IPC, browser login)
+          // reads the same file.
+          userDataPath: getDataPath(),
         },
         staticDir: path.join(__dirname, '../renderer'),
         port: resolvedPort,
         allowRemote,
-        dataDir: app.getPath('userData'),
-        logDir: path.join(app.getPath('userData'), 'logs'),
+        dataDir: getDataPath(),
+        logDir: sysDirWebUI.logDir,
+        // Expose the same AIONUI_{CACHE,WORK,LOG}_DIR env the desktop IPC path
+        // passes at line 493, so /api/system/info reports the symlink workDir
+        // instead of the path-with-spaces userData root.
+        dirs: {
+          cacheDir: sysDirWebUI.cacheDir,
+          workDir: sysDirWebUI.workDir,
+          logDir: sysDirWebUI.logDir,
+        },
         backend: {
           kind: 'ownBackend',
           resolveBackend: resolveBinaryPath,

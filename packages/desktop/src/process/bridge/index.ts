@@ -21,6 +21,7 @@ import { initPptPreviewBridge } from './pptPreviewBridge';
 import { initOfficeWatchBridge } from './officeWatchBridge';
 import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 import { initRemoteAgentBridge } from './remoteAgentBridge';
+import { initWebuiBridge } from './webuiBridge';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 export interface BridgeDependencies {
@@ -45,6 +46,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initSpeechToTextBridge();
   initWorkspaceSnapshotBridge();
   initRemoteAgentBridge();
+  initWebuiBridge();
 }
 
 export {
@@ -65,6 +67,7 @@ export {
   initRemoteAgentBridge,
   initWindowControlsBridge,
   initWorkspaceSnapshotBridge,
+  initWebuiBridge,
 };
 export { disposeAllSnapshots } from './workspaceSnapshotBridge';
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

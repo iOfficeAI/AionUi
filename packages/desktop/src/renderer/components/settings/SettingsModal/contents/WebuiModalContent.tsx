@@ -719,8 +719,8 @@ const WebuiModalContent: React.FC = () => {
             <Switch checked={webuiEnabled} loading={startLoading} onChange={handleToggle} />
           </PreferenceRow>
 
-          {/* 访问地址（仅运行时显示）/ Access URL (only when running) */}
-          {status?.running && (
+          {/* 访问地址（启用 WebUI 后即显示，不依赖后端 running 状态）/ Access URL (shown whenever WebUI is enabled, not tied to backend running state) */}
+          {webuiEnabled && (
             <PreferenceRow label={t('settings.webui.accessUrl')}>
               <div className='flex items-center gap-8px min-w-0'>
                 <button

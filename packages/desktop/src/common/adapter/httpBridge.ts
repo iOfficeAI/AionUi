@@ -19,8 +19,12 @@ declare global {
 /**
  * Resolve the backend port, honoring both renderer and main-process contexts.
  *
- * - Renderer: the preload bridge writes `window.__backendPort` before the
- *   first HTTP call, so reading from window is authoritative.
+ * - Renderer (Electron): the preload bridge writes `window.__backendPort` before
+ *   the first HTTP call, so reading from window is authoritative.
+ * - Renderer (WebUI browser): no preload, so `window.__backendPort` is missing.
+ *   Requests must go to the same origin that served the page; web-host's
+ *   static-server reverse-proxies `/api/*` and upgrades `/ws` to the backend
+ *   port. See getBaseUrl / getWsUrl below for the WebUI branch.
  * - Main process: `window` is undefined. `src/index.ts` writes the port to
  *   `globalThis.__backendPort` immediately after `backendManager.start()`
  *   resolves, so any main-process ipcBridge caller (e.g. the one-shot
@@ -36,11 +40,33 @@ function getBackendPort(): number {
   return g.__backendPort ?? 13400;
 }
 
+/**
+ * WebUI (browser) mode: no Electron preload, so `window.__backendPort` is not
+ * injected. Use same-origin URLs; web-host's static-server handles the reverse
+ * proxy / WS upgrade to the backend.
+ */
+function isWebUiBrowserMode(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    !(window as Window).__backendPort
+  );
+}
+
 export function getBaseUrl(): string {
+  if (isWebUiBrowserMode()) {
+    // Same-origin: calls like fetch(`${baseUrl}/api/foo`) resolve to `/api/foo`
+    // on whatever host the page was served from.
+    return '';
+  }
   return `http://127.0.0.1:${getBackendPort()}`;
 }
 
 function getWsUrl(): string {
+  if (isWebUiBrowserMode()) {
+    const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    return `${proto}//${window.location.host}/ws`;
+  }
   return `ws://127.0.0.1:${getBackendPort()}/ws`;
 }
 

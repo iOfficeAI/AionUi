@@ -7,9 +7,11 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
-import { ProcessConfig } from './initStorage';
+import { ProcessConfig, getSystemDir } from './initStorage';
 import { startWebHost } from '@aionui/web-host';
 import { resolveBinaryPath } from '../backend';
+import { setActiveWebUI } from '../bridge/webuiBridge';
+import { getDataPath } from './utils';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
@@ -60,7 +62,13 @@ export const loadUserWebUIConfig = (): { config: WebUIUserConfig; path: string |
   }
 };
 
-const DEFAULT_WEBUI_PORT = 33000;
+// Keep aligned with renderer's WEBUI_DEFAULT_PORT (common/config/constants.ts):
+//   production -> 25808, dev -> 25809, multi-instance dev -> 25810
+const DEFAULT_WEBUI_PORT = (() => {
+  if (process.env.NODE_ENV === 'production') return 25808;
+  if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
+  return 25809;
+})();
 
 export const resolveWebUIPort = (
   config: WebUIUserConfig,
@@ -105,17 +113,39 @@ export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
         version: app.getVersion(),
         isPackaged: app.isPackaged,
         resourcesPath: app.getAppPath(),
-        userDataPath: app.getPath('userData'),
+        // webui.config.json lives under userDataPath and must match the path
+        // used by --resetpass and the settings-toggle `changePassword` IPC,
+        // otherwise the browser login reads a different config file than the
+        // one the CLI just rewrote. getDataPath() returns ~/.aionui[-dev]
+        // symlink on macOS to keep CLI tools off paths containing spaces.
+        userDataPath: getDataPath(),
       },
-      staticDir: path.join(__dirname, '../../renderer'),
+      // After bundling, this file is part of out/main/index.js, so __dirname is
+      // "<app>/out/main". Renderer assets live at "<app>/out/renderer".
+      staticDir: path.join(__dirname, '../renderer'),
       port: preferredPort,
       allowRemote,
-      dataDir: app.getPath('userData'),
-      logDir: path.join(app.getPath('userData'), 'logs'),
+      // Must match the desktop IPC path's backend data-dir (packages/desktop/src/index.ts:493),
+      // otherwise the WebUI-path backend and the desktop-IPC-path backend read/write two
+      // different SQLite databases and users see disjoint conversations / cron jobs.
+      dataDir: getDataPath(),
+      logDir: getSystemDir().logDir,
+      // Match the desktop IPC path's AIONUI_{CACHE,WORK,LOG}_DIR env so that
+      // /api/system/info reports the same workDir (symlink on macOS) whether
+      // the user opens the desktop app or the bundled WebUI.
+      dirs: (() => {
+        const s = getSystemDir();
+        return { cacheDir: s.cacheDir, workDir: s.workDir, logDir: s.logDir };
+      })(),
       backend: {
         kind: 'ownBackend',
         resolveBackend: resolveBinaryPath,
       },
+    });
+    setActiveWebUI({
+      port: handle.port,
+      allowRemote,
+      initialPassword: handle.initialPassword,
     });
     console.log(`[WebUI] Auto-restored from desktop preferences (port=${handle.port}, backendPort=${handle.backendPort}, allowRemote=${allowRemote})`);
   } catch (error) {

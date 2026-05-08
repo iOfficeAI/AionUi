@@ -40,10 +40,11 @@ if (win.electronAPI) {
   });
 } else {
   // Web 环境 - 使用 WebSocket 通信，并在登录后自动补上已获取 Cookie 的连接
-  // Web runtime bridge: ensure the socket reconnects after login so session cookie can be sent
+  // Web runtime bridge: ensure the socket reconnects after login so session cookie can be sent.
+  // Path must be `/ws` — web-host's static-server only proxies WebSocket upgrades under /ws.
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const defaultHost = `${window.location.hostname}:${WEBUI_DEFAULT_PORT}`;
-  const socketUrl = `${protocol}//${window.location.host || defaultHost}`;
+  const socketUrl = `${protocol}//${window.location.host || defaultHost}/ws`;
 
   type QueuedMessage = { name: string; data: unknown };
 
