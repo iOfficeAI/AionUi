@@ -224,9 +224,11 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
       setReady(true);
 
       // Re-enable WebSocket reconnection after successful login (WebUI mode only)
-      if (typeof window !== 'undefined' && (window as any).__websocketReconnect) {
-        (window as any).__websocketReconnect();
-      }
+      const webSocketReconnect =
+        typeof window !== 'undefined'
+          ? (window as Window & { __websocketReconnect?: () => void }).__websocketReconnect
+          : undefined;
+      webSocketReconnect?.();
 
       return { success: true };
     } catch (error) {

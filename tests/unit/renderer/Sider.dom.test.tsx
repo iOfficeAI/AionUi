@@ -55,6 +55,13 @@ vi.mock('@/renderer/hooks/context/AuthContext', () => ({
   }),
 }));
 
+vi.mock('@renderer/hooks/context/AuthContext', () => ({
+  useAuth: () => ({
+    logout: logoutMock,
+    status: 'authenticated',
+  }),
+}));
+
 vi.mock('@/renderer/pages/cron/useCronJobs', () => ({
   useAllCronJobs: () => ({ jobs: [] }),
 }));
@@ -68,14 +75,11 @@ vi.mock('@/renderer/utils/ui/focus', () => ({
   blurActiveElement: () => blurActiveElementMock(),
 }));
 
-vi.mock('@/renderer/components/layout/Sider/SiderNav', async () => {
-  const React = await import('react');
-  return {
-    SiderToolbar: () => <div>SiderToolbar</div>,
-    SiderSearchEntry: () => <div>SiderSearchEntry</div>,
-    SiderScheduledEntry: () => <div>SiderScheduledEntry</div>,
-  };
-});
+vi.mock('@/renderer/components/layout/Sider/SiderNav', () => ({
+  SiderToolbar: () => <div>SiderToolbar</div>,
+  SiderSearchEntry: () => <div>SiderSearchEntry</div>,
+  SiderScheduledEntry: () => <div>SiderScheduledEntry</div>,
+}));
 
 vi.mock('@/renderer/components/layout/Sider/CronJobSiderSection', () => ({
   default: () => <div>CronJobSiderSection</div>,

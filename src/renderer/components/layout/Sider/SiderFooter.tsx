@@ -81,7 +81,13 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
               }}
             >
               <span className='w-28px h-24px flex items-center justify-center shrink-0'>
-                <Logout theme='outline' size='20' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+                <Logout
+                  theme='outline'
+                  size='20'
+                  fill='currentColor'
+                  className='block leading-none'
+                  style={{ lineHeight: 0 }}
+                />
               </span>
               <span className='collapsed-hidden text-14px font-medium leading-24px truncate'>{t('common.logout')}</span>
             </div>

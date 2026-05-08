@@ -199,6 +199,8 @@ export type I18nKey =
   | 'common.historyBack'
   | 'common.import'
   | 'common.loading'
+  | 'common.logout'
+  | 'common.logoutShortcut'
   | 'common.more'
   | 'common.name'
   | 'common.optional'
