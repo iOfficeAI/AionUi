@@ -49,6 +49,16 @@ export function createSession(opts?: SessionOptions & { username?: string }): Se
   };
 }
 
+/**
+ * Return the username associated with a valid session token, or null if the
+ * token is invalid, unknown, or expired. Thin wrapper so `/api/auth/user`
+ * handlers can answer from cookie alone without going through the backend.
+ */
+export function getSessionUsername(token: string): string | null {
+  if (!verifySession(token)) return null;
+  return store.get(token)?.username ?? null;
+}
+
 export function verifySession(token: string): boolean {
   if (typeof token !== 'string' || !token.includes('.')) return false;
   const [payload, signature] = token.split('.');

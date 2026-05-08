@@ -16,6 +16,18 @@ export type AppMetadata = {
 export type BackendBinaryResolver = () => string;
 
 /**
+ * System dirs exported to the backend via AIONUI_{CACHE,WORK,LOG}_DIR env.
+ * Backend surfaces these on `/api/system/info`. Omit and the backend inherits
+ * process.env, which may carry stale values from the parent shell — better to
+ * be explicit.
+ */
+export type BackendSystemDirs = {
+  cacheDir: string;
+  workDir: string;
+  logDir: string;
+};
+
+/**
  * Options for starting WebHost
  */
 export type WebHostOptions = {
@@ -25,6 +37,7 @@ export type WebHostOptions = {
   allowRemote?: boolean;
   dataDir?: string;
   logDir?: string;
+  dirs?: BackendSystemDirs;
   backend:
     | { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver }
     | { kind: 'useExistingBackend'; port: number };

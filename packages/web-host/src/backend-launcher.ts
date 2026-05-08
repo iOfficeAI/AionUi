@@ -35,6 +35,12 @@ export type BackendLaunchOptions = {
   port?: number;
   dataDir?: string;
   logDir?: string;
+  /**
+   * System dirs exposed to the backend via AIONUI_{CACHE,WORK,LOG}_DIR env.
+   * Surfaces on `/api/system/info`. If omitted, the backend inherits
+   * process.env and will likely report wrong/empty dirs.
+   */
+  dirs?: BackendDirConfig;
 };
 
 export type BackendHandle = {
@@ -251,7 +257,7 @@ export async function startBackend(opts: BackendLaunchOptions): Promise<BackendH
   if (!dataDir) {
     throw new Error('startBackend: dataDir is required');
   }
-  const port = await manager.start(dataDir, opts.logDir);
+  const port = await manager.start(dataDir, opts.logDir, opts.dirs);
   return {
     port,
     stop: () => manager.stop(),

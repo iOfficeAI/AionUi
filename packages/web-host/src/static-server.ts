@@ -14,7 +14,7 @@ import http, {
   type ServerResponse,
 } from 'node:http';
 import { networkInterfaces } from 'node:os';
-import type { Socket } from 'node:net';
+import net, { type Socket } from 'node:net';
 import serveHandler from 'serve-handler';
 import * as cookieRaw from 'cookie';
 import type { AppMetadata } from './types.js';
@@ -25,11 +25,12 @@ const cookie = cookieRaw as any as {
   serialize: (name: string, val: string, options?: Record<string, unknown>) => string;
   parse: (str: string) => Record<string, string | undefined>;
 };
-import { verifyPassword } from './auth/index.js';
+import { verifyPassword, loadConfig } from './auth/index.js';
 import {
   SESSION_COOKIE,
   createSession,
   verifySession,
+  getSessionUsername,
 } from './auth/session.js';
 import { RateLimiter } from './auth/rateLimiter.js';
 
@@ -120,38 +121,54 @@ function forwardUpgradeToBackend(
   head: Buffer,
   backendPort: number,
 ): void {
-  const options: http.RequestOptions = {
-    hostname: '127.0.0.1',
-    port: backendPort,
-    path: req.url,
-    method: req.method,
-    headers: { ...req.headers, host: `127.0.0.1:${backendPort}` },
+  // Tunnel the WebSocket handshake through a raw TCP socket: reassemble the
+  // original request line + headers and splice the two sockets together. This
+  // mirrors what http-proxy/nginx do for WebSocket upstreams and avoids the
+  // quirks of Node's `http.request` 'upgrade' event (which can silently swallow
+  // the 101 as a regular response under certain Agent configurations).
+  socket.setNoDelay(true);
+  socket.setKeepAlive(true);
+  socket.setTimeout(0);
+  const lines: string[] = [`${req.method ?? 'GET'} ${req.url ?? '/'} HTTP/1.1`];
+  const headers: Record<string, string | string[] | undefined> = {
+    ...req.headers,
+    host: `127.0.0.1:${backendPort}`,
   };
-  const proxyReq = http.request(options);
-  proxyReq.end();
-  proxyReq.on('upgrade', (_proxyRes, proxySocket) => {
-    socket.write('HTTP/1.1 101 Switching Protocols\r\n');
-    // forward headers from backend's 101 response:
-    // the `_proxyRes` headers include sec-websocket-accept, sec-websocket-protocol, etc.
-    for (const [k, v] of Object.entries(_proxyRes.headers)) {
-      if (Array.isArray(v)) v.forEach((vv) => socket.write(`${k}: ${vv}\r\n`));
-      else if (v !== undefined) socket.write(`${k}: ${v}\r\n`);
+  for (const [key, value] of Object.entries(headers)) {
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) lines.push(`${key}: ${v}`);
+    } else {
+      lines.push(`${key}: ${value}`);
     }
-    socket.write('\r\n');
+  }
+  const requestBytes = Buffer.from(lines.join('\r\n') + '\r\n\r\n', 'utf8');
+
+  const proxySocket = net.connect({ host: '127.0.0.1', port: backendPort });
+  proxySocket.setNoDelay(true);
+  proxySocket.setKeepAlive(true);
+
+  proxySocket.once('connect', () => {
+    proxySocket.write(requestBytes);
     if (head.length > 0) proxySocket.write(head);
     proxySocket.pipe(socket);
     socket.pipe(proxySocket);
-    proxySocket.on('error', () => socket.destroy());
-    socket.on('error', () => proxySocket.destroy());
   });
-  proxyReq.on('error', () => {
-    try {
-      socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-    } catch {
-      // ignore
+
+  const tearDown = (err?: Error): void => {
+    if (err) {
+      try {
+        socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
+      } catch {
+        // ignore
+      }
     }
     socket.destroy();
-  });
+    proxySocket.destroy();
+  };
+  proxySocket.on('error', tearDown);
+  socket.on('error', () => proxySocket.destroy());
+  socket.on('close', () => proxySocket.destroy());
 }
 
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
@@ -194,7 +211,9 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
           return;
         }
         loginLimiter.reset(ip);
-        const session = createSession({ username: body.username || 'admin' });
+        const cfg = await loadConfig(opts.app);
+        const username = body.username || cfg.adminUsername || 'admin';
+        const session = createSession({ username });
         res.writeHead(200, {
           'content-type': 'application/json',
           'set-cookie': buildCookieString(SESSION_COOKIE.NAME, session.token, {
@@ -204,7 +223,30 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
             path: SESSION_COOKIE.PATH,
           }),
         });
-        res.end(JSON.stringify({ success: true }));
+        res.end(
+          JSON.stringify({
+            success: true,
+            user: { username, id: username },
+          })
+        );
+        return;
+      }
+
+      // 2a. /api/auth/user — answer from session cookie, don't hit backend.
+      // Backend's /api/auth/user requires a JWT we don't mint. Legacy webserver
+      // had middleware that translated session-cookie → user; web-host replicates
+      // that locally so the WebUI AuthProvider's refresh() works.
+      if (req.method === 'GET' && (req.url === '/api/auth/user' || req.url?.startsWith('/api/auth/user?'))) {
+        const parsed = cookie.parse(req.headers.cookie || '');
+        const token = parsed[SESSION_COOKIE.NAME];
+        const username = token ? getSessionUsername(token) : null;
+        if (!username) {
+          res.writeHead(401, { 'content-type': 'application/json' });
+          res.end(JSON.stringify({ success: false, error: 'UNAUTHENTICATED' }));
+          return;
+        }
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ success: true, user: { username, id: username } }));
         return;
       }
 
