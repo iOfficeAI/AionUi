@@ -44,7 +44,7 @@ repos:
     hooks:
       - id: typecheck
         name: TypeScript Check
-        entry: bunx tsc --noEmit
+        entry: bun x tsc --noEmit
         language: system
         files: \.(ts|tsx)$
         pass_filenames: false
