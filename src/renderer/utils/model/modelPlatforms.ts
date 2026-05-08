@@ -113,7 +113,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     platform: 'custom',
     baseUrl: 'https://api.deepseek.com/v1',
   },
-  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
+  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimax.io/v1' },
   {
     name: 'Novita',
     value: 'Novita',
