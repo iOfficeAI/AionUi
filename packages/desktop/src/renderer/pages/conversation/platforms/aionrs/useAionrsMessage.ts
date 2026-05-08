@@ -297,11 +297,15 @@ export const useAionrsMessage = (
           }
           break;
         case 'permission':
+        case 'acp_permission':
           if (!streamRunningRef.current) {
             setStreamRunning(true);
             streamRunningRef.current = true;
           }
-          addOrUpdateMessage(transformMessage(message));
+          // Backend aionrs emits wire type 'acp_permission' but the payload is
+          // Confirmation-shaped (legacy), which matches MessagePermission, not
+          // MessageAcpPermission. Re-tag so transformMessage routes it correctly.
+          addOrUpdateMessage(transformMessage({ ...message, type: 'permission' }));
           break;
         case 'config_changed':
           onConfigChangedRef.current?.(message.data as Record<string, unknown>);
