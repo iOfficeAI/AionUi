@@ -191,6 +191,14 @@ describe('createGenericSpawnConfig - Windows path handling', () => {
     }
   });
 
+  it('does not inject default ACP flags when args are omitted', () => {
+    setLinuxPlatform();
+    const config = createGenericSpawnConfig('custom-agent', '/cwd', undefined, undefined, { PATH: '/usr/bin' });
+
+    expect(config.command).toBe('custom-agent');
+    expect(config.args).toEqual([]);
+  });
+
   it('returns plain command on non-Windows', () => {
     setLinuxPlatform();
     const config = createGenericSpawnConfig('goose', '/cwd', ['acp'], undefined, { PATH: '/usr/bin' });

@@ -281,9 +281,7 @@ export function createGenericSpawnConfig(
   // Use prebuilt env if provided (already cleaned by caller), otherwise build from shell env
   const env = prebuiltEnv ?? getEnhancedEnv(customEnv);
 
-  // Default to --experimental-acp only if acpArgs is strictly undefined.
-  // This allows passing an empty array [] to bypass default flags.
-  const effectiveAcpArgs = acpArgs === undefined ? ['--experimental-acp'] : acpArgs;
+  const effectiveAcpArgs = acpArgs ?? [];
 
   let spawnCommand: string;
   let spawnArgs: string[];

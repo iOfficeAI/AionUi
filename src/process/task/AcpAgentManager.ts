@@ -469,21 +469,26 @@ ${collectedResponses.join('\n')}`;
 
   /**
    * Resolve CLI config for a custom agent backend.
-   * Looks up assistants config by UUID, falling back to extension-contributed adapters.
+   * Looks up saved custom agents by UUID, falling back to extension-contributed adapters.
    */
   private async resolveCustomAgentCliConfig(data: AcpAgentManagerData): Promise<{
     cliPath?: string;
     customArgs?: string[];
     customEnv?: Record<string, string>;
   }> {
-    const customAgents = await ProcessConfig.get('assistants');
-    let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
-      (agent) => agent.id === data.customAgentId
+    const builtinAssistants = (await ProcessConfig.get('assistants')) || [];
+    const userCustomAgents = (await ProcessConfig.get('acp.customAgents')) || [];
+    const customAgents = [...builtinAssistants, ...userCustomAgents];
+    const customAgentId = data.customAgentId!.startsWith('custom:')
+      ? data.customAgentId!.slice('custom:'.length)
+      : data.customAgentId!;
+    let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents.find(
+      (agent) => agent.id === customAgentId
     );
 
     // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
-    if (!customAgentConfig && data.customAgentId!.startsWith('ext:')) {
-      const [, extensionName, ...idParts] = data.customAgentId!.split(':');
+    if (!customAgentConfig && customAgentId.startsWith('ext:')) {
+      const [, extensionName, ...idParts] = customAgentId.split(':');
       const adapterId = idParts.join(':');
       const adapter = ExtensionRegistry.getInstance()
         .getAcpAdapters()
@@ -494,8 +499,8 @@ ${collectedResponses.join('\n')}`;
 
       if (adapter) {
         customAgentConfig = {
-          id: data.customAgentId,
-          name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
+          id: customAgentId,
+          name: typeof adapter.name === 'string' ? adapter.name : customAgentId,
           defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
           acpArgs: Array.isArray(adapter.acpArgs)
             ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
