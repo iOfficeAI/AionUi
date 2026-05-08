@@ -35,6 +35,7 @@ import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebServer } from './process/webserver';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
+import { createAppShutdownCoordinator } from './process/utils/appShutdownCoordinator';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -705,75 +706,75 @@ app.on('activate', () => {
   }
 });
 
-app.on('before-quit', async () => {
-  console.log('[AionUi] before-quit');
-  setIsQuitting(true);
-  isExplicitQuit = true;
-  destroyTray();
+const runAppShutdownCleanup = async (): Promise<void> => {
+  // Kill all agent worker processes
+  await workerTaskManager.clear();
 
-  const cleanup = async () => {
-    // Kill all agent worker processes
-    await workerTaskManager.clear();
+  // Destroy desktop pet windows
+  try {
+    const { destroyPetWindow } = await import('./process/pet/petManager');
+    destroyPetWindow();
+  } catch {
+    /* pet not initialized */
+  }
 
-    // Destroy desktop pet windows
-    try {
-      const { destroyPetWindow } = await import('./process/pet/petManager');
-      destroyPetWindow();
-    } catch {
-      /* pet not initialized */
+  // Stop all active team sessions (TCP servers + child processes)
+  await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+
+  // Shutdown Channel subsystem
+  try {
+    const { getChannelManager } = await import('@process/channels');
+    await getChannelManager().shutdown();
+  } catch (error) {
+    console.error('[App] Failed to shutdown ChannelManager:', error);
+  }
+
+  // Stop Web Server (Express + WebSocket)
+  try {
+    const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
+    const { cleanupWebAdapter } = await import('@process/webserver/adapter');
+    const instance = getWebServerInstance();
+    if (instance) {
+      instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
+      await new Promise<void>((resolve) => instance.server.close(() => resolve()));
+      cleanupWebAdapter();
+      setWebServerInstance(null);
     }
+  } catch {
+    /* server not started */
+  }
 
-    // Stop all active team sessions (TCP servers + child processes)
-    await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+  // Stop Office Watch processes (Word / Excel / PPT preview)
+  try {
+    const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
+    stopAllOfficeWatchSessions();
+  } catch {
+    /* not initialized */
+  }
+  try {
+    const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
+    stopAllWatchSessions();
+  } catch {
+    /* not initialized */
+  }
+};
 
-    // Shutdown Channel subsystem
-    try {
-      const { getChannelManager } = await import('@process/channels');
-      await getChannelManager().shutdown();
-    } catch (error) {
-      console.error('[App] Failed to shutdown ChannelManager:', error);
-    }
-
-    // Stop Web Server (Express + WebSocket)
-    try {
-      const { getWebServerInstance, setWebServerInstance } = await import('@process/bridge/webuiBridge');
-      const { cleanupWebAdapter } = await import('@process/webserver/adapter');
-      const instance = getWebServerInstance();
-      if (instance) {
-        instance.wss.clients.forEach((client) => client.close(1000, 'App shutting down'));
-        await new Promise<void>((resolve) => instance.server.close(() => resolve()));
-        cleanupWebAdapter();
-        setWebServerInstance(null);
-      }
-    } catch {
-      /* server not started */
-    }
-
-    // Stop Office Watch processes (Word / Excel / PPT preview)
-    try {
-      const { stopAllOfficeWatchSessions } = await import('@process/bridge/officeWatchBridge');
-      stopAllOfficeWatchSessions();
-    } catch {
-      /* not initialized */
-    }
-    try {
-      const { stopAllWatchSessions } = await import('@process/bridge/pptPreviewBridge');
-      stopAllWatchSessions();
-    } catch {
-      /* not initialized */
-    }
-  };
-
-  // Master timeout: force quit if cleanup hangs
-  const timeout = new Promise<void>((resolve) => {
-    setTimeout(() => {
-      console.warn('[AionUi] Cleanup timed out after 10s, forcing quit');
-      resolve();
-    }, 10000);
-  });
-
-  await Promise.race([cleanup(), timeout]);
+const shutdownCoordinator = createAppShutdownCoordinator({
+  cleanup: runAppShutdownCleanup,
+  prepare: () => {
+    console.log('[AionUi] before-quit');
+    setIsQuitting(true);
+    isExplicitQuit = true;
+    destroyTray();
+  },
+  requestQuit: () => app.quit(),
+  exit: (code) => app.exit(code),
+  timeoutMs: 10000,
 });
+
+app.on('before-quit', shutdownCoordinator.handleBeforeQuit);
+process.once('SIGINT', () => shutdownCoordinator.handleSignal('SIGINT'));
+process.once('SIGTERM', () => shutdownCoordinator.handleSignal('SIGTERM'));
 
 app.on('will-quit', () => {
   console.log('[AionUi] will-quit — all cleanup should be complete');
