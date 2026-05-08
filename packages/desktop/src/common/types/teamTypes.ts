@@ -2,44 +2,6 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
-import type { AcpInitializeResult } from './acpTypes';
-
-/**
- * Backends known to support team mode without needing a cached initialize result.
- * These are hardcoded so that team creation works even before the first conversation
- * populates cachedInitializeResult (e.g. right after an upgrade).
- *
- * TODO: temporary workaround — remove once cachedInitializeResult is populated
- * eagerly (e.g. at app startup or first backend detection) instead of lazily
- * after the first user conversation.
- */
-const KNOWN_TEAM_CAPABLE_BACKENDS = new Set(['gemini', 'claude', 'codex', 'aionrs']);
-
-/**
- * Check if an agent backend is team-capable.
- * Known backends (gemini, claude, codex, snow) are always team-capable.
- * Other ACP agents are team-capable when their cached initialize response includes mcpCapabilities.stdio.
- */
-export function isTeamCapableBackend(
-  backend: string,
-  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
-): boolean {
-  if (KNOWN_TEAM_CAPABLE_BACKENDS.has(backend)) return true;
-  const initResult = cachedInitResults?.[backend];
-  return initResult?.capabilities.mcpCapabilities.stdio === true;
-}
-
-/**
- * Get all team-capable backends from cached initialize results.
- * Always includes 'gemini'. ACP backends included if their cached
- * initialize result shows mcpCapabilities.stdio === true.
- */
-export function getTeamCapableBackends(
-  detectedBackends: string[],
-  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
-): string[] {
-  return detectedBackends.filter((b) => isTeamCapableBackend(b, cachedInitResults));
-}
 
 /** Role of a teammate within a team */
 export type TeammateRole = 'leader' | 'teammate';

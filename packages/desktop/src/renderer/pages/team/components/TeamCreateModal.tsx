@@ -4,8 +4,6 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
-import type { AcpInitializeResult } from '@/common/types/acpTypes';
 import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
@@ -45,17 +43,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
-  const [cachedInitResults, setCachedInitResults] = useState<Record<string, AcpInitializeResult> | null>(null);
-
-  useEffect(() => {
-    if (!visible) return;
-    const data = configService.get('acp.cachedInitializeResult');
-    setCachedInitResults(data ?? null);
-  }, [visible]);
 
   const cliAgentOptions = useMemo(() => cliAgents.map(cliAgentToOption), [cliAgents]);
-  const presetAssistantOptions = useMemo(() => presetAssistants.map(assistantToOption), [presetAssistants]);
-  const allAgents = filterTeamSupportedAgents([...cliAgentOptions, ...presetAssistantOptions], cachedInitResults);
+  const teamCapableKeys = useMemo(
+    () => new Set(cliAgents.filter((a) => a.team_capable).flatMap((a) => [a.id, a.backend].filter(Boolean) as string[])),
+    [cliAgents]
+  );
+  const presetAssistantOptions = useMemo(
+    () => presetAssistants.map((a) => assistantToOption(a, teamCapableKeys)),
+    [presetAssistants, teamCapableKeys]
+  );
+  const allAgents = filterTeamSupportedAgents([...cliAgentOptions, ...presetAssistantOptions]);
 
   const { supportedCliAgents, supportedPresetAssistants } = useMemo(() => {
     const supportedKeys = new Set(allAgents.map(agentKey));

@@ -82,6 +82,8 @@ export type AgentMetadata = {
   enabled: boolean;
   /** True iff the backend resolved the spawn command on `$PATH` at hydrate time. */
   available: boolean;
+  /** True when the agent supports team mode (MCP stdio capable). Computed by backend. */
+  team_capable?: boolean;
 
   /** Pre-resolution spawn command as stored in the catalog (e.g. "bun"). */
   command?: string;

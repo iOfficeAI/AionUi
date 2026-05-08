@@ -4,8 +4,6 @@ import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
-import type { AcpInitializeResult } from '@/common/types/acpTypes';
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 /**
@@ -22,18 +20,21 @@ export type TeamAgentOption = {
   /** Icon / avatar token — an SVG filename, emoji, or key into
    *  `CUSTOM_AVATAR_IMAGE_MAP`. */
   icon?: string;
+  /** Whether this agent supports team mode. Sourced from backend `team_capable` field. */
+  team_capable?: boolean;
 };
 
 export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
-  return { id: agent.id, name: agent.name, backend: agent.backend, icon: agent.icon };
+  return { id: agent.id, name: agent.name, backend: agent.backend, icon: agent.icon, team_capable: agent.team_capable };
 }
 
-export function assistantToOption(assistant: Assistant): TeamAgentOption {
+export function assistantToOption(assistant: Assistant, teamCapableKeys?: Set<string>): TeamAgentOption {
   return {
     id: assistant.id,
     name: assistant.name,
     backend: assistant.preset_agent_type,
     icon: assistant.avatar,
+    team_capable: teamCapableKeys ? teamCapableKeys.has(assistant.preset_agent_type) : undefined,
   };
 }
 
@@ -50,11 +51,8 @@ export function resolveTeamAgentType(agent: TeamAgentOption | undefined, fallbac
 }
 
 /** Filter agents to only those supported in team mode */
-export function filterTeamSupportedAgents(
-  agents: TeamAgentOption[],
-  cachedInitResults: Record<string, AcpInitializeResult> | null | undefined
-): TeamAgentOption[] {
-  return agents.filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
+export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentOption[] {
+  return agents.filter((a) => a.team_capable);
 }
 
 export function resolveConversationType(
