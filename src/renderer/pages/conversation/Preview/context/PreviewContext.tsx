@@ -39,6 +39,18 @@ export interface PreviewTab {
   originalContent?: string; // 原始内容，用于对比 / Original content for comparison
 }
 
+/**
+ * Mutable memory used by `usePreviewAutoCollapse` to detect preview open/close
+ * transitions and remember the sidebar state to restore. Stored on
+ * `PreviewProvider` (app-root) so it survives `ChatLayout` remounts triggered
+ * by `key={team.id}` on the team page.
+ */
+export interface PreviewAutoCollapseMemory {
+  previousPreviewOpen: boolean;
+  previousWorkspaceCollapsed: boolean | null;
+  previousSiderCollapsed: boolean | null;
+}
+
 export interface PreviewContextValue {
   // 预览面板状态 / Preview panel state
   isOpen: boolean;
@@ -67,6 +79,11 @@ export interface PreviewContextValue {
   addDomSnippet: (tag: string, html: string) => void;
   removeDomSnippet: (id: string) => void;
   clearDomSnippets: () => void;
+
+  // 由 usePreviewAutoCollapse 共享的状态记忆 / Shared memory for usePreviewAutoCollapse
+  // 放在 PreviewProvider 上以便跨团队切换（ChatLayout 重挂载）保持
+  // Placed on PreviewProvider so it survives ChatLayout remounts on team switch
+  autoCollapseMemoryRef: React.MutableRefObject<PreviewAutoCollapseMemory>;
 }
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
@@ -191,6 +208,14 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
+
+  // 共享给 usePreviewAutoCollapse 使用，跨 ChatLayout 重挂载存活
+  // Shared with usePreviewAutoCollapse; survives ChatLayout remounts (e.g., team switch via key={team.id})
+  const autoCollapseMemoryRef = useRef<PreviewAutoCollapseMemory>({
+    previousPreviewOpen: false,
+    previousWorkspaceCollapsed: null,
+    previousSiderCollapsed: null,
+  });
 
   // 获取当前激活的 tab / Get active tab
   const activeTab = useMemo(() => {
@@ -679,6 +704,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addDomSnippet,
       removeDomSnippet,
       clearDomSnippets,
+      autoCollapseMemoryRef,
     };
   }, [
     isOpen,

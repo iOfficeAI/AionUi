@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import { usePreviewContext } from '@/renderer/pages/conversation/Preview/context';
 
 type UsePreviewAutoCollapseParams = {
   isPreviewOpen: boolean;
@@ -13,6 +14,11 @@ type UsePreviewAutoCollapseParams = {
 /**
  * Auto-collapses sidebar and workspace when preview opens,
  * restoring their previous state when preview closes.
+ *
+ * The transition memory lives on `PreviewProvider` (app-root) instead of in
+ * this hook so that switching teams — which remounts `ChatLayout` via
+ * `key={team.id}` — does not reset the "previous open" flag and trigger a
+ * spurious force-collapse cycle.
  */
 export function usePreviewAutoCollapse({
   isPreviewOpen,
@@ -23,37 +29,37 @@ export function usePreviewAutoCollapse({
   siderCollapsed,
   setSiderCollapsed,
 }: UsePreviewAutoCollapseParams): void {
-  const previousWorkspaceCollapsedRef = useRef<boolean | null>(null);
-  const previousSiderCollapsedRef = useRef<boolean | null>(null);
-  const previousPreviewOpenRef = useRef(false);
+  const { autoCollapseMemoryRef } = usePreviewContext();
 
   useEffect(() => {
+    const memory = autoCollapseMemoryRef.current;
+
     if (!workspaceEnabled || !isDesktop) {
-      previousPreviewOpenRef.current = false;
+      memory.previousPreviewOpen = false;
       return;
     }
 
-    if (isPreviewOpen && !previousPreviewOpenRef.current) {
-      if (previousWorkspaceCollapsedRef.current === null) {
-        previousWorkspaceCollapsedRef.current = rightSiderCollapsed;
+    if (isPreviewOpen && !memory.previousPreviewOpen) {
+      if (memory.previousWorkspaceCollapsed === null) {
+        memory.previousWorkspaceCollapsed = rightSiderCollapsed;
       }
-      if (previousSiderCollapsedRef.current === null && typeof siderCollapsed !== 'undefined') {
-        previousSiderCollapsedRef.current = siderCollapsed;
+      if (memory.previousSiderCollapsed === null && typeof siderCollapsed !== 'undefined') {
+        memory.previousSiderCollapsed = siderCollapsed;
       }
       setRightSiderCollapsed(true);
       setSiderCollapsed?.(true);
-    } else if (!isPreviewOpen && previousPreviewOpenRef.current) {
-      if (previousWorkspaceCollapsedRef.current !== null) {
-        setRightSiderCollapsed(previousWorkspaceCollapsedRef.current);
-        previousWorkspaceCollapsedRef.current = null;
+    } else if (!isPreviewOpen && memory.previousPreviewOpen) {
+      if (memory.previousWorkspaceCollapsed !== null) {
+        setRightSiderCollapsed(memory.previousWorkspaceCollapsed);
+        memory.previousWorkspaceCollapsed = null;
       }
-      if (previousSiderCollapsedRef.current !== null && setSiderCollapsed) {
-        setSiderCollapsed(previousSiderCollapsedRef.current);
-        previousSiderCollapsedRef.current = null;
+      if (memory.previousSiderCollapsed !== null && setSiderCollapsed) {
+        setSiderCollapsed(memory.previousSiderCollapsed);
+        memory.previousSiderCollapsed = null;
       }
     }
 
-    previousPreviewOpenRef.current = isPreviewOpen;
+    memory.previousPreviewOpen = isPreviewOpen;
   }, [
     isPreviewOpen,
     isDesktop,
@@ -62,5 +68,6 @@ export function usePreviewAutoCollapse({
     rightSiderCollapsed,
     workspaceEnabled,
     setRightSiderCollapsed,
+    autoCollapseMemoryRef,
   ]);
 }
