@@ -36,6 +36,7 @@ vi.mock('../../src/process/agent/AgentRegistry', () => ({
   agentRegistry: {
     getDetectedAgents: vi.fn(() => []),
     refreshCustomAgents: vi.fn(async () => {}),
+    initialize: vi.fn(async () => {}),
   },
 }));
 
@@ -93,6 +94,7 @@ describe('acpConversationBridge', () => {
     taskManager = makeTaskManager();
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([]);
+    vi.mocked(agentRegistry.initialize).mockResolvedValue();
     initAcpConversationBridge(taskManager);
   });
 
