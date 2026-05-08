@@ -1,7 +1,4 @@
-/**
- * zh-CN locale module index
- * Exports all translation modules for Chinese (Simplified)
- */
+/** * zh-CN locale module index * Exports all translation modules for zh-CN */
 
 import common from './common.json';
 import agentMode from './agentMode.json';

@@ -1,7 +1,4 @@
-/**
- * en-US locale module index
- * Exports all translation modules for English (US)
- */
+/** * en-US locale module index * Exports all translation modules for en-US */
 
 import common from './common.json';
 import agentMode from './agentMode.json';
