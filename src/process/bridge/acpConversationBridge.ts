@@ -28,23 +28,25 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     });
   });
 
-  ipcBridge.acpConversation.detectCliPath.provider(({ backend }) => {
+  ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
+    await agentRegistry.initialize();
     const agents = agentRegistry.getDetectedAgents();
     const agent = agents.find((a) => isAgentKind(a, 'acp') && a.backend === backend);
 
     if (agent && isAgentKind(agent, 'acp') && agent.cliPath) {
-      return Promise.resolve({ success: true, data: { path: agent.cliPath } });
+      return { success: true, data: { path: agent.cliPath } };
     }
 
-    return Promise.resolve({
+    return {
       success: false,
       msg: `${backend} CLI not found. Please install it and ensure it's accessible.`,
-    });
+    };
   });
 
   // Get all detected execution engines, enriched with MCP transport support info.
-  ipcBridge.acpConversation.getAvailableAgents.provider(() => {
+  ipcBridge.acpConversation.getAvailableAgents.provider(async () => {
     try {
+      await agentRegistry.initialize();
       const agents = agentRegistry.getDetectedAgents();
       const enriched = agents.map((agent) => ({
         ...agent,
@@ -63,12 +65,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
         customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
       }));
-      return Promise.resolve({ success: true as const, data });
+      return { success: true as const, data };
     } catch (error) {
-      return Promise.resolve({
+      return {
         success: false as const,
         msg: error instanceof Error ? error.message : 'Unknown error',
-      });
+      };
     }
   });
 
@@ -89,6 +91,7 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
     const startTime = Date.now();
 
     // Step 1: Check if CLI is installed
+    await agentRegistry.initialize();
     const agents = agentRegistry.getDetectedAgents();
     const agent = agents.find((a) => isAgentKind(a, 'acp') && a.backend === backend);
     const acpAgent = agent && isAgentKind(agent, 'acp') ? agent : undefined;

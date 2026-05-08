@@ -22,28 +22,42 @@ import './services/i18n'; // Initialize i18n for main process
 import { getChannelManager } from '@process/channels';
 import { ExtensionRegistry } from '@process/extensions';
 
-export const initializeProcess = async () => {
+export type InitializeProcessOptions = {
+  initializeChannels?: boolean;
+  initializeExtensions?: boolean;
+};
+
+export const initializeProcess = async (options: InitializeProcessOptions = {}) => {
+  const { initializeChannels = true, initializeExtensions = true } = options;
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[AionUi:process] ${label} +${Math.round(performance.now() - t0)}ms`);
 
   await initStorage();
   mark('initStorage');
 
-  // Initialize Extension Registry (scan and resolve all extensions)
-  try {
-    await ExtensionRegistry.getInstance().initialize();
-  } catch (error) {
-    console.error('[Process] Failed to initialize ExtensionRegistry:', error);
-    // Don't fail app startup if extensions fail to initialize
+  if (initializeExtensions) {
+    // Initialize Extension Registry (scan and resolve all extensions)
+    try {
+      await ExtensionRegistry.getInstance().initialize();
+    } catch (error) {
+      console.error('[Process] Failed to initialize ExtensionRegistry:', error);
+      // Don't fail app startup if extensions fail to initialize
+    }
+    mark('ExtensionRegistry');
+  } else {
+    mark('ExtensionRegistry skipped');
   }
-  mark('ExtensionRegistry');
 
-  // Initialize Channel subsystem
-  try {
-    await getChannelManager().initialize();
-  } catch (error) {
-    console.error('[Process] Failed to initialize ChannelManager:', error);
-    // Don't fail app startup if channel fails to initialize
+  if (initializeChannels) {
+    // Initialize Channel subsystem
+    try {
+      await getChannelManager().initialize();
+    } catch (error) {
+      console.error('[Process] Failed to initialize ChannelManager:', error);
+      // Don't fail app startup if channel fails to initialize
+    }
+    mark('ChannelManager');
+  } else {
+    mark('ChannelManager skipped');
   }
-  mark('ChannelManager');
 };

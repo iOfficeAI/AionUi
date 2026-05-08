@@ -36,6 +36,15 @@ import { startWebServer } from './process/webserver';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
+  shouldInitializeStartupChannels,
+  shouldInitializeStartupExtensions,
+  shouldLoadShellEnvironmentOnStartup,
+  shouldRestoreDesktopWebUI,
+  shouldRunStartupAgentDetection,
+  shouldRunStartupAutoUpdate,
+  shouldRunStartupDiagnostics,
+} from './process/utils/agentuiLite';
+import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
   handleDeepLinkUrl,
@@ -132,7 +141,9 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
 // Log environment diagnostics once at startup (persisted via electron-log).
 // Phase 1 prints sync info immediately; Phase 2 resolves CLI tools in the
 // background — fire-and-forget so it never blocks the startup path (#1157).
-void logEnvironmentDiagnostics();
+if (shouldRunStartupDiagnostics()) {
+  void logEnvironmentDiagnostics();
+}
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {
@@ -295,7 +306,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   const isCiRuntime = process.env.CI === 'true' || process.env.CI === '1' || process.env.GITHUB_ACTIONS === 'true';
   const disableAutoUpdater =
     process.env.AIONUI_DISABLE_AUTO_UPDATE === '1' || process.env.AIONUI_E2E_TEST === '1' || isCiRuntime;
-  if (!disableAutoUpdater) {
+  if (!disableAutoUpdater && shouldRunStartupAutoUpdate()) {
     Promise.all([import('./process/services/autoUpdaterService'), import('./process/bridge/updateBridge')])
       .then(([{ autoUpdaterService }, { createAutoUpdateStatusBroadcast }]) => {
         // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
@@ -310,8 +321,10 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
       .catch((error) => {
         console.error('[App] Failed to initialize autoUpdaterService:', error);
       });
-  } else {
+  } else if (disableAutoUpdater) {
     console.log('[AionUi] Auto-updater disabled via env/CI guard');
+  } else {
+    console.log('[AgentUi] Auto-updater skipped by Lite startup profile');
   }
 
   // Load the renderer: dev server URL in development, built HTML file in production
@@ -446,7 +459,10 @@ const handleAppReady = async (): Promise<void> => {
   Sentry.setUser({ id: getOrCreateAnalyticsId() });
 
   try {
-    await initializeProcess();
+    await initializeProcess({
+      initializeChannels: shouldInitializeStartupChannels(),
+      initializeExtensions: shouldInitializeStartupExtensions(),
+    });
     mark('initializeProcess');
   } catch (error) {
     console.error('Failed to initialize process:', error);
@@ -550,12 +566,14 @@ const handleAppReady = async (): Promise<void> => {
       })();
     }, 3000);
 
-    // Run ACP detection in parallel with renderer loading.
-    // By the time React mounts and calls getAvailableAgents (~300ms+),
-    // detection (~700ms) is usually already done.
-    initializeAcpDetector()
-      .then(() => mark('initializeAcpDetector'))
-      .catch((error) => console.error('[ACP] Detection failed:', error));
+    if (shouldRunStartupAgentDetection()) {
+      // Run ACP detection in parallel with renderer loading when requested.
+      initializeAcpDetector()
+        .then(() => mark('initializeAcpDetector'))
+        .catch((error) => console.error('[ACP] Detection failed:', error));
+    } else {
+      mark('initializeAcpDetector skipped');
+    }
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu
@@ -573,11 +591,13 @@ const handleAppReady = async (): Promise<void> => {
       void refreshTrayMenu();
     });
 
-    if (!isE2ETestMode) {
+    if (!isE2ETestMode && shouldRestoreDesktopWebUI()) {
       // 窗口创建后异步恢复 WebUI，不阻塞 UI / Restore WebUI async after window creation, non-blocking
       restoreDesktopWebUIFromPreferences().catch((error) => {
         console.error('[WebUI] Failed to auto-restore:', error);
       });
+    } else if (!isE2ETestMode) {
+      mark('restoreDesktopWebUI skipped');
     }
 
     // Flush pending deep-link URL (received before window was ready)
@@ -595,7 +615,7 @@ const handleAppReady = async (): Promise<void> => {
     await initializeAcpDetector();
   }
 
-  if (!isResetPasswordMode) {
+  if (!isResetPasswordMode && shouldLoadShellEnvironmentOnStartup()) {
     // Preload shell environment and apply it to process.env so workers forked
     // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
     // This ensures custom skills that depend on globally installed tools work correctly.
@@ -610,6 +630,8 @@ const handleAppReady = async (): Promise<void> => {
         }
       }
     });
+  } else if (!isResetPasswordMode) {
+    mark('loadShellEnvironment skipped');
   }
 
   // Verify CDP is ready and log status
