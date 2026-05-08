@@ -21,12 +21,19 @@ import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropd
 import QuickActionButtons from './components/QuickActionButtons';
 import SkillsMarketBanner from './components/SkillsMarketBanner';
 import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
+import NovaMissionControl from './components/NovaMissionControl';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
+import {
+  NOVA_ORB_OPTIONS,
+  NOVA_COMMAND_ACTIONS,
+  getNovaPriorityServices,
+  type NovaOrbStyle,
+} from './novamasterMissionControl';
 import { ConfigStorage } from '@/common/config/storage';
 import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
@@ -37,6 +44,41 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styles from './index.module.css';
+
+type NovaStackService = {
+  id: string;
+  name: string;
+  role: string;
+  port?: number;
+  healthPath?: string;
+  openUrl: string;
+  status: 'online' | 'degraded' | 'offline';
+  latencyMs: number | null;
+  httpStatus: number | null;
+  detail?: Record<string, unknown>;
+  error?: string;
+  actions?: NovaStackServiceAction[];
+};
+
+type NovaStackServiceAction = {
+  id: string;
+  label: string;
+  method: 'GET' | 'POST';
+  path: string;
+};
+
+type NovaStackPayload = {
+  updatedAt: string;
+  summary: {
+    total: number;
+    online: number;
+    degraded: number;
+    offline: number;
+  };
+  services: NovaStackService[];
+};
+
+const NOVA_ORB_CORE_SERVICE_IDS = ['openclaw', 'space-agent', 'hermes', 'ollama'];
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -50,6 +92,19 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [novaStack, setNovaStack] = useState<NovaStackPayload | null>(null);
+  const [novaStackError, setNovaStackError] = useState<string | null>(null);
+  const [novaLaunchingServiceId, setNovaLaunchingServiceId] = useState<string | null>(null);
+  const [novaActionServiceId, setNovaActionServiceId] = useState<string | null>(null);
+  const [novaActionReceipts, setNovaActionReceipts] = useState<Record<string, string>>({});
+  const [novaOrbStyle, setNovaOrbStyle] = useState<NovaOrbStyle>(() => {
+    try {
+      const stored = localStorage.getItem('novamaster.orbStyle');
+      return NOVA_ORB_OPTIONS.some((option) => option.key === stored) ? (stored as NovaOrbStyle) : 'trinity';
+    } catch {
+      return 'trinity';
+    }
+  });
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -58,6 +113,117 @@ const GuidPage: React.FC = () => {
     } catch (error) {
       console.error('Failed to open external link:', error);
     }
+  }, []);
+
+  const handleNovaOrbStyleChange = useCallback((style: NovaOrbStyle) => {
+    setNovaOrbStyle(style);
+    try {
+      localStorage.setItem('novamaster.orbStyle', style);
+    } catch {
+      // Best-effort visual preference only.
+    }
+  }, []);
+
+  const handleOpenNovaService = useCallback(
+    async (service: NovaStackService) => {
+      setNovaLaunchingServiceId(service.id);
+      try {
+        const response = await fetch(`/api/novamaster/services/${encodeURIComponent(service.id)}/open`, {
+          method: 'GET',
+          credentials: 'include',
+        });
+        const payload = (await response.json().catch((): null => null)) as
+          | { success?: boolean; data?: { launched?: boolean; openUrl?: string; command?: string }; msg?: string }
+          | null;
+        if (!response.ok || !payload?.success) {
+          throw new Error(payload?.msg || `HTTP ${response.status}`);
+        }
+        const targetUrl = payload.data?.openUrl || service.openUrl;
+        if (!payload.data?.launched && targetUrl) {
+          await openLink(targetUrl);
+        }
+        setNovaActionReceipts((current) => ({
+          ...current,
+          [service.id]: payload.data?.launched
+            ? `Launched ${payload.data.command || service.name}`
+            : `Opened ${service.name}`,
+        }));
+      } catch (error) {
+        console.error('Failed to launch NovaMaster service:', error);
+        await openLink(service.openUrl);
+        setNovaActionReceipts((current) => ({
+          ...current,
+          [service.id]: `Opened ${service.name}`,
+        }));
+      } finally {
+        setNovaLaunchingServiceId((current) => (current === service.id ? null : current));
+      }
+    },
+    [openLink]
+  );
+
+  const handleRunNovaServiceAction = useCallback(async (service: NovaStackService) => {
+    const action = service.actions?.[0];
+    if (!action) return;
+
+    setNovaActionServiceId(service.id);
+    try {
+      const response = await fetch(`/api/novamaster/services/${encodeURIComponent(service.id)}/action`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+      const payload = (await response.json().catch((): null => null)) as
+        | { success?: boolean; data?: { receipt?: string; latencyMs?: number; httpStatus?: number }; msg?: string }
+        | null;
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.msg || `HTTP ${response.status}`);
+      }
+      const suffix = typeof payload.data?.latencyMs === 'number' ? ` / ${payload.data.latencyMs}ms` : '';
+      setNovaActionReceipts((current) => ({
+        ...current,
+        [service.id]: `${payload.data?.receipt || `${action.label}: ok`}${suffix}`,
+      }));
+    } catch (error) {
+      console.error('Failed to run NovaMaster action:', error);
+      setNovaActionReceipts((current) => ({
+        ...current,
+        [service.id]: error instanceof Error ? error.message : `${action.label} failed`,
+      }));
+    } finally {
+      setNovaActionServiceId((current) => (current === service.id ? null : current));
+    }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadNovaStack = async () => {
+      try {
+        const response = await fetch('/api/novamaster/stack', { credentials: 'include' });
+        const payload = (await response.json()) as { success?: boolean; data?: NovaStackPayload; msg?: string };
+        if (!response.ok || !payload.success || !payload.data) {
+          throw new Error(payload.msg || `HTTP ${response.status}`);
+        }
+        if (!cancelled) {
+          setNovaStack(payload.data);
+          setNovaStackError(null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setNovaStackError(error instanceof Error ? error.message : 'Stack status unavailable');
+        }
+      }
+    };
+
+    loadNovaStack().catch((error) => {
+      console.error('Failed to load NovaMaster stack:', error);
+    });
+    const timer = window.setInterval(loadNovaStack, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
   }, []);
 
   // --- Skills state ---
@@ -471,6 +637,48 @@ const GuidPage: React.FC = () => {
   const effectiveAgentType = agentSelection.isPresetAgent
     ? agentSelection.currentEffectiveAgentInfo.agentType
     : agentSelection.selectedAgent;
+  const novaStackSummary = novaStack?.summary;
+  const novaStackServices = getNovaPriorityServices(novaStack?.services ?? []);
+  const novaStackServicesById = useMemo(() => {
+    return new Map((novaStack?.services ?? []).map((service) => [service.id, service]));
+  }, [novaStack?.services]);
+  const novaOrbCoreServices = useMemo(() => {
+    return NOVA_ORB_CORE_SERVICE_IDS.map((id) => novaStackServicesById.get(id)).filter(
+      (service): service is NovaStackService => Boolean(service)
+    );
+  }, [novaStackServicesById]);
+  const novaOrbSignal = novaStackSummary
+    ? [
+        { label: 'Online', value: novaStackSummary.online, tone: 'online' },
+        { label: 'Warn', value: novaStackSummary.degraded, tone: 'degraded' },
+        { label: 'Down', value: novaStackSummary.offline, tone: 'offline' },
+      ]
+    : [
+        { label: 'Online', value: '--', tone: 'online' },
+        { label: 'Warn', value: '--', tone: 'degraded' },
+        { label: 'Down', value: '--', tone: 'offline' },
+      ];
+  const novaMissionBusy =
+    guidInput.loading || novaLaunchingServiceId !== null || novaActionServiceId !== null || (!novaStack && !novaStackError);
+  const novaOrbClassName = [styles.novaOrb, styles[`novaOrb_${novaOrbStyle}`]].filter(Boolean).join(' ');
+  const novaStackAge = novaStack
+    ? new Date(novaStack.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    : '--:--';
+  const formatNovaServiceDetail = useCallback((service: NovaStackService): string => {
+    const detail = service.detail ?? {};
+    const parts: string[] = [];
+    const jobs = detail.jobs;
+    const queue = detail.queue;
+    const logs = detail.logs;
+    const models = detail.models;
+
+    if (typeof jobs === 'number') parts.push(`${jobs} jobs`);
+    if (typeof queue === 'number') parts.push(`${queue} queued`);
+    if (typeof logs === 'number') parts.push(`${logs} logs`);
+    if (typeof models === 'number') parts.push(`${models} models`);
+
+    return parts.join(' / ');
+  }, []);
 
   // Agents that use configured model providers instead of ACP probe-based models
   const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
@@ -545,6 +753,15 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <SkillsMarketBanner />
         <div className={styles.guidLayout}>
+          <div className={`${styles.novaIdentity} ${novaMissionBusy ? styles.novaIdentityBusy : ''}`} aria-label='NovaMaster Nova Core'>
+            <img className={styles.novaIdentityMark} src='/novamaster-logo.svg' alt='' width={34} height={34} />
+            {novaMissionBusy ? <span className={styles.novaWorkingRing} aria-hidden='true' /> : null}
+            <div className={styles.novaIdentityText}>
+              <span className={styles.novaIdentityName}>NovaMaster</span>
+              <span className={styles.novaIdentityMode}>Nova Core</span>
+            </div>
+          </div>
+          <NovaMissionControl />
           <div className={styles.heroHeader}>
             {agentSelection.isPresetAgent ? (
               <div className={styles.heroHeaderControls}>

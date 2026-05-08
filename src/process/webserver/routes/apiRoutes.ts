@@ -5,6 +5,7 @@
  */
 
 import { type Express, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
+import { spawn } from 'child_process';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import http from 'node:http';
@@ -37,6 +38,708 @@ const uploadAudio = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_AUDIO_SIZE },
 });
+
+type NovaMasterProbe = {
+  id: string;
+  name: string;
+  role: string;
+  port?: number;
+  portFile?: string;
+  healthPath?: string;
+  detailPath?: string;
+  openUrl: string;
+  kind?: 'http' | 'local';
+  toolPath?: string;
+  rootPath?: string;
+  logPath?: string;
+  launchPath?: string;
+  expectedService?: string | string[];
+  forbiddenService?: string | string[];
+  primaryAction?: NovaMasterServiceAction;
+};
+
+type NovaMasterProbeResult = Omit<NovaMasterProbe, 'primaryAction'> & {
+  status: 'online' | 'degraded' | 'offline';
+  latencyMs: number | null;
+  httpStatus: number | null;
+  detail?: Record<string, unknown>;
+  error?: string;
+  actions?: Array<Pick<NovaMasterServiceAction, 'id' | 'label' | 'method' | 'path'>>;
+};
+
+type NovaMasterServiceAction = {
+  id: string;
+  label: string;
+  method: 'GET' | 'POST';
+  path: string;
+  body?: Record<string, unknown>;
+};
+
+const NOVAMASTER_PROBES: NovaMasterProbe[] = [
+  {
+    id: 'aionui',
+    name: 'AionUi',
+    role: 'Primary cockpit',
+    port: 3000,
+    healthPath: '/api/auth/status',
+    openUrl: 'http://127.0.0.1:3000/#/guid',
+    launchPath: '/home/faramix/bin/novamaster-open-aionui-native',
+  },
+  {
+    id: 'jarvis',
+    name: 'Jarvis',
+    role: 'Command cockpit API',
+    port: 8096,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:8096/health',
+    launchPath: '/home/faramix/bin/novamaster-open-jarvis-native',
+    primaryAction: {
+      id: 'chat',
+      label: 'Chat',
+      method: 'POST',
+      path: '/chat',
+      body: { message: 'status' },
+    },
+  },
+  {
+    id: 'space-agent',
+    name: 'Space Agent',
+    role: 'Workspace agent',
+    port: 3003,
+    healthPath: '/api/health',
+    openUrl: 'http://127.0.0.1:3003',
+    primaryAction: {
+      id: 'health',
+      label: 'Health',
+      method: 'GET',
+      path: '/api/health',
+    },
+  },
+  {
+    id: 'claw3d',
+    name: 'Claw3D',
+    role: '3D command layer',
+    port: 9119,
+    portFile: '/home/faramix/.hermes/claw3d-port',
+    healthPath: '/api/health',
+    openUrl: 'http://127.0.0.1:{port}',
+    launchPath: '/home/faramix/bin/novamaster-open-claw3d-native',
+    expectedService: 'claw3d',
+    forbiddenService: ['jarvis', 'jarvis-cockpit'],
+  },
+  {
+    id: 'openclaw',
+    name: 'OpenClaw',
+    role: 'Gateway and Mission Control',
+    port: 18791,
+    healthPath: '/health',
+    detailPath: '/v1/models',
+    openUrl: 'http://127.0.0.1:18791/v1/models',
+    primaryAction: {
+      id: 'models',
+      label: 'Models',
+      method: 'GET',
+      path: '/v1/models',
+    },
+  },
+  {
+    id: 'goclaw',
+    name: 'GoClaw',
+    role: 'Protocol gateway',
+    port: 18790,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:18790/health',
+    primaryAction: {
+      id: 'health',
+      label: 'Health',
+      method: 'GET',
+      path: '/health',
+    },
+  },
+  {
+    id: 'metaclaw',
+    name: 'MetaClaw',
+    role: 'Model router',
+    port: 30000,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:30000/v1/models',
+  },
+  {
+    id: 'clawmem',
+    name: 'ClawMem',
+    role: 'Memory index',
+    port: 7438,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:7438/health',
+  },
+  {
+    id: 'video-factory',
+    name: 'Video Factory',
+    role: 'Analysis and render queue',
+    kind: 'local',
+    toolPath: '/home/faramix/bin/novamaster-video-factory',
+    rootPath: '/home/faramix/NovaMaster/video-factory',
+    logPath: '/home/faramix/NovaMaster/video-factory/logs',
+    openUrl: 'file:///home/faramix/NovaMaster/video-factory',
+  },
+  {
+    id: 'music-clips',
+    name: 'Music Clip Factory',
+    role: 'Beat-matched clip studio',
+    kind: 'local',
+    toolPath: '/home/faramix/bin/novamaster-music-clips-studio',
+    rootPath: '/home/faramix/NovaMaster/video-factory/music-clips',
+    logPath: '/home/faramix/NovaMaster/video-factory/music-clips/logs',
+    openUrl: 'file:///home/faramix/NovaMaster/video-factory/music-clips/output',
+  },
+  {
+    id: 'hermes',
+    name: 'Hermes',
+    role: 'Self-improving agent',
+    port: 8642,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:8642/health',
+    primaryAction: {
+      id: 'health',
+      label: 'Health',
+      method: 'GET',
+      path: '/health',
+    },
+  },
+  {
+    id: 'hermes-dashboard',
+    name: 'Hermes Dashboard',
+    role: 'Swarm and skills UI',
+    port: 9119,
+    healthPath: '/',
+    openUrl: 'http://127.0.0.1:9119',
+  },
+  {
+    id: 'vibevoice',
+    name: 'VibeVoice',
+    role: 'Voice layer',
+    port: 8094,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:8094/health',
+  },
+  {
+    id: 'ollama',
+    name: 'Ollama',
+    role: 'Local/cloud models',
+    port: 11434,
+    healthPath: '/api/tags',
+    openUrl: 'http://127.0.0.1:11434/api/tags',
+  },
+  {
+    id: 'litellm',
+    name: 'LiteLLM',
+    role: 'Inference gateway',
+    port: 4000,
+    healthPath: '/health/readiness',
+    openUrl: 'http://127.0.0.1:4000/health/readiness',
+  },
+];
+
+function summarizeNovaPayload(payload: unknown): Record<string, unknown> | undefined {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return undefined;
+  }
+
+  const source = payload as Record<string, unknown>;
+  const detail: Record<string, unknown> = {};
+  const scalarKeys = [
+    'status',
+    'ok',
+    'success',
+    'healthy',
+    'service',
+    'name',
+    'version',
+    'needsSetup',
+    'isAuthenticated',
+    'documents',
+    'needsEmbedding',
+    'hasVectors',
+    'protocol',
+  ];
+
+  for (const key of scalarKeys) {
+    const value = source[key];
+    if (
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean' ||
+      value === null
+    ) {
+      detail[key] = value;
+    }
+  }
+
+  const models = source.models;
+  if (Array.isArray(models)) {
+    detail.models = models.length;
+  }
+
+  const data = source.data;
+  if (Array.isArray(data)) {
+    detail.models = data.length;
+  }
+  if (data && typeof data === 'object' && !Array.isArray(data)) {
+    const nested = data as Record<string, unknown>;
+    if (Array.isArray(nested.models)) {
+      detail.models = nested.models.length;
+    }
+    if (typeof nested.status === 'string') {
+      detail.status = nested.status;
+    }
+  }
+
+  for (const key of ['response', 'reply', 'message']) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) {
+      detail.responseChars = value.length;
+      break;
+    }
+  }
+
+  return Object.keys(detail).length > 0 ? detail : undefined;
+}
+
+function normalizeServiceMatchers(input: string | string[] | undefined): string[] {
+  const values = Array.isArray(input) ? input : input ? [input] : [];
+  return values.map((value) => value.trim().toLowerCase()).filter(Boolean);
+}
+
+function getNovaPayloadServiceName(payload: unknown): string | undefined {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
+    return undefined;
+  }
+
+  const source = payload as Record<string, unknown>;
+  for (const key of ['service', 'name']) {
+    const value = source[key];
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+  }
+
+  return undefined;
+}
+
+function validateNovaPayloadService(probe: NovaMasterProbe, payload: unknown): string | undefined {
+  const serviceName = getNovaPayloadServiceName(payload);
+  if (!serviceName) {
+    return undefined;
+  }
+
+  const normalized = serviceName.toLowerCase();
+  const forbidden = normalizeServiceMatchers(probe.forbiddenService);
+  if (forbidden.some((matcher) => normalized.includes(matcher))) {
+    return `unexpected service: ${serviceName}`;
+  }
+
+  const expected = normalizeServiceMatchers(probe.expectedService);
+  if (expected.length > 0 && !expected.some((matcher) => normalized.includes(matcher))) {
+    return `expected ${expected.join(' or ')}, got ${serviceName}`;
+  }
+
+  return undefined;
+}
+
+async function requestNovaMasterEndpoint(
+  port: number,
+  requestPath: string,
+  options: { method?: 'GET' | 'POST'; body?: Record<string, unknown>; timeoutMs?: number } = {}
+): Promise<{ httpStatus: number | null; latencyMs: number; payload: unknown }> {
+  const method = options.method ?? 'GET';
+  const startedAt = Date.now();
+  const body = options.body ? JSON.stringify(options.body) : undefined;
+
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: requestPath,
+        method,
+        headers: {
+          Accept: 'application/json',
+          ...(body
+            ? {
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(body),
+              }
+            : {}),
+        },
+      },
+      (res) => {
+        let responseBody = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          if (responseBody.length < 32768) {
+            responseBody += chunk;
+          }
+        });
+        res.on('end', () => {
+          let payload: unknown = undefined;
+          if (responseBody.trim()) {
+            try {
+              payload = JSON.parse(responseBody);
+            } catch {
+              payload = { body: responseBody.slice(0, 500) };
+            }
+          }
+
+          resolve({
+            httpStatus: res.statusCode ?? null,
+            latencyMs: Date.now() - startedAt,
+            payload,
+          });
+        });
+      }
+    );
+
+    req.setTimeout(options.timeoutMs ?? 2500, () => {
+      req.destroy(new Error('request timeout'));
+    });
+    req.on('error', reject);
+    if (body) {
+      req.write(body);
+    }
+    req.end();
+  });
+}
+
+function getNovaMasterActions(probe: NovaMasterProbe): Array<Pick<NovaMasterServiceAction, 'id' | 'label' | 'method' | 'path'>> | undefined {
+  if (!probe.primaryAction) {
+    return undefined;
+  }
+
+  const { id, label, method, path: actionPath } = probe.primaryAction;
+  return [{ id, label, method, path: actionPath }];
+}
+
+function getPublicNovaMasterProbe(probe: NovaMasterProbe): Omit<NovaMasterProbe, 'primaryAction'> {
+  const { primaryAction: _primaryAction, ...publicProbe } = probe;
+  return publicProbe;
+}
+
+async function resolveNovaMasterPort(probe: NovaMasterProbe): Promise<number | undefined> {
+  if (!probe.portFile) {
+    return probe.port;
+  }
+
+  try {
+    const raw = await fsPromises.readFile(probe.portFile, 'utf8');
+    const match = raw.match(/\d{2,5}/);
+    if (match) {
+      const port = Number(match[0]);
+      if (Number.isInteger(port) && port > 0 && port <= 65535) {
+        return port;
+      }
+    }
+  } catch {
+    // Fall back to the configured port when the runtime port file is missing.
+  }
+
+  return probe.port;
+}
+
+function resolveNovaMasterOpenUrl(probe: NovaMasterProbe, port?: number): string {
+  if (!port) {
+    return probe.openUrl;
+  }
+
+  return probe.openUrl.replaceAll('{port}', String(port));
+}
+
+async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMasterProbeResult> {
+  if (probe.kind === 'local') {
+    return probeNovaMasterLocalTool(probe);
+  }
+
+  const port = await resolveNovaMasterPort(probe);
+  const openUrl = resolveNovaMasterOpenUrl(probe, port);
+
+  if (!port || !probe.healthPath) {
+    return Promise.resolve({
+      ...getPublicNovaMasterProbe(probe),
+      port,
+      openUrl,
+      status: 'offline',
+      latencyMs: null,
+      httpStatus: null,
+      error: 'missing http probe target',
+      actions: getNovaMasterActions(probe),
+    });
+  }
+
+  const startedAt = Date.now();
+
+  return new Promise((resolve) => {
+    const req = http.get(
+      {
+        hostname: '127.0.0.1',
+        port,
+        path: probe.healthPath,
+        headers: { Accept: 'application/json' },
+      },
+      (res) => {
+        let body = '';
+        res.setEncoding('utf8');
+        res.on('data', (chunk) => {
+          if (body.length < 32768) {
+            body += chunk;
+          }
+        });
+        res.on('end', async () => {
+          const latencyMs = Date.now() - startedAt;
+          const httpStatus = res.statusCode ?? null;
+          let payload: unknown;
+
+          try {
+            payload = body ? JSON.parse(body) : undefined;
+          } catch {
+            payload = undefined;
+          }
+
+          const serviceError = validateNovaPayloadService(probe, payload);
+          const detail = summarizeNovaPayload(payload) ?? {};
+
+          if (probe.detailPath && httpStatus && httpStatus >= 200 && httpStatus < 300) {
+            try {
+              const detailResponse = await requestNovaMasterEndpoint(port, probe.detailPath, { timeoutMs: 1800 });
+              Object.assign(detail, summarizeNovaPayload(detailResponse.payload));
+            } catch (error) {
+              detail.detailError = error instanceof Error ? error.message : 'detail probe failed';
+            }
+          }
+
+          resolve({
+            ...getPublicNovaMasterProbe(probe),
+            port,
+            openUrl,
+            status:
+              serviceError || !httpStatus || httpStatus < 200 || httpStatus >= 300 ? 'degraded' : 'online',
+            latencyMs,
+            httpStatus,
+            detail: Object.keys(detail).length > 0 ? detail : undefined,
+            error: serviceError,
+            actions: getNovaMasterActions(probe),
+          });
+        });
+      }
+    );
+
+    req.setTimeout(1400, () => {
+      req.destroy(new Error('timeout'));
+    });
+
+    req.on('error', (error: NodeJS.ErrnoException) => {
+      resolve({
+        ...getPublicNovaMasterProbe(probe),
+        port,
+        openUrl,
+        status: 'offline',
+        latencyMs: null,
+        httpStatus: null,
+        error: error.code === 'ECONNREFUSED' ? 'connection refused' : error.message,
+        actions: getNovaMasterActions(probe),
+      });
+    });
+  });
+}
+
+async function countEntries(targetPath: string | undefined, maxDepth = 1): Promise<number> {
+  if (!targetPath) return 0;
+  try {
+    const entries = await fsPromises.readdir(targetPath, { withFileTypes: true });
+    if (maxDepth <= 1) return entries.length;
+    return entries.length;
+  } catch {
+    return 0;
+  }
+}
+
+async function probeNovaMasterLocalTool(probe: NovaMasterProbe): Promise<NovaMasterProbeResult> {
+  const startedAt = Date.now();
+  const detail: Record<string, unknown> = {};
+
+  try {
+    if (probe.toolPath) {
+      await fsPromises.access(probe.toolPath, fs.constants.X_OK);
+      detail.tool = path.basename(probe.toolPath);
+    }
+
+    if (probe.rootPath) {
+      await fsPromises.mkdir(probe.rootPath, { recursive: true });
+      detail.root = probe.rootPath;
+      detail.jobs = await countEntries(path.join(probe.rootPath, 'output'));
+      detail.queue = await countEntries(path.join(probe.rootPath, 'queue'));
+    }
+
+    if (probe.logPath) {
+      detail.logs = await countEntries(probe.logPath);
+    }
+
+    return {
+      ...getPublicNovaMasterProbe(probe),
+      status: 'online',
+      latencyMs: Date.now() - startedAt,
+      httpStatus: null,
+      detail,
+      actions: getNovaMasterActions(probe),
+    };
+  } catch (error) {
+    return {
+      ...getPublicNovaMasterProbe(probe),
+      status: 'offline',
+      latencyMs: null,
+      httpStatus: null,
+      detail,
+      error: error instanceof Error ? error.message : 'local probe failed',
+      actions: getNovaMasterActions(probe),
+    };
+  }
+}
+
+async function getNovaMasterStackStatus() {
+  const services = await Promise.all(NOVAMASTER_PROBES.map((probe) => probeNovaMasterService(probe)));
+  const online = services.filter((service) => service.status === 'online').length;
+  const degraded = services.filter((service) => service.status === 'degraded').length;
+
+  return {
+    updatedAt: new Date().toISOString(),
+    summary: {
+      total: services.length,
+      online,
+      degraded,
+      offline: services.length - online - degraded,
+    },
+    services,
+  };
+}
+
+function buildNovaMasterActionReceipt(
+  action: NovaMasterServiceAction,
+  detail: Record<string, unknown> | undefined,
+  httpStatus: number | null
+): string {
+  if (!httpStatus || httpStatus < 200 || httpStatus >= 300) {
+    return `${action.label} returned HTTP ${httpStatus ?? 'unknown'}`;
+  }
+
+  if (typeof detail?.models === 'number') {
+    return `${action.label}: ${detail.models} models`;
+  }
+
+  if (typeof detail?.protocol === 'number') {
+    return `${action.label}: protocol ${detail.protocol}`;
+  }
+
+  if (typeof detail?.responseChars === 'number') {
+    return `${action.label}: response received`;
+  }
+
+  const status = detail?.status ?? detail?.ok ?? detail?.healthy ?? detail?.success;
+  if (typeof status === 'string' || typeof status === 'boolean' || typeof status === 'number') {
+    return `${action.label}: ${String(status)}`;
+  }
+
+  return `${action.label}: ok`;
+}
+
+async function runNovaMasterServiceAction(serviceId: string): Promise<Record<string, unknown>> {
+  const probe = NOVAMASTER_PROBES.find((candidate) => candidate.id === serviceId);
+  if (!probe) {
+    throw new Error(`Unknown NovaMaster service: ${serviceId}`);
+  }
+
+  const port = await resolveNovaMasterPort(probe);
+  if (!port) {
+    throw new Error(`Missing NovaMaster port for ${probe.name}`);
+  }
+
+  const action =
+    probe.primaryAction ??
+    (probe.healthPath
+      ? {
+          id: 'health',
+          label: 'Health',
+          method: 'GET' as const,
+          path: probe.healthPath,
+        }
+      : undefined);
+
+  if (!action) {
+    throw new Error(`No NovaMaster action configured for ${probe.name}`);
+  }
+
+  const response = await requestNovaMasterEndpoint(port, action.path, {
+    method: action.method,
+    body: action.body,
+    timeoutMs: action.id === 'chat' ? 10000 : 3000,
+  });
+  const detail = summarizeNovaPayload(response.payload);
+  const receipt = buildNovaMasterActionReceipt(action, detail, response.httpStatus);
+
+  if (!response.httpStatus || response.httpStatus < 200 || response.httpStatus >= 300) {
+    throw new Error(receipt);
+  }
+
+  return {
+    serviceId,
+    actionId: action.id,
+    actionLabel: action.label,
+    endpoint: `${action.method} ${action.path}`,
+    httpStatus: response.httpStatus,
+    latencyMs: response.latencyMs,
+    detail,
+    receipt,
+  };
+}
+
+async function launchNovaMasterService(serviceId: string): Promise<Record<string, unknown>> {
+  const probe = NOVAMASTER_PROBES.find((candidate) => candidate.id === serviceId);
+  if (!probe) {
+    throw new Error(`Unknown NovaMaster service: ${serviceId}`);
+  }
+
+  const port = await resolveNovaMasterPort(probe);
+  const openUrl = resolveNovaMasterOpenUrl(probe, port);
+
+  if (!probe.launchPath) {
+    return {
+      serviceId,
+      launched: false,
+      openUrl,
+      reason: 'external-url-only',
+    };
+  }
+
+  await fsPromises.access(probe.launchPath, fs.constants.X_OK);
+  const child = spawn(probe.launchPath, [], {
+    detached: true,
+    stdio: 'ignore',
+    env: {
+      ...process.env,
+      ...(serviceId === 'claw3d'
+        ? {
+            CLAW3D_OFFICE_URL: openUrl,
+            CLAW3D_OFFICE_HEALTH_URL: `${openUrl}/api/health`,
+          }
+        : {}),
+    },
+  });
+  child.unref();
+
+  return {
+    serviceId,
+    launched: true,
+    command: path.basename(probe.launchPath),
+    openUrl,
+  };
+}
 
 /**
  * Decode filename from multer.
@@ -441,6 +1144,59 @@ export function registerApiRoutes(app: Express): void {
         });
       }
     }
+  );
+
+  app.get('/api/novamaster/stack', apiRateLimiter, async (_req: Request, res: Response) => {
+    try {
+      res.json({
+        success: true,
+        data: await getNovaMasterStackStatus(),
+      });
+    } catch (error) {
+      console.error('[API] NovaMaster stack status error:', error);
+      res.status(500).json({
+        success: false,
+        msg: error instanceof Error ? error.message : 'Failed to read NovaMaster stack status',
+      });
+    }
+  });
+
+  app.get(
+    '/api/novamaster/services/:serviceId/open',
+    apiRateLimiter,
+    wrapRouteHandler(async (req: Request, res: Response) => {
+      try {
+        res.json({
+          success: true,
+          data: await launchNovaMasterService(String(req.params.serviceId)),
+        });
+      } catch (error) {
+        console.error('[API] NovaMaster service launch error:', error);
+        res.status(500).json({
+          success: false,
+          msg: error instanceof Error ? error.message : 'Failed to launch NovaMaster service',
+        });
+      }
+    })
+  );
+
+  app.get(
+    '/api/novamaster/services/:serviceId/action',
+    apiRateLimiter,
+    wrapRouteHandler(async (req: Request, res: Response) => {
+      try {
+        res.json({
+          success: true,
+          data: await runNovaMasterServiceAction(String(req.params.serviceId)),
+        });
+      } catch (error) {
+        console.error('[API] NovaMaster service action error:', error);
+        res.status(500).json({
+          success: false,
+          msg: error instanceof Error ? error.message : 'Failed to run NovaMaster service action',
+        });
+      }
+    })
   );
 
   registerWecomChannelRoutes(app);

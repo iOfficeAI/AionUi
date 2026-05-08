@@ -50,10 +50,75 @@ if (win.electronAPI) {
   let socket: WebSocket | null = null;
   let emitterRef: { emit: (name: string, data: unknown) => void } | null = null;
   let reconnectTimer: number | null = null;
+  let loginRedirectTimer: number | null = null;
   let reconnectDelay = 500;
   let shouldReconnect = true; // Flag to control reconnection
 
   const messageQueue: QueuedMessage[] = [];
+
+  const isLoginRoute = () => window.location.pathname === '/login' || window.location.hash.includes('/login');
+
+  const clearReconnectTimer = () => {
+    if (reconnectTimer !== null) {
+      window.clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+  };
+
+  const clearLoginRedirectTimer = () => {
+    if (loginRedirectTimer !== null) {
+      window.clearTimeout(loginRedirectTimer);
+      loginRedirectTimer = null;
+    }
+  };
+
+  const redirectToLogin = (delay: number) => {
+    if (isLoginRoute()) {
+      return;
+    }
+
+    clearLoginRedirectTimer();
+    loginRedirectTimer = window.setTimeout(() => {
+      loginRedirectTimer = null;
+      window.location.hash = '/login';
+    }, delay);
+  };
+
+  const hasActiveWebSession = async () => {
+    try {
+      const response = await fetch('/api/auth/user', {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store',
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const data = (await response.json()) as { success?: boolean; user?: unknown };
+      return Boolean(data.success && data.user);
+    } catch (error) {
+      return false;
+    }
+  };
+
+  const handleAuthRejected = async (source: string, delay: number) => {
+    clearReconnectTimer();
+
+    if (await hasActiveWebSession()) {
+      console.warn(`[WebSocket] ${source}; active session confirmed, reconnecting`);
+      clearLoginRedirectTimer();
+      shouldReconnect = true;
+      reconnectDelay = 500;
+      scheduleReconnect();
+      return;
+    }
+
+    console.warn(`[WebSocket] ${source}; redirecting to login`);
+    shouldReconnect = false;
+    redirectToLogin(delay);
+  };
 
   // 1.发送队列中积压的消息，确保在重新建立连接后不会丢事件
   const flushQueue = () => {
@@ -129,34 +194,10 @@ if (win.electronAPI) {
         // 处理认证过期 - 停止重连并跳转到登录页
         // Handle auth expiration - stop reconnecting and redirect to login
         if (payload.name === 'auth-expired') {
-          console.warn('[WebSocket] Authentication expired, stopping reconnection');
-          shouldReconnect = false;
-
-          // 清除所有待执行的重连定时器
-          // Clear any pending reconnection timer
-          if (reconnectTimer !== null) {
-            window.clearTimeout(reconnectTimer);
-            reconnectTimer = null;
-          }
-
           // 关闭 socket 并跳转到登录页
-          // Close the socket and redirect to login page
+          // Close the socket and verify auth before redirecting to login page
           socket?.close();
-
-          // 已在登录页则不再重定向，防止无限刷新循环
-          // Skip redirect if already on login page to prevent infinite reload loop
-          if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
-            return;
-          }
-
-          // 短暂延迟后跳转到登录页，以便显示 UI 反馈
-          // Redirect to login page after a short delay to show any UI feedback
-          // Use hash navigation to stay within the SPA (HashRouter), avoiding a full
-          // page reload that would land on an empty hash and cause a blank screen.
-          setTimeout(() => {
-            window.location.hash = '/login';
-          }, 1000);
-
+          void handleAuthRejected('Authentication expired', 1000);
           return;
         }
 
@@ -179,21 +220,7 @@ if (win.electronAPI) {
         return; // Already handled by auth-expired message handler
       }
       if (event.code === 1008) {
-        console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
-        shouldReconnect = false;
-        if (reconnectTimer !== null) {
-          window.clearTimeout(reconnectTimer);
-          reconnectTimer = null;
-        }
-        // 已在登录页则不再重定向，防止无限刷新循环
-        // Skip redirect if already on login page to prevent infinite reload loop
-        if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
-          return;
-        }
-        // Use hash navigation to stay within the SPA (HashRouter)
-        setTimeout(() => {
-          window.location.hash = '/login';
-        }, 500);
+        void handleAuthRejected('Connection rejected by server (policy violation)', 500);
         return;
       }
 
@@ -247,6 +274,7 @@ if (win.electronAPI) {
 
   // Expose reconnection control for login flow
   win.__websocketReconnect = () => {
+    clearLoginRedirectTimer();
     shouldReconnect = true;
     reconnectDelay = 500;
     connect();
