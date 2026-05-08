@@ -110,9 +110,9 @@ packages/desktop/src/process/worker/
 
 ### Other Modules
 
-| Module     | Location          | Purpose                                            |
-| ---------- | ----------------- | -------------------------------------------------- |
+| Module     | Location                                   | Purpose                                            |
+| ---------- | ------------------------------------------ | -------------------------------------------------- |
 | Channels   | `packages/desktop/src/process/channels/`   | Multi-channel messaging (Lark, DingTalk, Telegram) |
 | Extensions | `packages/desktop/src/process/extensions/` | Plugin loading, resolvers, sandbox                 |
 | WebServer  | `packages/desktop/src/process/webserver/`  | Express + WebSocket for WebUI                      |
-| Adapter    | `packages/desktop/src/common/adapter/`    | Platform adapters (browser vs main environment)    |
+| Adapter    | `packages/desktop/src/common/adapter/`     | Platform adapters (browser vs main environment)    |

@@ -147,7 +147,9 @@ export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
       allowRemote,
       initialPassword: handle.initialPassword,
     });
-    console.log(`[WebUI] Auto-restored from desktop preferences (port=${handle.port}, backendPort=${handle.backendPort}, allowRemote=${allowRemote})`);
+    console.log(
+      `[WebUI] Auto-restored from desktop preferences (port=${handle.port}, backendPort=${handle.backendPort}, allowRemote=${allowRemote})`
+    );
   } catch (error) {
     console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);
   }

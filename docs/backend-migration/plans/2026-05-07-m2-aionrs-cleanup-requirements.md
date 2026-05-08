@@ -39,12 +39,12 @@
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| 是否清理 aionrs 遗留 | **是** | 打包无用产物让 dmg/exe 体积多十几 MB,且误导后续 agent |
-| 是否保留 CLI 查找回退 | **否** | `binaryResolver` 里 aionrs 的 PATH 查找逻辑同步删除 |
-| 是否保留配置文件中的 aionrs 字段 | **否**,全部删净 | grep 应无残留 |
-| 版本控制粒度 | 一个 commit 完成所有清理 | 清理内容高度关联,不拆 |
+| 决策点                           | 结论                     | 理由                                                  |
+| -------------------------------- | ------------------------ | ----------------------------------------------------- |
+| 是否清理 aionrs 遗留             | **是**                   | 打包无用产物让 dmg/exe 体积多十几 MB,且误导后续 agent |
+| 是否保留 CLI 查找回退            | **否**                   | `binaryResolver` 里 aionrs 的 PATH 查找逻辑同步删除   |
+| 是否保留配置文件中的 aionrs 字段 | **否**,全部删净          | grep 应无残留                                         |
+| 版本控制粒度                     | 一个 commit 完成所有清理 | 清理内容高度关联,不拆                                 |
 
 ## 验收标准
 
@@ -82,12 +82,12 @@ find dist/mac-arm64/*.app/Contents/Resources -name "bundled-aionrs" 2>&1
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `electron-builder.yml` 被 M1 挪到了 `packages/desktop/`,M2 要先读 M1 handoff 确认实际路径 | plan-writer 写具体 plan 时,先 `cat docs/backend-migration/handoffs/M1-outcome.md` 确认 electron-builder.yml 所在位置和新的 `extraResources` 结构 |
-| `scripts/build-with-builder.js:18` 的 `const prepareAionrs = require('./prepareAionrs');` 和 `scripts/build-with-builder.js:460` 的 `prepareAionrs();` 需要同步删除,不能只删一处 | plan-writer 读源码确认两处位置,逐行 Edit 删除 |
-| `binaryResolver` 里对 aionrs 的 PATH 查找回退(如有)需要同步评估,但它不影响 backend,可安全删除 | 先 grep 确认是否存在,如有影响 aionrs agent 类型再决定是否保留(应该不会,in-process 不走 PATH) |
-| 如果 M1 已经误删了 aionrs 配置,M2 变成空改动 | M2 先验收"清理目标",若已清理干净则直接写 handoff 说明并快速通过 |
+| 风险                                                                                                                                                                             | 缓解                                                                                                                                             |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `electron-builder.yml` 被 M1 挪到了 `packages/desktop/`,M2 要先读 M1 handoff 确认实际路径                                                                                        | plan-writer 写具体 plan 时,先 `cat docs/backend-migration/handoffs/M1-outcome.md` 确认 electron-builder.yml 所在位置和新的 `extraResources` 结构 |
+| `scripts/build-with-builder.js:18` 的 `const prepareAionrs = require('./prepareAionrs');` 和 `scripts/build-with-builder.js:460` 的 `prepareAionrs();` 需要同步删除,不能只删一处 | plan-writer 读源码确认两处位置,逐行 Edit 删除                                                                                                    |
+| `binaryResolver` 里对 aionrs 的 PATH 查找回退(如有)需要同步评估,但它不影响 backend,可安全删除                                                                                    | 先 grep 确认是否存在,如有影响 aionrs agent 类型再决定是否保留(应该不会,in-process 不走 PATH)                                                     |
+| 如果 M1 已经误删了 aionrs 配置,M2 变成空改动                                                                                                                                     | M2 先验收"清理目标",若已清理干净则直接写 handoff 说明并快速通过                                                                                  |
 
 ## 依赖上游
 

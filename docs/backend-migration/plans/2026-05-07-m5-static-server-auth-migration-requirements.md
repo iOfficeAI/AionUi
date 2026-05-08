@@ -55,18 +55,18 @@
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| 静态服务底层实现 | Node 原生 `http` + `serve-handler` | 设计文档 C 节,零业务依赖 |
-| 反代实现 | 手写 `http.request('upgrade')` + 双向 pipe | 不引新依赖,设计文档 C 节 |
-| `webui.config.json` 路径 | 和老 webserver 完全一致(`userDataPath/webui.config.json`) | 兼容既有用户数据,设计文档 B 节 |
-| 密码算法 | bcrypt,保持和老 webserver 一致 | 兼容既有 hash |
-| session cookie 设置 | 沿用老 webserver 的配置(cookie 名 / SameSite / Path / HttpOnly) | 兼容既有会话,降低 M6 切换风险 |
-| 限流策略 | 5 次 / 15 分钟,和老 webserver 一致 | 保持现有用户体验 |
-| 老 webserver 是否继续被调用 | **是**,桌面的 `--webui` 和 GUI 开关仍走老代码 | 本里程碑只迁移不切换 |
-| 等价性测试覆盖端点数 | 至少 10 个 | 足以覆盖关键路径,不过度测试 |
-| 老 webserver 代码是否直接复用 | **不复用**,copy-paste 迁到 web-host 并脱 Electron 依赖 | web-host 零 Electron 依赖是硬原则 |
-| auth 模块是否需要保持 API 完全一致 | **是**,对外 HTTP 接口字段、错误码一致 | 兼容前端 login 流程 |
+| 决策点                             | 结论                                                            | 理由                              |
+| ---------------------------------- | --------------------------------------------------------------- | --------------------------------- |
+| 静态服务底层实现                   | Node 原生 `http` + `serve-handler`                              | 设计文档 C 节,零业务依赖          |
+| 反代实现                           | 手写 `http.request('upgrade')` + 双向 pipe                      | 不引新依赖,设计文档 C 节          |
+| `webui.config.json` 路径           | 和老 webserver 完全一致(`userDataPath/webui.config.json`)       | 兼容既有用户数据,设计文档 B 节    |
+| 密码算法                           | bcrypt,保持和老 webserver 一致                                  | 兼容既有 hash                     |
+| session cookie 设置                | 沿用老 webserver 的配置(cookie 名 / SameSite / Path / HttpOnly) | 兼容既有会话,降低 M6 切换风险     |
+| 限流策略                           | 5 次 / 15 分钟,和老 webserver 一致                              | 保持现有用户体验                  |
+| 老 webserver 是否继续被调用        | **是**,桌面的 `--webui` 和 GUI 开关仍走老代码                   | 本里程碑只迁移不切换              |
+| 等价性测试覆盖端点数               | 至少 10 个                                                      | 足以覆盖关键路径,不过度测试       |
+| 老 webserver 代码是否直接复用      | **不复用**,copy-paste 迁到 web-host 并脱 Electron 依赖          | web-host 零 Electron 依赖是硬原则 |
+| auth 模块是否需要保持 API 完全一致 | **是**,对外 HTTP 接口字段、错误码一致                           | 兼容前端 login 流程               |
 
 ## 验收标准
 
@@ -156,15 +156,15 @@ ls packages/desktop/src/process/webserver/  # 应仍存在(M6 再删)
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `serve-handler` 对 SPA fallback 的行为和老 webserver 的 express static 不完全一致 | 等价性测试用同一 `out/renderer/` 为输入,覆盖 SPA 路由场景(比如 `/chat/123`),找出差异 |
-| 反代 `/ws` upgrade 时需要手写,容易漏处理错误场景(连接中断、backend 未就绪) | plan-writer 必须覆盖:backend 未启动时反代 /ws 返回 502;backend 主动关闭时客户端收到 close frame |
-| `webui.config.json` 字段在老 webserver 和 web-host 之间微小差异 | plan-writer 先读老 webserver 的 config 读写逻辑,照抄 schema;等价性测试覆盖"web-host 写 → 老 webserver 读"和反向 |
-| bcrypt 版本差异(老代码用 bcryptjs 还是 bcrypt)导致 hash 不兼容 | plan-writer 读老 webserver 的 package.json 依赖和实际 import,保持一致 |
-| 等价性测试过于宽松,漏掉 header / cookie 差异 | 对比至少包含 `Set-Cookie`、`Content-Type`、`Cache-Control`、status code |
-| 迁移 auth 模块时误保留老 webserver 的 Electron 耦合(例如 `import { app } from 'electron'`) | web-host 依赖边界 grep 会拦截 |
-| 限流状态的内存存储让桌面 GUI 开关跨重启丢失计数 | 不改现有行为(老 webserver 就是内存存储),保持等价 |
+| 风险                                                                                       | 缓解                                                                                                            |
+| ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `serve-handler` 对 SPA fallback 的行为和老 webserver 的 express static 不完全一致          | 等价性测试用同一 `out/renderer/` 为输入,覆盖 SPA 路由场景(比如 `/chat/123`),找出差异                            |
+| 反代 `/ws` upgrade 时需要手写,容易漏处理错误场景(连接中断、backend 未就绪)                 | plan-writer 必须覆盖:backend 未启动时反代 /ws 返回 502;backend 主动关闭时客户端收到 close frame                 |
+| `webui.config.json` 字段在老 webserver 和 web-host 之间微小差异                            | plan-writer 先读老 webserver 的 config 读写逻辑,照抄 schema;等价性测试覆盖"web-host 写 → 老 webserver 读"和反向 |
+| bcrypt 版本差异(老代码用 bcryptjs 还是 bcrypt)导致 hash 不兼容                             | plan-writer 读老 webserver 的 package.json 依赖和实际 import,保持一致                                           |
+| 等价性测试过于宽松,漏掉 header / cookie 差异                                               | 对比至少包含 `Set-Cookie`、`Content-Type`、`Cache-Control`、status code                                         |
+| 迁移 auth 模块时误保留老 webserver 的 Electron 耦合(例如 `import { app } from 'electron'`) | web-host 依赖边界 grep 会拦截                                                                                   |
+| 限流状态的内存存储让桌面 GUI 开关跨重启丢失计数                                            | 不改现有行为(老 webserver 就是内存存储),保持等价                                                                |
 
 ## 依赖上游
 

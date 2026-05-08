@@ -12,10 +12,12 @@
 ### 1. Core Implementation
 
 **Build Integration** (`scripts/build-with-builder.js`):
+
 - Added `prepareAionuiBackend()` call before `prepareBundledBun()`
 - Integrated into local and CI build workflows
 
 **Module Extraction** (`packages/shared-scripts/src/prepare-aionui-backend.js`):
+
 - Extracted as reusable CommonJS module
 - Function signature:
   ```javascript
@@ -30,6 +32,7 @@
 - CLI wrapper remains at `scripts/prepareAionuiBackend.js`
 
 **CI Integration** (`.github/workflows/_build-reusable.yml`):
+
 - Added "Prepare aionui-backend binary" step before "Build with electron-builder"
 - Environment variables:
   - `AIONUI_BACKEND_VERSION=latest`
@@ -37,6 +40,7 @@
   - `GH_TOKEN` / `GITHUB_TOKEN` for rate limiting
 
 **Transition Switch** (`AIONUI_BACKEND_ALLOW_MISSING`):
+
 - `=1`: Skip with warning + write skip manifest (current CI setting)
 - `=0` or unset: Hard fail (for production after backend release ready)
 - Early exit when `latest` resolution fails and `allowMissing=true`
@@ -44,11 +48,13 @@
 ### 2. Output Structure
 
 **Binary Location**:
+
 ```
 resources/bundled-aionui-backend/{platform}-{arch}/aionui-backend[.exe]
 ```
 
 **Manifest** (`manifest.json`):
+
 ```json
 {
   "platform": "darwin",
@@ -63,6 +69,7 @@ resources/bundled-aionui-backend/{platform}-{arch}/aionui-backend[.exe]
 ```
 
 When skipped (`allowMissing=true` and backend unavailable):
+
 ```json
 {
   "platform": "darwin",
@@ -79,8 +86,9 @@ When skipped (`allowMissing=true` and backend unavailable):
 
 ### 3. Test Results
 
-**Type Check**: `bunx tsc --noEmit` ✅ 0 errors  
+**Type Check**: `bunx tsc --noEmit` ✅ 0 errors
 **Local Smoke Test**:
+
 - `AIONUI_BACKEND_ALLOW_MISSING=1 node scripts/prepareAionuiBackend.js` ✅ skip manifest generated
 - `AIONUI_BACKEND_ALLOW_MISSING=0 node scripts/prepareAionuiBackend.js` ✅ hard fail (exit 1)
 
@@ -103,16 +111,19 @@ Base: `3aed87923` (M6 three-paths-cutover)
 **Issue**: `gh api repos/iOfficeAI/aionui-backend/releases/latest` returns HTTP 404
 
 **Impact**:
+
 - Cannot download real backend binary in CI
 - CI produces skip manifest instead of real binary
 - End-to-end backend integration testing blocked
 
 **Mitigation**:
+
 - Set `AIONUI_BACKEND_ALLOW_MISSING=1` in CI workflow
 - Early exit in `resolveLatestTag` when `allowMissing=true`
 - CI can pass without blocking on missing backend
 
 **Resolution Path**: When `aionui-backend` repo publishes first release:
+
 1. Change CI env to `AIONUI_BACKEND_ALLOW_MISSING=0`
 2. Re-run build to verify backend download works
 3. Check manifest shows `sourceType: "download"` and `skipped: false`
@@ -120,11 +131,13 @@ Base: `3aed87923` (M6 three-paths-cutover)
 ### 2. M6 Cleanup Blockers
 
 **Issue**: M6 deleted `packages/desktop/src/process/webserver/` but left references in:
+
 - `packages/desktop/src/process/bridge/services/WebuiService.ts`
 - `packages/desktop/src/process/bridge/webuiQR.ts`
 - `packages/desktop/src/process/utils/resetPasswordCLI.ts`
 
 **Type Errors** (7 errors blocking CI):
+
 ```
 Cannot find module '@process/webserver/auth/service/AuthService'
 Cannot find module '@process/webserver/auth/repository/UserRepository'
@@ -133,12 +146,14 @@ Cannot find module '@process/webserver/index'
 ```
 
 **Temporary Fix** (M7 scope):
+
 - Commented out deleted imports
 - Added stub implementations with `TODO M6-cleanup` markers
 - Disabled affected features (password/username change, QR login, CLI reset)
 - Type check now passes (0 errors)
 
 **Proper Fix** (out of M7 scope):
+
 - Migrate WebuiService to use `@aionui/web-host` APIs
 - Implement QR login with new auth system
 - Implement CLI password reset with new auth system
@@ -151,6 +166,7 @@ Cannot find module '@process/webserver/index'
 **Actual**: Skipped (time constraint, backend release unavailable)
 
 **Test Coverage**: Module is tested indirectly via:
+
 - Local smoke test with `ALLOW_MISSING=1` and `ALLOW_MISSING=0`
 - CI will test on first run after backend release
 
@@ -162,7 +178,8 @@ Cannot find module '@process/webserver/index'
 
 **Risk**: CI produces non-functional packages (no bundled backend)
 
-**Impact**: 
+**Impact**:
+
 - Desktop launch will fail to start backend (M4 BackendBinaryResolver returns null)
 - WebUI features depending on backend will not work
 
@@ -175,6 +192,7 @@ Cannot find module '@process/webserver/index'
 **Risk**: Legacy webserver-dependent features silently broken
 
 **Impact**:
+
 - Password/username change via desktop GUI → fails
 - QR login → fails
 - CLI `--resetpass` → fails
@@ -196,12 +214,14 @@ Cannot find module '@process/webserver/index'
 If M7 breaks CI or local builds:
 
 1. **Revert CI workflow change**:
+
    ```bash
    git revert bb9454cef
    git push origin feat/m7-prepare-backend-ci
    ```
 
 2. **Remove prepareAionuiBackend call** from `build-with-builder.js`:
+
    ```bash
    git revert 81c3e902c
    ```
@@ -216,37 +236,41 @@ If M7 breaks CI or local builds:
 **M8: web-cli + tarball**
 
 **Dependencies from M7**:
+
 - Import `packages/shared-scripts/src/prepare-aionui-backend.js`
 - Use same `prepareAionuiBackend()` function signature
 - Tarball must include `bundled-aionui-backend/{platform}-{arch}/` structure
 
 **Prerequisites**:
+
 - Backend release must exist (or keep `ALLOW_MISSING=1` in M8 as well)
 - M6 cleanup should be completed before M8 (optional but recommended)
 
 **Blocked Tasks**:
+
 - E2E backend integration testing (needs real backend binary)
 - Production backend bundling (needs `ALLOW_MISSING=0`)
 
 ---
 
-**Executor**: executor-m7 (Claude Sonnet 4.5 agent)  
-**Completed**: 2026-05-08  
+**Executor**: executor-m7 (Claude Sonnet 4.5 agent)
+**Completed**: 2026-05-08
 **Duration**: ~2 hours (including M6 cleanup)
 
 ---
 
 **Status Summary**:
 
-✅ **M7 Core Goal Achieved**: CI workflow prepared for backend bundling  
-✅ **Type Check Passing**: 0 errors  
-⚠️ **Backend Release Missing**: CI uses transition switch (`ALLOW_MISSING=1`)  
-⚠️ **M6 Cleanup Incomplete**: 3 files stubbed with TODO markers  
-⚠️ **Unit Tests Missing**: Skipped due to backend unavailability  
+✅ **M7 Core Goal Achieved**: CI workflow prepared for backend bundling
+✅ **Type Check Passing**: 0 errors
+⚠️ **Backend Release Missing**: CI uses transition switch (`ALLOW_MISSING=1`)
+⚠️ **M6 Cleanup Incomplete**: 3 files stubbed with TODO markers
+⚠️ **Unit Tests Missing**: Skipped due to backend unavailability
 
 **Release Readiness**: M7 feature branch is **CI-ready** but produces **skip manifests** instead of real backend binaries. Switch `ALLOW_MISSING=0` after backend release.
 
-**Human Review Needed**: 
+**Human Review Needed**:
+
 1. Decide whether to migrate or delete WebuiService/webuiQR/resetPasswordCLI
 2. Verify M7 doesn't break existing desktop functionality
 3. Coordinate with backend team on first release timeline

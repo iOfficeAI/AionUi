@@ -68,7 +68,7 @@ describe('auth/config', () => {
   it('readConfig ignores unknown fields without crashing', async () => {
     await fs.writeFile(
       path.join(app.userDataPath, 'webui.config.json'),
-      JSON.stringify({ passwordHash: 'h', adminUsername: 'a', futureField: 'x' }),
+      JSON.stringify({ passwordHash: 'h', adminUsername: 'a', futureField: 'x' })
     );
     const cfg = await readConfig(app);
     expect(cfg.passwordHash).toBe('h');

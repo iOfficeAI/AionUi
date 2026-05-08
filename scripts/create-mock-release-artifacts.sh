@@ -80,5 +80,34 @@ files:
     size: 300000
 EOF
 
+# Web-CLI tarballs (5 platforms)
+WEB_PLATFORMS=(
+  "darwin-arm64"
+  "darwin-x86_64"
+  "linux-arm64"
+  "linux-x86_64"
+  "win-x86_64"
+)
+
+for plat in "${WEB_PLATFORMS[@]}"; do
+  dir="$ARTIFACTS_DIR/web-cli-${plat}"
+  mkdir -p "$dir"
+  tarball="aionui-web-1.0.0-${plat}.tar.gz"
+  touch "$dir/$tarball"
+  # Produce a deterministic fake SHA256 file in the expected format:
+  # "<64 hex chars>  <filename>"
+  echo "0000000000000000000000000000000000000000000000000000000000000000  ${tarball}" > "$dir/${tarball}.sha256"
+done
+
+# install-web.sh (version-substituted placeholder)
+mkdir -p "$ARTIFACTS_DIR/install-web-script"
+cat > "$ARTIFACTS_DIR/install-web-script/install-web.sh" <<'EOF'
+#!/usr/bin/env bash
+# Mock install-web.sh for release-script-test
+set -euo pipefail
+echo "mock install-web.sh"
+EOF
+chmod +x "$ARTIFACTS_DIR/install-web-script/install-web.sh"
+
 echo "Mock artifacts created in $ARTIFACTS_DIR:"
 find "$ARTIFACTS_DIR" -type f | sort

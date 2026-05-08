@@ -825,10 +825,7 @@ export const database = {
     fromApiPaginatedConversations
   ),
   searchConversationMessages: withResponseMap(
-    httpGet<
-      PaginatedResult<ApiMessageSearchItem>,
-      { keyword: string; page?: number; page_size?: number }
-    >(
+    httpGet<PaginatedResult<ApiMessageSearchItem>, { keyword: string; page?: number; page_size?: number }>(
       (p) =>
         `/api/messages/search?keyword=${encodeURIComponent(p.keyword)}&page=${p.page ?? 1}&page_size=${p.page_size ?? 50}`
     ),

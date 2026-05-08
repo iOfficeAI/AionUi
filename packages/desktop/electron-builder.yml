@@ -109,9 +109,7 @@ extraResources:
     to: .
   - from: resources/app.png
     to: app.png
-  - from: resources/bundled-bun
-    to: bundled-bun
-  # aionui-backend binary (pre-compiled per platform/arch)
+  # aionui-backend binary (pre-compiled per platform/arch, ships its own bun runtime)
   - from: resources/bundled-aionui-backend
     to: bundled-aionui-backend
   - from: resources/hub

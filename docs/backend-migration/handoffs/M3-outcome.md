@@ -5,15 +5,18 @@
 新建 `packages/web-host/` 子包,包含:
 
 ### 包骨架文件
+
 - `package.json` - 包名 `@aionui/web-host`, `private: true`, 依赖 `serve-handler`
 - `tsconfig.json` - 继承根 tsconfig
 - `vitest.config.ts` - vitest 测试配置
 - `README.md` - 包说明文档
 
 ### 类型定义
+
 - `src/types.ts` - 5 个核心类型:`AppMetadata`、`BackendBinaryResolver`、`WebHostOptions`、`WebHostHandle`、`WebUIConfig`
 
 ### 占位模块(全部抛 "not implemented yet")
+
 - `src/backend-launcher.ts` - `startBackend()` / `stopBackend()`
 - `src/static-server.ts` - `startStaticServer()` / `stopStaticServer()`
 - `src/auth/index.ts` - 5 个公共 API:`resetPassword`、`changePassword`、`verifyPassword`、`loadConfig`、`saveConfig`
@@ -22,6 +25,7 @@
 - `src/index.ts` - 顶层入口,导出 `startWebHost()` + auth 全部 API + 所有类型
 
 ### 单元测试骨架(全 mock)
+
 - `src/backend-launcher.test.ts` - 验证抛异常,6 个测试
 - `src/static-server.test.ts` - 验证抛异常
 - `src/auth/config.test.ts` - 验证抛异常
@@ -41,18 +45,21 @@
 ## 验证证据
 
 ### 分支信息
+
 - 分支名:`feat/m3-web-host-skeleton`
 - 最新 SHA:`5103b041b6f86068ddebe05a219d935ca41691e5`
 - 上游分支:`origin/feat/m2-aionrs-cleanup`
 - 基线同步:已合入 `origin/feat/backend-migration @ de0c7b87d`
 
 ### 类型检查
+
 ```
 $ bunx tsc --noEmit
 (无输出,通过)
 ```
 
 ### 测试
+
 ```
 $ cd packages/web-host && bun test
 bun test v1.3.10
@@ -64,6 +71,7 @@ Ran 6 tests across 3 files. [9.00ms]
 ```
 
 ### 依赖边界
+
 ```
 $ grep -r "packages/desktop\|@aionui/desktop" packages/web-host/src/
 (无输出)
@@ -76,6 +84,7 @@ $ grep -rE "packages/desktop/src/process/(agent|worker|services)" packages/web-h
 ```
 
 ### 文件清单
+
 ```
 packages/web-host/
 ├── package.json
@@ -119,9 +128,7 @@ export type WebHostOptions = {
   allowRemote?: boolean;
   dataDir?: string;
   logDir?: string;
-  backend:
-    | { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver }
-    | { kind: 'useExistingBackend'; port: number };
+  backend: { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver } | { kind: 'useExistingBackend'; port: number };
 };
 
 export type WebHostHandle = {
@@ -151,10 +158,7 @@ export async function changePassword(opts: {
   oldPassword: string;
   newPassword: string;
 }): Promise<void>;
-export async function verifyPassword(opts: {
-  app: AppMetadata;
-  password: string;
-}): Promise<boolean>;
+export async function verifyPassword(opts: { app: AppMetadata; password: string }): Promise<boolean>;
 export async function loadConfig(opts: { app: AppMetadata }): Promise<WebUIConfig>;
 export async function saveConfig(opts: { app: AppMetadata; config: WebUIConfig }): Promise<void>;
 ```

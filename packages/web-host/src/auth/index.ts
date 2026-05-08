@@ -22,8 +22,7 @@ export { readConfig as loadConfig, writeConfig as saveConfig };
 
 const BCRYPT_SALT_ROUNDS = 10; // matches legacy resetPasswordCLI.ts hashPassword
 const PASSWORD_LENGTH = 12;
-const PASSWORD_ALPHABET =
-  'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+const PASSWORD_ALPHABET = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
 
 function generateRandomPassword(): string {
   const out: string[] = [];
@@ -81,10 +80,7 @@ export async function changePassword(opts: {
  * Compare password against stored bcrypt hash. Returns false for missing config,
  * empty hash, or mismatched password; never throws on those paths.
  */
-export async function verifyPassword(opts: {
-  app: AppMetadata;
-  password: string;
-}): Promise<boolean> {
+export async function verifyPassword(opts: { app: AppMetadata; password: string }): Promise<boolean> {
   const cfg = await readConfig(opts.app);
   if (!cfg.passwordHash) return false;
   try {

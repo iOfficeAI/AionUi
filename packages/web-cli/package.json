@@ -3,10 +3,10 @@
   "version": "0.0.0",
   "private": true,
   "description": "AionUi WebUI CLI - standalone web runtime (no Electron)",
-  "type": "module",
   "bin": {
     "aionui-web": "./bin/aionui-web.js"
   },
+  "type": "module",
   "exports": {
     ".": "./src/index.ts"
   },
@@ -16,8 +16,8 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@aionui/web-host": "workspace:*",
-    "@aionui/shared-scripts": "workspace:*"
+    "@aionui/shared-scripts": "workspace:*",
+    "@aionui/web-host": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

@@ -3,12 +3,14 @@
   "version": "1.9.19",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
-  "workspaces": ["packages/*"],
   "license": "Apache-2.0",
   "author": {
     "name": "AionUi",
     "email": "service@aionui.com"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "main": "./out/main/index.js",
   "scripts": {
     "dev": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
@@ -64,17 +66,15 @@
     "test:e2e:team:comm": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-communication.e2e.ts --reporter=list",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
-    "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts",
     "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts"
   },
   "dependencies": {
-    "@aionui/web-host": "workspace:*",
     "@agentclientprotocol/sdk": "^0.18.2",
+    "@aionui/web-host": "workspace:*",
     "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@aws-sdk/client-bedrock": "^3.987.0",
     "@codemirror/commands": "^6.8.1",
-    "@xmldom/xmldom": "^0.8.11",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-json": "^6.0.2",
@@ -98,6 +98,7 @@
     "@uiw/codemirror-extensions-langs": "^4.25.1",
     "@uiw/react-codemirror": "^4.25.2",
     "@wecom/aibot-node-sdk": "^1.0.6",
+    "@xmldom/xmldom": "^0.8.11",
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.4.1",
     "buffer": "^6.0.3",
@@ -178,8 +179,8 @@
     "@types/html-to-text": "^9.0.4",
     "@types/multer": "^2.1.0",
     "@types/node": "^24.3.1",
-    "@types/react": "^19.2.14",
     "@types/qrcode-terminal": "^0.12.0",
+    "@types/react": "^19.2.14",
     "@types/react-dom": "^19.1.6",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/semver": "^7.7.1",

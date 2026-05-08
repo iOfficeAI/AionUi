@@ -60,24 +60,25 @@
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| CLI 分发方式 | GitHub Release tarball | 设计文档 G 节,不走 npm |
-| 包名 | `@aionui/web-cli`(内部),分发 artifact 名 `aionui-web` | 和桌面命名约定一致 |
-| `private: true` | 是 | 不发 npm |
-| 单文件编译工具 | `bun build --compile --target=bun-{platform}-{arch}` | 仓库已全仓用 bun;设计文档 G 节 |
-| tarball 压缩格式 | linux/darwin 用 `.tar.gz`,win32 用 `.zip` | 平台常规 |
-| backend 二进制打包方式 | CI 打包时下载(复用 M7 的 `prepareBackend`) | 设计文档 G 节 |
-| backend 失败策略 | 硬失败 CI(复用 M7 的默认行为);过渡期可 `AIONUI_BACKEND_ALLOW_MISSING=1` | 和桌面打包对齐 |
-| renderer 产物来源 | 复用桌面 `out/renderer/`,不重复构建 | 不增加 CI 时间 |
-| `aionui-web start` 默认端口 | 25808(和桌面 `--webui` 保持一致) | 用户心智模型统一 |
-| `aionui-web --version` | 从 `packages/web-cli/package.json` 读,或编译时注入 | plan-writer 选 |
-| Windows 支持程度 | 产出 zip + 可执行,但本里程碑**不在 Windows CI 冒烟**(`AIONUI_BACKEND_ALLOW_MISSING=1`)|Windows 服务器/Termux 场景次要;M8 保产出、M9 再完善 |
-| 容器验证 job | 仅 linux-x86_64,不全平台 | 核心场景覆盖,不过度 |
+| 决策点                      | 结论                                                                                   | 理由                                                |
+| --------------------------- | -------------------------------------------------------------------------------------- | --------------------------------------------------- |
+| CLI 分发方式                | GitHub Release tarball                                                                 | 设计文档 G 节,不走 npm                              |
+| 包名                        | `@aionui/web-cli`(内部),分发 artifact 名 `aionui-web`                                  | 和桌面命名约定一致                                  |
+| `private: true`             | 是                                                                                     | 不发 npm                                            |
+| 单文件编译工具              | `bun build --compile --target=bun-{platform}-{arch}`                                   | 仓库已全仓用 bun;设计文档 G 节                      |
+| tarball 压缩格式            | linux/darwin 用 `.tar.gz`,win32 用 `.zip`                                              | 平台常规                                            |
+| backend 二进制打包方式      | CI 打包时下载(复用 M7 的 `prepareBackend`)                                             | 设计文档 G 节                                       |
+| backend 失败策略            | 硬失败 CI(复用 M7 的默认行为);过渡期可 `AIONUI_BACKEND_ALLOW_MISSING=1`                | 和桌面打包对齐                                      |
+| renderer 产物来源           | 复用桌面 `out/renderer/`,不重复构建                                                    | 不增加 CI 时间                                      |
+| `aionui-web start` 默认端口 | 25808(和桌面 `--webui` 保持一致)                                                       | 用户心智模型统一                                    |
+| `aionui-web --version`      | 从 `packages/web-cli/package.json` 读,或编译时注入                                     | plan-writer 选                                      |
+| Windows 支持程度            | 产出 zip + 可执行,但本里程碑**不在 Windows CI 冒烟**(`AIONUI_BACKEND_ALLOW_MISSING=1`) | Windows 服务器/Termux 场景次要;M8 保产出、M9 再完善 |
+| 容器验证 job                | 仅 linux-x86_64,不全平台                                                               | 核心场景覆盖,不过度                                 |
 
 ## 验收标准
 
 **验证分层**(与 playbook checkpoint 语义一致):
+
 - **Executor 放行门禁 - 本地**(push 前必须通过):`packages/web-cli` 骨架、
   tsc、本地开发运行、依赖边界
 - **Executor 放行门禁 - CI**(M8 feature 分支 CI 必须绿):5 平台 matrix 的
@@ -205,16 +206,16 @@ sleep 20
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `bun build --compile` 在某些平台(尤其 ARM)产出异常 | plan-writer 先本机验证 darwin-arm64 / linux-x86_64 两个至少能出二进制;其他平台靠 CI |
-| `bun build --compile` 目标单文件无法 load 外部 backend 二进制路径(__dirname 问题) | `resolveBackendBinary.ts` 里用 `process.execPath` 或 `import.meta.url` 推算 tarball 根目录 |
-| renderer 静态资源路径相对当前工作目录 vs 相对二进制目录不一致 | `aionui-web` 启动时 `cd path.dirname(process.execPath)` 或传 `staticDir` 绝对路径给 `startWebHost` |
-| Windows 的 `bun build --compile` 产出 `.exe` 但 tarball 需要 `.zip` 包装 | CI 对 win32 特殊处理:`bun build --compile --target=bun-windows-x64 --outfile aionui-web.exe` + zip 打包 |
-| CI 时间过长(要编译 5 个平台) | 用 matrix 并行,每个平台独立 job |
-| backend 下载失败导致 5 个 job 全挂 | 复用 M7 的 `AIONUI_BACKEND_ALLOW_MISSING` 开关,过渡期设 1(但产出会缺 backend,需文档说明) |
-| tarball 里的 backend 二进制执行权限丢失(Windows tar 实现) | linux/darwin 用 `tar czf --owner=0 --group=0 --mode=u+rwX,go+rX,go-w`;win32 用 zip 并在 smoke 时 `chmod +x` |
-| CI 产出 artifact 和 Release artifact 的命名/路径对不上 | 先看现有 `build-and-release.yml` 怎么上传 dmg,照同样模式 |
+| 风险                                                                                                                         | 缓解                                                                                                                                                                                                      |
+| ---------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `bun build --compile` 在某些平台(尤其 ARM)产出异常                                                                           | plan-writer 先本机验证 darwin-arm64 / linux-x86_64 两个至少能出二进制;其他平台靠 CI                                                                                                                       |
+| `bun build --compile` 目标单文件无法 load 外部 backend 二进制路径(\_\_dirname 问题)                                          | `resolveBackendBinary.ts` 里用 `process.execPath` 或 `import.meta.url` 推算 tarball 根目录                                                                                                                |
+| renderer 静态资源路径相对当前工作目录 vs 相对二进制目录不一致                                                                | `aionui-web` 启动时 `cd path.dirname(process.execPath)` 或传 `staticDir` 绝对路径给 `startWebHost`                                                                                                        |
+| Windows 的 `bun build --compile` 产出 `.exe` 但 tarball 需要 `.zip` 包装                                                     | CI 对 win32 特殊处理:`bun build --compile --target=bun-windows-x64 --outfile aionui-web.exe` + zip 打包                                                                                                   |
+| CI 时间过长(要编译 5 个平台)                                                                                                 | 用 matrix 并行,每个平台独立 job                                                                                                                                                                           |
+| backend 下载失败导致 5 个 job 全挂                                                                                           | 复用 M7 的 `AIONUI_BACKEND_ALLOW_MISSING` 开关,过渡期设 1(但产出会缺 backend,需文档说明)                                                                                                                  |
+| tarball 里的 backend 二进制执行权限丢失(Windows tar 实现)                                                                    | linux/darwin 用 `tar czf --owner=0 --group=0 --mode=u+rwX,go+rX,go-w`;win32 用 zip 并在 smoke 时 `chmod +x`                                                                                               |
+| CI 产出 artifact 和 Release artifact 的命名/路径对不上                                                                       | 先看现有 `build-and-release.yml` 怎么上传 dmg,照同样模式                                                                                                                                                  |
 | `@aionui/web-host` 的 `WebHostOptions.app` 要求 `userDataPath`,CLI 模式下这个路径应该是 `~/.aionui` 还是 `~/.config/aionui`? | plan-writer 按 XDG 标准:linux `$XDG_DATA_HOME/aionui` 或 `~/.local/share/aionui`;darwin `~/Library/Application Support/aionui`;win32 `%APPDATA%\aionui`。可覆盖:`--data-dir` CLI 参数或 `AIONUI_HOME` env |
 
 ## 依赖上游

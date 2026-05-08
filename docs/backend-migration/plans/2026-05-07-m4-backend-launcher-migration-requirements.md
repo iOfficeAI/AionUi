@@ -49,15 +49,15 @@
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| lifecycleManager 迁移策略 | **完整搬迁**,不边改边迁 | 保留原有行为不变是 M4 验收前提 |
-| `AppMetadata` 注入方式 | **构造时注入**,不用全局单例 | 方便测试,解耦 |
-| `BackendBinaryResolver` 接口 | `() => string`,同步返回绝对路径或抛错 | 设计文档已定 |
-| backend 健康检查 | 沿用 `GET /health` 30 秒超时 | 保持与 M1 前行为一致 |
-| crash 重启策略 | 沿用 3 次/60 秒窗口 | 保持与 M1 前行为一致 |
-| 测试是否要起真 backend | **不起**,全 mock | 符合设计文档"测试层 1" |
-| 桌面 IPC 模式是否仍由 Electron 启动 backend | **是** | M4 只改实现位置,不改启动时机 |
+| 决策点                                      | 结论                                  | 理由                           |
+| ------------------------------------------- | ------------------------------------- | ------------------------------ |
+| lifecycleManager 迁移策略                   | **完整搬迁**,不边改边迁               | 保留原有行为不变是 M4 验收前提 |
+| `AppMetadata` 注入方式                      | **构造时注入**,不用全局单例           | 方便测试,解耦                  |
+| `BackendBinaryResolver` 接口                | `() => string`,同步返回绝对路径或抛错 | 设计文档已定                   |
+| backend 健康检查                            | 沿用 `GET /health` 30 秒超时          | 保持与 M1 前行为一致           |
+| crash 重启策略                              | 沿用 3 次/60 秒窗口                   | 保持与 M1 前行为一致           |
+| 测试是否要起真 backend                      | **不起**,全 mock                      | 符合设计文档"测试层 1"         |
+| 桌面 IPC 模式是否仍由 Electron 启动 backend | **是**                                | M4 只改实现位置,不改启动时机   |
 
 ## 验收标准
 
@@ -117,13 +117,13 @@ grep -rn "from ['\"]@aionui/web-host" packages/desktop/src/
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `lifecycleManager.ts` 里有对其他 desktop 文件的 import(比如 `binaryResolver`、日志、config) | plan-writer 迁移前先 `grep -n "^import" packages/desktop/src/process/backend/lifecycleManager.ts`,所有依赖要么迁入 web-host(如果通用),要么改为构造注入(如果是 desktop 特有) |
-| 桌面 IPC 模式启动 backend 失败(因为 `AppMetadata` 注入错) | plan-writer 在桌面入口(可能是 `src/index.ts` 或 `process/backend/index.ts`)集中注入一次 `AppMetadata`,不要在多处重复 |
-| backend 启动路径变更导致 e2e 挂 | 跑一次现有 e2e 套件(`bun run test:e2e`),对比 M3 前的通过率;如果有测试 mock 了 `BackendLifecycleManager`,同步更新 mock |
-| 循环依赖(`@aionui/web-host` 的 `AppMetadata` 被桌面 import,同时 backend-launcher 被 desktop 间接 import) | 依赖方向明确:desktop → web-host,单向;web-host 不反向 import |
-| 如果 M3 的接口签名和实际实现需要不符(如 `resolveBackend` 同步/异步) | **不自主改接口**,escalate 给 team-lead 修改 M3 接口契约 |
+| 风险                                                                                                     | 缓解                                                                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `lifecycleManager.ts` 里有对其他 desktop 文件的 import(比如 `binaryResolver`、日志、config)              | plan-writer 迁移前先 `grep -n "^import" packages/desktop/src/process/backend/lifecycleManager.ts`,所有依赖要么迁入 web-host(如果通用),要么改为构造注入(如果是 desktop 特有) |
+| 桌面 IPC 模式启动 backend 失败(因为 `AppMetadata` 注入错)                                                | plan-writer 在桌面入口(可能是 `src/index.ts` 或 `process/backend/index.ts`)集中注入一次 `AppMetadata`,不要在多处重复                                                        |
+| backend 启动路径变更导致 e2e 挂                                                                          | 跑一次现有 e2e 套件(`bun run test:e2e`),对比 M3 前的通过率;如果有测试 mock 了 `BackendLifecycleManager`,同步更新 mock                                                       |
+| 循环依赖(`@aionui/web-host` 的 `AppMetadata` 被桌面 import,同时 backend-launcher 被 desktop 间接 import) | 依赖方向明确:desktop → web-host,单向;web-host 不反向 import                                                                                                                 |
+| 如果 M3 的接口签名和实际实现需要不符(如 `resolveBackend` 同步/异步)                                      | **不自主改接口**,escalate 给 team-lead 修改 M3 接口契约                                                                                                                     |
 
 ## 依赖上游
 

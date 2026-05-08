@@ -4,13 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import type { AppMetadata, WebUIConfig } from '../types.js';
-import {
-  resetPassword,
-  changePassword,
-  verifyPassword,
-  loadConfig,
-  saveConfig,
-} from './index.js';
+import { resetPassword, changePassword, verifyPassword, loadConfig, saveConfig } from './index.js';
 
 async function makeApp(): Promise<AppMetadata> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'web-host-auth-'));
@@ -51,9 +45,9 @@ describe('auth (UC-3 5 APIs)', () => {
 
   describe('changePassword', () => {
     it('throws PASSWORD_NOT_INITIALIZED when no password yet', async () => {
-      await expect(
-        changePassword({ app, oldPassword: 'x', newPassword: 'newer-pass' }),
-      ).rejects.toThrow('PASSWORD_NOT_INITIALIZED');
+      await expect(changePassword({ app, oldPassword: 'x', newPassword: 'newer-pass' })).rejects.toThrow(
+        'PASSWORD_NOT_INITIALIZED'
+      );
     });
 
     it('accepts correct old password and rotates hash', async () => {
@@ -65,17 +59,15 @@ describe('auth (UC-3 5 APIs)', () => {
 
     it('rejects wrong old password', async () => {
       await resetPassword({ app });
-      await expect(
-        changePassword({ app, oldPassword: 'totally-wrong', newPassword: 'x' }),
-      ).rejects.toThrow('INVALID_OLD_PASSWORD');
+      await expect(changePassword({ app, oldPassword: 'totally-wrong', newPassword: 'x' })).rejects.toThrow(
+        'INVALID_OLD_PASSWORD'
+      );
     });
 
     it('leaves passwordHash unchanged on rejection', async () => {
       const old = await resetPassword({ app });
       const before = await loadConfig(app);
-      await expect(
-        changePassword({ app, oldPassword: 'wrong', newPassword: 'x' }),
-      ).rejects.toThrow();
+      await expect(changePassword({ app, oldPassword: 'wrong', newPassword: 'x' })).rejects.toThrow();
       const after = await loadConfig(app);
       expect(after.passwordHash).toBe(before.passwordHash);
       expect(await bcrypt.compare(old, after.passwordHash)).toBe(true);

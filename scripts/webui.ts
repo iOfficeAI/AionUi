@@ -84,11 +84,7 @@ function resolveBackendDataDir(): string {
     return resolved;
   }
   const suffix =
-    process.env.NODE_ENV === 'production'
-      ? ''
-      : process.env.AIONUI_MULTI_INSTANCE === '1'
-        ? '-dev-2'
-        : '-dev';
+    process.env.NODE_ENV === 'production' ? '' : process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
   const dir = path.join(os.homedir(), `.aionui-web${suffix}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
@@ -118,16 +114,14 @@ function resolveStaticDir(): string {
   if (process.env.AIONUI_STATIC_DIR) return process.env.AIONUI_STATIC_DIR;
   const candidate = path.join(repoRoot, 'out', 'renderer');
   if (fs.existsSync(path.join(candidate, 'index.html'))) return candidate;
-  throw new Error(
-    `Renderer assets not found at ${candidate}. Run "bun run package" first, or set AIONUI_STATIC_DIR.`
-  );
+  throw new Error(`Renderer assets not found at ${candidate}. Run "bun run package" first, or set AIONUI_STATIC_DIR.`);
 }
 
 function resolveBackendBinary(): string {
   if (process.env.AIONUI_BACKEND_BIN) return process.env.AIONUI_BACKEND_BIN;
 
-  const bundledBase = process.env.AIONUI_BACKEND_BUNDLED_DIR
-    ?? path.join(repoRoot, 'resources', 'bundled-aionui-backend');
+  const bundledBase =
+    process.env.AIONUI_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aionui-backend');
   const runtimeKey = `${process.platform}-${process.arch}`;
   const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
   if (fs.existsSync(bundled)) return bundled;
@@ -159,9 +153,7 @@ function augmentPathWithNvm(): void {
   if (!fs.existsSync(versionsDir)) return;
   try {
     const versions = fs.readdirSync(versionsDir);
-    const nvmBins = versions
-      .map((v) => path.join(versionsDir, v, 'bin'))
-      .filter((p) => fs.existsSync(p));
+    const nvmBins = versions.map((v) => path.join(versionsDir, v, 'bin')).filter((p) => fs.existsSync(p));
     if (nvmBins.length === 0) return;
     const current = process.env.PATH || '';
     const missing = nvmBins.filter((p) => !current.split(path.delimiter).includes(p));

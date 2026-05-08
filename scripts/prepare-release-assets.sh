@@ -43,6 +43,36 @@ for file in "${DISTRIBUTABLES[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# 1b) Copy web-cli tarballs (+ sha256 checksums)
+# ---------------------------------------------------------------------------
+echo "==> Copying web-cli tarballs from $ARTIFACTS_DIR ..."
+mapfile -t WEB_CLI_FILES < <(find "$ARTIFACTS_DIR" -type f \( \
+  -name "aionui-web-*.tar.gz" -o \
+  -name "aionui-web-*.tar.gz.sha256" \
+\) | sort)
+
+WEB_CLI_DUPS=$(for file in "${WEB_CLI_FILES[@]}"; do basename "$file"; done | sort | uniq -d || true)
+if [ -n "$WEB_CLI_DUPS" ]; then
+  echo "::error::Duplicate web-cli artifact basenames:"
+  echo "$WEB_CLI_DUPS"
+  exit 1
+fi
+
+for file in "${WEB_CLI_FILES[@]}"; do
+  cp -f "$file" "$OUTPUT_DIR/"
+done
+
+# ---------------------------------------------------------------------------
+# 1c) Copy install-web.sh (version-substituted)
+# ---------------------------------------------------------------------------
+echo "==> Copying install-web.sh ..."
+INSTALL_SCRIPT=$(find "$ARTIFACTS_DIR" -type f -name 'install-web.sh' | head -n 1 || true)
+if [ -n "$INSTALL_SCRIPT" ]; then
+  cp -f "$INSTALL_SCRIPT" "$OUTPUT_DIR/install-web.sh"
+  chmod +x "$OUTPUT_DIR/install-web.sh"
+fi
+
+# ---------------------------------------------------------------------------
 # 2) Collect updater metadata from each platform artifact directory
 # ---------------------------------------------------------------------------
 echo "==> Collecting updater metadata ..."
@@ -88,6 +118,37 @@ for required in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.ym
     MISSING=1
   fi
 done
+
+# ---------------------------------------------------------------------------
+# 5b) Hard validation for web-cli release assets
+# ---------------------------------------------------------------------------
+echo "==> Validating web-cli assets ..."
+
+VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
+WEB_PLATFORMS=(
+  "darwin-arm64"
+  "darwin-x86_64"
+  "linux-arm64"
+  "linux-x86_64"
+  "win-x86_64"
+)
+
+for plat in "${WEB_PLATFORMS[@]}"; do
+  tarball="aionui-web-${VERSION}-${plat}.tar.gz"
+  if [ ! -f "$OUTPUT_DIR/$tarball" ]; then
+    echo "::error::Missing web-cli tarball: $tarball"
+    MISSING=1
+  fi
+  if [ ! -f "$OUTPUT_DIR/${tarball}.sha256" ]; then
+    echo "::error::Missing web-cli checksum: ${tarball}.sha256"
+    MISSING=1
+  fi
+done
+
+if [ ! -f "$OUTPUT_DIR/install-web.sh" ]; then
+  echo "::error::Missing install-web.sh"
+  MISSING=1
+fi
 
 if [ "$MISSING" -ne 0 ]; then
   exit 1

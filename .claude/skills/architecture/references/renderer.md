@@ -123,10 +123,10 @@ Only create sub-directories you need. Use these exact names.
 
 ## Page-Level Directory Naming
 
-| Type                            | Convention | Examples                                           |
-| ------------------------------- | ---------- | -------------------------------------------------- |
-| **Categorical** (standard role) | lowercase  | `components/`, `hooks/`, `context/`, `utils/`      |
-| **Feature module** (business)   | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`        |
+| Type                            | Convention | Examples                                                                    |
+| ------------------------------- | ---------- | --------------------------------------------------------------------------- |
+| **Categorical** (standard role) | lowercase  | `components/`, `hooks/`, `context/`, `utils/`                               |
+| **Feature module** (business)   | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`                                 |
 | **Platform directory**          | lowercase  | `acp/`, `codex/`, `gemini/` (mirrors `packages/desktop/src/process/agent/`) |
 
 ### Example
@@ -150,9 +150,9 @@ packages/desktop/src/renderer/
 
 ## Shared vs Page-Private Code
 
-| Scope                      | Location                                          |
-| -------------------------- | ------------------------------------------------- |
-| Used by **one** page       | `pages/<PageName>/components/`, `hooks/`, etc.    |
+| Scope                      | Location                                                                            |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| Used by **one** page       | `pages/<PageName>/components/`, `hooks/`, etc.                                      |
 | Used by **multiple** pages | `packages/desktop/src/renderer/components/`, `packages/desktop/src/renderer/hooks/` |
 
 **Promotion rule**: Start page-private. Move to shared only when a second consumer appears.

@@ -19,12 +19,7 @@ vi.mock('node:net', () => ({
 
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:net';
-import {
-  buildSpawnArgs,
-  buildSpawnEnv,
-  findAvailablePort,
-  BackendLifecycleManager,
-} from './backend-launcher.js';
+import { buildSpawnArgs, buildSpawnEnv, findAvailablePort, BackendLifecycleManager } from './backend-launcher.js';
 import type { AppMetadata } from './types.js';
 
 const APP_META: AppMetadata = {
@@ -143,7 +138,9 @@ describe('buildSpawnEnv', () => {
 
 describe('findAvailablePort', () => {
   it('resolves with the port reported by the listening server', async () => {
-    vi.mocked(createServer).mockImplementationOnce(() => makeFakeServer(40404) as unknown as ReturnType<typeof createServer>);
+    vi.mocked(createServer).mockImplementationOnce(
+      () => makeFakeServer(40404) as unknown as ReturnType<typeof createServer>
+    );
     const port = await findAvailablePort();
     expect(port).toBe(40404);
   });
@@ -151,13 +148,15 @@ describe('findAvailablePort', () => {
 
 describe('BackendLifecycleManager.start (success path)', () => {
   it('spawns with correct args, waits for /health, reports running', async () => {
-    vi.mocked(createServer).mockImplementation(() => makeFakeServer(55555) as unknown as ReturnType<typeof createServer>);
+    vi.mocked(createServer).mockImplementation(
+      () => makeFakeServer(55555) as unknown as ReturnType<typeof createServer>
+    );
     const child = makeFakeChild();
     vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('ok', { status: 200 }) as unknown as Response,
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
     const resolveBackend = vi.fn(() => '/abs/path/aionui-backend');
     const mgr = new BackendLifecycleManager(APP_META_PACKAGED, resolveBackend);
@@ -177,11 +176,16 @@ describe('BackendLifecycleManager.start (success path)', () => {
     const spawnCall = vi.mocked(spawn).mock.calls[0];
     expect(spawnCall[0]).toBe('/abs/path/aionui-backend');
     expect(spawnCall[1]).toEqual([
-      '--port', '55555',
-      '--data-dir', '/db/path',
-      '--log-level', 'info',
-      '--app-version', '1.2.3',
-      '--log-dir', '/log/dir',
+      '--port',
+      '55555',
+      '--data-dir',
+      '/db/path',
+      '--log-level',
+      'info',
+      '--app-version',
+      '1.2.3',
+      '--log-dir',
+      '/log/dir',
       '--local',
     ]);
     const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
@@ -198,7 +202,9 @@ describe('BackendLifecycleManager.start (success path)', () => {
 describe('BackendLifecycleManager.start (health timeout)', () => {
   it('kills child and throws when /health never responds OK within timeout', async () => {
     vi.useFakeTimers();
-    vi.mocked(createServer).mockImplementation(() => makeFakeServer(33333) as unknown as ReturnType<typeof createServer>);
+    vi.mocked(createServer).mockImplementation(
+      () => makeFakeServer(33333) as unknown as ReturnType<typeof createServer>
+    );
     const child = makeFakeChild();
     vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
 
@@ -222,13 +228,15 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
 describe('BackendLifecycleManager.stop', () => {
   it('sends SIGTERM then resolves when child emits exit', async () => {
-    vi.mocked(createServer).mockImplementation(() => makeFakeServer(22222) as unknown as ReturnType<typeof createServer>);
+    vi.mocked(createServer).mockImplementation(
+      () => makeFakeServer(22222) as unknown as ReturnType<typeof createServer>
+    );
     const child = makeFakeChild();
     vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('ok', { status: 200 }) as unknown as Response,
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
     await mgr.start('/db');
@@ -245,13 +253,15 @@ describe('BackendLifecycleManager.stop', () => {
   });
 
   it('escalates to SIGKILL when SIGTERM times out', async () => {
-    vi.mocked(createServer).mockImplementation(() => makeFakeServer(22223) as unknown as ReturnType<typeof createServer>);
+    vi.mocked(createServer).mockImplementation(
+      () => makeFakeServer(22223) as unknown as ReturnType<typeof createServer>
+    );
     const child = makeFakeChild();
     vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('ok', { status: 200 }) as unknown as Response,
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
     await mgr.start('/db');
@@ -261,9 +271,7 @@ describe('BackendLifecycleManager.stop', () => {
     await new Promise((r) => setTimeout(r, 5_200));
     await stopPromise;
 
-    expect(vi.mocked(child.kill).mock.calls).toEqual(
-      expect.arrayContaining([['SIGTERM'], ['SIGKILL']]),
-    );
+    expect(vi.mocked(child.kill).mock.calls).toEqual(expect.arrayContaining([['SIGTERM'], ['SIGKILL']]));
 
     fetchSpy.mockRestore();
   }, 7_000);
@@ -274,16 +282,17 @@ describe('BackendLifecycleManager crash restart', () => {
     // First createServer call assigns port 60001; subsequent restart uses port 60002
     let portCounter = 60000;
     vi.mocked(createServer).mockImplementation(
-      () => makeFakeServer(++portCounter) as unknown as ReturnType<typeof createServer>,
+      () => makeFakeServer(++portCounter) as unknown as ReturnType<typeof createServer>
     );
     const child1 = makeFakeChild();
     const child2 = makeFakeChild();
-    vi.mocked(spawn).mockReturnValueOnce(child1 as unknown as ChildProcess)
-                    .mockReturnValueOnce(child2 as unknown as ChildProcess);
+    vi.mocked(spawn)
+      .mockReturnValueOnce(child1 as unknown as ChildProcess)
+      .mockReturnValueOnce(child2 as unknown as ChildProcess);
 
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('ok', { status: 200 }) as unknown as Response,
-    );
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
     await mgr.start('/db');

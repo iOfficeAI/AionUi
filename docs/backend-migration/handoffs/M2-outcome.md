@@ -1,6 +1,7 @@
 # M2 aionrs 清理 - 交付摘要
 
 ## 已交付
+
 - 删除 `scripts/prepareAionrs.js`
 - 删除 `scripts/build-with-builder.js` 中 `prepareAionrs` 的 `require` 与调用
 - 删除 `packages/desktop/electron-builder.yml` 里的 `bundled-aionrs` `extraResources`
@@ -8,6 +9,7 @@
 - 删除本地 `resources/bundled-aionrs/`
 
 ## 与计划的偏离
+
 - 额外改了 `scripts/prepareAionuiBackend.js` 注释里的 `prepareAionrs.js` 字样
   原因：requirements 的全仓 grep 验收会命中这条纯注释残留
   影响：无运行时影响，仅保证验收 grep 归零
@@ -16,10 +18,12 @@
   影响：与 requirements 的 `dist/mac-arm64/...` 等价
 
 ## 给下一个里程碑的提醒
+
 - `resources/bundled-aionui-backend` 仍会在打包时提示缺失；这是 M4 相关，不在 M2 scope
 - 本机 `build-mac:arm64` 仍卡在 codesign 证书歧义；这是环境 blocker，不是 M2 代码 blocker
 
 ## 验证证据
+
 - 分支 / HEAD
 
 ```text
@@ -79,4 +83,5 @@ Apple Development: 凯 周 (FF2YR75839): ambiguous (matches ... in /Users/zhouka
 ```
 
 ## 遗留问题 / 跟进项
+
 - 未执行 requirements 中的 `'aionrs' / 'aion-cli'` 手动业务回归；本次只完成了 M2 要求的二进制分发清理与打包产物验证

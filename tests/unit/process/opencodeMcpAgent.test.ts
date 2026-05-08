@@ -9,10 +9,7 @@ import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import type { IMcpServer } from '@/common/config/storage';
-import {
-  OpencodeMcpAgent,
-  resolveOpencodeConfigPath,
-} from '@process/services/mcpServices/agents/OpencodeMcpAgent';
+import { OpencodeMcpAgent, resolveOpencodeConfigPath } from '@process/services/mcpServices/agents/OpencodeMcpAgent';
 
 const originalOpencodeConfig = process.env.OPENCODE_CONFIG;
 

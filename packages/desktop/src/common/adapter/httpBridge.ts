@@ -46,11 +46,7 @@ function getBackendPort(): number {
  * proxy / WS upgrade to the backend.
  */
 function isWebUiBrowserMode(): boolean {
-  return (
-    typeof window !== 'undefined' &&
-    typeof document !== 'undefined' &&
-    !(window as Window).__backendPort
-  );
+  return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
 }
 
 export function getBaseUrl(): string {

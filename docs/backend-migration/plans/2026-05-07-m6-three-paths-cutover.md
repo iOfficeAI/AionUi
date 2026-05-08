@@ -3,10 +3,12 @@
 **迁移目标**: 将桌面 WebUI 从 `packages/desktop/src/process/webserver/` 切换到 `packages/web-host`，实现三条路径的统一切换。
 
 **前提条件**:
+
 - M4 已完成：`BackendLifecycleManager` 已迁入 `@aionui/web-host`
 - M5 已完成：`static-server` + `auth` 模块已在 `@aionui/web-host` 中实现并通过测试
 
 **三条路径**:
+
 1. **桌面 IPC 路径**: 通过 IPC bridge (`webui.start` / `webui.stop` / `webui.getStatus`) 启动/停止 WebUI
 2. **桌面 GUI switch 路径**: 通过设置界面 (`WebuiModalContent.tsx`) 的开关/按钮控制 WebUI
 3. **WebUI headless 路径**: 通过命令行 `bun run webui` 启动 headless WebUI 服务器
@@ -41,6 +43,7 @@
 **目的**: 记录切换前的基线状态，以便回滚和诊断。
 
 **操作**:
+
 1. 确认当前分支基于 `origin/feat/m5-static-server-auth-migration`
 2. 运行以下命令并保存输出：
    ```bash
@@ -62,6 +65,7 @@
    - 记录控制台日志和 QR 码是否正常显示
 
 **产出**:
+
 - `/tmp/m6-baseline-*.txt` 快照文件
 - 基线测试报告（手动记录或截图）
 
@@ -74,31 +78,37 @@
 **操作**:
 
 1. **验证 M4 交付**:
+
    ```bash
    # 检查 BackendLifecycleManager 是否可导入
    grep -r "BackendLifecycleManager" packages/web-host/src/index.ts
    grep -r "BackendLifecycleManager" packages/desktop/src/index.ts
-   
+
    # 检查 M4 测试是否通过
    bunx vitest run packages/web-host/tests/backend-launcher.test.ts
    ```
+
    预期：导出存在，测试通过（可能有1个 unhandled rejection warning，属于已知问题）
 
 2. **验证 M5 交付**:
+
    ```bash
    # 检查 static-server 和 auth 是否可导入
    grep -r "startStaticServer\|resetPassword\|verifyPassword" packages/web-host/src/index.ts
-   
+
    # 检查 M5 测试是否通过
    bunx vitest run packages/web-host/tests/
    ```
+
    预期：导出存在，55+ 测试通过
 
 3. **检查依赖边界**:
+
    ```bash
    # web-host 不应依赖 electron
    grep -r "electron\|@process/\|@renderer/" packages/web-host/src/ || echo "✓ Clean"
    ```
+
    预期：无输出（Clean）
 
 4. **检查 legacy webserver 未被意外修改**:
@@ -108,6 +118,7 @@
    预期：无输出（M5 承诺未修改 legacy webserver）
 
 **失败处理**:
+
 - 如果 M4/M5 测试失败或导出缺失，停止 M6 执行，回退到 M4/M5 修复阶段
 - 如果 legacy webserver 被意外修改，先 revert 再继续
 
@@ -167,6 +178,7 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
 ```
 
 **Before**:
+
 ```typescript
 export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle> {
   throw new Error('M5: startWebHost not implemented yet');
@@ -176,6 +188,7 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
 **After**: 完整实现如上。
 
 **Commit**:
+
 ```
 feat(web-host): implement startWebHost orchestration (M6 phase 2)
 
@@ -220,11 +233,13 @@ feat(web-host): implement startWebHost orchestration (M6 phase 2)
    - Then: 先停 static-server，再停 backend
 
 **Mock 策略**:
+
 - Mock `loadConfig` / `resetPassword` / `saveConfig` (from `auth/index.ts`)
 - Mock `startBackend` (from `backend-launcher.ts`)
 - Mock `startStaticServer` (from `static-server.ts`)
 
 **Commit**:
+
 ```
 test(web-host): add unit tests for startWebHost
 
@@ -240,13 +255,15 @@ test(web-host): add unit tests for startWebHost
 
 **目的**: 将桌面的 IPC bridge (`webuiBridge.ts` 或相关文件) 从调用 legacy `packages/desktop/src/process/webserver/index.ts` 切换到调用 `@aionui/web-host` 的 `startWebHost`。
 
-**文件**: 
+**文件**:
+
 - `packages/desktop/src/process/utils/webuiConfig.ts` (主要修改)
 - `packages/desktop/src/process/bridge/webuiQR.ts` (可能需要调整，但 M5 说它无 Electron 依赖)
 
 **关键修改**:
 
 1. **Import 切换**:
+
    ```typescript
    // Before
    import { startWebServer } from '@process/webserver';
@@ -257,6 +274,7 @@ test(web-host): add unit tests for startWebHost
    ```
 
 2. **`startWebServerWithInstance` 重构**:
+
    ```typescript
    // Before: 调用 legacy startWebServer
    export async function startWebServerWithInstance(port: number, allowRemote: boolean) {
@@ -292,6 +310,7 @@ test(web-host): add unit tests for startWebHost
 3. **QR 逻辑保持不变**: `webuiQR.ts` 已经是无 Electron 依赖的纯逻辑，不需要修改（除非需要同步 session token 存储位置）。
 
 **Commit**:
+
 ```
 refactor(desktop): switch IPC bridge to use @aionui/web-host (M6 phase 4)
 
@@ -317,10 +336,12 @@ refactor(desktop): switch IPC bridge to use @aionui/web-host (M6 phase 4)
 3. **错误提示**: 如果 `startWebHost` 抛出错误（例如端口冲突），IPC bridge 应返回清晰的错误信息，前端显示给用户。
 
 **检查项**:
+
 - 前端是否依赖 legacy webserver 的特定行为（例如特定的错误码、特定的日志格式）？
 - 前端是否需要新的 IPC 方法（例如 `webui.resetPassword`）？
 
 **Commit**:
+
 ```
 refactor(desktop): update WebuiModalContent for M6 web-host (M6 phase 5)
 
@@ -337,13 +358,15 @@ refactor(desktop): update WebuiModalContent for M6 web-host (M6 phase 5)
 
 **目的**: 实现命令行启动 WebUI 的功能，供 Linux headless 环境使用。
 
-**文件**: 
+**文件**:
+
 - `packages/desktop/scripts/webui.ts` (新建)
 - `packages/desktop/package.json` (添加 script)
 
 **实现**:
 
 1. **`scripts/webui.ts`**:
+
    ```typescript
    #!/usr/bin/env bun
    import { startWebHost } from '@aionui/web-host';
@@ -404,6 +427,7 @@ refactor(desktop): update WebuiModalContent for M6 web-host (M6 phase 5)
    ```
 
 **Commit**:
+
 ```
 feat(desktop): add headless WebUI CLI script (M6 phase 6)
 
@@ -419,6 +443,7 @@ feat(desktop): add headless WebUI CLI script (M6 phase 6)
 **目的**: 为三条路径编写端到端冒烟测试，确保 M6 切换后所有路径都能正常工作。
 
 **文件**:
+
 - `tests/e2e/cases/webui/desktop-ipc.e2e.ts` (新建)
 - `tests/e2e/cases/webui/desktop-gui-switch.e2e.ts` (新建)
 - `tests/e2e/cases/webui/webui-headless.e2e.ts` (新建)
@@ -538,6 +563,7 @@ test('Headless path: bun run webui', async () => {
 ```
 
 **Commit**:
+
 ```
 test(e2e): add three-paths cutover smoke tests (M6 phase 7)
 
@@ -555,6 +581,7 @@ test(e2e): add three-paths cutover smoke tests (M6 phase 7)
 **文件**: `packages/desktop/src/process/webserver/` (整个目录)
 
 **删除清单**:
+
 - `index.ts` (legacy webserver 入口)
 - `adapter.ts`, `directoryApi.ts`, `setup.ts` (legacy 逻辑)
 - `auth/` (已迁移到 `@aionui/web-host/src/auth/`)
@@ -563,20 +590,24 @@ test(e2e): add three-paths cutover smoke tests (M6 phase 7)
 - `websocket/` (WebSocket proxy 已在 `static-server.ts` 中实现)
 
 **保留清单** (如果有桥接需求):
+
 - 可能需要保留 `config/constants.ts` 中的常量定义（如果桌面其他地方引用）
 - 可能需要保留 `types/` 中的类型定义（如果桌面其他地方引用）
 
 **检查引用**:
+
 ```bash
 # 查找哪些文件仍在 import legacy webserver
 grep -r "from '@process/webserver" packages/desktop/src/ --include="*.ts" --include="*.tsx"
 ```
 
 **处理引用**:
+
 - 如果有引用，先将引用切换到 `@aionui/web-host` 或移除
 - 确认无引用后，删除整个 `webserver/` 目录
 
 **Commit**:
+
 ```
 refactor(desktop): remove legacy webserver (M6 phase 8)
 
@@ -592,6 +623,7 @@ refactor(desktop): remove legacy webserver (M6 phase 8)
 **目的**: 更新文档以反映 M6 的变更，并为 M7 准备交接。
 
 **文件**:
+
 - `docs/backend-migration/handoffs/M6-outcome.md` (新建)
 - `README.md` (可选，如果有 WebUI 使用说明需要更新)
 
@@ -668,6 +700,7 @@ See "Rollback Scenarios" section in M6 plan.
 ```
 
 **Commit**:
+
 ```
 docs(backend-migration): add M6 outcome handoff (M6 phase 9)
 
@@ -685,27 +718,35 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
 **操作**:
 
 1. **类型检查**:
+
    ```bash
    bunx tsc --noEmit
    ```
+
    预期：0 errors
 
 2. **Lint**:
+
    ```bash
    bun run lint
    ```
+
    预期：0 errors（warnings 可接受）
 
 3. **单元测试**:
+
    ```bash
    bun test
    ```
+
    预期：所有 M6 新增测试通过，既有测试无 regression
 
 4. **E2E 测试**:
+
    ```bash
    bunx vitest run tests/e2e/cases/webui/
    ```
+
    预期：3 个路径的冒烟测试通过
 
 5. **手动冒烟**:
@@ -716,10 +757,12 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
    - 运行 `bun run webui`，验证 headless 模式启动
 
 6. **同步基线**:
+
    ```bash
    git fetch origin
    git merge origin/feat/backend-migration --no-edit
    ```
+
    如果有冲突，解决后继续。
 
 7. **推送**:
@@ -770,11 +813,13 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
    - 解决：确保 IPC bridge 正确调用 `webuiQR.ts` 的逻辑
 
 **日志优先级**:
+
 - Backend 启动/停止：`console.log('[WebHost] ...')`
 - 认证成功/失败：`console.log('[Auth] ...')`
 - 端口分配：`console.log('[Static] Listening on ...')`
 
 **最小证据**:
+
 - 如果报告问题，需提供：
   - 错误消息（完整堆栈）
   - 相关日志（最后 50 行）
@@ -787,6 +832,7 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
 ### 场景 1: M6 功能性回退（IPC/GUI/CLI 路径任一损坏）
 
 **操作**:
+
 1. 切回 M5 分支：
    ```bash
    git checkout feat/m5-static-server-auth-migration
@@ -803,20 +849,24 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
 ### 场景 2: M6 性能回退（启动时间 >5s 或内存占用 >100MB）
 
 **诊断**:
+
 - 使用 `time bun run webui` 测量启动时间
 - 使用 `ps aux | grep bun` 查看内存占用
 
 **操作**:
+
 - 如果性能回退不可接受，回到场景 1
 - 否则，创建性能优化任务，M7 跟进
 
 ### 场景 3: M6 数据丢失（密码重置导致用户无法登录）
 
 **预防**:
+
 - M6 应在首次启动时提示用户"密码已重置，请设置新密码"
 - 提供 CLI 命令 `bun run reset-webui-password` 供用户重置
 
 **恢复**:
+
 - 如果用户忘记密码，运行：
   ```bash
   bun run reset-webui-password
@@ -827,20 +877,20 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
 
 ## 时间估算
 
-| Phase | 估算时间 | 备注 |
-|-------|---------|------|
-| 0. Baseline Snapshot | 30 min | 手动测试 + 记录 |
-| 1. Pre-Flight Checks | 15 min | 自动化脚本 |
-| 2. `startWebHost` Implementation | 2 hours | 核心逻辑 + 错误处理 |
-| 3. Unit Tests for `startWebHost` | 2 hours | 5 个测试用例 + mock |
-| 4. Update Desktop IPC Bridge | 1.5 hours | Import 切换 + 参数映射 |
-| 5. Update Desktop GUI | 1 hour | 前端调整（如果需要） |
-| 6. Headless CLI Script | 1 hour | 简单脚本 + env 变量 |
-| 7. E2E Tests (Three Paths) | 3 hours | 3 个测试文件，GUI 测试可能较慢 |
-| 8. Remove Legacy Webserver | 1 hour | 删除文件 + 检查引用 |
-| 9. Documentation & Handoff | 1 hour | 写 M6-outcome.md |
-| 10. Final Validation & Push | 1 hour | 完整测试 + 推送 |
-| **Total** | **14 hours** | 约 2 个工作日 |
+| Phase                            | 估算时间     | 备注                           |
+| -------------------------------- | ------------ | ------------------------------ |
+| 0. Baseline Snapshot             | 30 min       | 手动测试 + 记录                |
+| 1. Pre-Flight Checks             | 15 min       | 自动化脚本                     |
+| 2. `startWebHost` Implementation | 2 hours      | 核心逻辑 + 错误处理            |
+| 3. Unit Tests for `startWebHost` | 2 hours      | 5 个测试用例 + mock            |
+| 4. Update Desktop IPC Bridge     | 1.5 hours    | Import 切换 + 参数映射         |
+| 5. Update Desktop GUI            | 1 hour       | 前端调整（如果需要）           |
+| 6. Headless CLI Script           | 1 hour       | 简单脚本 + env 变量            |
+| 7. E2E Tests (Three Paths)       | 3 hours      | 3 个测试文件，GUI 测试可能较慢 |
+| 8. Remove Legacy Webserver       | 1 hour       | 删除文件 + 检查引用            |
+| 9. Documentation & Handoff       | 1 hour       | 写 M6-outcome.md               |
+| 10. Final Validation & Push      | 1 hour       | 完整测试 + 推送                |
+| **Total**                        | **14 hours** | 约 2 个工作日                  |
 
 **风险缓冲**: 建议预留 20% 时间（+3 hours）应对意外问题（端口冲突、环境差异、GUI 测试调试）。
 
@@ -850,13 +900,13 @@ docs(backend-migration): add M6 outcome handoff (M6 phase 9)
 
 ## 风险与缓解
 
-| 风险 | 影响 | 概率 | 缓解措施 |
-|------|------|------|----------|
-| Legacy webserver 存在隐藏依赖 | 删除后桌面应用启动失败 | 中 | Phase 8 前先 grep 检查引用，逐步删除 |
-| GUI E2E 测试环境配置困难 | 测试无法运行或 flaky | 高 | 只写骨架 + 关键断言，标记为 manual test |
-| Backend 二进制在 CI 不可用 | E2E 测试跳过或失败 | 中 | Phase 1 检查二进制路径，M7 补充 CI build |
-| 密码迁移逻辑不兼容 | 用户无法登录 | 低 | Phase 2 加强首次运行提示，提供 reset 命令 |
-| Headless 模式在 Windows 不可用 | CLI 路径跨平台失败 | 中 | Phase 6 测试多平台，调整 path 逻辑 |
+| 风险                           | 影响                   | 概率 | 缓解措施                                  |
+| ------------------------------ | ---------------------- | ---- | ----------------------------------------- |
+| Legacy webserver 存在隐藏依赖  | 删除后桌面应用启动失败 | 中   | Phase 8 前先 grep 检查引用，逐步删除      |
+| GUI E2E 测试环境配置困难       | 测试无法运行或 flaky   | 高   | 只写骨架 + 关键断言，标记为 manual test   |
+| Backend 二进制在 CI 不可用     | E2E 测试跳过或失败     | 中   | Phase 1 检查二进制路径，M7 补充 CI build  |
+| 密码迁移逻辑不兼容             | 用户无法登录           | 低   | Phase 2 加强首次运行提示，提供 reset 命令 |
+| Headless 模式在 Windows 不可用 | CLI 路径跨平台失败     | 中   | Phase 6 测试多平台，调整 path 逻辑        |
 
 ---
 
@@ -883,6 +933,6 @@ M6 完成的标志：
 
 ---
 
-**Plan Writer**: plan-writer-m6-retry  
-**Plan Version**: 1.0  
+**Plan Writer**: plan-writer-m6-retry
+**Plan Version**: 1.0
 **Last Updated**: 2026-05-08

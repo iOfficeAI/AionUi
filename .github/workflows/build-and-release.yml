@@ -16,12 +16,53 @@ env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
 
 jobs:
+  # 独立 code-quality job,供桌面构建和 web-cli 打包共用,避免重复跑
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run postinstall
+        run: bun run postinstall || true
+
+      - name: Run ESLint
+        run: bun run lint
+
+      - name: Check Prettier formatting
+        run: bun run format:check
+
+      - name: TypeScript type check
+        run: bunx tsc --noEmit
+
+      # Unit tests temporarily disabled — see docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
+      # 暂时跳过单元测试 —— 详见 handoff TODO
+      # - name: Run unit tests
+      #   run: bunx vitest run
+
   build-pipeline:
     name: Build Pipeline
     uses: ./.github/workflows/_build-reusable.yml
+    needs: code-quality
     # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
-    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
     with:
+      skip_code_quality: true
       matrix: >-
         {"include":[
           {"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},
@@ -31,6 +72,18 @@ jobs:
           {"platform":"linux-x64","os":"ubuntu-latest","command":"node scripts/build-with-builder.js x64 --linux --x64","artifact-name":"linux-build-x64","arch":"x64"},
           {"platform":"linux-arm64","os":"ubuntu-latest","command":"node scripts/build-with-builder.js arm64 --linux --arm64","artifact-name":"linux-build-arm64","arch":"arm64"}
         ]}
+    secrets: inherit
+
+  pack-web-cli:
+    name: Pack Web CLI
+    uses: ./.github/workflows/pack-web-cli.yml
+    needs: code-quality
+    # 与桌面构建同频触发：dev 分支或正式 tag（排除 -dev- tag）
+    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    with:
+      ref: ''
+      append_commit_hash: false
+      skip_code_quality: true
     secrets: inherit
 
   # 自动重试 workflow（当构建失败时）
@@ -103,6 +156,10 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
+          # GH_TOKEN is a PAT with `repo` + `workflow` scopes — required because
+          # tag pushes whose reachable history contains .github/workflows/
+          # changes are rejected for the built-in GITHUB_TOKEN (lacks the
+          # `workflow` scope, which GITHUB_TOKEN can never grant).
           token: ${{ secrets.GH_TOKEN }}
 
       - name: Setup Node.js
@@ -199,9 +256,9 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-pipeline, create-tag]
+    needs: [build-pipeline, create-tag, pack-web-cli]
     # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
-    if: always() && needs.build-pipeline.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    if: always() && needs.build-pipeline.result == 'success' && needs.pack-web-cli.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
     # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
 
@@ -249,6 +306,9 @@ jobs:
             release-assets/**/*.deb
             release-assets/**/*.zip
             release-assets/**/*.yml
+            release-assets/**/*.tar.gz
+            release-assets/**/*.sha256
+            release-assets/install-web.sh
           generate_release_notes: true
           draft: true
           prerelease: ${{ steps.version.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}

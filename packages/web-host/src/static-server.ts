@@ -8,11 +8,7 @@
  * beyond the login pair — those ALL live in aionui-backend.
  */
 
-import http, {
-  type IncomingMessage,
-  type Server,
-  type ServerResponse,
-} from 'node:http';
+import http, { type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import net, { type Socket } from 'node:net';
 import serveHandler from 'serve-handler';
@@ -26,12 +22,7 @@ const cookie = cookieRaw as any as {
   parse: (str: string) => Record<string, string | undefined>;
 };
 import { verifyPassword, loadConfig } from './auth/index.js';
-import {
-  SESSION_COOKIE,
-  createSession,
-  verifySession,
-  getSessionUsername,
-} from './auth/session.js';
+import { SESSION_COOKIE, createSession, verifySession, getSessionUsername } from './auth/session.js';
 import { RateLimiter } from './auth/rateLimiter.js';
 
 export type StaticServerOptions = {
@@ -77,7 +68,7 @@ async function readBody(req: IncomingMessage, limitBytes = 1_000_000): Promise<B
 function buildCookieString(
   name: string,
   value: string,
-  opts: { maxAge: number; sameSite: 'strict' | 'lax'; httpOnly: boolean; path: string },
+  opts: { maxAge: number; sameSite: 'strict' | 'lax'; httpOnly: boolean; path: string }
 ): string {
   return cookie.serialize(name, value, {
     maxAge: Math.floor(opts.maxAge / 1000),
@@ -88,11 +79,7 @@ function buildCookieString(
   });
 }
 
-function forwardToBackend(
-  req: IncomingMessage,
-  res: ServerResponse,
-  backendPort: number,
-): void {
+function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
   const options: http.RequestOptions = {
     hostname: '127.0.0.1',
     port: backendPort,
@@ -115,12 +102,7 @@ function forwardToBackend(
   req.pipe(proxy);
 }
 
-function forwardUpgradeToBackend(
-  req: IncomingMessage,
-  socket: Socket,
-  head: Buffer,
-  backendPort: number,
-): void {
+function forwardUpgradeToBackend(req: IncomingMessage, socket: Socket, head: Buffer, backendPort: number): void {
   // Tunnel the WebSocket handshake through a raw TCP socket: reassemble the
   // original request line + headers and splice the two sockets together. This
   // mirrors what http-proxy/nginx do for WebSocket upstreams and avoids the
@@ -306,7 +288,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   });
 
   const actualPort = (server.address() as { port: number } | null)?.port ?? port;
-  const lanIP = allowRemote ? getLanIP() ?? undefined : undefined;
+  const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
   const localUrl = `http://127.0.0.1:${actualPort}`;
   const networkUrl = lanIP ? `http://${lanIP}:${actualPort}` : undefined;
 

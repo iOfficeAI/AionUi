@@ -3,11 +3,13 @@
 **迁移目标**: 在 CI 中准备 aionui-backend 二进制,使桌面构建产物包含 bundled-aionui-backend,为后续 M8/M9 迁移提供预打包的后端二进制。
 
 **前提条件**:
+
 - M6 已完成:三条路径已切换到 `@aionui/web-host`,老 webserver 已删除
 - `scripts/prepareAionuiBackend.js` 已存在,可以从 GitHub releases 下载 aionui-backend 二进制
 - CI workflow `.github/workflows/_build-reusable.yml` 已配置
 
 **核心任务**:
+
 1. 在 CI build job 中添加 prepareAionuiBackend 调用
 2. 配置外部依赖预检(确保 aionui-backend release 存在)
 3. 添加 `AIONUI_BACKEND_ALLOW_MISSING=1` 环境变量作为过渡开关
@@ -27,6 +29,7 @@
 **操作**:
 
 1. **确认分支基于 M6**:
+
    ```bash
    git fetch origin
    git checkout -b feat/m7-prepare-backend-ci origin/feat/m6-three-paths-cutover
@@ -44,9 +47,11 @@
    ```
 
 3. **检查 electron-builder.yml 中的 extraResources 配置**:
+
    ```bash
    grep -A 5 "bundled-aionui-backend" packages/desktop/electron-builder.yml
    ```
+
    预期:已有 `from: resources/bundled-aionui-backend` 配置(M2 清理后保留)
 
 4. **检查 aionui-backend release 是否存在**:
@@ -56,6 +61,7 @@
    如果失败,说明外部依赖不满足,需要先创建 aionui-backend release(超出 M7 scope,记录为 blocker)
 
 **产出**:
+
 - 分支 `feat/m7-prepare-backend-ci` 基于 M6
 - 记录当前 CI 不调用 prepareAionuiBackend 的基线状态
 - 确认 aionui-backend release 可访问(或记录 blocker)
@@ -82,6 +88,7 @@
    ```
 
 2. **本地测试**:
+
    ```bash
    # 先清理已有的 bundled-aionui-backend
    rm -rf resources/bundled-aionui-backend
@@ -105,6 +112,7 @@
    - `skipped: false`
 
 **产出**:
+
 - `scripts/build-with-builder.js` 已添加 `prepareAionuiBackend()` 调用
 - 本地构建验证通过,`resources/bundled-aionui-backend/` 产生正确结构
 
@@ -144,6 +152,7 @@
    ```
 
 2. **本地测试 hard fail 行为**:
+
    ```bash
    # 模拟 release 不存在(设置错误的版本)
    AIONUI_BACKEND_VERSION=v999.999.999 bun run build --pack-only
@@ -164,6 +173,7 @@
    - `reason: "aionui-backend binary not found ..."`
 
 **产出**:
+
 - `scripts/prepareAionuiBackend.js` 支持 `AIONUI_BACKEND_ALLOW_MISSING` 开关
 - 本地测试验证 hard fail 和 soft warn 两种行为
 
@@ -176,6 +186,7 @@
 **操作**:
 
 1. **创建 `packages/shared-scripts/` 目录结构**(如果不存在):
+
    ```bash
    mkdir -p packages/shared-scripts/src
    ```
@@ -227,6 +238,7 @@
    - 保持调用 `scripts/prepareAionuiBackend.js`(CLI wrapper),不直接依赖 shared-scripts
 
 4. **本地测试重构后的行为**:
+
    ```bash
    rm -rf resources/bundled-aionui-backend
    node scripts/prepareAionuiBackend.js
@@ -240,6 +252,7 @@
    - Mock `execSync` / `execFileSync` / `fs` 操作
 
 **产出**:
+
 - `packages/shared-scripts/src/prepare-aionui-backend.js` 作为可复用 module
 - `scripts/prepareAionuiBackend.js` 作为 CLI wrapper
 - Unit test 覆盖核心逻辑
@@ -262,8 +275,8 @@
      shell: bash
      run: node scripts/prepareAionuiBackend.js
      env:
-       AIONUI_BACKEND_VERSION: latest  # 或者从 secrets/vars 读取
-       AIONUI_BACKEND_ALLOW_MISSING: '0'  # M7: hard fail
+       AIONUI_BACKEND_VERSION: latest # 或者从 secrets/vars 读取
+       AIONUI_BACKEND_ALLOW_MISSING: '0' # M7: hard fail
        GH_TOKEN: ${{ secrets.GH_TOKEN }}
        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
    ```
@@ -291,6 +304,7 @@
    ```
 
 4. **本地模拟 CI 环境测试**:
+
    ```bash
    # 模拟 CI 环境变量
    export CI=true
@@ -307,6 +321,7 @@
    ```
 
 **产出**:
+
 - `.github/workflows/_build-reusable.yml` 已添加 prepareAionuiBackend 步骤
 - 可选:code-quality job 中添加外部依赖预检
 - 本地模拟 CI 环境测试通过
@@ -320,6 +335,7 @@
 **操作**:
 
 1. **提交所有变更到 feature 分支**:
+
    ```bash
    git add -A
    git commit -m "feat(ci): add prepareAionuiBackend step in CI build
@@ -355,6 +371,7 @@
      ```
 
 4. **下载 CI 产物并验证**:
+
    ```bash
    # 下载 artifact
    gh run download <run-id> --name aionui-macos-arm64
@@ -369,6 +386,7 @@
    - 确认 `resources/bundled-aionui-backend/` 被正确复制到 app bundle 的 extraResources
 
 **产出**:
+
 - M7 feature 分支 CI 全绿
 - 构建产物中包含 `bundled-aionui-backend/{platform}-{arch}/aionui-backend[.exe]`
 - manifest.json 显示 `sourceType: "download"` 且 `skipped: false`
@@ -382,6 +400,7 @@
 **操作**:
 
 1. **本地验证**(macOS 为例):
+
    ```bash
    # 构建 DMG
    bun run build --mac dmg
@@ -402,6 +421,7 @@
    ```
 
 2. **Windows 验证**(在 CI artifact 中):
+
    ```bash
    # 下载 Windows artifact
    gh run download <run-id> --name aionui-windows-x64
@@ -414,6 +434,7 @@
    ```
 
 3. **Linux 验证**(在 CI artifact 中):
+
    ```bash
    # 下载 Linux artifact
    gh run download <run-id> --name aionui-linux-x64
@@ -427,6 +448,7 @@
    ```
 
 **产出**:
+
 - 所有平台的打包产物中都包含可执行的 aionui-backend 二进制
 - 二进制版本与 GitHub release 版本一致
 
@@ -439,7 +461,8 @@
 **操作**:
 
 1. **创建 `docs/backend-migration/handoffs/M7-outcome.md`**:
-   ```markdown
+
+   ````markdown
    # M7 Outcome: Backend CI Preparation
 
    ## 交付物
@@ -470,16 +493,15 @@
         "skipped": false
       }
       ```
+   ````
 
    ## 已知限制
-
    1. **外部依赖**: 依赖 `iOfficeAI/aionui-backend` GitHub release 存在
    2. **版本管理**: 当前使用 `latest`,未 pin 版本(M9 可能需要改进)
    3. **过渡开关**: `AIONUI_BACKEND_ALLOW_MISSING` 仅用于过渡,M9 后应删除
    4. **平台支持**: 仅支持 darwin/linux/win32 × x64/arm64 的组合
 
    ## M8 接口约定
-
    - M8 的 `@aionui/web-cli` 可导入 `packages/shared-scripts/src/prepare-aionui-backend.js`
    - 函数签名:
      ```javascript
@@ -495,6 +517,9 @@
    ## 回滚方案
 
    如果 M7 导致 CI 不稳定,可临时设置 `AIONUI_BACKEND_ALLOW_MISSING=1` 降级为 soft warn。
+
+   ```
+
    ```
 
 2. **更新 `CLAUDE.md` 或项目文档**(如需要):
@@ -508,6 +533,7 @@
    ```
 
 **产出**:
+
 - `docs/backend-migration/handoffs/M7-outcome.md` 已创建
 - M8 可基于 M7 的接口约定进行开发
 
@@ -529,31 +555,31 @@ M7 完成的标志:
 
 ## 风险与缓解
 
-| 风险 | 影响 | 缓解方案 |
-|------|------|----------|
-| aionui-backend release 不存在 | CI 全红 | 添加外部依赖预检步骤,提前发现;设置 `AIONUI_BACKEND_ALLOW_MISSING=1` 临时降级 |
-| GitHub API rate limit | 下载失败 | 使用 `GH_TOKEN` / `GITHUB_TOKEN` 提高限额;添加 retry 逻辑 |
-| 跨平台构建失败 | 部分平台产物缺失 | 在 CI 中分平台测试;本地多平台验证 |
-| manifest 字段缺失 | M8/M9 运行时解析失败 | 添加 unit test 验证 manifest schema;code review 检查 |
-| 过渡开关误用 | 产物静默跳过 backend | CI 中设为 `AIONUI_BACKEND_ALLOW_MISSING=0`,确保 hard fail |
+| 风险                          | 影响                 | 缓解方案                                                                     |
+| ----------------------------- | -------------------- | ---------------------------------------------------------------------------- |
+| aionui-backend release 不存在 | CI 全红              | 添加外部依赖预检步骤,提前发现;设置 `AIONUI_BACKEND_ALLOW_MISSING=1` 临时降级 |
+| GitHub API rate limit         | 下载失败             | 使用 `GH_TOKEN` / `GITHUB_TOKEN` 提高限额;添加 retry 逻辑                    |
+| 跨平台构建失败                | 部分平台产物缺失     | 在 CI 中分平台测试;本地多平台验证                                            |
+| manifest 字段缺失             | M8/M9 运行时解析失败 | 添加 unit test 验证 manifest schema;code review 检查                         |
+| 过渡开关误用                  | 产物静默跳过 backend | CI 中设为 `AIONUI_BACKEND_ALLOW_MISSING=0`,确保 hard fail                    |
 
 ---
 
 ## 时间预估
 
-| 阶段 | 预计时间 |
-|------|----------|
-| Phase 0: Baseline & Pre-Flight | 10 分钟 |
-| Phase 1: Add prepareAionuiBackend Call | 15 分钟 |
-| Phase 2: Add ALLOW_MISSING Env Var | 20 分钟 |
-| Phase 3: Extract as Module | 30 分钟 |
-| Phase 4: Add CI Workflow Step | 20 分钟 |
-| Phase 5: CI Checkpoint | 15 分钟(等待 CI) |
-| Phase 6: Verify Packaged Binary | 20 分钟 |
-| Phase 7: Document & Handoff | 15 分钟 |
-| **总计** | **~2.5 小时** |
+| 阶段                                   | 预计时间         |
+| -------------------------------------- | ---------------- |
+| Phase 0: Baseline & Pre-Flight         | 10 分钟          |
+| Phase 1: Add prepareAionuiBackend Call | 15 分钟          |
+| Phase 2: Add ALLOW_MISSING Env Var     | 20 分钟          |
+| Phase 3: Extract as Module             | 30 分钟          |
+| Phase 4: Add CI Workflow Step          | 20 分钟          |
+| Phase 5: CI Checkpoint                 | 15 分钟(等待 CI) |
+| Phase 6: Verify Packaged Binary        | 20 分钟          |
+| Phase 7: Document & Handoff            | 15 分钟          |
+| **总计**                               | **~2.5 小时**    |
 
-*(实际时间可能因 CI 队列、网络速度等因素浮动)*
+_(实际时间可能因 CI 队列、网络速度等因素浮动)_
 
 ---
 
@@ -575,4 +601,4 @@ M7 完成的标志:
 
 ---
 
-*本计划由 plan-writer-m7 生成,基于 M5/M6 格式模板和源码探查结果。*
+_本计划由 plan-writer-m7 生成,基于 M5/M6 格式模板和源码探查结果。_

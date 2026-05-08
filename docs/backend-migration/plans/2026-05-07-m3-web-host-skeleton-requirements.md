@@ -49,16 +49,16 @@ M4/M5 来填实现。
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| 包名 | `@aionui/web-host` | 设计文档已定 |
-| `private: true` | 是 | 不发 npm |
-| 静态服务实现 | Node 原生 `http` + `serve-handler` | 零业务依赖,设计文档 C 节 |
-| backend 启动策略 | 构造时接收 `AppMetadata` 和 `BackendBinaryResolver` | 解 Electron 耦合 |
-| `backend` 参数形态 | `{ kind: 'ownBackend'; resolveBackend }` \| `{ kind: 'useExistingBackend'; port }` | 设计文档接口 3 |
-| 测试框架 | 沿用仓库的 vitest + bun test | 不引新框架 |
-| 本里程碑实现代码量 | 只有类型和占位,约 200 行 | 不越界到 M4/M5 职责 |
-| 依赖边界 CI 检查 | 本里程碑加一条 grep 脚本验证 | 设计文档验证方式第 5 条 |
+| 决策点             | 结论                                                                               | 理由                     |
+| ------------------ | ---------------------------------------------------------------------------------- | ------------------------ |
+| 包名               | `@aionui/web-host`                                                                 | 设计文档已定             |
+| `private: true`    | 是                                                                                 | 不发 npm                 |
+| 静态服务实现       | Node 原生 `http` + `serve-handler`                                                 | 零业务依赖,设计文档 C 节 |
+| backend 启动策略   | 构造时接收 `AppMetadata` 和 `BackendBinaryResolver`                                | 解 Electron 耦合         |
+| `backend` 参数形态 | `{ kind: 'ownBackend'; resolveBackend }` \| `{ kind: 'useExistingBackend'; port }` | 设计文档接口 3           |
+| 测试框架           | 沿用仓库的 vitest + bun test                                                       | 不引新框架               |
+| 本里程碑实现代码量 | 只有类型和占位,约 200 行                                                           | 不越界到 M4/M5 职责      |
+| 依赖边界 CI 检查   | 本里程碑加一条 grep 脚本验证                                                       | 设计文档验证方式第 5 条  |
 
 ## 验收标准
 
@@ -129,13 +129,13 @@ bun test         # 全仓测试通过(含新增的 web-host 测试)
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `serve-handler` 依赖引入影响全仓 bun install 速度/体积 | `packages/web-host/package.json` 只声明它为自己的 `dependencies`,不加到根 |
-| 空占位 `throw new Error` 在 M4/M5 之前被误 import 使用 | 本里程碑**不让** `packages/desktop/` 或其他地方 import `@aionui/web-host`,只在 web-host 内部 test 里 import |
-| `AppMetadata` / `BackendBinaryResolver` 类型签名后期需要演化 | 类型集中在 `types.ts`,M4/M5 可扩展字段(非破坏性),不允许删字段 |
-| `packages/web-host/tsconfig.json` 和根 tsconfig 的 paths 冲突 | web-host 的 tsconfig 用 `extends: "../../tsconfig.json"` 继承,自己只定义 `include`;不重复写 paths |
-| 依赖边界 grep 漏过(比如 import 路径用了别名) | CI 加的 grep 脚本要同时检查字符串 `packages/desktop`、`@aionui/desktop`、以及 electron-vite 的路径别名名称 |
+| 风险                                                          | 缓解                                                                                                        |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `serve-handler` 依赖引入影响全仓 bun install 速度/体积        | `packages/web-host/package.json` 只声明它为自己的 `dependencies`,不加到根                                   |
+| 空占位 `throw new Error` 在 M4/M5 之前被误 import 使用        | 本里程碑**不让** `packages/desktop/` 或其他地方 import `@aionui/web-host`,只在 web-host 内部 test 里 import |
+| `AppMetadata` / `BackendBinaryResolver` 类型签名后期需要演化  | 类型集中在 `types.ts`,M4/M5 可扩展字段(非破坏性),不允许删字段                                               |
+| `packages/web-host/tsconfig.json` 和根 tsconfig 的 paths 冲突 | web-host 的 tsconfig 用 `extends: "../../tsconfig.json"` 继承,自己只定义 `include`;不重复写 paths           |
+| 依赖边界 grep 漏过(比如 import 路径用了别名)                  | CI 加的 grep 脚本要同时检查字符串 `packages/desktop`、`@aionui/desktop`、以及 electron-vite 的路径别名名称  |
 
 ## 依赖上游
 
@@ -176,9 +176,7 @@ export type WebHostOptions = {
   allowRemote?: boolean;
   dataDir?: string;
   logDir?: string;
-  backend:
-    | { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver }
-    | { kind: 'useExistingBackend'; port: number };
+  backend: { kind: 'ownBackend'; resolveBackend: BackendBinaryResolver } | { kind: 'useExistingBackend'; port: number };
 };
 
 export type WebHostHandle = {
@@ -205,15 +203,8 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
 // packages/web-host/src/auth/index.ts(M3 必须全部定义签名,哪怕占位)
 // 见设计文档 UC-3(Auth 公共接口契约)
 export function resetPassword(opts: { app: AppMetadata }): Promise<string>;
-export function changePassword(opts: {
-  app: AppMetadata;
-  oldPassword: string;
-  newPassword: string;
-}): Promise<void>;
-export function verifyPassword(opts: {
-  app: AppMetadata;
-  password: string;
-}): Promise<boolean>;
+export function changePassword(opts: { app: AppMetadata; oldPassword: string; newPassword: string }): Promise<void>;
+export function verifyPassword(opts: { app: AppMetadata; password: string }): Promise<boolean>;
 export function loadConfig(opts: { app: AppMetadata }): Promise<WebUIConfig>;
 export function saveConfig(opts: { app: AppMetadata; config: WebUIConfig }): Promise<void>;
 ```

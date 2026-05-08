@@ -39,22 +39,23 @@
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| 核心函数位置 | `packages/shared-scripts/prepare-aionui-backend.js` | 跨包共享;M8 也会用 |
-| 原 `scripts/prepareAionuiBackend.js` | 薄代理,不直接删 | 避免破坏外部 CI 调用 |
-| 过渡期开关名 | `AIONUI_BACKEND_ALLOW_MISSING=1` | 设计文档已定 |
-| 过渡期开关默认值 | **关闭**(硬失败是默认) | 设计文档已定 |
-| 过渡期开关作用范围 | 仅 CI build 阶段;aionui-web postinstall 不受影响 | postinstall 由 M8 定义 |
-| 硬失败的错误抛出方式 | `throw new Error('...')`,让调用方的 try/catch 捕获后以非零 exit 退出 | 保持与仓库其他 `prepareXXX` 风格一致 |
-| manifest 文件 schema | `skipped: true` 时写 `{ platform, arch, version, skipped: true, reason }`;成功时写 `{ platform, arch, version, binary: 'aionui-backend' }` | 和 aionrs/bun 的 manifest 风格对齐 |
-| 下载源 | `iOfficeAI/aionui-backend` GitHub Release | 设计文档已定 |
-| 对已下载 backend 的缓存策略 | 不实现(每次重新下载) | aionrs 原脚本也不缓存,保持一致 |
-| 本里程碑是否删除过渡开关 | **不删除**,等 backend CI 稳定后由人类提 follow-up 清理 | 设计文档已定 |
+| 决策点                               | 结论                                                                                                                                       | 理由                                 |
+| ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ |
+| 核心函数位置                         | `packages/shared-scripts/prepare-aionui-backend.js`                                                                                        | 跨包共享;M8 也会用                   |
+| 原 `scripts/prepareAionuiBackend.js` | 薄代理,不直接删                                                                                                                            | 避免破坏外部 CI 调用                 |
+| 过渡期开关名                         | `AIONUI_BACKEND_ALLOW_MISSING=1`                                                                                                           | 设计文档已定                         |
+| 过渡期开关默认值                     | **关闭**(硬失败是默认)                                                                                                                     | 设计文档已定                         |
+| 过渡期开关作用范围                   | 仅 CI build 阶段;aionui-web postinstall 不受影响                                                                                           | postinstall 由 M8 定义               |
+| 硬失败的错误抛出方式                 | `throw new Error('...')`,让调用方的 try/catch 捕获后以非零 exit 退出                                                                       | 保持与仓库其他 `prepareXXX` 风格一致 |
+| manifest 文件 schema                 | `skipped: true` 时写 `{ platform, arch, version, skipped: true, reason }`;成功时写 `{ platform, arch, version, binary: 'aionui-backend' }` | 和 aionrs/bun 的 manifest 风格对齐   |
+| 下载源                               | `iOfficeAI/aionui-backend` GitHub Release                                                                                                  | 设计文档已定                         |
+| 对已下载 backend 的缓存策略          | 不实现(每次重新下载)                                                                                                                       | aionrs 原脚本也不缓存,保持一致       |
+| 本里程碑是否删除过渡开关             | **不删除**,等 backend CI 稳定后由人类提 follow-up 清理                                                                                     | 设计文档已定                         |
 
 ## 验收标准
 
 **验证分层**(与 playbook checkpoint 语义一致):
+
 - **Executor 放行门禁 - 本地**(push 前必须通过):函数抽取正确 + 硬失败
   生效 + 过渡开关生效 + 本地打包冒烟
 - **Executor 放行门禁 - CI**(M7 feature 分支 CI 必须绿):完整
@@ -131,15 +132,15 @@ bun test        # 全仓测试通过
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `prepareAionuiBackend()` 调用点在 M1+M2 后的位置与设计文档里"`build-with-builder.js:460`"不同 | plan-writer 先 `grep -n "prepareBundledBun\|prepareHubResources" scripts/build-with-builder.js` 找实际调用点 |
-| 抽函数后老 API 签名不兼容原脚本期望 | 先读原 `scripts/prepareAionuiBackend.js` 完整逻辑,新函数的参数/返回值和原来一致或超集 |
-| 硬失败策略让 backend CI 本身的 bug 被放大(CI 挂后所有下游 CI 挂) | 过渡期开关 `AIONUI_BACKEND_ALLOW_MISSING=1` 作为逃生门;文档说明如何启用 |
-| CI pipeline 在某些场景(比如 lint-only job)不需要 backend | plan-writer 检查 `.github/workflows/*.yml`,只在实际 build job 里跑 `prepareAionuiBackend`,lint / test job 不跑 |
-| 下载的 backend 二进制对当前 builder 平台不兼容(例如 CI 运行 cross-compile) | 沿用 aionrs 原脚本里 `AIONUI_BACKEND_ARCH` / `npm_config_target_arch` 的 cross-compile 支持 |
-| `AIONUI_BACKEND_ALLOW_MISSING` 开关被误用(生产 release 忘关) | 在 `scripts/prepareAionuiBackend.js` 里,当 `CI=true` 且 `ALLOW_MISSING=1` 时打印显眼警告到 stderr;`verify-release-assets.sh` 加一条"若 skipped=true 则 release 审查拒绝" |
-| 抽共享函数后跨包 import 需要打通 workspace | `packages/shared-scripts/package.json` 声明为 workspace 成员;桌面脚本通过 `require('@aionui/shared-scripts/prepare-aionui-backend')` 或相对路径 `require('../../packages/shared-scripts/...')` 调用 —— plan-writer 决定 |
+| 风险                                                                                          | 缓解                                                                                                                                                                                                                    |
+| --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `prepareAionuiBackend()` 调用点在 M1+M2 后的位置与设计文档里"`build-with-builder.js:460`"不同 | plan-writer 先 `grep -n "prepareBundledBun\|prepareHubResources" scripts/build-with-builder.js` 找实际调用点                                                                                                            |
+| 抽函数后老 API 签名不兼容原脚本期望                                                           | 先读原 `scripts/prepareAionuiBackend.js` 完整逻辑,新函数的参数/返回值和原来一致或超集                                                                                                                                   |
+| 硬失败策略让 backend CI 本身的 bug 被放大(CI 挂后所有下游 CI 挂)                              | 过渡期开关 `AIONUI_BACKEND_ALLOW_MISSING=1` 作为逃生门;文档说明如何启用                                                                                                                                                 |
+| CI pipeline 在某些场景(比如 lint-only job)不需要 backend                                      | plan-writer 检查 `.github/workflows/*.yml`,只在实际 build job 里跑 `prepareAionuiBackend`,lint / test job 不跑                                                                                                          |
+| 下载的 backend 二进制对当前 builder 平台不兼容(例如 CI 运行 cross-compile)                    | 沿用 aionrs 原脚本里 `AIONUI_BACKEND_ARCH` / `npm_config_target_arch` 的 cross-compile 支持                                                                                                                             |
+| `AIONUI_BACKEND_ALLOW_MISSING` 开关被误用(生产 release 忘关)                                  | 在 `scripts/prepareAionuiBackend.js` 里,当 `CI=true` 且 `ALLOW_MISSING=1` 时打印显眼警告到 stderr;`verify-release-assets.sh` 加一条"若 skipped=true 则 release 审查拒绝"                                                |
+| 抽共享函数后跨包 import 需要打通 workspace                                                    | `packages/shared-scripts/package.json` 声明为 workspace 成员;桌面脚本通过 `require('@aionui/shared-scripts/prepare-aionui-backend')` 或相对路径 `require('../../packages/shared-scripts/...')` 调用 —— plan-writer 决定 |
 
 ## 依赖上游
 

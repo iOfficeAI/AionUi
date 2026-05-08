@@ -110,7 +110,7 @@ export class BackendLifecycleManager {
 
   constructor(
     private readonly appMeta: AppMetadata,
-    private readonly resolveBackend: BackendBinaryResolver,
+    private readonly resolveBackend: BackendBinaryResolver
   ) {}
 
   get port(): number {

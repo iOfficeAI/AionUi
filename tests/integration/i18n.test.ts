@@ -227,8 +227,14 @@ describe('i18n Build Safety Tests', () => {
   it('hardcoded English strings should not exist in TSX component files', () => {
     // Check known files that previously had hardcoded strings
     const filesToCheck = [
-      path.resolve(__dirname, '../../packages/desktop/src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'),
-      path.resolve(__dirname, '../../packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/URLViewer.tsx'),
+      path.resolve(
+        __dirname,
+        '../../packages/desktop/src/renderer/components/SettingsModal/contents/ModelModalContent.tsx'
+      ),
+      path.resolve(
+        __dirname,
+        '../../packages/desktop/src/renderer/pages/conversation/Preview/components/viewers/URLViewer.tsx'
+      ),
       path.resolve(__dirname, '../../packages/desktop/src/renderer/pages/conversation/Workspace/index.tsx'),
     ];
 

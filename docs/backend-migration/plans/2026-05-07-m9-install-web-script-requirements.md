@@ -52,26 +52,27 @@
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| 分发方式 | GitHub Release Asset | 设计文档 G 节(选 Release Asset 不选 Raw 已详述) |
-| 脚本语言 | **Bash(锁死)** | 按设计文档 UC-1,不给 plan-writer 选择;shebang `#!/usr/bin/env bash` |
-| 用户安装命令 | `curl ... \| bash`(**不是 `\| sh`**) | UC-1,`\| sh` 会忽略 shebang 用 /bin/sh 跑,Bash 语法直接挂 |
-| 默认安装位置(linux) | `~/.local/share/aionui-web/` + `~/.local/bin/aionui-web` symlink | XDG 标准,不需 sudo |
-| 默认安装位置(darwin) | `~/Library/Application Support/aionui-web/` + `~/.local/bin/aionui-web` symlink | macOS 惯例 |
-| 是否要求 curl | 是(不支持 wget fallback,简化) | 主流环境都有 curl |
-| 是否校验下载包完整性 | 是,下载对应 `.sha256` 文件校验 | 安全;CI 打 release 时要同步产出 sha256 |
-| 特定版本安装 | `--version v1.2.3` 参数 | 设计文档 G 节 |
-| 内部镜像 | `--mirror <url>` 参数,**必须同时支持 `https://` 和 `file://` 两种协议** | 企业场景 + 本地 smoke 复用同一机制;设计文档 G 节 |
-| Windows 覆盖 | 本里程碑不做 | 用户手动解压 zip;wiki 说明 |
-| 脚本版本锁 | 脚本内硬编码所在 release 版本号 | 设计文档 G 节("脚本和 tarball 同 release 配对") |
-| 是否自动添加 PATH | 是(写入 `~/.bashrc` / `~/.zshrc`,带明确打印) | 开箱可用;有 `--no-path` 可关 |
-| 失败策略 | 任何步骤失败立即 `exit 1` 并打印诊断 | `set -euo pipefail` |
-| 脚本行数目标 | 150-250 行 | 足够完整,不冗长 |
+| 决策点               | 结论                                                                            | 理由                                                                |
+| -------------------- | ------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| 分发方式             | GitHub Release Asset                                                            | 设计文档 G 节(选 Release Asset 不选 Raw 已详述)                     |
+| 脚本语言             | **Bash(锁死)**                                                                  | 按设计文档 UC-1,不给 plan-writer 选择;shebang `#!/usr/bin/env bash` |
+| 用户安装命令         | `curl ... \| bash`(**不是 `\| sh`**)                                            | UC-1,`\| sh` 会忽略 shebang 用 /bin/sh 跑,Bash 语法直接挂           |
+| 默认安装位置(linux)  | `~/.local/share/aionui-web/` + `~/.local/bin/aionui-web` symlink                | XDG 标准,不需 sudo                                                  |
+| 默认安装位置(darwin) | `~/Library/Application Support/aionui-web/` + `~/.local/bin/aionui-web` symlink | macOS 惯例                                                          |
+| 是否要求 curl        | 是(不支持 wget fallback,简化)                                                   | 主流环境都有 curl                                                   |
+| 是否校验下载包完整性 | 是,下载对应 `.sha256` 文件校验                                                  | 安全;CI 打 release 时要同步产出 sha256                              |
+| 特定版本安装         | `--version v1.2.3` 参数                                                         | 设计文档 G 节                                                       |
+| 内部镜像             | `--mirror <url>` 参数,**必须同时支持 `https://` 和 `file://` 两种协议**         | 企业场景 + 本地 smoke 复用同一机制;设计文档 G 节                    |
+| Windows 覆盖         | 本里程碑不做                                                                    | 用户手动解压 zip;wiki 说明                                          |
+| 脚本版本锁           | 脚本内硬编码所在 release 版本号                                                 | 设计文档 G 节("脚本和 tarball 同 release 配对")                     |
+| 是否自动添加 PATH    | 是(写入 `~/.bashrc` / `~/.zshrc`,带明确打印)                                    | 开箱可用;有 `--no-path` 可关                                        |
+| 失败策略             | 任何步骤失败立即 `exit 1` 并打印诊断                                            | `set -euo pipefail`                                                 |
+| 脚本行数目标         | 150-250 行                                                                      | 足够完整,不冗长                                                     |
 
 ## 验收标准
 
 **验证分层**(与 playbook checkpoint 语义一致):
+
 - **Executor 放行门禁 - 本地**(push 前必须通过):脚本存在 + 可执行、
   bash 语法、`--help` 输出完整、容器 smoke(`file://` mirror)PASS
 - **Executor 放行门禁 - CI**(M9 feature 分支 CI 必须绿):`install-web.sh`
@@ -149,11 +150,12 @@ echo "exit_code=$?"
 > 注:仓库工作区的 `scripts/install-web.sh` 在开发期间是**模板版**,里面
 > 的 `__VERSION__` 尚未被 sed 替换。本地 smoke 有两种处理:
 > (a)脚本内部先检测 `__VERSION__` 是否已替换,未替换时从 `--version`
->      参数或 mirror 目录的 tarball 文件名推断版本;
+> 参数或 mirror 目录的 tarball 文件名推断版本;
 > (b)smoke 命令显式加 `--version v{要装的版本}`。
 > plan-writer 二选一落地,在 plan 中写清楚。
 
 **失败时的诊断路径**:
+
 - `--mirror` 不被脚本支持 → 脚本 BUG,修脚本
 - sha256 校验失败 → tarball 内容和 sha256 不配对,重新下载 artifact
 - `file://` 协议被 curl 拒绝 → 确认 curl 版本支持 file 协议;或脚本改用
@@ -200,16 +202,16 @@ bun test
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| `uname -sm` 在不同 Linux 发行版输出差异(aarch64 vs arm64) | plan-writer 在脚本里用 case 映射:`aarch64|arm64) ARCH="aarch64";;` |
-| 下载 sha256 失败(release 未产出 sha256) | M9 首先保证 CI 产出 `install-web.sh.sha256` 和 `aionui-web-*.tar.gz.sha256`;若缺则 skip 校验(有 warn) |
-| PATH 添加逻辑污染用户 shell config | 先检查 PATH 里是否已有 `~/.local/bin`,已有则不改;`.bashrc` / `.zshrc` 追加前先检查是否已有同样行(幂等) |
-| 重复安装时覆盖旧版本 | 先备份旧版本到 `~/.local/share/aionui-web.bak`,失败时可还原 |
-| 脚本占位符替换(`__VERSION__` → `v1.5.0`)在 CI 中漏替换 | plan-writer 先让 CI 有 `sed -i "s/__VERSION__/$VERSION/g" install-web.sh`,再 upload artifact;若未替换则脚本运行时报错 `未知 VERSION` |
-| 一键脚本被 curl 管道运行时 `read` 不能交互 | 脚本不依赖任何 read;所有选项用命令行参数 |
-| 旧用户升级时旧软链指向老版本 | 脚本安装时 `ln -sf`(force)覆盖软链 |
-| 容器里缺少 curl / tar | 脚本开头 `command -v curl tar` 检查,缺失时 `exit 1` 给出安装提示 |
+| 风险                                                      | 缓解                                                                                                                                                |
+| --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `uname -sm` 在不同 Linux 发行版输出差异(aarch64 vs arm64) | plan-writer 在脚本里用 case 映射:`aarch64                                                                                                           | arm64) ARCH="aarch64";;` |
+| 下载 sha256 失败(release 未产出 sha256)                   | M9 首先保证 CI 产出 `install-web.sh.sha256` 和 `aionui-web-*.tar.gz.sha256`;若缺则 skip 校验(有 warn)                                               |
+| PATH 添加逻辑污染用户 shell config                        | 先检查 PATH 里是否已有 `~/.local/bin`,已有则不改;`.bashrc` / `.zshrc` 追加前先检查是否已有同样行(幂等)                                              |
+| 重复安装时覆盖旧版本                                      | 先备份旧版本到 `~/.local/share/aionui-web.bak`,失败时可还原                                                                                         |
+| 脚本占位符替换(`__VERSION__` → `v1.5.0`)在 CI 中漏替换    | plan-writer 先让 CI 有 `sed -i "s/__VERSION__/$VERSION/g" install-web.sh`,再 upload artifact;若未替换则脚本运行时报错 `未知 VERSION`                |
+| 一键脚本被 curl 管道运行时 `read` 不能交互                | 脚本不依赖任何 read;所有选项用命令行参数                                                                                                            |
+| 旧用户升级时旧软链指向老版本                              | 脚本安装时 `ln -sf`(force)覆盖软链                                                                                                                  |
+| 容器里缺少 curl / tar                                     | 脚本开头 `command -v curl tar` 检查,缺失时 `exit 1` 给出安装提示                                                                                    |
 | install.sh 在 macOS 用默认 bash 3.x(无 `[[` 的某些新特性) | `#!/usr/bin/env bash` + 兼容 bash 3.2 语法(不用 `${var,,}`、`mapfile`、associative arrays 等 bash 4+ 特性);脚本开头可选打印 `BASH_VERSION` 便于诊断 |
 
 ## 依赖上游

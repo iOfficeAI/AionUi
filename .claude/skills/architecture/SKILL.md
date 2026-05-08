@@ -56,12 +56,12 @@ Is it a messaging channel (Lark, DingTalk, Telegram)?
 
 **Hard rules — violating them causes runtime crashes.**
 
-| Process                            | Can use                                                    | Cannot use                                      |
-| ---------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- |
+| Process                                             | Can use                                                    | Cannot use                                      |
+| --------------------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------- |
 | **Main** (`packages/desktop/src/process/`)          | Node.js, Electron main APIs, `fs`, `path`, `child_process` | DOM APIs (`document`, `window`, React)          |
 | **Renderer** (`packages/desktop/src/renderer/`)     | DOM APIs, React, browser APIs                              | Node.js APIs (`fs`, `path`), Electron main APIs |
 | **Worker** (`packages/desktop/src/process/worker/`) | Node.js APIs                                               | DOM APIs, Electron APIs                         |
-| **Preload** (`packages/desktop/src/preload/`)     | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
+| **Preload** (`packages/desktop/src/preload/`)       | `contextBridge`, `ipcRenderer`                             | DOM manipulation, Node.js `fs`                  |
 
 Cross-process communication:
 
@@ -115,8 +115,8 @@ const result = await window.api.someMethod(); // goes through preload
 
 Tests mirror source files in `tests/` subdirectories:
 
-| Source                                      | Test                                            |
-| ------------------------------------------- | ----------------------------------------------- |
+| Source                                                       | Test                                            |
+| ------------------------------------------------------------ | ----------------------------------------------- |
 | `packages/desktop/src/process/services/CronService.ts`       | `tests/unit/cronService.test.ts`                |
 | `packages/desktop/src/renderer/hooks/ui/useAutoScroll.ts`    | `tests/unit/useAutoScroll.dom.test.ts`          |
 | `packages/desktop/src/process/extensions/ExtensionLoader.ts` | `tests/unit/extensions/extensionLoader.test.ts` |

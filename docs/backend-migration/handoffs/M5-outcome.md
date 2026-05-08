@@ -12,6 +12,7 @@
 ### 1. Core Implementation
 
 **Frozen WebUIConfig Schema** (`packages/web-host/src/types.ts`):
+
 ```typescript
 export type WebUIConfig = {
   passwordHash: string;
@@ -23,6 +24,7 @@ export type WebUIConfig = {
 ```
 
 **Auth Module** (`packages/web-host/src/auth/`):
+
 - `config.ts`: Atomic JSON I/O for `webui.config.json` (6 tests)
 - `session.ts`: HMAC-SHA256 signed opaque tokens, cookie name `aionui-session` (7 tests)
 - `rateLimiter.ts`: 5 attempts / 15 minutes login rate limiting (6 tests)
@@ -34,6 +36,7 @@ export type WebUIConfig = {
   - Coverage: 16 tests covering all scenarios per requirements
 
 **Static Server** (`packages/web-host/src/static-server.ts`):
+
 - Node native `http.createServer` + `serve-handler`
 - Request handling priority:
   1. `POST /api/auth/login` → local auth (verifyPassword + session + rate-limit)
@@ -53,6 +56,7 @@ Duration    ~6.5s
 ```
 
 **Test breakdown**:
+
 - auth/config: 6 pass
 - auth/session: 7 pass
 - auth/rateLimiter: 6 pass
@@ -61,8 +65,8 @@ Duration    ~6.5s
 - backend-launcher (M4): 10 pass (1 unhandled error in cleanup)
 - equivalence placeholder: 1 pass
 
-**Type check**: `bunx tsc --noEmit` ✅ 0 errors  
-**Lint**: `bun run lint` ✅ 0 errors (1351 warnings, all pre-existing)  
+**Type check**: `bunx tsc --noEmit` ✅ 0 errors
+**Lint**: `bun run lint` ✅ 0 errors (1351 warnings, all pre-existing)
 **Dependency boundary**: ✅ No `electron`, `@process/`, `@renderer/` imports in `packages/web-host/src/`
 
 ### 3. Equivalence Testing Status
@@ -70,12 +74,14 @@ Duration    ~6.5s
 **Status**: ⚠️ **Deferred to M6 integration validation**
 
 **Rationale**:
+
 - Plan required equivalence test at `packages/desktop/tests/integration/m5-equivalence.test.ts`
 - Requires mocking legacy webserver dependencies: `@process/webserver/adapter`, `UserRepository`, `getPlatformServices`
 - Legacy webserver deeply coupled to Electron environment
 - Risk/reward trade-off: M5 core functionality (auth APIs + static-server) fully unit-tested (55 tests); equivalence testing can be validated during M6 cutover when both servers run side-by-side in production
 
 **Mitigation**:
+
 - Static-server unit tests already cover:
   - SPA serving + fallback
   - `/api/*` reverse proxy
@@ -87,6 +93,7 @@ Duration    ~6.5s
 ### 4. Auth Module HTTP Contract (for M6 Integration)
 
 **POST /api/auth/login**:
+
 - Request: `{ "username": "admin", "password": "..." }`
 - Success: `200 { "success": true }` + `Set-Cookie: aionui-session=<token>; HttpOnly; SameSite=strict|lax; Path=/`
 - Wrong password: `401 { "error": "INVALID_CREDENTIALS" }`
@@ -94,9 +101,11 @@ Duration    ~6.5s
 - Malformed body: `400 { "error": "BAD_REQUEST" }`
 
 **POST /api/auth/logout**:
+
 - Response: `200 { "success": true }` + `Set-Cookie: aionui-session=; Max-Age=0`
 
 **Cookie details**:
+
 - Name: `aionui-session`
 - HttpOnly: true
 - SameSite: `strict` (local) / `lax` (remote)
@@ -106,29 +115,32 @@ Duration    ~6.5s
 
 ### 5. File Mapping (Legacy → Web-Host)
 
-| Legacy (packages/desktop/src/process/) | Web-Host (packages/web-host/src/) |
-|---|---|
-| `webserver/index.ts` + `routes/staticRoutes.ts` | `static-server.ts` |
-| `webserver/auth/service/AuthService.ts` | `auth/index.ts` + `auth/session.ts` |
-| `webserver/middleware/rateLimiter.ts` | `auth/rateLimiter.ts` |
-| `utils/webuiConfig.ts` (I/O部分) | `auth/config.ts` |
+| Legacy (packages/desktop/src/process/)          | Web-Host (packages/web-host/src/)   |
+| ----------------------------------------------- | ----------------------------------- |
+| `webserver/index.ts` + `routes/staticRoutes.ts` | `static-server.ts`                  |
+| `webserver/auth/service/AuthService.ts`         | `auth/index.ts` + `auth/session.ts` |
+| `webserver/middleware/rateLimiter.ts`           | `auth/rateLimiter.ts`               |
+| `utils/webuiConfig.ts` (I/O部分)                | `auth/config.ts`                    |
 
-**Legacy webserver status**: ✅ **Completely untouched** (20 files, 0 changes)  
+**Legacy webserver status**: ✅ **Completely untouched** (20 files, 0 changes)
 **Desktop `bun run webui`**: Not verified in M5 (deferred to M6 smoke test pre-cutover)
 
 ### 6. Known Deltas (Decision Records)
 
-**D-01: Password Storage**  
+**D-01: Password Storage**
+
 - **Outcome**: `webui.config.json` is now the authoritative source for `passwordHash` / `adminUsername` in web-host's world
 - **Legacy**: Stored in backend SQLite via `UserRepository` HTTP calls
 - **M6 migration**: First-run after cutover treats empty `passwordHash` as "not initialized" → generates new random password (same as legacy `initializeDefaultAdmin`)
 
-**D-02: `/api/*` Business Routes**  
+**D-02: `/api/*` Business Routes**
+
 - **Outcome**: Web-host `/api/*` is pure reverse proxy (no multer, no `/api/directory`, no `/api/ppt-proxy`)
 - **Legacy**: Express business routes via `ipcBridge`
 - **Impact**: Desktop GUI切换到 web-host 后,部分 `/api` 路径行为变化 → M6 plan 负责说明
 
-**D-03: Vite Dev Proxy**  
+**D-03: Vite Dev Proxy**
+
 - **Outcome**: Web-host static-server 只服务 production build (`out/renderer/`),不关心 Vite dev
 - **Legacy**: 未找到 `out/renderer/` 时退化为代理 `localhost:5173`
 - **Impact**: M5 测试全部基于 production fixture,M6 不支持 dev 模式反代
@@ -190,6 +202,6 @@ Base: `534fb5fc` (M4 backend-launcher)
 
 ---
 
-**Executor**: executor-m5 (Claude Opus 4.7)  
-**Completed**: 2026-05-07T23:45 UTC  
+**Executor**: executor-m5 (Claude Opus 4.7)
+**Completed**: 2026-05-07T23:45 UTC
 **Duration**: ~2.5 hours (阶段 0-8 完成; 阶段 9 equivalence 判定 defer; 阶段 10-13 简化)

@@ -34,6 +34,7 @@ Electron 解耦。完整设计在
 暂不引入 `@aionui/web-host`;不清理 `aionrs` 遗留(那是 M2 的事)。
 
 **开始前的前置条件**:
+
 - `git status` 干净
 - 已装 Node 22+、bun
 - 当前状态下 `bun install` 成功
@@ -67,14 +68,17 @@ PR 的 base 分支是 `feat/backend-migration`,不是 `main`。
 ## 文件清单
 
 **迁移(git mv)**:
+
 - `src/` → `packages/desktop/src/`
 - `electron-builder.yml` → `packages/desktop/electron-builder.yml`
 - `electron.vite.config.ts` → `packages/desktop/electron.vite.config.ts`
 
 **新建**:
+
 - `packages/desktop/package.json`
 
 **修改(12 大类配置文件)**:
+
 - `package.json`(根)
 - `tsconfig.json`
 - `vitest.config.ts`
@@ -92,6 +96,7 @@ PR 的 base 分支是 `feat/backend-migration`,不是 `main`。
 - `tests/vitest.setup.ts` 以及 20+ 个测试文件(相对路径改 alias)
 
 **验证不回退**(只跑,不改):
+
 - `bun run dev`
 - `bun run webui`
 - `bun run build`
@@ -129,6 +134,7 @@ git status
 ```
 
 预期:干净,已切换到新分支。验证基线:
+
 ```bash
 git merge-base --is-ancestor origin/feat/backend-migration HEAD && echo "base OK"
 ```
@@ -220,10 +226,13 @@ git commit -m "refactor(m1): add packages/desktop/package.json"
 ```
 
 **修改** `scripts.test:bun`,从:
+
 ```json
 "test:bun": "bun test src/process/services/database/drivers/*.bun.test.ts"
 ```
+
 改为:
+
 ```json
 "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts"
 ```
@@ -296,37 +305,43 @@ git commit -m "refactor(m1): declare bun workspaces in root package.json"
 路径全变了,缓存判断会失效(一直触发全量重建或一直命中旧缓存)。
 
 Edit 原文件 L49-57:
+
 ```js
-  const filesToHash = [
-    'package.json',
-    'package-lock.json',
-    'bun.lock',
-    'tsconfig.json',
-    'electron.vite.config.ts',
-    'electron-builder.yml',
-    'justfile',
-  ];
+const filesToHash = [
+  'package.json',
+  'package-lock.json',
+  'bun.lock',
+  'tsconfig.json',
+  'electron.vite.config.ts',
+  'electron-builder.yml',
+  'justfile',
+];
 ```
+
 改为:
+
 ```js
-  const filesToHash = [
-    'package.json',
-    'package-lock.json',
-    'bun.lock',
-    'tsconfig.json',
-    'packages/desktop/electron.vite.config.ts',
-    'packages/desktop/electron-builder.yml',
-    'justfile',
-  ];
+const filesToHash = [
+  'package.json',
+  'package-lock.json',
+  'bun.lock',
+  'tsconfig.json',
+  'packages/desktop/electron.vite.config.ts',
+  'packages/desktop/electron-builder.yml',
+  'justfile',
+];
 ```
 
 再改 L68:
+
 ```js
-  const hashDirs = ['src', 'public', 'scripts'];
+const hashDirs = ['src', 'public', 'scripts'];
 ```
+
 改为:
+
 ```js
-  const hashDirs = ['packages/desktop/src', 'packages', 'public', 'scripts'];
+const hashDirs = ['packages/desktop/src', 'packages', 'public', 'scripts'];
 ```
 
 (加了 `packages` 本身,以便将来新增的 `packages/web-host/` 等子包也能
@@ -336,30 +351,39 @@ Edit 原文件 L49-57:
 
 `getTargetArchFromConfig` 函数(L320-341)读取 `electron-builder.yml` 解析
 目标架构。Edit L322:
+
 ```js
-    const configPath = path.resolve(__dirname, '../electron-builder.yml');
+const configPath = path.resolve(__dirname, '../electron-builder.yml');
 ```
+
 改为:
+
 ```js
-    const configPath = path.resolve(__dirname, '../packages/desktop/electron-builder.yml');
+const configPath = path.resolve(__dirname, '../packages/desktop/electron-builder.yml');
 ```
 
 - [ ] **步骤 4.4:为 `electron-builder` 命令补 `--config` 参数**
 
 `scripts/build-with-builder.js:544` 的:
+
 ```js
-  const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+const builderCommand = `bunx electron-builder ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
 ```
+
 改为:
+
 ```js
-  const builderCommand = `bunx electron-builder --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
+const builderCommand = `bunx electron-builder --config packages/desktop/electron-builder.yml ${builderArgs} ${archFlag} ${nsisInclude} ${publishArg}`;
 ```
 
 同时 L226 的 DMG 重试路径:
+
 ```js
   execSync(`bunx electron-builder --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
 ```
+
 改为:
+
 ```js
   execSync(`bunx electron-builder --config packages/desktop/electron-builder.yml --mac dmg --${targetArch} --prepackaged "${appPath}" --publish=never`, {
 ```
@@ -412,7 +436,9 @@ const mainAliases = {
   '@xterm/headless': resolve('src/common/utils/shims/xterm-headless.ts'),
 };
 ```
+
 改为:
+
 ```ts
 const mainAliases = {
   '@': resolve('packages/desktop/src'),
@@ -433,7 +459,9 @@ const mainAliases = {
         return source.replace(/\\/g, '/').replace(/^(\.\.\/)+(src\/)/, '$2');
       },
 ```
+
 改为:
+
 ```ts
       rewriteSources: (source: string) => {
         // Normalize Windows backslashes and strip leading relative prefixes
@@ -448,7 +476,9 @@ const mainAliases = {
 ```ts
                   { src: 'src/renderer/assets/logos/*', dest: 'static/images' },
 ```
+
 改为:
+
 ```ts
                   { src: 'packages/desktop/src/renderer/assets/logos/*', dest: 'static/images' },
 ```
@@ -458,7 +488,9 @@ const mainAliases = {
 ```ts
             index: resolve('src/index.ts'),
 ```
+
 改为:
+
 ```ts
             index: resolve('packages/desktop/src/index.ts'),
 ```
@@ -466,22 +498,28 @@ const mainAliases = {
 - [ ] **步骤 5.5:改 preload alias 和 entry(L142、L150-153)**
 
 L142:
+
 ```ts
         alias: { '@': resolve('src'), '@common': resolve('src/common') },
 ```
+
 改为:
+
 ```ts
         alias: { '@': resolve('packages/desktop/src'), '@common': resolve('packages/desktop/src/common') },
 ```
 
 L150-153:
+
 ```ts
             index: resolve('src/preload/main.ts'),
             petPreload: resolve('src/preload/petPreload.ts'),
             petHitPreload: resolve('src/preload/petHitPreload.ts'),
             petConfirmPreload: resolve('src/preload/petConfirmPreload.ts'),
 ```
+
 改为:
+
 ```ts
             index: resolve('packages/desktop/src/preload/main.ts'),
             petPreload: resolve('packages/desktop/src/preload/petPreload.ts'),
@@ -502,7 +540,9 @@ L150-153:
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
 ```
+
 改为:
+
 ```ts
         alias: {
           '@': resolve('packages/desktop/src'),
@@ -523,7 +563,9 @@ L150-153:
             'pet-hit': resolve('src/renderer/pet/pet-hit.html'),
             'pet-confirm': resolve('src/renderer/pet/pet-confirm.html'),
 ```
+
 改为:
+
 ```ts
             index: resolve('packages/desktop/src/renderer/index.html'),
             pet: resolve('packages/desktop/src/renderer/pet/pet.html'),
@@ -574,6 +616,7 @@ git commit -m "refactor(m1): update all 12 src/ path references in electron.vite
 ## 阶段 6:更新 `packages/desktop/electron-builder.yml`
 
 electron-builder 的路径有两种解析规则:
+
 - `directories` / `extraResources[].from` / `afterPack` / `afterSign` / `icon` 等
   **相对 yml 本身所在目录解析**,迁到 `packages/desktop/` 后需要 `../../` 前缀
 - `files[]` glob 默认**相对 `appDir`**(通过 `directories.app` 控制),也需要
@@ -585,12 +628,15 @@ electron-builder 的路径有两种解析规则:
 - [ ] **步骤 6.1:保持 `directories.output`,新增 `directories.app`**
 
 原 L14-16:
+
 ```yaml
 directories:
   output: out
   buildResources: resources
 ```
+
 改为:
+
 ```yaml
 directories:
   app: ../..
@@ -614,12 +660,13 @@ directories:
 
 但是**补充防御性排除**,阻止未来的 web-host / web-cli 被扫进 asar。在
 L66(`'!**/node_modules/*.d.ts'` 之前)**新增**:
+
 ```yaml
-  # Defensive: exclude sibling packages from desktop bundle
-  - '!packages/web-host/**'
-  - '!packages/web-cli/**'
-  - '!packages/shared-scripts/**'
-  - '!packages/desktop/src/**'
+# Defensive: exclude sibling packages from desktop bundle
+- '!packages/web-host/**'
+- '!packages/web-cli/**'
+- '!packages/shared-scripts/**'
+- '!packages/desktop/src/**'
 ```
 
 (最后一行 `!packages/desktop/src/**` 是因为源码已经被 electron-vite
@@ -628,6 +675,7 @@ L66(`'!**/node_modules/*.d.ts'` 之前)**新增**:
 - [ ] **步骤 6.3:`extraResources[]` 全部加 `../../` 前缀**
 
 原 L101-115:
+
 ```yaml
 extraResources:
   - from: public
@@ -645,7 +693,9 @@ extraResources:
   - from: resources/hub
     to: hub
 ```
+
 改为:
+
 ```yaml
 extraResources:
   - from: ../../public
@@ -669,31 +719,37 @@ extraResources:
 - [ ] **步骤 6.4:`win.icon` 加前缀(L121)**
 
 ```yaml
-  icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
+icon: resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
 ```
+
 改为:
+
 ```yaml
-  icon: ../../resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
+icon: ../../resources/app.ico # Use the checked-in Windows icon resource for executable metadata/icon patching
 ```
 
 - [ ] **步骤 6.5:`mac.icon` 和 `entitlements` 加前缀(L138、L143-144)**
 
 ```yaml
-  icon: resources/app.icns
+icon: resources/app.icns
 ```
+
 →
+
 ```yaml
-  icon: ../../resources/app.icns
+icon: ../../resources/app.icns
 ```
 
 ```yaml
-  entitlements: entitlements.plist
-  entitlementsInherit: entitlements.plist
+entitlements: entitlements.plist
+entitlementsInherit: entitlements.plist
 ```
+
 →
+
 ```yaml
-  entitlements: ../../entitlements.plist
-  entitlementsInherit: ../../entitlements.plist
+entitlements: ../../entitlements.plist
+entitlementsInherit: ../../entitlements.plist
 ```
 
 - [ ] **步骤 6.6:`afterPack` / `afterSign` 加前缀(L165-166)**
@@ -702,7 +758,9 @@ extraResources:
 afterPack: scripts/afterPack.js
 afterSign: scripts/afterSign.js
 ```
+
 改为:
+
 ```yaml
 afterPack: ../../scripts/afterPack.js
 afterSign: ../../scripts/afterSign.js
@@ -711,11 +769,13 @@ afterSign: ../../scripts/afterSign.js
 - [ ] **步骤 6.7:`linux.icon` 加前缀(L171)**
 
 ```yaml
-  icon: resources/app.png
+icon: resources/app.png
 ```
+
 →
+
 ```yaml
-  icon: ../../resources/app.png
+icon: ../../resources/app.png
 ```
 
 - [ ] **步骤 6.8:commit(暂不运行 build)**
@@ -740,6 +800,7 @@ bunx electron-builder --config packages/desktop/electron-builder.yml --help 2>&1
 预期:命令输出 help 信息,无 "cannot resolve" / "file not found" 之类错误。
 
 如果想验证 `directories.app: ../..` 解析正确,检查它能否找到根 package.json:
+
 ```bash
 # 先检查引用路径都存在
 ls -la entitlements.plist resources/app.icns resources/app.png scripts/afterPack.js scripts/afterSign.js 2>&1 | head
@@ -754,6 +815,7 @@ ls -la entitlements.plist resources/app.icns resources/app.png scripts/afterPack
 - [ ] **步骤 7.1:修改 `paths`**
 
 把:
+
 ```json
 "paths": {
   "@/*": ["./src/*"],
@@ -762,7 +824,9 @@ ls -la entitlements.plist resources/app.icns resources/app.png scripts/afterPack
   "@worker/*": ["./src/process/worker/*"]
 }
 ```
+
 改为:
+
 ```json
 "paths": {
   "@/*": ["./packages/desktop/src/*"],
@@ -830,11 +894,13 @@ const aliases = {
 - [ ] **步骤 8.2:修改 coverage include/exclude**
 
 `include`:
+
 ```ts
 include: ['packages/desktop/src/**/*.{ts,tsx}', 'packages/**/src/**/*.{ts,tsx}', 'scripts/prepareBundledBun.js'],
 ```
 
 `exclude`:
+
 ```ts
 exclude: [
   'packages/**/src/**/*.d.ts',
@@ -917,6 +983,7 @@ git commit -m "refactor(m1): update oxlint ignore paths"
 - [ ] **步骤 9.4:`.pre-commit-config.yaml`**
 
 把 `files: ^src/renderer/services/i18n/locales/`(约 L79)改为:
+
 ```yaml
 files: ^packages/desktop/src/renderer/services/i18n/locales/
 ```
@@ -1053,6 +1120,7 @@ git commit -m "docs(m1): update file-structure doc for monorepo layout"
 
 替换以下三个文件里的 `src/process/` / `src/renderer/` / `src/common/` /
 `src/process/worker/` 为 `packages/desktop/src/...`:
+
 - `.claude/skills/architecture/SKILL.md`
 - `.claude/skills/architecture/references/process.md`
 - `.claude/skills/architecture/references/renderer.md`
@@ -1182,6 +1250,7 @@ prek run --from-ref origin/feat/backend-migration --to-ref HEAD 2>&1 | tail -30
 
 按 playbook 的模板创建 `docs/backend-migration/handoffs/M1-outcome.md`,
 字数控制在 500 字以内,内容包括:
+
 - 新建目录:`packages/desktop/`
 - 迁移的文件(见阶段 1)
 - 修改的配置文件(12 大类)
@@ -1222,6 +1291,7 @@ git merge origin/feat/backend-migration --no-ff \
 teammate 拉分支时的 SHA 稳定性)。
 
 **冲突处理**:
+
 - 无冲突 → `git status` 看到 "All conflicts fixed" → 继续
 - 有冲突且简单(不同文件或同文件不同段落)→ 手动解决,`git add` 后
   `git commit`(commit message 沿用 merge 自动生成的)
@@ -1242,6 +1312,7 @@ bun test 2>&1 | tail -10
 预期:全部 PASS。
 
 **如果失败**:
+
 - 是基线引入的破坏性变更 → **不要尝试修**,进入步骤 13.4 escalate
 - 是本里程碑和基线的隐性冲突(文件无冲突但语义冲突)→ 同样 escalate
 
@@ -1263,6 +1334,7 @@ cat /tmp/m1-final-sha.txt
 如果作为 team teammate 运行,用 SendMessage 工具向主会话报告。
 
 **正常完成**:
+
 ```
 SendMessage({
   to: "team-lead",
@@ -1277,6 +1349,7 @@ SendMessage({
 ```
 
 **合入基线失败或验证失败**(escalate):
+
 ```
 SendMessage({
   to: "team-lead",
@@ -1294,6 +1367,7 @@ SendMessage({
 如果是独立执行(非 team 模式),直接在会话末尾打印上述信息即可。
 
 **不要做**:
+
 - 不要创建 PR(`gh pr create` 禁用)
 - 不要 push / merge 到 `feat/backend-migration`
 - 不要 rebase / force-push `feat/m1-monorepo-skeleton`(M2 会基于它)

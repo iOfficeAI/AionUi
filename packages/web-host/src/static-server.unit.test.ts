@@ -22,7 +22,7 @@ async function mkAppMeta(): Promise<AppMetadata> {
 }
 
 async function startMockBackend(
-  handler: (req: http.IncomingMessage, res: http.ServerResponse) => void,
+  handler: (req: http.IncomingMessage, res: http.ServerResponse) => void
 ): Promise<{ port: number; close: () => Promise<void> }> {
   const server = http.createServer(handler);
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', () => resolve()));

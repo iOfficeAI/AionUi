@@ -12,6 +12,7 @@
 ### 1. Core Implementation
 
 **web-cli Package** (`packages/web-cli/`):
+
 - CLI entry: `aionui-web [start|version]`
 - Main logic: `src/index.ts` integrates `startBackend` + `startStaticServer` from `@aionui/web-host`
 - Path resolution: `bundled-aionui-backend/{platform}-{arch}/`, `static/`, `bundled-bun/`
@@ -23,16 +24,18 @@
 - Signal handling: SIGINT/SIGTERM for graceful shutdown
 
 **shared-scripts Package** (`packages/shared-scripts/`):
+
 - `prepare-aionui-backend.js` (from M7)
 - `prepare-bundled-bun.js` (extracted from scripts/)
 - Function signatures:
   ```javascript
-  prepareAionuiBackend({ projectRoot, platform, arch, version, allowMissing })
-  prepareBundledBun({ projectRoot, platform, arch, version })
+  prepareAionuiBackend({ projectRoot, platform, arch, version, allowMissing });
+  prepareBundledBun({ projectRoot, platform, arch, version });
   ```
 - CLI wrappers: `scripts/prepareAionuiBackend.js`, `scripts/prepareBundledBun.js`
 
 **Packaging Script** (`scripts/pack-web-cli.js`):
+
 - Calls `prepareAionuiBackend` + `prepareBundledBun`
 - Builds web-cli TypeScript (`bun run build`)
 - Copies static files from `packages/desktop/out/renderer`
@@ -40,6 +43,7 @@
 - Generates SHA256 checksum: `.tar.gz.sha256`
 
 **Smoke Test** (`scripts/smoke-test-web-cli.sh`):
+
 - Extracts tarball in temp directory
 - Verifies directory structure: `bin/`, `dist/`, `bundled-aionui-backend/`, `bundled-bun/`, `static/`
 - Checks executables: `bin/aionui-web.js`, `bundled-aionui-backend/{platform}-{arch}/aionui-backend`
@@ -49,6 +53,7 @@
 ### 2. CI Pipeline
 
 **Workflow** (`.github/workflows/pack-web-cli.yml`):
+
 - Trigger: push to `feat/m8-web-cli-tarball`, manual `workflow_dispatch`
 - Job `pack-web-cli`: matrix build for 5 platforms
   - darwin-arm64 (macos-14)
@@ -62,22 +67,26 @@
 ### 3. Output Structure
 
 **Tarball Filename**:
+
 ```
 aionui-web-{version}-{platform}-{arch}.tar.gz
 aionui-web-{version}-{platform}-{arch}.tar.gz.sha256
 ```
 
 Platform normalization:
+
 - `darwin` → `darwin`
 - `linux` → `linux`
 - `win32` → `win`
 
 Arch normalization:
+
 - `arm64` → `arm64`
 - `x64` → `x86_64`
 - `ia32` → `x86`
 
 **Tarball Contents**:
+
 ```
 aionui-web/
 ├── bin/aionui-web.js           # CLI entry (shebang: #!/usr/bin/env node)
@@ -100,6 +109,7 @@ aionui-web/
 ### 4. Test Results
 
 **Local Verification**:
+
 - TypeScript compilation: ✅ packages/web-cli builds without errors
 - Dependency check: ✅ web-cli only depends on @aionui/web-host + @aionui/shared-scripts
 - Boundary verification: ✅ No imports from 'electron' or '@aionui/desktop'
@@ -182,7 +192,8 @@ Base: `5ede316a3` (M7 handoff document)
 
 **Impact**: CI may fail or produce non-functional binaries for these platforms
 
-**Mitigation**: 
+**Mitigation**:
+
 - linux-arm64: QEMU setup in workflow (may be slow)
 - darwin-x64: macos-14 can cross-compile (Apple Rosetta)
 
@@ -197,13 +208,16 @@ Base: `5ede316a3` (M7 handoff document)
 ## Dependency Boundary Verification
 
 ✅ **web-cli dependencies**:
+
 - Only `@aionui/web-host` and `@aionui/shared-scripts`
 - No `electron`, no `@aionui/desktop`
 
 ✅ **web-host dependencies**:
+
 - No `electron` imports found
 
 ✅ **Import checks**:
+
 ```bash
 grep -r "from 'electron'" packages/web-cli/src/  # ✓ No results
 grep -r "from '@aionui/desktop'" packages/web-cli/src/  # ✓ No results
@@ -212,13 +226,13 @@ grep -r "from 'electron'" packages/web-host/src/  # ✓ No results
 
 ## 5-Platform Matrix Verification
 
-| Platform | Arch | OS Runner | QEMU | Tarball Name |
-|----------|------|-----------|------|--------------|
-| darwin | arm64 | macos-14 | No | aionui-web-0.0.0-darwin-arm64.tar.gz |
-| darwin | x64 | macos-14 | No | aionui-web-0.0.0-darwin-x86_64.tar.gz |
-| linux | x64 | ubuntu-latest | No | aionui-web-0.0.0-linux-x86_64.tar.gz |
-| linux | arm64 | ubuntu-latest | Yes | aionui-web-0.0.0-linux-arm64.tar.gz |
-| win32 | x64 | windows-2022 | No | aionui-web-0.0.0-win-x86_64.tar.gz |
+| Platform | Arch  | OS Runner     | QEMU | Tarball Name                          |
+| -------- | ----- | ------------- | ---- | ------------------------------------- |
+| darwin   | arm64 | macos-14      | No   | aionui-web-0.0.0-darwin-arm64.tar.gz  |
+| darwin   | x64   | macos-14      | No   | aionui-web-0.0.0-darwin-x86_64.tar.gz |
+| linux    | x64   | ubuntu-latest | No   | aionui-web-0.0.0-linux-x86_64.tar.gz  |
+| linux    | arm64 | ubuntu-latest | Yes  | aionui-web-0.0.0-linux-arm64.tar.gz   |
+| win32    | x64   | windows-2022  | No   | aionui-web-0.0.0-win-x86_64.tar.gz    |
 
 **SHA256 Files**: Each tarball has `.sha256` checksum
 
@@ -227,6 +241,7 @@ grep -r "from 'electron'" packages/web-host/src/  # ✓ No results
 If M8 breaks builds:
 
 1. **Revert all M8 commits**:
+
    ```bash
    git revert 27e932fa7 a4522f091 3929185df
    git push origin feat/m8-web-cli-tarball
@@ -242,6 +257,7 @@ If M8 breaks builds:
 **M9: install-web script**
 
 **Dependencies from M8**:
+
 - Tarball structure: `aionui-web/{bin,dist,bundled-aionui-backend,bundled-bun,static,package.json}`
 - Tarball filename: `aionui-web-{version}-{platform}-{arch}.tar.gz`
 - SHA256 checksum: `.tar.gz.sha256`
@@ -251,6 +267,7 @@ If M8 breaks builds:
   ```
 
 **Interface for M9**:
+
 - Tarball available in CI artifacts (manual download for testing)
 - Suggested install path:
   - Linux/macOS: `/opt/aionui-web/` or `~/.local/share/aionui-web/`
@@ -258,29 +275,31 @@ If M8 breaks builds:
 - Startup command: `node /path/to/aionui-web/bin/aionui-web.js start`
 
 **Blocked Tasks**:
+
 - E2E smoke test with real backend (needs backend release)
 - GitHub releases upload (M10 scope)
 
 ---
 
-**Executor**: executor-m8 (Claude Sonnet 4.5 agent)  
-**Completed**: 2026-05-08  
+**Executor**: executor-m8 (Claude Sonnet 4.5 agent)
+**Completed**: 2026-05-08
 **Duration**: ~1.5 hours
 
 ---
 
 **Status Summary**:
 
-✅ **M8 Core Goal Achieved**: web-cli package + tarball CI pipeline created  
-✅ **5-Platform Matrix Defined**: darwin-arm64/x64, linux-x64/arm64, win-x64  
-✅ **Dependency Boundaries Verified**: No electron/desktop imports  
-⚠️ **Backend Release Missing**: Inherited from M7, tarball produces skip manifest  
-⚠️ **Unit Tests Missing**: Covered by smoke test instead  
-⚠️ **CI Not Executed**: YAML valid, awaiting real CI run after push  
+✅ **M8 Core Goal Achieved**: web-cli package + tarball CI pipeline created
+✅ **5-Platform Matrix Defined**: darwin-arm64/x64, linux-x64/arm64, win-x64
+✅ **Dependency Boundaries Verified**: No electron/desktop imports
+⚠️ **Backend Release Missing**: Inherited from M7, tarball produces skip manifest
+⚠️ **Unit Tests Missing**: Covered by smoke test instead
+⚠️ **CI Not Executed**: YAML valid, awaiting real CI run after push
 
 **Release Readiness**: M8 feature branch is **code-complete** but produces **skip manifests** for backend. Switch `ALLOW_MISSING=0` in CI after backend release.
 
 **Human Review Needed**:
+
 1. Verify CI workflow runs successfully after push
 2. Test tarball extraction and startup on target platforms
 3. Coordinate with backend team on first release timeline

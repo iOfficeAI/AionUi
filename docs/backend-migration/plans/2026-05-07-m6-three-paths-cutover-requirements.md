@@ -91,18 +91,18 @@ plan-writer 在写 M6 detailed plan 时,**除了 executor 执行步骤之外,必
 
 ## 已定决策
 
-| 决策点 | 结论 | 理由 |
-|---|---|---|
-| 切换方式 | **一次性切换**,不保留过渡开关 | 设计文档"一次性替换"原则,过渡态成本更高 |
-| 老 webserver 目录处理 | **直接删除**,不保留注释/tag | 仓库干净;历史在 git log |
-| GUI 开关关闭后 backend 处理 | backend 不停,继续服务桌面 IPC | 设计文档 E2 节 |
-| 自动恢复逻辑归属 | **留在 `packages/desktop/`**,只是改为调 `@aionui/web-host.startWebHost(...)`。web-host 提供能力,桌面壳编排"是否恢复 / 何时恢复"的策略 | `webui.desktop.enabled` 是桌面壳专属偏好,不是 web-host 通用能力;避免 web-host 被污染桌面语义 |
-| `webui.start` IPC 返回值 | 保持和老实现一致 | 前端 `WebuiModalContent` 代码零改动 |
-| 三条路径的 `AppMetadata` 注入 | 桌面壳的入口统一构造一次,三条路径都用同一个 | 避免 drift |
-| e2e 覆盖 | 三条路径各一个主流程 e2e,不做穷尽组合 | 核心场景覆盖,不过度 |
-| 本里程碑是否包含回滚策略 | **包含**,failed e2e 时 revert 本 PR | 高风险必须可回滚 |
-| `packages/desktop/src/common/platform/register-node.ts` 处理 | 同步删除 | 设计文档关键文件清单已列(M1 后路径已变) |
-| 失败时的 backend 端口参数从哪获取(useExistingBackend) | 从 `BackendLifecycleManager` 的 `port` 属性(M4 保证可访问) | M4 已定 |
+| 决策点                                                       | 结论                                                                                                                                  | 理由                                                                                         |
+| ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| 切换方式                                                     | **一次性切换**,不保留过渡开关                                                                                                         | 设计文档"一次性替换"原则,过渡态成本更高                                                      |
+| 老 webserver 目录处理                                        | **直接删除**,不保留注释/tag                                                                                                           | 仓库干净;历史在 git log                                                                      |
+| GUI 开关关闭后 backend 处理                                  | backend 不停,继续服务桌面 IPC                                                                                                         | 设计文档 E2 节                                                                               |
+| 自动恢复逻辑归属                                             | **留在 `packages/desktop/`**,只是改为调 `@aionui/web-host.startWebHost(...)`。web-host 提供能力,桌面壳编排"是否恢复 / 何时恢复"的策略 | `webui.desktop.enabled` 是桌面壳专属偏好,不是 web-host 通用能力;避免 web-host 被污染桌面语义 |
+| `webui.start` IPC 返回值                                     | 保持和老实现一致                                                                                                                      | 前端 `WebuiModalContent` 代码零改动                                                          |
+| 三条路径的 `AppMetadata` 注入                                | 桌面壳的入口统一构造一次,三条路径都用同一个                                                                                           | 避免 drift                                                                                   |
+| e2e 覆盖                                                     | 三条路径各一个主流程 e2e,不做穷尽组合                                                                                                 | 核心场景覆盖,不过度                                                                          |
+| 本里程碑是否包含回滚策略                                     | **包含**,failed e2e 时 revert 本 PR                                                                                                   | 高风险必须可回滚                                                                             |
+| `packages/desktop/src/common/platform/register-node.ts` 处理 | 同步删除                                                                                                                              | 设计文档关键文件清单已列(M1 后路径已变)                                                      |
+| 失败时的 backend 端口参数从哪获取(useExistingBackend)        | 从 `BackendLifecycleManager` 的 `port` 属性(M4 保证可访问)                                                                            | M4 已定                                                                                      |
 
 ## 验收标准
 
@@ -175,16 +175,16 @@ curl -fsS --include -H "Connection: Upgrade" -H "Upgrade: websocket" \
 
 ## 关键风险
 
-| 风险 | 缓解 |
-|---|---|
-| GUI 开关切换时序和老实现不一致,导致重启后状态丢失 | e2e 覆盖"开 → 重启 → 验证仍 on";手动跑多次验证稳定性 |
-| `useExistingBackend` 传入 port 为旧值(backend 已重启换端口) | M4 保证 `BackendLifecycleManager.port` 是 live 引用,不是缓存值;plan-writer 确认 getter 行为 |
-| 删老 webserver 后某些 import 未被迁移(如 `extraResources` 路径) | 全仓 grep `webserver` 找残留;`bun run dev` 能启动且 e2e 全绿才算合格 |
-| preload IPC 暴露的方法底层切换后行为微变(比如错误码) | 保持 IPC 响应格式和老实现一致,尤其 error 字段格式 |
-| 反代 `/ws` 时 session cookie 透传不正确,浏览器登录状态丢失 | e2e 覆盖"登录后 WebSocket 连接有效",检查 cookie 透传 |
-| 切换时 port 分配规则变化导致用户收藏的 URL 失效 | 默认 port 25808 保持不变 |
-| e2e playwright 并行控制 Electron + Chromium 复杂,测试不稳定 | plan-writer 研究仓库现有 e2e(`tests/e2e/cases/teams/`)找类似双实例用例参考 |
-| 本里程碑改动面最大,一次失败全链路 revert 代价高 | feature 分支上**跑完所有 e2e 才 push**;失败时 agent 不 push,escalate 给人类 |
+| 风险                                                                                                                                  | 缓解                                                                                                                                   |
+| ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| GUI 开关切换时序和老实现不一致,导致重启后状态丢失                                                                                     | e2e 覆盖"开 → 重启 → 验证仍 on";手动跑多次验证稳定性                                                                                   |
+| `useExistingBackend` 传入 port 为旧值(backend 已重启换端口)                                                                           | M4 保证 `BackendLifecycleManager.port` 是 live 引用,不是缓存值;plan-writer 确认 getter 行为                                            |
+| 删老 webserver 后某些 import 未被迁移(如 `extraResources` 路径)                                                                       | 全仓 grep `webserver` 找残留;`bun run dev` 能启动且 e2e 全绿才算合格                                                                   |
+| preload IPC 暴露的方法底层切换后行为微变(比如错误码)                                                                                  | 保持 IPC 响应格式和老实现一致,尤其 error 字段格式                                                                                      |
+| 反代 `/ws` 时 session cookie 透传不正确,浏览器登录状态丢失                                                                            | e2e 覆盖"登录后 WebSocket 连接有效",检查 cookie 透传                                                                                   |
+| 切换时 port 分配规则变化导致用户收藏的 URL 失效                                                                                       | 默认 port 25808 保持不变                                                                                                               |
+| e2e playwright 并行控制 Electron + Chromium 复杂,测试不稳定                                                                           | plan-writer 研究仓库现有 e2e(`tests/e2e/cases/teams/`)找类似双实例用例参考                                                             |
+| 本里程碑改动面最大,一次失败全链路 revert 代价高                                                                                       | feature 分支上**跑完所有 e2e 才 push**;失败时 agent 不 push,escalate 给人类                                                            |
 | `restoreDesktopWebUIFromPreferences` 内部从老 webserver 改调 `startWebHost` 后,Electron 启动时机可能和原来不同(导致 WebUI 提前或延后) | `restoreDesktopWebUIFromPreferences` **保留在桌面壳**(不迁入 web-host),plan-writer 在桌面入口的原调用点就地改内部实现,保持调用时序不变 |
 
 ## 依赖上游

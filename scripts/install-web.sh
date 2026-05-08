@@ -13,7 +13,11 @@
 set -euo pipefail
 
 # ─── Default Configuration ──────────────────────────────────────────────────
-VERSION="${VERSION:-__VERSION__}"  # CI will replace __VERSION__ with actual version
+VERSION="${VERSION:-__VERSION__}"
+# Note: CI runs `sed "s/__VERSION__/<ver>/g"` on this file, replacing both
+# occurrences above into e.g. "1.9.19". The resolve_version() function uses a
+# regex-based check (looks for letters) to detect the unreplaced placeholder,
+# so never add a literal "__VERSION__" string to any comparison below.
 INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/share/aionui-web}"
 BIN_DIR="${BIN_DIR:-${HOME}/.local/bin}"
 MIRROR="${MIRROR:-https://github.com/iOfficeAI/AionUi/releases/download}"
@@ -155,8 +159,15 @@ detect_platform_arch() {
 }
 
 resolve_version() {
-    # If VERSION is __VERSION__ (CI placeholder) or latest, query GitHub API
-    if [[ "$VERSION" == "__VERSION__" || "$VERSION" == "latest" ]]; then
+    # Trigger GitHub API resolution when:
+    # - VERSION is "latest" (explicit)
+    # - VERSION still contains the CI placeholder pattern (letters/underscores,
+    #   i.e. sed did NOT run and we have the raw "__VERSION__" token)
+    # Note: a real version number is digits+dots only, so `[a-zA-Z_]` is a
+    # reliable marker of "placeholder". We avoid literal "__VERSION__" here
+    # because the CI sed replacement rewrites every occurrence in this file,
+    # including the comparison string.
+    if [[ "$VERSION" == "latest" || "$VERSION" =~ [a-zA-Z_] ]]; then
         info "Resolving latest version from GitHub API..."
 
         if command -v curl &>/dev/null; then
@@ -311,12 +322,20 @@ extract_tarball() {
 
     success "Extracted to $INSTALL_DIR"
 
-    # Set executable permission
-    chmod +x "${INSTALL_DIR}/bin/aionui-web.js" 2>/dev/null || true
+    # Set executable permission on the bun-compiled standalone binary
+    chmod +x "${INSTALL_DIR}/aionui-web" 2>/dev/null || true
+
+    # On macOS, strip the quarantine xattr Safari/Chrome/curl-downloaded files
+    # inherit — otherwise Gatekeeper kills unsigned Mach-O binaries with a
+    # "damaged, can't be opened" dialog. This is standard practice for CLI
+    # tools distributed as tarballs (bun, deno, rustup do the same).
+    if command -v xattr &>/dev/null; then
+        xattr -dr com.apple.quarantine "${INSTALL_DIR}" 2>/dev/null || true
+    fi
 
     # Verify installation
-    if [[ ! -f "${INSTALL_DIR}/bin/aionui-web.js" ]]; then
-        die "Installation failed: ${INSTALL_DIR}/bin/aionui-web.js not found"
+    if [[ ! -x "${INSTALL_DIR}/aionui-web" ]]; then
+        die "Installation failed: ${INSTALL_DIR}/aionui-web not found or not executable"
     fi
 
     success "Installation completed"
@@ -327,7 +346,7 @@ extract_tarball() {
 
 create_symlink() {
     local symlink_path="${BIN_DIR}/aionui-web"
-    local target_path="${INSTALL_DIR}/bin/aionui-web.js"
+    local target_path="${INSTALL_DIR}/aionui-web"
 
     info "Creating symlink: ${BOLD}${symlink_path}${NC} -> ${target_path}"
 
@@ -426,13 +445,13 @@ print_summary() {
         echo "    aionui-web version"
     else
         echo "    # Start AionUi WebUI (using full path)"
-        echo "    ${INSTALL_DIR}/bin/aionui-web.js start"
+        echo "    ${INSTALL_DIR}/aionui-web start"
         echo ""
         echo "    # Or add symlink to PATH:"
         if [[ "$CREATE_SYMLINK" == "1" ]]; then
             echo "    export PATH=\"${BIN_DIR}:\$PATH\""
         else
-            echo "    ln -s ${INSTALL_DIR}/bin/aionui-web.js ~/.local/bin/aionui-web"
+            echo "    ln -s ${INSTALL_DIR}/aionui-web ~/.local/bin/aionui-web"
             echo "    export PATH=\"~/.local/bin:\$PATH\""
         fi
     fi

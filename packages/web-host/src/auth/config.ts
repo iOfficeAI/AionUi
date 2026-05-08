@@ -50,8 +50,7 @@ export async function readConfig(app: AppMetadata): Promise<WebUIConfig> {
           : DEFAULT_ADMIN_USERNAME,
       port: typeof obj.port === 'number' ? obj.port : undefined,
       allowRemote: typeof obj.allowRemote === 'boolean' ? obj.allowRemote : undefined,
-      passwordUpdatedAt:
-        typeof obj.passwordUpdatedAt === 'string' ? obj.passwordUpdatedAt : undefined,
+      passwordUpdatedAt: typeof obj.passwordUpdatedAt === 'string' ? obj.passwordUpdatedAt : undefined,
     };
   } catch {
     return defaultConfig();

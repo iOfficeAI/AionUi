@@ -569,6 +569,8 @@ jobs:
 
       - name: Run prepare-release-assets script
         shell: bash
+        env:
+          MOCK_VERSION: '1.0.0'
         run: bash scripts/prepare-release-assets.sh build-artifacts release-assets
 
       - name: Validate script output

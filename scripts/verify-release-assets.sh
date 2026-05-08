@@ -74,6 +74,26 @@ for f in AionUi-1.0.0-win-x64.exe AionUi-1.0.0-win-arm64.exe AionUi-1.0.0-mac-x6
   fi
 done
 
+# Web-CLI tarballs + checksums
+for plat in darwin-arm64 darwin-x86_64 linux-arm64 linux-x86_64 win-x86_64; do
+  tarball="aionui-web-1.0.0-${plat}.tar.gz"
+  for f in "$tarball" "${tarball}.sha256"; do
+    if [ ! -f "$OUTPUT_DIR/$f" ]; then
+      echo "FAIL: missing web-cli asset: $f"
+      ERRORS=$((ERRORS + 1))
+    else
+      echo "PASS: $f exists"
+    fi
+  done
+done
+
+if [ ! -f "$OUTPUT_DIR/install-web.sh" ]; then
+  echo "FAIL: missing install-web.sh"
+  ERRORS=$((ERRORS + 1))
+else
+  echo "PASS: install-web.sh exists"
+fi
+
 echo ""
 if [ "$ERRORS" -gt 0 ]; then
   echo "FAILED: $ERRORS errors found"

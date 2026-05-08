@@ -15,7 +15,7 @@ export class RateLimiter {
   constructor(
     private readonly windowMs: number = LOGIN_WINDOW_MS,
     private readonly max: number = LOGIN_MAX_ATTEMPTS,
-    private readonly now: () => number = Date.now,
+    private readonly now: () => number = Date.now
   ) {}
 
   /** Returns true if the attempt is allowed; bumps the counter either way. */

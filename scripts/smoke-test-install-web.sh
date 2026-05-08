@@ -56,11 +56,11 @@ if [[ ! -d "$INSTALL_DIR" ]]; then
 fi
 echo "✓ Installation directory exists"
 
-if [[ ! -f "${INSTALL_DIR}/bin/aionui-web.js" ]]; then
-    echo "❌ CLI entry point not found: ${INSTALL_DIR}/bin/aionui-web.js"
+if [[ ! -x "${INSTALL_DIR}/aionui-web" ]]; then
+    echo "❌ CLI executable not found or not executable: ${INSTALL_DIR}/aionui-web"
     exit 1
 fi
-echo "✓ CLI entry point exists"
+echo "✓ CLI executable exists"
 
 if [[ ! -L "${BIN_DIR}/aionui-web" ]]; then
     echo "❌ Symlink not found: ${BIN_DIR}/aionui-web"

@@ -11,9 +11,9 @@
 
 ## 你是谁
 
-| 角色 | 产出 | 读什么 |
-|---|---|---|
-| **executor-M{x}** | 代码 + 测试 + handoff | 设计文档对应节 + 自己的 plan + 上游 handoff |
+| 角色                 | 产出                                            | 读什么                                                                |
+| -------------------- | ----------------------------------------------- | --------------------------------------------------------------------- |
+| **executor-M{x}**    | 代码 + 测试 + handoff                           | 设计文档对应节 + 自己的 plan + 上游 handoff                           |
 | **plan-writer-M{x}** | `2026-05-07-m{x}-{name}.md`(detailed plan 文件) | 自己的 requirements + 设计文档 + M1 plan(格式参考) + 已完成的 handoff |
 
 ---
@@ -78,16 +78,20 @@ git push origin feat/m{x}-{name}
 # M{x} <名称> - 交付摘要
 
 ## 已交付
+
 - 新建 / 删除 / 修改文件清单
 - 新增的对外 API / 配置项
 
 ## 与计划的偏离
+
 - <改动点> —— 原因 —— 对后续影响
 
 ## 给下一个里程碑的提醒
+
 - <警示>
 
 ## 验证证据(贴原始输出)
+
 - 分支名 + 最新 SHA
 - 基线同步状态(基线 SHA)
 - tsc / lint / test 输出
@@ -128,7 +132,7 @@ M{x} 完成。
   平台兼容(macOS vs Linux sed)/ 失败诊断路径 / 业务功能自动化验证 /
   工具预检 / handoff 字段映射 / 同步基线+push+handoff 三步 / 回滚
 - 最后用 SendMessage 通知 team-lead 交付:plan 路径 + 阶段数 + 预估执行时间
-  + 关键风险
+  - 关键风险
 
 ---
 
@@ -159,28 +163,28 @@ M{x} 完成。
 
 ## 遇到状况怎么办
 
-| 状况 | 做法 |
-|---|---|
-| checkpoint 失败 | 不 push,escalate,handoff 里列诊断 |
-| 基线合并冲突复杂 | 不硬改,escalate |
-| requirements 的决策和 UC 冲突 | 以 UC 为准,escalate 让人类改 requirements |
-| plan 里某条验证需要人眼判断 | 改进验证命令(或让 plan-writer 补),不能打 manual verify |
-| 发现上游里程碑有遗留 bug | 不自主修,escalate |
-| 需要的工具没装 | 装上(`bunx @electron/asar` / `prek`);若不能装,escalate |
-| M6 e2e 失败 | 按 playbook "M6 固定诊断抓手" 顺序查日志,收集最小失败证据 |
+| 状况                          | 做法                                                      |
+| ----------------------------- | --------------------------------------------------------- |
+| checkpoint 失败               | 不 push,escalate,handoff 里列诊断                         |
+| 基线合并冲突复杂              | 不硬改,escalate                                           |
+| requirements 的决策和 UC 冲突 | 以 UC 为准,escalate 让人类改 requirements                 |
+| plan 里某条验证需要人眼判断   | 改进验证命令(或让 plan-writer 补),不能打 manual verify    |
+| 发现上游里程碑有遗留 bug      | 不自主修,escalate                                         |
+| 需要的工具没装                | 装上(`bunx @electron/asar` / `prek`);若不能装,escalate    |
+| M6 e2e 失败                   | 按 playbook "M6 固定诊断抓手" 顺序查日志,收集最小失败证据 |
 
 ---
 
 ## 查详情
 
-| 主题 | 去 playbook 的哪节 |
-|---|---|
-| 完整角色模型、派发流程 | "用户操作" / "Team-lead 调度规则" |
+| 主题                               | 去 playbook 的哪节                                 |
+| ---------------------------------- | -------------------------------------------------- |
+| 完整角色模型、派发流程             | "用户操作" / "Team-lead 调度规则"                  |
 | 完整 executor / plan-writer prompt | "Executor Prompt 模板" / "Plan-Writer Prompt 模板" |
-| Checkpoint 清单(每个里程碑) | "Checkpoint 规范" |
-| 分支协作模型全貌 | "分支协作模型" |
-| 非 team-mode 环境 | "非 team-mode 执行映射" |
-| M6 诊断抓手 | "M6 固定诊断抓手"(Checkpoint 规范子节) |
-| 基线同步的冲突处理 | "基线同步规范" |
+| Checkpoint 清单(每个里程碑)        | "Checkpoint 规范"                                  |
+| 分支协作模型全貌                   | "分支协作模型"                                     |
+| 非 team-mode 环境                  | "非 team-mode 执行映射"                            |
+| M6 诊断抓手                        | "M6 固定诊断抓手"(Checkpoint 规范子节)             |
+| 基线同步的冲突处理                 | "基线同步规范"                                     |
 
 **手头事有明确做法就直接做;规则不清才去查 playbook**。

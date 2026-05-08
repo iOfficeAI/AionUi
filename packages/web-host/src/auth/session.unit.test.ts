@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import {
-  createSession,
-  verifySession,
-  SESSION_COOKIE,
-  __internal_clearStore_for_tests__,
-} from './session.js';
+import { createSession, verifySession, SESSION_COOKIE, __internal_clearStore_for_tests__ } from './session.js';
 
 describe('auth/session', () => {
   beforeEach(() => __internal_clearStore_for_tests__());
@@ -18,8 +13,7 @@ describe('auth/session', () => {
   it('verifySession rejects tampered payload', () => {
     const s = createSession({ username: 'admin' });
     const [, sig] = s.token.split('.');
-    const bad = Buffer.from(JSON.stringify({ u: 'attacker', e: Date.now() + 1e6 }))
-      .toString('base64url');
+    const bad = Buffer.from(JSON.stringify({ u: 'attacker', e: Date.now() + 1e6 })).toString('base64url');
     expect(verifySession(`${bad}.${sig}`)).toBe(false);
   });
 

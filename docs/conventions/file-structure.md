@@ -61,12 +61,12 @@ All main-process modules now live under `packages/desktop/src/process/`. The `pa
 
 This project straddles two ecosystems. Each follows its own convention:
 
-| Scope                              | Directory naming                         | Reason                                                                      |
-| ---------------------------------- | ---------------------------------------- | --------------------------------------------------------------------------- |
-| **Renderer** (`packages/desktop/src/renderer/`)     | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                           |
-| **Everything else**                | **lowercase**                            | Node.js ecosystem                                                           |
-| **Categorical dirs** (everywhere)  | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities |
-| **Platform dirs** (renderer pages) | **lowercase**                            | Mirror `packages/desktop/src/process/agent/<platform>/` naming for cross-process consistency |
+| Scope                                           | Directory naming                         | Reason                                                                                       |
+| ----------------------------------------------- | ---------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Renderer** (`packages/desktop/src/renderer/`) | **PascalCase** for component/module dirs | React ecosystem — directory name = component name                                            |
+| **Everything else**                             | **lowercase**                            | Node.js ecosystem                                                                            |
+| **Categorical dirs** (everywhere)               | **lowercase**                            | `components/`, `hooks/`, `utils/`, `services/` are categories, not entities                  |
+| **Platform dirs** (renderer pages)              | **lowercase**                            | Mirror `packages/desktop/src/process/agent/<platform>/` naming for cross-process consistency |
 
 ### Quick test
 
@@ -118,8 +118,8 @@ packages/desktop/src/process/channels/plugins/dingtalk/  # lowercase
 
 **Violating these causes runtime crashes.**
 
-| Process                            | Can use                       | Cannot use                       |
-| ---------------------------------- | ----------------------------- | -------------------------------- |
+| Process                                             | Can use                       | Cannot use                       |
+| --------------------------------------------------- | ----------------------------- | -------------------------------- |
 | **Main** (`packages/desktop/src/process/`)          | Node.js, Electron main APIs   | DOM APIs, React                  |
 | **Renderer** (`packages/desktop/src/renderer/`)     | DOM APIs, React, browser APIs | Node.js APIs, Electron main APIs |
 | **Worker** (`packages/desktop/src/process/worker/`) | Node.js APIs                  | DOM APIs, Electron APIs          |
@@ -171,8 +171,8 @@ For existing code using direct imports, `vi.mock()` is acceptable. For new code,
 
 Test files must mirror the source file they test:
 
-| Source                                       | Test                                            |
-| -------------------------------------------- | ----------------------------------------------- |
+| Source                                                        | Test                                            |
+| ------------------------------------------------------------- | ----------------------------------------------- |
 | `packages/desktop/src/process/services/CronService.ts`        | `tests/unit/cronService.test.ts`                |
 | `packages/desktop/src/process/bridge/fsBridge.ts`             | `tests/unit/fsBridge.test.ts`                   |
 | `packages/desktop/src/renderer/utils/chat/latexDelimiters.ts` | `tests/unit/latexDelimiters.test.ts`            |
@@ -314,10 +314,10 @@ PageName/                  # PascalCase
 
 Inside a page module (e.g., `pages/conversation/`), three types of subdirectories exist:
 
-| Type                                                  | Convention | Examples                                             |
-| ----------------------------------------------------- | ---------- | ---------------------------------------------------- |
-| **Categorical** (standard role)                       | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
-| **Feature module** (business feature)                 | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
+| Type                                                                   | Convention | Examples                                             |
+| ---------------------------------------------------------------------- | ---------- | ---------------------------------------------------- |
+| **Categorical** (standard role)                                        | lowercase  | `components/`, `hooks/`, `context/`, `utils/`        |
+| **Feature module** (business feature)                                  | PascalCase | `GroupedHistory/`, `Workspace/`, `Preview/`          |
 | **Platform directory** (mirrors `packages/desktop/src/process/agent/`) | lowercase  | `acp/`, `codex/`, `gemini/`, `nanobot/`, `openclaw/` |
 
 Platform directories are an exception to PascalCase. They use lowercase for cross-process naming consistency with `packages/desktop/src/process/agent/<platform>/`.

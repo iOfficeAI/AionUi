@@ -34,8 +34,7 @@ const log = {
   success: (msg: string) => console.log(`${colors.green}OK${colors.reset} ${msg}`),
   error: (msg: string) => console.log(`${colors.red}ERR${colors.reset} ${msg}`),
   warning: (msg: string) => console.log(`${colors.yellow}WARN${colors.reset} ${msg}`),
-  highlight: (msg: string) =>
-    console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
+  highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
 function getFlag(name: string): string | undefined {
@@ -58,11 +57,7 @@ function resolveWorkDir(): string {
     return resolved;
   }
   const suffix =
-    process.env.NODE_ENV === 'production'
-      ? ''
-      : process.env.AIONUI_MULTI_INSTANCE === '1'
-        ? '-dev-2'
-        : '-dev';
+    process.env.NODE_ENV === 'production' ? '' : process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
   const dir = path.join(os.homedir(), `.aionui-web${suffix}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;

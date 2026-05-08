@@ -12,6 +12,7 @@
 ### 1. Core Implementation
 
 **startWebHost Orchestration** (`packages/web-host/src/index.ts`):
+
 - Orchestrates backend-launcher (M4) + static-server (M5) + auth
 - Handles first-run password generation via `resetPassword`
 - Supports both `ownBackend` and `useExistingBackend` modes
@@ -19,6 +20,7 @@
 - Cleanup backend if static-server start fails
 
 **Desktop Three-Paths Cutover**:
+
 1. **IPC/GUI Auto-Restore** (`packages/desktop/src/process/utils/webuiConfig.ts`):
    - `restoreDesktopWebUIFromPreferences` now calls `startWebHost`
    - Removed dependency on legacy `startWebServerWithInstance`
@@ -35,8 +37,8 @@
 
 ### 2. Test Results
 
-**Type Check**: `bunx tsc --noEmit` ✅ 0 errors  
-**Lint**: `bun run lint` ✅ 0 errors (1351 warnings, all pre-existing)  
+**Type Check**: `bunx tsc --noEmit` ✅ 0 errors
+**Lint**: `bun run lint` ✅ 0 errors (1351 warnings, all pre-existing)
 **Unit Tests**: `cd packages/web-host && bunx vitest run` ✅ 56 tests pass (55 M4+M5 + 1 M6 startWebHost)
 
 **E2E Tests**: ⚠️ **Not executed in M6** (see Deviations)
@@ -56,6 +58,7 @@ Base: `b0adc56a8` (M5 static-server + auth)
 ### 4. API for M7
 
 **startWebHost** remains unchanged from M5 plan:
+
 - `startWebHost(opts: WebHostOptions): Promise<WebHostHandle>`
 - `WebHostOptions`: see `packages/web-host/src/types.ts`
 - `WebHostHandle`: includes `port`, `backendPort`, `url`, `localUrl`, `networkUrl`, `lanIP`, `initialPassword`, `stop()`
@@ -90,6 +93,7 @@ Base: `b0adc56a8` (M5 static-server + auth)
 ## Rollback Plan
 
 If three-paths fail validation:
+
 1. `git checkout origin/feat/m5-static-server-auth-migration`
 2. Legacy webserver still functional at M5 baseline
 3. `packages/desktop/src/process/webserver/` available in git history (commit `b0adc56a8`)
@@ -102,10 +106,9 @@ If three-paths fail validation:
 
 ---
 
-**Executor**: executor-m6 (Claude Opus 4.7 agent)  
-**Completed**: 2026-05-08 (M6 Phase 0-8 complete, Phase 7 E2E deferred)  
+**Executor**: executor-m6 (Claude Opus 4.7 agent)
+**Completed**: 2026-05-08 (M6 Phase 0-8 complete, Phase 7 E2E deferred)
 **Duration**: ~3 hours (with cookie type fix + simplification)
-
 
 ---
 
