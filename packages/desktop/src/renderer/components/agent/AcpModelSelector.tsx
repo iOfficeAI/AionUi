@@ -240,7 +240,7 @@ const AcpModelSelector: React.FC<{
   );
 
   const defaultModelLabel = t('common.defaultModel');
-  const rawDisplayLabel = model_info?.current_model_label || model_info?.current_model_id || '';
+  const rawDisplayLabel = model_info?.current_model_id || model_info?.current_model_label || '';
   const display_label = getModelDisplayLabel({
     selected_value: model_info?.current_model_id,
     selectedLabel: rawDisplayLabel,
@@ -322,7 +322,7 @@ const AcpModelSelector: React.FC<{
               >
                 <div className='flex items-center gap-8px w-full'>
                   {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
-                  <span>{model.label}</span>
+                  <span>{model.id}</span>
                 </div>
               </Menu.Item>
             );
