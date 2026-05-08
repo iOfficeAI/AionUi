@@ -1,0 +1,12 @@
+{
+  "title": "SolidAI 平台",
+  "description": "非洲人工智能平台，提供行业专属建议。",
+  "agentStatus": "智能体状态",
+  "taskProgress": "任务进度",
+  "switchAgent": "切换智能体",
+  "online": "在线",
+  "offline": "离线",
+  "busy": "忙碌",
+  "processingFarmData": "正在处理农场数据",
+  "generatingHealthReport": "正在生成健康报告"
+}
