@@ -51,10 +51,10 @@
     {
       "id": "43caf618",
       "created_at": "2026-05-09T01:18:08.323494Z",
-      "updated_at": "2026-05-09T01:18:08.323495Z",
+      "updated_at": "2026-05-09T01:21:12.453700Z",
       "model": "glm-5.1",
-      "summary": "",
-      "message_count": 0
+      "summary": "分析当前项目",
+      "message_count": 54
     }
   ]
 }
