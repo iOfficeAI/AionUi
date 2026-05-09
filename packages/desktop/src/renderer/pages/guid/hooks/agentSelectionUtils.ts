@@ -7,6 +7,7 @@
 import { configService } from '@/common/config/configService';
 import type { AcpBackendAll } from '@/common/types/acpTypes';
 import type { AcpBackend } from '../types';
+import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 
 /** Save preferred mode to the agent's own config key */
 export async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
@@ -37,17 +38,24 @@ export async function savePreferredModelId(agentKey: string, model_id: string): 
 
 /**
  * Get agent key for selection.
- * Uses agent_type as the primary discriminant; backend is only meaningful for ACP agents.
- * Returns "custom:uuid" for custom agents, "remote:uuid" for remote agents,
- * backend (if present) or agent_type for others.
+ *
+ * Rows that are row-scoped (custom ACP / remote agents) use `agent.id` directly
+ * as the key — no namespace prefix. Builtin / internal agents keep `backend` or
+ * `agent_type` as the key since there is only one row per type.
+ *
+ * Note: preset *assistants* (not agents) still use a `custom:<assistantId>`
+ * form produced inline by `AssistantSelectionArea`. That is a separate
+ * selection path that points at the backend-merged assistant catalog, not
+ * `AgentRegistry`.
  */
 export const getAgentKey = (agent: {
   agent_type: string;
+  agent_source?: AgentSource;
   backend?: string;
-  custom_agent_id?: string;
+  id?: string;
   is_preset?: boolean;
 }): string => {
-  if (agent.agent_type === 'remote' && agent.custom_agent_id) return `remote:${agent.custom_agent_id}`;
-  if (agent.custom_agent_id) return `custom:${agent.custom_agent_id}`;
+  const rowScoped = agent.agent_type === 'remote' || agent.agent_source === 'custom';
+  if (rowScoped && agent.id) return agent.id;
   return agent.backend || agent.agent_type;
 };
