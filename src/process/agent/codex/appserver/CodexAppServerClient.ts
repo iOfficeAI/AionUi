@@ -24,6 +24,8 @@ type PendingRequest = {
   reject: (error: Error) => void;
 };
 
+const CODEX_CLI_ORIGINATOR = 'codex_cli_rs';
+
 export class CodexAppServerClient {
   private child: ChildProcessWithoutNullStreams | null = null;
   private transport: CodexJsonlTransport | null = null;
@@ -104,7 +106,8 @@ export class CodexAppServerClient {
   private getInitializeParams(): Record<string, unknown> {
     return {
       clientInfo: {
-        name: getConfiguredAppClientName(),
+        name: CODEX_CLI_ORIGINATOR,
+        title: getConfiguredAppClientName(),
         version: getConfiguredAppClientVersion(),
       },
       ...this.options.initializeParams,

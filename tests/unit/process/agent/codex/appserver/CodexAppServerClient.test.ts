@@ -15,7 +15,7 @@ type FakeChildProcess = EventEmitter & {
 
 const spawnMock = vi.hoisted(() => vi.fn());
 const defaultInitializeParams = {
-  clientInfo: { name: 'AionUi', version: 'unknown' },
+  clientInfo: { name: 'codex_cli_rs', title: 'AionUi', version: 'unknown' },
 };
 
 vi.mock('child_process', () => ({
