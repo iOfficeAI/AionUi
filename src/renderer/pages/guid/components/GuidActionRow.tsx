@@ -105,6 +105,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   // Browser file picker ref (WebUI only)
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const [selectingWorkspace, setSelectingWorkspace] = useState(false);
 
   const handleLocalFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +212,24 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     </Menu>
   );
 
+  const handleSelectWorkspace = useCallback(async () => {
+    if (selectingWorkspace) {
+      return;
+    }
+    setSelectingWorkspace(true);
+    try {
+      const dirs = await ipcBridge.dialog.showOpen.invoke({ properties: ['openDirectory', 'createDirectory'] });
+      if (dirs && dirs[0]) {
+        onSelectWorkspace(dirs[0]);
+      }
+    } catch (error) {
+      console.error('Failed to open directory dialog:', error);
+      Message.error(t('conversation.workspace.migration.selectFolderError'));
+    } finally {
+      setSelectingWorkspace(false);
+    }
+  }, [onSelectWorkspace, selectingWorkspace, t]);
+
   return (
     <div className={styles.actionRow}>
       <div className={styles.actionTools}>
@@ -251,17 +270,10 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             className='sendbox-model-btn'
             shape='round'
             size='small'
+            loading={selectingWorkspace}
+            disabled={selectingWorkspace}
             onClick={() => {
-              ipcBridge.dialog.showOpen
-                .invoke({ properties: ['openDirectory', 'createDirectory'] })
-                .then((dirs) => {
-                  if (dirs && dirs[0]) {
-                    onSelectWorkspace(dirs[0]);
-                  }
-                })
-                .catch((error) => {
-                  console.error('Failed to open directory dialog:', error);
-                });
+              void handleSelectWorkspace();
             }}
           >
             <span className='flex items-center gap-6px leading-none'>
@@ -313,7 +325,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       </div>
       <div className={styles.actionSubmit}>
         {speechInputNode}
-        <Tooltip content={!hasWorkspace ? '请先关联文件夹' : null}>
+        <Tooltip content={!hasWorkspace ? t('conversation.workspace.migration.noTargetPath') : null}>
           <span>
             <Button
               shape='circle'

@@ -163,13 +163,13 @@ export default defineConfig(({ mode }) => {
       publicDir: resolve('public'),
       appType: 'mpa',
       server: {
-        // Default to 5173; when occupied (e.g. another AionUi clone is running),
+        // Default to 5180; when occupied (e.g. another AionUi clone is running),
         // Vite auto-increments to the next available port.
         // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         // Bind to IPv4 loopback explicitly to avoid environments where `localhost`
         // resolves to IPv6 (::1) and fails with EPERM, causing a white screen.
         host: '127.0.0.1',
-        port: 5173,
+        port: 5180,
         // Explicit HMR host so Vite client connects directly to the Vite dev server,
         // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload).
         // Port is omitted so it automatically matches the server port.

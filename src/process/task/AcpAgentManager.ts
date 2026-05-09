@@ -949,6 +949,7 @@ ${collectedResponses.join('\n')}`;
 
   async sendMessage(data: {
     content: string;
+    agentContent?: string;
     files?: string[];
     msg_id?: string;
     cronMeta?: CronMessageMeta;
@@ -1008,7 +1009,7 @@ ${collectedResponses.join('\n')}`;
       await this.initAgent(this.options);
 
       if (data.msg_id && data.content) {
-        let contentToSend = data.content;
+        let contentToSend = data.agentContent || data.content;
         if (contentToSend.includes(AIONUI_FILES_MARKER)) {
           contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
         }

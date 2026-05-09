@@ -99,7 +99,14 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
     }
   }
 
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; hidden?: boolean; silent?: boolean }) {
+  async sendMessage(data: {
+    content: string;
+    agentContent?: string;
+    files?: string[];
+    msg_id?: string;
+    hidden?: boolean;
+    silent?: boolean;
+  }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.bootstrap;
@@ -123,7 +130,7 @@ class NanoBotAgentManager extends BaseAgentManager<NanoBotAgentManagerData> {
       // await it here. The IPC response needs to return immediately so the
       // frontend can display the user message. Response and finish events
       // are emitted asynchronously via handleStreamEvent/handleSignalEvent.
-      this.agent.sendMessage({ content: data.content }).catch((error) => {
+      this.agent.sendMessage({ content: data.agentContent || data.content }).catch((error) => {
         cronBusyGuard.setProcessing(this.conversation_id, false);
         const errorMsg = error instanceof Error ? error.message : String(error);
         this.emitErrorMessage(`Failed to send message: ${errorMsg}`);

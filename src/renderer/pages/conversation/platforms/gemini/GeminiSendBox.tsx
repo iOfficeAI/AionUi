@@ -334,7 +334,7 @@ const GeminiSendBox: React.FC<{
 
   const onSendHandler = async (message: string) => {
     if (!workspacePath.trim()) {
-      Message.warning(t('conversation.welcome.specifyWorkspace', { defaultValue: '关联文件夹' }));
+      Message.warning(t('conversation.welcome.specifyWorkspace'));
       return;
     }
 

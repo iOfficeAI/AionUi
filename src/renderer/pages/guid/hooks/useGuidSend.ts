@@ -117,7 +117,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
   const handleSend = useCallback(async () => {
     if (!dir.trim()) {
-      Message.warning(t('conversation.welcome.specifyWorkspace', { defaultValue: '关联文件夹' }));
+      Message.warning(t('conversation.welcome.specifyWorkspace'));
       return;
     }
 
@@ -499,7 +499,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const sendMessageHandler = useCallback(() => {
     if (loading || sendingRef.current) return;
     if (!dir.trim()) {
-      Message.warning(t('conversation.welcome.specifyWorkspace', { defaultValue: '关联文件夹' }));
+      Message.warning(t('conversation.welcome.specifyWorkspace'));
       return;
     }
     sendingRef.current = true;

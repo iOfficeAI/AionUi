@@ -16,18 +16,18 @@ import { createRateLimiter } from '../middleware/security';
 
 /**
  * Vite dev server port — read from ELECTRON_RENDERER_URL when available
- * (electron-vite sets it to the actual port), fallback to 5173.
+ * (electron-vite sets it to the actual port), fallback to 5180.
  */
 export const VITE_DEV_PORT = (() => {
   const url = process.env['ELECTRON_RENDERER_URL'];
   if (url) {
     try {
-      return Number(new URL(url).port) || 5173;
+      return Number(new URL(url).port) || 5180;
     } catch {
       // ignore parse errors
     }
   }
-  return 5173;
+  return 5180;
 })();
 
 /**
@@ -153,7 +153,7 @@ function registerProductionStaticRoutes(expressApp: Express, staticRoot: string,
  * Register static assets and page routes
  *
  * In production: serve built files from out/renderer/
- * In development: proxy to Vite dev server (localhost:5173)
+ * In development: proxy to Vite dev server (localhost:5180)
  */
 export function registerStaticRoutes(expressApp: Express): void {
   const resolved = resolveRendererPath();

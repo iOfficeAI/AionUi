@@ -596,7 +596,7 @@ export function initConversationBridge(
       // `agentContent` carries the skill-injected text for OpenClaw (equals `input` when no skills).
       await task.sendMessage({
         ...other,
-        content: guardedInput,
+        content: other.input,
         files: workspaceFiles,
         agentContent,
       });
