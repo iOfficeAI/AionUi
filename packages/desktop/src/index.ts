@@ -22,8 +22,7 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
-import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
-import { registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
@@ -128,11 +127,6 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
     }
   }
 }
-
-// Log environment diagnostics once at startup (persisted via electron-log).
-// Phase 1 prints sync info immediately; Phase 2 resolves CLI tools in the
-// background — fire-and-forget so it never blocks the startup path (#1157).
-void logEnvironmentDiagnostics();
 
 // Handle Squirrel startup events (Windows installer)
 if (electronSquirrelStartup) {
@@ -679,23 +673,6 @@ const handleAppReady = async (): Promise<void> => {
         handleDeepLinkUrl(pendingUrl);
       });
     }
-  }
-
-  if (!isResetPasswordMode) {
-    // Preload shell environment and apply it to process.env so workers forked
-    // later inherit the complete PATH (nvm, npm globals, .zshrc paths, etc.)
-    // This ensures custom skills that depend on globally installed tools work correctly.
-    void loadShellEnvironmentAsync().then((shellEnv) => {
-      if (shellEnv.PATH) {
-        process.env.PATH = mergePaths(process.env.PATH, shellEnv.PATH);
-      }
-      // Apply other shell env vars (SSL certs, auth tokens) that may be missing
-      for (const [key, value] of Object.entries(shellEnv)) {
-        if (key !== 'PATH' && !process.env[key]) {
-          process.env[key] = value;
-        }
-      }
-    });
   }
 
   // Verify CDP is ready and log status
