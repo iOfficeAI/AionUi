@@ -20,6 +20,8 @@ export const PET_STATES = [
   'juggling',
   'building',
   'carrying',
+  'drinking',
+  'thirsty',
 ] as const;
 
 export type PetState = (typeof PET_STATES)[number];
@@ -53,7 +55,9 @@ export const STATE_PRIORITY: Record<PetState, number> = {
   carrying: 4,
   juggling: 4,
   building: 4,
+  drinking: 5,
   working: 3,
+  thirsty: 2,
   thinking: 2,
   waking: 2,
   'poke-left': 2,
@@ -84,6 +88,7 @@ export const MIN_DISPLAY_MS: Partial<Record<PetState, number>> = {
   yawning: 3000,
   thinking: 1000,
   working: 1000,
+  drinking: 3000,
 };
 
 export type AutoReturnConfig = {
@@ -107,4 +112,5 @@ export const AUTO_RETURN: Partial<Record<PetState, AutoReturnConfig>> = {
   'random-look': { target: 'idle', delayMs: 6000 },
   'random-read': { target: 'idle', delayMs: 8000 },
   yawning: { target: 'dozing', delayMs: 3500 },
+  drinking: { target: 'idle', delayMs: 4000 },
 };

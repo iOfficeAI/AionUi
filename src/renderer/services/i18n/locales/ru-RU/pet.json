@@ -13,5 +13,13 @@
   "resetPosition": "Сбросить положение",
   "hide": "Скрыть",
   "showHide": "Показать/скрыть",
-  "desktopOnly": "Настольный питомец доступен только в настольном приложении. Он не может использоваться в режиме браузера WebUI."
+  "desktopOnly": "Настольный питомец доступен только в настольном приложении. Он не может использоваться в режиме браузера WebUI.",
+  "drinkWater": "Выпить воды",
+  "wellnessWater": "Напоминание о воде",
+  "wellnessWaterDescription": "Питомец периодически хочет пить",
+  "wellnessWaterInterval": "Интервал напоминания",
+  "wellnessInterval30": "30 мин",
+  "wellnessInterval45": "45 мин",
+  "wellnessInterval60": "60 мин",
+  "wellnessInterval90": "90 мин"
 }

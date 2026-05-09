@@ -13,5 +13,13 @@
   "resetPosition": "位置をリセット",
   "hide": "非表示",
   "showHide": "表示/非表示",
-  "desktopOnly": "デスクトップペットはデスクトップアプリでのみ利用可能です。WebUIブラウザモードでは使用できません。"
+  "desktopOnly": "デスクトップペットはデスクトップアプリでのみ利用可能です。WebUIブラウザモードでは使用できません。",
+  "drinkWater": "お水を飲む",
+  "wellnessWater": "水分補給リマインダー",
+  "wellnessWaterDescription": "ペットが定期的に喉が渇きます",
+  "wellnessWaterInterval": "リマインド間隔",
+  "wellnessInterval30": "30分",
+  "wellnessInterval45": "45分",
+  "wellnessInterval60": "60分",
+  "wellnessInterval90": "90分"
 }

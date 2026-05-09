@@ -20,6 +20,8 @@ const AI_DRIVEN_STATES = new Set([
   'waking',
   'attention',
   'dragging',
+  'drinking',
+  'thirsty',
 ]);
 
 const SLEEP_STATES = new Set(['sleeping', 'dozing', 'yawning']);

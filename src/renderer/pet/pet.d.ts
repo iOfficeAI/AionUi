@@ -11,6 +11,7 @@ interface PetHitAPI {
   contextMenu: () => void;
   setIgnoreMouseEvents: (ignore: boolean, options?: { forward: boolean }) => void;
   onHitReset: (cb: () => void) => void;
+  onStateChange: (cb: (state: string) => void) => void;
 }
 
 interface PetConfirmAPI {

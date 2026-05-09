@@ -13,5 +13,13 @@
   "resetPosition": "Reset Position",
   "hide": "Hide",
   "showHide": "Show/Hide",
-  "desktopOnly": "Desktop Pet is only available in the desktop application. It cannot be used in WebUI browser mode."
+  "desktopOnly": "Desktop Pet is only available in the desktop application. It cannot be used in WebUI browser mode.",
+  "drinkWater": "Drink Water",
+  "wellnessWater": "Water Reminder",
+  "wellnessWaterDescription": "Pet gets thirsty and needs water regularly",
+  "wellnessWaterInterval": "Reminder Interval",
+  "wellnessInterval30": "30 min",
+  "wellnessInterval45": "45 min",
+  "wellnessInterval60": "60 min",
+  "wellnessInterval90": "90 min"
 }

@@ -13,5 +13,13 @@
   "resetPosition": "Konumu Sıfırla",
   "hide": "Gizle",
   "showHide": "Göster/Gizle",
-  "desktopOnly": "Masaüstü evcil hayvanı yalnızca masaüstü uygulamasında kullanılabilir. WebUI tarayıcı modunda kullanılamaz."
+  "desktopOnly": "Masaüstü evcil hayvanı yalnızca masaüstü uygulamasında kullanılabilir. WebUI tarayıcı modunda kullanılamaz.",
+  "drinkWater": "Su İç",
+  "wellnessWater": "Su Hatırlatıcı",
+  "wellnessWaterDescription": "Pet düzenli olarak susar",
+  "wellnessWaterInterval": "Hatırlatma Aralığı",
+  "wellnessInterval30": "30 dk",
+  "wellnessInterval45": "45 dk",
+  "wellnessInterval60": "60 dk",
+  "wellnessInterval90": "90 dk"
 }

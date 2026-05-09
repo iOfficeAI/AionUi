@@ -130,6 +130,8 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  // Enable command queue mode for sending multiple prompts while the agent is busy
+  'system.commandQueueEnabled'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -196,6 +198,10 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Desktop Pet: whether the water reminder is enabled. Default true.
+  'pet.wellnessWaterEnabled'?: boolean;
+  // Desktop Pet: water reminder interval in milliseconds. Default 45 * 60_000.
+  'pet.wellnessWaterInterval'?: number;
 }
 
 export interface IEnvStorageRefer {

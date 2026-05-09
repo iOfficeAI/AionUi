@@ -203,4 +203,36 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  // Wellness: drink water reminder
+  ipcBridge.systemSettings.getWellnessWaterEnabled.provider(async () => {
+    const value = await ProcessConfig.get('pet.wellnessWaterEnabled');
+    return value ?? true;
+  });
+
+  ipcBridge.systemSettings.setWellnessWaterEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('pet.wellnessWaterEnabled', enabled);
+    const { setPetWellnessEnabled } = await import('@process/pet/petManager');
+    setPetWellnessEnabled(enabled);
+  });
+
+  ipcBridge.systemSettings.getWellnessWaterInterval.provider(async () => {
+    const value = await ProcessConfig.get('pet.wellnessWaterInterval');
+    return (value as number) || 45 * 60_000;
+  });
+
+  ipcBridge.systemSettings.setWellnessWaterInterval.provider(async ({ interval }) => {
+    await ProcessConfig.set('pet.wellnessWaterInterval', interval);
+    const { setPetWellnessInterval } = await import('@process/pet/petManager');
+    setPetWellnessInterval(interval);
+  });
+
+  ipcBridge.systemSettings.getCommandQueueEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.commandQueueEnabled');
+    return value ?? true;
+  });
+
+  ipcBridge.systemSettings.setCommandQueueEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.commandQueueEnabled', enabled);
+  });
 }

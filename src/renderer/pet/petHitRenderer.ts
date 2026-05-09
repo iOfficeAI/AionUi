@@ -166,3 +166,12 @@ function resetHitState(): void {
 }
 
 window.petHitAPI.onHitReset?.(resetHitState);
+
+// When pet is thirsty, change cursor to pointer to signal "click me to drink"
+window.petHitAPI.onStateChange?.((state: string) => {
+  if (state === 'thirsty') {
+    hitEl.classList.add('actionable');
+  } else {
+    hitEl.classList.remove('actionable');
+  }
+});

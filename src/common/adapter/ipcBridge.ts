@@ -738,6 +738,16 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  getWellnessWaterEnabled: bridge.buildProvider<boolean, void>('system-settings:get-wellness-water-enabled'),
+  setWellnessWaterEnabled: bridge.buildProvider<void, { enabled: boolean }>(
+    'system-settings:set-wellness-water-enabled'
+  ),
+  getWellnessWaterInterval: bridge.buildProvider<number, void>('system-settings:get-wellness-water-interval'),
+  setWellnessWaterInterval: bridge.buildProvider<void, { interval: number }>(
+    'system-settings:set-wellness-water-interval'
+  ),
+  getCommandQueueEnabled: bridge.buildProvider<boolean, void>('system-settings:get-command-queue-enabled'),
+  setCommandQueueEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-command-queue-enabled'),
 };
 
 // 系统通知接口 / System notification API

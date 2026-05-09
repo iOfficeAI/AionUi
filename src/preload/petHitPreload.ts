@@ -16,4 +16,7 @@ contextBridge.exposeInMainWorld('petHitAPI', {
   onHitReset: (cb: () => void) => {
     ipcRenderer.on('pet:hit-reset', () => cb());
   },
+  onStateChange: (cb: (state: string) => void) => {
+    ipcRenderer.on('pet:state-changed', (_event, state: string) => cb(state));
+  },
 });

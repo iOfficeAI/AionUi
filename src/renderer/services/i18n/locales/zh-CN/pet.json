@@ -13,5 +13,13 @@
   "resetPosition": "重置位置",
   "hide": "隐藏",
   "showHide": "显示/隐藏",
-  "desktopOnly": "桌面宠物仅在桌面应用中可用，无法在 WebUI 浏览器模式下使用。"
+  "desktopOnly": "桌面宠物仅在桌面应用中可用，无法在 WebUI 浏览器模式下使用。",
+  "drinkWater": "喝杯水",
+  "wellnessWater": "喝水提醒",
+  "wellnessWaterDescription": "宠物会定时变渴，点一下给它喝水",
+  "wellnessWaterInterval": "提醒间隔",
+  "wellnessInterval30": "30 分钟",
+  "wellnessInterval45": "45 分钟",
+  "wellnessInterval60": "60 分钟",
+  "wellnessInterval90": "90 分钟"
 }

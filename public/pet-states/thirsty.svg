@@ -1,0 +1,136 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      /* Thirsty: pet holds an empty cup and a thought bubble above head
+         shows a full water cup — "I want this (full cup)". Shivering body,
+         sweat drop, dim hat. Click to drink. */
+
+      .th-body {
+        transform-origin: 11px 18px;
+        animation: th-shiver 2.5s ease-in-out infinite;
+      }
+      .th-shadow {
+        transform-origin: 11px 22.5px;
+        animation: th-shadow 2.5s ease-in-out infinite;
+      }
+      .th-eye {
+        transform-origin: 11px 11px;
+        animation: th-blink 3s ease-in-out infinite;
+      }
+      .th-sweat {
+        animation: th-sweat 2.2s ease-in infinite;
+      }
+      /* held empty cup gently tilts — begging */
+      .th-cup {
+        transform-origin: 11px 17px;
+        animation: th-cup-beg 2.5s ease-in-out infinite;
+      }
+      /* thought bubble with full cup — floating and pulsing for attention */
+      .th-bubble {
+        transform-origin: 19px 2px;
+        animation: th-bubble-float 2.5s ease-in-out infinite;
+      }
+      .th-wish-water {
+        transform-origin: 19px 2.5px;
+        animation: th-wish-pulse 1.4s ease-in-out infinite;
+      }
+      .th-bubble-glow {
+        animation: th-bubble-glow 2.5s ease-in-out infinite;
+      }
+
+      @keyframes th-shiver {
+        0%,100% { transform: translateY(0.5px) rotate(1.2deg); }
+        25%     { transform: translateY(0.5px) rotate(-1.2deg); }
+        50%     { transform: translateY(1px) rotate(1.5deg); }
+        75%     { transform: translateY(0.5px) rotate(-0.8deg); }
+      }
+      @keyframes th-shadow {
+        0%,100% { transform: scaleX(1); opacity: 0.3; }
+        50%     { transform: scaleX(0.95); opacity: 0.25; }
+      }
+      @keyframes th-blink {
+        0%,15%,100% { transform: scaleY(1); }
+        8%           { transform: scaleY(0.08); }
+      }
+      @keyframes th-sweat {
+        0%   { opacity: 0; transform: translateY(-2px); }
+        15%  { opacity: 0.75; transform: translateY(0); }
+        70%  { opacity: 0.5; transform: translateY(4px); }
+        85%  { opacity: 0; transform: translateY(6px); }
+        100% { opacity: 0; transform: translateY(-2px); }
+      }
+      @keyframes th-cup-beg {
+        0%,100% { transform: translateY(0) rotate(-2deg); }
+        50%     { transform: translateY(-0.5px) rotate(2deg); }
+      }
+      @keyframes th-bubble-float {
+        0%,100% { transform: translateY(0); }
+        50%     { transform: translateY(-0.6px); }
+      }
+      @keyframes th-wish-pulse {
+        0%,100% { transform: scaleY(1); opacity: 0.7; }
+        50%     { transform: scaleY(0.9); opacity: 1; }
+      }
+      @keyframes th-bubble-glow {
+        0%,100% { opacity: 0.9; }
+        50%     { opacity: 1; }
+      }
+    </style>
+  </defs>
+
+  <!-- shadow -->
+  <ellipse class="th-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+
+  <g class="th-body">
+    <!-- body -->
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+
+    <!-- hat — slightly dimmed (low energy) -->
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35" opacity="0.75"/>
+    <rect x="10" y="2" width="1" height="1" fill="#e8714a" opacity="0.6"/>
+
+    <!-- single eye with tired blink -->
+    <g class="th-eye">
+      <rect x="10" y="10" width="2" height="2" fill="#111827"/>
+    </g>
+
+    <!-- small puckered mouth — dry/thirsty -->
+    <circle cx="11" cy="14.3" r="0.7" fill="#111827"/>
+
+    <!-- sweat drop on right cheek -->
+    <g class="th-sweat">
+      <path d="M15.5 8 Q16 9.5 15.5 10.5 Q15 9.5 15.5 8 Z" fill="#7dd3fc" opacity="0.7"/>
+    </g>
+
+    <!-- empty cup held with both hands in front of body -->
+    <g class="th-cup">
+      <!-- left hand gripping cup -->
+      <circle cx="8" cy="17" r="1.5" fill="#97A0C5" fill-opacity="0.9"/>
+      <!-- right hand gripping cup -->
+      <circle cx="14" cy="17" r="1.5" fill="#97A0C5" fill-opacity="0.9"/>
+      <!-- empty cup (just a bit of water at bottom) -->
+      <rect x="9" y="15.5" width="4" height="4" rx="0.6" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="0.4"/>
+      <rect x="9.3" y="18.6" width="3.4" height="0.6" rx="0.2" fill="#38bdf8" opacity="0.35"/>
+      <path d="M13 16.2 Q14.2 16.2 14.2 17.3 Q14.2 18.4 13 18.4" stroke="#7dd3fc" stroke-width="0.4" fill="none"/>
+    </g>
+  </g>
+
+  <!-- thought bubble above head with FULL water cup inside = "I want water" -->
+  <g class="th-bubble">
+    <g class="th-bubble-glow">
+      <!-- trailing dots from pet's head to bubble -->
+      <circle cx="15.5" cy="6" r="0.4" fill="white" stroke="#b0b8d0" stroke-width="0.2"/>
+      <circle cx="16.8" cy="4.5" r="0.55" fill="white" stroke="#b0b8d0" stroke-width="0.2"/>
+      <!-- main bubble -->
+      <circle cx="19" cy="2" r="3.2" fill="white" stroke="#b0b8d0" stroke-width="0.35"/>
+    </g>
+    <!-- full water cup inside bubble -->
+    <rect x="17.5" y="0.3" width="3" height="3.6" rx="0.4" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="0.3"/>
+    <!-- full water level (pulses to attract attention) -->
+    <g class="th-wish-water">
+      <rect x="17.75" y="0.9" width="2.5" height="2.9" rx="0.25" fill="#38bdf8"/>
+    </g>
+    <!-- cup handle -->
+    <path d="M20.5 1 Q21.4 1 21.4 2 Q21.4 3 20.5 3" stroke="#7dd3fc" stroke-width="0.3" fill="none"/>
+  </g>
+</svg>

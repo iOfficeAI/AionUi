@@ -1,0 +1,118 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      /* Drinking: body tilts back slightly, right hand lifts cup to mouth.
+         Single eye (^^ happy arc), pouty round mouth, rosy cheeks.
+         Sipping bubbles near mouth. Hat glows blue as hydration rises.
+         Round hands matching working.svg style. */
+
+      .dk-body {
+        transform-origin: 11px 18px;
+        animation: dk-tilt 2.8s ease-in-out infinite;
+      }
+      .dk-shadow {
+        transform-origin: 11px 22.5px;
+        animation: dk-shadow 2.8s ease-in-out infinite;
+      }
+      /* right hand + cup move as one unit */
+      .dk-cup {
+        transform-origin: 16px 14px;
+        animation: dk-lift 2.8s ease-in-out infinite;
+      }
+      /* water shrinks as pet drinks */
+      .dk-water {
+        transform-origin: 17.5px 17px;
+        animation: dk-water 2.8s ease-in-out infinite;
+      }
+      /* hat blue glow — charges up */
+      .dk-hat-glow {
+        animation: dk-glow 2.8s ease-in-out infinite;
+      }
+      /* sipping bubbles near mouth */
+      .dk-bub { opacity: 0; }
+      .dk-b1 { animation: dk-bub-up 1.6s ease-out infinite; animation-delay: 0.2s; }
+      .dk-b2 { animation: dk-bub-up 1.6s ease-out infinite; animation-delay: 0.7s; }
+      .dk-b3 { animation: dk-bub-up 1.6s ease-out infinite; animation-delay: 1.2s; }
+
+      @keyframes dk-tilt {
+        0%,100% { transform: translateY(0) rotate(0); }
+        35%     { transform: translateY(-0.5px) rotate(-3deg); }
+        60%     { transform: translateY(-1px) rotate(-4deg); }
+        85%     { transform: translateY(-0.5px) rotate(-2deg); }
+      }
+      @keyframes dk-shadow {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        60%     { transform: scaleX(0.9); opacity: 0.25; }
+      }
+      @keyframes dk-lift {
+        0%,100% { transform: translate(0, 0) rotate(0); }
+        35%     { transform: translate(-4px, -1px) rotate(-18deg); }
+        60%     { transform: translate(-5px, -1.5px) rotate(-25deg); }
+        85%     { transform: translate(-3px, -0.5px) rotate(-8deg); }
+      }
+      @keyframes dk-water {
+        0%,100% { transform: scaleY(1); }
+        60%     { transform: scaleY(0.25); }
+      }
+      @keyframes dk-glow {
+        0%,20%  { opacity: 0; }
+        50%     { opacity: 0.45; }
+        75%     { opacity: 0.25; }
+        100%    { opacity: 0; }
+      }
+      @keyframes dk-bub-up {
+        0%   { opacity: 0; transform: translateY(0) scale(0.3); }
+        12%  { opacity: 0.6; transform: translateY(-1px) scale(1); }
+        55%  { opacity: 0.25; transform: translateY(-5px) scale(0.6); }
+        85%  { opacity: 0; transform: translateY(-8px) scale(0.2); }
+        100% { opacity: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- shadow -->
+  <ellipse class="dk-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+
+  <g class="dk-body">
+    <!-- left hand — round, relaxed, body color -->
+    <circle cx="4.5" cy="12" r="1.6" fill="#97A0C5" fill-opacity="0.9"/>
+
+    <!-- body -->
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+
+    <!-- hat -->
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35"/>
+    <rect x="10" y="2" width="1" height="1" fill="#e8714a"/>
+    <!-- hat hydration glow -->
+    <polygon class="dk-hat-glow" points="11,1 15,7 7,7" fill="#38bdf8" opacity="0"/>
+
+    <!-- single happy eye — ^^ arc (Aion style) -->
+    <path d="M10 11 Q11 9.5 12 11" stroke="#111827" stroke-width="1.2" stroke-linecap="round" fill="none"/>
+
+    <!-- rosy cheeks -->
+    <ellipse cx="8" cy="12.5" rx="1.3" ry="0.7" fill="#e08090" opacity="0.55"/>
+    <ellipse cx="14" cy="12.5" rx="1.3" ry="0.7" fill="#e08090" opacity="0.55"/>
+
+    <!-- pouty mouth — puckered for sipping -->
+    <circle cx="11" cy="14.3" r="0.85" fill="#111827"/>
+
+    <!-- sipping bubbles — near mouth, rising gently -->
+    <circle class="dk-bub dk-b1" cx="12.5" cy="13.5" r="0.45" fill="#7dd3fc"/>
+    <circle class="dk-bub dk-b2" cx="13.5" cy="13" r="0.35" fill="#38bdf8"/>
+    <circle class="dk-bub dk-b3" cx="12" cy="12.5" r="0.3" fill="#bae6fd"/>
+
+    <!-- right hand + cup (one group, moves together) -->
+    <g class="dk-cup">
+      <!-- hand behind cup (grip) -->
+      <circle cx="18" cy="14.5" r="1.6" fill="#97A0C5" fill-opacity="0.5"/>
+      <!-- cup -->
+      <rect x="16.5" y="12" width="4" height="5" rx="0.8" fill="#e0f2fe" stroke="#7dd3fc" stroke-width="0.4"/>
+      <!-- water -->
+      <g class="dk-water">
+        <rect x="16.9" y="13.5" width="3.2" height="3.1" rx="0.4" fill="#38bdf8" opacity="0.45"/>
+      </g>
+      <!-- handle -->
+      <path d="M20.5 13 Q22.2 13 22.2 15 Q22.2 16.5 20.5 16.5" stroke="#7dd3fc" stroke-width="0.45" fill="none"/>
+    </g>
+  </g>
+</svg>

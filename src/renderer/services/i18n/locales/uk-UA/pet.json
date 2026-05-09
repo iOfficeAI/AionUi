@@ -13,5 +13,13 @@
   "resetPosition": "Скинути позицію",
   "hide": "Приховати",
   "showHide": "Показати/Приховати",
-  "desktopOnly": "Настільний улюбленець доступний лише в десктопній програмі. Його неможливо використовувати в режимі браузера WebUI."
+  "desktopOnly": "Настільний улюбленець доступний лише в десктопній програмі. Його неможливо використовувати в режимі браузера WebUI.",
+  "drinkWater": "Випити води",
+  "wellnessWater": "Нагадування про воду",
+  "wellnessWaterDescription": "Улюбленець періодично хоче пити",
+  "wellnessWaterInterval": "Інтервал нагадування",
+  "wellnessInterval30": "30 хв",
+  "wellnessInterval45": "45 хв",
+  "wellnessInterval60": "60 хв",
+  "wellnessInterval90": "90 хв"
 }

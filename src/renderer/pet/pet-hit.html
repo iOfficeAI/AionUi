@@ -27,6 +27,14 @@
       #hit.dragging {
         cursor: grabbing;
       }
+      /* Pet is thirsty (or has actionable prop) — signal "click me" */
+      #hit.actionable {
+        cursor: pointer;
+      }
+      /* Dragging takes precedence over actionable */
+      #hit.actionable.dragging {
+        cursor: grabbing;
+      }
     </style>
   </head>
   <body>

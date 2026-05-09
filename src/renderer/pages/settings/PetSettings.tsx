@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Radio, Switch } from '@arco-design/web-react';
+import { Radio, Select, Switch } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { systemSettings } from '@/common/adapter/ipcBridge';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -19,6 +19,8 @@ const PetSettings: React.FC = () => {
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [waterEnabled, setWaterEnabled] = useState(true);
+  const [waterInterval, setWaterInterval] = useState(45 * 60_000);
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -53,6 +55,20 @@ const PetSettings: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    systemSettings.getWellnessWaterEnabled
+      .invoke()
+      .then((val) => setWaterEnabled(val))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    systemSettings.getWellnessWaterInterval
+      .invoke()
+      .then((val) => setWaterInterval(val))
+      .catch(() => {});
+  }, []);
+
   const handleEnabledChange = useCallback((checked: boolean) => {
     setEnabled(checked);
     systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
@@ -84,6 +100,24 @@ const PetSettings: React.FC = () => {
       setConfirmEnabled(!checked);
     });
   }, []);
+
+  const handleWaterEnabledChange = useCallback((checked: boolean) => {
+    setWaterEnabled(checked);
+    systemSettings.setWellnessWaterEnabled.invoke({ enabled: checked }).catch(() => {
+      setWaterEnabled(!checked);
+    });
+  }, []);
+
+  const handleWaterIntervalChange = useCallback(
+    (val: number) => {
+      const prev = waterInterval;
+      setWaterInterval(val);
+      systemSettings.setWellnessWaterInterval.invoke({ interval: val }).catch(() => {
+        setWaterInterval(prev);
+      });
+    },
+    [waterInterval]
+  );
 
   if (!isDesktop) {
     return (
@@ -127,6 +161,27 @@ const PetSettings: React.FC = () => {
       label: t('pet.confirmBubble'),
       description: t('pet.confirmBubbleDescription'),
       component: <Switch checked={confirmEnabled} onChange={handleConfirmEnabledChange} disabled={!enabled} />,
+    },
+    {
+      key: 'wellnessWater',
+      label: t('pet.wellnessWater'),
+      description: t('pet.wellnessWaterDescription'),
+      component: (
+        <div className='flex flex-wrap items-center justify-end gap-8px'>
+          <Select
+            value={waterInterval}
+            onChange={handleWaterIntervalChange}
+            disabled={!enabled || !waterEnabled}
+            style={{ width: 120 }}
+          >
+            <Select.Option value={30 * 60_000}>{t('pet.wellnessInterval30')}</Select.Option>
+            <Select.Option value={45 * 60_000}>{t('pet.wellnessInterval45')}</Select.Option>
+            <Select.Option value={60 * 60_000}>{t('pet.wellnessInterval60')}</Select.Option>
+            <Select.Option value={90 * 60_000}>{t('pet.wellnessInterval90')}</Select.Option>
+          </Select>
+          <Switch checked={waterEnabled} onChange={handleWaterEnabledChange} disabled={!enabled} />
+        </div>
+      ),
     },
   ];
 

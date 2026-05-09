@@ -13,5 +13,13 @@
   "resetPosition": "위치 초기화",
   "hide": "숨기기",
   "showHide": "표시/숨기기",
-  "desktopOnly": "데스크톱 펫은 데스크톱 애플리케이션에서만 사용할 수 있습니다. WebUI 브라우저 모드에서는 사용할 수 없습니다."
+  "desktopOnly": "데스크톱 펫은 데스크톱 애플리케이션에서만 사용할 수 있습니다. WebUI 브라우저 모드에서는 사용할 수 없습니다.",
+  "drinkWater": "물 마시기",
+  "wellnessWater": "수분 보충 알림",
+  "wellnessWaterDescription": "펫이 주기적으로 목이 마릅니다",
+  "wellnessWaterInterval": "알림 간격",
+  "wellnessInterval30": "30분",
+  "wellnessInterval45": "45분",
+  "wellnessInterval60": "60분",
+  "wellnessInterval90": "90분"
 }
