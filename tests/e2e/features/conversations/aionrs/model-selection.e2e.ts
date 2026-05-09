@@ -25,8 +25,6 @@ import {
   getAionrsConversationDB,
   getAionrsMessages,
   createTempWorkspace,
-  selectAionrsAgent,
-  selectAionrsModel,
   type AionrsTestModels,
 } from '../../../helpers';
 import { takeScreenshot } from '../../../helpers/screenshots';
@@ -45,9 +43,7 @@ test.describe('Aionrs Chat - Model Selection (P0 + P1)', () => {
 
   test.afterEach(async ({ page }) => {
     // Cleanup order: ESC × 5 → DB → sessionStorage
-    for (let i = 0; i < 5; i++) {
-      await page.keyboard.press('Escape');
-    }
+    await Promise.all(Array.from({ length: 5 }, () => page.keyboard.press('Escape')));
 
     await cleanupE2EAionrsConversations(page);
 

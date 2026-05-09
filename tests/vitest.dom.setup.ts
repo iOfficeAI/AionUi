@@ -8,9 +8,22 @@ import '@testing-library/jest-dom/vitest';
 // Make this a module
 
 // Extend global types for testing
+interface ElectronAPI {
+  emit: () => Promise<void>;
+  on: () => void;
+  windowControls: {
+    minimize: () => Promise<void>;
+    maximize: () => Promise<void>;
+    unmaximize: () => Promise<void>;
+    close: () => Promise<void>;
+    isMaximized: () => Promise<boolean>;
+    onMaximizedChange: () => () => void;
+  };
+}
+
 declare global {
   // eslint-disable-next-line no-var
-  var electronAPI: any;
+  var electronAPI: ElectronAPI;
 }
 
 const noop = () => Promise.resolve();
@@ -25,14 +38,14 @@ const windowControlsMock = {
   onMaximizedChange: (): (() => void) => () => void 0,
 };
 
-(global as any).electronAPI = {
+global.electronAPI = {
   emit: noop,
   on: () => {},
   windowControls: windowControlsMock,
 };
 
 if (typeof window !== 'undefined') {
-  (window as any).electronAPI = (global as any).electronAPI;
+  (window as unknown as { electronAPI: ElectronAPI }).electronAPI = global.electronAPI;
 }
 
 // Mock ResizeObserver for Virtuoso
@@ -46,13 +59,12 @@ global.ResizeObserver = ResizeObserverMock;
 
 // Mock IntersectionObserver
 class IntersectionObserverMock {
-  constructor() {}
   observe() {}
   unobserve() {}
   disconnect() {}
 }
 
-global.IntersectionObserver = IntersectionObserverMock as any;
+global.IntersectionObserver = IntersectionObserverMock as unknown as typeof IntersectionObserver;
 
 // Mock requestAnimationFrame
 global.requestAnimationFrame = (callback: FrameRequestCallback) => {

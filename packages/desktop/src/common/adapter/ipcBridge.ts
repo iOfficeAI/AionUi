@@ -694,9 +694,7 @@ export const acpConversation = {
       return rest;
     }
   ),
-  deleteCustomAgent: httpDelete<{ deleted: boolean }, { id: string }>(
-    (p) => `/api/agents/custom/${p.id}`
-  ),
+  deleteCustomAgent: httpDelete<{ deleted: boolean }, { id: string }>((p) => `/api/agents/custom/${p.id}`),
   setAgentEnabled: httpPatch<AgentMetadata, { id: string; enabled: boolean }>(
     (p) => `/api/agents/${p.id}/enabled`,
     (p) => ({ enabled: p.enabled })

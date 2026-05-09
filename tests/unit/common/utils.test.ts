@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { uuid, parseError, resolveLocaleKey } from '@/common/utils/utils';
 
 describe('utils', () => {
@@ -106,7 +106,7 @@ describe('utils', () => {
     });
 
     it('handles circular reference gracefully', () => {
-      const error: any = { name: 'circular' };
+      const error: { name: string; self?: unknown } = { name: 'circular' };
       error.self = error;
       expect(typeof parseError(error)).toBe('string');
     });

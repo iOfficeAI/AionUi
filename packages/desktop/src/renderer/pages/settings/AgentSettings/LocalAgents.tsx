@@ -73,9 +73,7 @@ const LocalAgents: React.FC = () => {
     return Array.isArray(agents) ? agents : [];
   });
 
-  const detectedAgents = (allAgents ?? []).filter(
-    (a) => a.agent_type !== 'remote' && a.agent_source !== 'custom'
-  );
+  const detectedAgents = (allAgents ?? []).filter((a) => a.agent_type !== 'remote' && a.agent_source !== 'custom');
 
   const customAgents: AcpBackendConfig[] = (allAgents ?? [])
     .filter((a) => a.agent_source === 'custom')
