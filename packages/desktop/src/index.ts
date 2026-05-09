@@ -22,7 +22,7 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
-import { registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
