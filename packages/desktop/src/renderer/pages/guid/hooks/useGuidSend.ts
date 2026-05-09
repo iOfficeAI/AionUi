@@ -318,6 +318,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
+        // For row-scoped rows (custom ACP / remote) the backend factory
+        // needs the actual catalog id — `backend` collapses to the `custom`
+        // slot so it cannot discriminate between rows on its own.
+        agent_id: acpAgentInfo?.id,
         agent_name: acpAgentInfo?.name,
         preset_assistant_id,
         workspace: finalWorkspace,

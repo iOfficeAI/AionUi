@@ -131,12 +131,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
       // /api/* — reverse proxy to backend (includes /api/auth/*).
       // /login and /logout are aionui-auth's top-level auth endpoints: proxy them too
       // so WebUI browser clients reach the backend without a path-rewrite.
-      if (
-        req.url.startsWith('/api/') ||
-        req.url.startsWith('/api?') ||
-        req.url === '/login' ||
-        req.url === '/logout'
-      ) {
+      if (req.url.startsWith('/api/') || req.url.startsWith('/api?') || req.url === '/login' || req.url === '/logout') {
         forwardToBackend(req, res, opts.backendPort);
         return;
       }

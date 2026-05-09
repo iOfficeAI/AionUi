@@ -7,6 +7,7 @@
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '../types';
 import { Plus, Robot } from '@icon-park/react';
 import { Tooltip } from '@arco-design/web-react';
@@ -18,7 +19,13 @@ import styles from '../index.module.css';
 type AgentPillBarProps = {
   availableAgents: AvailableAgent[];
   selectedAgentKey: string;
-  getAgentKey: (agent: { agent_type: string; backend?: string; custom_agent_id?: string }) => string;
+  getAgentKey: (agent: {
+    agent_type: string;
+    agent_source?: AgentSource;
+    backend?: string;
+    id?: string;
+    custom_agent_id?: string;
+  }) => string;
   onSelectAgent: (key: string) => void;
   suppressSelectionAnimation?: boolean;
 };
@@ -60,8 +67,13 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
           .map((agent, index) => {
             const isSelected = selectedAgentKey === getAgentKey(agent);
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
-            // Remote agents use emoji avatars — not image URLs
-            const emojiAvatar = agent.agent_type === 'remote' && agent.avatar ? agent.avatar : undefined;
+            // Remote and user-defined custom agents store emoji strings in
+            // `avatar` — treat those as glyphs, not URLs. Builtin rows
+            // store a logo URL in `icon` and fall through to
+            // `resolveAgentLogo` below.
+            const usesEmojiAvatar =
+              (agent.agent_type === 'remote' || agent.agent_source === 'custom') && Boolean(agent.avatar);
+            const emojiAvatar = usesEmojiAvatar ? agent.avatar : undefined;
             const logoSrc =
               extensionAvatar ||
               (!emojiAvatar

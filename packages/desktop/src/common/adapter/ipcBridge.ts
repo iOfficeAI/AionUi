@@ -652,9 +652,53 @@ export const acpConversation = {
   getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
-    { step: 'cli_check' | 'acp_initialize'; error?: string },
+    { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
     { command: string; acp_args?: string[]; env?: Record<string, string> }
-  >('/api/agents/test'),
+  >('/api/agents/custom/try-connect'),
+  createCustomAgent: httpPost<
+    AgentMetadata,
+    {
+      name: string;
+      command: string;
+      icon?: string;
+      args?: string[];
+      env?: Array<{ name: string; value: string; description?: string }>;
+      advanced?: {
+        yolo_id?: string;
+        native_skills_dirs?: string[];
+        behavior_policy?: { supports_side_question?: boolean };
+        description?: string;
+      };
+    }
+  >('/api/agents/custom'),
+  updateCustomAgent: httpPut<
+    AgentMetadata,
+    {
+      id: string;
+      name: string;
+      command: string;
+      icon?: string;
+      args?: string[];
+      env?: Array<{ name: string; value: string; description?: string }>;
+      advanced?: {
+        yolo_id?: string;
+        native_skills_dirs?: string[];
+        behavior_policy?: { supports_side_question?: boolean };
+        description?: string;
+      };
+    }
+  >(
+    (p) => `/api/agents/custom/${p.id}`,
+    (p) => {
+      const { id: _id, ...rest } = p;
+      return rest;
+    }
+  ),
+  deleteCustomAgent: httpDelete<{ deleted: boolean }, { id: string }>((p) => `/api/agents/custom/${p.id}`),
+  setAgentEnabled: httpPatch<AgentMetadata, { id: string; enabled: boolean }>(
+    (p) => `/api/agents/${p.id}/enabled`,
+    (p) => ({ enabled: p.enabled })
+  ),
   detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
   checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(

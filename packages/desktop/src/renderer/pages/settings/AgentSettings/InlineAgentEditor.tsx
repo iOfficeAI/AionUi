@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import type { AcpBackendConfig, CustomAgentAdvancedOverrides } from '@/common/types/acpTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
 import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
@@ -81,35 +81,34 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const [command, setCommand] = useState('');
   const [argsString, setArgsString] = useState('');
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
+  // `advanced` mirrors the backend `CustomAgentAdvancedOverrides` schema
+  // 1:1. The JSON panel below renders this object — never the basic form
+  // fields — so new keys on the backend only need to be added here to
+  // surface in the UI.
+  const [advanced, setAdvanced] = useState<CustomAgentAdvancedOverrides>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [jsonInput, setJsonInput] = useState('');
   const [jsonError, setJsonError] = useState('');
   const isJsonEditingRef = useRef(false);
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
 
-  const buildJsonFromForm = useCallback(
-    (opts?: { nameVal?: string; cmdVal?: string; argsVal?: string; envVal?: EnvVar[] }) => {
-      const nameVal = opts?.nameVal ?? name;
-      const cmdVal = opts?.cmdVal ?? command;
-      const argsVal = opts?.argsVal ?? argsString;
-      const envVal = opts?.envVal ?? envVars;
-      const config: Record<string, unknown> = {
-        name: nameVal,
-        defaultCliPath: cmdVal,
-        enabled: true,
-        acpArgs: parseArgsString(argsVal),
-        env: envVarsToObject(envVal),
-      };
-      return JSON.stringify(config, null, 2);
-    },
-    [name, command, argsString, envVars]
-  );
+  // Canonical empty shape shown when the user has not filled anything yet.
+  // Keep keys in sync with CustomAgentAdvancedOverrides.
+  const buildJsonFromAdvanced = useCallback((advancedVal: CustomAgentAdvancedOverrides) => {
+    const skeleton: CustomAgentAdvancedOverrides = {
+      yolo_id: advancedVal.yolo_id ?? '',
+      native_skills_dirs: advancedVal.native_skills_dirs ?? [],
+      behavior_policy: advancedVal.behavior_policy ?? { supports_side_question: false },
+      description: advancedVal.description ?? '',
+    };
+    return JSON.stringify(skeleton, null, 2);
+  }, []);
 
   useEffect(() => {
     if (!isJsonEditingRef.current) {
-      setJsonInput(buildJsonFromForm());
+      setJsonInput(buildJsonFromAdvanced(advanced));
     }
-  }, [buildJsonFromForm]);
+  }, [advanced, buildJsonFromAdvanced]);
 
   useEffect(() => {
     setTestStatus('idle');
@@ -121,12 +120,14 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       setCommand(agent.defaultCliPath || '');
       setArgsString(agent.acpArgs?.join(' ') || '');
       setEnvVars(objectToEnvVars(agent.env));
+      setAdvanced(agent.advanced ?? {});
     } else {
       setAvatar('🤖');
       setName('');
       setCommand('');
       setArgsString('');
       setEnvVars([]);
+      setAdvanced({});
     }
     setShowAdvanced(false);
   }, [agent]);
@@ -138,13 +139,24 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     if (jsonEditTimerRef.current) clearTimeout(jsonEditTimerRef.current);
     setJsonInput(value);
     try {
-      const parsed = JSON.parse(value);
+      const parsed: unknown = JSON.parse(value);
       setJsonError('');
-      if (typeof parsed.name === 'string') setName(parsed.name);
-      if (typeof parsed.defaultCliPath === 'string') setCommand(parsed.defaultCliPath);
-      if (Array.isArray(parsed.acpArgs)) setArgsString(parsed.acpArgs.join(' '));
-      if (parsed.env && typeof parsed.env === 'object') {
-        setEnvVars(objectToEnvVars(parsed.env as Record<string, string>));
+      if (parsed && typeof parsed === 'object') {
+        const next: CustomAgentAdvancedOverrides = {};
+        const p = parsed as Record<string, unknown>;
+        if (typeof p.yolo_id === 'string' && p.yolo_id.trim()) next.yolo_id = p.yolo_id;
+        if (Array.isArray(p.native_skills_dirs)) {
+          const dirs = p.native_skills_dirs.filter((x): x is string => typeof x === 'string');
+          if (dirs.length > 0) next.native_skills_dirs = dirs;
+        }
+        if (p.behavior_policy && typeof p.behavior_policy === 'object') {
+          const bp = p.behavior_policy as Record<string, unknown>;
+          if (typeof bp.supports_side_question === 'boolean') {
+            next.behavior_policy = { supports_side_question: bp.supports_side_question };
+          }
+        }
+        if (typeof p.description === 'string' && p.description.trim()) next.description = p.description;
+        setAdvanced(next);
       }
     } catch {
       setJsonError('Invalid JSON');
@@ -191,12 +203,16 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         acp_args: parsedArgs.length > 0 ? parsedArgs : undefined,
         env: Object.keys(envObj).length > 0 ? envObj : undefined,
       });
-      if (!result.error) {
-        setTestStatus('success');
-      } else if (result.step === 'cli_check') {
-        setTestStatus('fail_cli');
-      } else {
-        setTestStatus('fail_acp');
+      switch (result.step) {
+        case 'success':
+          setTestStatus('success');
+          break;
+        case 'fail_cli':
+          setTestStatus('fail_cli');
+          break;
+        case 'fail_acp':
+          setTestStatus('fail_acp');
+          break;
       }
     } catch {
       setTestStatus('fail_cli');
@@ -206,6 +222,14 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const handleSubmit = useCallback(() => {
     const parsedArgs = parseArgsString(argsString);
     const envObj = envVarsToObject(envVars);
+    // Only forward `advanced` when at least one override is set — an
+    // empty object would still round-trip through the backend as `{}`
+    // and reset columns the user never touched.
+    const hasAdvanced =
+      Boolean(advanced.yolo_id) ||
+      Boolean(advanced.description) ||
+      (advanced.native_skills_dirs && advanced.native_skills_dirs.length > 0) ||
+      Boolean(advanced.behavior_policy && Object.keys(advanced.behavior_policy).length > 0);
     const customAgent: AcpBackendConfig = {
       id: agent?.id || uuid(),
       name: name.trim() || 'Custom Agent',
@@ -214,9 +238,10 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       enabled: agent?.enabled !== false,
       acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
       env: Object.keys(envObj).length > 0 ? envObj : undefined,
+      advanced: hasAdvanced ? advanced : undefined,
     };
     onSave(customAgent);
-  }, [agent, name, avatar, command, argsString, envVars, onSave]);
+  }, [agent, name, avatar, command, argsString, envVars, advanced, onSave]);
 
   const isSubmitDisabled = !name.trim() || !command.trim();
   const isTestDisabled = !command.trim() || testStatus === 'testing';

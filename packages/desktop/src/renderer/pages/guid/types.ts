@@ -5,6 +5,7 @@
  */
 
 import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
+import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 
 /**
  * Available agent entry returned by the backend.
@@ -12,11 +13,24 @@ import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
  * `backend` is only present when `agent_type === 'acp'` (claude, qwen, codex, …).
  */
 export type AvailableAgent = {
+  /**
+   * Stable identity. For `agent_source === 'custom'` or `agent_type === 'remote'`
+   * this is the row id that discriminates between rows with the same
+   * `agent_type` / `backend`. Canonical field for agent selection going
+   * forward — prefer `id` over `custom_agent_id`.
+   */
+  id?: string;
   agent_type: string;
+  agent_source?: AgentSource;
   backend?: string;
   icon?: string;
   name: string;
   cli_path?: string;
+  /**
+   * @deprecated Alias for `id` retained for downstream consumers
+   * (preset resolver / send hook / mention tokens). Will be removed in
+   * a follow-up PR. Always equals `id` when populated.
+   */
   custom_agent_id?: string;
   is_preset?: boolean;
   context?: string;

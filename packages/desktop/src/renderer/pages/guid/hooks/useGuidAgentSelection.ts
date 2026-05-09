@@ -12,7 +12,12 @@ import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import {
+  DETECTED_AGENTS_SWR_KEY,
+  fetchDetectedAgents,
+  type AgentMetadata,
+  type AgentSource,
+} from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -43,7 +48,13 @@ export type GuidAgentSelectionResult = {
   cached_config_options: AcpSessionConfigOption[];
   pending_config_options: Record<string, string>;
   setPendingConfigOption: (config_id: string, value: string) => void;
-  getAgentKey: (agent: { agent_type: string; backend?: string; custom_agent_id?: string }) => string;
+  getAgentKey: (agent: {
+    agent_type: string;
+    agent_source?: AgentSource;
+    backend?: string;
+    id?: string;
+    custom_agent_id?: string;
+  }) => string;
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   resolvePresetRulesAndSkills: (
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
@@ -140,7 +151,9 @@ export const useGuidAgentSelection = ({
   const availableCustomAgentIds = useMemo(() => {
     const ids = new Set<string>();
     (availableAgents || []).forEach((agent) => {
-      if (agent.custom_agent_id) {
+      if (agent.agent_source === 'custom' && agent.id) {
+        ids.add(agent.id);
+      } else if (agent.custom_agent_id) {
         ids.add(agent.custom_agent_id);
       }
     });
@@ -171,22 +184,25 @@ export const useGuidAgentSelection = ({
 
   /**
    * Find agent by key.
-   * Supports "custom:uuid", "remote:uuid" format, and plain backend type.
+   *
+   * Key formats:
+   *   - Plain id (custom ACP / remote rows) → resolved by `AvailableAgent.id`.
+   *   - Plain backend or agent_type (builtin rows) → resolved by `backend` or
+   *     `agent_type` fallback.
+   *   - `custom:<assistantId>` → preset assistant from the assistant catalog
+   *     (kept as the only surviving prefix path; preset assistants are a
+   *     different selection surface from AgentRegistry rows).
    */
   const findAgentByKey = (key: string): AvailableAgent | undefined => {
     if (key.startsWith('custom:')) {
-      const custom_agent_id = key.slice(7);
-      const foundInAvailable = availableAgents?.find((a) => a.custom_agent_id === custom_agent_id);
-      if (foundInAvailable) return foundInAvailable;
-
-      // "custom:<id>" keys point at the preset catalog for prompt-only
-      // assistants (backend merge), not the ACP engine-config table.
-      const assistant = assistants.find((a) => a.id === custom_agent_id);
+      const assistantId = key.slice(7);
+      const assistant = assistants.find((a) => a.id === assistantId);
       if (assistant) {
         return {
           agent_type: assistant.preset_agent_type || 'gemini',
           backend: assistant.preset_agent_type || 'gemini',
           name: assistant.name,
+          id: assistant.id,
           custom_agent_id: assistant.id,
           is_preset: true,
           context: '',
@@ -194,20 +210,25 @@ export const useGuidAgentSelection = ({
           presetAgentType: assistant.preset_agent_type,
         };
       }
+      return undefined;
     }
-    if (key.startsWith('remote:')) {
-      const remoteId = key.slice(7);
-      return availableAgents?.find((a) => a.agent_type === 'remote' && a.custom_agent_id === remoteId);
-    }
+    // Row id (custom ACP / remote) takes precedence, so two rows sharing
+    // the same backend do not collide.
+    const byId = availableAgents?.find((a) => a.id === key);
+    if (byId) return byId;
     return availableAgents?.find((a) => a.backend === key || a.agent_type === key);
   };
 
-  // Derived state
-  const selectedAgent: string = selectedAgentKey.startsWith('custom:')
-    ? 'custom'
-    : selectedAgentKey.startsWith('remote:')
-      ? 'remote'
-      : selectedAgentKey;
+  // Derived state: collapse row-scoped rows to a stable slot key so shared
+  // config namespaces (acp.config / mode preferences) are not fragmented
+  // per row.
+  const selectedAgent: string = ((): string => {
+    if (selectedAgentKey.startsWith('custom:')) return 'custom';
+    const info = availableAgents?.find((a) => a.id === selectedAgentKey);
+    if (info?.agent_type === 'remote') return 'remote';
+    if (info?.agent_source === 'custom') return 'custom';
+    return selectedAgentKey;
+  })();
   const selectedAgentInfo = useMemo(() => {
     return findAgentByKey(selectedAgentKey);
   }, [selectedAgentKey, availableAgents, assistants]);
@@ -221,13 +242,30 @@ export const useGuidAgentSelection = ({
 
   useEffect(() => {
     if (!availableAgentsData) return;
+    // Normalise backend /api/agents rows into AvailableAgent shape.
+    // `id` is the canonical row identifier; `custom_agent_id` is a legacy
+    // alias still read by a few downstream consumers (send hook / mention
+    // tokens / preset resolver). Custom-row `icon` is a user-picked emoji,
+    // exposed as `avatar` so AgentPillBar renders the glyph directly
+    // instead of mistaking it for a logo URL.
+    const normalisedDetected: AvailableAgent[] = availableAgentsData.map((a) => {
+      const asAgent = a as AgentMetadata;
+      const isCustomRow = asAgent.agent_source === 'custom';
+      return {
+        ...a,
+        id: asAgent.id,
+        custom_agent_id: isCustomRow ? asAgent.id : (a as AvailableAgent).custom_agent_id,
+        avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
+      };
+    });
     const remoteAsAvailable: AvailableAgent[] = (remoteAgentsData || []).map((ra) => ({
       agent_type: 'remote',
       name: ra.name,
+      id: ra.id,
       custom_agent_id: ra.id,
       avatar: ra.avatar,
     }));
-    setAvailableAgents([...availableAgentsData, ...remoteAsAvailable]);
+    setAvailableAgents([...normalisedDetected, ...remoteAsAvailable]);
   }, [availableAgentsData, remoteAgentsData]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
@@ -270,12 +308,12 @@ export const useGuidAgentSelection = ({
         if (cancelled) return;
 
         if (savedKey) {
-          // Prefixed keys — trust directly, the referenced data resolves later
-          if (savedKey.startsWith('custom:') || savedKey.startsWith('remote:')) {
+          // Preset assistant key — trust directly, assistants list resolves later
+          if (savedKey.startsWith('custom:')) {
             _setSelectedAgentKey(savedKey);
             return;
           }
-          // Plain backend key — verify it still exists in detected engines
+          // Plain row key — verify it still exists in detected engines
           if (availableAgents.some((agent) => getAgentKey(agent) === savedKey)) {
             _setSelectedAgentKey(savedKey);
             return;
@@ -320,11 +358,7 @@ export const useGuidAgentSelection = ({
 
   // Load cached ACP config options per backend
   useEffect(() => {
-    const backend = is_presetAgent
-      ? currentEffectiveAgentInfo.agent_type
-      : selectedAgentKey.startsWith('custom:')
-        ? 'custom'
-        : selectedAgentKey;
+    const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
     if (!backend) return;
     const cached = configService.get('acp.cached_config_options');
     const options = cached?.[backend];
@@ -338,11 +372,7 @@ export const useGuidAgentSelection = ({
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {
     // For preset agents, resolve to the actual backend type for config lookup
-    const backend = is_presetAgent
-      ? currentEffectiveAgentInfo.agent_type
-      : selectedAgentKey.startsWith('custom:')
-        ? 'custom'
-        : selectedAgentKey;
+    const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
 
     const config = configService.get('acp.config');
     const preferred = (config?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
@@ -418,11 +448,7 @@ export const useGuidAgentSelection = ({
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup
-    const backend = is_presetAgent
-      ? currentEffectiveAgentInfo.agent_type
-      : selectedAgentKey.startsWith('custom:')
-        ? 'custom'
-        : selectedAgentKey;
+    const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
 
     // Primary source: `handshake.available_models` from `/api/agents`.
     // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
