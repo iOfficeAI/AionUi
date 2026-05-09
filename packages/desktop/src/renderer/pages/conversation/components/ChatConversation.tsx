@@ -187,6 +187,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
         session_mode={conversation.extra?.session_mode}
+        cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
       />
     </ChatLayout>
   );

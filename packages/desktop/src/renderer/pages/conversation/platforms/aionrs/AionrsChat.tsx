@@ -8,6 +8,7 @@ import type { ConversationContextValue } from '@/renderer/hooks/context/Conversa
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
+import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useMemo } from 'react';
@@ -20,25 +21,28 @@ const AionrsChat: React.FC<{
   workspace: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
+  cron_job_id?: string;
   emptySlot?: React.ReactNode;
-}> = ({ conversation_id, workspace, modelSelection, session_mode, emptySlot }) => {
+}> = ({ conversation_id, workspace, modelSelection, session_mode, cron_job_id, emptySlot }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversation_id: conversation_id, workspace, type: 'aionrs' };
-  }, [conversation_id, workspace]);
+    return { conversation_id: conversation_id, workspace, type: 'aionrs', cron_job_id };
+  }, [conversation_id, workspace, cron_job_id]);
 
   return (
     <ConversationProvider value={conversationValue}>
-      <div className='flex-1 flex flex-col px-20px min-h-0'>
-        <FlexFullContainer>
-          <MessageList className='flex-1' emptySlot={emptySlot} />
-        </FlexFullContainer>
-        <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} session_mode={session_mode} />
-      </div>
+      <ConversationArtifactProvider conversation_id={conversation_id}>
+        <div className='flex-1 flex flex-col px-20px min-h-0'>
+          <FlexFullContainer>
+            <MessageList className='flex-1' emptySlot={emptySlot} />
+          </FlexFullContainer>
+          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} session_mode={session_mode} />
+        </div>
+      </ConversationArtifactProvider>
     </ConversationProvider>
   );
 };
