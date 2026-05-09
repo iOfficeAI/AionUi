@@ -22,6 +22,55 @@ export type AssistantPreset = {
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
+    id: 'ozon-seller-assistant',
+    avatar: '📦',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/ozon-seller-assistant',
+    ruleFiles: {
+      'en-US': 'ozon-seller-assistant.md',
+      'zh-CN': 'ozon-seller-assistant-zh-CN.md',
+      'ru-RU': 'ozon-seller-assistant-ru-RU.md',
+    },
+    defaultEnabledSkills: ['blue-ocean-selection', 'officecli-xlsx', 'aionui-webui-setup'],
+    nameI18n: {
+      'en-US': 'Ozon Seller Assistant',
+      'zh-CN': 'Ozon 运营助手',
+      'ru-RU': 'Озон Менеджер',
+      'uk-UA': 'Ozon Seller Assistant',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Helps sellers run Ozon blue-ocean product selection, environment setup, customs reminders, sourcing analysis, and Excel reporting workflows.',
+      'zh-CN': '帮助 Ozon 卖家完成蓝海选品、环境配置、俄罗斯海关限制提醒、货源分析和 Excel 报告工作流。',
+      'ru-RU':
+        'Помогает продавцам Ozon с бело-океанским подбором товаров, настройкой окружения, таможенными напоминаниями, анализом поставщиков и Excel-отчётами.',
+      'uk-UA':
+        'Helps Ozon sellers with blue-ocean product selection, environment setup, customs reminders, sourcing analysis, and Excel reporting workflows.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Help me configure the Ozon seller environment and verify all required API credentials.',
+        'Run a blue-ocean product selection workflow for Ozon in the pet supplies category with a target margin above 35%.',
+        'Generate an Excel sourcing comparison report for three Ozon candidate products with supplier links, prices, and risk notes.',
+      ],
+      'zh-CN': [
+        '帮我配置 Ozon 卖家环境，并检查所需 API 凭证是否完整。',
+        '帮我做一个 Ozon 宠物用品类目的蓝海选品流程，目标利润率高于 35%。',
+        '帮我生成一个 Ozon 候选商品货源对比 Excel 报告，包含供应商链接、价格和风险备注。',
+      ],
+      'ru-RU': [
+        'Помоги настроить окружение продавца Ozon и проверить все необходимые API-учётные данные.',
+        'Запусти workflow бело-океанского подбора товаров для Ozon в категории товаров для домашних животных с целевой маржой выше 35%.',
+        'Сгенерируй Excel-отчёт по сравнению поставщиков для трёх кандидатов Ozon со ссылками, ценами и заметками по рискам.',
+      ],
+      'uk-UA': [
+        'Допоможи налаштувати середовище продавця Ozon і перевірити всі потрібні API-облікові дані.',
+        'Запусти workflow blue-ocean відбору товарів для Ozon у категорії товарів для домашніх тварин із цільовою маржею понад 35%.',
+        'Згенеруй Excel-звіт для порівняння постачальників трьох кандидатів Ozon із посиланнями, цінами та нотатками про ризики.',
+      ],
+    },
+  },
+  {
     id: 'word-creator',
     avatar: '📝',
     presetAgentType: 'gemini',

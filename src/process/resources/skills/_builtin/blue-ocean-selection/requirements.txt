@@ -1,0 +1,7 @@
+requests==2.32.5
+Pillow==12.2.0
+cos-python-sdk-v5==1.9.42
+search1688api==2.0.0
+httpx[http2]==0.28.1
+playwright==1.59.0
+supabase==2.15.3

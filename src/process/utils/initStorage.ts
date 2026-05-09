@@ -574,6 +574,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
     // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.defaultEnabledSkills;
     const enabledByDefault =
+      preset.id === 'ozon-seller-assistant' ||
       preset.id === 'word-creator' ||
       preset.id === 'ppt-creator' ||
       preset.id === 'excel-creator' ||
