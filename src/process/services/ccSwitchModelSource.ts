@@ -6,6 +6,7 @@
 
 import BetterSqlite3 from 'better-sqlite3';
 import type Database from 'better-sqlite3';
+import { resolveNativeBinding } from '@process/services/database/drivers/BetterSqlite3Driver';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import * as fs from 'fs';
 import * as os from 'os';
@@ -183,7 +184,10 @@ export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>):
 
   let db: Database.Database | null = null;
   try {
-    db = new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
+    const _nativeBinding = resolveNativeBinding();
+    db = _nativeBinding
+      ? new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true, nativeBinding: _nativeBinding })
+      : new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
     const provider = db.prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1').get(currentProviderId) as
       | CcSwitchProviderRow
       | undefined;
@@ -219,7 +223,10 @@ export function readClaudeProviderEnvFromCcSwitch(paths?: Partial<CcSwitchPaths>
 
   let db: Database.Database | null = null;
   try {
-    db = new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
+    const _nativeBinding = resolveNativeBinding();
+    db = _nativeBinding
+      ? new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true, nativeBinding: _nativeBinding })
+      : new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
     const provider = db.prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1').get(currentProviderId) as
       | CcSwitchProviderRow
       | undefined;
