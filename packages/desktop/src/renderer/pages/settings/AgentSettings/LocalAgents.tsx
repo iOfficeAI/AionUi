@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
 import type { AcpBackendConfig } from '@/common/types/acpTypes';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Button, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
@@ -18,63 +18,101 @@ import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor from './InlineAgentEditor';
 
+// Convert a backend AgentMetadata row (agent_source === 'custom') to the
+// shape InlineAgentEditor expects, so editing pre-fills the form correctly.
+function agentMetadataToEditorShape(a: AgentMetadata): AcpBackendConfig {
+  const envRecord: Record<string, string> = {};
+  for (const entry of a.env ?? []) {
+    envRecord[entry.name] = entry.value;
+  }
+  return {
+    id: a.id,
+    name: a.name,
+    avatar: a.icon,
+    defaultCliPath: a.command ?? '',
+    enabled: a.enabled,
+    acpArgs: a.args,
+    env: Object.keys(envRecord).length > 0 ? envRecord : undefined,
+  };
+}
+
+// Convert the editor's AcpBackendConfig back into the backend's
+// CustomAgentUpsertRequest body shape (sans id).
+function editorShapeToUpsertBody(a: AcpBackendConfig) {
+  const envArray = Object.entries(a.env ?? {}).map(([name, value]) => ({ name, value }));
+  return {
+    name: a.name,
+    command: a.defaultCliPath ?? '',
+    icon: a.avatar,
+    args: a.acpArgs,
+    env: envArray.length > 0 ? envArray : undefined,
+  };
+}
+
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hubModalVisible, setHubModalVisible] = useState(false);
 
-  // Detected agents (include built-in backends and extension-contributed agents, exclude user custom and remote)
-  const { data: detectedAgents } = useSWR('acp.agents.available.settings', async () => {
+  // Single fetch for all agents; both detected and custom lists are derived from it.
+  const { data: allAgents, mutate: mutateAgents } = useSWR('acp.agents.available.settings', async () => {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    if (Array.isArray(agents)) {
-      return agents.filter((agent) => agent.agent_type !== 'remote' && agent.agent_source !== 'custom');
-    }
-    return [];
+    return Array.isArray(agents) ? agents : [];
   });
 
-  // Custom agents (user-defined, stored in 'acp.customAgents')
-  const { data: customAgents, mutate: mutateCustomAgents } = useSWR('acp.customAgents.settings', async () => {
-    const agents = configService.get('acp.customAgents');
-    return (agents || []) as AcpBackendConfig[];
-  });
+  const detectedAgents = (allAgents ?? []).filter(
+    (a) => a.agent_type !== 'remote' && a.agent_source !== 'custom'
+  );
+
+  const customAgents: AcpBackendConfig[] = (allAgents ?? [])
+    .filter((a) => a.agent_source === 'custom')
+    .map(agentMetadataToEditorShape);
 
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AcpBackendConfig | null>(null);
 
   const handleSaveCustomAgent = useCallback(
     async (agent: AcpBackendConfig) => {
-      const current = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
-      const existingIndex = current.findIndex((a) => a.id === agent.id);
-      const updatedAgents =
-        existingIndex >= 0 ? current.map((a, i) => (i === existingIndex ? agent : a)) : [...current, agent];
-      await configService.set('acp.customAgents', updatedAgents);
-      await mutateCustomAgents();
-      setEditorVisible(false);
-      setEditingAgent(null);
+      const body = editorShapeToUpsertBody(agent);
+      try {
+        if (editingAgent) {
+          await ipcBridge.acpConversation.updateCustomAgent.invoke({ id: editingAgent.id, ...body });
+        } else {
+          await ipcBridge.acpConversation.createCustomAgent.invoke(body);
+        }
+        await mutateAgents();
+        setEditorVisible(false);
+        setEditingAgent(null);
+      } catch (err) {
+        // Surface backend rejection (e.g. cli_not_found / acp_init_failed) without crashing.
+        console.error('save custom agent failed:', err);
+      }
     },
-    [mutateCustomAgents]
+    [editingAgent, mutateAgents]
   );
 
   const handleDeleteCustomAgent = useCallback(
     async (agentId: string) => {
-      const current = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
-      const agents = current.filter((a) => a.id !== agentId);
-      await configService.set('acp.customAgents', agents);
-      await mutateCustomAgents();
+      try {
+        await ipcBridge.acpConversation.deleteCustomAgent.invoke({ id: agentId });
+        await mutateAgents();
+      } catch (err) {
+        console.error('delete custom agent failed:', err);
+      }
     },
-    [mutateCustomAgents]
+    [mutateAgents]
   );
 
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
-      const current = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
-      const updatedAgents = current.map((a) => (a.id === agentId ? { ...a, enabled } : a));
-      if (updatedAgents.some((a) => a.id === agentId)) {
-        await configService.set('acp.customAgents', updatedAgents);
-        await mutateCustomAgents();
+      try {
+        await ipcBridge.acpConversation.setAgentEnabled.invoke({ id: agentId, enabled });
+        await mutateAgents();
+      } catch (err) {
+        console.error('toggle custom agent failed:', err);
       }
     },
-    [mutateCustomAgents]
+    [mutateAgents]
   );
 
   // Aion CLI first among detected agents
