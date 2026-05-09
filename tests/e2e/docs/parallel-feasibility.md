@@ -1,7 +1,7 @@
 # E2E Test Parallel Execution Feasibility
 
-**Author**: assistant-engineer-2  
-**Date**: 2026-04-21  
+**Author**: assistant-engineer-2
+**Date**: 2026-04-21
 **Purpose**: Investigate whether Assistant E2E tests and Skills E2E tests can run in parallel
 
 ---
@@ -154,7 +154,7 @@ bun run test:e2e:assistants  # Matches tests/e2e/specs/assistant-*.e2e.ts
 bun run test:e2e:skills      # Matches tests/e2e/specs/skills-*.e2e.ts
 ```
 
-**Pros**: No code changes, explicit separation  
+**Pros**: No code changes, explicit separation
 **Cons**: Still sequential, no speedup
 
 ### Option 3: Database Isolation Per Test File

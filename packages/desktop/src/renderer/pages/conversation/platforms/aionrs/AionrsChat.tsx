@@ -40,7 +40,11 @@ const AionrsChat: React.FC<{
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
-          <AionrsSendBox conversation_id={conversation_id} modelSelection={modelSelection} session_mode={session_mode} />
+          <AionrsSendBox
+            conversation_id={conversation_id}
+            modelSelection={modelSelection}
+            session_mode={session_mode}
+          />
         </div>
       </ConversationArtifactProvider>
     </ConversationProvider>

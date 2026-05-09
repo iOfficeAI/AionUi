@@ -1,6 +1,6 @@
 # Team MCP 快速参考卡
 
-**生成日期**: 2026-04-28  
+**生成日期**: 2026-04-28
 **快速链接**: [完整 PRD](./TEAM_MCP_PRD.md) | [验证清单](./TEAM_MCP_VERIFICATION_CHECKLIST.md)
 
 ---
@@ -337,6 +337,6 @@ A: mailbox 表无显式排序，需在查询时 ORDER BY created_at DESC
 
 ---
 
-**最后更新**: 2026-04-28  
-**维护人**: Team Lead  
+**最后更新**: 2026-04-28
+**维护人**: Team Lead
 **文档版本**: v1.0-quickref

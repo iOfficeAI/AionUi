@@ -1,8 +1,8 @@
 # Aion CLI (aionrs) E2E 测试需求
 
-**版本**: v1.1（修订版）  
-**作者**: chat-aionrs-analyst  
-**日期**: 2026-04-22  
+**版本**: v1.1（修订版）
+**作者**: chat-aionrs-analyst
+**日期**: 2026-04-22
 **状态**: 已完成 Gate 1 + v1.1 修订（纠正 aionrs 模型来源）
 
 ---
@@ -895,7 +895,7 @@ test.beforeAll(async ({ page }) => {
 
 ### v1.1 (2026-04-22)
 
-**修订人**: chat-aionrs-analyst  
+**修订人**: chat-aionrs-analyst
 **触发原因**: 用户指出调研错误 — aionrs 模型来源非 ACP 探测
 
 **修订内容**:

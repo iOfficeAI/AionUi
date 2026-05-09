@@ -11,10 +11,12 @@ import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
 import MarqueePillLabel from './MarqueePillLabel';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | null | undefined): boolean {
   if (a === b) return true;
@@ -63,37 +65,58 @@ const AcpModelSelector: React.FC<{
     setModelInfo((prev) => (isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo));
   }, []);
 
-  const loadCachedModelInfo = useCallback(
-    async (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
-      try {
-        const cached = configService.get('acp.cachedModels');
-        const cachedInfo = cached?.[backendKey];
-        if (!cachedInfo?.available_models?.length) return;
+  // Primary fallback: `handshake.available_models` persisted on the
+  // `agent_metadata` row and served by `GET /api/agents`. Populated after
+  // the agent has completed at least one session/new, so it survives
+  // restarts and lets us render the model list before warmup finishes.
+  const { data: agentsData } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
+  const handshakeModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!backend || !agentsData?.length) return null;
+    const matched = agentsData.find((a) => (a.backend ?? a.agent_type) === backend);
+    const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    if (!info || !Array.isArray(info.available_models) || info.available_models.length === 0) return null;
+    return info;
+  }, [agentsData, backend]);
 
-        if (backendKey === 'codex') {
-          console.log('[AcpModelSelector][codex] Loaded cached model info:', cachedInfo);
-        }
+  const loadFallbackModelInfo = useCallback(
+    (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
+      const fromHandshake = handshakeModelInfo;
+      const legacy = configService.get('acp.cachedModels')?.[backendKey];
+      const source =
+        fromHandshake && fromHandshake.available_models.length > 0
+          ? fromHandshake
+          : legacy && legacy.available_models?.length
+            ? legacy
+            : null;
+      if (!source) return false;
 
-        const effectiveModelId =
-          options?.preserveInitialModel && initialModelId ? initialModelId : (cachedInfo.current_model_id ?? null);
-
-        updateModelInfo({
-          ...cachedInfo,
-          current_model_id: effectiveModelId,
-          current_model_label:
-            (effectiveModelId && cachedInfo.available_models.find((m) => m.id === effectiveModelId)?.label) ||
-            effectiveModelId,
-        });
-      } catch {
-        // Silently ignore
+      if (backendKey === 'codex') {
+        console.log('[AcpModelSelector][codex] Loaded fallback model info:', source);
       }
+
+      const effectiveModelId =
+        options?.preserveInitialModel && initialModelId ? initialModelId : (source.current_model_id ?? null);
+
+      updateModelInfo({
+        ...source,
+        current_model_id: effectiveModelId,
+        current_model_label:
+          (effectiveModelId && source.available_models.find((m) => m.id === effectiveModelId)?.label) ||
+          effectiveModelId,
+      });
+      return true;
     },
-    [initialModelId, updateModelInfo]
+    [handshakeModelInfo, initialModelId, updateModelInfo]
   );
 
   const reloadModelInfo = useCallback(
     async (options?: { preserveInitialModel?: boolean }) => {
-      const result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversation_id });
+      let result: Awaited<ReturnType<typeof ipcBridge.acpConversation.getModelInfo.invoke>> | null = null;
+      try {
+        result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversation_id });
+      } catch {
+        // Session may not be warmed up yet (404) — fall through to fallback.
+      }
 
       if (result?.model_info) {
         const info = result.model_info;
@@ -123,10 +146,10 @@ const AcpModelSelector: React.FC<{
       }
 
       if (backend) {
-        await loadCachedModelInfo(backend, options);
+        loadFallbackModelInfo(backend, options);
       }
     },
-    [backend, conversation_id, initialModelId, loadCachedModelInfo, updateModelInfo]
+    [backend, conversation_id, initialModelId, loadFallbackModelInfo, updateModelInfo]
   );
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
@@ -144,6 +167,16 @@ const AcpModelSelector: React.FC<{
       // loadCachedModelInfo is already handled inside reloadModelInfo
     });
   }, [conversation_id, backend, initialModelId, reloadModelInfo]);
+
+  // Backfill from handshake once /api/agents responds, if we still have no
+  // model info (e.g. session/new hasn't happened this restart so getModelInfo
+  // returned 404). Respect user switches and initialModelId from Guid page.
+  useEffect(() => {
+    if (!backend || !handshakeModelInfo) return;
+    if (model_info && model_info.available_models.length > 0) return;
+    if (hasUserChangedModel.current) return;
+    loadFallbackModelInfo(backend, { preserveInitialModel: true });
+  }, [backend, handshakeModelInfo, model_info, loadFallbackModelInfo]);
 
   useEffect(() => {
     if (backend !== 'claude') return;
