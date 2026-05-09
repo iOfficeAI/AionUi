@@ -17,8 +17,6 @@ import { initNotificationBridge } from './notificationBridge';
 import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 import { initRemoteAgentBridge } from './remoteAgentBridge';
 import { initWebuiBridge } from './webuiBridge';
-import { initPreviewHistoryBridge } from './previewHistoryBridge';
-import { initDocumentBridge } from './documentBridge';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
 export interface BridgeDependencies {
@@ -30,8 +28,6 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initShellBridge();
   initApplicationBridge(deps.workerTaskManager);
   initAuthBridge();
-  initPreviewHistoryBridge();
-  initDocumentBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();
@@ -48,7 +44,6 @@ export {
   initAuthBridge,
   initDialogBridge,
   initNotificationBridge,
-  initPreviewHistoryBridge,
   initShellBridge,
   initSpeechToTextBridge,
   initSystemSettingsBridge,
