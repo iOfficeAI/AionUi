@@ -30,12 +30,12 @@
 
 所有 4 个本地门禁在基线同步后**完整复跑并通过**:
 
-| 命令 | 退出码 | 输出摘要 |
-|---|---|---|
-| `bun run lint` | 0 | 846 warnings / 0 errors(9818 行输出) |
-| `bunx tsc --noEmit` | 0 | 无输出 |
-| `bunx vitest run` | 0 | 64 files / 720 tests passed(9 行输出) |
-| `prek run --from-ref origin/feat/backend-migration --to-ref HEAD` | 0 | 所有 hook passed(12 行输出) |
+| 命令                                                              | 退出码 | 输出摘要                              |
+| ----------------------------------------------------------------- | ------ | ------------------------------------- |
+| `bun run lint`                                                    | 0      | 846 warnings / 0 errors(9818 行输出)  |
+| `bunx tsc --noEmit`                                               | 0      | 无输出                                |
+| `bunx vitest run`                                                 | 0      | 64 files / 720 tests passed(9 行输出) |
+| `prek run --from-ref origin/feat/backend-migration --to-ref HEAD` | 0      | 所有 hook passed(12 行输出)           |
 
 ## 与计划的偏离
 
@@ -53,19 +53,19 @@
 
 ## UC-F 证据对照
 
-| 约束 | 状态 | 证据位置 |
-|---|---|---|
-| UC-F-1 命令原始输出 | ✓ | 本 handoff "验证结果"表格 + 下方完整输出 |
-| UC-F-2 不触发 CI | ✓ | 本 handoff 明确声明"本里程碑未触发 CI run" |
-| UC-F-3 grep 证据 | N/A | N5 不删除文件 |
-| UC-F-4 测试真实执行 | ✓ | vitest 输出 720 tests passed;N5 不新增测试 |
-| UC-F-5 基线同步复跑 | ✓ | 上表"验证结果"为基线同步后复跑结果 |
+| 约束                | 状态 | 证据位置                                   |
+| ------------------- | ---- | ------------------------------------------ |
+| UC-F-1 命令原始输出 | ✓    | 本 handoff "验证结果"表格 + 下方完整输出   |
+| UC-F-2 不触发 CI    | ✓    | 本 handoff 明确声明"本里程碑未触发 CI run" |
+| UC-F-3 grep 证据    | N/A  | N5 不删除文件                              |
+| UC-F-4 测试真实执行 | ✓    | vitest 输出 720 tests passed;N5 不新增测试 |
+| UC-F-5 基线同步复跑 | ✓    | 上表"验证结果"为基线同步后复跑结果         |
 
 ### 命令原始输出(UC-F-1)
 
 #### lint(基线同步后)
 
-```
+````
 $ bun run lint
 <头 10 行>
 $ oxlint
@@ -75,7 +75,7 @@ $ oxlint
  10 |     .map((line) => line.trim())
  11 |     .filter((line) => line && line !== '```');
     :      ^^^^^^
- 12 | 
+ 12 |
     `----
   help: Use `find(predicate)` instead of `filter(predicate)[0]` or similar patterns.
 
@@ -84,7 +84,7 @@ $ oxlint
 <尾 10 行>
   ! eslint-plugin-unicorn(prefer-add-event-listener): Prefer `addEventListener()` over their `on`-function counterparts.
      ,-[packages/desktop/src/renderer/components/settings/SettingsModal/contents/channels/WeixinConfigForm.tsx:323:8]
- 322 | 
+ 322 |
  323 |     es.onerror = () => {
      :        ^^^^^^^
  324 |       es.close();
@@ -95,7 +95,7 @@ Finished in 46ms on 940 files with 128 rules using 12 threads.
 
 $ echo $?
 0
-```
+````
 
 #### tsc(基线同步后)
 
@@ -167,13 +167,13 @@ index b081779ba..f16898405 100644
 @@ -65,9 +65,8 @@ jobs:
        - name: TypeScript type check
          run: bunx tsc --noEmit
- 
+
 -      # Unit tests temporarily disabled — see docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
 -      # - name: Run unit tests
 -      #   run: bunx vitest run
 +      - name: Run unit tests
 +        run: bunx vitest run
- 
+
    build:
      name: Build ${{ matrix.platform }}
 
@@ -184,14 +184,14 @@ index 61bd718dd..cc98d48af 100644
 @@ -50,10 +50,8 @@ jobs:
        - name: TypeScript type check
          run: bunx tsc --noEmit
- 
+
 -      # Unit tests temporarily disabled — see docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
 -      # 暂时跳过单元测试 —— 详见 handoff TODO
 -      # - name: Run unit tests
 -      #   run: bunx vitest run
 +      - name: Run unit tests
 +        run: bunx vitest run
- 
+
    build-pipeline:
      name: Build Pipeline
 
@@ -202,13 +202,13 @@ index a844d48f3..a014f6449 100644
 @@ -65,9 +65,8 @@ jobs:
        - name: TypeScript type check
          run: bunx tsc --noEmit
- 
+
 -      # Unit tests temporarily disabled — see docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
 -      # - name: Run unit tests
 -      #   run: bunx vitest run
 +      - name: Run unit tests
 +        run: bunx vitest run
- 
+
    pack-web-cli:
      name: Pack web-cli ${{ matrix.platform }}-${{ matrix.arch }}
 ```
@@ -221,9 +221,9 @@ index 3f8e8..8c3e4 100644
 --- a/docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
 +++ b/docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
 @@ -42,7 +42,7 @@
- 
+
  ## 未解决的 TODO
- 
+
 -- **单元测试(`bunx vitest run`)在 3 个 code-quality job 中都被临时注释**(`build-and-release.yml`、`pack-web-cli.yml`、`_build-reusable.yml`)。原因:M1-M9 合入后仓库累积了 168 个 failing test / 49 个 failing test file,按用户要求暂时跳过以解除 release 通道阻塞。**必须尽快修**:搜 `Run unit tests` 的注释块,跟同步修复全仓单测一起恢复;不要让这个临时状态长期化
 +- **单元测试(`bunx vitest run`)恢复** ✅ **DONE (N5 恢复于 2026-05-09)**:3 个 workflow 中被临时注释的 `bunx vitest run` 已在 N5 里程碑恢复(commit 5ea238139)。N1-N4 完成死代码清理 + 60 个新测试文件后,720 tests 全绿,CI 门禁已重新激活。详见 `docs/backend-migration/handoffs/N5-outcome.md`
  - **bundled-bun runtime 代码未清理**:backend 已自带 bun runtime,`prepareBundledBun` 在打包链上已全线移除(脚本/test/electron-builder/vitest/CI step 均已删除)。**仅剩 `packages/desktop/src/process/utils/shellEnv.ts:34-42` 的 `getBundledBunDir()` 及其 2 处 consumer**(行 416-418 / 565-567)需要后续确认 backend 真的提供 bun 后一并移除。
