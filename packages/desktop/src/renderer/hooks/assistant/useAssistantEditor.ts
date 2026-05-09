@@ -290,20 +290,26 @@ export const useAssistantEditor = ({
         // Update existing assistant via backend
         if (!activeAssistant) return;
 
-        const updateRequest: UpdateAssistantRequest = {
-          id: activeAssistant.id,
-          name: editName,
-          description: editDescription || undefined,
-          avatar: editAvatar || undefined,
-          preset_agent_type: editAgent,
-          enabled_skills: selectedSkills,
-          custom_skill_names: finalCustomSkills,
-          disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
-        };
+        // Built-in assistants are immutable at their source; the only editable
+        // field is `preset_agent_type`, which the backend stores on the
+        // override row. Sending other fields would 403 the whole request.
+        const updateRequest: UpdateAssistantRequest = isBuiltinAssistant(activeAssistant)
+          ? { id: activeAssistant.id, preset_agent_type: editAgent }
+          : {
+              id: activeAssistant.id,
+              name: editName,
+              description: editDescription || undefined,
+              avatar: editAvatar || undefined,
+              preset_agent_type: editAgent,
+              enabled_skills: selectedSkills,
+              custom_skill_names: finalCustomSkills,
+              disabled_builtin_skills: disabledBuiltinSkills.length > 0 ? disabledBuiltinSkills : undefined,
+            };
         await ipcBridge.assistants.update.invoke(updateRequest);
 
-        // Save rule file (if changed)
-        if (editContext.trim()) {
+        // Save rule file (if changed) — user assistants only; built-in rule
+        // files are read-only on the backend.
+        if (!isBuiltinAssistant(activeAssistant) && editContext.trim()) {
           await ipcBridge.fs.writeAssistantRule.invoke({
             assistant_id: activeAssistant.id,
             locale: localeKey,

@@ -214,7 +214,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               type='primary'
               onClick={handleSave}
               data-testid='btn-save-assistant'
-              disabled={!isCreating && activeAssistant?.source === 'builtin'}
               className='w-[100px] rounded-[100px]'
             >
               {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
@@ -311,7 +310,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               className='mt-10px w-full rounded-4px'
               value={editAgent}
               onChange={(value) => setEditAgent(value as string)}
-              disabled={activeAssistant?.source === 'builtin'}
               data-testid='select-assistant-agent'
             >
               {agentOptions.map((opt) => (
