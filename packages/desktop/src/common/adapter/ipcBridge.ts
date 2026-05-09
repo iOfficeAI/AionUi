@@ -996,7 +996,9 @@ export const task = {
 };
 
 // ---------------------------------------------------------------------------
-// WebUI — routed to backend
+// WebUI — mix: start/stop/getStatus/statusChanged stay IPC (Electron-only
+// lifecycle owned by the main process, can't run in backend); credential
+// operations route to backend /api/webui/* under local-mode.
 // ---------------------------------------------------------------------------
 
 export interface IWebUIStatus {
@@ -1010,26 +1012,35 @@ export interface IWebUIStatus {
   initialPassword?: string;
 }
 
+export interface IWebUIStartResult {
+  port: number;
+  allowRemote: boolean;
+  localUrl: string;
+  networkUrl?: string;
+  lanIP?: string;
+  initialPassword?: string;
+}
+
 export const webui = {
-  getStatus: httpGet<IWebUIStatus, void>('/api/webui/status'),
-  start: httpPost<
-    { port: number; localUrl: string; networkUrl?: string; lanIP?: string; initialPassword?: string },
-    { port?: number; allowRemote?: boolean }
-  >('/api/webui/start'),
-  stop: httpPost<void, void>('/api/webui/stop'),
-  changePassword: httpPost<void, { newPassword: string }>('/api/webui/change-password'),
-  changeUsername: httpPost<{ username: string }, { newUsername: string }>('/api/webui/change-username'),
-  resetPassword: httpPost<{ newPassword: string }, void>('/api/webui/reset-password'),
-  generateQRToken: httpPost<{ token: string; expiresAt: number; qrUrl: string }, void>('/api/webui/generate-qr-token'),
-  verifyQRToken: httpPost<{ sessionToken: string; username: string }, { qrToken: string }>(
-    '/api/webui/verify-qr-token'
-  ),
-  statusChanged: wsEmitter<{ running: boolean; port?: number; localUrl?: string; networkUrl?: string }>(
-    'webui.status-changed'
-  ),
-  resetPasswordResult: wsEmitter<{ success: boolean; newPassword?: string; msg?: string }>(
-    'webui.reset-password-result'
-  ),
+  getStatus: bridge.buildProvider<IWebUIStatus, void>('webui.get-status'),
+  start: bridge.buildProvider<IWebUIStartResult, { port?: number; allowRemote?: boolean }>('webui.start'),
+  stop: bridge.buildProvider<void, void>('webui.stop'),
+  statusChanged: bridge.buildEmitter<{
+    running: boolean;
+    port?: number;
+    localUrl?: string;
+    networkUrl?: string;
+    lanIP?: string;
+    initialPassword?: string;
+  }>('webui.status-changed'),
+  changePassword: httpPost<void, { newPassword: string }>('/api/webui/change-password', (p) => ({
+    new_password: p.newPassword,
+  })),
+  changeUsername: httpPost<{ username: string }, { newUsername: string }>('/api/webui/change-username', (p) => ({
+    new_username: p.newUsername,
+  })),
+  resetPassword: httpPost<{ new_password: string }, void>('/api/webui/reset-password'),
+  generateQRToken: httpPost<{ token: string; expires_at_ms: number }, void>('/api/webui/generate-qr-token'),
 };
 
 // ---------------------------------------------------------------------------

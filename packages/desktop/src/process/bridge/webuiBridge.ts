@@ -3,185 +3,105 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Desktop IPC bridge for WebUI direct calls (webui-direct-*).
- * Backed by @aionui/web-host after M6 migration.
+ * Desktop IPC bridge for WebUI lifecycle (start/stop/getStatus).
+ *
+ * WebUI credential operations (change-password / change-username / reset-password /
+ * generate-qr-token) are NOT handled here — those are HTTP routes on aionui-backend's
+ * local-only /api/webui/*, called directly by the renderer via ipcBridge HTTP.
+ *
+ * This bridge owns only the lifecycle + status snapshot, because spawning a
+ * WebUI instance requires Electron's app.* / Node child_process — aionui-backend
+ * has no way to start a WebUI wrapper around itself.
  */
 
-import { ipcMain, app } from 'electron';
-import bcrypt from 'bcryptjs';
-import type { AppMetadata } from '@aionui/web-host';
-import { loadConfig, saveConfig, resetPassword } from '@aionui/web-host';
-import type { WebUIStatus } from '@/common/types/electron';
-import { networkInterfaces } from 'os';
-import { generateQRLoginUrlDirect } from './webuiQR';
-import { getDataPath } from '@process/utils/utils';
+import { ipcBridge } from '@/common';
+import {
+  startDesktopWebUI,
+  stopDesktopWebUI,
+  getDesktopWebUIStatus,
+  setDesktopWebUIInitialPassword,
+} from '@process/utils/webuiConfig';
 
-const BCRYPT_SALT_ROUNDS = 10;
-// Keep aligned with renderer's WEBUI_DEFAULT_PORT (common/config/constants.ts):
-//   production -> 25808, dev -> 25809, multi-instance dev -> 25810
-const DEFAULT_WEBUI_PORT = (() => {
-  if (process.env.NODE_ENV === 'production') return 25808;
-  if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
-  return 25809;
-})();
+type AdminUsernameResult = { username?: string };
 
-// Electron-launched WebUI stores webui.config.json (password hash, etc.)
-// alongside the backend's SQLite DB — both under getDataPath() so that the
-// settings-toggle WebUI, `--webui` headless, and the `--resetpass` CLI all
-// read/write the same auth state. On macOS this resolves to ~/.aionui[-dev],
-// a symlink that avoids the spaces in "Application Support".
-const getAppMetadata = (): AppMetadata => ({
-  version: app.getVersion(),
-  isPackaged: app.isPackaged,
-  resourcesPath: app.getAppPath(),
-  userDataPath: getDataPath(),
-});
-
-const getLanIP = (): string | null => {
-  const nets = networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    const netInfo = nets[name];
-    if (!netInfo) continue;
-    for (const net of netInfo) {
-      const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
-      if (isIPv4 && !net.internal) return net.address;
-    }
-  }
-  return null;
-};
-
-type ActiveWebUI = {
-  port: number;
-  allowRemote: boolean;
-  initialPassword?: string;
-};
-
-let activeWebUI: ActiveWebUI | null = null;
-
-export const setActiveWebUI = (info: ActiveWebUI | null): void => {
-  activeWebUI = info;
-};
-
-async function getStatus(): Promise<WebUIStatus> {
-  const cfg = await loadConfig(getAppMetadata());
-  const running = activeWebUI !== null;
-  const port = activeWebUI?.port ?? DEFAULT_WEBUI_PORT;
-  const allowRemote = activeWebUI?.allowRemote ?? false;
-  const lanIP = getLanIP();
-  return {
-    running,
-    port,
-    allowRemote,
-    localUrl: `http://localhost:${port}`,
-    networkUrl: allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined,
-    lanIP: lanIP ?? undefined,
-    adminUsername: cfg.adminUsername || 'admin',
-    initialPassword: activeWebUI?.initialPassword,
-  };
+function getBackendPort(): number | undefined {
+  return (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
 }
 
-async function changePasswordDirect(newPassword: string): Promise<void> {
-  if (typeof newPassword !== 'string' || newPassword.length < 8) {
-    throw new Error('PASSWORD_TOO_SHORT');
+async function fetchAdminUsername(): Promise<string> {
+  const port = getBackendPort();
+  if (!port) return 'admin';
+  try {
+    const res = await fetch(`http://127.0.0.1:${port}/api/auth/internal/users/system`);
+    if (!res.ok) return 'admin';
+    const json = (await res.json()) as { data?: AdminUsernameResult | null };
+    return json.data?.username ?? 'admin';
+  } catch {
+    return 'admin';
   }
-  const metadata = getAppMetadata();
-  const cfg = await loadConfig(metadata);
-  const hash = await bcrypt.hash(newPassword, BCRYPT_SALT_ROUNDS);
-  await saveConfig(metadata, {
-    ...cfg,
-    passwordHash: hash,
-    adminUsername: cfg.adminUsername || 'admin',
-    passwordUpdatedAt: new Date().toISOString(),
-  });
-  if (activeWebUI) activeWebUI.initialPassword = undefined;
 }
 
-async function changeUsernameDirect(newUsername: string): Promise<string> {
-  const normalized = (newUsername || '').trim();
-  if (!normalized) throw new Error('USERNAME_EMPTY');
-  const metadata = getAppMetadata();
-  const cfg = await loadConfig(metadata);
-  if (cfg.adminUsername === normalized) return normalized;
-  await saveConfig(metadata, { ...cfg, adminUsername: normalized });
-  return normalized;
+/**
+ * On first Enable-WebUI click after a fresh install, the backend's users table
+ * holds the seeded `system_default_user` row with an empty password_hash.
+ * Probe /api/auth/status; if `needs_setup === true`, ask backend to generate
+ * and persist a random password, then stash the plaintext for Settings to show
+ * once. When the backend already has credentials (upgrade path handled by
+ * ensureAdminUser, or a prior Enable-WebUI), this is a no-op.
+ */
+async function maybeSeedInitialPassword(): Promise<void> {
+  const port = getBackendPort();
+  if (!port) {
+    throw new Error('[WebUI] Cannot start: aionui-backend is not running (globalThis.__backendPort unset)');
+  }
+  const statusRes = await fetch(`http://127.0.0.1:${port}/api/auth/status`);
+  if (!statusRes.ok) {
+    throw new Error(`[WebUI] /api/auth/status returned ${statusRes.status}`);
+  }
+  const statusJson = (await statusRes.json()) as { needs_setup?: boolean; data?: { needs_setup?: boolean } };
+  const needsSetup = statusJson.needs_setup ?? statusJson.data?.needs_setup ?? false;
+  if (!needsSetup) {
+    setDesktopWebUIInitialPassword(undefined);
+    return;
+  }
+  const resetRes = await fetch(`http://127.0.0.1:${port}/api/webui/reset-password`, { method: 'POST' });
+  if (!resetRes.ok) {
+    throw new Error(`[WebUI] /api/webui/reset-password returned ${resetRes.status}`);
+  }
+  const resetJson = (await resetRes.json()) as { data?: { new_password?: string }; new_password?: string };
+  const newPassword = resetJson.data?.new_password ?? resetJson.new_password;
+  if (!newPassword) {
+    throw new Error('[WebUI] /api/webui/reset-password returned no new_password');
+  }
+  setDesktopWebUIInitialPassword(newPassword);
 }
 
 export function initWebuiBridge(): void {
-  ipcMain.handle('webui-direct-get-status', async () => {
-    try {
-      const data = await getStatus();
-      return { success: true, data };
-    } catch (error) {
-      console.error('[WebUI Bridge] getStatus error:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'getStatus failed',
-      };
-    }
+  ipcBridge.webui.getStatus.provider(async () => {
+    const snapshot = getDesktopWebUIStatus();
+    const adminUsername = await fetchAdminUsername();
+    return { ...snapshot, adminUsername };
   });
 
-  ipcMain.handle('webui-direct-change-password', async (_event, payload: { newPassword?: string } = {}) => {
-    try {
-      await changePasswordDirect(payload.newPassword ?? '');
-      return { success: true };
-    } catch (error) {
-      console.error('[WebUI Bridge] changePassword error:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'changePassword failed',
-      };
-    }
+  ipcBridge.webui.start.provider(async (params) => {
+    await maybeSeedInitialPassword();
+    const handle = await startDesktopWebUI({
+      port: params?.port,
+      allowRemote: params?.allowRemote,
+    });
+    ipcBridge.webui.statusChanged.emit({
+      running: true,
+      port: handle.port,
+      localUrl: handle.localUrl,
+      networkUrl: handle.networkUrl,
+      lanIP: handle.lanIP,
+      initialPassword: handle.initialPassword,
+    });
+    return handle;
   });
 
-  ipcMain.handle('webui-direct-change-username', async (_event, payload: { newUsername?: string } = {}) => {
-    try {
-      const username = await changeUsernameDirect(payload.newUsername ?? '');
-      return { success: true, data: { username } };
-    } catch (error) {
-      console.error('[WebUI Bridge] changeUsername error:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'changeUsername failed',
-      };
-    }
-  });
-
-  ipcMain.handle('webui-direct-reset-password', async () => {
-    try {
-      const newPassword = await resetPassword({ app: getAppMetadata() });
-      if (activeWebUI) activeWebUI.initialPassword = undefined;
-      return { success: true, newPassword };
-    } catch (error) {
-      console.error('[WebUI Bridge] resetPassword error:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'resetPassword failed',
-      };
-    }
-  });
-
-  ipcMain.handle('webui-direct-generate-qr-token', async () => {
-    try {
-      if (!activeWebUI) {
-        return { success: false, msg: 'WebUI is not running' };
-      }
-      const result = generateQRLoginUrlDirect(activeWebUI.port, activeWebUI.allowRemote);
-      const tokenMatch = /token=([a-f0-9]+)/.exec(result.qrUrl);
-      const token = tokenMatch ? tokenMatch[1] : '';
-      return {
-        success: true,
-        data: {
-          token,
-          expiresAt: result.expiresAt,
-          qrUrl: result.qrUrl,
-        },
-      };
-    } catch (error) {
-      console.error('[WebUI Bridge] generateQRToken error:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'generateQRToken failed',
-      };
-    }
+  ipcBridge.webui.stop.provider(async () => {
+    await stopDesktopWebUI();
+    ipcBridge.webui.statusChanged.emit({ running: false });
   });
 }
