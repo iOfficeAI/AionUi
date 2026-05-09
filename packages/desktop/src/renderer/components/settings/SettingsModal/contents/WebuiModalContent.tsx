@@ -6,6 +6,7 @@
 
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import { shell, webui, type IWebUIStatus } from '@/common/adapter/ipcBridge';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -87,7 +88,6 @@ const WebuiModalContent: React.FC = () => {
   const [cachedPassword, setCachedPassword] = useState<string | null>(null);
   // 标记密码是否可以明文显示（首次启动且未复制过）/ Flag for plaintext password display (first startup and not copied)
   const [canShowPlainPassword, setCanShowPlainPassword] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
   // 设置新密码弹窗 / Set new password modal
   const [setPasswordModalVisible, setSetPasswordModalVisible] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
@@ -111,19 +111,10 @@ const WebuiModalContent: React.FC = () => {
       setWebuiEnabled(savedEnabled === true);
       setAllowRemotePreference(savedAllowRemote === true);
 
-      let statusData: IWebUIStatus | null = null;
-
-      // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
-      if (window.electronAPI?.webuiGetStatus) {
-        const ipcResult = await window.electronAPI.webuiGetStatus();
-        if (ipcResult?.success && ipcResult.data) {
-          statusData = ipcResult.data;
-        }
-      } else {
-        // 后备方案：使用 bridge（减少超时）/ Fallback: use bridge (returns IWebUIStatus directly)
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
-        statusData = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
-      }
+      // getStatus goes via IPC to the Electron main process which tracks the
+      // WebUI lifecycle; backend does not know it's being wrapped.
+      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
+      const statusData: IWebUIStatus | null = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
 
       if (statusData) {
         setStatus(statusData);
@@ -186,19 +177,6 @@ const WebuiModalContent: React.FC = () => {
       } else {
         setStatus((prev) => (prev ? { ...prev, running: false } : null));
       }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  // 监听密码重置结果事件（Web 环境后备）/ Listen to password reset result events (Web environment fallback)
-  useEffect(() => {
-    const unsubscribe = webui.resetPasswordResult.on((data) => {
-      if (data.success && data.newPassword) {
-        setCachedPassword(data.newPassword);
-        setStatus((prev) => (prev ? { ...prev, initialPassword: data.newPassword } : null));
-        setCanShowPlainPassword(true);
-      }
-      setResetLoading(false);
     });
     return () => unsubscribe();
   }, []);
@@ -367,18 +345,10 @@ const WebuiModalContent: React.FC = () => {
         } else {
           // 响应为空或失败，但服务器可能已启动，检查状态
           // Response is null or failed, but server might have started, check status
-          let statusData: IWebUIStatus | null = null;
-          if (window.electronAPI?.webuiGetStatus) {
-            const ipcResult = await window.electronAPI.webuiGetStatus();
-            if (ipcResult?.success && ipcResult.data) {
-              statusData = ipcResult.data;
-            }
-          } else {
-            statusData = await Promise.race([
-              webui.getStatus.invoke(),
-              new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
-            ]);
-          }
+          const statusData: IWebUIStatus | null = await Promise.race([
+            webui.getStatus.invoke(),
+            new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500)),
+          ]);
 
           if (statusData?.running) {
             // 服务器实际上已启动 / Server actually started
@@ -412,12 +382,10 @@ const WebuiModalContent: React.FC = () => {
         // 获取 IP 用于显示 / Get IP for display
         let newIP: string | undefined;
         try {
-          if (window.electronAPI?.webuiGetStatus) {
-            const ipcResult = await window.electronAPI.webuiGetStatus();
-            if (ipcResult?.success && ipcResult?.data?.lanIP) {
-              newIP = ipcResult.data.lanIP;
-              setCachedIP(newIP);
-            }
+          const snapshot = await webui.getStatus.invoke();
+          if (snapshot?.lanIP) {
+            newIP = snapshot.lanIP;
+            setCachedIP(newIP);
           }
         } catch {
           // ignore
@@ -468,45 +436,34 @@ const WebuiModalContent: React.FC = () => {
       const values = await form.validate();
       setPasswordLoading(true);
 
-      // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
-      if (window.electronAPI?.webuiChangePassword) {
-        const result = await window.electronAPI.webuiChangePassword(values.newPassword);
-        if (result.success) {
-          Message.success(t('settings.webui.passwordChanged'));
-          setSetPasswordModalVisible(false);
-          form.resetFields();
-          setCachedPassword(values.newPassword);
-          setCanShowPlainPassword(false);
-          setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
-        } else {
-          const errorCodeMap: Record<string, string> = {
-            PASSWORD_TOO_SHORT: t('settings.webui.passwordTooShort'),
-            PASSWORD_TOO_LONG: t('settings.webui.passwordTooLong'),
-            PASSWORD_TOO_COMMON: t('settings.webui.passwordTooCommon'),
-          };
-          const rawMsg = result.msg || '';
-          const codes = rawMsg.split('; ');
-          const translated = codes.map((code) => errorCodeMap[code]).filter(Boolean);
-          Message.error(
-            translated.length > 0 ? translated.join('; ') : rawMsg || t('settings.webui.passwordChangeFailed')
-          );
-        }
-      } else {
-        // 后备方案：使用 bridge / Fallback: use bridge (changePassword returns void)
-        await webui.changePassword.invoke({
-          newPassword: values.newPassword,
-        });
-        Message.success(t('settings.webui.passwordChanged'));
-        setSetPasswordModalVisible(false);
-        form.resetFields();
-        // 更新缓存的密码为新密码，不再显示明文 / Update cached password, no longer show plaintext
-        setCachedPassword(values.newPassword);
-        setCanShowPlainPassword(false);
-        setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
-      }
+      // changePassword goes through httpBridge; on 4xx/5xx it throws
+      // BackendHttpError, caught below and translated via errorCodeMap.
+      await webui.changePassword.invoke({
+        newPassword: values.newPassword,
+      });
+      Message.success(t('settings.webui.passwordChanged'));
+      setSetPasswordModalVisible(false);
+      form.resetFields();
+      // 更新缓存的密码为新密码，不再显示明文 / Update cached password, no longer show plaintext
+      setCachedPassword(values.newPassword);
+      setCanShowPlainPassword(false);
+      setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
     } catch (error) {
       console.error('Set new password error:', error);
-      Message.error(t('settings.webui.passwordChangeFailed'));
+      const errorCodeMap: Record<string, string> = {
+        PASSWORD_TOO_SHORT: t('settings.webui.passwordTooShort'),
+        PASSWORD_TOO_LONG: t('settings.webui.passwordTooLong'),
+        PASSWORD_TOO_COMMON: t('settings.webui.passwordTooCommon'),
+      };
+      const rawMsg =
+        isBackendHttpError(error) && error.backendMessage
+          ? error.backendMessage
+          : error instanceof Error
+            ? error.message
+            : '';
+      const codes = rawMsg.split('; ');
+      const translated = codes.map((code) => errorCodeMap[code]).filter(Boolean);
+      Message.error(translated.length > 0 ? translated.join('; ') : rawMsg || t('settings.webui.passwordChangeFailed'));
     } finally {
       setPasswordLoading(false);
     }
@@ -517,32 +474,21 @@ const WebuiModalContent: React.FC = () => {
       const values = await usernameForm.validate();
       setUsernameLoading(true);
 
-      if (window.electronAPI?.webuiChangeUsername) {
-        const result: { success: boolean; msg?: string; data?: { username: string } } =
-          await window.electronAPI.webuiChangeUsername(values.newUsername);
-        const nextUsername = result.data?.username ?? values.newUsername.trim();
-        if (result.success) {
-          Message.success(t('settings.webui.usernameChanged'));
-          setSetUsernameModalVisible(false);
-          usernameForm.resetFields();
-          setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
-        } else {
-          Message.error(result.msg || t('settings.webui.usernameChangeFailed'));
-        }
-      } else {
-        // HTTP bridge: changeUsername returns { username: string } directly
-        const result = await webui.changeUsername.invoke({
-          newUsername: values.newUsername,
-        });
-        const nextUsername = result?.username ?? values.newUsername.trim();
-        Message.success(t('settings.webui.usernameChanged'));
-        setSetUsernameModalVisible(false);
-        usernameForm.resetFields();
-        setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
-      }
+      // HTTP bridge: changeUsername returns { username: string } directly;
+      // httpBridge throws BackendHttpError on 4xx/5xx — caught below.
+      const result = await webui.changeUsername.invoke({
+        newUsername: values.newUsername,
+      });
+      const nextUsername = result?.username ?? values.newUsername.trim();
+      Message.success(t('settings.webui.usernameChanged'));
+      setSetUsernameModalVisible(false);
+      usernameForm.resetFields();
+      setStatus((prev) => (prev ? { ...prev, adminUsername: nextUsername } : null));
     } catch (error) {
       console.error('Set new username error:', error);
-      Message.error(t('settings.webui.usernameChangeFailed'));
+      const fallback = t('settings.webui.usernameChangeFailed');
+      const msg = isBackendHttpError(error) && error.backendMessage ? error.backendMessage : fallback;
+      Message.error(msg);
     } finally {
       setUsernameLoading(false);
     }
@@ -554,22 +500,18 @@ const WebuiModalContent: React.FC = () => {
 
     setQrLoading(true);
     try {
-      // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
-      let qrData: { token: string; expiresAt: number; qrUrl: string } | null = null;
-
-      if (window.electronAPI?.webuiGenerateQRToken) {
-        const ipcResult = await window.electronAPI.webuiGenerateQRToken();
-        if (ipcResult?.success && ipcResult.data) {
-          qrData = ipcResult.data;
-        }
-      } else {
-        // 后备方案：使用 bridge / Fallback: use bridge (returns { token, expiresAt, qrUrl } directly)
-        qrData = await webui.generateQRToken.invoke();
-      }
+      // Backend returns only { token, expires_at_ms }; the scannable URL is
+      // composed here from the current status so it points at the right host
+      // (networkUrl for remote-enabled servers, localUrl otherwise).
+      const qrData = await webui.generateQRToken.invoke();
 
       if (qrData) {
-        setQrUrl(qrData.qrUrl);
-        setQrExpiresAt(qrData.expiresAt);
+        const baseUrl =
+          status.allowRemote && status.networkUrl
+            ? status.networkUrl
+            : (status.localUrl ?? `http://localhost:${status.port ?? port}`);
+        setQrUrl(`${baseUrl}/qr-login?token=${qrData.token}`);
+        setQrExpiresAt(qrData.expires_at_ms);
 
         // 设置自动刷新定时器（4分钟后自动刷新，因为 token 5分钟过期）
         // Set auto-refresh timer (refresh after 4 minutes, as token expires in 5 minutes)
@@ -592,7 +534,7 @@ const WebuiModalContent: React.FC = () => {
     } finally {
       setQrLoading(false);
     }
-  }, [status?.running, t]);
+  }, [status?.running, status?.allowRemote, status?.networkUrl, status?.localUrl, status?.port, port, t]);
 
   // 当服务器启动且允许远程访问时自动生成二维码 / Auto-generate QR code when server starts and remote access is allowed
   useEffect(() => {
@@ -631,7 +573,6 @@ const WebuiModalContent: React.FC = () => {
   // 密码默认显示 ***，只在首次启动时显示明文 / Password shows *** by default, only show plaintext on first startup
   // 重置中显示加载状态 / Show loading state when resetting
   const getDisplayPassword = () => {
-    if (resetLoading) return t('common.loading');
     // 可以显示明文且有密码时显示明文 / Show plaintext when allowed and has password
     if (canShowPlainPassword && actualPassword) return actualPassword;
     // 否则显示 ****** / Otherwise show ******
@@ -808,7 +749,6 @@ const WebuiModalContent: React.FC = () => {
                   size='mini'
                   className='rd-100px !px-6px inline-flex items-center !h-24px'
                   onClick={handleResetPassword}
-                  disabled={resetLoading}
                 >
                   <EditTwo size={14} />
                 </Button>
