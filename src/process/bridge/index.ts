@@ -20,6 +20,7 @@ import { initDatabaseBridge } from './databaseBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initDocumentBridge } from './documentBridge';
 import { initFileWatchBridge } from './fileWatchBridge';
+import { initFeedbackBridge } from './feedbackBridge';
 import { initFsBridge } from './fsBridge';
 import { initGeminiBridge } from './geminiBridge';
 import { initGeminiConversationBridge } from './geminiConversationBridge';
@@ -61,6 +62,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initShellBridge();
   initFsBridge();
   initFileWatchBridge();
+  initFeedbackBridge();
   initConversationBridge(deps.conversationService, deps.workerTaskManager, deps.teamSessionService);
   initApplicationBridge(deps.workerTaskManager);
   initGeminiConversationBridge(deps.workerTaskManager);
@@ -119,6 +121,7 @@ export {
   initDialogBridge,
   initDocumentBridge,
   initExtensionsBridge,
+  initFeedbackBridge,
   initFsBridge,
   initGeminiBridge,
   initGeminiConversationBridge,

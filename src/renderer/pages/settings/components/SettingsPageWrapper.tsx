@@ -3,7 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import {
+  application as applicationIpc,
+  extensions as extensionsIpc,
+  type IExtensionSettingsTab,
+} from '@/common/adapter/ipcBridge';
 import {
   Cat,
   Communication,
@@ -33,7 +37,7 @@ type NavItem = { label: string; icon: React.ReactElement; path: string; id: stri
 
 type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
-export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
+export function getBuiltinSettingsNavItems(isDesktop: boolean, isPackagedDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
     gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini theme='outline' size='16' />, path: 'gemini' },
     model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
@@ -72,7 +76,17 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
+  return BUILTIN_TAB_IDS.filter((id) => {
+    if (id === 'pet') {
+      return isDesktop && !isPackagedDesktop;
+    }
+
+    if (id === 'about') {
+      return !isPackagedDesktop;
+    }
+
+    return true;
+  }).map((id) => builtinMap[id]);
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {
@@ -84,6 +98,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   const isDesktop = isElectronDesktop();
 
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
+  const [isPackagedDesktop, setIsPackagedDesktop] = useState(false);
 
   useEffect(() => {
     void extensionsIpc.getSettingsTabs
@@ -92,10 +107,31 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
       .catch((err) => console.error('[SettingsPageWrapper] Failed to load extension tabs:', err));
   }, []);
 
+  useEffect(() => {
+    if (!isDesktop) {
+      setIsPackagedDesktop(false);
+      return;
+    }
+
+    let disposed = false;
+    void applicationIpc.getStartOnBootStatus
+      .invoke()
+      .then((result) => {
+        if (!disposed && result.success && result.data) {
+          setIsPackagedDesktop(result.data.isPackaged);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+    };
+  }, [isDesktop]);
+
   const { resolveExtTabName } = useExtI18n();
 
   const menuItems = React.useMemo(() => {
-    const builtins = getBuiltinSettingsNavItems(isDesktop, t);
+    const builtins = getBuiltinSettingsNavItems(isDesktop, isPackagedDesktop, t);
 
     // Insert extension tabs before system (unanchored default) or at anchor position
     const result = [...builtins];
@@ -148,7 +184,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     }
 
     return result;
-  }, [isDesktop, t, extensionTabs, resolveExtTabName]);
+  }, [isDesktop, isPackagedDesktop, t, extensionTabs, resolveExtTabName]);
 
   const containerClass = classNames(
     'settings-page-wrapper w-full min-h-full box-border overflow-y-auto',

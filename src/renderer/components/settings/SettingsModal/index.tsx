@@ -8,7 +8,11 @@ import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import {
+  application as applicationIpc,
+  extensions as extensionsIpc,
+  type IExtensionSettingsTab,
+} from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { Tabs } from '@arco-design/web-react';
 import { Computer, Earth, Gemini, Info, LinkCloud, Puzzle, Toolkit } from '@icon-park/react';
@@ -133,10 +137,12 @@ export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, ch
  */
 const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaultTab = 'gemini' }) => {
   const { t } = useTranslation();
+  const isDesktop = isElectronDesktop();
   const [activeTab, setActiveTab] = useState<SettingTab>(defaultTab);
   const [isMobile, setIsMobile] = useState(false);
   const resizeTimerRef = useRef<number | undefined>(undefined);
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
+  const [isPackagedDesktop, setIsPackagedDesktop] = useState(false);
 
   /**
    * 处理窗口尺寸变化，更新移动端状态
@@ -181,8 +187,32 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       });
   }, [visible]);
 
-  // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
-  const isDesktop = isElectronDesktop();
+  useEffect(() => {
+    if (!visible || !isDesktop) {
+      setIsPackagedDesktop(false);
+      return;
+    }
+
+    let disposed = false;
+    void applicationIpc.getStartOnBootStatus
+      .invoke()
+      .then((result) => {
+        if (!disposed && result.success && result.data) {
+          setIsPackagedDesktop(result.data.isPackaged);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+    };
+  }, [visible, isDesktop]);
+
+  useEffect(() => {
+    if (isPackagedDesktop && activeTab === 'about') {
+      setActiveTab('system');
+    }
+  }, [activeTab, isPackagedDesktop]);
 
   const { resolveExtTabName } = useExtI18n();
 
@@ -227,14 +257,19 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       });
     }
 
-    builtinItems.push(
-      {
-        key: 'system',
-        label: t('settings.system'),
-        icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
-      },
-      { key: 'about', label: t('settings.about'), icon: <Info theme='outline' size='20' fill={iconColors.secondary} /> }
-    );
+    builtinItems.push({
+      key: 'system',
+      label: t('settings.system'),
+      icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
+    });
+
+    if (!isPackagedDesktop) {
+      builtinItems.push({
+        key: 'about',
+        label: t('settings.about'),
+        icon: <Info theme='outline' size='20' fill={iconColors.secondary} />,
+      });
+    }
 
     // Extension tabs — position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -286,7 +321,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     }
 
     return builtinItems;
-  }, [t, isDesktop, extensionTabs, resolveExtTabName]);
+  }, [t, isDesktop, isPackagedDesktop, extensionTabs, resolveExtTabName]);
 
   // Track which extension tabs have been visited (lazy mount + keep-alive)
   const [mountedExtTabs, setMountedExtTabs] = useState<Set<string>>(new Set());

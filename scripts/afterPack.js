@@ -18,6 +18,21 @@ module.exports = async function afterPack(context) {
   const { arch, electronPlatformName, appOutDir, packager } = context;
   const targetArch = normalizeArch(typeof arch === 'string' ? arch : Arch[arch] || process.arch);
   const buildArch = normalizeArch(os.arch());
+  let resourcesDir;
+
+  if (electronPlatformName === 'darwin') {
+    const appName = packager?.appInfo?.productFilename || 'AionUi';
+    resourcesDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
+  } else {
+    resourcesDir = path.join(appOutDir, 'resources');
+  }
+
+  const localFeedbackConfigPath = path.resolve(__dirname, '..', 'resources', 'feedback-cos.local.json');
+  if (fs.existsSync(localFeedbackConfigPath) && fs.existsSync(resourcesDir)) {
+    const targetFeedbackConfigPath = path.join(resourcesDir, 'feedback-cos.local.json');
+    fs.copyFileSync(localFeedbackConfigPath, targetFeedbackConfigPath);
+    console.log(`   ✓ Copied feedback COS config to ${targetFeedbackConfigPath}`);
+  }
 
   console.log(`\n🔧 afterPack hook started`);
   console.log(`   Platform: ${electronPlatformName}, Build arch: ${buildArch}, Target arch: ${targetArch}`);
@@ -53,17 +68,6 @@ module.exports = async function afterPack(context) {
     packager?.info?.electronVersion ??
     packager?.config?.electronVersion ??
     require('../package.json').devDependencies?.electron?.replace(/^\D*/, '');
-
-  // Determine resources directory based on platform
-  // macOS: appOutDir/AionUi.app/Contents/Resources
-  // Windows/Linux: appOutDir/resources
-  let resourcesDir;
-  if (electronPlatformName === 'darwin') {
-    const appName = packager?.appInfo?.productFilename || 'AionUi';
-    resourcesDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
-  } else {
-    resourcesDir = path.join(appOutDir, 'resources');
-  }
 
   // Debug: check what's in resources directory
   console.log(`   Checking resources directory: ${resourcesDir}`);

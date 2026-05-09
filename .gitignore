@@ -196,6 +196,7 @@ docs/superpowers/
 resources/bundled-bun
 resources/bundled-aionrs
 resources/hub
+resources/feedback-cos.local.json
 
 # Server build output
 dist-server/

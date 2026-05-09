@@ -6,16 +6,24 @@
 
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { FEEDBACK_MODULES } from './feedbackModules';
-import { Input, Select, Message, Upload } from '@arco-design/web-react';
+import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
 import { Info, Plus } from '@icon-park/react';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { FeedbackBinaryPayloadFile } from '@/common/types/electron';
 
 const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
 const SUMMARY_PREVIEW_LENGTH = 60;
+const FEEDBACK_REPORT_MODAL_WRAP_CLASS = 'feedback-report-modal-wrap';
+const FEEDBACK_REPORT_MODAL_CLASS = 'feedback-report-modal';
+type ScreenshotCaptureResult = {
+  filename: string;
+  data: number[];
+  type: string;
+};
 
 type ScreenshotBuffer = {
   name: string;
@@ -48,6 +56,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   const [description, setDescription] = useState('');
   const [screenshots, setScreenshots] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const [error, setError] = useState('');
 
   const resetForm = useCallback(() => {
@@ -103,51 +112,39 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
         )
       ).filter((item): item is ScreenshotBuffer => item !== null);
 
-      // Submit via Sentry
-      // Use hint.attachments instead of scope.addAttachment to avoid
-      // @sentry/electron's ScopeToMain normalize() corrupting Uint8Array binary data.
-      const Sentry = await import('@sentry/electron/renderer');
-
-      const attachments: Array<{ filename: string; data: Uint8Array; contentType: string }> = [];
-
-      if (logData) {
-        attachments.push({
-          filename: logData.filename,
-          data: new Uint8Array(logData.data),
-          contentType: 'application/gzip',
-        });
+      const electronAPI = window.electronAPI;
+      if (!electronAPI?.submitFeedbackReport) {
+        throw new Error('feedback submit api unavailable');
       }
-
-      screenshotBuffers.forEach((screenshot, index) => {
-        attachments.push({
-          filename: `screenshot-${index + 1}-${screenshot.name}`,
-          data: screenshot.data,
-          contentType: screenshot.type,
-        });
-      });
 
       const normalizedDescription = description.trim().replace(/\s+/g, ' ');
       const summaryPreview =
         normalizedDescription.length > SUMMARY_PREVIEW_LENGTH
           ? `${normalizedDescription.slice(0, SUMMARY_PREVIEW_LENGTH).trimEnd()}...`
           : normalizedDescription;
-      const eventSummary = `${t(selectedModule?.i18nKey ?? 'settings.bugReportModuleOther')}: ${summaryPreview}`;
 
-      Sentry.withScope((scope) => {
-        scope.setTag('type', 'user-feedback');
-        scope.setTag('module', module);
+      const payloadScreenshots: FeedbackBinaryPayloadFile[] = screenshotBuffers.map((screenshot, index) => ({
+        filename: `screenshot-${index + 1}-${screenshot.name}`,
+        data: Array.from(screenshot.data),
+        type: screenshot.type,
+      }));
 
-        Sentry.captureEvent(
-          {
-            level: 'info',
-            message: eventSummary,
-            extra: {
-              description: normalizedDescription,
-            },
-          },
-          { attachments }
-        );
+      const submitResult = await electronAPI.submitFeedbackReport({
+        module,
+        description: `${summaryPreview}\n\n${normalizedDescription}`,
+        screenshots: payloadScreenshots,
+        logFile: logData
+          ? {
+              filename: logData.filename,
+              data: logData.data,
+              type: 'application/gzip',
+            }
+          : null,
       });
+
+      if (!submitResult.success) {
+        throw new Error(submitResult.msg || 'feedback submit failed');
+      }
 
       Message.success(t('settings.bugReportSuccess'));
       resetForm();
@@ -198,6 +195,80 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
     });
   }, []);
 
+  const temporarilyHideModalForCapture = useCallback(() => {
+    const wrapper = document.querySelector<HTMLElement>(`.${FEEDBACK_REPORT_MODAL_WRAP_CLASS}`);
+    const modal = wrapper?.querySelector<HTMLElement>(`.${FEEDBACK_REPORT_MODAL_CLASS}`) ?? null;
+    const mask = wrapper?.previousElementSibling instanceof HTMLElement ? wrapper.previousElementSibling : null;
+    const nodes = [modal, mask].filter((node): node is HTMLElement => Boolean(node));
+    const snapshots = nodes.map((node) => ({
+      node,
+      visibility: node.style.visibility,
+      pointerEvents: node.style.pointerEvents,
+    }));
+
+    nodes.forEach((node) => {
+      node.style.visibility = 'hidden';
+      node.style.pointerEvents = 'none';
+    });
+
+    return () => {
+      snapshots.forEach(({ node, visibility, pointerEvents }) => {
+        if (visibility) {
+          node.style.visibility = visibility;
+        } else {
+          node.style.removeProperty('visibility');
+        }
+
+        if (pointerEvents) {
+          node.style.pointerEvents = pointerEvents;
+        } else {
+          node.style.removeProperty('pointer-events');
+        }
+      });
+    };
+  }, []);
+
+  const waitForPaint = useCallback(
+    () =>
+      new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()))),
+    []
+  );
+
+  const handleCaptureCurrentPage = useCallback(async () => {
+    if (capturingScreenshot || screenshots.length >= MAX_SCREENSHOTS) {
+      return;
+    }
+
+    setError('');
+    setCapturingScreenshot(true);
+    const restoreVisibility = temporarilyHideModalForCapture();
+
+    try {
+      if (!window.electronAPI?.captureCurrentPageScreenshot) {
+        throw new Error('capture api unavailable');
+      }
+
+      await waitForPaint();
+
+      const screenshot = (await window.electronAPI.captureCurrentPageScreenshot()) as ScreenshotCaptureResult | null;
+
+      if (!screenshot) {
+        throw new Error('capture returned empty result');
+      }
+
+      const file = new File([new Uint8Array(screenshot.data)], screenshot.filename, {
+        type: screenshot.type,
+      });
+
+      appendScreenshotFiles([file]);
+    } catch {
+      setError(t('settings.bugReportCaptureScreenshotError'));
+    } finally {
+      restoreVisibility();
+      setCapturingScreenshot(false);
+    }
+  }, [appendScreenshotFiles, capturingScreenshot, screenshots.length, t, temporarilyHideModalForCapture, waitForPaint]);
+
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
     // Deduplicate by file name + size, then mark as 'done' to hide progress indicators
@@ -247,7 +318,8 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       cancelText={t('settings.bugReportCancel')}
       okButtonProps={{ disabled: !isFormValid }}
       alignCenter
-      className='w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px'
+      wrapClassName={FEEDBACK_REPORT_MODAL_WRAP_CLASS}
+      className={`${FEEDBACK_REPORT_MODAL_CLASS} w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px`}
       autoFocus={false}
     >
       <div
@@ -299,7 +371,21 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
 
           {/* Screenshot Upload */}
           <div className='flex flex-col gap-4px'>
-            <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
+            <div className='flex items-center justify-between gap-12px'>
+              <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
+              <Button
+                size='small'
+                type='secondary'
+                onClick={() => {
+                  void handleCaptureCurrentPage();
+                }}
+                loading={capturingScreenshot}
+                disabled={capturingScreenshot || screenshots.length >= MAX_SCREENSHOTS}
+                data-testid='feedback-report-capture-button'
+              >
+                {t('settings.bugReportCaptureScreenshot')}
+              </Button>
+            </div>
             <Upload
               className='[&_.arco-upload-trigger]:w-full'
               drag

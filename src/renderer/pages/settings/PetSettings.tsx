@@ -7,18 +7,20 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Radio, Switch } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { systemSettings } from '@/common/adapter/ipcBridge';
+import { application as applicationIpc, systemSettings } from '@/common/adapter/ipcBridge';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
+import { Navigate } from 'react-router-dom';
 
 const PetSettings: React.FC = () => {
   const [enabled, setEnabled] = useState(true);
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [isPackagedDesktop, setIsPackagedDesktop] = useState(false);
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -53,6 +55,27 @@ const PetSettings: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    if (!isDesktop) {
+      setIsPackagedDesktop(false);
+      return;
+    }
+
+    let disposed = false;
+    void applicationIpc.getStartOnBootStatus
+      .invoke()
+      .then((result) => {
+        if (!disposed && result.success && result.data) {
+          setIsPackagedDesktop(result.data.isPackaged);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+    };
+  }, [isDesktop]);
+
   const handleEnabledChange = useCallback((checked: boolean) => {
     setEnabled(checked);
     systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
@@ -84,6 +107,10 @@ const PetSettings: React.FC = () => {
       setConfirmEnabled(!checked);
     });
   }, []);
+
+  if (isPackagedDesktop) {
+    return <Navigate to='/settings/system' replace />;
+  }
 
   if (!isDesktop) {
     return (

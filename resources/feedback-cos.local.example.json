@@ -1,0 +1,7 @@
+{
+  "secretId": "YOUR_SECRET_ID",
+  "secretKey": "YOUR_SECRET_KEY",
+  "bucket": "yss-1256275613",
+  "region": "ap-guangzhou",
+  "domain": "https://yss-1256275613.cos.ap-guangzhou.myqcloud.com"
+}

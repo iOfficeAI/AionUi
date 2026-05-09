@@ -1,6 +1,10 @@
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
+import {
+  application as applicationIpc,
+  extensions as extensionsIpc,
+  type IExtensionSettingsTab,
+} from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import {
   Cat,
@@ -77,6 +81,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const isDesktop = isElectronDesktop();
 
   const [extensionTabs, setExtensionTabs] = useState<IExtensionSettingsTab[]>([]);
+  const [isPackagedDesktop, setIsPackagedDesktop] = useState(false);
   const { resolveExtTabName } = useExtI18n();
 
   const loadExtensionTabs = useCallback(async (): Promise<IExtensionSettingsTab[]> => {
@@ -134,6 +139,27 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     };
   }, [loadExtensionTabs]);
 
+  useEffect(() => {
+    if (!isDesktop) {
+      setIsPackagedDesktop(false);
+      return;
+    }
+
+    let disposed = false;
+    void applicationIpc.getStartOnBootStatus
+      .invoke()
+      .then((result) => {
+        if (!disposed && result.success && result.data) {
+          setIsPackagedDesktop(result.data.isPackaged);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      disposed = true;
+    };
+  }, [isDesktop]);
+
   const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
@@ -169,8 +195,19 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
 
-    // Start with ordered builtin IDs, hiding desktop-only tabs in browser mode
-    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isDesktop || id !== 'pet').map((id) => builtinMap[id]);
+    const isBuiltinVisible = (id: (typeof BUILTIN_TAB_IDS)[number]) => {
+      if (id === 'pet') {
+        return isDesktop && !isPackagedDesktop;
+      }
+
+      if (id === 'about') {
+        return !isPackagedDesktop;
+      }
+
+      return true;
+    };
+
+    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isBuiltinVisible(id)).map((id) => builtinMap[id]);
 
     // Extension tabs with position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -240,7 +277,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     }
 
     return { menus: result, groupHeaderAt: headerAt };
-  }, [t, isDesktop, extensionTabs, resolveExtTabName]);
+  }, [t, isDesktop, isPackagedDesktop, extensionTabs, resolveExtTabName]);
 
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   return (

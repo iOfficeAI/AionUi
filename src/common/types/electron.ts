@@ -47,9 +47,31 @@ export interface WebUIGenerateQRTokenResult {
   msg?: string;
 }
 
+export interface FeedbackBinaryPayloadFile {
+  filename: string;
+  data: number[];
+  type?: string;
+}
+
+export interface FeedbackReportSubmitPayload {
+  module: string;
+  description: string;
+  screenshots: FeedbackBinaryPayloadFile[];
+  logFile?: FeedbackBinaryPayloadFile | null;
+}
+
+export interface FeedbackReportSubmitResult {
+  success: boolean;
+  msg?: string;
+  data?: {
+    reportUrl?: string;
+    uploadedFiles: string[];
+  };
+}
+
 export interface ElectronBridgeAPI {
   emit: (name: string, data: unknown) => Promise<unknown> | void;
-  on: (callback: (event: { value: string }) => void) => void;
+  on: (callback: (event: { event: unknown; value: string }) => void) => void;
   // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
   getPathForFile?: (file: File) => string;
   // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
@@ -67,6 +89,8 @@ export interface ElectronBridgeAPI {
   weixinLoginOnDone?: (callback: (data: { accountId: string }) => void) => () => void;
   // Feedback log collection / 收集反馈日志
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
+  captureCurrentPageScreenshot?: () => Promise<{ filename: string; data: number[]; type: string } | null>;
+  submitFeedbackReport?: (payload: FeedbackReportSubmitPayload) => Promise<FeedbackReportSubmitResult>;
 }
 
 declare global {
