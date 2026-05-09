@@ -193,11 +193,10 @@ function downloadAndExtract(platform, arch, tag) {
  * @param {string} options.platform - Target platform (process.platform)
  * @param {string} options.arch - Target architecture (process.arch)
  * @param {string} options.version - Backend version (default: 'latest')
- * @param {boolean} options.allowMissing - Allow missing backend (default: false)
- * @returns {{ prepared: boolean; dir?: string; sourceType?: string; reason?: string }}
+ * @returns {{ prepared: true; dir: string; sourceType: string }}
  */
 function prepareAionuiBackend(options) {
-  const { projectRoot, platform, arch, version = 'latest', allowMissing = false } = options;
+  const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
 
   // Resolve the actual version tag — asset filenames include the tag
@@ -205,30 +204,7 @@ function prepareAionuiBackend(options) {
   if (version === 'latest') {
     const resolved = resolveLatestTag();
     if (!resolved) {
-      if (allowMissing) {
-        // Write skip manifest and return early
-        const targetDir = path.join(projectRoot, 'resources', 'bundled-aionui-backend', runtimeKey);
-        const binaryName = getBinaryName(platform);
-        ensureDirectory(targetDir);
-        const manifest = {
-          platform,
-          arch,
-          version: 'unknown',
-          generatedAt: new Date().toISOString(),
-          sourceType: 'none',
-          source: {},
-          files: [],
-          skipped: true,
-          reason: 'Failed to resolve latest aionui-backend release tag from GitHub API',
-        };
-        writeJson(path.join(targetDir, 'manifest.json'), manifest);
-        console.warn(
-          `  aionui-backend not found — skipping bundle (AIONUI_BACKEND_ALLOW_MISSING=1, backend will not be available in packaged app)`
-        );
-        return { prepared: false, reason: 'not_found' };
-      } else {
-        throw new Error('Failed to resolve latest aionui-backend release tag from GitHub API');
-      }
+      throw new Error('Failed to resolve latest aionui-backend release tag from GitHub API');
     }
     tag = resolved;
     console.log(`Resolved aionui-backend "latest" → ${tag}`);
@@ -286,7 +262,6 @@ function prepareAionuiBackend(options) {
       sourceType,
       source: sourceDetail,
       files: [binaryName],
-      skipped: false,
     };
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
@@ -298,29 +273,7 @@ function prepareAionuiBackend(options) {
     return { prepared: true, dir: targetDir, sourceType };
   }
 
-  // Not found
-  if (allowMissing) {
-    // Write skip manifest (non-fatal)
-    const manifest = {
-      platform,
-      arch,
-      version: tag,
-      generatedAt: new Date().toISOString(),
-      sourceType: 'none',
-      source: {},
-      files: [],
-      skipped: true,
-      reason: 'aionui-backend binary not found (ensure GitHub release exists)',
-    };
-
-    writeJson(path.join(targetDir, 'manifest.json'), manifest);
-    console.warn(
-      `  aionui-backend not found — skipping bundle (AIONUI_BACKEND_ALLOW_MISSING=1, backend will not be available in packaged app)`
-    );
-    return { prepared: false, reason: 'not_found' };
-  } else {
-    throw new Error('aionui-backend binary not found and AIONUI_BACKEND_ALLOW_MISSING is not set');
-  }
+  throw new Error(`aionui-backend binary not found for ${runtimeKey} (tag: ${tag})`);
 }
 
 module.exports = { prepareAionuiBackend };
