@@ -27,10 +27,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { configService } from '@/common/config/configService';
-import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
-import type { AcpBackendConfig } from './types';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -407,19 +404,31 @@ const GuidPage: React.FC = () => {
   }, [agentSelection.is_presetAgent, selectedAssistantDescription]);
 
   const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'gemini';
+  // Mirrors AssistantEditDrawer's Main Agent options — detected execution
+  // engines from AgentPillBar's data source, so avatars resolve the same way.
   const agentSwitcherItems = useMemo(() => {
     if (!agentSelection.availableAgents) return [];
-    // Build from detected execution engines, excluding preset assistants and remote agents
     return agentSelection.availableAgents
-      .filter((a) => !a.is_preset && a.backend !== 'remote')
-      .map((a) => ({
-        key: a.backend,
-        label: a.name,
-        icon: a.icon,
-        custom_agent_id: a.custom_agent_id,
-        isCurrent: a.backend === currentPresetAgentType,
-        isExtension: a.isExtension,
-      }));
+      .filter((a) => !a.is_preset && a.agent_type !== 'remote')
+      .map((a) => {
+        const key = a.backend || a.agent_type;
+        const extensionAvatar = a.isExtension ? resolveExtensionAssetUrl(a.avatar) : undefined;
+        const logo =
+          extensionAvatar ||
+          resolveAgentLogo({
+            icon: a.icon,
+            backend: a.backend || a.agent_type,
+            custom_agent_id: a.custom_agent_id,
+            isExtension: a.isExtension,
+          });
+        return {
+          key,
+          label: a.name,
+          logo,
+          isCurrent: key === currentPresetAgentType,
+          isExtension: a.isExtension,
+        };
+      });
   }, [agentSelection.availableAgents, currentPresetAgentType]);
 
   const effectiveAgentRecord = useMemo(() => {
@@ -441,20 +450,13 @@ const GuidPage: React.FC = () => {
   );
   const handlePresetAgentTypeSwitch = useCallback(
     async (nextType: string) => {
-      const custom_agent_id = agentSelection.selectedAgentInfo?.custom_agent_id;
-      if (!custom_agent_id || nextType === currentPresetAgentType) return;
+      const assistantId = agentSelection.selectedAgentInfo?.custom_agent_id;
+      if (!assistantId || nextType === currentPresetAgentType) return;
       try {
-        const agents = (configService.get('acp.customAgents') || []) as AcpBackendConfig[];
-        const idx = agents.findIndex((a) => a.id === custom_agent_id);
-        if (idx < 0) {
-          Message.warning(t('common.failed', { defaultValue: 'Failed' }));
-          return;
-        }
-        const updated = [...agents];
-        updated[idx] = { ...updated[idx], presetAgentType: nextType };
-        await configService.set('acp.customAgents', updated);
+        await ipcBridge.assistants.update.invoke({ id: assistantId, preset_agent_type: nextType });
         await agentSelection.refreshCustomAgents();
-        const agent_name = ACP_BACKENDS_ALL[nextType as keyof typeof ACP_BACKENDS_ALL]?.name || nextType;
+        const agent_name =
+          agentSelection.availableAgents?.find((a) => (a.backend || a.agent_type) === nextType)?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agent_name }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);
@@ -598,40 +600,32 @@ const GuidPage: React.FC = () => {
                           );
                         }}
                       >
-                        {agentSwitcherItems.map((item) => {
-                          const logo = resolveAgentLogo({
-                            icon: item.icon,
-                            backend: item.key,
-                            custom_agent_id: item.custom_agent_id,
-                            isExtension: item.isExtension,
-                          });
-                          return (
-                            <Menu.Item key={item.key}>
-                              <div className='flex items-center justify-between gap-12px min-w-120px'>
-                                <span className='flex items-center gap-6px'>
-                                  {logo ? (
-                                    <img
-                                      src={logo}
-                                      alt=''
-                                      width={16}
-                                      height={16}
-                                      style={{ objectFit: 'contain', flexShrink: 0 }}
-                                    />
-                                  ) : (
-                                    <Robot theme='outline' size={16} fill='currentColor' style={{ flexShrink: 0 }} />
-                                  )}
-                                  {item.label}
-                                  {'isExtension' in item && item.isExtension ? (
-                                    <span className='text-11px px-4px py-1px rd-4px bg-[rgb(var(--arcoblue-1))] text-[rgb(var(--arcoblue-6))]'>
-                                      ext
-                                    </span>
-                                  ) : null}
-                                </span>
-                                {item.isCurrent ? <span>✓</span> : null}
-                              </div>
-                            </Menu.Item>
-                          );
-                        })}
+                        {agentSwitcherItems.map((item) => (
+                          <Menu.Item key={item.key}>
+                            <div className='flex items-center justify-between gap-12px min-w-120px'>
+                              <span className='flex items-center gap-6px'>
+                                {item.logo ? (
+                                  <img
+                                    src={item.logo}
+                                    alt=''
+                                    width={16}
+                                    height={16}
+                                    style={{ objectFit: 'contain', flexShrink: 0 }}
+                                  />
+                                ) : (
+                                  <Robot theme='outline' size={16} fill='currentColor' style={{ flexShrink: 0 }} />
+                                )}
+                                {item.label}
+                                {item.isExtension ? (
+                                  <span className='text-11px px-4px py-1px rd-4px bg-[rgb(var(--arcoblue-1))] text-[rgb(var(--arcoblue-6))]'>
+                                    ext
+                                  </span>
+                                ) : null}
+                              </span>
+                              {item.isCurrent ? <span>✓</span> : null}
+                            </div>
+                          </Menu.Item>
+                        ))}
                       </Menu>
                     }
                   >
