@@ -6,10 +6,7 @@
 
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
-import { initBedrockBridge } from './bedrockBridge';
 import { initDialogBridge } from './dialogBridge';
-import { initDocumentBridge } from './documentBridge';
-import { initPreviewHistoryBridge } from './previewHistoryBridge';
 import { initShellBridge } from './shellBridge';
 import { initSpeechToTextBridge } from './speechToTextBridge';
 import { initTaskBridge } from './taskBridge';
@@ -30,10 +27,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initDialogBridge();
   initShellBridge();
   initApplicationBridge(deps.workerTaskManager);
-  initBedrockBridge();
   initAuthBridge();
-  initPreviewHistoryBridge();
-  initDocumentBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();
@@ -48,11 +42,8 @@ export function initAllBridges(deps: BridgeDependencies): void {
 export {
   initApplicationBridge,
   initAuthBridge,
-  initBedrockBridge,
   initDialogBridge,
-  initDocumentBridge,
   initNotificationBridge,
-  initPreviewHistoryBridge,
   initShellBridge,
   initSpeechToTextBridge,
   initSystemSettingsBridge,

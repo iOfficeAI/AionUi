@@ -777,7 +777,7 @@ app.on('before-quit', async () => {
     }
 
     // Web Server lifecycle is managed by aionui-backend subprocess
-    // Office/PPT preview spawns also live in the backend; frontend no longer owns those sessions.
+    // Office Watch processes (Word / Excel / PPT preview) are now managed by backend
   };
 
   // Master timeout: force quit if cleanup hangs

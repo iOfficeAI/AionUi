@@ -42,7 +42,7 @@ install-web.sh
 
 ## 未解决的 TODO
 
-- **单元测试(`bunx vitest run`)在 3 个 code-quality job 中都被临时注释**(`build-and-release.yml`、`pack-web-cli.yml`、`_build-reusable.yml`)。原因:M1-M9 合入后仓库累积了 168 个 failing test / 49 个 failing test file,按用户要求暂时跳过以解除 release 通道阻塞。**必须尽快修**:搜 `Run unit tests` 的注释块,跟同步修复全仓单测一起恢复;不要让这个临时状态长期化
+- **单元测试(`bunx vitest run`)恢复** ✅ **DONE (N5 恢复于 2026-05-09)**:3 个 workflow 中被临时注释的 `bunx vitest run` 已在 N5 里程碑恢复(commit 5ea238139)。N1-N4 完成死代码清理 + 60 个新测试文件后,720 tests 全绿,CI 门禁已重新激活。详见 `docs/backend-migration/handoffs/N5-outcome.md`
 - **bundled-bun runtime 代码未清理**:backend 已自带 bun runtime,`prepareBundledBun` 在打包链上已全线移除(脚本/test/electron-builder/vitest/CI step 均已删除)。**仅剩 `packages/desktop/src/process/utils/shellEnv.ts:34-42` 的 `getBundledBunDir()` 及其 2 处 consumer**(行 416-418 / 565-567)需要后续确认 backend 真的提供 bun 后一并移除。
   - 当前行为:`getBundledBunDir()` 在 dmg 里找不到 `resources/bundled-bun/`,返回 null,consumer 自动 fallback 到系统 PATH,**不 crash**
   - `.gitignore:201` 的 `resources/bundled-bun` 条目保留,防止本地 dev 误提交这个目录

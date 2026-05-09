@@ -65,9 +65,8 @@ jobs:
       - name: TypeScript type check
         run: bunx tsc --noEmit
 
-      # Unit tests temporarily disabled — see docs/backend-migration/handoffs/ci-web-cli-release-outcome.md
-      # - name: Run unit tests
-      #   run: bunx vitest run
+      - name: Run unit tests
+        run: bunx vitest run
 
   build:
     name: Build ${{ matrix.platform }}

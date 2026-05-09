@@ -1,21 +1,16 @@
 /**
  * Placeholder for `bun test equivalence` at packages/web-host/.
  *
- * Real equivalence test lives at
- *   packages/desktop/tests/integration/m5-equivalence.test.ts
- * because web-host CANNOT import packages/desktop (dependency boundary
- * grep — see requirements). The test is invoked from the desktop project.
- *
- * Run with:
- *   bun run vitest --project desktop run packages/desktop/tests/integration/m5-equivalence.test.ts
- * or from the repo root:
- *   bunx vitest run packages/desktop/tests/integration/m5-equivalence.test.ts
+ * Note: The equivalence test referenced in M5 migration was removed during
+ * N2 legacy test cleanup. If equivalence testing is needed in the future,
+ * it should be recreated as part of the new unit test structure under
+ * tests/unit/ following the new layout established in N2.
  */
 
 import { describe, it } from 'vitest';
 
 describe('equivalence (pointer)', () => {
-  it('see packages/desktop/tests/integration/m5-equivalence.test.ts', () => {
+  it('placeholder - equivalence test to be recreated if needed', () => {
     // intentional no-op
   });
 });
