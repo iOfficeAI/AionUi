@@ -299,6 +299,29 @@ export interface AcpBackendConfig {
    * Builtin skills (in _builtin/ directory) are auto-injected by default; skills in this list will be excluded.
    */
   disabledBuiltinSkills?: string[];
+
+  /**
+   * Custom-agent advanced overrides surfaced through InlineAgentEditor's
+   * JSON panel. Mirrors the backend's `CustomAgentAdvancedOverrides`
+   * schema 1:1 so the JSON editor round-trips the exact wire shape and
+   * consumers can pass this straight into `createCustomAgent` /
+   * `updateCustomAgent`. Unknown keys pasted into the JSON panel are
+   * silently dropped on save (matches backend serde default behaviour).
+   */
+  advanced?: CustomAgentAdvancedOverrides;
+}
+
+/**
+ * Advanced overrides exposed through the JSON panel of the custom agent
+ * editor. These map directly onto backend `AgentMetadata` columns that
+ * are not covered by the 5 form fields (name / avatar / command / args
+ * / env). Snake_case keys match the backend wire format.
+ */
+export interface CustomAgentAdvancedOverrides {
+  yolo_id?: string;
+  native_skills_dirs?: string[];
+  behavior_policy?: { supports_side_question?: boolean };
+  description?: string;
 }
 
 // 所有后端配置 - 包括暂时禁用的 / All backend configurations - including temporarily disabled ones

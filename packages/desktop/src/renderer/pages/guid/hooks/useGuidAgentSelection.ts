@@ -221,13 +221,34 @@ export const useGuidAgentSelection = ({
 
   useEffect(() => {
     if (!availableAgentsData) return;
+    // Normalise backend /api/agents rows into AvailableAgent shape.
+    // - For `custom` rows we must populate `custom_agent_id` so that
+    //   `getAgentKey` produces a unique `custom:<id>` key per row
+    //   (otherwise two custom acp agents collide at `agent_type`). The
+    //   same id feeds the pill bar's logo resolution.
+    // - For builtin/internal rows `custom_agent_id` stays undefined so
+    //   `getAgentKey` falls back to `backend || agent_type` as before.
+    const normalisedDetected: AvailableAgent[] = availableAgentsData.map((a) => {
+      const asAgent = a as AgentMetadata;
+      const needsIdAlias = asAgent.agent_source === 'custom';
+      return {
+        ...a,
+        id: asAgent.id,
+        custom_agent_id: needsIdAlias ? asAgent.id : (a as AvailableAgent).custom_agent_id,
+        // Custom-row icon is the user-picked emoji — expose it as avatar
+        // so AgentPillBar renders the glyph directly instead of mistaking
+        // it for a logo URL.
+        avatar: needsIdAlias ? asAgent.icon : (a as AvailableAgent).avatar,
+      };
+    });
     const remoteAsAvailable: AvailableAgent[] = (remoteAgentsData || []).map((ra) => ({
       agent_type: 'remote',
       name: ra.name,
+      id: ra.id,
       custom_agent_id: ra.id,
       avatar: ra.avatar,
     }));
-    setAvailableAgents([...availableAgentsData, ...remoteAsAvailable]);
+    setAvailableAgents([...normalisedDetected, ...remoteAsAvailable]);
   }, [availableAgentsData, remoteAgentsData]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once

@@ -20,11 +20,22 @@ import InlineAgentEditor from './InlineAgentEditor';
 
 // Convert a backend AgentMetadata row (agent_source === 'custom') to the
 // shape InlineAgentEditor expects, so editing pre-fills the form correctly.
+// The `advanced` bag carries columns that are not covered by the 5 basic
+// form fields so the JSON panel can round-trip them unchanged.
 function agentMetadataToEditorShape(a: AgentMetadata): AcpBackendConfig {
   const envRecord: Record<string, string> = {};
   for (const entry of a.env ?? []) {
     envRecord[entry.name] = entry.value;
   }
+  const advanced: AcpBackendConfig['advanced'] = {};
+  if (a.yolo_id) advanced.yolo_id = a.yolo_id;
+  if (a.native_skills_dirs && a.native_skills_dirs.length > 0) {
+    advanced.native_skills_dirs = a.native_skills_dirs;
+  }
+  if (a.behavior_policy && Object.keys(a.behavior_policy).length > 0) {
+    advanced.behavior_policy = a.behavior_policy;
+  }
+  if (a.description) advanced.description = a.description;
   return {
     id: a.id,
     name: a.name,
@@ -33,6 +44,7 @@ function agentMetadataToEditorShape(a: AgentMetadata): AcpBackendConfig {
     enabled: a.enabled,
     acpArgs: a.args,
     env: Object.keys(envRecord).length > 0 ? envRecord : undefined,
+    advanced: Object.keys(advanced).length > 0 ? advanced : undefined,
   };
 }
 
@@ -46,6 +58,7 @@ function editorShapeToUpsertBody(a: AcpBackendConfig) {
     icon: a.avatar,
     args: a.acpArgs,
     env: envArray.length > 0 ? envArray : undefined,
+    advanced: a.advanced,
   };
 }
 
@@ -224,14 +237,22 @@ const LocalAgents: React.FC = () => {
           overflow: 'auto',
         }}
       >
-        <InlineAgentEditor
-          agent={editingAgent}
-          onSave={(agent) => void handleSaveCustomAgent(agent)}
-          onCancel={() => {
-            setEditorVisible(false);
-            setEditingAgent(null);
-          }}
-        />
+        {/* Conditional mount + key unmounts the editor on close so the
+            next `创建自定义 Agent` click always starts from a blank form.
+            The inner useEffect([agent]) only resets when the `agent`
+            reference changes; two consecutive `null` values would not
+            retrigger it. */}
+        {editorVisible && (
+          <InlineAgentEditor
+            key={editingAgent?.id ?? 'new'}
+            agent={editingAgent}
+            onSave={(agent) => void handleSaveCustomAgent(agent)}
+            onCancel={() => {
+              setEditorVisible(false);
+              setEditingAgent(null);
+            }}
+          />
+        )}
       </AionModal>
 
       <div className='flex flex-col gap-4px px-0'>
