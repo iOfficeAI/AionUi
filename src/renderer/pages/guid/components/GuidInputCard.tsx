@@ -77,7 +77,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   const isMobile = layout?.isMobile ?? false;
   const { t } = useTranslation();
   const { compositionHandlers, isComposing } = useCompositionInput();
-  const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 3, maxRows: 20 };
+  const textareaAutoSize = isMobile ? { minRows: 3, maxRows: 8 } : { minRows: 5, maxRows: 20 };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
@@ -136,9 +136,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       <UploadProgressBar source='sendbox' />
       {actionRow}
       {dir && (
-        <div
-          className='mt-10px flex items-start justify-between gap-10px rounded-10px border border-[rgba(var(--primary-6),0.24)] bg-[rgba(var(--primary-6),0.08)] px-10px py-8px text-13px text-t-primary'
-        >
+        <div className='mt-10px flex items-start justify-between gap-10px rounded-10px border border-[rgba(var(--primary-6),0.24)] bg-[rgba(var(--primary-6),0.08)] px-10px py-8px text-13px text-t-primary'>
           <div className='flex items-start min-w-0 flex-1 gap-8px'>
             <FolderOpen
               className='mt-1px flex-shrink-0'

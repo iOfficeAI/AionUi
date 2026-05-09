@@ -1,0 +1,15 @@
+{
+  "id": "493f9c66",
+  "created_at": "2026-05-09T01:11:14.521087Z",
+  "updated_at": "2026-05-09T01:11:14.521087Z",
+  "provider": "openai",
+  "model": "deepseek-v4-flash",
+  "cwd": "/Users/may/work/github/AICoreDesktop",
+  "total_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0
+  },
+  "messages": []
+}

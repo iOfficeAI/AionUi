@@ -83,11 +83,10 @@ interface CreateConversationTriggerProps {
 const CreateConversationTrigger: React.FC<CreateConversationTriggerProps> = ({ disabled, title, menu }) => (
   <Dropdown droplist={menu} trigger='click' position='bl' disabled={disabled}>
     <div
-      className={`flex items-center justify-center w-40px h-40px shrink-0 transition-colors duration-200 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer hover:bg-[var(--fill-2)]'}`}
-      style={{ borderLeft: '1px solid var(--border-base)' }}
+      className={`flex items-center justify-center w-32px h-32px mx-8px shrink-0 rounded-full transition-all duration-200 ${disabled ? 'cursor-not-allowed opacity-50' : 'cursor-pointer bg-[var(--brand)] hover:bg-[var(--brand-hover)]'}`}
       title={title}
     >
-      <Plus theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />
+      <Plus theme='filled' size='18' fill='var(--inverse)' strokeWidth={3} />
     </div>
   </Dropdown>
 );
@@ -416,7 +415,7 @@ const ConversationTabs: React.FC = () => {
 
         {/* 右侧渐变指示器 */}
         {showRightFade && (
-          <div className='pointer-events-none absolute right-40px top-0 bottom-0 w-32px [background:linear-gradient(270deg,var(--bg-2)_0%,transparent_100%)]' />
+          <div className='pointer-events-none absolute right-48px top-0 bottom-0 w-32px [background:linear-gradient(270deg,var(--bg-2)_0%,transparent_100%)]' />
         )}
       </div>
     </div>

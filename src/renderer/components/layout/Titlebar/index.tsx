@@ -430,7 +430,10 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
           kscUser ? (
             <button
               type='button'
-              className={classNames('app-titlebar__login-entry', layout?.isMobile && 'app-titlebar__login-entry--mobile')}
+              className={classNames(
+                'app-titlebar__login-entry',
+                layout?.isMobile && 'app-titlebar__login-entry--mobile'
+              )}
               onMouseDown={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
@@ -446,7 +449,10 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
           ) : (
             <button
               type='button'
-              className={classNames('app-titlebar__login-entry', layout?.isMobile && 'app-titlebar__login-entry--mobile')}
+              className={classNames(
+                'app-titlebar__login-entry',
+                layout?.isMobile && 'app-titlebar__login-entry--mobile'
+              )}
               onMouseDown={(event) => {
                 event.preventDefault();
                 event.stopPropagation();

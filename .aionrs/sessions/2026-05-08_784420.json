@@ -1,0 +1,15 @@
+{
+  "id": "784420",
+  "created_at": "2026-05-08T01:26:21.259540Z",
+  "updated_at": "2026-05-08T01:26:21.259541Z",
+  "provider": "vertex",
+  "model": "test",
+  "cwd": "/Users/may/work/github/AICoreDesktop",
+  "total_usage": {
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 0
+  },
+  "messages": []
+}

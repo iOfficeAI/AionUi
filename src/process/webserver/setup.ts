@@ -88,13 +88,7 @@ export function setupBasicMiddleware(app: Express): void {
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      [
-        '/login',
-        '/api/auth/qr-login',
-        '/api/upload',
-        /^\/api\/ksc-proxy(?:\/|$)/,
-        '/channels/wecom/webhook',
-      ], // Excluded: login form, QR login, file upload (API token), KSC local proxy (auth by provider key), WeCom server callback (signed by WeCom)
+      ['/login', '/api/auth/qr-login', '/api/upload', /^\/api\/ksc-proxy(?:\/|$)/, '/channels/wecom/webhook'], // Excluded: login form, QR login, file upload (API token), KSC local proxy (auth by provider key), WeCom server callback (signed by WeCom)
       [] // No service worker URLs
     )
   );

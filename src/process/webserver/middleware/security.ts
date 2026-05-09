@@ -37,6 +37,22 @@ export const apiRateLimiter = rateLimit({
 });
 
 /**
+ * KSC 本地代理请求限流
+ * KSC proxy traffic can be bursty under concurrent chats/tool calls, so keep
+ * a dedicated higher threshold to avoid false-positive local 429s.
+ */
+export const kscProxyRateLimiter = rateLimit({
+  standardHeaders: true,
+  legacyHeaders: false,
+  windowMs: 60 * 1000,
+  max: 600,
+  message: {
+    error: 'Too many KSC proxy requests, please slow down.',
+    code: 'KSC_PROXY_RATE_LIMITED',
+  },
+});
+
+/**
  * 文件浏览等操作限流
  */
 export const fileOperationLimiter = rateLimit({

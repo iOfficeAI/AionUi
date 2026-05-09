@@ -106,7 +106,6 @@ export const iconColors = {
   primary: 'var(--text-primary)',
   secondary: 'var(--text-secondary)',
   disabled: 'var(--text-disabled)',
-  brand: 'var(--brand)',
   danger: 'var(--danger)',
   warning: 'var(--warning)',
   success: 'var(--success)',

@@ -56,6 +56,8 @@ export type AionrsAgentOptions = {
 };
 
 export class AionrsAgent {
+  private readonly stderrChunks: string[] = [];
+  private readonly maxStderrChunks = 12;
   private childProcess: ChildProcess | null = null;
   private ready = false;
   private readyPromise: Promise<void>;
@@ -132,14 +134,34 @@ export class AionrsAgent {
 
     // Log stderr as diagnostics
     this.childProcess.stderr?.on('data', (chunk: Buffer) => {
-      console.error('[aionrs]', chunk.toString());
+      const text = chunk.toString();
+      this.stderrChunks.push(text);
+      if (this.stderrChunks.length > this.maxStderrChunks) {
+        this.stderrChunks.shift();
+      }
+      console.error('[aionrs]', text);
     });
 
     // Handle process exit
     this.childProcess.on('exit', (code) => {
       this.restoreProjectConfig();
       if (!this.ready) {
-        this.readyReject(new Error(`aionrs exited with code ${code} during init`));
+        const stderrSummary = this.stderrChunks.join('').trim();
+        const providerDebug = {
+          providerId: this.options.model.id,
+          platform: this.options.model.platform,
+          model: this.options.model.useModel,
+          baseUrl: this.options.model.baseUrl,
+        };
+        console.error('[AionrsAgent] exited during init', {
+          code,
+          provider: providerDebug,
+          args,
+          stderrSummary,
+        });
+        this.readyReject(
+          new Error(`aionrs exited with code ${code} during init${stderrSummary ? `: ${stderrSummary}` : ''}`)
+        );
       }
       if (this.activeMsgId && this._onProcessExit) {
         this._onProcessExit(code, this.activeMsgId);

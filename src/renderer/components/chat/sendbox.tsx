@@ -1342,9 +1342,10 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
+        className={`sendbox-panel relative p-24px border-3 b bg-dialog-fill-0 b-solid rd-28px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+          minHeight: isSingleLine ? undefined : '180px',
           ...(isFileDragging
             ? {
                 backgroundColor: 'var(--color-primary-light-1)',
@@ -1507,13 +1508,13 @@ const SendBox: React.FC<{
               minWidth: 0,
               maxWidth: '100%',
               marginBottom: isSingleLine ? 0 : '8px',
-              minHeight: isSingleLine ? '20px' : '40px',
+              minHeight: isSingleLine ? '42px' : '108px',
             }}
           >
             <div
               ref={highlightScrollRef}
               aria-hidden='true'
-              className={`sendbox-highlight-layer text-14px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
+              className={`sendbox-highlight-layer text-16px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
               data-testid='sendbox-highlight-layer'
               style={!shouldUseHighlightOverlay ? { visibility: 'hidden' } : undefined}
             >
@@ -1525,7 +1526,7 @@ const SendBox: React.FC<{
               spellCheck={false}
               value={input}
               placeholder={placeholder}
-              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[28px] !resize-none text-16px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               style={{
                 width: isSingleLine ? 'auto' : '100%',
                 flex: isSingleLine ? 1 : 'none',
@@ -1534,8 +1535,8 @@ const SendBox: React.FC<{
                 marginLeft: 0,
                 marginRight: 0,
                 marginBottom: 0,
-                height: isSingleLine ? '20px' : 'auto',
-                minHeight: isSingleLine ? '20px' : '40px',
+                height: isSingleLine ? '42px' : 'auto',
+                minHeight: isSingleLine ? '42px' : '108px',
                 overflowY: isSingleLine ? 'hidden' : 'auto',
                 overflowX: 'hidden',
                 whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
@@ -1562,7 +1563,7 @@ const SendBox: React.FC<{
                 syncHighlightScroll(event.currentTarget);
               }}
               {...compositionHandlers}
-              autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
+              autoSize={isSingleLine ? false : { minRows: 5, maxRows: 10 }}
               onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
                 return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
               })}

@@ -98,7 +98,6 @@ const AboutModalContent: React.FC = () => {
                 <Github theme='outline' size='20' />
               </div>
             </div>
-
           </div>
 
           {/* Divider */}

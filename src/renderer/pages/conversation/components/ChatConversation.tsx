@@ -241,7 +241,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversationId={conversation.id}>
+    <ChatLayout {...chatLayoutProps} conversationId={conversation.id} workspacePath={conversation.extra.workspace}>
       <AionrsChat
         conversation_id={conversation.id}
         workspace={conversation.extra.workspace}

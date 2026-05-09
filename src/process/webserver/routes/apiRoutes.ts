@@ -22,7 +22,7 @@ import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
 import { isActiveOfficeWatchPort } from '@process/bridge/officeWatchBridge';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
 import directoryApi from '../directoryApi';
-import { apiRateLimiter } from '../middleware/security';
+import { apiRateLimiter, kscProxyRateLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
@@ -77,6 +77,21 @@ function isLoopbackRequest(req: Request): boolean {
   const rawIp = req.ip || req.socket.remoteAddress || '';
   const ip = rawIp.replace(/^::ffff:/, '');
   return ip === '127.0.0.1' || ip === '::1' || ip === 'localhost';
+}
+
+const KSC_PROXY_TIMEOUT_MS = 45_000;
+const KSC_PROXY_MAX_ATTEMPTS = 3;
+const KSC_PROXY_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function parseProxyErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    return error.message;
+  }
+  return String(error || 'Unknown proxy error');
 }
 
 export async function resolveUploadWorkspace(conversationId: string, requestedWorkspace?: string): Promise<string> {
@@ -650,7 +665,7 @@ export function registerApiRoutes(app: Express): void {
    */
   registerOfficecliWatchProxy('/api/office-watch-proxy', isActiveOfficeWatchPort, 'Office watch preview');
 
-  app.use('/api/ksc-proxy/:providerId', apiRateLimiter, async (req: Request, res: Response) => {
+  app.use('/api/ksc-proxy/:providerId', kscProxyRateLimiter, async (req: Request, res: Response) => {
     if (!isLoopbackRequest(req)) {
       res.status(403).json({ message: 'KSC proxy only allows local requests' });
       return;
@@ -697,11 +712,54 @@ export function registerApiRoutes(app: Express): void {
           ? undefined
           : JSON.stringify(req.body && typeof req.body === 'object' ? req.body : {});
 
-      const upstream = await fetch(targetUrl, {
-        method: req.method,
-        headers,
-        body,
-      });
+      let upstream: globalThis.Response | null = null;
+      let lastError: unknown;
+
+      for (let attempt = 1; attempt <= KSC_PROXY_MAX_ATTEMPTS; attempt += 1) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), KSC_PROXY_TIMEOUT_MS);
+        try {
+          upstream = await fetch(targetUrl, {
+            method: req.method,
+            headers,
+            body,
+            signal: controller.signal,
+          });
+
+          const shouldRetry = attempt < KSC_PROXY_MAX_ATTEMPTS && KSC_PROXY_RETRYABLE_STATUSES.has(upstream.status);
+          if (!shouldRetry) {
+            break;
+          }
+        } catch (error) {
+          lastError = error;
+          if (attempt >= KSC_PROXY_MAX_ATTEMPTS) {
+            throw error;
+          }
+        } finally {
+          clearTimeout(timer);
+        }
+
+        await sleep(250 * attempt);
+      }
+
+      if (!upstream) {
+        throw new Error(parseProxyErrorMessage(lastError));
+      }
+
+      if (!upstream.ok) {
+        const upstreamText = await upstream.text();
+        console.error('[API] KSC upstream non-2xx', {
+          status: upstream.status,
+          statusText: upstream.statusText,
+          targetUrl,
+          providerId,
+          responsePreview: upstreamText.slice(0, 2000),
+        });
+        res.status(upstream.status);
+        res.type(upstream.headers.get('content-type') || 'application/json');
+        res.send(upstreamText);
+        return;
+      }
 
       res.status(upstream.status);
       upstream.headers.forEach((value, key) => {
@@ -720,8 +778,12 @@ export function registerApiRoutes(app: Express): void {
     } catch (error) {
       console.error('[API] KSC proxy error:', error);
       if (!res.headersSent) {
+        const isAbortError = error instanceof Error && error.name === 'AbortError';
         res.status(502).json({
-          message: error instanceof Error ? error.message : 'KSC proxy failed',
+          code: isAbortError ? 'KSC_PROXY_TIMEOUT' : 'KSC_PROXY_FAILED',
+          message: isAbortError
+            ? `KSC proxy timeout after ${KSC_PROXY_TIMEOUT_MS}ms`
+            : parseProxyErrorMessage(error) || 'KSC proxy failed',
         });
       } else {
         res.destroy();
