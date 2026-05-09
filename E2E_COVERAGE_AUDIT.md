@@ -1,7 +1,7 @@
 # E2E Test Coverage Audit — Team MCP vs PRD
 
-**Date**: 2026-04-28  
-**Scope**: 27 PRD feature points vs 19 E2E test files  
+**Date**: 2026-04-28
+**Scope**: 27 PRD feature points vs 19 E2E test files
 **Result**: 20/27 features covered (74%), 7 gaps identified
 
 ---

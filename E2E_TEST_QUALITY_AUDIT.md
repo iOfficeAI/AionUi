@@ -1,7 +1,7 @@
 # E2E 测试质检报告 — Team 模块
 
-**审查时间**: 2026-04-28  
-**审查范围**: 18 个 team 相关 E2E 测试文件  
+**审查时间**: 2026-04-28
+**审查范围**: 18 个 team 相关 E2E 测试文件
 **审查标准**: 真实用户操作（UI 操作为主）vs 偷懒 mock
 
 ---
@@ -260,10 +260,10 @@
 
 ## 关键指标
 
-✅ **零偷懒发现** — 18/18 测试全部遵守真实用户操作原则  
-✅ **无 HTTP mock** — 没有 page.route/intercept 模拟后端  
-✅ **无 invokeBridge 滥用** — bridge 仅用于 setup/cleanup，核心流程走 UI  
-✅ **完整的 UI 验证** — 按钮、表单、tab、菜单交互完全通过真实页面操作  
+✅ **零偷懒发现** — 18/18 测试全部遵守真实用户操作原则
+✅ **无 HTTP mock** — 没有 page.route/intercept 模拟后端
+✅ **无 invokeBridge 滥用** — bridge 仅用于 setup/cleanup，核心流程走 UI
+✅ **完整的 UI 验证** — 按钮、表单、tab、菜单交互完全通过真实页面操作
 ✅ **真实的等待和异步处理** — expect.poll、waitForURL、等待 AI 推理，无硬 sleep
 
 ---

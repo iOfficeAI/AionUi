@@ -260,7 +260,8 @@ test.describe('Preview auto-open for Office files', () => {
         } catch (error) {
           const debug = await getWorkspaceOfficeWatchDebug(page, workspace);
           throw new Error(
-            `Preview did not auto-open for ${fileName}. wsStatus=${debug.wsStatus}; autoPreviewOfficeFiles=${JSON.stringify(debug.configValue)}; workspaceFiles=${JSON.stringify(debug.workspaceFiles)}; officeEvents=${JSON.stringify(debug.officeEvents)}; browserLogs=${JSON.stringify(browserLogs)}; originalError=${String(error)}`
+            `Preview did not auto-open for ${fileName}. wsStatus=${debug.wsStatus}; autoPreviewOfficeFiles=${JSON.stringify(debug.configValue)}; workspaceFiles=${JSON.stringify(debug.workspaceFiles)}; officeEvents=${JSON.stringify(debug.officeEvents)}; browserLogs=${JSON.stringify(browserLogs)}; originalError=${String(error)}`,
+            { cause: error }
           );
         }
       } finally {

@@ -1,8 +1,8 @@
 # Aion CLI (aionrs) E2E 测试用例
 
-**版本**: Gate 2 初稿  
-**作者**: chat-aionrs-designer  
-**日期**: 2026-04-22  
+**版本**: Gate 2 初稿
+**作者**: chat-aionrs-designer
+**日期**: 2026-04-22
 **状态**: 待审核
 
 ---
@@ -73,7 +73,7 @@ export async function getAionrsTestModels(page: Page): Promise<{
 
 ### TC-A-01: 最小可用路径
 
-**优先级**: P0  
+**优先级**: P0
 **目标**: 验证无附件 + 默认模型 + default 权限的最小对话流程
 
 **前置条件**:
@@ -138,7 +138,7 @@ SELECT COUNT(*) FROM messages WHERE conversation_id = ?;
 
 ### TC-A-02: 关联单个文件夹
 
-**优先级**: P0  
+**优先级**: P0
 **目标**: 验证关联文件夹后，消息内容包含文件夹引用
 
 **前置条件**:
@@ -201,7 +201,7 @@ SELECT status FROM messages WHERE conversation_id = ? AND position = 'left' AND 
 
 ### TC-A-03: 上传单个文件
 
-**优先级**: P0  
+**优先级**: P0
 **目标**: 验证上传文件后，binary 接收 `files` 参数
 
 **前置条件**:
@@ -266,7 +266,7 @@ SELECT status FROM messages WHERE conversation_id = ? AND position = 'left';
 
 ### TC-A-04: 使用第二个模型
 
-**优先级**: P0  
+**优先级**: P0
 **目标**: 验证在 guid 页选择非默认模型后，DB 记录正确模型 ID
 
 **前置条件**:
@@ -326,7 +326,7 @@ SELECT COUNT(*) FROM messages WHERE conversation_id = ? AND position = 'left';
 
 ### TC-A-05: 使用 yolo 权限
 
-**优先级**: P0  
+**优先级**: P0
 **目标**: 验证 yolo 模式下，工具调用自动批准（无确认弹窗）
 
 **前置条件**:
@@ -386,7 +386,7 @@ WHERE conversation_id = ? AND type = 'tool_group';
 
 ### TC-A-06: 使用 auto_edit 权限
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证 auto_edit 模式下，edit/info 工具自动批准，exec 工具仍需确认
 
 **前置条件**:
@@ -444,7 +444,7 @@ WHERE conversation_id = ? AND type = 'tool_group';
 
 ### TC-A-07: 对话中切换模型
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证对话中切换模型后，DB `conversations.extra.model` 更新为新模型 ID
 
 **前置条件**:
@@ -502,7 +502,7 @@ SELECT COUNT(*) FROM messages WHERE conversation_id = ?;
 
 ### TC-A-08: 对话中切换权限（default → auto_edit）
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证对话中切换权限后，工具确认行为立即变化
 
 **前置条件**:
@@ -567,7 +567,7 @@ LIMIT 1;
 
 ### TC-A-09: 对话中切换权限（auto_edit → yolo）
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证切换到 yolo 后，所有工具自动批准
 
 **前置条件**:
@@ -624,7 +624,7 @@ LIMIT 1;
 
 ### TC-A-10: 组合场景（关联文件夹 + 上传文件 + 非默认模型）
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证多维度组合情况下，所有附件正确传递给 binary
 
 **前置条件**:
@@ -696,7 +696,7 @@ WHERE conversation_id = ? AND position = 'left' AND type = 'text';
 
 ### TC-A-11: 上传多个文件
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证多文件上传场景
 
 **前置条件**:
@@ -757,7 +757,7 @@ WHERE conversation_id = ? AND position = 'left' AND type = 'text';
 
 ### TC-A-12: 关联多个文件夹
 
-**优先级**: P1  
+**优先级**: P1
 **目标**: 验证多文件夹关联场景
 
 **前置条件**:
@@ -819,7 +819,7 @@ WHERE conversation_id = ? AND position = 'left' AND type = 'text';
 
 ### TC-A-13: Binary 不可达时跳过测试
 
-**优先级**: P2  
+**优先级**: P2
 **目标**: 验证 E2E 测试前 binary 检查机制生效
 
 **前置条件**:
@@ -872,7 +872,7 @@ test.beforeAll(async () => {
 
 ### TC-A-14: 超大文件上传限制
 
-**优先级**: P2  
+**优先级**: P2
 **目标**: 验证前端文件大小限制机制
 
 **前置条件**:
@@ -920,7 +920,7 @@ test.beforeAll(async () => {
 
 ### TC-A-15: 关联不存在的文件夹
 
-**优先级**: P2  
+**优先级**: P2
 **目标**: 验证文件系统异常处理
 
 **前置条件**:

@@ -1,7 +1,7 @@
 # AionUi Team MCP — 完整功能规格 (PRD)
 
-**调研时间**: 2026-04-28  
-**调研范围**: main 分支源码反推  
+**调研时间**: 2026-04-28
+**调研范围**: main 分支源码反推
 **版本**: v1.0
 
 ---
@@ -210,20 +210,20 @@ team.removeAgent({
 
 ### 启动步骤
 
-**1. 前端触发 Team 会话**  
+**1. 前端触发 Team 会话**
 (`src/renderer/pages/team/hooks/useTeamSession.ts` 行 31):
 
 ```typescript
 await ipcBridge.team.ensureSession.invoke({ team_id: team.id });
 ```
 
-**2. 后端创建 TeamSession**  
+**2. 后端创建 TeamSession**
 (`src/process/team/TeamSession.ts`):
 
 - 构造函数初始化 Mailbox、TaskManager、TeammateManager
 - 创建 TeamMcpServer 实例
 
-**3. 启动 MCP TCP Server**  
+**3. 启动 MCP TCP Server**
 (`src/process/team/TeamSession.ts` 行 79-84):
 
 ```typescript
@@ -241,7 +241,7 @@ async startMcpServer(): Promise<StdioMcpConfig> {
 - 生成一次性认证 token: `crypto.randomUUID()`
 - 发射 IPC 事件：`ipcBridge.team.mcpStatus.emit({ phase: 'tcp_ready', port })`
 
-**4. 注入 MCP 配置到 ACP Session**  
+**4. 注入 MCP 配置到 ACP Session**
 (`src/process/team/TeamSession.ts` 行 87-92):
 
 ```typescript
@@ -272,7 +272,7 @@ getStdioConfig(agentSlotId?: string): StdioMcpConfig {
 
 这个配置通过 `session/new { mcpServers }` 注入到 agent CLI 的启动命令。
 
-**5. Agent 启动 stdio MCP Bridge**  
+**5. Agent 启动 stdio MCP Bridge**
 (`scripts/team-mcp-stdio.mjs`):
 
 - 读环境变量
@@ -947,6 +947,6 @@ Backend 必须实现以下路由及 WebSocket 事件转发：
 
 ---
 
-**反推完成日期**: 2026-04-28  
-**调研负责人**: AI Agent (Claude)  
+**反推完成日期**: 2026-04-28
+**调研负责人**: AI Agent (Claude)
 **下一步**: 对照本 PRD 进行回归测试 + 前后端联调验证

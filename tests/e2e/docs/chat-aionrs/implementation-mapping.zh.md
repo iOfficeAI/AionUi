@@ -2,8 +2,8 @@
 
 本文档记录 `test-cases.zh.md` 中定义的 15 个测试用例与实际 E2E 实现文件的对应关系。
 
-**生成时间**：2026-04-22  
-**实现目录**：`tests/e2e/features/conversations/aionrs/`  
+**生成时间**：2026-04-22
+**实现目录**：`tests/e2e/features/conversations/aionrs/`
 **文档版本**：test-cases.zh.md v1.0
 
 ---
@@ -17,7 +17,7 @@
 | P2 边界用例 | 3        | 3        | ⚠️ 100% (需重写)               |
 | **总计**    | **15**   | **15**   | ⚠️ 100% (15/15, 其中 3 个偏差) |
 
-**截图总数**：61 次 `takeScreenshot()` 调用  
+**截图总数**：61 次 `takeScreenshot()` 调用
 **平均截图数/测试**：4.1 张
 
 **当前测试状态**（v4 运行结果）：
@@ -297,7 +297,7 @@ expect(extra.workspace).toBe(workspacePath); // 或 undefined（无文件夹）
 
 ### TC-A-04 / TC-A-07 / TC-A-08 / TC-A-09: 运行时切换后消息挂起
 
-**症状**：  
+**症状**：
 运行时切换 model 或 permission 后，后续消息发送时 aionrs binary 静默挂起，AI 回复永不到达。
 
 **复现场景**：
@@ -351,6 +351,6 @@ expect(extra.workspace).toBe(workspacePath); // 或 undefined（无文件夹）
 
 ---
 
-**最后更新**：2026-04-22  
-**维护者**：chat-aionrs-engineer  
+**最后更新**：2026-04-22
+**维护者**：chat-aionrs-engineer
 **状态**：✅ P0/P1 实现完整（除 TC-A-08/09 已知问题），✅ P2 已按原定义重写（TC-A-13/14/15）

@@ -2,8 +2,8 @@
 
 本文档记录 `test-cases.zh.md` 中定义的 38 个测试用例与实际 E2E 实现文件的对应关系。
 
-**生成时间**：2026-04-21  
-**实现目录**：`tests/e2e/features/assistants/`  
+**生成时间**：2026-04-21
+**实现目录**：`tests/e2e/features/assistants/`
 **文档版本**：test-cases.zh.md v1.3
 
 ---
@@ -17,7 +17,7 @@
 | P2 边界用例 | 5        | 5        | ✅ 100%               |
 | **总计**    | **38**   | **37**   | ✅ 97% (37/38 active) |
 
-**截图总数**：173 次 `takeScreenshot()` 调用  
+**截图总数**：173 次 `takeScreenshot()` 调用
 **平均截图数/测试**：4.7 张
 
 ---
@@ -154,29 +154,29 @@
 
 ### 设计阶段发现的可测性问题
 
-**问题 1**：P1-14~18 原设计依赖外部数据（Pending/Custom Skills）  
-**解决方案**：调整为空态验证（v1.1）  
+**问题 1**：P1-14~18 原设计依赖外部数据（Pending/Custom Skills）
+**解决方案**：调整为空态验证（v1.1）
 **影响用例**：P1-14, P1-15, P1-16, P1-17, P1-18
 
-**问题 2**：P1-16 原设计假设 Builtin Skills 有删除按钮  
-**根因**：源码显示 Builtin Skills 只有 Checkbox，无删除按钮  
-**解决方案**：完全重写 P1-16，改为验证 Checkbox 取消勾选不触发删除弹窗（v1.3）  
+**问题 2**：P1-16 原设计假设 Builtin Skills 有删除按钮
+**根因**：源码显示 Builtin Skills 只有 Checkbox，无删除按钮
+**解决方案**：完全重写 P1-16，改为验证 Checkbox 取消勾选不触发删除弹窗（v1.3）
 **影响用例**：P1-16, P1-17（废弃）
 
-**问题 3**：P1-18 原设计假设大部分 Builtin 无 Auto-injected Skills  
-**根因**：assistantPresets.ts 显示几乎所有 Builtin 都有 `defaultEnabledSkills`  
-**解决方案**：反转验证逻辑，改为正向验证"有 Auto-injected 时显示该分组"（v1.2）  
+**问题 3**：P1-18 原设计假设大部分 Builtin 无 Auto-injected Skills
+**根因**：assistantPresets.ts 显示几乎所有 Builtin 都有 `defaultEnabledSkills`
+**解决方案**：反转验证逻辑，改为正向验证"有 Auto-injected 时显示该分组"（v1.2）
 **影响用例**：P1-18
 
 ### 实施阶段协助记录
 
-**协助 1**：清理操作明确化（v1.2）  
+**协助 1**：清理操作明确化（v1.2）
 所有用例的"清理操作"从文字描述改为可执行代码块，解决 Drawer 未关闭导致后续测试失败的问题。
 
-**协助 2**：定位器修正（v1.2 → v1.3）  
+**协助 2**：定位器修正（v1.2 → v1.3）
 P1-16 skill card 定位器从 `[class*="skill-card"]`（不存在）改为 `div.flex.items-start.gap-8px.p-8px`（实际 DOM 结构）。
 
-**协助 3**：Skip 逻辑补充（v1.3）  
+**协助 3**：Skip 逻辑补充（v1.3）
 P1-16 添加 skip 逻辑：新 assistant 无 Builtin Skills 时跳过测试。
 
 ### 最终交付状态
@@ -189,6 +189,6 @@ P1-16 添加 skip 逻辑：新 assistant 无 Builtin Skills 时跳过测试。
 
 ---
 
-**生成者**：assistant-designer-2  
-**审核者**：待补充  
+**生成者**：assistant-designer-2
+**审核者**：待补充
 **最后更新**：2026-04-21
