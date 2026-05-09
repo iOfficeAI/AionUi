@@ -139,10 +139,10 @@ import { AionrsManager } from '@/process/task/AionrsManager';
 
 // ── Helpers ────────────────────────────────────────────────────────
 
-function createManager(conversationId = 'conv-pe-1'): AionrsManager {
+function createManager(conversationId = 'conv-pe-1', baseUrl = ''): AionrsManager {
   const data = {
     workspace: '/test/workspace',
-    model: { name: 'test-provider', useModel: 'test-model', baseUrl: '', platform: 'test' },
+    model: { name: 'test-provider', useModel: 'test-model', baseUrl, platform: 'test' },
     conversation_id: conversationId,
   };
   return new AionrsManager(data as Record<string, unknown>, data.model as Record<string, unknown>);
@@ -358,6 +358,21 @@ describe('AionrsManager Process Exit + Heartbeat', () => {
 
       expect(mockAgent.kill).toHaveBeenCalled();
       expect(mockAgent.ping).not.toHaveBeenCalled();
+    });
+
+    it('uses a longer heartbeat window for KSC proxy models', () => {
+      manager = createManager('conv-ksc-heartbeat', 'http://127.0.0.1:25808/api/ksc-proxy/ksc%3Aid/v1');
+      (manager as Record<string, unknown>)['heartbeatActive'] = true;
+      (manager as Record<string, unknown>)['heartbeatMissedCount'] = 2;
+
+      const mockAgent = { isAlive: true, ping: vi.fn(), kill: vi.fn() };
+      (manager as Record<string, unknown>)['agent'] = mockAgent;
+
+      (manager as Record<string, (...args: unknown[]) => void>)['checkHeartbeat']();
+
+      expect(mockAgent.kill).not.toHaveBeenCalled();
+      expect(mockAgent.ping).toHaveBeenCalled();
+      expect((manager as Record<string, unknown>)['heartbeatMissedCount']).toBe(3);
     });
 
     it('logs error before killing unresponsive agent', () => {

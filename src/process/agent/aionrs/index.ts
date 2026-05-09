@@ -189,6 +189,17 @@ export class AionrsAgent {
         });
         return this.start();
       }
+      // If creating a new session fails because it already exists, fallback to resume.
+      if (this.options.sessionId && this.isSessionAlreadyExistsError(err)) {
+        console.error('[AionrsAgent] Session already exists, falling back to resume:', err);
+        this.options = { ...this.options, resume: this.options.sessionId, sessionId: undefined };
+        this.ready = false;
+        this.readyPromise = new Promise((resolve, reject) => {
+          this.readyResolve = resolve;
+          this.readyReject = reject;
+        });
+        return this.start();
+      }
       throw err;
     }
 
@@ -229,6 +240,11 @@ export class AionrsAgent {
         text: `[Assistant System Rules]\n${this.options.presetRules}`,
       });
     }
+  }
+
+  private isSessionAlreadyExistsError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err);
+    return /session id .* already exists/i.test(message);
   }
 
   private handleEvent(event: AionrsEvent): void {

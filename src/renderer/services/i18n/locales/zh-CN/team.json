@@ -52,9 +52,10 @@
   "emptyState": {
     "subtitle": "描述你的目标，我来协调团队搞定它",
     "suggestions": {
-      "debate": "组织一场辩论赛，让 Agent 各持立场",
-      "interview": "策划一场深度访谈",
-      "expert_review": "多位专家会诊同一个问题"
+      "debate": "组织一次技术方案评审，让 Agent 各持观点",
+      "interview": "策划一次需求澄清与技术访谈",
+      "expert_review": "多位研发专家会诊同一个技术问题",
+      "enterprise_website": "研发一个企业网站"
     }
   }
 }

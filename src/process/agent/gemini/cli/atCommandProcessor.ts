@@ -68,6 +68,23 @@ interface AtCommandPart {
   content: string;
 }
 
+function normalizePathSpecForWorkspace(pathName: string, workspaceDirs: readonly string[]): string | null {
+  if (!path.isAbsolute(pathName)) {
+    return pathName;
+  }
+
+  const normalizedCandidate = path.normalize(pathName);
+  for (const dir of workspaceDirs) {
+    const normalizedDir = path.normalize(dir);
+    const relative = path.relative(normalizedDir, normalizedCandidate);
+    if (relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))) {
+      return relative || '.';
+    }
+  }
+
+  return null;
+}
+
 /**
  * Parses a query string to find all '@<path>' commands and text segments.
  * Handles \ escaped spaces within paths.
@@ -215,54 +232,57 @@ export async function handleAtCommand({
     // Check if path should be ignored based on filtering options
 
     const workspaceContext = config.getWorkspaceContext();
-    if (!workspaceContext.isPathWithinWorkspace(pathName)) {
+    const workspaceDirs = workspaceContext.getDirectories();
+    const normalizedPathName = normalizePathSpecForWorkspace(pathName, workspaceDirs);
+    if (!normalizedPathName || !workspaceContext.isPathWithinWorkspace(normalizedPathName)) {
       onDebugMessage(`Path ${pathName} is not in the workspace and will be skipped.`);
       continue;
     }
 
     const gitIgnored =
       respectFileIgnore.respectGitIgnore &&
-      fileDiscovery.shouldIgnoreFile(pathName, {
+      fileDiscovery.shouldIgnoreFile(normalizedPathName, {
         respectGitIgnore: true,
         respectGeminiIgnore: false,
       });
     const geminiIgnored =
       respectFileIgnore.respectGeminiIgnore &&
-      fileDiscovery.shouldIgnoreFile(pathName, {
+      fileDiscovery.shouldIgnoreFile(normalizedPathName, {
         respectGitIgnore: false,
         respectGeminiIgnore: true,
       });
 
     if (gitIgnored || geminiIgnored) {
       const reason = gitIgnored && geminiIgnored ? 'both' : gitIgnored ? 'git' : 'gemini';
-      ignoredByReason[reason].push(pathName);
+      ignoredByReason[reason].push(normalizedPathName);
       const reasonText =
         reason === 'both' ? 'ignored by both git and gemini' : reason === 'git' ? 'git-ignored' : 'gemini-ignored';
-      onDebugMessage(`Path ${pathName} is ${reasonText} and will be skipped.`);
+      onDebugMessage(`Path ${normalizedPathName} is ${reasonText} and will be skipped.`);
       continue;
     }
 
     for (const dir of config.getWorkspaceContext().getDirectories()) {
-      let currentPathSpec = pathName;
+      let currentPathSpec = normalizedPathName;
       let resolvedSuccessfully = false;
       try {
-        const absolutePath = path.resolve(dir, pathName);
+        const absolutePath = path.resolve(dir, normalizedPathName);
         const stats = await fs.stat(absolutePath);
         if (stats.isDirectory()) {
-          currentPathSpec = pathName + (pathName.endsWith(path.sep) ? `**` : `/**`);
-          onDebugMessage(`Path ${pathName} resolved to directory, using glob: ${currentPathSpec}`);
+          currentPathSpec =
+            normalizedPathName + (normalizedPathName.endsWith(path.sep) ? `**` : `/**`);
+          onDebugMessage(`Path ${normalizedPathName} resolved to directory, using glob: ${currentPathSpec}`);
         } else {
-          onDebugMessage(`Path ${pathName} resolved to file: ${absolutePath}`);
+          onDebugMessage(`Path ${normalizedPathName} resolved to file: ${absolutePath}`);
         }
         resolvedSuccessfully = true;
       } catch (error) {
         if (isNodeError(error) && error.code === 'ENOENT') {
           if (config.getEnableRecursiveFileSearch() && globTool) {
-            onDebugMessage(`Path ${pathName} not found directly, attempting glob search.`);
+            onDebugMessage(`Path ${normalizedPathName} not found directly, attempting glob search.`);
             try {
               const globResult = await globTool.buildAndExecute(
                 {
-                  pattern: `**/*${pathName}*`,
+                  pattern: `**/*${normalizedPathName}*`,
                   path: dir,
                 },
                 signal
@@ -276,37 +296,39 @@ export async function handleAtCommand({
                 const lines = globResult.llmContent.split('\n');
                 if (lines.length > 1 && lines[1]) {
                   const firstMatchAbsolute = lines[1].trim();
-                  currentPathSpec = path.relative(dir, firstMatchAbsolute);
-                  onDebugMessage(
-                    `Glob search for ${pathName} found ${firstMatchAbsolute}, using relative path: ${currentPathSpec}`
-                  );
-                  resolvedSuccessfully = true;
+                    currentPathSpec = path.relative(dir, firstMatchAbsolute);
+                    onDebugMessage(
+                      `Glob search for ${normalizedPathName} found ${firstMatchAbsolute}, using relative path: ${currentPathSpec}`
+                    );
+                    resolvedSuccessfully = true;
                 } else {
                   onDebugMessage(
-                    `Glob search for '**/*${pathName}*' did not return a usable path. Path ${pathName} will be skipped.`
+                    `Glob search for '**/*${normalizedPathName}*' did not return a usable path. Path ${normalizedPathName} will be skipped.`
                   );
                 }
               } else {
                 onDebugMessage(
-                  `Glob search for '**/*${pathName}*' found no files or an error. Path ${pathName} will be skipped.`
+                  `Glob search for '**/*${normalizedPathName}*' found no files or an error. Path ${normalizedPathName} will be skipped.`
                 );
               }
             } catch (globError) {
-              console.error(`Error during glob search for ${pathName}: ${getErrorMessage(globError)}`);
-              onDebugMessage(`Error during glob search for ${pathName}. Path ${pathName} will be skipped.`);
+              console.error(`Error during glob search for ${normalizedPathName}: ${getErrorMessage(globError)}`);
+              onDebugMessage(
+                `Error during glob search for ${normalizedPathName}. Path ${normalizedPathName} will be skipped.`
+              );
             }
           } else {
-            onDebugMessage(`Glob tool not found. Path ${pathName} will be skipped.`);
+            onDebugMessage(`Glob tool not found. Path ${normalizedPathName} will be skipped.`);
           }
         } else {
-          console.error(`Error stating path ${pathName}: ${getErrorMessage(error)}`);
-          onDebugMessage(`Error stating path ${pathName}. Path ${pathName} will be skipped.`);
+          console.error(`Error stating path ${normalizedPathName}: ${getErrorMessage(error)}`);
+          onDebugMessage(`Error stating path ${normalizedPathName}. Path ${normalizedPathName} will be skipped.`);
         }
       }
       if (resolvedSuccessfully) {
         pathSpecsToRead.push(currentPathSpec);
         atPathToResolvedSpecMap.set(originalAtPath, currentPathSpec);
-        contentLabelsForDisplay.push(pathName);
+        contentLabelsForDisplay.push(normalizedPathName);
         break;
       }
     }

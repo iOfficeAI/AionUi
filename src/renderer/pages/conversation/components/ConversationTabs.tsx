@@ -21,6 +21,8 @@ import { applyDefaultConversationName } from '../utils/newConversationName';
 import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -121,6 +123,52 @@ const ConversationTabs: React.FC = () => {
   const defaultConversationName = t('conversation.welcome.newConversation');
   const isCreatingRef = useRef(false);
 
+  const applyCurrentConversationModelPreference = useCallback(
+    (
+      params: ICreateConversationParams,
+      currentConversation: TChatConversation | null,
+      targetBackend: string
+    ): ICreateConversationParams => {
+      if (!currentConversation) return params;
+
+      // Only inherit when creating the same backend type; keep existing defaults otherwise.
+      if (targetBackend === 'gemini' && currentConversation.type === 'gemini' && currentConversation.model?.useModel) {
+        return { ...params, model: currentConversation.model };
+      }
+
+      if (targetBackend === 'aionrs' && currentConversation.type === 'aionrs' && currentConversation.model?.useModel) {
+        return { ...params, model: currentConversation.model };
+      }
+
+      if (
+        currentConversation.type === 'acp' &&
+        currentConversation.extra?.backend === targetBackend &&
+        currentConversation.extra?.currentModelId
+      ) {
+        return {
+          ...params,
+          extra: {
+            ...params.extra,
+            currentModelId: currentConversation.extra.currentModelId,
+          },
+        };
+      }
+
+      if (targetBackend === 'codex' && currentConversation.type === 'codex' && currentConversation.extra?.codexModel) {
+        return {
+          ...params,
+          extra: {
+            ...params.extra,
+            currentModelId: currentConversation.extra.codexModel,
+          },
+        };
+      }
+
+      return params;
+    },
+    []
+  );
+
   // 更新 Tab 溢出状态
   const updateTabOverflow = useCallback(() => {
     const container = tabsContainerRef.current;
@@ -210,10 +258,18 @@ const ConversationTabs: React.FC = () => {
 
       try {
         // [BUG-3] Build params inside try block: getDefaultGeminiModel() may throw if no model configured
-        let params;
+        let params: ICreateConversationParams;
+        let targetBackend: string | undefined;
+        let sourceConversation: TChatConversation | null = null;
+        try {
+          sourceConversation = await ipcBridge.conversation.get.invoke({ id: currentTab.id });
+        } catch {
+          sourceConversation = null;
+        }
 
         if (key.startsWith('cli:')) {
           const backend = key.slice(4);
+          targetBackend = backend;
           // [BUG-6] Null check: find() may return undefined
           const agent = cliAgents.find((a) => a.backend === backend);
           if (!agent) {
@@ -229,14 +285,18 @@ const ConversationTabs: React.FC = () => {
             Message.error(t('conversation.createFailed'));
             return;
           }
+          targetBackend = agent.backend;
           params = await buildPresetAssistantParams(agent, workspace, i18n.language);
         } else {
           return;
         }
 
         // Use conversation.create (calls ConversationService) not createWithConversation (direct DB insert)
+        const finalParams = targetBackend
+          ? applyCurrentConversationModelPreference(params, sourceConversation, targetBackend)
+          : params;
         const newConversation = await ipcBridge.conversation.create.invoke(
-          applyDefaultConversationName(params, defaultConversationName)
+          applyDefaultConversationName(finalParams, defaultConversationName)
         );
 
         // [BUG-5] Order matters: closeAllTabs() must come before openTab() to prevent append behavior
@@ -264,6 +324,7 @@ const ConversationTabs: React.FC = () => {
       t,
       i18n.language,
       defaultConversationName,
+      applyCurrentConversationModelPreference,
     ]
   );
 

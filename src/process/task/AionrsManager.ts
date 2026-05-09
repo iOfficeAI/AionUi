@@ -14,6 +14,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { BaseApprovalStore, type IApprovalKey } from '@/common/chat/approval';
 import { ToolConfirmationOutcome } from '../agent/gemini/cli/tools/tools';
 import { AionrsAgent, type StdioMcpOption } from '@process/agent/aionrs';
+import { isKscProxyBaseUrl } from '@process/agent/aionrs/kscProxy';
 import type { AionrsCapabilities } from '@process/agent/aionrs/protocol';
 import { getDatabase } from '@process/services/database';
 import { addMessage, addOrUpdateMessage } from '@process/utils/message';
@@ -92,6 +93,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private readonly heartbeatIntervalMs = 30_000;
   private readonly heartbeatMaxMissed = 3;
+  private readonly kscHeartbeatMaxMissed = 20;
   private heartbeatMissedCount = 0;
   private heartbeatActive = false;
 
@@ -540,17 +542,22 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     if (!this.heartbeatActive || !this.agent?.isAlive) return;
 
     this.heartbeatMissedCount++;
+    const maxMissed = this.getHeartbeatMaxMissed();
 
-    if (this.heartbeatMissedCount >= this.heartbeatMaxMissed) {
+    if (this.heartbeatMissedCount >= maxMissed) {
       mainError(
         '[AionrsManager]',
-        `aionrs process unresponsive after ${this.heartbeatMaxMissed} missed pongs, killing`
+        `aionrs process unresponsive after ${maxMissed} missed pongs, killing`
       );
       this.agent?.kill();
       return;
     }
 
     this.agent?.ping();
+  }
+
+  private getHeartbeatMaxMissed(): number {
+    return isKscProxyBaseUrl(this.model.baseUrl) ? this.kscHeartbeatMaxMissed : this.heartbeatMaxMissed;
   }
 
   init() {

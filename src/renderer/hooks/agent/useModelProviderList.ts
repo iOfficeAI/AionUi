@@ -79,7 +79,12 @@ export const useModelProviderList = (): ModelProviderListResult => {
       } as unknown as IProvider;
       list = [googleProvider, ...list];
     }
-    // 过滤掉没有可用模型的 provider
+    // Sort: KSC providers (id starts with "ksc:") always appear first
+    const kscProviders = list.filter((p) => p.id?.startsWith('ksc:'));
+    const otherProviders = list.filter((p) => !p.id?.startsWith('ksc:'));
+    list = [...kscProviders, ...otherProviders];
+
+    // Filter out providers with no available models
     return list.filter((p) => getAvailableModels(p).length > 0);
   }, [geminiModeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
 

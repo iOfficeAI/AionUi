@@ -28,12 +28,14 @@ const SUGGESTIONS = [
   { key: 'debate', icon: '🎭' },
   { key: 'interview', icon: '🎙️' },
   { key: 'expert_review', icon: '🧠' },
+  { key: 'enterprise_website', icon: '💻' },
 ];
 
 const SUGGESTION_DEFAULTS: Record<string, string> = {
   debate: 'Organize a debate with agents taking different sides',
   interview: 'Plan an in-depth interview between agents',
   expert_review: 'Have multiple experts analyze the same problem',
+  enterprise_website: 'Build an enterprise website from requirements to delivery',
 };
 
 /** Map a conversation.type onto a DetectedAgentKind so draft hooks stay exhaustive. */

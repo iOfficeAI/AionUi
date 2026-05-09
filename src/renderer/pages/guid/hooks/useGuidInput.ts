@@ -55,7 +55,6 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
     const filePaths = pastedFiles.map((file) => file.path);
     setFiles((prevFiles) => [...prevFiles, ...filePaths]);
-    setDir('');
   }, []);
 
   // Handle files uploaded via dialog (append mode)
