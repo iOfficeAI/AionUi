@@ -15,6 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
 import type { FeedbackBinaryPayloadFile, FeedbackReportSubmitPayload } from '@/common/types/electron';
+import { getOrCreateAnalyticsId } from '@process/utils/analyticsId';
 
 /**
  * Get log file paths for the last N days.
@@ -39,7 +40,7 @@ const getRecentLogPaths = (logsDir: string, days: number): string[] => {
 
 const LOG_DAYS = 3;
 const FEEDBACK_CONFIG_FILE_NAME = 'feedback-cos.local.json';
-const FEEDBACK_UPLOAD_PREFIX = 'feedback';
+const FEEDBACK_UPLOAD_ROOT_PREFIX = 'pouding-logo';
 const FEEDBACK_SIGN_EXPIRE_SECONDS = 900;
 let isFeedbackBridgeInitialized = false;
 
@@ -155,6 +156,13 @@ const buildCosAuthorization = (secretId: string, secretKey: string, url: URL) =>
   ].join('&');
 };
 
+const sanitizePathSegment = (value: string): string =>
+  value
+    .trim()
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/-{2,}/g, '-')
+    .replace(/^-+|-+$/g, '') || 'unknown';
+
 const buildFeedbackPrefix = (): string => {
   const now = new Date();
   const yyyy = String(now.getFullYear());
@@ -162,7 +170,8 @@ const buildFeedbackPrefix = (): string => {
   const dd = String(now.getDate()).padStart(2, '0');
   const timestamp = now.toISOString().replace(/[:.]/g, '-');
   const randomSuffix = crypto.randomBytes(4).toString('hex');
-  return `${FEEDBACK_UPLOAD_PREFIX}/${yyyy}/${mm}/${dd}/${timestamp}-${randomSuffix}`;
+  const installationId = sanitizePathSegment(getOrCreateAnalyticsId());
+  return `${FEEDBACK_UPLOAD_ROOT_PREFIX}/${installationId}/${yyyy}/${mm}/${dd}/${timestamp}-${randomSuffix}`;
 };
 
 const buildObjectUrl = (domain: string, objectKey: string): URL => {
@@ -316,6 +325,7 @@ const handleSubmitFeedbackReport = async (payload: FeedbackReportSubmitPayload) 
     const prefix = buildFeedbackPrefix();
     const uploadedFiles: string[] = [];
 
+    const installationId = getOrCreateAnalyticsId();
     const metadata = {
       module: payload.module,
       description: payload.description,
@@ -325,6 +335,7 @@ const handleSubmitFeedbackReport = async (payload: FeedbackReportSubmitPayload) 
       arch: process.arch,
       isPackaged: app.isPackaged,
       submittedAt: new Date().toISOString(),
+      installationId,
       screenshots: payload.screenshots.map((file) => file.filename),
       hasLogFile: Boolean(payload.logFile),
     };
