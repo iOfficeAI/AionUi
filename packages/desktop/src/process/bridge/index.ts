@@ -17,8 +17,6 @@ import { initUpdateBridge } from './updateBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
-import { initPptPreviewBridge } from './pptPreviewBridge';
-import { initOfficeWatchBridge } from './officeWatchBridge';
 import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 import { initRemoteAgentBridge } from './remoteAgentBridge';
 import { initWebuiBridge } from './webuiBridge';
@@ -36,8 +34,6 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initAuthBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();
-  initPptPreviewBridge();
-  initOfficeWatchBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();
@@ -56,8 +52,6 @@ export {
   initDialogBridge,
   initDocumentBridge,
   initNotificationBridge,
-  initOfficeWatchBridge,
-  initPptPreviewBridge,
   initPreviewHistoryBridge,
   initShellBridge,
   initSpeechToTextBridge,

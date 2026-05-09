@@ -2,7 +2,6 @@
 // Shared team types used by both main process and renderer.
 // Renderer code should import from here instead of @process/team/types.
 
-
 /** Role of a teammate within a team */
 export type TeammateRole = 'leader' | 'teammate';
 
