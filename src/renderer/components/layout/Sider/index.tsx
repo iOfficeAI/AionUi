@@ -11,6 +11,7 @@ import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
+import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
@@ -66,7 +67,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         console.error('Navigation failed:', error);
       });
     } else {
-      Promise.resolve(navigate('/settings/model')).catch((error) => {
+      Promise.resolve(navigate('/settings/gemini')).catch((error) => {
         console.error('Navigation failed:', error);
       });
     }
@@ -190,8 +191,15 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 collapsed ? 'mx-6px' : 'mx-10px'
               )}
             />
-            {/* Scrollable content: scheduled tasks + conversation history */}
+            {/* Scrollable content: team + scheduled tasks + conversation history */}
             <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
+              {/* Team section */}
+              <TeamSiderSection
+                collapsed={collapsed}
+                pathname={pathname}
+                siderTooltipProps={siderTooltipProps}
+                onSessionClick={onSessionClick}
+              />
               {/* Scheduled section */}
               {!collapsed && (
                 <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
