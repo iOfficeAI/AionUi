@@ -165,13 +165,28 @@ function augmentPathWithNvm(): void {
   }
 }
 
+/**
+ * Read the WebUI admin username from backend. Returns 'admin' as a best-effort
+ * fallback — useful when the backend is unreachable or the SQLite users row
+ * has not been seeded yet.
+ */
+async function fetchAdminUsername(backendPort: number): Promise<string> {
+  try {
+    const res = await fetch(`http://127.0.0.1:${backendPort}/api/auth/internal/users/system`);
+    if (!res.ok) return 'admin';
+    const json = (await res.json()) as { data?: { username?: string } };
+    return json.data?.username || 'admin';
+  } catch {
+    return 'admin';
+  }
+}
+
 async function main(): Promise<void> {
   augmentPathWithNvm();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();
-  // One working dir for the whole standalone webui:
-  //   - backend SQLite / chat history lives here
-  //   - web-host's webui.config.json (admin password, session) lives here too
+  // One working dir for the whole standalone webui: backend SQLite and chat
+  // history live here. Admin credentials live in the backend's users table.
   // This keeps `bun run webui` fully self-contained on hosts without AionUi.app.
   const workDir = resolveBackendDataDir();
   const staticDir = resolveStaticDir();
@@ -213,11 +228,45 @@ async function main(): Promise<void> {
   console.log('AionUi WebUI is ready');
   console.log(`  Local  : ${handle.localUrl}`);
   if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
-  if (handle.initialPassword) {
-    console.log('');
-    console.log(`Initial admin password: ${handle.initialPassword}`);
-    console.log('(change it after first login)');
+
+  // If SQLite has no admin yet (fresh install), seed one via backend and print
+  // the plaintext credentials. Mirrors webuiBridge.ts:maybeSeedInitialPassword
+  // for the Electron path — SQLite is now the single source of truth.
+  //
+  // Username is surfaced explicitly: legacy dev databases may have the seeded
+  // user as `system` instead of `admin`, and Electron users can rename it via
+  // Settings. Always read it from the backend rather than assuming a value.
+  try {
+    const statusRes = await fetch(`http://127.0.0.1:${handle.backendPort}/api/auth/status`);
+    if (statusRes.ok) {
+      const status = (await statusRes.json()) as { needs_setup?: boolean };
+      if (status.needs_setup === true) {
+        const resetRes = await fetch(`http://127.0.0.1:${handle.backendPort}/api/webui/reset-password`, {
+          method: 'POST',
+        });
+        if (resetRes.ok) {
+          const payload = (await resetRes.json()) as { data?: { new_password?: string } };
+          const initialPassword = payload.data?.new_password;
+          if (initialPassword) {
+            const adminUsername = await fetchAdminUsername(handle.backendPort);
+            console.log('');
+            console.log(`Initial admin username: ${adminUsername}`);
+            console.log(`Initial admin password: ${initialPassword}`);
+            console.log('(change them after first login)');
+          }
+        }
+      } else {
+        // Credentials already exist; just remind the user what username to use.
+        const adminUsername = await fetchAdminUsername(handle.backendPort);
+        console.log('');
+        console.log(`Login username: ${adminUsername}`);
+        console.log('(forgot the password? run `bun run resetpass` to generate a new one)');
+      }
+    }
+  } catch (err) {
+    console.warn('[webui] could not query admin credentials:', err);
   }
+
   console.log('');
   console.log('Press Ctrl+C to stop.');
 
