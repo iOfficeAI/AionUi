@@ -501,6 +501,19 @@ const handleAppReady = async (): Promise<void> => {
     console.error('[AionUi] Failed to start aionui-backend:', error);
   }
 
+  // One-shot WebUI admin credential migration. Must run after the backend is
+  // up (__backendPort set) and before any mode branch below that might log the
+  // user in. Swallows its own errors; the next boot retries.
+  const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+  if (bootBackendPort) {
+    try {
+      const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
+      await ensureAdminUser(bootBackendPort);
+    } catch (err) {
+      console.error('[WebUI] ensureAdminUser failed:', err);
+    }
+  }
+
   // One-shot backend migrations are deferred until after the renderer finishes
   // loading. Some migration steps (ConfigStorage.get, ipcBridge.listProviders)
   // route through the renderer via BroadcastChannel; running them here would
@@ -567,14 +580,19 @@ const handleAppReady = async (): Promise<void> => {
           logDir: sysDirWebUI.logDir,
         },
         backend: {
-          kind: 'ownBackend',
-          resolveBackend: resolveBinaryPath,
+          kind: 'useExistingBackend',
+          port: (() => {
+            // Reuse the backend already spawned by backendManager.start() above.
+            // Spawning a second backend here would race the first on SQLite.
+            const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+            if (!port) {
+              throw new Error('[WebUI] Cannot start: aionui-backend is not running (globalThis.__backendPort unset)');
+            }
+            return port;
+          })(),
         },
       });
       console.log(`[WebUI] Headless server started (port=${handle.port}, backendPort=${handle.backendPort})`);
-      if (handle.initialPassword) {
-        console.log(`[WebUI] Initial password: ${handle.initialPassword}`);
-      }
     } catch (err) {
       console.error(`[WebUI] Failed to start server on port ${resolvedPort}:`, err);
       app.exit(1);

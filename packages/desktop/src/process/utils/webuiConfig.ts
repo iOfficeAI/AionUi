@@ -7,10 +7,9 @@
 import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
+import { networkInterfaces } from 'os';
 import { ProcessConfig, getSystemDir } from './initStorage';
-import { startWebHost } from '@aionui/web-host';
-import { resolveBinaryPath } from '../backend';
-import { setActiveWebUI } from '../bridge/webuiBridge';
+import { startWebHost, type WebHostHandle } from '@aionui/web-host';
 import { getDataPath } from './utils';
 
 const WEBUI_CONFIG_FILE = 'webui.config.json';
@@ -21,6 +20,11 @@ const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
 export type WebUIUserConfig = {
   port?: number | string;
   allowRemote?: boolean;
+  // Legacy fields, retired in favor of SQLite users table. Present only when
+  // reading an older webui.config.json; stripped on every rewrite.
+  passwordHash?: string;
+  passwordUpdatedAt?: string;
+  adminUsername?: string;
 };
 
 export const parsePortValue = (value: unknown): number | null => {
@@ -62,6 +66,28 @@ export const loadUserWebUIConfig = (): { config: WebUIUserConfig; path: string |
   }
 };
 
+/**
+ * Atomic write of webui.config.json into the Electron userData dir.
+ * Drops legacy password fields (passwordHash / passwordUpdatedAt); the SQLite
+ * users table is now the single source of truth for credentials.
+ * Write-to-tmp-then-rename prevents corruption if the process is killed mid-write.
+ */
+export const saveUserWebUIConfig = async (config: WebUIUserConfig): Promise<void> => {
+  const userDataPath = app.getPath('userData');
+  const configPath = path.join(userDataPath, WEBUI_CONFIG_FILE);
+  const tmpPath = `${configPath}.tmp`;
+
+  const sanitized: WebUIUserConfig = {};
+  if (config.port !== undefined) sanitized.port = config.port;
+  if (config.allowRemote !== undefined) sanitized.allowRemote = config.allowRemote;
+  if (config.adminUsername !== undefined) sanitized.adminUsername = config.adminUsername;
+
+  await fs.promises.mkdir(userDataPath, { recursive: true });
+  const payload = JSON.stringify(sanitized, null, 2) + '\n';
+  await fs.promises.writeFile(tmpPath, payload, { encoding: 'utf-8', mode: 0o600 });
+  await fs.promises.rename(tmpPath, configPath);
+};
+
 // Keep aligned with renderer's WEBUI_DEFAULT_PORT (common/config/constants.ts):
 //   production -> 25808, dev -> 25809, multi-instance dev -> 25810
 const DEFAULT_WEBUI_PORT = (() => {
@@ -95,6 +121,162 @@ export const resolveRemoteAccess = (config: WebUIUserConfig, isRemoteMode: boole
   return isRemoteMode || hostRequestsRemote || envRemote === true || configRemote;
 };
 
+// ---------------------------------------------------------------------------
+// Desktop-managed WebUI lifecycle
+// ---------------------------------------------------------------------------
+
+export type DesktopWebUIHandle = {
+  port: number;
+  allowRemote: boolean;
+  localUrl: string;
+  networkUrl?: string;
+  lanIP?: string;
+  initialPassword?: string;
+};
+
+let currentHandle: (WebHostHandle & { allowRemote: boolean }) | null = null;
+// First-use plaintext password for the active handle. Set by webui.start IPC
+// handler before startDesktopWebUI() when the backend reports needs_setup=true,
+// so Settings can display the generated password exactly once. Cleared on stop.
+let currentInitialPassword: string | undefined;
+
+/**
+ * Stash the plaintext password to surface on the next `getDesktopWebUIStatus()`
+ * or IPC start response. Call with `undefined` to clear.
+ */
+export function setDesktopWebUIInitialPassword(password: string | undefined): void {
+  currentInitialPassword = password;
+}
+
+const getLanIP = (): string | null => {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    const netInfo = nets[name];
+    if (!netInfo) continue;
+    for (const net of netInfo) {
+      const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
+      if (isIPv4 && !net.internal) return net.address;
+    }
+  }
+  return null;
+};
+
+const toDesktopHandle = (handle: WebHostHandle, allowRemote: boolean): DesktopWebUIHandle => ({
+  port: handle.port,
+  allowRemote,
+  localUrl: handle.localUrl,
+  networkUrl: handle.networkUrl,
+  lanIP: handle.lanIP,
+  initialPassword: currentInitialPassword,
+});
+
+/**
+ * Spawn a WebUI instance (static server + backend) and remember the handle so
+ * callers can later stop it or query its status.
+ *
+ * Shared by the boot-time auto-restore path and the interactive
+ * Settings → "Enable WebUI" IPC handler.
+ */
+export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boolean }): Promise<DesktopWebUIHandle> {
+  // If already running, tear down first so we honour the new port / allowRemote.
+  if (currentHandle) {
+    await stopDesktopWebUI();
+  }
+
+  const allowRemote = opts.allowRemote === true;
+  const preferredPort = parsePortValue(opts.port) ?? DEFAULT_WEBUI_PORT;
+  const sysDir = getSystemDir();
+
+  // Reuse the backend already spawned by backendManager.start() in src/index.ts.
+  // Spawning a second backend here would race the first on the same SQLite file.
+  const backendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+  if (!backendPort) {
+    throw new Error('[WebUI] Cannot start: aionui-backend is not running (globalThis.__backendPort unset)');
+  }
+
+  const handle = await startWebHost({
+    app: {
+      version: app.getVersion(),
+      isPackaged: app.isPackaged,
+      resourcesPath: app.getAppPath(),
+      // webui.config.json must live next to the backend SQLite DB so --resetpass
+      // CLI and the runtime settings path read/write the same user record.
+      // getDataPath() returns ~/.aionui[-dev] symlink on macOS to sidestep
+      // path-with-spaces issues under Application Support.
+      userDataPath: getDataPath(),
+    },
+    // After bundling, this file is out/main/index.js — renderer assets live at ../renderer.
+    staticDir: path.join(__dirname, '../renderer'),
+    port: preferredPort,
+    allowRemote,
+    // Must align with the desktop IPC path's backend dataDir (src/index.ts), otherwise
+    // users see divergent SQLite state between desktop app and bundled WebUI.
+    dataDir: getDataPath(),
+    logDir: sysDir.logDir,
+    dirs: {
+      cacheDir: sysDir.cacheDir,
+      workDir: sysDir.workDir,
+      logDir: sysDir.logDir,
+    },
+    backend: {
+      kind: 'useExistingBackend',
+      port: backendPort,
+    },
+  });
+
+  currentHandle = Object.assign(handle, { allowRemote });
+  return toDesktopHandle(handle, allowRemote);
+}
+
+/**
+ * Stop the currently running WebUI instance, if any. No-op when nothing is running.
+ */
+export async function stopDesktopWebUI(): Promise<void> {
+  const handle = currentHandle;
+  if (!handle) return;
+  currentHandle = null;
+  currentInitialPassword = undefined;
+  try {
+    await handle.stop();
+  } catch (err) {
+    console.error('[WebUI] stop error:', err);
+  }
+}
+
+/**
+ * Snapshot of the currently running WebUI. Returns a stopped-state descriptor
+ * when nothing is running, so callers don't need to branch on null.
+ */
+export function getDesktopWebUIStatus(): {
+  running: boolean;
+  port: number;
+  allowRemote: boolean;
+  localUrl: string;
+  networkUrl?: string;
+  lanIP?: string;
+  initialPassword?: string;
+} {
+  if (!currentHandle) {
+    const lanIP = getLanIP();
+    return {
+      running: false,
+      port: DEFAULT_WEBUI_PORT,
+      allowRemote: false,
+      localUrl: `http://localhost:${DEFAULT_WEBUI_PORT}`,
+      lanIP: lanIP ?? undefined,
+    };
+  }
+  return {
+    running: true,
+    port: currentHandle.port,
+    allowRemote: currentHandle.allowRemote,
+    localUrl: currentHandle.localUrl,
+    networkUrl: currentHandle.networkUrl,
+    lanIP: currentHandle.lanIP,
+    initialPassword: currentInitialPassword,
+  };
+}
+
 export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
   try {
     const enabled = (await ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY)) === true;
@@ -107,48 +289,9 @@ export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
     const allowRemote = allowRemotePref === true;
     const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : DEFAULT_WEBUI_PORT;
 
-    // M6: Switch to @aionui/web-host
-    const handle = await startWebHost({
-      app: {
-        version: app.getVersion(),
-        isPackaged: app.isPackaged,
-        resourcesPath: app.getAppPath(),
-        // webui.config.json lives under userDataPath and must match the path
-        // used by --resetpass and the settings-toggle `changePassword` IPC,
-        // otherwise the browser login reads a different config file than the
-        // one the CLI just rewrote. getDataPath() returns ~/.aionui[-dev]
-        // symlink on macOS to keep CLI tools off paths containing spaces.
-        userDataPath: getDataPath(),
-      },
-      // After bundling, this file is part of out/main/index.js, so __dirname is
-      // "<app>/out/main". Renderer assets live at "<app>/out/renderer".
-      staticDir: path.join(__dirname, '../renderer'),
-      port: preferredPort,
-      allowRemote,
-      // Must match the desktop IPC path's backend data-dir (packages/desktop/src/index.ts:493),
-      // otherwise the WebUI-path backend and the desktop-IPC-path backend read/write two
-      // different SQLite databases and users see disjoint conversations / cron jobs.
-      dataDir: getDataPath(),
-      logDir: getSystemDir().logDir,
-      // Match the desktop IPC path's AIONUI_{CACHE,WORK,LOG}_DIR env so that
-      // /api/system/info reports the same workDir (symlink on macOS) whether
-      // the user opens the desktop app or the bundled WebUI.
-      dirs: (() => {
-        const s = getSystemDir();
-        return { cacheDir: s.cacheDir, workDir: s.workDir, logDir: s.logDir };
-      })(),
-      backend: {
-        kind: 'ownBackend',
-        resolveBackend: resolveBinaryPath,
-      },
-    });
-    setActiveWebUI({
-      port: handle.port,
-      allowRemote,
-      initialPassword: handle.initialPassword,
-    });
+    const handle = await startDesktopWebUI({ port: preferredPort, allowRemote });
     console.log(
-      `[WebUI] Auto-restored from desktop preferences (port=${handle.port}, backendPort=${handle.backendPort}, allowRemote=${allowRemote})`
+      `[WebUI] Auto-restored from desktop preferences (port=${handle.port}, allowRemote=${handle.allowRemote})`
     );
   } catch (error) {
     console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);

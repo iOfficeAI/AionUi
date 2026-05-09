@@ -4,9 +4,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
-import type { AppMetadata } from './types.js';
 import { startStaticServer, type StaticServerHandle } from './static-server.js';
-import { resetPassword } from './auth/index.js';
 
 async function mkRendererFixture(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-static-'));
@@ -14,11 +12,6 @@ async function mkRendererFixture(): Promise<string> {
   await fs.mkdir(path.join(dir, 'assets'));
   await fs.writeFile(path.join(dir, 'assets', 'main.js'), 'console.log("hi")');
   return dir;
-}
-
-async function mkAppMeta(): Promise<AppMetadata> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-user-'));
-  return { version: '0.0.0-test', isPackaged: false, resourcesPath: dir, userDataPath: dir };
 }
 
 async function startMockBackend(
@@ -37,11 +30,9 @@ describe('static-server', () => {
   let handle: StaticServerHandle | null = null;
   let stopBackend: (() => Promise<void>) | null = null;
   let staticDir = '';
-  let app: AppMetadata;
 
   beforeEach(async () => {
     staticDir = await mkRendererFixture();
-    app = await mkAppMeta();
   });
 
   afterEach(async () => {
@@ -60,7 +51,7 @@ describe('static-server', () => {
   it('serves static index.html at /', async () => {
     const backend = await startMockBackend((_req, res) => res.end('nope'));
     stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
     const r = await fetch(`${handle.localUrl}/`);
     expect(r.status).toBe(200);
     const text = await r.text();
@@ -70,7 +61,7 @@ describe('static-server', () => {
   it('SPA fallback: /chat/123 returns index.html', async () => {
     const backend = await startMockBackend((_req, res) => res.end('nope'));
     stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
     const r = await fetch(`${handle.localUrl}/chat/123`);
     expect(r.status).toBe(200);
     expect(await r.text()).toContain('<title>root</title>');
@@ -79,7 +70,7 @@ describe('static-server', () => {
   it('static asset /assets/main.js served', async () => {
     const backend = await startMockBackend((_req, res) => res.end('nope'));
     stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
     const r = await fetch(`${handle.localUrl}/assets/main.js`);
     expect(r.status).toBe(200);
     expect(await r.text()).toContain('hi');
@@ -91,73 +82,75 @@ describe('static-server', () => {
       res.end(JSON.stringify({ path: req.url, method: req.method }));
     });
     stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
     const r = await fetch(`${handle.localUrl}/api/anything`);
     expect(r.status).toBe(200);
     const json = (await r.json()) as { path: string };
     expect(json.path).toBe('/api/anything');
   });
 
-  it('/api/auth/login returns 200 + Set-Cookie when password matches', async () => {
-    await resetPassword({ app });
-    // We don't know the generated password, so fetch it via config:
-    // instead, set a known password via saveConfig
-    const { saveConfig } = await import('./auth/index.js');
-    const bcrypt = await import('bcryptjs');
-    const hash = await bcrypt.default.hash('pw-known', 10);
-    await saveConfig(app, { passwordHash: hash, adminUsername: 'admin' });
-
-    const backend = await startMockBackend((_req, res) => res.end('nope'));
+  it('/login reverse-proxies to backend (no local handler)', async () => {
+    const backend = await startMockBackend((req, res) => {
+      if (req.url === '/login' && req.method === 'POST') {
+        res.writeHead(200, {
+          'content-type': 'application/json',
+          'set-cookie': 'aionui-session=backend-token; Path=/; HttpOnly',
+        });
+        res.end(JSON.stringify({ success: true, proxied: true }));
+        return;
+      }
+      res.writeHead(404).end();
+    });
     stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
 
-    const r = await fetch(`${handle.localUrl}/api/auth/login`, {
+    const r = await fetch(`${handle.localUrl}/login`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'pw-known' }),
+      body: JSON.stringify({ username: 'admin', password: 'anything' }),
     });
     expect(r.status).toBe(200);
-    expect(r.headers.get('set-cookie')).toMatch(/aionui-session=/);
+    expect(r.headers.get('set-cookie')).toMatch(/aionui-session=backend-token/);
+    const json = (await r.json()) as { proxied: boolean };
+    expect(json.proxied).toBe(true);
   });
 
-  it('/api/auth/login returns 401 on wrong password', async () => {
-    const { saveConfig } = await import('./auth/index.js');
-    const bcrypt = await import('bcryptjs');
-    const hash = await bcrypt.default.hash('pw', 10);
-    await saveConfig(app, { passwordHash: hash, adminUsername: 'admin' });
-
-    const backend = await startMockBackend((_req, res) => res.end('nope'));
-    stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
-
-    const r = await fetch(`${handle.localUrl}/api/auth/login`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ username: 'admin', password: 'wrong' }),
+  it('/api/auth/user reverse-proxies to backend (no local handler)', async () => {
+    const backend = await startMockBackend((req, res) => {
+      if (req.url === '/api/auth/user' && req.method === 'GET') {
+        res.writeHead(200, { 'content-type': 'application/json' });
+        res.end(JSON.stringify({ success: true, user: { username: 'from-backend', id: 'from-backend' } }));
+        return;
+      }
+      res.writeHead(404).end();
     });
-    expect(r.status).toBe(401);
+    stopBackend = backend.close;
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
+
+    const r = await fetch(`${handle.localUrl}/api/auth/user`);
+    expect(r.status).toBe(200);
+    const json = (await r.json()) as { user: { username: string } };
+    expect(json.user.username).toBe('from-backend');
   });
 
-  it('/api/auth/login returns 429 after 6 bad attempts', async () => {
-    const { saveConfig } = await import('./auth/index.js');
-    const bcrypt = await import('bcryptjs');
-    const hash = await bcrypt.default.hash('pw', 10);
-    await saveConfig(app, { passwordHash: hash, adminUsername: 'admin' });
-
-    const backend = await startMockBackend((_req, res) => res.end('nope'));
+  it('/logout reverse-proxies to backend (no local handler)', async () => {
+    const backend = await startMockBackend((req, res) => {
+      if (req.url === '/logout' && req.method === 'POST') {
+        res.writeHead(200, {
+          'content-type': 'application/json',
+          'set-cookie': 'aionui-session=; Path=/; Max-Age=0',
+        });
+        res.end(JSON.stringify({ success: true, proxied: true }));
+        return;
+      }
+      res.writeHead(404).end();
+    });
     stopBackend = backend.close;
-    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: backend.port, port: 0 });
 
-    let last = 0;
-    for (let i = 0; i < 6; i++) {
-      const r = await fetch(`${handle.localUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ username: 'admin', password: 'wrong' }),
-      });
-      last = r.status;
-    }
-    expect(last).toBe(429);
+    const r = await fetch(`${handle.localUrl}/logout`, { method: 'POST' });
+    expect(r.status).toBe(200);
+    expect(r.headers.get('set-cookie')).toMatch(/Max-Age=0/);
   });
 
   it('/api proxy returns 502 when backend unreachable', async () => {
@@ -166,7 +159,7 @@ describe('static-server', () => {
     const freePort = placeholder.port;
     await placeholder.close();
 
-    handle = await startStaticServer({ staticDir, backendPort: freePort, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort: freePort, port: 0 });
     const r = await fetch(`${handle.localUrl}/api/anything`);
     expect(r.status).toBe(502);
   });
@@ -178,7 +171,6 @@ describe('static-server', () => {
       staticDir,
       backendPort: backend.port,
       port: 0,
-      app,
       allowRemote: false,
     });
     expect(h1.networkUrl).toBeUndefined();
@@ -188,7 +180,6 @@ describe('static-server', () => {
       staticDir,
       backendPort: backend.port,
       port: 0,
-      app,
       allowRemote: true,
     });
     // may still be undefined on CI machines without a LAN interface

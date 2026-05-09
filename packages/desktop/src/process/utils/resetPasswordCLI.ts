@@ -7,11 +7,7 @@
  * 打包应用的密码重置命令行工具
  */
 
-import { app } from 'electron';
-import { resetPassword } from '@aionui/web-host';
-import { getDataPath } from './utils';
-
-// 颜色输出 / Color output
+// Color output
 const colors = {
   reset: '\x1b[0m',
   bright: '\x1b[1m',
@@ -40,28 +36,28 @@ export function resolveResetPasswordUsername(argv: string[]): string {
   return argsAfterCommand.find((arg) => !arg.startsWith('--')) || 'admin';
 }
 
-/**
- * Reset password for a user (CLI mode, works in packaged apps)
- * 重置用户密码（CLI模式,在打包应用中可用）
- *
- * Backed by @aionui/web-host resetPassword (UC-3).
- */
+// index.ts:487 already started a backend for every mode including --resetpass,
+// so we reuse __backendPort instead of spawning a short-lived one. username arg
+// is advisory; backend operates on get_primary_webui_user() == system_default_user.
 export async function resetPasswordCLI(username: string): Promise<void> {
-  log.info(`Target user: ${username}`);
-
+  log.info(`Target user: ${username} (advisory — operates on system_default_user)`);
+  const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+  if (!port) {
+    log.error('Backend did not start — cannot reset password');
+    process.exit(1);
+  }
   try {
-    const newPassword = await resetPassword({
-      app: {
-        version: app.getVersion(),
-        isPackaged: app.isPackaged,
-        resourcesPath: app.getAppPath(),
-        // webui.config.json must live alongside the backend's SQLite DB so
-        // Electron-launched WebUI reads the same auth state whether you change
-        // the password via `--resetpass`, the settings toggle, or the browser.
-        // getDataPath() returns the CLI-safe symlink (~/.aionui[-dev]) on macOS.
-        userDataPath: getDataPath(),
-      },
+    const res = await fetch(`http://127.0.0.1:${port}/api/webui/reset-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
     });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`reset-password failed (${res.status}): ${body}`);
+    }
+    const payload = (await res.json()) as { data?: { new_password?: string } };
+    const newPassword = payload.data?.new_password;
+    if (!newPassword) throw new Error('reset-password returned no new_password');
     log.success('Password reset successfully.');
     log.info('New password:');
     log.highlight(newPassword);

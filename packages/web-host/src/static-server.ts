@@ -1,36 +1,24 @@
 /**
  * WebUI static server.
  *
- * Serves out/renderer/ as the SPA, proxies /api/* and /ws to the backend,
- * and handles /api/auth/login + /api/auth/logout locally via web-host auth.
+ * Serves out/renderer/ as the SPA and reverse-proxies /api/*, /ws, /login and
+ * /logout to aionui-backend. All auth goes to backend's aionui-auth crate;
+ * /login and /logout are aionui-auth's top-level paths, the rest live under
+ * /api/auth/*.
  *
- * Design: Node native http + serve-handler. No Express. No business routes
- * beyond the login pair — those ALL live in aionui-backend.
+ * Design: Node native http + serve-handler. No Express. No business routes.
  */
 
 import http, { type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import { networkInterfaces } from 'node:os';
 import net, { type Socket } from 'node:net';
 import serveHandler from 'serve-handler';
-import * as cookieRaw from 'cookie';
-import type { AppMetadata } from './types.js';
-
-// Type workaround: cookie@0.7 with @types/cookie@0.6 has resolution issues
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const cookie = cookieRaw as any as {
-  serialize: (name: string, val: string, options?: Record<string, unknown>) => string;
-  parse: (str: string) => Record<string, string | undefined>;
-};
-import { verifyPassword, loadConfig } from './auth/index.js';
-import { SESSION_COOKIE, createSession, verifySession, getSessionUsername } from './auth/session.js';
-import { RateLimiter } from './auth/rateLimiter.js';
 
 export type StaticServerOptions = {
   staticDir: string;
   backendPort: number;
   port?: number;
   allowRemote?: boolean;
-  app: AppMetadata;
 };
 
 export type StaticServerHandle = {
@@ -52,31 +40,6 @@ function getLanIP(): string | null {
     }
   }
   return null;
-}
-
-async function readBody(req: IncomingMessage, limitBytes = 1_000_000): Promise<Buffer> {
-  const chunks: Buffer[] = [];
-  let received = 0;
-  for await (const chunk of req) {
-    received += chunk.length;
-    if (received > limitBytes) throw new Error('BODY_TOO_LARGE');
-    chunks.push(chunk);
-  }
-  return Buffer.concat(chunks);
-}
-
-function buildCookieString(
-  name: string,
-  value: string,
-  opts: { maxAge: number; sameSite: 'strict' | 'lax'; httpOnly: boolean; path: string }
-): string {
-  return cookie.serialize(name, value, {
-    maxAge: Math.floor(opts.maxAge / 1000),
-    sameSite: opts.sameSite,
-    httpOnly: opts.httpOnly,
-    path: opts.path,
-    secure: false, // matches legacy local HTTP; M6 cookie options table is out of scope
-  });
 }
 
 function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
@@ -157,7 +120,6 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   const port = opts.port ?? DEFAULT_PORT;
   const allowRemote = opts.allowRemote === true;
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
-  const loginLimiter = new RateLimiter();
 
   const server: Server = http.createServer(async (req, res) => {
     try {
@@ -166,97 +128,20 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
         return;
       }
 
-      // 1. /api/auth/login — local
-      if (req.method === 'POST' && req.url === '/api/auth/login') {
-        const ip = req.socket.remoteAddress || 'unknown';
-        const limit = loginLimiter.attempt(ip);
-        if (!limit.allowed) {
-          res.writeHead(429, {
-            'content-type': 'application/json',
-            'retry-after': Math.ceil(limit.retryAfterMs / 1000).toString(),
-          });
-          res.end(JSON.stringify({ error: 'RATE_LIMITED' }));
-          return;
-        }
-        let body: { username?: string; password?: string };
-        try {
-          body = JSON.parse((await readBody(req)).toString('utf-8') || '{}');
-        } catch {
-          res.writeHead(400, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ error: 'BAD_REQUEST' }));
-          return;
-        }
-        const ok = await verifyPassword({ app: opts.app, password: body.password ?? '' });
-        if (!ok) {
-          res.writeHead(401, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ error: 'INVALID_CREDENTIALS' }));
-          return;
-        }
-        loginLimiter.reset(ip);
-        const cfg = await loadConfig(opts.app);
-        const username = body.username || cfg.adminUsername || 'admin';
-        const session = createSession({ username });
-        res.writeHead(200, {
-          'content-type': 'application/json',
-          'set-cookie': buildCookieString(SESSION_COOKIE.NAME, session.token, {
-            maxAge: SESSION_COOKIE.MAX_AGE_MS,
-            sameSite: allowRemote ? SESSION_COOKIE.SAME_SITE_REMOTE : SESSION_COOKIE.SAME_SITE_LOCAL,
-            httpOnly: SESSION_COOKIE.HTTP_ONLY,
-            path: SESSION_COOKIE.PATH,
-          }),
-        });
-        res.end(
-          JSON.stringify({
-            success: true,
-            user: { username, id: username },
-          })
-        );
-        return;
-      }
-
-      // 2a. /api/auth/user — answer from session cookie, don't hit backend.
-      // Backend's /api/auth/user requires a JWT we don't mint. Legacy webserver
-      // had middleware that translated session-cookie → user; web-host replicates
-      // that locally so the WebUI AuthProvider's refresh() works.
-      if (req.method === 'GET' && (req.url === '/api/auth/user' || req.url?.startsWith('/api/auth/user?'))) {
-        const parsed = cookie.parse(req.headers.cookie || '');
-        const token = parsed[SESSION_COOKIE.NAME];
-        const username = token ? getSessionUsername(token) : null;
-        if (!username) {
-          res.writeHead(401, { 'content-type': 'application/json' });
-          res.end(JSON.stringify({ success: false, error: 'UNAUTHENTICATED' }));
-          return;
-        }
-        res.writeHead(200, { 'content-type': 'application/json' });
-        res.end(JSON.stringify({ success: true, user: { username, id: username } }));
-        return;
-      }
-
-      // 2. /api/auth/logout — local
-      if (req.method === 'POST' && req.url === '/api/auth/logout') {
-        const parsed = cookie.parse(req.headers.cookie || '');
-        const token = parsed[SESSION_COOKIE.NAME];
-        if (token) verifySession(token); // no-op if invalid
-        res.writeHead(200, {
-          'content-type': 'application/json',
-          'set-cookie': buildCookieString(SESSION_COOKIE.NAME, '', {
-            maxAge: 0,
-            sameSite: allowRemote ? SESSION_COOKIE.SAME_SITE_REMOTE : SESSION_COOKIE.SAME_SITE_LOCAL,
-            httpOnly: SESSION_COOKIE.HTTP_ONLY,
-            path: SESSION_COOKIE.PATH,
-          }),
-        });
-        res.end(JSON.stringify({ success: true }));
-        return;
-      }
-
-      // 3. /api/* — reverse proxy to backend
-      if (req.url.startsWith('/api/') || req.url.startsWith('/api?')) {
+      // /api/* — reverse proxy to backend (includes /api/auth/*).
+      // /login and /logout are aionui-auth's top-level auth endpoints: proxy them too
+      // so WebUI browser clients reach the backend without a path-rewrite.
+      if (
+        req.url.startsWith('/api/') ||
+        req.url.startsWith('/api?') ||
+        req.url === '/login' ||
+        req.url === '/logout'
+      ) {
         forwardToBackend(req, res, opts.backendPort);
         return;
       }
 
-      // 4. static files + SPA fallback
+      // static files + SPA fallback
       await serveHandler(req, res, {
         public: opts.staticDir,
         rewrites: [{ source: '**', destination: '/index.html' }],

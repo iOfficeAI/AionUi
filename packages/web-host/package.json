@@ -2,7 +2,7 @@
   "name": "@aionui/web-host",
   "version": "0.0.0",
   "private": true,
-  "description": "WebUI host package - spawns backend, serves static files, handles auth (no Electron dependency)",
+  "description": "WebUI host package - spawns backend and reverse-proxies to it; serves static files (no Electron dependency)",
   "type": "module",
   "exports": {
     ".": "./src/index.ts"
@@ -12,13 +12,9 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cookie": "^0.7.0",
     "serve-handler": "^6.1.5"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^3.0.0",
-    "@types/cookie": "^0.6.0",
     "@types/node": "^22.10.2",
     "@types/serve-handler": "^6.1.4",
     "vitest": "^4.1.0"

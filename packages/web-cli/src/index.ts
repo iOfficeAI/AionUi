@@ -153,12 +153,6 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
       backendPort: 0, // invalid port → API proxy will fail cleanly
       port,
       allowRemote,
-      app: {
-        version,
-        isPackaged: true,
-        resourcesPath: cliRoot,
-        userDataPath: dataDir,
-      },
     });
     currentHandle = handle;
 
@@ -198,11 +192,6 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     console.log('AionUi WebUI is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
-    if (handle.initialPassword) {
-      console.log('');
-      console.log(`Initial admin password: ${handle.initialPassword}`);
-      console.log('(change it after first login)');
-    }
     console.log('');
     console.log('Press Ctrl+C to stop.');
   }

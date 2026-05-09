@@ -1,11 +1,8 @@
 import type { WebHostOptions, WebHostHandle } from './types.js';
 
-export type { AppMetadata, BackendBinaryResolver, WebHostOptions, WebHostHandle, WebUIConfig } from './types.js';
-export { resetPassword, changePassword, verifyPassword, loadConfig, saveConfig } from './auth/index.js';
+export type { AppMetadata, BackendBinaryResolver, WebHostOptions, WebHostHandle } from './types.js';
 export { startStaticServer, stopStaticServer } from './static-server.js';
 export type { StaticServerOptions, StaticServerHandle } from './static-server.js';
-export { SESSION_COOKIE } from './auth/session.js';
-export { RateLimiter, LOGIN_MAX_ATTEMPTS, LOGIN_WINDOW_MS } from './auth/rateLimiter.js';
 
 // Backend launcher exports (M4)
 export {
@@ -19,27 +16,18 @@ export {
 export type { BackendDirConfig, BackendLaunchOptions, BackendHandle } from './backend-launcher.js';
 
 /**
- * Start WebHost (main entry point)
- * Orchestrates backend-launcher (M4) + static-server (M5) + auth
+ * Start WebHost (main entry point).
+ *
+ * Orchestrates backend-launcher + static-server. web-host itself holds no
+ * persistent configuration — callers (Electron main process, `bun run webui`
+ * CLI) are responsible for resolving port / allowRemote from their own source
+ * of truth (Electron ProcessConfig, CLI flags, env vars).
  */
 export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle> {
-  const { readConfig } = await import('./auth/config.js');
-  const { resetPassword: resetAuthPassword } = await import('./auth/index.js');
   const { startBackend } = await import('./backend-launcher.js');
   const { startStaticServer } = await import('./static-server.js');
 
-  // 1. Load or initialize config
-  const config = await readConfig(opts.app);
-  let initialPassword: string | undefined;
-  if (!config.passwordHash) {
-    // First-run: generate random password
-    const password = await resetAuthPassword({ app: opts.app });
-    console.log(`[WebHost] Generated initial password: ${password}`);
-    initialPassword = password;
-    config.adminUsername = config.adminUsername || 'admin';
-  }
-
-  // 2. Start backend (M4)
+  // 1. Start backend (M4)
   let backendHandle;
   if (opts.backend.kind === 'ownBackend') {
     backendHandle = await startBackend({
@@ -61,13 +49,12 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
 
   let staticHandle;
   try {
-    // 3. Start static-server (M5)
+    // 2. Start static-server (M5)
     staticHandle = await startStaticServer({
       staticDir: opts.staticDir,
       backendPort: backendHandle.port,
-      port: opts.port ?? config.port,
-      allowRemote: opts.allowRemote ?? config.allowRemote ?? false,
-      app: opts.app,
+      port: opts.port,
+      allowRemote: opts.allowRemote ?? false,
     });
   } catch (err) {
     // If static-server fails, clean up backend
@@ -75,7 +62,7 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
     throw err;
   }
 
-  // 4. Return combined handle
+  // 3. Return combined handle
   return {
     port: staticHandle.port,
     backendPort: backendHandle.port,
@@ -83,7 +70,6 @@ export async function startWebHost(opts: WebHostOptions): Promise<WebHostHandle>
     localUrl: staticHandle.localUrl,
     networkUrl: staticHandle.networkUrl,
     lanIP: staticHandle.lanIP,
-    initialPassword,
     async stop() {
       await staticHandle.stop();
       await backendHandle.stop();
