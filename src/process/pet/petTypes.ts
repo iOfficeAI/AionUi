@@ -20,6 +20,7 @@ export const PET_STATES = [
   'juggling',
   'building',
   'carrying',
+  'focus',
 ] as const;
 
 export type PetState = (typeof PET_STATES)[number];
@@ -51,6 +52,7 @@ export const STATE_PRIORITY: Record<PetState, number> = {
   happy: 5,
   attention: 5,
   carrying: 4,
+  focus: 1,
   juggling: 4,
   building: 4,
   working: 3,

@@ -1,7 +1,16 @@
+interface PomodoroTick {
+  phase: 'idle' | 'focus' | 'break' | 'paused';
+  remainingMs: number;
+  totalMs: number;
+  label: string;
+  sub: string;
+}
+
 interface PetAPI {
   onStateChange: (cb: (state: string) => void) => void;
   onEyeMove: (cb: (data: { eyeDx: number; eyeDy: number; bodyDx: number; bodyRotate: number }) => void) => void;
   onResize: (cb: (size: number) => void) => void;
+  onPomodoroTick: (cb: (tick: PomodoroTick) => void) => void;
 }
 
 interface PetHitAPI {

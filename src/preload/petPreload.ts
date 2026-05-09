@@ -5,6 +5,7 @@
  */
 
 import { contextBridge, ipcRenderer } from 'electron';
+import type { PomodoroTick } from '../process/pet/pomodoroService';
 
 contextBridge.exposeInMainWorld('petAPI', {
   onStateChange: (cb: (state: string) => void) => {
@@ -15,5 +16,8 @@ contextBridge.exposeInMainWorld('petAPI', {
   },
   onResize: (cb: (size: number) => void) => {
     ipcRenderer.on('pet:resize', (_e, size: number) => cb(size));
+  },
+  onPomodoroTick: (cb: (tick: PomodoroTick) => void) => {
+    ipcRenderer.on('pet:pomodoro-tick', (_e, tick: PomodoroTick) => cb(tick));
   },
 });

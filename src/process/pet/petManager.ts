@@ -17,6 +17,7 @@ import {
   destroyPetConfirmManager,
   unhookPetConfirm,
 } from './petConfirmManager';
+import { PomodoroService } from './pomodoroService';
 import type { PetSize, PetState } from './petTypes';
 
 /**
@@ -44,7 +45,26 @@ let petHitWindow: BrowserWindow | null = null;
 let stateMachine: PetStateMachine | null = null;
 let idleTicker: PetIdleTicker | null = null;
 let eventBridge: PetEventBridge | null = null;
+let pomodoroService: PomodoroService | null = null;
+let mainWindowRef: BrowserWindow | null = null;
 let currentSize: PetSize = 280;
+
+/** Register the main window so the pet right-click menu can navigate it. */
+export const setPetMainWindow = (win: BrowserWindow): void => {
+  mainWindowRef = win;
+};
+
+/** Show and focus the main window, then dispatch a navigate event to it. */
+function navigateMainWindow(channel: string): void {
+  if (!mainWindowRef || mainWindowRef.isDestroyed()) return;
+  if (process.platform === 'darwin' && app.dock) {
+    void app.dock.show();
+  }
+  if (mainWindowRef.isMinimized()) mainWindowRef.restore();
+  mainWindowRef.show();
+  mainWindowRef.focus();
+  mainWindowRef.webContents.send(channel);
+}
 let dragTimer: ReturnType<typeof setInterval> | null = null;
 let dragWatchdog: ReturnType<typeof setTimeout> | null = null;
 let dragOffsetX = 0;
@@ -85,9 +105,15 @@ let lastHitIgnoreState = true;
 // (see src/index.ts) is honored even though createPetWindow itself is sync.
 let confirmBubbleEnabled = true;
 
-// States that should be restored after drag ends (AI activity / notifications).
+// States that should be restored after drag ends (AI activity / notifications / pomodoro focus).
 // User-interaction states (attention/poke/happy) and idle/sleep states are NOT restored.
-const RESTORABLE_STATES: ReadonlySet<PetState> = new Set<PetState>(['thinking', 'working', 'error', 'notification']);
+const RESTORABLE_STATES: ReadonlySet<PetState> = new Set<PetState>([
+  'thinking',
+  'working',
+  'error',
+  'notification',
+  'focus',
+]);
 
 /**
  * Create pet windows (rendering window + hit detection window).
@@ -190,6 +216,10 @@ export function createPetWindow(): void {
     }
   });
 
+  // Initialize pomodoro service
+  pomodoroService = new PomodoroService(petWindow, stateMachine, idleTicker);
+  pomodoroService.init().catch((err) => console.error('[Pet] PomodoroService init failed:', err));
+
   idleTicker.start();
   registerIpcHandlers();
   startHitIgnoreWatchdog();
@@ -218,6 +248,11 @@ export function destroyPetWindow(): void {
 
   // Destroy confirm manager
   destroyPetConfirmManager();
+
+  if (pomodoroService) {
+    pomodoroService.dispose();
+    pomodoroService = null;
+  }
 
   if (eventBridge) {
     eventBridge.dispose();
@@ -266,6 +301,10 @@ export function getEventBridge(): PetEventBridge | null {
 
 export function resizePetWindow(size: PetSize): void {
   resizePet(size);
+}
+
+export function getPomodoroService(): PomodoroService | null {
+  return pomodoroService;
 }
 
 export function setPetDndMode(dnd: boolean): void {
@@ -430,6 +469,9 @@ function registerIpcHandlers(): void {
     // 4+       → juggling (overwhelmed / flustered)
     // 3        → still poke — nothing interesting happens but we avoid the old
     //            error misfire; the next click bumps into the 4+ bucket.
+    // During pomodoro focus, single clicks expand the capsule only — don't change pet state.
+    if (pomodoroService?.getPhase() === 'focus' && data.count === 1) return;
+
     if (data.count >= 4) {
       stateMachine.requestState('juggling');
     } else if (data.count >= 2) {
@@ -439,10 +481,53 @@ function registerIpcHandlers(): void {
     }
   });
 
+  ipcMain.on('pet:pomodoro-action', (_event, action: string) => {
+    if (!pomodoroService) return;
+    if (action === 'start') pomodoroService.startFocus();
+    else if (action === 'stop') pomodoroService.stop();
+    else if (action === 'pause') pomodoroService.pause();
+    else if (action === 'resume') pomodoroService.resume();
+    else if (action === 'start-break') pomodoroService.startBreak();
+  });
+
   ipcMain.on('pet:context-menu', () => {
     if (!petHitWindow || petHitWindow.isDestroyed()) return;
 
     const sizeKeys = { 200: 'pet.sizeSmall', 280: 'pet.sizeMedium', 360: 'pet.sizeLarge' } as const;
+    const isActive = pomodoroService?.isActive() ?? false;
+    const phase = pomodoroService?.getPhase() ?? 'idle';
+    const pomodoroItems: Electron.MenuItemConstructorOptions[] = [
+      isActive
+        ? {
+            label: i18n.t('pet.pomodoroStop'),
+            click: () => pomodoroService?.stop(),
+          }
+        : {
+            label: i18n.t('pet.pomodoroStart'),
+            click: () => pomodoroService?.startFocus(),
+          },
+      ...(phase === 'focus'
+        ? [
+            {
+              label: i18n.t('pet.pomodoroPause'),
+              click: () => pomodoroService?.pause(),
+            } as Electron.MenuItemConstructorOptions,
+          ]
+        : []),
+      ...(phase === 'paused'
+        ? [
+            {
+              label: i18n.t('pet.pomodoroResume'),
+              click: () => pomodoroService?.resume(),
+            } as Electron.MenuItemConstructorOptions,
+          ]
+        : []),
+      {
+        label: i18n.t('pet.pomodoroSettings'),
+        click: () => navigateMainWindow('pet:navigate-to-pet-settings'),
+      },
+    ];
+
     const menu = Menu.buildFromTemplate([
       {
         label: i18n.t('pet.pat'),
@@ -453,6 +538,8 @@ function registerIpcHandlers(): void {
           }
         },
       },
+      { type: 'separator' },
+      ...pomodoroItems,
       { type: 'separator' },
       {
         label: i18n.t('pet.size'),
@@ -499,6 +586,7 @@ function unregisterIpcHandlers(): void {
   ipcMain.removeAllListeners('pet:click');
   ipcMain.removeAllListeners('pet:context-menu');
   ipcMain.removeAllListeners('pet:set-ignore-mouse-events');
+  ipcMain.removeAllListeners('pet:pomodoro-action');
 }
 
 // ---------------------------------------------------------------------------
@@ -671,6 +759,12 @@ function resizePet(size: PetSize): void {
   }
 }
 
+/**
+ * Enable/disable mouse event reception on the pet window for pomodoro capsule interaction.
+ * When active: petWindow receives mouse events; body has pointer-events:none in CSS so only
+ * the capsule/toast (pointer-events:auto) actually intercept — everything else click-throughs.
+ * When inactive: petWindow ignores all mouse events (default).
+ */
 function resetPosition(): void {
   if (!petWindow || petWindow.isDestroyed() || !petHitWindow || petHitWindow.isDestroyed()) return;
 

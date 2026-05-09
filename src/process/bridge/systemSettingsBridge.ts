@@ -203,4 +203,28 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  ipcBridge.systemSettings.getPomodoroFocusDuration.provider(async () => {
+    const ms = await ProcessConfig.get('pet.pomodoroFocusDuration');
+    return Math.round((ms ?? 25 * 60_000) / 60_000);
+  });
+
+  ipcBridge.systemSettings.setPomodoroFocusDuration.provider(async ({ minutes }) => {
+    const ms = minutes * 60_000;
+    await ProcessConfig.set('pet.pomodoroFocusDuration', ms);
+    const { getPomodoroService } = await import('@process/pet/petManager');
+    getPomodoroService()?.setFocusDuration(ms);
+  });
+
+  ipcBridge.systemSettings.getPomodoroBreakDuration.provider(async () => {
+    const ms = await ProcessConfig.get('pet.pomodoroBreakDuration');
+    return Math.round((ms ?? 5 * 60_000) / 60_000);
+  });
+
+  ipcBridge.systemSettings.setPomodoroBreakDuration.provider(async ({ minutes }) => {
+    const ms = minutes * 60_000;
+    await ProcessConfig.set('pet.pomodoroBreakDuration', ms);
+    const { getPomodoroService } = await import('@process/pet/petManager');
+    getPomodoroService()?.setBreakDuration(ms);
+  });
 }

@@ -196,6 +196,10 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Desktop Pet: pomodoro focus duration in milliseconds
+  'pet.pomodoroFocusDuration'?: number;
+  // Desktop Pet: pomodoro break duration in milliseconds
+  'pet.pomodoroBreakDuration'?: number;
 }
 
 export interface IEnvStorageRefer {

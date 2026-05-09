@@ -13,6 +13,9 @@ export const bindMainWindowReferences = (window: BrowserWindow): void => {
   setTrayMainWindow(window);
   setDeepLinkMainWindow(window);
   setApplicationMainWindow(window);
+  // Pet manager is dynamically imported, so we forward the reference asynchronously
+  // (best-effort — pet may not yet be loaded when main window opens).
+  void import('../pet/petManager').then(({ setPetMainWindow }) => setPetMainWindow(window));
 };
 
 export const showAndFocusMainWindow = (window: BrowserWindow): void => {

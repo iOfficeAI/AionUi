@@ -73,6 +73,7 @@ const trayEvents = [
   'tray:open-about',
   'tray:pause-all-tasks',
   'tray:check-update',
+  'pet:navigate-to-pet-settings',
 ];
 
 for (const channel of trayEvents) {

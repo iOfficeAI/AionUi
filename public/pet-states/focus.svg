@@ -1,0 +1,78 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .focus-body {
+        transform-origin: 11px 22px;
+        animation: focus-breathe 3.5s ease-in-out infinite;
+      }
+      .focus-hat {
+        transform-origin: 26.7px 17.4px;
+        animation: focus-hat-glow 3s ease-in-out infinite;
+      }
+      .focus-shadow {
+        transform-origin: 11px 22.5px;
+        animation: focus-shadow-pulse 3.5s ease-in-out infinite;
+      }
+      @keyframes focus-breathe {
+        0%,100% { transform: scaleY(1) scaleX(1); }
+        45%     { transform: scaleY(1.03) scaleX(0.98); }
+      }
+      @keyframes focus-hat-glow {
+        0%,100% { filter: drop-shadow(0 0 0 rgba(255,107,74,0)); }
+        50%     { filter: drop-shadow(0 0 5px rgba(255,107,74,0.6)); }
+      }
+      @keyframes focus-shadow-pulse {
+        0%,100% { transform: scaleX(1); opacity: 0.35; }
+        45%     { transform: scaleX(1.03); opacity: 0.4; }
+      }
+    </style>
+  </defs>
+  <!-- shadow (in idle coordinate system) -->
+  <ellipse class="focus-shadow" cx="11" cy="22.5" rx="4" ry="0.6" fill="#c0c0c0"/>
+  <g class="idle-track">
+    <g class="focus-body">
+      <!-- Demo uses 0..51 × 0..56 coordinates with body center at (26.65, 31.65).
+           Map to idle system where body center is (11, 12) with 12×12 body:
+           scale = 12/29.1 ≈ 0.412, then translate so (26.65, 31.65) → (11, 12). -->
+      <g transform="translate(11 12) scale(0.412) translate(-26.65 -31.65)">
+        <!-- body -->
+        <rect x="12.1" y="17.1" width="29.1" height="29.1" rx="14.6" fill="#97A0C5"/>
+        <!-- left arm -->
+        <rect x="7" y="31" width="7.3" height="7.3" rx="3.6" fill="#97A0C5" fill-opacity="0.7"/>
+        <!-- right arm -->
+        <rect x="39" y="30" width="6" height="6" rx="3" fill="#97A0C5" fill-opacity="0.7"/>
+        <!-- clock body (on right arm) -->
+        <circle cx="44" cy="37" r="4.5" fill="white" stroke="#97A0C5" stroke-width="0.8"/>
+        <circle cx="44" cy="37" r="3.8" fill="#f5f5f5"/>
+        <circle cx="41.2" cy="33.2" r="1" fill="#97A0C5"/>
+        <circle cx="46.8" cy="33.2" r="1" fill="#97A0C5"/>
+        <line x1="44" y1="37" x2="44" y2="34.2" stroke="#555" stroke-width="0.7" stroke-linecap="round"/>
+        <line x1="44" y1="37" x2="46" y2="37.8" stroke="#555" stroke-width="0.7" stroke-linecap="round"/>
+        <circle cx="44" cy="37" r="0.5" fill="#555"/>
+        <!-- eye -->
+        <path d="M20 30H28" stroke="black" stroke-width="2" stroke-linecap="round"/>
+        <!-- mouth — SMIL animation morphs between big smile and relaxed smile -->
+        <path stroke="black" stroke-width="2" stroke-linecap="round" fill="none"
+              d="M18 36C20.9 42.2 29.7 42.2 32.6 36">
+          <animate attributeName="d" dur="4s" repeatCount="indefinite"
+                   values="M18 36C20.9 42.2 29.7 42.2 32.6 36;
+                           M20 37.5C22 40 28.5 40 30.5 37.5;
+                           M18 36C20.9 42.2 29.7 42.2 32.6 36"
+                   keyTimes="0;0.5;1"
+                   calcMode="spline"
+                   keySplines="0.42 0 0.58 1;0.42 0 0.58 1"/>
+        </path>
+        <!-- tomato hat -->
+        <g class="focus-hat">
+          <ellipse cx="26.7" cy="17.4" rx="9.3" ry="7.7" fill="#ff6b4a"/>
+          <path d="M21.8 6L28.4 9.3L24.9 12.2Z" fill="#7ebd5a"/>
+          <path d="M33.1 14.1L26.2 11.7L29.2 8.4Z" fill="#7ebd5a"/>
+          <path d="M32.6 6.7L28.9 12L24.9 10.2Z" fill="#7ebd5a"/>
+          <path d="M20.7 13.9L25.2 9.3L29 11.2Z" fill="#7ebd5a"/>
+          <ellipse cx="30.9" cy="15.6" rx="2.5" ry="1.9" fill="#ffa78e" fill-opacity="0.4"/>
+          <path d="M23.3 16.2C25.4 14.1 28.8 14.1 30.9 16.2" stroke="#d75e40" stroke-width="1" fill="none" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

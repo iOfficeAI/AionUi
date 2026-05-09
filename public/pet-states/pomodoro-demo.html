@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="zh">
+  <head>
+    <meta charset="UTF-8" />
+    <title>AionUi Pet · Pomodoro Final</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #1a1b2e;
+        min-height: 100vh;
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        color: #fff;
+        padding: 32px 16px;
+      }
+      header {
+        max-width: 760px;
+        margin: 0 auto 28px;
+        text-align: center;
+      }
+      h1 {
+        font-size: 14px;
+        letter-spacing: 3px;
+        text-transform: uppercase;
+        opacity: 0.5;
+        margin-bottom: 10px;
+      }
+      header p {
+        font-size: 13px;
+        line-height: 1.7;
+        opacity: 0.65;
+      }
+
+      .wrap {
+        max-width: 760px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(255, 255, 255, 0.06);
+        border-radius: 16px;
+        padding: 32px;
+      }
+
+      .scene {
+        position: relative;
+        width: 100%;
+        aspect-ratio: 1.3;
+        background: #2d2d3a;
+        border-radius: 12px;
+        overflow: visible;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 28px;
+        transition: background 0.3s;
+      }
+      body.light-scene .scene {
+        background: #f0efe8;
+      }
+
+      .pet {
+        width: 200px;
+        height: 200px;
+        position: relative;
+        overflow: visible;
+        filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.2));
+        cursor: pointer;
+      }
+      .pet svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      .hat-glow {
+        animation: hat-glow 3s ease-in-out infinite;
+      }
+      .pet svg {
+        animation: breathe 3.5s ease-in-out infinite;
+        transform-origin: center bottom;
+      }
+      @keyframes breathe {
+        0%,
+        100% {
+          transform: scaleY(1) scaleX(1);
+        }
+        45% {
+          transform: scaleY(1.03) scaleX(0.98);
+        }
+      }
+      .particle {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+      }
+      @keyframes float-1 {
+        0%,
+        100% {
+          transform: translate(0, 0);
+          opacity: 0.15;
+        }
+        50% {
+          transform: translate(6px, -18px);
+          opacity: 0.7;
+        }
+      }
+      @keyframes float-2 {
+        0%,
+        100% {
+          transform: translate(0, 0);
+          opacity: 0.1;
+        }
+        50% {
+          transform: translate(-8px, -22px);
+          opacity: 0.6;
+        }
+      }
+      @keyframes float-3 {
+        0%,
+        100% {
+          transform: translate(0, 0);
+          opacity: 0.2;
+        }
+        50% {
+          transform: translate(4px, -14px);
+          opacity: 0.5;
+        }
+      }
+      @keyframes float-4 {
+        0%,
+        100% {
+          transform: translate(0, 0);
+          opacity: 0.1;
+        }
+        50% {
+          transform: translate(-5px, -20px);
+          opacity: 0.65;
+        }
+      }
+      @keyframes float-5 {
+        0%,
+        100% {
+          transform: translate(0, 0);
+          opacity: 0.15;
+        }
+        50% {
+          transform: translate(10px, -16px);
+          opacity: 0.55;
+        }
+      }
+      @keyframes hat-glow {
+        0%,
+        100% {
+          filter: drop-shadow(0 0 0 rgba(255, 107, 74, 0));
+        }
+        50% {
+          filter: drop-shadow(0 0 5px rgba(255, 107, 74, 0.6));
+        }
+      }
+      /* =========================================================
+         收起态 · 方案 1 · 小丸子（原样）
+         ========================================================= */
+      .capsule-collapsed {
+        position: absolute;
+        bottom: 218px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.98);
+        color: #1d2129;
+        border-radius: 14px;
+        padding: 5px 10px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 11px;
+        font-weight: 500;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        white-space: nowrap;
+        cursor: pointer;
+        user-select: none;
+        z-index: 10;
+        animation: cap-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .capsule-collapsed .dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: #ef5f3c;
+        animation: dot-pulse 1.5s infinite;
+      }
+      .capsule-collapsed .time {
+        font-variant-numeric: tabular-nums;
+        font-weight: 600;
+      }
+      .capsule-collapsed.break .dot {
+        background: #22c55e;
+      }
+      @keyframes dot-pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.3;
+        }
+      }
+      @keyframes cap-in {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(4px) scale(0.9);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0) scale(1);
+        }
+      }
+
+      /* =========================================================
+         展开态 · 方案 2 · 侧边圆环 expanded（原样）
+         ========================================================= */
+      .ring-pod.expanded {
+        position: absolute;
+        bottom: 218px;
+        right: 50%;
+        transform: translateX(50%);
+        background: white;
+        color: #1d2129;
+        border-radius: 20px;
+        padding: 8px 14px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 12px;
+        box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+        cursor: pointer;
+        user-select: none;
+        z-index: 10;
+        animation: cap-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .ring-pod.expanded svg {
+        width: 24px;
+        height: 24px;
+      }
+      .ring-bg {
+        fill: none;
+        stroke: #f0f0f0;
+        stroke-width: 3;
+      }
+      .ring-fg {
+        fill: none;
+        stroke: #ef5f3c;
+        stroke-width: 3;
+        stroke-linecap: round;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+        transition: stroke-dashoffset 0.6s ease-out;
+      }
+      .ring-pod.break .ring-fg {
+        stroke: #22c55e;
+      }
+      .ring-pod.expanded .mini {
+        fill: #ef5f3c;
+        font:
+          600 8px system-ui,
+          sans-serif;
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+      .ring-pod.break.expanded .mini {
+        fill: #22c55e;
+      }
+      .ring-pod.expanded .txt-col {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.3;
+      }
+      .ring-pod.expanded .label {
+        font-weight: 600;
+      }
+      .ring-pod.expanded .sub {
+        font-size: 10px;
+        opacity: 0.6;
+      }
+      .ring-pod.expanded .close {
+        border: none;
+        background: transparent;
+        font-size: 14px;
+        color: #86909c;
+        cursor: pointer;
+        padding: 0 4px;
+      }
+
+      /* ====== Done toast ====== */
+      .toast {
+        position: absolute;
+        bottom: 18px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(255, 255, 255, 0.97);
+        color: #1d2129;
+        padding: 8px 10px 8px 14px;
+        border-radius: 14px;
+        font-size: 12px;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        white-space: nowrap;
+        animation: toast-in 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+      }
+      .toast button {
+        border: none;
+        padding: 5px 12px;
+        border-radius: 8px;
+        background: #ef5f3c;
+        color: white;
+        font-size: 11px;
+        cursor: pointer;
+        font-weight: 500;
+      }
+      .toast button.break-btn {
+        background: #22c55e;
+      }
+      .toast button.ghost {
+        background: transparent;
+        color: #86909c;
+        padding: 5px 6px;
+        font-size: 16px;
+      }
+      @keyframes toast-in {
+        from {
+          opacity: 0;
+          transform: translateX(-50%) translateY(6px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
+        }
+      }
+
+      /* ====== Controls ====== */
+      .controls {
+        display: flex;
+        gap: 8px;
+        justify-content: center;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
+      .controls button {
+        background: rgba(255, 255, 255, 0.08);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        color: white;
+        padding: 7px 14px;
+        border-radius: 6px;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s;
+        letter-spacing: 0.5px;
+      }
+      .controls button:hover {
+        background: rgba(255, 255, 255, 0.14);
+      }
+      .controls button.active {
+        background: #ef5f3c;
+        border-color: #ef5f3c;
+      }
+
+      .hint {
+        text-align: center;
+        font-size: 11px;
+        opacity: 0.45;
+        margin-top: 12px;
+        letter-spacing: 0.5px;
+      }
+
+      .theme-toggle {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        color: white;
+        padding: 8px 14px;
+        border-radius: 20px;
+        font-size: 12px;
+        cursor: pointer;
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body class="dark-scene">
+    <button class="theme-toggle" onclick="toggleTheme()">切换浅色背景</button>
+
+    <header>
+      <h1>AionUi Pet · Pomodoro</h1>
+      <p>番茄帽（带花纹）+ 方案1收起态 ↔ 方案2展开态<br />点宠物或胶囊切换</p>
+    </header>
+
+    <div class="wrap">
+      <div class="scene" id="scene">
+        <!-- ambient particles -->
+        <div
+          class="particle"
+          style="
+            width: 6px;
+            height: 6px;
+            background: #ff6b4a;
+            filter: blur(3px);
+            left: 32%;
+            bottom: 28%;
+            animation: float-1 4s ease-in-out infinite;
+          "
+        ></div>
+        <div
+          class="particle"
+          style="
+            width: 5px;
+            height: 5px;
+            background: #b9c3eb;
+            filter: blur(2px);
+            left: 60%;
+            bottom: 32%;
+            animation: float-2 5s ease-in-out infinite 0.8s;
+          "
+        ></div>
+        <div
+          class="particle"
+          style="
+            width: 4px;
+            height: 4px;
+            background: #ff6b4a;
+            filter: blur(2px);
+            left: 48%;
+            bottom: 42%;
+            animation: float-3 3.5s ease-in-out infinite 1.2s;
+          "
+        ></div>
+        <div
+          class="particle"
+          style="
+            width: 7px;
+            height: 7px;
+            background: #97a0c5;
+            filter: blur(3px);
+            left: 65%;
+            bottom: 25%;
+            animation: float-4 4.5s ease-in-out infinite 0.4s;
+          "
+        ></div>
+        <div
+          class="particle"
+          style="
+            width: 4px;
+            height: 4px;
+            background: #ff6b4a;
+            filter: blur(2px);
+            left: 28%;
+            bottom: 38%;
+            animation: float-5 3.8s ease-in-out infinite 2s;
+          "
+        ></div>
+        <div id="capsule-slot"></div>
+        <div class="pet" id="pet" onclick="toggleExpanded()"></div>
+      </div>
+
+      <div class="controls">
+        <button onclick="setPhase('idle')" id="b-idle">空闲（无胶囊）</button>
+        <button onclick="setPhase('focus')" class="active" id="b-focus">专注中</button>
+        <button onclick="setPhase('break')" id="b-break">休息中</button>
+        <button onclick="setPhase('done')" id="b-done">完成</button>
+      </div>
+      <div class="hint">· 点宠物身体或胶囊可切换收起/展开 ·</div>
+    </div>
+
+    <script>
+      function petSvg() {
+        // Scale factor: original viewBox 51×56 → 22×22 (scale ≈ 0.4)
+        // But tomato hat region is roughly y:0~17 in original, so we keep 22×22 and scale proportionally
+        return `
+          <svg viewBox="0 0 51 56" xmlns="http://www.w3.org/2000/svg">
+            <!-- shadow -->
+            <ellipse cx="26.7" cy="53" rx="9" ry="1.5" fill="#c0c0c0" opacity="0.4"/>
+            <!-- body -->
+            <rect x="12.1" y="17.1" width="29.1" height="29.1" rx="14.6" fill="#97A0C5"/>
+            <!-- left arm -->
+            <rect x="7" y="31" width="7.3" height="7.3" rx="3.6" fill="#97A0C5" fill-opacity="0.7"/>
+            <!-- right arm -->
+            <rect x="39" y="30" width="6" height="6" rx="3" fill="#97A0C5" fill-opacity="0.7"/>
+            <!-- clock body -->
+            <circle cx="44" cy="37" r="4.5" fill="white" stroke="#97A0C5" stroke-width="0.8"/>
+            <circle cx="44" cy="37" r="3.8" fill="#f5f5f5"/>
+            <!-- clock bells -->
+            <circle cx="41.2" cy="33.2" r="1" fill="#97A0C5"/>
+            <circle cx="46.8" cy="33.2" r="1" fill="#97A0C5"/>
+            <!-- clock hands -->
+            <line x1="44" y1="37" x2="44" y2="34.2" stroke="#555" stroke-width="0.7" stroke-linecap="round"/>
+            <line x1="44" y1="37" x2="46" y2="37.8" stroke="#555" stroke-width="0.7" stroke-linecap="round"/>
+            <!-- clock center dot -->
+            <circle cx="44" cy="37" r="0.5" fill="#555"/>
+            <!-- eye (single square, centered) -->
+            <path d="M20 30H28" stroke="black" stroke-width="2" stroke-linecap="round"/>
+            <!-- mouth -->
+            <path id="pet-mouth" d="M18 36C20.9 42.2 29.7 42.2 32.6 36" stroke="black" stroke-width="2" stroke-linecap="round" fill="none"/>
+            <!-- tomato hat -->
+            <g class="hat-glow">
+              <!-- tomato body (ellipse, as in original) -->
+              <ellipse cx="26.7" cy="17.4" rx="9.3" ry="7.7" fill="#ff6b4a"/>
+              <!-- leaves -->
+              <path d="M21.8 6L28.4 9.3L24.9 12.2Z" fill="#7ebd5a"/>
+              <path d="M33.1 14.1L26.2 11.7L29.2 8.4Z" fill="#7ebd5a"/>
+              <path d="M32.6 6.7L28.9 12L24.9 10.2Z" fill="#7ebd5a"/>
+              <path d="M20.7 13.9L25.2 9.3L29 11.2Z" fill="#7ebd5a"/>
+              <!-- highlight -->
+              <ellipse cx="30.9" cy="15.6" rx="2.5" ry="1.9" fill="#ffa78e" fill-opacity="0.4"/>
+              <!-- crease -->
+              <path d="M23.3 16.2C25.4 14.1 28.8 14.1 30.9 16.2" stroke="#d75e40" stroke-width="1" fill="none" stroke-linecap="round"/>
+            </g>
+          </svg>`;
+      }
+      document.getElementById('pet').innerHTML = petSvg();
+
+      // mouth morph with smooth interpolation
+      // each mouth defined as [x0,y0, cx1,cy1, cx2,cy2, x1,y1] for cubic bezier
+      const MOUTH_KEYFRAMES = [
+        [18, 36, 20.9, 42.2, 29.7, 42.2, 32.6, 36], // big smile
+        [20, 37.5, 22, 40, 28.5, 40, 30.5, 37.5], // relaxed
+      ];
+      function toPath(p) {
+        return `M${p[0]} ${p[1]}C${p[2]} ${p[3]} ${p[4]} ${p[5]} ${p[6]} ${p[7]}`;
+      }
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+      function easeInOut(t) {
+        return t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+      }
+
+      let mouthFrom = MOUTH_KEYFRAMES[0];
+      let mouthTo = MOUTH_KEYFRAMES[1];
+      let mouthT = 0;
+      let mouthDir = 1;
+      const MOUTH_SPEED = 0.008; // per frame (~60fps → ~2s per transition)
+
+      function tickMouth() {
+        mouthT += MOUTH_SPEED * mouthDir;
+        if (mouthT >= 1) {
+          mouthT = 1;
+          mouthDir = -1;
+        }
+        if (mouthT <= 0) {
+          mouthT = 0;
+          mouthDir = 1;
+        }
+        const e = easeInOut(mouthT);
+        const p = mouthFrom.map((v, i) => lerp(v, mouthTo[i], e));
+        const el = document.getElementById('pet-mouth');
+        if (el) el.setAttribute('d', toPath(p));
+        requestAnimationFrame(tickMouth);
+      }
+      requestAnimationFrame(tickMouth);
+
+      let phase = 'focus';
+      let expanded = false;
+
+      const TOTAL = 25;
+      const REMAINING = 22;
+      const remainMm = '22';
+      const remainSs = '14';
+      const RING_R = 12;
+      const RING_CIRC = 2 * Math.PI * RING_R;
+      const RING_OFFSET = RING_CIRC * (1 - REMAINING / TOTAL);
+
+      function render() {
+        const slot = document.getElementById('capsule-slot');
+        document.querySelectorAll('.controls button').forEach((b) => b.classList.remove('active'));
+        document.getElementById('b-' + phase).classList.add('active');
+
+        if (phase === 'idle') {
+          slot.innerHTML = '';
+          return;
+        }
+
+        if (phase === 'done') {
+          slot.innerHTML = `
+            <div class="toast">
+              <span>🎉 专注完成！</span>
+              <button class="break-btn" onclick="setPhase('break')">休息</button>
+              <button onclick="setPhase('focus')">再来</button>
+              <button class="ghost" onclick="setPhase('idle')">×</button>
+            </div>`;
+          return;
+        }
+
+        const isBreak = phase === 'break';
+        const breakCls = isBreak ? 'break' : '';
+        const label = isBreak ? '休息中' : '专注中';
+        const sub = isBreak ? '剩余 04:14' : `剩余 ${remainMm}:${remainSs}`;
+        const miniTime = isBreak ? '04:14' : `${remainMm}:${remainSs}`;
+
+        if (expanded) {
+          // 方案 2 · 展开态（原样）
+          slot.innerHTML = `
+            <div class="ring-pod expanded ${breakCls}" onclick="event.stopPropagation(); toggleExpanded()">
+              <svg viewBox="0 0 32 32">
+                <circle class="ring-bg" cx="16" cy="16" r="${RING_R}"/>
+                <circle class="ring-fg" cx="16" cy="16" r="${RING_R}" stroke-dasharray="${RING_CIRC}" stroke-dashoffset="${RING_OFFSET}"/>
+                <text class="mini" x="16" y="17.5">${REMAINING}</text>
+              </svg>
+              <div class="txt-col">
+                <div class="label">${label}</div>
+                <div class="sub">${sub}</div>
+              </div>
+              <button class="close" onclick="event.stopPropagation();setPhase('idle')">×</button>
+            </div>`;
+        } else {
+          // 方案 1 · 收起态（原样）
+          slot.innerHTML = `
+            <div class="capsule-collapsed ${breakCls}" onclick="event.stopPropagation(); toggleExpanded()">
+              <span class="dot"></span>
+              <span class="time">${miniTime}</span>
+            </div>`;
+        }
+      }
+
+      function setPhase(p) {
+        phase = p;
+        if (p === 'idle' || p === 'done') expanded = false;
+        render();
+      }
+
+      function toggleExpanded() {
+        if (phase !== 'focus' && phase !== 'break') return;
+        expanded = !expanded;
+        render();
+      }
+
+      function toggleTheme() {
+        document.body.classList.toggle('dark-scene');
+        document.body.classList.toggle('light-scene');
+        const isDark = document.body.classList.contains('dark-scene');
+        document.querySelector('.theme-toggle').textContent = isDark ? '切换浅色背景' : '切换深色背景';
+      }
+
+      render();
+    </script>
+  </body>
+</html>

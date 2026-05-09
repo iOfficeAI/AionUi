@@ -5,7 +5,7 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Radio, Switch } from '@arco-design/web-react';
+import { Radio, Select, Switch } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { systemSettings } from '@/common/adapter/ipcBridge';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -19,6 +19,8 @@ const PetSettings: React.FC = () => {
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [focusMinutes, setFocusMinutes] = useState(25);
+  const [breakMinutes, setBreakMinutes] = useState(5);
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -53,6 +55,17 @@ const PetSettings: React.FC = () => {
       .catch(() => {});
   }, []);
 
+  useEffect(() => {
+    systemSettings.getPomodoroFocusDuration
+      .invoke()
+      .then(setFocusMinutes)
+      .catch(() => {});
+    systemSettings.getPomodoroBreakDuration
+      .invoke()
+      .then(setBreakMinutes)
+      .catch(() => {});
+  }, []);
+
   const handleEnabledChange = useCallback((checked: boolean) => {
     setEnabled(checked);
     systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
@@ -83,6 +96,16 @@ const PetSettings: React.FC = () => {
     systemSettings.setPetConfirmEnabled.invoke({ enabled: checked }).catch(() => {
       setConfirmEnabled(!checked);
     });
+  }, []);
+
+  const handleFocusMinutesChange = useCallback((val: number) => {
+    setFocusMinutes(val);
+    systemSettings.setPomodoroFocusDuration.invoke({ minutes: val }).catch(() => {});
+  }, []);
+
+  const handleBreakMinutesChange = useCallback((val: number) => {
+    setBreakMinutes(val);
+    systemSettings.setPomodoroBreakDuration.invoke({ minutes: val }).catch(() => {});
   }, []);
 
   if (!isDesktop) {
@@ -130,6 +153,9 @@ const PetSettings: React.FC = () => {
     },
   ];
 
+  const focusOptions = [15, 20, 25, 30, 45, 60].map((m) => ({ label: `${m} ${t('pet.pomodoroMinutes')}`, value: m }));
+  const breakOptions = [5, 10, 15, 20].map((m) => ({ label: `${m} ${t('pet.pomodoroMinutes')}`, value: m }));
+
   return (
     <SettingsPageWrapper>
       <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
@@ -141,6 +167,28 @@ const PetSettings: React.FC = () => {
                   {item.component}
                 </PreferenceRow>
               ))}
+            </div>
+          </div>
+          <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('pet.pomodoroFocusDurationLabel')}>
+                <Select
+                  value={focusMinutes}
+                  onChange={handleFocusMinutesChange}
+                  options={focusOptions}
+                  style={{ width: 120 }}
+                  disabled={!enabled}
+                />
+              </PreferenceRow>
+              <PreferenceRow label={t('pet.pomodoroBreakDurationLabel')}>
+                <Select
+                  value={breakMinutes}
+                  onChange={handleBreakMinutesChange}
+                  options={breakOptions}
+                  style={{ width: 120 }}
+                  disabled={!enabled}
+                />
+              </PreferenceRow>
             </div>
           </div>
         </div>

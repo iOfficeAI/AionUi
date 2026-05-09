@@ -329,12 +329,17 @@ const Layout: React.FC<{
       }, 100);
     };
 
+    const handleNavigateToPetSettings = () => {
+      void navigate('/settings/pet');
+    };
+
     // Listen for tray events / 监听托盘事件
     window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
     window.addEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
     window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
     window.addEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
     window.addEventListener('tray:check-update', handleCheckUpdate as EventListener);
+    window.addEventListener('pet:navigate-to-pet-settings', handleNavigateToPetSettings as EventListener);
 
     return () => {
       window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
@@ -342,6 +347,7 @@ const Layout: React.FC<{
       window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
       window.removeEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
       window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
+      window.removeEventListener('pet:navigate-to-pet-settings', handleNavigateToPetSettings as EventListener);
     };
   }, [navigate]);
 
