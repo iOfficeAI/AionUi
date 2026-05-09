@@ -38,6 +38,17 @@ const PROVIDER_CAPABILITY_RULES: Record<string, Record<ModelType, boolean | null
     rerank: false,
     excludeFromPrimary: false,
   },
+  qiniu: {
+    text: true,
+    vision: null,
+    function_calling: true,
+    image_generation: false,
+    web_search: false,
+    reasoning: null,
+    embedding: false,
+    rerank: false,
+    excludeFromPrimary: false,
+  },
 };
 
 /**

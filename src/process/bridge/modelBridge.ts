@@ -296,6 +296,40 @@ export function initModelBridge(): void {
       }
     }
 
+    // Qiniu Cloud OpenAI-compatible gateway
+    if (platform === 'qiniu') {
+      if (!actualApiKey) {
+        return { success: false, msg: 'API key is required. Please configure your API key in settings.' };
+      }
+
+      let openaiBaseUrl = base_url?.replace(/\/+$/, '') || '';
+      if (!openaiBaseUrl) {
+        openaiBaseUrl = 'https://api.qnaigc.com/v1';
+      } else if (!openaiBaseUrl.endsWith('/v1')) {
+        openaiBaseUrl = `${openaiBaseUrl}/v1`;
+      }
+
+      try {
+        const openai = new OpenAI({
+          baseURL: openaiBaseUrl,
+          apiKey: actualApiKey,
+          defaultHeaders: {
+            'User-Agent': 'AionUI/1.0',
+          },
+        });
+
+        const res = await openai.models.list();
+        if (res.data?.length === 0) {
+          throw new Error('Invalid response: empty data');
+        }
+        return { success: true, data: { mode: res.data.map((v) => v.id) } };
+      } catch (e: unknown) {
+        const message = e instanceof Error ? e.message : String(e);
+        console.warn('[ModelBridge] Failed to fetch Qiniu models via API, falling back:', message);
+        return { success: true, data: { mode: ['deepseek-v3'] } };
+      }
+    }
+
     // 如果是 AWS Bedrock 平台，使用 AWS API 动态获取模型列表
     // For AWS Bedrock platform, use AWS API to dynamically fetch model list
     if (platform?.includes('bedrock') && bedrockConfig?.region) {

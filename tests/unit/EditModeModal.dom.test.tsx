@@ -70,6 +70,7 @@ vi.mock('@/renderer/assets/logos/ai-cloud/infiniai.svg', () => ({ default: 'infi
 vi.mock('@/renderer/assets/logos/ai-cloud/ctyun.svg', () => ({ default: 'ctyun.svg' }));
 vi.mock('@/renderer/assets/logos/ai-china/stepfun.svg', () => ({ default: 'stepfun.svg' }));
 vi.mock('@/renderer/assets/logos/ai-cloud/newapi.svg', () => ({ default: 'newapi.svg' }));
+vi.mock('@/renderer/assets/logos/ai-cloud/qiniu.svg', () => ({ default: 'qiniu.svg' }));
 
 // Track unhandled rejections
 let unhandledRejection: Error | undefined;

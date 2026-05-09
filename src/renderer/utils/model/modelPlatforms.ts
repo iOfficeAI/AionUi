@@ -37,12 +37,20 @@ import MiniMaxLogo from '@/renderer/assets/logos/ai-china/minimax.png';
 import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
 import NovitaLogo from '@/renderer/assets/logos/ai-cloud/novita.svg';
 import PPIOLogo from '@/renderer/assets/logos/ai-cloud/ppio.svg';
+import QiniuLogo from '@/renderer/assets/logos/ai-cloud/qiniu.svg';
 
 /**
  * 平台类型
  * Platform type
  */
-export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api' | 'bedrock';
+export type PlatformType =
+  | 'gemini'
+  | 'gemini-vertex-ai'
+  | 'anthropic'
+  | 'custom'
+  | 'new-api'
+  | 'bedrock'
+  | 'qiniu';
 
 /**
  * 模型平台配置接口
@@ -191,6 +199,13 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     logo: BaiduLogo,
     platform: 'custom',
     baseUrl: 'https://qianfan.baidubce.com/v2',
+  },
+  {
+    name: 'Qiniu',
+    value: 'Qiniu',
+    logo: QiniuLogo,
+    platform: 'qiniu',
+    baseUrl: 'https://api.qnaigc.com/v1',
   },
   {
     name: 'Hunyuan',

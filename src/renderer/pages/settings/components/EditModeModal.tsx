@@ -30,6 +30,7 @@ import InfiniAILogo from '@/renderer/assets/logos/ai-cloud/infiniai.svg';
 import CtyunLogo from '@/renderer/assets/logos/ai-cloud/ctyun.svg';
 import StepFunLogo from '@/renderer/assets/logos/ai-china/stepfun.svg';
 import NewApiLogo from '@/renderer/assets/logos/ai-cloud/newapi.svg';
+import QiniuLogo from '@/renderer/assets/logos/ai-cloud/qiniu.svg';
 
 /**
  * 供应商配置（包含名称、URL、Logo）
@@ -53,6 +54,7 @@ const PROVIDER_CONFIGS = [
   { name: 'xAI', url: 'https://api.x.ai/v1', logo: XaiLogo },
   { name: 'Ark', url: 'https://ark.cn-beijing.volces.com/api/v3', logo: VolcengineLogo },
   { name: 'Qianfan', url: 'https://qianfan.baidubce.com/v2', logo: BaiduLogo },
+  { name: 'Qiniu', url: 'https://api.qnaigc.com/v1', logo: QiniuLogo, platform: 'qiniu' },
   { name: 'Hunyuan', url: 'https://api.hunyuan.cloud.tencent.com/v1', logo: TencentLogo },
   { name: 'Lingyi', url: 'https://api.lingyiwanwu.com/v1', logo: LingyiLogo },
   { name: 'Poe', url: 'https://api.poe.com/v1', logo: PoeLogo },

@@ -124,4 +124,36 @@ describe('fetchModelList', () => {
       expect(result.msg).toBe('Connection refused');
     });
   });
+
+  describe('Qiniu gateway', () => {
+    const fetchModelList = (args: any) => handlers.fetchModelList(args);
+
+    it('falls back to deepseek-v3 when models.list fails', async () => {
+      mockModelsList.mockRejectedValueOnce(new Error('network error'));
+
+      const result = await fetchModelList({
+        platform: 'qiniu',
+        base_url: 'https://api.qnaigc.com/v1',
+        api_key: 'test-key',
+        try_fix: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.mode).toEqual(['deepseek-v3']);
+    });
+
+    it('returns models from API when listing succeeds', async () => {
+      mockModelsList.mockResolvedValueOnce({ data: [{ id: 'deepseek-v3' }, { id: 'gpt-4o' }] });
+
+      const result = await fetchModelList({
+        platform: 'qiniu',
+        base_url: 'https://api.qnaigc.com/v1',
+        api_key: 'test-key',
+        try_fix: false,
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.data?.mode).toEqual(['deepseek-v3', 'gpt-4o']);
+    });
+  });
 });
