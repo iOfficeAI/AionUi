@@ -48,6 +48,10 @@ const BACKEND_LOGIN_ARGS: Record<string, string[] | undefined> = {
 };
 
 const LOGIN_TIMEOUT_MS = 70_000;
+const DEFAULT_SESSION_START_TIMEOUT_MS = 120_000;
+const SESSION_START_TIMEOUT_MS_BY_BACKEND: Partial<Record<OldAcpAgentConfig['backend'], number>> = {
+  hermes: 240_000,
+};
 
 /**
  * Refresh backend credentials by running the backend CLI login command.
@@ -108,6 +112,7 @@ export class AcpAgentV2 {
   private cachedModes: ModeSnapshot | null = null;
   private lastSessionId: string | null = null;
   private lastStatus: SessionStatus = 'idle';
+  private readonly startTimeoutMs: number;
 
   // Promise bridges for async methods (Tasks 4-6)
   private startOp: PendingOp<void> | null = null;
@@ -135,6 +140,7 @@ export class AcpAgentV2 {
     this.onSessionIdUpdate = config.onSessionIdUpdate;
     this.onAvailableCommandsUpdate = config.onAvailableCommandsUpdate;
     this.agentConfig = toAgentConfig(config);
+    this.startTimeoutMs = SESSION_START_TIMEOUT_MS_BY_BACKEND[config.backend] ?? DEFAULT_SESSION_START_TIMEOUT_MS;
   }
 
   /**
@@ -555,7 +561,7 @@ export class AcpAgentV2 {
       const timer = setTimeout(() => {
         this.startOp = null;
         reject(new Error('Session start timed out'));
-      }, 120_000); // 2-minute timeout
+      }, this.startTimeoutMs);
       this.startOp = { resolve, reject, timer };
       session.start();
     });

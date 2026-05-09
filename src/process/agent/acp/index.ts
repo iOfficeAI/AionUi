@@ -33,6 +33,7 @@ import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@process/utils/shellEnv';
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
+import { getStartupBackendSyncState } from '@process/agent/modelSync/startupSync';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
@@ -1513,8 +1514,9 @@ export class AcpAgent {
    * (capability-driven with Claude-compatible resume path).
    */
   private async createOrResumeSession(): Promise<void> {
-    const resumeSessionId = this.extra.acpSessionId;
-    const resumeConversationId = this.extra.acpSessionConversationId;
+    const backendSkipsResume = this.extra.backend === 'hermes';
+    const resumeSessionId = backendSkipsResume ? undefined : this.extra.acpSessionId;
+    const resumeConversationId = backendSkipsResume ? undefined : this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
     // Derive teamId from injected team MCP server name (format: aionui-team-<teamId>)
@@ -1737,6 +1739,15 @@ export class AcpAgent {
     await this.ensureBackendAuth('claude', '/login');
   }
 
+  private async shouldSkipClaudeLoginWarmup(): Promise<boolean> {
+    if (this.extra.backend !== 'claude') {
+      return false;
+    }
+
+    const syncState = await getStartupBackendSyncState(ProcessConfig, 'claude');
+    return syncState === 'prepared';
+  }
+
   private async performAuthentication(): Promise<void> {
     try {
       const initResult = this.connection.getInitializeResult();
@@ -1760,7 +1771,10 @@ export class AcpAgent {
       if (this.extra.backend === 'qwen') {
         await this.ensureQwenAuth();
       } else if (this.extra.backend === 'claude') {
-        await this.ensureClaudeAuth();
+        const skipClaudeLoginWarmup = await this.shouldSkipClaudeLoginWarmup();
+        if (!skipClaudeLoginWarmup) {
+          await this.ensureClaudeAuth();
+        }
       }
       // Note: CodeBuddy does not have a CLI login command; auth is handled by the CLI itself
 

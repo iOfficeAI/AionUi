@@ -142,18 +142,64 @@ function resolveToolDisabled(name: string, tools: OpencodeToolConfig | undefined
   return tools[prefixedName] === false;
 }
 
-function getDefaultConfigPath(): string {
-  const configRoot = path.join(os.homedir(), '.config', 'opencode');
+function getDefaultConfigPath(homeDir = os.homedir()): string {
+  const configRoot = path.join(homeDir, '.config', 'opencode');
   return path.join(configRoot, 'opencode.json');
 }
 
-export function resolveOpencodeConfigPath(): string {
-  const customPath = process.env.OPENCODE_CONFIG;
-  if (customPath && customPath.trim()) {
-    return customPath;
+function resolveAionUiFallbackRoot(homeDir = os.homedir()): string {
+  const fallbackRoot = path.join(homeDir, '.aionui-config');
+
+  try {
+    const stats = fs.lstatSync(fallbackRoot);
+    if (stats.isSymbolicLink()) {
+      const linkTarget = fs.readlinkSync(fallbackRoot);
+      return path.resolve(path.dirname(fallbackRoot), linkTarget);
+    }
+
+    return fs.realpathSync(fallbackRoot);
+  } catch {
+    // fall back to the symlink path when resolution fails or the path does not exist
   }
 
-  const jsonPath = getDefaultConfigPath();
+  return fallbackRoot;
+}
+
+function getAionUiFallbackConfigPath(homeDir = os.homedir()): string {
+  return path.join(resolveAionUiFallbackRoot(homeDir), 'opencode', 'opencode.json');
+}
+
+export function resolveOpencodeConfigRoot(configPath: string): string {
+  return path.dirname(path.dirname(configPath));
+}
+
+function canUseConfigPath(configPath: string): boolean {
+  try {
+    if (fs.existsSync(configPath)) {
+      fs.accessSync(configPath, fs.constants.R_OK | fs.constants.W_OK);
+      return true;
+    }
+
+    const parentDir = path.dirname(configPath);
+    if (fs.existsSync(parentDir)) {
+      fs.accessSync(parentDir, fs.constants.R_OK | fs.constants.W_OK);
+      return true;
+    }
+
+    const nearestExistingDir = path.dirname(parentDir);
+    if (fs.existsSync(nearestExistingDir)) {
+      fs.accessSync(nearestExistingDir, fs.constants.R_OK | fs.constants.W_OK);
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
+export function resolveOpencodeConfigPathForHome(homeDir: string): string {
+  const jsonPath = getDefaultConfigPath(homeDir);
   if (fs.existsSync(jsonPath)) {
     return jsonPath;
   }
@@ -163,7 +209,19 @@ export function resolveOpencodeConfigPath(): string {
     return jsoncPath;
   }
 
-  return jsonPath;
+  if (canUseConfigPath(jsonPath)) {
+    return jsonPath;
+  }
+
+  return getAionUiFallbackConfigPath(homeDir);
+}
+
+export function resolveOpencodeConfigPath(): string {
+  const customPath = process.env.OPENCODE_CONFIG;
+  if (customPath && customPath.trim()) {
+    return customPath;
+  }
+  return resolveOpencodeConfigPathForHome(os.homedir());
 }
 
 export function parseOpencodeConfig(content: string): OpencodeConfig {

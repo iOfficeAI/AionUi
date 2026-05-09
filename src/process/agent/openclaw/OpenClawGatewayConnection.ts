@@ -51,6 +51,7 @@ interface PendingRequest {
  * 3. Gateway sends: RES {ok: true, payload: HelloOk}
  */
 export class OpenClawGatewayConnection {
+  private static readonly CONNECT_FALLBACK_DELAY_MS = 150;
   private ws: WebSocket | null = null;
   private opts: OpenClawGatewayClientOptions;
   private pending = new Map<string, PendingRequest>();
@@ -89,7 +90,7 @@ export class OpenClawGatewayConnection {
       platform: process.platform,
       mode: GATEWAY_CLIENT_MODES.BACKEND,
       role: 'operator',
-      scopes: ['operator.admin'],
+      scopes: ['operator.write'],
       ...opts,
     };
   }
@@ -247,7 +248,7 @@ export class OpenClawGatewayConnection {
     }
 
     const role = this.opts.role ?? 'operator';
-    const scopes = this.opts.scopes ?? ['operator.admin'];
+    const scopes = this.opts.scopes ?? ['operator.write'];
     const signedAtMs = Date.now();
     const nonce = this.connectNonce ?? undefined;
 
@@ -337,7 +338,20 @@ export class OpenClawGatewayConnection {
       })
       .catch((err) => {
         const details = (err as Error & { details?: { code?: string } }).details;
-        const isPairing = details?.code === 'PAIRING_REQUIRED' || /pairing.required/i.test(err?.message ?? '');
+        const errorMessage = err instanceof Error ? err.message : String(err);
+        const isPairing = details?.code === 'PAIRING_REQUIRED' || /pairing.required/i.test(errorMessage);
+        const isScopeExpansion = /more scopes than currently approved/i.test(errorMessage);
+
+        if ((isPairing || isScopeExpansion) && canFallbackToShared && !isExternalIdentity) {
+          clearDeviceAuthToken({
+            deviceId: this.deviceIdentity.deviceId,
+            role,
+          });
+          this.connectSent = false;
+          this.sendConnect();
+          return;
+        }
+
         if (isPairing) {
           console.log('[OpenClawGateway] Pairing required, awaiting approval');
         } else {
@@ -438,7 +452,7 @@ export class OpenClawGatewayConnection {
     // Wait a bit for challenge event, then force connect
     this.connectTimer = setTimeout(() => {
       this.sendConnect();
-    }, 750);
+    }, OpenClawGatewayConnection.CONNECT_FALLBACK_DELAY_MS);
   }
 
   private scheduleReconnect(): void {

@@ -12,6 +12,7 @@ import type { IMcpServer } from '../../../src/common/config/storage';
 import {
   OpencodeMcpAgent,
   resolveOpencodeConfigPath,
+  resolveOpencodeConfigPathForHome,
 } from '../../../src/process/services/mcpServices/agents/OpencodeMcpAgent';
 
 const originalOpencodeConfig = process.env.OPENCODE_CONFIG;
@@ -268,5 +269,32 @@ describe('OpencodeMcpAgent', () => {
     process.env.OPENCODE_CONFIG = customPath;
 
     expect(resolveOpencodeConfigPath()).toBe(customPath);
+  });
+
+  it('falls back to AionUI-managed config path when ~/.config is not writable and no official config exists', () => {
+    delete process.env.OPENCODE_CONFIG;
+    const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-opencode-home-'));
+    const rootOwnedLikeConfigDir = path.join(tempHome, '.config');
+    fs.mkdirSync(rootOwnedLikeConfigDir, { recursive: true, mode: 0o555 });
+
+    expect(resolveOpencodeConfigPathForHome(tempHome)).toBe(
+      path.join(tempHome, '.aionui-config', 'opencode', 'opencode.json')
+    );
+
+    fs.rmSync(tempHome, { recursive: true, force: true });
+  });
+
+  it('resolves the AionUI-managed fallback path through an existing symlink root', () => {
+    delete process.env.OPENCODE_CONFIG;
+    const tempHome = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-opencode-home-'));
+    const rootOwnedLikeConfigDir = path.join(tempHome, '.config');
+    const targetRoot = path.join(tempHome, 'Library', 'Application Support', 'AionUi', 'config');
+    fs.mkdirSync(rootOwnedLikeConfigDir, { recursive: true, mode: 0o555 });
+    fs.mkdirSync(path.dirname(targetRoot), { recursive: true });
+    fs.symlinkSync(targetRoot, path.join(tempHome, '.aionui-config'));
+
+    expect(resolveOpencodeConfigPathForHome(tempHome)).toBe(path.join(targetRoot, 'opencode', 'opencode.json'));
+
+    fs.rmSync(tempHome, { recursive: true, force: true });
   });
 });

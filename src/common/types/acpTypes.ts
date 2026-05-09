@@ -459,10 +459,10 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Hermes Agent',
     description: 'AI agent by Nous Research with 90+ tools, persistent memory, and multi-platform support',
     cliCommand: 'hermes',
-    authRequired: true,
-    enabled: true, // ✅ Nous Research Hermes Agent，使用 `hermes acp` 启动
+    authRequired: false,
+    enabled: true, // ✅ Nous Research Hermes Agent，优先使用官方 `hermes-acp` 入口启动
     supportsStreaming: false,
-    acpArgs: ['acp'], // hermes 使用 acp 子命令
+    acpArgs: ['acp'], // Fallback for legacy `hermes acp` launchers
   },
   snow: {
     id: 'snow',
@@ -1010,6 +1010,7 @@ export interface AcpSessionModes {
 /** Unified model info that abstracts over both stable and unstable APIs */
 export type AcpModelInfoSourceDetail =
   | 'cc-switch'
+  | 'claude-settings'
   | 'acp-config-option'
   | 'acp-models'
   | 'persisted-model'

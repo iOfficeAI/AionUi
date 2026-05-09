@@ -9,6 +9,11 @@ import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/agent/useGeminiGoogleAuthModels';
+import {
+  isDefaultModelIntent,
+  resolveModelFromIntent,
+  toDefaultModelIntent,
+} from '../utils/defaultModelIntent';
 import { hasAvailableModels } from '../utils/modelUtils';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -19,6 +24,11 @@ import useSWR from 'swr';
 const buildModelKey = (providerId?: string, modelName?: string) => {
   if (!providerId || !modelName) return null;
   return `${providerId}:${modelName}`;
+};
+
+const buildIntentSyncKey = (intent?: { providerId?: string; modelId?: string } | null) => {
+  if (!intent?.providerId || !intent?.modelId) return null;
+  return `${intent.providerId}:${intent.modelId}`;
 };
 
 /**
@@ -49,6 +59,7 @@ export type GuidModelSelectionResult = {
   formatGeminiModelLabel: (provider: { platform?: string } | undefined, modelName?: string) => string;
   currentModel: TProviderWithModel | undefined;
   setCurrentModel: (modelInfo: TProviderWithModel) => Promise<void>;
+  awaitPendingModelSync: () => Promise<void>;
 };
 
 /**
@@ -111,18 +122,82 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
   const selectedModelKeyRef = useRef<string | null>(null);
   const prevStorageKeyRef = useRef<string | null>(null);
+  const pendingModelSyncRef = useRef<Promise<void> | null>(null);
+  const lastSyncedIntentKeyRef = useRef<string | null>(null);
 
   const storageKey = MODEL_STORAGE_KEY[agentKey];
 
+  const awaitPendingModelSync = useCallback(async () => {
+    const pendingSync = pendingModelSyncRef.current;
+    if (pendingSync) {
+      await pendingSync;
+    }
+  }, []);
+
+  const syncDefaultModelIntent = useCallback(async (intent: ReturnType<typeof toDefaultModelIntent>) => {
+    const intentKey = buildIntentSyncKey(intent);
+    if (!intentKey) {
+      return;
+    }
+
+    const pendingSync = pendingModelSyncRef.current;
+    if (lastSyncedIntentKeyRef.current === intentKey && !pendingSync) {
+      return;
+    }
+
+    const syncTask = ipcBridge.mode
+      .syncDefaultModelBackends.invoke({ intent, backends: ['openclaw-gateway', 'claude', 'hermes', 'opencode'] })
+      .then(() => {
+        lastSyncedIntentKeyRef.current = intentKey;
+      })
+      .catch((error) => {
+        console.error('Failed to sync default model intent:', error);
+      });
+
+    pendingModelSyncRef.current = syncTask;
+    void syncTask.finally(() => {
+      if (pendingModelSyncRef.current === syncTask) {
+        pendingModelSyncRef.current = null;
+      }
+    });
+  }, []);
+
+  const applyCurrentModel = useCallback(
+    async (modelInfo: TProviderWithModel, persistIntent: boolean) => {
+      selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
+      const primaryWrites: Promise<unknown>[] = [
+        ConfigStorage.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
+          console.error('Failed to save default model:', error);
+        }),
+      ];
+
+      let intent: ReturnType<typeof toDefaultModelIntent> | null = null;
+      if (persistIntent) {
+        intent = toDefaultModelIntent(modelInfo);
+        primaryWrites.push(
+          ConfigStorage.set('agent.defaultModelIntent', intent).catch((error) => {
+            console.error('Failed to save default model intent:', error);
+          })
+        );
+      }
+
+      await Promise.all(primaryWrites);
+      _setCurrentModel(modelInfo);
+
+      if (!persistIntent || !intent) {
+        return;
+      }
+
+      void syncDefaultModelIntent(intent);
+    },
+    [storageKey, syncDefaultModelIntent]
+  );
+
   const setCurrentModel = useCallback(
     async (modelInfo: TProviderWithModel) => {
-      selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
-      await ConfigStorage.set(storageKey, { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
-        console.error('Failed to save default model:', error);
-      });
-      _setCurrentModel(modelInfo);
+      await applyCurrentModel(modelInfo, true);
     },
-    [storageKey]
+    [applyCurrentModel]
   );
 
   // Set default model when modelList or agent changes
@@ -145,43 +220,58 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
         }
         return;
       }
-      const savedModel = await ConfigStorage.get(storageKey);
-
-      const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
+      const savedIntent = await ConfigStorage.get('agent.defaultModelIntent');
+      const intentMatch = isDefaultModelIntent(savedIntent) ? resolveModelFromIntent(modelList, savedIntent) : null;
 
       let defaultModel: IProvider | undefined;
-      let resolvedUseModel: string;
+      let resolvedUseModel = '';
 
-      if (isNewFormat) {
-        const { id, useModel } = savedModel;
-        const exactMatch = modelList.find((m) => m.id === id);
-        if (exactMatch && exactMatch.model.includes(useModel)) {
-          defaultModel = exactMatch;
-          resolvedUseModel = useModel;
+      if (intentMatch) {
+        defaultModel = intentMatch.provider;
+        resolvedUseModel = intentMatch.useModel;
+      } else {
+        const savedModel = await ConfigStorage.get(storageKey);
+
+        const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
+
+        if (isNewFormat) {
+          const { id, useModel } = savedModel;
+          const exactMatch = modelList.find((m) => m.id === id);
+          if (exactMatch && exactMatch.model.includes(useModel)) {
+            defaultModel = exactMatch;
+            resolvedUseModel = useModel;
+          } else {
+            defaultModel = modelList[0];
+            resolvedUseModel = defaultModel?.model[0] ?? '';
+          }
+        } else if (typeof savedModel === 'string') {
+          defaultModel = modelList.find((m) => m.model.includes(savedModel)) || modelList[0];
+          resolvedUseModel = defaultModel?.model.includes(savedModel) ? savedModel : (defaultModel?.model[0] ?? '');
         } else {
           defaultModel = modelList[0];
           resolvedUseModel = defaultModel?.model[0] ?? '';
         }
-      } else if (typeof savedModel === 'string') {
-        defaultModel = modelList.find((m) => m.model.includes(savedModel)) || modelList[0];
-        resolvedUseModel = defaultModel?.model.includes(savedModel) ? savedModel : (defaultModel?.model[0] ?? '');
-      } else {
-        defaultModel = modelList[0];
-        resolvedUseModel = defaultModel?.model[0] ?? '';
       }
 
       if (!defaultModel || !resolvedUseModel) return;
 
-      await setCurrentModel({
-        ...defaultModel,
-        useModel: resolvedUseModel,
-      });
+      await applyCurrentModel(
+        {
+          ...defaultModel,
+          useModel: resolvedUseModel,
+        },
+        false
+      );
+
+      if (intentMatch && isDefaultModelIntent(savedIntent)) {
+        await syncDefaultModelIntent(savedIntent);
+      }
     };
 
     setDefaultModel().catch((error) => {
       console.error('Failed to set default model:', error);
     });
-  }, [modelList, storageKey]);
+  }, [applyCurrentModel, currentModel?.id, currentModel?.useModel, modelList, storageKey, syncDefaultModelIntent]);
   return {
     modelList,
     isGoogleAuth,
@@ -190,5 +280,6 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'gemini'): Gu
     formatGeminiModelLabel,
     currentModel,
     setCurrentModel,
+    awaitPendingModelSync,
   };
 };

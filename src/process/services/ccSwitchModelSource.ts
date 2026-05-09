@@ -7,6 +7,8 @@
 import BetterSqlite3 from 'better-sqlite3';
 import type Database from 'better-sqlite3';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { TProviderWithModel } from '@/common/config/storage';
+import { buildClaudeRuntimeProviderEnv, type ProviderSyncProfile } from '@process/agent/modelSync/providerSyncProfile';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
@@ -28,6 +30,10 @@ type ClaudeProviderSettingsConfig = {
 
 type ClaudeSettings = {
   model?: string;
+  env?: Record<string, unknown>;
+  hooks?: unknown;
+  statusLine?: unknown;
+  [key: string]: unknown;
 };
 
 type CcSwitchProviderRow = {
@@ -97,10 +103,39 @@ function readClaudeSelectedModelSlot(claudeSettingsPath: string): ClaudeModelSlo
   return normalizeClaudeModelSlot(settings?.model);
 }
 
+function readNativeClaudeSettings(claudeSettingsPath: string): ClaudeSettings | null {
+  if (!fs.existsSync(claudeSettingsPath)) return null;
+  return parseJsonObject<ClaudeSettings>(fs.readFileSync(claudeSettingsPath, 'utf-8'));
+}
+
+function buildClaudeModelLabelsFromEnv(env: ClaudeProviderEnv): Map<string, string> {
+  const labels = new Map<string, string>();
+  for (const key of [
+    'ANTHROPIC_DEFAULT_SONNET_MODEL',
+    'ANTHROPIC_DEFAULT_OPUS_MODEL',
+    'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+    'ANTHROPIC_MODEL',
+  ]) {
+    const modelId = env[key];
+    if (!isNonEmptyString(modelId) || labels.has(modelId)) continue;
+    labels.set(modelId, modelId);
+  }
+  return labels;
+}
+
+function buildClaudeSettingsConfigFromNativeSettings(settings: ClaudeSettings | null): ClaudeProviderSettingsConfig | null {
+  if (!settings) return null;
+  return {
+    model: normalizeClaudeModelSlot(settings.model) ?? 'default',
+    env: isRecord(settings.env) ? settings.env : {},
+  };
+}
+
 export function buildClaudeModelInfoFromCcSwitchConfig(
   settingsConfig: ClaudeProviderSettingsConfig | null | undefined,
   modelLabels: ReadonlyMap<string, string> = new Map(),
-  activeSlot?: string | null
+  activeSlot?: string | null,
+  sourceDetail: 'cc-switch' | 'claude-settings' = 'cc-switch'
 ): AcpModelInfo | null {
   if (!settingsConfig) return null;
 
@@ -140,7 +175,7 @@ export function buildClaudeModelInfoFromCcSwitchConfig(
     availableModels,
     canSwitch: availableModels.length > 1,
     source: 'models',
-    sourceDetail: 'cc-switch',
+    sourceDetail,
   };
 }
 
@@ -169,6 +204,17 @@ function readModelLabels(db: Database.Database): Map<string, string> {
   return labels;
 }
 
+function readClaudeModelInfoFromNativeSettings(claudeSettingsPath: string): AcpModelInfo | null {
+  const settings = readNativeClaudeSettings(claudeSettingsPath);
+  const settingsConfig = buildClaudeSettingsConfigFromNativeSettings(settings);
+  return buildClaudeModelInfoFromCcSwitchConfig(
+    settingsConfig,
+    buildClaudeModelLabelsFromEnv(normalizeProviderEnv(settings?.env)),
+    readClaudeSelectedModelSlot(claudeSettingsPath),
+    'claude-settings'
+  );
+}
+
 export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>): AcpModelInfo | null {
   const resolvedPaths = {
     ...getCcSwitchPaths(),
@@ -178,7 +224,7 @@ export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>):
   const currentProviderId = settings?.currentProviderClaude;
 
   if (!isNonEmptyString(currentProviderId) || !fs.existsSync(resolvedPaths.databasePath)) {
-    return null;
+    return readClaudeModelInfoFromNativeSettings(resolvedPaths.claudeSettingsPath);
   }
 
   let db: Database.Database | null = null;
@@ -189,20 +235,27 @@ export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>):
       | undefined;
 
     if (!isNonEmptyString(provider?.settings_config)) {
-      return null;
+      return readClaudeModelInfoFromNativeSettings(resolvedPaths.claudeSettingsPath);
     }
 
     const settingsConfig = parseJsonObject<ClaudeProviderSettingsConfig>(provider.settings_config);
-    return buildClaudeModelInfoFromCcSwitchConfig(
-      settingsConfig,
-      readModelLabels(db),
-      readClaudeSelectedModelSlot(resolvedPaths.claudeSettingsPath)
+    return (
+      buildClaudeModelInfoFromCcSwitchConfig(
+        settingsConfig,
+        readModelLabels(db),
+        readClaudeSelectedModelSlot(resolvedPaths.claudeSettingsPath),
+        'cc-switch'
+      ) ?? readClaudeModelInfoFromNativeSettings(resolvedPaths.claudeSettingsPath)
     );
   } catch {
-    return null;
+    return readClaudeModelInfoFromNativeSettings(resolvedPaths.claudeSettingsPath);
   } finally {
     db?.close();
   }
+}
+
+function readClaudeProviderEnvFromNativeSettings(claudeSettingsPath: string): ClaudeProviderEnv {
+  return normalizeProviderEnv(readNativeClaudeSettings(claudeSettingsPath)?.env);
 }
 
 export function readClaudeProviderEnvFromCcSwitch(paths?: Partial<CcSwitchPaths>): ClaudeProviderEnv {
@@ -214,7 +267,7 @@ export function readClaudeProviderEnvFromCcSwitch(paths?: Partial<CcSwitchPaths>
   const currentProviderId = settings?.currentProviderClaude;
 
   if (!isNonEmptyString(currentProviderId) || !fs.existsSync(resolvedPaths.databasePath)) {
-    return {};
+    return readClaudeProviderEnvFromNativeSettings(resolvedPaths.claudeSettingsPath);
   }
 
   let db: Database.Database | null = null;
@@ -225,14 +278,50 @@ export function readClaudeProviderEnvFromCcSwitch(paths?: Partial<CcSwitchPaths>
       | undefined;
 
     if (!isNonEmptyString(provider?.settings_config)) {
-      return {};
+      return readClaudeProviderEnvFromNativeSettings(resolvedPaths.claudeSettingsPath);
     }
 
     const settingsConfig = parseJsonObject<ClaudeProviderSettingsConfig>(provider.settings_config);
-    return normalizeProviderEnv(settingsConfig?.env);
+    const env = normalizeProviderEnv(settingsConfig?.env);
+    return Object.keys(env).length > 0 ? env : readClaudeProviderEnvFromNativeSettings(resolvedPaths.claudeSettingsPath);
   } catch {
-    return {};
+    return readClaudeProviderEnvFromNativeSettings(resolvedPaths.claudeSettingsPath);
   } finally {
     db?.close();
+  }
+}
+
+export function writeClaudeSettingsForProviderSync(
+  provider: TProviderWithModel,
+  profile: ProviderSyncProfile,
+  paths?: Partial<CcSwitchPaths>
+): void {
+  const resolvedPaths = {
+    ...getCcSwitchPaths(),
+    ...paths,
+  };
+  const settingsPath = resolvedPaths.claudeSettingsPath;
+  const currentSettings = readNativeClaudeSettings(settingsPath) ?? {};
+  const currentEnv = normalizeProviderEnv(currentSettings.env);
+  const nextEnv: ClaudeProviderEnv = {
+    ...currentEnv,
+    ...buildClaudeRuntimeProviderEnv({
+      ...profile,
+      provider,
+    }),
+  };
+
+  const nextSettings: ClaudeSettings = {
+    ...currentSettings,
+    model: 'default',
+    env: nextEnv,
+  };
+
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, `${JSON.stringify(nextSettings, null, 2)}\n`, { encoding: 'utf-8', mode: 0o600 });
+  try {
+    fs.chmodSync(settingsPath, 0o600);
+  } catch {
+    // Ignore chmod failures on unsupported filesystems.
   }
 }

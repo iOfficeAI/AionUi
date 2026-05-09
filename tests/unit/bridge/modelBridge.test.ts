@@ -21,10 +21,32 @@ type FetchModelListResponse = {
   data?: { mode: Array<string | { id: string; name: string }>; fix_base_url?: string };
 };
 
-const { handlers, mockModelsList } = vi.hoisted(() => {
+type SyncDefaultModelBackendsArgs = {
+  intent: {
+    providerId: string;
+    modelId: string;
+    updatedAt: number;
+    providerPlatform?: string;
+    providerName?: string;
+    source?: 'guid' | 'migration' | 'sync' | 'unknown';
+  };
+  backends: string[];
+};
+
+type SyncDefaultModelBackendsResponse = {
+  success: boolean;
+  msg?: string;
+  data?: {
+    results: Array<{ backend: string; supported: boolean; reason?: string; appliedModelId?: string }>;
+  };
+};
+
+const { handlers, mockModelsList, mockSyncBackends, mockProcessConfigSet } = vi.hoisted(() => {
   return {
     handlers: {} as Record<string, Handler>,
     mockModelsList: vi.fn(),
+    mockSyncBackends: vi.fn(),
+    mockProcessConfigSet: vi.fn(async () => undefined),
   };
 });
 
@@ -44,6 +66,7 @@ vi.mock('@/common', () => ({
       fetchModelList: makeChannel('fetchModelList'),
       saveModelConfig: makeChannel('saveModelConfig'),
       getModelConfig: makeChannel('getModelConfig'),
+      syncDefaultModelBackends: makeChannel('syncDefaultModelBackends'),
       detectProtocol: makeChannel('detectProtocol'),
     },
   },
@@ -69,7 +92,7 @@ vi.mock('openai', () => ({
 
 vi.mock('@process/utils/initStorage', () => ({
   ProcessConfig: {
-    set: vi.fn(async () => undefined),
+    set: mockProcessConfigSet,
     get: vi.fn(async () => []),
   },
 }));
@@ -87,6 +110,12 @@ vi.mock('@aws-sdk/client-bedrock', () => ({
   ListInferenceProfilesCommand: function MockListInferenceProfilesCommand() {},
 }));
 
+vi.mock('@process/agent/modelSync', () => ({
+  modelSyncOrchestrator: {
+    syncBackends: mockSyncBackends,
+  },
+}));
+
 import { initModelBridge } from '../../../src/process/bridge/modelBridge';
 
 function getFetchModelListHandler() {
@@ -95,10 +124,18 @@ function getFetchModelListHandler() {
   return handler as (args: FetchModelListArgs) => Promise<FetchModelListResponse>;
 }
 
+function getSyncDefaultModelBackendsHandler() {
+  const handler = handlers.syncDefaultModelBackends;
+  expect(handler).toBeTypeOf('function');
+  return handler as (args: SyncDefaultModelBackendsArgs) => Promise<SyncDefaultModelBackendsResponse>;
+}
+
 describe('modelBridge fetchModelList', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockModelsList.mockReset();
+    mockSyncBackends.mockReset();
+    mockProcessConfigSet.mockReset();
     initModelBridge();
   });
 
@@ -224,6 +261,45 @@ describe('modelBridge fetchModelList', () => {
     expect(result).toEqual({
       success: false,
       msg: 'upstream unavailable',
+    });
+  });
+
+  it('proxies default-model backend sync requests through the orchestrator', async () => {
+    mockSyncBackends.mockResolvedValue([
+      {
+        backend: 'openclaw-gateway',
+        supported: true,
+        appliedModelId: 'anthropic/claude-sonnet-4',
+      },
+    ]);
+
+    const syncDefaultModelBackends = getSyncDefaultModelBackendsHandler();
+    const intent = {
+      providerId: 'provider-1',
+      modelId: 'claude-sonnet-4',
+      providerPlatform: 'anthropic',
+      updatedAt: 1,
+      source: 'guid' as const,
+    };
+
+    const result = await syncDefaultModelBackends({
+      intent,
+      backends: ['openclaw-gateway', 'opencode'],
+    });
+
+    expect(mockProcessConfigSet).toHaveBeenCalledWith('agent.defaultModelIntent', intent);
+    expect(mockSyncBackends).toHaveBeenCalledWith(intent, ['openclaw-gateway', 'opencode']);
+    expect(result).toEqual({
+      success: true,
+      data: {
+        results: [
+          {
+            backend: 'openclaw-gateway',
+            supported: true,
+            appliedModelId: 'anthropic/claude-sonnet-4',
+          },
+        ],
+      },
     });
   });
 });

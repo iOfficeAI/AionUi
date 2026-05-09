@@ -3,6 +3,9 @@ import { AcpAgentV2 } from '@process/acp/compat';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { teamEventBus } from '@process/team/teamEventBus';
 import { ipcBridge } from '@/common';
+import { existsSync, readFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import type { CronMessageMeta, TMessage } from '@/common/chat/chatLib';
 import { isCodexAutoApproveMode } from '@/common/types/codex/codexModes';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
@@ -44,6 +47,7 @@ import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
+import { resolveOpencodeConfigPath, resolveOpencodeConfigRoot } from '@process/services/mcpServices/agents/OpencodeMcpAgent';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -84,6 +88,86 @@ type BufferedStreamTextMessage = {
 };
 
 type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env'>;
+
+function resolveCommandFromPath(command: string): string | null {
+  const pathValue = process.env.PATH || '';
+  const pathEntries = pathValue.split(path.delimiter).filter(Boolean);
+  const extensions =
+    process.platform === 'win32'
+      ? (process.env.PATHEXT || '.EXE;.CMD;.BAT;.COM')
+          .split(';')
+          .filter(Boolean)
+      : [''];
+
+  for (const entry of pathEntries) {
+    for (const ext of extensions) {
+      const candidate = path.join(entry, process.platform === 'win32' ? `${command}${ext}` : command);
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+}
+
+function resolveHermesAcpCliPath(): { cliPath: string; acpArgs: string[]; customEnv?: Record<string, string> } {
+  const direct = resolveCommandFromPath('hermes-acp');
+  if (direct) {
+    return { cliPath: direct, acpArgs: [] };
+  }
+
+  const hermes = resolveCommandFromPath('hermes');
+  if (hermes) {
+    const siblingName = process.platform === 'win32' ? 'hermes-acp.exe' : 'hermes-acp';
+    const sibling = path.join(path.dirname(hermes), siblingName);
+    if (existsSync(sibling)) {
+      return { cliPath: sibling, acpArgs: [] };
+    }
+  }
+
+  const bundledHermesDir = path.join(os.homedir(), '.hermes', 'hermes-agent');
+  const bundledHermesPythonCandidates = [
+    path.join(bundledHermesDir, 'venv', 'bin', 'python3'),
+    path.join(bundledHermesDir, 'venv', 'bin', 'python.exe'),
+    path.join(bundledHermesDir, 'venv', 'Scripts', 'python.exe'),
+  ];
+  const bundledHermesPython = bundledHermesPythonCandidates.find((candidate) => existsSync(candidate));
+  if (bundledHermesPython) {
+    return {
+      cliPath: bundledHermesPython,
+      acpArgs: ['-m', 'acp_adapter.entry'],
+      customEnv: {
+        PYTHONPATH: bundledHermesDir,
+      },
+    };
+  }
+
+  return { cliPath: 'hermes', acpArgs: ['acp'] };
+}
+
+function isLegacyHermesCliPath(cliPath?: string): boolean {
+  if (!cliPath) return true;
+  const normalized = cliPath.trim().toLowerCase();
+  return normalized === 'hermes' || normalized === 'hermes acp';
+}
+
+function isBrokenHermesWrapperPath(cliPath?: string): boolean {
+  if (!cliPath) return false;
+  try {
+    if (!existsSync(cliPath)) return false;
+    const content = readFileSync(cliPath, 'utf8');
+    return (
+      content.startsWith('#!/usr/bin/env bash') &&
+      content.includes('unset PYTHONPATH') &&
+      content.includes('unset PYTHONHOME') &&
+      content.includes('exec "') &&
+      content.includes('/venv/bin/hermes')
+    );
+  } catch {
+    return false;
+  }
+}
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
@@ -523,6 +607,7 @@ ${collectedResponses.join('\n')}`;
   private async resolveBuiltinBackendConfig(data: AcpAgentManagerData): Promise<{
     cliPath?: string;
     customArgs?: string[];
+    customEnv?: Record<string, string>;
     yoloMode?: boolean;
   }> {
     const config = await ProcessConfig.get('acp.config');
@@ -562,13 +647,43 @@ ${collectedResponses.join('\n')}`;
     // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
     const backendConfig = ACP_BACKENDS_ALL[data.backend];
     let customArgs: string[] | undefined;
+    let customEnv: Record<string, string> | undefined;
     if (backendConfig?.acpArgs) {
       customArgs = backendConfig.acpArgs;
     }
 
-    // If cliPath is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
+    // If cliPath is not configured, prefer backend-specific defaultCliPath before cliCommand.
+    if (!cliPath && backendConfig?.defaultCliPath) {
+      cliPath = backendConfig.defaultCliPath;
+    }
+
     if (!cliPath && backendConfig?.cliCommand) {
       cliPath = backendConfig.cliCommand;
+    }
+
+    const shouldOverrideLegacyHermesCliPath =
+      data.backend === 'hermes' &&
+      (isLegacyHermesCliPath(cliPath) ||
+        isBrokenHermesWrapperPath(cliPath) ||
+        isBrokenHermesWrapperPath(data.cliPath) ||
+        isBrokenHermesWrapperPath(config?.[data.backend]?.cliPath)) &&
+      (isLegacyHermesCliPath(data.cliPath) || isBrokenHermesWrapperPath(data.cliPath)) &&
+      (isLegacyHermesCliPath(config?.[data.backend]?.cliPath) || isBrokenHermesWrapperPath(config?.[data.backend]?.cliPath));
+
+    if (shouldOverrideLegacyHermesCliPath) {
+      const resolvedHermes = resolveHermesAcpCliPath();
+      cliPath = resolvedHermes.cliPath;
+      customArgs = resolvedHermes.acpArgs;
+      customEnv = resolvedHermes.customEnv;
+    }
+
+    if (data.backend === 'opencode') {
+      const opencodeConfigPath = resolveOpencodeConfigPath();
+      customEnv = {
+        ...(customEnv || {}),
+        OPENCODE_CONFIG: opencodeConfigPath,
+        XDG_CONFIG_HOME: resolveOpencodeConfigRoot(opencodeConfigPath),
+      };
     }
 
     if (data.backend === 'codex') {
@@ -580,7 +695,7 @@ ${collectedResponses.join('\n')}`;
       data.sandboxMode = sandboxMode;
     }
 
-    return { cliPath, customArgs, yoloMode };
+    return { cliPath, customArgs, customEnv, yoloMode };
   }
 
   // ── initAgent callback handlers ──────────────────────────────────────

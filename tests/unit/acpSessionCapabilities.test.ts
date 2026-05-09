@@ -205,6 +205,19 @@ describe('AcpAgent.createOrResumeSession — Codex routing', () => {
     expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
   });
 
+  it('creates a fresh session for hermes even when a stored session id exists', async () => {
+    const agent = makeAgent('hermes', 'session-hermes-1');
+    const conn: AcpConnection = (agent as any).connection;
+
+    const resumeSession = vi.spyOn(conn, 'resumeSession').mockResolvedValue({ sessionId: 'session-hermes-1' } as any);
+    const newSession = vi.spyOn(conn, 'newSession').mockResolvedValue({ sessionId: 'fresh-hermes-session' } as any);
+
+    await (agent as any).createOrResumeSession();
+
+    expect(resumeSession).not.toHaveBeenCalled();
+    expect(newSession).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ mcpServers: [] }));
+  });
+
   it('updates acpSessionId when resume returns a new session ID', async () => {
     const agent = makeAgent('codex', 'old-session');
     const conn: AcpConnection = (agent as any).connection;

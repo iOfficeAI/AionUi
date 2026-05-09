@@ -8,6 +8,9 @@ import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/common/types/acpTypes';
 import type { AcpDetectedAgent } from '@/common/types/detectedAgent';
 import { ExtensionRegistry } from '@process/extensions';
+import { existsSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { safeExec, safeExecFile } from '@process/utils/safeExec';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
@@ -28,8 +31,68 @@ import { getEnhancedEnv } from '@process/utils/shellEnv';
  * This class is a pure detection module — it does NOT own state or coordinate
  * multiple detectors. State management and orchestration live in AgentRegistry.
  */
+type HermesLaunchConfig = {
+  cliPath?: string;
+  acpArgs?: string[];
+  requiresRuntimeEnv?: boolean;
+};
+
 class AcpDetector {
   private enhancedEnv: NodeJS.ProcessEnv | undefined;
+
+  private resolveHermesLaunchConfig(): HermesLaunchConfig {
+    const bundledHermesDir = path.join(os.homedir(), '.hermes', 'hermes-agent');
+    const bundledHermesPython = path.join(
+      bundledHermesDir,
+      'venv',
+      'bin',
+      process.platform === 'win32' ? 'python.exe' : 'python3'
+    );
+
+    const resolvedHermesAcp = this.resolveCommandPath('hermes-acp');
+    if (resolvedHermesAcp) {
+      return { cliPath: resolvedHermesAcp, acpArgs: [] };
+    }
+
+    const resolvedHermes = this.resolveCommandPath('hermes');
+    if (resolvedHermes) {
+      const siblingName = process.platform === 'win32' ? 'hermes-acp.exe' : 'hermes-acp';
+      const siblingHermesAcp = path.join(path.dirname(resolvedHermes), siblingName);
+      if (existsSync(siblingHermesAcp)) {
+        return { cliPath: siblingHermesAcp, acpArgs: [] };
+      }
+    }
+
+    if (existsSync(bundledHermesPython)) {
+      return {
+        requiresRuntimeEnv: true,
+      };
+    }
+
+    return {};
+  }
+
+  private resolveCommandPath(command: string): string | null {
+    const pathValue = this.enhancedEnv?.PATH ?? process.env.PATH ?? '';
+    const pathEntries = pathValue.split(path.delimiter).filter(Boolean);
+    const extensions =
+      process.platform === 'win32'
+        ? (process.env.PATHEXT || '.EXE;.CMD;.BAT;.COM')
+            .split(';')
+            .filter(Boolean)
+        : [''];
+
+    for (const entry of pathEntries) {
+      for (const ext of extensions) {
+        const candidate = path.join(entry, process.platform === 'win32' ? `${command}${ext}` : command);
+        if (existsSync(candidate)) {
+          return candidate;
+        }
+      }
+    }
+
+    return null;
+  }
 
   /** Clear cached environment so newly installed/removed CLIs are detected. */
   clearEnvCache(): void {
@@ -163,15 +226,30 @@ class AcpDetector {
       );
     }
 
-    return POTENTIAL_ACP_CLIS.filter((cli) => available.has(cli.cmd)).map((cli) => ({
-      id: cli.backendId,
-      name: cli.name,
-      kind: 'acp' as const,
-      available: true,
-      backend: cli.backendId,
-      cliPath: cli.cmd,
-      acpArgs: cli.args,
-    }));
+    return POTENTIAL_ACP_CLIS.filter((cli) => available.has(cli.cmd)).map((cli) => {
+      if (cli.backendId === 'hermes') {
+        const hermesLaunch = this.resolveHermesLaunchConfig();
+        return {
+          id: cli.backendId,
+          name: cli.name,
+          kind: 'acp' as const,
+          available: true,
+          backend: cli.backendId,
+          cliPath: hermesLaunch.requiresRuntimeEnv ? undefined : hermesLaunch.cliPath,
+          acpArgs: hermesLaunch.requiresRuntimeEnv ? undefined : hermesLaunch.acpArgs,
+        };
+      }
+
+      return {
+        id: cli.backendId,
+        name: cli.name,
+        kind: 'acp' as const,
+        available: true,
+        backend: cli.backendId,
+        cliPath: cli.cmd,
+        acpArgs: cli.args,
+      };
+    });
   }
 
   /**

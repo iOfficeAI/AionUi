@@ -31,6 +31,12 @@ import {
   resolveNpxPath,
 } from '@process/utils/shellEnv';
 import { readClaudeProviderEnvFromCcSwitch } from '@process/services/ccSwitchModelSource';
+import { getProcessDefaultModelIntent, resolveProcessProviderModelFromIntent } from '@process/agent/modelSync/defaultModelIntent';
+import {
+  buildClaudeRuntimeProviderEnv,
+  buildProviderSyncProfile,
+  isClaudeSyncSupportedProfile,
+} from '@process/agent/modelSync/providerSyncProfile';
 import { mainWarn } from '@process/utils/mainLogger';
 import { getPlatformServices } from '@/common/platform';
 
@@ -432,8 +438,21 @@ export function spawnNpxBackend(
 /** Prepare clean env + resolve npx for Claude ACP bridge. */
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
-  Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
+  Object.assign(cleanEnv, await resolveClaudeRuntimeEnv());
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
+}
+
+async function resolveClaudeRuntimeEnv(): Promise<Record<string, string>> {
+  const intent = await getProcessDefaultModelIntent();
+  if (intent) {
+    const provider = await resolveProcessProviderModelFromIntent(intent);
+    const profile = provider ? buildProviderSyncProfile(provider) : null;
+    if (profile && isClaudeSyncSupportedProfile(profile)) {
+      return buildClaudeRuntimeProviderEnv(profile);
+    }
+  }
+
+  return readClaudeProviderEnvFromCcSwitch();
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */

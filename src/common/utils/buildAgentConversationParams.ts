@@ -8,6 +8,13 @@ import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
+function normalizeBuiltinCliPath(backend: string, cliPath?: string): string | undefined {
+  if (backend === 'hermes' && cliPath?.trim().toLowerCase() === 'hermes') {
+    return undefined;
+  }
+  return cliPath;
+}
+
 export type BuildAgentConversationPresetResources = {
   rules?: string;
   enabledSkills?: string[];
@@ -58,7 +65,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     presetAssistantId,
     workspace,
     model,
-    cliPath,
+    cliPath: rawCliPath,
     customAgentId,
     customWorkspace = true,
     isPreset = false,
@@ -72,6 +79,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
   const effectivePresetType = presetAgentType || backend;
   const effectivePresetAssistantId = presetAssistantId || customAgentId;
   const type = getConversationTypeForBackend(isPreset ? effectivePresetType : backend);
+  const cliPath = normalizeBuiltinCliPath(backend, rawCliPath);
   const extra: ICreateConversationParams['extra'] = {
     workspace,
     customWorkspace,

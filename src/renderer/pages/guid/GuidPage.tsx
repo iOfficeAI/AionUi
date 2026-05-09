@@ -79,7 +79,7 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Hooks ---
-  // Track which provider-based agent is selected so model selection persists per agent type
+  // Provider-backed model button: Gemini keeps Google Auth support; all other unified backends share provider config.
   const [providerAgentKey, setProviderAgentKey] = useState<'gemini' | 'aionrs'>('aionrs');
   const modelSelection = useGuidModelSelection(providerAgentKey);
 
@@ -92,13 +92,13 @@ const GuidPage: React.FC = () => {
     locationKey: location.key,
   });
 
-  // Sync providerAgentKey when selected agent changes
+  // Keep the Guid provider-model button aligned with the effective agent type.
+  // Gemini can expose Google Auth models; Claude/OpenClaw/Hermes reuse the shared provider-backed list.
   useEffect(() => {
-    const agent = agentSelection.selectedAgent;
-    if (agent === 'gemini' || agent === 'aionrs') {
-      setProviderAgentKey(agent);
-    }
-  }, [agentSelection.selectedAgent]);
+    const nextProviderAgentKey =
+      agentSelection.currentEffectiveAgentInfo.agentType === 'gemini' ? 'gemini' : 'aionrs';
+    setProviderAgentKey((prev) => (prev === nextProviderAgentKey ? prev : nextProviderAgentKey));
+  }, [agentSelection.currentEffectiveAgentInfo.agentType]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -134,6 +134,7 @@ const GuidPage: React.FC = () => {
     pendingConfigOptions: agentSelection.pendingConfigOptions,
     cachedConfigOptions: agentSelection.cachedConfigOptions,
     currentModel: modelSelection.currentModel,
+    awaitPendingModelSync: modelSelection.awaitPendingModelSync,
 
     // Agent helpers
     findAgentByKey: agentSelection.findAgentByKey,
@@ -473,7 +474,7 @@ const GuidPage: React.FC = () => {
     : agentSelection.selectedAgent;
 
   // Agents that use configured model providers instead of ACP probe-based models
-  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs']);
+  const PROVIDER_BASED_AGENTS = new Set(['gemini', 'aionrs', 'claude', 'hermes', 'openclaw-gateway', 'openclaw', 'opencode']);
   const isGeminiMode =
     PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
     (!agentSelection.isPresetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);

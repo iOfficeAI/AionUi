@@ -17,6 +17,7 @@ import {
 } from '@/common/utils/buildAgentConversationParams';
 import type { AvailableAgent } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
+import { isDefaultModelIntent, resolveModelFromIntent } from '../../guid/utils/defaultModelIntent';
 
 type ModePreference = {
   preferredMode?: string;
@@ -59,7 +60,44 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
   return undefined;
 }
 
+async function resolveUnifiedPreferredAcpModelId(backend: string): Promise<string | undefined> {
+  if (
+    backend !== 'claude' &&
+    backend !== 'hermes' &&
+    backend !== 'openclaw-gateway' &&
+    backend !== 'openclaw' &&
+    backend !== 'opencode'
+  ) {
+    return undefined;
+  }
+
+  const [savedIntent, providers] = await Promise.all([
+    ConfigStorage.get('agent.defaultModelIntent'),
+    ConfigStorage.get('model.config'),
+  ]);
+
+  if (!isDefaultModelIntent(savedIntent) || !Array.isArray(providers)) {
+    return undefined;
+  }
+
+  const match = resolveModelFromIntent(providers, savedIntent);
+  if (!match) {
+    return undefined;
+  }
+
+  if (backend === 'claude') {
+    return 'default';
+  }
+
+  return match.useModel;
+}
+
 async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
+  const unifiedModelId = await resolveUnifiedPreferredAcpModelId(backend);
+  if (unifiedModelId) {
+    return unifiedModelId;
+  }
+
   const acpConfig = await ConfigStorage.get('acp.config');
   const backendConfig = acpConfig?.[backend as AcpBackend] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
@@ -92,7 +130,6 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
     throw new Error('No model provider configured');
   }
 
-  // aionrs supports all platforms via OpenAI-compatible protocol
   const provider = providers.find((p) => p.enabled !== false);
   if (!provider) {
     throw new Error('No enabled model provider for Aion CLI');
@@ -153,14 +190,10 @@ export async function getDefaultGeminiModel(): Promise<TProviderWithModel> {
   };
 }
 
-/**
- * Resolve the Gemini model to use, falling back to a placeholder for Google Auth if needed.
- */
 async function resolveGeminiModel(): Promise<TProviderWithModel> {
   try {
     return await getDefaultGeminiModel();
-  } catch (e) {
-    // Fallback to placeholder if no model configured (supports Google Auth users)
+  } catch {
     return {
       id: 'gemini-placeholder',
       name: 'Gemini',
@@ -172,24 +205,19 @@ async function resolveGeminiModel(): Promise<TProviderWithModel> {
   }
 }
 
-/**
- * Build ICreateConversationParams for a CLI agent.
- * The backend will automatically fill in derived fields (gateway.cliPath, runtimeValidation, etc.).
- * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
- */
 export async function buildCliAgentParams(
   agent: AvailableAgent,
   workspace: string
 ): Promise<ICreateConversationParams> {
   const type = getConversationTypeForBackend(agent.backend);
   const preferredMode = await resolvePreferredMode(agent.backend);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
+  const preferredAcpModelId =
+    type === 'acp' || type === 'openclaw-gateway' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'gemini') {
     model = await resolveGeminiModel();
   } else if (type === 'aionrs') {
-    // Aionrs needs a real model from configured providers (anthropic, openai, ali-intl, aws)
     model = await getDefaultAionrsModel();
   } else {
     model = {} as TProviderWithModel;
@@ -208,20 +236,12 @@ export async function buildCliAgentParams(
   });
 }
 
-/**
- * Build ICreateConversationParams for a preset assistant.
- * Applies 4-layer fallback for reading rules and skills (BUG-1 fix).
- * Uses resolveLocaleKey() to convert i18n.language to standard locale format (BUG-2 fix).
- * [BUG-3 fix]: callers must invoke this inside a try block because getDefaultGeminiModel may throw.
- */
 export async function buildPresetAssistantParams(
   agent: AvailableAgent,
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
   const { customAgentId, presetAgentType = 'gemini' } = agent;
-
-  // [BUG-2] Map raw i18n.language to standard locale key
   const localeKey = resolveLocaleKey(language);
 
   const {
@@ -235,7 +255,8 @@ export async function buildPresetAssistantParams(
 
   const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
+  const preferredAcpModelId =
+    type === 'acp' || type === 'openclaw-gateway' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
   const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
