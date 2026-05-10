@@ -65,55 +65,55 @@ function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort
   req.pipe(proxy);
 }
 
-function forwardUpgradeToBackend(req: IncomingMessage, socket: Socket, head: Buffer, backendPort: number): void {
-  // Tunnel the WebSocket handshake through a raw TCP socket: reassemble the
-  // original request line + headers and splice the two sockets together. This
-  // mirrors what http-proxy/nginx do for WebSocket upstreams and avoids the
-  // quirks of Node's `http.request` 'upgrade' event (which can silently swallow
-  // the 101 as a regular response under certain Agent configurations).
-  socket.setNoDelay(true);
-  socket.setKeepAlive(true);
-  socket.setTimeout(0);
-  const lines: string[] = [`${req.method ?? 'GET'} ${req.url ?? '/'} HTTP/1.1`];
-  const headers: Record<string, string | string[] | undefined> = {
-    ...req.headers,
-    host: `127.0.0.1:${backendPort}`,
-  };
-  for (const [key, value] of Object.entries(headers)) {
-    if (value === undefined) continue;
-    if (Array.isArray(value)) {
-      for (const v of value) lines.push(`${key}: ${v}`);
-    } else {
-      lines.push(`${key}: ${value}`);
-    }
-  }
-  const requestBytes = Buffer.from(lines.join('\r\n') + '\r\n\r\n', 'utf8');
+// Max bytes we peek before forcing a routing decision. An HTTP request-line
+// on its own is typically < 100 bytes; a full header block is < 2 KB. If we
+// haven't seen a newline after 4 KB the client is sending something weird —
+// hand it to the internal HTTP server and let it return 400.
+const PEEK_LIMIT_BYTES = 4096;
 
-  const proxySocket = net.connect({ host: '127.0.0.1', port: backendPort });
-  proxySocket.setNoDelay(true);
-  proxySocket.setKeepAlive(true);
-
-  proxySocket.once('connect', () => {
-    proxySocket.write(requestBytes);
-    if (head.length > 0) proxySocket.write(head);
-    proxySocket.pipe(socket);
-    socket.pipe(proxySocket);
+/**
+ * Splice `client` to a TCP endpoint on `targetPort`. Any bytes already read
+ * from `client` during peek are replayed to the upstream as the first write,
+ * so the endpoint sees the full HTTP request as-sent.
+ */
+function spliceToTcpEndpoint(client: Socket, targetPort: number, initialBytes: Buffer): void {
+  client.setNoDelay(true);
+  client.setKeepAlive(true);
+  client.setTimeout(0);
+  const upstream = net.connect({ host: '127.0.0.1', port: targetPort });
+  upstream.setNoDelay(true);
+  upstream.setKeepAlive(true);
+  upstream.once('connect', () => {
+    if (initialBytes.length > 0) upstream.write(initialBytes);
+    upstream.pipe(client);
+    client.pipe(upstream);
   });
-
-  const tearDown = (err?: Error): void => {
-    if (err) {
-      try {
-        socket.write('HTTP/1.1 502 Bad Gateway\r\n\r\n');
-      } catch {
-        // ignore
-      }
-    }
-    socket.destroy();
-    proxySocket.destroy();
+  const tearDown = (): void => {
+    client.destroy();
+    upstream.destroy();
   };
-  proxySocket.on('error', tearDown);
-  socket.on('error', () => proxySocket.destroy());
-  socket.on('close', () => proxySocket.destroy());
+  upstream.on('error', tearDown);
+  client.on('error', tearDown);
+  upstream.on('close', tearDown);
+  client.on('close', tearDown);
+}
+
+/**
+ * Decide routing from the first chunk of an incoming HTTP connection:
+ *  - `true`  → `GET /ws[...] HTTP/1.x` (WebSocket upgrade), splice to backend
+ *  - `false` → any other HTTP method / path, hand to internal HTTP server
+ *  - `null`  → need more bytes (no CRLF yet)
+ *
+ * We only check the request-line; `Upgrade: websocket` is not strictly
+ * required — the backend will reject a non-upgrade `GET /ws` on its own.
+ * Keeping the rule simple means we can decide after the first ~50 bytes
+ * instead of waiting for the full header block.
+ */
+function peekWsRoute(buf: Buffer): boolean | null {
+  const newlineIdx = buf.indexOf(0x0a); // \n
+  if (newlineIdx < 0) return null;
+  const firstLine = buf.slice(0, newlineIdx).toString('ascii');
+  return /^GET\s+\/ws(?:\?[^\s]*)?\s+HTTP\/1\.[01]\r?$/.test(firstLine);
 }
 
 export async function startStaticServer(opts: StaticServerOptions): Promise<StaticServerHandle> {
@@ -121,7 +121,16 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
   const allowRemote = opts.allowRemote === true;
   const host = allowRemote ? '0.0.0.0' : '127.0.0.1';
 
-  const server: Server = http.createServer(async (req, res) => {
+  // The HTTP server listens only on loopback — user traffic hits the outer
+  // net.Server first. We route to this server for everything except WS
+  // upgrades, which go straight to the backend via a raw TCP splice.
+  //
+  // Why two listeners instead of using `http.Server`'s native `upgrade` event:
+  // bun 1.3's http-compat layer does not faithfully forward writes on the
+  // socket delivered to the `upgrade` handler, so the backend's 101 response
+  // never reaches the browser (see #2824). Making the outer listener pure
+  // TCP avoids touching that code path on both bun and node.
+  const http_server: Server = http.createServer(async (req, res) => {
     try {
       if (!req.url || !req.method) {
         res.writeHead(400).end();
@@ -151,23 +160,64 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     }
   });
 
-  server.on('upgrade', (req, socket, head) => {
-    if (req.url === '/ws' || req.url?.startsWith('/ws?')) {
-      forwardUpgradeToBackend(req, socket as Socket, head, opts.backendPort);
-    } else {
-      socket.destroy();
-    }
+  // Internal HTTP server — 127.0.0.1 ephemeral port, never visible to the user.
+  await new Promise<void>((resolve, reject) => {
+    http_server.once('error', reject);
+    http_server.listen(0, '127.0.0.1', () => {
+      http_server.off('error', reject);
+      resolve();
+    });
+  });
+  const internalPort = (http_server.address() as { port: number } | null)?.port;
+  if (!internalPort) {
+    throw new Error('internal HTTP server failed to bind to a port');
+  }
+
+  // User-facing listener: inspect the first line of every TCP connection and
+  // route to either the backend (for /ws upgrades) or the internal HTTP
+  // server (everything else). Both routes use raw TCP splice — no reliance
+  // on http.Server's upgrade event.
+  const tcp_server = net.createServer((client: Socket) => {
+    let peeked = Buffer.alloc(0);
+    let settled = false;
+    const cleanup = (): void => {
+      if (settled) return;
+      settled = true;
+      client.removeListener('data', onData);
+      client.removeListener('error', onEarlyError);
+      client.removeListener('end', onEarlyEnd);
+    };
+    const onData = (chunk: Buffer): void => {
+      peeked = Buffer.concat([peeked, chunk]);
+      const decision = peekWsRoute(peeked);
+      if (decision === null && peeked.length < PEEK_LIMIT_BYTES) return;
+      cleanup();
+      const target = decision === true ? opts.backendPort : internalPort;
+      spliceToTcpEndpoint(client, target, peeked);
+    };
+    const onEarlyError = (): void => {
+      cleanup();
+      client.destroy();
+    };
+    const onEarlyEnd = (): void => {
+      // Client closed before we saw a request line — nothing to route.
+      cleanup();
+      client.destroy();
+    };
+    client.on('data', onData);
+    client.on('error', onEarlyError);
+    client.on('end', onEarlyEnd);
   });
 
   await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(port, host, () => {
-      server.off('error', reject);
+    tcp_server.once('error', reject);
+    tcp_server.listen(port, host, () => {
+      tcp_server.off('error', reject);
       resolve();
     });
   });
 
-  const actualPort = (server.address() as { port: number } | null)?.port ?? port;
+  const actualPort = (tcp_server.address() as { port: number } | null)?.port ?? port;
   const lanIP = allowRemote ? (getLanIP() ?? undefined) : undefined;
   const localUrl = `http://127.0.0.1:${actualPort}`;
   const networkUrl = lanIP ? `http://${lanIP}:${actualPort}` : undefined;
@@ -180,7 +230,9 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
     lanIP,
     stop: () =>
       new Promise<void>((resolve) => {
-        server.close(() => resolve());
+        tcp_server.close(() => {
+          http_server.close(() => resolve());
+        });
       }),
   };
 }

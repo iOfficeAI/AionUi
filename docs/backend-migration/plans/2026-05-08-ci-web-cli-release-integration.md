@@ -1,5 +1,7 @@
 # CI Web-CLI Release Integration Implementation Plan
 
+> **Status (2026-05-10):** `AIONUI_BACKEND_ALLOW_MISSING` has been **removed** from all code and workflows. `iOfficeAI/aionui-backend` now ships stable releases (current: `v0.1.0-preview-test`), so `prepareAionuiBackend.js` and `pack-web-cli.js` hard-fail when the backend binary cannot be downloaded. The references to this env var below are kept as historical context only. See `docs/backend-migration/handoffs/allow-missing-removal-outcome.md` for the cleanup PR.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** 让 `aionui-web` 的 5 平台 tarball、对应 `.sha256` 校验文件和版本化 `install-web.sh`,随每次 AionUi release(dev 分支 push 或正式 tag push)与桌面 dmg/exe/deb 同 release 一并产出。
