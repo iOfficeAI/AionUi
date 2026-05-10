@@ -196,6 +196,10 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Ambient Mode (M1 skeleton): enable bubble + agent-driven UI flow (replaces pet path)
+  'ambient.enabled'?: boolean;
+  // Ambient Mode: persisted bubble window position (displayId used for multi-monitor recovery)
+  'ambient.bubblePosition'?: { x: number; y: number; displayId: number };
 }
 
 export interface IEnvStorageRefer {
