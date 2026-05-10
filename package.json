@@ -251,7 +251,7 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aionuiBackendVersion": "v0.1.0-preview-test2",
+  "aionuiBackendVersion": "v0.1.0-preview-test3",
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },
