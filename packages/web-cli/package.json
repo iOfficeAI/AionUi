@@ -1,6 +1,6 @@
 {
   "name": "@aionui/web-cli",
-  "version": "0.0.0",
+  "version": "1.9.26",
   "private": true,
   "description": "AionUi WebUI CLI - standalone web runtime (no Electron)",
   "bin": {
