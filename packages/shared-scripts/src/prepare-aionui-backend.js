@@ -245,19 +245,13 @@ function prepareAionuiBackend(options) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
 
-    // Get version info from binary
-    let binaryVersion = tag;
-    try {
-      binaryVersion = execSync(`"${targetBinaryPath}" --version`, {
-        encoding: 'utf-8',
-        timeout: 5000,
-      }).trim();
-    } catch {}
-
+    // The release tag is the authoritative version — the aionui-backend
+    // binary does not expose a --version flag (it has --app-version which
+    // takes a value, not a self-report).
     const manifest = {
       platform,
       arch,
-      version: binaryVersion,
+      version: tag,
       generatedAt: new Date().toISOString(),
       sourceType,
       source: sourceDetail,

@@ -68,20 +68,28 @@ if [ -z "$VERSION" ]; then
 fi
 echo "✓ Version: $VERSION"
 
-# 5. Test backend binary (may be empty placeholder when ALLOW_MISSING=1)
+# 5. Test backend binary
 echo ""
 echo "5. Checking backend binary..."
 BACKEND_DIR="bundled-aionui-backend/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/aarch64/arm64/; s/x86_64/x64/')"
 BACKEND_BINARY="$BACKEND_DIR/aionui-backend"
-if [ -x "$BACKEND_BINARY" ]; then
-  BACKEND_VERSION=$("$BACKEND_BINARY" --version 2>&1 || true)
-  echo "✓ Backend version: $BACKEND_VERSION"
-elif [ -f "$BACKEND_DIR/manifest.json" ]; then
-  echo "⚠️ Backend not present (ALLOW_MISSING placeholder: $BACKEND_DIR/manifest.json)"
-else
-  echo "❌ Backend directory missing entirely: $BACKEND_DIR"
+if [ ! -x "$BACKEND_BINARY" ]; then
+  echo "❌ Backend binary missing or not executable: $BACKEND_BINARY"
   exit 1
 fi
+# aionui-backend has no --version flag. Read the pinned version from manifest.json
+# (which prepareAionuiBackend writes at pack time) and use --help to confirm the
+# binary loads successfully on this platform's GLIBC / libstdc++ / etc.
+if [ -f "$BACKEND_DIR/manifest.json" ]; then
+  BACKEND_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$BACKEND_DIR/manifest.json" | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
+  echo "✓ Backend version (from manifest): ${BACKEND_VERSION:-unknown}"
+fi
+if ! "$BACKEND_BINARY" --help > /dev/null 2>&1; then
+  echo "❌ Backend binary failed to exec (--help returned non-zero)"
+  "$BACKEND_BINARY" --help 2>&1 | head -5
+  exit 1
+fi
+echo "✓ Backend binary loads on this platform"
 
 # 6. HTTP-level smoke: start web-cli, curl the root, check for SPA shell
 echo ""
