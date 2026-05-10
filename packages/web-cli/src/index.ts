@@ -1,9 +1,11 @@
 import { startWebHost, startStaticServer } from '@aionui/web-host';
 import type { WebHostHandle, StaticServerHandle } from '@aionui/web-host';
+import { setTimeout as delay } from 'node:timers/promises';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { ensureAdminPassword } from './ensureAdminPassword.js';
 
 // tarball layout:
 //   aionui-web/
@@ -192,6 +194,21 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     console.log('AionUi WebUI is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
+
+    // First-launch bootstrap: if SQLite has no admin password yet, seed one via
+    // backend and print plaintext credentials. Failure must not abort startup —
+    // the user can always fall back to running `bun run resetpass` manually.
+    await ensureAdminPassword(
+      { backendPort: handle.backendPort },
+      {
+        fetch: (...args) => fetch(...args),
+        log: (msg) => console.log(msg),
+        warn: (msg) => console.warn(msg),
+        sleep: (ms) => delay(ms),
+        now: () => Date.now(),
+      }
+    );
+
     console.log('');
     console.log('Press Ctrl+C to stop.');
   }

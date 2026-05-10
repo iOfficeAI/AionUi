@@ -96,24 +96,24 @@ echo ""
 echo "6. Testing HTTP server responds with SPA index..."
 HTTP_PORT=25899
 DATA_DIR="$(mktemp -d)/aionui-web-data"
-# Graceful fallback will kick in when backend is missing: static server alone
-# still serves index.html, which is what we assert below.
+# Full-stack start: backend is bundled, so we can also exercise /login below.
+# If the bundled backend is missing the CLI falls back to frontend-only mode
+# and later login probe is skipped.
 ./aionui-web start --port "$HTTP_PORT" --data-dir "$DATA_DIR" > /tmp/aionui-web.log 2>&1 &
 SERVER_PID=$!
 
-# Wait up to 15s for HTTP to come up
-for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15; do
+# Wait up to 30s for HTTP to come up. With backend spawned, first start spends
+# time on SQLite migrations on slower CI runners.
+for i in $(seq 1 30); do
   if curl -sf "http://127.0.0.1:${HTTP_PORT}/" > /tmp/aionui-web.html 2>/dev/null; then
     break
   fi
   sleep 1
 done
 
-# Stop the server regardless of the probe outcome
-kill "$SERVER_PID" 2>/dev/null || true
-wait "$SERVER_PID" 2>/dev/null || true
-
 if [ ! -s /tmp/aionui-web.html ]; then
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
   echo "❌ HTTP probe failed — no response body. Server log:"
   cat /tmp/aionui-web.log
   exit 1
@@ -123,11 +123,83 @@ fi
 if grep -q '<html' /tmp/aionui-web.html && grep -qE '<(div id="root"|script)' /tmp/aionui-web.html; then
   echo "✓ HTTP root returns SPA index ($(wc -c < /tmp/aionui-web.html) bytes)"
 else
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
   echo "❌ HTTP root response does not look like SPA index:"
   head -20 /tmp/aionui-web.html
   echo "---server log---"
   cat /tmp/aionui-web.log
   exit 1
+fi
+
+# 7. Auth-setup smoke: verify stdout announces a generated admin password on
+#    first launch, then POST it to /login and check for success + session cookie.
+#    Skip when the bundled backend was unavailable — there's no /login to call.
+echo ""
+echo "7. Testing first-launch admin password seeding + login..."
+if grep -q 'Backend binary not found' /tmp/aionui-web.log; then
+  echo "⚠️  frontend-only mode detected (no bundled backend) — skipping login probe"
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
+else
+  # Wait up to 20s for the "Generated initial admin password" line — the backend
+  # needs to finish migrations before /api/auth/status replies.
+  PASSWORD=""
+  for i in $(seq 1 20); do
+    PASSWORD=$(grep -oE 'Generated initial admin password: [^ ]+' /tmp/aionui-web.log | head -1 | sed 's/^Generated initial admin password: //')
+    if [ -n "$PASSWORD" ]; then
+      break
+    fi
+    sleep 1
+  done
+
+  if [ -z "$PASSWORD" ]; then
+    kill "$SERVER_PID" 2>/dev/null || true
+    wait "$SERVER_PID" 2>/dev/null || true
+    echo "❌ Never saw 'Generated initial admin password: ...' in stdout."
+    echo "---server log---"
+    cat /tmp/aionui-web.log
+    exit 1
+  fi
+  echo "✓ Captured initial admin password from stdout"
+
+  # POST /login — static server proxies to backend. Expect 200, success:true,
+  # and at least one Set-Cookie header containing a session cookie.
+  LOGIN_BODY=$(printf '{"username":"admin","password":"%s","remember":false}' "$PASSWORD")
+  LOGIN_RESP_HEADERS=$(mktemp)
+  LOGIN_RESP_BODY=$(mktemp)
+  HTTP_CODE=$(curl -sS -o "$LOGIN_RESP_BODY" -D "$LOGIN_RESP_HEADERS" -w '%{http_code}' \
+    -X POST "http://127.0.0.1:${HTTP_PORT}/login" \
+    -H 'Content-Type: application/json' \
+    --data "$LOGIN_BODY" || echo "000")
+
+  # Stop the server before asserting so we don't leak a process on failure.
+  kill "$SERVER_PID" 2>/dev/null || true
+  wait "$SERVER_PID" 2>/dev/null || true
+
+  if [ "$HTTP_CODE" != "200" ]; then
+    echo "❌ /login returned HTTP $HTTP_CODE"
+    echo "---headers---"
+    cat "$LOGIN_RESP_HEADERS"
+    echo "---body---"
+    cat "$LOGIN_RESP_BODY"
+    echo "---server log---"
+    cat /tmp/aionui-web.log
+    exit 1
+  fi
+
+  if ! grep -q '"success":[[:space:]]*true' "$LOGIN_RESP_BODY"; then
+    echo "❌ /login returned 200 but body had no success:true"
+    cat "$LOGIN_RESP_BODY"
+    exit 1
+  fi
+
+  if ! grep -iq '^set-cookie:' "$LOGIN_RESP_HEADERS"; then
+    echo "❌ /login returned success but no Set-Cookie header"
+    cat "$LOGIN_RESP_HEADERS"
+    exit 1
+  fi
+  echo "✓ Login with printed password succeeded (HTTP 200 + Set-Cookie present)"
 fi
 
 # Cleanup
