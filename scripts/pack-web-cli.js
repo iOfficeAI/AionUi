@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aionui-backend.js');
+const { resolveBackendVersion } = require('./resolveBackendVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.env.PACK_PLATFORM || process.platform;
@@ -28,7 +29,7 @@ prepareAionuiBackend({
   projectRoot,
   platform,
   arch,
-  version: process.env.AIONUI_BACKEND_VERSION || 'latest',
+  version: resolveBackendVersion(projectRoot),
 });
 
 // 2. Create staging dir

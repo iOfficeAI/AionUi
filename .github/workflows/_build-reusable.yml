@@ -309,7 +309,8 @@ jobs:
         shell: bash
         run: node scripts/prepareAionuiBackend.js
         env:
-          AIONUI_BACKEND_VERSION: latest
+          # Version is pinned in repo-root package.json (aionuiBackendVersion).
+          # Set AIONUI_BACKEND_VERSION here only to override for ad-hoc builds.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
