@@ -124,7 +124,7 @@ jobs:
         env:
           PACK_PLATFORM: ${{ matrix.platform }}
           PACK_ARCH: ${{ matrix.arch }}
-          AIONUI_BACKEND_VERSION: latest
+          # Version is pinned in repo-root package.json (aionuiBackendVersion).
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload tarball artifact
