@@ -358,7 +358,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       const errorText =
         typeof errorData === 'string'
           ? errorData
-          : (errorData as { message?: string })?.message ?? JSON.stringify(errorData);
+          : ((errorData as { message?: string })?.message ?? JSON.stringify(errorData));
       return {
         id: uuid(),
         type: 'tips',
