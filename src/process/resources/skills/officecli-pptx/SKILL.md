@@ -1,36 +1,18 @@
 ---
-# officecli: v1.0.63
 name: officecli-pptx
 description: "Use this skill any time a .pptx file is involved -- as input, output, or both. This includes: creating slide decks, pitch decks, or presentations; reading, parsing, or extracting text from any .pptx file; editing, modifying, or updating existing presentations; combining or splitting slide files; working with templates, layouts, speaker notes, or comments. Trigger whenever the user mentions 'deck', 'slides', 'presentation', 'pitch', or references a .pptx filename."
 ---
 
 # OfficeCLI PPTX Skill
 
-## BEFORE YOU START (CRITICAL)
+## Setup
 
-**If `officecli` is not installed:**
+If `officecli` is missing:
 
-`macOS / Linux`
+- **macOS / Linux**: `curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash`
+- **Windows (PowerShell)**: `irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex`
 
-```bash
-if ! command -v officecli >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-fi
-```
-
-`Windows (PowerShell)`
-
-```powershell
-if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
-    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
-}
-```
-
-Verify: `officecli --version`
-
-If `officecli` is still not found after first install, open a new terminal and run the verify command again.
-
-If the install command above fails (e.g. blocked by security policy, no network access, or insufficient permissions), install manually — download the binary for your platform from https://github.com/iOfficeAI/OfficeCLI/releases — then re-run the verify command.
+Verify with `officecli --version` (open a new terminal if PATH hasn't picked up). If install fails, download a binary from https://github.com/iOfficeAI/OfficeCLI/releases.
 
 ## ⚠️ Help-First Rule
 
@@ -43,17 +25,17 @@ officecli help pptx <verb> <element>        # Verb-scoped (e.g. add shape, set s
 officecli help pptx <element> --json        # Machine-readable schema
 ```
 
-Help is pinned to the installed CLI version (v1.0.63). When skill and help disagree, **help is authoritative**. Triggers to run help immediately: `UNSUPPORTED props:` warning, unknown animation preset, `connector.shape=` enum (drifts — C-P-5), prop-vs-alias (`lineWidth` vs `line.width`, `color` vs `font.color`).
-
-## Mental Model & Inheritance
-
-**Mental model.** A `.pptx` is a ZIP of XML parts (`ppt/slides/*.xml`, `slideLayouts/`, `slideMasters/`, `theme*.xml`, `charts/`, `media/`, `notesSlides/`). `officecli` gives you a semantic-path API (`/slide[N]/shape[M]`, `/slide[N]/shape[@name=X]`) over it. Raw XML only via `raw-set`.
-
-**Slides are consumed at ~3 seconds per slide in a live room.** Scanned, not read. Every design decision below serves that constraint.
+Help reflects the installed CLI version. When skill and help disagree, **help is authoritative**. Triggers to run help immediately: `UNSUPPORTED props:` warning, unknown animation preset, `connector.shape=` enum drifts, prop-vs-alias (`lineWidth` vs `line.width`, `color` vs `font.color`).
 
 ## Shell & Execution Discipline
 
-**Shell quoting (zsh / bash).** ALWAYS quote element paths (`"/slide[1]/..."`). Single-quote values containing `$`. Never hand-write `\$` / `\t` / `\n` — CLI does not interpret them. Full rules in "Shell escape — three layers" below.
+**Shell quoting (zsh / bash).** ALWAYS quote element paths (`"/slide[1]/..."`) — zsh globs unquoted `[1]` to `no matches found`. Escapes happen at two layers; the CLI handles one for you:
+
+1. **Shell.** `$` in a value still belongs to the shell — single-quote the whole value: `--prop text='$15M'`. Double-quoted `"$15M"` gets expanded to `M`. The CLI does NOT unescape `\$` for you.
+2. **CLI (`text=`).** The two-char escapes `\n` and `\t` ARE interpreted, consistently across pptx / docx / xlsx — `\n` is a line / paragraph break, `\t` is a tab. To produce a literal backslash-n in text, double it (`\\n`); this is rarely what you want.
+3. **JSON (batch).** Real newlines / tabs can also be passed as `"\n"` / `"\t"` inside a `<<'EOF'` heredoc; both forms produce the same result.
+
+If in doubt, `view text` after writing and compare character-for-character.
 
 **Incremental execution.** One command → check exit code → continue. A 50-command script that fails at command 3 cascades silently. After any structural op (new slide, chart, animation, connector) run `get` before stacking more.
 
@@ -65,7 +47,7 @@ These are the deliverable standards every deck MUST meet. Violating any one = no
 
 **One idea per slide.** If a slide needs a second title to explain what it covers, split it. Dense "everything about X" slides lose the audience inside 3 seconds. Use a section divider to group related one-idea slides, not a mega-slide.
 
-**Explicit type hierarchy — do NOT rely on theme defaults.** Theme defaults drift between masters. Set sizes explicitly on every text shape. **This is the single source of truth — Visual Floor, Design Principles, and Pitfalls all cross-link back here.**
+**Explicit type hierarchy — do NOT rely on theme defaults.** Theme defaults drift between masters. Set sizes explicitly on every text shape.
 
 | Element              | Minimum         | Typical | Min shape height |
 | -------------------- | --------------- | ------- | ---------------- |
@@ -76,7 +58,7 @@ These are the deliverable standards every deck MUST meet. Violating any one = no
 
 Rule of thumb: **min shape height ≈ font_pt × 0.05cm**. An 18pt sublabel in a 0.8cm-tall box will overflow — `view annotated` catches this.
 
-Title must be **≥ 2× body size** (36pt over 20pt works; 28pt over 20pt looks timid). Four legit exceptions to body ≥ 18pt: chart axis labels, legends, footer / page number, and ≤ 5-word KPI sublabels (e.g. "Active users"). Descriptive sentences must be ≥ 18pt. Left-align body; center only titles and hero numbers.
+Title must be **≥ 2× body size** (36pt over 20pt works; 28pt over 20pt looks timid). Four legit exceptions to body ≥ 18pt: chart axis labels, legends, footer / page number, and ≤ 5-word KPI sublabels (e.g. "Active users"). Descriptive sentences must be ≥ 18pt. Left-align body; center only titles and hero numbers. If "the cards won't fit", drop cards instead of shrinking font.
 
 **Two fonts max, one palette.** One heading font + one body font (e.g. Georgia + Calibri). One dominant brand color (60–70% weight) + one supporting + one accent. Never mix 4+ colors in body content.
 
@@ -90,30 +72,27 @@ Title must be **≥ 2× body size** (36pt over 20pt works; 28pt over 20pt looks 
 
 Before declaring done, the per-slide render (see QA) MUST satisfy:
 
-- **Type hierarchy met** — see Requirements table above (title ≥ 36pt, body ≥ 18pt, title ≥ 2× body). Verify via `view annotated`.
 - **No placeholder tokens rendered as content.** `{{name}}`, `$fy$24`, `<TODO>`, `lorem`, `xxxx`, empty `()`/`[]` in chart titles never appear.
 - **No overflow past slide edges.** For 16:9 (33.87 × 19.05cm), every shape satisfies `x + width ≤ 33.87cm` AND `y + height ≤ 19.05cm`. `get` and check — don't eyeball.
 - **No text overflow inside shapes.** A 72pt KPI in a 4cm-tall box clips. Shrink the number, enlarge the box, or shorten the text — never trim content to fit.
 - **Cover slide is content-rich.** Title + subtitle + presenter/client block + date + a brand band or key-takeaway strap. A cover with 80% whitespace reads as a stub.
-- **Contrast floor.** On dark backgrounds (brightness < 30%), body text MUST be `FFFFFF` or > 80%-bright. Mid-gray on dark navy is invisible on projection.
-- **Animation restraint.** ≤ 1 animation per slide, ≤ 600ms, entrance/emphasis only (never `bounce`, `swivel`, `fly-from-edge`). Animation is a runtime feature — `view html` shows static geometry; the animation itself runs only when the `.pptx` is opened in a live presentation viewer.
-- **No `\$`, `\t`, `\n` literals in slide text.** If `view text` shows these, a shell-escape leaked — delete and re-enter via heredoc batch.
+- **Contrast.** On fills with brightness < 30% (`1E2761`, `36454F`, `000000`, deep forest / berry / cherry), every run of body text, card body, chart series fill, and icon color must be `FFFFFF` or brightness > 80%. Mid-gray (`6B7B8D` ≈ 44%) reads fine on a laptop and vanishes on projection. Verify via `view html` after the dark-fill pass.
+- **No `\$` literals in slide text.** If `view text` shows a literal `\$`, the shell didn't unescape it (the CLI does NOT interpret `\$`). Single-quote the value: `--prop text='$15M'`. Note: `\n` and `\t` ARE interpreted as a real paragraph break / tab; seeing those as literals means the value was double-escaped (`\\n`).
 
 If any fails, STOP and fix before declaring done.
 
-### Hard rules worth repeating
+### KPI fit math
+
+**KPI text must fit the card — pre-compute, don't eyeball.** In a 7cm-wide card at 60pt Georgia bold, values with `$` and `.` (wide glyphs) wrap at 4 characters. `$9.4M` breaks the card; use `$9M` + "USD millions" sublabel, or move to the 3-card 9.78cm layout. Upper bound: `max_size_pt ≈ card_width_cm × denom`, where denom = 10 for 1–2 chars, 7 for 3–4 chars, 5 for 5+ chars.
+
+### `layout=blank` and alt text
 
 - **`layout=blank` is the default for custom designs.** Titles become plain `shape` elements, not placeholders. `view outline` / `view issues` reporting `(untitled)` / `Slide has no title` is **expected**, not a defect. Use `layout=title` + `placeholder[title]` only when screen-reader outline compatibility matters.
-- **Alt text on pictures is two-step.** `add --prop alt=` is rejected (C-P-7 bug, still open on 1.0.63). `set /slide[N]/picture[M] --prop alt="..."` afterwards. `view stats "Pictures without alt text: 0"` is a false-positive zero — verify via `view annotated`.
-- **Hyperlink + tooltip needs ordering.** Set `link=` + `tooltip=` BEFORE any run-level styling on the same shape, or clean up with raw-set afterwards (Known Issues C-P-1).
+- **Alt text verification.** `view stats "Pictures without alt text: 0"` is a false-positive zero (alt auto-fills to filename) — verify via `view annotated`.
 
 ## Design Principles
 
-A deck is not a document. The audience has 3 seconds to get each slide before attention drifts.
-
-### The 3-second test
-
-Before adding anything, ask: "If the audience only reads the biggest element and glances once, do they get the point?" If they need to read the bullets, the biggest element is wrong. Promote the answer to the title, demote evidence to smaller supporting text.
+A deck is not a document. The audience has 3 seconds to get each slide. Before adding anything, ask: "If the audience reads only the biggest element and glances once, do they get the point?" If they have to read the bullets, the biggest element is wrong.
 
 ### Grid, margins, negative space
 
@@ -124,22 +103,43 @@ Standard widescreen is **33.87 × 19.05cm**. Treat it as a 12-column grid intern
 - **≥ 20% negative space per slide.** Filling every pixel reads as amateur.
 - For card grids: `usable = 33.87 − 2·margin − (N−1)·gap`, then `col_width = usable / N`. Don't hand-pick x coordinates.
 
-### Type hierarchy — numbers, not vibes
+### Font pairings
 
-→ See Requirements table above. Non-negotiable floors.
+Two fonts max — one for headings, one for body. Pair by document register, not by novelty. "Best For" is a prompt, not a decree; if the topic matches a row, use it as the default and move on.
+
+| Header       | Body          | Best For                                    |
+| ------------ | ------------- | ------------------------------------------- |
+| Georgia      | Calibri       | Formal business, finance, executive reports |
+| Arial Black  | Arial         | Bold marketing, product launches            |
+| Calibri      | Calibri Light | Clean corporate, minimal design             |
+| Cambria      | Calibri       | Traditional professional, legal, academic   |
+| Trebuchet MS | Calibri       | Friendly tech, startups, SaaS               |
+| Impact       | Arial         | Bold headlines, event decks, keynotes       |
+| Palatino     | Garamond      | Elegant editorial, luxury, nonprofit        |
+| Consolas     | Calibri       | Developer tools, technical / engineering    |
+
+Set both fonts explicitly on every shape (`--prop font=Georgia` on title shapes, `--prop font=Calibri` on body shapes) — theme-default inheritance drifts between masters.
 
 ### Color and contrast
 
-One dominant color does 60–70% of visual weight, two supporting tones, one accent used sparingly. Never use 4+ colors in body content.
+One dominant color does 60–70% of visual weight, two supporting tones, one accent used sparingly. Never use 4+ colors in body content. Columns are: **Primary** (dominant — the one color you see first), **Secondary** (the supporting tone), **Accent** (sparing, one-hit emphasis), **Text** (body on light fills), **Muted** (captions / axis labels / footer).
 
-| Theme            | Dominant | Supporting | Accent   | Dark body |
-| ---------------- | -------- | ---------- | -------- | --------- |
-| Executive navy   | `1E2761` | `CADCFC`   | `FFFFFF` | `333333`  |
-| Forest & moss    | `2C5F2D` | `97BC62`   | `F5F5F5` | `2D2D2D`  |
-| Warm terracotta  | `B85042` | `E7E8D1`   | `A7BEAE` | `3D2B2B`  |
-| Charcoal minimal | `36454F` | `F2F2F2`   | `212121` | `333333`  |
+| Theme              | Primary  | Secondary | Accent   | Text     | Muted    |
+| ------------------ | -------- | --------- | -------- | -------- | -------- |
+| Coral Energy       | `F96167` | `F9E795`  | `2F3C7E` | `333333` | `8B7E6A` |
+| Midnight Executive | `1E2761` | `CADCFC`  | `FFFFFF` | `333333` | `8899BB` |
+| Forest & Moss      | `2C5F2D` | `97BC62`  | `F5F5F5` | `2D2D2D` | `6B8E6B` |
+| Charcoal Minimal   | `36454F` | `F2F2F2`  | `212121` | `333333` | `7A8A94` |
+| Warm Terracotta    | `B85042` | `E7E8D1`  | `A7BEAE` | `3D2B2B` | `8C7B75` |
+| Berry & Cream      | `6D2E46` | `A26769`  | `ECE2D0` | `3D2233` | `8C6B7A` |
+| Ocean Gradient     | `065A82` | `1C7293`  | `21295C` | `2B3A4E` | `6B8FAA` |
+| Teal Trust         | `028090` | `00A896`  | `02C39A` | `2D3B3B` | `5E8C8C` |
+| Sage Calm          | `84B59F` | `69A297`  | `50808E` | `2D3D35` | `7A9488` |
+| Cherry Bold        | `990011` | `FCF6F5`  | `2F3C7E` | `333333` | `8B6B6B` |
 
-On dark backgrounds (fill brightness < 30%), text and chart series MUST be white or > 80%-bright. Mid-gray is invisible on projection.
+Pick by topic, not by default — finance reads Midnight Executive, a product launch reads Coral Energy, safety / LOTO reads Cherry Bold. If the closest named theme is not quite right, blend (e.g. Forest primary + gold `D4A843` accent). Use **Text** on light fills, **Muted** for captions / axis / footer, `FFFFFF` or Secondary for body on dark fills.
+
+On dark backgrounds, text and chart series follow the Hard rules contrast floor above.
 
 ### Chart-choice decision table
 
@@ -165,21 +165,53 @@ Each animation is a cognitive interrupt. Limits:
 - Never: `bounce`, `swivel`, `fly-from-edge`, `spin`, multi-object choreography.
 - Animation is runtime-only — verify in a live presentation viewer.
 
-→ Presets: `officecli help pptx animation`.
+### Layout patterns & data display
+
+Vary layout across slides — repeating the same pattern makes every slide feel identical. Pick one per slide from these building blocks:
+
+| Pattern                                                                       | When to use                                | Key measurement                                |
+| ----------------------------------------------------------------------------- | ------------------------------------------ | ---------------------------------------------- |
+| **Two-column** (text left, visual right)                                      | Concept + evidence; feature + screenshot   | Each col ≈ 14-15cm; gap 1cm                    |
+| **Icon rows** (icon in filled circle + bold header + description)             | Feature lists, benefits, team roles        | Icon circle 1.5-2cm; 3-4 rows max              |
+| **2×2 or 2×3 grid** (card tiles)                                              | Quadrant analysis, SWOT, option comparison | Gap ≥ 0.76cm; consistent card height           |
+| **Half-bleed image** (full left or right half, content overlay on other side) | Hero moments, case study openers           | Image 16-17cm wide; content column ≥ 14cm      |
+| **Large stat callout** (60-72pt number + ≤5-word sublabel below)              | Single KPI, milestone, market size         | Use shape, NOT a chart; sublabel 14-16pt muted |
+
+**Data display quick rules:**
+
+- One big number reads faster than a chart — use a `shape` with 60-72pt bold for a single KPI.
+- Comparison columns (before/after, A vs B) beat a table for 2-3 options.
+- Timelines and process flows: numbered step shapes + connectors, not a bullet list.
+
+### Visual motif commitment
+
+Pick ONE distinctive element (rounded image frames, section numbers in filled circles, single-side border band, diagonal accent strips) and carry it to every slide. Declare it in your build plan first: `## Motif: numbered circles in brand color`.
+
+### What to avoid (common design mistakes)
+
+These are the patterns that make a deck look AI-generated or amateur:
+
+- **NEVER place a decorative line under slide titles.** Underline stripes below headings are the single most common AI-slide tell. Use whitespace or background color change instead.
+- **Don't repeat the same layout across consecutive slides.** Alternate between two-column, callout, grid, and half-bleed patterns. Same layout = same visual rhythm = audience tunes out.
+- **Don't center body text.** Left-align all paragraphs, lists, card descriptions. Center only slide titles and hero numbers.
+- **Don't default to blue** because it feels "professional." Pick the palette that fits the topic — finance reads navy, sustainability reads forest, energy reads coral.
+- **Don't use inconsistent spacing.** Choose either 0.76cm or 1.27cm as your inter-block gap and use it everywhere. Mixed gaps look unfinished.
+- **Don't create text-only slides.** If a slide has only a title and bullets, add a supporting shape, chart, icon, or image. A purely textual slide is a Word paragraph.
+- **Don't style one slide and leave the rest plain.** Commit fully or keep it simple throughout — partial styling reads as abandoned.
 
 ## Common Workflow
 
-1. **Open/close mode.** Always `officecli open <file>` at start + `officecli close <file>` at end. Resident is the default, not an optimization. Use `batch` in ≤ 12-op chunks for repetitive shape grids.
-2. **Orient.** New deck: `officecli create deck.pptx`. Existing: `officecli view deck.pptx outline` first. Never edit blind.
-3. **Build in display order — HARD RULE.** `--index` on slide add is frequently ignored. Add slides in audience-view order: cover → agenda → section-1 divider → section-1 content → section-2 divider → … → closing. Out-of-order insertion requires `officecli move deck.pptx /slide[N] --index M` + re-verify with `get --depth 0`. **Before final delivery, confirm slide count + narrative arc match your build plan.** Gate 4 catches cases where the cover ends up as slide 11 of 14 instead of slide 1.
+1. **Open/close mode.** Always `officecli open <file>` at start + `officecli close <file>` at end. Resident is the default, not an optimization. Use `batch` for repetitive shape grids.
+2. **Orient.** New deck: `officecli create "$FILE"`. Existing: `officecli view "$FILE" outline` first. Never edit blind.
+3. **Build in display order.** Add slides in audience-view order: cover → agenda → section-1 divider → section-1 content → section-2 divider → … → closing. `--index` on slide add works, but linear append keeps the build script readable and avoids index-arithmetic bugs. **Before final delivery, confirm slide count + narrative arc match your build plan.** Gate 3's order-sanity check catches cases where the cover ends up as slide 11 of 14 instead of slide 1.
 4. **Incremental per slide.** Create slide + background, then title, then supporting shapes / charts / connectors. Always `layout=blank` for custom designs. After each structural op, `get /slide[N] --depth 1` to confirm shape IDs.
-5. **Format to spec.** Explicit title ≥ 36pt, body ≥ 18pt, colors from one palette, connectors via `@id=`. Formatting is deliverable, not polish.
-6. **Close + verify in target viewer.** `officecli close` writes the ZIP. `view html` — Read the returned HTML path — is OK for structural QA; **always open in the target presentation viewer before shipping** — chart colors, animations, font substitution, zoom are runtime features that only the live viewer renders faithfully.
+5. **Format to spec.** Per the Requirements table; formatting is deliverable, not polish.
+6. **Close + verify.** `officecli close` writes the ZIP. Always open in the target presentation viewer before shipping — chart colors, animations, fonts, and zoom are runtime features `view html` can't render. Full verification in QA below.
 7. **QA — assume there are problems.** Fix-and-verify until a cycle finds zero new issues.
 
 ## Quick Start
 
-Minimal viable deck: cover slide + one content slide + notes. `$FILE` stands in for your filename — adapt, don't copy-paste.
+Minimal viable deck: cover + one content slide + notes. `$FILE` stands in for your filename.
 
 ```bash
 FILE="deck.pptx"
@@ -190,72 +222,61 @@ officecli open "$FILE"
 officecli add "$FILE" / --type slide --prop layout=blank --prop background=1E2761
 officecli add "$FILE" /slide[1] --type shape --prop text="FY26 Strategic Review" \
   --prop x=2cm --prop y=7cm --prop width=29.87cm --prop height=3cm \
-  --prop font=Georgia --prop size=44 --prop bold=true --prop color=FFFFFF --prop align=center --prop fill=none
-officecli add "$FILE" /slide[1] --type shape --prop text="Prepared for the Board — April 2026" \
-  --prop x=2cm --prop y=10.5cm --prop width=29.87cm --prop height=1.5cm \
-  --prop font=Calibri --prop size=18 --prop color=CADCFC --prop align=center --prop fill=none
+  --prop font=Georgia --prop size=44 --prop bold=true --prop color=FFFFFF --prop align=center
 
 # Content — white fill, title + body + notes
 officecli add "$FILE" / --type slide --prop layout=blank --prop background=FFFFFF
 officecli add "$FILE" /slide[2] --type shape --prop text="Revenue grew 18% YoY" \
   --prop x=1.5cm --prop y=1.2cm --prop width=30cm --prop height=2cm \
-  --prop font=Georgia --prop size=36 --prop bold=true --prop color=1E2761 --prop fill=none
-officecli add "$FILE" /slide[2] --type shape --prop text="Enterprise renewals and the new EMEA region drove the beat; NRR held at 118%." \
+  --prop font=Georgia --prop size=36 --prop bold=true --prop color=1E2761
+officecli add "$FILE" /slide[2] --type shape --prop text="Enterprise renewals + new EMEA region drove the beat; NRR held at 118%." \
   --prop x=1.5cm --prop y=4cm --prop width=30cm --prop height=3cm \
-  --prop font=Calibri --prop size=20 --prop color=333333 --prop fill=none
-officecli add "$FILE" /slide[2] --type notes --prop text="Lead with the 18% beat, walk renewals, preview EMEA section."
+  --prop font=Calibri --prop size=20 --prop color=333333
+officecli add "$FILE" /slide[2] --type notes --prop text="Lead with the 18% beat, preview EMEA."
 
 officecli close "$FILE"
 officecli validate "$FILE"
 ```
 
-Verified: `validate` clean; titles ≥ 36pt, body 20pt, slide 2 has notes. Shape of every build: open → slide+background → title → body → notes → close → validate.
+Shape of every build: open → slide+background → title → body → notes → close → validate.
 
 ## Reading & Analysis
 
 Start wide, then narrow. `outline` first, `view text` / `get` / `query` once you know where to look.
 
 ```bash
-officecli view deck.pptx outline          # slide count, titles, shape counts (undercounts tables/charts)
-officecli view deck.pptx annotated        # complete per-slide breakdown with fonts, sizes, tables, charts
-officecli view deck.pptx text --start 1 --end 5   # text dump (does NOT extract table cells — use get)
-officecli view deck.pptx issues           # empty slides, overflow hints
-officecli view deck.pptx stats            # counts + missing alt (remember false-positive zero — C-P picture alt note)
+officecli view "$FILE" outline          # slide count + titles
+officecli view "$FILE" annotated        # complete per-slide breakdown with fonts, sizes, tables, charts
+officecli view "$FILE" text --start 1 --end 5   # text dump (does NOT extract table cells — use get)
+officecli view "$FILE" issues           # empty slides, overflow hints
+officecli view "$FILE" stats            # counts + missing alt (false-positive zero — verify via view annotated)
 ```
 
-**Inspect one element.** XPath-style paths, 1-based. ALWAYS quote.
+**Inspect one element.** XPath-style paths, 1-based. ALWAYS quote. Prefer `@name=` / `@id=` selectors over positional `[N]` (stable across reorderings). `[last()]` works. Add `--json` for machine output.
 
 ```bash
-officecli get deck.pptx "/slide[1]" --depth 1              # shape list with IDs and names
-officecli get deck.pptx "/slide[1]/shape[@name=Title]"     # @name selector (LEAD — stable across reorderings)
-officecli get deck.pptx "/slide[1]/shape[@id=10007]"       # @id selector (also stable)
-officecli get deck.pptx "/slide[1]/chart[1]"               # chart data + config
-officecli get deck.pptx "/slide[1]/table[1]" --depth 3     # table rows / cells
+officecli get "$FILE" "/slide[1]" --depth 1              # shape list with IDs and names
+officecli get "$FILE" "/slide[1]/shape[@name=Title]"
+officecli get "$FILE" "/slide[1]/table[1]" --depth 3     # table rows / cells
 ```
 
-Add `--json` for machine output. Use `[last()]` for "the last": `/slide[last()]/shape[1]`.
-
-**Query across the deck.** CSS-like selectors; operators `=`, `!=`, `~=`, `>=`, `<=`, `[attr]`:
+**Query across the deck.** CSS-like selectors; operators `=`, `!=`, `~=`, `>=`, `<=`, `[attr]`, `:contains()`, `:no-alt`. `help pptx query` lists queryable element types.
 
 ```bash
-officecli query deck.pptx 'shape:contains("Revenue")'
-officecli query deck.pptx 'picture:no-alt'                 # accessibility gap
-officecli query deck.pptx 'shape[fill=1E2761]'             # color match
-officecli query deck.pptx 'shape[width>=10cm]'             # numeric
-officecli query deck.pptx 'animation'                      # every animation in the deck
+officecli query "$FILE" 'shape:contains("Revenue")'
+officecli query "$FILE" 'picture:no-alt'                 # accessibility gap
+officecli query "$FILE" 'shape[fill=1E2761]'             # color match
+officecli query "$FILE" 'shape[width>=10cm]'             # numeric
 ```
 
-**`query --json` output schema.** Results wrap in `.data.results[]`. To extract the first result's ID: `jq -r '.data.results[0].format.id'` — NOT `.[0].id`. Shape name is `.name`; fill is `.format.fill`; textColor is `.format.textColor`. Verify with `query ... --json | jq .data.results[0]` on an unknown shape.
+**`query --json` output schema.** Results wrap in `.data.results[]` — `jq -r '.data.results[0].format.id'`, NOT `.[0].id`. Shape name is `.name`; fill is `.format.fill`; textColor is `.format.textColor`.
 
 **Visual preview (LEAD).**
 
 ```bash
-officecli view deck.pptx html                # prints an HTML preview path; Read it for per-slide visual audit (best structural ground truth)
-officecli view deck.pptx svg --start 3 --end 3   # single slide SVG (charts + gradients do NOT render in SVG)
-officecli watch deck.pptx                     # live preview for the human user — they open it at their discretion
+officecli view "$FILE" html                # prints an HTML preview path; Read it for per-slide visual audit (best structural ground truth)
+officecli view "$FILE" svg --start 3 --end 3   # single slide SVG (charts + gradients do NOT render in SVG)
 ```
-
-`view html` is the best structural check. Not final ground truth for runtime-only features (animations, zoom) — see Renderer Honesty.
 
 ## Creating & Editing
 
@@ -266,28 +287,24 @@ Verbs: `add` / `set` / `remove` / `move` / `swap` / `batch` / `raw-set`. Ninety 
 A slide is `/slide[N]`. Always pass `layout=blank` for custom designs. Background: solid, gradient, or image.
 
 ```bash
-officecli add deck.pptx / --type slide --prop layout=blank --prop background=1E2761                 # solid
-officecli add deck.pptx / --type slide --prop layout=blank --prop "background=1E2761-CADCFC-180"   # gradient (start-end-angle)
-officecli add deck.pptx / --type slide --prop layout=blank --prop "background.image=hero.jpg"      # image background (LEAD)
+officecli add "$FILE" / --type slide --prop layout=blank --prop background=1E2761                 # solid
+officecli add "$FILE" / --type slide --prop layout=blank --prop "background=1E2761-CADCFC-180"   # gradient (start-end-angle)
+officecli add "$FILE" / --type slide --prop layout=blank --prop "background.image=hero.jpg"      # image background (LEAD)
 ```
-
-→ Full background prop list (image, tiling, alpha, scale): `officecli help pptx background`.
 
 ### Shapes
 
 A `shape` holds text, fill, border, position, and optional animation / link.
 
 ```bash
-officecli add deck.pptx /slide[2] --type shape --prop name=Title --prop text="Key Insight" \
+officecli add "$FILE" /slide[2] --type shape --prop name=Title --prop text="Key Insight" \
   --prop x=2cm --prop y=2cm --prop width=20cm --prop height=3cm \
   --prop font=Georgia --prop size=36 --prop bold=true --prop color=1E2761 --prop fill=none
 ```
 
-Positioning is explicit — no layout engine, you own the grid math. `--prop preset=` picks geometry (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, ...); custom `M...Z` paths are NOT supported at the high-level prop layer (use preset or raw-set `a:custGeom`). **Name shapes at creation** (`--prop name=HeroTitle`) and address later with `"/slide[N]/shape[@name=HeroTitle]"` — positional `/shape[3]` breaks after any z-order / remove.
+Positioning is explicit — no layout engine, you own the grid math. `--prop preset=` picks geometry (`rect`, `roundRect`, `ellipse`, `triangle`, `arrow`, `star5`, ...); custom `M...Z` paths are not supported — pick a preset. **Name shapes at creation** (`--prop name=HeroTitle`) and address later with `"/slide[N]/shape[@name=HeroTitle]"` — positional `/shape[3]` breaks after any z-order / remove.
 
-> **ID semantics.** IDs are assigned per-XML-element, not per-`add`-command. Paragraphs and runs consume IDs too — so the 4 IDs returned by 4 `add shape` calls are NOT guaranteed to be sequential (child paragraphs ate some). After a rebuild or remove-then-add, re-`get --depth 1` before referencing IDs. **Prefer `@name=` over `@id=`** — names are stable across all structural ops.
-
-→ `officecli help pptx shape` for the full prop list.
+> **Prefer `@name=` over `@id=`.** Names you set yourself survive remove-then-add and z-order ops cleanly. After any structural change, re-`get --depth 1` before referencing positional indexes.
 
 ### Text inside shapes (paragraphs, runs, styling)
 
@@ -295,11 +312,11 @@ A shape has paragraphs (`paragraph[K]`) and runs. For one-line text, `--prop tex
 
 ```bash
 # add --type paragraph accepts only text + align; styling goes through a follow-up set or an add --type run:
-officecli add deck.pptx "/slide[2]/shape[@name=Card1]" --type paragraph --prop text="First bullet"
-officecli set deck.pptx "/slide[2]/shape[@name=Card1]/paragraph[1]" --prop bold=true --prop size=20 --prop color=FFFFFF
+officecli add "$FILE" "/slide[2]/shape[@name=Card1]" --type paragraph --prop text="First bullet"
+officecli set "$FILE" "/slide[2]/shape[@name=Card1]/paragraph[1]" --prop bold=true --prop size=20 --prop color=FFFFFF
 
 # Styled run in one step:
-officecli add deck.pptx "/slide[2]/shape[@name=Card1]/paragraph[1]" --type run \
+officecli add "$FILE" "/slide[2]/shape[@name=Card1]/paragraph[1]" --type run \
   --prop text=" (inline detail)" --prop size=14 --prop italic=true --prop color=8899BB
 ```
 
@@ -307,526 +324,265 @@ For real newlines inside one run, use a batch heredoc with JSON `"\n"`. Shell-qu
 
 ### Charts
 
-Chart types via `officecli help pptx chart` — column, bar, line, pie, doughnut, scatter, area, waterfall, funnel, boxWhisker. Pick per the Design Principles chart-choice table. Two data forms:
+Pick chart type per the Design Principles chart-choice table. Full prop list (chartType enum, `seriesN.*`, `data=`/`categories=`, axis options): `help pptx add chart`. Typical multi-series with brand colors:
 
 ```bash
-# (a) compact inline — quick demo charts
-officecli add deck.pptx /slide[3] --type chart --prop chartType=column \
-  --prop "data=Revenue:42,45,48;Growth:2,7,7" --prop "categories=Q1,Q2,Q3" \
-  --prop x=2cm --prop y=4cm --prop width=20cm --prop height=10cm --prop title="FY26"
-
-# (b) dotted per-series — multi-series with explicit brand colors (typical case)
-officecli add deck.pptx /slide[3] --type chart --prop chartType=column \
+officecli add "$FILE" /slide[3] --type chart --prop chartType=column \
   --prop series1.name=Revenue --prop series1.values="42,45,48" --prop series1.color=1E2761 \
   --prop series2.name=Growth  --prop series2.values="2,7,7"    --prop series2.color=CADCFC \
   --prop categories="Q1,Q2,Q3" \
   --prop x=2cm --prop y=4cm --prop width=20cm --prop height=10cm
 ```
 
-Gotchas: (1) series cannot be added after creation — include all series at `add` time or `remove` + re-add. (2) `gap` / `gapwidth` are ignored at `add` — `set` after creation. (3) chart titles with `()`, `[]`, `TBD` ship as literal text — replace before delivery. (4) some viewers normalize chart colors to theme defaults — verify in the target presentation viewer (C-P-7).
+Gotchas: (1) series cannot be added after creation — include all series at `add` time or `remove` + re-add. (2) chart titles with `()`, `[]`, `TBD` ship as literal text. (3) some viewers normalize chart colors to theme defaults — verify in the target viewer.
 
 ### Pictures
 
 ```bash
-# add --prop alt= is rejected (UNSUPPORTED, C-P-7). Two-step workflow:
-officecli add deck.pptx /slide[4] --type picture --prop src=hero.jpg \
-  --prop x=1cm --prop y=1cm --prop width=32cm --prop height=18cm
-officecli set deck.pptx "/slide[4]/picture[1]" --prop alt="Product hero, gradient lit from right"
+officecli add "$FILE" /slide[4] --type picture --prop src=hero.jpg \
+  --prop x=1cm --prop y=1cm --prop width=32cm --prop height=18cm \
+  --prop alt="Product hero, gradient lit from right"
 ```
 
-Confirm with `officecli query deck.pptx 'picture:no-alt'` — must be empty before delivery (but remember `view stats` is a false-positive zero because alt auto-fills to filename).
+Confirm with `officecli query "$FILE" 'picture:no-alt'` — must be empty before delivery (but remember `view stats` is a false-positive zero because alt auto-fills to filename).
 
 ### Connectors (LEAD — flowcharts / decision trees first-class)
 
-Draws a line between two shapes or free coordinates. CLI-native props: `shape`, `from`, `to`, `x`, `y`, `width`, `height`, `color`, `headEnd`, `tailEnd` (values: `triangle|arrow|stealth|diamond|oval|none`). `line=`, `lineWidth=`, `lineDash=` are UNSUPPORTED — use raw-set `a:ln` for custom line styling.
-
-- `shape` enum: short form `straight | elbow | curve`, or storage form `straightConnector1 | bentConnector3 | curvedConnector3 | line`. `bentConnector2` / `curvedConnector2` are REJECTED (C-P-5).
-- `from=`/`to=` **do NOT accept `@name=`** (C-P-6). Resolve `@id=` first via `query`.
-- Arrowheads via `--prop tailEnd=triangle` (or `headEnd=` for reverse direction) — **requires CLI 1.0.63+**. On older 1.0.60–1.0.62 the `tailEnd=` / `headEnd=` props were UNSUPPORTED on connector; fall back to raw-set `<a:tailEnd type="triangle" w="med" len="med"/>` on `/connector[@id=ID]/spPr/ln`. Accepted values: `triangle | arrow | stealth | diamond | oval | none` (plus `closed`/`open`/`circle`, parsed by `ParseLineEndType`). For custom arrow size `w`/`len` on any version, use raw-set.
+Draws a line between two shapes or free coordinates. Full prop / enum reference (`shape`, `headEnd`/`tailEnd` values, `from`/`to` ref forms): `help pptx add connector`.
 
 ```bash
-# query --json schema: results are wrapped in .data.results[] — NOT bare `.[0]`.
-FROM_ID=$(officecli query "$FILE" 'shape[name=BoxA]' --json | jq -r '.data.results[0].format.id')
-TO_ID=$(officecli query "$FILE" 'shape[name=BoxB]' --json | jq -r '.data.results[0].format.id')
 officecli add "$FILE" /slide[5] --type connector \
-  --prop "from=/slide[5]/shape[@id=$FROM_ID]" --prop "to=/slide[5]/shape[@id=$TO_ID]" \
+  --prop "from=/slide[5]/shape[@name=BoxA]" --prop "to=/slide[5]/shape[@name=BoxB]" \
   --prop shape=elbow --prop color=333333 --prop tailEnd=triangle
-
-# Optional — raw-set for custom arrow size (w=med, len=med):
-# CONN_ID=$(officecli query "$FILE" 'connector' --json | jq -r '.data.results[-1].format.id')
-# officecli raw-set "$FILE" "/slide[5]/connector[@id=$CONN_ID]/spPr/ln" \
-#   --action append --xml '<a:tailEnd type="triangle" w="med" len="med"/>'
 ```
 
-**Every flow connector needs an arrowhead.** Without one, `bentConnector3` renders as a directionless line. Use `--prop tailEnd=triangle` on the connector add or set. `preset=rightArrow` overlay only works for horizontal flows; diamonds / decision trees with diverging edges need `tailEnd=`.
-
-→ `officecli help pptx connector`.
+**Every flow connector needs an arrowhead.** Without one, `bentConnector3` renders as a directionless line. `preset=rightArrow` overlay only works for horizontal flows; diamonds / decision trees with diverging edges need `tailEnd=`.
 
 ### Animations (LEAD)
 
-One preset per slide, ≤ 600ms. Set via shape-level prop (authoritative; deep-path readback is stale — C-P-3):
+One preset per slide, ≤ 600ms. Preset names + duration syntax: `help pptx animation`.
 
 ```bash
-officecli set deck.pptx "/slide[2]/shape[@name=HeroCard]" --prop animation=fade-entrance-400
-officecli get deck.pptx "/slide[2]/shape[@name=HeroCard]" --json | jq .animation
-officecli set deck.pptx "/slide[2]/shape[@name=HeroCard]" --prop animation=none    # remove (C-P-4)
+officecli set "$FILE" "/slide[2]/shape[@name=HeroCard]" --prop animation=fade-entrance-400
+officecli set "$FILE" "/slide[2]/shape[@name=HeroCard]" --prop animation=none    # clear all
 ```
-
-**Get round-trip (1.0.58+).** `get animation[N]` now returns the `trigger` field as well — `onClick | afterPrevious | withPrevious` — so Add/Set and Get round-trip. Verify with `officecli get "$FILE" "/slide[N]/shape[@name=X]/animation[1]" --json | jq '.trigger,.duration'` if you need to confirm the read-back matches what you set.
-
-→ `officecli help pptx animation`.
 
 ### Hyperlinks, tooltips, slide-jump
 
-```bash
-officecli set deck.pptx "/slide[7]/shape[@name=NavBtn]" --prop link=slide:2 --prop tooltip="Back to Agenda"
-officecli set deck.pptx "/slide[7]/shape[@name=DocsBtn]" --prop link=https://example.com
-```
-
-**CRITICAL ordering** (C-P-1): on a shape that already has run-level styling (`bold`/`color`/`font`/`size`), setting `link=` + `tooltip=` emits schema-invalid XML. Fix:
-
-1. Set `link=` + `tooltip=` BEFORE any run-level styling. OR
-2. Post-hoc cleanup: `officecli raw-set deck.pptx /slide[N] --xpath //a:rPr/a:hlinkClick --action remove`.
+`--prop link=slide:N` for slide-jump, `link=https://...` for URL, `--prop tooltip="..."` for hover text. (Help only documents the URL form — `slide:N` is skill-only knowledge.)
 
 ### Tables, placeholders, groups, zoom — one-liners
 
 - **Tables** — `--type table --prop rows=N --prop cols=M`. Row-level `set` supports `height`, `header`, `c1/c2/c3`. Cell formatting lives on the cell paragraph / run. Populate rows BEFORE setting table-level font (font cascade gets reset by row ops).
 - **Placeholders** — `"/slide[N]/placeholder[title]"` / `placeholder[body]`. Available only when the slide uses a layout with placeholders (not `layout=blank`).
-- **Groups** (LEAD) — address children via `"/slide[N]/group[@name=G]/shape[1]"`. Survives reordering better than positional indexes. `officecli help pptx group`.
-- **Zoom slide** (LEAD) — `--type zoom --prop targets="3,7,15"`. Section-navigation hub. Zoom is a runtime feature — `view html` shows the static geometry; the zoom interaction runs only in a live presentation viewer. `officecli help pptx zoom`.
-- **Slide comments** — reviewer annotations anchored at `/slide[N]/comment[M]`. Full lifecycle (`add / set / get / query / remove`). Props: `text`, `author`, `initials` (auto-derived), `date` (ISO 8601, defaults to UtcNow), `x` / `y` (EMU anchor).
+- **Groups** (LEAD) — address children via `"/slide[N]/group[@name=G]/shape[1]"`. Survives reordering better than positional indexes.
+- **Zoom slide** (LEAD) — `--type zoom --prop targets="3,7,15"`. Section-navigation hub. Zoom is a runtime feature — `view html` shows the static geometry; the zoom interaction runs only in a live presentation viewer.
+- **Slide comments** — reviewer annotations anchored at `/slide[N]/comment[M]`. Full lifecycle (`add / set / get / query / remove`). Props: `text`, `author`, `initials` (auto-derived), `date` (ISO 8601, defaults to UtcNow), `x` / `y` (length anchor).
   ```bash
   officecli add "$FILE" "/slide[2]" --type comment --prop author="Alice" --prop text="Tighten this bullet" --prop x=20cm --prop y=3cm
   officecli query "$FILE" 'comment' --json | jq '.data.results | length'   # count all review comments
   officecli remove "$FILE" "/slide[2]/comment[1]"                           # resolve after addressing
   ```
-  → `officecli help pptx comment`.
-
-### Raw-set escape hatch (L1 / L2 / L3)
-
-- **L1** — high-level props (`--prop fill=`, `--prop size=`): your default.
-- **L2** — dotted-attr fallback (`line.width`, `text.padding`, `fill.alpha`): when L1 lacks the knob.
-- **L3** — `raw-set` with XML: last resort. Required for `a:ln` line styling, `a:custGeom` custom paths, `a:hlinkClick` cleanup.
-
-Hex colors never start with `#`: `FF0000`, not `#FF0000`.
 
 ### Deck-level recipes
 
-Six patterns that aren't obvious from the primitives: (a) cover + section divider, (b) chart + commentary, (c) 4-step flowchart, (d) 10-slide board-review skeleton, (d′) 20-slide Series B / pitch-deck skeleton, (e) KPI callouts, (f) YES/NO decision tree. Each describes the **visual outcome** first, then a runnable block. `$FILE` stands in for your filename.
+Patterns not obvious from the primitives. Each gives the **visual outcome** first, then a runnable block. `$FILE` = your filename. Use `/slide[last()]` to address the slide you just added.
 
-#### (a) Executive cover + section divider
+**Z-order.** Later-added shapes are on top. Add background decoration FIRST, titles LAST. To fix after the fact: `--prop zorder=back/front` (renumbers siblings — re-`get --depth 1` before stacking more).
 
-**Visual outcome.** Cover: dark navy fill, centered 44pt title, 18pt ice-blue meta line, thin brand band at the bottom. Section divider: same dark fill, large translucent "02" (120pt, 15% opacity) behind a 40pt title — the number becomes a background graphic, the title carries the message.
+#### (a) Cover (and section divider)
+
+**Visual outcome.** Dark navy fill, centered 44pt title, 18pt ice-blue meta line.
 
 ```bash
-# Cover
 officecli add "$FILE" / --type slide --prop layout=blank --prop background=1E2761
-officecli add "$FILE" "/slide[last()]" --type shape --prop name=CoverBand \
-  --prop preset=rect --prop fill=CADCFC --prop line=none \
-  --prop x=0cm --prop y=18.4cm --prop width=33.87cm --prop height=0.65cm
 officecli add "$FILE" "/slide[last()]" --type shape --prop text="Strategic Growth Review" \
   --prop x=2cm --prop y=7cm --prop width=29.87cm --prop height=3cm \
-  --prop font=Georgia --prop size=44 --prop bold=true --prop color=FFFFFF --prop align=center --prop fill=none
+  --prop font=Georgia --prop size=44 --prop bold=true --prop color=FFFFFF --prop align=center
 officecli add "$FILE" "/slide[last()]" --type shape --prop text="Prepared for Acme Leadership — FY26 Outlook" \
   --prop x=2cm --prop y=11cm --prop width=29.87cm --prop height=1.2cm \
-  --prop font=Calibri --prop size=18 --prop color=CADCFC --prop align=center --prop fill=none
-
-# Section divider — translucent number added FIRST (stays behind), title last (stays on top)
-officecli add "$FILE" / --type slide --prop layout=blank --prop background=1E2761
-officecli add "$FILE" "/slide[last()]" --type shape --prop text="02" \
-  --prop x=2cm --prop y=3cm --prop width=29.87cm --prop height=10cm \
-  --prop font=Georgia --prop size=120 --prop bold=true \
-  --prop color=FFFFFF --prop opacity=0.15 --prop align=center --prop fill=none
-officecli add "$FILE" "/slide[last()]" --type shape --prop text="Financial Performance" \
-  --prop x=2cm --prop y=7.5cm --prop width=29.87cm --prop height=2.5cm \
-  --prop font=Georgia --prop size=40 --prop bold=true --prop color=FFFFFF --prop align=center --prop fill=none
+  --prop font=Calibri --prop size=18 --prop color=CADCFC --prop align=center
 ```
 
-**Z-order.** Later-added shapes are on top. Add background decoration FIRST, titles LAST. If the order got flipped, fix with `--prop zorder=back/front` — but that renumbers siblings, so re-`get --depth 1` before stacking more.
+**Section divider** = same cover, plus a giant translucent number (`size=120`, `opacity=0.15`) added FIRST so it sits behind the section title.
 
 #### (b) Data slide (chart + commentary block)
 
-**Visual outcome.** Left two-thirds: column chart with brand series colors. Right one-third: a "Key Insight" card with 20pt heading and 18pt body — the audience reads the takeaway before parsing the bars.
+**Visual outcome.** Left two-thirds: column chart with brand series colors. Right one-third: "Key Insight" card with 20pt heading + 18pt body — audience reads the takeaway before parsing the bars.
 
 ```bash
 officecli add "$FILE" / --type slide --prop layout=blank --prop background=FFFFFF
 officecli add "$FILE" "/slide[last()]" --type shape --prop text="FY26 Revenue Beat Plan by 18%" \
   --prop x=1.5cm --prop y=1cm --prop width=30cm --prop height=1.8cm \
-  --prop font=Georgia --prop size=36 --prop bold=true --prop color=1E2761 --prop fill=none
+  --prop font=Georgia --prop size=36 --prop bold=true --prop color=1E2761
 
-# Chart — left 2/3
+# Chart — left 2/3 (single-quote the title because of `$`)
 officecli add "$FILE" "/slide[last()]" --type chart --prop chartType=column \
   --prop series1.name=Actual --prop series1.values="42,45,48,55" --prop series1.color=1E2761 \
-  --prop series2.name=Plan   --prop series2.values="40,42,45,48" --prop series2.color=CADCFC \
-  --prop categories="Q1,Q2,Q3,Q4" \
-  --prop x=1.5cm --prop y=3.5cm --prop width=20cm --prop height=14cm \
-  --prop title='FY26 Revenue ($M)'
+  --prop series2.name=Plan --prop series2.values="40,42,45,48" --prop series2.color=CADCFC \
+  --prop categories="Q1,Q2,Q3,Q4" --prop x=1.5cm --prop y=3.5cm --prop width=20cm --prop height=14cm --prop title='FY26 Revenue ($M)'
 
-# Commentary card — right 1/3 (background card + heading + body)
+# Commentary card — right 1/3: background + heading + body
 officecli add "$FILE" "/slide[last()]" --type shape --prop preset=roundRect --prop fill=F5F7FA --prop line=none \
   --prop x=22.5cm --prop y=3.5cm --prop width=9.8cm --prop height=14cm
 officecli add "$FILE" "/slide[last()]" --type shape --prop text="Key Insight" \
   --prop x=23cm --prop y=4cm --prop width=9cm --prop height=1.2cm \
-  --prop font=Georgia --prop size=20 --prop bold=true --prop color=1E2761 --prop fill=none
+  --prop font=Georgia --prop size=20 --prop bold=true --prop color=1E2761
 officecli add "$FILE" "/slide[last()]" --type shape --prop text="EMEA launch + NRR at 118% drove 12pp of the 18pp beat." \
   --prop x=23cm --prop y=5.5cm --prop width=9cm --prop height=11cm \
-  --prop font=Calibri --prop size=18 --prop color=333333 --prop fill=none
-
-officecli add "$FILE" "/slide[last()]" --type notes --prop text="Lead with the 18% beat, then the EMEA + NRR story."
+  --prop font=Calibri --prop size=18 --prop color=333333
 ```
 
-`$` in chart title: wrap the whole prop in single quotes (`--prop title='FY26 Revenue ($M)'`) to prevent shell expansion.
+#### (c) Flowchart / process diagram (boxes + connectors)
 
-#### (c) Flowchart / process diagram (connectors + shapes) — batch-heredoc
+**Visual outcome.** Four rounded boxes across at y=8cm, each 6×3cm, alternating navy/iceblue, joined by elbow connectors with triangle arrowheads.
 
-**Visual outcome.** Four rounded boxes across the slide at y=8cm, each 6cm × 3cm, connected left-to-right with elbow connectors + triangle arrowheads. Boxes alternate dominant / supporting fill. 32pt title above.
+Grid math (4 boxes, 33.87cm slide, 1.5cm margins): `gap = (33.87 − 3 − 24) / 3 = 2.29cm`. x-positions: `1.5, 9.79, 18.08, 26.37`.
 
-Grid math for 4 boxes across a 33.87cm slide with 1.5cm margins: `gap = (33.87 − 2·1.5 − 4·6) / 3 = 2.29cm`. Box x-positions: `1.5, 9.79, 18.08, 26.37`. **Batch heredoc is portable** (no `bc`, no bash arrays); pre-compute coordinates in the JSON.
+Each box carries its own label via `valign=middle` (no separate overlay shape needed). Use `batch` heredoc for portable coordinate arithmetic — no `bc`, no bash arrays.
 
 ```bash
-# Use explicit slide index — [last()] is rejected in some resident versions (see Pitfalls).
-# COUNT slides via query (works on closed AND resident-open files; get --depth 0 default output is not JSON).
-N_SLIDE=$(officecli query "$FILE" 'slide' --json | jq '.data.results | length')
-officecli add "$FILE" / --type slide --prop layout=blank --prop background=FFFFFF
-SLIDE=$((N_SLIDE + 1))
-
-officecli add "$FILE" "/slide[$SLIDE]" --type shape --prop name=FlowTitle \
-  --prop text="Onboarding in 4 Steps" \
-  --prop x=1.5cm --prop y=1cm --prop width=30cm --prop height=1.8cm \
-  --prop font=Georgia --prop size=32 --prop bold=true --prop color=1E2761 --prop fill=none
-
-# 4 boxes + overlaid labels in one batch (alternating navy/iceblue fills).
 cat <<EOF | officecli batch "$FILE"
 [
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step1","preset":"roundRect","fill":"1E2761","line":"none","x":"1.5cm","y":"8cm","width":"6cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step2","preset":"roundRect","fill":"CADCFC","line":"none","x":"9.79cm","y":"8cm","width":"6cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step3","preset":"roundRect","fill":"1E2761","line":"none","x":"18.08cm","y":"8cm","width":"6cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step4","preset":"roundRect","fill":"CADCFC","line":"none","x":"26.37cm","y":"8cm","width":"6cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Step 1","x":"1.5cm","y":"8.5cm","width":"6cm","height":"1cm","font":"Georgia","size":"20","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Step 2","x":"9.79cm","y":"8.5cm","width":"6cm","height":"1cm","font":"Georgia","size":"20","bold":"true","color":"1E2761","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Step 3","x":"18.08cm","y":"8.5cm","width":"6cm","height":"1cm","font":"Georgia","size":"20","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Step 4","x":"26.37cm","y":"8.5cm","width":"6cm","height":"1cm","font":"Georgia","size":"20","bold":"true","color":"1E2761","align":"center","fill":"none"}}
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step1","preset":"roundRect","fill":"1E2761","line":"none","x":"1.5cm","y":"8cm","width":"6cm","height":"3cm","text":"Step 1","font":"Georgia","size":"20","bold":"true","color":"FFFFFF","align":"center","valign":"middle"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step2","preset":"roundRect","fill":"CADCFC","line":"none","x":"9.79cm","y":"8cm","width":"6cm","height":"3cm","text":"Step 2","font":"Georgia","size":"20","bold":"true","color":"1E2761","align":"center","valign":"middle"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step3","preset":"roundRect","fill":"1E2761","line":"none","x":"18.08cm","y":"8cm","width":"6cm","height":"3cm","text":"Step 3","font":"Georgia","size":"20","bold":"true","color":"FFFFFF","align":"center","valign":"middle"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Step4","preset":"roundRect","fill":"CADCFC","line":"none","x":"26.37cm","y":"8cm","width":"6cm","height":"3cm","text":"Step 4","font":"Georgia","size":"20","bold":"true","color":"1E2761","align":"center","valign":"middle"}}
 ]
 EOF
 
-# Connectors. @name= is rejected on from/to (C-P-6); resolve @id= via query (correct jq path below).
-# Arrowhead via --prop tailEnd=triangle on add (CLI-native).
+# Connector pattern — reuse for any box-to-box graph.
 for pair in "Step1 Step2" "Step2 Step3" "Step3 Step4"; do
-  A=$(echo $pair | cut -d' ' -f1); B=$(echo $pair | cut -d' ' -f2)
-  FROM_ID=$(officecli query "$FILE" "shape[name=$A]" --json | jq -r '.data.results[0].format.id')
-  TO_ID=$(officecli query "$FILE"   "shape[name=$B]" --json | jq -r '.data.results[0].format.id')
+  A=${pair% *}; B=${pair#* }
   officecli add "$FILE" "/slide[$SLIDE]" --type connector \
-    --prop "from=/slide[$SLIDE]/shape[@id=$FROM_ID]" \
-    --prop "to=/slide[$SLIDE]/shape[@id=$TO_ID]" \
+    --prop "from=/slide[$SLIDE]/shape[@name=$A]" \
+    --prop "to=/slide[$SLIDE]/shape[@name=$B]" \
     --prop shape=elbow --prop color=333333 --prop tailEnd=triangle
 done
 ```
 
-`shape=elbow` is the canonical short form. `bentConnector3` also works as storage name; `bentConnector2` is **rejected** (C-P-5). `query --json` wraps results in `.data.results[]` — `.[0].id` is WRONG, use `.data.results[0].format.id`.
+`shape=elbow` is canonical (`bentConnector3` also works; `bentConnector2` is rejected). `query --json` results are in `.data.results[]` — use `.data.results[0].format.id`, not `.[0].id`.
 
-#### (d) Quarterly review deck skeleton (10-slide blueprint)
+#### (d) Multi-slide deck skeletons
 
-**Visual outcome.** A board-ready narrative arc in ten slides. No copy-paste block — the structure below is the decision tree; fill each slide using recipes (a)–(c) and the Design Principles.
+No code block — it's a rhythm. **Alternate dark divider slides with white content slides** using the recipes above:
 
-| #   | Slide                       | Layout         | Recipe                       | Notes                                                                                                  |
-| --- | --------------------------- | -------------- | ---------------------------- | ------------------------------------------------------------------------------------------------------ |
-| 1   | Cover                       | full dark fill | (a) cover                    | Title + meta line + brand band                                                                         |
-| 2   | Agenda                      | white fill     | numbered list                | 5 section titles, 24pt, left-aligned; match exactly what follows                                       |
-| 3   | Executive summary           | white fill     | 3 KPI callouts               | Three big numbers (60pt) across the top, one-line qualifier under each, 2-line narrative at the bottom |
-| 4   | Section divider: Financials | dark           | (a) divider                  | Big "01" + "Financial Performance"                                                                     |
-| 5   | Revenue vs plan             | white          | (b) chart + commentary       | Column chart, insight card                                                                             |
-| 6   | Margin walk                 | white          | (b) chart + commentary       | Waterfall chart, key drivers list                                                                      |
-| 7   | Section divider: Growth     | dark           | (a) divider                  | Big "02" + "Growth Initiatives"                                                                        |
-| 8   | GTM motion                  | white          | (c) flowchart                | 4-step process, connectors                                                                             |
-| 9   | Roadmap timeline            | white          | timeline shapes + connectors | 4 quarters as circles on a line, one deliverable under each                                            |
-| 10  | Thank you / next steps      | dark           | (a) cover variant            | One bullet per next step, max 3 bullets                                                                |
-
-**Build it.** `officecli open "$FILE"` → loop the slides with the appropriate recipe → `officecli close "$FILE"` → run the Delivery Gate → spot-check in PowerPoint. A 10-slide deck assembled this way takes ~30–50 commands; use `batch` heredocs in ≤ 12-op chunks for the repetitive shapes.
-
-#### (d′) Series B / pitch deck skeleton (20-slide blueprint)
-
-**Visual outcome.** A VC-ready narrative in twenty slides. Same structure as (d) but calibrated for fundraising rhythm: problem → solution → market → product → model → traction → team → financials → ask → close.
-
-| #   | Slide                       | Layout    | Recipe                     | Notes                                                                 |
-| --- | --------------------------- | --------- | -------------------------- | --------------------------------------------------------------------- |
-| 1   | Cover                       | dark fill | (a) cover                  | Company name + one-line tagline + round/amount + date                 |
-| 2   | TL;DR / The Ask             | dark      | 3 KPI callouts             | "$35M Series B · 72% GM · 4.2x LTV:CAC" style                         |
-| 3   | Section 01 — Problem        | dark      | (a) divider                | Big "01" + one-line problem statement                                 |
-| 4   | Problem data                | white     | (b) chart + commentary     | 3 data cards + sourced footnote, "industry sells X, customers want Y" |
-| 5   | Section 02 — Solution       | dark      | (a) divider                | Big "02" + product tagline                                            |
-| 6   | How it works                | white     | (c) flowchart              | 4-step product loop, connectors with arrowheads                       |
-| 7   | Section 03 — Market         | dark      | (a) divider                | Big "03" + market size one-liner                                      |
-| 8   | TAM / SAM / SOM             | white     | (b) chart + commentary     | Column chart + "Why now" list (macro drivers)                         |
-| 9   | Section 04 — Product        | dark      | (a) divider                | Big "04" + product positioning                                        |
-| 10  | Product in three pieces     | white     | 3-card row                 | Hardware / software / marketplace, with prices                        |
-| 11  | Section 05 — Traction       | dark      | (a) divider                | Big "05" + "We shipped. People stayed."                               |
-| 12  | ARR trajectory              | white     | (b) chart + commentary     | Line chart + callout number                                           |
-| 13  | Retention cohort            | white     | (b) chart + commentary     | Cohort chart + NPS / App Store / referral stats                       |
-| 14  | Section 06 — Business model | dark      | (a) divider                | Big "06" + unit-econ summary                                          |
-| 15  | Unit economics              | white     | 4 KPI callouts             | CAC / LTV / GM / payback — the VC napkin slide                        |
-| 16  | Section 07 — Team           | dark      | (a) divider                | Big "07" + team one-liner                                             |
-| 17  | Founders + advisors         | white     | 4-card grid + advisory row | Real prior companies, real names                                      |
-| 18  | Section 08 — Financials     | dark      | (a) divider                | Big "08" + trajectory tagline                                         |
-| 19  | 4-year plan                 | white     | (b) chart + commentary     | Hockey stick + honest assumptions panel                               |
-| 20  | The Ask / Thank you         | dark      | (a) cover variant          | `$XX M` hero number + 3 bullet use-of-funds + contact                 |
-
-Parallel to (d) — swap recipes per row; each divider must appear BEFORE its section content (see Gate 4).
+- **10-slide review:** Cover · Agenda · 3 KPI · Div01 · Chart · Chart · Div02 · Flow · Timeline · Close
+- **20-slide pitch:** same rhythm × 2, sectioned Problem · Solution · Market · Product · Traction · Model · Team · Financials · Ask
+- Every divider must appear **before** its section content (Gate 3 order sanity)
+- Cover/divider = (a); chart pages = (b); process pages = (c); KPI pages = (e); decision pages = (f)
 
 #### (e) KPI callouts — giant-number card grid
 
-**Visual outcome.** Three (or four) giant numbers across a row, each with a one-line unit sublabel + small percent-change chip + one-line takeaway underneath. This is the single most common exec-deck element.
+**Visual outcome.** Three or four giant numbers across a row; each card = unit sublabel + small percent-change chip + one-line takeaway. The single most common exec-deck element.
 
-**Text-fit cheatsheet** (pre-compute to avoid wrap). Georgia ≈ `0.9 × size_pt × (char_count / 28)` cm; Calibri ≈ `0.65 ×`. Corollaries for a **7.19cm** card (4 across) vs a **9.76cm** card (3 across):
+**Sizing rule.** 60pt Georgia bold fits ~5 chars in a 9.78cm card (`$84.2`, `118%`, `24.5`). For longer values (`$84.2M`), split: `$84.2` as the big number, `USD millions` as the sublabel — never shrink the font to chase a unit suffix, it just wraps.
 
-| Card width | Font    | Max size | Max chars of KPI value      |
-| ---------- | ------- | -------- | --------------------------- |
-| 7.19cm     | Georgia | 48pt     | 5 (`$84.2`, `118%`, `24.5`) |
-| 7.19cm     | Calibri | 48pt     | 6 (`$84.2M`)                |
-| 9.76cm     | Georgia | 60pt     | 5–6                         |
-| 9.76cm     | Calibri | 60pt     | 7                           |
-
-**Rule.** If the KPI is `$84.2M`, put `$84.2` as the big number and `USD millions` as the sublabel. Do not chase a bigger font into the unit suffix — it will wrap.
-
-Grid math for 3 cards across, 1.5cm margins, 0.76cm gap: `usable = 33.87 − 3 − 2·0.76 = 29.35`, `col_width = 29.35 / 3 = 9.78cm`. x-positions: `1.5, 12.04, 22.58`.
+Grid math (3 cards, 1.5cm margins, 0.76cm gap): `col_width = (33.87 − 3 − 1.52) / 3 = 9.78cm`. x-positions: `1.5, 12.04, 22.58`. Use accent color on a single "watch" card so risk reads in one second.
 
 ```bash
-# 3 KPI cards (navy fill, white number, ice-blue sublabel, terracotta pct chip for the watch-card).
-# All 12 adds in one batch. Replace $SLIDE with your target slide index.
+# Two cards: navy standard + terracotta watch. Each = bg + big number + sublabel + chip.
 cat <<EOF | officecli batch "$FILE"
 [
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"K1Card","preset":"roundRect","fill":"1E2761","line":"none","x":"1.5cm","y":"4cm","width":"9.78cm","height":"7cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"84.2","x":"1.5cm","y":"4.8cm","width":"9.78cm","height":"2.8cm","font":"Georgia","size":"60","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"USD millions · ARR","x":"1.5cm","y":"8cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","color":"CADCFC","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"+24% YoY","x":"1.5cm","y":"9cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","bold":"true","color":"CADCFC","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"K2Card","preset":"roundRect","fill":"1E2761","line":"none","x":"12.04cm","y":"4cm","width":"9.78cm","height":"7cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"118%","x":"12.04cm","y":"4.8cm","width":"9.78cm","height":"2.8cm","font":"Georgia","size":"60","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Net revenue retention","x":"12.04cm","y":"8cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","color":"CADCFC","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"best-in-class floor 115%","x":"12.04cm","y":"9cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","italic":"true","color":"CADCFC","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"K3Card","preset":"roundRect","fill":"B85042","line":"none","x":"22.58cm","y":"4cm","width":"9.78cm","height":"7cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"$1.42","x":"22.58cm","y":"4.8cm","width":"9.78cm","height":"2.8cm","font":"Georgia","size":"60","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"CAC payback (yrs)","x":"22.58cm","y":"8cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"+8% — watch","x":"22.58cm","y":"9cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","bold":"true","color":"FFFFFF","align":"center","fill":"none"}}
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"preset":"roundRect","fill":"1E2761","line":"none","x":"1.5cm","y":"4cm","width":"9.78cm","height":"7cm"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"84.2","x":"1.5cm","y":"4.8cm","width":"9.78cm","height":"2.8cm","font":"Georgia","size":"60","bold":"true","color":"FFFFFF","align":"center"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"USD millions · ARR","x":"1.5cm","y":"8cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","color":"CADCFC","align":"center"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"+24% YoY","x":"1.5cm","y":"9cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","bold":"true","color":"CADCFC","align":"center"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"preset":"roundRect","fill":"B85042","line":"none","x":"22.58cm","y":"4cm","width":"9.78cm","height":"7cm"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"$1.42","x":"22.58cm","y":"4.8cm","width":"9.78cm","height":"2.8cm","font":"Georgia","size":"60","bold":"true","color":"FFFFFF","align":"center"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"CAC payback (yrs)","x":"22.58cm","y":"8cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","color":"FFFFFF","align":"center"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"+8% — watch","x":"22.58cm","y":"9cm","width":"9.78cm","height":"0.8cm","font":"Calibri","size":"14","bold":"true","color":"FFFFFF","align":"center"}}
 ]
 EOF
 ```
 
-Use the accent color (terracotta here) on the single "watch" card so the audience reads risk in one second. Narrative headline above: "Beat plan on 2 of 3 metrics — CAC is the watch-item" beats "FY26 Q1 KPIs" every time.
+#### (f) Decision tree — YES/NO branching
 
-#### (f) Decision tree — YES/NO branching with diverging-then-converging edges
-
-**Visual outcome.** A decision diamond at the top; two child boxes (YES / NO path) diverging left-right; each path converges to a shared terminal box. Used for LOTO / chemical / fire safety training, compliance triage, escalation rules.
-
-Layout: diamond at top-center (x=13.94, y=2cm, 6×3cm). YES branch at x=3cm y=7.5cm; NO branch at x=24.87cm y=7.5cm; terminal at x=13.94cm y=13cm.
+**Visual outcome.** Diamond at top-center; YES/NO child boxes diverging left-right; both converge into a shared terminal box. Layout: diamond at `x=13.94, y=2cm, 6×3cm`; YES at `3cm, 7.5cm`; NO at `22.87cm, 7.5cm`; terminal at `13.94cm, 13cm`. Convention: red = stop/escalate, blue = standard, green = safe terminal. **Every connector needs an arrowhead** — readers misparse direction otherwise.
 
 ```bash
-# One batch: diamond + YES box + NO box + terminal box + YES/NO labels.
 cat <<EOF | officecli batch "$FILE"
 [
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Decide","preset":"diamond","fill":"1E2761","line":"none","x":"13.94cm","y":"2cm","width":"6cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Hazardous energy present?","x":"13.94cm","y":"2.8cm","width":"6cm","height":"1.4cm","font":"Calibri","size":"14","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"YesBox","preset":"roundRect","fill":"B85042","line":"none","x":"3cm","y":"7.5cm","width":"8cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Lockout + Tagout + Verify","x":"3cm","y":"8.3cm","width":"8cm","height":"1.4cm","font":"Calibri","size":"16","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"NoBox","preset":"roundRect","fill":"CADCFC","line":"none","x":"22.87cm","y":"7.5cm","width":"8cm","height":"3cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Proceed with standard PPE","x":"22.87cm","y":"8.3cm","width":"8cm","height":"1.4cm","font":"Calibri","size":"16","bold":"true","color":"1E2761","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Done","preset":"roundRect","fill":"2C5F2D","line":"none","x":"13.94cm","y":"13cm","width":"6cm","height":"2.5cm"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"Begin service","x":"13.94cm","y":"13.6cm","width":"6cm","height":"1.2cm","font":"Calibri","size":"16","bold":"true","color":"FFFFFF","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"YES","x":"6.5cm","y":"5.8cm","width":"2cm","height":"1cm","font":"Calibri","size":"14","bold":"true","color":"B85042","align":"center","fill":"none"}},
-  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"text":"NO","x":"25.5cm","y":"5.8cm","width":"2cm","height":"1cm","font":"Calibri","size":"14","bold":"true","color":"1E2761","align":"center","fill":"none"}}
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Decide","preset":"diamond","fill":"1E2761","line":"none","x":"13.94cm","y":"2cm","width":"6cm","height":"3cm","text":"Hazardous energy present?","font":"Calibri","size":"14","bold":"true","color":"FFFFFF","align":"center","valign":"middle"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"YesBox","preset":"roundRect","fill":"B85042","line":"none","x":"3cm","y":"7.5cm","width":"8cm","height":"3cm","text":"Lockout + Tagout + Verify","font":"Calibri","size":"16","bold":"true","color":"FFFFFF","align":"center","valign":"middle"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"NoBox","preset":"roundRect","fill":"CADCFC","line":"none","x":"22.87cm","y":"7.5cm","width":"8cm","height":"3cm","text":"Proceed with standard PPE","font":"Calibri","size":"16","bold":"true","color":"1E2761","align":"center","valign":"middle"}},
+  {"command":"add","parent":"/slide[$SLIDE]","type":"shape","props":{"name":"Done","preset":"roundRect","fill":"2C5F2D","line":"none","x":"13.94cm","y":"13cm","width":"6cm","height":"2.5cm","text":"Begin service","font":"Calibri","size":"16","bold":"true","color":"FFFFFF","align":"center","valign":"middle"}}
 ]
 EOF
-
-# 4 connectors: Decide→YesBox, Decide→NoBox, YesBox→Done, NoBox→Done.
-# Arrowhead via --prop tailEnd=triangle on add (diamonds diverge — preset=rightArrow fallback does NOT work here).
-for pair in "Decide YesBox" "Decide NoBox" "YesBox Done" "NoBox Done"; do
-  A=$(echo $pair | cut -d' ' -f1); B=$(echo $pair | cut -d' ' -f2)
-  FROM_ID=$(officecli query "$FILE" "shape[name=$A]" --json | jq -r '.data.results[0].format.id')
-  TO_ID=$(officecli query "$FILE"   "shape[name=$B]" --json | jq -r '.data.results[0].format.id')
-  officecli add "$FILE" "/slide[$SLIDE]" --type connector \
-    --prop "from=/slide[$SLIDE]/shape[@id=$FROM_ID]" \
-    --prop "to=/slide[$SLIDE]/shape[@id=$TO_ID]" \
-    --prop shape=elbow --prop color=333333 --prop tailEnd=triangle
-done
 ```
 
-Color convention: red path = stop/escalate, blue path = standard-action, green terminal = safe end-state. **Every connector carries `--prop tailEnd=triangle`** — without arrowheads, trainees can read a decision tree backwards (a real life-safety risk in training / compliance decks). For diamonds, the `preset=rightArrow` overlay does NOT substitute — edges diverge left and right, not horizontally.
+Then 4 connectors (`Decide→YesBox`, `Decide→NoBox`, `YesBox→Done`, `NoBox→Done`) using the connector loop pattern from (c).
 
 ## QA (Required)
 
-**Assume there are problems.** First render is almost never correct. If you found zero issues, you were not looking hard enough. The Delivery Gate below is the real work; treat the minimum cycle as warmup.
-
-### Minimum cycle before "done"
-
-1. `officecli view deck.pptx issues` + `view annotated` — empty slides, overflow hints, size violations (< 36pt title, < 18pt body). `"Slide has no title"` on `layout=blank` is expected, not a defect.
-2. `officecli view deck.pptx html` — Read the returned HTML path for a per-slide visual audit. Walk every slide for alignment, overflow, placeholder leaks, one clear focal point.
-3. Query for known defect classes:
-   ```bash
-   officecli query deck.pptx 'shape:contains("lorem")'
-   officecli query deck.pptx 'shape:contains("{{")'
-   officecli query deck.pptx 'shape:contains("TODO")'
-   officecli query deck.pptx 'picture:no-alt'
-   ```
-4. `officecli close deck.pptx && officecli validate deck.pptx` — schema check. NEVER run validate against a resident-open file (spurious errors).
-5. **Open the deck in the target presentation viewer before shipping.** `view html` (Read the returned HTML path) catches overflow and placeholders; the target viewer is ground truth for chart colors, fonts, zoom, and animations (these are runtime features). For human preview, run `officecli watch deck.pptx` — the user opens the live preview at their own discretion — or have them open the `.pptx` directly in PowerPoint / Keynote / WPS.
-6. If anything failed, fix, then **rerun the full cycle**. One fix commonly creates another problem.
+**Assume there are problems.** First render is almost never correct. If you found zero issues, you were not looking hard enough.
 
 ### Delivery Gate (any failure = REJECT, do NOT deliver)
 
-Five checks. Gates 1–3 are token-grep defenses; Gate 4 catches build-order bugs; Gate 5 is the only visual-assembly check. **None of Gates 1–3 can see a rendered slide.** Refuse to declare done until every gate prints its OK message.
+Gates 1–2b are text/schema-level (cannot see a rendered slide); Gate 3 is the only visual check. Done = every gate PASS **and** Gate 3 loop converged.
 
 ```bash
 FILE="deck.pptx"
 
-# Gate 1 — schema. Whitelist only the benign ChartShapeProperties warnings (C-P-2).
-officecli close "$FILE" 2>/dev/null
-VALIDATE_OUT=$(officecli validate "$FILE" 2>&1)
-echo "$VALIDATE_OUT" | grep -q "no errors found" && echo "Gate 1 OK" || {
-  OTHER=$(echo "$VALIDATE_OUT" | grep -v -i "ChartShapeProperties" | grep -i error)
-  [ -z "$OTHER" ] && echo "Gate 1 OK (chart spPr whitelist)" || { echo "REJECT Gate 1:"; echo "$OTHER"; exit 1; }
-}
+# Gate 1 — schema
+officecli validate "$FILE" && echo "Gate 1 OK" || { echo "REJECT Gate 1"; exit 1; }
 
-# Gate 2 — token leak via CLI text-layer view. Tokens that must NEVER appear in a delivered deck.
-# NOTE: `[ ]` empty-bracket branch false-positives on legitimate checkbox UI — prefer `☐` (U+2610) in checklists.
-officecli view "$FILE" text | \
-  grep -nE '(\$[A-Za-z_]+\$|\{\{[^}]+\}\}|<TODO>|xxxx|lorem|\\[\$tn]|\([[:space:]]*\)|\[[[:space:]]*\])' && \
-  { echo "REJECT Gate 2: token leak above"; exit 1; } || echo "Gate 2 OK"
+# Gate 2 — overflow / format / structure (drop expected layout=blank "no title" noise)
+ISSUES=$(officecli view "$FILE" issues 2>&1 | grep -vE "Slide has no title")
+echo "$ISSUES" | grep -qE "^\s*\[[A-Z][0-9]+\]" && { echo "REJECT Gate 2:"; echo "$ISSUES"; exit 1; } || echo "Gate 2 OK"
 
-# Gate 3 — raw-XML hyperlink rPr schema trap (C-P-1). Any a:rPr containing a:hlinkClick = REJECT.
-officecli raw "$FILE" slide 2>/dev/null | grep -E '<a:rPr[^>]*>.*<a:hlinkClick' && \
-  { echo "REJECT Gate 3: hyperlink rPr (C-P-1) — clean with raw-set remove //a:rPr/a:hlinkClick"; exit 1; } || echo "Gate 3 OK"
-
-# Gate 4 — slide-order sanity. Must match your build plan.
-# COUNT via query (works closed or open; plain `get --depth 0` default output is NOT JSON and grep returns 0).
-SLIDE_COUNT=$(officecli query "$FILE" 'slide' --json | jq '.data.results | length')
-if [ "$SLIDE_COUNT" -lt 1 ]; then echo "REJECT Gate 4: zero slides"; exit 1; fi
-echo "Gate 4: total slides = $SLIDE_COUNT"
-# Dump titles in order to compare to your narrative outline:
-officecli query "$FILE" 'shape[@name=Title]' --format 'path: %p text: %t' 2>/dev/null || \
-  officecli query "$FILE" 'shape' --format 'path: %p name: %n text: %t' | head -40
-# REJECT if sequence (cover first, dividers before their sections, closing last) doesn't match your plan.
-echo "Gate 4: review above — REJECT if order wrong, else OK"
-
-# Gate 5a — static contrast pre-check. Dark-fill shapes must declare near-white text.
-DARK_HIT=$(officecli query "$FILE" 'shape[fill=1E2761],shape[fill=0A1628],shape[fill=8B1A1A],shape[fill=2C5F2D],shape[fill=36454F]' --json 2>/dev/null | \
-  jq -r '.data.results[]? | select((.format.textColor // "") | tostring | test("^#?(F[0-9A-F]{5}|FFFFFF)$") | not) | .path' 2>/dev/null)
-[ -z "$DARK_HIT" ] && echo "Gate 5a OK" || { echo "REJECT Gate 5a: dark-on-dark candidates below"; echo "$DARK_HIT"; exit 1; }
-
-echo "Delivery Gate 1–5a PASS — proceed to Gate 5b (fresh-eyes visual audit)"
+# Gate 2b — leftover placeholders ("xxxx", "lorem", "<TODO>", empty (), [], "this slide layout")
+LEFT=$(officecli view "$FILE" text | grep -niE 'xxxx|lorem|ipsum|<todo>|placeholder|this[- ]slide[- ]layout|\(\)|\[\]')
+[ -n "$LEFT" ] && { echo "REJECT Gate 2b:"; echo "$LEFT"; exit 1; } || echo "Gate 2b OK"
 ```
 
-Each grep catches a real failure class: `$...$` = shell-escape leaks, `{{...}}` = unmigrated tokens, `()` / `[]` = chart-title unit placeholders, `\$`/`\t`/`\n` = shell-escape literals, Gate 3 = hyperlink rPr on styled buttons, Gate 4 = scrambled slide order, Gate 5a = dark-on-dark contrast.
+### Gate 3 — Visual audit (MANDATORY)
 
-### Gate 5b — Visual audit via HTML preview (MANDATORY, not optional)
+Pick **one** path:
 
-You are reading the same deck you wrote. **Gates 1–4 cannot see rendered slides.** This step is the only visual-assembly check. Do not skip.
-
-Run `officecli view "$FILE" html` and Read the returned HTML path. For every slide, answer:
-
-- **overlap**: do any text shapes overlap each other or a chart? (flag e.g. a title wrapping to 2 lines with its subtitle underneath the wrap)
-- **dark-on-dark**: is any text on a fill where fill brightness < 30% AND text brightness < 80%? (quiz options, phone numbers, labels on navy/red/green cards)
-- **divider overlap**: any giant decorative number (01/02/03 at 100pt+) colliding with the divider title text?
-- **order sanity**: does the slide sequence match the narrative outline (cover → agenda → dividers-before-their-sections → closing)?
-- **missing arrowheads**: do flowchart/decision-tree connectors show direction, or plain lines?
-
-REJECT the delivery if ANY of the above is present; list every instance with its slide number. If none, report "Gate 5b PASS".
-
-### Honest limit
-
-`validate` catches schema errors, not design errors. A deck can pass `validate` with 14pt body on every slide, five fonts, placeholder tokens in chart titles, animation on every slide, or gray text on navy. The QA cycle above — especially `view annotated`, `view html` (Read the returned HTML), and opening in the target presentation viewer — is how you catch what validation can't.
-
-## Known Issues & Pitfalls
-
-When something looks broken, attribute it first: **[AGENT-ERROR]** (deck itself is wrong — fix the deck), **[RENDERER-BUG]** (deck is correct; a specific viewer renders it differently — don't chase), or **[SKILL gap]** (rule missing — open an issue).
-
-### CLI bug backlog (C-P-1 through C-P-7)
-
-| #         | Symptom                                                                                                                                            | Workaround                                                                                                                                                                                               |
-| --------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **C-P-1** | Hyperlink `link=`+`tooltip=` on a shape with pre-existing run-level styling (`bold/color/font/size`) emits schema-invalid `<a:rPr><a:hlinkClick>`. | Set `link=`+`tooltip=` **BEFORE** any run-level styling. Post-hoc cleanup: `officecli raw-set deck.pptx /slide[N] --xpath //a:rPr/a:hlinkClick --action remove`. Gate 3 in the Delivery Gate catches it. |
-| **C-P-2** | `validate` reports `ChartShapeProperties` schema warnings (1 per chart). Renders correctly everywhere.                                             | Whitelist in Gate 1. Do not chase.                                                                                                                                                                       |
-| **C-P-3** | `get /slide[N]/shape[@name=X]/animation[1]` returns stale `duration` after `set animation=...`.                                                    | Trust shape-level readback: `get "/slide[N]/shape[@name=X]" --json \| jq .animation`.                                                                                                                    |
-| **C-P-4** | `remove /slide[N]/shape[@id=X]/animation[1]` rejected (deep-path accepted by `add` but not `remove`).                                              | Use `set --prop animation=none`, or overwrite with a new preset.                                                                                                                                         |
-| **C-P-5** | `shape=bentConnector2` / `curvedConnector2` rejected. Only 3 short + 3 specific storage names accepted.                                            | Use short form `straight \| elbow \| curve`, or storage `straightConnector1 \| bentConnector3 \| curvedConnector3 \| line`.                                                                              |
-| **C-P-6** | Connector `from=/to=` rejects `@name=` selectors (works everywhere else).                                                                          | Resolve `@id=` first via `query`. See Recipe (c).                                                                                                                                                        |
-| **C-P-7** | [RENDERER-BUG] Some viewers normalize chart series colors to theme defaults, ignoring `seriesN.color=`.                                            | Verify chart colors in the user's target presentation viewer. `view html` respects colors as the officecli-layer ground truth.                                                                           |
-
-### Renderer honesty
-
-`officecli view html` = structural QA (overflow, placeholders, hierarchy) — Read the returned HTML path. Some features are runtime-only or viewer-specific and only render faithfully in a live presentation viewer: chart series colors (C-P-7), font substitution, animation, zoom, shadow / glow / soft fill, slide-number fields. **Ground-truth layering:** `view html` for officecli-layer structure, then open in the user's target presentation viewer for runtime / color fidelity.
-
-### Schema-invalid on current CLI — disabled APIs + working forms
-
-Props that exit 0 at write time but produce bad XML on close.
-
-| Disabled                                              | Working form                                                                                                                                                       |
-| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `add picture --prop alt=`                             | Two-step: `add picture` then `set /slide[N]/picture[M] --prop alt=`                                                                                                |
-| `add paragraph --prop bold=/size=/color=/font=`       | `add paragraph --prop text=` then `set paragraph[K] --prop ...` — or `add run`                                                                                     |
-| `set slide --prop showHeader=true`                    | Use `showFooter/showSlideNumber/showDate`; or a shape at `y=0.3cm`                                                                                                 |
-| `--prop geometry="M 0,0 L 50,50 Z"`                   | Named preset (`rect`, `roundRect`, `ellipse`, ...); or raw-set `a:custGeom`                                                                                        |
-| Connector `--prop line=/lineWidth=/lineDash=`         | `--prop color=` + `shape=elbow\|straight\|curve` + `tailEnd=triangle` (CLI-native); raw-set `a:ln` only for custom stroke — see connector section + Recipe (c)/(f) |
-| Picture `--prop geometry=ellipse` / `shape=roundRect` | Overlay a `preset=ellipse` shape `fill=none`; or raw-set `p:pic`                                                                                                   |
-| Chart `--prop gap=/gapwidth=` on `add`                | `set /slide[N]/chart[M] --prop gap=80` after creation                                                                                                              |
-
-Grep disabled forms in your command log: `grep -nE '(add.*picture.*alt=|add.*paragraph.*--prop (bold|size|color|font)=|showHeader=true|geometry="M|connector.*(line|lineWidth|lineDash)=)' commands.log`.
-
-### Shell escape — three layers
-
-CLI does NOT interpret `\$`, `\t`, `\n`.
-
-1. **Shell.** `$` in a value → single-quote the whole value: `--prop text='$15M'`. Unescaped `$15M` is stripped to `M`.
-2. **JSON (batch).** Real newline in shape text goes via `"\n"` inside a `<<'EOF'` heredoc. Writing `\n` in shell-quoted `--prop text=` is a bug.
-3. **pptx.** A line break is `<a:br/>`, not `\n`. Prefer multiple `--type paragraph` adds over fighting escapes.
-
-If in doubt, `view text` after writing and compare character-for-character.
-
-## Performance: Resident Mode + Batch
-
-`open`/`close` is the default (see Common Workflow step 1). For grids / timelines / skeletons, **batch** collapses many ops into one API call:
+**Screenshot (default)** — needs image-Read + a headless browser. **Loop per slide** (viewport screenshot covers only slide 1):
 
 ```bash
-cat <<'EOF' | officecli batch deck.pptx
-[
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"Title","text":"FY26 Review","x":"2cm","y":"2cm","width":"30cm","height":"2cm","size":"36","bold":"true"}},
-  {"command":"add","parent":"/slide[1]","type":"shape","props":{"name":"Body","text":"Revenue grew 18%","x":"2cm","y":"5cm","width":"30cm","height":"10cm","size":"20"}}
-]
-EOF
+n=1
+while officecli view "$FILE" screenshot --page $n -o "/tmp/gate3_$n.png" 2>/dev/null; do
+  n=$((n+1))
+done
+[ $n -eq 1 ] && { echo "no headless backend — using fallback"; SCREENSHOT_FAILED=1; }
 ```
 
-`<<'EOF'` (single-quoted delimiter) disables all shell expansion — safe for `$`, `'`, `!`.
+Read each PNG against the checklist; delegate to a subagent when the harness has one.
 
-Quirks: keep arrays **≤ 12 ops** (larger = ~1-in-15 "Failed to send to resident"); never `validate` while resident is open (spurious `drawing` errors — `close` first); `--index` on slide add is unreliable — see Common Workflow step 3. Batch supports: `add / set / get / query / remove / move / swap / view / raw / raw-set / validate`.
+**Fallback — HTML-text** (no image-Read or no browser): read `view "$FILE" html` as text. DOM cannot prove **dark-on-dark / fine overlap / arrowheads / gap-margin metrics / column alignment** — flag these as "not visually verified" rather than PASS.
 
-## Advanced capability index
+**Optional `--grid N`** — only on user request for layout-rhythm, or when `view outline` shows anomalous layout distribution: `officecli view "$FILE" screenshot --grid 3 -o /tmp/grid.png`.
 
-Single-verb where pptxgenjs / raw-XML would need hand-work: `help <element> --json`, CSS queries (`shape:contains / picture:no-alt / shape[fill=]`), `@name=` / `@id=` selectors, `view html`, gradient + image backgrounds, zoom slides, animation CRUD, `@id=` connectors, hyperlink + tooltip, groups, resident + batch heredoc, `raw-set` L3, master/layout background override. When in doubt: `officecli help pptx <element> --json`.
+**Per-slide checklist (assume issues exist):**
+
+- **overlap** — shapes / charts / giant decorative numbers (01/02/03 100pt+) colliding
+- **text overflow** — clipped at slide or shape boundary (KPI cards, narrow boxes)
+- **narrow text box** — content fits technically but wraps to many short lines (1–2 words each); long sublabel in a 3cm KPI card, body line in a too-tight column
+- **dark-on-dark** — fill brightness < 30% with text/icon brightness < 80% (incl. dark icons on dark without a contrasting circle)
+- **missing arrowheads** — flowchart connectors as plain lines
+- **decorative-line / title mismatch** — accent bar sized for one-line title but title wrapped to two (or vice versa)
+- **footer / citation collision** — source line, page number, or footnote touching content above
+- **tight margin / gap** — element within ~0.5" of slide edge, or two cards within ~0.3"
+- **uneven gaps** — large empty area on one side, cramped on another (broken rhythm)
+- **column / repeat-element misalignment** — KPI cards / icons off baseline or inconsistent width
+- **order sanity** — sequence matches narrative (cover → agenda → dividers-before-sections → closing)
+
+REJECT with `slide N: <issue>` lines, else "Gate 3 PASS" (HTML-text fallback adds "<unverified-items> not visually verified").
+
+**Fix-verify (mandatory, max 3 cycles).** Fix → re-run Gate 3 → repeat until zero new issues; one fix often surfaces another. After 3 rounds without convergence, **stop** — likely seesaw, template-level cause, or agent misread. Report `slide N: <issue> — attempted: <fixes> — likely root: <template|design-conflict|ambiguous>` and let the user decide.
 
 ## Common Pitfalls
 
-Sanity-check cheatsheet — what breaks on the first try. CLI-bug pitfalls (hyperlink rPr, connector enum / @name, picture alt, animation remove) are covered in Known Issues C-P-1..7; this table is the design + shell traps.
+Sanity-check cheatsheet — what breaks on the first try. Design + shell traps.
 
-| Pitfall                                              | Correct approach                                                                                                                                                                                                                                                                                                                           |
-| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Unquoted `[N]` in zsh/bash                           | Always quote paths: `"/slide[1]"`. zsh globs unquoted `[1]` → `no matches found` — #1 first-use stumble                                                                                                                                                                                                                                    |
-| `--name "foo"`                                       | All attributes go through `--prop`: `--prop name="foo"`                                                                                                                                                                                                                                                                                    |
-| Guessing a prop name                                 | `officecli help pptx <element>` — don't improvise                                                                                                                                                                                                                                                                                          |
-| Hex colors with `#`                                  | Drop the `#`: `FF0000`, not `#FF0000`                                                                                                                                                                                                                                                                                                      |
-| Theme colors                                         | Use `accent1..accent6`, `dk1`, `dk2`, `lt1`, `lt2` — not hex                                                                                                                                                                                                                                                                               |
-| `/shape[myname]` (bare name in brackets)             | Use `@name=` selector: `/shape[@name=myname]` or `/shape[@id=10007]`                                                                                                                                                                                                                                                                       |
-| Positional `/shape[3]` after z-order / remove        | Positions drift. Use `@name=` / `@id=` for any repeated reference                                                                                                                                                                                                                                                                          |
-| `[last]` without parens                              | Must be `[last()]`: `/slide[last()]/shape[1]`                                                                                                                                                                                                                                                                                              |
-| `/slide[last()]` in resident mode                    | Some resident versions reject it with "Shapes must be added to a slide: /slide[N]". Use explicit `/slide[N]` from `get --depth 0` for production builds.                                                                                                                                                                                   |
-| `[ ]` empty-bracket checkboxes                       | False-positives Gate 2's empty-bracket token check. Use `☐` (U+2610) / `☑` (U+2611) in checklist UI.                                                                                                                                                                                                                                       |
-| Connector with no arrowhead                          | Plain `bentConnector3` renders without direction. Use `--prop tailEnd=triangle` on add or set (CLI-native; values: `triangle/arrow/stealth/diamond/oval/none`). For custom size, raw-set `<a:tailEnd w="med" len="med"/>` on `/connector[@id=ID]/spPr/ln`. `preset=rightArrow` overlay works for horizontal flows only. See Recipe (c)/(f) |
-| Paths 1-based vs `--index` 0-based                   | `/slide[1]` = first slide; `--index 0` = first position                                                                                                                                                                                                                                                                                    |
-| `$` in `--prop text=`                                | Single-quote: `--prop text='$15M'`. Double-quoted `"$15M"` gets shell-expanded to `M`                                                                                                                                                                                                                                                      |
-| `\n` / `\t` in `--prop text=`                        | CLI does NOT interpret. Use multiple `--type paragraph`, or batch heredoc with JSON `"\n"`                                                                                                                                                                                                                                                 |
-| Dark text on dark background                         | On `fill brightness < 30%`, body text MUST be `FFFFFF` or > 80% bright                                                                                                                                                                                                                                                                     |
-| Font size / hierarchy violations                     | See Requirements table — title ≥ 36pt, body ≥ 18pt, title ≥ 2× body. Shrink content, not font                                                                                                                                                                                                                                              |
-| Centered body paragraphs                             | Center only titles / hero numbers. Left-align body                                                                                                                                                                                                                                                                                         |
-| Accent line under every title                        | Hallmark of AI-generated slides. Use whitespace or a brand band                                                                                                                                                                                                                                                                            |
-| Animation on every slide                             | Max 1 per slide, ≤ 600ms, `fade` / `appear` / `zoom-entrance` only                                                                                                                                                                                                                                                                         |
-| Modifying a file open in PowerPoint                  | Close it in PowerPoint first                                                                                                                                                                                                                                                                                                               |
-| Running `validate` while resident is open            | Spurious errors. `officecli close` first                                                                                                                                                                                                                                                                                                   |
-| `view issues "Slide has no title"` on `layout=blank` | Expected on blank layouts (titles are shapes, not placeholders). Not a defect                                                                                                                                                                                                                                                              |
-
-→ When in doubt: `officecli help pptx <element>`, `--json` for agents. Help is authoritative.
+| Pitfall                                  | Correct approach                                                                                        |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| Unquoted `[N]` in zsh/bash               | Always quote paths: `"/slide[1]"`. zsh globs unquoted `[1]` → `no matches found` — #1 first-use stumble |
+| `--name "foo"`                           | All attributes go through `--prop`: `--prop name="foo"`                                                 |
+| `/shape[myname]` (bare name in brackets) | Use `@name=` selector: `/shape[@name=myname]` or `/shape[@id=10007]`                                    |
+| Paths 1-based vs `--index` 0-based       | `/slide[1]` = first slide; `--index 0` = first position                                                 |
+| `$` in `--prop text=`                    | Single-quote: `--prop text='$15M'`. Double-quoted `"$15M"` gets shell-expanded to `M`                   |
+| `\n` / `\t` in `--prop text=`            | CLI does NOT interpret. Use multiple `--type paragraph`, or batch heredoc with JSON `"\n"`              |

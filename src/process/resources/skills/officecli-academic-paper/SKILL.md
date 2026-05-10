@@ -1,5 +1,4 @@
 ---
-# officecli: v1.0.63
 name: officecli-academic-paper
 description: "Use this skill to build academic-style .docx output: journal / conference / thesis chapters carrying formal citation style (APA, Chicago, IEEE, MLA), numbered equations, figure & table cross-references, footnotes/endnotes, bibliography, or multi-column journal layout. Trigger on: 'research paper', 'journal paper', 'conference paper', 'manuscript', 'thesis', 'APA', 'MLA', 'Chicago', 'IEEE two-column', 'bibliography', 'hanging indent', 'citation style', 'abstract + keywords', 'equation numbering', 'cross-reference', paper with footnotes/endnotes. Output is a single .docx."
 ---
@@ -10,31 +9,14 @@ description: "Use this skill to build academic-style .docx output: journal / con
 
 When the docx base rules cover it, the text here says `→ see docx v2 §X`. Read docx v2 first if you have not.
 
-## BEFORE YOU START (CRITICAL)
+## Setup
 
-**If `officecli` is not installed:**
+If `officecli` is missing:
 
-`macOS / Linux`
+- **macOS / Linux**: `curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash`
+- **Windows (PowerShell)**: `irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex`
 
-```bash
-if ! command -v officecli >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-fi
-```
-
-`Windows (PowerShell)`
-
-```powershell
-if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
-    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
-}
-```
-
-Verify: `officecli --version`
-
-If `officecli` is still not found after first install, open a new terminal and run the verify command again.
-
-If the install command above fails (e.g. blocked by security policy, no network access, or insufficient permissions), install manually — download the binary for your platform from https://github.com/iOfficeAI/OfficeCLI/releases — then re-run the verify command.
+Verify with `officecli --version` (open a new terminal if PATH hasn't picked up). If install fails, download a binary from https://github.com/iOfficeAI/OfficeCLI/releases.
 
 ## ⚠️ Help-First Rule
 
@@ -124,17 +106,17 @@ FILE="paper.docx"
 officecli create "$FILE"
 officecli open "$FILE"
 officecli set "$FILE" / --prop defaultFont="Times New Roman"
-officecli add "$FILE" /body --type paragraph --prop text="Remote Work and Team Cohesion" --prop alignment=center --prop size=20pt --prop bold=true --prop spaceAfter=24pt
-officecli add "$FILE" /body --type paragraph --prop text="Alice Chen" --prop alignment=center --prop size=12pt
-officecli add "$FILE" /body --type paragraph --prop text="Department of Psychology, Stanford University" --prop alignment=center --prop size=11pt --prop spaceAfter=24pt
-officecli add "$FILE" /body --type paragraph --prop text="Abstract" --prop alignment=center --prop size=14pt --prop bold=true --prop spaceBefore=12pt --prop spaceAfter=6pt
+officecli add "$FILE" /body --type paragraph --prop text="Remote Work and Team Cohesion" --prop align=center --prop size=20pt --prop bold=true --prop spaceAfter=24pt
+officecli add "$FILE" /body --type paragraph --prop text="Alice Chen" --prop align=center --prop size=12pt
+officecli add "$FILE" /body --type paragraph --prop text="Department of Psychology, Stanford University" --prop align=center --prop size=11pt --prop spaceAfter=24pt
+officecli add "$FILE" /body --type paragraph --prop text="Abstract" --prop align=center --prop size=14pt --prop bold=true --prop spaceBefore=12pt --prop spaceAfter=6pt
 officecli add "$FILE" /body --type paragraph --prop text="This study examines remote-work adoption on team cohesion across 18 months..." --prop size=12pt --prop lineSpacing=2x --prop spaceAfter=12pt
 officecli add "$FILE" /body --type paragraph --prop text="Keywords: remote work, team cohesion, psychological safety" --prop italic=true --prop size=11pt --prop spaceAfter=18pt
 officecli add "$FILE" /body --type paragraph --prop text="1. Introduction" --prop style=Heading1 --prop size=20pt --prop bold=true --prop spaceBefore=18pt --prop spaceAfter=12pt
 officecli add "$FILE" /body --type paragraph --prop text="Remote-work research (Smith, 2024) has expanded since 2020..." --prop size=12pt --prop lineSpacing=2x --prop firstLineIndent=720
 officecli add "$FILE" /body --type paragraph --prop text="References" --prop style=Heading1 --prop size=20pt --prop bold=true --prop spaceBefore=18pt --prop spaceAfter=12pt
 officecli add "$FILE" /body --type paragraph --prop text="Smith, J. (2024). Remote work and cohesion. Journal of Applied Psychology, 109(3), 412-430." --prop size=12pt --prop lineSpacing=2x --prop indent=720 --prop hangingIndent=720
-officecli add "$FILE" / --type footer --prop type=default --prop alignment=center --prop size=10pt --prop field=page
+officecli add "$FILE" / --type footer --prop type=default --prop align=center --prop size=10pt --prop field=page
 officecli close "$FILE"
 officecli validate "$FILE"
 ```
@@ -292,7 +274,7 @@ A SEQ field is a counter with a name (`identifier`). Every `SEQ Figure` incremen
 officecli add "$FILE" /body --type picture --prop src=arch.png --prop width=5in
 officecli set "$FILE" "/body/p[last()]/r[last()]" --prop alt="Model architecture: attention over time-series sensors"
 # Caption paragraph (below the figure, per academic convention)
-officecli add "$FILE" /body --type paragraph --prop text="Figure " --prop style=Caption --prop size=10pt --prop italic=true --prop alignment=center
+officecli add "$FILE" /body --type paragraph --prop text="Figure " --prop style=Caption --prop size=10pt --prop italic=true --prop align=center
 officecli add "$FILE" "/body/p[last()]" --type field --prop fieldType=seq --prop identifier=Figure
 officecli add "$FILE" "/body/p[last()]" --type run --prop text=": Attention-based anomaly detection model."
 # Bookmark the caption so other paragraphs can PAGEREF it
@@ -377,12 +359,12 @@ officecli create "$FILE"
 officecli open "$FILE"
 
 # 1. Title, authors, affiliation — single-column (the default first section)
-officecli add "$FILE" /body --type paragraph --prop text="Attention-Based Anomaly Detection for Industrial Time Series" --prop alignment=center --prop size=18pt --prop bold=true --prop spaceAfter=12pt
-officecli add "$FILE" /body --type paragraph --prop text="Alice Chen, Bob Martinez" --prop alignment=center --prop size=11pt
-officecli add "$FILE" /body --type paragraph --prop text="Department of CS, Stanford University" --prop alignment=center --prop size=10pt --prop spaceAfter=18pt
+officecli add "$FILE" /body --type paragraph --prop text="Attention-Based Anomaly Detection for Industrial Time Series" --prop align=center --prop size=18pt --prop bold=true --prop spaceAfter=12pt
+officecli add "$FILE" /body --type paragraph --prop text="Alice Chen, Bob Martinez" --prop align=center --prop size=11pt
+officecli add "$FILE" /body --type paragraph --prop text="Department of CS, Stanford University" --prop align=center --prop size=10pt --prop spaceAfter=18pt
 
 # 2. Abstract — still single-column, block-style
-officecli add "$FILE" /body --type paragraph --prop text="Abstract" --prop alignment=center --prop size=12pt --prop bold=true --prop spaceAfter=6pt
+officecli add "$FILE" /body --type paragraph --prop text="Abstract" --prop align=center --prop size=12pt --prop bold=true --prop spaceAfter=6pt
 officecli add "$FILE" /body --type paragraph --prop text="We present an attention-based model for detecting anomalies in industrial sensor time series..." --prop size=10pt --prop lineSpacing=1.15x --prop spaceAfter=12pt
 
 # 3. Section break + two-column from here on
@@ -403,7 +385,7 @@ officecli add "$FILE" /body --type paragraph --prop text="Industrial anomaly det
 # officecli set "$FILE" "/section[3]" --prop columns=1
 
 # 6. Footer, close, validate
-officecli add "$FILE" / --type footer --prop type=default --prop alignment=center --prop size=9pt --prop field=page
+officecli add "$FILE" / --type footer --prop type=default --prop align=center --prop size=9pt --prop field=page
 officecli close "$FILE"
 officecli validate "$FILE"
 ```
@@ -420,12 +402,12 @@ First-page metadata stack: title (centered 20-22pt bold) → authors (centered 1
 
 ```bash
 # Superscript affiliation markers (multi-institution paper)
-officecli add "$FILE" /body --type paragraph --prop text="Alice Chen" --prop alignment=center --prop size=12pt
+officecli add "$FILE" /body --type paragraph --prop text="Alice Chen" --prop align=center --prop size=12pt
 officecli add "$FILE" "/body/p[last()]" --type run --prop text="1" --prop superscript=true
 officecli add "$FILE" "/body/p[last()]" --type run --prop text=", Bob Martinez"
 officecli add "$FILE" "/body/p[last()]" --type run --prop text="2" --prop superscript=true
 # Running header (skip on cover via type=first empty header — see docx v2 §headers)
-officecli add "$FILE" / --type header --prop type=default --prop alignment=right --prop size=9pt --prop text="Short Running Title"
+officecli add "$FILE" / --type header --prop type=default --prop align=right --prop size=9pt --prop text="Short Running Title"
 ```
 
 **Nature-family 2-col abstract** is rare — if required, open a `section type=continuous columns=2` BEFORE the abstract heading; short abstracts (<100 words) leave ragged columns. **Mirrored odd/even headers** need `<w:evenAndOddHeaders/>` in settings via `raw-set` — not exposed by high-level API on 1.0.63; deliver without mirroring or inject the flag manually. Full header schema: `officecli help docx header`.

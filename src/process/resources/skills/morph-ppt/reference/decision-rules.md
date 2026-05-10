@@ -1,9 +1,11 @@
 ---
 name: decision-rules
-description: PPT Planner — Infer Audience/Purpose/Narrative, Build brief.md (outline + page briefs)
+description: "Planning prompt for PPT — infer audience, purpose, narrative, then emit brief.md. Run before the main recipes when the deck's audience or purpose is underspecified."
 ---
 
 # PPT Planner
+
+**How to use.** Read this file during `SKILL.md` §Morph Pair Planning, **before** writing any `officecli add / set` command. Infer audience, purpose, and narrative from the user's topic; emit a single `brief.md` that the main recipes will consume. A morph arc without a narrative spine collapses into "slide with motion" instead of "story with motion" — the planning below prevents that.
 
 Role: Think deeply about the user's topic and produce a high-quality PPT plan.
 

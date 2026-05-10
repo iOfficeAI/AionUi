@@ -1,5 +1,4 @@
 ---
-# officecli: v1.0.63
 name: officecli-word-form
 description: "Use this skill to create fillable Word forms (.docx) with real Content Controls (SDT) + legacy FormField checkboxes + MERGEFIELD mail-merge placeholders + document protection. Trigger on: 'fillable form', 'form fields', 'content controls', 'SDT', 'word form', 'fill in', 'only editable fields', 'protect document', 'onboarding form', 'HR intake', 'survey template', 'contract / SOW template', 'mail-merge template', 'compliance checklist', 'medical intake questionnaire'. Output is a single .docx where specific fields are editable and the rest is locked. This skill is INDEPENDENT, not a scene layer on docx — payload is `<w:sdt>` + `<w:ffData>` + `<w:fldChar>` + `documentProtection`, none of which docx base skill covers. Do NOT trigger for regular reports, letters, memos, academic papers, pitch decks, or any document with no user-fillable fields — route those to officecli-docx or its scene layers."
 ---
@@ -462,7 +461,11 @@ This is the core pattern for medical intake, two-party contracts, sequential-app
 
 ## Recipe — Contract / SOW template with MERGEFIELD + signature
 
-Combines MERGEFIELD placeholders (for downstream mail-merge), an SDT dropdown with Path B items (for sales to pick), a signature block via `--after find:`, and a CONFIDENTIAL watermark. Row-map: SDT[1]=project_name, SDT[2]=contract_start, SDT[3]=payment_schedule, SDT[4]=signatory_name (inline).
+Row-map across the three sub-recipes: SDT[1]=project_name, SDT[2]=contract_start, SDT[3]=payment_schedule, SDT[4]=signatory_name (inline). Run (sow-a) → (sow-b) → (sow-c) in order on the same `$FILE`; each sub-recipe stays under 20 lines so a shell-escape slip never cascades past one block.
+
+### Recipe (sow-a) Boilerplate + cover + parties
+
+Creates the file, sets docDefaults, writes the title / intro, and drops the two MERGEFIELD placeholders (`CustomerName`, `ContractNo`) that downstream mail-merge will fill.
 
 ```bash
 FILE=sow.docx
@@ -471,40 +474,36 @@ officecli open "$FILE"
 officecli set "$FILE" / --prop title="Statement of Work" \
   --prop docDefaults.font="Calibri" --prop docDefaults.fontSize="12pt"
 
-# Title + boilerplate (becomes read-only under protection=forms)
 officecli add "$FILE" /body --type paragraph --prop text="Statement of Work" \
   --prop style=Heading1 --prop size=20 --prop bold=true --prop spaceAfter=12pt
 officecli add "$FILE" /body --type paragraph \
   --prop text="This Statement of Work ('SOW') is entered into between the parties identified below and governs the delivery of professional services." \
   --prop size=11 --prop spaceAfter=12pt
 
-# Customer block with MERGEFIELDs — downstream mail-merge fills these
 officecli add "$FILE" /body --type paragraph --prop text="Customer: "
 officecli add "$FILE" '/body/p[last()]' --type field \
   --prop fieldType=mergefield --prop name=CustomerName
 officecli add "$FILE" /body --type paragraph --prop text="Contract #: "
 officecli add "$FILE" '/body/p[last()]' --type field \
   --prop fieldType=mergefield --prop name=ContractNo
+```
 
-# Section headings (add as paragraphs with style=Heading2 size=14 bold=true spaceBefore=18pt spaceAfter=8pt)
-# "1. Project Details" then label + SDT pairs:
+### Recipe (sow-b) SDT fields + Path B raw-set specials
+
+Adds the three block-level SDTs (project / date / dropdown), the inline signature SDT anchored via `--after 'find:Client Signature:'`, then Path B raw-set to inject the date format and dropdown items (both are UNSUPPORTED via `add --prop`).
+
+```bash
 officecli add "$FILE" /body --type sdt --prop type=text \
   --prop alias="Project Name" --prop tag=project_name --prop text="Enter project name"
 officecli add "$FILE" /body --type sdt --prop type=date \
   --prop alias="Contract Start Date" --prop tag=contract_start
-
-# "2. Payment Terms"
 officecli add "$FILE" /body --type sdt --prop type=dropdown \
   --prop alias="Payment Schedule" --prop tag=payment_schedule
-
-# Signature — inline SDT via --after find:, outer single quotes (trap: inner " breaks match)
 officecli add "$FILE" /body --type paragraph --prop text="Client Signature:" \
   --prop bold=true --prop spaceBefore=18pt --prop spaceAfter=4pt
 officecli add "$FILE" /body --type sdt --prop type=text \
   --prop alias="Signatory Name" --prop tag=signatory_name --prop text="Authorized Signatory" \
   --after 'find:Client Signature:'
-
-# Path B injections
 officecli raw-set "$FILE" /document \
   --xpath "//w:sdt[w:sdtPr/w:tag/@w:val='contract_start']/w:sdtPr/w:date/w:dateFormat" \
   --action setattr --xml "w:val=MM/dd/yyyy"
@@ -512,12 +511,16 @@ officecli raw-set "$FILE" /document \
   --xpath "//w:sdt[w:sdtPr/w:tag/@w:val='payment_schedule']/w:sdtPr/w:dropDownList" \
   --action append \
   --xml '<w:listItem xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:displayText="Full Prepayment" w:value="Full Prepayment"/><w:listItem xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" w:displayText="Net 30 Upon Delivery" w:value="Net 30 Upon Delivery"/>'
+```
 
-# Watermark — parent is /, never /body
+### Recipe (sow-c) Watermark + locks + document protection
+
+Drops the CONFIDENTIAL watermark (parent is `/`, never `/body`), locks the three block-level SDTs, instructs how to lock the inline signatory_name SDT (path only known after `view forms`), then seals the document with `protection=forms` as the last command.
+
+```bash
 officecli add "$FILE" / --type watermark \
   --prop text="CONFIDENTIAL" --prop color=FF0000 --prop rotation=315
 
-# Locks — inline signatory_name SDT lives under a paragraph path; read from `view forms`
 officecli set "$FILE" '/body/sdt[1]' --prop lock=sdtlocked
 officecli set "$FILE" '/body/sdt[2]' --prop lock=sdtlocked
 officecli set "$FILE" '/body/sdt[3]' --prop lock=sdtlocked

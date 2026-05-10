@@ -1,5 +1,4 @@
 ---
-# officecli: v1.0.63
 name: officecli-pitch-deck
 description: "Use this skill when the user is building a fundraising / investor pitch deck — seed, Series A / B / C, convertible note, SAFE round, strategic raise. Trigger on: 'pitch deck', 'investor deck', 'Series A deck', 'Series B deck', 'Series C deck', 'fundraising deck', 'seed pitch', 'VC deck', 'raising capital', 'term sheet presentation'. Output is a single .pptx. This skill is a scene layer on top of officecli-pptx — inherits every pptx v2 rule (visual floor, grid, palettes, connector canon, Delivery Gate). DO NOT invoke for a generic board review, sales deck, all-hands, or product launch — route those to officecli-pptx base."
 ---
@@ -10,31 +9,14 @@ description: "Use this skill when the user is building a fundraising / investor 
 
 When the pptx base rules cover it, the text here says `→ see pptx v2 §X`. Read `skills/officecli-pptx/SKILL.md` first if you have not.
 
-## BEFORE YOU START (CRITICAL)
+## Setup
 
-**If `officecli` is not installed:**
+If `officecli` is missing:
 
-`macOS / Linux`
+- **macOS / Linux**: `curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash`
+- **Windows (PowerShell)**: `irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex`
 
-```bash
-if ! command -v officecli >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-fi
-```
-
-`Windows (PowerShell)`
-
-```powershell
-if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
-    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
-}
-```
-
-Verify: `officecli --version`
-
-If `officecli` is still not found after first install, open a new terminal and run the verify command again.
-
-If the install command above fails (e.g. blocked by security policy, no network access, or insufficient permissions), install manually — download the binary for your platform from https://github.com/iOfficeAI/OfficeCLI/releases — then re-run the verify command.
+Verify with `officecli --version` (open a new terminal if PATH hasn't picked up). If install fails, download a binary from https://github.com/iOfficeAI/OfficeCLI/releases.
 
 ## ⚠️ Help-First Rule
 
@@ -46,7 +28,7 @@ officecli help pptx <element>                # Full schema (e.g. chart, shape, c
 officecli help pptx <element> --json         # Machine-readable
 ```
 
-Help is pinned to the installed CLI version. When this skill and help disagree, **help wins.** Every `--prop X=` in this file has been grep-verified against `officecli help pptx <element>` on v1.0.63 — if help adds / renames a prop in a later version, trust help.
+Help reflects the installed CLI version. When this skill and help disagree, **help wins.** Every `--prop X=` in this file has been grep-verified against `officecli help pptx <element>` — if help adds / renames a prop in a later version, trust help.
 
 ## Mental Model & Inheritance
 
@@ -128,9 +110,180 @@ Regulatory pipeline IS the business. Replace "product roadmap" with **clinical p
 
 **Cross-vertical rule.** You can mix elements across templates, but never drop a must-have from your primary vertical. A SaaS deck missing unit econ, a bio deck missing a pipeline chart, a marketplace deck missing a liquidity metric — each is an instant VC disqualification.
 
+## Slide Patterns (layout canon)
+
+Patterns are **layout geometry**; recipes below are **narrative intent**. A slide picks one pattern for its visual shape (6 canonical ones below) and one recipe for what it argues (cover / problem / traction / ...). Multiple recipes can share one pattern — Problem / Why-Now / Traction-callout all lean on the 3-stat row (C.2). Pick the pattern first, then fill it with recipe content.
+
+**Speaker notes rule.** Every content slide (non-cover, non-closing) MUST carry speaker notes via `officecli add "$FILE" /slide[N] --type notes --prop text='…'`. Missing notes = not shippable — inherits pptx v2 §Hard rules (H7). Run `officecli help pptx notes` to confirm prop names before building.
+
+**Pattern reuse discipline.** Never run the same pattern on two consecutive slides — even with different data, two identical geometries in a row read as a template loop. Alternate C.2 with C.4 or C.5b to break rhythm.
+
+**Vertical centering.** When a slide carries fewer elements than the pattern's maximum, nudge y-positions down 2–3cm to center the visual weight. Tables below assume full content.
+
+### C.1 Title / Cover (dark gradient)
+
+3–4 text shapes on a gradient fill. Slide 1 in every deck.
+
+```
++----------------------------------+
+|                                  |
+|          TITLE (centered)        |
+|          tagline                 |
+|                                  |
+|   round · amount · date          |
+|  ________________________        |  <- thin brand band
++----------------------------------+
+```
+
+| Element                 | X   | Y    | Width   | Height | Font / size                     |
+| ----------------------- | --- | ---- | ------- | ------ | ------------------------------- |
+| Title                   | 2cm | 5cm  | 29.87cm | 4cm    | serif bold, ≥ 36pt (44 typical) |
+| Tagline                 | 2cm | 10cm | 29.87cm | 2cm    | sans 18–22pt                    |
+| Meta (round · $ · date) | 2cm | 13cm | 29.87cm | 1.5cm  | sans 12–16pt                    |
+
+**Use this when** the slide is the first one (Cover recipe 1) — 3-second identity grab. Background is a 180° linear gradient between two dark palette shades (e.g. Professional Navy `1E2761 → 0D1F35`). If the title wraps to 2 lines, **add height (4cm → 5cm), never drop font below 36pt** — sub-36pt on a pitch cover reads as timid regardless of content. Transition: fade.
+
+### C.2 3-Stat callout row
+
+Title + 3 big-number / label pairs across. The default for Problem / Why-Now / Traction-callout slides.
+
+```
++----------------------------------+
+|  Title                           |
+|                                  |
+|   73%      12hr      $4.2B       |
+|   label    label     label       |
+|   source   source    source      |
++----------------------------------+
+```
+
+| Element               | X      | Y      | Width   | Height | Font / size            |
+| --------------------- | ------ | ------ | ------- | ------ | ---------------------- |
+| Title                 | 1.5cm  | 1cm    | 30.87cm | 3cm    | serif bold ≥ 36pt      |
+| Stat 1 number         | 2cm    | 5cm    | 9cm     | 4cm    | serif bold 60–64pt     |
+| Stat 1 label          | 2cm    | 9.5cm  | 9cm     | 2cm    | sans ≥ 16pt (H4 floor) |
+| Stat 2 number / label | 12.5cm | (same) | 9cm     | (same) | (same)                 |
+| Stat 3 number / label | 23cm   | (same) | 9cm     | (same) | (same)                 |
+
+**Use this when** you have 2–3 anchoring numbers and the story is "three facts argue the point" — Problem, Why-Now, Market-callout, single-row Traction. Labels ≥ 16pt is the H4 floor (sub-label exception); a number without a label reads as bravado, so never drop labels to 12–14pt to fit more text.
+
+### C.3 4-Stat callout row
+
+Same geometry as C.2 but 4 columns. Numbers 60pt, width 7cm each.
+
+```
++-------------------------------------+
+|  Title                              |
+|                                     |
+|  73%   12hr   $9M   4.2x            |
+|  lbl   lbl    lbl   lbl             |
++-------------------------------------+
+```
+
+| Element      | X positions               | Y     | Width   | Height | Font / size     |
+| ------------ | ------------------------- | ----- | ------- | ------ | --------------- |
+| Title        | 1.5cm                     | 1cm   | 30.87cm | 3cm    | serif bold 36pt |
+| Stat numbers | 1.5 / 9.5 / 17.5 / 25.5cm | 5cm   | 7cm     | 4cm    | serif bold 60pt |
+| Stat labels  | (same X)                  | 9.5cm | 7cm     | 2cm    | sans ≥ 16pt     |
+
+**Use this when** exactly 4 parallel metrics tell the story and 3 feels under-counted. Prefer C.2 if in doubt — 4 always feels tighter than 3, and wrap risk is real.
+
+> **Wrap warning.** At 60pt in 7cm width, dollar patterns with both `$` and `.` fail: `$9.4M` is 5 glyphs but the wide `$` and `.` in a serif bold make it wrap to 2 lines and destroy the callout. Safe dollar shapes at 60pt/7cm: `$9M`, `$96B`, `$4K` (3–4 chars). Non-dollar shapes: `340%`, `4.2x`, `12.3` safe up to 5 chars. Values ≥ 6 chars (`197min`, `3 Days`) will wrap — either (a) drop font to 44–48pt, (b) abbreviate (`197m`, `$9M`), or (c) shift to C.2 (9cm per stat). Single tokens only, no internal spaces.
+
+### C.4 Chart + Context (chart left, stats right)
+
+Chart takes left 55%, 2–3 stacked callouts on the right. The default for Traction / Financials / Market-sizing-with-context.
+
+```
++-------------------------------------+
+|  Title                              |
+|                                     |
+|  +---------------+   +--------+     |
+|  |               |   | Stat 1 |     |
+|  |    chart      |   +--------+     |
+|  |               |   | Stat 2 |     |
+|  +---------------+   +--------+     |
++-------------------------------------+
+```
+
+| Element      | X    | Y    | Width   | Height                                       |
+| ------------ | ---- | ---- | ------- | -------------------------------------------- |
+| Title        | 2cm  | 1cm  | 29.87cm | 3cm                                          |
+| Chart        | 2cm  | 4cm  | 17cm    | 13cm                                         |
+| Stats column | 21cm | 4cm+ | 11cm    | 2.5cm number + 1.5cm label (~3.7cm per pair) |
+
+Sub-labels ≥ 16pt (H4 floor). For 5 stats stacked, drop number size to 44pt; 6+ stats means pick a different pattern. Post-batch for column/bar charts: `officecli set "$FILE" "/slide[N]/chart[1]" --prop gap=80` to tighten bar spacing.
+
+**Use this when** one primary chart drives the story and 2–3 numeric anchors reinforce it — Traction (ARR curve + current ARR + YoY + NRR), Financials (4-year column chart + assumption callouts), Market (bar chart + SOM / CAGR / methodology).
+
+### C.5 Icon-in-circle grid (3-row vertical)
+
+3 vertical rows, each = circle icon on the left + title + 1-line description.
+
+```
++---------------------------------------+
+|  Title                                |
+|                                       |
+|  (o)  Label one                       |
+|       description one                 |
+|                                       |
+|  (o)  Label two                       |
+|       description two                 |
+|                                       |
+|  (o)  Label three                     |
+|       description three               |
++---------------------------------------+
+```
+
+| Element     | X     | Y positions        | Width | Height | Font / size                   |
+| ----------- | ----- | ------------------ | ----- | ------ | ----------------------------- |
+| Icon circle | 2cm   | 4.5 / 8.5 / 12.5cm | 2.5cm | 2.5cm  | ellipse, accent fill          |
+| Label       | 5.5cm | (icon Y + 0)       | 25cm  | 1.2cm  | sans bold 18pt                |
+| Description | 5.5cm | (icon Y + 1.3cm)   | 25cm  | 1.8cm  | sans ≥ 16pt (H4 floor), muted |
+
+**Use this when** you have 3 short vertical points that benefit from a visual anchor per row — Solution mechanism, Value pillars, Product loop. Choose C.5b (2×2 grid) when items are parallel and you have exactly 4; choose a horizontal 5-across variant when icons should read side-by-side (e.g. 5-step process).
+
+### C.5b 2×2 Feature grid (4 parallel items)
+
+4 rounded cards, 2 columns × 2 rows. Use when you have exactly 4 parallel items (product pillars, service types, feature quadrants).
+
+```
++-----------------------------+
+|  Title                      |
+|                             |
+|  +---------+  +---------+   |
+|  | (o) T1  |  | (o) T2  |   |
+|  | body    |  | body    |   |
+|  +---------+  +---------+   |
+|  +---------+  +---------+   |
+|  | (o) T3  |  | (o) T4  |   |
+|  | body    |  | body    |   |
+|  +---------+  +---------+   |
++-----------------------------+
+```
+
+| Element                  | X              | Y              | Width   | Height | Font / size            |
+| ------------------------ | -------------- | -------------- | ------- | ------ | ---------------------- |
+| Slide title              | 2cm            | 1cm            | 29.87cm | 2.5cm  | serif bold 32pt        |
+| Card 1 bg (top-left)     | 1.5cm          | 4cm            | 14.5cm  | 7cm    | roundRect              |
+| Card 2 bg (top-right)    | 17.5cm         | 4cm            | 14.5cm  | 7cm    | roundRect              |
+| Card 3 bg (bottom-left)  | 1.5cm          | 12cm           | 14.5cm  | 7cm    | roundRect              |
+| Card 4 bg (bottom-right) | 17.5cm         | 12cm           | 14.5cm  | 7cm    | roundRect              |
+| Icon ellipse (each card) | card_x + 0.5cm | card_y + 0.5cm | 2cm     | 2cm    | —                      |
+| Card title (each)        | card_x + 3.2cm | card_y + 0.6cm | 10.5cm  | 1.8cm  | sans bold 16pt         |
+| Card body (each)         | card_x + 0.5cm | card_y + 3cm   | 13cm    | 3.5cm  | sans ≥ 16pt (H4 floor) |
+
+**Use this when** you have exactly 4 parallel items and the eye should land on each equally — 4 product pillars, 4 service tiers, 4 stakeholder types. 3 items feel lonely in a 2×2; 5+ items break the grid — go to a 3×2 (see pptx v2 §(d) grid math) or C.5 row pattern.
+
+> **Z-order canon (critical).** Each card's `roundRect` background must be added immediately before that card's icon / title / body shapes in the batch JSON — pptx paints in insertion order, so a background added after its text paints over and hides the text. When building with `officecli batch`, follow the per-card sequence `bg → ellipse → title → body` strictly. Pattern and z-order details → see pptx v2 §Recipe (c) z-order canon; reuse grid math from pptx v2 §(d) for non-2×2 counts.
+
+**Dark-background variant.** Change card fill from `F0F4F8` (light) to a lighter-dark shade like `1A2540` and bump body text to `FFFFFF` / `E8E8E8`. Palette variables (e.g. `$MUTED`) do NOT expand inside single-quoted heredocs — write the literal hex (`64748B`) in the JSON.
+
+---
+
 ## Key-slide recipes (10 essentials)
 
-The 10 slides every pitch deck carries. Each recipe below gives: **visual outcome** (what the slide looks like from 3m away) + **runnable block** (≤ 18 lines) + **QA one-liner**. All recipes inherit pptx v2 palettes, grid math, type hierarchy, and `--prop tailEnd=triangle` on every connector. `$FILE` is your deck file.
+The 10 slides every pitch deck carries. Each recipe below gives: **visual outcome** (what the slide looks like from 3m away) + **runnable block** (≤ 18 lines) + **QA one-liner**. All recipes inherit pptx v2 palettes, grid math, type hierarchy, and `--prop tailEnd=triangle` on every connector. Recipes reference the Slide Patterns above: Cover reuses C.1; Problem / Why-Now reuse C.2; Traction / Financials reuse C.4; Feature / pillar slides reuse C.5b. `$FILE` is your deck file.
 
 **Long-title wrap rule.** A 36pt+ title that wraps to 2 lines: add `height` (e.g. 2cm → 3.5cm) — never drop the font below 36pt. Titles < 36pt on a pitch deck read as timid regardless of content.
 

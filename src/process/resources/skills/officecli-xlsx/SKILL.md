@@ -1,36 +1,18 @@
 ---
-# officecli: v1.0.63
 name: officecli-xlsx
 description: "Use this skill any time a .xlsx file is involved -- as input, output, or both. This includes: creating spreadsheets, financial models, dashboards, or trackers; reading, parsing, or extracting data from any .xlsx file; editing, modifying, or updating existing workbooks; working with formulas, charts, pivot tables, or templates; importing CSV/TSV data into Excel format. Trigger whenever the user mentions 'spreadsheet', 'workbook', 'Excel', 'financial model', 'tracker', 'dashboard', or references a .xlsx/.csv filename."
 ---
 
 # OfficeCLI XLSX Skill
 
-## BEFORE YOU START (CRITICAL)
+## Setup
 
-**If `officecli` is not installed:**
+If `officecli` is missing:
 
-`macOS / Linux`
+- **macOS / Linux**: `curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash`
+- **Windows (PowerShell)**: `irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex`
 
-```bash
-if ! command -v officecli >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-fi
-```
-
-`Windows (PowerShell)`
-
-```powershell
-if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
-    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
-}
-```
-
-Verify: `officecli --version`
-
-If `officecli` is still not found after first install, open a new terminal and run the verify command again.
-
-If the install command above fails (e.g. blocked by security policy, no network access, or insufficient permissions), install manually — download the binary for your platform from https://github.com/iOfficeAI/OfficeCLI/releases — then re-run the verify command.
+Verify with `officecli --version` (open a new terminal if PATH hasn't picked up). If install fails, download a binary from https://github.com/iOfficeAI/OfficeCLI/releases.
 
 ## ⚠️ Help-First Rule
 
@@ -43,7 +25,7 @@ officecli help xlsx <verb> <element>        # Verb-scoped (e.g. add chart, set c
 officecli help xlsx <element> --json        # Machine-readable schema
 ```
 
-Help is pinned to the installed CLI version (v1.0.63). When this skill and help disagree, **help is authoritative**.
+Help reflects the installed CLI version. When this skill and help disagree, **help is authoritative**.
 
 ## Shell & Execution Discipline
 
@@ -96,14 +78,17 @@ Trigger: sheet holds a chart, or > 8 columns, or the user's ask mentions print /
 
 Scope: budgets, forecasts, 3-statement models, valuation, any `$`-heavy analytical workbook. A customer-support tracker or onboarding template does not need this section.
 
-**Color coding — industry standard.** Four core colors used as a language, not decoration. A reviewer should tell what a cell IS by color: blue = hardcoded input, black = formula, green = cross-sheet link, yellow fill = assumption needing review. (See a dedicated financial-model skill for red external links, multi-scenario conventions, or audit colors.)
+**Color coding — industry standard.** Five core colors used as a language, not decoration. A reviewer should tell what a cell IS by color alone — before reading the formula.
 
 | Color                | Role                                   | Example             |
 | -------------------- | -------------------------------------- | ------------------- |
 | Blue text `0000FF`   | Hardcoded inputs, scenario variables   | `font.color=0000FF` |
 | Black text `000000`  | ALL formulas and calculations          | default             |
 | Green text `008000`  | Cross-sheet links inside this workbook | `font.color=008000` |
+| Red text `FF0000`    | Links to external files / workbooks    | `font.color=FF0000` |
 | Yellow fill `FFFF00` | Key assumptions needing review         | `fill=FFFF00`       |
+
+A reviewer should tell what a cell IS just by its color — before reading the formula. This is a communication contract, not a cosmetic preference.
 
 **Number formatting — standards, not preferences.**
 
@@ -112,15 +97,24 @@ Scope: budgets, forecasts, 3-statement models, valuation, any `$`-heavy analytic
 - **Zeros display as `-`**, not `0`. Use `$#,##0;($#,##0);"-"`.
 - **Percentages** default to one decimal: `0.0%`.
 - **Negatives use parentheses**: `(1,234)` not `-1,234`.
+- **Valuation multiples** use `0.0x` format (EV/EBITDA, P/E, etc.).
 
-**Assumptions live in cells, not inside formulas.** `=B5*(1+$B$6)` is correct; `=B5*1.05` is a bug. Document each blue input with an adjacent "Source: ..." cell or comment.
+**Assumptions live in cells, not inside formulas.** `=B5*(1+$B$6)` is correct; `=B5*1.05` is a bug. Document each blue hardcoded input with an adjacent source note in the next cell or a cell comment:
+
+```
+Source: Company 10-K, FY2024, Page 45, Revenue Note
+Source: Bloomberg, 2026-05-02, AAPL US Equity
+Source: Management guidance, Q2 2026 earnings call
+```
+
+Any hardcoded number without a source is an undocumented assumption — a reviewer cannot audit it.
 
 ## Common Workflow
 
 Six steps. Every non-trivial build follows this shape.
 
 1. **Choose the mode.** Always use `officecli open <file>` at the start and `officecli close <file>` at the end. Resident mode is the default, not an optimization — it avoids re-parsing the file on every command. For many cells, use `batch`: **≤ 50 ops/block recommended; tested up to 80+ ops per block on pure value-set payloads with zero failures. Cross-sheet formula batches are the exception — run those non-resident, single heredoc (see Known Issues)**.
-2. **Create or load.** `officecli create foo.xlsx` (new) or `officecli view foo.xlsx outline` (existing — get the lay of the land first).
+2. **Create or load.** `officecli create "$FILE"` (new) or `officecli view "$FILE" outline` (existing — get the lay of the land first).
 3. **Build incrementally.** One command, read the output, continue. After any structural op (new sheet, chart, named range, pivot), run `get` on it to confirm shape before stacking more on top.
 4. **Format.** Column widths, number formats, freeze panes, tab colors, header fills. Formatting is not optional polish — per "Requirements for Outputs" it is part of the deliverable.
 5. **Close, then reckon with the cache.** `officecli close <file>` writes to disk. Newly-added formulas ship without cached values; when a human opens the file in a spreadsheet app, the app recalculates and populates them. **But your downstream `INDEX/MATCH`, `SUMPRODUCT`, or any formula that references an upstream formula will cache whatever the upstream cached at write-time — often `0` or a stale value — and that cached lie survives into non-recalculating readers.** After any multi-formula build involving array formulas (`SUMPRODUCT`, `SUMIFS` with dynamic criteria) or cross-sheet chains, **re-touch every downstream cell** (run `set` again with the same formula) so the engine recomputes its cache from the freshly-cached upstream. ⚠️ Re-touch on cross-sheet chains via resident is unreliable (see Batch / resident caveats) — prefer non-resident `set` for the re-touch pass. Then `officecli get` a few downstream cells and eyeball that their `cachedValue=` is plausible. **Array-formula fallback:** for `SUMPRODUCT(1/COUNTIF(range, range))` distinct-count patterns, the CLI engine treats the inner division as scalar and caches `1/N` (e.g. `0.001543`) rather than the true distinct count. Re-touching won't fix it. **Fallback: hardcode the correct value + an adjacent comment `"hardcoded distinct count; update if Data rows change"`, and tell the reader at delivery**. Better than shipping a cached lie. Do NOT run `validate` while a resident is open — it reports spurious drawing errors.
@@ -131,22 +125,22 @@ Six steps. Every non-trivial build follows this shape.
 Minimal viable xlsx: 3 months of revenue + a total formula + column widths + a currency format. Adapt, don't copy-paste — your file, your data.
 
 ```bash
-officecli create revenue.xlsx
-officecli open revenue.xlsx
-officecli set revenue.xlsx /Sheet1/A1 --prop value=Month --prop bold=true
-officecli set revenue.xlsx /Sheet1/B1 --prop value=Revenue --prop bold=true
-officecli set revenue.xlsx /Sheet1/A2 --prop value=Jan
-officecli set revenue.xlsx /Sheet1/A3 --prop value=Feb
-officecli set revenue.xlsx /Sheet1/A4 --prop value=Mar
-officecli set revenue.xlsx /Sheet1/B2 --prop value=42000 --prop numFmt='$#,##0'
-officecli set revenue.xlsx /Sheet1/B3 --prop value=45000 --prop numFmt='$#,##0'
-officecli set revenue.xlsx /Sheet1/B4 --prop value=48000 --prop numFmt='$#,##0'
-officecli set revenue.xlsx /Sheet1/A5 --prop value=Total --prop bold=true
-officecli set revenue.xlsx /Sheet1/B5 --prop formula="SUM(B2:B4)" --prop bold=true --prop numFmt='$#,##0'
-officecli set revenue.xlsx "/Sheet1/col[A]" --prop width=12
-officecli set revenue.xlsx "/Sheet1/col[B]" --prop width=15
-officecli close revenue.xlsx
-officecli validate revenue.xlsx
+officecli create "$FILE"
+officecli open "$FILE"
+officecli set "$FILE" /Sheet1/A1 --prop value=Month --prop bold=true
+officecli set "$FILE" /Sheet1/B1 --prop value=Revenue --prop bold=true
+officecli set "$FILE" /Sheet1/A2 --prop value=Jan
+officecli set "$FILE" /Sheet1/A3 --prop value=Feb
+officecli set "$FILE" /Sheet1/A4 --prop value=Mar
+officecli set "$FILE" /Sheet1/B2 --prop value=42000 --prop numFmt='$#,##0'
+officecli set "$FILE" /Sheet1/B3 --prop value=45000 --prop numFmt='$#,##0'
+officecli set "$FILE" /Sheet1/B4 --prop value=48000 --prop numFmt='$#,##0'
+officecli set "$FILE" /Sheet1/A5 --prop value=Total --prop bold=true
+officecli set "$FILE" /Sheet1/B5 --prop formula="SUM(B2:B4)" --prop bold=true --prop numFmt='$#,##0'
+officecli set "$FILE" "/Sheet1/col[A]" --prop width=12
+officecli set "$FILE" "/Sheet1/col[B]" --prop width=15
+officecli close "$FILE"
+officecli validate "$FILE"
 ```
 
 Verified: `validate` returns `no errors found`, `B5` resolves to `135000`. This is the shape of every build: open → set cells/formulas → format → close → validate.
@@ -156,9 +150,9 @@ Verified: `validate` returns `no errors found`, `B5` resolves to `135000`. This 
 **Native `import` command (preferred for CSV/TSV).** Fastest path; loads a CSV into a sheet in one call. `--header` sets AutoFilter + freeze pane on row 1. Widths and `numFmt` still need a follow-up pass (per D-12 in Dashboard skill).
 
 ```bash
-officecli import data.xlsx /Sheet1 --file data.csv --header
-officecli import data.xlsx /Sheet1 --file data.tsv --format tsv --header
-officecli import data.xlsx /Sheet1 --stdin --start-cell B2 < data.csv
+officecli import "$FILE" /Sheet1 --file data.csv --header
+officecli import "$FILE" /Sheet1 --file data.tsv --format tsv --header
+officecli import "$FILE" /Sheet1 --stdin --start-cell B2 < data.csv
 ```
 
 **Python + batch fallback** — use when you need custom type coercion, formula injection, or the CSV lives inside another data pipeline. Recipe for 600-6000+ cells:
@@ -180,7 +174,7 @@ for i in range(0, len(ops), 80):
 
 ```bash
 python gen_batch.py | while IFS= read -r chunk; do
-  printf '%s\n' "$chunk" | officecli batch data.xlsx
+  printf '%s\n' "$chunk" | officecli batch "$FILE"
 done
 ```
 
@@ -199,13 +193,13 @@ Start wide, then narrow. `outline` first tells you what sheets exist and where t
 **Orient.** Sheets, dimensions, formula counts.
 
 ```bash
-officecli view data.xlsx outline
+officecli view "$FILE" outline
 ```
 
 **Extract.** Plain text dump for content QA or LLM context; scope with `--start` / `--end` / `--cols` for big files.
 
 ```bash
-officecli view data.xlsx text --start 1 --end 50 --cols A,B,C
+officecli view "$FILE" text --start 1 --end 50 --cols A,B,C
 ```
 
 Other `view` modes worth knowing: `annotated` (cell values + types/formulas + warnings), `stats` (numeric summaries), `issues` (broken formulas, empty sheets, missing refs).
@@ -213,11 +207,11 @@ Other `view` modes worth knowing: `annotated` (cell values + types/formulas + wa
 **Inspect one element.** Use XPath-style paths. Always quote — shells glob `[N]`.
 
 ```bash
-officecli get data.xlsx "/Sheet1/A1"            # one cell
-officecli get data.xlsx "/Sheet1/A1:D10"        # range
-officecli get data.xlsx "/Sheet1/chart[1]"      # chart
-officecli get data.xlsx "/Sheet1/table[1]"      # ListObject
-officecli get data.xlsx "/namedrange[1]"        # workbook-level named range
+officecli get "$FILE" "/Sheet1/A1"            # one cell
+officecli get "$FILE" "/Sheet1/A1:D10"        # range
+officecli get "$FILE" "/Sheet1/chart[1]"      # chart
+officecli get "$FILE" "/Sheet1/table[1]"      # ListObject
+officecli get "$FILE" "/namedrange[1]"        # workbook-level named range
 ```
 
 Add `--depth N` to expand children; add `--json` for machine output. Full element list: `officecli help xlsx`.
@@ -225,10 +219,10 @@ Add `--depth N` to expand children; add `--json` for machine output. Full elemen
 **Query across the workbook.** CSS-like selectors. Use for systematic checks (formula coverage, error cells, empty headers) rather than hand-walking.
 
 ```bash
-officecli query data.xlsx 'cell:has(formula)'       # every formula cell
-officecli query data.xlsx 'cell:contains("#REF!")'  # broken references
-officecli query data.xlsx 'cell[type=Number]'       # typed filter
-officecli query data.xlsx 'Sheet1!B[value!=0]'      # sheet-scoped
+officecli query "$FILE" 'cell:has(formula)'       # every formula cell
+officecli query "$FILE" 'cell:contains("#REF!")'  # broken references
+officecli query "$FILE" 'cell[type=Number]'       # typed filter
+officecli query "$FILE" 'Sheet1!B[value!=0]'      # sheet-scoped
 ```
 
 Operators: `=`, `!=`, `~=` (contains), `>=`, `<=`, `[attr]` (exists).
@@ -250,16 +244,16 @@ Ninety percent of a build is cells, formulas, formatting, and one or two charts.
 Set a value and its format in one call. Never write `=` at the start of a formula — the CLI strips it.
 
 ```bash
-officecli set data.xlsx /Sheet1/B5 --prop formula="SUM(B2:B4)" --prop numFmt='$#,##0'
-officecli set data.xlsx /Sheet1/C5 --prop formula="B5/A5" --prop numFmt="0.0%"
+officecli set "$FILE" /Sheet1/B5 --prop formula="SUM(B2:B4)" --prop numFmt='$#,##0'
+officecli set "$FILE" /Sheet1/C5 --prop formula="B5/A5" --prop numFmt="0.0%"
 ```
 
 Structural properties (width, height, freeze, tabColor) live on row / col / sheet nodes:
 
 ```bash
-officecli set data.xlsx "/Sheet1/col[A]" --prop width=20
-officecli set data.xlsx "/Sheet1/row[1]" --prop height=22
-officecli set data.xlsx "/Sheet1" --prop freeze=A2 --prop tabColor=1F4E79
+officecli set "$FILE" "/Sheet1/col[A]" --prop width=20
+officecli set "$FILE" "/Sheet1/row[1]" --prop height=22
+officecli set "$FILE" "/Sheet1" --prop freeze=A2 --prop tabColor=1F4E79
 ```
 
 ### Named ranges
@@ -267,7 +261,7 @@ officecli set data.xlsx "/Sheet1" --prop freeze=A2 --prop tabColor=1F4E79
 Prefer named ranges over `$B$6` in formulas. They self-document (`GrowthRate` beats `$B$6`) and they let you move the assumption cell without breaking formulas. Because `ref` values contain both `!` and `$`, add them through a batch heredoc:
 
 ```bash
-cat <<'EOF' | officecli batch data.xlsx
+cat <<'EOF' | officecli batch "$FILE"
 [
   {"command":"add","parent":"/","type":"namedrange","props":{"name":"GrowthRate","ref":"Sheet1!$B$6"}}
 ]
@@ -319,7 +313,7 @@ Input cells in trackers and templates MUST carry data validation. It's cheap and
 **(a) Inline list** — allowed values are short and fixed in the rule itself.
 
 ```bash
-officecli add data.xlsx /Sheet1 --type validation \
+officecli add "$FILE" /Sheet1 --type validation \
   --prop sqref="C2:C100" --prop type=list \
   --prop formula1="Yes,No,Maybe" \
   --prop showError=true --prop errorTitle="Invalid" --prop error="Select from list"
@@ -328,7 +322,7 @@ officecli add data.xlsx /Sheet1 --type validation \
 **(b) Named range (preferred for cross-sheet lookups)** — allowed values live in another sheet and may grow. Define the named range first, then reference it. Use a batch heredoc because `ref` contains `!` and `$`:
 
 ```bash
-cat <<'EOF' | officecli batch data.xlsx
+cat <<'EOF' | officecli batch "$FILE"
 [
   {"command":"add","parent":"/","type":"namedrange","props":{"name":"StatusList","ref":"Lookups!$A$2:$A$4"}},
   {"command":"add","parent":"/Sheet1","type":"validation","props":{"sqref":"B2:B100","type":"list","formula1":"=StatusList"}}
@@ -339,14 +333,14 @@ EOF
 **(c) Direct cross-sheet range** — no named range, raw `Lookups!$A$2:$A$4` inside `formula1`. Also needs a batch heredoc to keep `!` and `$` intact:
 
 ```bash
-cat <<'EOF' | officecli batch data.xlsx
+cat <<'EOF' | officecli batch "$FILE"
 [
   {"command":"add","parent":"/Sheet1","type":"validation","props":{"sqref":"C2:C100","type":"list","formula1":"Lookups!$A$2:$A$4"}}
 ]
 EOF
 ```
 
-If you write the cross-sheet variant as `--prop formula1=...` on the shell, the `!` gets shell-mangled into `\!` and the dropdown will silently fall back to no list. Verify with `officecli get data.xlsx /Sheet1/validation[N]` — `formula1=` must show a plain `!`, no backslash.
+If you write the cross-sheet variant as `--prop formula1=...` on the shell, the `!` gets shell-mangled into `\!` and the dropdown will silently fall back to no list. Verify with `officecli get "$FILE" /Sheet1/validation[N]` — `formula1=` must show a plain `!`, no backslash.
 
 Other common `type` values: `decimal`, `whole`, `date`, `textLength`, `custom`. See `officecli help xlsx validation` for operators and the full prop list.
 
@@ -361,9 +355,9 @@ Other common `type` values: `decimal`, `whole`, `date`, `textLength`, `custom`. 
 Editing a chart axis in place is cheaper than rebuilding the chart. Address axes by **role** (`value` = Y, `category` = X), not by index — the XML order isn't stable.
 
 ```bash
-officecli get data.xlsx "/Sheet1/chart[1]/axis[@role=value]"
-officecli set data.xlsx "/Sheet1/chart[1]/axis[@role=value]" --prop min=0 --prop max=100000
-officecli set data.xlsx "/Sheet1/chart[1]/axis[@role=category]" --prop title="Month"
+officecli get "$FILE" "/Sheet1/chart[1]/axis[@role=value]"
+officecli set "$FILE" "/Sheet1/chart[1]/axis[@role=value]" --prop min=0 --prop max=100000
+officecli set "$FILE" "/Sheet1/chart[1]/axis[@role=category]" --prop title="Month"
 ```
 
 Safe props: `title`, `min`, `max`, `majorGridlines`, `visible`. Do NOT use `labelRotation` — it emits invalid XML today (see Known Issues).
@@ -376,15 +370,15 @@ Your first workbook is almost never correct. Treat QA as a bug hunt, not a confi
 
 ### Minimum cycle before "done"
 
-1. `officecli view data.xlsx issues` — empty sheets, broken formulas, missing refs.
-2. `officecli view data.xlsx annotated` (sample ranges) — values + types + warnings.
+1. `officecli view "$FILE" issues` — empty sheets, broken formulas, missing refs.
+2. `officecli view "$FILE" annotated` (sample ranges) — values + types + warnings.
 3. For every Excel error type, query it:
    ```bash
-   officecli query data.xlsx 'cell:contains("#REF!")'
-   officecli query data.xlsx 'cell:contains("#DIV/0!")'
-   officecli query data.xlsx 'cell:contains("#VALUE!")'
-   officecli query data.xlsx 'cell:contains("#NAME?")'
-   officecli query data.xlsx 'cell:contains("#N/A")'
+   officecli query "$FILE" 'cell:contains("#REF!")'
+   officecli query "$FILE" 'cell:contains("#DIV/0!")'
+   officecli query "$FILE" 'cell:contains("#VALUE!")'
+   officecli query "$FILE" 'cell:contains("#NAME?")'
+   officecli query "$FILE" 'cell:contains("#N/A")'
    ```
 4. `officecli validate "$FILE"` — close any resident first (see Known Issues).
 5. **Visual pass — walk every sheet via the HTML preview.** Run `officecli view "$FILE" html` and Read the returned HTML path. Each sheet renders with charts inline. Scan for `###`, truncated titles, placeholder tokens (`$fy$24`, `{var}`, `<TODO>`), sliced charts, white-slice pie charts, empty chart anchors — **STOP and fix before declaring done**. "validate pass" is not delivery; "the preview looks like a real workbook" is delivery. For human preview, run `officecli watch "$FILE"` (user opens the live preview at their own discretion) or have them open the `.xlsx` directly in Excel / WPS / Numbers.
@@ -404,7 +398,7 @@ Your first workbook is almost never correct. Treat QA as a bug hunt, not a confi
 - [ ] **Spot-check one cell per numeric column.** `%` columns showing integer `0.0%` throughout means the denominator is wrong or the numerator is cached stale — investigate one cell, fix the pattern.
 - [ ] Ranges include every row: off-by-one on `SUM(B2:B12)` when data goes to `B13` is the most common bug.
 - [ ] Cross-sheet formulas (`Sheet1!A1`) contain no `\!`. If `officecli get` shows `Sheet1\!A1`, the `!` was shell-corrupted — delete and re-enter via batch/heredoc.
-- [ ] Named ranges (`officecli get data.xlsx "/namedrange[1]"`) point at what their names claim.
+- [ ] Named ranges (`officecli get "$FILE" "/namedrange[1]"`) point at what their names claim.
 - [ ] Every `/` denominator is guarded — `IFERROR(x/y, 0)` or `IF(y=0, 0, x/y)`.
 - [ ] Chart data vs source cells: for every chart with inline data, spot-check data points against `officecli get` of the source cells.
 - [ ] Chart title / series name / legend contain **no** unreplaced tokens (`$...$`, `{var}`, `<TODO>`). Grep the chart via `officecli get /Sheet1/chart[N]`.
@@ -414,9 +408,9 @@ Your first workbook is almost never correct. Treat QA as a bug hunt, not a confi
 When editing a template, check for leftover placeholders — they look like content and slip past `validate`:
 
 ```bash
-officecli query data.xlsx 'cell:contains("{{")'
-officecli query data.xlsx 'cell:contains("xxxx")'
-officecli query data.xlsx 'cell:contains("TBD")'
+officecli query "$FILE" 'cell:contains("{{")'
+officecli query "$FILE" 'cell:contains("xxxx")'
+officecli query "$FILE" 'cell:contains("TBD")'
 ```
 
 ### Fresh eyes
@@ -436,7 +430,7 @@ Shells (bash history expansion, zsh splitting) and CLI arg parsing mangle `!` in
 **Fix.** Use a batch heredoc with single-quoted delimiter (`<<'EOF'`), which disables all shell expansion:
 
 ```bash
-cat <<'EOF' | officecli batch data.xlsx
+cat <<'EOF' | officecli batch "$FILE"
 [{"command":"set","path":"/Summary/B2","props":{"formula":"Revenue!B13"}}]
 EOF
 ```
@@ -445,7 +439,7 @@ EOF
 
 ### CLI bug backlog (short)
 
-Avoid these until fixed; they produce invalid XML or silent breakage. Full details in `reports/` on the repo.
+Avoid these until fixed; they produce invalid XML or silent breakage.
 
 - **`chartType=pareto`** — emits empty `cx:axisId val=""`; `validate` fails after `close`. Substitute `column` or `boxWhisker`.
 - **`labelRotation` on axis-by-role** — inserts bad `a:endParaRPr`. Use `title`/`min`/`max`/`majorGridlines`/`visible` only.

@@ -27,6 +27,8 @@ Verify with `officecli --version`. If still not found after install, open a new 
 
 **L1 (read) → L2 (DOM edit) → L3 (raw XML)**. Always prefer higher layers. Add `--json` for structured output.
 
+**Before doc work, check Specialized Skills** (bottom of this file). Fundraising decks, academic papers, financial models, dashboards, and Morph animations need their own skill loaded first — `load_skill` once, then proceed.
+
 ---
 
 ## Help System (IMPORTANT)
@@ -369,39 +371,40 @@ officecli add-part <file> <parent>                   # create new document part 
 
 ## Specialized Skills
 
-Load a specialized skill on demand:
+`officecli load_skill <name>` — output is a SKILL.md, follow its rules.
 
-    officecli skill <name>
+**Loading rule**:
 
-That single command ensures the skill is installed (idempotent) and prints its full SKILL.md to stdout — read the output and follow its rules. No need to know on-disk paths.
-
-Skills are organized as **base layer + scene layer**: scene-layer skills inherit every rule from their base — pick the most specific one that fits the user's ask; if none fits, fall back to the base.
+- Pick the most specific match in "When to use"; if none fits, load the format default (`word` / `pptx` / `excel`).
+- Scenes already contain the format default's rules — load **one** skill per artifact, never stack.
+- Loaded rules persist across turns; don't re-load each reply.
+- Two distinct artifacts → two separate loads.
 
 ### Word (.docx)
 
-| Name             | When to use                                                                                                                                         | Layer                 |
-| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------- |
-| `word`           | Reports, letters, memos, proposals, generic documents                                                                                               | **base**              |
-| `academic-paper` | Journal / conference / thesis: APA / Chicago / IEEE / MLA citations, equations, SEQ + PAGEREF cross-refs, multi-column journal layout, bibliography | scene (inherits word) |
+| Name             | When to use                                                                                                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `word`           | Reports, letters, memos, proposals, generic documents                                                                                                                                                            |
+| `academic-paper` | Journal / conference / thesis: APA / Chicago / IEEE / MLA citations, equations, SEQ + PAGEREF cross-refs, multi-column journal layout, bibliography. NOT for business reports or letters (route those to `word`) |
 
 ### PowerPoint (.pptx)
 
-| Name           | When to use                                                                                                                                    | Layer                     |
-| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------- |
-| `pptx`         | Generic decks: board reviews, sales decks, all-hands, product launches                                                                         | **base**                  |
-| `pitch-deck`   | **Fundraising only** — seed / Series A-C / SAFE / convertible / strategic raise. NOT for sales / product / board decks (route those to `pptx`) | scene (inherits pptx)     |
-| `morph-ppt`    | Cinematic Morph-animated presentations                                                                                                         | scene (inherits pptx)     |
-| `morph-ppt-3d` | 3D Morph: GLB models, camera moves, depth (extends `morph-ppt`)                                                                                | scene (extends morph-ppt) |
+| Name           | When to use                                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pptx`         | Generic decks: board reviews, sales decks, all-hands, product launches                                                                         |
+| `pitch-deck`   | **Fundraising only** — seed / Series A-C / SAFE / convertible / strategic raise. NOT for sales / product / board decks (route those to `pptx`) |
+| `morph-ppt`    | Cinematic Morph-animated presentations. NOT for static decks (route those to `pptx`)                                                           |
+| `morph-ppt-3d` | 3D Morph: GLB models, camera moves, depth. NOT for 2D-only Morph (route those to `morph-ppt`)                                                  |
 
 ### Excel (.xlsx)
 
-| Name              | When to use                                                                          | Layer                  |
-| ----------------- | ------------------------------------------------------------------------------------ | ---------------------- |
-| `excel`           | Generic workbooks, formulas, pivots, trackers                                        | **base**               |
-| `financial-model` | Financial models, scenarios, projections                                             | scene (inherits excel) |
-| `data-dashboard`  | CSV/tabular data → KPI / analytics / executive dashboards with charts and sparklines | scene (inherits excel) |
+| Name              | When to use                                                                                                                              |
+| ----------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `excel`           | Generic workbooks, formulas, pivots, trackers                                                                                            |
+| `financial-model` | Financial models, scenarios, projections. NOT for general data analysis (route those to `excel`)                                         |
+| `data-dashboard`  | CSV/tabular data → KPI / analytics / executive dashboards with charts and sparklines. NOT for raw data tracking (route those to `excel`) |
 
-Example: a fundraising deck task → `officecli skill pitch-deck` → use the printed rules.
+Example: a fundraising deck task → `officecli load_skill pitch-deck` → use the printed rules.
 
 ---
 

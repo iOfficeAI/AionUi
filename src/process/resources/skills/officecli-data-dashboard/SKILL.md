@@ -1,5 +1,4 @@
 ---
-# officecli: v1.0.63
 name: officecli-data-dashboard
 description: "Use this skill to build a multi-element Excel dashboard — Dashboard sheet on open, multiple formula-driven KPI cards, multiple charts, sparklines, and conditional formatting — from CSV or tabular input. Trigger on: 'dashboard', 'KPI dashboard', 'analytics dashboard', 'executive dashboard', 'metrics dashboard', 'CSV to dashboard', 'data visualization'. Output is a single .xlsx. Scene-layer on officecli-xlsx: inherits every xlsx hard rule. DO NOT invoke for: a single budget tracker / one-sheet CSV-with-formatting (use xlsx), a 3-statement / DCF / LBO financial model (use financial-model), a weekly report with ≤ 1 chart and < 10 rows (use xlsx)."
 ---
@@ -8,29 +7,14 @@ description: "Use this skill to build a multi-element Excel dashboard — Dashbo
 
 A dashboard is not "a spreadsheet with charts". It is a composition: **one Dashboard sheet the user lands on** with formula-driven KPI cards, cell-range-linked charts, sparklines, and semantic conditional formatting. Everything else (raw data, aggregations) is upstream infrastructure the user should never need to open. This skill teaches the composition pattern. Everything about the xlsx engine — cells, formulas, batch JSON, shell quoting, validate, HTML preview — comes from `officecli-xlsx` and is not re-taught here.
 
-## BEFORE YOU START (CRITICAL)
+## Setup
 
-**If `officecli` is not installed:**
+If `officecli` is missing:
 
-`macOS / Linux`
+- **macOS / Linux**: `curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash`
+- **Windows (PowerShell)**: `irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex`
 
-```bash
-if ! command -v officecli >/dev/null 2>&1; then
-    curl -fsSL https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.sh | bash
-fi
-```
-
-`Windows (PowerShell)`
-
-```powershell
-if (-not (Get-Command officecli -ErrorAction SilentlyContinue)) {
-    irm https://raw.githubusercontent.com/iOfficeAI/OfficeCLI/main/install.ps1 | iex
-}
-```
-
-Verify: `officecli --version`
-
-If `officecli` is still not found after first install, open a new terminal and re-run verify. If the install command fails (security policy, no network, insufficient permissions), download the platform binary from https://github.com/iOfficeAI/OfficeCLI/releases, put it on `PATH`, re-verify.
+Verify with `officecli --version` (open a new terminal if PATH hasn't picked up). If install fails, download a binary from https://github.com/iOfficeAI/OfficeCLI/releases.
 
 ## ⚠️ Help-First Rule
 
@@ -43,7 +27,7 @@ officecli help xlsx sparkline                # sparklines
 officecli help xlsx conditionalformatting    # all CF rule types
 ```
 
-Help pins to the installed CLI (v1.0.63). When this skill and help disagree, **help wins**. DeferredAddKeys (`preset`, `referenceline`, `trendline`, `axisNumFmt`, `holesize`, `combosplit`) work on `add` only — see Reference.
+Help reflects the installed CLI version. When this skill and help disagree, **help wins**. DeferredAddKeys (`preset`, `referenceline`, `trendline`, `axisNumFmt`, `holesize`, `combosplit`) work on `add` only — see Reference.
 
 ## Mental Model & Inheritance
 

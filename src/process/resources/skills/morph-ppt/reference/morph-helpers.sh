@@ -146,9 +146,9 @@ try:
     def check_children(children, prev_slide):
         unghosted = []
         for child in children:
-            name = child.get('Format', {}).get('name', '')
-            x = child.get('Format', {}).get('x', '')
-            path = child.get('Path', '')
+            name = child.get('format', {}).get('name', '')
+            x = child.get('format', {}).get('x', '')
+            path = child.get('path', '')
 
             # Check if this shape has previous slide's content prefix
             if f'#s{prev_slide}-' in name:
@@ -157,13 +157,13 @@ try:
                     unghosted.append(f\"{path}: name={name}, x={x}\")
 
             # Recursively check children
-            if 'Children' in child:
-                unghosted.extend(check_children(child['Children'], prev_slide))
+            if 'children' in child:
+                unghosted.extend(check_children(child['children'], prev_slide))
 
         return unghosted
 
-    if 'Children' in data.get('data', {}):
-        unghosted = check_children(data['data']['Children'], $prev_slide)
+    if 'children' in data.get('data', {}):
+        unghosted = check_children(data['data']['children'], $prev_slide)
 
         if unghosted:
             for item in unghosted:
@@ -171,9 +171,10 @@ try:
             sys.exit(1)
 
     sys.exit(0)
-except Exception:
-    sys.exit(0)
-" 2>/dev/null)
+except Exception as e:
+    print(f'[helper] parse error: {e}', file=sys.stderr)
+    sys.exit(2)
+")
         local python_exit=$?
 
         if [ $python_exit -eq 1 ] && [ -n "$unghosted_check" ]; then
@@ -204,12 +205,12 @@ try:
         boxes = []
         def walk(children):
             for child in children:
-                if child.get('Type') == 'textbox':
-                    name = child.get('Format', {}).get('name', '')
-                    text = child.get('Text', '').strip()
-                    x = child.get('Format', {}).get('x', '')
-                    y = child.get('Format', {}).get('y', '')
-                    path = child.get('Path', '')
+                if child.get('type') == 'textbox':
+                    name = child.get('format', {}).get('name', '')
+                    text = child.get('text', '').strip()
+                    x = child.get('format', {}).get('x', '')
+                    y = child.get('format', {}).get('y', '')
+                    path = child.get('path', '')
 
                     # Skip empty text and very short text
                     if not text or len(text) < 6:
@@ -237,11 +238,11 @@ try:
                             'y': y
                         })
 
-                if 'Children' in child:
-                    walk(child['Children'])
+                if 'children' in child:
+                    walk(child['children'])
 
-        if 'Children' in data.get('data', {}):
-            walk(data['data']['Children'])
+        if 'children' in data.get('data', {}):
+            walk(data['data']['children'])
         return boxes
 
     prev_boxes = extract_textboxes(prev_data, $prev_slide)
@@ -266,9 +267,10 @@ try:
         sys.exit(1)
 
     sys.exit(0)
-except Exception:
-    sys.exit(0)
-" 2>/dev/null)
+except Exception as e:
+    print(f'[helper] parse error: {e}', file=sys.stderr)
+    sys.exit(2)
+")
 
         local dup_exit=$?
 
