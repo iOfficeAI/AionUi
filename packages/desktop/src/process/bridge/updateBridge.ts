@@ -57,7 +57,10 @@ interface AutoUpdateCheckParams {
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
+const CDN_HOST = 'static.aionui.com';
+const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
+  CDN_HOST,
   'github.com',
   'objects.githubusercontent.com',
   'github-releases.githubusercontent.com',
@@ -78,9 +81,19 @@ const normalizeTagToSemver = (tag: string): string | null => {
   return semver.valid(withoutV);
 };
 
-const mapAsset = (asset: GitHubReleaseApiAsset): GitHubReleaseAsset => ({
+/**
+ * Rewrite a GitHub release asset URL to the CDN URL for faster download.
+ * The CDN path follows the fixed convention `{base}/{version}/{original-filename}`,
+ * matching electron-builder's artifactName output, so no name conversion is needed.
+ */
+const rewriteAssetUrlToCDN = (assetName: string, version: string): string => {
+  return `${CDN_BASE_URL}/${version}/${assetName}`;
+};
+
+const mapAsset = (asset: GitHubReleaseApiAsset, version: string): GitHubReleaseAsset => ({
   name: asset.name,
-  url: asset.browser_download_url,
+  url: rewriteAssetUrlToCDN(asset.name, version),
+  fallbackUrl: asset.browser_download_url,
   size: asset.size,
   contentType: asset.content_type,
 });
@@ -272,7 +285,7 @@ const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
   const assets = (rel.assets || [])
     .filter((asset) => asset && asset.name && asset.browser_download_url)
     .filter((asset) => isAllowedAssetName(asset.name))
-    .map(mapAsset);
+    .map((asset) => mapAsset(asset, version));
 
   return {
     tagName: rel.tag_name,
@@ -318,12 +331,26 @@ const emitProgress = (evt: UpdateDownloadProgressEvent) => {
   ipcBridge.update.downloadProgress.emit(evt);
 };
 
-const startDownloadInBackground = async (
+type DownloadAttempt = {
+  ok: boolean;
+  isAbort: boolean;
+  message: string;
+  receivedBytes: number;
+  totalBytes?: number;
+};
+
+/**
+ * Attempt to download from a single URL into `file_path`.
+ * Emits `starting`/`downloading` progress events but NOT the terminal
+ * completed/error/cancelled events — the caller decides whether to retry
+ * or surface the final state.
+ */
+const attemptDownload = async (
   downloadId: string,
   url: string,
   file_path: string,
   abortController: AbortController
-) => {
+): Promise<DownloadAttempt> => {
   let receivedBytes = 0;
   let totalBytes: number | undefined;
 
@@ -347,7 +374,6 @@ const startDownloadInBackground = async (
       totalBytes,
       percent,
       bytesPerSecond,
-      file_path: status === 'completed' ? file_path : undefined,
     });
   };
 
@@ -402,7 +428,7 @@ const startDownloadInBackground = async (
       stream.on('error', reject);
     });
 
-    emitThrottled('completed');
+    return { ok: true, isAbort: false, message: '', receivedBytes, totalBytes };
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const isAbort = abortController.signal.aborted || message.toLowerCase().includes('aborted');
@@ -413,7 +439,7 @@ const startDownloadInBackground = async (
       // ignore
     }
 
-    // Remove partial file
+    // Remove partial file before retrying or reporting failure.
     try {
       if (fs.existsSync(file_path)) {
         fs.rmSync(file_path, { force: true });
@@ -422,13 +448,58 @@ const startDownloadInBackground = async (
       // ignore
     }
 
-    emitProgress({
-      downloadId,
-      status: isAbort ? 'cancelled' : 'error',
-      receivedBytes,
-      totalBytes,
-      error: message,
-    });
+    return { ok: false, isAbort, message, receivedBytes, totalBytes };
+  }
+};
+
+const startDownloadInBackground = async (
+  downloadId: string,
+  url: string,
+  file_path: string,
+  abortController: AbortController,
+  fallbackUrl?: string
+) => {
+  const runWithFallback = async (): Promise<DownloadAttempt> => {
+    const primary = await attemptDownload(downloadId, url, file_path, abortController);
+    if (primary.ok) return primary;
+    if (primary.isAbort) return primary;
+    if (!fallbackUrl || fallbackUrl === url) return primary;
+
+    try {
+      await assertAllowedUrl(fallbackUrl);
+    } catch (err) {
+      // Fallback URL itself is invalid — keep the primary failure result.
+      console.warn('[updateBridge] Fallback URL rejected by allowlist:', err);
+      return primary;
+    }
+
+    console.warn(`[updateBridge] Primary download failed (${primary.message}). Retrying with fallback URL.`);
+    return attemptDownload(downloadId, fallbackUrl, file_path, abortController);
+  };
+
+  const finalResult = await runWithFallback();
+
+  try {
+    if (finalResult.ok) {
+      emitProgress({
+        downloadId,
+        status: 'completed',
+        receivedBytes: finalResult.receivedBytes,
+        totalBytes: finalResult.totalBytes,
+        percent: finalResult.totalBytes
+          ? Math.min(100, (finalResult.receivedBytes / finalResult.totalBytes) * 100)
+          : undefined,
+        file_path,
+      });
+    } else {
+      emitProgress({
+        downloadId,
+        status: finalResult.isAbort ? 'cancelled' : 'error',
+        receivedBytes: finalResult.receivedBytes,
+        totalBytes: finalResult.totalBytes,
+        error: finalResult.message,
+      });
+    }
   } finally {
     downloads.delete(downloadId);
   }
@@ -510,9 +581,13 @@ export function initUpdateBridge(): void {
         }
 
         // Defense-in-depth: do not allow arbitrary downloads from renderer.
-        // EN: We only allow GitHub release hosts (and follow redirects manually with per-hop allowlist checks).
-        // 中文：仅允许 GitHub 相关下载域名，并手动处理重定向（每一跳都校验白名单）。
+        // EN: Only allowlisted hosts (CDN + GitHub release hosts) are permitted;
+        // each redirect hop is re-validated against the allowlist.
+        // 中文：仅允许白名单内的域名（CDN + GitHub release 相关），并手动处理重定向，每一跳都校验白名单。
         await assertAllowedUrl(params.url);
+        if (params.fallbackUrl) {
+          await assertAllowedUrl(params.fallbackUrl);
+        }
 
         const downloadId = uuid();
         const abortController = new AbortController();
@@ -526,7 +601,7 @@ export function initUpdateBridge(): void {
         downloads.set(downloadId, { abortController, file_path: targetPath });
 
         // Start background download, but return immediately so the UI stays responsive.
-        void startDownloadInBackground(downloadId, params.url, targetPath, abortController);
+        void startDownloadInBackground(downloadId, params.url, targetPath, abortController, params.fallbackUrl);
 
         return Promise.resolve({ success: true, data: { downloadId, file_path: targetPath } });
       } catch (err: unknown) {

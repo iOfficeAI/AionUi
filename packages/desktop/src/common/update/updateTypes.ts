@@ -6,7 +6,10 @@
 
 export interface GitHubReleaseAsset {
   name: string;
+  /** Primary download URL — rewritten to CDN for faster download. */
   url: string;
+  /** Original GitHub download URL — used as fallback when CDN fails. */
+  fallbackUrl?: string;
   size: number;
   contentType?: string;
 }
@@ -38,6 +41,8 @@ export interface UpdateCheckRequest {
 
 export interface UpdateDownloadRequest {
   url: string;
+  /** Fallback URL tried when the primary URL fails (e.g. CDN down). */
+  fallbackUrl?: string;
   file_name?: string;
 }
 
