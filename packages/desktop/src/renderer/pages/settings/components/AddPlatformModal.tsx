@@ -329,7 +329,7 @@ const AddPlatformModal = ModalHOC<{
   useEffect(() => {
     if (modelListState.data?.fix_base_url) {
       form.setFieldValue('base_url', modelListState.data.fix_base_url);
-      message.info(t('settings.base_urlAutoFix', { base_url: modelListState.data.fix_base_url }));
+      message.info(t('settings.baseUrlAutoFix', { base_url: modelListState.data.fix_base_url }));
     }
   }, [modelListState.data?.fix_base_url, form]);
 
@@ -441,7 +441,7 @@ const AddPlatformModal = ModalHOC<{
           {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
           <Form.Item
             hidden={isBedrock || (!isCustom && !isNewApi && platformValue !== 'gemini')}
-            label={t('settings.base_url')}
+            label={t('settings.baseUrl')}
             field={'base_url'}
             required={isCustom || isNewApi}
             rules={[{ required: isCustom || isNewApi }]}
@@ -457,7 +457,7 @@ const AddPlatformModal = ModalHOC<{
           {/* API Key */}
           <Form.Item
             hidden={isBedrock}
-            label={t('settings.api_key')}
+            label={t('settings.apiKey')}
             required={!isBedrock}
             rules={[{ required: !isBedrock }]}
             field={'api_key'}
@@ -494,15 +494,15 @@ const AddPlatformModal = ModalHOC<{
           {/* AWS Bedrock Authentication Method */}
           <Form.Item
             hidden={!isBedrock}
-            label={t('settings.bedrock.auth_method')}
+            label={t('settings.bedrock.authMethod')}
             field={'bedrockAuthMethod'}
             initialValue='accessKey'
             required={isBedrock}
             rules={[{ required: isBedrock }]}
           >
             <Select>
-              <Select.Option value='accessKey'>{t('settings.bedrock.auth_methodAccessKey')}</Select.Option>
-              <Select.Option value='profile'>{t('settings.bedrock.auth_methodProfile')}</Select.Option>
+              <Select.Option value='accessKey'>{t('settings.bedrock.authMethodAccessKey')}</Select.Option>
+              <Select.Option value='profile'>{t('settings.bedrock.authMethodProfile')}</Select.Option>
             </Select>
           </Form.Item>
 
@@ -531,7 +531,7 @@ const AddPlatformModal = ModalHOC<{
           {/* Access Key ID */}
           <Form.Item
             hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-            label={t('settings.bedrock.access_key_id')}
+            label={t('settings.bedrock.accessKeyId')}
             field={'bedrockAccessKeyId'}
             required={isBedrock && bedrockAuthMethod === 'accessKey'}
             rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}
@@ -542,7 +542,7 @@ const AddPlatformModal = ModalHOC<{
           {/* Secret Access Key */}
           <Form.Item
             hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-            label={t('settings.bedrock.secret_access_key')}
+            label={t('settings.bedrock.secretAccessKey')}
             field={'bedrockSecretAccessKey'}
             required={isBedrock && bedrockAuthMethod === 'accessKey'}
             rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}

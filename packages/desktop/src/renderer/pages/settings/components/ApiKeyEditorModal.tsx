@@ -175,7 +175,7 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, api_keys
                   value={key.value}
                   onChange={(v) => updateKeyValue(key.id, v)}
                   disabled={!key.editing}
-                  placeholder={t('settings.api_keyPlaceholder')}
+                  placeholder={t('settings.apiKeyPlaceholder')}
                 />
               </div>
               {/* 操作按钮 - 编辑状态时只显示保存按钮 */}

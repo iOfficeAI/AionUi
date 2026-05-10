@@ -127,7 +127,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
             <Form.Item
               hidden={isBedrock}
-              label={t('settings.base_url')}
+              label={t('settings.baseUrl')}
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'base_url'}
@@ -138,26 +138,26 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
 
             <Form.Item
               hidden={isBedrock}
-              label={t('settings.api_key')}
+              label={t('settings.apiKey')}
               required={!isBedrock}
               rules={[{ required: !isBedrock }]}
               field={'api_key'}
               extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}
             >
-              <Input.TextArea rows={4} placeholder={t('settings.api_keyPlaceholder')} />
+              <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />
             </Form.Item>
 
             {/* AWS Bedrock Authentication Method */}
             <Form.Item
               hidden={!isBedrock}
-              label={t('settings.bedrock.auth_method')}
+              label={t('settings.bedrock.authMethod')}
               field={'bedrockAuthMethod'}
               required={isBedrock}
               rules={[{ required: isBedrock }]}
             >
               <Select>
-                <Select.Option value='accessKey'>{t('settings.bedrock.auth_methodAccessKey')}</Select.Option>
-                <Select.Option value='profile'>{t('settings.bedrock.auth_methodProfile')}</Select.Option>
+                <Select.Option value='accessKey'>{t('settings.bedrock.authMethodAccessKey')}</Select.Option>
+                <Select.Option value='profile'>{t('settings.bedrock.authMethodProfile')}</Select.Option>
               </Select>
             </Form.Item>
 
@@ -185,7 +185,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Access Key ID */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-              label={t('settings.bedrock.access_key_id')}
+              label={t('settings.bedrock.accessKeyId')}
               field={'bedrockAccessKeyId'}
               required={isBedrock && bedrockAuthMethod === 'accessKey'}
               rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}
@@ -196,7 +196,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Secret Access Key */}
             <Form.Item
               hidden={!isBedrock || bedrockAuthMethod !== 'accessKey'}
-              label={t('settings.bedrock.secret_access_key')}
+              label={t('settings.bedrock.secretAccessKey')}
               field={'bedrockSecretAccessKey'}
               required={isBedrock && bedrockAuthMethod === 'accessKey'}
               rules={[{ required: isBedrock && bedrockAuthMethod === 'accessKey' }]}

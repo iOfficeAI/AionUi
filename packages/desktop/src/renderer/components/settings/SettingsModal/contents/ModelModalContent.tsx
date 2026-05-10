@@ -412,7 +412,7 @@ const ModelModalContent: React.FC = () => {
     void mutate(nextArray, false);
 
     Promise.all(
-      (data || []).map((platform) => ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: undefined }))
+      (data || []).map((platform) => ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health: {} }))
     )
       .then(() => {
         void mutate();
@@ -571,7 +571,7 @@ const ModelModalContent: React.FC = () => {
                               className='cursor-pointer hover:text-t-primary transition-colors'
                               onClick={() => editModalCtrl.open({ data: platform })}
                             >
-                              {t('settings.api_keyCount')}（{getApiKeyCount(platform.api_key)}）
+                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
                             </span>
                           </span>
                           <span className='text-12px text-t-secondary whitespace-nowrap md:hidden'>
