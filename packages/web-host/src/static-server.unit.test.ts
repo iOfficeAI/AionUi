@@ -45,7 +45,6 @@ describe('static-server', () => {
       stopBackend = null;
     }
     await fs.rm(staticDir, { recursive: true, force: true });
-    await fs.rm(app.userDataPath, { recursive: true, force: true });
   });
 
   it('serves static index.html at /', async () => {
@@ -190,7 +189,7 @@ describe('static-server', () => {
     stopBackend = () => new Promise<void>((r) => backendServer.close(() => r()));
     const backendPort = (backendServer.address() as { port: number }).port;
 
-    handle = await startStaticServer({ staticDir, backendPort, port: 0, app });
+    handle = await startStaticServer({ staticDir, backendPort, port: 0 });
 
     // Speak raw HTTP/1.1 upgrade over a TCP socket against the public listener.
     const { port: publicPort } = handle;
