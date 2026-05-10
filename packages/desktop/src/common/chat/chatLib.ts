@@ -354,6 +354,11 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
     case 'error': {
+      const errorData = message.data;
+      const errorText =
+        typeof errorData === 'string'
+          ? errorData
+          : (errorData as { message?: string })?.message ?? JSON.stringify(errorData);
       return {
         id: uuid(),
         type: 'tips',
@@ -362,7 +367,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         conversation_id: message.conversation_id,
         created_at,
         content: {
-          content: message.data as string,
+          content: errorText,
           type: 'error',
         },
       };
