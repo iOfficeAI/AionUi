@@ -214,7 +214,7 @@ const ChatLayout: React.FC<{
               assistantId={presetAssistant?.id}
             />
           )}
-          {workspaceEnabled && (
+          {isWindowsRuntime && workspaceEnabled && (
             <button
               type='button'
               className='workspace-header__toggle'
