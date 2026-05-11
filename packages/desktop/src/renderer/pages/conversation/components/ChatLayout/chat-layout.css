@@ -1,5 +1,36 @@
 /* Chat layout header styles */
 
+/* Workspace 卡片样式：圆角 + 边框（直接给容器加，不用伪元素） */
+.chat-layout-right-sider--card {
+  border-radius: 12px;
+  border: 1px solid var(--color-border-2, #e5e6eb);
+  background-color: var(--bg-1);
+  margin: 8px 8px 8px 0;
+}
+
+/* Desktop: header blank area drags the window; interactive children opt out */
+.chat-layout-header--draggable {
+  -webkit-app-region: drag;
+}
+
+.chat-layout-header--draggable button,
+.chat-layout-header--draggable input,
+.chat-layout-header--draggable a,
+.chat-layout-header--draggable [role='button'],
+.chat-layout-header--draggable [tabindex],
+.chat-layout-header--draggable [data-popover-trigger],
+.chat-layout-header--draggable .arco-btn,
+.chat-layout-header--draggable .arco-select,
+.chat-layout-header--draggable .arco-dropdown-trigger {
+  -webkit-app-region: no-drag;
+}
+
+/* Title editor and AgentBadge are divs with click handlers — opt out of drag */
+.chat-layout-header--draggable .chat-title-editor,
+.chat-layout-header--draggable [data-testid='agent-badge'] {
+  -webkit-app-region: no-drag;
+}
+
 .chat-layout-header--mobile-unified {
   height: 46px !important;
   min-height: 46px;
@@ -12,37 +43,64 @@
 .chat-layout-header--glass {
   position: relative;
   isolation: isolate;
-  contain: paint;
-  background-color: color-mix(in srgb, var(--bg-1) 92%, transparent) !important;
+  background-color: var(--bg-1) !important;
 }
 
+/* Simulate Claude-style "content fades behind header" with a fade band below the header.
+ * The band starts fully opaque (matching header bg) and fades to transparent,
+ * making upward-scrolling content visually dissolve into the header. */
 .chat-layout-header--glass::after {
   content: '';
   position: absolute;
   left: 0;
   right: 0;
-  bottom: -12px;
-  height: 12px;
+  bottom: -20px;
+  height: 20px;
   pointer-events: none;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 68%, transparent) 0%, transparent 100%);
+  background: linear-gradient(180deg, var(--bg-1) 0%, transparent 100%);
 }
 
-@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
-  .chat-layout-header--glass {
-    -webkit-backdrop-filter: saturate(110%) blur(6px);
-    backdrop-filter: saturate(110%) blur(6px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce), (max-width: 768px) {
-  .chat-layout-header--glass {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-    background-color: var(--bg-1) !important;
-  }
-
+@media (max-width: 768px) {
   .chat-layout-header--glass::after {
     display: none;
+  }
+}
+
+/* Header workspace toggle: pill-shaped button matching Figma design */
+.chat-layout-header__workspace-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 24px;
+  padding: 2px 8px;
+  border: none;
+  border-radius: 9999px;
+  background-color: var(--fill-1, #f2f3f5);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.chat-layout-header__workspace-toggle:hover {
+  background-color: var(--bg-3);
+}
+
+/* Mobile: workspace toggle reverts to a plain icon button so it matches the
+ * other top-bar icons (hamburger, alarm, agent badge) in color and weight. */
+@media (max-width: 767px) {
+  .chat-layout-header__workspace-toggle {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    background-color: transparent;
+    color: var(--text-secondary);
+    border-radius: 8px;
+  }
+
+  .chat-layout-header__workspace-toggle:hover {
+    background-color: var(--fill-1);
+    color: var(--text-primary);
   }
 }
 
@@ -57,9 +115,9 @@
 /* Mobile: conversation header pills */
 @media (max-width: 767px) {
   .agent-mode-compact-pill {
-    min-height: 32px !important;
-    height: 32px !important;
-    padding: 0 10px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 0 12px !important;
     border-radius: 999px !important;
   }
 

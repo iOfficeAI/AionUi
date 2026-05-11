@@ -72,6 +72,24 @@
   transform: none !important;
 }
 
+/* Mobile: expand touch target to 44px via padding without changing visual size */
+@media (max-width: 767px) {
+  .sendbox-tools .arco-btn {
+    position: relative;
+  }
+  .sendbox-tools .arco-btn::after,
+  .send-button-custom::after {
+    content: '';
+    position: absolute;
+    inset: max(0px, calc((100% - 44px) / 2)) max(0px, calc((100% - 44px) / 2));
+    min-width: 44px;
+    min-height: 44px;
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 50%;
+  }
+}
+
 /* Conversation sendbox model/permission pills: blend into background */
 .sendbox-tools .sendbox-model-btn,
 .sendbox-tools .sendbox-model-btn:hover,

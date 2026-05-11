@@ -5,6 +5,7 @@
  */
 
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { Robot } from '@icon-park/react';
 import React, { useCallback } from 'react';
@@ -56,10 +57,33 @@ export const AgentLogoIcon: React.FC<
  */
 const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agent_name, agentLogo, agentLogoIsEmoji, assistantId }) => {
   const navigate = useNavigate();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const handleClick = useCallback(() => {
     if (!assistantId) return;
     navigate(`/settings/assistants?highlight=${encodeURIComponent(assistantId)}`);
   }, [assistantId, navigate]);
+
+  // Mobile: icon-only badge to save horizontal space. Name is conveyed via tooltip.
+  if (isMobile) {
+    return (
+      <div
+        className={`flex items-center justify-center bg-2 rounded-full shrink-0 ${assistantId ? 'cursor-pointer hover:bg-3' : ''}`}
+        style={{ width: 32, height: 32 }}
+        data-testid='agent-badge'
+        onClick={handleClick}
+        title={agent_name || backend}
+        aria-label={agent_name || backend}
+      >
+        <AgentLogoIcon
+          backend={backend}
+          agent_name={agent_name}
+          agentLogo={agentLogo}
+          agentLogoIsEmoji={agentLogoIsEmoji}
+        />
+      </div>
+    );
+  }
 
   return (
     <div
