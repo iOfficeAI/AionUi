@@ -43,14 +43,7 @@ import QiniuLogo from '@/renderer/assets/logos/ai-cloud/qiniu.svg';
  * 平台类型
  * Platform type
  */
-export type PlatformType =
-  | 'gemini'
-  | 'gemini-vertex-ai'
-  | 'anthropic'
-  | 'custom'
-  | 'new-api'
-  | 'bedrock'
-  | 'qiniu';
+export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api' | 'bedrock' | 'qiniu';
 
 /**
  * 模型平台配置接口
