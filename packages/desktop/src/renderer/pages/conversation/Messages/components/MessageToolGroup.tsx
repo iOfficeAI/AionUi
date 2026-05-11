@@ -98,8 +98,8 @@ const useConfirmationButtons = (
       default: {
         const mcpProps = confirmationDetails;
         question = t('messages.confirmation.allowMCPTool', {
-          tool_name: mcpProps.tool_name,
-          server_name: mcpProps.server_name,
+          toolName: mcpProps.tool_name,
+          serverName: mcpProps.server_name,
         });
         options.push(
           {
@@ -108,14 +108,14 @@ const useConfirmationButtons = (
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowTool', {
-              tool_name: mcpProps.tool_name,
-              server_name: mcpProps.server_name,
+              toolName: mcpProps.tool_name,
+              serverName: mcpProps.server_name,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
-              server_name: mcpProps.server_name,
+              serverName: mcpProps.server_name,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
           },

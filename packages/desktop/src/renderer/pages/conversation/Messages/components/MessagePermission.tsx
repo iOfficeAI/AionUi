@@ -83,7 +83,9 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
                     key={String(option.value) || `option_${index}`}
                     data-testid={`message-permission-option-${String(option.value) || `option_${index}`}`}
                   >
-                    <Radio value={String(option.value)}>{option.label}</Radio>
+                    <Radio value={String(option.value)}>
+                      {t(option.label, { ...option.params, defaultValue: option.label })}
+                    </Radio>
                   </div>
                 ))
               ) : (
