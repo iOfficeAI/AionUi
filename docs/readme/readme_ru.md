@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Сообщество:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-6.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Сообщество:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-8.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -42,6 +42,7 @@
 ## 📋 Быстрая навигация
 
 <p align="center">
+
 [✨ Cowork в действии](#-cowork-in-action) ·
 [🤔 Почему AionUi?](#-why-choose-aionui-over-claude-cowork) ·
 [🚀 Быстрый старт](#-quick-start) ·
@@ -140,7 +141,7 @@ AionUi поставляется с полноценным движком ИИ-а
 
 ## Мультиагентный режим — уже есть CLI-агенты? Подключайте их
 
-Если вы уже используете Claude Code, Codex или Qwen Code, AionUi автоматически обнаружит их и позволит работать со всеми ними вместе со встроенным агентом.
+Если вы уже используете Claude Code, Codex, Hermes Agent или OpenClaw, AionUi автоматически обнаружит их и позволит работать со всеми ними вместе со встроенным агентом.
 
 **Поддерживаемые агенты:** Встроенный агент (без настройки) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бэкенд-сервис в составе AionUi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent и другие
 
@@ -163,7 +164,7 @@ AionUi поставляется с полноценным движком ИИ-а
 </p>
 
 - **Параллельное выполнение нескольких агентов** — Leader разбивает задачи на подзадачи и делегирует параллельно работающим Teammate-агентам; каждый Teammate использует свою модель через ACP (Agent Communication Protocol, слой координации мультиагентности AionUi), Gemini или Aionrs
-- **Оркестрация Leader** — Leader назначает, отслеживает и агрегирует результаты; поддерживаемые бэкенды: Claude Code, Codex, Gemini, Snow CLI, Aion CLI
+- **Оркестрация Leader** — Leader назначает, отслеживает и агрегирует результаты; поддерживаемые бэкенды: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, Aion CLI
 - **Изолированное рабочее пространство команды** — все агенты совместно используют одну папку; у каждого есть свой диалог подтверждения разрешений с бейджем на боковой панели для ожидающих подтверждений
 
 <details>
@@ -558,6 +559,19 @@ AionUi — это **бесплатный мультиагентный рабоч
 ## Посмотрите, как люди используют AionUi
 
 <p align="center">
+  <a href="https://www.youtube.com/watch?v=vWxE6VO9TKo" target="_blank">
+    <img src="https://img.youtube.com/vi/vWxE6VO9TKo/maxresdefault.jpg" alt="Hermes + Aion UI is Insane (FREE)!" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=RgSLdOhICZw" target="_blank">
+    <img src="https://img.youtube.com/vi/RgSLdOhICZw/maxresdefault.jpg" alt="OpenClaw + Aion UI is Insane (FREE!)" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>Julian Goldie SEO — Hermes + Aion UI is Insane (FREE!) · 27K views</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO — OpenClaw + Aion UI is Insane (FREE!) · 11K views</em>
+</p>
+
+<p align="center">
   <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
     <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI Review" width="400">
   </a>
@@ -567,7 +581,7 @@ AionUi — это **бесплатный мультиагентный рабоч
   </a>
 </p>
 <p align="center">
-  <em>WorldofAI (200 тыс. подписчиков)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO (318 тыс. подписчиков)</em>
+  <em>WorldofAI (200 тыс. подписчиков)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>Julian Goldie SEO (384 тыс. подписчиков)</em>
 </p>
 
 ### Статьи сообщества
@@ -656,7 +670,7 @@ brew install aionui
 - [Сообщить о проблемах](https://github.com/iOfficeAI/AionUi/issues) — ошибки и запросы функций
 - [Обновления релизов](https://github.com/iOfficeAI/AionUi/releases) — получите последнюю версию
 - [Сообщество Discord](https://discord.gg/2QAwJn7Egx) — англоязычное сообщество
-- [Группа WeChat](./resources/wx-6.png) — русскоязычное сообщество
+- [Группа WeChat](./resources/wx-8.png) — русскоязычное сообщество
 
 ### Вклад в проект
 

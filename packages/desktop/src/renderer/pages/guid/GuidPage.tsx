@@ -450,6 +450,10 @@ const GuidPage: React.FC = () => {
   );
   const handlePresetAgentTypeSwitch = useCallback(
     async (nextType: string) => {
+      // Only preset assistants (is_preset=true) expose `custom_agent_id` here, so this id is
+      // always backed by the `/api/assistants` store. ACP custom agents are a separate store
+      // (`ipcBridge.acpConversation.updateCustomAgent`) and do not carry `preset_agent_type`.
+      // See commit 13858579d on main for the legacy single-store fix that this split already covers.
       const assistantId = agentSelection.selectedAgentInfo?.custom_agent_id;
       if (!assistantId || nextType === currentPresetAgentType) return;
       try {

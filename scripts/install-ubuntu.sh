@@ -400,7 +400,7 @@ print_summary() {
         echo -e "  ${YELLOW}💡 提示:${NC}"
         echo "     • 設定工作目錄: export AIONUI_WORKDIR=/path/to/workspace"
         echo "     • 遠端存取方式: SSH 隧道 / ngrok / 直接開放 25808 端口"
-        echo "     • 詳細指南: docs/SERVER_DEPLOY_GUIDE.md"
+        echo "     • 詳細指南: docs/guides/deploy-server.md"
         echo ""
     fi
 }
