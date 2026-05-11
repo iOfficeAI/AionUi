@@ -62,6 +62,14 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
 ];
 
 export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {
+  const alreadyDone = await configFile.get('migration.configStorageDone' as keyof IConfigStorageRefer).catch(
+    (): undefined => undefined
+  );
+  if (alreadyDone === true) {
+    console.info('[Migration] configStorage migration skipped — already done');
+    return;
+  }
+
   const entries: Record<string, unknown> = {};
 
   const legacyEntries = await Promise.all(
@@ -83,11 +91,33 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
 
   if (Object.keys(entries).length === 0) {
     console.info('[Migration] configStorage migration skipped — no legacy keys found');
+    await configFile.set('migration.configStorageDone' as keyof IConfigStorageRefer, true as never);
     return;
   }
 
-  await setBackendClientPreferences(entries);
-  console.info('[Migration] configStorage migration completed, migrated %d keys', Object.keys(entries).length);
+  // Merge strategy: only write keys that don't already exist in the backend DB.
+  // This prevents overwriting user's runtime changes on repeated migrations.
+  const existing = await fetchExistingClientKeys();
+  const newEntries: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(entries)) {
+    if (!(key in existing)) {
+      newEntries[key] = value;
+    }
+  }
+
+  if (Object.keys(newEntries).length > 0) {
+    await setBackendClientPreferences(newEntries);
+    console.info(
+      '[Migration] configStorage migration completed, migrated %d/%d keys (skipped %d existing)',
+      Object.keys(newEntries).length,
+      Object.keys(entries).length,
+      Object.keys(entries).length - Object.keys(newEntries).length
+    );
+  } else {
+    console.info('[Migration] configStorage migration skipped — all %d keys already exist in backend', Object.keys(entries).length);
+  }
+
+  await configFile.set('migration.configStorageDone' as keyof IConfigStorageRefer, true as never);
 }
 
 // ---------------------------------------------------------------------------
@@ -216,6 +246,14 @@ export async function migrateProviders(configFile: ConfigFile): Promise<void> {
 }
 
 type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;
+
+async function fetchExistingClientKeys(): Promise<Record<string, unknown>> {
+  try {
+    return await httpRequest<Record<string, unknown>>('GET', '/api/settings/client') || {};
+  } catch {
+    return {};
+  }
+}
 
 async function setBackendClientPreferences(entries: BackendClientPreferences): Promise<void> {
   await httpRequest<void>('PUT', '/api/settings/client', entries);
