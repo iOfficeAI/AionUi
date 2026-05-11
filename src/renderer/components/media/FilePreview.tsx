@@ -10,14 +10,9 @@ import { getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
 import { Image } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/icons/file-icon.svg';
+import { IMAGE_RETRY_DELAY_MS, MAX_IMAGE_RETRIES, isImageNotFoundPlaceholder } from './imagePlaceholder';
 
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.svg']);
-
-// Substring from the base64-encoded "Image not found" placeholder SVG returned by getImageBase64 on ENOENT.
-// This is the aligned base64 encoding of ">Image not found<" within the SVG data URL.
-const IMAGE_NOT_FOUND_B64_MARKER = 'kltYWdlIG5vdCBmb3VuZD';
-const MAX_IMAGE_RETRIES = 5;
-const IMAGE_RETRY_DELAY_MS = 800;
 
 const isImageFile = (path: string): boolean => {
   const ext = path.toLowerCase().slice(path.lastIndexOf('.'));
@@ -78,7 +73,7 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove, readonly = fa
           .invoke({ path })
           .then((base64) => {
             if (cancelled) return;
-            if (base64.includes(IMAGE_NOT_FOUND_B64_MARKER) && retryCount < MAX_IMAGE_RETRIES) {
+            if (isImageNotFoundPlaceholder(base64) && retryCount < MAX_IMAGE_RETRIES) {
               retryCount++;
               retryTimer = setTimeout(loadImage, IMAGE_RETRY_DELAY_MS);
             } else {
