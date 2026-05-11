@@ -427,8 +427,7 @@ export const fs = {
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
   readFileBuffer: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read-buffer'),
   createTempFile: httpPost<string, { file_name: string }>('/api/fs/temp'),
-  createUploadFile: httpPost<string, { file_name: string; conversation_id?: string }>('/api/fs/temp'),
-  writeFile: httpPost<boolean, { path: string; data: Uint8Array | string }>('/api/fs/write'),
+  writeFile: httpPost<boolean, { path: string; data: string }>('/api/fs/write'),
   createZip: httpPost<
     boolean,
     {
