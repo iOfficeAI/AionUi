@@ -243,14 +243,14 @@
 }
 
 .app-titlebar__button--mobile {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
 }
 
 .app-titlebar__button--mobile svg {
-  width: 16px !important;
-  height: 16px !important;
+  width: 22px !important;
+  height: 22px !important;
 }
 
 .app-window-controls {

@@ -281,7 +281,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
           titleBarStyle: 'hidden',
           // Align traffic-light center with the 44px sidebar titlebar controls.
           // NOTE: requires a full app restart to take effect (BrowserWindow option).
-          trafficLightPosition: { x: 16, y: 18 },
+          trafficLightPosition: { x: 20, y: 22 },
         }
       : { frame: false }),
     webPreferences: {

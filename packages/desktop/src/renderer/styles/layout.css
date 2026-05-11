@@ -9,18 +9,9 @@
   --sider-chrome-toggle-top: 14px;
 }
 
-/* Sticky section labels in the sider (team / cron / projects / timeline).
- * No solid background — instead blur whatever scrolls underneath so the
- * label always blends into the sider regardless of preset background.
- * Falls back to a near-transparent overlay when backdrop-filter is unsupported. */
+/* Sticky section labels in the sider (team / cron / projects / timeline). */
 .sider-section-label {
-  background-color: transparent;
-}
-@supports ((-webkit-backdrop-filter: blur(8px)) or (backdrop-filter: blur(8px))) {
-  .sider-section-label {
-    -webkit-backdrop-filter: blur(8px) saturate(140%);
-    backdrop-filter: blur(8px) saturate(140%);
-  }
+  background-color: var(--bg-2);
 }
 
 /* Top-of-content drag strip — lets users drag the window from any page's blank header area.
@@ -67,15 +58,16 @@
   color: var(--text-primary);
 }
 
+
 /* Mobile floating sider toggle: place inside the safe-area, slightly larger hit target.
  * Sits above page content; z-index is bumped high so it stays clickable even when a page
  * (e.g. /scheduled, /settings) places its own H1 in the top-left corner.
  * Plain icon button — color/weight matches other top-bar icons (no card surface). */
 .layout-sider-expand-btn--mobile {
-  top: calc(env(safe-area-inset-top, 0px) + 8px);
-  left: 12px;
-  width: 32px;
-  height: 32px;
+  top: calc(env(safe-area-inset-top, 0px) + 2px);
+  left: 6px;
+  width: 44px;
+  height: 44px;
   z-index: 50;
   background-color: transparent;
   box-shadow: none;
