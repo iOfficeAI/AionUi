@@ -9,6 +9,7 @@ import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
 import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
+import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
@@ -366,7 +367,12 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             className='mt-10px'
             type='error'
             icon={<CloseOne theme='filled' size={16} />}
-            content={t('settings.testConnectionFailCli')}
+            content={
+              <div className='flex items-center justify-between gap-8px'>
+                <span className='flex-1 min-w-0'>{t('settings.testConnectionFailCli')}</span>
+                <FeedbackButton module='agent-detection' />
+              </div>
+            }
           />
         )}
         {testStatus === 'fail_acp' && (
@@ -374,7 +380,12 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             className='mt-10px'
             type='warning'
             icon={<CloseOne theme='filled' size={16} />}
-            content={t('settings.testConnectionFailAcp')}
+            content={
+              <div className='flex items-center justify-between gap-8px'>
+                <span className='flex-1 min-w-0'>{t('settings.testConnectionFailAcp')}</span>
+                <FeedbackButton module='agent-detection' />
+              </div>
+            }
           />
         )}
       </div>

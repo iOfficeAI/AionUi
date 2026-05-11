@@ -522,6 +522,8 @@
   "helpDocumentation": "Довідкова документація",
   "updateLog": "Журнал оновлень",
   "feedback": "Зворотний зв'язок",
+  "oneClickFeedback": "Повідомити про проблему",
+  "bugReportScreenshotUploaded": "(Завантажено: {{count}})",
   "contactMe": "Зв'язатися зі мною",
   "officialWebsite": "Офіційний сайт",
   "checkForUpdates": "Перевірити оновлення",

@@ -9,6 +9,7 @@ import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { Badge, Typography } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 
 const { Text } = Typography;
 
@@ -71,7 +72,10 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
         </Text>
       </div>
 
-      <div className='flex-1'>{getStatusBadge()}</div>
+      <div className='flex-1 flex items-center gap-6px'>
+        {getStatusBadge()}
+        {isError && <FeedbackButton module='conversation-session' />}
+      </div>
     </div>
   );
 };

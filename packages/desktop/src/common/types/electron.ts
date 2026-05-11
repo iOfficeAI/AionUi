@@ -17,6 +17,8 @@ export interface ElectronBridgeAPI {
   getPathForFile?: (file: File) => string;
   // Feedback log collection / 收集反馈日志
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
+  // Feedback screenshot capture / 反馈截图
+  captureFeedbackScreenshot?: () => Promise<{ filename: string; data: number[] } | null>;
 }
 
 declare global {

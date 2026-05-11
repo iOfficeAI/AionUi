@@ -15,6 +15,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
+import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import { iconColors } from '@/renderer/styles/colors';
 
 interface McpServerHeaderProps {
@@ -100,6 +101,8 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   const statusText = getStatusText(server.status, oauthStatus, t);
   const statusIcon = getStatusIcon(server.status, oauthStatus);
 
+  const isError = server.status === 'error';
+
   return (
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
@@ -107,6 +110,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
         <Tooltip content={statusText} position='top'>
           <span className='flex items-center cursor-default'>{statusIcon}</span>
         </Tooltip>
+        {isError && <FeedbackButton module='mcp-tools' />}
         {isReadOnly && (
           <McpAgentStatusDisplay
             server_name={server.name}
