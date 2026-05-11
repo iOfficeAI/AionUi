@@ -378,17 +378,23 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   const resolveBuiltinDir = (dirPath: string): string => {
     const platform = getPlatformServices().paths;
     const appPath = platform.getAppPath()!;
+    const RESOURCES_PREFIX = 'src/process/resources/';
+    const runtimePath = dirPath.startsWith(RESOURCES_PREFIX) ? dirPath.slice(RESOURCES_PREFIX.length) : dirPath;
     let candidates: string[];
     if (platform.isPackaged()) {
       // In production, viteStaticCopy maps src/process/resources/* to root-level dirs in the asar.
       // skills/ and assistant/ are read from asar at startup and copied to user config dirs.
-      const RESOURCES_PREFIX = 'src/process/resources/';
-      const prodPath = dirPath.startsWith(RESOURCES_PREFIX) ? dirPath.slice(RESOURCES_PREFIX.length) : dirPath;
-      candidates = [path.join(appPath, prodPath)];
+      candidates = [path.join(appPath, runtimePath)];
     } else {
       // In dev, viteStaticCopy doesn't run; resolve source paths directly.
-      // appPath is the project root, so a single join is sufficient.
-      candidates = [path.join(appPath, dirPath)];
+      // Standalone server builds copy resources next to dist-server/server.mjs.
+      candidates = [
+        path.join(appPath, dirPath),
+        path.join(appPath, 'dist-server', runtimePath),
+        path.join(appPath, runtimePath),
+        path.join(__dirname, runtimePath),
+        path.join(__dirname, '..', runtimePath),
+      ];
     }
 
     for (const candidate of candidates) {

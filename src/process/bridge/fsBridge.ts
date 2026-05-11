@@ -13,6 +13,7 @@ import https from 'node:https';
 import http from 'node:http';
 import JSZip from 'jszip';
 import { ipcBridge } from '@/common';
+import { ASSISTANT_PRESETS } from '@/common/config/presets/assistantPresets';
 import {
   getSystemDir,
   getAssistantsDir,
@@ -38,16 +39,24 @@ type ResourceType = 'rules' | 'skills' | 'assistant';
  * In development and standalone server mode: searches relative to process.cwd().
  * Returns first existing candidate, falling back to first candidate path.
  */
-/**
- * Resolve builtin resource directory without Electron.
- * In development and standalone server mode: searches relative to process.cwd().
- * Returns first existing candidate, falling back to first candidate path.
- */
 async function findBuiltinResourceDirNode(resourceType: ResourceType): Promise<string> {
   const base = process.cwd();
-  const devDir =
+  const sourceDir =
     resourceType === 'skills' || resourceType === 'assistant' ? `src/process/resources/${resourceType}` : resourceType;
-  const candidates = [path.join(base, devDir), path.join(base, '..', devDir), path.join(base, resourceType)];
+  const runtimeDir = resourceType;
+  const candidates = Array.from(
+    new Set(
+      [
+        path.join(base, sourceDir),
+        path.join(base, '..', sourceDir),
+        path.join(base, 'dist-server', runtimeDir),
+        path.join(base, '..', 'dist-server', runtimeDir),
+        path.join(__dirname, runtimeDir),
+        path.join(__dirname, '..', runtimeDir),
+        path.join(base, runtimeDir),
+      ].map((candidate) => path.resolve(candidate))
+    )
+  );
   for (const candidate of candidates) {
     try {
       await fs.access(candidate);
@@ -163,6 +172,29 @@ async function readAssistantResource(
       return content;
     } catch {
       // Try next locale
+    }
+  }
+
+  // 3. Builtin preset resources are stored by preset directory in source/package
+  // (src/process/resources/assistant/<preset>/<file>.md), not as flat cache files.
+  if (assistantId.startsWith('builtin-') && (resourceType === 'rules' || resourceType === 'skills')) {
+    const presetId = assistantId.replace('builtin-', '');
+    const preset = ASSISTANT_PRESETS.find((item) => item.id === presetId);
+    const files = resourceType === 'rules' ? preset?.ruleFiles : preset?.skillFiles;
+    if (preset && files) {
+      const assistantResourcesDir = await findBuiltinResourceDirNode('assistant');
+      const presetResourceDir = preset.resourceDir ? path.basename(preset.resourceDir) : '';
+      for (const loc of locales) {
+        const fileName = files[loc] || files['en-US'];
+        if (!fileName) continue;
+        try {
+          const content = await fs.readFile(path.join(assistantResourcesDir, presetResourceDir, fileName), 'utf-8');
+          console.log(`[fsBridge] Read bundled preset ${resourceType} for ${assistantId}: ${fileName}`);
+          return content;
+        } catch {
+          // Try next locale
+        }
+      }
     }
   }
 
@@ -1129,6 +1161,14 @@ export function initFsBridge(): void {
       await readSkillsFromDir(builtinSkillsDir, false);
       const builtinCount = skills.length - builtinCountBefore;
 
+      // If the managed copy is missing or stale during startup, also read the bundled source/package directory.
+      const bundledBuiltinSkillsDir = await findBuiltinResourceDirNode('skills');
+      const bundledBuiltinCountBefore = skills.length;
+      if (path.resolve(bundledBuiltinSkillsDir) !== path.resolve(builtinSkillsDir)) {
+        await readSkillsFromDir(bundledBuiltinSkillsDir, false);
+      }
+      const bundledBuiltinCount = skills.length - bundledBuiltinCountBefore;
+
       // 读取用户自定义 skills (isCustom: true)
       const userSkillsDir = getSkillsDir();
       const userCountBefore = skills.length;
@@ -1154,11 +1194,55 @@ export function initFsBridge(): void {
       }
       const result = Array.from(skillMap.values());
 
-      console.log(`[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, custom=${userCount}`);
+      console.log(
+        `[fsBridge] Listed ${result.length} available skills: builtin=${builtinCount}, bundled=${bundledBuiltinCount}, custom=${userCount}`
+      );
 
       return result;
     } catch (error) {
       console.error('[fsBridge] Failed to list available skills:', error);
+      return [];
+    }
+  });
+
+  // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory
+  ipcBridge.fs.listBuiltinAutoSkills.provider(async () => {
+    try {
+      const skills: Array<{ name: string; description: string }> = [];
+
+      const readAutoSkillsFromDir = async (skillsDir: string) => {
+        try {
+          await fs.access(skillsDir);
+          const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+
+          for (const entry of entries) {
+            if (!entry.isDirectory() && !entry.isSymbolicLink()) continue;
+
+            const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
+
+            try {
+              const content = await fs.readFile(skillMdPath, 'utf-8');
+              skills.push(parseSkillFrontMatter(content, entry.name));
+            } catch {
+              // Skill directory without SKILL.md, skip
+            }
+          }
+        } catch {
+          // Directory doesn't exist, skip
+        }
+      };
+
+      const autoSkillsDir = getAutoSkillsDir();
+      await readAutoSkillsFromDir(autoSkillsDir);
+
+      const bundledAutoSkillsDir = path.join(await findBuiltinResourceDirNode('skills'), '_builtin');
+      if (path.resolve(bundledAutoSkillsDir) !== path.resolve(autoSkillsDir)) {
+        await readAutoSkillsFromDir(bundledAutoSkillsDir);
+      }
+
+      return Array.from(new Map(skills.map((skill) => [skill.name, skill])).values());
+    } catch (error) {
+      console.error('[fsBridge] Failed to list builtin auto skills:', error);
       return [];
     }
   });

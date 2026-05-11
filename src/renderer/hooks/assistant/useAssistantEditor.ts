@@ -40,6 +40,9 @@ export const useAssistantEditor = ({
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
 
+  const hasConfiguredSelectableSkills = (assistant: AssistantListItem): boolean =>
+    (assistant.enabledSkills?.length ?? 0) > 0 || (assistant.customSkillNames?.length ?? 0) > 0;
+
   // Edit drawer state
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
@@ -94,6 +97,14 @@ export const useAssistantEditor = ({
     [localeKey]
   );
 
+  const refreshBuiltinAutoSkills = useCallback(() => {
+    setBuiltinAutoSkills([]);
+    void ipcBridge.fs.listBuiltinAutoSkills
+      .invoke()
+      .then((autoSkills) => setBuiltinAutoSkills(autoSkills))
+      .catch(() => setBuiltinAutoSkills([]));
+  }, []);
+
   const handleEdit = async (assistant: AssistantListItem) => {
     setIsCreating(false);
     setActiveAssistantId(assistant.id);
@@ -106,13 +117,8 @@ export const useAssistantEditor = ({
     setDeleteCustomSkillName(null);
     setEditVisible(true);
 
-    // Load builtin auto skills for all assistants
-    try {
-      const autoSkills = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
-      setBuiltinAutoSkills(autoSkills);
-    } catch {
-      setBuiltinAutoSkills([]);
-    }
+    // Auto-injected skill discovery is independent from assistant rule/skill loading.
+    refreshBuiltinAutoSkills();
 
     // Extension assistants show extension context directly, not local rule files
     if (isExtensionAssistantUtil(assistant)) {
@@ -135,8 +141,9 @@ export const useAssistantEditor = ({
       setEditContext(context);
       setEditSkills(skills);
 
-      // Load skills list for builtin assistants with skillFiles and all custom assistants
-      if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
+      // Load skills list for builtin assistants with skillFiles, assistants that already
+      // have selected skills, and all custom assistants.
+      if (hasConfiguredSelectableSkills(assistant) || hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
         setSelectedSkills(assistant.enabledSkills || []);
@@ -171,19 +178,15 @@ export const useAssistantEditor = ({
     setDisabledBuiltinSkills([]);
     setPromptViewMode('edit');
     setEditVisible(true);
+    refreshBuiltinAutoSkills();
 
-    // Load available skills list and builtin auto skills
+    // Load available skills list
     try {
-      const [skillsList, autoSkills] = await Promise.all([
-        ipcBridge.fs.listAvailableSkills.invoke(),
-        ipcBridge.fs.listBuiltinAutoSkills.invoke(),
-      ]);
+      const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
       setAvailableSkills(skillsList);
-      setBuiltinAutoSkills(autoSkills);
     } catch (error) {
       console.error('Failed to load skills:', error);
       setAvailableSkills([]);
-      setBuiltinAutoSkills([]);
     }
   };
 
@@ -197,19 +200,18 @@ export const useAssistantEditor = ({
     setEditAgent(assistant.presetAgentType || 'gemini');
     setPromptViewMode('edit');
     setEditVisible(true);
+    refreshBuiltinAutoSkills();
 
     // Load original assistant's rules and skills
     try {
-      const [skillsList, autoSkills, context, skills] = isExtensionAssistantUtil(assistant)
+      const [skillsList, context, skills] = isExtensionAssistantUtil(assistant)
         ? await Promise.all([
             ipcBridge.fs.listAvailableSkills.invoke(),
-            ipcBridge.fs.listBuiltinAutoSkills.invoke(),
             Promise.resolve(assistant.context || ''),
             Promise.resolve(''),
           ])
         : await Promise.all([
             ipcBridge.fs.listAvailableSkills.invoke(),
-            ipcBridge.fs.listBuiltinAutoSkills.invoke(),
             loadAssistantContext(assistant.id),
             loadAssistantSkills(assistant.id),
           ]);
@@ -217,7 +219,6 @@ export const useAssistantEditor = ({
       setEditContext(context);
       setEditSkills(skills);
       setAvailableSkills(skillsList);
-      setBuiltinAutoSkills(autoSkills);
       setSelectedSkills(assistant.enabledSkills || []);
       setCustomSkills(assistant.customSkillNames || []);
       setDisabledBuiltinSkills(Array.isArray(assistant.disabledBuiltinSkills) ? assistant.disabledBuiltinSkills : []);
@@ -226,7 +227,6 @@ export const useAssistantEditor = ({
       setEditContext('');
       setEditSkills('');
       setAvailableSkills([]);
-      setBuiltinAutoSkills([]);
       setSelectedSkills([]);
       setCustomSkills([]);
       setDisabledBuiltinSkills([]);

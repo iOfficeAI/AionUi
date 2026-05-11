@@ -15,6 +15,10 @@ const getAvailableAgentsInvoke = vi.fn().mockResolvedValue({ success: true, data
 const refreshCustomAgentsInvoke = vi.fn().mockResolvedValue({});
 const detectAndCountExternalSkillsInvoke = vi.fn().mockResolvedValue({ success: true, data: [] });
 const addCustomExternalPathInvoke = vi.fn().mockResolvedValue({ success: true });
+const readAssistantRuleInvoke = vi.fn().mockResolvedValue('');
+const readAssistantSkillInvoke = vi.fn().mockResolvedValue('');
+const listAvailableSkillsInvoke = vi.fn().mockResolvedValue([]);
+const listBuiltinAutoSkillsInvoke = vi.fn().mockResolvedValue([]);
 
 vi.mock('../../src/common', () => ({
   ipcBridge: {
@@ -29,6 +33,10 @@ vi.mock('../../src/common', () => ({
     fs: {
       detectAndCountExternalSkills: { invoke: (...args: unknown[]) => detectAndCountExternalSkillsInvoke(...args) },
       addCustomExternalPath: { invoke: (...args: unknown[]) => addCustomExternalPathInvoke(...args) },
+      readAssistantRule: { invoke: (...args: unknown[]) => readAssistantRuleInvoke(...args) },
+      readAssistantSkill: { invoke: (...args: unknown[]) => readAssistantSkillInvoke(...args) },
+      listAvailableSkills: { invoke: (...args: unknown[]) => listAvailableSkillsInvoke(...args) },
+      listBuiltinAutoSkills: { invoke: (...args: unknown[]) => listBuiltinAutoSkillsInvoke(...args) },
     },
   },
 }));
@@ -92,12 +100,14 @@ vi.mock('../../src/renderer/utils/platform', () => ({
 
 import { useAssistantList } from '../../src/renderer/hooks/assistant/useAssistantList';
 import { useDetectedAgents } from '../../src/renderer/hooks/assistant/useDetectedAgents';
+import { useAssistantEditor } from '../../src/renderer/hooks/assistant/useAssistantEditor';
 import { useAssistantSkills } from '../../src/renderer/hooks/assistant/useAssistantSkills';
+import type { AssistantListItem } from '../../src/renderer/pages/settings/AssistantSettings/types';
 import type {
   ExternalSource,
   PendingSkill,
   SkillInfo,
-} from '../../src/renderer/pages/settings/AssistantManagement/types';
+} from '../../src/renderer/pages/settings/AssistantSettings/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // useAssistantList
@@ -226,6 +236,103 @@ describe('useAssistantList', () => {
 
     expect(result.current.assistants).toEqual([]);
     consoleSpy.mockRestore();
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// useAssistantEditor
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('useAssistantEditor', () => {
+  const mockMessage = {
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+    loading: vi.fn(),
+    normal: vi.fn(),
+    clear: vi.fn(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    readAssistantRuleInvoke.mockResolvedValue('rules');
+    readAssistantSkillInvoke.mockResolvedValue('');
+    listBuiltinAutoSkillsInvoke.mockResolvedValue([]);
+    listAvailableSkillsInvoke.mockResolvedValue([
+      {
+        name: 'officecli-docx',
+        description: 'Work with Word documents',
+        location: '/skills/officecli-docx/SKILL.md',
+        isCustom: false,
+        source: 'builtin',
+      },
+    ]);
+  });
+
+  it('loads available skills for builtin assistants that already have enabledSkills configured', async () => {
+    const assistant = {
+      id: 'builtin-word-creator',
+      name: 'Word Creator',
+      isBuiltin: true,
+      isPreset: true,
+      enabled: true,
+      enabledSkills: ['officecli-docx'],
+    } as AssistantListItem;
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        localeKey: 'en-US',
+        activeAssistant: null,
+        isExtensionAssistant: () => false,
+        setActiveAssistantId: vi.fn(),
+        loadAssistants: vi.fn().mockResolvedValue(undefined),
+        refreshAgentDetection: vi.fn().mockResolvedValue(undefined),
+        message: mockMessage as unknown as ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0],
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    expect(listAvailableSkillsInvoke).toHaveBeenCalledOnce();
+    expect(result.current.selectedSkills).toEqual(['officecli-docx']);
+    expect(result.current.availableSkills.map((skill) => skill.name)).toEqual(['officecli-docx']);
+  });
+
+  it('does not block assistant content loading when builtin auto skills never resolve', async () => {
+    listBuiltinAutoSkillsInvoke.mockImplementation(() => new Promise(() => {}));
+
+    const assistant = {
+      id: 'builtin-word-creator',
+      name: 'Word Creator',
+      isBuiltin: true,
+      isPreset: true,
+      enabled: true,
+      enabledSkills: ['officecli-docx'],
+    } as AssistantListItem;
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        localeKey: 'en-US',
+        activeAssistant: null,
+        isExtensionAssistant: () => false,
+        setActiveAssistantId: vi.fn(),
+        loadAssistants: vi.fn().mockResolvedValue(undefined),
+        refreshAgentDetection: vi.fn().mockResolvedValue(undefined),
+        message: mockMessage as unknown as ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0],
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(assistant);
+    });
+
+    expect(readAssistantRuleInvoke).toHaveBeenCalledWith({ assistantId: 'builtin-word-creator', locale: 'en-US' });
+    expect(listAvailableSkillsInvoke).toHaveBeenCalledOnce();
+    expect(result.current.editContext).toBe('rules');
+    expect(result.current.availableSkills.map((skill) => skill.name)).toEqual(['officecli-docx']);
   });
 });
 

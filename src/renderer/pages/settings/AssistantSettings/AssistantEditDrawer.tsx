@@ -128,10 +128,14 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   }, []);
 
   // Whether skills section should be visible
+  const activeAssistantHasConfiguredSkills =
+    (activeAssistant?.enabledSkills?.length ?? 0) > 0 || (activeAssistant?.customSkillNames?.length ?? 0) > 0;
   const showSkills =
     isCreating ||
+    selectedSkills.length > 0 ||
+    availableSkills.length > 0 ||
     (activeAssistantId !== null && hasBuiltinSkills(activeAssistantId)) ||
-    (activeAssistant !== null && !activeAssistant.isBuiltin);
+    (activeAssistant !== null && (!activeAssistant.isBuiltin || activeAssistantHasConfiguredSkills));
 
   const agentOptions = availableBackends;
 

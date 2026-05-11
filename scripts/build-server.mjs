@@ -37,6 +37,12 @@ if (existsSync(skillsSrc)) {
   cpSync(skillsSrc, resolve('dist-server/skills'), { recursive: true });
 }
 
+// Copy built-in assistant prompts/skill prompt files for standalone WebUI/server mode.
+const assistantSrc = resolve('src/process/resources/assistant');
+if (existsSync(assistantSrc)) {
+  cpSync(assistantSrc, resolve('dist-server/assistant'), { recursive: true });
+}
+
 // Stub out Vite-specific .wasm?binary imports for the main server entry —
 // server.mjs serves static files and never executes WASM directly.
 const wasmStubPlugin = {

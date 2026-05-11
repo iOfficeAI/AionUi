@@ -336,6 +336,119 @@ describe('fsBridge skills functionality', () => {
       expect(custom).toBeDefined();
       expect(custom.isCustom).toBe(true);
     });
+
+    it('falls back to bundled builtin skills when copied builtin skills are unavailable', async () => {
+      const builtinBase = path.resolve('/mock/userData/builtin-skills');
+      const bundledBase = path.resolve(process.cwd(), 'src/process/resources/skills');
+      const bundledSkill = `---\nname: officecli-pptx\ndescription: "Bundled PPTX skill"\n---\n# Markdown content`;
+
+      mockFsStore[builtinBase] = { isDirectory: true };
+      mockFsStore[bundledBase] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-pptx')] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-pptx', 'SKILL.md')] = {
+        content: bundledSkill,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listAvailableSkills');
+      const result = await handler();
+
+      expect(result).toEqual([
+        {
+          name: 'officecli-pptx',
+          description: 'Bundled PPTX skill',
+          location: path.join(bundledBase, 'officecli-pptx', 'SKILL.md'),
+          isCustom: false,
+          source: 'builtin',
+        },
+      ]);
+    });
+
+    it('falls back to dist-server builtin skills in standalone server builds', async () => {
+      const builtinBase = path.resolve('/mock/userData/builtin-skills');
+      const bundledBase = path.resolve(process.cwd(), 'dist-server/skills');
+      const bundledSkill = `---\nname: officecli-docx\ndescription: "Standalone DOCX skill"\n---\n# Markdown content`;
+
+      mockFsStore[builtinBase] = { isDirectory: true };
+      mockFsStore[bundledBase] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-docx')] = { isDirectory: true };
+      mockFsStore[path.join(bundledBase, 'officecli-docx', 'SKILL.md')] = {
+        content: bundledSkill,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listAvailableSkills');
+      const result = await handler();
+
+      expect(result).toEqual([
+        {
+          name: 'officecli-docx',
+          description: 'Standalone DOCX skill',
+          location: path.join(bundledBase, 'officecli-docx', 'SKILL.md'),
+          isCustom: false,
+          source: 'builtin',
+        },
+      ]);
+    });
+  });
+
+  describe('listBuiltinAutoSkills', () => {
+    it('registers provider and parses auto-injected builtin skills', async () => {
+      const autoBase = path.resolve('/mock/userData/builtin-skills/_builtin');
+      const yamlFrontmatter = `---\nname: office-cli\ndescription: "Auto injected office skill"\n---\n# Markdown content`;
+
+      mockFsStore[autoBase] = { isDirectory: true };
+      mockFsStore[path.join(autoBase, 'office-cli')] = { isDirectory: true };
+      mockFsStore[path.join(autoBase, 'office-cli', 'SKILL.md')] = {
+        content: yamlFrontmatter,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('listBuiltinAutoSkills');
+      const result = await handler();
+
+      expect(result).toEqual([{ name: 'office-cli', description: 'Auto injected office skill' }]);
+    });
+  });
+
+  describe('readAssistantRule builtin fallback', () => {
+    it('reads preset rule files from bundled assistant resources when copied files are missing', async () => {
+      const bundledAssistantDir = path.resolve(process.cwd(), 'src/process/resources/assistant');
+      const pptCreatorDir = path.join(bundledAssistantDir, 'ppt-creator');
+      const ruleContent = '# PPT Creator Rules';
+
+      mockFsStore['/mock/userData/assistants'] = { isDirectory: true };
+      mockFsStore[bundledAssistantDir] = { isDirectory: true };
+      mockFsStore[pptCreatorDir] = { isDirectory: true };
+      mockFsStore[path.join(pptCreatorDir, 'ppt-creator.md')] = {
+        content: ruleContent,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('readAssistantRule');
+      const result = await handler({ assistantId: 'builtin-ppt-creator', locale: 'en-US' });
+
+      expect(result).toBe(ruleContent);
+    });
+
+    it('reads preset rule files from dist-server assistant resources in standalone server builds', async () => {
+      const bundledAssistantDir = path.resolve(process.cwd(), 'dist-server/assistant');
+      const wordCreatorDir = path.join(bundledAssistantDir, 'word-creator');
+      const ruleContent = '# Word Creator Rules';
+
+      mockFsStore['/mock/userData/assistants'] = { isDirectory: true };
+      mockFsStore[bundledAssistantDir] = { isDirectory: true };
+      mockFsStore[wordCreatorDir] = { isDirectory: true };
+      mockFsStore[path.join(wordCreatorDir, 'word-creator.md')] = {
+        content: ruleContent,
+        isDirectory: false,
+      };
+
+      const handler = await getProvider('readAssistantRule');
+      const result = await handler({ assistantId: 'builtin-word-creator', locale: 'en-US' });
+
+      expect(result).toBe(ruleContent);
+    });
   });
 
   describe('detectAndCountExternalSkills', () => {
