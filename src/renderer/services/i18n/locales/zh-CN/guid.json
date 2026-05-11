@@ -8,6 +8,19 @@
   "promptExamplesHint": "试试这些可点击的案例提示词：",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "已切换到 {{agent}}",
+  "cliSessions": {
+    "quickAction": "继续 CLI 会话",
+    "title": "继续 CLI 会话",
+    "description": "把最近的 Claude Code 或 Codex CLI 会话导入 AionUI，并在这里继续对话。",
+    "empty": "当前设备上没有找到最近的 Claude Code 或 Codex 会话。",
+    "continueAction": "继续到这里",
+    "openConversation": "打开会话",
+    "loadFailed": "加载 CLI 会话失败。",
+    "importFailed": "继续所选会话失败。",
+    "workspaceUnknown": "未知",
+    "workspaceMissing": "原始工作区不可用，恢复会话时可能缺少部分上下文。",
+    "lastActive": "最近活跃"
+  },
   "scanning": {
     "initialMessage": "当前Agent不可用, 正在检测其他可用agent...",
     "scanningMessage": "正在扫描本地可用agent...",

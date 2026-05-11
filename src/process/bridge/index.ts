@@ -14,6 +14,7 @@ import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
 import { initBedrockBridge } from './bedrockBridge';
 import { initChannelBridge } from './channelBridge';
+import { initCliSessionBridge } from './cliSessionBridge';
 import { initConversationBridge } from './conversationBridge';
 import { initCronBridge } from './cronBridge';
 import { initDatabaseBridge } from './databaseBridge';
@@ -80,6 +81,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initUpdateBridge();
   initWebuiBridge();
   initChannelBridge(deps.channelRepo);
+  initCliSessionBridge(deps.conversationService);
   initDatabaseBridge(deps.conversationRepo);
   initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
@@ -115,6 +117,7 @@ export {
   initAuthBridge,
   initBedrockBridge,
   initChannelBridge,
+  initCliSessionBridge,
   initConversationBridge,
   initCronBridge,
   initDatabaseBridge,

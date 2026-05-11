@@ -4,7 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { webui } from '@/common/adapter/ipcBridge';
+import { cliSession, webui } from '@/common/adapter/ipcBridge';
+import type { CliSessionSummary } from '@/common/types/cliSessionTypes';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { Button, Empty, Message, Modal, Spin } from '@arco-design/web-react';
 import { Earth } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,8 +37,14 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [hoveredQuickAction, setHoveredQuickAction] = useState<'bugReport' | 'repo' | 'webui' | null>(null);
+  const [hoveredQuickAction, setHoveredQuickAction] = useState<'bugReport' | 'repo' | 'webui' | 'cliSession' | null>(
+    null
+  );
   const [webuiQuickStatus, setWebuiQuickStatus] = useState<WebuiQuickStatus>('checking');
+  const [cliSessionVisible, setCliSessionVisible] = useState(false);
+  const [cliSessionsLoading, setCliSessionsLoading] = useState(false);
+  const [cliSessions, setCliSessions] = useState<CliSessionSummary[]>([]);
+  const [activeSessionKey, setActiveSessionKey] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -91,6 +100,52 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
   const handleOpenWebUI = useCallback(() => {
     void navigate('/settings/webui');
   }, [navigate]);
+
+  const loadCliSessions = useCallback(async () => {
+    setCliSessionsLoading(true);
+    try {
+      const sessions = await cliSession.listRecent.invoke({ limit: 20 });
+      setCliSessions(sessions);
+    } catch (error) {
+      console.error('Failed to load CLI sessions:', error);
+      Message.error(t('guid.cliSessions.loadFailed', { defaultValue: 'Failed to load CLI sessions.' }));
+    } finally {
+      setCliSessionsLoading(false);
+    }
+  }, [t]);
+
+  const handleOpenCliSessions = useCallback(() => {
+    setCliSessionVisible(true);
+    void loadCliSessions();
+  }, [loadCliSessions]);
+
+  const handleContinueCliSession = useCallback(
+    async (session: CliSessionSummary) => {
+      const sessionKey = `${session.backend}:${session.sessionId}`;
+      setActiveSessionKey(sessionKey);
+
+      try {
+        if (session.conversationId) {
+          setCliSessionVisible(false);
+          await navigate(`/conversation/${session.conversationId}`);
+          return;
+        }
+
+        const conversation = await cliSession.importConversation.invoke({
+          backend: session.backend,
+          sessionId: session.sessionId,
+        });
+        setCliSessionVisible(false);
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error) {
+        console.error('Failed to continue CLI session:', error);
+        Message.error(t('guid.cliSessions.importFailed', { defaultValue: 'Failed to continue the selected session.' }));
+      } finally {
+        setActiveSessionKey(null);
+      }
+    },
+    [navigate, t]
+  );
 
   const webuiStatusLabel =
     webuiQuickStatus === 'running'
@@ -169,6 +224,33 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
           </span>
         </div>
         <div
+          className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-220px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out'
+          style={quickActionStyle(hoveredQuickAction === 'cliSession')}
+          onMouseEnter={() => setHoveredQuickAction('cliSession')}
+          onMouseLeave={() => setHoveredQuickAction(null)}
+          onClick={handleOpenCliSessions}
+        >
+          <svg
+            className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#7C5CFC] transition-colors duration-300'
+            width='20'
+            height='20'
+            viewBox='0 0 20 20'
+            fill='none'
+            xmlns='http://www.w3.org/2000/svg'
+          >
+            <path
+              d='M10 5V10L13.3333 11.6667M18.3333 10C18.3333 14.6024 14.6024 18.3333 10 18.3333C5.39763 18.3333 1.66667 14.6024 1.66667 10C1.66667 5.39763 5.39763 1.66667 10 1.66667C14.6024 1.66667 18.3333 5.39763 18.3333 10Z'
+              stroke='currentColor'
+              strokeWidth='1.66667'
+              strokeLinecap='round'
+              strokeLinejoin='round'
+            />
+          </svg>
+          <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-180px transition-all duration-360 ease-in-out'>
+            {t('guid.cliSessions.quickAction', { defaultValue: 'Continue CLI Session' })}
+          </span>
+        </div>
+        <div
           className='group inline-flex items-center justify-center h-36px min-w-36px max-w-36px px-0 rd-999px bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:max-w-200px hover:px-14px hover:justify-start hover:gap-8px transition-[max-width,padding,border-radius,box-shadow] duration-420 ease-in-out'
           style={quickActionStyle(hoveredQuickAction === 'webui')}
           onMouseEnter={() => setHoveredQuickAction('webui')}
@@ -191,6 +273,91 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
           </span>
         </div>
       </div>
+
+      <Modal
+        title={t('guid.cliSessions.title', { defaultValue: 'Continue CLI Sessions' })}
+        visible={cliSessionVisible}
+        onCancel={() => setCliSessionVisible(false)}
+        footer={null}
+      >
+        <div className='mb-12px text-13px text-t-secondary'>
+          {t('guid.cliSessions.description', {
+            defaultValue: 'Import a recent Claude Code or Codex CLI session into AionUI and keep chatting here.',
+          })}
+        </div>
+
+        {cliSessionsLoading ? (
+          <div className='flex min-h-180px items-center justify-center'>
+            <Spin />
+          </div>
+        ) : cliSessions.length === 0 ? (
+          <Empty
+            description={t('guid.cliSessions.empty', {
+              defaultValue: 'No recent Claude Code or Codex sessions were found on this machine.',
+            })}
+          />
+        ) : (
+          <div className='flex max-h-420px flex-col gap-10px overflow-auto pr-4px'>
+            {cliSessions.map((session) => {
+              const logo = getAgentLogo(session.backend);
+              const sessionKey = `${session.backend}:${session.sessionId}`;
+              const actionLabel = session.conversationId
+                ? t('guid.cliSessions.openConversation', { defaultValue: 'Open Conversation' })
+                : t('guid.cliSessions.continueAction', { defaultValue: 'Continue Here' });
+
+              return (
+                <div
+                  key={sessionKey}
+                  className='flex items-start justify-between gap-12px rd-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-fill-1)] p-12px'
+                >
+                  <div className='min-w-0 flex-1'>
+                    <div className='mb-6px flex items-center gap-8px'>
+                      {logo ? <img src={logo} alt='' width={18} height={18} style={{ objectFit: 'contain' }} /> : null}
+                      <span className='truncate text-14px font-medium text-t-primary'>{session.title}</span>
+                      <span className='shrink-0 rd-999px bg-fill-2 px-8px py-2px text-11px text-t-secondary'>
+                        {session.backend === 'claude' ? 'Claude Code' : 'Codex'}
+                      </span>
+                    </div>
+                    {session.preview ? (
+                      <div className='mb-6px text-12px text-t-secondary'>{session.preview}</div>
+                    ) : null}
+                    <div className='text-12px text-t-tertiary'>
+                      <span>
+                        {t('common.workspace')}:{' '}
+                        {session.workspace || t('guid.cliSessions.workspaceUnknown', { defaultValue: 'Unknown' })}
+                      </span>
+                    </div>
+                    <div className='mt-4px text-12px text-t-tertiary'>
+                      <span>
+                        {t('guid.cliSessions.lastActive', { defaultValue: 'Last Active' })}:{' '}
+                        {new Date(session.updatedAt).toLocaleString()}
+                      </span>
+                    </div>
+                    {!session.workspaceExists ? (
+                      <div className='mt-4px text-12px text-[rgb(var(--danger-6))]'>
+                        {t('guid.cliSessions.workspaceMissing', {
+                          defaultValue:
+                            'Original workspace is unavailable. The session may resume with limited context.',
+                        })}
+                      </div>
+                    ) : null}
+                  </div>
+                  <Button
+                    type='primary'
+                    size='small'
+                    loading={activeSessionKey === sessionKey}
+                    onClick={() => {
+                      void handleContinueCliSession(session);
+                    }}
+                  >
+                    {actionLabel}
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

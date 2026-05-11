@@ -21,6 +21,7 @@ import { initAcpConversationBridge } from '@process/bridge/acpConversationBridge
 import { initAuthBridge } from '@process/bridge/authBridge';
 import { initBedrockBridge } from '@process/bridge/bedrockBridge';
 import { initChannelBridge } from '@process/bridge/channelBridge';
+import { initCliSessionBridge } from '@process/bridge/cliSessionBridge';
 import { initConversationBridge } from '@process/bridge/conversationBridge';
 import { initDatabaseBridge } from '@process/bridge/databaseBridge';
 import { initDocumentBridge } from '@process/bridge/documentBridge';
@@ -70,6 +71,7 @@ export async function initBridgeStandalone(): Promise<void> {
   initPptPreviewBridge();
   initOfficeWatchBridge();
   initChannelBridge(channelRepo);
+  initCliSessionBridge(conversationService);
   initDatabaseBridge(repo);
   initExtensionsBridge(repo, workerTaskManager);
   initSystemSettingsBridge();

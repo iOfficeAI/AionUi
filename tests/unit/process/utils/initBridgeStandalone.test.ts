@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   initGeminiBridge: vi.fn(),
   initBedrockBridge: vi.fn(),
   initAcpConversationBridge: vi.fn(),
+  initCliSessionBridge: vi.fn(),
   initAuthBridge: vi.fn(),
   initModelBridge: vi.fn(),
   initPreviewHistoryBridge: vi.fn(),
@@ -86,6 +87,9 @@ vi.mock('@process/bridge/bedrockBridge', () => ({
 vi.mock('@process/bridge/acpConversationBridge', () => ({
   initAcpConversationBridge: (...args: unknown[]) => mocks.initAcpConversationBridge(...args),
 }));
+vi.mock('@process/bridge/cliSessionBridge', () => ({
+  initCliSessionBridge: (...args: unknown[]) => mocks.initCliSessionBridge(...args),
+}));
 vi.mock('@process/bridge/authBridge', () => ({
   initAuthBridge: (...args: unknown[]) => mocks.initAuthBridge(...args),
 }));
@@ -148,6 +152,7 @@ describe('initBridgeStandalone', () => {
 
     await mod.initBridgeStandalone();
 
+    expect(mocks.initCliSessionBridge).toHaveBeenCalledTimes(1);
     expect(mocks.initHubBridge).toHaveBeenCalledTimes(1);
     expect(mocks.initializeRegistry).toHaveBeenCalledTimes(1);
   });
