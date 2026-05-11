@@ -106,26 +106,21 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
 
   return (
     <div className='px-12px'>
-      {/* Search Input */}
-      {(showSearch || searchText) && (
-        <div className='pb-8px workspace-toolbar-search'>
-          <Input
-            className='w-full workspace-search-input'
-            ref={searchInputRef}
-            placeholder={t('conversation.workspace.searchPlaceholder')}
-            value={searchText}
-            onChange={(value) => {
-              setSearchText(value);
-              onSearch(value);
-            }}
-            allowClear
-            prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
-          />
-        </div>
-      )}
-
-      {/* Border divider below search */}
-      {!isWorkspaceCollapsed && (showSearch || searchText) && <div className='border-b border-b-base' />}
+      {/* Search Input — always visible, matches Figma design */}
+      <div className='pb-8px workspace-toolbar-search'>
+        <Input
+          className='w-full workspace-search-input'
+          ref={searchInputRef}
+          placeholder={t('conversation.workspace.searchPlaceholder')}
+          value={searchText}
+          onChange={(value) => {
+            setSearchText(value);
+            onSearch(value);
+          }}
+          allowClear
+          prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
+        />
+      </div>
 
       {/* Directory name with collapse and action icons */}
       <div className='workspace-toolbar-row flex items-center justify-between gap-8px'>

@@ -7,6 +7,8 @@
     overflow-y: hidden;
     scrollbar-width: none;
     -ms-overflow-style: none;
+    /* Leave room on the left for the floating sider hamburger (left:12, w:36) */
+    padding-left: 48px;
     padding-bottom: 10px;
     margin-bottom: 12px;
   }

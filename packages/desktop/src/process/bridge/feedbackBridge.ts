@@ -9,7 +9,7 @@
  * for the bug report feature.
  */
 
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
@@ -75,6 +75,30 @@ ipcMain.handle('feedback:collect-logs', async () => {
     };
   } catch (error) {
     console.error('[feedbackBridge] Failed to collect logs:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('feedback:capture-screenshot', async (event) => {
+  try {
+    const win = BrowserWindow.fromWebContents(event.sender);
+    if (!win || win.isDestroyed()) {
+      return null;
+    }
+
+    const image = await win.webContents.capturePage();
+    const png = image.toPNG();
+    if (!png || png.length === 0) {
+      return null;
+    }
+
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return {
+      filename: `screenshot-${timestamp}.png`,
+      data: Array.from(png),
+    };
+  } catch (error) {
+    console.error('[feedbackBridge] Failed to capture screenshot:', error);
     return null;
   }
 });

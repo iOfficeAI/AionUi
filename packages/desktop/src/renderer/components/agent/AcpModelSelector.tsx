@@ -11,9 +11,11 @@ import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Brain, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import { iconColors } from '@/renderer/styles/colors';
 import MarqueePillLabel from './MarqueePillLabel';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
@@ -305,6 +307,7 @@ const AcpModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0 leading-none'>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} />
             <MarqueePillLabel>{t('conversation.welcome.useCliModel')}</MarqueePillLabel>
           </span>
         </Button>
@@ -324,6 +327,7 @@ const AcpModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0 leading-none'>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} />
             {current_modelHealth.status !== 'unknown' && (
               <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
             )}
@@ -365,10 +369,12 @@ const AcpModelSelector: React.FC<{
     >
       <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
         <span className='flex items-center gap-6px min-w-0 leading-none'>
+          <Brain theme='outline' size='14' fill={iconColors.secondary} />
           {current_modelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
           )}
           <MarqueePillLabel>{display_label}</MarqueePillLabel>
+          <Down theme='outline' size='12' fill={iconColors.secondary} />
         </span>
       </Button>
     </Dropdown>

@@ -1,10 +1,112 @@
 /* Layout-level styles: sidebar, sider animations, message positioning */
 
+:root {
+  /* macOS traffic lights span x=16..~74 with hit-areas extending a few px beyond the visible dots.
+   * Reserve ≥86px before the first interactive control so clicks aren't swallowed by the
+   * window-drag region around the close/min/zoom buttons. */
+  --sider-chrome-menu-offset: 78px;
+  --sider-chrome-toggle-left: 90px;
+  --sider-chrome-toggle-top: 14px;
+}
+
+/* Sticky section labels in the sider (team / cron / projects / timeline).
+ * No solid background — instead blur whatever scrolls underneath so the
+ * label always blends into the sider regardless of preset background.
+ * Falls back to a near-transparent overlay when backdrop-filter is unsupported. */
+.sider-section-label {
+  background-color: transparent;
+}
+@supports ((-webkit-backdrop-filter: blur(8px)) or (backdrop-filter: blur(8px))) {
+  .sider-section-label {
+    -webkit-backdrop-filter: blur(8px) saturate(140%);
+    backdrop-filter: blur(8px) saturate(140%);
+  }
+}
+
+/* Top-of-content drag strip — lets users drag the window from any page's blank header area.
+ * Starts AFTER the floating sider-expand button slot to not steal its clicks.
+ * pointer-events:none keeps clicks falling through to other interactive elements,
+ * while -webkit-app-region:drag is a Chromium hit-test that still works. */
+.layout-content-drag-strip {
+  position: absolute;
+  /* Start well clear of the floating sider-expand button (left:90, w:32 → ends at 122).
+   * Extra 50px buffer so Electron's drag hit-test never overlaps the button. */
+  top: 0;
+  left: 180px;
+  right: 0;
+  height: 36px;
+  z-index: 1;
+  -webkit-app-region: drag;
+  pointer-events: none;
+}
+
+/* Floating expand button shown when sider is fully collapsed on desktop */
+.layout-sider-expand-btn {
+  position: absolute;
+  top: var(--sider-chrome-toggle-top);
+  left: var(--sider-chrome-toggle-left);
+  z-index: 20;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+  -webkit-app-region: no-drag;
+}
+
+.layout-sider-expand-btn:hover {
+  background-color: var(--bg-3);
+  color: var(--text-primary);
+}
+
+/* Mobile floating sider toggle: place inside the safe-area, slightly larger hit target.
+ * Sits above page content; z-index is bumped high so it stays clickable even when a page
+ * (e.g. /scheduled, /settings) places its own H1 in the top-left corner.
+ * Plain icon button — color/weight matches other top-bar icons (no card surface). */
+.layout-sider-expand-btn--mobile {
+  top: calc(env(safe-area-inset-top, 0px) + 8px);
+  left: 12px;
+  width: 32px;
+  height: 32px;
+  z-index: 50;
+  background-color: transparent;
+  box-shadow: none;
+}
+
+.layout-sider-expand-btn--mobile:hover {
+  background-color: var(--fill-1);
+}
+
+.layout-sider-expand-btn .i-icon,
+.layout-sider-expand-btn svg {
+  display: block;
+  line-height: 0;
+}
+
+/* Kill Arco's default width transition — instant collapse/expand */
+.arco-layout-sider {
+  transition: none !important;
+}
+
 /* Layout sider base styles */
 .layout-sider {
   overflow-x: hidden;
   box-shadow: none !important;
-  border-right: 1px solid var(--border-base);
+  border-right: none !important;
+  background-color: var(--bg-2) !important;
+  /* Card feel */
+  margin: 8px 5px 8px 8px;
+  border-radius: 14px;
+  outline: 1px solid var(--bg-3);
+  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06) !important;
 }
 
 /* Arco Layout inner container needs flex layout so Header + Content + Footer
@@ -16,6 +118,8 @@
   flex: 1 !important;
   min-height: 0 !important;
   height: 100% !important;
+  border-radius: inherit;
+  overflow: hidden;
 }
 
 .layout-sider-header {
@@ -26,6 +130,17 @@
   flex: 1 !important;
   min-height: 0 !important;
   height: auto !important;
+}
+
+/* Collapsed state: strip card styling, show only as a thin strip for traffic lights */
+.layout-sider.collapsed,
+.layout-sider.arco-layout-sider-collapsed {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  outline: none !important;
+  box-shadow: none !important;
+  background-color: transparent !important;
+  border-right: none !important;
 }
 
 .layout-sider.collapsed .arco-layout-sider-children,
@@ -172,6 +287,10 @@
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
     box-sizing: border-box !important;
+    background-color: var(--bg-2) !important;
+    margin: 0 !important;
+    border-radius: 0 !important;
+    outline: none !important;
   }
 
   .layout-sider-header--mobile {

@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -364,7 +365,12 @@ const SystemModalContent: React.FC = () => {
                 <Alert
                   className='mt-16px'
                   type='error'
-                  content={typeof error === 'string' ? error : JSON.stringify(error)}
+                  content={
+                    <span>
+                      {typeof error === 'string' ? error : JSON.stringify(error)}
+                      <FeedbackButton module='system-settings' className='ml-6px' />
+                    </span>
+                  }
                 />
               )}
             </Form>

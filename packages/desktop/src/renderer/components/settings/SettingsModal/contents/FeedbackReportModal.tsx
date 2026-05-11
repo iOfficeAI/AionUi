@@ -8,8 +8,9 @@ import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { FEEDBACK_MODULES } from './feedbackModules';
 import { Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
-import { Info, Plus } from '@icon-park/react';
-import React, { useState, useCallback, useEffect } from 'react';
+import { Info } from '@icon-park/react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
+import type { RefTextAreaType } from '@arco-design/web-react/es/Input/textarea';
 import { useTranslation } from 'react-i18next';
 
 const DESCRIPTION_MAX_LENGTH = 2000;
@@ -36,18 +37,32 @@ const createPastedImageName = (file: File, index: number) => {
   return `pasted-screenshot-${timestamp}-${index + 1}.${ext}`;
 };
 
+export type PrefilledScreenshot = {
+  filename: string;
+  data: Uint8Array;
+  type: string;
+};
+
 type FeedbackReportModalProps = {
   visible: boolean;
   onCancel: () => void;
+  defaultModule?: string;
+  prefilledScreenshots?: PrefilledScreenshot[];
 };
 
-const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCancel }) => {
+const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
+  visible,
+  onCancel,
+  defaultModule,
+  prefilledScreenshots,
+}) => {
   const { t } = useTranslation();
 
-  const [module, setModule] = useState<string | undefined>(undefined);
+  const [module, setModule] = useState<string | undefined>(defaultModule);
   const [description, setDescription] = useState('');
   const [screenshots, setScreenshots] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const descriptionRef = useRef<RefTextAreaType | null>(null);
   const [error, setError] = useState('');
 
   const resetForm = useCallback(() => {
@@ -56,6 +71,41 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
     setScreenshots([]);
     setError('');
   }, []);
+
+  // Auto-focus the description textarea when the modal opens so users can
+  // start typing immediately. Deferred one frame after the open transition so
+  // ModalWrapper's internal focus lock has finished installing its traps.
+  useEffect(() => {
+    if (!visible) return;
+    const id = window.setTimeout(() => {
+      descriptionRef.current?.focus?.();
+    }, 80);
+    return () => window.clearTimeout(id);
+  }, [visible]);
+
+  // Seed form with prefilled module + screenshots whenever the modal (re)opens.
+  // Prefilled screenshots are auto-captured by the one-click feedback entry points
+  // and arrive as raw bytes; wrap them as File/UploadItem so the existing Upload
+  // submit flow handles them identically to user-uploaded images.
+  useEffect(() => {
+    if (!visible) return;
+    setModule(defaultModule);
+    if (prefilledScreenshots && prefilledScreenshots.length > 0) {
+      const items: UploadItem[] = prefilledScreenshots.slice(0, MAX_SCREENSHOTS).map((shot, index) => {
+        // Normalize into a Blob so the BlobPart typing accepts SharedArrayBuffer-backed
+        // Uint8Array values returned over IPC on some Electron/TS target combos.
+        const blob = new Blob([shot.data.slice().buffer as ArrayBuffer], { type: shot.type });
+        const file = new File([blob], shot.filename, { type: shot.type });
+        return {
+          uid: `prefilled-${Date.now()}-${index}`,
+          name: shot.filename,
+          originFile: file,
+          status: 'done',
+        };
+      });
+      setScreenshots(items);
+    }
+  }, [visible, defaultModule, prefilledScreenshots]);
 
   const handleCancel = useCallback(() => {
     resetForm();
@@ -249,12 +299,38 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       alignCenter
       className='w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px'
       autoFocus={false}
+      // The feedback modal is global and may be opened from inside another
+      // AionModal (e.g. the Agent editor). Arco's default z-index stacks
+      // modals in mount order, which leaves the feedback modal under the
+      // pre-existing modal when both are open. Bump wrap+mask above the
+      // standard 1001 so feedback always appears on top.
+      wrapStyle={{ zIndex: 1050 }}
+      maskStyle={{ zIndex: 1050 }}
     >
       <div
         data-testid='feedback-report-scroll-body'
         className='overflow-y-auto overflow-x-hidden px-24px pb-12px pr-18px max-h-[min(66vh,520px)]'
       >
         <div className='flex flex-col gap-16px'>
+          {/* Description */}
+          <div className='flex flex-col gap-4px'>
+            <label className='text-13px text-t-secondary'>
+              {t('settings.bugReportDescriptionLabel')} <span className='text-red-500'>*</span>
+            </label>
+            <Input.TextArea
+              ref={descriptionRef}
+              placeholder={t('settings.bugReportDescriptionPlaceholder')}
+              value={description}
+              onChange={(val) => {
+                setDescription(val);
+                setError('');
+              }}
+              maxLength={DESCRIPTION_MAX_LENGTH}
+              showWordLimit
+              autoSize={{ minRows: 3, maxRows: 6 }}
+            />
+          </div>
+
           {/* Module Select */}
           <div className='flex flex-col gap-4px'>
             <label className='text-13px text-t-secondary'>
@@ -274,54 +350,31 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
                 </Select.Option>
               ))}
             </Select>
-            {selectedModule ? (
-              <div className='text-12px leading-18px text-t-tertiary'>{t(selectedModule.descriptionI18nKey)}</div>
-            ) : null}
-          </div>
-
-          {/* Description */}
-          <div className='flex flex-col gap-4px'>
-            <label className='text-13px text-t-secondary'>
-              {t('settings.bugReportDescriptionLabel')} <span className='text-red-500'>*</span>
-            </label>
-            <Input.TextArea
-              placeholder={t('settings.bugReportDescriptionPlaceholder')}
-              value={description}
-              onChange={(val) => {
-                setDescription(val);
-                setError('');
-              }}
-              maxLength={DESCRIPTION_MAX_LENGTH}
-              showWordLimit
-              autoSize={{ minRows: 3, maxRows: 6 }}
-            />
           </div>
 
           {/* Screenshot Upload */}
           <div className='flex flex-col gap-4px'>
-            <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
-            <Upload
-              className='[&_.arco-upload-trigger]:w-full'
-              drag
-              multiple
-              accept={ACCEPTED_IMAGE_TYPES}
-              autoUpload={false}
-              fileList={screenshots}
-              onChange={handleScreenshotChange}
-              limit={MAX_SCREENSHOTS}
-              showUploadList={{ startIcon: null }}
-            >
-              <div
-                data-testid='feedback-report-upload-trigger'
-                className='box-border flex min-h-180px w-full flex-col items-center justify-center gap-10px rd-8px border border-dashed border-border-2 bg-fill-1 px-20px py-28px text-center'
-              >
-                <Plus theme='outline' size='20' fill='currentColor' className='text-t-secondary' />
-                <div className='max-w-320px text-16px leading-22px font-500 text-t-secondary'>
-                  {t('settings.bugReportScreenshotDropzoneText')}
-                </div>
-                <div className='text-12px leading-18px text-t-tertiary'>{t('settings.bugReportScreenshotFormats')}</div>
-              </div>
-            </Upload>
+            <label className='text-13px text-t-secondary'>
+              {t('settings.bugReportScreenshotLabel')}
+              {screenshots.length > 0 && (
+                <span data-testid='feedback-report-screenshot-count'>
+                  {' '}
+                  {t('settings.bugReportScreenshotUploaded', { count: screenshots.length })}
+                </span>
+              )}
+            </label>
+            <div data-testid='feedback-report-upload-trigger'>
+              <Upload
+                listType='picture-card'
+                multiple
+                accept={ACCEPTED_IMAGE_TYPES}
+                autoUpload={false}
+                fileList={screenshots}
+                onChange={handleScreenshotChange}
+                limit={MAX_SCREENSHOTS}
+                imagePreview
+              />
+            </div>
           </div>
 
           {/* Auto-info Banner */}

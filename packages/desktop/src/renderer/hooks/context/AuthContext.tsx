@@ -47,7 +47,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 const AUTH_USER_ENDPOINT = '/api/auth/user';
 
-const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
+const isDesktopRuntime = () => typeof window !== 'undefined' && Boolean(window.electronAPI);
 
 // Clear expired auth cache including cookies and localStorage
 // 清除过期的认证缓存，包括 Cookie 和 localStorage
@@ -109,7 +109,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   const abortRef = useRef<AbortController | null>(null);
 
   const refresh = useCallback(async () => {
-    if (isDesktopRuntime) {
+    if (isDesktopRuntime()) {
       setStatus('authenticated');
       setUser(null);
       setReady(true);
@@ -141,7 +141,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const login = useCallback(async ({ username, password, remember }: LoginParams): Promise<LoginResult> => {
     try {
-      if (isDesktopRuntime) {
+      if (isDesktopRuntime()) {
         setReady(true);
         return { success: true };
       }
@@ -243,7 +243,7 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
   }, []);
 
   const logout = useCallback(async () => {
-    if (isDesktopRuntime) {
+    if (isDesktopRuntime()) {
       setUser(null);
       setStatus('authenticated');
       setReady(true);

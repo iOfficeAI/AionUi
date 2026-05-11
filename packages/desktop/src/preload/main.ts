@@ -43,6 +43,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   // Feedback: collect and compress recent log files
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
+  // Feedback: capture a screenshot of the current window
+  captureFeedbackScreenshot: () => ipcRenderer.invoke('feedback:capture-screenshot'),
 });
 
 // Synchronously fetch the aionui-backend port and expose it to the renderer

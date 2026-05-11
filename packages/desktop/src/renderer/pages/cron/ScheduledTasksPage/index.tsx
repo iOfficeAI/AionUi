@@ -91,7 +91,8 @@ const ScheduledTasksPage: React.FC = () => {
     <div
       className={classNames(
         'w-full min-h-full box-border overflow-y-auto',
-        isMobile ? 'px-16px py-14px' : 'px-12px py-24px md:px-40px md:py-32px'
+        // Mobile: leave room on the top-left for the floating sider hamburger (left:12, w:36).
+        isMobile ? 'pt-14px pr-16px pb-14px pl-60px' : 'px-12px py-24px md:px-40px md:py-32px'
       )}
     >
       <div

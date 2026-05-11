@@ -112,7 +112,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         data-message-type={message.type}
         data-message-position={message.position}
         className={classNames(
-          'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
+          'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-20px max-w-full md:max-w-760px mx-auto',
           message.type,
           {
             'justify-center': message.position === 'center',
@@ -393,7 +393,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         <div
           key={item.id}
           id={`message-${getProcessedItemAnchorId(item)}`}
-          className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}
+          className={'min-w-0 message-item px-8px m-t-20px max-w-full md:max-w-760px mx-auto ' + item.type}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}

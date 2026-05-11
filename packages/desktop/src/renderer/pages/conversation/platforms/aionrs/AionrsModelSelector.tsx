@@ -9,10 +9,12 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Brain, Down } from '@icon-park/react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { iconColors } from '@/renderer/styles/colors';
 
 const AionrsModelSelector: React.FC<{
   selection?: AionrsModelSelection;
@@ -51,6 +53,7 @@ const AionrsModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0'>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} />
             <span className={compact ? 'block truncate' : undefined}>{t('conversation.welcome.useCliModel')}</span>
           </span>
         </Button>
@@ -123,10 +126,12 @@ const AionrsModelSelector: React.FC<{
         size='small'
       >
         <span className='flex items-center gap-6px min-w-0'>
+          <Brain theme='outline' size='14' fill={iconColors.secondary} />
           {current_modelHealth.status !== 'unknown' && (
             <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
           )}
           <span className={compact ? 'block truncate' : undefined}>{label}</span>
+          <Down theme='outline' size='12' fill={iconColors.secondary} />
         </span>
       </Button>
     </Dropdown>
