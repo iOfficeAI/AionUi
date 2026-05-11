@@ -90,8 +90,8 @@
  * other top-bar icons (hamburger, alarm, agent badge) in color and weight. */
 @media (max-width: 767px) {
   .chat-layout-header__workspace-toggle {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     padding: 0;
     background-color: transparent;
     color: var(--text-secondary);
@@ -115,9 +115,9 @@
 /* Mobile: conversation header pills */
 @media (max-width: 767px) {
   .agent-mode-compact-pill {
-    min-height: 32px !important;
-    height: 32px !important;
-    padding: 0 10px !important;
+    min-height: 44px !important;
+    height: 44px !important;
+    padding: 0 12px !important;
     border-radius: 999px !important;
   }
 

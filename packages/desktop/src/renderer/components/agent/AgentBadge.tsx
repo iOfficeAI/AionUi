@@ -68,7 +68,8 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agent_name, agentLogo,
   if (isMobile) {
     return (
       <div
-        className={`flex items-center justify-center bg-2 w-28px h-28px rounded-full shrink-0 ${assistantId ? 'cursor-pointer hover:bg-3' : ''}`}
+        className={`flex items-center justify-center bg-2 rounded-full shrink-0 ${assistantId ? 'cursor-pointer hover:bg-3' : ''}`}
+        style={{ width: 32, height: 32 }}
         data-testid='agent-badge'
         onClick={handleClick}
         title={agent_name || backend}

@@ -235,7 +235,7 @@ const ChatLayout: React.FC<{
               aria-label='Toggle workspace'
               onClick={() => dispatchWorkspaceToggleEvent()}
             >
-              {rightSiderCollapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
+              {rightSiderCollapsed ? <ExpandRight size={isMobile ? 22 : 16} /> : <ExpandLeft size={isMobile ? 22 : 16} />}
             </button>
           )}
         </div>
