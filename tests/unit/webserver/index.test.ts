@@ -25,6 +25,7 @@ const {
   registerAuthRoutesMock,
   registerApiRoutesMock,
   registerStaticRoutesMock,
+  registerWebSocketUpgradeRouterMock,
   initWebAdapterMock,
   generateRandomPasswordMock,
   hashPasswordMock,
@@ -57,6 +58,7 @@ const {
     registerAuthRoutesMock: vi.fn(),
     registerApiRoutesMock: vi.fn(),
     registerStaticRoutesMock: vi.fn(),
+    registerWebSocketUpgradeRouterMock: vi.fn(),
     initWebAdapterMock: vi.fn(),
     generateRandomPasswordMock: vi.fn(() => 'GeneratedPass123'),
     hashPasswordMock: vi.fn(async () => 'hashed-password'),
@@ -70,6 +72,10 @@ const {
 
 vi.mock('express', () => ({
   default: vi.fn(() => ({})),
+}));
+
+vi.mock('os', () => ({
+  networkInterfaces: vi.fn(() => ({})),
 }));
 
 vi.mock('http', () => ({
@@ -96,8 +102,10 @@ vi.mock('@process/webserver/routes/apiRoutes', () => ({
 
 vi.mock('@process/webserver/routes/staticRoutes', () => ({
   registerStaticRoutes: registerStaticRoutesMock,
-  resolveRendererPath: vi.fn(() => ({ staticRoot: '/mock/root', indexHtml: '/mock/root/index.html' })),
-  VITE_DEV_PORT: 5173,
+}));
+
+vi.mock('@process/webserver/websocket/upgradeRouter', () => ({
+  registerWebSocketUpgradeRouter: registerWebSocketUpgradeRouterMock,
 }));
 
 vi.mock('@process/webserver/adapter', () => ({
@@ -225,6 +233,7 @@ describe('startWebServerWithInstance default admin initialization', () => {
     expect(updatePasswordMock).not.toHaveBeenCalled();
     expect(createUserMock).not.toHaveBeenCalled();
     expect(initWebAdapterMock).toHaveBeenCalled();
+    expect(registerWebSocketUpgradeRouterMock).toHaveBeenCalled();
   });
 
   it('repairs a legacy admin row when no system user exists', async () => {
@@ -244,5 +253,16 @@ describe('startWebServerWithInstance default admin initialization', () => {
     expect(setSystemUserCredentialsMock).not.toHaveBeenCalled();
     expect(updatePasswordMock).toHaveBeenCalledWith('legacy-admin', 'hashed-password');
     expect(createUserMock).not.toHaveBeenCalled();
+  });
+
+  it('creates the business websocket server in noServer mode', async () => {
+    getSystemUserMock.mockResolvedValue(makeUser({ username: 'alice', password_hash: 'existing-hash' }));
+    findByUsernameMock.mockResolvedValue(null);
+
+    const { startWebServerWithInstance } = await import('@process/webserver/index');
+
+    await startWebServerWithInstance(3000, false);
+
+    expect(webSocketServerMock).toHaveBeenCalledWith({ noServer: true });
   });
 });

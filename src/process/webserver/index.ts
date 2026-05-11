@@ -5,7 +5,6 @@
  */
 
 import express from 'express';
-import net from 'net';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { execSync } from 'child_process';
@@ -17,7 +16,8 @@ import { initWebAdapter } from './adapter';
 import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
-import { registerStaticRoutes, resolveRendererPath, VITE_DEV_PORT } from './routes/staticRoutes';
+import { registerStaticRoutes } from './routes/staticRoutes';
+import { registerWebSocketUpgradeRouter } from './websocket/upgradeRouter';
 import { generateQRLoginUrlDirect } from '@process/bridge/webuiQR';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
@@ -258,47 +258,7 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
   // swallow every upgrade (including Vite HMR), causing the renderer to
   // enter an infinite reconnect loop and never finish loading.
   const wss = new WebSocketServer({ noServer: true });
-  const isDevMode = resolveRendererPath() === null;
-  server.on('upgrade', (req, socket, head) => {
-    const protocolHeader = req.headers['sec-websocket-protocol'];
-    const protocols = (Array.isArray(protocolHeader) ? protocolHeader.join(',') : protocolHeader || '')
-      .split(',')
-      .map((p) => p.trim())
-      .filter(Boolean);
-    const isViteHmr = protocols.some((p) => p === 'vite-hmr' || p === 'vite-ping');
-
-    if (isViteHmr && isDevMode) {
-      // Tunnel the HMR upgrade to the Vite dev server so the renderer's
-      // @vite/client can maintain its live-reload socket.
-      const vite = net.connect(VITE_DEV_PORT, 'localhost', () => {
-        const headerLines = [
-          `${req.method} ${req.url} HTTP/${req.httpVersion}`,
-          ...Object.entries(req.headers).flatMap(([key, value]) => {
-            if (value === undefined) return [];
-            if (Array.isArray(value)) return value.map((v) => `${key}: ${v}`);
-            return [`${key}: ${value}`];
-          }),
-          '',
-          '',
-        ];
-        vite.write(headerLines.join('\r\n'));
-        if (head.length > 0) vite.write(head);
-        socket.pipe(vite);
-        vite.pipe(socket);
-      });
-      const destroyBoth = () => {
-        socket.destroy();
-        vite.destroy();
-      };
-      vite.on('error', destroyBoth);
-      socket.on('error', destroyBoth);
-      return;
-    }
-
-    wss.handleUpgrade(req, socket, head, (ws) => {
-      wss.emit('connection', ws, req);
-    });
-  });
+  registerWebSocketUpgradeRouter(server, wss);
 
   // 初始化默认管理员账户 / Initialize default admin account
   const initialCredentials = await initializeDefaultAdmin();

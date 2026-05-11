@@ -11,6 +11,21 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { WEBUI_BRIDGE_WS_PATH, WEBUI_DEFAULT_PORT } from '../../src/common/config/constants';
+
+const { bridgeAdapterMock, loggerProviderMock } = vi.hoisted(() => ({
+  bridgeAdapterMock: vi.fn(),
+  loggerProviderMock: vi.fn(),
+}));
+
+vi.mock('@office-ai/platform', () => ({
+  bridge: {
+    adapter: bridgeAdapterMock,
+  },
+  logger: {
+    provider: loggerProviderMock,
+  },
+}));
 
 type WsListener = (event?: any) => void;
 
@@ -89,6 +104,9 @@ describe('browser adapter - WebSocket reconnect race condition', () => {
       }
       socket = new (globalThis as any).WebSocket('ws://test');
       const currentSocket = socket;
+      if (!currentSocket) {
+        return;
+      }
 
       currentSocket.addEventListener('open', () => {
         // connected
@@ -132,6 +150,9 @@ describe('browser adapter - WebSocket reconnect race condition', () => {
     // Create a single connection
     socket = new (globalThis as any).WebSocket('ws://test');
     const currentSocket = socket;
+    if (!currentSocket) {
+      throw new Error('socket should be created');
+    }
 
     currentSocket.addEventListener('close', () => {
       if (socket === currentSocket) {
@@ -146,5 +167,105 @@ describe('browser adapter - WebSocket reconnect race condition', () => {
 
     // Should be nulled because socket === currentSocket
     expect(socket).toBeNull();
+  });
+});
+
+describe('browser adapter websocket bootstrap', () => {
+  type BrowserGlobal = {
+    window?: Window;
+    WebSocket?: typeof WebSocket;
+  };
+
+  const browserGlobal = globalThis as unknown as BrowserGlobal;
+  const originalWindow = browserGlobal.window;
+  const originalWebSocket = browserGlobal.WebSocket;
+
+  class MockBootstrapWebSocket {
+    static OPEN = 1;
+    static CONNECTING = 0;
+    static CLOSED = 3;
+    static CLOSING = 2;
+
+    readyState = MockBootstrapWebSocket.CONNECTING;
+
+    constructor(readonly url: string) {}
+
+    addEventListener(): void {}
+
+    send = vi.fn();
+
+    close(): void {
+      this.readyState = MockBootstrapWebSocket.CLOSED;
+    }
+  }
+
+  function installWindow(locationOverrides: Partial<Location>): void {
+    browserGlobal.window = {
+      location: {
+        protocol: 'http:',
+        hostname: '127.0.0.1',
+        host: '127.0.0.1:25809',
+        pathname: '/',
+        hash: '',
+        ...locationOverrides,
+      },
+      setTimeout,
+      clearTimeout,
+    } as unknown as Window;
+  }
+
+  afterEach(() => {
+    vi.resetModules();
+    vi.clearAllMocks();
+
+    if (originalWindow === undefined) {
+      delete browserGlobal.window;
+    } else {
+      browserGlobal.window = originalWindow;
+    }
+
+    if (originalWebSocket === undefined) {
+      delete browserGlobal.WebSocket;
+    } else {
+      browserGlobal.WebSocket = originalWebSocket;
+    }
+  });
+
+  it('connects to the dedicated bridge websocket path on the current host', async () => {
+    const urls: string[] = [];
+
+    installWindow({});
+    browserGlobal.WebSocket = class extends MockBootstrapWebSocket {
+      constructor(url: string | URL) {
+        super(String(url));
+        urls.push(String(url));
+      }
+    } as unknown as typeof WebSocket;
+
+    await import('../../src/common/adapter/browser');
+
+    expect(bridgeAdapterMock).toHaveBeenCalledOnce();
+    expect(loggerProviderMock).toHaveBeenCalledOnce();
+    expect(urls).toEqual([`ws://127.0.0.1:25809${WEBUI_BRIDGE_WS_PATH}`]);
+  });
+
+  it('falls back to the default WebUI port when location.host is empty', async () => {
+    const urls: string[] = [];
+
+    installWindow({
+      protocol: 'https:',
+      hostname: 'example.com',
+      host: '',
+    });
+    browserGlobal.WebSocket = class extends MockBootstrapWebSocket {
+      constructor(url: string | URL) {
+        super(String(url));
+        urls.push(String(url));
+      }
+    } as unknown as typeof WebSocket;
+
+    await import('../../src/common/adapter/browser');
+
+    expect(urls).toEqual([`wss://example.com:${WEBUI_DEFAULT_PORT}${WEBUI_BRIDGE_WS_PATH}`]);
   });
 });

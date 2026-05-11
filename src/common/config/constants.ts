@@ -58,6 +58,12 @@ export const WEBUI_DEFAULT_PORT = (() => {
   return 25809;
 })();
 
+/** Dedicated business WebSocket endpoint for the browser bridge. */
+export const WEBUI_BRIDGE_WS_PATH = '/__aionui_ws';
+
+/** Dedicated Vite HMR WebSocket endpoint when WebUI proxies the dev renderer. */
+export const WEBUI_VITE_HMR_PATH = '/__vite_hmr';
+
 export const TEAM_MODE_ENABLED = true;
 
 // ===== AI Provider 相关常量 =====

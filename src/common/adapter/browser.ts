@@ -5,7 +5,7 @@
  */
 
 import { bridge, logger } from '@office-ai/platform';
-import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
+import { WEBUI_BRIDGE_WS_PATH, WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/electron';
 
 interface CustomWindow extends Window {
@@ -43,7 +43,7 @@ if (win.electronAPI) {
   // Web runtime bridge: ensure the socket reconnects after login so session cookie can be sent
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const defaultHost = `${window.location.hostname}:${WEBUI_DEFAULT_PORT}`;
-  const socketUrl = `${protocol}//${window.location.host || defaultHost}`;
+  const socketUrl = `${protocol}//${window.location.host || defaultHost}${WEBUI_BRIDGE_WS_PATH}`;
 
   type QueuedMessage = { name: string; data: unknown };
 

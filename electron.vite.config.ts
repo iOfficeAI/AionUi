@@ -5,6 +5,7 @@ import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from './uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { WEBUI_VITE_HMR_PATH } from './src/common/config/constants.ts';
 
 // Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
 function buildMcpServersPlugin() {
@@ -168,11 +169,11 @@ export default defineConfig(({ mode }) => {
         // Vite auto-increments to the next available port.
         // electron-vite reads the actual port and sets ELECTRON_RENDERER_URL accordingly.
         port: 5173,
-        // Explicit HMR host so Vite client connects directly to the Vite dev server,
-        // not to the WebUI proxy server (which would reject the WebSocket and cause infinite reload).
-        // Port is omitted so it automatically matches the server port.
+        // Route HMR through the WebUI reverse proxy so both local and remote
+        // browsers reconnect over the same origin without colliding with the
+        // app's own authenticated WebSocket endpoint.
         hmr: {
-          host: 'localhost',
+          path: WEBUI_VITE_HMR_PATH,
         },
       },
       resolve: {
