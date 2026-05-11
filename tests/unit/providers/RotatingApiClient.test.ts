@@ -12,7 +12,8 @@ import { AuthType } from '@office-ai/aioncli-core';
 // Only mock it selectively in specific tests that need custom behavior
 
 // Concrete test implementation of abstract RotatingApiClient
-class TestRotatingApiClient extends RotatingApiClient<any> {
+type TestClient = { apiKey: string };
+class TestRotatingApiClient extends RotatingApiClient<TestClient> {
   constructor(api_keys: string, authType: AuthType, options = {}) {
     super(api_keys, authType, (key) => ({ apiKey: key }), options);
   }
@@ -46,12 +47,12 @@ describe('RotatingApiClient', () => {
 
     it('calls createClientFn with first key', () => {
       const createClientSpy = vi.fn((key) => ({ apiKey: key }));
-      class SpyClient extends RotatingApiClient<any> {
+      class SpyClient extends RotatingApiClient<TestClient> {
         constructor(api_keys: string) {
           super(api_keys, AuthType.USE_OPENAI, createClientSpy);
         }
       }
-      const client = new SpyClient('test-key');
+      new SpyClient('test-key');
       expect(createClientSpy).toHaveBeenCalledWith('test-key');
     });
   });
