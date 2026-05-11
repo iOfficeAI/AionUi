@@ -33,6 +33,7 @@ import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@process/utils/shellEnv';
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
+import { classifyAcpError } from '@process/agent/shared';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
@@ -738,40 +739,9 @@ export class AcpAgent {
       this.statusMessageId = null;
       return { success: true, data: null };
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : String(error);
-      // Special handling for Internal error
-      if (errorMsg.includes('Internal error')) {
-        if (this.extra.backend === 'qwen') {
-          const enhancedMsg =
-            `Qwen ACP Internal Error: This usually means authentication failed or ` +
-            `the Qwen CLI has compatibility issues. Please try: 1) Restart the application ` +
-            `2) Use the packaged bun launcher instead of a global qwen install 3) Check if you have valid Qwen credentials.`;
-          this.emitErrorMessage(enhancedMsg);
-          return {
-            success: false,
-            error: createAcpError(AcpErrorType.AUTHENTICATION_FAILED, enhancedMsg, false),
-          };
-        }
-      }
-      // Classify error types based on message content
-      let errorType: AcpErrorType = AcpErrorType.UNKNOWN;
-      let retryable = false;
+      const classifiedError = classifyAcpError(error, this.extra.backend);
 
-      if (errorMsg.includes('authentication') || errorMsg.includes('认证失败') || errorMsg.includes('[ACP-AUTH-')) {
-        errorType = AcpErrorType.AUTHENTICATION_FAILED;
-        retryable = false;
-      } else if (errorMsg.includes('timeout') || errorMsg.includes('Timeout') || errorMsg.includes('timed out')) {
-        errorType = AcpErrorType.TIMEOUT;
-        retryable = true;
-      } else if (errorMsg.includes('permission') || errorMsg.includes('Permission')) {
-        errorType = AcpErrorType.PERMISSION_DENIED;
-        retryable = false;
-      } else if (errorMsg.includes('connection') || errorMsg.includes('Connection')) {
-        errorType = AcpErrorType.NETWORK_ERROR;
-        retryable = true;
-      }
-
-      this.emitErrorMessage(errorMsg);
+      this.emitErrorMessage(classifiedError.message);
 
       // Emit finish signal to reset frontend loading state.
       // Without this, the UI stays in loading after a timeout and the user cannot
@@ -787,7 +757,7 @@ export class AcpAgent {
 
       return {
         success: false,
-        error: createAcpError(errorType, errorMsg, retryable),
+        error: createAcpError(classifiedError.type, classifiedError.message, classifiedError.retryable),
       };
     }
   }
