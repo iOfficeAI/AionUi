@@ -102,8 +102,10 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon }) => {
   );
 
   if (!conversation) return null;
-  const team_id = ((conversation.extra as { team_id?: string; teamId?: string } | undefined)?.team_id
-    ?? (conversation.extra as { teamId?: string } | undefined)?.teamId)?.trim();
+  const team_id = (
+    (conversation.extra as { team_id?: string; teamId?: string } | undefined)?.team_id ??
+    (conversation.extra as { teamId?: string } | undefined)?.teamId
+  )?.trim();
   if (!team_id) return null;
 
   const agent_type = resolveAgentTypeFromConversation(conversation);
