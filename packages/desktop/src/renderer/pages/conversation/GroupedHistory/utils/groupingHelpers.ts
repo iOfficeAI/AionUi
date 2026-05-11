@@ -95,8 +95,8 @@ export const groupConversationsByWorkspace = (
 
 /** Check whether a conversation belongs to a team (should be hidden from sidebar). */
 const isTeamConversation = (conversation: TChatConversation): boolean => {
-  const extra = conversation.extra as { team_id?: string } | undefined;
-  return Boolean(extra?.team_id);
+  const extra = conversation.extra as { team_id?: string; teamId?: string } | undefined;
+  return Boolean(extra?.team_id || extra?.teamId);
 };
 
 export const buildGroupedHistory = (
