@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { DeleteOne, EditOne, Peoples, Plus, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Peoples, Plus, Pushpin, Right } from '@icon-park/react';
 import { Input, Message, Modal, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSWRConfig } from 'swr';
@@ -45,6 +45,12 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   const { mutate: globalMutate } = useSWRConfig();
 
   const [createTeamVisible, setCreateTeamVisible] = useState(false);
+  const [expanded, setExpanded] = useState<boolean>(() => {
+    return localStorage.getItem('team-section-expanded') === 'true';
+  });
+  useEffect(() => {
+    localStorage.setItem('team-section-expanded', String(expanded));
+  }, [expanded]);
 
   const [pinnedIds, setPinnedIds] = useState<string[]>(() => {
     try {
@@ -93,10 +99,10 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
   }, [teams, pinnedIds]);
 
   const handleTeamClick = useCallback(
-    (team_id: string) => {
+    (teamId: string) => {
       cleanupSiderTooltips();
       blurActiveElement();
-      Promise.resolve(navigate(`/team/${team_id}`)).catch(console.error);
+      Promise.resolve(navigate(`/team/${teamId}`)).catch(console.error);
       if (onSessionClick) onSessionClick();
     },
     [navigate, onSessionClick]
@@ -123,14 +129,14 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                       data-testid={`collapsed-team-icon-${team.id}`}
                       data-icon-fill={iconColors.primary}
                       theme='outline'
-                      size='20'
+                      size='16'
                       fill={iconColors.primary}
                       style={{ lineHeight: 0 }}
                     />
                     {(teamBadgeCounts.get(team.id) ?? 0) > 0 && (
                       <span
-                        className='absolute top-4px right-4px w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center leading-none'
-                        style={{ backgroundColor: '#F53F3F', color: '#fff', lineHeight: 1 }}
+                        className='absolute top-4px right-4px w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center leading-none bg-danger-6 text-white'
+                        style={{ lineHeight: 1 }}
                       >
                         {(teamBadgeCounts.get(team.id) ?? 0) > 99 ? '99+' : teamBadgeCounts.get(team.id)}
                       </span>
@@ -142,20 +148,31 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
           </div>
         )
       ) : (
-        <div className='shrink-0 flex flex-col gap-2px mb-8px'>
-          <div className='flex items-center justify-between px-12px py-8px'>
-            <span className='text-13px text-t-secondary font-bold leading-20px'>{t('team.sider.title')}</span>
-            {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试的入口 selector，不得删除或重命名。
-                如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
+        <div className='shrink-0 flex flex-col gap-2px'>
+          <div
+            className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-4px'
+            data-testid='team-section-toggle'
+          >
+            <span className='text-12px text-t-secondary font-normal leading-none'>{t('team.sider.title')}</span>
+            <span
+              className='ml-2px flex items-center justify-center cursor-pointer opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'
+              onClick={() => setExpanded((v) => !v)}
+            >
+              <Right
+                theme='outline'
+                size={12}
+                className={classNames('transition-transform duration-150', { 'rotate-90': expanded })}
+              />
+            </span>
             <div
-              data-testid='team-create-btn'
-              className='h-20px w-20px rd-4px flex items-center justify-center cursor-pointer hover:bg-fill-3 transition-all shrink-0'
+              className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary opacity-0 group-hover/label:opacity-100 transition-opacity'
               onClick={() => setCreateTeamVisible(true)}
             >
-              <Plus theme='outline' size='14' fill='var(--color-text-2)' style={{ lineHeight: 0 }} />
+              <Plus theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
             </div>
           </div>
-          {sortedTeams.length > 0 &&
+          {expanded &&
+            sortedTeams.length > 0 &&
             sortedTeams.map((team) => {
               const isPinned = pinnedIds.includes(team.id);
               const menuItems: SiderMenuItem[] = [
@@ -180,7 +197,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
               return (
                 <div key={team.id} className='relative group'>
                   <SiderItem
-                    icon={<Peoples theme='outline' size='20' fill={iconColors.primary} style={{ lineHeight: 0 }} />}
+                    icon={<Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />}
                     name={team.name}
                     selected={pathname.startsWith(`/team/${team.id}`)}
                     pinned={isPinned}
@@ -200,11 +217,10 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                           cancelText: t('team.sider.deleteCancel'),
                           okButtonProps: { status: 'warning' },
                           onOk: async () => {
-                            const teamIdToDelete = team.id;
-                            await removeTeam(teamIdToDelete);
+                            await removeTeam(team.id);
                             Message.success(t('team.sider.deleteSuccess'));
-                            if (window.location.hash.includes(`/team/${teamIdToDelete}`)) {
-                              window.location.hash = '#/';
+                            if (pathname.startsWith(`/team/${team.id}`)) {
+                              Promise.resolve(navigate('/')).catch(() => {});
                             }
                           },
                           style: { borderRadius: '12px' },
@@ -217,8 +233,8 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   />
                   {teamBadge > 0 && (
                     <span
-                      className='absolute right-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden'
-                      style={{ backgroundColor: '#F53F3F', color: '#fff', lineHeight: 1 }}
+                      className='absolute right-11px top-1/2 -translate-y-1/2 w-18px h-18px rounded-full text-10px font-bold flex items-center justify-center pointer-events-none z-10 group-hover:hidden bg-danger-6 text-white'
+                      style={{ lineHeight: 1 }}
                     >
                       {teamBadge > 99 ? '99+' : teamBadge}
                     </span>

@@ -201,7 +201,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         const groupHeaderKey = groupHeaderAt.get(index);
         const groupHeader =
           groupHeaderKey && !collapsed ? (
-            <div className='settings-sider__group-header px-10px pt-12px pb-4px text-11px font-medium text-t-tertiary uppercase tracking-wider select-none'>
+            <div className='settings-sider__group-header px-12px pt-8px pb-0 h-28px flex items-center text-12px font-normal text-t-secondary select-none'>
               {t(groupHeaderKey)}
             </div>
           ) : null;
@@ -213,11 +213,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                 data-settings-id={item.id}
                 data-settings-path={item.path}
                 className={classNames(
-                  'settings-sider__item h-40px rd-8px flex items-center gap-8px group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px transition-colors',
+                  'settings-sider__item h-34px rd-8px flex items-center gap-8px group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px transition-colors',
                   collapsed ? 'w-full justify-center px-0' : 'justify-start px-10px',
                   {
-                    'hover:bg-[rgba(var(--primary-6),0.14)]': !isSelected,
-                    '!bg-active': isSelected,
+                    'hover:bg-fill-3': !isSelected,
+                    '!bg-fill-3': isSelected,
                   }
                 )}
                 onClick={() => {
@@ -227,9 +227,9 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                 }}
               >
                 {/* Leading icon — fixed 28px column to align with main sider rows */}
-                <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+                <span className='size-22px flex items-center justify-center shrink-0 line-height-0'>
                   {item.isImageIcon ? (
-                    <span className='w-18px h-18px flex items-center justify-center'>{item.icon}</span>
+                    <span className='w-16px h-16px flex items-center justify-center'>{item.icon}</span>
                   ) : (
                     React.cloneElement(
                       item.icon as React.ReactElement<{
@@ -240,7 +240,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                       }>,
                       {
                         theme: 'outline',
-                        size: '20',
+                        size: '16',
                         strokeWidth: 3,
                         className: 'block leading-none text-t-secondary',
                       }
@@ -248,12 +248,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
                   )}
                 </span>
                 <FlexFullContainer className='h-24px collapsed-hidden'>
-                  <div
-                    className={classNames(
-                      'settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap',
-                      isSelected ? 'text-t-primary font-medium' : 'text-t-primary'
-                    )}
-                  >
+                  <div className='settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>
                     {item.label}
                   </div>
                 </FlexFullContainer>

@@ -15,6 +15,13 @@
   margin-bottom: 16px;
 }
 
+/* Mobile: leave room on the left for the floating sider hamburger (left:12, w:36) */
+@media (max-width: 767px) {
+  .heroHeader {
+    padding-left: 44px;
+  }
+}
+
 .heroHeaderControls {
   width: 100%;
   max-width: 760px;

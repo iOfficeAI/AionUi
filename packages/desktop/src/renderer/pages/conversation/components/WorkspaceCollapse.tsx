@@ -21,6 +21,8 @@ interface WorkspaceCollapseProps {
   className?: string;
   /** 侧栏是否折叠 - 折叠时隐藏组标题并移除缩进 */
   siderCollapsed?: boolean;
+  /** 标题尾部插槽 - 例如 hover 显示的菜单按钮，点击不会触发 onToggle */
+  trailing?: React.ReactNode;
 }
 
 /**
@@ -33,6 +35,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
   children,
   className,
   siderCollapsed = false,
+  trailing,
 }) => {
   // 侧栏折叠时，强制展开内容并隐藏头部
   const showContent = siderCollapsed || expanded;
@@ -42,29 +45,32 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
         <div
-          className='flex items-center gap-8px h-40px px-10px cursor-pointer hover:bg-[rgba(var(--primary-6),0.14)] rd-8px transition-colors min-w-0'
+          className='flex items-center gap-8px h-34px pl-10px pr-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
           onClick={onToggle}
         >
-          {/* 展开/收起文件夹图标 — 28px 容器与其他 sider 行对齐 */}
-          <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+          {/* 文件夹图标 — 颜色与 header 文本同步退一层 */}
+          <span className='size-22px flex items-center justify-center shrink-0 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors'>
             {expanded ? (
-              <FolderOpen size={20} className='line-height-0' />
+              <FolderOpen theme='outline' size={16} fill='currentColor' className='line-height-0' />
             ) : (
-              <FolderClose size={20} className='line-height-0' />
+              <FolderClose theme='outline' size={16} fill='currentColor' className='line-height-0' />
             )}
           </span>
 
           {/* 标题内容 */}
           <div className='flex-1 min-w-0 overflow-hidden'>{header}</div>
+
+          {/* 尾部操作（如菜单按钮）— 阻止点击冒泡到 onToggle */}
+          {trailing && (
+            <div className='shrink-0 flex items-center' onClick={(e) => e.stopPropagation()}>
+              {trailing}
+            </div>
+          )}
         </div>
       )}
 
-      {/* 折叠内容 - 子项缩进 20px,使子项 icon 中心落在父级文字起点附近,形成清晰的层级 */}
-      {showContent && (
-        <div className={classNames('workspace-collapse-content min-w-0', { 'pl-20px': !siderCollapsed })}>
-          {children}
-        </div>
-      )}
+      {/* 折叠内容 — row 保持全宽以便选中态 bg 填满整行；视觉缩进由 ConversationRow 的 dimIcon 分支自行处理 */}
+      {showContent && <div className='workspace-collapse-content min-w-0'>{children}</div>}
     </div>
   );
 };

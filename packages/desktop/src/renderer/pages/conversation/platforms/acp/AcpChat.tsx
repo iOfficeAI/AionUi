@@ -25,6 +25,7 @@ const AcpChat: React.FC<{
   cron_job_id?: string;
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
+  initialModelId?: string;
 }> = ({
   conversation_id,
   workspace,
@@ -35,6 +36,7 @@ const AcpChat: React.FC<{
   cron_job_id,
   hideSendBox,
   emptySlot,
+  initialModelId,
 }) => {
   useMessageLstCache(conversation_id);
   const messageState = useAcpMessage(conversation_id);
@@ -56,6 +58,7 @@ const AcpChat: React.FC<{
               cached_config_options={cached_config_options}
               agent_name={agent_name}
               workspacePath={workspace}
+              initialModelId={initialModelId}
               messageState={messageState}
             ></AcpSendBox>
           )}

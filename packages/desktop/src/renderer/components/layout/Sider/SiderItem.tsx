@@ -9,8 +9,6 @@ import { Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useState } from 'react';
 
-import styles from './Sider.module.css';
-
 export type SiderMenuItem = {
   key: string;
   icon: React.ReactNode;
@@ -55,52 +53,48 @@ const SiderItem: React.FC<SiderItemProps> = ({
     >
       <div
         className={classNames(
-          'h-40px rd-8px flex items-center gap-8px px-10px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
+          'h-34px rd-8px flex items-center gap-8px pl-10px pr-8px cursor-pointer relative overflow-hidden shrink-0 group min-w-0 transition-colors',
           {
-            'hover:bg-[rgba(var(--primary-6),0.14)]': true,
-            '!bg-active': selected,
+            'hover:bg-fill-3': !selected,
+            '!bg-fill-3': selected,
           }
         )}
         onClick={onClick}
         onContextMenu={onContextMenu}
       >
-        {/* Leading icon — fixed 28px column to align with other sidebar rows */}
-        <span className='w-28px h-28px flex items-center justify-center shrink-0 line-height-0'>{icon}</span>
-
-        {/* Name with truncation — reserve extra room on the right when pinned
-            so the pushpin never overlaps the text in the resting state. */}
-        <div
-          className={classNames('h-24px min-w-0 flex-1 overflow-hidden', pinned ? styles.pinnedTextSlot : 'pr-18px')}
-        >
-          <div
-            className={classNames(
-              'overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 group-hover:text-1',
-              selected ? 'text-1 font-medium' : 'text-2'
-            )}
+        {/* Leading icon — pushpin overlays this slot on hover when row is pinned */}
+        <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-secondary relative'>
+          <span
+            className={classNames('flex items-center justify-center', {
+              'group-hover:opacity-0 transition-opacity': hasMenu && pinned,
+            })}
           >
+            {icon}
+          </span>
+          {hasMenu && pinned && (
+            <span
+              className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+              style={{ lineHeight: 0 }}
+            >
+              <Pushpin theme='outline' size='14' />
+            </span>
+          )}
+        </span>
+
+        {/* Name with truncation — reserve room for the hover three-dot menu */}
+        <div className='h-24px min-w-0 flex-1 overflow-hidden pr-24px'>
+          <div className='overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 text-t-primary'>
             <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{name}</span>
           </div>
         </div>
 
-        {/* Resting pin indicator — sits in its own reserved slot, no gradient overlay */}
-        {hasMenu && pinned && !menuVisible && (
-          <span className='absolute right-8px top-1/2 -translate-y-1/2 flex-center text-t-secondary group-hover:hidden pointer-events-none'>
-            <Pushpin theme='outline' size='16' />
-          </span>
-        )}
-
-        {/* Hover/active actions: three-dot menu with soft gradient fade */}
+        {/* Hover/active actions: three-dot menu */}
         {hasMenu && (
           <div
-            className={classNames('absolute right-0px top-0px h-full items-center justify-end pr-8px', {
+            className={classNames('absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end', {
               flex: menuVisible,
               'hidden group-hover:flex': !menuVisible,
             })}
-            style={{
-              backgroundImage: selected
-                ? `linear-gradient(to right, transparent, var(--aou-2) 20%)`
-                : `linear-gradient(to right, transparent, var(--aou-1) 20%)`,
-            }}
             onClick={(e) => e.stopPropagation()}
           >
             <Dropdown
@@ -135,7 +129,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
               <span
                 data-testid='sider-item-menu-trigger'
                 className={classNames(
-                  'flex-center cursor-pointer hover:bg-fill-2 rd-4px p-4px transition-colors relative text-t-primary',
+                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px',
                   {
                     flex: menuVisible,
                     'hidden group-hover:flex': !menuVisible,
@@ -146,14 +140,11 @@ const SiderItem: React.FC<SiderItemProps> = ({
                   setMenuVisible(true);
                 }}
               >
-                <div
-                  className='flex flex-col gap-2px items-center justify-center'
-                  style={{ width: '16px', height: '16px' }}
-                >
-                  <div className='w-2px h-2px rounded-full bg-current' />
-                  <div className='w-2px h-2px rounded-full bg-current' />
-                  <div className='w-2px h-2px rounded-full bg-current' />
-                </div>
+                <span className='flex flex-col gap-2px items-center justify-center'>
+                  <span className='w-2px h-2px rounded-full bg-current' />
+                  <span className='w-2px h-2px rounded-full bg-current' />
+                  <span className='w-2px h-2px rounded-full bg-current' />
+                </span>
               </span>
             </Dropdown>
           </div>
