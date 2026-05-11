@@ -18,6 +18,7 @@ import {
 import { AcpError as AcpSessionError } from '@process/acp/errors/AcpError';
 import { AcpSession, type SessionOptions } from '@process/acp/session/AcpSession';
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
+import { mergeCodexConfiguredModelInfo } from '@process/task/codexConfig';
 // TODO(ACP Discovery): Re-enable when acp_session persistence is restored.
 // import type { IAcpSessionRepository } from '@process/services/database/IAcpSessionRepository';
 import { getTeamGuideStdioConfig } from '@/process/team/mcp/guide/teamGuideSingleton';
@@ -286,7 +287,11 @@ export class AcpAgentV2 {
       },
 
       onModelUpdate: (model: ModelSnapshot) => {
-        this.cachedModelInfo = toAcpModelInfo(model);
+        const modelInfo = toAcpModelInfo(model);
+        this.cachedModelInfo =
+          this.agentConfig.agentBackend === 'codex'
+            ? mergeCodexConfiguredModelInfo(modelInfo, !this.userModelOverride)
+            : modelInfo;
 
         // Resolve modelOp if pending
         if (this.modelOp) {
@@ -728,6 +733,9 @@ export class AcpAgentV2 {
         return ccSwitchInfo;
       }
     }
+    if (this.agentConfig.agentBackend === 'codex') {
+      return mergeCodexConfiguredModelInfo(this.cachedModelInfo, !this.userModelOverride);
+    }
     return this.cachedModelInfo;
   }
 
@@ -869,7 +877,7 @@ export class AcpAgentV2 {
    */
   private persistSessionCapabilities(): void {
     const backend = this.agentConfig.agentBackend;
-    const modelInfo = this.cachedModelInfo;
+    const modelInfo = this.getModelInfo();
     const configOptions = this.cachedConfigOptions;
     const modes = this.cachedModes;
 
