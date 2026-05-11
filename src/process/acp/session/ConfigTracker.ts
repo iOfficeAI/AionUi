@@ -1,6 +1,11 @@
 // src/process/acp/session/ConfigTracker.ts
 
 import type {
+  SessionConfigOption,
+  SessionConfigSelectGroup,
+  SessionConfigSelectOption,
+} from '@agentclientprotocol/sdk';
+import type {
   AvailableCommand,
   ConfigOption,
   ConfigSnapshot,
@@ -19,6 +24,39 @@ type SyncResult = {
   additionalDirectories?: string[];
   availableCommands?: AvailableCommand[];
 };
+
+function isSelectGroup(
+  option: SessionConfigSelectOption | SessionConfigSelectGroup
+): option is SessionConfigSelectGroup {
+  return 'group' in option;
+}
+
+export function normalizeSessionConfigOptions(options?: SessionConfigOption[] | null): ConfigOption[] | undefined {
+  if (!options) return undefined;
+  return options.map((opt) => {
+    const normalized: ConfigOption = {
+      id: opt.id,
+      name: opt.name,
+      type: opt.type,
+      category: opt.category ?? undefined,
+      description: opt.description ?? undefined,
+      currentValue: opt.currentValue,
+    };
+
+    if (opt.type === 'select') {
+      normalized.options = opt.options.flatMap((item) => {
+        const values = isSelectGroup(item) ? item.options : [item];
+        return values.map((value) => ({
+          id: value.value,
+          name: value.name,
+          description: value.description ?? undefined,
+        }));
+      });
+    }
+
+    return normalized;
+  });
+}
 
 type PendingChanges = {
   model: string | null;
@@ -59,6 +97,7 @@ export class ConfigTracker {
 
   setCurrentModel(modelId: string): void {
     this.currentModelId = modelId;
+    this.setCurrentCategorizedConfigOption('model', modelId);
     if (this.desiredModelId === modelId) this.desiredModelId = null;
   }
 
@@ -68,6 +107,7 @@ export class ConfigTracker {
 
   setCurrentMode(modeId: string): void {
     this.currentModeId = modeId;
+    this.setCurrentCategorizedConfigOption('mode', modeId);
     if (this.desiredModeId === modeId) this.desiredModeId = null;
   }
 
@@ -78,6 +118,7 @@ export class ConfigTracker {
   setCurrentConfigOption(id: string, value: string | boolean): void {
     const opt = this.currentConfigOptions.find((o) => o.id === id);
     if (opt) opt.currentValue = value;
+    this.syncDerivedFromConfigOptions();
     this.desiredConfigOptions.delete(id);
   }
 
@@ -90,6 +131,7 @@ export class ConfigTracker {
     if (result.availableModes) this.availableModes = result.availableModes;
     if (result.configOptions) this.currentConfigOptions = result.configOptions;
     if (result.availableCommands) this.availableCommands = result.availableCommands;
+    this.syncDerivedFromConfigOptions();
   }
 
   /**
@@ -157,9 +199,52 @@ export class ConfigTracker {
 
   updateConfigOptions(options: ConfigOption[]): void {
     this.currentConfigOptions = options;
+    this.syncDerivedFromConfigOptions();
   }
 
   updateAvailableCommands(commands: AvailableCommand[]): void {
     this.availableCommands = commands;
+  }
+
+  getConfigOptionIdForCategory(category: 'model' | 'mode'): string | null {
+    return this.findCategorizedConfigOption(category)?.id ?? null;
+  }
+
+  private findCategorizedConfigOption(category: 'model' | 'mode'): ConfigOption | undefined {
+    return (
+      this.currentConfigOptions.find((opt) => opt.category === category) ??
+      this.currentConfigOptions.find((opt) => opt.id === category)
+    );
+  }
+
+  private setCurrentCategorizedConfigOption(category: 'model' | 'mode', value: string): void {
+    const opt = this.findCategorizedConfigOption(category);
+    if (opt) opt.currentValue = value;
+  }
+
+  private syncDerivedFromConfigOptions(): void {
+    const modelOption = this.findCategorizedConfigOption('model');
+    if (modelOption) {
+      if (typeof modelOption.currentValue === 'string') this.currentModelId = modelOption.currentValue;
+      if (modelOption.options) {
+        this.availableModels = modelOption.options.map((opt) => ({
+          modelId: opt.id,
+          name: opt.name,
+          description: opt.description,
+        }));
+      }
+    }
+
+    const modeOption = this.findCategorizedConfigOption('mode');
+    if (modeOption) {
+      if (typeof modeOption.currentValue === 'string') this.currentModeId = modeOption.currentValue;
+      if (modeOption.options) {
+        this.availableModes = modeOption.options.map((opt) => ({
+          id: opt.id,
+          name: opt.name,
+          description: opt.description,
+        }));
+      }
+    }
   }
 }

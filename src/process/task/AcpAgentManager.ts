@@ -630,7 +630,9 @@ ${collectedResponses.join('\n')}`;
   private handleStreamEvent(message: IResponseMessage, backend: AcpBackend): void {
     // During bootstrap (warmup), suppress UI stream events to avoid
     // triggering sidebar loading spinner before user sends a message.
-    if (this.bootstrapping) return;
+    // Allow acp_model_info through so the model selector gets populated
+    // when backends send models via notification (e.g. Devin).
+    if (this.bootstrapping && message.type !== 'acp_model_info') return;
 
     this.markTrackedTurnRuntimeActivity();
 
@@ -857,11 +859,17 @@ ${collectedResponses.join('\n')}`;
 
     if (this.persistedModelId) {
       const currentInfo = this.agent.getModelInfo();
-      const isModelAvailable = currentInfo?.availableModels?.some((m) => m.id === this.persistedModelId);
+      // If no models are available yet (e.g. Devin sends them via notification
+      // after session/new), don't clear the persisted model — it will be
+      // re-applied when the config_option_update arrives.
+      if (!currentInfo?.availableModels?.length) {
+        return;
+      }
+      const isModelAvailable = currentInfo.availableModels.some((m) => m.id === this.persistedModelId);
       if (!isModelAvailable) {
         mainWarn('[AcpAgentManager]', `Persisted model ${this.persistedModelId} is not in available models, clearing`);
         this.persistedModelId = null;
-      } else if (currentInfo?.currentModelId !== this.persistedModelId) {
+      } else if (currentInfo.currentModelId !== this.persistedModelId) {
         try {
           await this.agent.setModelByConfigOption(this.persistedModelId);
         } catch (error) {

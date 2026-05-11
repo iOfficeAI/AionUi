@@ -1,7 +1,7 @@
 // tests/unit/process/acp/session/ConfigTracker.test.ts
 
 import { describe, it, expect } from 'vitest';
-import { ConfigTracker } from '@process/acp/session/ConfigTracker';
+import { ConfigTracker, normalizeSessionConfigOptions } from '@process/acp/session/ConfigTracker';
 
 describe('ConfigTracker', () => {
   it('starts with null current values', () => {
@@ -107,5 +107,101 @@ describe('ConfigTracker', () => {
       cwd: '/tmp',
     });
     expect(ct.modeSnapshot().availableModes.map((m) => m.id)).toEqual(['code']);
+  });
+
+  it('normalizes ACP select config options and preserves category/options metadata', () => {
+    const options = normalizeSessionConfigOptions([
+      {
+        id: 'model',
+        name: 'Model',
+        category: 'model',
+        description: 'AI model to use',
+        type: 'select',
+        currentValue: 'swe-1-6-fast',
+        options: [
+          { value: 'swe-1-6-fast', name: 'SWE 1.6 Fast' },
+          { value: 'gpt-5-5-medium', name: 'GPT-5.5 Medium', description: 'Balanced' },
+        ],
+      },
+    ]);
+
+    expect(options).toEqual([
+      {
+        id: 'model',
+        name: 'Model',
+        category: 'model',
+        description: 'AI model to use',
+        type: 'select',
+        currentValue: 'swe-1-6-fast',
+        options: [
+          { id: 'swe-1-6-fast', name: 'SWE 1.6 Fast', description: undefined },
+          { id: 'gpt-5-5-medium', name: 'GPT-5.5 Medium', description: 'Balanced' },
+        ],
+      },
+    ]);
+  });
+
+  it('derives model and mode snapshots from categorized config options', () => {
+    const ct = new ConfigTracker();
+    ct.syncFromSessionResult({
+      configOptions: [
+        {
+          id: 'model',
+          name: 'Model',
+          category: 'model',
+          type: 'select',
+          currentValue: 'swe-1-6-fast',
+          options: [
+            { id: 'swe-1-6-fast', name: 'SWE 1.6 Fast' },
+            { id: 'gpt-5-5-medium', name: 'GPT-5.5 Medium' },
+          ],
+        },
+        {
+          id: 'mode',
+          name: 'Mode',
+          category: 'mode',
+          type: 'select',
+          currentValue: 'accept-edits',
+          options: [
+            { id: 'accept-edits', name: 'Code' },
+            { id: 'ask', name: 'Ask' },
+          ],
+        },
+      ],
+      cwd: '/tmp',
+    });
+
+    expect(ct.modelSnapshot()).toEqual({
+      currentModelId: 'swe-1-6-fast',
+      availableModels: [
+        { modelId: 'swe-1-6-fast', name: 'SWE 1.6 Fast', description: undefined },
+        { modelId: 'gpt-5-5-medium', name: 'GPT-5.5 Medium', description: undefined },
+      ],
+    });
+    expect(ct.modeSnapshot()).toEqual({
+      currentModeId: 'accept-edits',
+      availableModes: [
+        { id: 'accept-edits', name: 'Code', description: undefined },
+        { id: 'ask', name: 'Ask', description: undefined },
+      ],
+    });
+    expect(ct.getConfigOptionIdForCategory('model')).toBe('model');
+  });
+
+  it('keeps derived model snapshots current when config option value changes', () => {
+    const ct = new ConfigTracker();
+    ct.updateConfigOptions([
+      {
+        id: 'model',
+        name: 'Model',
+        category: 'model',
+        type: 'select',
+        currentValue: 'swe-1-6-fast',
+        options: [{ id: 'swe-1-6-fast', name: 'SWE 1.6 Fast' }],
+      },
+    ]);
+    ct.setCurrentConfigOption('model', 'gpt-5-5-medium');
+
+    expect(ct.modelSnapshot().currentModelId).toBe('gpt-5-5-medium');
   });
 });

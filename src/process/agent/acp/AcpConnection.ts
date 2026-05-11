@@ -27,6 +27,7 @@ import path from 'path';
 import { connectClaude, connectCodebuddy, connectCodex, spawnGenericBackend } from './acpConnectors';
 import type { SpawnResult } from './acpConnectors';
 import { killChild, readTextFile, writeJsonRpcMessage, writeTextFile } from './utils';
+import { normalizeConfigOptions } from './modelInfo';
 
 // Re-export for unit tests that import from this module
 export { createGenericSpawnConfig } from './acpConnectors';
@@ -245,6 +246,7 @@ export class AcpConnection {
       case 'kiro':
       case 'hermes':
       case 'snow':
+      case 'devin':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
@@ -647,9 +649,9 @@ export class AcpConnection {
             message.params?.update &&
             (message.params.update as Record<string, unknown>).sessionUpdate === 'config_option_update'
           ) {
-            const updatePayload = message.params.update as { configOptions?: AcpSessionConfigOption[] };
+            const updatePayload = message.params.update as { configOptions?: unknown[] };
             if (Array.isArray(updatePayload.configOptions)) {
-              this.configOptions = updatePayload.configOptions;
+              this.configOptions = normalizeConfigOptions(updatePayload.configOptions);
             }
           }
           this.onSessionUpdate(message.params);
@@ -772,7 +774,11 @@ export class AcpConnection {
    */
   async newSession(
     cwd: string = process.cwd(),
-    options?: { resumeSessionId?: string; forkSession?: boolean; mcpServers?: AcpSessionMcpServer[] }
+    options?: {
+      resumeSessionId?: string;
+      forkSession?: boolean;
+      mcpServers?: AcpSessionMcpServer[];
+    }
   ): Promise<AcpResponse & { sessionId?: string }> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
@@ -889,7 +895,7 @@ export class AcpConnection {
   private parseSessionCapabilities(response: unknown): void {
     const result = response as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
-      this.configOptions = result.configOptions as AcpSessionConfigOption[];
+      this.configOptions = normalizeConfigOptions(result.configOptions);
     }
 
     // Parse top-level modes (used by qoder, opencode, etc.)
@@ -1038,7 +1044,7 @@ export class AcpConnection {
     // The response may contain the updated configOptions
     const result = response as unknown as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
-      this.configOptions = result.configOptions as AcpSessionConfigOption[];
+      this.configOptions = normalizeConfigOptions(result.configOptions);
     } else if (this.configOptions) {
       // Optimistically update the cached currentValue so getModelInfo() reflects
       // the switch immediately, even if the agent responds without configOptions.

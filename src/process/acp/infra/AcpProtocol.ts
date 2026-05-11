@@ -9,6 +9,7 @@ import type {
   NewSessionResponse,
   PromptResponse,
   SetSessionConfigOptionRequest,
+  SetSessionConfigOptionResponse,
   Stream,
 } from '@agentclientprotocol/sdk';
 import { ClientSideConnection, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
@@ -119,10 +120,14 @@ export class AcpProtocol {
     await this.sdk.setSessionMode({ sessionId, modeId });
   }
 
-  async setConfigOption(sessionId: string, configId: string, value: string | boolean): Promise<void> {
+  async setConfigOption(
+    sessionId: string,
+    configId: string,
+    value: string | boolean
+  ): Promise<SetSessionConfigOptionResponse> {
     const params: SetSessionConfigOptionRequest =
       typeof value === 'boolean' ? { sessionId, configId, type: 'boolean', value } : { sessionId, configId, value };
-    await this.sdk.setSessionConfigOption(params);
+    return this.sdk.setSessionConfigOption(params);
   }
 
   async closeSession(sessionId: string): Promise<void> {

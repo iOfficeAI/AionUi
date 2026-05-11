@@ -74,10 +74,6 @@ const AcpModelSelector: React.FC<{
         const cachedInfo = cached?.[backendKey];
         if (!cachedInfo?.availableModels?.length) return;
 
-        if (backendKey === 'codex') {
-          console.log('[AcpModelSelector][codex] Loaded cached model info:', cachedInfo);
-        }
-
         const effectiveModelId =
           options?.preserveInitialModel && initialModelId ? initialModelId : (cachedInfo.currentModelId ?? null);
 
@@ -101,9 +97,6 @@ const AcpModelSelector: React.FC<{
 
       if (result.success && result.data?.modelInfo) {
         const info = result.data.modelInfo;
-        if (backend === 'codex') {
-          console.log('[AcpModelSelector][codex] Initial model info:', info);
-        }
         if (info.availableModels?.length > 0) {
           if (
             options?.preserveInitialModel &&
@@ -180,9 +173,6 @@ const AcpModelSelector: React.FC<{
       if (message.conversation_id !== conversationId) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
-        if (backend === 'codex') {
-          console.log('[AcpModelSelector][codex] Stream model info:', incoming);
-        }
         // Preserve pre-selected model from Guid page until user manually switches.
         // The agent emits its default model during start (before re-apply), which
         // would otherwise overwrite the user's Guid page selection.
