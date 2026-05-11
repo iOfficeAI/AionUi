@@ -541,9 +541,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 let name = id;
                 let logo: React.ReactNode = <Robot size='16' />;
                 if (type === 'cli') {
-                  const agent = cliAgents.find(
-                    (a) => (a.backend || a.agent_type) === id
-                  );
+                  const agent = cliAgents.find((a) => (a.backend || a.agent_type) === id);
                   if (agent) {
                     name = agent.name;
                     const logoSrc = resolveAgentLogo({

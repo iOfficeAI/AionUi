@@ -38,6 +38,22 @@ describe('configMigration', () => {
   });
 
   describe('migrateConfigStorage', () => {
+    it('skips migration when already done flag is set', async () => {
+      const configFile: ConfigFile = {
+        get: vi.fn((key: string) => {
+          if (key === 'migration.configStorageDone') return Promise.resolve(true);
+          return Promise.reject(new Error('not found'));
+        }),
+        set: vi.fn(),
+      };
+      const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateConfigStorage(configFile);
+
+      expect(httpRequest).not.toHaveBeenCalled();
+      expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('already done'));
+    });
+
     it('skips migration when no keys are found', async () => {
       const configFile: ConfigFile = {
         get: vi.fn().mockRejectedValue(new Error('not found')),
@@ -47,59 +63,98 @@ describe('configMigration', () => {
 
       await migrateConfigStorage(configFile);
 
-      expect(httpRequest).not.toHaveBeenCalled();
+      // Only the GET for existing keys check, no PUT
+      expect(httpRequest).not.toHaveBeenCalledWith('PUT', expect.anything(), expect.anything());
       expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('skipped'));
+      expect(configFile.set).toHaveBeenCalledWith('migration.configStorageDone', true);
     });
 
-    it('collects multiple legacy keys and sends one PUT request', async () => {
+    it('collects multiple legacy keys and sends one PUT with merge strategy', async () => {
       const configFile: ConfigFile = {
         get: vi.fn((key: string) => {
+          if (key === 'migration.configStorageDone') return Promise.reject(new Error('not found'));
           if (key === 'language') return Promise.resolve('zh-CN');
           if (key === 'theme') return Promise.resolve('dark');
           return Promise.reject(new Error('not found'));
         }),
         set: vi.fn(),
       };
-      (httpRequest as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      // GET returns empty (no existing keys) → all legacy keys are new
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({});
+        return Promise.resolve(undefined);
+      });
       vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await migrateConfigStorage(configFile);
 
-      expect(httpRequest).toHaveBeenCalledTimes(1);
       expect(httpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
         language: 'zh-CN',
         theme: 'dark',
+      });
+      expect(configFile.set).toHaveBeenCalledWith('migration.configStorageDone', true);
+    });
+
+    it('skips keys that already exist in backend (merge strategy)', async () => {
+      const configFile: ConfigFile = {
+        get: vi.fn((key: string) => {
+          if (key === 'migration.configStorageDone') return Promise.reject(new Error('not found'));
+          if (key === 'language') return Promise.resolve('en');
+          if (key === 'theme') return Promise.resolve('dark');
+          return Promise.reject(new Error('not found'));
+        }),
+        set: vi.fn(),
+      };
+      // GET returns 'theme' as already existing → only 'language' should be written
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({ theme: 'light' });
+        return Promise.resolve(undefined);
+      });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateConfigStorage(configFile);
+
+      expect(httpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+        language: 'en',
       });
     });
 
     it('ignores null values', async () => {
       const configFile: ConfigFile = {
         get: vi.fn((key: string) => {
+          if (key === 'migration.configStorageDone') return Promise.reject(new Error('not found'));
           if (key === 'language') return Promise.resolve('en');
           if (key === 'theme') return Promise.resolve(null);
           return Promise.reject(new Error('not found'));
         }),
         set: vi.fn(),
       };
-      (httpRequest as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({});
+        return Promise.resolve(undefined);
+      });
       vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await migrateConfigStorage(configFile);
 
-      const callArgs = (httpRequest as ReturnType<typeof vi.fn>).mock.calls[0][2];
-      expect(callArgs).toEqual({ language: 'en' });
-      expect(callArgs).not.toHaveProperty('theme');
+      const putCall = (httpRequest as ReturnType<typeof vi.fn>).mock.calls.find((c: unknown[]) => c[0] === 'PUT');
+      expect(putCall?.[2]).toEqual({ language: 'en' });
+      expect(putCall?.[2]).not.toHaveProperty('theme');
     });
 
     it('handles configFile.get exceptions by skipping those keys', async () => {
       const configFile: ConfigFile = {
         get: vi.fn((key: string) => {
+          if (key === 'migration.configStorageDone') return Promise.reject(new Error('not found'));
           if (key === 'language') return Promise.resolve('en');
           throw new Error('access error');
         }),
         set: vi.fn(),
       };
-      (httpRequest as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({});
+        return Promise.resolve(undefined);
+      });
       vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await migrateConfigStorage(configFile);

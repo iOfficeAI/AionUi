@@ -62,9 +62,9 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
 ];
 
 export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {
-  const alreadyDone = await configFile.get('migration.configStorageDone' as keyof IConfigStorageRefer).catch(
-    (): undefined => undefined
-  );
+  const alreadyDone = await configFile
+    .get('migration.configStorageDone' as keyof IConfigStorageRefer)
+    .catch((): undefined => undefined);
   if (alreadyDone === true) {
     console.info('[Migration] configStorage migration skipped — already done');
     return;
@@ -114,7 +114,10 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
       Object.keys(entries).length - Object.keys(newEntries).length
     );
   } else {
-    console.info('[Migration] configStorage migration skipped — all %d keys already exist in backend', Object.keys(entries).length);
+    console.info(
+      '[Migration] configStorage migration skipped — all %d keys already exist in backend',
+      Object.keys(entries).length
+    );
   }
 
   await configFile.set('migration.configStorageDone' as keyof IConfigStorageRefer, true as never);
@@ -249,7 +252,7 @@ type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;
 
 async function fetchExistingClientKeys(): Promise<Record<string, unknown>> {
   try {
-    return await httpRequest<Record<string, unknown>>('GET', '/api/settings/client') || {};
+    return (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client')) || {};
   } catch {
     return {};
   }

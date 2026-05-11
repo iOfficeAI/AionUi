@@ -302,14 +302,10 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
-                    const logo = getAgentLogo(job.metadata.agent_config.backend) ||
-                      getAgentLogo(job.metadata.agent_type);
+                    const logo =
+                      getAgentLogo(job.metadata.agent_config.backend) || getAgentLogo(job.metadata.agent_type);
                     return logo ? (
-                      <img
-                        src={logo}
-                        alt={job.metadata.agent_config.name}
-                        className='h-28px w-28px rounded-50%'
-                      />
+                      <img src={logo} alt={job.metadata.agent_config.name} className='h-28px w-28px rounded-50%' />
                     ) : (
                       <Robot size='28' className='shrink-0 text-t-secondary' />
                     );
