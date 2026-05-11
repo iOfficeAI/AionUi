@@ -148,6 +148,7 @@ describe('TeamMcpServer', () => {
   let spawnAgent: ReturnType<typeof vi.fn>;
   let renameAgent: ReturnType<typeof vi.fn>;
   let removeAgent: ReturnType<typeof vi.fn>;
+  let notifyExplicitSendToLead: ReturnType<typeof vi.fn>;
   let authToken: string;
 
   beforeEach(async () => {
@@ -163,6 +164,7 @@ describe('TeamMcpServer', () => {
     spawnAgent = vi.fn().mockResolvedValue(makeAgent({ slotId: 'slot-new', agentName: 'NewBot' }));
     renameAgent = vi.fn();
     removeAgent = vi.fn();
+    notifyExplicitSendToLead = vi.fn();
 
     server = new TeamMcpServer({
       teamId: 'team-1',
@@ -173,6 +175,7 @@ describe('TeamMcpServer', () => {
       renameAgent,
       removeAgent,
       wakeAgent,
+      notifyExplicitSendToLead,
     });
 
     await server.start();
@@ -461,6 +464,131 @@ describe('TeamMcpServer', () => {
         })
       );
       expect(response.result).toContain('Refusal sent');
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // notifyExplicitSendToLead — explicit/fallback dedup wiring
+  // (regression coverage: leader must NOT see both an explicit message and
+  // the auto-captured fallback when a teammate calls team_send_message to it)
+  // -------------------------------------------------------------------------
+
+  describe('notifyExplicitSendToLead wiring', () => {
+    it('fires when a teammate sends a normal message TO the leader by name', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Leader', message: 'Here is my report' },
+        from_slot_id: 'slot-member',
+        auth_token: authToken,
+      });
+
+      expect(notifyExplicitSendToLead).toHaveBeenCalledWith('slot-member');
+      expect(notifyExplicitSendToLead).toHaveBeenCalledOnce();
+    });
+
+    it('does NOT fire when a teammate sends to a non-lead recipient', async () => {
+      // Add a third agent so member can target someone other than the lead
+      agents.push(makeAgent({ slotId: 'slot-other', agentName: 'Bob', role: 'teammate' }));
+
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Bob', message: 'Hey peer' },
+        from_slot_id: 'slot-member',
+        auth_token: authToken,
+      });
+
+      expect(notifyExplicitSendToLead).not.toHaveBeenCalled();
+    });
+
+    it('does NOT fire when the LEAD sends a message to a teammate (lead → teammate is not a fallback case)', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Alice', message: 'Please do X' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      });
+
+      expect(notifyExplicitSendToLead).not.toHaveBeenCalled();
+    });
+
+    it('does NOT fire when the LEAD broadcasts (lead is sender; the lead-as-target path inside fan-out is excluded)', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: '*', message: 'Status check' },
+        from_slot_id: 'slot-lead',
+        auth_token: authToken,
+      });
+
+      expect(notifyExplicitSendToLead).not.toHaveBeenCalled();
+    });
+
+    it('fires once when a teammate broadcasts (the leader is one of the fan-out targets)', async () => {
+      // Add a third agent so the broadcast fan-out has multiple targets
+      agents.push(makeAgent({ slotId: 'slot-other', agentName: 'Bob', role: 'teammate' }));
+
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: '*', message: 'Heads up everyone' },
+        from_slot_id: 'slot-member',
+        auth_token: authToken,
+      });
+
+      // Member's broadcast hits Lead + Bob → only the Lead leg should notify
+      expect(notifyExplicitSendToLead).toHaveBeenCalledWith('slot-member');
+      expect(notifyExplicitSendToLead).toHaveBeenCalledOnce();
+    });
+
+    it('fires when a teammate sends shutdown_approved (target is lead)', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Leader', message: 'shutdown_approved' },
+        from_slot_id: 'slot-member',
+        auth_token: authToken,
+      });
+
+      expect(notifyExplicitSendToLead).toHaveBeenCalledWith('slot-member');
+    });
+
+    it('fires when a teammate sends shutdown_rejected (target is lead)', async () => {
+      await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Leader', message: 'shutdown_rejected: still busy' },
+        from_slot_id: 'slot-member',
+        auth_token: authToken,
+      });
+
+      expect(notifyExplicitSendToLead).toHaveBeenCalledWith('slot-member');
+    });
+
+    it('handles missing notifyExplicitSendToLead callback gracefully (optional dependency)', async () => {
+      // Recreate server without the optional callback
+      await server.stop();
+      server = new TeamMcpServer({
+        teamId: 'team-1',
+        getAgents: () => agents,
+        mailbox,
+        taskManager,
+        spawnAgent,
+        renameAgent,
+        removeAgent,
+        wakeAgent,
+        // notifyExplicitSendToLead intentionally omitted
+      });
+      await server.start();
+      const cfg = server.getStdioConfig();
+      authToken = cfg.env.find((e) => e.name === 'TEAM_MCP_TOKEN')?.value ?? '';
+
+      const response = (await tcpRequest(server.getPort(), {
+        tool: 'team_send_message',
+        args: { to: 'Leader', message: 'should not crash' },
+        from_slot_id: 'slot-member',
+        auth_token: authToken,
+      })) as Record<string, unknown>;
+
+      expect(response.error).toBeUndefined();
+      expect(mailbox.write).toHaveBeenCalledWith(
+        expect.objectContaining({ toAgentId: 'slot-lead', content: 'should not crash' })
+      );
     });
   });
 

@@ -69,6 +69,10 @@ export class TeamSession extends EventEmitter {
         this.teammateManager.removeAgent(slotId);
       },
       wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
+      // Tell the manager when a teammate explicitly delivers to the leader
+      // so it can suppress the fallback idle_notification this turn and
+      // avoid duplicating the teammate's report in leader's mailbox.
+      notifyExplicitSendToLead: (fromSlotId: string) => this.teammateManager.markExplicitSendToLead(fromSlotId),
     });
   }
 

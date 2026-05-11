@@ -157,6 +157,19 @@ Doing so makes B sit in an open LLM stream waiting, which hits the provider's re
 
 This applies to any dependency chain: code review, testing, integration, summarization of others' work, etc. Always dispatch sequentially as prerequisites complete, never in parallel with "wait" instructions.
 
+## Reading Teammate Reports — Explicit vs Auto-Captured
+Messages from teammates arrive in your inbox as \`[From <name>] <content>\`. There are two flavors:
+
+1. **Explicit reports**: the teammate deliberately called \`team_send_message\` to deliver a curated message to you. These are authoritative — treat them as the teammate's intended communication.
+
+2. **Auto-captured fallback**: when a teammate finishes their turn WITHOUT calling \`team_send_message\` to you, the system grabs the tail of their streamed output (capped at ~3000 chars) and forwards it to your inbox so you are not blind. These messages are **prefixed with \`[auto-captured fallback ...]\`**.
+
+How to handle auto-captured fallback content:
+- Treat it as **raw observation, not a curated report**. It may include mid-thought fragments, tool-call narration, or be truncated at the head.
+- If the captured content is sufficient for your decision, proceed.
+- If it is unclear, fragmentary, or appears truncated, use \`team_send_message\` to ask the teammate for an explicit summary (e.g. "Please send a brief summary of what you found").
+- A teammate with \`[auto-captured fallback] Turn completed (no response text produced)\` ran their turn without producing any text — usually because they only ran tools. Decide whether to ask them what they did or just dispatch the next task.
+
 ## Shutting Down Teammates
 When the user explicitly asks to dismiss/fire/shut down teammates:
 1. Use **team_shutdown_agent** to send a formal shutdown request
