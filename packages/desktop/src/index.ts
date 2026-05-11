@@ -279,9 +279,12 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hidden',
-          // Align traffic-light center with the 44px sidebar titlebar controls.
+          // Align traffic-light vertical center with the titlebar button centers.
+          // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
+          // Empirically y=13 places the traffic lights on the same horizontal line
+          // as the sidebar / back / forward icons.
           // NOTE: requires a full app restart to take effect (BrowserWindow option).
-          trafficLightPosition: { x: 16, y: 18 },
+          trafficLightPosition: { x: 10, y: 13 },
         }
       : { frame: false }),
     webPreferences: {
@@ -402,10 +405,8 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     console.log('[AionUi] Main window closed');
   });
 
-  // Auto-open DevTools in dev mode for debugging white screen issues
-  if (!app.isPackaged) {
-    mainWindow.webContents.openDevTools({ mode: 'detach' });
-  }
+  // DevTools is no longer auto-opened at startup.
+  // Use the DevTools toggle in Settings > System (dev mode only) to open it.
 
   // Listen to DevTools state changes and notify Renderer
   mainWindow.webContents.on('devtools-opened', () => {

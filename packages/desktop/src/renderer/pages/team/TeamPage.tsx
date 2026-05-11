@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
@@ -155,8 +154,6 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const { t } = useTranslation();
   const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
-  const layout = useLayoutContext();
-  const isMobile = layout?.isMobile ?? false;
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const agentRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -378,7 +375,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
             })()
           ) : (
             <>
-              {showLeftArrow && !isMobile && (
+              {showLeftArrow && (
                 <div
                   className='absolute left-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
                   style={{ background: 'linear-gradient(90deg, var(--color-bg-1) 40%, transparent)' }}
@@ -410,11 +407,13 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                       data-role={isLeaderSlot ? 'leader' : 'member'}
                       className='relative h-full border-r border-solid border-[color:var(--border-base)]'
                       style={{
-                        // Desktop: 400px floor with flex-grow so multi-agent layouts fill the
-                        // viewport while staying readable. Mobile: each slot fills the viewport
-                        // and uses scroll-snap so users page between agents one at a time.
-                        flex: isMobile ? '0 0 100%' : '1 1 400px',
-                        minWidth: isMobile ? '100%' : isSingle ? '240px' : '400px',
+                        // Always flex-grow to fill available space; each slot starts at 400px
+                        // basis so the layout is stable, but spare room is distributed evenly
+                        // instead of leaving empty gaps to the right. When the team is wider
+                        // than the viewport we preserve the 400px floor (prevents shrinking
+                        // into unreadable cards) so horizontal scroll kicks in naturally.
+                        flex: '1 1 400px',
+                        minWidth: isSingle ? '240px' : '400px',
                         scrollSnapAlign: 'start',
                       }}
                     >
@@ -429,7 +428,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
                   );
                 })}
               </div>
-              {showRightArrow && !isMobile && (
+              {showRightArrow && (
                 <div
                   className='absolute right-0 top-0 bottom-0 w-48px z-20 flex items-center justify-center cursor-pointer opacity-80 hover:opacity-100 transition-opacity'
                   style={{ background: 'linear-gradient(270deg, var(--color-bg-1) 40%, transparent)' }}
