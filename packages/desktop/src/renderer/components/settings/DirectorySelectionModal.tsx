@@ -8,6 +8,7 @@ import { Button, Modal, Spin } from '@arco-design/web-react';
 import { IconFile, IconFolder, IconUp } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
 
 interface DirectoryItem {
   name: string;
@@ -49,7 +50,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       try {
         const showFiles = isFileMode ? 'true' : 'false';
         const response = await fetch(
-          `/api/directory/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`,
+          `${getBaseUrl()}/api/fs/browse?path=${encodeURIComponent(dirPath)}&showFiles=${showFiles}`,
           {
             method: 'GET',
             credentials: 'include',
@@ -60,7 +61,9 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
           setError(errorData.error || `HTTP ${response.status}`);
           return;
         }
-        const data = await response.json();
+        const envelope = await response.json();
+        // Backend wraps the payload in { success, data, ... }.
+        const data = envelope && typeof envelope === 'object' && 'data' in envelope ? envelope.data : envelope;
         if (!data || !Array.isArray(data.items)) {
           setError('Invalid response from server');
           return;
