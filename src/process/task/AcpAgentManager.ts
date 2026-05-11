@@ -65,6 +65,8 @@ interface AcpAgentManagerData {
   yoloMode?: boolean;
   /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
   acpSessionId?: string;
+  /** Runtime that created the ACP session ID. Prevents resuming Windows sessions through WSL and vice versa. */
+  acpRuntime?: 'windows' | 'wsl';
   /** Last update time of ACP session / ACP session 最后更新时间 */
   acpSessionUpdatedAt?: number;
   /** Persisted session mode for resume support / 持久化的会话模式，用于恢复 */
@@ -84,6 +86,23 @@ type BufferedStreamTextMessage = {
 };
 
 type CustomAgentLaunchConfig = Pick<AcpBackendConfig, 'id' | 'name' | 'defaultCliPath' | 'acpArgs' | 'env'>;
+
+function resolveAionUiAcpRuntime(): 'windows' | 'wsl' {
+  const raw = (process.env.AIONUI_ACP_RUNTIME || '').trim().toLowerCase();
+  if (raw === 'wsl') return 'wsl';
+  if (raw === 'auto') {
+    const ready = (process.env.AIONUI_ACP_AUTO_WSL_READY || '').trim().toLowerCase();
+    return ['1', 'true', 'yes'].includes(ready) ? 'wsl' : 'windows';
+  }
+  return 'windows';
+}
+
+function shouldResumeAcpSession(data: AcpAgentManagerData, runtime: 'windows' | 'wsl'): boolean {
+  if (!data.acpSessionId) return false;
+  if (data.backend !== 'claude') return true;
+  if (!data.acpRuntime) return runtime === 'windows';
+  return data.acpRuntime === runtime;
+}
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
@@ -894,6 +913,8 @@ ${collectedResponses.join('\n')}`;
     this.bootstrapping = true;
     this.bootstrap = (async () => {
       const { cliPath, customArgs, customEnv, yoloMode } = await this.resolveAgentCliConfig(data);
+      const acpRuntime = resolveAionUiAcpRuntime();
+      const acpSessionId = shouldResumeAcpSession(data, acpRuntime) ? data.acpSessionId : undefined;
 
       const agentConfig = {
         id: data.conversation_id,
@@ -911,7 +932,8 @@ ${collectedResponses.join('\n')}`;
           customEnv: customEnv,
           yoloMode: yoloMode,
           agentName: data.agentName,
-          acpSessionId: data.acpSessionId,
+          acpSessionId: acpSessionId,
+          acpRuntime: acpRuntime,
           acpSessionUpdatedAt: data.acpSessionUpdatedAt,
           currentModelId: this.persistedModelId ?? undefined,
           sessionMode: this.currentMode,
@@ -1649,6 +1671,7 @@ ${collectedResponses.join('\n')}`;
           ...conversation.extra,
           acpSessionId: sessionId,
           acpSessionConversationId: this.conversation_id,
+          acpRuntime: resolveAionUiAcpRuntime(),
           acpSessionUpdatedAt: Date.now(),
         };
         db.updateConversation(this.conversation_id, {

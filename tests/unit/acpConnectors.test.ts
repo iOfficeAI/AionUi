@@ -191,8 +191,19 @@ describe('ACP runtime preference helpers', () => {
     );
 
     expect(result.CLAUDE_CODE_EXECUTABLE).toBe('C:\\AI_LAB\\bin\\claude-wsl.exe');
+    expect(result.CLAUDE_CONFIG_DIR).toBe('/home/totti/.claude');
     expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
     expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+  });
+
+  it('overrides Windows Claude config dir with the WSL Claude config dir', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows', CLAUDE_CONFIG_DIR: 'C:\\Users\\Administrator\\.claude' },
+      { AIONUI_ACP_RUNTIME: 'wsl' }
+    );
+
+    expect(result.CLAUDE_CONFIG_DIR).toBe('/home/totti/.claude');
   });
 
   it('points Codex ACP at WSL wrappers via PATH only when explicitly requested', () => {
@@ -227,6 +238,7 @@ describe('ACP runtime preference helpers', () => {
     );
 
     expect(result.CLAUDE_CODE_EXECUTABLE).toBe('C:\\AI_LAB\\bin\\claude-wsl.exe');
+    expect(result.CLAUDE_CONFIG_DIR).toBe('/home/totti/.claude');
     expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
     expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
   });

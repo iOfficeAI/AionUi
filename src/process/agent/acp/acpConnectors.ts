@@ -76,6 +76,7 @@ export function applyAcpRuntimePreferenceToBridgeEnv(
   prependWindowsPath(cleanEnv, WSL_AGENT_BIN_DIR);
   if (backend === 'claude') {
     cleanEnv.CLAUDE_CODE_EXECUTABLE = CLAUDE_WSL_EXECUTABLE;
+    cleanEnv.CLAUDE_CONFIG_DIR = '/home/totti/.claude';
   }
 
   return cleanEnv;

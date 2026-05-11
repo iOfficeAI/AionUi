@@ -23,6 +23,9 @@ export type PromptHost = {
 export class PromptExecutor {
   private pendingPrompt: PromptContent | null = null;
   private readonly timer: PromptTimer;
+  private streamIdleTimer: NodeJS.Timeout | null = null;
+  private streamIdleResolve: (() => void) | null = null;
+  private readonly streamIdleCompletionMs = 6000;
 
   constructor(
     private readonly host: PromptHost,
@@ -70,11 +73,17 @@ export class PromptExecutor {
 
     try {
       this.timer.start();
-      const result = await lifecycle.client.prompt(lifecycle.sessionId, content);
+      const promptPromise = lifecycle.client.prompt(lifecycle.sessionId, content);
+      const result = this.supportsStreamIdleCompletion()
+        ? await Promise.race([promptPromise, this.waitForStreamIdleCompletion().then((): null => null)])
+        : await promptPromise;
       this.timer.stop();
+      if (result === null) {
+        lifecycle.client.cancel(lifecycle.sessionId).catch((): void => {});
+      }
 
       // Fallback: emit usage from PromptResponse for backends that don't send usage_update
-      if (result.usage) {
+      if (result?.usage) {
         this.host.callbacks.onContextUsage({
           used: result.usage.totalTokens,
           total: 0,
@@ -83,14 +92,46 @@ export class PromptExecutor {
       }
     } catch (err) {
       this.timer.stop();
+      this.clearStreamIdleCompletion();
       this.host.messageTranslator.onTurnEnd();
       this.handlePromptError(err, content);
       return;
     }
 
+    this.clearStreamIdleCompletion();
     this.host.messageTranslator.onTurnEnd();
     this.host.setStatus('active');
     this.host.callbacks.onSignal({ type: 'turn_finished' });
+  }
+
+  markStreamActivity(): void {
+    if (!this.streamIdleResolve || this.host.status !== 'prompting') return;
+    if (this.streamIdleTimer) clearTimeout(this.streamIdleTimer);
+    this.streamIdleTimer = setTimeout(() => {
+      this.streamIdleTimer = null;
+      const resolve = this.streamIdleResolve;
+      this.streamIdleResolve = null;
+      resolve?.();
+    }, this.streamIdleCompletionMs);
+  }
+
+  private waitForStreamIdleCompletion(): Promise<void> {
+    this.clearStreamIdleCompletion();
+    return new Promise((resolve) => {
+      this.streamIdleResolve = resolve;
+    });
+  }
+
+  private clearStreamIdleCompletion(): void {
+    if (this.streamIdleTimer) {
+      clearTimeout(this.streamIdleTimer);
+      this.streamIdleTimer = null;
+    }
+    this.streamIdleResolve = null;
+  }
+
+  private supportsStreamIdleCompletion(): boolean {
+    return this.host.agentConfig.agentBackend.toLowerCase() === 'claude';
   }
 
   private handlePromptError(err: unknown, content: PromptContent): void {
@@ -109,6 +150,13 @@ export class PromptExecutor {
       return;
     }
 
+    if (this.isSessionNotFound(acpErr)) {
+      this.pendingPrompt = content;
+      this.host.callbacks.onSignal({ type: 'session_expired' });
+      this.host.lifecycle.recoverWithFreshSession();
+      return;
+    }
+
     console.error(`[PromptExecutor] prompt failed (${acpErr.code}):`, acpErr.message);
     this.host.metrics.recordError(this.host.agentConfig.agentBackend, acpErr.code);
 
@@ -124,6 +172,14 @@ export class PromptExecutor {
     throw acpErr;
   }
 
+  private isSessionNotFound(error: ReturnType<typeof normalizeError>): boolean {
+    return (
+      error.code === 'ACP_SESSION_NOT_FOUND' ||
+      error.code === 'AGENT_SESSION_NOT_FOUND' ||
+      /session not found/i.test(error.message)
+    );
+  }
+
   // ─── Cancel ───────────────────────────────────────────────────
 
   cancel(): void {
@@ -133,6 +189,7 @@ export class PromptExecutor {
   }
 
   cancelAll(): void {
+    this.clearStreamIdleCompletion();
     this.pendingPrompt = null;
     if (this.host.status === 'prompting') this.cancel();
   }
@@ -157,6 +214,7 @@ export class PromptExecutor {
 
   private handleTimeout(): void {
     if (this.host.status !== 'prompting') return;
+    this.clearStreamIdleCompletion();
     this.cancel();
     this.host.callbacks.onSignal({
       type: 'error',

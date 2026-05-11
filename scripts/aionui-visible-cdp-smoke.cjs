@@ -169,7 +169,14 @@ async function main() {
           if (host.shadowRoot) texts.push(host.shadowRoot.textContent || '');
         }
         const text = texts.join('\\n');
-        return { found: text.includes(${JSON.stringify(marker)}), status: text.slice(-1200), url: location.href };
+        const btns = [...document.querySelectorAll('button.send-button-custom')].filter(b => b.offsetParent !== null);
+        const btn = btns[btns.length - 1];
+        return {
+          found: text.includes(${JSON.stringify(marker)}),
+          inputReady: btn ? btn.disabled === false : false,
+          status: text.slice(-1200),
+          url: location.href,
+        };
       })()
     `,
     });
@@ -177,7 +184,7 @@ async function main() {
     if (!value) {
       throw new Error('Runtime marker poll failed: ' + JSON.stringify(found));
     }
-    if (value.found) {
+    if (value.found && value.inputReady) {
       console.log(JSON.stringify({ ok: true, backend, marker, port, url: value.url }, null, 2));
       ws.close();
       return;
