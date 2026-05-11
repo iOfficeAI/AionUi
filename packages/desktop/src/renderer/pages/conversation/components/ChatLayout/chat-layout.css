@@ -8,7 +8,6 @@
   margin: 8px 8px 8px 0;
 }
 
-
 /* Desktop: header blank area drags the window; interactive children opt out */
 .chat-layout-header--draggable {
   -webkit-app-region: drag;
