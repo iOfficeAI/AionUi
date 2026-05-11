@@ -4,31 +4,40 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 
 /**
- * Upload a file to the server via HTTP multipart (WebUI mode).
- * Conversation-bound uploads go to the workspace uploads directory; pre-conversation uploads go to temp storage.
+ * Upload a file to the backend via HTTP multipart.
+ *
+ * Works in both Electron (via `http://127.0.0.1:<backendPort>`) and WebUI
+ * (same-origin reverse-proxied). Conversation-bound uploads go to the
+ * workspace uploads directory; pre-conversation uploads go to temp storage.
+ *
+ * Field names match the backend contract exactly (snake_case): `file`,
+ * `file_name` (optional), `conversation_id` (optional). The response is
+ * `ApiResponse<String>` where `data` is the absolute file path on disk.
  *
  * @param onProgress Optional callback receiving upload percentage (0-100).
  */
 export async function uploadFileViaHttp(
   file: File,
   conversation_id?: string,
-  onProgress?: (percent: number) => void
+  onProgress?: (percent: number) => void,
+  file_name?: string
 ): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
+  if (file_name) {
+    formData.append('file_name', file_name);
+  }
   if (conversation_id) {
     formData.append('conversation_id', conversation_id);
   }
 
   return new Promise<string>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/upload');
-    xhr.withCredentials = true;
+    xhr.open('POST', `${getBaseUrl()}/api/fs/upload`);
 
     if (onProgress) {
       xhr.upload.addEventListener('progress', (e) => {
@@ -48,11 +57,11 @@ export async function uploadFileViaHttp(
         return;
       }
       try {
-        const result = JSON.parse(xhr.responseText) as { success: boolean; data?: { path: string } };
-        if (!result.success || !result.data) {
+        const result = JSON.parse(xhr.responseText) as { success: boolean; data?: string };
+        if (!result.success || typeof result.data !== 'string' || !result.data) {
           reject(new Error('Upload failed: server returned unsuccessful response'));
         } else {
-          resolve(result.data.path);
+          resolve(result.data);
         }
       } catch {
         reject(new Error('Upload failed: invalid server response'));
@@ -249,8 +258,13 @@ export function isTextFile(file_name: string): boolean {
 
 class FileServiceClass {
   /**
-   * Process files from drag and drop events, creating temporary files for files without valid paths.
-   * In WebUI mode, uploads files via HTTP to the conversation workspace uploads directory.
+   * Process files from drag and drop events, uploading any file that lacks a
+   * native disk path via HTTP multipart.
+   *
+   * In Electron, files dragged from the OS file manager already expose an
+   * absolute `path`, so we skip upload for those. Anything without a path
+   * (WebUI, synthetic File objects, browser-sourced drags) is uploaded to the
+   * backend, which returns the absolute stored path.
    */
   async processDroppedFiles(
     files: FileList,
@@ -266,34 +280,20 @@ class FileServiceClass {
 
       let file_path = electronFile.path || '';
 
-      // If no valid path (WebUI or some dragged files may not have paths), create temporary file
+      // If no valid path (WebUI or some dragged files may not have paths), upload via HTTP multipart
       if (!file_path) {
+        const tracker = trackUpload(file.size, source);
         try {
-          if (!isElectronDesktop()) {
-            // WebUI: upload via HTTP multipart to the conversation workspace uploads directory
-            const tracker = trackUpload(file.size, source);
-            try {
-              file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress);
-            } finally {
-              tracker.finish();
-            }
-          } else {
-            // Electron: use IPC to create upload file (respects saveToWorkspace setting)
-            const arrayBuffer = await file.arrayBuffer();
-            const uint8Array = new Uint8Array(arrayBuffer);
-            const uploadPath = await ipcBridge.fs.createUploadFile.invoke({ file_name: file.name, conversation_id });
-            if (uploadPath) {
-              await ipcBridge.fs.writeFile.invoke({ path: uploadPath, data: uint8Array });
-              file_path = uploadPath;
-            }
-          }
+          file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress);
         } catch (error) {
           // Re-throw size errors so caller can show user-facing toast
           if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
             throw error;
           }
-          console.error('Failed to create temp file for dragged file:', error);
+          console.error('Failed to upload dragged file:', error);
           continue;
+        } finally {
+          tracker.finish();
         }
       }
 

@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
 import { getFileExtension, uploadFileViaHttp } from './FileService';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 
 /**
- * Create a temporary file in a platform-aware way.
- * Electron desktop uses IPC, WebUI uses HTTP API.
+ * Upload pasted bytes to the backend via HTTP multipart and return the absolute
+ * file path stored on disk. Works the same in Electron and WebUI — the backend
+ * is always reached over HTTP (the Electron preload injects `window.__backendPort`
+ * so requests land on `http://127.0.0.1:<port>`; WebUI hits same-origin).
  */
 async function createTempFile(
   file_name: string,
@@ -21,14 +21,6 @@ async function createTempFile(
   conversation_id?: string,
   source: UploadSource = 'sendbox'
 ): Promise<string | null> {
-  if (isElectronDesktop()) {
-    const tempPath = await ipcBridge.fs.createUploadFile.invoke({ file_name, conversation_id });
-    if (tempPath) {
-      await ipcBridge.fs.writeFile.invoke({ path: tempPath, data });
-    }
-    return tempPath;
-  }
-  // WebUI: upload via HTTP multipart
   const arrayBuf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([arrayBuf], { type: contentType });
   const file = new File([blob], file_name, { type: contentType });
@@ -42,6 +34,13 @@ async function createTempFile(
 
 type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
 
+/**
+ * Per-SendBox counter used to assign stable names to clipboard images. The
+ * hook owns one instance and passes it into `handlePaste`, so sequence
+ * numbers persist across multiple paste actions within the same mount.
+ */
+export type ImageCounter = { next: () => number };
+
 // MIME 类型到文件扩展名的映射
 function getExtensionFromMimeType(mimeType: string): string {
   const mimeMap: Record<string, string> = {
@@ -54,6 +53,17 @@ function getExtensionFromMimeType(mimeType: string): string {
     'image/svg+xml': '.svg',
   };
   return mimeMap[mimeType] || '.png'; // 默认为 .png
+}
+
+// 浏览器把剪贴板图片默认命名成 image.png / image.jpg 之类，这种名字
+// 跟 MIME 一一对应、没有实际语义，应视为系统默认名并由我们重命名。
+const BROWSER_DEFAULT_IMAGE_NAME_RE = /^image\.(png|jpe?g|gif|webp|bmp|svg)$/i;
+// 我们自己旧版本的默认名，形如 `2024-01-02_03-04-05` 前缀。
+const LEGACY_SYSTEM_GENERATED_NAME_RE = /^[a-zA-Z]?_?\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/;
+
+function isSystemGeneratedImageName(name: string | undefined | null): boolean {
+  if (!name) return true;
+  return LEGACY_SYSTEM_GENERATED_NAME_RE.test(name) || BROWSER_DEFAULT_IMAGE_NAME_RE.test(name);
 }
 
 class PasteServiceClass {
@@ -136,7 +146,8 @@ class PasteServiceClass {
     onFilesAdded: (files: FileMetadata[]) => void,
     onTextPaste?: (text: string) => void,
     conversation_id?: string,
-    source: UploadSource = 'sendbox'
+    source: UploadSource = 'sendbox',
+    imageCounter?: ImageCounter
   ): Promise<boolean> {
     // 立即事件冒泡,避免全局监听器重复处理
     event.stopPropagation();
@@ -165,12 +176,21 @@ class PasteServiceClass {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);
 
-              // Generate a concise filename; replace system-generated default names
-              const now = new Date();
-              const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
-
-              const isSystemGenerated = file.name && /^[a-zA-Z]?_?\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}/.test(file.name);
-              let file_name = file.name && !isSystemGenerated ? file.name : `pasted_image_${timeStr}${fileExt}`;
+              // Generate a concise filename; replace system-generated default names.
+              // 剪贴板里的图片通常叫 `image.png` 这种 MIME 默认名，优先按调用方传入的
+              // imageCounter 递增序号命名（跨多次粘贴保持唯一）；没给 counter 时退回
+              // 到时间戳兜底。
+              const isSystemGenerated = isSystemGeneratedImageName(file.name);
+              let file_name: string;
+              if (!isSystemGenerated && file.name) {
+                file_name = file.name;
+              } else if (imageCounter) {
+                file_name = `image-${imageCounter.next()}${fileExt}`;
+              } else {
+                const now = new Date();
+                const timeStr = `${now.getHours().toString().padStart(2, '0')}${now.getMinutes().toString().padStart(2, '0')}${now.getSeconds().toString().padStart(2, '0')}`;
+                file_name = `pasted_image_${timeStr}${fileExt}`;
+              }
               // Ensure unique filename within the same paste batch to prevent
               // collisions when multiple images are pasted simultaneously
               if (usedFileNames.has(file_name)) {
@@ -185,7 +205,7 @@ class PasteServiceClass {
               }
               usedFileNames.add(file_name);
 
-              // 创建临时文件并写入数据（Electron 使用 IPC，WebUI 使用 HTTP API）
+              // 上传到后端并拿回绝对路径（Electron / WebUI 都走 HTTP multipart）
               const tempPath = await createTempFile(file_name, uint8Array, file.type, conversation_id, source);
 
               if (tempPath) {
