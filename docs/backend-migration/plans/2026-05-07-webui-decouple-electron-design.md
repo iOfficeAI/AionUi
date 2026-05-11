@@ -4,6 +4,8 @@
 - **状态**:方案评审
 - **范围**:仅设计,不含代码实现
 
+> **后续更新 (2026-05-10):** M1-M9 已合入,本文中多次提到的 `AIONUI_BACKEND_ALLOW_MISSING` **过渡开关已全部移除**。`iOfficeAI/aionui-backend` 的 Release CI 已稳定(当前 `v0.1.0-preview-test`),`prepareAionuiBackend.js` 和 `pack-web-cli.js` 现在一律硬失败,不再写 skip manifest。本文档保留原文作为历史决策记录。清理详情见 `docs/backend-migration/handoffs/allow-missing-removal-outcome.md`。
+
 ## 背景
 
 目前 AionUi 的 WebUI(`npm run webui` / `AionUi --webui`)虽然定位是"通过浏览器使用

@@ -120,15 +120,21 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Listen to agent response stream - auto refresh workspace (throttled)
    */
   useEffect(() => {
-    const handleAcpResponse = (data: { type: string }) => {
+    const handleResponse = (data: { type: string; data?: unknown }) => {
       if (data.type === 'acp_tool_call') {
         throttledRefresh();
       }
+      if (data.type === 'tool_call') {
+        const toolData = data.data as { status?: string } | undefined;
+        if (toolData?.status === 'completed') {
+          throttledRefresh();
+        }
+      }
     };
-    const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
+    const unsubscribe = ipcBridge.acpConversation.responseStream.on(handleResponse);
 
     return () => {
-      unsubscribeAcp();
+      unsubscribe();
     };
   }, [conversation_id, eventPrefix, throttledRefresh]);
 

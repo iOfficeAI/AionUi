@@ -4,7 +4,7 @@
 
 ## 前置条件
 
-环境搭建请参考 [docs/development.md](docs/development.md)，你需要：
+环境搭建请参考 [docs/contributing/development.md](docs/contributing/development.md)，你需要：
 
 - Node.js 22+
 - [bun](https://bun.sh)
@@ -90,7 +90,7 @@ bunx vitest run
 | `bot:needs-human-review` | 发现阻塞性问题                  | 维护者会介入审查并评论         |
 | `bot:ready-to-merge`     | 所有检查已通过                  | 维护者会在准备好后合并         |
 
-完整自动化流程请参考 [docs/conventions/pr-automation.md](docs/conventions/pr-automation.md)。
+完整自动化流程请参考 [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md)。
 
 ## 执行方式
 

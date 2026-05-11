@@ -999,16 +999,14 @@ export const systemSettings = {
   setAutoPreviewOfficeFiles: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     autoPreviewOfficeFiles: p.enabled,
   })),
-  getPetEnabled: httpGet<boolean, void>('/api/settings/client?key=petEnabled'),
-  setPetEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ petEnabled: p.enabled })),
-  getPetSize: httpGet<number, void>('/api/settings/client?key=petSize'),
-  setPetSize: httpPut<void, { size: number }>('/api/settings/client', (p) => ({ petSize: p.size })),
-  getPetDnd: httpGet<boolean, void>('/api/settings/client?key=petDnd'),
-  setPetDnd: httpPut<void, { dnd: boolean }>('/api/settings/client', (p) => ({ petDnd: p.dnd })),
-  getPetConfirmEnabled: httpGet<boolean, void>('/api/settings/client?key=petConfirmEnabled'),
-  setPetConfirmEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
-    petConfirmEnabled: p.enabled,
-  })),
+  getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
+  setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),
+  getPetSize: bridge.buildProvider<number, void>('system-settings:get-pet-size'),
+  setPetSize: bridge.buildProvider<void, { size: number }>('system-settings:set-pet-size'),
+  getPetDnd: bridge.buildProvider<boolean, void>('system-settings:get-pet-dnd'),
+  setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
+  getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
+  setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
 };
 
 // ---------------------------------------------------------------------------

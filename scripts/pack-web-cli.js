@@ -4,6 +4,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
 const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aionui-backend.js');
+const { resolveBackendVersion } = require('./resolveBackendVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.env.PACK_PLATFORM || process.platform;
@@ -28,8 +29,7 @@ prepareAionuiBackend({
   projectRoot,
   platform,
   arch,
-  version: process.env.AIONUI_BACKEND_VERSION || 'latest',
-  allowMissing: process.env.AIONUI_BACKEND_ALLOW_MISSING === '1',
+  version: resolveBackendVersion(projectRoot),
 });
 
 // 2. Create staging dir
@@ -77,16 +77,14 @@ if (fs.existsSync(rendererOutDir)) {
   throw new Error(`Desktop renderer output not found at ${rendererOutDir}. Run bunx electron-vite build first.`);
 }
 
-// 7. Copy bundled-aionui-backend (may be an empty manifest when ALLOW_MISSING)
+// 7. Copy bundled-aionui-backend
 const backendSrc = path.join(projectRoot, 'resources/bundled-aionui-backend', `${platform}-${arch}`);
 const backendDest = path.join(tarballContentDir, 'bundled-aionui-backend', `${platform}-${arch}`);
-fs.mkdirSync(path.dirname(backendDest), { recursive: true });
-if (fs.existsSync(backendSrc)) {
-  fs.cpSync(backendSrc, backendDest, { recursive: true });
-} else {
-  console.warn(`⚠️ Backend bundle dir missing at ${backendSrc}, creating empty placeholder`);
-  fs.mkdirSync(backendDest, { recursive: true });
+if (!fs.existsSync(backendSrc)) {
+  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAionuiBackend succeeded.`);
 }
+fs.mkdirSync(path.dirname(backendDest), { recursive: true });
+fs.cpSync(backendSrc, backendDest, { recursive: true });
 
 // 8. Create tarball
 fs.mkdirSync(distDir, { recursive: true });

@@ -1,0 +1,112 @@
+name: Distribute Release Assets
+
+# Triggered after a GitHub Release is officially published.
+# Mirrors installer assets to the configured distribution endpoint for external download.
+#
+# Why `published` (not `released`)?
+#   - `released` is supposed to fire when a non-prerelease release is published,
+#     but GitHub sometimes only emits `published` (not `released`) when a pre-existing
+#     draft is publicly released, causing the workflow to be silently skipped.
+#   - `published` reliably fires on every draft → public transition, including
+#     prereleases. The `if` guard on the job filters out prereleases explicitly.
+#
+# All credentials / identifiers are read from repository secrets:
+#   - AWS_REGION
+#   - AWS_ROLE_ARN
+#   - AWS_S3_BUCKET
+# Do NOT hardcode these values in this file.
+
+on:
+  release:
+    types: [published]
+  # Manual trigger for smoke testing or for retrying a missed release:
+  # pick any existing release tag to re-run the distribution against.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag to redistribute (e.g. v1.9.21)'
+        required: true
+        type: string
+
+permissions:
+  id-token: write # required for OIDC token
+  contents: read
+
+jobs:
+  distribute:
+    name: Distribute release assets
+    runs-on: ubuntu-latest
+    # Skip prereleases: manual dispatch always runs, automatic event runs only when not a prerelease.
+    if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
+    steps:
+      - name: Extract version from tag
+        id: version
+        env:
+          EVENT_TAG: ${{ github.event.release.tag_name }}
+          INPUT_TAG: ${{ github.event.inputs.tag }}
+        run: |
+          TAG="${EVENT_TAG:-$INPUT_TAG}"
+          if [ -z "$TAG" ]; then
+            echo "::error::No tag provided (event did not supply one)."
+            exit 1
+          fi
+          VERSION="${TAG#v}"
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Tag: $TAG / Version: $VERSION"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Guard against same-version overwrite
+        env:
+          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          DEST="s3://${S3_BUCKET}/releases/${VERSION}/"
+          COUNT=$(aws s3 ls "$DEST" 2>/dev/null | wc -l | tr -d ' ')
+          if [ "$COUNT" -gt 0 ]; then
+            echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
+            echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
+            aws s3 ls "$DEST"
+            exit 1
+          fi
+
+      - name: Download release assets from GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mkdir -p dist
+          gh release download "${{ steps.version.outputs.tag }}" \
+            --repo "${{ github.repository }}" \
+            --dir dist \
+            --pattern "*.dmg" \
+            --pattern "*.exe" \
+            --pattern "*.msi" \
+            --pattern "*.deb" \
+            --pattern "*.zip"
+          echo "Downloaded files:"
+          ls -la dist
+
+      - name: Upload assets
+        env:
+          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          aws s3 cp dist/ "s3://${S3_BUCKET}/releases/${VERSION}/" --recursive
+          echo "Uploaded release ${VERSION}"
+
+      - name: Summary
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          {
+            echo "### Release assets distributed"
+            echo ""
+            echo "- Tag: \`${TAG}\`"
+            echo "- Version: \`${VERSION}\`"
+          } >> $GITHUB_STEP_SUMMARY

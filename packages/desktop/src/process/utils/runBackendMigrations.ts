@@ -42,15 +42,12 @@ const MIGRATION_STEPS: Array<{
 ];
 
 export async function runBackendMigrations(configFile: ConfigFile): Promise<void> {
-  let allSucceeded = true;
-
   await CLEANUP_STEPS.reduce<Promise<void>>(async (previous, step) => {
     await previous;
     try {
       await step.run();
       console.info(`[AionUi] Backend migration step completed: ${step.name}`);
     } catch (error) {
-      allSucceeded = false;
       console.error(`[AionUi] Backend migration step failed: ${step.name}`, error);
     }
   }, Promise.resolve());
@@ -61,6 +58,9 @@ export async function runBackendMigrations(configFile: ConfigFile): Promise<void
     return;
   }
 
+  // Each step checks its own flag internally, so a failure in one step
+  // does not cause already-completed steps to re-execute on next launch.
+  let allSucceeded = true;
   await MIGRATION_STEPS.reduce<Promise<void>>(async (previous, step) => {
     await previous;
     try {
@@ -77,6 +77,9 @@ export async function runBackendMigrations(configFile: ConfigFile): Promise<void
     }
   }, Promise.resolve());
 
+  // Write the overall fast-skip flag only when all steps are done.
+  // This is an optimization — each step's own flag prevents re-execution
+  // even if this overall flag is never written.
   if (!allSucceeded) {
     return;
   }

@@ -45,7 +45,6 @@ describe('static-server', () => {
       stopBackend = null;
     }
     await fs.rm(staticDir, { recursive: true, force: true });
-    await fs.rm(app.userDataPath, { recursive: true, force: true });
   });
 
   it('serves static index.html at /', async () => {
@@ -162,6 +161,67 @@ describe('static-server', () => {
     handle = await startStaticServer({ staticDir, backendPort: freePort, port: 0 });
     const r = await fetch(`${handle.localUrl}/api/anything`);
     expect(r.status).toBe(502);
+  });
+
+  it('/ws WebSocket upgrade is spliced to backend and 101 is relayed', async () => {
+    // Mock backend that accepts any WebSocket upgrade and replies with 101.
+    // We don't run a real ws protocol — just verify the upgrade response makes
+    // it back through the TCP-splice proxy. This is the exact regression path
+    // that bun 1.3's http-compat upgrade handler broke.
+    const { createHash } = await import('node:crypto');
+    const net = await import('node:net');
+    const httpMod = await import('node:http');
+    const backendServer = httpMod.createServer();
+    backendServer.on('upgrade', (req, socket) => {
+      const wsKey = (req.headers['sec-websocket-key'] as string) || '';
+      const accept = createHash('sha1')
+        .update(wsKey + '258EAFA5-E914-47DA-95CA-C5AB0DC85B11')
+        .digest('base64');
+      socket.write('HTTP/1.1 101 Switching Protocols\r\n');
+      socket.write('Upgrade: websocket\r\n');
+      socket.write('Connection: Upgrade\r\n');
+      socket.write(`Sec-WebSocket-Accept: ${accept}\r\n\r\n`);
+      // Send a single 0-length WS text frame as a liveness marker then close.
+      socket.write(Buffer.from([0x81, 0x00]));
+      socket.end();
+    });
+    await new Promise<void>((r) => backendServer.listen(0, '127.0.0.1', () => r()));
+    stopBackend = () => new Promise<void>((r) => backendServer.close(() => r()));
+    const backendPort = (backendServer.address() as { port: number }).port;
+
+    handle = await startStaticServer({ staticDir, backendPort, port: 0 });
+
+    // Speak raw HTTP/1.1 upgrade over a TCP socket against the public listener.
+    const { port: publicPort } = handle;
+    const status: string = await new Promise((resolve, reject) => {
+      const sock = net.connect({ host: '127.0.0.1', port: publicPort }, () => {
+        sock.write(
+          'GET /ws HTTP/1.1\r\n' +
+            `Host: 127.0.0.1:${publicPort}\r\n` +
+            'Upgrade: websocket\r\n' +
+            'Connection: Upgrade\r\n' +
+            'Sec-WebSocket-Version: 13\r\n' +
+            'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n' +
+            '\r\n'
+        );
+      });
+      let buf = Buffer.alloc(0);
+      sock.on('data', (d) => {
+        buf = Buffer.concat([buf, d]);
+        const headEnd = buf.indexOf('\r\n\r\n');
+        if (headEnd >= 0) {
+          const firstLine = buf.slice(0, buf.indexOf(0x0a)).toString('ascii');
+          sock.destroy();
+          resolve(firstLine.trim());
+        }
+      });
+      sock.on('error', reject);
+      setTimeout(() => {
+        sock.destroy();
+        reject(new Error('timeout waiting for 101'));
+      }, 3000).unref();
+    });
+    expect(status).toMatch(/HTTP\/1\.1 101/i);
   });
 
   it('network URL populated only when allowRemote=true', async () => {

@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-6.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-8.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -42,6 +42,7 @@
 ## 📋 Швидка навігація
 
 <p align="center">
+
 [✨ Cowork у дії](#-cowork-у-дії) ·
 [🤔 Чому варто обрати AionUi?](#-чому-варто-обрати-aionui-замість-claude-cowork) ·
 [🚀 Швидкий старт](#-швидкий-старт) ·
@@ -139,7 +140,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ## Мульти-агентний режим — Вже маєте CLI-агентів? Додайте їх
 
-Якщо ви вже використовуєте Claude Code, Codex або Qwen Code, AionUi автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
+Якщо ви вже використовуєте Claude Code, Codex, Hermes Agent або OpenClaw, AionUi автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
 
 **Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бекенд-сервіс у складі AionUi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent та інші
 
@@ -162,7 +163,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 </p>
 
 - **Паралельне виконання кількох агентів** — Leader ділить завдання на підзадачі і делегує паралельно працюючим Teammate-агентам; кожен Teammate використовує свою модель через ACP (Agent Communication Protocol, шар координації мульти-агентності AionUi), Gemini або Aionrs
-- **Оркестрація Leader** — Leader призначає, відстежує та агрегує результати; підтримувані бекенди: Claude Code, Codex, Gemini, Snow CLI, Aion CLI
+- **Оркестрація Leader** — Leader призначає, відстежує та агрегує результати; підтримувані бекенди: Claude Code, Codex, Hermes Agent, Gemini, Snow CLI, Aion CLI
 - **Ізольований робочий простір команди** — всі агенти спільно використовують одну папку; кожен має свій діалог підтвердження дозволів із значком на бічній панелі для очікуваних підтверджень
 
 <details>

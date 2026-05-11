@@ -186,6 +186,7 @@ async function finalizeAssistantMigration(configFile: ConfigFile): Promise<boole
     if (typeof rawConfigFile.remove === 'function') {
       await rawConfigFile.remove('assistants');
     }
+    await rawConfigFile.set('migration.assistantsDone', true);
     return true;
   } catch (error) {
     console.error('[AionUi] Failed to finalize assistant migration:', error);
@@ -215,6 +216,13 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   if (process.env.AIONUI_SKIP_ELECTRON_MIGRATION === '1') {
     console.log('[AionUi] Assistant migration skipped (env flag set)');
     return false;
+  }
+
+  const rawConfigFileForFlag = configFile as unknown as LegacyConfigAccessor;
+  const alreadyDone = await rawConfigFileForFlag.get('migration.assistantsDone').catch(() => false);
+  if (alreadyDone === true) {
+    console.info('[AionUi] Assistant migration skipped — already done');
+    return true;
   }
 
   // The legacy `assistants` key was removed from IConfigStorageRefer in T3a,

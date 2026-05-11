@@ -4,7 +4,7 @@
 
 ## Prerequisites
 
-See [docs/development.md](docs/development.md) for environment setup. You will need:
+See [docs/contributing/development.md](docs/contributing/development.md) for environment setup. You will need:
 
 - Node.js 22+
 - [bun](https://bun.sh)
@@ -90,7 +90,7 @@ This repository runs a PR automation bot that reviews, fixes minor issues, and p
 | `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
 | `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
 
-See [docs/conventions/pr-automation.md](docs/conventions/pr-automation.md) for the full automation workflow.
+See [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md) for the full automation workflow.
 
 ## Enforcement
 
