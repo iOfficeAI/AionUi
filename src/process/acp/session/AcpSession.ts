@@ -72,9 +72,25 @@ function wrapCallbacks(raw: SessionCallbacks): SessionCallbacks {
   return wrapped as SessionCallbacks;
 }
 
+/** Last N chars of stderr to surface in the chat banner — enough to see a
+ * crash stack line or bun/node error, short enough not to dominate the UI. */
+const STDERR_TAIL_FOR_UI = 400;
+
 export function buildCrashMessage(info?: DisconnectInfo): string | null {
   if (!info) return null;
-  return `process exited unexpectedly (code: ${info.exitCode ?? 'unknown'}, signal: ${info.signal ?? 'none'})`;
+  // Intentional teardown (suspend, user close, graceful shutdown) is not a
+  // crash — suppress the banner entirely. Previously these showed up as
+  // "process exited unexpectedly (code: unknown, signal: none)" which was
+  // indistinguishable from a real crash and confused users every time they
+  // suspended a session.
+  if (info.intentional) return null;
+
+  const code = info.exitCode ?? 'unknown';
+  const signal = info.signal ?? 'none';
+  const when = info.activePrompt ? ' while a prompt was in flight' : ' while idle';
+  const head = `process exited unexpectedly${when} (code: ${code}, signal: ${signal}, reason: ${info.reason})`;
+  const tail = info.stderr.slice(-STDERR_TAIL_FOR_UI).trim();
+  return tail ? `${head}\nstderr tail: ${tail}` : head;
 }
 
 export class AcpSession {
