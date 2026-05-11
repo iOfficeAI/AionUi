@@ -8,7 +8,7 @@ All contributors (human and AI) must follow [CONTRIBUTING.md](CONTRIBUTING.md) b
 
 - **Directory size limit**: A single directory must not exceed **10** direct children (files + subdirectories). Split by responsibility when approaching this limit.
 
-See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for complete rules on directory naming, page module layout, and shared vs private code placement. Agents working in this repository must also read and follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files, modules, or making structure decisions.
+See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for complete rules. Agents must also follow the `architecture` skill (`.claude/skills/architecture/SKILL.md`) when creating files or modules.
 
 ### Naming
 
@@ -29,82 +29,106 @@ See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) f
 
 - Prefer **UnoCSS utility classes**; complex styles use **CSS Modules** (`ComponentName.module.css`)
 - Colors must use **semantic tokens** from `uno.config.ts` or CSS variables — no hardcoded values
-- Arco overrides go in the component's CSS Module via `:global()` — no global override files
+- Arco theme overrides go in `packages/desktop/src/renderer/styles/arco-override.css`; component-scoped Arco overrides use CSS Module with `:global()`
 - Global styles only in `packages/desktop/src/renderer/styles/`
 
-See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) for full CSS and UI library rules.
+Formatting rules (Oxfmt, Prettier-compatible):
+
+- Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
+- Trailing commas required in multi-line arrays/objects
+- Single quotes for strings
 
 ### TypeScript
 
 - Strict mode enabled — no `any`, no implicit returns
-- Use path aliases: `@/*`, `@process/*`, `@renderer/*`, `@worker/*`
+- Use path aliases: `@/*`, `@process/*`, `@renderer/*`
 - Prefer `type` over `interface` (per Oxlint config)
 - English for code comments; JSDoc for public functions
 
-### Architecture
+### Internationalization (i18n)
 
-Three process types — never mix their APIs:
+All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
 
-- `packages/desktop/src/process/` — main process, no DOM APIs
-- `packages/desktop/src/renderer/` — renderer, no Node.js APIs
-- `packages/desktop/src/process/worker/` — fork workers, no Electron APIs
+See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
+
+## Architecture
+
+Two process types — never mix their APIs:
+
+| Process  | Path                             | Restriction     |
+| -------- | -------------------------------- | --------------- |
+| Main     | `packages/desktop/src/process/`  | No DOM APIs     |
+| Renderer | `packages/desktop/src/renderer/` | No Node.js APIs |
 
 Cross-process communication must go through the IPC bridge (`packages/desktop/src/preload/`).
 See [docs/architecture/overview.md](docs/architecture/overview.md) for details.
 
 ## Testing
 
-**Framework**: Vitest 4 (`vitest.config.ts`). Run `bun run test` before every commit. Coverage target ≥ 80%.
-
-See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflow, quality rules, and checklist.
-
-## Code Quality
-
-**During development** — auto-fix as you edit:
+**Framework**: Vitest 4 (`vitest.config.ts`). Coverage target ≥ 80%.
 
 ```bash
-bun run lint:fix       # auto-fix lint issues in .ts / .tsx (oxlint)
-bun run format         # auto-format .ts / .tsx / .css / .json / .md (oxfmt)
+bun run test              # run all tests
+bun run test:coverage     # with coverage report
+```
+
+See the `testing` skill (`.claude/skills/testing/SKILL.md`) for complete workflow and quality rules.
+
+## Workflow
+
+### During Development
+
+Auto-fix as you edit:
+
+```bash
+bun run lint:fix       # auto-fix lint issues (oxlint)
+bun run format         # auto-format all files (oxfmt)
 bunx tsc --noEmit      # verify no type errors
 ```
 
-**Before every PR** — run the full CI check locally to catch everything CI catches (end-of-file, trailing whitespace, all file types):
-
-```bash
-# One-time setup
-npm install -g @j178/prek
-
-# Replicate exact CI check (read-only — does not auto-fix)
-prek run --from-ref origin/main --to-ref HEAD
-```
-
-> Note: `prek` uses `lint` (check only) and `format:check` (check only) — it will fail if there are issues but won't fix them.
-> If prek reports formatting or lint issues, run the auto-fix commands above first, then re-run prek to verify.
-
-**i18n validation:** If your changes touch `packages/desktop/src/renderer/`, `locales/`, or `packages/desktop/src/common/config/i18n`, run:
+If your changes touch `packages/desktop/src/renderer/`, `locales/`, or `packages/desktop/src/common/config/i18n`, also run:
 
 ```bash
 bun run i18n:types
 node scripts/check-i18n.js
 ```
 
-Both commands must complete without errors before opening a PR. The `oss-pr` skill enforces this automatically.
+### Before Pushing
 
-Common Oxfmt rules (Prettier-compatible, avoid a fix pass):
+Always use `just push` instead of `git push`:
 
-- Single-element arrays that fit on one line → inline: `[{ id: 'a', value: 'b' }]`
-- Trailing commas required in multi-line arrays/objects
-- Single quotes for strings
+```bash
+just push                          # lint → format-check → typecheck → test → git push
+just push -u origin feat/branch    # same checks, with extra git push args
+```
 
-## Git Conventions
+Any step that fails aborts the push. Fix the issue, commit, then retry.
 
-Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf. **NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
+### Before PR (optional stricter check)
+
+`prek` replicates the **exact CI pipeline** (includes end-of-file, trailing whitespace checks on all file types):
+
+```bash
+# One-time setup
+npm install -g @j178/prek
+
+# Run
+prek run --from-ref origin/main --to-ref HEAD
+```
+
+> `prek` is read-only — it reports but does not fix. If it reports issues, run the auto-fix commands above, commit, then re-run.
+
+The `oss-pr` skill runs this automatically during PR creation.
+
+### Commit & PR Format
+
+Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refactor, chore, docs, test, style, perf.
+
+**NEVER add AI signatures** (Co-Authored-By, Generated with, etc.).
 
 For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.md`).
 
 ## Skills Index
-
-Detailed rules and guidelines are organized into Skills for better modularity:
 
 | Skill             | Purpose                                                                               | Triggers                                                                                   |
 | ----------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
@@ -119,18 +143,4 @@ Detailed rules and guidelines are organized into Skills for better modularity:
 | **pr-ship**       | End-to-end PR lifecycle: create, CI wait, review, fix, merge in one invocation        | `/pr-ship`, after development is done, resume shepherding a PR                             |
 | **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
 
-> Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors. Every agent working in this repository must read and follow the relevant skill files when the task matches their scope.
-
-## PR 自动化流程
-
-本仓库运行 PR 自动化 agent，定期处理 open PR（review、fix、合并）。
-
-- **运行方式**：`scripts/pr-automation.sh` 作为 daemon 持续运行，每轮间隔 30 秒；日志默认写入 `~/Library/Logs/AionUi/`，可通过 `LOG_DIR=...` 覆盖
-- **状态追踪**：通过 `bot:*` label（`bot:reviewing`、`bot:fixing`、`bot:ready-to-fix`、`bot:ci-waiting`、`bot:needs-human-review`、`bot:ready-to-merge`、`bot:done`）
-- **详细说明**：[docs/contributing/pr-automation.md](docs/contributing/pr-automation.md)
-
-## Internationalization
-
-All user-facing text must use i18n keys — never hardcode strings. Languages and modules are defined in `packages/desktop/src/common/config/i18n-config.json`.
-
-See the `i18n` skill (`.claude/skills/i18n/SKILL.md`) for complete workflow, key naming, and validation steps.
+> Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.

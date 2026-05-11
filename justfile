@@ -306,6 +306,10 @@ typecheck:
 # Run all checks (lint + format + typecheck) — mirrors CI code-quality job
 check: lint fmt-check typecheck
 
+# Pre-push gate: lint + format check + typecheck + test, then push
+push *ARGS: lint fmt-check typecheck test
+    git push {{ ARGS }}
+
 # ============================================================
 # Testing
 # ============================================================
