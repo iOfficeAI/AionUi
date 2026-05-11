@@ -8,7 +8,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button, Message, Switch, Popconfirm, Spin, Empty } from '@arco-design/web-react';
-import { Left, Delete, PlayOne, Write, Attention } from '@icon-park/react';
+import { Left, Delete, PlayOne, Write, Attention, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
@@ -301,11 +301,19 @@ const TaskDetailPage: React.FC = () => {
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
-                  <img
-                    src={getAgentLogo(job.metadata.agent_config.backend)}
-                    alt={job.metadata.agent_config.name}
-                    className='h-28px w-28px rounded-50%'
-                  />
+                  {(() => {
+                    const logo = getAgentLogo(job.metadata.agent_config.backend) ||
+                      getAgentLogo(job.metadata.agent_type);
+                    return logo ? (
+                      <img
+                        src={logo}
+                        alt={job.metadata.agent_config.name}
+                        className='h-28px w-28px rounded-50%'
+                      />
+                    ) : (
+                      <Robot size='28' className='shrink-0 text-t-secondary' />
+                    );
+                  })()}
                   <span className='min-w-0 text-14px font-medium text-t-primary'>{job.metadata.agent_config.name}</span>
                 </div>
               </section>
@@ -320,7 +328,7 @@ const TaskDetailPage: React.FC = () => {
             </section>
 
             <section className='flex flex-col gap-10px'>
-              <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.execution_mode')}</h2>
+              <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.executionMode')}</h2>
               <div className='inline-flex items-center gap-4px'>
                 <span className='text-14px leading-22px text-t-primary'>{currentExecutionModeLabel}</span>
                 <Attention theme='outline' size={12} className='line-height-0 shrink-0 text-t-secondary' />

@@ -122,13 +122,15 @@ function getDescriptionInitialValue(job: ICronJob): string {
 /**
  * Infer the agent selection key from an ICronJob's agent_config.
  */
-function getAgentKeyFromJob(job: ICronJob): string | undefined {
+function getAgentKeyFromJob(job: ICronJob, cliAgents: { backend?: string; agent_type: string }[]): string | undefined {
   const config = job.metadata.agent_config;
   if (config) {
     if (config.is_preset && config.custom_agent_id) return `preset:${config.custom_agent_id}`;
-    return `cli:${config.backend}`;
+    // For ACP agents config.backend is the vendor label (e.g. "claude");
+    // for aionrs it's a provider hash — match against the agent list to decide.
+    const matched = cliAgents.find((a) => (a.backend || a.agent_type) === config.backend);
+    if (matched) return `cli:${config.backend}`;
   }
-  // Fallback for legacy jobs without agent_config
   if (job.metadata.agent_type) return `cli:${job.metadata.agent_type}`;
   return undefined;
 }
@@ -182,7 +184,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             Object.keys(editJob.metadata.agent_config.config_options).length > 0)
         )
       );
-      const agentKey = getAgentKeyFromJob(editJob);
+      const agentKey = getAgentKeyFromJob(editJob, cliAgents);
       setSelectedAgent(agentKey);
       form.setFieldsValue({
         name: editJob.name,
@@ -539,7 +541,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 let name = id;
                 let logo: React.ReactNode = <Robot size='16' />;
                 if (type === 'cli') {
-                  const agent = cliAgents.find((a) => a.backend === id);
+                  const agent = cliAgents.find(
+                    (a) => (a.backend || a.agent_type) === id
+                  );
                   if (agent) {
                     name = agent.name;
                     const logoSrc = resolveAgentLogo({
@@ -574,12 +578,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {cliAgents.length > 0 && (
                 <OptGroup label={t('conversation.dropdown.cliAgents')}>
                   {cliAgents.map((agent) => {
+                    const agentKey = agent.backend || agent.agent_type;
                     const logo = resolveAgentLogo({
                       icon: agent.icon,
-                      backend: agent.backend || agent.agent_type,
+                      backend: agentKey,
                     });
                     return (
-                      <Option key={`cli:${agent.backend}`} value={`cli:${agent.backend}`}>
+                      <Option key={`cli:${agentKey}`} value={`cli:${agentKey}`}>
                         <div className='flex items-center gap-8px'>
                           {logo ? (
                             <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
@@ -618,7 +623,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             </Select>
           </FormItem>
 
-          <FormItem label={t('cron.page.form.execution_mode')}>
+          <FormItem label={t('cron.page.form.executionMode')}>
             <Radio.Group
               value={execution_mode}
               onChange={(value) => setExecutionMode(value as ExecutionMode)}
