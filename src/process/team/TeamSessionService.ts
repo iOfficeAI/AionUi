@@ -24,6 +24,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { resolveLocaleKey } from '@/common/utils';
 import { hasGeminiOauthCreds } from './googleAuthCheck';
+import { getFullAutoMode, getFullAutoModeStrict } from '@/common/types/agentModes';
 
 export class TeamSessionService {
   private readonly sessions: Map<string, TeamSession> = new Map();
@@ -484,6 +485,14 @@ export class TeamSessionService {
     const teamId = uuid(36);
     let workspace = this.resolveWorkspace(params.workspace);
 
+    // Auto-apply the leader backend's full-auto (YOLO) mode so team members run with
+    // the highest-autonomy permission level by default — users should not have to
+    // toggle it manually after team creation.
+    const leaderAgent = params.agents.find((a) => a.role === 'leader');
+    const leaderBackend = leaderAgent ? this.resolveBackend(leaderAgent.agentType, params.agents) : undefined;
+    const autoSessionMode = leaderBackend ? getFullAutoMode(leaderBackend) : undefined;
+    const resolvedSessionMode = autoSessionMode ?? params.sessionMode;
+
     // Create a real conversation for each agent (or reuse an existing one for the leader)
     const agentsWithConversations = await Promise.all(
       params.agents.map(async (agent) => {
@@ -517,7 +526,7 @@ export class TeamSessionService {
           workspace,
           agent,
           agents: params.agents,
-          inheritedSessionMode: params.sessionMode,
+          inheritedSessionMode: resolvedSessionMode,
           isInheritedWorkspace: !params.workspace,
         });
         const conversation = await this.conversationService.createConversation(conversationParams);
@@ -550,7 +559,7 @@ export class TeamSessionService {
       workspaceMode: params.workspaceMode,
       leaderAgentId: leadAgent.slotId,
       agents: agentsWithConversations,
-      sessionMode: params.sessionMode,
+      sessionMode: resolvedSessionMode,
       createdAt: now,
       updatedAt: now,
     };
@@ -637,7 +646,9 @@ export class TeamSessionService {
     if (!team) throw new Error(`Team "${teamId}" not found`);
 
     const workspace = this.resolveWorkspace(team.workspace);
-    // Inherit sessionMode: prefer persisted team.sessionMode, fallback to leader agent's conversation extra
+    // Inherit sessionMode: prefer persisted team.sessionMode, then leader agent's conversation extra,
+    // finally fall back to full-auto (YOLO) derived from this agent's own backend so teams created
+    // before the auto-yolo change still run new members at max autonomy.
     let inheritedSessionMode: string | undefined = team.sessionMode;
     if (!inheritedSessionMode) {
       const leadAgent = team.agents.find((a) => a.role === 'leader');
@@ -648,6 +659,10 @@ export class TeamSessionService {
           inheritedSessionMode = leadExtra.sessionMode;
         }
       }
+    }
+    if (!inheritedSessionMode) {
+      const agentBackend = this.resolveBackend(agent.agentType, team.agents);
+      inheritedSessionMode = getFullAutoModeStrict(agentBackend);
     }
 
     const conversationParams = await this.buildConversationParams({

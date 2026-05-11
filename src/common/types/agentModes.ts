@@ -29,3 +29,12 @@ export function getFullAutoMode(backend: string | undefined): string {
   if (!backend) return 'yolo';
   return FULL_AUTO_MODE[backend] || 'yolo';
 }
+
+/**
+ * Get the full-auto mode value for a known backend only.
+ * Returns undefined for unknown backends to avoid silent privilege escalation.
+ */
+export function getFullAutoModeStrict(backend: string | undefined): string | undefined {
+  if (!backend) return undefined;
+  return FULL_AUTO_MODE[backend];
+}
