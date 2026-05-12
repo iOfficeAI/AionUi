@@ -5,6 +5,9 @@
  */
 
 import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -18,9 +21,10 @@ import { configService } from '@/common/config/configService';
  * agents (gemini / aionrs) from ConfigStorage and falls back to a sensible
  * CLI default when no preference is set.
  *
- * For ACP backends (claude, codex, acp) the model selection happens inside
- * the ACP init flow and the backend ignores the field; we still pass a
- * non-empty string to avoid triggering empty-value paths.
+ * For ACP backends (claude, codex, acp) the model is resolved from the
+ * agent's handshake data or cached model info so the backend receives a
+ * valid model ID (e.g. "claude-sonnet-4-5-20250514") instead of the bare
+ * backend name.
  */
 export async function resolveDefaultTeamAgentModel(params: {
   agent_type: string;
@@ -36,11 +40,29 @@ export async function resolveDefaultTeamAgentModel(params: {
     return resolveAionrsDefaultModel();
   }
 
-  // ACP / claude / codex / openclaw / nanobot / remote — backend picks its own
-  // model via the ACP init flow. Pass the agent_type so the field is non-empty;
-  // backend still records it as the model string but it is not used for
-  // sendbox-gating on those platforms (ACP sendbox hardcodes disabled={false}).
-  return agent_type || 'default';
+  return resolveAcpDefaultModel(agent_type);
+}
+
+async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
+  // 1. Try handshake data from /api/agents
+  try {
+    const agents = (await ipcBridge.acpConversation.getAvailableAgents.invoke()) as AgentMetadata[];
+    const matched = agents.find((a) => (a.backend ?? a.agent_type) === agent_type);
+    const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    if (handshakeModels?.current_model_id) {
+      return handshakeModels.current_model_id;
+    }
+  } catch {
+    // Fall through to cached models
+  }
+
+  // 2. Try local cached models
+  const cached = configService.get('acp.cachedModels')?.[agent_type];
+  if (cached?.current_model_id) {
+    return cached.current_model_id;
+  }
+
+  return 'default';
 }
 
 async function resolveGeminiDefaultModel(): Promise<string> {
