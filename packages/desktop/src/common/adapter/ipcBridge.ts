@@ -29,7 +29,7 @@ import type {
 } from '../types/teamTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
+import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
   UpdateCheckRequest,
   UpdateCheckResult,
@@ -919,7 +919,7 @@ export const previewHistory = {
 export const preview = {
   open: wsEmitter<{
     content: string;
-    content_type: import('../types/preview').PreviewContentType;
+    content_type: import('../types/office/preview').PreviewContentType;
     metadata?: {
       title?: string;
       file_name?: string;
@@ -933,8 +933,8 @@ export const preview = {
 
 export const document = {
   convert: httpPost<
-    import('../types/conversion').DocumentConversionResponse,
-    import('../types/conversion').DocumentConversionRequest
+    import('../types/office/conversion').DocumentConversionResponse,
+    import('../types/office/conversion').DocumentConversionRequest
   >('/api/document/convert'),
 };
 
