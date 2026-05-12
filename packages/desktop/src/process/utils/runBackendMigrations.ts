@@ -44,50 +44,29 @@ const MIGRATION_STEPS: Array<{
 export async function runBackendMigrations(configFile: ConfigFile): Promise<void> {
   await CLEANUP_STEPS.reduce<Promise<void>>(async (previous, step) => {
     await previous;
+    const start = Date.now();
     try {
       await step.run();
-      console.info(`[AionUi] Backend migration step completed: ${step.name}`);
+      console.info(`[AionUi] Backend migration step completed: ${step.name} (${Date.now() - start}ms)`);
     } catch (error) {
-      console.error(`[AionUi] Backend migration step failed: ${step.name}`, error);
+      console.error(`[AionUi] Backend migration step failed: ${step.name} (${Date.now() - start}ms)`, error);
     }
   }, Promise.resolve());
 
-  const electronConfigImported = await configFile.get('migration.electronConfigImported').catch(() => false);
-  if (electronConfigImported === true) {
-    console.info('[AionUi] Backend migrations skipped: migration.electronConfigImported already true');
-    return;
-  }
-
-  // Each step checks its own flag internally, so a failure in one step
-  // does not cause already-completed steps to re-execute on next launch.
-  let allSucceeded = true;
   await MIGRATION_STEPS.reduce<Promise<void>>(async (previous, step) => {
     await previous;
+    const start = Date.now();
     try {
       const completed = await step.run(configFile);
+      const elapsed = Date.now() - start;
       if (!completed) {
-        allSucceeded = false;
-        console.warn(`[AionUi] Backend migration step incomplete: ${step.name}`);
+        console.warn(`[AionUi] Backend migration step incomplete: ${step.name} (${elapsed}ms)`);
         return;
       }
-      console.info(`[AionUi] Backend migration step completed: ${step.name}`);
+      console.info(`[AionUi] Backend migration step completed: ${step.name} (${elapsed}ms)`);
     } catch (error) {
-      allSucceeded = false;
-      console.error(`[AionUi] Backend migration step failed: ${step.name}`, error);
+      const elapsed = Date.now() - start;
+      console.error(`[AionUi] Backend migration step failed: ${step.name} (${elapsed}ms)`, error);
     }
   }, Promise.resolve());
-
-  // Write the overall fast-skip flag only when all steps are done.
-  // This is an optimization — each step's own flag prevents re-execution
-  // even if this overall flag is never written.
-  if (!allSucceeded) {
-    return;
-  }
-
-  try {
-    await configFile.set('migration.electronConfigImported', true);
-    console.info('[AionUi] Backend migrations complete: migration.electronConfigImported=true');
-  } catch (error) {
-    console.error('[AionUi] Failed to mark backend migrations complete:', error);
-  }
 }

@@ -60,14 +60,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
 ];
 
 export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {
-  const alreadyDone = await configFile
-    .get('migration.configStorageDone' as keyof IConfigStorageRefer)
-    .catch((): undefined => undefined);
-  if (alreadyDone === true) {
-    console.info('[Migration] configStorage migration skipped — already done');
-    return;
-  }
-
   const entries: Record<string, unknown> = {};
 
   const legacyEntries = await Promise.all(
@@ -89,7 +81,6 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
 
   if (Object.keys(entries).length === 0) {
     console.info('[Migration] configStorage migration skipped — no legacy keys found');
-    await configFile.set('migration.configStorageDone' as keyof IConfigStorageRefer, true as never);
     return;
   }
 
@@ -117,8 +108,6 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
       Object.keys(entries).length
     );
   }
-
-  await configFile.set('migration.configStorageDone' as keyof IConfigStorageRefer, true as never);
 }
 
 // ---------------------------------------------------------------------------
@@ -174,18 +163,6 @@ function transformModelHealth(health: LegacyModelHealth): CreateProviderRequest[
 }
 
 export async function migrateProviders(configFile: ConfigFile): Promise<void> {
-  const alreadyDone = await configFile.get('migration.electronProvidersImported').catch((): undefined => undefined);
-  if (alreadyDone === true) {
-    return;
-  }
-
-  const existing = await ipcBridge.mode.listProviders.invoke();
-  if (existing && existing.length > 0) {
-    console.info('[Migration] providers migration skipped — backend already has %d providers', existing.length);
-    await configFile.set('migration.electronProvidersImported', true);
-    return;
-  }
-
   let legacyProviders: LegacyProvider[];
   try {
     legacyProviders = (await configFile.get(
@@ -193,19 +170,33 @@ export async function migrateProviders(configFile: ConfigFile): Promise<void> {
     )) as unknown as LegacyProvider[];
   } catch (err) {
     console.info('[Migration] providers migration skipped — no model.config in config file', err);
-    await configFile.set('migration.electronProvidersImported', true);
     return;
   }
 
   if (!legacyProviders || !Array.isArray(legacyProviders) || legacyProviders.length === 0) {
     console.info('[Migration] providers migration skipped — model.config is empty or invalid');
-    await configFile.set('migration.electronProvidersImported', true);
     return;
   }
 
-  console.info('[Migration] found %d legacy providers to migrate', legacyProviders.length);
+  const existing = await ipcBridge.mode.listProviders.invoke();
+  const existingIds = new Set((existing ?? []).map((p: { id: string }) => p.id));
 
-  const requests = legacyProviders.map((legacy) => ({
+  const newProviders = legacyProviders.filter((p) => !existingIds.has(p.id));
+  if (newProviders.length === 0) {
+    console.info(
+      '[Migration] providers migration skipped — all %d legacy providers already exist in backend',
+      legacyProviders.length
+    );
+    return;
+  }
+
+  console.info(
+    '[Migration] found %d new legacy providers to migrate (skipping %d existing)',
+    newProviders.length,
+    legacyProviders.length - newProviders.length
+  );
+
+  const requests = newProviders.map((legacy) => ({
     legacy,
     req: {
       id: legacy.id,
@@ -242,8 +233,7 @@ export async function migrateProviders(configFile: ConfigFile): Promise<void> {
     console.warn('[Migration] failed to create provider %s:', requests[index].legacy.id, result.reason);
   });
 
-  await configFile.set('migration.electronProvidersImported', true);
-  console.info('[Migration] providers migration completed, migrated %d/%d providers', migrated, legacyProviders.length);
+  console.info('[Migration] providers migration completed, migrated %d/%d providers', migrated, newProviders.length);
 }
 
 type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;

@@ -127,7 +127,6 @@ type BuiltinOverride = { id: string; enabled: false };
 
 type LegacyConfigAccessor = {
   get: (key: string) => Promise<unknown>;
-  set: (key: string, value: unknown) => Promise<unknown>;
   remove?: (key: string) => Promise<unknown>;
 };
 
@@ -186,7 +185,6 @@ async function finalizeAssistantMigration(configFile: ConfigFile): Promise<boole
     if (typeof rawConfigFile.remove === 'function') {
       await rawConfigFile.remove('assistants');
     }
-    await rawConfigFile.set('migration.assistantsDone', true);
     return true;
   } catch (error) {
     console.error('[AionUi] Failed to finalize assistant migration:', error);
@@ -218,15 +216,6 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     return false;
   }
 
-  const rawConfigFileForFlag = configFile as unknown as LegacyConfigAccessor;
-  const alreadyDone = await rawConfigFileForFlag.get('migration.assistantsDone').catch(() => false);
-  if (alreadyDone === true) {
-    console.info('[AionUi] Assistant migration skipped — already done');
-    return true;
-  }
-
-  // The legacy `assistants` key was removed from IConfigStorageRefer in T3a,
-  // but the file on disk may still carry it. Read defensively.
   const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
@@ -251,7 +240,7 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
         // already-imported rows will skip rather than clobber.
         return false;
       }
-      console.log(`[AionUi] Migrated ${result.imported} assistants (skipped ${result.skipped})`);
+      console.log(`[AionUi] migrated ${result.imported} assistants (skipped ${result.skipped})`);
     } catch (error) {
       console.error('[AionUi] Assistant migration failed:', error);
       return false;
