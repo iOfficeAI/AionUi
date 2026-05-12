@@ -6,7 +6,7 @@
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
+import type { AcpBackendAll } from '@/common/types/acpTypes';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
@@ -29,6 +29,7 @@ export type BuildAgentConversationInput = {
   presetResources?: BuildAgentConversationPresetResources;
   sessionMode?: string;
   currentModelId?: string;
+  effort?: string;
   extra?: Partial<ICreateConversationParams['extra']>;
 };
 
@@ -66,6 +67,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     presetResources,
     sessionMode,
     currentModelId,
+    effort,
     extra: extraOverrides,
   } = input;
 
@@ -87,7 +89,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     } else {
       extra.presetContext = presetResources?.rules;
       if (type === 'acp') {
-        extra.backend = effectivePresetType as AcpBackend;
+        extra.backend = effectivePresetType as AcpBackendAll;
       }
     }
   } else if (type === 'remote') {
@@ -103,6 +105,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   if (sessionMode) extra.sessionMode = sessionMode;
   if (currentModelId) extra.currentModelId = currentModelId;
+  if (effort) extra.effort = effort;
 
   return {
     type,

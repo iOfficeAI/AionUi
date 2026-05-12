@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { TChatConversation } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
+import { getSelectedAcpConfigOptionValues } from '@/common/types/acpConfigOptions';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -324,6 +325,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         Message.warning(t('conversation.noModelConfigured'));
         return;
       }
+      const selectedAionrsEffort = pendingConfigOptions.effort;
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'aionrs',
@@ -338,6 +340,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             excludeBuiltinSkills,
             presetAssistantId,
             sessionMode: selectedMode,
+            ...(selectedAionrsEffort ? { effort: selectedAionrsEffort } : {}),
           },
         });
 
@@ -428,6 +431,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
                 })
               : cachedConfigOptions
             : undefined;
+        const selectedConfigOptions = mergedCachedConfigOptions
+          ? getSelectedAcpConfigOptionValues(mergedCachedConfigOptions, pendingConfigOptions)
+          : pendingConfigOptions;
 
         // Inject cachedConfigOptions & pendingConfigOptions into the params built by utility
         if (mergedCachedConfigOptions) {
@@ -436,8 +442,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             cachedConfigOptions: mergedCachedConfigOptions,
           };
         }
-        if (Object.keys(pendingConfigOptions).length > 0) {
-          agentConversationParams.extra = { ...agentConversationParams.extra, pendingConfigOptions };
+        if (Object.keys(selectedConfigOptions).length > 0) {
+          agentConversationParams.extra = {
+            ...agentConversationParams.extra,
+            pendingConfigOptions: selectedConfigOptions,
+          };
         }
 
         const conversation = await ipcBridge.conversation.create.invoke(agentConversationParams);

@@ -524,6 +524,7 @@ const GuidPage: React.FC = () => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
       configOptionsBackend={agentSelection.currentEffectiveAgentInfo.agentType}
+      configOptionsModelId={agentSelection.selectedAcpModel}
       cachedConfigOptions={agentSelection.cachedConfigOptions}
       onConfigOptionSelect={agentSelection.setPendingConfigOption}
       builtinAutoSkills={builtinAutoSkills}

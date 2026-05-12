@@ -247,6 +247,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         workspace={conversation.extra.workspace}
         modelSelection={modelSelection}
         sessionMode={conversation.extra?.sessionMode}
+        effort={conversation.extra?.effort}
       />
     </ChatLayout>
   );
@@ -283,6 +284,7 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             backend={conversation.extra?.backend || 'claude'}
             sessionMode={conversation.extra?.sessionMode}
+            currentModelId={conversation.extra?.currentModelId}
             cachedConfigOptions={conversation.extra?.cachedConfigOptions}
             agentName={assistantDisplayName}
             cronJobId={(conversation.extra as { cronJobId?: string })?.cronJobId}
@@ -296,6 +298,7 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             backend='codex'
+            currentModelId={(conversation.extra as { currentModelId?: string } | undefined)?.currentModelId}
             agentName={assistantDisplayName}
             cachedConfigOptions={
               (

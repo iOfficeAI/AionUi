@@ -150,17 +150,22 @@ describe('createConversationParams', () => {
   });
 
   it('resolves aionrs model from enabled provider', async () => {
-    configGet.mockResolvedValue([
-      {
-        id: 'provider-1',
-        platform: 'openai',
-        name: 'Provider',
-        baseUrl: 'https://example.com',
-        apiKey: 'token',
-        model: ['gpt-4.1'],
-        enabled: true,
-      },
-    ]);
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'model.config') {
+        return [
+          {
+            id: 'provider-1',
+            platform: 'openai',
+            name: 'Provider',
+            baseUrl: 'https://example.com',
+            apiKey: 'token',
+            model: ['gpt-4.1'],
+            enabled: true,
+          },
+        ];
+      }
+      return undefined;
+    });
 
     const params = await buildCliAgentParams(
       {
@@ -175,8 +180,44 @@ describe('createConversationParams', () => {
     expect(params.model.useModel).toBe('gpt-4.1');
   });
 
+  it('uses saved aionrs model and effort for workspace conversations', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'model.config') {
+        return [
+          {
+            id: 'provider-1',
+            platform: 'openai',
+            name: 'Provider',
+            baseUrl: 'https://example.com',
+            apiKey: 'token',
+            model: ['gpt-4.1', 'gpt-5'],
+            enabled: true,
+          },
+        ];
+      }
+      if (key === 'aionrs.defaultModel') {
+        return { id: 'provider-1', useModel: 'gpt-5' };
+      }
+      if (key === 'aionrs.config') {
+        return { preferredEffort: 'high' };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'aionrs',
+        name: 'Aion CLI Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.model.useModel).toBe('gpt-5');
+    expect(params.extra.effort).toBe('high');
+  });
+
   it('throws error for aionrs if no provider configured', async () => {
-    configGet.mockResolvedValue([]);
+    configGet.mockImplementation(async (key: string) => (key === 'model.config' ? [] : undefined));
 
     await expect(
       buildCliAgentParams(
@@ -200,6 +241,130 @@ describe('createConversationParams', () => {
 
     expect(params.type).toBe('acp');
     expect(params.model).toEqual({});
+  });
+
+  it('includes default Claude config options when no backend cache exists', async () => {
+    configGet.mockImplementation(async () => undefined);
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'claude',
+        name: 'Claude Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'effort',
+        category: 'thought_level',
+        currentValue: 'medium',
+        selectedValue: 'medium',
+      }),
+    ]);
+    expect(params.extra.pendingConfigOptions).toEqual({ effort: 'medium' });
+  });
+
+  it('includes default Codex reasoning effort config options when no backend cache exists', async () => {
+    configGet.mockImplementation(async () => undefined);
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'codex',
+        name: 'Codex Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'model_reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'medium',
+        selectedValue: 'medium',
+        options: expect.arrayContaining([
+          expect.objectContaining({ value: 'low' }),
+          expect.objectContaining({ value: 'medium' }),
+          expect.objectContaining({ value: 'high' }),
+          expect.objectContaining({ value: 'xhigh' }),
+        ]),
+      }),
+    ]);
+    expect(params.extra.pendingConfigOptions).toEqual({ model_reasoning_effort: 'medium' });
+  });
+
+  it('does not include fallback reasoning effort config options for ACP backends without known support', async () => {
+    configGet.mockImplementation(async () => undefined);
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'qwen',
+        name: 'Qwen Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.cachedConfigOptions).toBeUndefined();
+  });
+
+  it('applies saved Codex reasoning effort to new workspace conversations', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            preferredConfigOptions: { model_reasoning_effort: 'xhigh' },
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'codex',
+        name: 'Codex Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'model_reasoning_effort',
+        currentValue: 'xhigh',
+        selectedValue: 'xhigh',
+      }),
+    ]);
+    expect(params.extra.pendingConfigOptions).toEqual({ model_reasoning_effort: 'xhigh' });
+  });
+
+  it('does not apply invalid saved Codex reasoning effort values', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          codex: {
+            preferredConfigOptions: { model_reasoning_effort: 'middle' },
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'codex',
+        name: 'Codex Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.cachedConfigOptions).toEqual([
+      expect.objectContaining({
+        id: 'model_reasoning_effort',
+        currentValue: 'medium',
+        selectedValue: 'medium',
+      }),
+    ]);
+    expect(params.extra.pendingConfigOptions).toEqual({ model_reasoning_effort: 'medium' });
   });
 
   it('reuses the saved ACP mode and model for workspace conversations', async () => {
@@ -299,7 +464,9 @@ describe('createConversationParams', () => {
   });
 
   it('throws error for aionrs if no enabled provider', async () => {
-    configGet.mockResolvedValue([{ id: 'p1', enabled: false, model: ['m1'] }]);
+    configGet.mockImplementation(async (key: string) =>
+      key === 'model.config' ? [{ id: 'p1', enabled: false, model: ['m1'] }] : undefined
+    );
     await expect(buildCliAgentParams({ backend: 'aionrs', name: 'Agent' }, '/tmp')).rejects.toThrow(
       'No enabled model provider for Aion CLI'
     );
@@ -327,18 +494,23 @@ describe('createConversationParams', () => {
   });
 
   it('falls back to first model if none enabled for aionrs', async () => {
-    configGet.mockResolvedValue([
-      {
-        id: 'p1',
-        platform: 'openai',
-        name: 'P1',
-        baseUrl: 'b1',
-        apiKey: 'k1',
-        model: ['m1', 'm2'],
-        enabled: true,
-        modelEnabled: { m1: false, m2: false },
-      },
-    ]);
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'model.config') {
+        return [
+          {
+            id: 'p1',
+            platform: 'openai',
+            name: 'P1',
+            baseUrl: 'b1',
+            apiKey: 'k1',
+            model: ['m1', 'm2'],
+            enabled: true,
+            modelEnabled: { m1: false, m2: false },
+          },
+        ];
+      }
+      return undefined;
+    });
 
     const params = await buildCliAgentParams({ backend: 'aionrs', name: 'A' }, '/tmp');
     expect(params.model.useModel).toBe('m1');

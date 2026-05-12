@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
+import AionrsEffortSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsEffortSelector';
 import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -49,6 +50,7 @@ type GuidActionRowProps = {
 
   // Config options (ACP)
   configOptionsBackend?: AcpBackend;
+  configOptionsModelId?: string | null;
   cachedConfigOptions?: AcpSessionConfigOption[];
   onConfigOptionSelect?: (configId: string, value: string) => void;
 
@@ -82,6 +84,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   agentSwitcherItems,
   onAgentSwitch,
   configOptionsBackend,
+  configOptionsModelId,
   cachedConfigOptions,
   onConfigOptionSelect,
   builtinAutoSkills,
@@ -97,8 +100,16 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const layout = useLayoutContext();
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
+  const configBackend = configOptionsBackend || modeBackend;
   const showModeSwitch = supportsModeSwitch(modeBackend);
-  const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
+  const showAionrsEffortSelector = modeBackend === 'aionrs';
+  const showAcpConfigSelector = !showAionrsEffortSelector && Boolean(configBackend);
+  const selectedAionrsEffort = cachedConfigOptions?.find((option) => option.id === 'effort')?.currentValue;
+  const configOptionCount =
+    (modelSelectorNode ? 1 : 0) +
+    (showModeSwitch ? 1 : 0) +
+    (showAionrsEffortSelector ? 1 : 0) +
+    (showAcpConfigSelector ? 1 : 0);
 
   // Browser file picker ref (WebUI only)
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -286,13 +297,21 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               hideCompactLabelPrefixOnMobile
             />
           )}
-          <AcpConfigSelector
-            backend={configOptionsBackend}
-            buttonClassName='guid-config-btn'
-            initialConfigOptions={cachedConfigOptions}
-            leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
-            onOptionSelect={onConfigOptionSelect}
-          />
+          {showAionrsEffortSelector ? (
+            <AionrsEffortSelector
+              effort={selectedAionrsEffort}
+              onEffortChange={(effort) => onConfigOptionSelect?.('effort', effort)}
+            />
+          ) : (
+            <AcpConfigSelector
+              backend={configBackend}
+              modelId={configOptionsModelId ?? undefined}
+              buttonClassName='guid-config-btn'
+              initialConfigOptions={cachedConfigOptions}
+              leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
+              onOptionSelect={onConfigOptionSelect}
+            />
+          )}
         </div>
 
         {!hidePresetTag && isPresetAgent && selectedAgentInfo && (

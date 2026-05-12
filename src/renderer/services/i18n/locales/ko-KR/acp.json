@@ -17,6 +17,11 @@
   },
   "config": {
     "reasoning_effort": "추론 깊이",
-    "default": "기본값"
+    "default": "기본값",
+    "effort": {
+      "low": "낮음",
+      "medium": "중간",
+      "high": "높음"
+    }
   }
 }

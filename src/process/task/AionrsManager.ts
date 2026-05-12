@@ -65,6 +65,7 @@ type AionrsManagerData = {
   maxTokens?: number;
   maxTurns?: number;
   sessionMode?: string;
+  effort?: string;
   sessionId?: string;
   resume?: string;
   teamMcpStdioConfig?: {
@@ -172,6 +173,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     await agent.start();
     this.agent = agent;
     this._capabilities = agent.capabilities ?? null;
+    this.emitCapabilities();
+    this.applyInitialEffort(mergedData.effort);
+    this.currentMode = mergedData.sessionMode || this.currentMode;
+    if (mergedData.sessionMode && mergedData.sessionMode !== 'default') {
+      await this.setMode(mergedData.sessionMode);
+    }
     this.startHeartbeat();
 
     if (this.data.data.teamMcpStdioConfig) {
@@ -430,6 +437,16 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       backend: 'aionrs',
       pendingConfirmations: this.getConfirmations().length,
       modelId: this.model.useModel,
+    });
+  }
+
+  private emitCapabilities(): void {
+    if (!this._capabilities) return;
+    ipcBridge.conversation.responseStream.emit({
+      type: 'config_changed',
+      conversation_id: this.conversation_id,
+      msg_id: '',
+      data: this._capabilities,
     });
   }
 
@@ -747,8 +764,17 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
 
   setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
     if (this.agent) {
+      this._configSentAt = Date.now();
       this.agent.setConfig(config);
     }
+  }
+
+  private applyInitialEffort(effort: string | undefined): void {
+    if (!effort) return;
+    if (!this._capabilities?.effort) return;
+    const levels = this._capabilities.effort_levels;
+    if (Array.isArray(levels) && levels.length > 0 && !levels.includes(effort)) return;
+    this.setConfig({ effort });
   }
 
   getMode(): { mode: string; initialized: boolean } {

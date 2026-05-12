@@ -24,6 +24,7 @@ import {
 } from '@/common/types/acpTypes';
 import {
   findSuitableNodeBin,
+  buildPackageRunnerArgs,
   getEnhancedEnv,
   getWindowsShellExecutionOptions,
   loadFullShellEnvironment,
@@ -292,7 +293,7 @@ export function createGenericSpawnConfig(
     // Route legacy npx package launchers through the bundled bun runtime.
     const parts = cliPath.split(' ').filter(Boolean);
     spawnCommand = resolveNpxPath(env);
-    spawnArgs = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), ...effectiveAcpArgs];
+    spawnArgs = buildPackageRunnerArgs(spawnCommand, [...parts.slice(1), ...effectiveAcpArgs]);
   } else if (isWindows) {
     // On Windows with shell: true, let cmd.exe handle the full command string.
     // This correctly supports paths with spaces (e.g., "C:\Program Files\agent.exe")
@@ -405,7 +406,7 @@ export function spawnNpxBackend(
     detached?: boolean;
   } = {}
 ): SpawnResult {
-  const spawnArgs = ['x', '--bun', npxPackage, ...normalizeNpxArgsForBundledBun(extraArgs)];
+  const spawnArgs = buildPackageRunnerArgs(npxCommand, [npxPackage, ...extraArgs]);
 
   const spawnStart = Date.now();
   // detached: true creates a new session (setsid) so the child has no controlling terminal.
@@ -430,9 +431,12 @@ export function spawnNpxBackend(
 }
 
 /** Prepare clean env + resolve npx for Claude ACP bridge. */
-async function prepareClaude(): Promise<NpxPrepareResult> {
+async function prepareClaude(customEnv?: Record<string, string>): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
+  if (customEnv) {
+    Object.assign(cleanEnv, customEnv);
+  }
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
@@ -635,11 +639,15 @@ async function connectNpxBackend(config: {
 // ── Exported per-backend connect functions ───────────────────────────
 
 /** Connect to Claude ACP bridge via npx. */
-export function connectClaude(workingDir: string, hooks: NpxConnectHooks): Promise<void> {
+export function connectClaude(
+  workingDir: string,
+  hooks: NpxConnectHooks,
+  customEnv?: Record<string, string>
+): Promise<void> {
   return connectNpxBackend({
     backend: 'claude',
     npxPackage: CLAUDE_ACP_NPX_PACKAGE,
-    prepareFn: prepareClaude,
+    prepareFn: () => prepareClaude(customEnv),
     workingDir,
     ...hooks,
     detached: process.platform !== 'win32',

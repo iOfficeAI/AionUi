@@ -33,6 +33,14 @@ import path from 'path';
 import { migrateConversationToDatabase } from './migrationUtils';
 import { ConversationSideQuestionService } from './services/ConversationSideQuestionService';
 
+type RuntimeConfigurableTask = IAgentManager & {
+  setConfig: (config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }) => void;
+};
+
+function hasRuntimeConfig(task: IAgentManager | undefined): task is RuntimeConfigurableTask {
+  return Boolean(task && 'setConfig' in task && typeof task.setConfig === 'function');
+}
+
 const refreshTrayMenuSafely = async (): Promise<void> => {
   try {
     await refreshTrayMenu();
@@ -439,10 +447,31 @@ export function initConversationBridge(
     return { success: true };
   });
 
-  // Placeholder: runtime config hot-swap is not yet supported.
-  // Model switching always uses kill-restart; thinking/effort may be added later.
-  ipcBridge.conversation.setConfig.provider(async () => {
-    return { success: false, msg: 'Runtime config changes not yet supported' };
+  ipcBridge.conversation.setConfig.provider(async ({ conversation_id, config }) => {
+    try {
+      const task = await workerTaskManager.getOrBuildTask(conversation_id);
+      if (!hasRuntimeConfig(task)) {
+        return { success: false, msg: 'Runtime config changes not supported for this conversation' };
+      }
+
+      task.setConfig(config);
+
+      const conversation = await conversationService.getConversation(conversation_id);
+      if (conversation?.type === 'aionrs') {
+        const nextExtra = {
+          ...conversation.extra,
+          ...(config.effort ? { effort: config.effort } : {}),
+        };
+        await conversationService.updateConversation(conversation_id, {
+          extra: nextExtra,
+        } as Partial<TChatConversation>);
+        emitConversationListChanged(conversation, 'updated');
+      }
+
+      return { success: true };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
   });
 
   ipcBridge.conversation.getSlashCommands.provider(async ({ conversation_id }) => {

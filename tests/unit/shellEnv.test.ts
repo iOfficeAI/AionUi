@@ -416,16 +416,24 @@ describe('resolveNpxPath', () => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
   });
 
-  it('prefers the bundled bun binary on Windows', async () => {
-    Object.defineProperty(process, 'platform', { value: 'win32' });
+  it('prefers bun from PATH when bundled bun is unavailable', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn((candidate: string) => candidate === '/tooling/bun'),
+      };
+    });
 
     const { resolveNpxPath } = await import('@process/utils/shellEnv');
     const result = resolveNpxPath({ PATH: '/tooling' });
 
-    expect(result.endsWith('bun.exe')).toBe(true);
+    expect(result).toBe('/tooling/bun');
   });
 
-  it('falls back to bun.exe when bundled bun is unavailable on Windows', async () => {
+  it('falls back to npx.cmd when bundled bun and PATH bun are unavailable on Windows', async () => {
     Object.defineProperty(process, 'platform', { value: 'win32' });
 
     vi.doMock('fs', async () => {
@@ -443,7 +451,47 @@ describe('resolveNpxPath', () => {
 
     const { resolveNpxPath } = await import('@process/utils/shellEnv');
 
-    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('bun.exe');
+    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('npx.cmd');
+  });
+
+  it('falls back to npx when bundled bun and PATH bun are unavailable', async () => {
+    Object.defineProperty(process, 'platform', { value: 'darwin' });
+
+    vi.doMock('fs', async () => {
+      const actual = await vi.importActual<typeof import('fs')>('fs');
+      return {
+        ...actual,
+        existsSync: vi.fn((candidate: string) => candidate === '/tooling/npx'),
+      };
+    });
+
+    vi.doMock('child_process', () => ({
+      execFileSync: vi.fn(),
+      execFile: vi.fn(),
+    }));
+
+    const { resolveNpxPath } = await import('@process/utils/shellEnv');
+
+    expect(resolveNpxPath({ PATH: '/tooling' })).toBe('/tooling/npx');
+  });
+});
+
+describe('buildPackageRunnerArgs', () => {
+  it('uses bun x --bun when the runner is bun', async () => {
+    const { buildPackageRunnerArgs } = await import('@process/utils/shellEnv');
+
+    expect(buildPackageRunnerArgs('/tooling/bun', ['@pkg/cli', '--flag'])).toEqual([
+      'x',
+      '--bun',
+      '@pkg/cli',
+      '--flag',
+    ]);
+  });
+
+  it('uses npx --yes when the runner is npx', async () => {
+    const { buildPackageRunnerArgs } = await import('@process/utils/shellEnv');
+
+    expect(buildPackageRunnerArgs('/tooling/npx', ['@pkg/cli', '--flag'])).toEqual(['--yes', '@pkg/cli', '--flag']);
   });
 });
 

@@ -18,6 +18,7 @@ const {
   mockCronService,
   mockApproveTool,
   mockSetMode,
+  mockSetConfig,
 } = vi.hoisted(() => ({
   emitResponseStream: vi.fn(),
   emitConfirmationAdd: vi.fn(),
@@ -38,6 +39,7 @@ const {
   },
   mockApproveTool: vi.fn(),
   mockSetMode: vi.fn(),
+  mockSetConfig: vi.fn(),
 }));
 
 // ── Mocks ──────────────────────────────────────────────────────────
@@ -116,12 +118,13 @@ vi.mock('@process/services/cron/cronServiceSingleton', () => ({
 vi.mock('@process/agent/aionrs', () => ({
   AionrsAgent: vi.fn().mockImplementation(() => ({
     start: vi.fn().mockResolvedValue(undefined),
+    capabilities: { effort: true, effort_levels: ['low', 'medium', 'high'], modes: [] },
     stop: vi.fn(),
     kill: vi.fn(),
     send: vi.fn().mockResolvedValue(undefined),
     approveTool: mockApproveTool,
     denyTool: vi.fn(),
-    setConfig: vi.fn(),
+    setConfig: mockSetConfig,
     setMode: mockSetMode,
     sendCommand: vi.fn(),
     injectConversationHistory: vi.fn().mockResolvedValue(undefined),
@@ -310,5 +313,41 @@ describe('AionrsManager.setMode', () => {
       success: true,
       data: { mode: 'yolo' },
     });
+  });
+});
+
+describe('AionrsManager.setConfig', () => {
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('should emit ready capabilities to renderer after start', async () => {
+    const manager = createManager('default');
+    (manager as any)._capabilities = { effort: true, effort_levels: ['low', 'medium', 'high'], modes: [] };
+
+    (manager as any).emitCapabilities();
+
+    expect(emitResponseStream).toHaveBeenCalledWith({
+      type: 'config_changed',
+      conversation_id: 'conv-1',
+      msg_id: '',
+      data: { effort: true, effort_levels: ['low', 'medium', 'high'], modes: [] },
+    });
+  });
+
+  it('should forward reasoning effort to aionrs agent', () => {
+    const manager = createManager('default');
+    (manager as any).agent = {
+      setConfig: mockSetConfig,
+      start: vi.fn(),
+      stop: vi.fn(),
+      kill: vi.fn(),
+      send: vi.fn(),
+      denyTool: vi.fn(),
+    };
+
+    manager.setConfig({ effort: 'high' });
+
+    expect(mockSetConfig).toHaveBeenCalledWith({ effort: 'high' });
   });
 });

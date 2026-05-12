@@ -7,6 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
+import {
+  getDefaultAcpConfigOptions,
+  mergeDefaultAcpConfigOptions,
+  resolveSelectedAcpConfigOptionValue,
+} from '@/common/types/acpConfigOptions';
+import { savePreferredConfigOption } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { Button, Dropdown, Menu } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { type ReactNode, useCallback, useEffect, useState } from 'react';
@@ -25,6 +31,7 @@ import MarqueePillLabel from './MarqueePillLabel';
 const AcpConfigSelector: React.FC<{
   conversationId?: string;
   backend?: string;
+  modelId?: string;
   compact?: boolean;
   buttonClassName?: string;
   leadingIcon?: ReactNode;
@@ -35,6 +42,7 @@ const AcpConfigSelector: React.FC<{
 }> = ({
   conversationId,
   backend,
+  modelId,
   compact: _compact = false,
   buttonClassName,
   leadingIcon,
@@ -43,7 +51,10 @@ const AcpConfigSelector: React.FC<{
 }) => {
   const { t } = useTranslation();
   const [configOptions, setConfigOptions] = useState<AcpSessionConfigOption[]>(
-    () => (Array.isArray(initialConfigOptions) ? initialConfigOptions : []) as AcpSessionConfigOption[]
+    () =>
+      (Array.isArray(initialConfigOptions) && initialConfigOptions.length > 0
+        ? mergeDefaultAcpConfigOptions(backend || '', modelId, initialConfigOptions as AcpSessionConfigOption[])
+        : getDefaultAcpConfigOptions(backend || '', modelId)) as AcpSessionConfigOption[]
   );
 
   // Fetch config options on mount (conversation mode only)
@@ -87,9 +98,17 @@ const AcpConfigSelector: React.FC<{
   // Sync when initialConfigOptions prop changes (e.g. agent switch on Guid page)
   useEffect(() => {
     if (Array.isArray(initialConfigOptions)) {
-      setConfigOptions(initialConfigOptions as AcpSessionConfigOption[]);
+      setConfigOptions(
+        (initialConfigOptions.length > 0
+          ? mergeDefaultAcpConfigOptions(backend || '', modelId, initialConfigOptions as AcpSessionConfigOption[])
+          : getDefaultAcpConfigOptions(backend || '', modelId)) as AcpSessionConfigOption[]
+      );
+      return;
     }
-  }, [initialConfigOptions]);
+    if (!conversationId) {
+      setConfigOptions(getDefaultAcpConfigOptions(backend || '', modelId));
+    }
+  }, [initialConfigOptions, backend, modelId, conversationId]);
 
   const handleSelectOption = useCallback(
     (configId: string, value: string) => {
@@ -105,6 +124,9 @@ const AcpConfigSelector: React.FC<{
       }
 
       // Conversation mode: send to ACP backend
+      if (backend) {
+        void savePreferredConfigOption(backend, configId, value);
+      }
       ipcBridge.acpConversation.setConfigOption
         .invoke({ conversationId, configId, value })
         .then((result) => {
@@ -125,7 +147,7 @@ const AcpConfigSelector: React.FC<{
             .catch(() => {});
         });
     },
-    [conversationId, onOptionSelect]
+    [backend, conversationId, onOptionSelect]
   );
 
   // Don't render when no backend is specified
@@ -148,11 +170,21 @@ const AcpConfigSelector: React.FC<{
   return (
     <>
       {selectOptions.map((option) => {
-        const currentValue = option.currentValue || option.selectedValue;
+        const currentValue = resolveSelectedAcpConfigOptionValue(option) || option.currentValue || option.selectedValue;
         const currentLabel =
-          option.options?.find((o) => o.value === currentValue)?.name ||
+          option.options?.find((o) => o.value === currentValue)?.value ||
           currentValue ||
           t('acp.config.default', { defaultValue: 'Default' });
+
+        const optionLabelKey =
+          option.category === 'thought_level' ||
+          option.id === 'effort' ||
+          option.id === 'reasoning_effort' ||
+          option.id === 'model_reasoning_effort'
+            ? 'acp.config.reasoning_effort'
+            : `acp.config.${option.id}`;
+        const optionTitle = t(optionLabelKey, { defaultValue: option.name || 'Options' });
+        const buttonLabel = `${optionTitle}: ${currentLabel}`;
 
         return (
           <Dropdown
@@ -160,7 +192,7 @@ const AcpConfigSelector: React.FC<{
             trigger='click'
             droplist={
               <Menu>
-                <Menu.ItemGroup title={t(`acp.config.${option.id}`, { defaultValue: option.name || 'Options' })}>
+                <Menu.ItemGroup title={t(optionLabelKey, { defaultValue: option.name || 'Options' })}>
                   {option.options?.map((choice) => (
                     <Menu.Item
                       key={choice.value}
@@ -169,9 +201,7 @@ const AcpConfigSelector: React.FC<{
                     >
                       <div className='flex items-center gap-8px'>
                         {choice.value === currentValue && <span className='text-primary'>✓</span>}
-                        <span className={choice.value !== currentValue ? 'ml-16px' : ''}>
-                          {choice.name || choice.value}
-                        </span>
+                        <span className={choice.value !== currentValue ? 'ml-16px' : ''}>{choice.value}</span>
                       </div>
                     </Menu.Item>
                   ))}
@@ -186,7 +216,7 @@ const AcpConfigSelector: React.FC<{
             >
               <span className='flex items-center gap-6px min-w-0 leading-none'>
                 {leadingIcon && <span className='shrink-0 inline-flex items-center'>{leadingIcon}</span>}
-                <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
+                <MarqueePillLabel>{buttonLabel}</MarqueePillLabel>
                 <Down size={12} className='text-t-tertiary shrink-0' />
               </span>
             </Button>

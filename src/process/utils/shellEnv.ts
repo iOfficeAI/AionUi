@@ -602,13 +602,43 @@ export function normalizeNpxArgsForBundledBun(args: string[]): string[] {
   return args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline');
 }
 
-export function resolveNpxPath(_env: Record<string, string | undefined>): string {
+function findExecutableInPath(env: Record<string, string | undefined>, names: string[]): string | null {
+  const pathValue = env.PATH || env.Path || env.path || process.env.PATH || '';
+  const dirs = pathValue.split(path.delimiter).filter(Boolean);
+  for (const dir of dirs) {
+    for (const name of names) {
+      const candidate = path.join(dir, name);
+      if (existsSync(candidate)) return candidate;
+    }
+  }
+  return null;
+}
+
+function isBunRunner(command: string): boolean {
+  const base = path.basename(command).toLowerCase();
+  return base === 'bun' || base === 'bun.exe';
+}
+
+export function buildPackageRunnerArgs(command: string, args: string[]): string[] {
+  if (isBunRunner(command)) {
+    return ['x', '--bun', ...normalizeNpxArgsForBundledBun(args)];
+  }
+  return ['--yes', ...args];
+}
+
+export function resolveNpxPath(env: Record<string, string | undefined>): string {
   const bundledBunDir = getBundledBunDir();
   if (bundledBunDir) {
     return path.join(bundledBunDir, process.platform === 'win32' ? 'bun.exe' : 'bun');
   }
 
-  return process.platform === 'win32' ? 'bun.exe' : 'bun';
+  const bun = findExecutableInPath(env, process.platform === 'win32' ? ['bun.exe', 'bun.cmd'] : ['bun']);
+  if (bun) return bun;
+
+  const npx = findExecutableInPath(env, process.platform === 'win32' ? ['npx.cmd', 'npx.exe'] : ['npx']);
+  if (npx) return npx;
+
+  return process.platform === 'win32' ? 'npx.cmd' : 'npx';
 }
 
 /**

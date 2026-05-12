@@ -36,6 +36,13 @@ vi.mock('child_process', () => ({
 }));
 
 vi.mock('@process/utils/shellEnv', () => ({
+  buildPackageRunnerArgs: vi.fn((command: string, args: string[]) => {
+    const runner = command.split(/[\\/]/).pop()?.toLowerCase();
+    if (runner === 'bun' || runner === 'bun.exe') {
+      return ['x', '--bun', ...args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline')];
+    }
+    return ['--yes', ...args];
+  }),
   findSuitableNodeBin: vi.fn(() => null),
   getEnhancedEnv: vi.fn(() => ({ PATH: '/usr/bin' })),
   getNpxCacheDir: vi.fn(() => '/mock-npm-cache/_npx'),
@@ -113,12 +120,13 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
     expect(command).toBe(`chcp 65001 >nul && "${npxWithSpaces}"`);
   });
 
-  it('passes bun x --bun and package name as spawn args', () => {
+  it('passes npx --yes and package name as spawn args for npx runners', () => {
     spawnNpxBackend('claude', '@pkg/cli@1.0.0', 'npx', {}, '/cwd', false, false);
 
     const [, args] = mockSpawn.mock.calls[0];
-    expect(args).toContain('x');
-    expect(args).toContain('--bun');
+    expect(args).not.toContain('x');
+    expect(args).not.toContain('--bun');
+    expect(args).toContain('--yes');
     expect(args).toContain('@pkg/cli@1.0.0');
   });
 
@@ -129,11 +137,11 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
     expect(args).not.toContain('--prefer-offline');
   });
 
-  it('omits --yes when preferOffline is false', () => {
+  it('uses --yes for npx runners when preferOffline is false', () => {
     spawnNpxBackend('claude', '@pkg/cli@1.0.0', 'npx', {}, '/cwd', false, false);
 
     const [, args] = mockSpawn.mock.calls[0];
-    expect(args).not.toContain('--yes');
+    expect(args).toContain('--yes');
   });
 
   it('calls child.unref() when detached is true', () => {
@@ -355,6 +363,26 @@ describe('connectClaude - detached process group', () => {
           PATH: '/usr/bin',
           ANTHROPIC_BASE_URL: 'http://localhost:4000',
           ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+        }),
+      })
+    );
+  });
+
+  it('injects caller-provided Claude env into the spawned process env', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectClaude('/cwd', { setup, cleanup }, { CLAUDE_CODE_EFFORT_LEVEL: 'high' });
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      '/bundled/bun',
+      expect.arrayContaining(['x', '--bun', '@agentclientprotocol/claude-agent-acp@0.29.2']),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: '/usr/bin',
+          CLAUDE_CODE_EFFORT_LEVEL: 'high',
         }),
       })
     );

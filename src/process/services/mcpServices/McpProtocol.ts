@@ -12,7 +12,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
-import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@/process/utils/shellEnv';
+import { buildPackageRunnerArgs, getEnhancedEnv, resolveNpxPath } from '@/process/utils/shellEnv';
 
 /**
  * MCP源类型 - 包括所有ACP后端和AionUi内置
@@ -211,9 +211,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       };
       const command = transport.command === 'npx' ? resolveNpxPath(enhancedEnv) : transport.command;
       const args =
-        transport.command === 'npx'
-          ? ['x', '--bun', ...normalizeNpxArgsForBundledBun(transport.args || [])]
-          : (transport.args ?? []);
+        transport.command === 'npx' ? buildPackageRunnerArgs(command, transport.args || []) : (transport.args ?? []);
 
       const stdioTransport = new StdioClientTransport({
         command,

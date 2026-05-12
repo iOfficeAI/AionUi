@@ -17,6 +17,11 @@
   },
   "config": {
     "reasoning_effort": "Reasoning Effort",
-    "default": "Default"
+    "default": "Default",
+    "effort": {
+      "low": "Low",
+      "medium": "Medium",
+      "high": "High"
+    }
   }
 }

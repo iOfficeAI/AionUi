@@ -39,6 +39,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AionrsEffortSelector from './AionrsEffortSelector';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 
@@ -91,9 +92,19 @@ const AionrsSendBox: React.FC<{
   teamId?: string;
   agentSlotId?: string;
   sessionMode?: string;
-}> = ({ conversation_id, modelSelection, teamId, agentSlotId, sessionMode }) => {
+  effort?: string;
+}> = ({ conversation_id, modelSelection, teamId, agentSlotId, sessionMode, effort }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
+  const [effortConfig, setEffortConfig] = useState<{
+    supported: boolean;
+    levels: string[];
+    value?: string;
+  }>({
+    supported: Boolean(effort),
+    levels: [],
+    value: effort,
+  });
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { currentModel, getDisplayModelName } = modelSelection;
@@ -105,6 +116,13 @@ const AionrsSendBox: React.FC<{
         if (modes && modes.length > 0) {
           setDynamicModes(mergeWithCapabilities('aionrs', modes));
         }
+        const effortSupported = Boolean((capabilities as { effort?: boolean })?.effort);
+        const effortLevels = (capabilities as { effort_levels?: string[] })?.effort_levels;
+        setEffortConfig((prev) => ({
+          supported: effortSupported,
+          levels: Array.isArray(effortLevels) ? effortLevels : [],
+          value: prev.value,
+        }));
       },
     });
 
@@ -114,6 +132,10 @@ const AionrsSendBox: React.FC<{
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
+      const storedEffort = (res.extra as { effort?: string }).effort;
+      if (storedEffort) {
+        setEffortConfig((prev) => ({ ...prev, value: storedEffort }));
+      }
     });
   }, [conversation_id]);
 
@@ -398,6 +420,13 @@ const AionrsSendBox: React.FC<{
               modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
               compactLabelPrefix={t('agentMode.permission')}
               hideCompactLabelPrefixOnMobile
+            />
+            <AionrsEffortSelector
+              conversationId={conversation_id}
+              effort={effortConfig.value}
+              supported={effortConfig.supported}
+              levels={effortConfig.levels}
+              onEffortChange={(nextEffort) => setEffortConfig((prev) => ({ ...prev, value: nextEffort }))}
             />
           </div>
         }
