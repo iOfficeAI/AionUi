@@ -136,23 +136,20 @@ export const conversation = {
     fromApiConversation
   ),
   createWithConversation: withResponseMap(
-    httpPost<TChatConversation, { conversation: TChatConversation }>(
-      '/api/conversations/clone',
-      (p) => {
-        const isAionrs = p.conversation.type === 'aionrs';
-        const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
-          model?: TProviderWithModel;
-        };
-        const conversation: Record<string, unknown> = { ...rest };
-        if (isAionrs) {
-          const model = toApiModelOptional(_rawModel);
-          if (model) conversation.model = model;
-        }
-        return {
-          conversation,
-        };
+    httpPost<TChatConversation, { conversation: TChatConversation }>('/api/conversations/clone', (p) => {
+      const isAionrs = p.conversation.type === 'aionrs';
+      const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
+        model?: TProviderWithModel;
+      };
+      const conversation: Record<string, unknown> = { ...rest };
+      if (isAionrs) {
+        const model = toApiModelOptional(_rawModel);
+        if (model) conversation.model = model;
       }
-    ),
+      return {
+        conversation,
+      };
+    }),
     fromApiConversation
   ),
   get: withResponseMap(
