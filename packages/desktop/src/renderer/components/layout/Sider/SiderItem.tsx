@@ -63,7 +63,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
         onContextMenu={onContextMenu}
       >
         {/* Leading icon — pushpin overlays this slot on hover when row is pinned */}
-        <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-secondary relative'>
+        <span className='size-22px flex items-center justify-center shrink-0 line-height-0 text-t-primary relative'>
           <span
             className={classNames('flex items-center justify-center', {
               'group-hover:opacity-0 transition-opacity': hasMenu && pinned,

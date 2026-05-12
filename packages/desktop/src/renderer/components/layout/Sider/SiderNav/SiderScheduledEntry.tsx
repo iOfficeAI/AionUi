@@ -60,7 +60,7 @@ const SiderScheduledEntry: React.FC<SiderScheduledEntryProps> = ({
         )}
         onClick={onClick}
       >
-        <span className='size-22px flex items-center justify-center shrink-0 text-t-secondary'>
+        <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
           <AlarmClock
             theme='outline'
             size='16'
