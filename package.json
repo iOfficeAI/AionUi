@@ -6,7 +6,7 @@
   "license": "Apache-2.0",
   "author": {
     "name": "AICore",
-    "email": "service@aionui.com"
+    "email": "service@AICore.com"
   },
   "main": "./out/main/index.js",
   "scripts": {
@@ -251,5 +251,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AICore Desktop"
+  "productName": "AICore"
 }

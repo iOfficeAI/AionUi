@@ -29,7 +29,7 @@ describe('deepLink module', () => {
   describe('parseDeepLinkUrl', () => {
     it('should parse simple deep link URL', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
-      const result = parseDeepLinkUrl('aionui://add-provider?baseUrl=http://localhost&apiKey=sk-123');
+      const result = parseDeepLinkUrl('aicoredesktop://add-provider?baseUrl=http://localhost&apiKey=sk-123');
 
       expect(result).toEqual({
         action: 'add-provider',
@@ -39,7 +39,7 @@ describe('deepLink module', () => {
 
     it('should parse deep link with path segments', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
-      const result = parseDeepLinkUrl('aionui://provider/add?v=1');
+      const result = parseDeepLinkUrl('aicoredesktop://provider/add?v=1');
 
       expect(result).toEqual({
         action: 'provider/add',
@@ -50,7 +50,7 @@ describe('deepLink module', () => {
     it('should decode base64 data param and merge into params', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
       const data = Buffer.from(JSON.stringify({ baseUrl: 'http://test', apiKey: 'key123' })).toString('base64');
-      const result = parseDeepLinkUrl(`aionui://provider/add?v=1&data=${data}`);
+      const result = parseDeepLinkUrl(`aicoredesktop://provider/add?v=1&data=${data}`);
 
       expect(result).not.toBeNull();
       expect(result!.params.baseUrl).toBe('http://test');
@@ -60,13 +60,13 @@ describe('deepLink module', () => {
 
     it('should handle invalid base64 data gracefully', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
-      const result = parseDeepLinkUrl('aionui://add?data=not-valid-base64!!!');
+      const result = parseDeepLinkUrl('aicoredesktop://add?data=not-valid-base64!!!');
 
       expect(result).not.toBeNull();
       expect(result!.params.data).toBeUndefined();
     });
 
-    it('should return null for non-aionui protocol', async () => {
+    it('should return null for non-aicoredesktop protocol', async () => {
       const { parseDeepLinkUrl } = await import('@process/utils/deepLink');
       expect(parseDeepLinkUrl('https://example.com')).toBeNull();
     });
@@ -81,9 +81,9 @@ describe('deepLink module', () => {
     it('should queue URL when no window is set', async () => {
       const { handleDeepLinkUrl, getPendingDeepLinkUrl } = await import('@process/utils/deepLink');
 
-      handleDeepLinkUrl('aionui://test-action?key=val');
+      handleDeepLinkUrl('aicoredesktop://test-action?key=val');
 
-      expect(getPendingDeepLinkUrl()).toBe('aionui://test-action?key=val');
+      expect(getPendingDeepLinkUrl()).toBe('aicoredesktop://test-action?key=val');
     });
 
     it('should emit via ipcBridge when window is available', async () => {
@@ -93,7 +93,7 @@ describe('deepLink module', () => {
       const mockWindow = { isDestroyed: () => false } as any;
       setDeepLinkMainWindow(mockWindow);
 
-      handleDeepLinkUrl('aionui://test-action?key=val');
+      handleDeepLinkUrl('aicoredesktop://test-action?key=val');
 
       expect(ipcBridge.deepLink.received.emit).toHaveBeenCalledWith({
         action: 'test-action',
@@ -117,8 +117,8 @@ describe('deepLink module', () => {
       const { handleDeepLinkUrl, getPendingDeepLinkUrl, clearPendingDeepLinkUrl } =
         await import('@process/utils/deepLink');
 
-      handleDeepLinkUrl('aionui://test');
-      expect(getPendingDeepLinkUrl()).toBe('aionui://test');
+      handleDeepLinkUrl('aicoredesktop://test');
+      expect(getPendingDeepLinkUrl()).toBe('aicoredesktop://test');
 
       clearPendingDeepLinkUrl();
       expect(getPendingDeepLinkUrl()).toBeNull();

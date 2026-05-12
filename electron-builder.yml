@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AICore Desktop
+appId: com.aicore.aicoredesktop
+productName: AICore
 executableName: AICoreDesktop
-copyright: Copyright © 2024 AICore Desktop
+copyright: Copyright © 2026 AICore
 
 protocols:
   - name: AICore Desktop Protocol
     schemes:
-      - aionui
+      - aicoredesktop
 
 asar:
   smartUnpack: true
@@ -136,7 +136,7 @@ mac:
   target:
     - dmg
     - zip
-  icon: resources/app.png
+  icon: resources/app.icns
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
   hardenedRuntime: true
@@ -182,7 +182,7 @@ linux:
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/aicoredesktop;
 
 npmRebuild: false
 buildDependenciesFromSource: false

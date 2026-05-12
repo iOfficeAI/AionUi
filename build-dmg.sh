@@ -3,17 +3,17 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-TARGET="${1:-all}"
+TARGET="${1:-mac}"
 
 echo "[AICoreDesktop] 开始打包: ${TARGET}"
 
 action() {
   case "$TARGET" in
-    all)
-      bun run dist
-      ;;
     mac)
       bun run dist:mac
+      ;;
+    all|mac:all|mac-all|mac:both|mac-both)
+      bun run dist:mac -- --arm64 --x64
       ;;
     win)
       bun run dist:win
@@ -22,7 +22,7 @@ action() {
       bun run dist:linux
       ;;
     *)
-      echo "用法: ./一键打包 命令.sh [all|mac|win|linux]"
+      echo "用法: ./build-dmg.sh [mac|all|win|linux]"
       exit 1
       ;;
   esac

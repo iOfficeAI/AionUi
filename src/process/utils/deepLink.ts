@@ -7,13 +7,13 @@
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
 
-export const PROTOCOL_SCHEME = 'aionui';
+export const PROTOCOL_SCHEME = 'aicoredesktop';
 
 /**
- * Parse an aionui:// URL into action and params.
+ * Parse a aicoredesktop:// URL into action and params.
  * Supports two formats:
- *   1. aionui://add-provider?baseUrl=xxx&apiKey=xxx
- *   2. aionui://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
+ *   1. aicoredesktop://add-provider?baseUrl=xxx&apiKey=xxx
+ *   2. aicoredesktop://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
  */
 export const parseDeepLinkUrl = (url: string): { action: string; params: Record<string, string> } | null => {
   try {
