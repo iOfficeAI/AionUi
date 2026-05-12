@@ -23,15 +23,16 @@ const AionrsChat: React.FC<{
   session_mode?: string;
   cron_job_id?: string;
   emptySlot?: React.ReactNode;
-}> = ({ conversation_id, workspace, modelSelection, session_mode, cron_job_id, emptySlot }) => {
+  loadedSkills?: string[];
+}> = ({ conversation_id, workspace, modelSelection, session_mode, cron_job_id, emptySlot, loadedSkills }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversation_id: conversation_id, workspace, type: 'aionrs', cron_job_id };
-  }, [conversation_id, workspace, cron_job_id]);
+    return { conversation_id: conversation_id, workspace, type: 'aionrs', cron_job_id, loadedSkills };
+  }, [conversation_id, workspace, cron_job_id, loadedSkills]);
 
   return (
     <ConversationProvider value={conversationValue}>

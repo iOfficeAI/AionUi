@@ -291,5 +291,8 @@
   },
   "skills": {
     "loaded": "Yüklenen Beceriler"
+  },
+  "sendbox": {
+    "hint": "Komutlar için /, dosya için @ yazın"
   }
 }

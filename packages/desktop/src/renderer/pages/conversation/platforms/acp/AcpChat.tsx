@@ -23,13 +23,25 @@ const AcpChat: React.FC<{
   cron_job_id?: string;
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
-}> = ({ conversation_id, workspace, backend, session_mode, agent_name, cron_job_id, hideSendBox, emptySlot }) => {
+  loadedSkills?: string[];
+}> = ({
+  conversation_id,
+  workspace,
+  backend,
+  session_mode,
+  cached_config_options,
+  agent_name,
+  cron_job_id,
+  hideSendBox,
+  emptySlot,
+  loadedSkills,
+}) => {
   useMessageLstCache(conversation_id);
   const messageState = useAcpMessage(conversation_id);
 
   return (
     <ConversationProvider
-      value={{ conversation_id: conversation_id, workspace, type: 'acp', cron_job_id, hideSendBox }}
+      value={{ conversation_id: conversation_id, workspace, type: 'acp', cron_job_id, hideSendBox, loadedSkills }}
     >
       <ConversationArtifactProvider conversation_id={conversation_id}>
         <div className='flex-1 flex flex-col px-20px min-h-0'>

@@ -137,6 +137,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   );
 
   const setContentRef = useLatestRef(setContent);
+  const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
 
   useEffect(() => {
@@ -172,7 +173,8 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   useAddEventListener(
     'sendbox.fill',
     (text: string) => {
-      setContentRef.current(text);
+      const prev = contentRef.current;
+      setContentRef.current(prev ? `${prev}${text}` : text);
     },
     []
   );

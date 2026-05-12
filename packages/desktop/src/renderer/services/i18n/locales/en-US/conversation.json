@@ -289,5 +289,8 @@
   },
   "skills": {
     "loaded": "Loaded Skills"
+  },
+  "sendbox": {
+    "hint": "Type / for commands, @ to reference files"
   }
 }

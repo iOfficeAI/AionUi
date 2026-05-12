@@ -147,6 +147,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   );
 
   const setContentRef = useLatestRef(setContent);
+  const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
   const immediateSendRef = useRef<((text: string) => Promise<void>) | null>(null);
   // Reset state when conversation changes and restore actual running status
@@ -195,7 +196,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   useAddEventListener(
     'sendbox.fill',
     (text: string) => {
-      setContentRef.current(text);
+      const prev = contentRef.current;
+      setContentRef.current(prev ? `${prev}${text}` : text);
     },
     []
   );

@@ -173,6 +173,7 @@ const SendBox: React.FC<{
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
   onSelectedWorkspaceItemsChange?: (items: FileSelectionItem[]) => void;
+  bottomHint?: React.ReactNode;
 }> = ({
   onSend,
   onStop,
@@ -197,6 +198,7 @@ const SendBox: React.FC<{
   compactActions = false,
   selectedWorkspaceItems,
   onSelectedWorkspaceItemsChange,
+  bottomHint,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -1525,7 +1527,12 @@ const SendBox: React.FC<{
               disabled={disabled}
               spellCheck={false}
               value={input}
-              placeholder={placeholder}
+              placeholder={
+                placeholder
+                  ? `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' })}`
+                  : ((bottomHint as string | undefined) ??
+                    t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
+              }
               className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'
               style={{
