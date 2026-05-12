@@ -823,7 +823,10 @@ export const remoteAgent = {
     import('@/common/types/remoteAgentTypes').RemoteAgentConfig,
     import('@/common/types/remoteAgentTypes').RemoteAgentInput
   >('/api/remote-agents'),
-  update: httpPut<boolean, { id: string; updates: Partial<import('@/common/types/remoteAgentTypes').RemoteAgentInput> }>(
+  update: httpPut<
+    boolean,
+    { id: string; updates: Partial<import('@/common/types/remoteAgentTypes').RemoteAgentInput> }
+  >(
     (p) => `/api/remote-agents/${p.id}`,
     (p) => p.updates
   ),

@@ -65,20 +65,20 @@
 
 按 `aionui-backend` crate 名匹配前端领域：
 
-| 前端领域 / 模块 | 对应 backend crate | adapter 路由 |
-| --------------- | ------------------ | ------------ |
-| conversation / message | `aionui-conversation` + `aionui-db` | `/api/conversations/*`, `/api/messages/*` |
-| assistants | `aionui-assistant` | `/api/assistants/*` |
-| providers / model fetch | `aionui-system` + `aionui-api-types` | `/api/providers/*` |
-| cron | `aionui-cron` | `/api/cron/jobs/*` |
-| mcp | `aionui-mcp` | `/api/mcp/*` |
-| office / preview | `aionui-office` | `/api/ppt-preview/*`, `/api/preview-history/*`, `/api/document/*` |
-| shell / file-open | `aionui-shell` | `/api/shell/*` |
-| fs (read/write/snapshot) | `aionui-file` | `/api/fs/*` |
-| speech-to-text | `aionui-system` | `/api/stt` |
-| team | `aionui-team` | `/api/team/*` |
-| channel (lark / telegram / 飞书) | `aionui-channel` | `/api/channel/*` |
-| auth (SSO / password / webui) | `aionui-auth` | `/api/auth/*`, `/api/webui/*` |
+| 前端领域 / 模块                  | 对应 backend crate                   | adapter 路由                                                      |
+| -------------------------------- | ------------------------------------ | ----------------------------------------------------------------- |
+| conversation / message           | `aionui-conversation` + `aionui-db`  | `/api/conversations/*`, `/api/messages/*`                         |
+| assistants                       | `aionui-assistant`                   | `/api/assistants/*`                                               |
+| providers / model fetch          | `aionui-system` + `aionui-api-types` | `/api/providers/*`                                                |
+| cron                             | `aionui-cron`                        | `/api/cron/jobs/*`                                                |
+| mcp                              | `aionui-mcp`                         | `/api/mcp/*`                                                      |
+| office / preview                 | `aionui-office`                      | `/api/ppt-preview/*`, `/api/preview-history/*`, `/api/document/*` |
+| shell / file-open                | `aionui-shell`                       | `/api/shell/*`                                                    |
+| fs (read/write/snapshot)         | `aionui-file`                        | `/api/fs/*`                                                       |
+| speech-to-text                   | `aionui-system`                      | `/api/stt`                                                        |
+| team                             | `aionui-team`                        | `/api/team/*`                                                     |
+| channel (lark / telegram / 飞书) | `aionui-channel`                     | `/api/channel/*`                                                  |
+| auth (SSO / password / webui)    | `aionui-auth`                        | `/api/auth/*`, `/api/webui/*`                                     |
 
 Electron-native 仍保留 IPC 的领域（不经过 backend）：
 
@@ -221,6 +221,7 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
 
 - **adapter**：`fileSnapshot.init / compare / getBaselineContent / getInfo / dispose / stageFile / stageAll / unstageFile / unstageAll / discardFile / resetFile / getBranches` 全部 `httpPost('/api/fs/snapshot/*')`（ipcBridge.ts:551-572）→ `.provider()` 全部 no-op。
 - **consumers**：
+
   ```
   $ grep -rn 'initWorkspaceSnapshotBridge\|workspaceSnapshotBridge' packages/desktop/src/ | grep -v '\.test\.'
   packages/desktop/src/process/bridge/workspaceSnapshotBridge.ts:12:export function initWorkspaceSnapshotBridge(): void {
@@ -233,7 +234,9 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
   packages/desktop/src/process/bridge/index.ts:57:export { disposeAllSnapshots } from './workspaceSnapshotBridge';
   packages/desktop/src/process/bridge/workspaceSnapshotBridge.ts:66:export function disposeAllSnapshots(): Promise<void> {
   ```
+
   `disposeAllSnapshots` 被 re-export 但**没有任何消费者**。
+
 - **结论**：DELETE。级联删 `process/services/WorkspaceSnapshotService.ts`（433 行，见 §4.2.2）。
 
 ### 4.2 `process/bridge/services/*.ts`
@@ -282,6 +285,7 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
 
 - **UC-B 状态**：`2026-05-08-cleanup-and-test-rewrite-design.md` 第 109 行明确保留："被 `process/agent/acp/*` 和 `process/acp/compat/AcpAgentV2.ts` 使用"。
 - **当前实地核查**：
+
   ```
   $ ls packages/desktop/src/process/agent/ packages/desktop/src/process/acp/ 2>&1
   ls: /Users/.../process/acp/: No such file or directory
@@ -291,6 +295,7 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
   $ grep -rn 'ccSwitchModelSource\|CcSwitchModelSource\|getCcSwitchPaths\|buildClaudeModelInfoFromCcSwitchConfig\|readClaudeModelInfoFromCcSwitch\|readClaudeProviderEnvFromCcSwitch\|ClaudeProviderEnv' packages/ | grep -v 'ccSwitchModelSource.ts'
   （无输出）
   ```
+
 - **结论**：DELETE。UC-B 保留理由已失效（`process/agent/acp/` 和 `process/acp/compat/` 都已删除）。
 - **注意**：本条改写了 `2026-05-08-cleanup-and-test-rewrite-design.md` §UC-B 的结论，属于**新发现**。
 
@@ -479,6 +484,7 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
 
 - **UC-B 状态**：`2026-05-08-cleanup-and-test-rewrite-design.md` 第 109 行保留："`task/AcpAgentManager.ts:25` 的 `handlePreviewOpenEvent`"。
 - **当前实地核查**：
+
   ```
   $ grep -rn 'handlePreviewOpenEvent\|NAVIGATION_TOOLS\|createPreviewOpenMessage\|extractNavigationUrl' packages/desktop/src/ | grep -v 'process/utils/previewUtils.ts'
   （NAVIGATION_TOOLS 的命中在 common/chat/navigation/NavigationInterceptor.ts —— 是独立重复定义，不消费本文件；其余无命中）
@@ -486,6 +492,7 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
   $ find packages/desktop/src/process/task -name 'AcpAgentManager*'
   （无结果 —— 文件已不存在）
   ```
+
 - **结论**：DELETE。UC-B 保留理由已失效（`AcpAgentManager.ts` 已随 ACP 后端化删除）。
 - **注意**：和 §4.3.5 一样是**新发现**，改写了 `2026-05-08-cleanup-and-test-rewrite-design.md` §UC-B 的结论。
 
@@ -571,12 +578,12 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
 
 #### 4.9.2 四个 live 消费点 × backend 替代方案
 
-| # | 消费点 | 前端现有调用 | 替代方案 | 可行性 |
-| - | ------ | ------------ | -------- | ------ |
-| 1 | `index.ts:787` —— 应用退出清理 | `await workerTaskManager.clear()` | **直接删除调用**。backend `aionui-backend` 子进程由 `backendManager.stop()`（第 784 行）终止,backend 退出时会杀光它 spawn 的所有 agent 子进程。前端 `taskList` 永远为空,`.clear()` 什么都没杀。 | ✅ 零成本 |
-| 2 | `applicationBridge.ts:103` —— restart 清理 | `await workerTaskManager.clear()` | 同 #1,直接删除调用。`app.relaunch()` 会触发 `before-quit` hook,走同一套 backend shutdown 流程。 | ✅ 零成本 |
-| 3 | `petConfirmManager.ts:361` —— 提交 tool-call 确认 | `workerTaskManager.getTask(cid)?.confirm(msgId, callId, data)` | **改用现有 HTTP 接口**：`ipcBridge.confirmation.confirm.invoke({ conversation_id, call_id, msg_id, data, always_allow })` —— `common/adapter/ipcBridge.ts:287-293` 已封装为 `POST /api/conversations/{id}/confirmations/{callId}/confirm`,backend 路由 `aionui-conversation/src/routes.rs:40` 已实现。 | ✅ backend HTTP 已就绪,前端改 1 行 |
-| 4 | `tray.ts:71` —— 托盘 badge "运行任务数" | `workerTaskManager.listTasks().length` | **短期**：硬编码返回 `0`（与当前行为等价 —— 由于 taskList 永远为空）。**中期**：后端补 `GET /api/conversations/active-count` 路由（`aionui-ai-agent/src/task_manager.rs:160 active_count()` 已有内部实现,只差 HTTP 暴露）,前端改用 `ipcBridge.conversation.activeCount.invoke()`。 | ⚠️ 短期零成本（硬编码 0）；中期需后端补 1 个路由 |
+| #   | 消费点                                            | 前端现有调用                                                   | 替代方案                                                                                                                                                                                                                                                                                               | 可行性                                           |
+| --- | ------------------------------------------------- | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------ |
+| 1   | `index.ts:787` —— 应用退出清理                    | `await workerTaskManager.clear()`                              | **直接删除调用**。backend `aionui-backend` 子进程由 `backendManager.stop()`（第 784 行）终止,backend 退出时会杀光它 spawn 的所有 agent 子进程。前端 `taskList` 永远为空,`.clear()` 什么都没杀。                                                                                                        | ✅ 零成本                                        |
+| 2   | `applicationBridge.ts:103` —— restart 清理        | `await workerTaskManager.clear()`                              | 同 #1,直接删除调用。`app.relaunch()` 会触发 `before-quit` hook,走同一套 backend shutdown 流程。                                                                                                                                                                                                        | ✅ 零成本                                        |
+| 3   | `petConfirmManager.ts:361` —— 提交 tool-call 确认 | `workerTaskManager.getTask(cid)?.confirm(msgId, callId, data)` | **改用现有 HTTP 接口**：`ipcBridge.confirmation.confirm.invoke({ conversation_id, call_id, msg_id, data, always_allow })` —— `common/adapter/ipcBridge.ts:287-293` 已封装为 `POST /api/conversations/{id}/confirmations/{callId}/confirm`,backend 路由 `aionui-conversation/src/routes.rs:40` 已实现。 | ✅ backend HTTP 已就绪,前端改 1 行               |
+| 4   | `tray.ts:71` —— 托盘 badge "运行任务数"           | `workerTaskManager.listTasks().length`                         | **短期**：硬编码返回 `0`（与当前行为等价 —— 由于 taskList 永远为空）。**中期**：后端补 `GET /api/conversations/active-count` 路由（`aionui-ai-agent/src/task_manager.rs:160 active_count()` 已有内部实现,只差 HTTP 暴露）,前端改用 `ipcBridge.conversation.activeCount.invoke()`。                     | ⚠️ 短期零成本（硬编码 0）；中期需后端补 1 个路由 |
 
 #### 4.9.3 前端必要改动清单（删除 `process/task/` 前置步骤）
 
@@ -601,58 +608,59 @@ Electron-native 仍保留 IPC 的领域（不经过 backend）：
 
 #### 4.9.5 目录文件分类（全部 DELETE）
 
-| 文件 | 行数 | 替换后状态 |
-| ---- | ---: | ---------- |
-| `task/AgentFactory.ts` | 25 | DELETE（从未注册 creator） |
-| `task/ConversationBusyGuard.ts` | 96 | DELETE（仅 `killIdleCliAgents` 调用,而 taskList 永远空） |
-| `task/IAgentEventEmitter.ts` | 23 | DELETE（接口仅被 `IpcAgentEventEmitter` 实现,后者随 §4.9.3 #6 删除） |
-| `task/IAgentFactory.ts` | 28 | DELETE（仅 `AgentFactory.ts` 消费） |
-| `task/IAgentManager.ts` | 30 | DELETE（没有实现类;类型仅 task/ 内部互引） |
-| `task/IpcAgentEventEmitter.ts` | 53 | DELETE（pet 改用 `ipcBridge.confirmation.remove.emit(...)` WS 发射器） |
-| `task/IWorkerTaskManager.ts` | 19 | DELETE（`bridge/index.ts` / `applicationBridge.ts` 的消费随 §4.9.3 #2-#4 清除） |
-| `task/WorkerTaskManager.ts` | 123 | DELETE（所有方法均无 live 消费者） |
-| `task/agentTypes.ts` | 17 | DELETE（`AgentType` 仅被 task/ 内部 + pet 间接引用;pet 可直接用字符串字面量或 `common/types/agentTypes.ts` 同义类型） |
-| `task/workerTaskManagerSingleton.ts` | 86 | DELETE（`conversationRepo` inline 实现从未触发） |
+| 文件                                 | 行数 | 替换后状态                                                                                                            |
+| ------------------------------------ | ---: | --------------------------------------------------------------------------------------------------------------------- |
+| `task/AgentFactory.ts`               |   25 | DELETE（从未注册 creator）                                                                                            |
+| `task/ConversationBusyGuard.ts`      |   96 | DELETE（仅 `killIdleCliAgents` 调用,而 taskList 永远空）                                                              |
+| `task/IAgentEventEmitter.ts`         |   23 | DELETE（接口仅被 `IpcAgentEventEmitter` 实现,后者随 §4.9.3 #6 删除）                                                  |
+| `task/IAgentFactory.ts`              |   28 | DELETE（仅 `AgentFactory.ts` 消费）                                                                                   |
+| `task/IAgentManager.ts`              |   30 | DELETE（没有实现类;类型仅 task/ 内部互引）                                                                            |
+| `task/IpcAgentEventEmitter.ts`       |   53 | DELETE（pet 改用 `ipcBridge.confirmation.remove.emit(...)` WS 发射器）                                                |
+| `task/IWorkerTaskManager.ts`         |   19 | DELETE（`bridge/index.ts` / `applicationBridge.ts` 的消费随 §4.9.3 #2-#4 清除）                                       |
+| `task/WorkerTaskManager.ts`          |  123 | DELETE（所有方法均无 live 消费者）                                                                                    |
+| `task/agentTypes.ts`                 |   17 | DELETE（`AgentType` 仅被 task/ 内部 + pet 间接引用;pet 可直接用字符串字面量或 `common/types/agentTypes.ts` 同义类型） |
+| `task/workerTaskManagerSingleton.ts` |   86 | DELETE（`conversationRepo` inline 实现从未触发）                                                                      |
 
 **总计**：`process/task/` 目录 10 个文件,~600 行,全部 DELETE。
 
 ### 4.10 `process/pet/**.ts`
 
-| 文件 | 行数 | 分类 | consumers |
-| ---- | ---- | ---- | --------- |
-| `pet/petConfirmManager.ts` | 384 | **KEEP** | `pet/petManager.ts` 动态 import |
-| `pet/petEventBridge.ts` | 89 | **KEEP** | `pet/petManager.ts` |
-| `pet/petIdleTicker.ts` | 164 | **KEEP** | `pet/petManager.ts` |
-| `pet/petManager.ts` | 691 | **KEEP** | `bridge/systemSettingsBridge.ts`（动态 import）/ `utils/tray.ts`（动态 import）/ `src/index.ts` |
-| `pet/petStateMachine.ts` | 137 | **KEEP** | `pet/petManager.ts` |
-| `pet/petTypes.ts` | 110 | **KEEP** | `pet/petManager.ts` / `bridge/systemSettingsBridge.ts` |
+| 文件                       | 行数 | 分类     | consumers                                                                                       |
+| -------------------------- | ---- | -------- | ----------------------------------------------------------------------------------------------- |
+| `pet/petConfirmManager.ts` | 384  | **KEEP** | `pet/petManager.ts` 动态 import                                                                 |
+| `pet/petEventBridge.ts`    | 89   | **KEEP** | `pet/petManager.ts`                                                                             |
+| `pet/petIdleTicker.ts`     | 164  | **KEEP** | `pet/petManager.ts`                                                                             |
+| `pet/petManager.ts`        | 691  | **KEEP** | `bridge/systemSettingsBridge.ts`（动态 import）/ `utils/tray.ts`（动态 import）/ `src/index.ts` |
+| `pet/petStateMachine.ts`   | 137  | **KEEP** | `pet/petManager.ts`                                                                             |
+| `pet/petTypes.ts`          | 110  | **KEEP** | `pet/petManager.ts` / `bridge/systemSettingsBridge.ts`                                          |
 
 ### 4.11 `process/resources/**.ts`
 
-| 文件 | 行数 | 分类 | consumers |
-| ---- | ---- | ---- | --------- |
-| `resources/builtinMcp/constants.ts` | 31 | **KEEP** | `utils/initStorage.ts`（`BUILTIN_IMAGE_GEN_*`）+ `resources/builtinMcp/imageGenServer.ts`（自身 entry） |
-| `resources/builtinMcp/imageGenServer.ts` | 136 | **KEEP** | `scripts/build-mcp-servers.js` 作为 esbuild 入口编译为 `out/main/builtin-mcp-image-gen.js`，打包进 asar.unpacked（`electron-builder.yml:210`）由 MCP 客户端 spawn |
-| `resources/skills/` | —— | **KEEP** | 只有 `.DS_Store`；非源码目录 |
+| 文件                                     | 行数 | 分类     | consumers                                                                                                                                                         |
+| ---------------------------------------- | ---- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `resources/builtinMcp/constants.ts`      | 31   | **KEEP** | `utils/initStorage.ts`（`BUILTIN_IMAGE_GEN_*`）+ `resources/builtinMcp/imageGenServer.ts`（自身 entry）                                                           |
+| `resources/builtinMcp/imageGenServer.ts` | 136  | **KEEP** | `scripts/build-mcp-servers.js` 作为 esbuild 入口编译为 `out/main/builtin-mcp-image-gen.js`，打包进 asar.unpacked（`electron-builder.yml:210`）由 MCP 客户端 spawn |
+| `resources/skills/`                      | ——   | **KEEP** | 只有 `.DS_Store`；非源码目录                                                                                                                                      |
 
 ### 4.12 `process/index.ts`（顶层）
 
-| 文件 | 行数 | 分类 | consumers |
-| ---- | ---- | ---- | --------- |
-| `process/index.ts` | 29 | **KEEP** | `src/index.ts:23: import { initializeProcess } from './process'` |
+| 文件               | 行数 | 分类     | consumers                                                        |
+| ------------------ | ---- | -------- | ---------------------------------------------------------------- |
+| `process/index.ts` | 29   | **KEEP** | `src/index.ts:23: import { initializeProcess } from './process'` |
 
 ## 5. 汇总统计
 
 ### 5.1 最终总表（2026-05-12 复审后）
 
-| 分类 | 文件数 | 行数 |
-| ---- | -----: | ---: |
-| **DELETE**（含 `task/` 10 + `mainLogger` + 其余级联） | **32** | **~3579** |
-| **MODIFY**（前端调整消费点 / 瘦身 / 搬迁） | 10 | —— |
-| **KEEP** | 38 | —— |
-| **总计审计** | **~80** | —— |
+| 分类                                                  |  文件数 |      行数 |
+| ----------------------------------------------------- | ------: | --------: |
+| **DELETE**（含 `task/` 10 + `mainLogger` + 其余级联） |  **32** | **~3579** |
+| **MODIFY**（前端调整消费点 / 瘦身 / 搬迁）            |      10 |        —— |
+| **KEEP**                                              |      38 |        —— |
+| **总计审计**                                          | **~80** |        —— |
 
 NEEDS-DECISION 在 §7 逐项决议后归零:
+
 - §7.1 `task/` 整目录 → DELETE(见 §4.9)
 - §7.2 `utils/mainLogger.ts` → DELETE(SpeechToTextService 的级联)
 - §7.3 `agent/remote/types.ts` → **MOVE** 到 `common/types/` (MODIFY)
@@ -663,57 +671,57 @@ NEEDS-DECISION 在 §7 逐项决议后归零:
 
 ### 5.2 DELETE 明细（行数降序,含 `task/` 目录）
 
-| # | 路径 | 行数 | 理由 |
-| - | ---- | ---: | ---- |
-| 1 | `process/services/WorkspaceSnapshotService.ts` | 433 | 级联：`workspaceSnapshotBridge` 唯一消费者 |
-| 2 | `process/utils/initAgent.ts` | 414 | 级联：`ConversationServiceImpl` 的唯一消费者；backend `aionui-conversation` 接管 |
-| 3 | `process/bridge/shellBridge.ts` | 273 | 全文 `httpPost` → no-op 注册 |
-| 4 | `process/bridge/services/SpeechToTextService.ts` | 260 | 级联：`speechToTextBridge` 的唯一消费者 |
-| 5 | `process/services/ccSwitchModelSource.ts` | 236 | **UC-B 已失效**；零消费者 |
-| 6 | `process/services/openclawConflictDetector.ts` | 208 | 零消费者 |
-| 7 | `process/utils/safeExec.ts` | 173 | 零消费者 |
-| 8 | `process/services/ConversationServiceImpl.ts` | 160 | 级联：仅被 singleton 消费，而 singleton 零消费 |
-| 9 | `process/utils/message.ts` | 143 | 零消费者；ACP era 消息缓存 |
-| 10 | `process/task/WorkerTaskManager.ts` | 123 | `process/task/` 目录整体 DELETE（§4.9） |
-| 11 | `process/utils/credentialCrypto.ts` | 109 | 零消费者 |
-| 12 | `process/services/database/SqliteConversationRepository.ts` | 109 | 级联：`conversationServiceSingleton` 唯一消费者 |
-| 13 | `process/task/ConversationBusyGuard.ts` | 96 | `process/task/` 目录整体 DELETE（§4.9） |
-| 14 | `process/task/workerTaskManagerSingleton.ts` | 86 | `process/task/` 目录整体 DELETE（§4.9） |
-| 15 | `process/utils/previewUtils.ts` | 84 | **UC-B 已失效**；`AcpAgentManager` 已删 |
-| 16 | `process/bridge/workspaceSnapshotBridge.ts` | 68 | 全文 `httpPost` → no-op |
-| 17 | `process/bridge/authBridge.ts` | 59 | `googleAuth.status` 是 stubProvider |
-| 18 | `process/services/IConversationService.ts` | 58 | 级联 |
-| 19 | `process/task/IpcAgentEventEmitter.ts` | 53 | `process/task/` 目录整体 DELETE（§4.9） |
-| 20 | `process/bridge/taskBridge.ts` | 45 | `task.stopAll/getRunningCount` 是 stubProvider |
-| 21 | `process/task/IAgentManager.ts` | 30 | `process/task/` 目录整体 DELETE（§4.9） |
-| 22 | `process/utils/openclawUtils.ts` | 30 | 级联：仅被 `initAgent.ts` 消费 |
-| 23 | `process/task/IAgentFactory.ts` | 28 | `process/task/` 目录整体 DELETE（§4.9） |
-| 24 | `process/task/AgentFactory.ts` | 25 | `process/task/` 目录整体 DELETE（§4.9） |
-| 25 | `process/task/IAgentEventEmitter.ts` | 23 | `process/task/` 目录整体 DELETE（§4.9） |
-| 26 | `process/bridge/remoteAgentBridge.ts` | 21 | 空函数，自述 "Intentionally empty" |
-| 27 | `process/utils/configureConsole.ts` | 21 | 零消费者 |
-| 28 | `process/task/IWorkerTaskManager.ts` | 19 | `process/task/` 目录整体 DELETE（§4.9） |
-| 29 | `process/services/conversationServiceSingleton.ts` | 18 | 零消费者 |
-| 30 | `process/task/agentTypes.ts` | 17 | `process/task/` 目录整体 DELETE（§4.9） |
-| 31 | `process/bridge/speechToTextBridge.ts` | 14 | `speechToText.transcribe` 是 httpPost |
-| 32 | `process/utils/mainLogger.ts` | 43 | 级联：唯一消费者 `SpeechToTextService` 已 DELETE（§7.2） |
+| #   | 路径                                                        | 行数 | 理由                                                                             |
+| --- | ----------------------------------------------------------- | ---: | -------------------------------------------------------------------------------- |
+| 1   | `process/services/WorkspaceSnapshotService.ts`              |  433 | 级联：`workspaceSnapshotBridge` 唯一消费者                                       |
+| 2   | `process/utils/initAgent.ts`                                |  414 | 级联：`ConversationServiceImpl` 的唯一消费者；backend `aionui-conversation` 接管 |
+| 3   | `process/bridge/shellBridge.ts`                             |  273 | 全文 `httpPost` → no-op 注册                                                     |
+| 4   | `process/bridge/services/SpeechToTextService.ts`            |  260 | 级联：`speechToTextBridge` 的唯一消费者                                          |
+| 5   | `process/services/ccSwitchModelSource.ts`                   |  236 | **UC-B 已失效**；零消费者                                                        |
+| 6   | `process/services/openclawConflictDetector.ts`              |  208 | 零消费者                                                                         |
+| 7   | `process/utils/safeExec.ts`                                 |  173 | 零消费者                                                                         |
+| 8   | `process/services/ConversationServiceImpl.ts`               |  160 | 级联：仅被 singleton 消费，而 singleton 零消费                                   |
+| 9   | `process/utils/message.ts`                                  |  143 | 零消费者；ACP era 消息缓存                                                       |
+| 10  | `process/task/WorkerTaskManager.ts`                         |  123 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 11  | `process/utils/credentialCrypto.ts`                         |  109 | 零消费者                                                                         |
+| 12  | `process/services/database/SqliteConversationRepository.ts` |  109 | 级联：`conversationServiceSingleton` 唯一消费者                                  |
+| 13  | `process/task/ConversationBusyGuard.ts`                     |   96 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 14  | `process/task/workerTaskManagerSingleton.ts`                |   86 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 15  | `process/utils/previewUtils.ts`                             |   84 | **UC-B 已失效**；`AcpAgentManager` 已删                                          |
+| 16  | `process/bridge/workspaceSnapshotBridge.ts`                 |   68 | 全文 `httpPost` → no-op                                                          |
+| 17  | `process/bridge/authBridge.ts`                              |   59 | `googleAuth.status` 是 stubProvider                                              |
+| 18  | `process/services/IConversationService.ts`                  |   58 | 级联                                                                             |
+| 19  | `process/task/IpcAgentEventEmitter.ts`                      |   53 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 20  | `process/bridge/taskBridge.ts`                              |   45 | `task.stopAll/getRunningCount` 是 stubProvider                                   |
+| 21  | `process/task/IAgentManager.ts`                             |   30 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 22  | `process/utils/openclawUtils.ts`                            |   30 | 级联：仅被 `initAgent.ts` 消费                                                   |
+| 23  | `process/task/IAgentFactory.ts`                             |   28 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 24  | `process/task/AgentFactory.ts`                              |   25 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 25  | `process/task/IAgentEventEmitter.ts`                        |   23 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 26  | `process/bridge/remoteAgentBridge.ts`                       |   21 | 空函数，自述 "Intentionally empty"                                               |
+| 27  | `process/utils/configureConsole.ts`                         |   21 | 零消费者                                                                         |
+| 28  | `process/task/IWorkerTaskManager.ts`                        |   19 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 29  | `process/services/conversationServiceSingleton.ts`          |   18 | 零消费者                                                                         |
+| 30  | `process/task/agentTypes.ts`                                |   17 | `process/task/` 目录整体 DELETE（§4.9）                                          |
+| 31  | `process/bridge/speechToTextBridge.ts`                      |   14 | `speechToText.transcribe` 是 httpPost                                            |
+| 32  | `process/utils/mainLogger.ts`                               |   43 | 级联：唯一消费者 `SpeechToTextService` 已 DELETE（§7.2）                         |
 
 **合计：32 文件,~3579 行**（原 21 文件 2936 行 + `task/` 10 文件 600 行 + mainLogger 43 行）。
 
 ### 5.3 MODIFY 明细
 
-| 路径 | 改动 | 来源章节 |
-| ---- | ---- | -------- |
-| `process/bridge/index.ts` | 移除对已删 bridge 的 import / init 调用 / export；移除 `BridgeInitDeps.workerTaskManager` | §4.1.6 / §4.9.3 |
-| `process/utils/initBridge.ts` | 移除 `workerTaskManager` 相关 import 和 wiring | §4.9.3 |
-| `src/index.ts` | 删除 `import { workerTaskManager }` 和 `await workerTaskManager.clear()` | §4.9.3 |
-| `process/bridge/applicationBridge.ts` | 删除 `IWorkerTaskManager` import、`initApplicationBridge` 参数、`await workerTaskManager.clear()` | §4.9.3 |
-| `process/utils/tray.ts` | `getRunningTasksCount()` 改为 `return 0`,或改用新 HTTP 路由 | §4.9.3 |
-| `process/pet/petConfirmManager.ts` | `new IpcAgentEventEmitter().emitConfirmationRemove(...)` → `ipcBridge.confirmation.remove.emit(...)`；`workerTaskManager.getTask().confirm(...)` → `ipcBridge.confirmation.confirm.invoke(...)` | §4.9.3 |
-| `process/pet/petManager.ts` | 清理残留的 `workerTaskManager` / `IpcAgentEventEmitter` import | §4.9.3 |
-| `process/agent/remote/types.ts` → `common/types/remoteAgentTypes.ts` | **文件搬迁**：更新 5 处 `@process/agent/remote/types` import 到 `@/common/types/remoteAgentTypes`,然后删除空的 `process/agent/` 目录 | §7.3 |
-| `process/bridge/systemSettingsBridge.ts` | **瘦身**：删除 11 处 HTTP no-op `.provider()` 块(`getCloseToTray`/`setCloseToTray`/`getNotificationEnabled`/`setNotificationEnabled`/`getCronNotificationEnabled`/`setCronNotificationEnabled`/`getKeepAwake` getter/`getSaveUploadToWorkspace`/`setSaveUploadToWorkspace`/`getAutoPreviewOfficeFiles`/`setAutoPreviewOfficeFiles`),保留 `setKeepAwake` + `changeLanguage` 本地副作用 + 8 处 pet buildProvider。净减 ~90 行 | §7.4 |
-| `process/bridge/applicationBridgeCore.ts` | **瘦身**：删除 `systemInfo.provider(...)` 3 行,保留 `updateSystemInfo` / `getPath` 真 IPC | §7.5 |
+| 路径                                                                 | 改动                                                                                                                                                                                                                                                                                                                                                                                                                        | 来源章节        |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
+| `process/bridge/index.ts`                                            | 移除对已删 bridge 的 import / init 调用 / export；移除 `BridgeInitDeps.workerTaskManager`                                                                                                                                                                                                                                                                                                                                   | §4.1.6 / §4.9.3 |
+| `process/utils/initBridge.ts`                                        | 移除 `workerTaskManager` 相关 import 和 wiring                                                                                                                                                                                                                                                                                                                                                                              | §4.9.3          |
+| `src/index.ts`                                                       | 删除 `import { workerTaskManager }` 和 `await workerTaskManager.clear()`                                                                                                                                                                                                                                                                                                                                                    | §4.9.3          |
+| `process/bridge/applicationBridge.ts`                                | 删除 `IWorkerTaskManager` import、`initApplicationBridge` 参数、`await workerTaskManager.clear()`                                                                                                                                                                                                                                                                                                                           | §4.9.3          |
+| `process/utils/tray.ts`                                              | `getRunningTasksCount()` 改为 `return 0`,或改用新 HTTP 路由                                                                                                                                                                                                                                                                                                                                                                 | §4.9.3          |
+| `process/pet/petConfirmManager.ts`                                   | `new IpcAgentEventEmitter().emitConfirmationRemove(...)` → `ipcBridge.confirmation.remove.emit(...)`；`workerTaskManager.getTask().confirm(...)` → `ipcBridge.confirmation.confirm.invoke(...)`                                                                                                                                                                                                                             | §4.9.3          |
+| `process/pet/petManager.ts`                                          | 清理残留的 `workerTaskManager` / `IpcAgentEventEmitter` import                                                                                                                                                                                                                                                                                                                                                              | §4.9.3          |
+| `process/agent/remote/types.ts` → `common/types/remoteAgentTypes.ts` | **文件搬迁**：更新 5 处 `@process/agent/remote/types` import 到 `@/common/types/remoteAgentTypes`,然后删除空的 `process/agent/` 目录                                                                                                                                                                                                                                                                                        | §7.3            |
+| `process/bridge/systemSettingsBridge.ts`                             | **瘦身**：删除 11 处 HTTP no-op `.provider()` 块(`getCloseToTray`/`setCloseToTray`/`getNotificationEnabled`/`setNotificationEnabled`/`getCronNotificationEnabled`/`setCronNotificationEnabled`/`getKeepAwake` getter/`getSaveUploadToWorkspace`/`setSaveUploadToWorkspace`/`getAutoPreviewOfficeFiles`/`setAutoPreviewOfficeFiles`),保留 `setKeepAwake` + `changeLanguage` 本地副作用 + 8 处 pet buildProvider。净减 ~90 行 | §7.4            |
+| `process/bridge/applicationBridgeCore.ts`                            | **瘦身**：删除 `systemInfo.provider(...)` 3 行,保留 `updateSystemInfo` / `getPath` 真 IPC                                                                                                                                                                                                                                                                                                                                   | §7.5            |
 
 ## 6. 删除顺序建议（依赖图）
 
@@ -768,17 +776,17 @@ DELETE: utils/configureConsole.ts （独立）
 
 ### 6.2 推荐 commit 分组（每组各自 `bunx tsc --noEmit` 通过）
 
-| Commit | 内容 | 行数 |
-| ------ | ---- | ---: |
-| C1 | `bridge/index.ts` 先行 MODIFY + 4 个纯 no-op bridge 删除（authBridge / remoteAgentBridge / shellBridge / taskBridge） | ~400 |
-| C2 | `workspaceSnapshotBridge` + `WorkspaceSnapshotService` 联合删 + `bridge/index.ts` 同步 | ~500 |
-| C3 | `speechToTextBridge` + `bridge/services/SpeechToTextService` + `mainLogger` 联合删 + `bridge/index.ts` 同步（§7.2 级联) | ~320 |
-| C4 | ConversationService 四件套（singleton / Impl / IConvSvc / SqliteConvRepo）联合删 | ~345 |
-| C5 | initAgent + openclawUtils 联合删（依赖 C4） | ~444 |
-| C6 | 零消费者孤儿：ccSwitchModelSource / openclawConflictDetector / credentialCrypto / safeExec / message / previewUtils / configureConsole | ~871 |
-| C7 | `process/task/` 目录整体删除 —— 先改 6 个消费点（§4.9.3）,再删 10 个文件 | ~600 |
-| C8 | **MODIFY 瘦身**：`systemSettingsBridge` 删 11 处 no-op + `applicationBridgeCore` 删 3 行（§7.4 / §7.5） | ~-93 净减 |
-| C9 | **MOVE**：`process/agent/remote/types.ts` → `common/types/remoteAgentTypes.ts`,更新 5 处 import,删空 `process/agent/` 目录（§7.3） | ~0 净 |
+| Commit | 内容                                                                                                                                   |      行数 |
+| ------ | -------------------------------------------------------------------------------------------------------------------------------------- | --------: |
+| C1     | `bridge/index.ts` 先行 MODIFY + 4 个纯 no-op bridge 删除（authBridge / remoteAgentBridge / shellBridge / taskBridge）                  |      ~400 |
+| C2     | `workspaceSnapshotBridge` + `WorkspaceSnapshotService` 联合删 + `bridge/index.ts` 同步                                                 |      ~500 |
+| C3     | `speechToTextBridge` + `bridge/services/SpeechToTextService` + `mainLogger` 联合删 + `bridge/index.ts` 同步（§7.2 级联)                |      ~320 |
+| C4     | ConversationService 四件套（singleton / Impl / IConvSvc / SqliteConvRepo）联合删                                                       |      ~345 |
+| C5     | initAgent + openclawUtils 联合删（依赖 C4）                                                                                            |      ~444 |
+| C6     | 零消费者孤儿：ccSwitchModelSource / openclawConflictDetector / credentialCrypto / safeExec / message / previewUtils / configureConsole |      ~871 |
+| C7     | `process/task/` 目录整体删除 —— 先改 6 个消费点（§4.9.3）,再删 10 个文件                                                               |      ~600 |
+| C8     | **MODIFY 瘦身**：`systemSettingsBridge` 删 11 处 no-op + `applicationBridgeCore` 删 3 行（§7.4 / §7.5）                                | ~-93 净减 |
+| C9     | **MOVE**：`process/agent/remote/types.ts` → `common/types/remoteAgentTypes.ts`,更新 5 处 import,删空 `process/agent/` 目录（§7.3）     |     ~0 净 |
 
 **总：9 个 commit,净删 ~3579 行**（§5.2 DELETE 合计 3579 行 + C8 额外瘦身 ~93 行）。
 
@@ -894,87 +902,87 @@ N1 只覆盖 7 个文件 + `bridge/index.ts` 5 处 init 引用的移除。本审
 
 ## 附录 A：完整文件清单 × 分类一览
 
-| # | 相对路径 | 行数 | 分类 |
-| - | -------- | ---: | ---- |
-| 1 | `process/index.ts` | 29 | KEEP |
-| 2 | `process/backend/binaryResolver.ts` | 60 | KEEP |
-| 3 | `process/backend/index.ts` | 1 | KEEP |
-| 4 | `process/agent/remote/types.ts` | 51 | **MODIFY**（搬迁到 `common/types/remoteAgentTypes.ts`,§7.3） |
-| 5 | `process/bridge/applicationBridge.ts` | 199 | KEEP |
-| 6 | `process/bridge/applicationBridgeCore.ts` | 44 | **MODIFY**（瘦身,删 systemInfo no-op 3 行,§7.5） |
-| 7 | `process/bridge/authBridge.ts` | 59 | **DELETE** |
-| 8 | `process/bridge/dialogBridge.ts` | 28 | KEEP |
-| 9 | `process/bridge/feedbackBridge.ts` | 104 | KEEP |
-| 10 | `process/bridge/index.ts` | 59 | **MODIFY** |
-| 11 | `process/bridge/notificationBridge.ts` | 73 | KEEP |
-| 12 | `process/bridge/remoteAgentBridge.ts` | 21 | **DELETE** |
-| 13 | `process/bridge/shellBridge.ts` | 273 | **DELETE** |
-| 14 | `process/bridge/speechToTextBridge.ts` | 14 | **DELETE** |
-| 15 | `process/bridge/systemSettingsBridge.ts` | 206 | **MODIFY**（瘦身,删 11 处 HTTP no-op provider,§7.4） |
-| 16 | `process/bridge/taskBridge.ts` | 45 | **DELETE** |
-| 17 | `process/bridge/updateBridge.ts` | 666 | KEEP |
-| 18 | `process/bridge/webuiBridge.ts` | 107 | KEEP |
-| 19 | `process/bridge/windowControlsBridge.ts` | 91 | KEEP |
-| 20 | `process/bridge/workspaceSnapshotBridge.ts` | 68 | **DELETE** |
-| 21 | `process/bridge/services/SpeechToTextService.ts` | 260 | **DELETE** (级联) |
-| 22 | `process/pet/petConfirmManager.ts` | 384 | KEEP |
-| 23 | `process/pet/petEventBridge.ts` | 89 | KEEP |
-| 24 | `process/pet/petIdleTicker.ts` | 164 | KEEP |
-| 25 | `process/pet/petManager.ts` | 691 | KEEP |
-| 26 | `process/pet/petStateMachine.ts` | 137 | KEEP |
-| 27 | `process/pet/petTypes.ts` | 110 | KEEP |
-| 28 | `process/resources/builtinMcp/constants.ts` | 31 | KEEP |
-| 29 | `process/resources/builtinMcp/imageGenServer.ts` | 136 | KEEP |
-| 30 | `process/services/autoUpdaterService.ts` | 335 | KEEP |
-| 31 | `process/services/ccSwitchModelSource.ts` | 236 | **DELETE** |
-| 32 | `process/services/ConversationServiceImpl.ts` | 160 | **DELETE** |
-| 33 | `process/services/conversationServiceSingleton.ts` | 18 | **DELETE** |
-| 34 | `process/services/IConversationService.ts` | 58 | **DELETE** |
-| 35 | `process/services/openclawConflictDetector.ts` | 208 | **DELETE** |
-| 36 | `process/services/WorkspaceSnapshotService.ts` | 433 | **DELETE** (级联) |
-| 37 | `process/services/i18n/index.ts` | 88 | KEEP |
-| 38 | `process/services/database/IConversationRepository.ts` | 39 | KEEP |
-| 39 | `process/services/database/SqliteConversationRepository.ts` | 109 | **DELETE** |
-| 40 | `process/services/database/migrations.ts` | 1392 | KEEP |
-| 41 | `process/services/database/runLegacyDatabaseMigrations.ts` | 86 | KEEP |
-| 42 | `process/services/database/schema.ts` | 154 | KEEP |
-| 43 | `process/services/database/drivers/BetterSqlite3Driver.ts` | 49 | KEEP |
-| 44 | `process/services/database/drivers/ISqliteDriver.ts` | 15 | KEEP |
-| 45 | `process/task/AgentFactory.ts` | 25 | **DELETE** (§4.9) |
-| 46 | `process/task/ConversationBusyGuard.ts` | 96 | **DELETE** (§4.9) |
-| 47 | `process/task/IAgentEventEmitter.ts` | 23 | **DELETE** (§4.9) |
-| 48 | `process/task/IAgentFactory.ts` | 28 | **DELETE** (§4.9) |
-| 49 | `process/task/IAgentManager.ts` | 30 | **DELETE** (§4.9) |
-| 50 | `process/task/IpcAgentEventEmitter.ts` | 53 | **DELETE** (§4.9) |
-| 51 | `process/task/IWorkerTaskManager.ts` | 19 | **DELETE** (§4.9) |
-| 52 | `process/task/WorkerTaskManager.ts` | 123 | **DELETE** (§4.9) |
-| 53 | `process/task/agentTypes.ts` | 17 | **DELETE** (§4.9) |
-| 54 | `process/task/workerTaskManagerSingleton.ts` | 86 | **DELETE** (§4.9) |
-| 55 | `process/utils/analyticsId.ts` | 41 | KEEP |
-| 56 | `process/utils/appMenu.ts` | 77 | KEEP |
-| 57 | `process/utils/configureChromium.ts` | 389 | KEEP |
-| 58 | `process/utils/configureConsole.ts` | 21 | **DELETE** |
-| 59 | `process/utils/configureConsoleLog.ts` | 81 | KEEP |
-| 60 | `process/utils/credentialCrypto.ts` | 109 | **DELETE** |
-| 61 | `process/utils/deepLink.ts` | 78 | KEEP |
-| 62 | `process/utils/ensureAdminUser.ts` | 78 | KEEP |
-| 63 | `process/utils/index.ts` | 18 | KEEP |
-| 64 | `process/utils/initAgent.ts` | 414 | **DELETE** (级联) |
-| 65 | `process/utils/initBridge.ts` | 15 | KEEP |
-| 66 | `process/utils/initStorage.ts` | 633 | KEEP |
-| 67 | `process/utils/mainLogger.ts` | 43 | **DELETE**（级联,§7.2） |
-| 68 | `process/utils/mainWindowLifecycle.ts` | 39 | KEEP |
-| 69 | `process/utils/message.ts` | 143 | **DELETE** |
-| 70 | `process/utils/migrateAssistants.ts` | 270 | KEEP (UC-B) |
-| 71 | `process/utils/openclawUtils.ts` | 30 | **DELETE** (级联) |
-| 72 | `process/utils/previewUtils.ts` | 84 | **DELETE** |
-| 73 | `process/utils/resetPasswordCLI.ts` | 70 | KEEP |
-| 74 | `process/utils/runBackendMigrations.ts` | 93 | KEEP (UC-B) |
-| 75 | `process/utils/safeExec.ts` | 173 | **DELETE** |
-| 76 | `process/utils/tray.ts` | 296 | KEEP |
-| 77 | `process/utils/utils.ts` | 460 | KEEP |
-| 78 | `process/utils/webuiConfig.ts` | 336 | KEEP |
-| 79 | `process/utils/zoom.ts` | 136 | KEEP |
+| #   | 相对路径                                                    | 行数 | 分类                                                         |
+| --- | ----------------------------------------------------------- | ---: | ------------------------------------------------------------ |
+| 1   | `process/index.ts`                                          |   29 | KEEP                                                         |
+| 2   | `process/backend/binaryResolver.ts`                         |   60 | KEEP                                                         |
+| 3   | `process/backend/index.ts`                                  |    1 | KEEP                                                         |
+| 4   | `process/agent/remote/types.ts`                             |   51 | **MODIFY**（搬迁到 `common/types/remoteAgentTypes.ts`,§7.3） |
+| 5   | `process/bridge/applicationBridge.ts`                       |  199 | KEEP                                                         |
+| 6   | `process/bridge/applicationBridgeCore.ts`                   |   44 | **MODIFY**（瘦身,删 systemInfo no-op 3 行,§7.5）             |
+| 7   | `process/bridge/authBridge.ts`                              |   59 | **DELETE**                                                   |
+| 8   | `process/bridge/dialogBridge.ts`                            |   28 | KEEP                                                         |
+| 9   | `process/bridge/feedbackBridge.ts`                          |  104 | KEEP                                                         |
+| 10  | `process/bridge/index.ts`                                   |   59 | **MODIFY**                                                   |
+| 11  | `process/bridge/notificationBridge.ts`                      |   73 | KEEP                                                         |
+| 12  | `process/bridge/remoteAgentBridge.ts`                       |   21 | **DELETE**                                                   |
+| 13  | `process/bridge/shellBridge.ts`                             |  273 | **DELETE**                                                   |
+| 14  | `process/bridge/speechToTextBridge.ts`                      |   14 | **DELETE**                                                   |
+| 15  | `process/bridge/systemSettingsBridge.ts`                    |  206 | **MODIFY**（瘦身,删 11 处 HTTP no-op provider,§7.4）         |
+| 16  | `process/bridge/taskBridge.ts`                              |   45 | **DELETE**                                                   |
+| 17  | `process/bridge/updateBridge.ts`                            |  666 | KEEP                                                         |
+| 18  | `process/bridge/webuiBridge.ts`                             |  107 | KEEP                                                         |
+| 19  | `process/bridge/windowControlsBridge.ts`                    |   91 | KEEP                                                         |
+| 20  | `process/bridge/workspaceSnapshotBridge.ts`                 |   68 | **DELETE**                                                   |
+| 21  | `process/bridge/services/SpeechToTextService.ts`            |  260 | **DELETE** (级联)                                            |
+| 22  | `process/pet/petConfirmManager.ts`                          |  384 | KEEP                                                         |
+| 23  | `process/pet/petEventBridge.ts`                             |   89 | KEEP                                                         |
+| 24  | `process/pet/petIdleTicker.ts`                              |  164 | KEEP                                                         |
+| 25  | `process/pet/petManager.ts`                                 |  691 | KEEP                                                         |
+| 26  | `process/pet/petStateMachine.ts`                            |  137 | KEEP                                                         |
+| 27  | `process/pet/petTypes.ts`                                   |  110 | KEEP                                                         |
+| 28  | `process/resources/builtinMcp/constants.ts`                 |   31 | KEEP                                                         |
+| 29  | `process/resources/builtinMcp/imageGenServer.ts`            |  136 | KEEP                                                         |
+| 30  | `process/services/autoUpdaterService.ts`                    |  335 | KEEP                                                         |
+| 31  | `process/services/ccSwitchModelSource.ts`                   |  236 | **DELETE**                                                   |
+| 32  | `process/services/ConversationServiceImpl.ts`               |  160 | **DELETE**                                                   |
+| 33  | `process/services/conversationServiceSingleton.ts`          |   18 | **DELETE**                                                   |
+| 34  | `process/services/IConversationService.ts`                  |   58 | **DELETE**                                                   |
+| 35  | `process/services/openclawConflictDetector.ts`              |  208 | **DELETE**                                                   |
+| 36  | `process/services/WorkspaceSnapshotService.ts`              |  433 | **DELETE** (级联)                                            |
+| 37  | `process/services/i18n/index.ts`                            |   88 | KEEP                                                         |
+| 38  | `process/services/database/IConversationRepository.ts`      |   39 | KEEP                                                         |
+| 39  | `process/services/database/SqliteConversationRepository.ts` |  109 | **DELETE**                                                   |
+| 40  | `process/services/database/migrations.ts`                   | 1392 | KEEP                                                         |
+| 41  | `process/services/database/runLegacyDatabaseMigrations.ts`  |   86 | KEEP                                                         |
+| 42  | `process/services/database/schema.ts`                       |  154 | KEEP                                                         |
+| 43  | `process/services/database/drivers/BetterSqlite3Driver.ts`  |   49 | KEEP                                                         |
+| 44  | `process/services/database/drivers/ISqliteDriver.ts`        |   15 | KEEP                                                         |
+| 45  | `process/task/AgentFactory.ts`                              |   25 | **DELETE** (§4.9)                                            |
+| 46  | `process/task/ConversationBusyGuard.ts`                     |   96 | **DELETE** (§4.9)                                            |
+| 47  | `process/task/IAgentEventEmitter.ts`                        |   23 | **DELETE** (§4.9)                                            |
+| 48  | `process/task/IAgentFactory.ts`                             |   28 | **DELETE** (§4.9)                                            |
+| 49  | `process/task/IAgentManager.ts`                             |   30 | **DELETE** (§4.9)                                            |
+| 50  | `process/task/IpcAgentEventEmitter.ts`                      |   53 | **DELETE** (§4.9)                                            |
+| 51  | `process/task/IWorkerTaskManager.ts`                        |   19 | **DELETE** (§4.9)                                            |
+| 52  | `process/task/WorkerTaskManager.ts`                         |  123 | **DELETE** (§4.9)                                            |
+| 53  | `process/task/agentTypes.ts`                                |   17 | **DELETE** (§4.9)                                            |
+| 54  | `process/task/workerTaskManagerSingleton.ts`                |   86 | **DELETE** (§4.9)                                            |
+| 55  | `process/utils/analyticsId.ts`                              |   41 | KEEP                                                         |
+| 56  | `process/utils/appMenu.ts`                                  |   77 | KEEP                                                         |
+| 57  | `process/utils/configureChromium.ts`                        |  389 | KEEP                                                         |
+| 58  | `process/utils/configureConsole.ts`                         |   21 | **DELETE**                                                   |
+| 59  | `process/utils/configureConsoleLog.ts`                      |   81 | KEEP                                                         |
+| 60  | `process/utils/credentialCrypto.ts`                         |  109 | **DELETE**                                                   |
+| 61  | `process/utils/deepLink.ts`                                 |   78 | KEEP                                                         |
+| 62  | `process/utils/ensureAdminUser.ts`                          |   78 | KEEP                                                         |
+| 63  | `process/utils/index.ts`                                    |   18 | KEEP                                                         |
+| 64  | `process/utils/initAgent.ts`                                |  414 | **DELETE** (级联)                                            |
+| 65  | `process/utils/initBridge.ts`                               |   15 | KEEP                                                         |
+| 66  | `process/utils/initStorage.ts`                              |  633 | KEEP                                                         |
+| 67  | `process/utils/mainLogger.ts`                               |   43 | **DELETE**（级联,§7.2）                                      |
+| 68  | `process/utils/mainWindowLifecycle.ts`                      |   39 | KEEP                                                         |
+| 69  | `process/utils/message.ts`                                  |  143 | **DELETE**                                                   |
+| 70  | `process/utils/migrateAssistants.ts`                        |  270 | KEEP (UC-B)                                                  |
+| 71  | `process/utils/openclawUtils.ts`                            |   30 | **DELETE** (级联)                                            |
+| 72  | `process/utils/previewUtils.ts`                             |   84 | **DELETE**                                                   |
+| 73  | `process/utils/resetPasswordCLI.ts`                         |   70 | KEEP                                                         |
+| 74  | `process/utils/runBackendMigrations.ts`                     |   93 | KEEP (UC-B)                                                  |
+| 75  | `process/utils/safeExec.ts`                                 |  173 | **DELETE**                                                   |
+| 76  | `process/utils/tray.ts`                                     |  296 | KEEP                                                         |
+| 77  | `process/utils/utils.ts`                                    |  460 | KEEP                                                         |
+| 78  | `process/utils/webuiConfig.ts`                              |  336 | KEEP                                                         |
+| 79  | `process/utils/zoom.ts`                                     |  136 | KEEP                                                         |
 
 （`process/resources/skills/` 目录只含 `.DS_Store`，不计）
 
