@@ -11,7 +11,6 @@ import { initUpdateBridge } from './updateBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
-import { initWorkspaceSnapshotBridge } from './workspaceSnapshotBridge';
 import { initWebuiBridge } from './webuiBridge';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
@@ -27,7 +26,6 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initSystemSettingsBridge();
   initNotificationBridge();
   initSpeechToTextBridge();
-  initWorkspaceSnapshotBridge();
   initWebuiBridge();
 }
 
@@ -39,9 +37,7 @@ export {
   initSystemSettingsBridge,
   initUpdateBridge,
   initWindowControlsBridge,
-  initWorkspaceSnapshotBridge,
   initWebuiBridge,
 };
-export { disposeAllSnapshots } from './workspaceSnapshotBridge';
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
 export const disposeAllTeamSessions = (): Promise<void> => Promise.resolve();
