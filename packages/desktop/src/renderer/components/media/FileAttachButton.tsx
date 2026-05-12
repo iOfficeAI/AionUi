@@ -149,16 +149,6 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
 
       {/* 文件操作最常用，在最下（离 + 最近） */}
       <div className='px-6px'>
-        {isDesktop && (
-          <MenuItem
-            icon={<FolderOpen theme='outline' size={15} strokeWidth={2.5} />}
-            label={t('common.fileAttach.addFolder', { defaultValue: 'Add folder' })}
-            onClick={() => {
-              openFileSelector();
-              setOpen(false);
-            }}
-          />
-        )}
         {!isDesktop && (
           <MenuItem
             icon={<FolderOpen theme='outline' size={15} strokeWidth={2.5} />}
