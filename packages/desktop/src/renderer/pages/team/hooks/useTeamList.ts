@@ -1,7 +1,7 @@
 // src/renderer/pages/team/hooks/useTeamList.ts
 import { ipcBridge } from '@/common';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import type { TTeam } from '@/common/types/teamTypes';
+import type { TTeam } from '@/common/types/team/teamTypes';
 import { useCallback, useEffect } from 'react';
 import useSWR from 'swr';
 

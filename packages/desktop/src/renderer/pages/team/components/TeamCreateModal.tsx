@@ -4,7 +4,7 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import type { TTeam, TeamAgent } from '@/common/types/teamTypes';
+import type { TTeam, TeamAgent } from '@/common/types/team/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import AionModal from '@renderer/components/base/AionModal';

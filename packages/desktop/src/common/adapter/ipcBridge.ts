@@ -26,7 +26,7 @@ import type {
   ITeamListChangedEvent,
   ITeamCreatedEvent,
   ITeamTeammateMessageEvent,
-} from '../types/teamTypes';
+} from '../types/team/teamTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';

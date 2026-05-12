@@ -69,7 +69,7 @@ test.describe('Team Agent Whitelist', () => {
 
     // [WHITELIST RULE] TEAM_SUPPORTED_BACKENDS (tests/e2e/helpers/teamConfig.ts) is the set
     // of backends this test infrastructure knows how to validate. The **actual** runtime
-    // whitelist lives in isTeamCapableBackend() (src/common/types/teamTypes.ts) and can
+    // whitelist lives in isTeamCapableBackend() (src/common/types/team/teamTypes.ts) and can
     // dynamically include extra backends (e.g. codebuddy) when their cached ACP
     // initializeResult advertises mcpCapabilities.stdio=true. We therefore do NOT assert
     // "no un-whitelisted backends appear" here — the runtime whitelist is authoritative.
