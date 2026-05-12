@@ -6,7 +6,7 @@
 
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 /**
@@ -54,12 +54,6 @@ async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
     }
   } catch {
     // Fall through to cached models
-  }
-
-  // 2. Try local cached models
-  const cached = configService.get('acp.cachedModels')?.[agent_type];
-  if (cached?.current_model_id) {
-    return cached.current_model_id;
   }
 
   return 'default';
