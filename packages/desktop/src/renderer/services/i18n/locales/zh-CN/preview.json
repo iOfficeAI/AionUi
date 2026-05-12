@@ -71,7 +71,7 @@
       "installFailed": "自动安装 officecli 失败，请检查后端日志后重试。",
       "portTimeout": "预览服务启动后未在预期时间内就绪，请重试。",
       "startFailed": "启动 Office 预览服务失败。",
-      "outsideSandbox": "该文件不在当前工作区沙箱范围内。"
+      "outsideSandbox": "该文件不在当前项目沙箱范围内。"
     }
   },
   "word": {
