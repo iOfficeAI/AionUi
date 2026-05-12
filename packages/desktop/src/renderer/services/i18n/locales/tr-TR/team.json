@@ -28,7 +28,7 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Takım liderini seçin",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "Workspace path (optional)",
+    "workspacePlaceholder": "Proje klasörü yolu (isteğe bağlı)",
     "confirm": "Create Team",
     "noSupportedAgents": "Desteklenen agent bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
@@ -36,7 +36,7 @@
     "step": {
       "dispatch": "Takım Lideri",
       "subAgents": "Sub Agents",
-      "workspace": "Workspace"
+      "workspace": "Proje"
     },
     "nameRequired": "Takım adı girin",
     "leaderRequired": "Takım lideri seçin",

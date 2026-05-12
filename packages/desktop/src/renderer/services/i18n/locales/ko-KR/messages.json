@@ -37,7 +37,7 @@
   "export.copyLabel": "클립보드에 복사",
   "export.copyDescription": "대화를 시스템 클립보드에 복사합니다",
   "export.saveLabel": "파일로 저장",
-  "export.saveDescription": "대화를 현재 워크스페이스의 파일로 저장합니다",
+  "export.saveDescription": "대화를 현재 프로젝트의 파일로 저장합니다",
   "export.fileNameLabel": "파일 이름 입력",
   "export.fileNamePlaceholder": "conversation-export.txt",
   "export.pathLabel": "저장 경로",

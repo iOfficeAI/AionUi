@@ -34,7 +34,7 @@
   "export.copyLabel": "Копировать в буфер обмена",
   "export.copyDescription": "Скопировать диалог в системный буфер обмена",
   "export.saveLabel": "Сохранить в файл",
-  "export.saveDescription": "Сохранить диалог в файл в текущей рабочей области",
+  "export.saveDescription": "Сохранить диалог в файл в текущем проекте",
   "export.fileNameLabel": "Введите имя файла",
   "export.fileNamePlaceholder": "conversation-export.txt",
   "export.pathLabel": "Путь сохранения",

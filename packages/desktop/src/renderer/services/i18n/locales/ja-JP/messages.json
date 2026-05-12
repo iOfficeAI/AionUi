@@ -37,7 +37,7 @@
   "export.copyLabel": "クリップボードにコピー",
   "export.copyDescription": "会話をシステムのクリップボードにコピーします",
   "export.saveLabel": "ファイルに保存",
-  "export.saveDescription": "会話を現在のワークスペース内のファイルに保存します",
+  "export.saveDescription": "会話を現在のプロジェクト内のファイルに保存します",
   "export.fileNameLabel": "ファイル名を入力",
   "export.fileNamePlaceholder": "conversation-export.txt",
   "export.pathLabel": "保存先パス",

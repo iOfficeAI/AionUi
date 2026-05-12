@@ -28,7 +28,7 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Select team leader",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "Workspace path (optional)",
+    "workspacePlaceholder": "Project folder path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "No supported agents installed",
     "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",
@@ -36,7 +36,7 @@
     "step": {
       "dispatch": "Team Leader",
       "subAgents": "Sub Agents",
-      "workspace": "Workspace"
+      "workspace": "Project"
     },
     "nameRequired": "Please enter a team name",
     "leaderRequired": "Please select a team leader",

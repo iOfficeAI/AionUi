@@ -28,7 +28,7 @@
     "namePlaceholder": "Название команды",
     "dispatchAgentPlaceholder": "Выбрать лидера команды",
     "subAgentsPlaceholder": "Выбрать подагентов",
-    "workspacePlaceholder": "Путь к рабочей области (опционально)",
+    "workspacePlaceholder": "Путь к папке проекта (опционально)",
     "confirm": "Создать команду",
     "noSupportedAgents": "Поддерживаемые агенты не установлены",
     "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",
@@ -36,7 +36,7 @@
     "step": {
       "dispatch": "Лидер команды",
       "subAgents": "Подагенты",
-      "workspace": "Рабочая область"
+      "workspace": "Проект"
     },
     "nameRequired": "Введите название команды",
     "leaderRequired": "Выберите лидера команды",

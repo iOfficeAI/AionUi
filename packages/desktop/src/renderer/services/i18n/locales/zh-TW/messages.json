@@ -37,7 +37,7 @@
   "export.copyLabel": "複製到剪貼簿",
   "export.copyDescription": "將目前對話複製到系統剪貼簿",
   "export.saveLabel": "儲存到檔案",
-  "export.saveDescription": "將目前對話儲存到目前工作區中的檔案",
+  "export.saveDescription": "將目前對話儲存到目前專案中的檔案",
   "export.fileNameLabel": "輸入檔名",
   "export.fileNamePlaceholder": "conversation-export.txt",
   "export.pathLabel": "儲存路徑",

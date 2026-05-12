@@ -28,7 +28,7 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "選擇團隊 Leader",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "Workspace path (optional)",
+    "workspacePlaceholder": "專案資料夾路徑（選填）",
     "confirm": "Create Team",
     "noSupportedAgents": "未偵測到支援的 Agent",
     "supportedAgentsHint": "目前支援 Claude 和 Codex，更多 Agent 適配中",
@@ -36,11 +36,11 @@
     "step": {
       "dispatch": "團隊 Leader",
       "subAgents": "Sub Agents",
-      "workspace": "Workspace"
+      "workspace": "專案"
     },
     "nameRequired": "請輸入團隊名稱",
     "leaderRequired": "請選擇團隊 Leader",
-    "selectFolder": "選擇工作目錄",
+    "selectFolder": "選擇專案資料夾",
     "recentLabel": "最近使用",
     "chooseDifferentFolder": "選擇其他目錄",
     "error": "建立團隊失敗"

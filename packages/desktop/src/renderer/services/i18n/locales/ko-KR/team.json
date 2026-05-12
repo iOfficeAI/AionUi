@@ -28,7 +28,7 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "팀 리더 선택",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "Workspace path (optional)",
+    "workspacePlaceholder": "프로젝트 폴더 경로(선택)",
     "confirm": "Create Team",
     "noSupportedAgents": "지원되는 에이전트가 설치되지 않았습니다",
     "supportedAgentsHint": "현재 Claude와 Codex를 지원합니다. 더 많은 에이전트가 곧 추가됩니다.",
@@ -36,7 +36,7 @@
     "step": {
       "dispatch": "팀 리더",
       "subAgents": "Sub Agents",
-      "workspace": "Workspace"
+      "workspace": "프로젝트"
     },
     "nameRequired": "팀 이름을 입력하세요",
     "leaderRequired": "팀 리더를 선택하세요",

@@ -71,7 +71,7 @@
       "installFailed": "Failed to install officecli automatically. Check backend logs and retry.",
       "portTimeout": "Preview service started but did not become ready in time. Retry.",
       "startFailed": "Failed to start the Office preview service.",
-      "outsideSandbox": "This file is outside the current workspace sandbox."
+      "outsideSandbox": "This file is outside the current project sandbox."
     }
   },
   "word": {

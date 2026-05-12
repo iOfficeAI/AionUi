@@ -71,7 +71,7 @@
       "installFailed": "officecli 자동 설치에 실패했습니다. 백엔드 로그를 확인한 뒤 다시 시도하세요.",
       "portTimeout": "미리보기 서비스가 시작되었지만 제시간에 준비되지 않았습니다. 다시 시도하세요.",
       "startFailed": "Office 미리보기 서비스 시작에 실패했습니다.",
-      "outsideSandbox": "이 파일은 현재 워크스페이스 샌드박스 범위 밖에 있습니다."
+      "outsideSandbox": "이 파일은 현재 프로젝트 샌드박스 범위 밖에 있습니다."
     }
   },
   "word": {
