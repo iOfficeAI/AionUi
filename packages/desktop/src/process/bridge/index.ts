@@ -6,7 +6,6 @@
 
 import { initApplicationBridge } from './applicationBridge';
 import { initDialogBridge } from './dialogBridge';
-import { initSpeechToTextBridge } from './speechToTextBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
@@ -25,7 +24,6 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initUpdateBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
-  initSpeechToTextBridge();
   initWebuiBridge();
 }
 
@@ -33,7 +31,6 @@ export {
   initApplicationBridge,
   initDialogBridge,
   initNotificationBridge,
-  initSpeechToTextBridge,
   initSystemSettingsBridge,
   initUpdateBridge,
   initWindowControlsBridge,
