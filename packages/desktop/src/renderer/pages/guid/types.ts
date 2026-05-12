@@ -63,9 +63,4 @@ export type EffectiveAgentInfo = {
   isAvailable: boolean;
 };
 
-/**
- * Re-export commonly used ACP types for convenience.
- * `AcpBackend` is re-exported as `string` to match the widened `AvailableAgent.backend`.
- */
-export type AcpBackend = string;
 export type { AcpModelInfo };

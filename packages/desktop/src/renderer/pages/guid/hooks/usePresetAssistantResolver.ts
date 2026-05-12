@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/assistantTypes';
-import type { AcpBackend } from '../types';
 import { useCallback } from 'react';
 
 type UsePresetAssistantResolverOptions = {

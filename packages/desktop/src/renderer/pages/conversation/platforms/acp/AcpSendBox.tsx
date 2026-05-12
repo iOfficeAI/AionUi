@@ -1,9 +1,7 @@
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
-import type { AcpBackend } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
-import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
@@ -82,13 +80,12 @@ const useSendBoxDraft = (conversation_id: string) => {
 
 const AcpSendBox: React.FC<{
   conversation_id: string;
-  backend: AcpBackend;
+  backend: string;
   session_mode?: string;
-  cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agent_name?: string;
   workspacePath?: string;
   messageState: UseAcpMessageReturn;
-}> = ({ conversation_id, backend, session_mode, cached_config_options, agent_name, workspacePath, messageState }) => {
+}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState }) => {
   const {
     running,
     hasHydratedRunningState,
@@ -371,12 +368,6 @@ Please check your local CLI tool authentication status`,
                 onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
               />
             )}
-            <AcpConfigSelector
-              conversation_id={conversation_id}
-              backend={backend}
-              compact={false}
-              initialConfigOptions={cached_config_options}
-            />
           </div>
         }
         prefix={

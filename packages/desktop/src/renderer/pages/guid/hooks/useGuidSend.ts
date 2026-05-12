@@ -36,8 +36,6 @@ export type GuidSendDeps = {
   selectedMode: string;
   selectedAcpModel: string | null;
   currentAcpCachedModelInfo: AcpModelInfo | null;
-  pending_config_options: Record<string, string>;
-  cached_config_options: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   current_model: TProviderWithModel | undefined;
 
   // Agent helpers
@@ -97,8 +95,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMode,
     selectedAcpModel,
     currentAcpCachedModelInfo,
-    pending_config_options,
-    cached_config_options,
     current_model,
     findAgentByKey,
     getEffectiveAgentType,
@@ -349,28 +345,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       });
 
       try {
-        // Merge pending selections into cached options so the UI shows the user's choice immediately
-        const mergedCachedConfigOptions =
-          cached_config_options.length > 0
-            ? Object.keys(pending_config_options).length > 0
-              ? cached_config_options.map((opt) => {
-                  const pending = opt.id ? pending_config_options[opt.id] : undefined;
-                  return pending ? { ...opt, current_value: pending, selected_value: pending } : opt;
-                })
-              : cached_config_options
-            : undefined;
-
-        // Inject cached_config_options & pending_config_options into the params built by utility
-        if (mergedCachedConfigOptions) {
-          agentConversationParams.extra = {
-            ...agentConversationParams.extra,
-            cached_config_options: mergedCachedConfigOptions,
-          };
-        }
-        if (Object.keys(pending_config_options).length > 0) {
-          agentConversationParams.extra = { ...agentConversationParams.extra, pending_config_options };
-        }
-
         const conversation = await ipcBridge.conversation.create.invoke(agentConversationParams);
         if (!conversation || !conversation.id) {
           console.error('Failed to create ACP conversation - conversation object is null or missing id');
@@ -408,8 +382,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMode,
     selectedAcpModel,
     currentAcpCachedModelInfo,
-    pending_config_options,
-    cached_config_options,
     current_model,
     findAgentByKey,
     getEffectiveAgentType,

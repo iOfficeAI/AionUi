@@ -223,7 +223,6 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             backend={conversation.extra?.backend || 'claude'}
             session_mode={conversation.extra?.session_mode}
-            cached_config_options={conversation.extra?.cached_config_options}
             agent_name={assistantDisplayName}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             hideSendBox={hideSendBox}
@@ -255,13 +254,6 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             backend='codex'
             agent_name={assistantDisplayName}
-            cached_config_options={
-              (
-                conversation.extra as {
-                  cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
-                }
-              )?.cached_config_options
-            }
             hideSendBox={hideSendBox}
           />
         );

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackendAll } from './acpTypes';
-
 /**
- * MCP source type — includes all ACP backends and AionUi built-in sources.
- * Shared between renderer and main process, defined in common to support front-end build independence.
+ * MCP source type — ACP backend label (e.g. "claude", "codex") or a built-in
+ * sentinel like "aionui" / "aionrs". Kept as `string` because the backend
+ * `agent_metadata` table is the source of truth and extensions can register
+ * arbitrary new backends at runtime.
  */
-export type McpSource = AcpBackendAll | 'gemini' | 'aionui' | 'aionrs';
+export type McpSource = string;
