@@ -87,10 +87,7 @@ export type GuidAgentSelectionResult = {
  * This mirrors the runtime fallback inside `AgentModeSelector` so the
  * parent-held `selectedMode` stays in sync with what the UI shows.
  */
-function resolveDefaultMode(
-  backend: string | undefined,
-  agents: AgentMetadata[] | undefined
-): string {
+function resolveDefaultMode(backend: string | undefined, agents: AgentMetadata[] | undefined): string {
   if (!backend) return 'default';
 
   const matched = agents?.find((a) => (a.backend ?? a.agent_type) === backend);
@@ -395,10 +392,7 @@ export const useGuidAgentSelection = ({
     selectedAgentRef.current = configKey;
     // Reset to the backend's actual default (from handshake.available_modes),
     // not the literal 'default' — codex/opencode/cursor don't have that value.
-    const fallbackMode = resolveDefaultMode(
-      configKey,
-      availableAgentsData as unknown as AgentMetadata[] | undefined
-    );
+    const fallbackMode = resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
     _setSelectedMode(fallbackMode);
     if (!configKey) return;
 
