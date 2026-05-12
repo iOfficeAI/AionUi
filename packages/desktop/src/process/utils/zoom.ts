@@ -7,10 +7,10 @@
 import { BrowserWindow } from 'electron';
 import type { Input } from 'electron';
 
-// Default to 90% so the app feels slightly roomier on stock DPI displays
+// Default to 95% so the app feels slightly roomier on stock DPI displays
 // without looking cramped for fine text. Users can still reset/zoom with
 // Cmd/Ctrl +/-/0 and their choice is persisted to ui.zoomFactor.
-const UI_SCALE_DEFAULT = 0.9;
+const UI_SCALE_DEFAULT = 0.95;
 const UI_SCALE_MIN = 0.8;
 const UI_SCALE_MAX = 1.3;
 export const UI_SCALE_STEP = 0.05;
