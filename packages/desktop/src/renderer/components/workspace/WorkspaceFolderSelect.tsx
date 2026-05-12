@@ -9,8 +9,8 @@ import { Input } from '@arco-design/web-react';
 import { Check, Close, Down, Folder, FolderOpen, FolderPlus } from '@icon-park/react';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { DEFAULT_RECENT_WS_KEY, addRecentWorkspace, getRecentWorkspaces } from './recentWorkspaces';
 
-const DEFAULT_RECENT_WS_KEY = 'aionui:recent-workspaces';
 const MENU_GAP = 4;
 const VIEWPORT_MARGIN = 8;
 const MAX_MENU_HEIGHT = 320;
@@ -21,22 +21,6 @@ type MenuPosition = {
   left: number;
   width: number;
   maxHeight: number;
-};
-
-const getRecentWorkspaces = (storageKey: string): string[] => {
-  try {
-    return JSON.parse(localStorage.getItem(storageKey) ?? '[]');
-  } catch {
-    return [];
-  }
-};
-
-const addRecentWorkspace = (path: string, storageKey: string) => {
-  try {
-    const prev = getRecentWorkspaces(storageKey);
-    const next = [path, ...prev.filter((item) => item !== path)].slice(0, 5);
-    localStorage.setItem(storageKey, JSON.stringify(next));
-  } catch {}
 };
 
 const estimateMenuHeight = (recentCount: number): number => {
