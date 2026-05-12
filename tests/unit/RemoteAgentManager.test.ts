@@ -25,6 +25,18 @@ const capturedCoreConfig = vi.hoisted(() => ({
   onSessionKeyUpdate: null as ((key: string) => void) | null,
 }));
 
+const capturedAcpConfig = vi.hoisted(() => ({
+  config: null as Record<string, unknown> | null,
+}));
+
+const mockAcpCore = vi.hoisted(() => ({
+  start: vi.fn().mockResolvedValue(undefined),
+  stop: vi.fn().mockResolvedValue(undefined),
+  kill: vi.fn().mockResolvedValue(undefined),
+  sendMessage: vi.fn().mockResolvedValue({ success: true, data: null }),
+  confirmMessage: vi.fn().mockResolvedValue({ success: true, data: null }),
+}));
+
 const mockDb = vi.hoisted(() => ({
   getRemoteAgent: vi.fn(() => ({
     id: 'agent-1',
@@ -67,6 +79,15 @@ vi.mock('../../src/process/agent/remote', () => {
     },
   };
 });
+
+vi.mock('../../src/process/acp/compat', () => ({
+  AcpAgentV2: class {
+    constructor(config: Record<string, unknown>) {
+      capturedAcpConfig.config = config;
+      Object.assign(this, mockAcpCore);
+    }
+  },
+}));
 
 vi.mock('../../src/process/services/database', () => ({
   getDatabase: vi.fn().mockResolvedValue(mockDb),
@@ -171,6 +192,7 @@ describe('RemoteAgentManager', () => {
     capturedCoreConfig.onStreamEvent = null;
     capturedCoreConfig.onSignalEvent = null;
     capturedCoreConfig.onSessionKeyUpdate = null;
+    capturedAcpConfig.config = null;
   });
 
   describe('constructor and bootstrap', () => {
@@ -194,6 +216,39 @@ describe('RemoteAgentManager', () => {
 
       expect(mockDb.updateRemoteAgent).toHaveBeenCalledWith(
         'agent-1',
+        expect.objectContaining({ status: 'connected' })
+      );
+    });
+
+    it('starts ssh-acp agents through the ACP compatibility core', async () => {
+      mockDb.getRemoteAgent.mockReturnValueOnce({
+        id: 'agent-ssh',
+        name: 'SSH Agent',
+        protocol: 'ssh-acp',
+        url: 'ssh://dev@example.com/home/dev/project?command=opencode%20--experimental-acp',
+        authType: 'none',
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      const mgr = createManager({ remoteAgentId: 'agent-ssh' });
+      await mgr.bootstrap;
+
+      expect(mockAcpCore.start).toHaveBeenCalled();
+      expect(capturedAcpConfig.config).toMatchObject({
+        backend: 'custom',
+        cliPath: 'ssh',
+        extra: expect.objectContaining({
+          backend: 'custom',
+          cliPath: 'ssh',
+          customArgs: expect.arrayContaining([
+            'dev@example.com',
+            "cd '/home/dev/project' && opencode --experimental-acp",
+          ]),
+        }),
+      });
+      expect(mockDb.updateRemoteAgent).toHaveBeenCalledWith(
+        'agent-ssh',
         expect.objectContaining({ status: 'connected' })
       );
     });

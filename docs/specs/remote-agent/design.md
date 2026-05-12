@@ -130,6 +130,19 @@ conversations 表
 
 **两者完全独立**。`openclaw-gateway` 类型的行为完全不变。
 
+### 2.5 SSH ACP transport
+
+Remote Agent records can also use `protocol = 'ssh-acp'`. The existing `url` field stores the SSH target and launch command:
+
+```text
+ssh://user@example.com:22/home/user/project?command=opencode%20--experimental-acp
+```
+
+- URL host/user/port map to the local `ssh` command target.
+- URL path is used as the remote working directory before launching the agent.
+- The `command` query parameter is the remote ACP command to execute; its stdio is passed through SSH.
+- When `authType = 'bearer'`, `authToken` is interpreted as a local SSH identity-file path and passed as `ssh -i`.
+
 ## 3. 连接架构
 
 ### 3.1 每个 conversation 独立连接

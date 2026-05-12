@@ -10,6 +10,8 @@ import { agentRegistry } from '@process/agent/AgentRegistry';
 import { getDatabase } from '@process/services/database';
 import { generateIdentity } from '@process/agent/openclaw/deviceIdentity';
 import { OpenClawGatewayConnection } from '@process/agent/openclaw/OpenClawGatewayConnection';
+import { buildSshAcpConnectionTestArgs } from '@process/agent/remote/sshAcp';
+import { spawn } from 'node:child_process';
 import WebSocket from 'ws';
 
 /**
@@ -33,6 +35,52 @@ function validateWebSocketUrl(url: string): { url: string } | { error: string } 
   } catch {
     return { error: 'Invalid URL' };
   }
+}
+
+function testSshConnection(
+  url: string,
+  authType: string,
+  authToken?: string
+): Promise<{ success: boolean; error?: string }> {
+  return new Promise((resolve) => {
+    let settled = false;
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    const finish = (result: { success: boolean; error?: string }) => {
+      if (settled) return;
+      settled = true;
+      if (timeout) clearTimeout(timeout);
+      resolve(result);
+    };
+
+    let args: string[];
+    try {
+      args = buildSshAcpConnectionTestArgs({
+        url,
+        authType: authType === 'bearer' ? 'bearer' : 'none',
+        authToken,
+      });
+    } catch (error) {
+      finish({ success: false, error: error instanceof Error ? error.message : String(error) });
+      return;
+    }
+
+    const child = spawn('ssh', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let stderr = '';
+    timeout = setTimeout(() => {
+      child.kill();
+      finish({ success: false, error: 'Connection timed out (10s)' });
+    }, 10_000);
+
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString('utf8');
+    });
+    child.on('error', (error) => finish({ success: false, error: error.message }));
+    child.on('close', (code) => {
+      finish(
+        code === 0 ? { success: true } : { success: false, error: stderr.trim() || `ssh exited with code ${code}` }
+      );
+    });
+  });
 }
 
 export function initRemoteAgentBridge(): void {
@@ -101,6 +149,10 @@ export function initRemoteAgentBridge(): void {
   });
 
   ipcBridge.remoteAgent.testConnection.provider(async ({ url, authType, authToken, allowInsecure }) => {
+    if (url.trim().startsWith('ssh://')) {
+      return testSshConnection(url, authType, authToken);
+    }
+
     return new Promise<{ success: boolean; error?: string }>((resolve) => {
       // Normalize & validate URL: prepend ws:// when no protocol is provided
       // so that bare host:port strings (e.g. "127.0.0.1:42617") work, then

@@ -5,6 +5,9 @@
  */
 
 import { RemoteAgentCore } from '@process/agent/remote';
+import type { RemoteAgentConfig } from '@process/agent/remote';
+import { buildSshAcpLaunch, isSshAcpRemoteAgent } from '@process/agent/remote/sshAcp';
+import { AcpAgentV2 } from '@process/acp/compat';
 import { channelEventBus } from '@process/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IConfirmation, TMessage } from '@/common/chat/chatLib';
@@ -28,8 +31,8 @@ export interface RemoteAgentManagerData {
 }
 
 class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
-  core!: RemoteAgentCore;
-  bootstrap: Promise<RemoteAgentCore>;
+  core!: RemoteAgentCore | AcpAgentV2;
+  bootstrap: Promise<RemoteAgentCore | AcpAgentV2>;
   private options: RemoteAgentManagerData;
 
   constructor(data: RemoteAgentManagerData) {
@@ -45,19 +48,23 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     this.bootstrap.catch(() => {});
   }
 
-  private async initCore(data: RemoteAgentManagerData): Promise<RemoteAgentCore> {
+  private async initCore(data: RemoteAgentManagerData): Promise<RemoteAgentCore | AcpAgentV2> {
     const db = await getDatabase();
     const remoteConfig = db.getRemoteAgent(data.remoteAgentId);
     if (!remoteConfig) {
       throw new Error(`Remote agent config not found: ${data.remoteAgentId}`);
     }
 
+    if (isSshAcpRemoteAgent(remoteConfig)) {
+      return this.initSshAcpCore(data, remoteConfig);
+    }
+
     this.core = new RemoteAgentCore({
       conversationId: data.conversation_id,
       remoteConfig,
       sessionKey: data.sessionKey,
-      onStreamEvent: (msg) => this.handleStreamEvent(msg),
-      onSignalEvent: (msg) => this.handleSignalEvent(msg),
+      onStreamEvent: (msg: unknown) => this.handleStreamEvent(msg as IResponseMessage),
+      onSignalEvent: (msg: unknown) => this.handleSignalEvent(msg as IResponseMessage),
       onSessionKeyUpdate: (key) => this.handleSessionKeyUpdate(key),
     });
 
@@ -69,6 +76,38 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
       this.updateRemoteAgentStatus(data.remoteAgentId, 'error');
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.emitErrorMessage(`Failed to start remote agent: ${errorMsg}`);
+      throw error;
+    }
+  }
+
+  private async initSshAcpCore(data: RemoteAgentManagerData, remoteConfig: RemoteAgentConfig): Promise<AcpAgentV2> {
+    const launch = buildSshAcpLaunch(remoteConfig);
+    const core = new AcpAgentV2({
+      id: data.conversation_id,
+      backend: 'custom',
+      cliPath: launch.command,
+      workingDir: data.workspace || process.cwd(),
+      extra: {
+        backend: 'custom',
+        cliPath: launch.command,
+        customArgs: launch.args,
+        customWorkspace: true,
+        workspace: data.workspace,
+        yoloMode: data.yoloMode,
+      },
+      onStreamEvent: (msg: unknown) => this.handleStreamEvent(msg as IResponseMessage),
+      onSignalEvent: (msg: unknown) => this.handleSignalEvent(msg as IResponseMessage),
+    });
+
+    try {
+      await core.start();
+      this.core = core;
+      this.updateRemoteAgentStatus(data.remoteAgentId, 'connected');
+      return core;
+    } catch (error) {
+      this.updateRemoteAgentStatus(data.remoteAgentId, 'error');
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      this.emitErrorMessage(`Failed to start SSH remote agent: ${errorMsg}`);
       throw error;
     }
   }
@@ -246,8 +285,13 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     return !!this.options.yoloMode;
   }
 
-  stop() {
-    return this.core?.stop?.() ?? Promise.resolve();
+  async stop(): Promise<void> {
+    if (!this.core) return;
+    if ('stop' in this.core && typeof this.core.stop === 'function') {
+      await this.core.stop();
+      return;
+    }
+    await this.core.kill();
   }
 
   kill() {

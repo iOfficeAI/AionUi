@@ -18,7 +18,7 @@
  */
 
 /** Remote agent communication protocol */
-export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp';
+export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp' | 'ssh-acp';
 
 /** Remote agent authentication method */
 export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';

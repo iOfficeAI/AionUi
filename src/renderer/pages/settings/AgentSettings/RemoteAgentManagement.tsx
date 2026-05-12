@@ -34,6 +34,13 @@ const PAIRING_POLL_INTERVAL = 5_000;
 const PAIRING_TIMEOUT = 5 * 60 * 1000;
 const REMOTE_AGENT_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Remote-Agent-Guide-Chinese';
 
+function getProtocolFromUrl(
+  url: string | undefined,
+  fallback: RemoteAgentInput['protocol']
+): RemoteAgentInput['protocol'] {
+  return url?.trim().startsWith('ssh://') ? 'ssh-acp' : fallback;
+}
+
 type PairingState = 'idle' | 'handshaking' | 'pending' | 'timeout';
 
 const formatTimeLeft = (ms: number): string => {
@@ -163,7 +170,8 @@ const RemoteAgentFormModal: React.FC<{
     try {
       const values = await form.validate();
       setSaving(true);
-      const payload: RemoteAgentInput = { ...values, protocol: activeProtocol as RemoteAgentInput['protocol'], avatar };
+      const protocol = getProtocolFromUrl(values.url, activeProtocol as RemoteAgentInput['protocol']);
+      const payload: RemoteAgentInput = { ...values, protocol, avatar };
 
       let agentId: string;
       if (editAgent) {
@@ -176,7 +184,7 @@ const RemoteAgentFormModal: React.FC<{
       savedAgentIdRef.current = agentId;
 
       // For openclaw protocol, perform full handshake
-      if (activeProtocol === 'openclaw') {
+      if (protocol === 'openclaw') {
         setPairingState('handshaking');
         const result = await ipcBridge.remoteAgent.handshake.invoke({ id: agentId });
 
