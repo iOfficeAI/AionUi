@@ -58,15 +58,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       return <CronJobIndicator status={cronStatus} size={16} className='flex-shrink-0' />;
     }
 
-    // Agent icons: dimmed by default only inside project folders, full color on row hover.
-    // Top-level "对话" section keeps full color to preserve agent identity.
-    const dimmedClass = dimIcon
-      ? 'opacity-55 grayscale-[0.3] group-hover:opacity-100 group-hover:grayscale-0 transition'
-      : '';
     // When the row is pinned, hovering reveals a pushpin marker that overlays
     // the leading icon. We dim the resting icon on hover so the pin reads cleanly.
     const pinnedHoverFade = isPinned ? 'group-hover:opacity-0 transition-opacity' : '';
-    const composedClass = classNames(dimmedClass, pinnedHoverFade);
+    const composedClass = classNames(pinnedHoverFade);
 
     if (assistantInfo) {
       if (assistantInfo.isEmoji) {

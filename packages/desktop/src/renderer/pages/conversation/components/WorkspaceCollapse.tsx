@@ -48,8 +48,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
           className='flex items-center gap-8px h-34px pl-10px pr-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
           onClick={onToggle}
         >
-          {/* 文件夹图标 — 颜色与 header 文本同步退一层 */}
-          <span className='size-22px flex items-center justify-center shrink-0 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors'>
+          <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
             {expanded ? (
               <FolderOpen theme='outline' size={16} fill='currentColor' className='line-height-0' />
             ) : (

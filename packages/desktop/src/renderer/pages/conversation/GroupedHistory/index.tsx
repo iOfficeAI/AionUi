@@ -560,7 +560,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       onToggle={() => handleToggleWorkspace(group.workspace)}
                       siderCollapsed={collapsed}
                       header={
-                        <span className='text-14px font-normal truncate flex-1 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors min-w-0'>
+                        <span className='text-14px font-normal truncate flex-1 text-t-primary min-w-0'>
                           {group.displayName}
                         </span>
                       }
