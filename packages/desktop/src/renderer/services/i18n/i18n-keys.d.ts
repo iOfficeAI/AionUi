@@ -557,6 +557,8 @@ export type I18nKey =
   | 'cron.page.form.agent'
   | 'cron.page.form.agentPlaceholder'
   | 'cron.page.form.agentRequired'
+  | 'cron.page.form.aionrsModelRequired'
+  | 'cron.page.form.aionrsNoProvider'
   | 'cron.page.form.clearFolder'
   | 'cron.page.form.cronExpr'
   | 'cron.page.form.cronExprRequired'

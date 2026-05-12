@@ -6,32 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/assistantTypes';
-import type { AcpBackendConfig } from '../types';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { mutate } from 'swr';
-
-/**
- * Convert a backend AgentMetadata row (agent_source === 'custom') into the
- * AcpBackendConfig shape consumers of this hook expect for the `@` mention
- * avatar lookup and the engine-config bookkeeping.
- */
-function agentMetadataToEditorShape(a: AgentMetadata): AcpBackendConfig {
-  const envRecord: Record<string, string> = {};
-  for (const entry of a.env ?? []) {
-    envRecord[entry.name] = entry.value;
-  }
-  return {
-    id: a.id,
-    name: a.name,
-    avatar: a.icon,
-    defaultCliPath: a.command ?? '',
-    enabled: a.enabled,
-    acpArgs: a.args,
-    env: Object.keys(envRecord).length > 0 ? envRecord : undefined,
-  };
-}
 
 type UseCustomAgentsLoaderOptions = {
   /**
@@ -51,13 +29,13 @@ type UseCustomAgentsLoaderResult = {
    */
   assistants: Assistant[];
   /**
-   * User-defined ACP custom agent ENGINE configs fetched from
+   * User-defined ACP custom agent rows fetched from
    * `ipcBridge.acpConversation.getAvailableAgents` (filtered by
    * `agent_source === 'custom'`). Completely separate from `assistants`. Only
    * entries whose ids also appear in `availableCustomAgentIds` are returned —
    * we hide configs whose CLI is missing from PATH.
    */
-  customAgents: AcpBackendConfig[];
+  customAgents: AgentMetadata[];
   /**
    * Merged id → avatar lookup for the `@` mention dropdown, which iterates
    * detected CLI agents (including ACP customs) and needs to resolve avatars
@@ -75,20 +53,19 @@ type UseCustomAgentsLoaderResult = {
  *     (`GET /api/assistants`). This is the single source of truth for
  *     "what to render in the AssistantSelectionArea pill bar" and what the
  *     editor drawer edits.
- *   - `customAgents: AcpBackendConfig[]` — user-defined ACP engine configs
+ *   - `customAgents: AgentMetadata[]` — user-defined ACP engine rows
  *     fetched from `ipcBridge.acpConversation.getAvailableAgents` (filtered
  *     by `agent_source === 'custom'`) because they describe a CLI binary to
  *     spawn, not a prompt-only preset.
  *
- * Conflating these two as a single `customAgents: AcpBackendConfig[]` used
- * to be a frequent source of bugs (the name hid which of the two a call
- * site actually needed).
+ * Conflating these two as a single `customAgents` list used to be a frequent
+ * source of bugs (the name hid which of the two a call site actually needed).
  */
 export const useCustomAgentsLoader = ({
   availableCustomAgentIds,
 }: UseCustomAgentsLoaderOptions): UseCustomAgentsLoaderResult => {
   const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
+  const [customAgents, setCustomAgents] = useState<AgentMetadata[]>([]);
 
   const customAgentAvatarMap = useMemo(() => {
     const map = new Map<string, string | undefined>();
@@ -96,7 +73,7 @@ export const useCustomAgentsLoader = ({
       map.set(assistant.id, assistant.avatar);
     }
     for (const agent of customAgents) {
-      map.set(agent.id, agent.avatar);
+      map.set(agent.id, agent.icon);
     }
     return map;
   }, [assistants, customAgents]);
@@ -108,9 +85,9 @@ export const useCustomAgentsLoader = ({
         ipcBridge.acpConversation.getAvailableAgents.invoke().catch(() => [] as AgentMetadata[]),
       ]);
       setAssistants(assistantList);
-      const filteredCustoms = (Array.isArray(allAgents) ? allAgents : [])
-        .filter((a) => a.agent_source === 'custom' && availableCustomAgentIds.has(a.id))
-        .map(agentMetadataToEditorShape);
+      const filteredCustoms = (Array.isArray(allAgents) ? allAgents : []).filter(
+        (a) => a.agent_source === 'custom' && availableCustomAgentIds.has(a.id)
+      );
       setCustomAgents(filteredCustoms);
     } catch (error) {
       console.error('Failed to load assistants/custom agents:', error);
@@ -129,8 +106,8 @@ export const useCustomAgentsLoader = ({
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);
     }
-    // Re-read backend + ConfigStorage so UI reflects any changes
-    // (e.g. presetAgentType switch on an assistant, CLI path edit on a custom).
+    // Re-read backend so UI reflects any changes (e.g. presetAgentType switch
+    // on an assistant, CLI path edit on a custom).
     await loadCustomAgents();
   }, [loadCustomAgents]);
 

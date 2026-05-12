@@ -29,7 +29,6 @@ import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
-import { workerTaskManager } from './process/task/workerTaskManagerSingleton';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
@@ -780,11 +779,9 @@ app.on('before-quit', async () => {
     disposeCronResumeListener?.();
     disposeCronResumeListener = null;
 
-    // Stop aionui-backend subprocess
+    // Stop aionui-backend subprocess — backend shutdown kills all agent
+    // children transitively (no separate frontend workerTaskManager remains)
     await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
-
-    // Kill all agent worker processes
-    await workerTaskManager.clear();
 
     // Destroy desktop pet windows
     try {

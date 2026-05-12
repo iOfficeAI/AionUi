@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackendConfig, AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 
 /**
@@ -68,4 +68,4 @@ export type EffectiveAgentInfo = {
  * `AcpBackend` is re-exported as `string` to match the widened `AvailableAgent.backend`.
  */
 export type AcpBackend = string;
-export type { AcpBackendConfig, AcpModelInfo };
+export type { AcpModelInfo };

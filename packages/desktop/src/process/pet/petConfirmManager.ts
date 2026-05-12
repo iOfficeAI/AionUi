@@ -7,8 +7,7 @@
 import path from 'node:path';
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import type { IConfirmation } from '@/common/chat/chatLib';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
-import { setConfirmHook, IpcAgentEventEmitter } from '@process/task/IpcAgentEventEmitter';
+import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import i18n from '@process/services/i18n';
 
@@ -35,18 +34,6 @@ export function initPetConfirmManager(bounds: { x: number; y: number; width: num
   anchorBounds = bounds;
   unregisterIpcHandlers();
   registerIpcHandlers();
-  // Use main-process hook (buildEmitter.on() only works in renderer)
-  setConfirmHook({
-    onAdd: (conversation_id, data) => {
-      showConfirmation({ ...data, conversation_id: conversation_id });
-    },
-    onUpdate: (conversation_id, data) => {
-      updateConfirmation({ ...data, conversation_id: conversation_id });
-    },
-    onRemove: (conversation_id, confirmationId) => {
-      removeConfirmation({ conversation_id: conversation_id, id: confirmationId });
-    },
-  });
 }
 
 /**
@@ -64,7 +51,6 @@ export function updateAnchorBounds(bounds: { x: number; y: number; width: number
  */
 export function destroyPetConfirmManager(): void {
   unregisterIpcHandlers();
-  setConfirmHook(null);
   destroyConfirmWindow();
   currentConfirmations.clear();
   anchorBounds = null;
@@ -77,7 +63,9 @@ export function destroyPetConfirmManager(): void {
  * "pet confirm bubble" toggle is turned off at runtime.
  */
 export function unhookPetConfirm(): void {
-  setConfirmHook(null);
+  /* confirm hook was removed with process/task/; confirmations now route via
+   * WS from backend straight to renderer. This function is retained as a
+   * no-op so callers (petManager confirmBubbleEnabled toggle) stay compile-safe. */
 }
 
 /**
@@ -347,24 +335,28 @@ function registerIpcHandlers(): void {
       if (confirmation) {
         currentConfirmations.delete(confirmation.id);
 
-        // CRITICAL: Immediately broadcast removal to prevent main renderer from also responding.
-        // The main renderer's confirmation UI has keyboard shortcuts that can trigger
-        // a second response. Since worker uses pipe.once(call_id), only the first response is
-        // processed — if main renderer responds first (e.g., user presses Enter accidentally),
-        // the pet window's response (e.g., 'cancel') is ignored.
-        // By emitting remove NOW, main renderer removes the confirmation from state before
-        // its keyboard handler can fire, ensuring pet window response reaches worker first.
-        new IpcAgentEventEmitter().emitConfirmationRemove(data.conversation_id, confirmation.id);
+        // Announce removal on the WS channel so any renderer confirmation UI
+        // can drop the entry. NOTE: with the HTTP/WS adapter, emit() is a
+        // no-op in the main process (see httpBridge.ts wsEmitter); the
+        // authoritative remove event is broadcast by the backend itself when
+        // /confirmations/{call_id}/confirm is accepted.
+        ipcBridge.conversation.confirmation.remove.emit({
+          conversation_id: data.conversation_id,
+          id: confirmation.id,
+        });
       }
 
-      // Forward response directly to task (main→main, cannot use ipcBridge.invoke)
-      const task = workerTaskManager.getTask(data.conversation_id);
-      if (task) {
-        console.log('[PetConfirm] Calling task.confirm with:', data.msg_id, data.call_id, data.data);
-        task.confirm(data.msg_id, data.call_id, data.data);
-      } else {
-        console.error('[PetConfirm] Task not found for conversation:', data.conversation_id);
-      }
+      // Forward response to backend via HTTP (aionui-conversation route)
+      ipcBridge.conversation.confirmation.confirm
+        .invoke({
+          conversation_id: data.conversation_id,
+          msg_id: data.msg_id,
+          call_id: data.call_id,
+          data: data.data,
+        })
+        .catch((error: unknown) => {
+          console.error('[PetConfirm] confirmation.confirm.invoke failed:', error);
+        });
 
       // Close window if no confirmations left
       if (currentConfirmations.size === 0) {

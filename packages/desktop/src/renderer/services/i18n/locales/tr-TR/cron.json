@@ -117,7 +117,9 @@
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
-      "model": "Model"
+      "model": "Model",
+      "aionrsModelRequired": "Aion CLI için bir model seçin",
+      "aionrsNoProvider": "Kullanılabilir model yok"
     },
     "freq": {
       "manual": "Manuel",

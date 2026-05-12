@@ -104,7 +104,9 @@
       "workspaceHint": "[Optional: set a workspace folder for file operations]",
       "selectFolder": "[Select Folder]",
       "clearFolder": "[Clear]",
-      "model": "[Model]"
+      "model": "[Model]",
+      "aionrsModelRequired": "Выберите модель для Aion CLI",
+      "aionrsNoProvider": "Нет доступных моделей"
     },
     "freq": {
       "manual": "Вручную",

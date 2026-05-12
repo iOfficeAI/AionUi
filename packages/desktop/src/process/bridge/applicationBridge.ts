@@ -7,7 +7,6 @@
 import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
 import { ipcBridge } from '@/common';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
@@ -94,14 +93,14 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
   mainWindowRef = win;
 }
 
-export function initApplicationBridge(workerTaskManager: IWorkerTaskManager): void {
+export function initApplicationBridge(): void {
   // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
   initApplicationBridgeCore();
 
   ipcBridge.application.restart.provider(async () => {
-    // 清理所有工作进程，等待子进程退出
-    await workerTaskManager.clear();
-    // 重启应用 - 使用标准的 Electron 重启方式
+    // Backend subprocess shutdown is handled by backendManager.stop() in the
+    // main window's before-quit hook; agent children are killed transitively
+    // when backend exits.
     app.relaunch();
     app.exit(0);
   });

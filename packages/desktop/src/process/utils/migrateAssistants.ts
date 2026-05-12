@@ -84,10 +84,10 @@ function asStringArray(value: unknown): string[] | undefined {
 }
 
 /**
- * Adapt a legacy `AcpBackendConfig`-shaped row from the Electron config file
- * into the backend `CreateAssistantRequest` contract. Drops CLI-specific
- * fields (cliCommand, defaultCliPath, acpArgs, env) and the redundant
- * isPreset/isBuiltin flags.
+ * Adapt a legacy assistant row from the Electron config file (previously
+ * typed as the legacy `AcpBackendConfig` shape) into the backend `CreateAssistantRequest`
+ * contract. Drops CLI-specific fields (cliCommand, defaultCliPath, acpArgs,
+ * env) and the redundant isPreset/isBuiltin flags.
  *
  * Exported so the mapper can be unit-tested in isolation. Legacy input keeps
  * its historical camelCase shape; output matches the backend snake_case wire

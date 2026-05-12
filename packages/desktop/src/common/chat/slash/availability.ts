@@ -17,16 +17,21 @@ export interface SlashCommandListAvailabilityInput {
 /**
  * Determines whether the slash command autocomplete list should be enabled.
  *
- * Special case for Codex: Commands are only available when the session is
- * fully active (`session_active`), because Codex CLI does not support
- * command queries during the connection phase.
+ * Slash commands are an ACP-only feature: the backend's `/slash-commands`
+ * endpoint returns an empty list for all non-ACP agent types, so calling it
+ * from aionrs / openclaw-gateway / nanobot / remote is pure waste (and
+ * additionally 404s when the agent has not been warmed up yet).
+ *
+ * Special case for Codex (an ACP vendor): commands are only available when the
+ * session is fully active (`session_active`), because Codex CLI does not
+ * support command queries during the connection phase.
  *
  * @param input - Conversation type and status information
  * @returns true if slash commands should be enabled
  */
 export function isSlashCommandListEnabled(input: SlashCommandListAvailabilityInput): boolean {
-  if (input.conversation_type !== 'codex') {
-    return true;
+  if (input.conversation_type === 'codex') {
+    return input.codexStatus === 'session_active';
   }
-  return input.codexStatus === 'session_active';
+  return input.conversation_type === 'acp';
 }

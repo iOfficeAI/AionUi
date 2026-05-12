@@ -14,7 +14,7 @@ type UsePresetAssistantResolverOptions = {
    * Backend-merged preset catalog (`GET /api/assistants`). The resolver looks
    * up `presetAgentType`, `enabledSkills`, and `disabledBuiltinSkills` on
    * the chosen assistant record — all of which live on the `Assistant` type,
-   * not on the ACP engine-config `AcpBackendConfig`.
+   * not on any ACP engine-config row.
    */
   assistants: Assistant[];
   localeKey: string;

@@ -829,15 +829,18 @@ export const openclawConversation = {
 // ---------------------------------------------------------------------------
 
 export const remoteAgent = {
-  list: httpGet<import('@process/agent/remote/types').RemoteAgentConfig[], void>('/api/remote-agents'),
-  get: httpGet<import('@process/agent/remote/types').RemoteAgentConfig | null, { id: string }>(
+  list: httpGet<import('@/common/types/remoteAgentTypes').RemoteAgentConfig[], void>('/api/remote-agents'),
+  get: httpGet<import('@/common/types/remoteAgentTypes').RemoteAgentConfig | null, { id: string }>(
     (p) => `/api/remote-agents/${p.id}`
   ),
   create: httpPost<
-    import('@process/agent/remote/types').RemoteAgentConfig,
-    import('@process/agent/remote/types').RemoteAgentInput
+    import('@/common/types/remoteAgentTypes').RemoteAgentConfig,
+    import('@/common/types/remoteAgentTypes').RemoteAgentInput
   >('/api/remote-agents'),
-  update: httpPut<boolean, { id: string; updates: Partial<import('@process/agent/remote/types').RemoteAgentInput> }>(
+  update: httpPut<
+    boolean,
+    { id: string; updates: Partial<import('@/common/types/remoteAgentTypes').RemoteAgentInput> }
+  >(
     (p) => `/api/remote-agents/${p.id}`,
     (p) => p.updates
   ),

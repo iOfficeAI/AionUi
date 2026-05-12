@@ -14,7 +14,6 @@ import {
 import * as path from 'path';
 import { ipcBridge } from '@/common';
 import i18n from '@process/services/i18n';
-import { workerTaskManager } from '../task/workerTaskManagerSingleton';
 
 let tray: TrayInstance | null = null;
 let closeToTrayEnabled = false;
@@ -66,13 +65,9 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     }
   };
 
-  const getRunningTasksCount = (): number => {
-    try {
-      return workerTaskManager.listTasks().length;
-    } catch {
-      return 0;
-    }
-  };
+  // Backend-managed task count is not yet exposed via HTTP; hardcode 0 until
+  // GET /api/conversations/active-count lands (see audit section 4.9.4).
+  const getRunningTasksCount = (): number => 0;
 
   const recentConversations = await getRecentConversations();
   const runningTasksCount = getRunningTasksCount();

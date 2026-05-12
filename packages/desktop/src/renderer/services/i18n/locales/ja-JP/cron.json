@@ -117,7 +117,9 @@
       "workspaceHint": "オプション：ファイル操作のワークスペースフォルダを設定",
       "selectFolder": "フォルダを選択",
       "clearFolder": "クリア",
-      "model": "モデル"
+      "model": "モデル",
+      "aionrsModelRequired": "Aion CLI のモデルを選択してください",
+      "aionrsNoProvider": "利用可能なモデルがありません"
     },
     "freq": {
       "manual": "手動",

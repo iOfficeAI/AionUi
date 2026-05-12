@@ -1,6 +1,5 @@
 import type {
   AcpBackend,
-  AcpBackendConfig,
   AcpInitializeResult,
   AcpModelInfo,
   AcpSessionConfigOption,
@@ -30,8 +29,6 @@ export type ConfigKeyMap = {
   };
   'acp.promptTimeout': number | undefined;
   'acp.agentIdleTimeout': number | undefined;
-  'acp.customAgents': AcpBackendConfig[] | undefined;
-  assistants: AcpBackendConfig[] | undefined;
   'acp.cachedInitializeResult': Record<string, AcpInitializeResult> | undefined;
   'acp.cachedModels': Record<string, AcpModelInfo> | undefined;
   'acp.cached_config_options': Record<string, AcpSessionConfigOption[]> | undefined;
