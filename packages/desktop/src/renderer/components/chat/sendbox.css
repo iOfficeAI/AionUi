@@ -41,21 +41,53 @@
   border: 1px solid color-mix(in srgb, var(--color-fill-4) 94%, var(--color-bg-2)) !important;
 }
 
+.sendbox-stop-button.bg-animate,
+.sendbox-stop-button.arco-btn.bg-animate,
+.sendbox-stop-button.arco-btn-secondary.bg-animate {
+  animation: sendbox-stop-breathe 1.4s ease-in-out infinite alternate;
+}
+
 [data-theme='dark'] .sendbox-stop-button.bg-animate,
 [data-theme='dark'] .sendbox-stop-button.arco-btn.bg-animate,
 [data-theme='dark'] .sendbox-stop-button.arco-btn-secondary.bg-animate {
-  animation-name: sendbox-stop-breathe-dark;
+  animation: sendbox-stop-breathe-dark 1.4s ease-in-out infinite alternate;
+}
+
+.sendbox-stop-button.bg-animate .arco-icon,
+.sendbox-stop-button.bg-animate svg {
+  color: #fff !important;
+  fill: #fff !important;
+}
+
+@keyframes sendbox-stop-breathe {
+  0% {
+    background-color: var(--aou-2) !important;
+    border-color: var(--aou-2) !important;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--aou-6-brand) 0%, transparent);
+    transform: scale(1);
+  }
+
+  100% {
+    background-color: var(--aou-5) !important;
+    border-color: var(--aou-5) !important;
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--aou-6-brand) 22%, transparent);
+    transform: scale(1.08);
+  }
 }
 
 @keyframes sendbox-stop-breathe-dark {
   0% {
-    background-color: color-mix(in srgb, var(--color-fill-2) 92%, var(--color-bg-2));
-    border-color: color-mix(in srgb, var(--color-fill-3) 84%, var(--color-bg-2));
+    background-color: var(--aou-2) !important;
+    border-color: var(--aou-2) !important;
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--aou-5) 0%, transparent);
+    transform: scale(1);
   }
 
   100% {
-    background-color: color-mix(in srgb, var(--color-fill-4) 92%, var(--color-bg-2));
-    border-color: color-mix(in srgb, var(--color-fill-4) 100%, var(--color-bg-2));
+    background-color: var(--aou-5) !important;
+    border-color: var(--aou-5) !important;
+    box-shadow: 0 0 0 8px color-mix(in srgb, var(--aou-5) 28%, transparent);
+    transform: scale(1.08);
   }
 }
 
