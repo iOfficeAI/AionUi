@@ -5,6 +5,8 @@
  */
 
 import type { TProviderWithModel } from '@/common/config/storage';
+import { ApiKeyManager } from '@/common/api/ApiKeyManager';
+import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { isOpenAIHost } from '@/common/utils/urlValidation';
 
 type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex';
@@ -57,6 +59,27 @@ function stripTrailingV1(url: string): string {
   return url.replace(/\/v1\/?$/, '');
 }
 
+function resolveSingleApiKey(model: TProviderWithModel): string {
+  const rawApiKey = model.apiKey?.trim();
+  if (!rawApiKey) return '';
+
+  if (!rawApiKey.includes(',') && !rawApiKey.includes('\n')) {
+    return rawApiKey;
+  }
+
+  try {
+    const authType = getProviderAuthType(model);
+    return new ApiKeyManager(rawApiKey, authType).getCurrentKey().trim();
+  } catch {
+    return (
+      rawApiKey
+        .split(/[,\n]/)
+        .map((key) => key.trim())
+        .find(Boolean) || ''
+    );
+  }
+}
+
 /**
  * Build CLI args and env vars for spawning aionrs.
  */
@@ -73,6 +96,7 @@ export function buildSpawnConfig(
   }
 ): { args: string[]; env: Record<string, string>; projectConfig: string } {
   const provider = mapProvider(model);
+  const resolvedApiKey = resolveSingleApiKey(model);
   const env: Record<string, string> = {};
   const args: string[] = ['--json-stream', '--provider', provider, '--model', model.useModel];
 
@@ -103,19 +127,19 @@ export function buildSpawnConfig(
   // end with `/v1` (e.g. DashScope) must be stripped to avoid double `/v1`.
   switch (provider) {
     case 'anthropic':
-      if (model.apiKey) env.ANTHROPIC_API_KEY = model.apiKey;
+      if (resolvedApiKey) env.ANTHROPIC_API_KEY = resolvedApiKey;
       if (model.baseUrl) args.push('--base-url', stripTrailingV1(model.baseUrl));
       break;
 
     case 'openai': {
-      if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
+      if (resolvedApiKey) env.OPENAI_API_KEY = resolvedApiKey;
       const baseUrl = resolveOpenAIBaseUrl(model);
       if (baseUrl) args.push('--base-url', stripTrailingV1(baseUrl));
       break;
     }
 
     case 'bedrock': {
-      const bc = (model as TProviderWithModel & { bedrockConfig?: any }).bedrockConfig;
+      const bc = model.bedrockConfig;
       if (bc) {
         if (bc.region) env.AWS_REGION = bc.region;
         if (bc.authMethod === 'accessKey') {
