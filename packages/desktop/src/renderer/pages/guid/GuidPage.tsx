@@ -120,6 +120,7 @@ const GuidPage: React.FC = () => {
     is_presetAgent: agentSelection.is_presetAgent,
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
+    currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,
     pending_config_options: agentSelection.pending_config_options,
     cached_config_options: agentSelection.cached_config_options,
     current_model: modelSelection.current_model,
