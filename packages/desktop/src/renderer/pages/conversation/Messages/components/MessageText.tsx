@@ -191,7 +191,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           </div>
         )}
         <div
-          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
+          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-760px', {
             'bg-aou-2 p-8px': isUserMessage || cronMeta,
             'bg-3 p-8px': isTeammateMessage,
             'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
