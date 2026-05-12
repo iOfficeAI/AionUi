@@ -118,30 +118,44 @@ export const assistants = {
 
 export const conversation = {
   create: withResponseMap(
-    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => ({
-      type: p.type,
-      id: p.id,
-      name: p.name,
-      model: toApiModelOptional(p.model),
-      extra: p.extra,
-    })),
+    httpPost<TChatConversation, ICreateConversationParams>('/api/conversations', (p) => {
+      // Top-level `model` is aionrs-only on the backend (spec 2026-05-12).
+      // Other agent types carry model info via `extra`.
+      const isAionrs = p.type === 'aionrs';
+      const body: Record<string, unknown> = {
+        type: p.type,
+        id: p.id,
+        name: p.name,
+        extra: p.extra,
+      };
+      if (isAionrs) {
+        const model = toApiModelOptional(p.model);
+        if (model) body.model = model;
+      }
+      return body;
+    }),
     fromApiConversation
   ),
   createWithConversation: withResponseMap(
     httpPost<
       TChatConversation,
       { conversation: TChatConversation; source_conversation_id?: string; migrate_cron?: boolean }
-    >('/api/conversations/clone', (p) => ({
-      source_conversation_id: p.source_conversation_id,
-      migrate_cron: p.migrate_cron,
-      conversation: {
-        ...p.conversation,
-        model:
-          'model' in p.conversation
-            ? toApiModelOptional((p.conversation as { model?: TProviderWithModel }).model)
-            : undefined,
-      },
-    })),
+    >('/api/conversations/clone', (p) => {
+      const isAionrs = p.conversation.type === 'aionrs';
+      const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
+        model?: TProviderWithModel;
+      };
+      const conversation: Record<string, unknown> = { ...rest };
+      if (isAionrs) {
+        const model = toApiModelOptional(_rawModel);
+        if (model) conversation.model = model;
+      }
+      return {
+        source_conversation_id: p.source_conversation_id,
+        migrate_cron: p.migrate_cron,
+        conversation,
+      };
+    }),
     fromApiConversation
   ),
   get: withResponseMap(
