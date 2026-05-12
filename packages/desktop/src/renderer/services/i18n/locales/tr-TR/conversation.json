@@ -67,7 +67,13 @@
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
     "deleteSuccess": "Başarıyla silindi",
-    "deleteFailed": "Silme başarısız oldu"
+    "deleteFailed": "Silme başarısız oldu",
+    "projectsSection": "Projeler",
+    "conversationsSection": "Konuşmalar",
+    "removeProjectTitle": "Projeyi kaldır",
+    "removeProject": "Projeyi kaldır",
+    "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
+    "newConversationInProject": "Bu projede yeni konuşma"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",

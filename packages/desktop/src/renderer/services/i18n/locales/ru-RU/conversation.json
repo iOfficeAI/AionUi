@@ -67,7 +67,13 @@
     "today": "Сегодня",
     "yesterday": "Вчера",
     "recent7Days": "Последние 7 дней",
-    "earlier": "Ранее"
+    "earlier": "Ранее",
+    "projectsSection": "Проекты",
+    "conversationsSection": "Беседы",
+    "removeProjectTitle": "Удалить проект",
+    "removeProject": "Удалить проект",
+    "removeProjectConfirm": "Удалить проект «{{name}}»? Будет также удалено {{count}} бесед(ы) в нём.",
+    "newConversationInProject": "Новая беседа в этом проекте"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",

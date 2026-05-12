@@ -252,6 +252,51 @@ export const useConversationActions = ({
     setDropdownVisibleId(conversation.id);
   }, []);
 
+  /**
+   * Remove project state — rendered via AionModal in the GroupedHistory component.
+   * Uses project's design system: AionModal component with danger-styled action button.
+   */
+  const [removeProjectTarget, setRemoveProjectTarget] = useState<{
+    name: string;
+    conversations: TChatConversation[];
+  } | null>(null);
+  const [removeProjectLoading, setRemoveProjectLoading] = useState(false);
+
+  const handleRemoveProject = useCallback((projectName: string, conversations: TChatConversation[]) => {
+    if (conversations.length === 0) return;
+    setRemoveProjectTarget({ name: projectName, conversations });
+  }, []);
+
+  const handleRemoveProjectCancel = useCallback(() => {
+    if (removeProjectLoading) return;
+    setRemoveProjectTarget(null);
+  }, [removeProjectLoading]);
+
+  const handleRemoveProjectConfirm = useCallback(async () => {
+    if (!removeProjectTarget) return;
+    setRemoveProjectLoading(true);
+    try {
+      const results = await Promise.all(removeProjectTarget.conversations.map((c) => removeConversation(c.id)));
+      const successCount = results.filter(Boolean).length;
+      emitter.emit('chat.history.refresh');
+      if (successCount > 0) {
+        Message.success(
+          t('conversation.history.batchDeleteSuccess', {
+            count: successCount,
+          })
+        );
+      } else {
+        Message.error(t('conversation.history.deleteFailed'));
+      }
+      setRemoveProjectTarget(null);
+    } catch (error) {
+      console.error('Failed to remove project:', error);
+      Message.error(t('conversation.history.deleteFailed'));
+    } finally {
+      setRemoveProjectLoading(false);
+    }
+  }, [removeProjectTarget, removeConversation, t]);
+
   return {
     renameModalVisible,
     renameModalName,
@@ -267,5 +312,10 @@ export const useConversationActions = ({
     handleTogglePin,
     handleMenuVisibleChange,
     handleOpenMenu,
+    handleRemoveProject,
+    removeProjectTarget,
+    removeProjectLoading,
+    handleRemoveProjectCancel,
+    handleRemoveProjectConfirm,
   };
 };

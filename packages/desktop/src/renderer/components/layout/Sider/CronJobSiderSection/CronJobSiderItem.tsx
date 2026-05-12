@@ -347,7 +347,6 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
                   expanded={expandedWorkspaces.has(ws)}
                   onToggle={() => toggleWorkspace(ws)}
                   siderCollapsed={false}
-                  nestedIndent={false}
                   header={
                     <div className='flex items-center gap-8px min-w-0'>
                       <span className='text-14px font-normal truncate flex-1 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors min-w-0'>

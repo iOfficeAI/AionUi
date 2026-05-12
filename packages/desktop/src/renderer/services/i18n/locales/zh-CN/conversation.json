@@ -67,7 +67,13 @@
     "today": "今天",
     "yesterday": "昨天",
     "recent7Days": "最近7天",
-    "earlier": "更早"
+    "earlier": "更早",
+    "projectsSection": "项目",
+    "conversationsSection": "对话",
+    "removeProjectTitle": "移除项目",
+    "removeProject": "移除项目",
+    "removeProjectConfirm": "确定要移除项目「{{name}}」吗？项目下的 {{count}} 个对话也会被一起移除。",
+    "newConversationInProject": "在此项目中新建对话"
   },
   "historySearch": {
     "tooltip": "检索会话",

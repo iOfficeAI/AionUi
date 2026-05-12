@@ -193,21 +193,25 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 collapsed ? 'mx-6px' : 'mx-10px'
               )}
             />
-            {/* Scrollable content: team + scheduled tasks + conversation history */}
+            {/* Scrollable content: pinned → team/cron (slot) → projects → conversations */}
             <div className={classNames('flex-1 min-h-0 overflow-y-auto', siderStyles.scrollArea)}>
-              {/* Team section */}
-              <TeamSiderSection
-                collapsed={collapsed}
-                pathname={pathname}
-                siderTooltipProps={siderTooltipProps}
-                onSessionClick={onSessionClick}
-              />
-              {/* Scheduled section */}
-              {!collapsed && (
-                <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
-              )}
               <Suspense fallback={<div className='min-h-200px' />}>
-                <WorkspaceGroupedHistory {...workspaceHistoryProps} />
+                <WorkspaceGroupedHistory
+                  {...workspaceHistoryProps}
+                  afterPinnedContent={
+                    <>
+                      <TeamSiderSection
+                        collapsed={collapsed}
+                        pathname={pathname}
+                        siderTooltipProps={siderTooltipProps}
+                        onSessionClick={onSessionClick}
+                      />
+                      {!collapsed && (
+                        <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
+                      )}
+                    </>
+                  }
+                />
               </Suspense>
             </div>
           </div>
