@@ -54,11 +54,20 @@ type TeamChatViewProps = {
  * Routes to the correct platform chat component based on conversation type.
  * Does NOT wrap in ChatLayout — that is done by the parent TeamPage.
  */
-const TeamChatView: React.FC<TeamChatViewProps> = ({ conversation, hideSendBox, team_id, agent_name, agent_icon, isLeader }) => {
+const TeamChatView: React.FC<TeamChatViewProps> = ({
+  conversation,
+  hideSendBox,
+  team_id,
+  agent_name,
+  agent_icon,
+  isLeader,
+}) => {
   // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
   // to MessageList; the empty state itself reads team_id / backend / preset info from the
   // shared SWR-cached conversation record, so none of that needs to flow through props.
-  const emptySlot = team_id ? <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} /> : undefined;
+  const emptySlot = team_id ? (
+    <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
+  ) : undefined;
   const content = (() => {
     switch (conversation.type) {
       case 'acp':
