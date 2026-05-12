@@ -18,7 +18,8 @@ import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
@@ -70,10 +71,13 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
     return preferredModelId;
   }
 
-  const cachedModels = configService.get('acp.cachedModels');
-  const cachedModelId = cachedModels?.[backend]?.current_model_id;
-  if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
-    return cachedModelId;
+  // Fallback: last-seen model info persisted on the backend's agent_metadata row.
+  const agents = await fetchDetectedAgents();
+  const matched = agents.find((a) => (a.backend ?? a.agent_type) === backend);
+  const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+  const handshakeModelId = handshakeModels?.current_model_id;
+  if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
+    return handshakeModelId;
   }
 
   if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
