@@ -27,7 +27,7 @@ import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
-import { onCloseToTrayChanged, onLanguageChanged } from './process/bridge/systemSettingsBridge';
+import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
@@ -636,15 +636,6 @@ const handleAppReady = async (): Promise<void> => {
       } catch {
         // Ignore storage read errors, default to false
       }
-
-      onCloseToTrayChanged((enabled) => {
-        setCloseToTrayEnabled(enabled);
-        if (enabled) {
-          createOrUpdateTray();
-        } else {
-          destroyTray();
-        }
-      });
     }
 
     const showMainWindowOnReady = !(wasLaunchedAtLogin() && getCloseToTrayEnabled());
