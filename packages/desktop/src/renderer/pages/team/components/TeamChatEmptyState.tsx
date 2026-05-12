@@ -23,6 +23,7 @@ const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: 
 type Props = {
   conversation_id: string;
   icon?: string;
+  isLeader?: boolean;
 };
 
 const SUGGESTIONS = [
@@ -68,7 +69,7 @@ const resolveAgentName = (conversation: TChatConversation, presetName: string | 
   return 'Leader';
 };
 
-const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon }) => {
+const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader = false }) => {
   const { t } = useTranslation();
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
@@ -153,26 +154,30 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon }) => {
       {renderAvatar()}
       <div className='flex flex-col gap-6px'>
         <span className='text-16px font-semibold text-t-primary'>{agent_name}</span>
-        <span data-testid='team-chat-empty-state-subtitle' className='text-13px text-t-secondary'>
-          {t('team.emptyState.subtitle', { defaultValue: "Describe your goal and I'll get the team working on it" })}
-        </span>
+        {isLeader && (
+          <span data-testid='team-chat-empty-state-subtitle' className='text-13px text-t-secondary'>
+            {t('team.emptyState.subtitle', { defaultValue: "Describe your goal and I'll get the team working on it" })}
+          </span>
+        )}
       </div>
-      <div className='flex flex-col gap-6px w-full'>
-        {SUGGESTIONS.map((s) => {
-          const label = t(`team.emptyState.suggestions.${s.key}`, { defaultValue: SUGGESTION_DEFAULTS[s.key] });
-          return (
-            <div
-              key={s.key}
-              data-testid={`team-chat-empty-state-suggestion-${s.key}`}
-              onClick={() => fillDraft(label)}
-              className='flex items-center gap-10px px-14px py-10px rd-10px bg-fill-2 hover:bg-fill-3 cursor-pointer transition-colors text-left border border-transparent hover:border-[var(--color-border-2)]'
-            >
-              <span className='text-15px shrink-0'>{s.icon}</span>
-              <span className='text-13px text-t-secondary'>{label}</span>
-            </div>
-          );
-        })}
-      </div>
+      {isLeader && (
+        <div className='flex flex-col gap-6px w-full'>
+          {SUGGESTIONS.map((s) => {
+            const label = t(`team.emptyState.suggestions.${s.key}`, { defaultValue: SUGGESTION_DEFAULTS[s.key] });
+            return (
+              <div
+                key={s.key}
+                data-testid={`team-chat-empty-state-suggestion-${s.key}`}
+                onClick={() => fillDraft(label)}
+                className='flex items-center gap-10px px-14px py-10px rd-10px bg-fill-2 hover:bg-fill-3 cursor-pointer transition-colors text-left border border-transparent hover:border-[var(--color-border-2)]'
+              >
+                <span className='text-15px shrink-0'>{s.icon}</span>
+                <span className='text-13px text-t-secondary'>{label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };

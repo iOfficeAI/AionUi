@@ -138,6 +138,7 @@ const AgentChatSlot: React.FC<{
             team_id={team_id}
             agent_name={agent.agent_name}
             agent_icon={agent.icon}
+            isLeader={isLeader}
           />
         ) : (
           <div className='flex flex-1 items-center justify-center'>
