@@ -6,14 +6,10 @@
 
 import type { IMessageThinking } from '@/common/chat/chatLib';
 import { Spin } from '@arco-design/web-react';
+import { Brain, Right } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './MessageThinking.module.css';
-
-const getFirstLine = (content: string): string => {
-  const firstLine = content.split('\n')[0] || '';
-  return firstLine.length > 80 ? firstLine.slice(0, 80) + '...' : firstLine;
-};
 
 const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) => {
   const { t } = useTranslation();
@@ -74,21 +70,21 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   }, [text, isDone, expanded]);
 
   const summaryText = isDone
-    ? `${t('conversation.thinking.complete', { defaultValue: 'Thought complete' })} (${formatDuration(duration || 0)}) — ${getFirstLine(text)}`
-    : `${subject || t('conversation.thinking.label', { defaultValue: 'Thinking...' })} (${formatElapsedTime(elapsedTime)})`;
+    ? `${t('conversation.thinking.complete', { defaultValue: 'Thought complete' })} · ${formatDuration(duration || 0)}`
+    : `${subject || t('conversation.thinking.label', { defaultValue: 'Thinking...' })} · ${formatElapsedTime(elapsedTime)}`;
 
   return (
     <div className={styles.container}>
-      <hr className={styles.divider} />
       <div className={styles.header} onClick={() => setExpanded((v) => !v)}>
-        {!isDone && <Spin size={12} />}
-        <span className={`${styles.arrow} ${expanded ? styles.arrowExpanded : ''}`}>{'\u25B6'}</span>
+        <span className={styles.headerIcon}>{!isDone ? <Spin size={12} /> : <Brain theme='outline' size='14' />}</span>
         <span className={styles.summary}>{summaryText}</span>
+        <span className={`${styles.arrow} ${expanded ? styles.arrowExpanded : ''}`}>
+          <Right theme='outline' size='12' />
+        </span>
       </div>
       <div ref={bodyRef} className={`${styles.body} ${!expanded ? styles.collapsed : ''}`}>
         {text}
       </div>
-      <hr className={styles.divider} />
     </div>
   );
 };
