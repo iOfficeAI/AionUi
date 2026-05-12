@@ -18,7 +18,6 @@ import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
-import { configService } from '@/common/config/configService';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
@@ -283,14 +282,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return info?.available_models?.length ? info : null;
   }, [resolvedBackend, detectedAgents]);
 
-  // Set default model_id from user preferences when backend changes
+  // Auto-pick the first available model from /api/providers when aionrs is
+  // selected but none is set yet. Source of truth is the backend provider
+  // list — do NOT read from any frontend-cached default.
   useEffect(() => {
-    if (!resolvedBackend || model_id) return;
-    if (resolvedBackend === 'aionrs') {
-      const saved = configService.get('aionrs.defaultModel');
-      if (saved?.use_model) setModelId(saved.use_model);
+    if (resolvedBackend !== 'aionrs' || model_id) return;
+    for (const provider of aionrsProviders) {
+      const models = getAvailableModels(provider);
+      if (models.length > 0) {
+        setModelId(models[0]);
+        return;
+      }
     }
-  }, [resolvedBackend, model_id]);
+  }, [resolvedBackend, model_id, aionrsProviders, getAvailableModels]);
 
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';

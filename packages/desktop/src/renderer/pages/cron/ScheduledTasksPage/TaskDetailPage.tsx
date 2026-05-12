@@ -13,6 +13,7 @@ import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
@@ -32,6 +33,7 @@ const TaskDetailPage: React.FC = () => {
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
+  const { cliAgents } = useConversationAgents();
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
@@ -291,20 +293,26 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {job.metadata.agent_config && (
+            {job.metadata.agent_type && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
-                    const logo =
-                      getAgentLogo(job.metadata.agent_config.backend) || getAgentLogo(job.metadata.agent_type);
-                    return logo ? (
-                      <img src={logo} alt={job.metadata.agent_config.name} className='h-28px w-28px rounded-50%' />
-                    ) : (
-                      <Robot size='28' className='shrink-0 text-t-secondary' />
+                    const agentKey = job.metadata.agent_type;
+                    const detected = cliAgents.find((a) => (a.backend || a.agent_type) === agentKey);
+                    const displayName = detected?.name || agentKey;
+                    const logo = getAgentLogo(agentKey);
+                    return (
+                      <>
+                        {logo ? (
+                          <img src={logo} alt={displayName} className='h-28px w-28px rounded-50%' />
+                        ) : (
+                          <Robot size='28' className='shrink-0 text-t-secondary' />
+                        )}
+                        <span className='min-w-0 text-14px font-medium text-t-primary'>{displayName}</span>
+                      </>
                     );
                   })()}
-                  <span className='min-w-0 text-14px font-medium text-t-primary'>{job.metadata.agent_config.name}</span>
                 </div>
               </section>
             )}

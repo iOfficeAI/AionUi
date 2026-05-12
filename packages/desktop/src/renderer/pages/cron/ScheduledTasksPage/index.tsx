@@ -26,13 +26,16 @@ function normalizeAgentBackend(agent: string | undefined): string | undefined {
 }
 
 function getJobAgentMeta(job: ICronJob, cliAgents: AgentMetadata[]): { name?: string; logo?: string | null } {
-  const backend = job.metadata.agent_config?.backend || normalizeAgentBackend(job.metadata.agent_type);
-  if (!backend) return {};
+  // Agent identity comes from `agent_type`. `agent_config.backend`/`.name`
+  // are per-agent payloads — for aionrs they hold provider_id / provider name,
+  // not the agent itself, so they must not drive the logo or label.
+  const agentKey = normalizeAgentBackend(job.metadata.agent_type);
+  if (!agentKey) return {};
 
-  const detected = cliAgents.find((a) => a.backend === backend || a.agent_type === backend);
+  const detected = cliAgents.find((a) => (a.backend || a.agent_type) === agentKey);
   return {
-    name: job.metadata.agent_config?.name || detected?.name || backend,
-    logo: getAgentLogo(backend),
+    name: detected?.name || agentKey,
+    logo: getAgentLogo(agentKey),
   };
 }
 
