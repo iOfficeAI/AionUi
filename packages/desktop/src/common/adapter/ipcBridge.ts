@@ -15,7 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { AcpModelInfo } from '../types/acpTypes';
+import type { AcpModelInfo } from '../types/platform/acpTypes';
 import type {
   TTeam,
   TeamAgent,
@@ -26,10 +26,10 @@ import type {
   ITeamListChangedEvent,
   ITeamCreatedEvent,
   ITeamTeammateMessageEvent,
-} from '../types/teamTypes';
+} from '../types/team/teamTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
+import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
   UpdateCheckRequest,
   UpdateCheckResult,
@@ -44,8 +44,8 @@ import type {
   FetchModelsAnonymousRequest,
   FetchModelsResponse,
   UpdateProviderRequest,
-} from '../types/providerApi';
-import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
+} from '../types/provider/providerApi';
+import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
   Assistant,
   CreateAssistantRequest,
@@ -53,7 +53,7 @@ import type {
   ImportAssistantsResult,
   SetAssistantStateRequest,
   UpdateAssistantRequest,
-} from '../types/assistantTypes';
+} from '../types/agent/assistantTypes';
 import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
@@ -561,12 +561,16 @@ export const fileStream = {
 
 // File snapshot providers
 export const fileSnapshot = {
-  init: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/init'),
-  compare: httpPost<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
+  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    '/api/fs/snapshot/init'
+  ),
+  compare: httpPost<import('@/common/types/platform/fileSnapshot').CompareResult, { workspace: string }>(
     '/api/fs/snapshot/compare'
   ),
   getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/info'),
+  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    '/api/fs/snapshot/info'
+  ),
   dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
   stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
   stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
@@ -574,11 +578,19 @@ export const fileSnapshot = {
   unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
   discardFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    {
+      workspace: string;
+      file_path: string;
+      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
+    }
   >('/api/fs/snapshot/discard'),
   resetFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    {
+      workspace: string;
+      file_path: string;
+      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
+    }
   >('/api/fs/snapshot/reset'),
   getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
@@ -730,11 +742,11 @@ export const acpConversation = {
     (p) => ({ model_id: p.model_id })
   ),
   getConfigOptions: httpGet<
-    { config_options: import('../types/acpTypes').AcpSessionConfigOption[] },
+    { config_options: import('../types/platform/acpTypes').AcpSessionConfigOption[] },
     { conversation_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/config`),
   getConfigOption: httpGet<
-    { config_option: import('../types/acpTypes').AcpSessionConfigOption | null },
+    { config_option: import('../types/platform/acpTypes').AcpSessionConfigOption | null },
     { conversation_id: string; config_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/config/${p.config_id}`),
   setConfigOptions: httpPut<
@@ -827,17 +839,17 @@ export const openclawConversation = {
 // ---------------------------------------------------------------------------
 
 export const remoteAgent = {
-  list: httpGet<import('@/common/types/remoteAgentTypes').RemoteAgentConfig[], void>('/api/remote-agents'),
-  get: httpGet<import('@/common/types/remoteAgentTypes').RemoteAgentConfig | null, { id: string }>(
+  list: httpGet<import('@/common/types/agent/remoteAgentTypes').RemoteAgentConfig[], void>('/api/remote-agents'),
+  get: httpGet<import('@/common/types/agent/remoteAgentTypes').RemoteAgentConfig | null, { id: string }>(
     (p) => `/api/remote-agents/${p.id}`
   ),
   create: httpPost<
-    import('@/common/types/remoteAgentTypes').RemoteAgentConfig,
-    import('@/common/types/remoteAgentTypes').RemoteAgentInput
+    import('@/common/types/agent/remoteAgentTypes').RemoteAgentConfig,
+    import('@/common/types/agent/remoteAgentTypes').RemoteAgentInput
   >('/api/remote-agents'),
   update: httpPut<
     boolean,
-    { id: string; updates: Partial<import('@/common/types/remoteAgentTypes').RemoteAgentInput> }
+    { id: string; updates: Partial<import('@/common/types/agent/remoteAgentTypes').RemoteAgentInput> }
   >(
     (p) => `/api/remote-agents/${p.id}`,
     (p) => p.updates
@@ -917,7 +929,7 @@ export const previewHistory = {
 export const preview = {
   open: wsEmitter<{
     content: string;
-    content_type: import('../types/preview').PreviewContentType;
+    content_type: import('../types/office/preview').PreviewContentType;
     metadata?: {
       title?: string;
       file_name?: string;
@@ -931,8 +943,8 @@ export const preview = {
 
 export const document = {
   convert: httpPost<
-    import('../types/conversion').DocumentConversionResponse,
-    import('../types/conversion').DocumentConversionRequest
+    import('../types/office/conversion').DocumentConversionResponse,
+    import('../types/office/conversion').DocumentConversionRequest
   >('/api/document/convert'),
 };
 
@@ -1265,7 +1277,7 @@ export interface ICreateConversationParams {
     session_mode?: string;
     codex_model?: string;
     current_model_id?: string;
-    cached_config_options?: import('../types/acpTypes').AcpSessionConfigOption[];
+    cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;
     runtime_validation?: {
       expected_workspace?: string;
@@ -1509,7 +1521,7 @@ import type {
   IChannelPluginStatus,
   IChannelSession,
   IChannelUser,
-} from '@/common/types/channel';
+} from '@/common/types/channel/channel';
 
 type RawPluginStatus = Record<string, unknown>;
 type RawPairing = Record<string, unknown>;
@@ -1610,7 +1622,7 @@ export const channel = {
 // Agent Hub API — routed to /api/hub/*
 // ---------------------------------------------------------------------------
 
-import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
+import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/agent/hub';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {

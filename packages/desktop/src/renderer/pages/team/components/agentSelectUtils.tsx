@@ -3,7 +3,7 @@ import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 /**

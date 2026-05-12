@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CustomAgentAdvancedOverrides } from '@/common/types/acpTypes';
+import type { CustomAgentAdvancedOverrides } from '@/common/types/platform/acpTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';

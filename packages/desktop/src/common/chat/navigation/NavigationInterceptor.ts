@@ -5,7 +5,7 @@
  */
 
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { PreviewContentType } from '@/common/types/preview';
+import type { PreviewContentType } from '@/common/types/office/preview';
 import { uuid } from '@/common/utils';
 
 /**

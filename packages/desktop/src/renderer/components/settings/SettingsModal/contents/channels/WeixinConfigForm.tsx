@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel';
+import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
 import { acpConversation, channel } from '@/common/adapter/ipcBridge';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';

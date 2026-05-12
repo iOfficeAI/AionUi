@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { SpeechToTextResult } from '@/common/types/speech';
+import type { SpeechToTextResult } from '@/common/types/provider/speech';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 
 const MAX_AUDIO_FILE_SIZE_MB = 30;

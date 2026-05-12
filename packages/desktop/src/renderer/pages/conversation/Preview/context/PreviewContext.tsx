@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { PreviewContentType } from '@/common/types/preview';
+import type { PreviewContentType } from '@/common/types/office/preview';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 

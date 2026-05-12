@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewContentType } from '@/common/types/preview';
+import type { PreviewContentType } from '@/common/types/office/preview';
 
 /**
  * 文件扩展名到内容类型的映射配置

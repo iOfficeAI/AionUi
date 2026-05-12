@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
+import type { FileChangeInfo, SnapshotInfo } from '@/common/types/platform/fileSnapshot';
 import Diff2Html from '@/renderer/components/media/Diff2Html';
 import { isTextFile } from '@/renderer/services/FileService';
 import { Button, Empty, Spin, Tooltip } from '@arco-design/web-react';

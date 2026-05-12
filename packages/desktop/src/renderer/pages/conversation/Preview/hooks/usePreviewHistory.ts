@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '@/common/types/preview';
+import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '@/common/types/office/preview';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -131,7 +131,7 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
     const meta = activeTab.metadata;
     const fallbackName = meta?.file_name || meta?.title || activeTab.title;
     return {
-      contentType: activeTab.content_type as import('@/common/types/preview').PreviewContentType,
+      contentType: activeTab.content_type as import('@/common/types/office/preview').PreviewContentType,
       file_path: meta?.file_path,
       workspace: meta?.workspace,
       file_name: fallbackName,

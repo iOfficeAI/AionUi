@@ -10,7 +10,7 @@
 
 import type { TChatConversation } from '@/common/config/storage';
 import type { TMessage } from '@/common/chat/chatLib';
-import type { IMessageSearchResponse } from '@/common/types/database';
+import type { IMessageSearchResponse } from '@/common/types/team/database';
 
 export type PaginatedResult<T> = {
   data: T[];

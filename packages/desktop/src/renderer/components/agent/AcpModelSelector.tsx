@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';

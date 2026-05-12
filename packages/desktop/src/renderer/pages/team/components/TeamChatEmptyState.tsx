@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
-import type { DetectedAgentKind } from '@/common/types/detectedAgent';
+import type { DetectedAgentKind } from '@/common/types/agent/detectedAgent';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';

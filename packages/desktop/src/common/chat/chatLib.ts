@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/acpTypes';
+import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
 

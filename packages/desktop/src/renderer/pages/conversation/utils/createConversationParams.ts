@@ -8,7 +8,7 @@ import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import { resolveLocaleKey } from '@/common/utils';
@@ -18,7 +18,7 @@ import {
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
 import { fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 

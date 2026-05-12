@@ -29,7 +29,7 @@ vi.mock('react-i18next', () => ({
 
 import { useAssistantList, isExtensionAssistant } from '@/renderer/hooks/assistant/useAssistantList';
 import { ipcBridge } from '@/common';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('useAssistantList', () => {
   beforeEach(() => {

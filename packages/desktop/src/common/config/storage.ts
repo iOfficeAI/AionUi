@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SpeechToTextConfig } from '@/common/types/speech';
+import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -43,11 +43,11 @@ export interface IConfigStorageRefer {
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
   // Cached initialize results per ACP backend (persisted across sessions)
-  'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
+  'acp.cachedInitializeResult'?: Record<string, import('@/common/types/platform/acpTypes').AcpInitializeResult>;
   // Cached config options per ACP backend for Guid page pre-selection
-  'acp.cached_config_options'?: Record<string, import('@/common/types/acpTypes').AcpSessionConfigOption[]>;
+  'acp.cached_config_options'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector
-  'acp.cachedModes'?: Record<string, import('@/common/types/acpTypes').AcpSessionModes>;
+  'acp.cachedModes'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionModes>;
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
@@ -234,7 +234,7 @@ export type TChatConversation =
           /** Persisted model ID for resume support / 持久化的模型 ID，用于恢复 */
           current_model_id?: string;
           /** Cached config options from ACP backend / 缓存的 ACP 配置选项 */
-          cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+          cached_config_options?: import('@/common/types/platform/acpTypes').AcpSessionConfigOption[];
           /** Pending config option selections from Guid page / Guid 页面待应用的配置选项 */
           pending_config_options?: Record<string, string>;
           /** Explicit marker for temporary health-check conversations */

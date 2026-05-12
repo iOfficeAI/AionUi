@@ -1,4 +1,4 @@
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 // Skill info type
 export type SkillSource = 'builtin' | 'custom' | 'extension';

@@ -12,7 +12,7 @@ import { getCleanFileNames, FileService } from '@/renderer/services/FileService'
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AvailableAgent } from '../types';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';

@@ -5,7 +5,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
 import { ipcBridge } from '@/common';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import CodeMirror from '@uiw/react-codemirror';

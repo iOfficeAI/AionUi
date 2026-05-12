@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewHistoryTarget } from '@/common/types/preview';
+import type { PreviewHistoryTarget } from '@/common/types/office/preview';
 import { iconColors } from '@/renderer/styles/colors';
 import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';

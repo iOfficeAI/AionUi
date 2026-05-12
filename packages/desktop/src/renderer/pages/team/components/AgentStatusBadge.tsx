@@ -1,5 +1,5 @@
 import React from 'react';
-import type { TeammateStatus } from '@/common/types/teamTypes';
+import type { TeammateStatus } from '@/common/types/team/teamTypes';
 
 type Props = {
   status: TeammateStatus;

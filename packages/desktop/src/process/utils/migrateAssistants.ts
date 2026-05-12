@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { CreateAssistantRequest } from '@/common/types/assistantTypes';
+import type { CreateAssistantRequest } from '@/common/types/agent/assistantTypes';
 import type { ProcessConfig as ProcessConfigType } from './initStorage';
 
 const BUILTIN_ID_PREFIX = 'builtin-';
