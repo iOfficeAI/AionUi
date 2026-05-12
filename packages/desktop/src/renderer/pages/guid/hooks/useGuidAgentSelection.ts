@@ -9,9 +9,8 @@ import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
-import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
-import type { AcpBackend, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import {
   DETECTED_AGENTS_SWR_KEY,
   fetchDetectedAgents,
@@ -44,9 +43,6 @@ export type GuidAgentSelectionResult = {
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
-  cached_config_options: AcpSessionConfigOption[];
-  pending_config_options: Record<string, string>;
-  setPendingConfigOption: (config_id: string, value: string) => void;
   getAgentKey: (agent: {
     agent_type: string;
     agent_source?: AgentSource;
@@ -105,8 +101,6 @@ export const useGuidAgentSelection = ({
   // Guard: only run the initial restore once; user selections are never overwritten
   const initialRestoreDoneRef = useRef(false);
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
-  const [cached_config_options, setCachedConfigOptions] = useState<AcpSessionConfigOption[]>([]);
-  const [pending_config_options, setPendingConfigOptions] = useState<Record<string, string>>({});
 
   // Wrap setSelectedAgentKey to also save to storage
   const setSelectedAgentKey = useCallback((key: string) => {
@@ -127,11 +121,6 @@ export const useGuidAgentSelection = ({
       }
       return newMode;
     });
-  }, []);
-
-  // Update a single pending config option selection (local mode, Guid page)
-  const setPendingConfigOption = useCallback((config_id: string, value: string) => {
-    setPendingConfigOptions((prev) => ({ ...prev, [config_id]: value }));
   }, []);
 
   // Wrap setSelectedAcpModel to also save preferred model to the agent's config
@@ -348,28 +337,13 @@ export const useGuidAgentSelection = ({
     return getEffectiveAgentType(selectedAgentInfo);
   }, [is_presetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
 
-  // Load cached ACP config options per backend
-  useEffect(() => {
-    const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
-    if (!backend) return;
-    const cached = configService.get('acp.cached_config_options');
-    const options = cached?.[backend];
-    const filtered = Array.isArray(options)
-      ? (options as Array<{ category?: string }>).filter((opt) => opt.category !== 'model' && opt.category !== 'mode')
-      : [];
-    setCachedConfigOptions(filtered as AcpSessionConfigOption[]);
-    setPendingConfigOptions({});
-  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
-
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to handshake default
   useEffect(() => {
     // For preset agents, resolve to the actual backend type for config lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
 
     const config = configService.get('acp.config');
-    const preferred = (config?.[backend as AcpBackendAll] as Record<string, unknown>)?.preferredModelId as
-      | string
-      | undefined;
+    const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
     if (preferred) {
       _setSelectedAcpModel(preferred);
       return;
@@ -402,7 +376,7 @@ export const useGuidAgentSelection = ({
           preferred = config?.preferredMode;
         } else {
           const config = configService.get('acp.config');
-          const backendConfig = config?.[configKey as AcpBackendAll] as Record<string, unknown> | undefined;
+          const backendConfig = config?.[configKey as string] as Record<string, unknown> | undefined;
           preferred = backendConfig?.preferredMode as string | undefined;
           yoloMode = (backendConfig?.yoloMode as boolean) ?? false;
         }
@@ -496,9 +470,6 @@ export const useGuidAgentSelection = ({
     setSelectedAcpModel,
     currentAcpCachedModelInfo,
     currentEffectiveAgentInfo,
-    cached_config_options,
-    pending_config_options,
-    setPendingConfigOption,
     getAgentKey,
     findAgentByKey,
     resolvePresetRulesAndSkills,

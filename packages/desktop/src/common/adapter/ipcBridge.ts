@@ -15,8 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { McpSource } from '../types/mcpTypes';
-import type { AgentBackend, AcpModelInfo } from '../types/acpTypes';
+import type { AcpModelInfo } from '../types/acpTypes';
 import type {
   TTeam,
   TeamAgent,
@@ -759,7 +758,7 @@ export const acpConversation = {
 
 export const mcpService = {
   getAgentMcpConfigs: httpGet<
-    Array<{ source: McpSource; servers: IMcpServer[] }>,
+    Array<{ source: string; servers: IMcpServer[] }>,
     Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
@@ -1168,7 +1167,7 @@ export interface ICronJob {
   metadata: {
     conversation_id: string;
     conversation_title?: string;
-    agent_type: AgentBackend;
+    agent_type: string;
     created_by: 'user' | 'agent';
     created_at: number;
     updated_at: number;
@@ -1186,7 +1185,7 @@ export interface ICronJob {
 }
 
 export interface ICronAgentConfig {
-  backend: AgentBackend;
+  backend: string;
   name: string;
   cli_path?: string;
   is_preset?: boolean;
@@ -1206,7 +1205,7 @@ export interface ICreateCronJobParams {
   message?: string;
   conversation_id: string;
   conversation_title?: string;
-  agent_type: AgentBackend;
+  agent_type: string;
   created_by: 'user' | 'agent';
   execution_mode?: 'existing' | 'new_conversation';
   agent_config?: ICronAgentConfig;
@@ -1240,7 +1239,7 @@ export interface ICreateConversationParams {
     workspace?: string;
     custom_workspace?: boolean;
     default_files?: string[];
-    backend?: AgentBackend;
+    backend?: string;
     cli_path?: string;
     gateway?: {
       host?: string;

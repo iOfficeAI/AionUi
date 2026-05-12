@@ -6,10 +6,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import type { AgentBackend } from '@/common/types/acpTypes';
 
 export type AgentCheckResult = {
-  backend: AgentBackend;
+  backend: string;
   name: string;
   available: boolean;
   latency?: number;
@@ -31,12 +30,12 @@ export type AgentReadinessState = {
   // Check progress (0-100)
   progress: number;
   // Current agent being checked
-  currentAgent: AgentBackend | null;
+  currentAgent: string | null;
 };
 
 type UseAgentReadinessCheckOptions = {
   // The backend type to check (for ACP conversations)
-  backend?: AgentBackend;
+  backend?: string;
   // Conversation type ('acp' or 'codex')
   conversation_type: 'acp' | 'codex';
   // Whether to auto-check on mount
@@ -45,7 +44,7 @@ type UseAgentReadinessCheckOptions = {
   onAgentReady?: (agent: AgentCheckResult) => void;
 };
 
-const AGENT_NAMES: Partial<Record<AgentBackend, string>> = {
+const AGENT_NAMES: Partial<Record<string, string>> = {
   claude: 'Claude',
   codex: 'Codex',
   codebuddy: 'CodeBuddy',
@@ -72,7 +71,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     availableAgents: [],
     bestAgent: null,
     progress: 0,
-    currentAgent: (backend as AgentBackend) || null,
+    currentAgent: (backend as string) || null,
   });
 
   // Check the current agent's readiness
@@ -83,7 +82,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     setState((prev) => ({
       ...prev,
       isChecking: true,
-      currentAgent: agentToCheck as AgentBackend,
+      currentAgent: agentToCheck as string,
     }));
 
     try {
@@ -150,7 +149,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
             agent.agent_type !== currentAgentBackend
         )
         .map((agent) => {
-          const backendKey = (agent.backend || agent.agent_type) as AgentBackend;
+          const backendKey = (agent.backend || agent.agent_type) as string;
           return {
             backend: backendKey,
             name: AGENT_NAMES[backendKey] || agent.name,
@@ -273,7 +272,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
       availableAgents: [],
       bestAgent: null,
       progress: 0,
-      currentAgent: (backend as AgentBackend) || null,
+      currentAgent: (backend as string) || null,
     });
   }, [backend]);
 

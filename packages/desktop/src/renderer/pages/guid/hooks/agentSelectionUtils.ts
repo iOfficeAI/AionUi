@@ -5,8 +5,6 @@
  */
 
 import { configService } from '@/common/config/configService';
-import type { AcpBackendAll } from '@/common/types/acpTypes';
-import type { AcpBackend } from '../types';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 
 /** Save preferred mode to the agent's own config key */
@@ -17,7 +15,7 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
       await configService.set('aionrs.config', { ...config, preferredMode: mode });
     } else if (agentKey !== 'custom') {
       const config = configService.get('acp.config');
-      const backendConfig = config?.[agentKey as AcpBackendAll] || {};
+      const backendConfig = config?.[agentKey as string] || {};
       await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
     }
   } catch {
@@ -29,7 +27,7 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
   try {
     const config = configService.get('acp.config');
-    const backendConfig = config?.[agentKey as AcpBackendAll] || {};
+    const backendConfig = config?.[agentKey as string] || {};
     await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
   } catch {
     /* silent */

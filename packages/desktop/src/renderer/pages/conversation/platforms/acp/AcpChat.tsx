@@ -5,7 +5,6 @@
  */
 
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
-import type { AcpBackend } from '@/common/types/acpTypes';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
@@ -18,24 +17,13 @@ import { useAcpMessage } from './useAcpMessage';
 const AcpChat: React.FC<{
   conversation_id: string;
   workspace?: string;
-  backend: AcpBackend;
+  backend: string;
   session_mode?: string;
-  cached_config_options?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agent_name?: string;
   cron_job_id?: string;
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
-}> = ({
-  conversation_id,
-  workspace,
-  backend,
-  session_mode,
-  cached_config_options,
-  agent_name,
-  cron_job_id,
-  hideSendBox,
-  emptySlot,
-}) => {
+}> = ({ conversation_id, workspace, backend, session_mode, agent_name, cron_job_id, hideSendBox, emptySlot }) => {
   useMessageLstCache(conversation_id);
   const messageState = useAcpMessage(conversation_id);
 
@@ -53,7 +41,6 @@ const AcpChat: React.FC<{
               conversation_id={conversation_id}
               backend={backend}
               session_mode={session_mode}
-              cached_config_options={cached_config_options}
               agent_name={agent_name}
               workspacePath={workspace}
               messageState={messageState}

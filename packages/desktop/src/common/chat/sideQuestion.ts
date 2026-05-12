@@ -5,12 +5,11 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { AcpBackend } from '@/common/types/acpTypes';
 
 type SideQuestionConversationType = TChatConversation['type'];
 
 export type SideQuestionEligibilityTarget = {
-  backend?: AcpBackend;
+  backend?: string;
   type: SideQuestionConversationType;
 };
 

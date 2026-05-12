@@ -121,8 +121,6 @@ const GuidPage: React.FC = () => {
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
     currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,
-    pending_config_options: agentSelection.pending_config_options,
-    cached_config_options: agentSelection.cached_config_options,
     current_model: modelSelection.current_model,
 
     // Agent helpers
@@ -527,9 +525,6 @@ const GuidPage: React.FC = () => {
       onAgentSwitch={(key) => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
-      config_optionsBackend={agentSelection.currentEffectiveAgentInfo.agent_type}
-      cached_config_options={agentSelection.cached_config_options}
-      onConfigOptionSelect={agentSelection.setPendingConfigOption}
       builtinAutoSkills={builtinAutoSkills}
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
       onToggleBuiltinSkill={handleToggleBuiltinSkill}

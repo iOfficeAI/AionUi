@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/speech';
 import { storage } from '@office-ai/platform';
 
@@ -25,7 +24,7 @@ export interface IConfigStorageRefer {
     sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
   };
   'acp.config': {
-    [backend in AcpBackend]?: {
+    [backend: string]: {
       auth_methodId?: string;
       authToken?: string;
       lastAuthTime?: number;
@@ -205,7 +204,7 @@ export type TChatConversation =
         'acp',
         {
           workspace?: string;
-          backend: AcpBackend;
+          backend: string;
           cli_path?: string;
           custom_workspace?: boolean;
           agent_name?: string;
@@ -281,7 +280,7 @@ export type TChatConversation =
         'openclaw-gateway',
         {
           workspace?: string;
-          backend?: AcpBackendAll;
+          backend?: string;
           agent_name?: string;
           custom_workspace?: boolean;
           /** Gateway configuration */
