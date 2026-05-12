@@ -59,6 +59,9 @@ export type ConversationRowProps = {
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
   getJobStatus: (conversation_id: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
+  /** Render leading icon in a dimmed/grayscale state to indicate L2 hierarchy.
+   * Used by cron-job child conversations (and other nested contexts). */
+  dimIcon?: boolean;
 };
 
 export type WorkspaceGroupedHistoryProps = {
