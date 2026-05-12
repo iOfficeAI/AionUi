@@ -29,7 +29,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
 
   * {
-    line-height:26px;
+    line-height:28px;
     font-size:16px;
     color: inherit;
   }
@@ -49,8 +49,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     margin-block-end:0px;
   }
   .markdown-shadow-body p {
-    margin-block-start: 10px;
-    margin-block-end: 10px;
+    margin-block-start: 16px;
+    margin-block-end: 16px;
+  }
+  .markdown-shadow-body li {
+    margin-block-start: 6px;
+    margin-block-end: 6px;
   }
   a{
     color:${theme.Color.PrimaryColor};
@@ -68,8 +72,8 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     font-size: 16px;
     line-height: 24px;
     font-weight: bold;
-    margin-top: 8px;
-    margin-bottom: 8px;
+    margin-top: 20px;
+    margin-bottom: 12px;
   }
   code span{
     font-size:13px;
@@ -80,7 +84,30 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     margin-bottom:0px;
   }
   ol, ul {
-    padding-inline-start:20px;
+    padding-inline-start:24px;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid var(--bg-3);
+    margin: 28px 0;
+  }
+  strong {
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+  .markdown-shadow-body code:not(pre code) {
+    background: var(--bg-3);
+    color: var(--text-primary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.92em;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  blockquote {
+    border-left: 3px solid var(--bg-3);
+    padding-left: 12px;
+    color: var(--text-primary);
+    margin: 16px 0;
   }
   pre {
     max-width: 100%;
