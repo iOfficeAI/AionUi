@@ -4,7 +4,7 @@ import { IconDownload, IconRefresh } from '@arco-design/web-react/icon';
 import { useTranslation } from 'react-i18next';
 import ModalWrapper from '@/renderer/components/base/ModalWrapper';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
-import type { IHubAgentItem } from '@/common/types/hub';
+import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
 

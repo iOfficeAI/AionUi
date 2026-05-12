@@ -9,7 +9,7 @@ import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import {
   DETECTED_AGENTS_SWR_KEY,

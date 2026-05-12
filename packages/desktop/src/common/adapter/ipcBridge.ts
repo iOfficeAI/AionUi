@@ -53,7 +53,7 @@ import type {
   ImportAssistantsResult,
   SetAssistantStateRequest,
   UpdateAssistantRequest,
-} from '../types/assistantTypes';
+} from '../types/agent/assistantTypes';
 import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
@@ -829,17 +829,17 @@ export const openclawConversation = {
 // ---------------------------------------------------------------------------
 
 export const remoteAgent = {
-  list: httpGet<import('@/common/types/remoteAgentTypes').RemoteAgentConfig[], void>('/api/remote-agents'),
-  get: httpGet<import('@/common/types/remoteAgentTypes').RemoteAgentConfig | null, { id: string }>(
+  list: httpGet<import('@/common/types/agent/remoteAgentTypes').RemoteAgentConfig[], void>('/api/remote-agents'),
+  get: httpGet<import('@/common/types/agent/remoteAgentTypes').RemoteAgentConfig | null, { id: string }>(
     (p) => `/api/remote-agents/${p.id}`
   ),
   create: httpPost<
-    import('@/common/types/remoteAgentTypes').RemoteAgentConfig,
-    import('@/common/types/remoteAgentTypes').RemoteAgentInput
+    import('@/common/types/agent/remoteAgentTypes').RemoteAgentConfig,
+    import('@/common/types/agent/remoteAgentTypes').RemoteAgentInput
   >('/api/remote-agents'),
   update: httpPut<
     boolean,
-    { id: string; updates: Partial<import('@/common/types/remoteAgentTypes').RemoteAgentInput> }
+    { id: string; updates: Partial<import('@/common/types/agent/remoteAgentTypes').RemoteAgentInput> }
   >(
     (p) => `/api/remote-agents/${p.id}`,
     (p) => p.updates
@@ -1612,7 +1612,7 @@ export const channel = {
 // Agent Hub API — routed to /api/hub/*
 // ---------------------------------------------------------------------------
 
-import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/hub';
+import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/agent/hub';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {

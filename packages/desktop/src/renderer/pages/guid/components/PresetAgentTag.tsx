@@ -6,7 +6,7 @@
 
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import type { AvailableAgent } from '../types';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { IconClose } from '@arco-design/web-react/icon';
 import { Down, Robot } from '@icon-park/react';
 import React from 'react';

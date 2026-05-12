@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { Message } from '@arco-design/web-react';
-import type { Assistant, CreateAssistantRequest, UpdateAssistantRequest } from '@/common/types/assistantTypes';
+import type { Assistant, CreateAssistantRequest, UpdateAssistantRequest } from '@/common/types/agent/assistantTypes';
 import type {
   AssistantListItem,
   BuiltinAutoSkill,
