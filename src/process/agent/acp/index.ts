@@ -279,7 +279,7 @@ export class AcpAgent {
       const tryConnect = async () => {
         const connectTimeoutMs = this.getConnectTimeoutMs();
         let connectTimeoutId: NodeJS.Timeout | null = null;
-        const customEnv = { ...(this.extra.customEnv || {}) };
+        const customEnv = { ...this.extra.customEnv };
         const initialClaudeEffort =
           this.extra.backend === 'claude'
             ? this.extra.pendingConfigOptions?.[CLAUDE_REASONING_EFFORT_CONFIG_ID]

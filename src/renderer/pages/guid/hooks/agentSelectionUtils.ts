@@ -55,7 +55,7 @@ export async function savePreferredConfigOption(agentKey: string, configId: stri
     const config = await ConfigStorage.get('acp.config');
     const backendConfig = config?.[agentKey as AcpBackendAll] || {};
     const preferredConfigOptions = {
-      ...(backendConfig.preferredConfigOptions || {}),
+      ...backendConfig.preferredConfigOptions,
       [configId]: value,
     };
     await ConfigStorage.set('acp.config', {
