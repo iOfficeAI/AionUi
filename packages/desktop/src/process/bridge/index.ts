@@ -11,15 +11,12 @@ import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initWebuiBridge } from './webuiBridge';
-import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 
-export interface BridgeDependencies {
-  workerTaskManager: IWorkerTaskManager;
-}
+export type BridgeDependencies = Record<string, never>;
 
-export function initAllBridges(deps: BridgeDependencies): void {
+export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initDialogBridge();
-  initApplicationBridge(deps.workerTaskManager);
+  initApplicationBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();

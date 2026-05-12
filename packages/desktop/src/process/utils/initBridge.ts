@@ -6,10 +6,7 @@
 
 import { logger } from '@office-ai/platform';
 import { initAllBridges } from '../bridge';
-import { workerTaskManager } from '@process/task/workerTaskManagerSingleton';
 
 logger.config({ print: true });
 
-initAllBridges({
-  workerTaskManager,
-});
+initAllBridges();
