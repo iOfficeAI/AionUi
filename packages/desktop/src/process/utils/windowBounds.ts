@@ -21,7 +21,7 @@ export type WindowBounds = {
   height: number;
 };
 
-export const MIN_WINDOW_WIDTH = 800;
+export const MIN_WINDOW_WIDTH = 375;
 export const MIN_WINDOW_HEIGHT = 600;
 
 // Default window fills 80% of the primary display horizontally and 92%
