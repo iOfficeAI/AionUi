@@ -125,6 +125,7 @@ const AionrsSendBox: React.FC<{
   const isBusy = running;
 
   const setContentRef = useLatestRef(setContent);
+  const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
 
   // Register handler for adding text from preview panel to sendbox
@@ -136,11 +137,12 @@ const AionrsSendBox: React.FC<{
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
-  // Listen for sendbox.fill event to populate input from external sources
+  // Listen for sendbox.fill event to append text to sendbox
   useAddEventListener(
     'sendbox.fill',
     (text: string) => {
-      setContentRef.current(text);
+      const prev = contentRef.current;
+      setContentRef.current(prev ? `${prev}${text}` : text);
     },
     []
   );

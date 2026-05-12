@@ -109,6 +109,7 @@ const AcpSendBox: React.FC<{
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
 
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
@@ -133,11 +134,12 @@ const AcpSendBox: React.FC<{
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
-  // Listen for sendbox.fill event to populate input from external sources
+  // Listen for sendbox.fill event to append text to sendbox
   useAddEventListener(
     'sendbox.fill',
     (text: string) => {
-      setContentRef.current(text);
+      const prev = contentRef.current;
+      setContentRef.current(prev ? `${prev}${text}` : text);
     },
     []
   );

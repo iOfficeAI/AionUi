@@ -361,6 +361,7 @@ export type I18nKey =
   | 'conversation.minimap.searchHint'
   | 'conversation.noAgentsAvailable'
   | 'conversation.noModelConfigured'
+  | 'conversation.sendbox.hint'
   | 'conversation.sideQuestion.alreadyRunning'
   | 'conversation.sideQuestion.answered'
   | 'conversation.sideQuestion.attachmentsNotAllowed'

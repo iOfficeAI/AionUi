@@ -38,6 +38,12 @@ export interface ConversationContextValue {
    * When true, platform chat components should hide the SendBox (e.g. sub-agents in team mode)
    */
   hideSendBox?: boolean;
+
+  /**
+   * Loaded skill names for this conversation (snapshot from conversation.extra.skills).
+   * Surfaced inside the SendBox `+` menu so users can review/jump to active skills.
+   */
+  loadedSkills?: string[];
 }
 
 /**
