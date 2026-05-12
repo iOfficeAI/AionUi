@@ -25,7 +25,7 @@ export type TeamAgentOption = {
 };
 
 export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
-  return { id: agent.id, name: agent.name, backend: agent.backend, icon: agent.icon, team_capable: agent.team_capable };
+  return { id: agent.id, name: agent.name, backend: agent.backend || agent.agent_type, icon: agent.icon, team_capable: agent.team_capable };
 }
 
 export function assistantToOption(assistant: Assistant, teamCapableKeys?: Set<string>): TeamAgentOption {
