@@ -14,7 +14,7 @@ Sentry.init({
 });
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor, screen } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -32,6 +32,13 @@ import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import {
+  MIN_WINDOW_WIDTH,
+  MIN_WINDOW_HEIGHT,
+  attachWindowBoundsPersistence,
+  loadSavedWindowBounds,
+  resolveInitialBounds,
+} from './process/utils/windowBounds';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
   clearPendingDeepLinkUrl,
@@ -240,13 +247,7 @@ const scheduleBackendMigrations = (): void => {
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
-  // Get primary display size
-  const primaryDisplay = screen.getPrimaryDisplay();
-  const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-
-  // Set window size to 80% (4/5) of screen size for better visibility on high-resolution displays
-  const windowWidth = Math.floor(screenWidth * 0.8);
-  const windowHeight = Math.floor(screenHeight * 0.8);
+  const { x: windowX, y: windowY, width: windowWidth, height: windowHeight } = resolveInitialBounds();
 
   // Get app icon for development mode (Windows/Linux need icon in BrowserWindow)
   // In production, icons are set via forge.config.ts packagerConfig
@@ -269,6 +270,9 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
+    ...(windowX !== undefined && windowY !== undefined ? { x: windowX, y: windowY } : {}),
+    minWidth: MIN_WINDOW_WIDTH,
+    minHeight: MIN_WINDOW_HEIGHT,
     show: false, // Hide until CSS is loaded to prevent FOUC
     backgroundColor: '#ffffff',
     autoHideMenuBar: true,
@@ -327,6 +331,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
   setupZoomForWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
+  attachWindowBoundsPersistence(mainWindow, (bounds) => ProcessConfig.set('window.bounds', bounds));
 
   // Initialize auto-updater service (skip when disabled via env, e.g. E2E / CI)
   // 初始化自动更新服务（通过环境变量禁用时跳过，例如 E2E / CI 场景）
@@ -524,6 +529,14 @@ const handleAppReady = async (): Promise<void> => {
   } catch (error) {
     console.error('[AionUi] Failed to restore zoom factor:', error);
     initializeZoomFactor(undefined);
+  }
+
+  try {
+    loadSavedWindowBounds(await ProcessConfig.get('window.bounds'));
+    mark('restoreWindowBounds');
+  } catch (error) {
+    console.error('[AionUi] Failed to restore window bounds:', error);
+    loadSavedWindowBounds(undefined);
   }
 
   if (isResetPasswordMode) {

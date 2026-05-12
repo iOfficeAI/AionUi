@@ -58,6 +58,8 @@ export interface IConfigStorageRefer {
   colorScheme: string;
   /** Persisted app-wide UI zoom factor for Display settings */
   'ui.zoomFactor'?: number;
+  /** Last-known main window size and position, restored on next launch */
+  'window.bounds'?: { x?: number; y?: number; width: number; height: number };
   /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
   'webui.desktop.enabled'?: boolean;
   /** 桌面模式下是否允许远程访问 / Allow remote access in desktop mode */
