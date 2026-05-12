@@ -602,12 +602,17 @@ export function normalizeNpxArgsForBundledBun(args: string[]): string[] {
   return args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline');
 }
 
+function getPlatformPathTools() {
+  return process.platform === 'win32' ? path.win32 : path.posix;
+}
+
 function findExecutableInPath(env: Record<string, string | undefined>, names: string[]): string | null {
+  const pathTools = getPlatformPathTools();
   const pathValue = env.PATH || env.Path || env.path || process.env.PATH || '';
-  const dirs = pathValue.split(path.delimiter).filter(Boolean);
+  const dirs = pathValue.split(pathTools.delimiter).filter(Boolean);
   for (const dir of dirs) {
     for (const name of names) {
-      const candidate = path.join(dir, name);
+      const candidate = pathTools.join(dir, name);
       if (existsSync(candidate)) return candidate;
     }
   }
@@ -615,7 +620,7 @@ function findExecutableInPath(env: Record<string, string | undefined>, names: st
 }
 
 function isBunRunner(command: string): boolean {
-  const base = path.basename(command).toLowerCase();
+  const base = getPlatformPathTools().basename(command).toLowerCase();
   return base === 'bun' || base === 'bun.exe';
 }
 
