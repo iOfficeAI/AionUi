@@ -1511,7 +1511,7 @@ import type {
   IChannelPluginStatus,
   IChannelSession,
   IChannelUser,
-} from '@/common/types/channel';
+} from '@/common/types/channel/channel';
 
 type RawPluginStatus = Record<string, unknown>;
 type RawPairing = Record<string, unknown>;
