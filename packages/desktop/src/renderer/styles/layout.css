@@ -1,26 +1,15 @@
 /* Layout-level styles: sidebar, sider animations, message positioning */
 
-/* Outer layout shares the sider card background so the strip above the card
- * (where macOS traffic lights sit) blends with the sider, not the chat area. */
-.layout {
-  background-color: var(--bg-1);
-}
-
 /* Sticky section labels in the sider (team / cron / projects / timeline). */
 .sider-section-label {
   background-color: var(--bg-2);
 }
 
-/* Layout sider base styles — floating card feel (Claude/Codex style) */
+/* Layout sider base styles */
 .layout-sider {
   overflow-x: hidden;
-  border-right: none !important;
-  background-color: var(--bg-2) !important;
-  /* Card feel */
-  margin: 8px 5px 8px 8px;
-  border-radius: 14px;
-  outline: 1px solid var(--bg-3);
-  box-shadow: 0 2px 8px 0 rgba(0, 0, 0, 0.06) !important;
+  box-shadow: none !important;
+  border-right: 1px solid var(--border-base);
 }
 
 /* Arco Layout inner container needs flex layout so Header + Content + Footer
@@ -32,19 +21,6 @@
   flex: 1 !important;
   min-height: 0 !important;
   height: 100% !important;
-  border-radius: inherit;
-  overflow: hidden;
-}
-
-/* Collapsed state: strip card styling so the collapsed strip blends into the window */
-.layout-sider.collapsed,
-.layout-sider.arco-layout-sider-collapsed {
-  margin: 0 !important;
-  border-radius: 0 !important;
-  outline: none !important;
-  box-shadow: none !important;
-  background-color: transparent !important;
-  border-right: none !important;
 }
 
 .layout-sider-header {
