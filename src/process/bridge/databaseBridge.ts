@@ -81,4 +81,21 @@ export function initDatabaseBridge(repo: IConversationRepository): void {
       };
     }
   });
+
+  ipcBridge.database.searchConversationsByName.provider(async (_params) => {
+    const { keyword, page = 0, pageSize = 20 } = _params ?? {};
+    try {
+      const result = await repo.searchConversationsByName(keyword, page, pageSize);
+      return result;
+    } catch (error) {
+      console.error('[DatabaseBridge] Error searching conversations by name:', error);
+      return {
+        items: [],
+        total: 0,
+        page,
+        pageSize,
+        hasMore: false,
+      };
+    }
+  });
 }

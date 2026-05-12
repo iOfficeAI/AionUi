@@ -62,6 +62,14 @@
     "pinned": "Закреплено",
     "pinFailed": "Не удалось закрепить",
     "pinnedSection": "Закреплённые",
+    "groups": "Группы",
+    "moveToGroup": "Переместить в группу",
+    "newGroup": "Новая группа...",
+    "noGroup": "Без группы",
+    "manageGroups": "Управление группами",
+    "groupNamePlaceholder": "Название группы",
+    "groupDeleteConfirm": "Удалить эту группу? Диалоги не будут удалены.",
+    "ungrouped": "Без группы",
     "deleteSuccess": "Успешно удалено",
     "deleteFailed": "Не удалось удалить",
     "today": "Сегодня",
@@ -78,7 +86,10 @@
     "idle": "Введите ключевые слова для поиска",
     "empty": "Сообщения не найдены",
     "loadingMore": "Загрузка...",
-    "untitled": "Безымянный диалог"
+    "untitled": "Безымянный диалог",
+    "searchTitle": "По названию",
+    "searchContent": "По содержимому",
+    "titlePlaceholder": "Поиск по названиям диалогов..."
   },
   "tabs": {
     "closeAll": "Закрыть все",

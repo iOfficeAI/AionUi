@@ -5,6 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
+import type { GroupDef } from './hooks/useConversationGroups';
 
 export type WorkspaceGroup = {
   workspace: string;
@@ -24,8 +25,14 @@ export type TimelineSection = {
   items: TimelineItem[];
 };
 
+export type GroupSection = {
+  groupName: string;
+  conversations: TChatConversation[];
+};
+
 export type GroupedHistoryResult = {
   pinnedConversations: TChatConversation[];
+  groupSections: GroupSection[];
   timelineSections: TimelineSection[];
 };
 
@@ -58,6 +65,9 @@ export type ConversationRowProps = {
   onDelete: (conversationId: string) => void;
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
+  onMoveToGroup: (conversation: TChatConversation, groupName: string | null) => void;
+  onCreateAndMoveToGroup: (conversation: TChatConversation) => void;
+  groups: GroupDef[];
   getJobStatus: (conversationId: string) => 'none' | 'active' | 'paused' | 'error' | 'unread';
 };
 

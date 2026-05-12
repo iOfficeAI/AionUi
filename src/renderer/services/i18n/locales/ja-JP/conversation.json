@@ -66,6 +66,14 @@
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
+    "groups": "Groups",
+    "moveToGroup": "Move to group",
+    "newGroup": "New group...",
+    "noGroup": "No group",
+    "manageGroups": "Manage groups",
+    "groupNamePlaceholder": "Group name",
+    "groupDeleteConfirm": "Delete this group? Conversations will not be deleted.",
+    "ungrouped": "Ungrouped",
     "deleteSuccess": "削除しました",
     "deleteFailed": "削除に失敗しました"
   },
@@ -78,7 +86,10 @@
     "idle": "キーワードを入力してメッセージを検索",
     "empty": "一致するメッセージが見つかりません",
     "loadingMore": "さらに読み込み中...",
-    "untitled": "無題の会話"
+    "untitled": "無題の会話",
+    "searchTitle": "Title",
+    "searchContent": "Content",
+    "titlePlaceholder": "Search conversation titles..."
   },
   "dropdown": {
     "cliAgents": "CLI Agents",

@@ -158,6 +158,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [recentKeywords, setRecentKeywords] = useState<string[]>([]);
+  const [searchMode, setSearchMode] = useState<'content' | 'title'>('content');
 
   useEffect(() => {
     try {
@@ -197,7 +198,12 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       }
 
       try {
-        const result = await ipcBridge.database.searchConversationMessages.invoke({
+        const invokeMethod =
+          searchMode === 'title'
+            ? ipcBridge.database.searchConversationsByName.invoke
+            : ipcBridge.database.searchConversationMessages.invoke;
+
+        const result = await invokeMethod({
           keyword: debouncedKeyword,
           page: pageToLoad,
           pageSize: PAGE_SIZE,
@@ -218,7 +224,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
         setLoadingMore(false);
       }
     },
-    [debouncedKeyword]
+    [debouncedKeyword, searchMode]
   );
 
   useEffect(() => {
@@ -257,6 +263,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
     setHasMore(false);
     setLoading(false);
     setLoadingMore(false);
+    setSearchMode('content');
   }, []);
 
   const handleLoadMore = useCallback(() => {
@@ -296,10 +303,12 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
       await Promise.resolve(
         navigate(`/conversation/${item.conversation.id}`, {
-          state: {
-            targetMessageId: item.messageId,
-            fromConversationSearch: true,
-          },
+          state: item.messageId
+            ? {
+                targetMessageId: item.messageId,
+                fromConversationSearch: true,
+              }
+            : undefined,
         })
       );
       onSessionClick?.();
@@ -425,9 +434,16 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                   </div>
                   <span className='shrink-0 text-11px text-t-secondary'>{formatTime(item.messageCreatedAt)}</span>
                 </div>
-                <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>
-                  {renderHighlightedText(snippet, debouncedKeyword)}
-                </div>
+                {snippet && (
+                  <div className='conversation-search-modal__snippet text-13px leading-22px text-t-primary/92 break-words'>
+                    {renderHighlightedText(snippet, debouncedKeyword)}
+                  </div>
+                )}
+                {!snippet && (
+                  <div className='text-12px text-t-secondary mt-2px'>
+                    {formatTime(item.conversation.modifyTime || item.conversation.createTime)}
+                  </div>
+                )}
               </button>
             );
           })}
@@ -551,7 +567,11 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
               <input
                 autoFocus={visible}
                 value={keyword}
-                placeholder={t('conversation.historySearch.placeholder')}
+                placeholder={
+                  searchMode === 'title'
+                    ? t('conversation.historySearch.titlePlaceholder', 'Search conversation titles...')
+                    : t('conversation.historySearch.placeholder')
+                }
                 onChange={(event) => setKeyword(event.target.value)}
                 className='conversation-search-modal__search-input'
               />
@@ -566,6 +586,33 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
                 </button>
               ) : null}
             </div>
+          </div>
+
+          <div className='flex gap-6px mb-14px'>
+            <button
+              type='button'
+              className={classNames(
+                'px-14px py-5px rounded-16px text-13px font-medium transition-all border-none cursor-pointer',
+                searchMode === 'content'
+                  ? 'bg-[var(--color-text-1)] text-[var(--color-bg-1)]'
+                  : 'bg-[var(--color-fill-2)] text-[var(--color-text-2)] hover:bg-[var(--color-fill-3)]'
+              )}
+              onClick={() => setSearchMode('content')}
+            >
+              {t('conversation.historySearch.searchContent', 'Content')}
+            </button>
+            <button
+              type='button'
+              className={classNames(
+                'px-14px py-5px rounded-16px text-13px font-medium transition-all border-none cursor-pointer',
+                searchMode === 'title'
+                  ? 'bg-[var(--color-text-1)] text-[var(--color-bg-1)]'
+                  : 'bg-[var(--color-fill-2)] text-[var(--color-text-2)] hover:bg-[var(--color-fill-3)]'
+              )}
+              onClick={() => setSearchMode('title')}
+            >
+              {t('conversation.historySearch.searchTitle', 'Title')}
+            </button>
           </div>
 
           <div className='flex-1 min-h-0'>{resultContent}</div>

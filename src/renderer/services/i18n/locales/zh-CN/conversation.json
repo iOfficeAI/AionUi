@@ -62,6 +62,14 @@
     "pinned": "已置顶",
     "pinFailed": "置顶操作失败",
     "pinnedSection": "置顶",
+    "groups": "自定义分组",
+    "moveToGroup": "移动到分组",
+    "newGroup": "新建分组...",
+    "noGroup": "无分组",
+    "manageGroups": "管理分组",
+    "groupNamePlaceholder": "分组名称",
+    "groupDeleteConfirm": "确定删除此分组？会话不会被删除。",
+    "ungrouped": "未分组",
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
     "today": "今天",
@@ -78,7 +86,10 @@
     "idle": "输入关键词检索历史消息",
     "empty": "没有找到匹配的消息",
     "loadingMore": "正在加载更多...",
-    "untitled": "未命名会话"
+    "untitled": "未命名会话",
+    "searchTitle": "标题",
+    "searchContent": "内容",
+    "titlePlaceholder": "搜索会话标题..."
   },
   "tabs": {
     "closeAll": "关闭全部",

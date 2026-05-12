@@ -963,6 +963,53 @@ export class AionUIDatabase {
   }
 
   /**
+   * Search conversations by name (title-only search).
+   * Much faster than full-text message search for large datasets.
+   */
+  searchConversationsByName(keyword: string, userId?: string, page = 0, pageSize = 20): IMessageSearchResponse {
+    const trimmedKeyword = keyword.trim();
+    if (!trimmedKeyword) {
+      return { items: [], total: 0, page, pageSize, hasMore: false };
+    }
+
+    try {
+      const finalUserId = userId || this.defaultUserId;
+      const escapedKeyword = escapeLikePattern(trimmedKeyword);
+      const likePattern = `%${escapedKeyword}%`;
+
+      const countResult = this.db
+        .prepare("SELECT COUNT(*) as count FROM conversations WHERE user_id = ? AND name LIKE ? ESCAPE '\\'")
+        .get(finalUserId, likePattern) as { count: number };
+
+      const rows = this.db
+        .prepare(
+          `SELECT * FROM conversations WHERE user_id = ? AND name LIKE ? ESCAPE '\\'
+           ORDER BY updated_at DESC LIMIT ? OFFSET ?`
+        )
+        .all(finalUserId, likePattern, pageSize, page * pageSize) as IConversationRow[];
+
+      const items: IMessageSearchItem[] = rows.map((row) => ({
+        conversation: rowToConversation(row),
+        messageId: '',
+        messageType: 'text' as IMessageSearchItem['messageType'],
+        messageCreatedAt: 0,
+        previewText: '',
+      }));
+
+      return {
+        items,
+        total: countResult.count,
+        page,
+        pageSize,
+        hasMore: (page + 1) * pageSize < countResult.count,
+      };
+    } catch (error: any) {
+      console.error('[Database] Search conversations by name error:', error);
+      return { items: [], total: 0, page, pageSize, hasMore: false };
+    }
+  }
+
+  /**
    * Update a message in the database
    * @param messageId - Message ID to update
    * @param message - Updated message data

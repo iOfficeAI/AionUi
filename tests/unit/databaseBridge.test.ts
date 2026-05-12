@@ -26,6 +26,7 @@ vi.mock('../../src/common', () => ({
       getConversationMessages: makeChannel('getConversationMessages'),
       getUserConversations: makeChannel('getUserConversations'),
       searchConversationMessages: makeChannel('searchConversationMessages'),
+      searchConversationsByName: makeChannel('searchConversationsByName'),
     },
   },
 }));
@@ -54,6 +55,7 @@ function makeRepo(overrides?: Partial<IConversationRepository>): IConversationRe
     getUserConversations: vi.fn(() => ({ data: [], total: 0, hasMore: false })),
     listAllConversations: vi.fn(() => []),
     searchMessages: vi.fn(() => ({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false })),
+    searchConversationsByName: vi.fn(() => ({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false })),
     ...overrides,
   };
 }
@@ -197,6 +199,52 @@ describe('databaseBridge', () => {
       vi.mocked(repo.searchMessages).mockReturnValue({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
 
       const result = await handlers['searchConversationMessages'](undefined);
+
+      expect(result).toEqual({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
+    });
+  });
+
+  // --- searchConversationsByName ---
+
+  describe('searchConversationsByName', () => {
+    it('returns search results from repo', async () => {
+      const searchResult = {
+        items: [
+          { conversation: { id: 'c1' }, messageId: '', messageType: 'text', messageCreatedAt: 0, previewText: 'c1' },
+        ],
+        total: 1,
+        page: 0,
+        pageSize: 20,
+        hasMore: false,
+      };
+      vi.mocked(repo.searchConversationsByName).mockReturnValue(searchResult as any);
+
+      const result = await handlers['searchConversationsByName']({ keyword: 'test' });
+
+      expect(repo.searchConversationsByName).toHaveBeenCalledWith('test', 0, 20);
+      expect(result).toEqual(searchResult);
+    });
+
+    it('returns empty result when repo throws', async () => {
+      vi.mocked(repo.searchConversationsByName).mockImplementation(() => {
+        throw new Error('search error');
+      });
+
+      const result = await handlers['searchConversationsByName']({ keyword: 'error', page: 1, pageSize: 10 });
+
+      expect(result).toEqual({ items: [], total: 0, page: 1, pageSize: 10, hasMore: false });
+    });
+
+    it('does not throw when called with undefined params', async () => {
+      vi.mocked(repo.searchConversationsByName).mockReturnValue({
+        items: [],
+        total: 0,
+        page: 0,
+        pageSize: 20,
+        hasMore: false,
+      });
+
+      const result = await handlers['searchConversationsByName'](undefined);
 
       expect(result).toEqual({ items: [], total: 0, page: 0, pageSize: 20, hasMore: false });
     });

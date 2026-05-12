@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
+import GroupManagementModal from '../components/GroupManagementModal';
 import ConversationRow from './ConversationRow';
 import DragOverlayContent from './DragOverlayContent';
 import SortableConversationRow from './SortableConversationRow';
@@ -62,6 +63,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     hasCompletionUnread,
     expandedWorkspaces,
     pinnedConversations,
+    groupSections,
     timelineSections,
     handleToggleWorkspace,
   } = useConversations();
@@ -81,15 +83,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     setRenameModalName,
     renameLoading,
     dropdownVisibleId,
+    newGroupModalVisible,
+    newGroupName,
+    setNewGroupName,
+    groups,
     handleConversationClick,
+    handleOpenMenu,
+    handleMenuVisibleChange,
     handleDeleteClick,
     handleBatchDelete,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
     handleTogglePin,
-    handleMenuVisibleChange,
-    handleOpenMenu,
+    handleMoveToGroup,
+    handleCreateAndMoveToGroup,
+    handleNewGroupConfirm,
+    handleNewGroupCancel,
   } = useConversationActions({
     batchMode,
     onSessionClick,
@@ -146,6 +156,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onDelete: handleDeleteClick,
       onExport: handleExportConversation,
       onTogglePin: handleTogglePin,
+      onMoveToGroup: handleMoveToGroup,
+      onCreateAndMoveToGroup: handleCreateAndMoveToGroup,
+      groups,
       getJobStatus,
     }),
     [
@@ -165,6 +178,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleDeleteClick,
       handleExportConversation,
       handleTogglePin,
+      handleMoveToGroup,
+      handleCreateAndMoveToGroup,
+      groups,
       getJobStatus,
     ]
   );
@@ -206,6 +222,28 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           onChange={setRenameModalName}
           onPressEnter={handleRenameConfirm}
           placeholder={t('conversation.history.renamePlaceholder')}
+          allowClear
+        />
+      </Modal>
+
+      <Modal
+        title={t('conversation.history.newGroup', 'New group')}
+        visible={newGroupModalVisible}
+        onOk={handleNewGroupConfirm}
+        onCancel={handleNewGroupCancel}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
+        okButtonProps={{ disabled: !newGroupName.trim() }}
+        style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+      >
+        <Input
+          autoFocus
+          value={newGroupName}
+          onChange={setNewGroupName}
+          onPressEnter={handleNewGroupConfirm}
+          placeholder={t('conversation.history.groupNamePlaceholder', 'Group name')}
           allowClear
         />
       </Modal>
@@ -393,6 +431,33 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             {activeId && activeConversation ? <DragOverlayContent conversation={activeConversation} /> : null}
           </DragOverlay>
         </DndContext>
+
+        {groupSections.map((groupSection) => (
+          <div key={groupSection.groupName} className='mb-8px min-w-0'>
+            {!collapsed && (
+              <div
+                className='flex items-center px-12px py-8px cursor-pointer select-none sticky top-0 z-10 bg-fill-2'
+                onClick={() => toggleSection(`group-${groupSection.groupName}`)}
+              >
+                <span className='text-13px text-t-secondary font-bold leading-20px truncate'>
+                  {groupSection.groupName}
+                </span>
+                <div className='ml-auto h-20px w-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 text-t-secondary'>
+                  {collapsedSections.has(`group-${groupSection.groupName}`) ? (
+                    <Right theme='outline' size={12} />
+                  ) : (
+                    <Down theme='outline' size={12} />
+                  )}
+                </div>
+              </div>
+            )}
+            {!collapsedSections.has(`group-${groupSection.groupName}`) && (
+              <div className='flex flex-col gap-2px min-w-0'>
+                {groupSection.conversations.map((conversation) => renderConversation(conversation))}
+              </div>
+            )}
+          </div>
+        ))}
 
         {timelineSections.map((section) => (
           <div key={section.timeline} className='mb-8px min-w-0'>

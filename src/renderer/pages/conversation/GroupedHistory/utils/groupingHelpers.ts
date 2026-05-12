@@ -9,7 +9,7 @@ import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { getWorkspaceUpdateTime } from '@/renderer/utils/workspace/workspaceHistory';
 
-import type { GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
+import type { GroupSection, GroupedHistoryResult, TimelineItem, TimelineSection } from '../types';
 import { getConversationSortOrder } from './sortOrderHelpers';
 
 export const isConversationPinned = (conversation: TChatConversation): boolean => {
@@ -95,6 +95,11 @@ const isTeamConversation = (conversation: TChatConversation): boolean => {
   return Boolean(extra?.teamId);
 };
 
+export const getConversationGroupName = (conversation: TChatConversation): string | undefined => {
+  const extra = conversation.extra as { groupName?: string } | undefined;
+  return extra?.groupName || undefined;
+};
+
 export const buildGroupedHistory = (
   conversations: TChatConversation[],
   t: (key: string) => string
@@ -117,8 +122,34 @@ export const buildGroupedHistory = (
     (conversation) => !isConversationPinned(conversation) && !isCronJobConversation(conversation)
   );
 
+  // Separate grouped from ungrouped conversations
+  const groupedMap = new Map<string, TChatConversation[]>();
+  const ungrouped: TChatConversation[] = [];
+
+  normalConversations.forEach((conv) => {
+    const groupName = getConversationGroupName(conv);
+    if (groupName) {
+      if (!groupedMap.has(groupName)) {
+        groupedMap.set(groupName, []);
+      }
+      groupedMap.get(groupName)!.push(conv);
+    } else {
+      ungrouped.push(conv);
+    }
+  });
+
+  // Build group sections sorted by group name alphabetically
+  const groupSections: GroupSection[] = [];
+  const sortedGroupNames = [...groupedMap.keys()].toSorted((a, b) => a.localeCompare(b));
+  sortedGroupNames.forEach((groupName) => {
+    const convs = groupedMap.get(groupName)!;
+    convs.sort((a, b) => getActivityTime(b) - getActivityTime(a));
+    groupSections.push({ groupName, conversations: convs });
+  });
+
   return {
     pinnedConversations,
-    timelineSections: groupConversationsByWorkspace(normalConversations, t),
+    groupSections,
+    timelineSections: groupConversationsByWorkspace(ungrouped, t),
   };
 };

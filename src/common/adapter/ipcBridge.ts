@@ -627,6 +627,10 @@ export const database = {
     import('../types/database').IMessageSearchResponse,
     { keyword: string; page?: number; pageSize?: number }
   >('database.search-conversation-messages'),
+  searchConversationsByName: bridge.buildProvider<
+    import('../types/database').IMessageSearchResponse,
+    { keyword: string; page?: number; pageSize?: number }
+  >('database.search-conversations-by-name'),
 };
 
 export const previewHistory = {

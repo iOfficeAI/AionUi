@@ -274,6 +274,9 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
           onEditStart={handleEditStart}
           onDelete={handleDelete}
           onTogglePin={handleTogglePin}
+          onMoveToGroup={() => {}}
+          onCreateAndMoveToGroup={() => {}}
+          groups={[]}
           getJobStatus={() => 'none'}
         />
       </SortableSiderEntry>

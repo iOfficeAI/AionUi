@@ -66,6 +66,14 @@
     "pinned": "Pinned",
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
+    "groups": "Groups",
+    "moveToGroup": "Move to group",
+    "newGroup": "New group...",
+    "noGroup": "No group",
+    "manageGroups": "Manage groups",
+    "groupNamePlaceholder": "Group name",
+    "groupDeleteConfirm": "Delete this group? Conversations will not be deleted.",
+    "ungrouped": "Ungrouped",
     "deleteSuccess": "삭제되었습니다",
     "deleteFailed": "삭제에 실패했습니다"
   },
@@ -78,7 +86,10 @@
     "idle": "키워드를 입력하여 메시지를 검색하세요",
     "empty": "일치하는 메시지를 찾을 수 없습니다",
     "loadingMore": "더 불러오는 중...",
-    "untitled": "제목 없는 대화"
+    "untitled": "제목 없는 대화",
+    "searchTitle": "Title",
+    "searchContent": "Content",
+    "titlePlaceholder": "Search conversation titles..."
   },
   "dropdown": {
     "cliAgents": "CLI Agents",

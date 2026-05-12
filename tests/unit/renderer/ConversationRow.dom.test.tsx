@@ -108,6 +108,9 @@ const makeProps = (overrides: Partial<ConversationRowProps> = {}): ConversationR
     onDelete: vi.fn(),
     onExport: vi.fn(),
     onTogglePin: vi.fn(),
+    onMoveToGroup: vi.fn(),
+    onCreateAndMoveToGroup: vi.fn(),
+    groups: [],
     getJobStatus: vi.fn(() => 'none'),
     ...overrides,
   };

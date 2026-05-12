@@ -12,7 +12,7 @@ import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, FolderPlus, MessageOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,6 +44,9 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onDelete,
     onExport,
     onTogglePin,
+    onMoveToGroup,
+    onCreateAndMoveToGroup,
+    groups,
     getJobStatus,
   } = props;
   const { t } = useTranslation();
@@ -213,6 +216,22 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                     }
                     if (key === 'delete') {
                       onDelete(conversation.id);
+                      return;
+                    }
+                    if (key === 'group-new') {
+                      onCreateAndMoveToGroup(conversation);
+                      return;
+                    }
+                    if (key === 'group-none') {
+                      onMoveToGroup(conversation, null);
+                      return;
+                    }
+                    if (key.startsWith('group-')) {
+                      const groupId = key.slice(6);
+                      const group = groups.find((g) => g.id === groupId);
+                      if (group) {
+                        onMoveToGroup(conversation, group.name);
+                      }
                     }
                   }}
                 >
@@ -228,6 +247,34 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       <span>{t('conversation.history.rename')}</span>
                     </div>
                   </Menu.Item>
+                  <Menu.SubMenu
+                    key='moveToGroup'
+                    title={
+                      <div className='flex items-center gap-8px'>
+                        <FolderPlus theme='outline' size='14' />
+                        <span>{t('conversation.history.moveToGroup', 'Move to group')}</span>
+                      </div>
+                    }
+                  >
+                    {groups.map((group) => (
+                      <Menu.Item key={`group-${group.id}`}>
+                        <div className='flex items-center gap-8px'>
+                          <span>{group.name}</span>
+                        </div>
+                      </Menu.Item>
+                    ))}
+                    {groups.length > 0 && <div className='h-1px bg-[var(--color-border-2)] my-4px mx-12px' />}
+                    <Menu.Item key='group-new'>
+                      <div className='flex items-center gap-8px'>
+                        <span>{t('conversation.history.newGroup', 'New group...')}</span>
+                      </div>
+                    </Menu.Item>
+                    <Menu.Item key='group-none'>
+                      <div className='flex items-center gap-8px'>
+                        <span>{t('conversation.history.noGroup', 'No group')}</span>
+                      </div>
+                    </Menu.Item>
+                  </Menu.SubMenu>
                   {onExport && (
                     <Menu.Item key='export'>
                       <div className='flex items-center gap-8px'>

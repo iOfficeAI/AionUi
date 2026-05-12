@@ -9,13 +9,14 @@ import type { TChatConversation } from '@/common/config/storage';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
-import { Message, Modal } from '@arco-design/web-react';
-import { useCallback, useEffect, useState } from 'react';
+import { Input, Message, Modal } from '@arco-design/web-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { useConversationTabs } from '../../hooks/ConversationTabsContext';
 import { isConversationPinned } from '../utils/groupingHelpers';
+import { useConversationGroups } from './useConversationGroups';
 
 type UseConversationActionsParams = {
   batchMode: boolean;
@@ -41,6 +42,10 @@ export const useConversationActions = ({
   const [renameModalId, setRenameModalId] = useState<string | null>(null);
   const [renameLoading, setRenameLoading] = useState(false);
   const [dropdownVisibleId, setDropdownVisibleId] = useState<string | null>(null);
+  const [newGroupModalVisible, setNewGroupModalVisible] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const pendingGroupConversationRef = useRef<TChatConversation | null>(null);
+  const { groups, createGroup, deleteGroup, renameGroup, moveToGroup } = useConversationGroups();
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -252,12 +257,54 @@ export const useConversationActions = ({
     setDropdownVisibleId(conversation.id);
   }, []);
 
+  const handleMoveToGroup = useCallback(
+    async (conversation: TChatConversation, groupName: string | null) => {
+      setDropdownVisibleId(null);
+      await moveToGroup(conversation, groupName);
+    },
+    [moveToGroup]
+  );
+
+  const handleCreateAndMoveToGroup = useCallback((conversation: TChatConversation) => {
+    setDropdownVisibleId(null);
+    pendingGroupConversationRef.current = conversation;
+    setNewGroupName('');
+    setNewGroupModalVisible(true);
+  }, []);
+
+  const handleNewGroupConfirm = useCallback(async () => {
+    const conversation = pendingGroupConversationRef.current;
+    const trimmed = newGroupName.trim();
+    if (!conversation || !trimmed) {
+      setNewGroupModalVisible(false);
+      return;
+    }
+
+    const newGroup = createGroup(trimmed);
+    if (newGroup) {
+      await moveToGroup(conversation, trimmed);
+    }
+    setNewGroupModalVisible(false);
+    setNewGroupName('');
+    pendingGroupConversationRef.current = null;
+  }, [newGroupName, createGroup, moveToGroup]);
+
+  const handleNewGroupCancel = useCallback(() => {
+    setNewGroupModalVisible(false);
+    setNewGroupName('');
+    pendingGroupConversationRef.current = null;
+  }, []);
+
   return {
     renameModalVisible,
     renameModalName,
     setRenameModalName,
     renameLoading,
     dropdownVisibleId,
+    newGroupModalVisible,
+    newGroupName,
+    setNewGroupName,
+    groups,
     handleConversationClick,
     handleDeleteClick,
     handleBatchDelete,
@@ -265,6 +312,10 @@ export const useConversationActions = ({
     handleRenameConfirm,
     handleRenameCancel,
     handleTogglePin,
+    handleMoveToGroup,
+    handleCreateAndMoveToGroup,
+    handleNewGroupConfirm,
+    handleNewGroupCancel,
     handleMenuVisibleChange,
     handleOpenMenu,
   };
