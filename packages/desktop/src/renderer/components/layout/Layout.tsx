@@ -61,7 +61,7 @@ const useDebug = () => {
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 250;
-const DESKTOP_COLLAPSED_WIDTH = 64;
+const DESKTOP_COLLAPSED_WIDTH = 0;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
 const MOBILE_SIDER_WIDTH_RATIO = 0.67;
@@ -431,7 +431,7 @@ const Layout: React.FC<{
 
           <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
             <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 64}
+              collapsedWidth={isMobile ? 0 : 0}
               collapsed={collapsed}
               width={siderWidth}
               className={classNames('!bg-2 layout-sider', {
@@ -441,7 +441,7 @@ const Layout: React.FC<{
             >
               <ArcoLayout.Header
                 className={classNames(
-                  'flex items-center justify-start py-8px px-16px pl-20px gap-12px layout-sider-header',
+                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
                   isMobile && 'layout-sider-header--mobile',
                   {
                     'cursor-pointer group ': collapsed,
@@ -449,14 +449,14 @@ const Layout: React.FC<{
                 )}
               >
                 <div
-                  className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
+                  className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
                     '!size-24px': collapsed,
                   })}
                   onClick={onClick}
                 >
                   <svg
                     className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                      ' scale-140': !collapsed,
+                      'scale-140': !collapsed,
                     })}
                     viewBox='0 0 80 80'
                     fill='none'
@@ -477,7 +477,7 @@ const Layout: React.FC<{
                     ></path>
                   </svg>
                 </div>
-                <div className='flex-1 text-20px text-1 collapsed-hidden font-bold'>AionUi</div>
+                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
                 {isMobile && !collapsed && (
                   <button
                     type='button'
@@ -494,7 +494,7 @@ const Layout: React.FC<{
                 )}
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
               </ArcoLayout.Header>
-              <ArcoLayout.Content className='pt-8px px-8px pb-0 layout-sider-content'>
+              <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
                 {React.isValidElement(sider)
                   ? React.cloneElement(sider, {
                       onSessionClick: () => {

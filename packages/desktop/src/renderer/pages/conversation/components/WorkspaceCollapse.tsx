@@ -21,6 +21,9 @@ interface WorkspaceCollapseProps {
   className?: string;
   /** 侧栏是否折叠 - 折叠时隐藏组标题并移除缩进 */
   siderCollapsed?: boolean;
+  /** 子级内容是否做 20px 左缩进。默认 true。
+   *  传 false 的场景：使用方自己通过 dimIcon 等机制表达层级（例如 cron job 子级）。 */
+  nestedIndent?: boolean;
 }
 
 /**
@@ -33,6 +36,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
   children,
   className,
   siderCollapsed = false,
+  nestedIndent = true,
 }) => {
   // 侧栏折叠时，强制展开内容并隐藏头部
   const showContent = siderCollapsed || expanded;
@@ -42,15 +46,15 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
         <div
-          className='flex items-center gap-8px h-40px px-10px cursor-pointer hover:bg-[rgba(var(--primary-6),0.14)] rd-8px transition-colors min-w-0'
+          className='flex items-center gap-8px h-34px pl-10px pr-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
           onClick={onToggle}
         >
-          {/* 展开/收起文件夹图标 — 28px 容器与其他 sider 行对齐 */}
-          <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+          {/* 文件夹图标 — 22px 容器，颜色与 header 文本同步退一层 */}
+          <span className='size-22px flex items-center justify-center shrink-0 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors'>
             {expanded ? (
-              <FolderOpen size={20} className='line-height-0' />
+              <FolderOpen theme='outline' size={16} fill='currentColor' className='line-height-0' />
             ) : (
-              <FolderClose size={20} className='line-height-0' />
+              <FolderClose theme='outline' size={16} fill='currentColor' className='line-height-0' />
             )}
           </span>
 
@@ -59,9 +63,13 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
         </div>
       )}
 
-      {/* 折叠内容 - 子项缩进 20px,使子项 icon 中心落在父级文字起点附近,形成清晰的层级 */}
+      {/* 折叠内容 — 是否缩进由 nestedIndent 控制 */}
       {showContent && (
-        <div className={classNames('workspace-collapse-content min-w-0', { 'pl-20px': !siderCollapsed })}>
+        <div
+          className={classNames('workspace-collapse-content min-w-0', {
+            'pl-20px': nestedIndent && !siderCollapsed,
+          })}
+        >
           {children}
         </div>
       )}
