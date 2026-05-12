@@ -227,8 +227,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   const sider = useMemo(() => {
     if (!workspaceEnabled || !dispatchConversation) return <div />;
-    return <ChatSlider conversation={dispatchConversation} team_id={team.id} />;
-  }, [workspaceEnabled, dispatchConversation, team.id]);
+    return <ChatSlider conversation={dispatchConversation} />;
+  }, [workspaceEnabled, dispatchConversation]);
 
   const updateScrollArrows = useCallback(() => {
     const container = scrollContainerRef.current;

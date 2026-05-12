@@ -136,25 +136,23 @@ export const conversation = {
     fromApiConversation
   ),
   createWithConversation: withResponseMap(
-    httpPost<
-      TChatConversation,
-      { conversation: TChatConversation; source_conversation_id?: string; migrate_cron?: boolean }
-    >('/api/conversations/clone', (p) => {
-      const isAionrs = p.conversation.type === 'aionrs';
-      const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
-        model?: TProviderWithModel;
-      };
-      const conversation: Record<string, unknown> = { ...rest };
-      if (isAionrs) {
-        const model = toApiModelOptional(_rawModel);
-        if (model) conversation.model = model;
+    httpPost<TChatConversation, { conversation: TChatConversation }>(
+      '/api/conversations/clone',
+      (p) => {
+        const isAionrs = p.conversation.type === 'aionrs';
+        const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
+          model?: TProviderWithModel;
+        };
+        const conversation: Record<string, unknown> = { ...rest };
+        if (isAionrs) {
+          const model = toApiModelOptional(_rawModel);
+          if (model) conversation.model = model;
+        }
+        return {
+          conversation,
+        };
       }
-      return {
-        source_conversation_id: p.source_conversation_id,
-        migrate_cron: p.migrate_cron,
-        conversation,
-      };
-    }),
+    ),
     fromApiConversation
   ),
   get: withResponseMap(
@@ -1671,10 +1669,6 @@ export const team = {
   setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
     (p) => `/api/teams/${p.team_id}/session-mode`,
     (p) => ({ session_mode: p.session_mode })
-  ),
-  updateWorkspace: httpPost<void, { team_id: string; workspace: string }>(
-    (p) => `/api/teams/${p.team_id}/workspace`,
-    (p) => ({ workspace: p.workspace })
   ),
   agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agent.status'),
   agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agent.spawned'),
