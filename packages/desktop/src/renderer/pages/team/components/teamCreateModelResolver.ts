@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -52,7 +52,7 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 }
 
 async function resolveAionrsDefaultModel(): Promise<string> {
-  const saved = await ConfigStorage.get('aionrs.defaultModel').catch((): undefined => undefined);
+  const saved = configService.get('aionrs.defaultModel');
   if (saved && typeof saved === 'object' && typeof saved.use_model === 'string' && saved.use_model.length > 0) {
     return saved.use_model;
   }
