@@ -19,6 +19,7 @@ let tray: TrayInstance | null = null;
 let closeToTrayEnabled = false;
 let isQuitting = false;
 let mainWindowRef: BrowserWindow | null = null;
+let cachedActiveCount = 0;
 
 export const setTrayMainWindow = (win: BrowserWindow): void => {
   mainWindowRef = win;
@@ -65,9 +66,7 @@ const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
     }
   };
 
-  // Backend-managed task count is not yet exposed via HTTP; hardcode 0 until
-  // GET /api/conversations/active-count lands (see audit section 4.9.4).
-  const getRunningTasksCount = (): number => 0;
+  const getRunningTasksCount = (): number => cachedActiveCount;
 
   const recentConversations = await getRecentConversations();
   const runningTasksCount = getRunningTasksCount();
@@ -265,19 +264,43 @@ export const createOrUpdateTray = (): void => {
         void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
       }
     });
+
+    void fetchActiveCountAndMaybeRebuild();
   } catch (err) {
     console.error('[Tray] Failed to create tray:', err);
   }
 };
 
 /**
+ * Rebuild tray menu with current cached state (synchronous wrapper).
+ */
+const rebuildTrayMenu = (): void => {
+  if (!tray) return;
+  void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+};
+
+/**
+ * Fetch active count from backend, update cache if changed, and rebuild menu.
+ */
+const fetchActiveCountAndMaybeRebuild = async (): Promise<void> => {
+  try {
+    const { count } = await ipcBridge.conversation.activeCount.invoke();
+    if (count !== cachedActiveCount) {
+      cachedActiveCount = count;
+      rebuildTrayMenu();
+    }
+  } catch {
+    // Keep last cached value on error
+  }
+};
+
+/**
  * Refresh tray context menu labels (called on language change).
+ * Immediately rebuilds with current cache, then fetches latest count.
  */
 export const refreshTrayMenu = async (): Promise<void> => {
-  if (tray) {
-    const menu = await buildTrayContextMenu();
-    tray.setContextMenu(menu);
-  }
+  rebuildTrayMenu();
+  await fetchActiveCountAndMaybeRebuild();
 };
 
 /**
