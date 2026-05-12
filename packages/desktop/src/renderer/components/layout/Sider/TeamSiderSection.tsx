@@ -148,14 +148,12 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
       ) : (
         <div className='shrink-0 flex flex-col gap-2px'>
           <div
-            className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-4px'
+            className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-4px cursor-pointer'
             data-testid='team-section-toggle'
+            onClick={() => setExpanded((v) => !v)}
           >
-            <span className='text-14px text-t-secondary font-[450] leading-none'>{t('team.sider.title')}</span>
-            <span
-              className='ml-2px flex items-center justify-center cursor-pointer opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'
-              onClick={() => setExpanded((v) => !v)}
-            >
+            <span className='text-14px text-t-secondary group-hover/label:text-t-primary transition-colors font-[500] leading-none'>{t('team.sider.title')}</span>
+            <span className='ml-2px flex items-center justify-center opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'>
               <Right
                 theme='outline'
                 size={12}
@@ -167,7 +165,10 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             <div
               data-testid='team-create-btn'
               className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary opacity-0 group-hover/label:opacity-100 transition-opacity'
-              onClick={() => setCreateTeamVisible(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setCreateTeamVisible(true);
+              }}
             >
               <Plus theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
             </div>

@@ -71,19 +71,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     ({ sectionKey, label, trailing }: { sectionKey: string; label: string; trailing?: React.ReactNode }) => {
       const isCollapsed = collapsedSections.has(sectionKey);
       return (
-        <div className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-4px'>
-          <span className='text-14px text-t-secondary font-[450] leading-none'>{label}</span>
-          <span
-            className='ml-2px flex items-center justify-center cursor-pointer opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'
-            onClick={() => toggleSection(sectionKey)}
-          >
+        <div
+          className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-4px cursor-pointer'
+          onClick={() => toggleSection(sectionKey)}
+        >
+          <span className='text-14px text-t-secondary group-hover/label:text-t-primary transition-colors font-[500] leading-none'>{label}</span>
+          <span className='ml-2px flex items-center justify-center opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'>
             <Right
               theme='outline'
               size={12}
               className={classNames('transition-transform duration-150', { 'rotate-90': !isCollapsed })}
             />
           </span>
-          {trailing && <div className='ml-auto'>{trailing}</div>}
+          {trailing && (
+            <div className='ml-auto' onClick={(e) => e.stopPropagation()}>
+              {trailing}
+            </div>
+          )}
         </div>
       );
     },
@@ -560,7 +564,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                       onToggle={() => handleToggleWorkspace(group.workspace)}
                       siderCollapsed={collapsed}
                       header={
-                        <span className='text-14px font-[450] truncate flex-1 text-t-primary min-w-0'>
+                        <span className='text-14px font-[500] truncate flex-1 text-t-primary min-w-0'>
                           {group.displayName}
                         </span>
                       }
@@ -629,7 +633,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 <div key={section.timeline} className='min-w-0'>
                   {!collapsed && conversationOnlySections.length > 1 && (
                     <div className='flex items-center px-16px h-24px select-none'>
-                      <span className='text-12px text-t-secondary font-[450] leading-none'>{section.timeline}</span>
+                      <span className='text-12px text-t-secondary font-[500] leading-none'>{section.timeline}</span>
                     </div>
                   )}
                   {section.items.map((item) =>

@@ -74,7 +74,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
             )}
           >
             <span className='size-22px flex items-center justify-center shrink-0 text-t-secondary'>{settingsIcon}</span>
-            <span className='collapsed-hidden text-t-primary text-14px font-[450] leading-24px truncate'>
+            <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px truncate'>
               {isSettings ? t('common.back') : t('common.settings')}
             </span>
           </div>
@@ -98,7 +98,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
                   style={{ lineHeight: 0 }}
                 />
               </span>
-              <span className='collapsed-hidden text-t-primary text-14px font-[450] leading-24px truncate'>
+              <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px truncate'>
                 {t('settings.googleLogout')}
               </span>
             </div>

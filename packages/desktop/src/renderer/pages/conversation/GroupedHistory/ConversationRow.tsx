@@ -188,7 +188,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             popupHoverStay={false}
             position='top'
           >
-            <div className='chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px font-[450] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
+            <div className='chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
               <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
             </div>
           </Tooltip>

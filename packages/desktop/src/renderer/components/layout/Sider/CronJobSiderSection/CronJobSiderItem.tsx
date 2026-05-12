@@ -328,7 +328,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
           onClick={() => onNavigate(`/scheduled/${job.id}`)}
         >
           <div className='flex items-center gap-8px min-w-0'>
-            <span className='cron-job-name text-14px truncate flex-1 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors min-w-0 font-[450]'>
+            <span className='cron-job-name text-14px truncate flex-1 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors min-w-0 font-[500]'>
               {job.name}
             </span>
           </div>
@@ -349,7 +349,7 @@ const CronJobSiderItem: React.FC<CronJobSiderItemProps> = ({
                   siderCollapsed={false}
                   header={
                     <div className='flex items-center gap-8px min-w-0'>
-                      <span className='text-14px font-[450] truncate flex-1 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors min-w-0'>
+                      <span className='text-14px font-[500] truncate flex-1 text-[var(--color-text-2)] group-hover:text-t-primary transition-colors min-w-0'>
                         {/* Workspace groups here only contain custom (user-chosen) workspaces */}
                         {getWorkspaceDisplayName(ws, false, t)}
                       </span>
