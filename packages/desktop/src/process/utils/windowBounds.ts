@@ -24,12 +24,12 @@ export type WindowBounds = {
 export const MIN_WINDOW_WIDTH = 400;
 export const MIN_WINDOW_HEIGHT = 600;
 
-// Default window fills 80% of the primary display horizontally and 92%
+// Default window fills 80% of the primary display horizontally and 95%
 // vertically. The tall aspect ratio favors chat / long-form content and
 // avoids the cramped strip shape that a square would have on ultrawide
 // monitors.
 const DEFAULT_WIDTH_RATIO = 0.8;
-const DEFAULT_HEIGHT_RATIO = 0.92;
+const DEFAULT_HEIGHT_RATIO = 0.95;
 
 // Disk writes are debounced so dragging the window doesn't trigger dozens
 // of ProcessConfig.set calls per second.
