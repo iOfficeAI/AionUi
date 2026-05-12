@@ -16,10 +16,9 @@ import { getSystemDir, ProcessEnv } from '@process/utils/initStorage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, resolveCliSafePath } from '@process/utils';
 
 export function initApplicationBridgeCore(): void {
-  ipcBridge.application.systemInfo.provider(() => {
-    return Promise.resolve(getSystemDir());
-  });
-
+  // application.systemInfo is served by the backend via HTTP; updateSystemInfo
+  // and getPath below remain buildProvider (true IPC) because they need
+  // main-process-only APIs (copyDirectoryRecursively, os.homedir()).
   ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) => {
     const safeCacheDir = resolveCliSafePath(cacheDir, getConfigPath());
     const safeWorkDir = resolveCliSafePath(workDir, getDataPath());

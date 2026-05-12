@@ -44,52 +44,9 @@ export function onLanguageChanged(listener: LanguageChangeListener): void {
 }
 
 export function initSystemSettingsBridge(): void {
-  // 获取"关闭到托盘"设置 / Get "close to tray" setting
-  ipcBridge.systemSettings.getCloseToTray.provider(async () => {
-    const value = await ProcessConfig.get('system.closeToTray');
-    return value ?? false;
-  });
-
-  // 设置"关闭到托盘"，先持久化再通知主进程
-  // Set "close to tray", persist first then notify main process
-  ipcBridge.systemSettings.setCloseToTray.provider(async ({ enabled }) => {
-    // 先持久化到配置存储
-    await ProcessConfig.set('system.closeToTray', enabled);
-    // 然后通知主进程更新托盘状态
-    _changeListener?.(enabled);
-  });
-
-  // 获取"任务完成通知"设置 / Get "task completion notification" setting
-  ipcBridge.systemSettings.getNotificationEnabled.provider(async () => {
-    const value = await ProcessConfig.get('system.notificationEnabled');
-    return value ?? true; // 默认开启 / Default enabled
-  });
-
-  // 设置"任务完成通知" / Set "task completion notification"
-  ipcBridge.systemSettings.setNotificationEnabled.provider(async ({ enabled }) => {
-    // 先持久化到配置存储
-    await ProcessConfig.set('system.notificationEnabled', enabled);
-  });
-
-  // 获取"定时任务通知"设置 / Get "scheduled task notification" setting
-  ipcBridge.systemSettings.getCronNotificationEnabled.provider(async () => {
-    const value = await ProcessConfig.get('system.cronNotificationEnabled');
-    return value ?? false; // 默认关闭 / Default disabled
-  });
-
-  // 设置"定时任务通知" / Set "scheduled task notification"
-  ipcBridge.systemSettings.setCronNotificationEnabled.provider(async ({ enabled }) => {
-    // 先持久化到配置存储
-    await ProcessConfig.set('system.cronNotificationEnabled', enabled);
-  });
-
-  // Get "keep awake" setting
-  ipcBridge.systemSettings.getKeepAwake.provider(async () => {
-    const value = await ProcessConfig.get('system.keepAwake');
-    return value ?? false;
-  });
-
-  // Set "keep awake" — toggle prevent-display-sleep blocker
+  // Set "keep awake" — toggle prevent-display-sleep blocker.
+  // getKeepAwake is served by the backend via HTTP; only the setter remains
+  // because it drives the local power.preventDisplaySleep blocker.
   ipcBridge.systemSettings.setKeepAwake.provider(async ({ enabled }) => {
     await ProcessConfig.set('system.keepAwake', enabled);
     const power = getPlatformServices().power;
@@ -126,28 +83,6 @@ export function initSystemSettingsBridge(): void {
     .catch((err) => {
       console.warn('[SystemSettings] Failed to restore keep-awake:', err);
     });
-
-  // 获取"上传文件保存到工作区"设置 / Get "save uploads to workspace" setting
-  ipcBridge.systemSettings.getSaveUploadToWorkspace.provider(async () => {
-    const value = await ProcessConfig.get('upload.saveToWorkspace');
-    return value ?? true; // 默认开启 / Default enabled
-  });
-
-  // 设置"上传文件保存到工作区" / Set "save uploads to workspace"
-  ipcBridge.systemSettings.setSaveUploadToWorkspace.provider(async ({ enabled }) => {
-    await ProcessConfig.set('upload.saveToWorkspace', enabled);
-  });
-
-  // 获取"自动预览新建 Office 文件"设置 / Get "auto preview new Office files" setting
-  ipcBridge.systemSettings.getAutoPreviewOfficeFiles.provider(async () => {
-    const value = await ProcessConfig.get('system.autoPreviewOfficeFiles');
-    return value ?? true; // 默认开启 / Default enabled
-  });
-
-  // 设置"自动预览新建 Office 文件" / Set "auto preview new Office files"
-  ipcBridge.systemSettings.setAutoPreviewOfficeFiles.provider(async ({ enabled }) => {
-    await ProcessConfig.set('system.autoPreviewOfficeFiles', enabled);
-  });
 
   // Desktop pet settings
   ipcBridge.systemSettings.getPetEnabled.provider(async () => {
