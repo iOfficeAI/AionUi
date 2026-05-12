@@ -15,7 +15,6 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { McpSource } from '../types/mcpTypes';
 import type { AcpModelInfo } from '../types/acpTypes';
 import type {
   TTeam,
@@ -758,7 +757,7 @@ export const acpConversation = {
 
 export const mcpService = {
   getAgentMcpConfigs: httpGet<
-    Array<{ source: McpSource; servers: IMcpServer[] }>,
+    Array<{ source: string; servers: IMcpServer[] }>,
     Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
