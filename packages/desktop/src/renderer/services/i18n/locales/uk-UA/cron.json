@@ -103,7 +103,9 @@
       "workspaceHint": "Опціонально: встановіть папку робочої області для операцій з файлами",
       "selectFolder": "Вибрати папку",
       "clearFolder": "Очистити",
-      "model": "Модель"
+      "model": "Модель",
+      "aionrsModelRequired": "Виберіть модель для Aion CLI",
+      "aionrsNoProvider": "Немає доступних моделей"
     },
     "freq": {
       "manual": "Вручну",

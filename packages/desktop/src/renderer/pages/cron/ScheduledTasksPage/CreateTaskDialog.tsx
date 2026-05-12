@@ -20,7 +20,6 @@ import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import {
-  ACP_BACKENDS_ALL,
   type AcpBackendAll,
   type AcpModelInfo,
   type AcpSessionConfigOption,
@@ -246,25 +245,42 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
-  // AionCLI does not support Google Auth — filter it out (mirrors GuidPage.tsx logic)
+  // Providers compatible with aionrs (AionCLI does not support Google Auth).
+  // Computed independent of the current selection so the agent dropdown can
+  // disable the aionrs entry when no provider is configured.
+  const aionrsProviders = useMemo(
+    () => providers.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth')),
+    [providers]
+  );
+  const hasAionrsProvider = aionrsProviders.length > 0;
+
   const filteredProviders = useMemo(
-    () =>
-      resolvedBackend === 'aionrs'
-        ? providers.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth'))
-        : providers,
-    [resolvedBackend, providers]
+    () => (resolvedBackend === 'aionrs' ? aionrsProviders : providers),
+    [resolvedBackend, providers, aionrsProviders]
   );
 
-  // Build Gemini current_model from model_id for GuidModelSelector
+  // Build Gemini current_model from model_id for GuidModelSelector.
+  // For aionrs edit mode, prefer the exact provider_id stored on the job —
+  // the same model name may exist across multiple providers, so fuzzy match
+  // would pick the wrong provider.
   const geminiCurrentModel = useMemo<TProviderWithModel | undefined>(() => {
-    if ((resolvedBackend !== 'gemini' && resolvedBackend !== 'aionrs') || !model_id) return undefined;
+    if (resolvedBackend !== 'aionrs' || !model_id) return undefined;
+
+    const editedProviderId = resolvedBackend === 'aionrs' ? editJob?.metadata.agent_config?.backend : undefined;
+    if (editedProviderId) {
+      const byId = filteredProviders.find((p) => p.id === editedProviderId);
+      if (byId && getAvailableModels(byId).includes(model_id)) {
+        return { ...byId, use_model: model_id } as TProviderWithModel;
+      }
+    }
+
     for (const p of filteredProviders) {
       if (getAvailableModels(p).includes(model_id)) {
         return { ...p, use_model: model_id } as TProviderWithModel;
       }
     }
     return undefined;
-  }, [resolvedBackend, model_id, filteredProviders, getAvailableModels]);
+  }, [resolvedBackend, model_id, filteredProviders, getAvailableModels, editJob]);
 
   const handleGeminiModelSelect = useCallback(async (model: TProviderWithModel) => {
     setModelId(model.use_model);
@@ -397,14 +413,30 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (agentKind === 'cli') {
       const agent = cliAgents.find((a) => a.backend === agentId || a.agent_type === agentId);
       const backend = (agent?.backend || agent?.agent_type || agentId) as AgentBackend;
-      const backendConfig = (ACP_BACKENDS_ALL as Record<string, { name: string } | undefined>)[backend];
-      if (backendConfig) {
+
+      if (backend === 'aionrs') {
+        // aionrs stores provider_id in `agent_config.backend` and the model
+        // name in `model_id` — different semantic from ACP, where backend is
+        // a vendor label. The executor looks up the provider row by this id.
+        if (!geminiCurrentModel || !model_id) {
+          throw new Error(t('cron.page.form.aionrsModelRequired'));
+        }
+        resolvedAgentType = 'aionrs' as ICreateCronJobParams['agent_type'];
+        agent_config = {
+          backend: geminiCurrentModel.id as AgentBackend,
+          name: geminiCurrentModel.name,
+          mode: getFullAutoMode('aionrs'),
+          model_id,
+          workspace,
+        };
+      } else if (agent?.agent_type === 'acp') {
+        const capitalizedBackend = backend.charAt(0).toUpperCase() + backend.slice(1);
         resolvedAgentType = backend as AcpBackendAll;
         agent_config = {
           // cli_path is no longer sent from the frontend — the backend
           // resolves it server-side from the `agent_metadata` catalog.
           backend,
-          name: agent?.name || backendConfig.name,
+          name: agent.name || capitalizedBackend,
           mode: getFullAutoMode(backend),
           model_id,
           config_options: mergedConfigOptions,
@@ -581,15 +613,22 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       icon: agent.icon,
                       backend: agentKey,
                     });
+                    const disabled = agentKey === 'aionrs' && !hasAionrsProvider;
                     return (
-                      <Option key={`cli:${agentKey}`} value={`cli:${agentKey}`}>
-                        <div className='flex items-center gap-8px'>
+                      <Option key={`cli:${agentKey}`} value={`cli:${agentKey}`} disabled={disabled}>
+                        <div
+                          className='flex items-center gap-8px'
+                          title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
+                        >
                           {logo ? (
                             <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
                           ) : (
                             <Robot size='16' />
                           )}
                           <span>{agent.name}</span>
+                          {disabled && (
+                            <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
+                          )}
                         </div>
                       </Option>
                     );
