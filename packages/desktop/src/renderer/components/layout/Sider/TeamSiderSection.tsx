@@ -164,7 +164,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                 如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
             <div
               data-testid='team-create-btn'
-              className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary opacity-0 group-hover/label:opacity-100 transition-opacity'
+              className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
               onClick={(e) => {
                 e.stopPropagation();
                 setCreateTeamVisible(true);
