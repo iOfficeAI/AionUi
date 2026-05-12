@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
@@ -28,6 +29,7 @@ import {
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -161,8 +163,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [config_options, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
   const [cached_config_options, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
-  const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
+
+  // Available agents from backend `/api/agents`, shared across SWR cache.
+  const { data: detectedAgents } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -296,16 +300,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     []
   );
 
-  // Load ACP cached model info when backend changes
-  useEffect(() => {
-    if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') {
-      setAcpCachedModelInfo(null);
-      return;
-    }
-    const cached = configService.get('acp.cachedModels');
-    const info = cached?.[resolvedBackend];
-    setAcpCachedModelInfo(info?.available_models?.length ? info : null);
-  }, [resolvedBackend]);
+  // ACP model info derived from the backend `/api/agents` handshake.
+  const acpCachedModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
+    const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
+    const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    return info?.available_models?.length ? info : null;
+  }, [resolvedBackend, detectedAgents]);
 
   // Set default model_id from user preferences when backend changes
   useEffect(() => {

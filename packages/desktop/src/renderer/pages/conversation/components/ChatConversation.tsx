@@ -319,9 +319,6 @@ const ChatConversation: React.FC<{
         />
       );
     }
-    if (conversation.type === 'codex') {
-      return <AcpModelSelector conversation_id={conversation.id} />;
-    }
     return <GoogleModelSelector disabled={true} />;
   }, [conversation, isAionrsConversation]);
 

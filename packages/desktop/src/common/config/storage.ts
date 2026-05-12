@@ -45,8 +45,6 @@ export interface IConfigStorageRefer {
   'acp.agentIdleTimeout'?: number;
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
-  // Cached model lists per ACP backend for Guid page pre-selection
-  'acp.cachedModels'?: Record<string, import('@/common/types/acpTypes').AcpModelInfo>;
   // Cached config options per ACP backend for Guid page pre-selection
   'acp.cached_config_options'?: Record<string, import('@/common/types/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector

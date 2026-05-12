@@ -40,7 +40,6 @@ export type GuidAgentSelectionResult = {
   customAgents: AgentMetadata[];
   selectedMode: string;
   setSelectedMode: React.Dispatch<React.SetStateAction<string>>;
-  acpCachedModels: Record<string, AcpModelInfo>;
   selectedAcpModel: string | null;
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
   currentAcpCachedModelInfo: AcpModelInfo | null;
@@ -105,7 +104,6 @@ export const useGuidAgentSelection = ({
   const selectedAgentRef = useRef<string | null>(null);
   // Guard: only run the initial restore once; user selections are never overwritten
   const initialRestoreDoneRef = useRef(false);
-  const [acpCachedModels, setAcpCachedModels] = useState<Record<string, AcpModelInfo>>({});
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const [cached_config_options, setCachedConfigOptions] = useState<AcpSessionConfigOption[]>([]);
   const [pending_config_options, setPendingConfigOptions] = useState<Record<string, string>>({});
@@ -337,12 +335,6 @@ export const useGuidAgentSelection = ({
     };
   }, [availableAgents, resetAssistant, locationKey]);
 
-  // Load cached ACP model lists
-  useEffect(() => {
-    const cached = configService.get('acp.cachedModels');
-    setAcpCachedModels(cached || {});
-  }, []);
-
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!is_presetAgent) {
       const isAvailable = isMainAgentAvailable(selectedAgent as string);
@@ -369,7 +361,7 @@ export const useGuidAgentSelection = ({
     setPendingConfigOptions({});
   }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
-  // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
+  // Reset selected ACP model when agent changes: prefer saved preference, fallback to handshake default
   useEffect(() => {
     // For preset agents, resolve to the actual backend type for config lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
@@ -380,11 +372,14 @@ export const useGuidAgentSelection = ({
       | undefined;
     if (preferred) {
       _setSelectedAcpModel(preferred);
-    } else {
-      const cachedInfo = acpCachedModels[backend];
-      _setSelectedAcpModel(cachedInfo?.current_model_id ?? null);
+      return;
     }
-  }, [selectedAgentKey, acpCachedModels, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
+
+    const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
+    const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
+    const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    _setSelectedAcpModel(handshakeModels?.current_model_id ?? null);
+  }, [selectedAgentKey, availableAgentsData, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
@@ -450,7 +445,7 @@ export const useGuidAgentSelection = ({
     // For preset agents, resolve to the actual backend type for model list lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
 
-    // Primary source: `handshake.available_models` from `/api/agents`.
+    // Source: `handshake.available_models` from `/api/agents`.
     // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
     // the agent_metadata row, so this is populated across restarts without
     // requiring a fresh session.
@@ -465,13 +460,9 @@ export const useGuidAgentSelection = ({
       return handshakeModels;
     }
 
-    // Secondary: legacy per-backend cache (kept for compatibility with
-    // flows that still write into `acp.cachedModels`).
-    const cached = acpCachedModels[backend];
-    if (cached) return cached;
-
-    // Fallback: when no cached models exist for codex (e.g., first launch or stale cache),
-    // use the hardcoded default list so the Guid page shows a model selector immediately.
+    // Fallback: when the backend has not yet observed a session for codex
+    // (e.g., first launch before any warmup), use the hardcoded default list
+    // so the Guid page shows a model selector immediately.
     if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
       return {
         current_model_id: DEFAULT_CODEX_MODELS[0].id,
@@ -481,7 +472,7 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, acpCachedModels, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
@@ -501,7 +492,6 @@ export const useGuidAgentSelection = ({
     customAgents,
     selectedMode,
     setSelectedMode,
-    acpCachedModels,
     selectedAcpModel,
     setSelectedAcpModel,
     currentAcpCachedModelInfo,
