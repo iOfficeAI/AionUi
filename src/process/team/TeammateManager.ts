@@ -39,6 +39,8 @@ export class TeammateManager extends EventEmitter {
 
   /** Tracks which slotIds currently have an in-progress wake to avoid loops */
   private readonly activeWakes = new Set<string>();
+  /** Slots whose wake() was deferred because activeWakes was set; drained after finalizeTurn */
+  private readonly pendingWakes = new Set<string>();
   /** Timeout handles for active wakes, keyed by slotId */
   private readonly wakeTimeouts = new Map<string, ReturnType<typeof setTimeout>>();
   /** O(1) lookup set of conversationIds owned by this team, for fast IPC event filtering */
@@ -93,7 +95,13 @@ export class TeammateManager extends EventEmitter {
    */
   async wake(slotId: string): Promise<void> {
     if (this.activeWakes.has(slotId)) {
-      console.debug(`[TeammateManager] wake(${slotId}): SKIPPED (activeWakes)`);
+      // Defer instead of dropping: record that a wake was requested while busy,
+      // so finalizeTurn can re-wake and pick up mailbox messages that arrived
+      // during the active turn. Without this, messages sent while the agent
+      // is processing are silently lost until the next wake trigger, causing
+      // responses to appear "offset by one" to the user.
+      this.pendingWakes.add(slotId);
+      console.debug(`[TeammateManager] wake(${slotId}): DEFERRED (activeWakes, will re-wake after finalize)`);
       return;
     }
 
@@ -273,6 +281,7 @@ export class TeammateManager extends EventEmitter {
     }
     this.wakeTimeouts.clear();
     this.activeWakes.clear();
+    this.pendingWakes.clear();
     this.removeAllListeners();
   }
 
@@ -430,6 +439,17 @@ export class TeammateManager extends EventEmitter {
         this.maybeWakeLeaderWhenAllIdle(leadAgent.slotId);
       }
     }
+
+    // Drain any wake requests that arrived while this agent was busy.
+    // Without this, mailbox messages sent during an active turn would wait
+    // until some future wake is triggered, making replies appear "offset by one".
+    if (this.pendingWakes.has(agent.slotId)) {
+      this.pendingWakes.delete(agent.slotId);
+      console.debug(`[TeammateManager] finalizeTurn: ${agent.agentName} has pending wake, re-waking`);
+      void this.wake(agent.slotId).catch((err) => {
+        console.error(`[TeammateManager] drain_pending_after_finalize wake(${agent.slotId}) failed:`, err);
+      });
+    }
   }
 
   /**
@@ -477,6 +497,7 @@ export class TeammateManager extends EventEmitter {
         this.wakeTimeouts.delete(agent.slotId);
       }
       this.activeWakes.delete(agent.slotId);
+      this.pendingWakes.delete(agent.slotId);
 
       this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
       return;
@@ -497,6 +518,7 @@ export class TeammateManager extends EventEmitter {
         this.wakeTimeouts.delete(agent.slotId);
       }
       this.activeWakes.delete(agent.slotId);
+      this.pendingWakes.delete(agent.slotId);
 
       // 3. Mark as failed (frontend shows error status, tab stays)
       this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
@@ -534,6 +556,7 @@ export class TeammateManager extends EventEmitter {
       this.wakeTimeouts.delete(agent.slotId);
     }
     this.activeWakes.delete(agent.slotId);
+    this.pendingWakes.delete(agent.slotId);
 
     // 4. Mark as failed (frontend shows error status, tab stays)
     this.setStatus(agent.slotId, 'failed', errorMessage.slice(0, 200));
@@ -565,6 +588,7 @@ export class TeammateManager extends EventEmitter {
       this.wakeTimeouts.delete(slotId);
     }
     this.activeWakes.delete(slotId);
+    this.pendingWakes.delete(slotId);
 
     // Clean up owned conversation tracking
     if (agent.conversationId) {
