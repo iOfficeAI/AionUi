@@ -1,4 +1,4 @@
-import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/acpTypes';
+import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 

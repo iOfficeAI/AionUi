@@ -15,7 +15,7 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { AcpModelInfo } from '../types/acpTypes';
+import type { AcpModelInfo } from '../types/platform/acpTypes';
 import type {
   TTeam,
   TeamAgent,
@@ -563,12 +563,12 @@ export const fileStream = {
 
 // File snapshot providers
 export const fileSnapshot = {
-  init: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/init'),
-  compare: httpPost<import('@/common/types/fileSnapshot').CompareResult, { workspace: string }>(
+  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/init'),
+  compare: httpPost<import('@/common/types/platform/fileSnapshot').CompareResult, { workspace: string }>(
     '/api/fs/snapshot/compare'
   ),
   getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/info'),
+  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/info'),
   dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
   stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
   stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
@@ -576,11 +576,11 @@ export const fileSnapshot = {
   unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
   discardFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    { workspace: string; file_path: string; operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation }
   >('/api/fs/snapshot/discard'),
   resetFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/fileSnapshot').FileChangeOperation }
+    { workspace: string; file_path: string; operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation }
   >('/api/fs/snapshot/reset'),
   getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
@@ -732,11 +732,11 @@ export const acpConversation = {
     (p) => ({ model_id: p.model_id })
   ),
   getConfigOptions: httpGet<
-    { config_options: import('../types/acpTypes').AcpSessionConfigOption[] },
+    { config_options: import('../types/platform/acpTypes').AcpSessionConfigOption[] },
     { conversation_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/config`),
   getConfigOption: httpGet<
-    { config_option: import('../types/acpTypes').AcpSessionConfigOption | null },
+    { config_option: import('../types/platform/acpTypes').AcpSessionConfigOption | null },
     { conversation_id: string; config_id: string }
   >((p) => `/api/conversations/${p.conversation_id}/config/${p.config_id}`),
   setConfigOptions: httpPut<
@@ -1267,7 +1267,7 @@ export interface ICreateConversationParams {
     session_mode?: string;
     codex_model?: string;
     current_model_id?: string;
-    cached_config_options?: import('../types/acpTypes').AcpSessionConfigOption[];
+    cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;
     runtime_validation?: {
       expected_workspace?: string;

@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { CompareResult, FileChangeInfo, SnapshotInfo } from '@/common/types/fileSnapshot';
+import type { CompareResult, FileChangeInfo, SnapshotInfo } from '@/common/types/platform/fileSnapshot';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 type UseFileChangesParams = {

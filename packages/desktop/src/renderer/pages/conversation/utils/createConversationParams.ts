@@ -18,7 +18,7 @@ import {
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
 import { fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
