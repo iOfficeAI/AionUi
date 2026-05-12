@@ -184,7 +184,7 @@ export const conversation = {
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
   stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/stop`),
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
-  sendMessage: httpPost<void, ISendMessageParams>(
+  sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
     (p) => ({
       content: p.input,
@@ -1228,6 +1228,13 @@ interface ISendMessageParams {
   files?: string[];
   loading_id?: string;
   inject_skills?: string[];
+}
+
+// Server-assigned identifier for the newly created user message. Clients must
+// use this as the canonical msg_id when rendering an optimistic bubble so the
+// local state aligns with DB rows and WebSocket stream events.
+export interface ISendMessageResult {
+  msg_id: string;
 }
 
 export interface IConfirmMessageParams {

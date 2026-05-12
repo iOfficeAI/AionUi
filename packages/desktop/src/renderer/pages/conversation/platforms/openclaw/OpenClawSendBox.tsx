@@ -279,24 +279,28 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     ({ conversation_id, text }) => {
       if (conversation_id !== conversation_id) return;
       // Show the simplified prompt to user, inject star-office-helper skill via main process
-      const msg_id = uuid();
-      const userMessage: TMessage = {
-        id: msg_id,
-        msg_id,
-        conversation_id,
-        type: 'text',
-        position: 'right',
-        content: { content: text },
-        created_at: Date.now(),
-      };
-      addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       aiProcessingRef.current = true;
       starOfficeInstallInFlightRef.current = true;
       void checkAndUpdateTitle(conversation_id, text);
+      // Fetch the server-assigned msg_id first so the optimistic bubble uses
+      // the same id as the persisted DB row.
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, conversation_id, inject_skills: ['star-office-helper'] })
-        .then(() => {
+        .then((res) => {
+          const { msg_id } = res;
+          const userMessage: TMessage = {
+            id: msg_id,
+            msg_id,
+            conversation_id,
+            type: 'text',
+            position: 'right',
+            content: { content: text },
+            created_at: Date.now(),
+          };
+          // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+          // by msg_id against the DB row that useMessageLstCache may insert.
+          addOrUpdateMessage(userMessage);
           emitter.emit('chat.history.refresh');
         })
         .catch(() => {
@@ -333,31 +337,38 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      const msg_id = uuid();
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
-      const userMessage: TMessage = {
-        id: msg_id,
-        msg_id,
-        conversation_id,
-        type: 'text',
-        position: 'right',
-        content: { content: displayMessage },
-        created_at: Date.now(),
-      };
-      addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       aiProcessingRef.current = true;
+      let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.openclawConversation.sendMessage.invoke({
+        // Wait for the server-assigned msg_id before rendering the optimistic
+        // user bubble so the local row uses the same id as the DB row and
+        // subsequent WebSocket stream events — avoids duplicate bubbles when
+        // useMessageLstCache reloads.
+        const res = await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
+        msg_id = res.msg_id;
+        const userMessage: TMessage = {
+          id: msg_id,
+          msg_id,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: displayMessage },
+          created_at: Date.now(),
+        };
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id against the DB row that useMessageLstCache may insert.
+        addOrUpdateMessage(userMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        removeMessageByMsgId(msg_id);
+        if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
         aiProcessingRef.current = false;
         throw error;
@@ -455,9 +466,19 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         setAiProcessing(true);
         aiProcessingRef.current = true;
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
-        const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
         const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+
+        void checkAndUpdateTitle(conversation_id, input);
+        // Fetch the server-assigned msg_id before rendering the optimistic
+        // bubble so the local row uses the same id as the persisted DB row.
+        const sendResult = await ipcBridge.openclawConversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          conversation_id,
+          files,
+          loading_id,
+        });
+        const { msg_id } = sendResult;
 
         const userMessage: TMessage = {
           id: msg_id,
@@ -468,15 +489,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           content: { content: initialDisplayMessage },
           created_at: Date.now(),
         };
-        addOrUpdateMessage(userMessage, true);
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id against the DB row that useMessageLstCache may insert.
+        addOrUpdateMessage(userMessage);
 
-        void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.openclawConversation.sendMessage.invoke({
-          input: initialDisplayMessage,
-          conversation_id,
-          files,
-          loading_id,
-        });
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {

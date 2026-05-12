@@ -47,29 +47,33 @@ export const useAcpInitialMessage = ({
         const input = typeof initialMessage.input === 'string' ? initialMessage.input : '';
         const files = Array.isArray(initialMessage.files) ? initialMessage.files : [];
         const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
-        const msg_id = uuid();
 
         setAiProcessing(true);
 
-        addOrUpdateMessage(
-          {
-            id: msg_id,
-            msg_id,
-            type: 'text',
-            position: 'right',
-            conversation_id,
-            content: { content: displayMessage },
-            created_at: Date.now(),
-          },
-          true
-        );
-
-        // Send the message
+        // POST first to obtain the server-assigned msg_id, then render the
+        // optimistic user bubble with that canonical id. Doing it in this
+        // order prevents `useMessageLstCache` from treating the optimistic
+        // row as a separate "streaming-only" entry when the DB load races
+        // with sendMessage — which previously produced two duplicated user
+        // bubbles on the first conversation render.
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.acpConversation.sendMessage.invoke({
+        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id: conversation_id,
           files,
+        });
+
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
+        // already inserted the DB row for this same msg_id.
+        addOrUpdateMessage({
+          id: msg_id,
+          msg_id,
+          type: 'text',
+          position: 'right',
+          conversation_id,
+          content: { content: displayMessage },
+          created_at: Date.now(),
         });
 
         // Initial message sent successfully

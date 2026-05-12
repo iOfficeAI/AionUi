@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
-import { uuid } from '@/common/utils';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
@@ -247,8 +246,20 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       try {
         sessionStorage.setItem(processedKey, 'true');
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
-        const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+
+        setAiProcessing(true);
+        aiProcessingRef.current = true;
+
+        void checkAndUpdateTitle(conversation_id, input);
+        // Fetch the server-assigned msg_id before rendering the optimistic
+        // bubble so the local row uses the same id as the persisted DB row.
+        const sendResult = await ipcBridge.conversation.sendMessage.invoke({
+          input: initialDisplayMessage,
+          conversation_id,
+          files,
+        });
+        const { msg_id } = sendResult;
 
         const userMessage: TMessage = {
           id: msg_id,
@@ -259,16 +270,10 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           content: { content: initialDisplayMessage },
           created_at: Date.now(),
         };
-        addOrUpdateMessage(userMessage, true);
-        setAiProcessing(true);
-        aiProcessingRef.current = true;
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id against the DB row that useMessageLstCache may insert.
+        addOrUpdateMessage(userMessage);
 
-        void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
-          input: initialDisplayMessage,
-          conversation_id,
-          files,
-        });
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch {
@@ -308,33 +313,39 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      const msg_id = uuid();
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
-      const userMessage: TMessage = {
-        id: msg_id,
-        msg_id,
-        conversation_id,
-        type: 'text',
-        position: 'right',
-        content: { content: displayMessage },
-        created_at: Date.now(),
-      };
-
-      addOrUpdateMessage(userMessage, true);
       setAiProcessing(true);
       aiProcessingRef.current = true;
 
+      let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
+        // Wait for the server-assigned msg_id before rendering the optimistic
+        // user bubble so the local row uses the same id as the DB row and
+        // subsequent WebSocket stream events — avoids duplicate bubbles when
+        // useMessageLstCache reloads.
+        const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
+        msg_id = res.msg_id;
+        const userMessage: TMessage = {
+          id: msg_id,
+          msg_id,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: displayMessage },
+          created_at: Date.now(),
+        };
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id against the DB row that useMessageLstCache may insert.
+        addOrUpdateMessage(userMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        removeMessageByMsgId(msg_id);
+        if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
         aiProcessingRef.current = false;
         throw error;

@@ -156,13 +156,25 @@ const AcpSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      const msg_id = uuid();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
       setAiProcessing(true);
 
-      addOrUpdateMessageRef.current(
-        {
+      try {
+        void checkAndUpdateTitle(conversation_id, input);
+        // Wait for the server-assigned msg_id before rendering the optimistic
+        // user bubble so the local row uses the same id as the DB row and
+        // subsequent WebSocket stream events — avoids duplicate bubbles when
+        // useMessageLstCache reloads.
+        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
+          input: displayMessage,
+          conversation_id,
+          files,
+        });
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
+        // already inserted the DB row for this same msg_id.
+        addOrUpdateMessageRef.current({
           id: msg_id,
           msg_id,
           type: 'text',
@@ -170,16 +182,6 @@ const AcpSendBox: React.FC<{
           conversation_id,
           content: { content: displayMessage },
           created_at: Date.now(),
-        },
-        true
-      );
-
-      try {
-        void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.acpConversation.sendMessage.invoke({
-          input: displayMessage,
-          conversation_id,
-          files,
         });
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {

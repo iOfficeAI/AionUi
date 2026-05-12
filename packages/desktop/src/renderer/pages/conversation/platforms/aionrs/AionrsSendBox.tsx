@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import { uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
@@ -162,13 +161,27 @@ const AionrsSendBox: React.FC<{
         throw new Error('No model selected');
       }
 
-      const msg_id = uuid();
-      setActiveMsgId(msg_id);
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      addOrUpdateMessage(
-        {
+      let msg_id: string | null = null;
+      try {
+        void checkAndUpdateTitle(conversation_id, input);
+        // Wait for the server-assigned msg_id before rendering the optimistic
+        // user bubble so the local row uses the same id as the DB row and
+        // subsequent WebSocket stream events — avoids duplicate bubbles when
+        // useMessageLstCache reloads.
+        const res = await ipcBridge.conversation.sendMessage.invoke({
+          input: displayMessage,
+          conversation_id,
+          files,
+        });
+        msg_id = res.msg_id;
+        setActiveMsgId(msg_id);
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
+        // already inserted the DB row for this same msg_id.
+        addOrUpdateMessage({
           id: msg_id,
           msg_id,
           type: 'text',
@@ -178,23 +191,13 @@ const AionrsSendBox: React.FC<{
             content: displayMessage,
           },
           created_at: Date.now(),
-        },
-        true
-      );
-
-      try {
-        void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
-          input: displayMessage,
-          conversation_id,
-          files,
         });
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
       } catch (error) {
-        removeMessageByMsgId(msg_id);
+        if (msg_id) removeMessageByMsgId(msg_id);
         throw error;
       }
     },
