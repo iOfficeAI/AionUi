@@ -109,12 +109,7 @@ const ScheduledTasksPage: React.FC = () => {
             >
               {t('cron.scheduledTasks')}
             </h1>
-            <Button
-              type='primary'
-              shape='round'
-              className='shrink-0'
-              onClick={() => setCreateDialogVisible(true)}
-            >
+            <Button type='primary' shape='round' className='shrink-0' onClick={() => setCreateDialogVisible(true)}>
               {t('cron.page.newTask')}
             </Button>
           </div>

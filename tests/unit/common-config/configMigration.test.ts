@@ -144,9 +144,7 @@ describe('configMigration', () => {
 
   describe('migrateProviders', () => {
     it('skips when all legacy providers already exist in backend', async () => {
-      const legacyProviders = [
-        { id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] },
-      ];
+      const legacyProviders = [{ id: 'p1', platform: 'openai', name: 'P1', baseUrl: '', apiKey: '', model: ['gpt-4'] }];
       const configFile: ConfigFile = {
         get: vi.fn((key: string) => {
           if (key === 'model.config') return Promise.resolve(legacyProviders as never);
@@ -161,10 +159,7 @@ describe('configMigration', () => {
 
       expect(ipcBridge.mode.createProvider.invoke).not.toHaveBeenCalled();
       expect(configFile.set).not.toHaveBeenCalled();
-      expect(infoSpy).toHaveBeenCalledWith(
-        expect.stringContaining('already exist in backend'),
-        1
-      );
+      expect(infoSpy).toHaveBeenCalledWith(expect.stringContaining('already exist in backend'), 1);
     });
 
     it('migrates 4 legacy providers with field mapping', async () => {

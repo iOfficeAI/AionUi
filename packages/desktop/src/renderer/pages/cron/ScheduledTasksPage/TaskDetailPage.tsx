@@ -223,12 +223,7 @@ const TaskDetailPage: React.FC = () => {
                     icon={<Delete theme='outline' size={16} fill='currentColor' />}
                   />
                 </Popconfirm>
-                <Button
-                  type='primary'
-                  shape='round'
-                  loading={runningNow}
-                  onClick={handleRunNow}
-                >
+                <Button type='primary' shape='round' loading={runningNow} onClick={handleRunNow}>
                   {t('cron.detail.runNow')}
                 </Button>
               </div>
