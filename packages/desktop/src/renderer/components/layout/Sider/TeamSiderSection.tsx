@@ -151,7 +151,7 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             className='group/label sider-section-label flex items-center px-12px h-28px select-none sticky top-0 z-10 mt-4px'
             data-testid='team-section-toggle'
           >
-            <span className='text-12px text-t-secondary font-normal leading-none'>{t('team.sider.title')}</span>
+            <span className='text-14px text-t-secondary font-normal leading-none'>{t('team.sider.title')}</span>
             <span
               className='ml-2px flex items-center justify-center cursor-pointer opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'
               onClick={() => setExpanded((v) => !v)}
