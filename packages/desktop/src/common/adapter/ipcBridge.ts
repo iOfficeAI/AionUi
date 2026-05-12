@@ -563,12 +563,16 @@ export const fileStream = {
 
 // File snapshot providers
 export const fileSnapshot = {
-  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/init'),
+  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    '/api/fs/snapshot/init'
+  ),
   compare: httpPost<import('@/common/types/platform/fileSnapshot').CompareResult, { workspace: string }>(
     '/api/fs/snapshot/compare'
   ),
   getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>('/api/fs/snapshot/info'),
+  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
+    '/api/fs/snapshot/info'
+  ),
   dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
   stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
   stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
@@ -576,11 +580,19 @@ export const fileSnapshot = {
   unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
   discardFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation }
+    {
+      workspace: string;
+      file_path: string;
+      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
+    }
   >('/api/fs/snapshot/discard'),
   resetFile: httpPost<
     void,
-    { workspace: string; file_path: string; operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation }
+    {
+      workspace: string;
+      file_path: string;
+      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
+    }
   >('/api/fs/snapshot/reset'),
   getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };

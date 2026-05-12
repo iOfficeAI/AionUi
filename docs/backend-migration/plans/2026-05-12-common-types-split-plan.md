@@ -60,16 +60,16 @@ The root-level `tsconfig.json` includes `packages/desktop/src/**/*`, so ambient 
 
 All type files except two have **zero** file-to-file `common/types/*` imports. The only internal dependencies:
 
-| File                  | Internal dependency on `common/types/*`                        |
-| --------------------- | -------------------------------------------------------------- |
-| `agentModes.ts`       | `codex/codexModes` (kept as-is — `codex/` untouched)           |
-| `remoteAgentTypes.ts` | `detectedAgent.ts` (re-exports `RemoteAgentProtocol` et al.)   |
+| File                  | Internal dependency on `common/types/*`                      |
+| --------------------- | ------------------------------------------------------------ |
+| `agentModes.ts`       | `codex/codexModes` (kept as-is — `codex/` untouched)         |
+| `remoteAgentTypes.ts` | `detectedAgent.ts` (re-exports `RemoteAgentProtocol` et al.) |
 
 **External deps (from `common/types/*` into other parts of `common/`)**:
 
-| File           | External dep                                      |
-| -------------- | ------------------------------------------------- |
-| `database.ts`  | `../chat/chatLib`, `../config/storage`            |
+| File             | External dep                                               |
+| ---------------- | ---------------------------------------------------------- |
+| `database.ts`    | `../chat/chatLib`, `../config/storage`                     |
 | `providerApi.ts` | `@/common/config/storage` (`IProvider`, `ModelCapability`) |
 
 After a move, only **these two** same-dir-style imports need updating alongside consumers:
@@ -86,25 +86,25 @@ grep -rn "types/<basename>" packages/ scripts/ tests/ --include='*.ts' --include
   | grep -v "common/types/<basename>\." | awk -F: '{print $1}' | sort -u | wc -l
 ```
 
-| File                   | Consumers | Where they live                                                                 |
-| ---------------------- | --------- | ------------------------------------------------------------------------------- |
-| `acpTypes.ts`          | 10        | `common/adapter`, `common/chat`, `common/config`, `renderer/components/agent`, `renderer/pages/*` |
-| `agentModes.ts`        | 2         | `renderer/utils/model`, `tests/e2e`                                             |
-| `assistantTypes.ts`    | 17        | `common/adapter`, `process/utils`, wide renderer (hooks/assistant + pages/guid + pages/settings + pages/team) + 1 test |
-| `channel.ts`           | 7         | `common/adapter` + `renderer/components/settings/.../channels/*`                |
-| `conversion.ts`        | 1         | `common/adapter/ipcBridge.ts` (dynamic `import()`)                              |
-| `database.ts`          | 3         | `common/adapter/searchMapper`, `process/services/database`, `renderer/pages/conversation/GroupedHistory` |
-| `detectedAgent.ts`     | 2 (+1 intra-types) | `renderer/pages/team/components`, `common/types/remoteAgentTypes.ts` |
-| `electron.ts`          | 1         | `common/adapter/browser.ts`                                                     |
-| `fileSnapshot.ts`      | 3         | `common/adapter/ipcBridge`, `renderer/pages/conversation/Workspace`             |
-| `hub.ts`               | 3         | `common/adapter/ipcBridge`, `renderer/hooks/agent`, `renderer/pages/settings/AgentSettings` |
-| `preview.ts`           | 12        | `common/adapter/ipcBridge`, `common/chat/navigation`, wide renderer (preview page + workspace hook + utils) |
-| `providerApi.ts`       | 2         | `common/adapter/ipcBridge`, `common/config/configMigration`                     |
-| `remoteAgentTypes.ts`  | 2         | `common/adapter/ipcBridge`, `renderer/pages/settings/AgentSettings`             |
-| `speech.ts`            | 5         | `common/adapter/ipcBridge`, `common/config/*`, renderer settings/services       |
-| `teamTypes.ts`         | 10        | `common/adapter/{ipcBridge,teamMapper}`, broad `renderer/pages/team/*`          |
-| `pptx2json.d.ts`       | 0 (ambient)| resolved via declare-module, not imported by path                               |
-| `turndown-plugin-gfm.d.ts` | 0 (ambient) | resolved via declare-module, not imported by path                           |
+| File                       | Consumers          | Where they live                                                                                                        |
+| -------------------------- | ------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| `acpTypes.ts`              | 10                 | `common/adapter`, `common/chat`, `common/config`, `renderer/components/agent`, `renderer/pages/*`                      |
+| `agentModes.ts`            | 2                  | `renderer/utils/model`, `tests/e2e`                                                                                    |
+| `assistantTypes.ts`        | 17                 | `common/adapter`, `process/utils`, wide renderer (hooks/assistant + pages/guid + pages/settings + pages/team) + 1 test |
+| `channel.ts`               | 7                  | `common/adapter` + `renderer/components/settings/.../channels/*`                                                       |
+| `conversion.ts`            | 1                  | `common/adapter/ipcBridge.ts` (dynamic `import()`)                                                                     |
+| `database.ts`              | 3                  | `common/adapter/searchMapper`, `process/services/database`, `renderer/pages/conversation/GroupedHistory`               |
+| `detectedAgent.ts`         | 2 (+1 intra-types) | `renderer/pages/team/components`, `common/types/remoteAgentTypes.ts`                                                   |
+| `electron.ts`              | 1                  | `common/adapter/browser.ts`                                                                                            |
+| `fileSnapshot.ts`          | 3                  | `common/adapter/ipcBridge`, `renderer/pages/conversation/Workspace`                                                    |
+| `hub.ts`                   | 3                  | `common/adapter/ipcBridge`, `renderer/hooks/agent`, `renderer/pages/settings/AgentSettings`                            |
+| `preview.ts`               | 12                 | `common/adapter/ipcBridge`, `common/chat/navigation`, wide renderer (preview page + workspace hook + utils)            |
+| `providerApi.ts`           | 2                  | `common/adapter/ipcBridge`, `common/config/configMigration`                                                            |
+| `remoteAgentTypes.ts`      | 2                  | `common/adapter/ipcBridge`, `renderer/pages/settings/AgentSettings`                                                    |
+| `speech.ts`                | 5                  | `common/adapter/ipcBridge`, `common/config/*`, renderer settings/services                                              |
+| `teamTypes.ts`             | 10                 | `common/adapter/{ipcBridge,teamMapper}`, broad `renderer/pages/team/*`                                                 |
+| `pptx2json.d.ts`           | 0 (ambient)        | resolved via declare-module, not imported by path                                                                      |
+| `turndown-plugin-gfm.d.ts` | 0 (ambient)        | resolved via declare-module, not imported by path                                                                      |
 
 **Total distinct import lines to rewrite**: ~80 across desktop + ~2 in `tests/`.
 
@@ -570,29 +570,29 @@ npm install -g @j178/prek
 
 After Step 9:
 
-| Check | Command | Expected |
-| --- | --- | --- |
-| TypeScript | `bunx tsc --noEmit` | exit 0, no errors |
-| Lint | `bun run lint` | exit 0 |
-| Format | `bun run format` | no diff (`git diff --stat` empty) |
-| Unit tests | `bun run test -- --run` | all pass |
-| CI parity | `prek run --from-ref origin/feat/backend-migration --to-ref HEAD` | no regressions |
-| Directory cap | `ls packages/desktop/src/common/types/ \| wc -l` | 9 |
-| Per-subdir cap | loop in Step 8 | each ≤ 10 |
+| Check          | Command                                                           | Expected                          |
+| -------------- | ----------------------------------------------------------------- | --------------------------------- |
+| TypeScript     | `bunx tsc --noEmit`                                               | exit 0, no errors                 |
+| Lint           | `bun run lint`                                                    | exit 0                            |
+| Format         | `bun run format`                                                  | no diff (`git diff --stat` empty) |
+| Unit tests     | `bun run test -- --run`                                           | all pass                          |
+| CI parity      | `prek run --from-ref origin/feat/backend-migration --to-ref HEAD` | no regressions                    |
+| Directory cap  | `ls packages/desktop/src/common/types/ \| wc -l`                  | 9                                 |
+| Per-subdir cap | loop in Step 8                                                    | each ≤ 10                         |
 
 No runtime smoke tests needed — this is a pure compile-time refactor with zero behavior change.
 
 ## 10. Risks
 
-| Risk | Likelihood | Mitigation |
-| --- | --- | --- |
-| `sed` regex picks up an unintended path substring (e.g. `types/channel` matching `types/channel/channel`) | Medium | Every sed pass followed by grep stray-ref check in Steps 5/6/7. Trailing quote pattern (`types/channel'`) disambiguates. |
-| Circular import introduced by moving `detectedAgent` and `remoteAgentTypes` apart | **Avoided by design** | Both land in `agent/` — intra-dir dep preserved. No other file pair has an intra-types dep. |
-| Ambient `.d.ts` stops being picked up after move | **Not applicable** | `.d.ts` stays at root. `tsconfig.json` includes `packages/desktop/src/**/*` anyway. |
-| `codex/` accidentally modified | **Explicit non-goal**, verified by `git diff --stat -- packages/desktop/src/common/types/codex/` being empty after all steps | |
-| Import pattern not covered by sed (e.g. `from 'common/types/foo'` without the `@/` prefix) | Low | grep before each sed pass enumerates all match patterns; visual inspection of the list catches unusual forms. |
-| Test file imports missed (tests live in `tests/` not `packages/`) | Low | sed `find` root includes `tests scripts` explicitly. |
-| Branch accidentally targets `main` | Low | `refactor/split-common-types` explicitly from `feat/backend-migration`; PR base is `feat/backend-migration`. |
+| Risk                                                                                                      | Likelihood                                                                                                                   | Mitigation                                                                                                               |
+| --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `sed` regex picks up an unintended path substring (e.g. `types/channel` matching `types/channel/channel`) | Medium                                                                                                                       | Every sed pass followed by grep stray-ref check in Steps 5/6/7. Trailing quote pattern (`types/channel'`) disambiguates. |
+| Circular import introduced by moving `detectedAgent` and `remoteAgentTypes` apart                         | **Avoided by design**                                                                                                        | Both land in `agent/` — intra-dir dep preserved. No other file pair has an intra-types dep.                              |
+| Ambient `.d.ts` stops being picked up after move                                                          | **Not applicable**                                                                                                           | `.d.ts` stays at root. `tsconfig.json` includes `packages/desktop/src/**/*` anyway.                                      |
+| `codex/` accidentally modified                                                                            | **Explicit non-goal**, verified by `git diff --stat -- packages/desktop/src/common/types/codex/` being empty after all steps |                                                                                                                          |
+| Import pattern not covered by sed (e.g. `from 'common/types/foo'` without the `@/` prefix)                | Low                                                                                                                          | grep before each sed pass enumerates all match patterns; visual inspection of the list catches unusual forms.            |
+| Test file imports missed (tests live in `tests/` not `packages/`)                                         | Low                                                                                                                          | sed `find` root includes `tests scripts` explicitly.                                                                     |
+| Branch accidentally targets `main`                                                                        | Low                                                                                                                          | `refactor/split-common-types` explicitly from `feat/backend-migration`; PR base is `feat/backend-migration`.             |
 
 ## 11. Open decisions (for team-lead)
 
