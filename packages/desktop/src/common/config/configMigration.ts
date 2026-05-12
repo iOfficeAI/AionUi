@@ -15,7 +15,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'acp.config',
   'acp.promptTimeout',
   'acp.agentIdleTimeout',
-  'acp.customAgents',
   'acp.cachedInitializeResult',
   'acp.cachedModels',
   'acp.cached_config_options',

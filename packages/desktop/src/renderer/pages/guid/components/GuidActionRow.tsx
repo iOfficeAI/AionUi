@@ -42,7 +42,7 @@ type GuidActionRowProps = {
   selectedAgentInfo: AvailableAgent | undefined;
   /**
    * Backend-merged preset catalog — drives the preset tag label lookup. Not
-   * the ACP engine-config list (`acp.customAgents`).
+   * the ACP engine-config list (custom agents from the AgentRegistry).
    */
   assistants: Assistant[];
   localeKey: string;

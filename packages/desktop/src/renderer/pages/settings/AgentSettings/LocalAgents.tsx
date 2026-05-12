@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpBackendConfig } from '@/common/types/acpTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Button, Typography } from '@arco-design/web-react';
@@ -16,51 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
-import InlineAgentEditor from './InlineAgentEditor';
-
-// Convert a backend AgentMetadata row (agent_source === 'custom') to the
-// shape InlineAgentEditor expects, so editing pre-fills the form correctly.
-// The `advanced` bag carries columns that are not covered by the 5 basic
-// form fields so the JSON panel can round-trip them unchanged.
-function agentMetadataToEditorShape(a: AgentMetadata): AcpBackendConfig {
-  const envRecord: Record<string, string> = {};
-  for (const entry of a.env ?? []) {
-    envRecord[entry.name] = entry.value;
-  }
-  const advanced: AcpBackendConfig['advanced'] = {};
-  if (a.yolo_id) advanced.yolo_id = a.yolo_id;
-  if (a.native_skills_dirs && a.native_skills_dirs.length > 0) {
-    advanced.native_skills_dirs = a.native_skills_dirs;
-  }
-  if (a.behavior_policy && Object.keys(a.behavior_policy).length > 0) {
-    advanced.behavior_policy = a.behavior_policy;
-  }
-  if (a.description) advanced.description = a.description;
-  return {
-    id: a.id,
-    name: a.name,
-    avatar: a.icon,
-    defaultCliPath: a.command ?? '',
-    enabled: a.enabled,
-    acpArgs: a.args,
-    env: Object.keys(envRecord).length > 0 ? envRecord : undefined,
-    advanced: Object.keys(advanced).length > 0 ? advanced : undefined,
-  };
-}
-
-// Convert the editor's AcpBackendConfig back into the backend's
-// CustomAgentUpsertRequest body shape (sans id).
-function editorShapeToUpsertBody(a: AcpBackendConfig) {
-  const envArray = Object.entries(a.env ?? {}).map(([name, value]) => ({ name, value }));
-  return {
-    name: a.name,
-    command: a.defaultCliPath ?? '',
-    icon: a.avatar,
-    args: a.acpArgs,
-    env: envArray.length > 0 ? envArray : undefined,
-    advanced: a.advanced,
-  };
-}
+import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
@@ -75,16 +30,21 @@ const LocalAgents: React.FC = () => {
 
   const detectedAgents = (allAgents ?? []).filter((a) => a.agent_type !== 'remote' && a.agent_source !== 'custom');
 
-  const customAgents: AcpBackendConfig[] = (allAgents ?? [])
-    .filter((a) => a.agent_source === 'custom')
-    .map(agentMetadataToEditorShape);
+  const customAgents: AgentMetadata[] = (allAgents ?? []).filter((a) => a.agent_source === 'custom');
 
   const [editorVisible, setEditorVisible] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<AcpBackendConfig | null>(null);
+  const [editingAgent, setEditingAgent] = useState<AgentMetadata | null>(null);
 
   const handleSaveCustomAgent = useCallback(
-    async (agent: AcpBackendConfig) => {
-      const body = editorShapeToUpsertBody(agent);
+    async (draft: CustomAgentDraft) => {
+      const body = {
+        name: draft.name,
+        command: draft.command,
+        icon: draft.icon,
+        args: draft.args,
+        env: draft.env,
+        advanced: draft.advanced,
+      };
       try {
         if (editingAgent) {
           await ipcBridge.acpConversation.updateCustomAgent.invoke({ id: editingAgent.id, ...body });

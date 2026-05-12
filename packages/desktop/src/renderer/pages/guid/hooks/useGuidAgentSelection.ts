@@ -11,7 +11,7 @@ import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import type { Assistant } from '@/common/types/assistantTypes';
-import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { AcpBackend, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import {
   DETECTED_AGENTS_SWR_KEY,
   fetchDetectedAgents,
@@ -36,8 +36,8 @@ export type GuidAgentSelectionResult = {
   availableAgents: AvailableAgent[] | undefined;
   /** Backend-merged preset catalog: builtin + user + extension. */
   assistants: Assistant[];
-  /** User-defined ACP engine configs (CLI path, args) from ConfigStorage. */
-  customAgents: AcpBackendConfig[];
+  /** User-defined ACP engine rows (agent_source === 'custom') from the backend. */
+  customAgents: AgentMetadata[];
   selectedMode: string;
   setSelectedMode: React.Dispatch<React.SetStateAction<string>>;
   acpCachedModels: Record<string, AcpModelInfo>;

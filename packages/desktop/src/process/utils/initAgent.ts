@@ -8,11 +8,7 @@ import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
-import { getSkillsDirsForBackend, hasNativeSkillSupport } from '@/common/types/acpTypes';
 import { uuid } from '@/common/utils';
-
-// Re-export for backward compatibility (tests mock this path)
-export { hasNativeSkillSupport };
 import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
@@ -95,8 +91,15 @@ export async function setupAssistantWorkspace(
   }
 ): Promise<void> {
   const key = options.backend || options.agent_type || '';
-  const skillsDirs = getSkillsDirsForBackend(key);
-  if (!skillsDirs) return;
+  if (!key) return;
+
+  // Source `native_skills_dirs` from the backend-authoritative agent catalog
+  // (`/api/agents`). Match by `backend` first (vendor label) then fall back to
+  // `agent_type`.
+  const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+  const agent = agents.find((a) => a.backend === key || a.agent_type === key);
+  const skillsDirs = agent?.native_skills_dirs;
+  if (!skillsDirs || skillsDirs.length === 0) return;
 
   const skillRefs = await resolveSkillSources(options.conversationId, options.skills);
 

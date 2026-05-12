@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackendConfig, CustomAgentAdvancedOverrides } from '@/common/types/acpTypes';
+import type { CustomAgentAdvancedOverrides } from '@/common/types/acpTypes';
+import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
 import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
@@ -25,9 +26,29 @@ export interface EnvVar {
   value: string;
 }
 
+/**
+ * Payload emitted by {@link InlineAgentEditor} on save. Matches the backend
+ * `CustomAgentUpsertRequest` body (sans `id`, which LocalAgents reattaches
+ * when calling `updateCustomAgent`). Keeping this shape aligned with the
+ * IPC contract avoids a legacy intermediate conversion step.
+ */
+export interface CustomAgentDraft {
+  /** Preserved across edits; new drafts receive a fresh uuid. */
+  id: string;
+  name: string;
+  /** User-picked emoji or avatar URL — backend field name is `icon`. */
+  icon?: string;
+  /** Spawn command for the CLI. */
+  command: string;
+  enabled: boolean;
+  args?: string[];
+  env?: Array<{ name: string; value: string; description?: string }>;
+  advanced?: CustomAgentAdvancedOverrides;
+}
+
 interface InlineAgentEditorProps {
-  agent?: AcpBackendConfig | null;
-  onSave: (agent: AcpBackendConfig) => void;
+  agent?: AgentMetadata | null;
+  onSave: (agent: CustomAgentDraft) => void;
   onCancel: () => void;
 }
 
@@ -73,6 +94,31 @@ export function objectToEnvVars(obj: Record<string, string> | undefined): EnvVar
   return Object.entries(obj).map(([key, value]) => ({ id: uuid(), key, value }));
 }
 
+/** Convert the backend `AgentMetadata.env` array form into the flat record the
+ *  form's `{key,value}` rows expect. */
+function agentEnvToRecord(entries: AgentMetadata['env'] | undefined): Record<string, string> | undefined {
+  if (!entries || entries.length === 0) return undefined;
+  const out: Record<string, string> = {};
+  for (const e of entries) {
+    if (e.name) out[e.name] = e.value;
+  }
+  return Object.keys(out).length > 0 ? out : undefined;
+}
+
+/** Rebuild the editor's `advanced` override bag from an `AgentMetadata` row. */
+function agentToAdvanced(agent: AgentMetadata): CustomAgentAdvancedOverrides {
+  const advanced: CustomAgentAdvancedOverrides = {};
+  if (agent.yolo_id) advanced.yolo_id = agent.yolo_id;
+  if (agent.native_skills_dirs && agent.native_skills_dirs.length > 0) {
+    advanced.native_skills_dirs = agent.native_skills_dirs;
+  }
+  if (agent.behavior_policy && Object.keys(agent.behavior_policy).length > 0) {
+    advanced.behavior_policy = agent.behavior_policy;
+  }
+  if (agent.description) advanced.description = agent.description;
+  return advanced;
+}
+
 const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, onCancel }) => {
   const { t } = useTranslation();
   const { theme } = useThemeContext();
@@ -116,12 +162,12 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     setJsonError('');
     isJsonEditingRef.current = false;
     if (agent) {
-      setAvatar(agent.avatar || '🤖');
+      setAvatar(agent.icon || '🤖');
       setName(agent.name || '');
-      setCommand(agent.defaultCliPath || '');
-      setArgsString(agent.acpArgs?.join(' ') || '');
-      setEnvVars(objectToEnvVars(agent.env));
-      setAdvanced(agent.advanced ?? {});
+      setCommand(agent.command || '');
+      setArgsString(agent.args?.join(' ') || '');
+      setEnvVars(objectToEnvVars(agentEnvToRecord(agent.env)));
+      setAdvanced(agentToAdvanced(agent));
     } else {
       setAvatar('🤖');
       setName('');
@@ -231,17 +277,18 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       Boolean(advanced.description) ||
       (advanced.native_skills_dirs && advanced.native_skills_dirs.length > 0) ||
       Boolean(advanced.behavior_policy && Object.keys(advanced.behavior_policy).length > 0);
-    const customAgent: AcpBackendConfig = {
+    const envEntries = Object.entries(envObj).map(([envName, value]) => ({ name: envName, value }));
+    const draft: CustomAgentDraft = {
       id: agent?.id || uuid(),
       name: name.trim() || 'Custom Agent',
-      avatar,
-      defaultCliPath: command.trim(),
+      icon: avatar,
+      command: command.trim(),
       enabled: agent?.enabled !== false,
-      acpArgs: parsedArgs.length > 0 ? parsedArgs : undefined,
-      env: Object.keys(envObj).length > 0 ? envObj : undefined,
+      args: parsedArgs.length > 0 ? parsedArgs : undefined,
+      env: envEntries.length > 0 ? envEntries : undefined,
       advanced: hasAdvanced ? advanced : undefined,
     };
-    onSave(customAgent);
+    onSave(draft);
   }, [agent, name, avatar, command, argsString, envVars, advanced, onSave]);
 
   const isSubmitDisabled = !name.trim() || !command.trim();

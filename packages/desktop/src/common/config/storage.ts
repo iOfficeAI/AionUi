@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpBackendAll, AcpBackendConfig } from '@/common/types/acpTypes';
+import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/speech';
 import { storage } from '@office-ai/platform';
 
@@ -43,8 +43,6 @@ export interface IConfigStorageRefer {
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
-  /** User-defined custom ACP agents (is_preset !== true, require defaultCliPath). */
-  'acp.customAgents'?: AcpBackendConfig[];
   // Cached initialize results per ACP backend (persisted across sessions)
   'acp.cachedInitializeResult'?: Record<string, import('@/common/types/acpTypes').AcpInitializeResult>;
   // Cached model lists per ACP backend for Guid page pre-selection

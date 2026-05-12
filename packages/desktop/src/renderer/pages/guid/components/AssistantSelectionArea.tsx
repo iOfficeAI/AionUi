@@ -35,7 +35,7 @@ type AssistantSelectionAreaProps = {
   /**
    * Backend-merged preset catalog. Renders as the pill bar and drives the
    * selected-preset prompt examples. Does NOT include ACP engine configs —
-   * those are a separate concept and live on `acp.customAgents` instead.
+   * those are a separate concept sourced from the AgentRegistry.
    */
   assistants: Assistant[];
   localeKey: string;

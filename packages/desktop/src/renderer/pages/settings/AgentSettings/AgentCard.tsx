@@ -10,7 +10,6 @@ import { Setting, EditTwo, Delete, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import type { AcpBackendConfig } from '@/common/types/acpTypes';
 
 type DetectedAgent = {
   agent_type: string;
@@ -20,6 +19,19 @@ type DetectedAgent = {
   custom_agent_id?: string;
   isExtension?: boolean;
   avatar?: string;
+};
+
+/** Minimal custom-agent fields consumed by the 'custom' card variant. */
+type CustomAgentCardData = {
+  id: string;
+  name: string;
+  /** User-picked emoji or avatar URL (maps to `AgentMetadata.icon`). */
+  icon?: string;
+  /** Spawn command for the CLI. */
+  command?: string;
+  /** Launch arguments for the CLI. */
+  args?: string[];
+  enabled: boolean;
 };
 
 type AgentCardProps =
@@ -32,7 +44,7 @@ type AgentCardProps =
     }
   | {
       type: 'custom';
-      agent: AcpBackendConfig;
+      agent: CustomAgentCardData;
       onEdit: () => void;
       onDelete: () => void;
       onToggle: (enabled: boolean) => void;
@@ -124,15 +136,15 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <Avatar
           size={32}
           shape='square'
-          style={{ flexShrink: 0, backgroundColor: agent.avatar ? 'var(--color-fill-2)' : 'transparent', fontSize: 18 }}
+          style={{ flexShrink: 0, backgroundColor: agent.icon ? 'var(--color-fill-2)' : 'transparent', fontSize: 18 }}
         >
-          {agent.avatar || <Robot theme='outline' size='20' />}
+          {agent.icon || <Robot theme='outline' size='20' />}
         </Avatar>
         <div className='min-w-0 flex-1'>
           <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Agent'}</Typography.Text>
           <div className='text-12px text-t-secondary truncate'>
-            {agent.defaultCliPath}
-            {agent.acpArgs && agent.acpArgs.length > 0 ? ` ${agent.acpArgs.join(' ')}` : ''}
+            {agent.command}
+            {agent.args && agent.args.length > 0 ? ` ${agent.args.join(' ')}` : ''}
           </div>
         </div>
       </div>

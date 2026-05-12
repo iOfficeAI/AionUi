@@ -1,4 +1,3 @@
-import { configService } from '@/common/config/configService';
 import AgentBadge from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
@@ -17,7 +16,7 @@ import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRena
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
-import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
+import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
 import { isMacEnvironment, isWindowsEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 import {
@@ -28,7 +27,6 @@ import {
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React from 'react';
-import useSWR from 'swr';
 import './chat-layout.css';
 
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
@@ -89,19 +87,17 @@ const ChatLayout: React.FC<{
       onRename: props.onRenameTitle,
     });
 
-  // Fetch custom agents config as fallback when agent_name is not provided
-  const needCustomFallback = backend === 'custom' && !presetAssistant && !agent_name;
-  const { data: customAgents } = useSWR(needCustomFallback ? 'acp.customAgents' : null, () =>
-    configService.get('acp.customAgents')
-  );
+  // Resolve backend display name from detected agents catalog (backend-authoritative).
+  // Custom ACP agents live in the same catalog with `agent_source === 'custom'`,
+  // so we no longer need a separate `acp.customAgents` ConfigStorage fallback.
+  const { cliAgents } = useConversationAgents();
+  const backendAgentName = backend
+    ? cliAgents.find((a) => a.backend === backend || a.agent_type === backend)?.name
+    : undefined;
+  const capitalizedBackend = backend ? backend.charAt(0).toUpperCase() + backend.slice(1) : backend;
 
   // Compute display name with fallback chain
-  const display_name =
-    presetAssistant?.name ||
-    agent_name ||
-    (backend === 'custom' && customAgents?.[0]?.name) ||
-    ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name ||
-    backend;
+  const display_name = presetAssistant?.name || agent_name || backendAgentName || capitalizedBackend;
 
   const {
     splitRatio: workspaceSplitRatio,
