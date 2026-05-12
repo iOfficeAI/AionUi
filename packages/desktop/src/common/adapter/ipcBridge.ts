@@ -44,8 +44,8 @@ import type {
   FetchModelsAnonymousRequest,
   FetchModelsResponse,
   UpdateProviderRequest,
-} from '../types/providerApi';
-import type { SpeechToTextRequest, SpeechToTextResult } from '../types/speech';
+} from '../types/provider/providerApi';
+import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
   Assistant,
   CreateAssistantRequest,

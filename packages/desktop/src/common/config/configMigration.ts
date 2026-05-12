@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import type { CreateProviderRequest } from '@/common/types/providerApi';
+import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
 import type { IConfigStorageRefer } from './storage';

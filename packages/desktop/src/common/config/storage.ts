@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SpeechToTextConfig } from '@/common/types/speech';
+import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
