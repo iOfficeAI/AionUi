@@ -18,6 +18,11 @@ import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 
+function getPathLeaf(filePath: string): string {
+  const segments = filePath.split(/[\\/]/).filter(Boolean);
+  return segments[segments.length - 1] ?? filePath;
+}
+
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -305,6 +310,23 @@ const TaskDetailPage: React.FC = () => {
                 <span className='min-w-0 break-all text-14px leading-22px text-t-primary'>
                   {job.metadata.agentConfig.workspace}
                 </span>
+              </section>
+            )}
+
+            {job.metadata.agentConfig?.defaultFiles && job.metadata.agentConfig.defaultFiles.length > 0 && (
+              <section className='flex flex-col gap-10px'>
+                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.page.form.files')}</h2>
+                <div className='flex flex-col gap-8px'>
+                  {job.metadata.agentConfig.defaultFiles.map((filePath) => (
+                    <div
+                      key={filePath}
+                      className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-12px py-10px'
+                    >
+                      <div className='text-13px font-medium leading-20px text-t-primary'>{getPathLeaf(filePath)}</div>
+                      <div className='break-all text-12px leading-18px text-t-secondary'>{filePath}</div>
+                    </div>
+                  ))}
+                </div>
               </section>
             )}
 

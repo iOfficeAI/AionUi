@@ -105,7 +105,11 @@
       "workspaceHint": "選填：設定檔案操作的工作空間資料夾",
       "selectFolder": "選擇資料夾",
       "clearFolder": "清除",
-      "model": "模型"
+      "model": "模型",
+      "files": "關聯檔案",
+      "addFiles": "新增檔案",
+      "filesHint": "這些檔案會在每次定時任務執行時一併帶上。",
+      "noFiles": "尚未關聯檔案"
     },
     "freq": {
       "manual": "手動觸發",
@@ -141,5 +145,17 @@
     "conversationNotFound": "未找到對話",
     "scheduledTimePassed": "定時時間已過",
     "conversationBusy": "對話繁忙，在 {{count}} 次嘗試後跳過"
+  },
+  "panel": {
+    "firstRunAtLabel": "首次執行時間",
+    "intervalValueLabel": "重複間隔",
+    "intervalUnitLabel": "間隔單位",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "分鐘",
+    "hour": "小時",
+    "week": "週",
+    "workday": "工作日"
   }
 }

@@ -117,7 +117,11 @@
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için çalışma alanı klasörü ayarlayın",
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
-      "model": "Model"
+      "model": "Model",
+      "files": "Dosyalar",
+      "addFiles": "Dosya ekle",
+      "filesHint": "Bu dosyalar zamanlanmış görev her çalıştığında birlikte eklenecek.",
+      "noFiles": "Dosya seçilmedi"
     },
     "freq": {
       "manual": "Manuel",
@@ -153,5 +157,17 @@
     "conversationNotFound": "Konuşma bulunamadı",
     "scheduledTimePassed": "Zamanlanmış saat geçti",
     "conversationBusy": "Konuşma meşgul, {{count}} denemeden sonra atlandı"
+  },
+  "panel": {
+    "firstRunAtLabel": "İlk çalışma zamanı",
+    "intervalValueLabel": "Tekrar aralığı",
+    "intervalUnitLabel": "Aralık birimi",
+    "scheduleSummary": "{{unit}} x{{count}} / {{startAt}}"
+  },
+  "unit": {
+    "minute": "Dakika",
+    "hour": "Saat",
+    "week": "Hafta",
+    "workday": "İş günü"
   }
 }

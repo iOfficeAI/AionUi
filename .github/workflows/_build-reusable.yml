@@ -54,9 +54,13 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
       - name: Run postinstall
         run: bun run postinstall || true
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
 
       - name: Run ESLint
         run: bun run lint
@@ -122,6 +126,7 @@ jobs:
             ${{ runner.temp }}/.cache/electron-builder
             ~/.cache/electron
             ~/.cache/electron-builder
+            ${{ env.LOCALAPPDATA }}\electron\Cache
             ${{ env.LOCALAPPDATA }}\electron-builder\Cache
           key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
@@ -133,6 +138,9 @@ jobs:
 
       - name: Install dependencies
         uses: nick-fields/retry@v3
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
         with:
           timeout_minutes: 10
           max_attempts: 3
@@ -141,6 +149,9 @@ jobs:
 
       - name: Run postinstall
         run: bun run postinstall || true
+        env:
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
 
       - name: Setup Windows native dependencies (for Windows only)
         if: startsWith(matrix.platform, 'windows')

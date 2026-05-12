@@ -130,7 +130,10 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
     }
 
     const workspace = (task as { workspace?: string }).workspace;
-    const workspaceFiles = workspace ? await copyFilesToDirectory(workspace, [], false) : [];
+    const defaultFiles = job.metadata.agentConfig?.defaultFiles ?? [];
+    const workspaceFiles = workspace
+      ? await copyFilesToDirectory(workspace, defaultFiles, false)
+      : defaultFiles.map((filePath) => (path.isAbsolute(filePath) ? filePath : path.resolve(filePath)));
 
     const hasSkill = await hasCronSkillFile(job.id);
     const needsSkillSuggest = job.target.executionMode === 'new_conversation' && !!workspace && !hasSkill;
@@ -222,6 +225,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         cronJobId: job.id,
         cronWorkspace: config.workspace || '',
         workspace: config.workspace || '',
+        ...(config.defaultFiles?.length ? { defaultFiles: config.defaultFiles } : {}),
         ...(config.mode ? { sessionMode: config.mode } : {}),
         ...(config.modelId ? { currentModelId: config.modelId } : {}),
         ...(cachedConfigOptions ? { cachedConfigOptions } : {}),
@@ -335,6 +339,17 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
       }
       // Daily+: just date
       return dateStr;
+    }
+
+    if (schedule.kind === 'interval') {
+      if (schedule.intervalUnit === 'minute' || schedule.intervalUnit === 'hour') {
+        return `${hh}:${mi}:${ss}`;
+      }
+      if (schedule.intervalUnit === 'week') {
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        return `${days[now.getDay()]} ${dateStr}`;
+      }
+      return `${dateStr} ${timeStr}`;
     }
 
     if (schedule.kind === 'cron' && schedule.expr) {

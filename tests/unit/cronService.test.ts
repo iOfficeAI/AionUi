@@ -150,6 +150,62 @@ describe('CronService', () => {
     expect(repo.update).toHaveBeenCalledWith(job.id, expect.objectContaining({ state: expect.any(Object) }));
   });
 
+  it('calculates the next run for workday intervals by skipping weekends', async () => {
+    vi.setSystemTime(new Date('2026-04-18T10:00:00.000Z'));
+    const job = makeJob({
+      id: 'workday-job',
+      schedule: {
+        kind: 'interval',
+        intervalValue: 1,
+        intervalUnit: 'workday',
+        startAtMs: Date.parse('2026-04-17T09:00:00.000Z'),
+        description: 'Workday x1 / 2026-04-17 09:00',
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+
+    await service.init();
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'workday-job',
+      expect.objectContaining({
+        state: expect.objectContaining({
+          nextRunAtMs: Date.parse('2026-04-20T09:00:00.000Z'),
+        }),
+      })
+    );
+  });
+
+  it('does not execute long interval timers before their real due time', async () => {
+    const startAtMs = Date.parse('2026-04-18T10:00:00.000Z');
+    const fourWeeksMs = 4 * 7 * 24 * 60 * 60 * 1000;
+    vi.setSystemTime(startAtMs);
+
+    const job = makeJob({
+      id: 'long-interval-job',
+      schedule: {
+        kind: 'interval',
+        intervalValue: 4,
+        intervalUnit: 'week',
+        startAtMs,
+        description: 'Every 4 weeks',
+      },
+    });
+    vi.mocked(repo.listEnabled).mockReturnValue([job]);
+    vi.mocked(repo.getById).mockReturnValue(job);
+    vi.mocked(executor.isConversationBusy).mockReturnValue(false);
+    vi.mocked(executor.executeJob).mockResolvedValue(undefined);
+
+    await service.init();
+    await vi.advanceTimersByTimeAsync(2_147_483_647);
+
+    expect(executor.executeJob).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(fourWeeksMs - 2_147_483_647);
+
+    expect(executor.executeJob).toHaveBeenCalledOnce();
+  });
+
   it('removes orphan jobs whose conversation no longer exists in repo', async () => {
     const job = makeJob({ id: 'orphan' });
     vi.mocked(repo.listAll).mockReturnValue([job]);
@@ -315,12 +371,13 @@ describe('CronService', () => {
 
   it('executeJob calls executor.executeJob, updates job state, and emits completion', async () => {
     const job = makeJob({ id: 'j1' });
+    const currentJob = makeJob({ id: 'j1' });
     const updatedJob = makeJob({
       id: 'j1',
       state: { runCount: 1, retryCount: 0, maxRetries: 3 },
     });
     vi.mocked(repo.listEnabled).mockReturnValue([job]);
-    vi.mocked(repo.getById).mockReturnValue(updatedJob);
+    vi.mocked(repo.getById).mockReturnValueOnce(currentJob).mockReturnValueOnce(updatedJob);
     vi.mocked(executor.isConversationBusy).mockReturnValue(false);
     vi.mocked(executor.executeJob).mockResolvedValue(undefined);
 
@@ -328,7 +385,11 @@ describe('CronService', () => {
     // Advance exactly one interval period to fire the timer once.
     await vi.advanceTimersByTimeAsync(60000);
 
-    expect(executor.executeJob).toHaveBeenCalledWith(job, expect.any(Function), undefined);
+    expect(executor.executeJob).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'j1' }),
+      expect.any(Function),
+      undefined
+    );
     expect(repo.update).toHaveBeenCalledWith(
       'j1',
       expect.objectContaining({
@@ -365,9 +426,16 @@ describe('CronService', () => {
       id: 'j1',
       state: { runCount: 0, retryCount: 0, maxRetries: 1 },
     });
-    const skippedJob = makeJob({ id: 'j1' });
+    const currentJob = makeJob({
+      id: 'j1',
+      state: { runCount: 0, retryCount: 0, maxRetries: 1 },
+    });
+    const skippedJob = makeJob({
+      id: 'j1',
+      state: { runCount: 0, retryCount: 0, maxRetries: 1 },
+    });
     vi.mocked(repo.listEnabled).mockReturnValue([job]);
-    vi.mocked(repo.getById).mockReturnValue(skippedJob);
+    vi.mocked(repo.getById).mockReturnValueOnce(currentJob).mockReturnValueOnce(skippedJob);
     vi.mocked(executor.isConversationBusy).mockReturnValue(true);
 
     await service.init();

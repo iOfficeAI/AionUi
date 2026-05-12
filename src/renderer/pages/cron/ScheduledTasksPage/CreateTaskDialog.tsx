@@ -6,11 +6,21 @@
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
+import {
+  Form,
+  Input,
+  Select,
+  Message,
+  TimePicker,
+  Radio,
+  Button,
+  DatePicker,
+  InputNumber,
+} from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
-import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
+import type { ICreateCronJobParams, ICronAgentConfig, ICronJob, ICronSchedule } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
@@ -19,7 +29,7 @@ import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
-import type { AcpBackendAll, AcpModelInfo, AcpSessionConfigOption, AgentBackend } from '@/common/types/acpTypes';
+import type { AcpModelInfo, AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
@@ -41,6 +51,7 @@ interface CreateTaskDialogProps {
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
 type ExecutionMode = 'new_conversation' | 'existing';
+type CustomIntervalUnit = 'minute' | 'hour' | 'workday' | 'week';
 
 const WEEKDAYS = [
   { value: 'MON', label: 'monday' },
@@ -51,6 +62,102 @@ const WEEKDAYS = [
   { value: 'SAT', label: 'saturday' },
   { value: 'SUN', label: 'sunday' },
 ];
+
+const HOUR_MS = 60 * 60 * 1000;
+const MINUTE_MS = 60 * 1000;
+const WEEK_MS = 7 * 24 * HOUR_MS;
+const DEFAULT_CUSTOM_INTERVAL_UNIT: CustomIntervalUnit = 'hour';
+
+function getDefaultCustomStartAtMs(): number {
+  return dayjs().add(1, 'hour').startOf('hour').valueOf();
+}
+
+function getDefaultCustomScheduleState(): {
+  startAtMs: number;
+  intervalValue: number;
+  intervalUnit: CustomIntervalUnit;
+} {
+  return {
+    startAtMs: getDefaultCustomStartAtMs(),
+    intervalValue: 1,
+    intervalUnit: DEFAULT_CUSTOM_INTERVAL_UNIT,
+  };
+}
+
+function resolveCustomScheduleState(job?: ICronJob): {
+  startAtMs: number;
+  intervalValue: number;
+  intervalUnit: CustomIntervalUnit;
+} {
+  const fallback = getDefaultCustomScheduleState();
+
+  if (!job) {
+    return fallback;
+  }
+
+  if (job.schedule.kind === 'interval') {
+    return {
+      startAtMs: job.schedule.startAtMs,
+      intervalValue: job.schedule.intervalValue,
+      intervalUnit: job.schedule.intervalUnit,
+    };
+  }
+
+  if (job.schedule.kind === 'every') {
+    if (job.schedule.everyMs % WEEK_MS === 0) {
+      return {
+        startAtMs: job.schedule.startAtMs ?? job.state.nextRunAtMs ?? fallback.startAtMs,
+        intervalValue: Math.max(1, Math.trunc(job.schedule.everyMs / WEEK_MS)),
+        intervalUnit: 'week',
+      };
+    }
+    if (job.schedule.everyMs % HOUR_MS === 0) {
+      return {
+        startAtMs: job.schedule.startAtMs ?? job.state.nextRunAtMs ?? fallback.startAtMs,
+        intervalValue: Math.max(1, Math.trunc(job.schedule.everyMs / HOUR_MS)),
+        intervalUnit: 'hour',
+      };
+    }
+    return {
+      startAtMs: job.schedule.startAtMs ?? job.state.nextRunAtMs ?? fallback.startAtMs,
+      intervalValue: Math.max(1, Math.round(job.schedule.everyMs / MINUTE_MS)),
+      intervalUnit: 'minute',
+    };
+  }
+
+  if (job.schedule.kind === 'cron') {
+    const parsed = parseCronExpr(job.schedule.expr);
+    const startAtMs = job.schedule.startAtMs ?? job.state.nextRunAtMs ?? fallback.startAtMs;
+    if (parsed.frequency === 'weekdays') {
+      return { startAtMs, intervalValue: 1, intervalUnit: 'workday' };
+    }
+    if (parsed.frequency === 'weekly') {
+      return { startAtMs, intervalValue: 1, intervalUnit: 'week' };
+    }
+  }
+
+  return fallback;
+}
+
+function resolveInitialFrequency(job?: ICronJob): FrequencyType {
+  if (!job) {
+    return 'manual';
+  }
+
+  if (job.schedule.kind === 'interval') {
+    return 'custom';
+  }
+
+  if (job.schedule.kind === 'every') {
+    return job.schedule.everyMs === HOUR_MS ? 'hourly' : 'custom';
+  }
+
+  if (job.schedule.kind === 'at') {
+    return 'custom';
+  }
+
+  return parseCronExpr(job.schedule.expr).frequency;
+}
 
 /**
  * Infer frequency type and time/weekday from a cron expression for edit mode.
@@ -139,11 +246,15 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { cliAgents, presetAssistants } = useConversationAgents();
-  const { providers, geminiModeLookup, getAvailableModels, formatModelLabel } = useModelProviderList();
+  const { providers, geminiModeLookup, getAvailableModels } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
   const [weekday, setWeekday] = useState('MON');
   const [customCronExpr, setCustomCronExpr] = useState<string>('');
+  const [customStartAtMs, setCustomStartAtMs] = useState(getDefaultCustomStartAtMs);
+  const [customIntervalValue, setCustomIntervalValue] = useState(1);
+  const [customIntervalUnit, setCustomIntervalUnit] = useState<CustomIntervalUnit>(DEFAULT_CUSTOM_INTERVAL_UNIT);
+  const [scheduleDirty, setScheduleDirty] = useState(false);
 
   const isEditMode = !!editJob;
   const [executionMode, setExecutionMode] = useState<ExecutionMode>('new_conversation');
@@ -153,7 +264,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [modelId, setModelId] = useState<string | undefined>(undefined);
   const [configOptions, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
-  const [cachedConfigOptions, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
+  const [defaultFiles, setDefaultFiles] = useState<string[]>([]);
+  const [cachedConfigOptions, setCachedConfigOptions] = useState<AcpSessionConfigOption[] | undefined>(undefined);
   const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
 
@@ -163,10 +275,16 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (editJob) {
       const cronExpr = editJob.schedule.kind === 'cron' ? editJob.schedule.expr : '';
       const parsed = parseCronExpr(cronExpr);
-      setFrequency(parsed.frequency);
+      const customState = resolveCustomScheduleState(editJob);
+      const initialFrequency = resolveInitialFrequency(editJob);
+      setFrequency(initialFrequency);
       setTime(parsed.time);
       setWeekday(parsed.weekday);
-      setCustomCronExpr(parsed.frequency === 'custom' ? cronExpr : '');
+      setCustomCronExpr(initialFrequency === 'custom' ? cronExpr : '');
+      setCustomStartAtMs(customState.startAtMs);
+      setCustomIntervalValue(customState.intervalValue);
+      setCustomIntervalUnit(customState.intervalUnit);
+      setScheduleDirty(false);
       setExecutionMode(editJob.target.executionMode || 'existing');
       setAdvancedOpen(
         Boolean(
@@ -188,20 +306,26 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setModelId(editJob.metadata.agentConfig?.modelId);
       setConfigOptions(editJob.metadata.agentConfig?.configOptions);
       setWorkspace(editJob.metadata.agentConfig?.workspace);
+      setDefaultFiles(editJob.metadata.agentConfig?.defaultFiles ?? []);
     } else {
       form.resetFields();
       setFrequency('manual');
       setTime('09:00');
       setWeekday('MON');
       setCustomCronExpr('');
+      setCustomStartAtMs(getDefaultCustomStartAtMs());
+      setCustomIntervalValue(1);
+      setCustomIntervalUnit(DEFAULT_CUSTOM_INTERVAL_UNIT);
+      setScheduleDirty(false);
       setExecutionMode('new_conversation');
       setAdvancedOpen(false);
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
+      setDefaultFiles([]);
       setSelectedAgent(undefined);
     }
-  }, [visible, editJob, form]);
+  }, [editJob, form, visible]);
 
   // Resolve backend from selectedAgent (handles both CLI and preset agents)
   const resolvedBackend = useMemo(() => {
@@ -228,11 +352,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     ConfigStorage.get('acp.cachedConfigOptions')
       .then((cached) => {
         if (cached && cached[resolvedBackend]) {
-          // Filter out model/mode categories — those are handled by dedicated selectors
           const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
             (opt) => opt.category !== 'model' && opt.category !== 'mode'
           );
-          setCachedConfigOptions(filtered as unknown[]);
+          setCachedConfigOptions(filtered as AcpSessionConfigOption[]);
         } else {
           setCachedConfigOptions(undefined);
         }
@@ -311,32 +434,61 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const showTimePicker = frequency === 'daily' || frequency === 'weekdays' || frequency === 'weekly';
   const showWeekdayPicker = frequency === 'weekly';
+  const showCustomScheduleEditor = frequency === 'custom';
+  const showLegacyCustomWarning =
+    isEditMode && frequency === 'custom' && editJob?.schedule.kind === 'cron' && Boolean(customCronExpr);
 
-  // Build cron expression and description from frequency settings
-  const scheduleInfo = useMemo(() => {
+  const buildSelectedSchedule = useCallback((): ICronSchedule => {
     const [hour, minute] = time.split(':').map(Number);
     switch (frequency) {
       case 'manual':
-        return { expr: '', description: t('cron.page.scheduleDesc.manual') };
+        return { kind: 'cron', expr: '', description: t('cron.page.scheduleDesc.manual') };
       case 'hourly':
-        return { expr: '0 * * * *', description: t('cron.page.scheduleDesc.hourly') };
+        return { kind: 'cron', expr: '0 * * * *', description: t('cron.page.scheduleDesc.hourly') };
       case 'daily':
-        return { expr: `${minute} ${hour} * * *`, description: t('cron.page.scheduleDesc.dailyAt', { time }) };
+        return {
+          kind: 'cron',
+          expr: `${minute} ${hour} * * *`,
+          description: t('cron.page.scheduleDesc.dailyAt', { time }),
+        };
       case 'weekdays':
-        return { expr: `${minute} ${hour} * * MON-FRI`, description: t('cron.page.scheduleDesc.weekdaysAt', { time }) };
+        return {
+          kind: 'cron',
+          expr: `${minute} ${hour} * * MON-FRI`,
+          description: t('cron.page.scheduleDesc.weekdaysAt', { time }),
+        };
       case 'weekly': {
         const dayLabel = WEEKDAYS.find((d) => d.value === weekday)?.label ?? weekday;
         return {
+          kind: 'cron',
           expr: `${minute} ${hour} * * ${weekday}`,
           description: t('cron.page.scheduleDesc.weeklyAt', { day: t(`cron.page.weekday.${dayLabel}`), time }),
         };
       }
-      case 'custom':
-        return { expr: customCronExpr, description: editJob?.schedule.description || customCronExpr };
+      case 'custom': {
+        const startAt = dayjs(customStartAtMs).format('YYYY-MM-DD HH:mm');
+        const unitKeyMap: Record<CustomIntervalUnit, string> = {
+          minute: 'cron.unit.minute',
+          hour: 'cron.unit.hour',
+          workday: 'cron.unit.workday',
+          week: 'cron.unit.week',
+        };
+        return {
+          kind: 'interval',
+          intervalValue: Math.max(1, Math.trunc(customIntervalValue)),
+          intervalUnit: customIntervalUnit,
+          startAtMs: customStartAtMs,
+          description: t('cron.panel.scheduleSummary', {
+            unit: t(unitKeyMap[customIntervalUnit], { defaultValue: customIntervalUnit }),
+            count: Math.max(1, Math.trunc(customIntervalValue)),
+            startAt,
+          }),
+        };
+      }
       default:
-        return { expr: '', description: '' };
+        return { kind: 'cron', expr: '', description: '' };
     }
-  }, [frequency, time, weekday, t, customCronExpr, editJob]);
+  }, [customIntervalUnit, customIntervalValue, customStartAtMs, frequency, t, time, weekday]);
 
   const executionModeOptions = useMemo(
     () => [
@@ -362,9 +514,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
-    if (value !== 'custom') {
-      setCustomCronExpr('');
-    }
+    setScheduleDirty(true);
   };
 
   const handleAgentChange = useCallback((value: string) => {
@@ -383,70 +533,72 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setConfigOptions((prev) => ({ ...prev, [configId]: value }));
   }, []);
 
-  const resolveAgentConfig = (agentValue: string) => {
-    const colonIdx = agentValue.indexOf(':');
-    const agentKind = agentValue.substring(0, colonIdx);
-    const agentId = agentValue.substring(colonIdx + 1);
+  const resolveAgentConfig = useCallback(
+    (agentValue: string) => {
+      const colonIdx = agentValue.indexOf(':');
+      const agentKind = agentValue.substring(0, colonIdx);
+      const agentId = agentValue.substring(colonIdx + 1);
 
-    // Merge cached config option defaults with user overrides
-    const mergedConfigOptions = (() => {
-      if (!Array.isArray(cachedConfigOptions) || cachedConfigOptions.length === 0) return configOptions;
-      const defaults: Record<string, string> = {};
-      for (const opt of cachedConfigOptions as AcpSessionConfigOption[]) {
-        const val = opt.currentValue || opt.selectedValue;
-        if (opt.id && val) defaults[opt.id] = val;
+      const mergedConfigOptions = (() => {
+        if (!Array.isArray(cachedConfigOptions) || cachedConfigOptions.length === 0) return configOptions;
+        const defaults: Record<string, string> = {};
+        for (const opt of cachedConfigOptions) {
+          const val = opt.currentValue || opt.selectedValue;
+          if (opt.id && val) defaults[opt.id] = val;
+        }
+        return Object.keys(defaults).length > 0 ? { ...defaults, ...configOptions } : configOptions;
+      })();
+
+      let agentConfig: ICronAgentConfig | undefined;
+      let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
+        'claude') as ICreateCronJobParams['agentType'];
+
+      if (agentKind === 'cli') {
+        const agent = cliAgents.find((a) => a.backend === agentId);
+        if (agent) {
+          resolvedAgentType = agent.backend as ICreateCronJobParams['agentType'];
+          agentConfig = {
+            backend: agent.backend as ICronAgentConfig['backend'],
+            name: agent.name,
+            cliPath: agent.cliPath,
+            mode: getFullAutoMode(agent.backend),
+            modelId,
+            configOptions: mergedConfigOptions,
+            workspace,
+            defaultFiles: defaultFiles.length > 0 ? defaultFiles : undefined,
+          };
+        }
+      } else if (agentKind === 'preset') {
+        const agent = presetAssistants.find((a) => a.customAgentId === agentId);
+        if (agent) {
+          resolvedAgentType = agent.backend as ICreateCronJobParams['agentType'];
+          agentConfig = {
+            backend: agent.backend as ICronAgentConfig['backend'],
+            name: agent.name,
+            isPreset: true,
+            customAgentId: agent.customAgentId,
+            presetAgentType: agent.presetAgentType,
+            mode: getFullAutoMode(agent.backend),
+            modelId,
+            configOptions: mergedConfigOptions,
+            workspace,
+            defaultFiles: defaultFiles.length > 0 ? defaultFiles : undefined,
+          };
+        }
       }
-      return Object.keys(defaults).length > 0 ? { ...defaults, ...configOptions } : configOptions;
-    })();
 
-    let agentConfig: ICronAgentConfig | undefined;
-    let resolvedAgentType: ICreateCronJobParams['agentType'] = (agentType ||
-      'claude') as ICreateCronJobParams['agentType'];
-
-    if (agentKind === 'cli') {
-      const agent = cliAgents.find((a) => a.backend === agentId);
-      if (agent) {
-        resolvedAgentType = agent.backend as AcpBackendAll;
-        agentConfig = {
-          backend: agent.backend as AgentBackend,
-          name: agent.name,
-          cliPath: agent.cliPath,
-          mode: getFullAutoMode(agent.backend),
-          modelId,
-          configOptions: mergedConfigOptions,
-          workspace,
-        };
-      }
-    } else if (agentKind === 'preset') {
-      const agent = presetAssistants.find((a) => a.customAgentId === agentId);
-      if (agent) {
-        resolvedAgentType = agent.backend as AcpBackendAll;
-        agentConfig = {
-          backend: agent.backend as AgentBackend,
-          name: agent.name,
-          isPreset: true,
-          customAgentId: agent.customAgentId,
-          presetAgentType: agent.presetAgentType,
-          mode: getFullAutoMode(agent.backend),
-          modelId,
-          configOptions: mergedConfigOptions,
-          workspace,
-        };
-      }
-    }
-
-    return { agentConfig, resolvedAgentType };
-  };
+      return { agentConfig, resolvedAgentType };
+    },
+    [agentType, cachedConfigOptions, cliAgents, configOptions, defaultFiles, modelId, presetAssistants, workspace]
+  );
 
   const handleSubmit = async () => {
     try {
       const values = await form.validate();
       setSubmitting(true);
 
-      const scheduleExpr = scheduleInfo.expr;
-      const scheduleDesc = scheduleInfo.description;
-
       const { agentConfig, resolvedAgentType } = resolveAgentConfig(values.agent);
+      const selectedSchedule = !isEditMode || scheduleDirty ? buildSelectedSchedule() : editJob!.schedule;
 
       if (isEditMode) {
         // Edit mode: update existing job
@@ -455,7 +607,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           updates: {
             name: values.name,
             description: values.description,
-            schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
+            schedule: selectedSchedule,
             target: {
               ...editJob!.target,
               payload: { kind: 'message', text: values.prompt },
@@ -475,7 +627,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         const params: ICreateCronJobParams = {
           name: values.name,
           description: values.description,
-          schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
+          schedule: selectedSchedule,
           prompt: values.prompt,
           conversationId: '',
           conversationTitle,
@@ -656,9 +808,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               <Option value='daily'>{t('cron.page.freq.daily')}</Option>
               <Option value='weekdays'>{t('cron.page.freq.weekdays')}</Option>
               <Option value='weekly'>{t('cron.page.freq.weekly')}</Option>
-              {frequency === 'custom' && <Option value='custom'>{t('cron.page.freq.custom')}</Option>}
+              <Option value='custom'>{t('cron.page.freq.custom')}</Option>
             </Select>
-            {frequency === 'custom' && (
+            {showLegacyCustomWarning && (
               <p className='mb-0 mt-8px text-12px leading-18px text-t-secondary'>
                 {t('cron.page.customCronWarning', { expr: customCronExpr })}
               </p>
@@ -674,6 +826,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 onChange={(_timeStr, pickedTime) => {
                   if (pickedTime) {
                     setTime(pickedTime.format('HH:mm'));
+                    setScheduleDirty(true);
                   }
                 }}
                 allowClear={false}
@@ -685,13 +838,80 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           {/* Weekday picker - shown for weekly */}
           {showWeekdayPicker && (
             <div className='mb-16px'>
-              <Select value={weekday} onChange={setWeekday}>
+              <Select
+                value={weekday}
+                onChange={(value) => {
+                  setWeekday(value);
+                  setScheduleDirty(true);
+                }}
+              >
                 {WEEKDAYS.map((d) => (
                   <Option key={d.value} value={d.value}>
                     {t(`cron.page.weekday.${d.label}`)}
                   </Option>
                 ))}
               </Select>
+            </div>
+          )}
+
+          {showCustomScheduleEditor && (
+            <div className='mb-16px grid gap-12px md:grid-cols-2'>
+              <div className='min-w-0'>
+                <label className='mb-8px block text-14px font-medium text-t-primary'>
+                  {t('cron.panel.firstRunAtLabel')}
+                </label>
+                <DatePicker
+                  showTime
+                  allowClear={false}
+                  value={dayjs(customStartAtMs)}
+                  style={{ width: '100%' }}
+                  onChange={(_value, pickedValue) => {
+                    if (!pickedValue) {
+                      return;
+                    }
+                    const nextStartAt =
+                      typeof pickedValue.valueOf === 'function' ? Number(pickedValue.valueOf()) : customStartAtMs;
+                    setCustomStartAtMs(nextStartAt);
+                    setScheduleDirty(true);
+                  }}
+                />
+              </div>
+
+              <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_160px] gap-12px'>
+                <div className='min-w-0'>
+                  <label className='mb-8px block text-14px font-medium text-t-primary'>
+                    {t('cron.panel.intervalValueLabel')}
+                  </label>
+                  <InputNumber
+                    min={1}
+                    precision={0}
+                    value={customIntervalValue}
+                    style={{ width: '100%' }}
+                    onChange={(value) => {
+                      setCustomIntervalValue(Number(value) || 1);
+                      setScheduleDirty(true);
+                    }}
+                  />
+                </div>
+
+                <div className='min-w-0'>
+                  <label className='mb-8px block text-14px font-medium text-t-primary'>
+                    {t('cron.panel.intervalUnitLabel')}
+                  </label>
+                  <Select
+                    value={customIntervalUnit}
+                    onChange={(value) => {
+                      setCustomIntervalUnit(value as CustomIntervalUnit);
+                      setScheduleDirty(true);
+                    }}
+                  >
+                    <Option value='minute'>{t('cron.unit.minute')}</Option>
+                    <Option value='hour'>{t('cron.unit.hour')}</Option>
+                    <Option value='workday'>{t('cron.unit.workday')}</Option>
+                    <Option value='week'>{t('cron.unit.week')}</Option>
+                  </Select>
+                </div>
+              </div>
             </div>
           )}
 

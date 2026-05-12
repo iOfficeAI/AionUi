@@ -64,6 +64,7 @@ describe('CronStore', () => {
             backend: 'gemini',
             name: 'Test Agent',
             isPreset: true,
+            defaultFiles: ['/tmp/spec.md'],
           },
         },
         state: {
@@ -95,23 +96,24 @@ describe('CronStore', () => {
       expect(runArgs[4]).toBe('every'); // schedule_kind
       expect(runArgs[5]).toBe('60000'); // schedule_value
       expect(runArgs[6]).toBeNull(); // schedule_tz
-      expect(runArgs[7]).toBe('Every minute'); // schedule_description
-      expect(runArgs[8]).toBe('Hello'); // payload_message
-      expect(runArgs[9]).toBe('existing'); // execution_mode
-      expect(runArgs[10]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
-      expect(runArgs[11]).toBe('conv-1'); // conversation_id
-      expect(runArgs[12]).toBe('Test Conversation'); // conversation_title
-      expect(runArgs[13]).toBe('gemini'); // agent_type
-      expect(runArgs[14]).toBe('user'); // created_by
-      expect(runArgs[15]).toBe(1000); // created_at
-      expect(runArgs[16]).toBe(2000); // updated_at
-      expect(runArgs[17]).toBe(3000); // next_run_at
-      expect(runArgs[18]).toBe(4000); // last_run_at
-      expect(runArgs[19]).toBe('ok'); // last_status
-      expect(runArgs[20]).toBeNull(); // last_error (undefined -> null in jobToRow)
-      expect(runArgs[21]).toBe(5); // run_count
-      expect(runArgs[22]).toBe(0); // retry_count
-      expect(runArgs[23]).toBe(3); // max_retries
+      expect(runArgs[7]).toBeNull(); // schedule_start_at
+      expect(runArgs[8]).toBe('Every minute'); // schedule_description
+      expect(runArgs[9]).toBe('Hello'); // payload_message
+      expect(runArgs[10]).toBe('existing'); // execution_mode
+      expect(runArgs[11]).toBe(JSON.stringify(job.metadata.agentConfig)); // agent_config
+      expect(runArgs[12]).toBe('conv-1'); // conversation_id
+      expect(runArgs[13]).toBe('Test Conversation'); // conversation_title
+      expect(runArgs[14]).toBe('gemini'); // agent_type
+      expect(runArgs[15]).toBe('user'); // created_by
+      expect(runArgs[16]).toBe(1000); // created_at
+      expect(runArgs[17]).toBe(2000); // updated_at
+      expect(runArgs[18]).toBe(3000); // next_run_at
+      expect(runArgs[19]).toBe(4000); // last_run_at
+      expect(runArgs[20]).toBe('ok'); // last_status
+      expect(runArgs[21]).toBeNull(); // last_error (undefined -> null in jobToRow)
+      expect(runArgs[22]).toBe(5); // run_count
+      expect(runArgs[23]).toBe(0); // retry_count
+      expect(runArgs[24]).toBe(3); // max_retries
 
       // Now test retrieval (round-trip)
       mockPrepareInstance.get.mockReturnValue({
@@ -122,6 +124,7 @@ describe('CronStore', () => {
         schedule_kind: 'every',
         schedule_value: '60000',
         schedule_tz: null,
+        schedule_start_at: null,
         schedule_description: 'Every minute',
         payload_message: 'Hello',
         execution_mode: 'existing',
@@ -129,6 +132,7 @@ describe('CronStore', () => {
           backend: 'gemini',
           name: 'Test Agent',
           isPreset: true,
+          defaultFiles: ['/tmp/spec.md'],
         }),
         conversation_id: 'conv-1',
         conversation_title: 'Test Conversation',
@@ -162,8 +166,86 @@ describe('CronStore', () => {
         backend: 'gemini',
         name: 'Test Agent',
         isPreset: true,
+        defaultFiles: ['/tmp/spec.md'],
       });
       expect(retrieved!.state.lastStatus).toBe('ok');
+    });
+
+    it('correctly converts "interval" schedule kind', async () => {
+      const job: CronJob = {
+        id: 'job-interval',
+        name: 'Test Interval Job',
+        enabled: true,
+        schedule: {
+          kind: 'interval',
+          intervalValue: 2,
+          intervalUnit: 'workday',
+          startAtMs: 1_710_000_000_000,
+          description: 'Workday x2 / 2024-03-10 09:00',
+        },
+        target: {
+          payload: { kind: 'message', text: 'Interval task' },
+          executionMode: 'existing',
+        },
+        metadata: {
+          conversationId: 'conv-interval',
+          agentType: 'codex',
+          createdBy: 'user',
+          createdAt: 100,
+          updatedAt: 200,
+        },
+        state: {
+          nextRunAtMs: 300,
+          runCount: 0,
+          retryCount: 0,
+          maxRetries: 3,
+        },
+      };
+
+      mockPrepareInstance.run.mockImplementation(() => ({ changes: 1 }));
+      await cronStore.insert(job);
+
+      const runArgs = mockPrepareInstance.run.mock.calls[0];
+      expect(runArgs[4]).toBe('interval');
+      expect(runArgs[5]).toBe(JSON.stringify({ intervalValue: 2, intervalUnit: 'workday' }));
+      expect(runArgs[7]).toBe(1_710_000_000_000);
+
+      mockPrepareInstance.get.mockReturnValue({
+        id: 'job-interval',
+        name: 'Test Interval Job',
+        description: null,
+        enabled: 1,
+        schedule_kind: 'interval',
+        schedule_value: JSON.stringify({ intervalValue: 2, intervalUnit: 'workday' }),
+        schedule_tz: null,
+        schedule_start_at: 1_710_000_000_000,
+        schedule_description: 'Workday x2 / 2024-03-10 09:00',
+        payload_message: 'Interval task',
+        execution_mode: 'existing',
+        agent_config: null,
+        conversation_id: 'conv-interval',
+        conversation_title: null,
+        agent_type: 'codex',
+        created_by: 'user',
+        created_at: 100,
+        updated_at: 200,
+        next_run_at: 300,
+        last_run_at: null,
+        last_status: null,
+        last_error: null,
+        run_count: 0,
+        retry_count: 0,
+        max_retries: 3,
+      });
+
+      const retrieved = await cronStore.getById('job-interval');
+      expect(retrieved?.schedule).toEqual({
+        kind: 'interval',
+        intervalValue: 2,
+        intervalUnit: 'workday',
+        startAtMs: 1_710_000_000_000,
+        description: 'Workday x2 / 2024-03-10 09:00',
+      });
     });
 
     it('correctly converts "cron" schedule kind with timezone', async () => {
@@ -205,8 +287,9 @@ describe('CronStore', () => {
       expect(runArgs[4]).toBe('cron'); // schedule_kind
       expect(runArgs[5]).toBe('0 0 * * *'); // schedule_value
       expect(runArgs[6]).toBe('America/New_York'); // schedule_tz
-      expect(runArgs[9]).toBe('new_conversation'); // execution_mode
-      expect(runArgs[10]).toBeNull(); // agent_config (undefined)
+      expect(runArgs[7]).toBeNull(); // schedule_start_at
+      expect(runArgs[10]).toBe('new_conversation'); // execution_mode
+      expect(runArgs[11]).toBeNull(); // agent_config (undefined)
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({
@@ -217,6 +300,7 @@ describe('CronStore', () => {
         schedule_kind: 'cron',
         schedule_value: '0 0 * * *',
         schedule_tz: 'America/New_York',
+        schedule_start_at: null,
         schedule_description: 'Daily at midnight EST',
         payload_message: 'Daily report',
         execution_mode: 'new_conversation',
@@ -288,7 +372,8 @@ describe('CronStore', () => {
       expect(runArgs[4]).toBe('at'); // schedule_kind
       expect(runArgs[5]).toBe('1735689600000'); // schedule_value
       expect(runArgs[6]).toBeNull(); // schedule_tz
-      expect(runArgs[9]).toBe('existing'); // execution_mode (default)
+      expect(runArgs[7]).toBeNull(); // schedule_start_at
+      expect(runArgs[10]).toBe('existing'); // execution_mode (default)
 
       // Test retrieval
       mockPrepareInstance.get.mockReturnValue({
@@ -299,6 +384,7 @@ describe('CronStore', () => {
         schedule_kind: 'at',
         schedule_value: '1735689600000',
         schedule_tz: null,
+        schedule_start_at: null,
         schedule_description: 'Once on Jan 1, 2025',
         payload_message: 'New year message',
         execution_mode: 'existing',
@@ -544,10 +630,10 @@ describe('CronStore', () => {
       expect(updateArgs[updateArgs.length - 1]).toBe('update-job'); // WHERE id = ?
     });
 
-    it('update silently returns when job not found', async () => {
+    it('update throws when job not found', async () => {
       mockPrepareInstance.get.mockReturnValue(undefined);
 
-      await expect(cronStore.update('missing-job', { name: 'New' })).resolves.toBeUndefined();
+      await expect(cronStore.update('missing-job', { name: 'New' })).rejects.toThrow('Cron job not found: missing-job');
       expect(mockPrepareInstance.run).not.toHaveBeenCalled();
     });
 
@@ -560,6 +646,7 @@ describe('CronStore', () => {
         schedule_kind: 'every',
         schedule_value: '1000',
         schedule_tz: null,
+        schedule_start_at: null,
         schedule_description: 'Old',
         payload_message: 'Test',
         execution_mode: 'existing',
@@ -594,7 +681,8 @@ describe('CronStore', () => {
       expect(updateArgs[3]).toBe('cron'); // schedule_kind
       expect(updateArgs[4]).toBe('0 * * * *'); // schedule_value
       expect(updateArgs[5]).toBe('UTC'); // schedule_tz
-      expect(updateArgs[6]).toBe('Hourly'); // schedule_description
+      expect(updateArgs[6]).toBeNull(); // schedule_start_at
+      expect(updateArgs[7]).toBe('Hourly'); // schedule_description
     });
 
     it('delete removes a job', async () => {
