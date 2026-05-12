@@ -1,10 +1,18 @@
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
 import { resolve } from 'path';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
 import UnoCSS from 'unocss/vite';
 import unoConfig from '../../uno.config.ts';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+
+// Read the real AionUi version from the repo-root package.json.
+// `packages/desktop/package.json` is a workspace-internal placeholder pinned
+// at "0.0.0" — never use it for user-visible version strings.
+const rootPackageJson = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8')) as {
+  version: string;
+};
 
 // Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
 function buildMcpServersPlugin() {
@@ -264,6 +272,10 @@ export default defineConfig(({ mode }) => {
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        // Inject the real AionUi version (root package.json) so renderer code
+        // can show it without importing packages/desktop/package.json, which is
+        // a workspace-internal placeholder frozen at "0.0.0".
+        __APP_VERSION__: JSON.stringify(rootPackageJson.version),
         global: 'globalThis',
       },
       optimizeDeps: {

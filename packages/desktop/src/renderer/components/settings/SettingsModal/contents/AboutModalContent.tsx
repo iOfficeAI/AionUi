@@ -11,8 +11,13 @@ import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
-import packageJson from '../../../../../../package.json';
 import FeedbackReportModal from './FeedbackReportModal';
+
+// __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
+// repo-root package.json. The previous `import packageJson from
+// '../../../../../../package.json'` resolved to packages/desktop/package.json
+// which is a workspace placeholder permanently pinned at "0.0.0".
+declare const __APP_VERSION__: string;
 
 type LinkItem =
   | { title: string; url: string; icon: React.ReactNode; onClick?: never }
@@ -104,7 +109,7 @@ const AboutModalContent: React.FC = () => {
             </Typography.Text>
             <div className='flex items-center justify-center gap-8px mb-16px'>
               <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
-                v{packageJson.version}
+                v{__APP_VERSION__}
               </span>
               <div
                 className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'

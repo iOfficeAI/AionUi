@@ -56,7 +56,8 @@ bun run webui --remote              # dev, LAN-accessible
 bun run webui --port 8080           # custom port
 bun run webui --data-dir /path      # custom work directory
 
-bun run resetpass                   # reset admin password (standalone)
+aionui-web resetpass                # reset admin password (tarball)
+bun run resetpass                   # reset admin password (in-repo dev)
 AionUi --resetpass                  # reset admin password (desktop-bundled)
 ```
 
@@ -240,6 +241,80 @@ The standalone host is the `@aionui/web-host` package wrapped by the
 `scripts/webui.ts` launcher (`bun run webui`) or the packaged `aionui-web`
 CLI tarball.
 
+### `aionui-web` tarball (GitHub Release)
+
+Each AionUi release publishes a self-contained archive for users who do not
+want the Electron desktop app:
+
+```
+aionui-web-<ver>-darwin-arm64.tar.gz
+aionui-web-<ver>-darwin-x86_64.tar.gz
+aionui-web-<ver>-linux-arm64.tar.gz
+aionui-web-<ver>-linux-x86_64.tar.gz
+aionui-web-<ver>-win-x86_64.tar.gz
+install-web.sh
+```
+
+Each tarball expands into a folder with this layout:
+
+```
+aionui-web/
+├── aionui-web              ← bun-compiled single-file binary
+├── package.json            ← runtime reads `version` from here
+├── bundled-aionui-backend/<plat-arch>/aionui-backend[.exe]
+└── static/                 ← SPA assets
+```
+
+**Install via `install-web.sh` (recommended)** — handles `.sha256` verification,
+macOS `com.apple.quarantine` removal, and `~/.local/bin/aionui-web` symlink:
+
+```bash
+# Install the latest release
+curl -fsSL https://github.com/iOfficeAI/AionUi/releases/latest/download/install-web.sh | bash
+
+# Pin a specific version
+curl -fsSL https://github.com/iOfficeAI/AionUi/releases/download/v1.9.26/install-web.sh | bash
+
+# Custom install dir
+curl -fsSL .../install-web.sh | INSTALL_DIR=/opt/aionui-web bash
+
+# See all options
+curl -fsSL .../install-web.sh -o install-web.sh
+bash install-web.sh --help
+```
+
+After install, `aionui-web` is on `$PATH`:
+
+```bash
+aionui-web               # same as `aionui-web start`, default port 25808
+aionui-web --remote      # bind 0.0.0.0 for LAN clients
+aionui-web --port 8080   # custom port
+aionui-web resetpass     # reset admin password (see below)
+aionui-web version
+aionui-web help
+```
+
+**Manual tarball install** (if `install-web.sh` does not fit your environment):
+
+> ⚠️ **macOS users:** always extract the tarball **from a terminal** with
+> `tar -xzf …`. Do **not** double-click the `.tar.gz` — Finder's built-in
+> Archive Utility propagates the parent tarball's `com.apple.quarantine`
+> xattr onto every extracted file, and Gatekeeper then blocks the first
+> launch with "aionui-web is damaged and can't be opened". Terminal `tar`
+> does not carry quarantine through, so the extracted `aionui-web` runs
+> fine.
+
+> ⚠️ **First launch must run from a terminal** so you can see the initial
+> admin password. The password is printed to stdout once; if you launched
+> from Finder and missed it, run `./aionui-web/aionui-web resetpass` in a
+> terminal to print a new one.
+
+```bash
+tar -xzf aionui-web-1.9.26-darwin-arm64.tar.gz
+cd aionui-web
+./aionui-web                           # prints "Generated initial admin password: …"
+```
+
 ### `bun run webui` from the repo
 
 ```bash
@@ -278,14 +353,24 @@ Initial admin password: <12-char random>
 
 ### Resetting the password standalone
 
+Tarball (packaged `aionui-web` binary):
+
+```bash
+aionui-web resetpass                        # default ~/.aionui-web
+aionui-web resetpass --data-dir /path       # explicit work dir
+AIONUI_DATA_DIR=/path aionui-web resetpass  # env equivalent
+```
+
+In-repo dev (`scripts/webui.ts` launcher):
+
 ```bash
 bun run resetpass                        # default ~/.aionui-web-dev
 bun run resetpass --data-dir /path       # explicit work dir
 AIONUI_DATA_DIR=/path bun run resetpass  # env equivalent
 ```
 
-Prints a new random 12-char password and rotates the stored bcrypt hash and
-session secret so any active browser sessions are invalidated.
+Either form prints a new random 12-char password and rotates the stored
+bcrypt hash and session secret so any active browser sessions are invalidated.
 
 ### Sharing data between modes
 
@@ -379,7 +464,14 @@ AionUi.exe --resetpass
 AionUi --resetpass
 ```
 
-Standalone:
+Standalone (tarball):
+
+```bash
+aionui-web resetpass
+aionui-web resetpass --data-dir /custom/work/dir
+```
+
+Standalone (in-repo dev):
 
 ```bash
 bun run resetpass

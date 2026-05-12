@@ -8,7 +8,8 @@ import { app } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import { networkInterfaces } from 'os';
-import { ProcessConfig, getSystemDir } from './initStorage';
+import { getSystemDir } from './initStorage';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import { startWebHost, type WebHostHandle } from '@aionui/web-host';
 import { getDataPath } from './utils';
 
@@ -16,6 +17,43 @@ const WEBUI_CONFIG_FILE = 'webui.config.json';
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 const DESKTOP_WEBUI_PORT_KEY = 'webui.desktop.port';
+
+/**
+ * Read WebUI preferences from the backend's /api/settings/client store.
+ *
+ * Historical note: this used to read from `ProcessConfig` (a local JSON file).
+ * The renderer's `configService` was migrated to the backend HTTP store, but
+ * this main-process path was not, so `webui.desktop.enabled` that the user
+ * toggled via Settings was only ever persisted to SQLite — the next launch's
+ * auto-restore always read `undefined` from the local file and did nothing,
+ * yet the Settings page still showed the Switch as "on" (reading the SQLite
+ * value), so users clicked the saved URL and got ERR_CONNECTION_REFUSED.
+ */
+async function readWebUIDesktopPreferences(): Promise<{
+  enabled: boolean;
+  allowRemote: boolean;
+  port: number | undefined;
+}> {
+  try {
+    const settings = await httpRequest<Record<string, unknown>>('GET', '/api/settings/client');
+    const enabled = settings?.[DESKTOP_WEBUI_ENABLED_KEY] === true;
+    const allowRemote = settings?.[DESKTOP_WEBUI_ALLOW_REMOTE_KEY] === true;
+    const rawPort = settings?.[DESKTOP_WEBUI_PORT_KEY];
+    const port = typeof rawPort === 'number' && rawPort > 0 ? rawPort : undefined;
+    return { enabled, allowRemote, port };
+  } catch (error) {
+    console.error('[WebUI] Failed to read preferences from backend:', error);
+    return { enabled: false, allowRemote: false, port: undefined };
+  }
+}
+
+async function writeWebUIDesktopEnabled(enabled: boolean): Promise<void> {
+  try {
+    await httpRequest<void>('PUT', '/api/settings/client', { [DESKTOP_WEBUI_ENABLED_KEY]: enabled });
+  } catch (error) {
+    console.error('[WebUI] Failed to reconcile webui.desktop.enabled on backend:', error);
+  }
+}
 
 export type WebUIUserConfig = {
   port?: number | string;
@@ -278,22 +316,21 @@ export function getDesktopWebUIStatus(): {
 }
 
 export const restoreDesktopWebUIFromPreferences = async (): Promise<void> => {
+  const { enabled, allowRemote, port } = await readWebUIDesktopPreferences();
+  if (!enabled) return;
+
+  const preferredPort = port ?? DEFAULT_WEBUI_PORT;
+
   try {
-    const enabled = (await ProcessConfig.get(DESKTOP_WEBUI_ENABLED_KEY)) === true;
-    if (!enabled) return;
-
-    const [allowRemotePref, portPref] = await Promise.all([
-      ProcessConfig.get(DESKTOP_WEBUI_ALLOW_REMOTE_KEY),
-      ProcessConfig.get(DESKTOP_WEBUI_PORT_KEY),
-    ]);
-    const allowRemote = allowRemotePref === true;
-    const preferredPort = typeof portPref === 'number' && portPref > 0 ? portPref : DEFAULT_WEBUI_PORT;
-
     const handle = await startDesktopWebUI({ port: preferredPort, allowRemote });
     console.log(
       `[WebUI] Auto-restored from desktop preferences (port=${handle.port}, allowRemote=${handle.allowRemote})`
     );
   } catch (error) {
+    // Reconcile the persisted preference with reality. Leaving enabled=true
+    // means every subsequent launch will silently re-fail the same way, and
+    // the Settings page's Switch would render "on" against an empty 25808.
     console.error('[WebUI] Failed to auto-restore from desktop preferences:', error);
+    await writeWebUIDesktopEnabled(false);
   }
 };

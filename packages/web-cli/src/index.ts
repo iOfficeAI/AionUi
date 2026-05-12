@@ -33,8 +33,24 @@ function resolveCliRoot(): string {
 
 const cliRoot = resolveCliRoot();
 
+// `isPackaged` mirrors AppMetadata.isPackaged: true when running as the
+// bun-compiled single-file binary inside a release tarball. Only the
+// resetpass hint text varies by mode today.
+//
+// Note on macOS quarantine: we tried stripping `com.apple.quarantine` from
+// cliRoot at process start, but Gatekeeper refuses exec _before_ our code
+// runs, so the first launch still fails. Users must either run
+// `xattr -dr com.apple.quarantine <path>` manually or use `install-web.sh`,
+// which does it for them. Until we sign + notarize, there is nothing the
+// binary itself can do about first-launch quarantine.
+const isPackaged = (() => {
+  const exeName = path.basename(process.execPath).toLowerCase();
+  return exeName === 'aionui-web' || exeName === 'aionui-web.exe';
+})();
+
 const BACKEND_BINARY = process.platform === 'win32' ? 'aionui-backend.exe' : 'aionui-backend';
 const DEFAULT_PORT = 25808;
+const RESET_COMMAND = isPackaged ? 'aionui-web resetpass' : 'bun run resetpass';
 
 let currentHandle: WebHostHandle | StaticServerHandle | null = null;
 
@@ -197,9 +213,9 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
 
     // First-launch bootstrap: if SQLite has no admin password yet, seed one via
     // backend and print plaintext credentials. Failure must not abort startup —
-    // the user can always fall back to running `bun run resetpass` manually.
+    // the user can always fall back to running resetpass manually.
     await ensureAdminPassword(
-      { backendPort: handle.backendPort },
+      { backendPort: handle.backendPort, resetCommand: RESET_COMMAND },
       {
         fetch: (...args) => fetch(...args),
         log: (msg) => console.log(msg),
@@ -229,6 +245,100 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   process.on('SIGTERM', () => void shutdown('SIGTERM'));
 }
 
+/**
+ * `aionui-web resetpass` — spin up the backend just long enough to POST
+ * /api/webui/reset-password, print the new plaintext password, then tear down.
+ * Uses the same data-dir resolution as `start`, so the reset targets whichever
+ * DB the user normally runs against.
+ */
+async function runResetPassword(flags: Map<string, string | true>): Promise<void> {
+  const backendBin = resolveBackendBinary(flags);
+  if (!fs.existsSync(backendBin)) {
+    console.error(`[aionui-web] backend binary not found: ${backendBin}`);
+    console.error('  hint: pass --backend-bin <path> or set AIONUI_BACKEND_BIN');
+    process.exit(1);
+  }
+  const dataDir = resolveDataDir(flags);
+  fs.mkdirSync(dataDir, { recursive: true });
+  const logDir = resolveLogDir(flags, dataDir);
+  fs.mkdirSync(logDir, { recursive: true });
+  const staticDir = resolveStaticDir(flags);
+  const version = readPackageVersion();
+
+  console.log(`[aionui-web] resetting admin password in ${dataDir}`);
+
+  const handle = await startWebHost({
+    app: {
+      version,
+      isPackaged: true,
+      resourcesPath: cliRoot,
+      userDataPath: dataDir,
+    },
+    // resetpass only needs the backend up; serve static anyway so the web-host
+    // does not choke on a missing staticDir.
+    staticDir,
+    // Use an ephemeral port (0) so a concurrent running instance does not clash.
+    port: 0,
+    allowRemote: false,
+    dataDir,
+    logDir,
+    dirs: { cacheDir: dataDir, workDir: dataDir, logDir },
+    backend: { kind: 'ownBackend', resolveBackend: () => backendBin },
+  });
+  currentHandle = handle;
+
+  try {
+    // Wait for backend to finish migrating + seeding before we hit the endpoint.
+    const deadline = Date.now() + 15_000;
+    let ready = false;
+    while (Date.now() < deadline) {
+      try {
+        const res = await fetch(`http://127.0.0.1:${handle.backendPort}/api/auth/status`);
+        if (res.ok) {
+          ready = true;
+          break;
+        }
+      } catch {
+        /* backend still booting */
+      }
+      await delay(500);
+    }
+    if (!ready) {
+      console.error('[aionui-web] backend did not become ready within 15s');
+      process.exit(1);
+    }
+
+    const res = await fetch(`http://127.0.0.1:${handle.backendPort}/api/webui/reset-password`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      console.error(`[aionui-web] /api/webui/reset-password returned ${res.status}`);
+      process.exit(1);
+    }
+    const payload = (await res.json()) as {
+      data?: { new_password?: string; username?: string };
+      new_password?: string;
+      username?: string;
+    };
+    const newPassword = payload.data?.new_password ?? payload.new_password;
+    const username = payload.data?.username ?? payload.username ?? 'admin';
+    if (!newPassword) {
+      console.error('[aionui-web] reset-password response missing new_password');
+      process.exit(1);
+    }
+    console.log(`[aionui-web] username: ${username}`);
+    console.log(`[aionui-web] new password: ${newPassword}`);
+    console.log('[aionui-web] existing sessions have been invalidated.');
+  } finally {
+    try {
+      await handle.stop();
+    } catch {
+      /* best-effort shutdown */
+    }
+    currentHandle = null;
+  }
+}
+
 async function main(): Promise<void> {
   const { command, flags } = parseArgs(process.argv.slice(2));
 
@@ -242,6 +352,7 @@ async function main(): Promise<void> {
 
 Commands:
   start              Start the WebUI (default)
+  resetpass          Reset the admin password and print the new one
   version            Print version
   help               Show this help
 
@@ -253,6 +364,10 @@ Options for start:
   --static-dir <path>     Override static assets dir
   --backend-bin <path>    Override backend binary path
 
+Options for resetpass:
+  --data-dir <path>       Which data dir to reset (default: ~/.aionui-web)
+  --backend-bin <path>    Override backend binary path
+
 Environment variables:
   AIONUI_PORT, AIONUI_ALLOW_REMOTE, AIONUI_DATA_DIR, AIONUI_LOG_DIR,
   AIONUI_BACKEND_BIN
@@ -260,9 +375,14 @@ Environment variables:
     return;
   }
 
+  if (command === 'resetpass') {
+    await runResetPassword(flags);
+    return;
+  }
+
   if (command !== 'start') {
     console.error(`Unknown command: ${command}`);
-    console.error('Usage: aionui-web [start|version|help]');
+    console.error('Usage: aionui-web [start|resetpass|version|help]');
     process.exit(1);
   }
 

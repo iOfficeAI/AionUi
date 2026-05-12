@@ -33,6 +33,12 @@ export type EnsureAdminPasswordOptions = {
   statusTimeoutMs?: number;
   /** Poll interval between /api/auth/status attempts. Default: 500ms. */
   statusPollIntervalMs?: number;
+  /**
+   * Command to show in fallback hints ("Forgot the password? Run ..."). Varies
+   * by launch context — packaged tarball = `aionui-web resetpass`, in-repo dev
+   * = `bun run resetpass`. Defaults to the packaged form.
+   */
+  resetCommand?: string;
 };
 
 type AuthStatus = {
@@ -95,6 +101,7 @@ export async function ensureAdminPassword(
 ): Promise<void> {
   const timeoutMs = opts.statusTimeoutMs ?? 15_000;
   const intervalMs = opts.statusPollIntervalMs ?? 500;
+  const resetCmd = opts.resetCommand ?? 'aionui-web resetpass';
   const base = `http://127.0.0.1:${opts.backendPort}`;
 
   let status: AuthStatus;
@@ -109,20 +116,20 @@ export async function ensureAdminPassword(
 
   if (!needsSetup) {
     const username = await fetchAdminUsername(deps, opts.backendPort);
-    deps.log(`[aionui-web] Log in with username "${username}". Forgot the password? Run \`bun run resetpass\`.`);
+    deps.log(`[aionui-web] Log in with username "${username}". Forgot the password? Run \`${resetCmd}\`.`);
     return;
   }
 
   try {
     const resetRes = await deps.fetch(`${base}/api/webui/reset-password`, { method: 'POST' });
     if (!resetRes.ok) {
-      deps.warn(`[aionui-web] /api/webui/reset-password returned ${resetRes.status} — run \`bun run resetpass\``);
+      deps.warn(`[aionui-web] /api/webui/reset-password returned ${resetRes.status} — run \`${resetCmd}\``);
       return;
     }
     const payload = (await resetRes.json()) as ResetPasswordResponse;
     const newPassword = payload.data?.new_password ?? payload.new_password;
     if (!newPassword) {
-      deps.warn('[aionui-web] /api/webui/reset-password returned no new_password — run `bun run resetpass`');
+      deps.warn(`[aionui-web] /api/webui/reset-password returned no new_password — run \`${resetCmd}\``);
       return;
     }
     const username = await fetchAdminUsername(deps, opts.backendPort);

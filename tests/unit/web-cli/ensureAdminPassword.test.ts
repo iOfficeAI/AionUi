@@ -195,4 +195,41 @@ describe('ensureAdminPassword', () => {
 
     expect(logs.some((m) => m.includes('Log in with username "admin"'))).toBe(true);
   });
+
+  it('uses caller-supplied resetCommand in the "Forgot the password" hint', async () => {
+    const { deps, logs } = makeDeps({
+      handlers: [
+        () => mockResponse(200, { needs_setup: false }),
+        () => mockResponse(200, { data: { username: 'admin' } }),
+      ],
+    });
+
+    await ensureAdminPassword({ backendPort: 25808, resetCommand: 'bun run resetpass' }, deps);
+
+    expect(logs.some((m) => m.includes('bun run resetpass'))).toBe(true);
+    expect(logs.every((m) => !m.includes('aionui-web resetpass'))).toBe(true);
+  });
+
+  it('defaults to `aionui-web resetpass` when resetCommand is not provided', async () => {
+    const { deps, logs } = makeDeps({
+      handlers: [
+        () => mockResponse(200, { needs_setup: false }),
+        () => mockResponse(200, { data: { username: 'admin' } }),
+      ],
+    });
+
+    await ensureAdminPassword({ backendPort: 25808 }, deps);
+
+    expect(logs.some((m) => m.includes('aionui-web resetpass'))).toBe(true);
+  });
+
+  it('propagates resetCommand into warn messages when reset-password fails', async () => {
+    const { deps, warns } = makeDeps({
+      handlers: [() => mockResponse(200, { needs_setup: true }), () => mockResponse(500, 'boom')],
+    });
+
+    await ensureAdminPassword({ backendPort: 25808, resetCommand: 'bun run resetpass' }, deps);
+
+    expect(warns.some((w) => w.includes('bun run resetpass'))).toBe(true);
+  });
 });
