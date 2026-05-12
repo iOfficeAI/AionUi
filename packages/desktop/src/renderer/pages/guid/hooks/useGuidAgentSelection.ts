@@ -10,6 +10,7 @@ import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/type
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import {
   DETECTED_AGENTS_SWR_KEY,
@@ -73,6 +74,35 @@ export type GuidAgentSelectionResult = {
   refreshCustomAgents: () => Promise<void>;
   customAgentAvatarMap: Map<string, string | undefined>;
 };
+
+/**
+ * Resolve the default session_mode for a given backend.
+ *
+ * Priority:
+ *   1. Handshake `available_modes.current_mode_id` from `/api/agents`
+ *   2. First entry of handshake `available_modes`
+ *   3. First entry of the static `AGENT_MODES` table
+ *   4. Literal `'default'` (legacy fallback — only correct for claude/qwen/gemini/aionrs)
+ *
+ * This mirrors the runtime fallback inside `AgentModeSelector` so the
+ * parent-held `selectedMode` stays in sync with what the UI shows.
+ */
+function resolveDefaultMode(backend: string | undefined, agents: AgentMetadata[] | undefined): string {
+  if (!backend) return 'default';
+
+  const matched = agents?.find((a) => (a.backend ?? a.agent_type) === backend);
+  const handshakeModes = matched?.handshake?.available_modes as AcpSessionModes | undefined;
+  if (handshakeModes) {
+    if (handshakeModes.current_mode_id) return handshakeModes.current_mode_id;
+    const first = handshakeModes.available_modes?.[0]?.id;
+    if (first) return first;
+  }
+
+  const staticModes = getAgentModes(backend);
+  if (staticModes.length > 0) return staticModes[0].value;
+
+  return 'default';
+}
 
 type UseGuidAgentSelectionOptions = {
   modelList: IProvider[];
@@ -357,10 +387,13 @@ export const useGuidAgentSelection = ({
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
-    _setSelectedMode('default');
     // For preset agents, use the effective backend type for config lookup and mode saving
     const configKey = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
     selectedAgentRef.current = configKey;
+    // Reset to the backend's actual default (from handshake.available_modes),
+    // not the literal 'default' — codex/opencode/cursor don't have that value.
+    const fallbackMode = resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
+    _setSelectedMode(fallbackMode);
     if (!configKey) return;
 
     let cancelled = false;
@@ -413,7 +446,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
+  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup

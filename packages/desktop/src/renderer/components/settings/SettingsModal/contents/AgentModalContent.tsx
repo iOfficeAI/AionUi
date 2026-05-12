@@ -48,11 +48,13 @@ const AgentModalContent: React.FC = () => {
             <LocalAgents />
           </AionScrollArea>
         </Tabs.TabPane>
-        <Tabs.TabPane key='remote' title={t('settings.agentManagement.remoteAgents')}>
-          <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide' disableOverflow={isPageMode}>
-            <RemoteAgents />
-          </AionScrollArea>
-        </Tabs.TabPane>
+        {process.env.NODE_ENV === 'development' && (
+          <Tabs.TabPane key='remote' title={t('settings.agentManagement.remoteAgents')}>
+            <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide' disableOverflow={isPageMode}>
+              <RemoteAgents />
+            </AionScrollArea>
+          </Tabs.TabPane>
+        )}
       </Tabs>
     </div>
   );
