@@ -1,6 +1,7 @@
 import type { BadgeProps } from '@arco-design/web-react';
-import { Badge } from '@arco-design/web-react';
+import { Badge, Spin } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
+import { Checklist, Right } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
 import { normalizeToolMessages, hasRunningToolMessages } from '@/common/chat/normalizeToolCall';
@@ -83,13 +84,18 @@ const MessageToolGroupSummary: React.FC<{ messages: ToolMessage[] }> = ({ messag
   const tools = useMemo(() => normalizeToolMessages(messages), [messages]);
 
   return (
-    <div>
-      <div className='flex items-center gap-10px color-#86909C cursor-pointer' onClick={() => setShowMore(!showMore)}>
-        <Badge status='default' text='View Steps' className={'![&_span.arco-badge-status-text]:color-#86909C'} />
-        {showMore ? <IconDown /> : <IconRight />}
+    <div className='tool-group-summary'>
+      <div className='tool-group-summary__header' onClick={() => setShowMore(!showMore)}>
+        <span className='tool-group-summary__icon'>
+          {hasRunning ? <Spin size={12} /> : <Checklist theme='outline' size='14' />}
+        </span>
+        <span className='tool-group-summary__label'>View Steps {tools.length > 0 ? `· ${tools.length}` : ''}</span>
+        <span className={`tool-group-summary__arrow${showMore ? ' tool-group-summary__arrow--open' : ''}`}>
+          <Right theme='outline' size='12' />
+        </span>
       </div>
       {showMore && (
-        <div className='p-l-20px flex flex-col gap-8px pt-8px'>
+        <div className='tool-group-summary__body'>
           {tools.map((item) => (
             <ToolItemDetail key={item.key} item={item} />
           ))}
