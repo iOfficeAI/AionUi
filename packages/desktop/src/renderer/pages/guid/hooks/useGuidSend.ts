@@ -15,7 +15,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
-import type { AvailableAgent, EffectiveAgentInfo } from '../types';
+import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 
 export type GuidSendDeps = {
   // Input state
@@ -35,6 +35,7 @@ export type GuidSendDeps = {
   is_presetAgent: boolean;
   selectedMode: string;
   selectedAcpModel: string | null;
+  currentAcpCachedModelInfo: AcpModelInfo | null;
   pending_config_options: Record<string, string>;
   cached_config_options: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   current_model: TProviderWithModel | undefined;
@@ -95,6 +96,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     is_presetAgent,
     selectedMode,
     selectedAcpModel,
+    currentAcpCachedModelInfo,
     pending_config_options,
     cached_config_options,
     current_model,
@@ -339,7 +341,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             }
           : undefined,
         session_mode: selectedMode,
-        current_model_id: selectedAcpModel || undefined,
+        current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
         extra: {
           default_files: files,
           exclude_auto_inject_skills: excludeBuiltinSkills,
@@ -405,6 +407,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     is_presetAgent,
     selectedMode,
     selectedAcpModel,
+    currentAcpCachedModelInfo,
     pending_config_options,
     cached_config_options,
     current_model,
