@@ -6,9 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { configService } from '@/common/config/configService';
-import type { IProvider } from '@/common/config/storage';
-import type { AcpModelInfo } from '@/common/types/acpTypes';
+import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -80,15 +78,8 @@ const AcpModelSelector: React.FC<{
 
   const loadFallbackModelInfo = useCallback(
     (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
-      const fromHandshake = handshakeModelInfo;
-      const legacy = configService.get('acp.cachedModels')?.[backendKey];
-      const source =
-        fromHandshake && fromHandshake.available_models.length > 0
-          ? fromHandshake
-          : legacy && legacy.available_models?.length
-            ? legacy
-            : null;
-      if (!source) return false;
+      const source = handshakeModelInfo;
+      if (!source || source.available_models.length === 0) return false;
 
       if (backendKey === 'codex') {
         console.log('[AcpModelSelector][codex] Loaded fallback model info:', source);
@@ -273,7 +264,12 @@ const AcpModelSelector: React.FC<{
   );
 
   const defaultModelLabel = t('common.defaultModel');
-  const rawDisplayLabel = model_info?.current_model_id || model_info?.current_model_label || '';
+  const rawDisplayLabel =
+    (model_info?.current_model_id &&
+      model_info.available_models.find((m) => m.id === model_info.current_model_id)?.label) ||
+    model_info?.current_model_label ||
+    model_info?.current_model_id ||
+    '';
   const display_label = getModelDisplayLabel({
     selected_value: model_info?.current_model_id,
     selectedLabel: rawDisplayLabel,
@@ -355,7 +351,7 @@ const AcpModelSelector: React.FC<{
               >
                 <div className='flex items-center gap-8px w-full'>
                   {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
-                  <span>{model.id}</span>
+                  <span>{model.label || model.id}</span>
                 </div>
               </Menu.Item>
             );

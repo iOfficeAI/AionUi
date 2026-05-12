@@ -6,7 +6,6 @@
 
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackend, AcpBackendAll } from '@/common/types/acpTypes';
 
 export type BuildAgentConversationPresetResources = {
   rules?: string;
@@ -90,7 +89,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     extra.preset_assistant_id = effectivePresetAssistantId;
     extra.preset_context = preset_resources?.rules;
     if (type === 'acp') {
-      extra.backend = effectivePresetType as AcpBackend;
+      extra.backend = effectivePresetType as string;
     }
   } else if (type === 'remote') {
     extra.remote_agent_id = custom_agent_id;
@@ -103,7 +102,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
       extra.custom_agent_id = custom_agent_id;
     }
   } else if (type === 'acp') {
-    extra.backend = backend as AcpBackendAll;
+    extra.backend = backend as string;
     extra.agent_name = agent_name || name;
     if (agent_id) extra.agent_id = agent_id;
     if (cli_path) extra.cli_path = cli_path;

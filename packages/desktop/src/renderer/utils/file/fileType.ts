@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewContentType } from '@/common/types/preview';
+import type { PreviewContentType } from '@/common/types/office/preview';
 
 interface FileTypeInfo {
   contentType: PreviewContentType;

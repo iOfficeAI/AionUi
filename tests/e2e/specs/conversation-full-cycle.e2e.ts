@@ -8,7 +8,7 @@
  * These tests require real API keys and CLI agents installed.
  */
 import { test, expect } from '../fixtures';
-import { getFullAutoMode } from '@/common/types/agentModes';
+import { getFullAutoMode } from '@/common/types/agent/agentModes';
 import {
   goToGuid,
   goToNewChat,

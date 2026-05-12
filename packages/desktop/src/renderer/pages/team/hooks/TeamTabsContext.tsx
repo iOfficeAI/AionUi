@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { TeamAgent, TeammateStatus } from '@/common/types/teamTypes';
+import type { TeamAgent, TeammateStatus } from '@/common/types/team/teamTypes';
 import {
   readStoredSiderOrder,
   sortSiderItemsByStoredOrder,

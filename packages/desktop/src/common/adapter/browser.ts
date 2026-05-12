@@ -6,7 +6,7 @@
 
 import { bridge, logger } from '@office-ai/platform';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
-import type { ElectronBridgeAPI } from '@/common/types/electron';
+import type { ElectronBridgeAPI } from '@/common/types/platform/electron';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;

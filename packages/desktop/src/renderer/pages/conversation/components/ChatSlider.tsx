@@ -11,8 +11,7 @@ import ChatWorkspace from '../Workspace';
 
 const ChatSlider: React.FC<{
   conversation?: TChatConversation;
-  team_id?: string;
-}> = ({ conversation, team_id }) => {
+}> = ({ conversation }) => {
   const [messageApi, messageContext] = Message.useMessage({ maxCount: 1 });
 
   let workspaceNode: React.ReactNode = null;
@@ -26,7 +25,6 @@ const ChatSlider: React.FC<{
         }
         eventPrefix='acp'
         messageApi={messageApi}
-        team_id={team_id}
       ></ChatWorkspace>
     );
   } else if (conversation?.type === 'codex' && conversation.extra?.workspace) {
@@ -39,7 +37,6 @@ const ChatSlider: React.FC<{
         }
         eventPrefix='codex'
         messageApi={messageApi}
-        team_id={team_id}
       ></ChatWorkspace>
     );
   } else if (conversation?.type === 'aionrs' && conversation.extra?.workspace) {
@@ -52,7 +49,6 @@ const ChatSlider: React.FC<{
         }
         eventPrefix='aionrs'
         messageApi={messageApi}
-        team_id={team_id}
       ></ChatWorkspace>
     );
   }

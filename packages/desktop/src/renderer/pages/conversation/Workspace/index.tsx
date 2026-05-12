@@ -15,7 +15,6 @@ import { Empty, Message, Tree } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
-import MigrationModal from './components/MigrationModal';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
@@ -26,7 +25,6 @@ import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
 import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
-import { useWorkspaceMigration } from './hooks/useWorkspaceMigration';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
@@ -48,7 +46,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   isTemporaryWorkspace: isTemporaryWorkspaceProp,
   eventPrefix = 'acp',
   messageApi: externalMessageApi,
-  team_id,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -154,16 +151,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     () => getDisplayName(workspace, isTemporaryWorkspace, t),
     [workspace, isTemporaryWorkspace, t]
   );
-
-  // Migration hook
-  const migrationHook = useWorkspaceMigration({
-    conversation_id,
-    workspace,
-    messageApi,
-    t,
-    isTemporaryWorkspace,
-    team_id,
-  });
 
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
@@ -281,27 +268,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           handleDeleteConfirm={fileOpsHook.handleDeleteConfirm}
         />
 
-        {/* Migration + Cron Migration + Directory Selection Modals */}
-        <MigrationModal
-          workspace={workspace}
-          t={t}
-          showMigrationModal={migrationHook.showMigrationModal}
-          handleCloseMigrationModal={migrationHook.handleCloseMigrationModal}
-          handleSelectFolder={migrationHook.handleSelectFolder}
-          selectedTargetPath={migrationHook.selectedTargetPath}
-          migrationLoading={migrationHook.migrationLoading}
-          handleMigrationConfirm={migrationHook.handleMigrationConfirm}
-          showCronMigrationPrompt={migrationHook.showCronMigrationPrompt}
-          executeMigration={migrationHook.executeMigration}
-          showDirectorySelector={migrationHook.showDirectorySelector}
-          handleSelectDirectoryFromModal={migrationHook.handleSelectDirectoryFromModal}
-          closeDirectorySelector={migrationHook.closeDirectorySelector}
-          showHostFileSelector={searchHook.showHostFileSelector}
-          handleHostFileSelected={searchHook.handleHostFileSelected}
-          setShowHostFileSelector={searchHook.setShowHostFileSelector}
-          handleFilesToAdd={pasteHook.handleFilesToAdd}
-        />
-
         {/* Tab bar */}
         <WorkspaceTabBar
           t={t}
@@ -318,7 +284,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             t={t}
             isWorkspaceCollapsed={isWorkspaceCollapsed}
             setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
-            isTemporaryWorkspace={isTemporaryWorkspace}
             workspaceDisplayName={workspaceDisplayName}
             showSearch={searchHook.showSearch}
             searchText={searchHook.searchText}
@@ -330,8 +295,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             handleSelectHostFiles={pasteHook.handleSelectHostFiles}
             handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
             setShowHostFileSelector={searchHook.setShowHostFileSelector}
-            handleOpenMigrationModal={migrationHook.handleOpenMigrationModal}
-            handleOpenWorkspaceRoot={migrationHook.handleOpenWorkspaceRoot}
           />
         )}
 

@@ -4,13 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {
-  AcpBackend,
-  AgentBackend,
-  AcpPermissionRequest,
-  PlanUpdate,
-  ToolCallUpdate,
-} from '@/common/types/acpTypes';
+import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
 
@@ -208,7 +202,7 @@ export type IMessageToolGroup = IMessage<
 export type IMessageAgentStatus = IMessage<
   'agent_status',
   {
-    backend: AgentBackend; // Agent identifier: 'claude', 'qwen', 'codex', 'remote', etc.
+    backend: string; // Agent identifier: 'claude', 'qwen', 'codex', 'remote', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error';
     /** Display name for the agent (e.g. extension-contributed adapter name) / Agent 显示名称 */
     agent_name?: string;

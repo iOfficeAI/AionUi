@@ -7,7 +7,7 @@
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
-import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
+import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/provider/speech';
 import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';

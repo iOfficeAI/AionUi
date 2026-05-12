@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Canonical definitions live in common/types/detectedAgent.ts
-import type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/detectedAgent';
-export type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/detectedAgent';
+// Canonical definitions live in common/types/agent/detectedAgent.ts
+import type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/agent/detectedAgent';
+export type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/agent/detectedAgent';
 
 /** Last known connection status (cached for UI display) */
 export type RemoteAgentStatus = 'unknown' | 'connected' | 'pending' | 'error';

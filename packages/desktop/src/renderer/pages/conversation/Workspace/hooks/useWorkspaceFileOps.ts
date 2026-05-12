@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { downloadFileFromPath } from '@/renderer/utils/file/download';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import type { PreviewContentType } from '@/common/types/preview';
+import type { PreviewContentType } from '@/common/types/office/preview';
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { emitter } from '@/renderer/utils/emitter';
 import {

@@ -6,18 +6,16 @@
 
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import AcpConfigSelector from '@/renderer/components/agent/AcpConfigSelector';
 import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
-import type { AcpSessionConfigOption } from '@/common/types/acpTypes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import type { AcpBackend, AvailableAgent } from '../types';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { AvailableAgent } from '../types';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
 import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
@@ -32,7 +30,7 @@ type GuidActionRowProps = {
   modelSelectorNode: React.ReactNode;
 
   // Agent mode
-  selectedAgent: AcpBackend | 'custom';
+  selectedAgent: string | 'custom';
   effectiveModeAgent?: string;
   selectedMode: string;
   onModeSelect: (mode: string) => void;
@@ -51,11 +49,6 @@ type GuidActionRowProps = {
   agentSwitcherItems?: AgentSwitcherItem[];
   onAgentSwitch?: (key: string) => void;
   hidePresetTag?: boolean;
-
-  // Config options (ACP)
-  config_optionsBackend?: AcpBackend;
-  cached_config_options?: AcpSessionConfigOption[];
-  onConfigOptionSelect?: (config_id: string, value: string) => void;
 
   // Skills management
   builtinAutoSkills: Array<{ name: string; description: string }>;
@@ -86,9 +79,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   agentLogo,
   agentSwitcherItems,
   onAgentSwitch,
-  config_optionsBackend,
-  cached_config_options,
-  onConfigOptionSelect,
   builtinAutoSkills,
   disabledBuiltinSkills,
   onToggleBuiltinSkill,
@@ -293,13 +283,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
               hideCompactLabelPrefixOnMobile
             />
           )}
-          <AcpConfigSelector
-            backend={config_optionsBackend}
-            buttonClassName='guid-config-btn'
-            initialConfigOptions={cached_config_options}
-            leadingIcon={<Brain theme='outline' size='14' fill={iconColors.secondary} />}
-            onOptionSelect={onConfigOptionSelect}
-          />
         </div>
 
         {!hidePresetTag && is_presetAgent && selectedAgentInfo && (

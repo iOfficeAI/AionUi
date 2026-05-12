@@ -8,8 +8,7 @@ import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
-import type { AcpBackend } from '@/common/types/acpTypes';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import { resolveLocaleKey } from '@/common/utils';
@@ -18,7 +17,8 @@ import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
@@ -45,7 +45,7 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
     preference = configService.get('aionrs.config');
   } else {
     const acpConfig = configService.get('acp.config');
-    preference = acpConfig?.[backend as AcpBackend];
+    preference = acpConfig?.[backend as string];
   }
 
   const normalizedPreferredMode =
@@ -64,16 +64,19 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 
 async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
   const acpConfig = configService.get('acp.config');
-  const backendConfig = acpConfig?.[backend as AcpBackend] as { preferredModelId?: string } | undefined;
+  const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
   if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
     return preferredModelId;
   }
 
-  const cachedModels = configService.get('acp.cachedModels');
-  const cachedModelId = cachedModels?.[backend]?.current_model_id;
-  if (typeof cachedModelId === 'string' && cachedModelId.trim().length > 0) {
-    return cachedModelId;
+  // Fallback: last-seen model info persisted on the backend's agent_metadata row.
+  const agents = await fetchDetectedAgents();
+  const matched = agents.find((a) => (a.backend ?? a.agent_type) === backend);
+  const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+  const handshakeModelId = handshakeModels?.current_model_id;
+  if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
+    return handshakeModelId;
   }
 
   if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {

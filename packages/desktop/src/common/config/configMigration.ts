@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import type { CreateProviderRequest } from '@/common/types/providerApi';
+import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
 import type { IConfigStorageRefer } from './storage';
@@ -16,7 +16,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'acp.promptTimeout',
   'acp.agentIdleTimeout',
   'acp.cachedInitializeResult',
-  'acp.cachedModels',
   'acp.cached_config_options',
   'acp.cachedModes',
   'mcp.config',

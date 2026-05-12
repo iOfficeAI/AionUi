@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { sortAssistants as sortAssistantsUtil } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';

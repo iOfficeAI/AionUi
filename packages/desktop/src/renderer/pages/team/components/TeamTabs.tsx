@@ -1,6 +1,6 @@
 import { CloseSmall, Edit } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import type { TeammateStatus } from '@/common/types/teamTypes';
+import type { TeammateStatus } from '@/common/types/team/teamTypes';
 import AgentStatusBadge from './AgentStatusBadge';
 import TeamAgentIdentity from './TeamAgentIdentity';
 import { useTeamTabs } from '../hooks/TeamTabsContext';

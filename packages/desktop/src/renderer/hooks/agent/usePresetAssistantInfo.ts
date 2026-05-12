@@ -8,7 +8,7 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TChatConversation } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';

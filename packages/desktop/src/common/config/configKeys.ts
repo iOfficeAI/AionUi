@@ -1,11 +1,5 @@
-import type {
-  AcpBackend,
-  AcpInitializeResult,
-  AcpModelInfo,
-  AcpSessionConfigOption,
-  AcpSessionModes,
-} from '@/common/types/acpTypes';
-import type { SpeechToTextConfig } from '@/common/types/speech';
+import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
+import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
 export type ConfigKeyMap = {
@@ -16,7 +10,7 @@ export type ConfigKeyMap = {
     | { cli_path?: string; yoloMode?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access' }
     | undefined;
   'acp.config': {
-    [backend in AcpBackend]?: {
+    [backend: string]: {
       auth_methodId?: string;
       authToken?: string;
       lastAuthTime?: number;
@@ -30,7 +24,6 @@ export type ConfigKeyMap = {
   'acp.promptTimeout': number | undefined;
   'acp.agentIdleTimeout': number | undefined;
   'acp.cachedInitializeResult': Record<string, AcpInitializeResult> | undefined;
-  'acp.cachedModels': Record<string, AcpModelInfo> | undefined;
   'acp.cached_config_options': Record<string, AcpSessionConfigOption[]> | undefined;
   'acp.cachedModes': Record<string, AcpSessionModes> | undefined;
   'mcp.config': IMcpServer[];
@@ -39,6 +32,7 @@ export type ConfigKeyMap = {
   theme: string;
   colorScheme: string;
   'ui.zoomFactor': number | undefined;
+  'window.bounds': { x?: number; y?: number; width: number; height: number } | undefined;
   'webui.desktop.enabled': boolean | undefined;
   'webui.desktop.allowRemote': boolean | undefined;
   'webui.desktop.port': number | undefined;

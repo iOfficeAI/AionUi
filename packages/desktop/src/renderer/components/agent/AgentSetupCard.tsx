@@ -16,14 +16,13 @@ import { CheckOne, CloseOne, Loading, Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
-import type { AgentBackend } from '@/common/types/acpTypes';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 type AgentSetupCardProps = {
   conversation_id: string;
-  currentAgent: AgentBackend | null;
+  currentAgent: string | null;
   error?: string;
   isChecking: boolean;
   progress: number;
@@ -289,7 +288,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
                         statusClass = 'text-success-6';
                       }
 
-                      const logoSrc = getAgentLogo(result.backend as AgentBackend);
+                      const logoSrc = getAgentLogo(result.backend as string);
 
                       return (
                         <div

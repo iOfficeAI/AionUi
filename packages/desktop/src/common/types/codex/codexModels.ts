@@ -31,6 +31,3 @@ export const DEFAULT_CODEX_MODELS: Array<{ id: string; label: string; descriptio
     description: 'Optimized for codex. Cheaper, faster, but less capable',
   },
 ];
-
-/** The default model ID (first entry in the list) */
-export const DEFAULT_CODEX_MODEL_ID = DEFAULT_CODEX_MODELS[0].id;

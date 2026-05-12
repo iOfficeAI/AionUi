@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { RemoteAgentConfig, RemoteAgentInput } from '@/common/types/remoteAgentTypes';
+import type { RemoteAgentConfig, RemoteAgentInput } from '@/common/types/agent/remoteAgentTypes';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import {

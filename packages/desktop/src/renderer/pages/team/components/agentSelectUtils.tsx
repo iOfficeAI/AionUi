@@ -3,7 +3,7 @@ import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 /**
@@ -25,7 +25,13 @@ export type TeamAgentOption = {
 };
 
 export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
-  return { id: agent.id, name: agent.name, backend: agent.backend || agent.agent_type, icon: agent.icon, team_capable: agent.team_capable };
+  return {
+    id: agent.id,
+    name: agent.name,
+    backend: agent.backend || agent.agent_type,
+    icon: agent.icon,
+    team_capable: agent.team_capable,
+  };
 }
 
 export function assistantToOption(assistant: Assistant, teamCapableKeys?: Set<string>): TeamAgentOption {

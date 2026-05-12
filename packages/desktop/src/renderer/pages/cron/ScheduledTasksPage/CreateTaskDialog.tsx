@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import useSWR from 'swr';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
@@ -15,19 +16,14 @@ import { useConversationAgents } from '@renderer/pages/conversation/hooks/useCon
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
-import AcpConfigSelector from '@renderer/components/agent/AcpConfigSelector';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
-import {
-  type AcpBackendAll,
-  type AcpModelInfo,
-  type AcpSessionConfigOption,
-  type AgentBackend,
-} from '@/common/types/acpTypes';
+import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -160,9 +156,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [model_id, setModelId] = useState<string | undefined>(undefined);
   const [config_options, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
-  const [cached_config_options, setCachedConfigOptions] = useState<unknown[] | undefined>(undefined);
-  const [acpCachedModelInfo, setAcpCachedModelInfo] = useState<AcpModelInfo | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
+
+  // Available agents from backend `/api/agents`, shared across SWR cache.
+  const { data: detectedAgents } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -225,24 +222,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     return agentId;
   }, [selectedAgent, presetAssistants]);
 
-  // Load cached config options when backend changes
-  useEffect(() => {
-    if (!resolvedBackend) {
-      setCachedConfigOptions(undefined);
-      return;
-    }
-
-    const cached = configService.get('acp.cached_config_options');
-    if (cached && cached[resolvedBackend]) {
-      const filtered = (cached[resolvedBackend] as Array<{ category?: string }>).filter(
-        (opt) => opt.category !== 'model' && opt.category !== 'mode'
-      );
-      setCachedConfigOptions(filtered as unknown[]);
-    } else {
-      setCachedConfigOptions(undefined);
-    }
-  }, [resolvedBackend]);
-
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
   // Providers compatible with aionrs (AionCLI does not support Google Auth).
@@ -296,16 +275,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     []
   );
 
-  // Load ACP cached model info when backend changes
-  useEffect(() => {
-    if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') {
-      setAcpCachedModelInfo(null);
-      return;
-    }
-    const cached = configService.get('acp.cachedModels');
-    const info = cached?.[resolvedBackend];
-    setAcpCachedModelInfo(info?.available_models?.length ? info : null);
-  }, [resolvedBackend]);
+  // ACP model info derived from the backend `/api/agents` handshake.
+  const acpCachedModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
+    const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
+    const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    return info?.available_models?.length ? info : null;
+  }, [resolvedBackend, detectedAgents]);
 
   // Set default model_id from user preferences when backend changes
   useEffect(() => {
@@ -364,8 +340,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const selectedExecutionModeOption =
     executionModeOptions.find((option) => option.value === execution_mode) ?? executionModeOptions[0];
   const showModelSelector = Boolean(resolvedBackend && (isGeminiMode || acpCachedModelInfo));
-  const showConfigSelector = resolvedBackend === 'codex';
-  const advancedFieldCount = Number(showModelSelector) + Number(showConfigSelector) + 1;
+  const advancedFieldCount = Number(showModelSelector) + 1;
 
   const handleFrequencyChange = (value: FrequencyType) => {
     setFrequency(value);
@@ -386,25 +361,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setWorkspace(undefined);
   }, []);
 
-  const handleConfigOptionSelect = useCallback((config_id: string, value: string) => {
-    setConfigOptions((prev) => ({ ...prev, [config_id]: value }));
-  }, []);
-
   const resolveAgentConfig = (agentValue: string) => {
     const colonIdx = agentValue.indexOf(':');
     const agentKind = colonIdx >= 0 ? agentValue.substring(0, colonIdx) : 'cli';
     const agentId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
-
-    // Merge cached config option defaults with user overrides
-    const mergedConfigOptions = (() => {
-      if (!Array.isArray(cached_config_options) || cached_config_options.length === 0) return config_options;
-      const defaults: Record<string, string> = {};
-      for (const opt of cached_config_options as AcpSessionConfigOption[]) {
-        const val = opt.current_value || opt.selected_value;
-        if (opt.id && val) defaults[opt.id] = val;
-      }
-      return Object.keys(defaults).length > 0 ? { ...defaults, ...config_options } : config_options;
-    })();
 
     let agent_config: ICronAgentConfig | undefined;
     let resolvedAgentType: ICreateCronJobParams['agent_type'] = (agent_type ||
@@ -412,7 +372,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
     if (agentKind === 'cli') {
       const agent = cliAgents.find((a) => a.backend === agentId || a.agent_type === agentId);
-      const backend = (agent?.backend || agent?.agent_type || agentId) as AgentBackend;
+      const backend = (agent?.backend || agent?.agent_type || agentId) as string;
 
       if (backend === 'aionrs') {
         // aionrs stores provider_id in `agent_config.backend` and the model
@@ -423,7 +383,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         }
         resolvedAgentType = 'aionrs' as ICreateCronJobParams['agent_type'];
         agent_config = {
-          backend: geminiCurrentModel.id as AgentBackend,
+          backend: geminiCurrentModel.id as string,
           name: geminiCurrentModel.name,
           mode: getFullAutoMode('aionrs'),
           model_id,
@@ -431,7 +391,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         };
       } else if (agent?.agent_type === 'acp') {
         const capitalizedBackend = backend.charAt(0).toUpperCase() + backend.slice(1);
-        resolvedAgentType = backend as AcpBackendAll;
+        resolvedAgentType = backend as string;
         agent_config = {
           // cli_path is no longer sent from the frontend — the backend
           // resolves it server-side from the `agent_metadata` catalog.
@@ -439,7 +399,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           name: agent.name || capitalizedBackend,
           mode: getFullAutoMode(backend),
           model_id,
-          config_options: mergedConfigOptions,
+          config_options,
           workspace,
         };
       } else if (agent) {
@@ -449,16 +409,16 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const assistant = presetAssistants.find((a) => a.id === agentId);
       if (assistant) {
         const presetBackend = assistant.preset_agent_type;
-        resolvedAgentType = presetBackend as AcpBackendAll;
+        resolvedAgentType = presetBackend as string;
         agent_config = {
-          backend: presetBackend as AgentBackend,
+          backend: presetBackend as string,
           name: assistant.name,
           is_preset: true,
           custom_agent_id: assistant.id,
           preset_agent_type: presetBackend,
           mode: getFullAutoMode(presetBackend),
           model_id,
-          config_options: mergedConfigOptions,
+          config_options,
           workspace,
         };
       }
@@ -769,20 +729,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       currentAcpCachedModelInfo={acpCachedModelInfo}
                       selectedAcpModel={model_id ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}
-                    />
-                  </div>
-                )}
-
-                {showConfigSelector && (
-                  <div className='min-w-0'>
-                    <label className='mb-8px block text-14px font-medium text-t-primary'>
-                      {t('acp.config.reasoning_effort')}
-                    </label>
-                    <AcpConfigSelector
-                      backend={resolvedBackend}
-                      compact={false}
-                      initialConfigOptions={cached_config_options}
-                      onOptionSelect={handleConfigOptionSelect}
                     />
                   </div>
                 )}

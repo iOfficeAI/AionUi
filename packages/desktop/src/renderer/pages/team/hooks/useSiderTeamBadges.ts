@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import type { TTeam } from '@/common/types/teamTypes';
+import type { TTeam } from '@/common/types/team/teamTypes';
 import { useEffect, useState } from 'react';
 import { removeStack } from '@/renderer/utils/common';
 

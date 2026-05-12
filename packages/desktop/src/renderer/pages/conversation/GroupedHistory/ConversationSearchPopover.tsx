@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IMessageSearchItem } from '@/common/types/database';
+import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { useOptionalConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';

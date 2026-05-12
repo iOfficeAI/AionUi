@@ -6,7 +6,7 @@
 
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 

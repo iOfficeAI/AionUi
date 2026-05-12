@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { Assistant } from '@/common/types/assistantTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useMemo, useState } from 'react';

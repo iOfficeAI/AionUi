@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { ipcBridge } from '@/common';
-import type { TeamAgent, TTeam } from '@/common/types/teamTypes';
+import type { TeamAgent, TTeam } from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
 import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
@@ -228,8 +228,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
 
   const sider = useMemo(() => {
     if (!workspaceEnabled || !dispatchConversation) return <div />;
-    return <ChatSlider conversation={dispatchConversation} team_id={team.id} />;
-  }, [workspaceEnabled, dispatchConversation, team.id]);
+    return <ChatSlider conversation={dispatchConversation} />;
+  }, [workspaceEnabled, dispatchConversation]);
 
   const updateScrollArrows = useCallback(() => {
     const container = scrollContainerRef.current;

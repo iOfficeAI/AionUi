@@ -143,4 +143,4 @@ export function supportsModeSwitch(backend: string | undefined): boolean {
  * Full-auto mode value per backend.
  * Re-exported from common for backward compatibility.
  */
-export { getFullAutoMode } from '@/common/types/agentModes';
+export { getFullAutoMode } from '@/common/types/agent/agentModes';

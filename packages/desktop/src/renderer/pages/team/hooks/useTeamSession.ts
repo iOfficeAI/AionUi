@@ -8,7 +8,7 @@ import type {
   TeamAgent,
   TeammateStatus,
   TTeam,
-} from '@/common/types/teamTypes';
+} from '@/common/types/team/teamTypes';
 import { useCallback, useEffect, useState } from 'react';
 import useSWR from 'swr';
 

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { mutate } from 'swr';
-import type { IHubAgentItem } from '@/common/types/hub';
+import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { ipcBridge } from '@/common';
 import { DETECTED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
 

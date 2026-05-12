@@ -26,7 +26,6 @@ export interface WorkspaceProps {
   isTemporaryWorkspace?: boolean;
   eventPrefix?: 'acp' | 'codex' | 'aionrs';
   messageApi?: MessageApi;
-  team_id?: string;
 }
 
 /**

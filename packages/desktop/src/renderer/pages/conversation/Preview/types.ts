@@ -8,8 +8,8 @@
  * Preview 模块类型定义
  * Preview module type definitions
  *
- * 注意：核心类型定义在 @/common/types/preview，用于跨进程通信
- * Note: Core type definitions are in @/common/types/preview for IPC
+ * 注意：核心类型定义在 @/common/types/office/preview，用于跨进程通信
+ * Note: Core type definitions are in @/common/types/office/preview for IPC
  */
 
 // 重新导出 common 中的类型，方便模块内使用
@@ -19,7 +19,7 @@ export type {
   PreviewHistoryTarget,
   PreviewSnapshotInfo,
   RemoteImageFetchRequest,
-} from '@/common/types/preview';
+} from '@/common/types/office/preview';
 
 /**
  * 视图模式

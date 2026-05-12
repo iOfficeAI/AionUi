@@ -21,19 +21,8 @@ import type { PetSize } from '@process/pet/petTypes';
 // Keep-awake power blocker state
 let _keepAwakeBlockerId: number | null = null;
 
-type CloseToTrayChangeListener = (enabled: boolean) => void;
-let _changeListener: CloseToTrayChangeListener | null = null;
-
 type LanguageChangeListener = () => void;
 let _languageChangeListener: LanguageChangeListener | null = null;
-
-/**
- * 注册关闭到托盘设置变更监听器（供主进程 index.ts 使用）
- * Register a listener for close-to-tray setting changes (used by main process index.ts)
- */
-export function onCloseToTrayChanged(listener: CloseToTrayChangeListener): void {
-  _changeListener = listener;
-}
 
 /**
  * 注册语言变更监听器（供主进程 index.ts 使用）
