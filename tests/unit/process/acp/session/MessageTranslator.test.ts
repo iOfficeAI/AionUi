@@ -91,4 +91,94 @@ describe('MessageTranslator', () => {
     });
     expect(msgs).toEqual([]);
   });
+
+  describe('setLoadingSession (issue #2887)', () => {
+    const replayChunk: SessionNotification = {
+      sessionId: 's1',
+      update: {
+        // Mirrors @agentclientprotocol/claude-agent-acp@0.29.2 session/load behavior:
+        // replay chunks arrive with messageId=undefined.
+        sessionUpdate: 'agent_message_chunk',
+        content: { type: 'text', text: 'Hello, I was here before restart' },
+      } as SessionNotification['update'],
+    };
+
+    it('drops agent_message_chunk during loadingSession', () => {
+      const t = new MessageTranslator();
+      t.setLoadingSession(true);
+      expect(t.translate(replayChunk)).toEqual([]);
+    });
+
+    it('drops agent_thought_chunk during loadingSession', () => {
+      const t = new MessageTranslator();
+      t.setLoadingSession(true);
+      const msgs = t.translate({
+        sessionId: 's1',
+        update: {
+          sessionUpdate: 'agent_thought_chunk',
+          messageId: 'thought-1',
+          content: { type: 'text', text: 'thinking…' },
+        },
+      });
+      expect(msgs).toEqual([]);
+    });
+
+    it('drops tool_call during loadingSession', () => {
+      const t = new MessageTranslator();
+      t.setLoadingSession(true);
+      const msgs = t.translate({
+        sessionId: 's1',
+        update: { sessionUpdate: 'tool_call', toolCallId: 'tc-1', title: 'read_file', rawInput: {} },
+      });
+      expect(msgs).toEqual([]);
+    });
+
+    it('still passes through config_updates while loadingSession (state must stay in sync)', () => {
+      const t = new MessageTranslator();
+      t.setLoadingSession(true);
+      // CONFIG_UPDATES short-circuit to [] before the gate, but the point is they are
+      // not affected by the flag and AcpSession.handleMessage processes them upstream.
+      const msgs = t.translate({
+        sessionId: 's1',
+        update: { sessionUpdate: 'current_mode_update', currentModeId: 'code' },
+      });
+      expect(msgs).toEqual([]);
+    });
+
+    it('translates normally after setLoadingSession(false)', () => {
+      const t = new MessageTranslator();
+      t.setLoadingSession(true);
+      expect(t.translate(replayChunk)).toEqual([]);
+      t.setLoadingSession(false);
+      const msgs = t.translate({
+        sessionId: 's1',
+        update: {
+          sessionUpdate: 'agent_message_chunk',
+          messageId: 'live-msg',
+          content: { type: 'text', text: 'live response' },
+        },
+      });
+      expect(msgs.length).toBe(1);
+      expect(msgs[0].type).toBe('text');
+    });
+
+    it('clears messageMap when loadingSession ends (so replay-side mappings do not leak into live turns)', () => {
+      const t = new MessageTranslator();
+      // Populate messageMap with a non-replay chunk
+      t.translate({
+        sessionId: 's1',
+        update: {
+          sessionUpdate: 'agent_message_chunk',
+          messageId: 'pre',
+          content: { type: 'text', text: 'pre-loading state' },
+        },
+      });
+      expect(t.activeEntryCount).toBeGreaterThan(0);
+      // Begin a load — gate engages
+      t.setLoadingSession(true);
+      // End — should clear the map so any stale mapping does not carry over
+      t.setLoadingSession(false);
+      expect(t.activeEntryCount).toBe(0);
+    });
+  });
 });

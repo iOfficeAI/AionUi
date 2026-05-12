@@ -77,6 +77,8 @@ export function mapToolLocations(locations: ToolCallLocation[] | null | undefine
 export class MessageTranslator {
   /** SDK messageId → generated UUID (scoped to current turn, cleared on onTurnEnd) */
   private messageMap = new Map<string, string>();
+  /** True while session/load is replaying prior history — drop content-bearing updates */
+  private loadingSession = false;
 
   constructor(private readonly conversationId: string) {}
 
@@ -84,11 +86,23 @@ export class MessageTranslator {
     return this.messageMap.size;
   }
 
+  /**
+   * Gate content-bearing notifications while session/load is replaying prior turns.
+   * The DB already holds those rows from the original session; re-persisting them
+   * would create duplicate rows with new msg_ids (see issue #2887). Config updates
+   * are not gated — agent state (mode/model/commands/usage) must stay in sync.
+   */
+  setLoadingSession(loading: boolean): void {
+    this.loadingSession = loading;
+    if (!loading) this.messageMap.clear();
+  }
+
   translate(notification: SessionNotification): TMessage[] {
     const update = notification.update;
     const updateType = update.sessionUpdate;
 
     if (CONFIG_UPDATES.has(updateType)) return [];
+    if (this.loadingSession) return [];
 
     switch (updateType) {
       case 'agent_message_chunk':

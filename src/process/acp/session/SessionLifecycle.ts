@@ -357,6 +357,10 @@ export class SessionLifecycle {
 
   private async tryLoadOrCreate(mcpServers: McpServer[]): Promise<NewSessionResponse | LoadSessionResponse> {
     if (this._sessionId && this._client) {
+      // Drop replay content-events emitted by session/load (see issue #2887).
+      // The DB already has those rows; re-translating them would create duplicates
+      // with new msg_ids and merged content via the stream buffer.
+      this.host.messageTranslator.setLoadingSession(true);
       try {
         return await this._client.loadSession({
           sessionId: this._sessionId,
@@ -366,6 +370,8 @@ export class SessionLifecycle {
         });
       } catch {
         this.host.callbacks.onSignal({ type: 'session_expired' });
+      } finally {
+        this.host.messageTranslator.setLoadingSession(false);
       }
     }
     return this._client!.createSession({
