@@ -1,5 +1,10 @@
 /* Layout-level styles: sidebar, sider animations, message positioning */
 
+/* Sticky section labels in the sider (team / cron / projects / timeline). */
+.sider-section-label {
+  background-color: var(--bg-2);
+}
+
 /* Layout sider base styles */
 .layout-sider {
   overflow-x: hidden;

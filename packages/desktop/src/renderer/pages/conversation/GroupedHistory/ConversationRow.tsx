@@ -6,7 +6,6 @@
 
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
-import siderStyles from '@/renderer/components/layout/Sider/Sider.module.css';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
@@ -32,6 +31,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     checked,
     selected,
     menuVisible,
+    dimIcon = false,
   } = props;
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -55,16 +55,33 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
 
   const renderLeadingIcon = () => {
     if (cronStatus !== 'none') {
-      return <CronJobIndicator status={cronStatus} size={20} className='flex-shrink-0' />;
+      return <CronJobIndicator status={cronStatus} size={16} className='flex-shrink-0' />;
     }
+
+    // Agent icons: dimmed by default only inside project folders, full color on row hover.
+    // Top-level "对话" section keeps full color to preserve agent identity.
+    const dimmedClass = dimIcon
+      ? 'opacity-55 grayscale-[0.3] group-hover:opacity-100 group-hover:grayscale-0 transition'
+      : '';
+    // When the row is pinned, hovering reveals a pushpin marker that overlays
+    // the leading icon. We dim the resting icon on hover so the pin reads cleanly.
+    const pinnedHoverFade = isPinned ? 'group-hover:opacity-0 transition-opacity' : '';
+    const composedClass = classNames(dimmedClass, pinnedHoverFade);
 
     if (assistantInfo) {
       if (assistantInfo.isEmoji) {
-        // Emoji glyphs render with built-in padding, so 16px text ≈ 18px line icon visual weight
-        return <span className='text-16px leading-none flex-shrink-0'>{assistantInfo.logo}</span>;
+        return (
+          <span className={classNames('text-16px leading-none flex-shrink-0', composedClass)}>
+            {assistantInfo.logo}
+          </span>
+        );
       }
       return (
-        <img src={assistantInfo.logo} alt={assistantInfo.name} className='w-18px h-18px rounded-50% flex-shrink-0' />
+        <img
+          src={assistantInfo.logo}
+          alt={assistantInfo.name}
+          className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
+        />
       );
     }
 
@@ -72,11 +89,21 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     const logo = getAgentLogo(backendKey);
     if (logo) {
       return (
-        <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-18px h-18px rounded-50% flex-shrink-0' />
+        <img
+          src={logo}
+          alt={`${backendKey || 'agent'} logo`}
+          className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
+        />
       );
     }
 
-    return <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />;
+    return (
+      <MessageOne
+        theme='outline'
+        size='16'
+        className={classNames('line-height-0 flex-shrink-0 text-t-secondary', composedClass)}
+      />
+    );
   };
 
   const handleRowClick = () => {
@@ -104,7 +131,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     }
 
     return (
-      <span className='absolute right-10px top-1/2 -translate-y-1/2 flex items-center justify-center group-hover:hidden'>
+      <span className='absolute right-8px top-1/2 -translate-y-1/2 flex items-center justify-center group-hover:hidden'>
         <span className='h-8px w-8px rounded-full bg-#2C7FFF shadow-[0_0_0_2px_rgba(44,127,255,0.18)]' />
       </span>
     );
@@ -120,11 +147,13 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
       <div
         id={'c-' + conversation.id}
         className={classNames(
-          'chat-history__item h-40px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
-          collapsed ? 'justify-center px-0' : 'justify-start gap-8px px-10px',
+          'chat-history__item h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
+          collapsed ? 'justify-center px-0' : 'justify-start gap-8px pr-0',
+          // dimIcon means this row sits inside a project/cron parent — visually indent the row content while keeping the bg full-width
+          !collapsed && (dimIcon ? 'pl-34px' : 'pl-10px'),
           {
-            'hover:bg-[rgba(var(--primary-6),0.14)]': !batchMode,
-            '!bg-active': selected,
+            'hover:bg-fill-3': !batchMode && !selected,
+            '!bg-fill-3': selected,
             'bg-[rgba(var(--primary-6),0.08)]': batchMode && checked,
           }
         )}
@@ -142,15 +171,19 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             <Checkbox checked={checked} />
           </span>
         )}
-        <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+        <span className='size-22px flex items-center justify-center shrink-0 relative'>
           {isGenerating && !batchMode ? <Spin size={16} /> : renderLeadingIcon()}
-        </span>
-        <FlexFullContainer
-          className={classNames(
-            'h-24px min-w-0 flex-1 collapsed-hidden',
-            isPinned && !isMobile ? siderStyles.pinnedTextSlot : 'pr-18px'
+          {/* Pinned indicator: only visible when row is hovered, overlays leading icon */}
+          {!batchMode && isPinned && !isMobile && !isGenerating && (
+            <span
+              className='absolute inset-0 flex-center text-t-secondary pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity'
+              style={{ lineHeight: 0 }}
+            >
+              <Pushpin theme='outline' size='14' />
+            </span>
           )}
-        >
+        </span>
+        <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden pr-24px'>
           <Tooltip
             content={conversation.name}
             disabled={!inlineNameTooltipEnabled}
@@ -160,37 +193,22 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             popupHoverStay={false}
             position='top'
           >
-            <div
-              className={classNames(
-                'chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 group-hover:text-1',
-                selected && !batchMode ? 'text-1 font-medium' : 'text-2'
-              )}
-            >
+            <div className='chat-history__item-name overflow-hidden text-ellipsis block w-full text-14px lh-24px whitespace-nowrap min-w-0 text-t-primary'>
               <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{conversation.name}</span>
             </div>
           </Tooltip>
         </FlexFullContainer>
 
         {renderCompletionUnreadDot()}
-        {!batchMode && isPinned && !menuVisible && !isMobile && (
-          <span className='absolute right-8px top-1/2 -translate-y-1/2 flex-center text-t-secondary pointer-events-none !collapsed-hidden group-hover:hidden'>
-            <Pushpin theme='outline' size='16' />
-          </span>
-        )}
         {!batchMode && (
           <div
             className={classNames(
-              'absolute right-0px top-0px h-full items-center justify-end !collapsed-hidden pr-8px',
+              'absolute right-8px top-1/2 -translate-y-1/2 items-center justify-end !collapsed-hidden',
               {
                 flex: isMobile || menuVisible,
                 'hidden group-hover:flex': !isMobile && !menuVisible,
               }
             )}
-            style={{
-              backgroundImage: selected
-                ? `linear-gradient(to right, transparent, var(--aou-2) 100%)`
-                : `linear-gradient(to right, transparent, var(--aou-1) 100%)`,
-            }}
             onClick={(event) => {
               event.stopPropagation();
             }}
@@ -253,7 +271,8 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             >
               <span
                 className={classNames(
-                  'flex-center cursor-pointer hover:bg-fill-2 rd-4px p-4px transition-colors relative text-t-primary',
+                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary',
+                  'size-20px',
                   {
                     flex: isMobile || menuVisible,
                     'hidden group-hover:flex': !isMobile && !menuVisible,
@@ -264,14 +283,11 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                   onOpenMenu(conversation);
                 }}
               >
-                <div
-                  className='flex flex-col gap-2px items-center justify-center'
-                  style={{ width: '16px', height: '16px' }}
-                >
-                  <div className='w-2px h-2px rounded-full bg-current'></div>
-                  <div className='w-2px h-2px rounded-full bg-current'></div>
-                  <div className='w-2px h-2px rounded-full bg-current'></div>
-                </div>
+                <span className='flex flex-col gap-2px items-center justify-center'>
+                  <span className='w-2px h-2px rounded-full bg-current' />
+                  <span className='w-2px h-2px rounded-full bg-current' />
+                  <span className='w-2px h-2px rounded-full bg-current' />
+                </span>
               </span>
             </Dropdown>
           </div>

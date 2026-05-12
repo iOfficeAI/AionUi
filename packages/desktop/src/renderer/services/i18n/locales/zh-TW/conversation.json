@@ -67,7 +67,13 @@
     "pinFailed": "Pin operation failed",
     "pinnedSection": "Pinned",
     "deleteSuccess": "刪除成功",
-    "deleteFailed": "刪除失敗"
+    "deleteFailed": "刪除失敗",
+    "projectsSection": "專案",
+    "conversationsSection": "對話",
+    "removeProjectTitle": "移除專案",
+    "removeProject": "移除專案",
+    "removeProjectConfirm": "確定要移除專案「{{name}}」嗎？專案下的 {{count}} 個對話也會被一起移除。",
+    "newConversationInProject": "在此專案中新建對話"
   },
   "historySearch": {
     "tooltip": "搜尋訊息",

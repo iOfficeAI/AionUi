@@ -67,7 +67,13 @@
     "today": "Today",
     "yesterday": "Yesterday",
     "recent7Days": "Last 7 Days",
-    "earlier": "Earlier"
+    "earlier": "Earlier",
+    "projectsSection": "Projects",
+    "conversationsSection": "Conversations",
+    "removeProjectTitle": "Remove project",
+    "removeProject": "Remove project",
+    "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
+    "newConversationInProject": "New conversation in this project"
   },
   "historySearch": {
     "tooltip": "Search messages",

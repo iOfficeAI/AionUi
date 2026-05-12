@@ -67,7 +67,13 @@
     "today": "Сьогодні",
     "yesterday": "Вчора",
     "recent7Days": "Останні 7 днів",
-    "earlier": "Раніше"
+    "earlier": "Раніше",
+    "projectsSection": "Проєкти",
+    "conversationsSection": "Розмови",
+    "removeProjectTitle": "Видалити проєкт",
+    "removeProject": "Видалити проєкт",
+    "removeProjectConfirm": "Видалити проєкт «{{name}}»? Також буде видалено {{count}} розмов у ньому.",
+    "newConversationInProject": "Нова розмова в цьому проєкті"
   },
   "historySearch": {
     "tooltip": "Пошук повідомлень",
