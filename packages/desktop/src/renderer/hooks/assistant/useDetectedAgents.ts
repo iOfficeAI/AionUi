@@ -26,7 +26,9 @@ export const useDetectedAgents = () => {
       rawAgents
         .filter((a) => a.agent_type !== 'remote')
         .map((a) => ({
-          id: a.id,
+          // `preset_agent_type` stores the backend slug (e.g. "claude", "gemini"),
+          // not the AgentMetadata row id. Align the Select value with that contract.
+          id: a.backend || a.agent_type,
           name: a.name,
           isExtension: a.agent_source === 'extension',
         })),

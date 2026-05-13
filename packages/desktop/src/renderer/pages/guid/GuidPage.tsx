@@ -33,6 +33,8 @@ import { Down, Left, Robot, Write } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { mutate as swrMutate } from 'swr';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import styles from './index.module.css';
 
 const GuidPage: React.FC = () => {
@@ -456,8 +458,19 @@ const GuidPage: React.FC = () => {
       const assistantId = agentSelection.selectedAgentInfo?.custom_agent_id;
       if (!assistantId || nextType === currentPresetAgentType) return;
       try {
+        // Optimistically patch the shared `assistants.list` SWR cache so the hero
+        // avatar/logo reflect the new preset_agent_type on the same frame as the
+        // click. Without this, downstream memos (selectedAssistantRecord →
+        // currentEffectiveAgentInfo → effectiveAgentLogo) lag a network roundtrip
+        // behind the user action.
+        await swrMutate(
+          'assistants.list',
+          (prev: Assistant[] | undefined) =>
+            prev?.map((a) => (a.id === assistantId ? { ...a, preset_agent_type: nextType } : a)),
+          { revalidate: false }
+        );
         await ipcBridge.assistants.update.invoke({ id: assistantId, preset_agent_type: nextType });
-        await agentSelection.refreshCustomAgents();
+        await Promise.all([swrMutate('assistants.list'), agentSelection.refreshCustomAgents()]);
         const agent_name =
           agentSelection.availableAgents?.find((a) => (a.backend || a.agent_type) === nextType)?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agent_name }));
