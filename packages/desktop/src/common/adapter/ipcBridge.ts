@@ -18,63 +18,63 @@ import type { OpenDialogOptions } from 'electron';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from '../config/storage';
 import type {
-    Assistant,
-    CreateAssistantRequest,
-    ImportAssistantsRequest,
-    ImportAssistantsResult,
-    SetAssistantStateRequest,
-    UpdateAssistantRequest,
+  Assistant,
+  CreateAssistantRequest,
+  ImportAssistantsRequest,
+  ImportAssistantsResult,
+  SetAssistantStateRequest,
+  UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type { AcpModelInfo } from '../types/platform/acpTypes';
 import type {
-    CreateProviderRequest,
-    FetchModelsAnonymousRequest,
-    FetchModelsResponse,
-    UpdateProviderRequest,
+  CreateProviderRequest,
+  FetchModelsAnonymousRequest,
+  FetchModelsResponse,
+  UpdateProviderRequest,
 } from '../types/provider/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
-    ITeamAgentRemovedEvent,
-    ITeamAgentRenamedEvent,
-    ITeamAgentSpawnedEvent,
-    ITeamAgentStatusEvent,
-    ITeamCreatedEvent,
-    ITeamListChangedEvent,
-    ITeamTeammateMessageEvent,
-    TTeam,
-    TeamAgent,
+  ITeamAgentRemovedEvent,
+  ITeamAgentRenamedEvent,
+  ITeamAgentSpawnedEvent,
+  ITeamAgentStatusEvent,
+  ITeamCreatedEvent,
+  ITeamListChangedEvent,
+  ITeamTeammateMessageEvent,
+  TTeam,
+  TeamAgent,
 } from '../types/team/teamTypes';
 import type {
-    AutoUpdateStatus,
-    UpdateCheckRequest,
-    UpdateCheckResult,
-    UpdateDownloadProgressEvent,
-    UpdateDownloadRequest,
-    UpdateDownloadResult,
+  AutoUpdateStatus,
+  UpdateCheckRequest,
+  UpdateCheckResult,
+  UpdateDownloadProgressEvent,
+  UpdateDownloadRequest,
+  UpdateDownloadResult,
 } from '../update/updateTypes';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
-    httpDelete,
-    httpGet,
-    httpPatch,
-    httpPost,
-    httpPut,
-    httpRequest,
-    stubProvider,
-    withResponseMap,
-    wsEmitter,
-    wsMappedEmitter,
+  httpDelete,
+  httpGet,
+  httpPatch,
+  httpPost,
+  httpPut,
+  httpRequest,
+  stubProvider,
+  withResponseMap,
+  wsEmitter,
+  wsMappedEmitter,
 } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
 import type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
 import {
-    fromBackendAgent,
-    fromBackendTeam,
-    fromBackendTeamList,
-    fromBackendTeamOptional,
-    toBackendAgent,
+  fromBackendAgent,
+  fromBackendTeam,
+  fromBackendTeamList,
+  fromBackendTeamOptional,
+  toBackendAgent,
 } from './teamMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 
