@@ -6,16 +6,23 @@
 
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { FEEDBACK_MODULES } from './feedbackModules';
-import { Input, Select, Message, Upload } from '@arco-design/web-react';
+import { Button, Input, Select, Message, Upload } from '@arco-design/web-react';
 import type { UploadItem } from '@arco-design/web-react/es/Upload';
 import { Info, Plus } from '@icon-park/react';
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
 const ACCEPTED_IMAGE_TYPES = '.png,.jpg,.jpeg,.gif';
 const SUMMARY_PREVIEW_LENGTH = 60;
+const FEEDBACK_REPORT_MODAL_WRAP_CLASS = 'feedback-report-modal-wrap';
+const FEEDBACK_REPORT_MODAL_CLASS = 'feedback-report-modal';
+type ScreenshotCaptureResult = {
+  filename: string;
+  data: number[];
+  type: string;
+};
 
 type ScreenshotBuffer = {
   name: string;
@@ -41,6 +48,30 @@ type FeedbackReportModalProps = {
   onCancel: () => void;
 };
 
+const isBlobUrl = (url?: string) => typeof url === 'string' && url.startsWith('blob:');
+
+const revokePreviewUrl = (item: Pick<UploadItem, 'url'>) => {
+  if (isBlobUrl(item.url)) {
+    URL.revokeObjectURL(item.url);
+  }
+};
+
+const ensurePreviewUrl = (item: UploadItem, existingUrl?: string) => {
+  if (item.url) {
+    return item.url;
+  }
+
+  if (existingUrl) {
+    return existingUrl;
+  }
+
+  if (item.originFile) {
+    return URL.createObjectURL(item.originFile);
+  }
+
+  return undefined;
+};
+
 const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
 
@@ -48,7 +79,9 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   const [description, setDescription] = useState('');
   const [screenshots, setScreenshots] = useState<UploadItem[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const [capturingScreenshot, setCapturingScreenshot] = useState(false);
   const [error, setError] = useState('');
+  const previousScreenshotsRef = useRef<UploadItem[]>([]);
 
   const resetForm = useCallback(() => {
     setModule(undefined);
@@ -191,24 +224,113 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
         }
 
         seen.add(key);
-        merged.push(nextItem);
+        merged.push({
+          ...nextItem,
+          url: URL.createObjectURL(normalizedFile),
+        });
       });
 
       return merged;
     });
   }, []);
 
+  const temporarilyHideModalForCapture = useCallback(() => {
+    const wrapper = document.querySelector<HTMLElement>(`.${FEEDBACK_REPORT_MODAL_WRAP_CLASS}`);
+    const modal = wrapper?.querySelector<HTMLElement>(`.${FEEDBACK_REPORT_MODAL_CLASS}`) ?? null;
+    const mask = wrapper?.previousElementSibling instanceof HTMLElement ? wrapper.previousElementSibling : null;
+    const nodes = [modal, mask].filter((node): node is HTMLElement => Boolean(node));
+    const snapshots = nodes.map((node) => ({
+      node,
+      visibility: node.style.visibility,
+      pointerEvents: node.style.pointerEvents,
+    }));
+
+    nodes.forEach((node) => {
+      node.style.visibility = 'hidden';
+      node.style.pointerEvents = 'none';
+    });
+
+    return () => {
+      snapshots.forEach(({ node, visibility, pointerEvents }) => {
+        if (visibility) {
+          node.style.visibility = visibility;
+        } else {
+          node.style.removeProperty('visibility');
+        }
+
+        if (pointerEvents) {
+          node.style.pointerEvents = pointerEvents;
+        } else {
+          node.style.removeProperty('pointer-events');
+        }
+      });
+    };
+  }, []);
+
+  const waitForPaint = useCallback(
+    () =>
+      new Promise<void>((resolve) => window.requestAnimationFrame(() => window.requestAnimationFrame(() => resolve()))),
+    []
+  );
+
+  const handleCaptureCurrentPage = useCallback(async () => {
+    if (capturingScreenshot || screenshots.length >= MAX_SCREENSHOTS) {
+      return;
+    }
+
+    setError('');
+    setCapturingScreenshot(true);
+    const restoreVisibility = temporarilyHideModalForCapture();
+
+    try {
+      if (!window.electronAPI?.captureCurrentPageScreenshot) {
+        throw new Error('capture api unavailable');
+      }
+
+      await waitForPaint();
+
+      const screenshot = (await window.electronAPI.captureCurrentPageScreenshot()) as ScreenshotCaptureResult | null;
+
+      if (!screenshot) {
+        throw new Error('capture returned empty result');
+      }
+
+      const file = new File([new Uint8Array(screenshot.data)], screenshot.filename, {
+        type: screenshot.type,
+      });
+
+      appendScreenshotFiles([file]);
+    } catch {
+      setError(t('settings.bugReportCaptureScreenshotError'));
+    } finally {
+      restoreVisibility();
+      setCapturingScreenshot(false);
+    }
+  }, [appendScreenshotFiles, capturingScreenshot, screenshots.length, t, temporarilyHideModalForCapture, waitForPaint]);
+
   const handleScreenshotChange = useCallback((fileList: UploadItem[]) => {
     setError('');
-    // Deduplicate by file name + size, then mark as 'done' to hide progress indicators
-    const seen = new Set<string>();
-    const deduped = fileList.filter((f) => {
-      const key = `${f.originFile?.name ?? f.name}_${f.originFile?.size ?? 0}`;
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
+    setScreenshots((current) => {
+      const currentByKey = new Map(current.map((item) => [getUploadItemKey(item), item]));
+      const seen = new Set<string>();
+
+      return fileList.reduce<UploadItem[]>((deduped, item, index) => {
+        const key = getUploadItemKey(item);
+        if (seen.has(key)) {
+          return deduped;
+        }
+
+        seen.add(key);
+        const existingItem = currentByKey.get(key);
+        deduped.push({
+          ...item,
+          uid: item.uid ?? existingItem?.uid ?? `upload-${Date.now()}-${index}`,
+          status: 'done',
+          url: ensurePreviewUrl(item, existingItem?.url),
+        });
+        return deduped;
+      }, []);
     });
-    setScreenshots(deduped.map((f) => (f.status === 'done' ? f : Object.assign({}, f, { status: 'done' as const }))));
   }, []);
 
   const handlePaste = useCallback(
@@ -226,6 +348,19 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
   );
 
   useEffect(() => {
+    const previousScreenshots = previousScreenshotsRef.current;
+    const currentKeys = new Set(screenshots.map(getUploadItemKey));
+
+    previousScreenshots.forEach((item) => {
+      if (!currentKeys.has(getUploadItemKey(item))) {
+        revokePreviewUrl(item);
+      }
+    });
+
+    previousScreenshotsRef.current = screenshots;
+  }, [screenshots]);
+
+  useEffect(() => {
     if (!visible) {
       return;
     }
@@ -235,6 +370,14 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       document.removeEventListener('paste', handlePaste);
     };
   }, [handlePaste, visible]);
+
+  useEffect(() => {
+    return () => {
+      previousScreenshotsRef.current.forEach((item) => {
+        revokePreviewUrl(item);
+      });
+    };
+  }, []);
 
   return (
     <ModalWrapper
@@ -247,7 +390,8 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
       cancelText={t('settings.bugReportCancel')}
       okButtonProps={{ disabled: !isFormValid }}
       alignCenter
-      className='w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px'
+      wrapClassName={FEEDBACK_REPORT_MODAL_WRAP_CLASS}
+      className={`${FEEDBACK_REPORT_MODAL_CLASS} w-[min(600px,calc(100vw-32px))] max-w-600px rd-16px`}
       autoFocus={false}
     >
       <div
@@ -299,11 +443,26 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({ visible, onCa
 
           {/* Screenshot Upload */}
           <div className='flex flex-col gap-4px'>
-            <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
+            <div className='flex items-center justify-between gap-12px'>
+              <label className='text-13px text-t-secondary'>{t('settings.bugReportScreenshotLabel')}</label>
+              <Button
+                size='small'
+                type='secondary'
+                onClick={() => {
+                  void handleCaptureCurrentPage();
+                }}
+                loading={capturingScreenshot}
+                disabled={capturingScreenshot || screenshots.length >= MAX_SCREENSHOTS}
+                data-testid='feedback-report-capture-button'
+              >
+                {t('settings.bugReportCaptureScreenshot')}
+              </Button>
+            </div>
             <Upload
               className='[&_.arco-upload-trigger]:w-full'
               drag
               multiple
+              listType='picture-list'
               accept={ACCEPTED_IMAGE_TYPES}
               autoUpload={false}
               fileList={screenshots}

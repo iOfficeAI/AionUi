@@ -46,18 +46,15 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
   ipcBridge.acpConversation.getAvailableAgents.provider(() => {
     try {
       const agents = agentRegistry.getDetectedAgents();
-      const enriched = agents.map((agent) => ({
-        ...agent,
-        supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
-      }));
-
       // Map to the IPC bridge response shape explicitly
-      const data = enriched.map((agent) => ({
+      const data = agents.map((agent) => ({
         backend: agent.backend,
         name: agent.name,
         kind: agent.kind,
+        available: agent.available,
         cliPath: 'cliPath' in agent ? (agent.cliPath as string | undefined) : undefined,
-        supportedTransports: agent.supportedTransports,
+        version: 'version' in agent ? (agent.version as string | undefined) : undefined,
+        supportedTransports: mcpService.getSupportedTransportsForAgent(agent),
         isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
         extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
         isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,

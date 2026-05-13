@@ -67,6 +67,7 @@ export interface ElectronBridgeAPI {
   weixinLoginOnDone?: (callback: (data: { accountId: string }) => void) => () => void;
   // Feedback log collection / 收集反馈日志
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
+  captureCurrentPageScreenshot?: () => Promise<{ filename: string; data: number[]; type: string } | null>;
 }
 
 declare global {

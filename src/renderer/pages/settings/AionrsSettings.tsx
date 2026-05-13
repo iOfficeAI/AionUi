@@ -24,7 +24,15 @@ const AionrsSettings: React.FC = () => {
     void ipcBridge.acpConversation.getAvailableAgents.invoke().then((result) => {
       if (result.success) {
         const agent = result.data.find((a) => a.backend === 'aionrs');
-        setAgentInfo(agent ? { available: true, path: agent.cliPath } : { available: false });
+        setAgentInfo(
+          agent
+            ? {
+                available: agent.available !== false,
+                path: agent.cliPath,
+                version: agent.version,
+              }
+            : { available: false }
+        );
       }
     });
   }, []);

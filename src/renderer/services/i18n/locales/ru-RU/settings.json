@@ -911,5 +911,7 @@
     "skills": "Навыки",
     "tools": "Инструменты"
   },
-  "capabilities": "Возможности"
+  "capabilities": "Возможности",
+  "bugReportCaptureScreenshot": "Снять текущую страницу",
+  "bugReportCaptureScreenshotError": "Не удалось сделать скриншот, попробуйте позже"
 }

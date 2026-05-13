@@ -1,11 +1,15 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import type { DetectedAgent } from '../../src/common/types/detectedAgent';
+import type { McpTransportType } from '../../src/process/services/mcpServices/McpProtocol';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
 
-const handlers: Record<string, (...args: any[]) => any> = {};
+type ChannelHandler = (...args: unknown[]) => unknown;
+
+const handlers: Record<string, ChannelHandler> = {};
 function makeChannel(name: string) {
   return {
-    provider: vi.fn((fn: (...args: any[]) => any) => {
+    provider: vi.fn((fn: ChannelHandler) => {
       handlers[name] = fn;
     }),
     emit: vi.fn(),
@@ -136,16 +140,31 @@ describe('acpConversationBridge', () => {
   it('getAvailableAgents returns enriched agent list', async () => {
     const { agentRegistry } = await import('../../src/process/agent/AgentRegistry');
     vi.mocked(agentRegistry.getDetectedAgents).mockReturnValue([
-      { backend: 'claude', name: 'Claude', cliPath: '/usr/bin/claude' },
-    ] as any);
+      { backend: 'claude', name: 'Claude', kind: 'acp', available: true, cliPath: '/usr/bin/claude' },
+      {
+        backend: 'aionrs',
+        name: 'Aion CLI',
+        kind: 'aionrs',
+        available: true,
+        cliPath: '/usr/local/bin/aionrs',
+        version: 'aionrs 0.1.0',
+      },
+    ] as DetectedAgent[]);
 
     const { mcpService } = await import('../../src/process/services/mcpServices/McpService');
-    vi.mocked(mcpService.getSupportedTransportsForAgent).mockReturnValue(['stdio'] as any);
+    vi.mocked(mcpService.getSupportedTransportsForAgent).mockReturnValue(['stdio'] as McpTransportType[]);
 
     const result = await handlers['getAvailableAgents']();
     expect(result.success).toBe(true);
-    expect(result.data).toHaveLength(1);
+    expect(result.data).toHaveLength(2);
+    expect(result.data[0]).toMatchObject({ backend: 'claude', available: true, cliPath: '/usr/bin/claude' });
     expect(result.data[0].supportedTransports).toEqual(['stdio']);
+    expect(result.data[1]).toMatchObject({
+      backend: 'aionrs',
+      available: true,
+      cliPath: '/usr/local/bin/aionrs',
+      version: 'aionrs 0.1.0',
+    });
   });
 
   it('getAvailableAgents returns error when registry throws', async () => {

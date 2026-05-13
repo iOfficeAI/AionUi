@@ -1093,6 +1093,8 @@ export type I18nKey =
   | 'settings.bugReport'
   | 'settings.bugReportAutoInfo'
   | 'settings.bugReportCancel'
+  | 'settings.bugReportCaptureScreenshot'
+  | 'settings.bugReportCaptureScreenshotError'
   | 'settings.bugReportDescriptionLabel'
   | 'settings.bugReportDescriptionPlaceholder'
   | 'settings.bugReportError'

@@ -9,7 +9,7 @@
  * for the bug report feature.
  */
 
-import { ipcMain, app } from 'electron';
+import { ipcMain, app, BrowserWindow } from 'electron';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
@@ -36,6 +36,44 @@ const getRecentLogPaths = (logsDir: string, days: number): string[] => {
 };
 
 const LOG_DAYS = 3;
+
+const capturePageWithDebugger = async (browserWindow: BrowserWindow): Promise<Buffer | null> => {
+  const debuggerClient = browserWindow.webContents.debugger;
+  if (!debuggerClient) {
+    return null;
+  }
+
+  const shouldDetach = !debuggerClient.isAttached();
+
+  try {
+    if (shouldDetach) {
+      debuggerClient.attach('1.3');
+    }
+
+    await debuggerClient.sendCommand('Page.enable');
+    const result = (await debuggerClient.sendCommand('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true,
+    })) as { data?: string };
+
+    if (!result.data) {
+      return null;
+    }
+
+    return Buffer.from(result.data, 'base64');
+  } catch (error) {
+    console.warn('[feedbackBridge] Debugger screenshot failed, falling back to capturePage:', error);
+    return null;
+  } finally {
+    if (shouldDetach) {
+      try {
+        debuggerClient.detach();
+      } catch {
+        // Ignore detach failures.
+      }
+    }
+  }
+};
 
 ipcMain.handle('feedback:collect-logs', async () => {
   try {
@@ -73,6 +111,28 @@ ipcMain.handle('feedback:collect-logs', async () => {
     };
   } catch (error) {
     console.error('[feedbackBridge] Failed to collect logs:', error);
+    return null;
+  }
+});
+
+ipcMain.handle('feedback:capture-current-page', async (event) => {
+  try {
+    const browserWindow = BrowserWindow.fromWebContents(event.sender);
+    if (!browserWindow) {
+      return null;
+    }
+
+    const pngBuffer =
+      (await capturePageWithDebugger(browserWindow)) ?? (await browserWindow.webContents.capturePage()).toPNG();
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+
+    return {
+      filename: `page-screenshot-${timestamp}.png`,
+      data: Array.from(pngBuffer),
+      type: 'image/png',
+    };
+  } catch (error) {
+    console.error('[feedbackBridge] Failed to capture current page screenshot:', error);
     return null;
   }
 });
