@@ -435,7 +435,21 @@ function getPosixExtraToolPaths(): string[] {
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
   const separator = process.platform === 'win32' ? ';' : ':';
-  const integrationKeys = ConfigStorage.getSync('integration.keys') ?? {};
+  let integrationKeys: Record<string, string> = {};
+  try {
+    // `ConfigStorage.getSync` exists in some runtime bundles, but newer storage
+    // builds expose only async `get`. Avoid runtime crashes when this build
+    // mismatch happens by gracefully degrading to an empty integration set.
+    const configStorage = ConfigStorage as {
+      getSync?: (key: string) => unknown;
+    };
+    const loadedIntegrationKeys = configStorage.getSync?.('integration.keys');
+    if (loadedIntegrationKeys && typeof loadedIntegrationKeys === 'object') {
+      integrationKeys = loadedIntegrationKeys as Record<string, string>;
+    }
+  } catch {
+    integrationKeys = {};
+  }
   const integrationEnv = Object.fromEntries(
     Object.entries(integrationKeys).filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
   );
