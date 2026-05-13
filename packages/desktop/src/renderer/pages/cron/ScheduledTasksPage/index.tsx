@@ -14,30 +14,10 @@ import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
-
-function normalizeAgentBackend(agent: string | undefined): string | undefined {
-  if (!agent) return undefined;
-  return agent.replace(/^cli:/, '').replace(/^preset:/, '');
-}
-
-function getJobAgentMeta(job: ICronJob, cliAgents: AgentMetadata[]): { name?: string; logo?: string | null } {
-  // Agent identity comes from `agent_type`. `agent_config.backend`/`.name`
-  // are per-agent payloads — for aionrs they hold provider_id / provider name,
-  // not the agent itself, so they must not drive the logo or label.
-  const agentKey = normalizeAgentBackend(job.metadata.agent_type);
-  if (!agentKey) return {};
-
-  const detected = cliAgents.find((a) => (a.backend || a.agent_type) === agentKey);
-  return {
-    name: detected?.name || agentKey,
-    logo: getAgentLogo(agentKey),
-  };
-}
+import { getJobAgentMeta } from './jobAgentMeta';
 
 const ScheduledTasksPage: React.FC = () => {
   const layout = useLayoutContext();
