@@ -53,8 +53,12 @@ describe('useDetectedAgents', () => {
   });
 
   it('filters and maps detected agents to availableBackends', () => {
+    // Option `id` must be the backend slug (what `preset_agent_type` stores),
+    // not the AgentMetadata row id — otherwise the assistant editor saves a row
+    // id (e.g. "2d23ff1c") as `preset_agent_type`, which later resolves to no
+    // agent.
     const mockAgents: AgentMetadata[] = [
-      { id: 'a1', name: 'LocalAgent', agent_type: 'local', agent_source: 'builtin' },
+      { id: 'a1', name: 'ClaudeCode', agent_type: 'acp', agent_source: 'builtin', backend: 'claude' },
       { id: 'a2', name: 'ExtAgent', agent_type: 'local', agent_source: 'extension' },
       { id: 'a3', name: 'RemoteAgent', agent_type: 'remote', agent_source: 'builtin' },
     ];
@@ -63,8 +67,10 @@ describe('useDetectedAgents', () => {
     const { result } = renderHook(() => useDetectedAgents());
 
     expect(result.current.availableBackends).toHaveLength(2); // 'remote' excluded
-    expect(result.current.availableBackends[0]).toEqual({ id: 'a1', name: 'LocalAgent', isExtension: false });
-    expect(result.current.availableBackends[1]).toEqual({ id: 'a2', name: 'ExtAgent', isExtension: true });
+    // backend slug wins when present
+    expect(result.current.availableBackends[0]).toEqual({ id: 'claude', name: 'ClaudeCode', isExtension: false });
+    // falls back to agent_type when backend is absent (e.g. internal engines)
+    expect(result.current.availableBackends[1]).toEqual({ id: 'local', name: 'ExtAgent', isExtension: true });
   });
 
   it('calls refreshCustomAgents and mutate on refreshAgentDetection', async () => {
