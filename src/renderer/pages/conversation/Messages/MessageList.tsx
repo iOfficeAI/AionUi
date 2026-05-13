@@ -38,6 +38,8 @@ import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
 import SelectionReplyButton from './components/SelectionReplyButton';
+import SubagentNavigator from './subagents/SubagentNavigator';
+import { extractSubagentSummaryEntries, type SubagentSummaryEntry } from './subagents/summary';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -49,6 +51,11 @@ type IMessageVO =
       id: string;
       messages: Array<IMessageToolGroup | IMessageAcpToolCall>;
       sourceMessageIds: string[];
+    }
+  | {
+      type: 'subagent_summary';
+      id: string;
+      entries: SubagentSummaryEntry[];
     };
 
 type ConversationLocationState = {
@@ -62,6 +69,9 @@ const getProcessedItemSourceMessageIds = (item: IMessageVO): string[] => {
   }
   if ('type' in item && item.type === 'file_summary') {
     return item.sourceMessageIds;
+  }
+  if ('type' in item && item.type === 'subagent_summary') {
+    return [];
   }
   return 'id' in item ? [item.id] : [];
 };
@@ -170,6 +180,19 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   // Pre-process message list to group Codex turn_diff messages
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
+    const visibleToolMessages = list.filter(
+      (message): message is IMessageToolGroup | IMessageAcpToolCall =>
+        !message.hidden && (message.type === 'tool_group' || message.type === 'acp_tool_call')
+    );
+    const subagentEntries = extractSubagentSummaryEntries(visibleToolMessages);
+    if (subagentEntries.length > 0) {
+      result.push({
+        type: 'subagent_summary',
+        id: 'subagent-summary',
+        entries: subagentEntries,
+      });
+    }
+
     let diffsChanges: FileChangeInfo[] = [];
     let diffsSourceMessageIds: string[] = [];
     let toolList: Array<IMessageToolGroup | IMessageAcpToolCall> = [];
@@ -305,7 +328,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       const targetIndex = processedList.findIndex((item) => {
         if (
           (item as { type?: string }).type === 'file_summary' ||
-          (item as { type?: string }).type === 'tool_summary'
+          (item as { type?: string }).type === 'tool_summary' ||
+          (item as { type?: string }).type === 'subagent_summary'
         ) {
           return false;
         }
@@ -340,7 +364,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
 
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     const highlighted = matchesTargetMessage(item, highlightedMessageId);
-    if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
+    if ('type' in item && ['file_summary', 'tool_summary', 'subagent_summary'].includes(item.type)) {
       return (
         <div
           key={item.id}
@@ -350,6 +374,9 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
           {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
+          {item.type === 'subagent_summary' && conversationContext?.conversationId && (
+            <SubagentNavigator conversationId={conversationContext.conversationId} entries={item.entries} />
+          )}
         </div>
       );
     }

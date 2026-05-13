@@ -299,5 +299,15 @@
   },
   "skills": {
     "loaded": "Yüklenen Beceriler"
+  },
+  "subagentNavigator": {
+    "title": "Subagents",
+    "description": "Bu konuşmada {{count}} subagent etkinliği bulundu.",
+    "jumpTo": "{{name}} öğesine git",
+    "status": {
+      "active": "Aktif",
+      "completed": "Tamamlandı",
+      "failed": "Başarısız"
+    }
   }
 }

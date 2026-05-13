@@ -297,5 +297,15 @@
   },
   "skills": {
     "loaded": "ロード済みスキル"
+  },
+  "subagentNavigator": {
+    "title": "Subagents",
+    "description": "この会話で {{count}} 件の subagent アクティビティが見つかりました。",
+    "jumpTo": "{{name}} に移動",
+    "status": {
+      "active": "進行中",
+      "completed": "完了",
+      "failed": "失敗"
+    }
   }
 }

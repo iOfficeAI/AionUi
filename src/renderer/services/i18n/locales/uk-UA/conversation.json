@@ -293,5 +293,15 @@
   "thinking": {
     "complete": "Роздуми завершено",
     "label": "Розмірковує..."
+  },
+  "subagentNavigator": {
+    "title": "Subagents",
+    "description": "У цій розмові знайдено {{count}} дій subagent.",
+    "jumpTo": "Перейти до {{name}}",
+    "status": {
+      "active": "Активно",
+      "completed": "Завершено",
+      "failed": "Помилка"
+    }
   }
 }

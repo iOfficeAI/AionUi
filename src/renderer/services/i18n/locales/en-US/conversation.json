@@ -297,5 +297,15 @@
   },
   "skills": {
     "loaded": "Loaded Skills"
+  },
+  "subagentNavigator": {
+    "title": "Subagents",
+    "description": "{{count}} subagent activities found in this conversation.",
+    "jumpTo": "Jump to {{name}}",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "failed": "Failed"
+    }
   }
 }

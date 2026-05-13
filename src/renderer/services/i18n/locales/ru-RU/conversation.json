@@ -297,5 +297,15 @@
   },
   "skills": {
     "loaded": "Загруженные навыки"
+  },
+  "subagentNavigator": {
+    "title": "Subagents",
+    "description": "В этой беседе найдено {{count}} действий subagent.",
+    "jumpTo": "Перейти к {{name}}",
+    "status": {
+      "active": "Активно",
+      "completed": "Завершено",
+      "failed": "Ошибка"
+    }
   }
 }

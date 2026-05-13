@@ -297,5 +297,15 @@
   },
   "skills": {
     "loaded": "로드된 스킬"
+  },
+  "subagentNavigator": {
+    "title": "Subagents",
+    "description": "현재 대화에서 subagent 활동 {{count}}개를 찾았습니다.",
+    "jumpTo": "{{name}}(으)로 이동",
+    "status": {
+      "active": "진행 중",
+      "completed": "완료됨",
+      "failed": "실패"
+    }
   }
 }
