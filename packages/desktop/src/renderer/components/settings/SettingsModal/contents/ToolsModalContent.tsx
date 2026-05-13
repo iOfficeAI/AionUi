@@ -8,7 +8,7 @@ import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/provider/speech';
-import { acpConversation } from '@/common/adapter/ipcBridge';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -339,15 +339,13 @@ const ModalMcpManagementSection: React.FC<{
   useEffect(() => {
     const loadAgents = async () => {
       try {
-        const agents = await acpConversation.getAvailableAgents.invoke();
-        if (Array.isArray(agents)) {
-          setDetectedAgents(
-            agents.map((agent) => ({
-              backend: agent.backend,
-              name: agent.name,
-            }))
-          );
-        }
+        const agents = await getAgents();
+        setDetectedAgents(
+          agents.map((agent) => ({
+            backend: agent.backend,
+            name: agent.name,
+          }))
+        );
       } catch (error) {
         console.error('Failed to load agents:', error);
       }

@@ -5,7 +5,8 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
-import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { channel } from '@/common/adapter/ipcBridge';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { configService } from '@/common/config/configService';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -120,10 +121,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
   useEffect(() => {
     const loadAgentsAndSelection = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([
-          acpConversation.getAvailableAgents.invoke(),
-          configService.get('assistant.telegram.agent'),
-        ]);
+        const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.telegram.agent')]);
 
         if (Array.isArray(agentsResp)) {
           const list = agentsResp.map((a) => ({

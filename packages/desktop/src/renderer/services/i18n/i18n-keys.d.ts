@@ -407,7 +407,6 @@ export type I18nKey =
   | 'conversation.welcome.currentWorkspace'
   | 'conversation.welcome.linkFolder'
   | 'conversation.welcome.modelSwitchNotSupported'
-  | 'conversation.welcome.multiAgentModeEnabled'
   | 'conversation.welcome.newConversation'
   | 'conversation.welcome.none'
   | 'conversation.welcome.openFolder'

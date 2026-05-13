@@ -7,12 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
+import { useAgents } from '@/renderer/hooks/agent/useAgents';
 import { Button, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import useSWR from 'swr';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
@@ -23,14 +23,11 @@ const LocalAgents: React.FC = () => {
   const [hubModalVisible, setHubModalVisible] = useState(false);
 
   // Single fetch for all agents; both detected and custom lists are derived from it.
-  const { data: allAgents, mutate: mutateAgents } = useSWR('acp.agents.available.settings', async () => {
-    const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    return Array.isArray(agents) ? agents : [];
-  });
+  const { agents: allAgents, revalidate: mutateAgents } = useAgents();
 
-  const detectedAgents = (allAgents ?? []).filter((a) => a.agent_type !== 'remote' && a.agent_source !== 'custom');
+  const detectedAgents = allAgents.filter((a) => a.agent_type !== 'remote' && a.agent_source !== 'custom');
 
-  const customAgents: AgentMetadata[] = (allAgents ?? []).filter((a) => a.agent_source === 'custom');
+  const customAgents: AgentMetadata[] = allAgents.filter((a) => a.agent_source === 'custom');
 
   const [editorVisible, setEditorVisible] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentMetadata | null>(null);

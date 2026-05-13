@@ -55,7 +55,7 @@ describe('resolveInitialBounds', () => {
   it('returns proportion-of-screen defaults when no saved bounds exist', () => {
     const bounds = resolveInitialBounds();
     expect(bounds.width).toBe(Math.floor(1920 * 0.8));
-    expect(bounds.height).toBe(Math.floor(1080 * 0.92));
+    expect(bounds.height).toBe(Math.floor(1080 * 0.95));
     expect(bounds.x).toBeUndefined();
     expect(bounds.y).toBeUndefined();
   });
@@ -76,7 +76,7 @@ describe('resolveInitialBounds', () => {
   it('falls back to defaults when saved height is below the minimum', () => {
     loadSavedWindowBounds({ x: 0, y: 0, width: 1200, height: MIN_WINDOW_HEIGHT - 1 });
     const bounds = resolveInitialBounds();
-    expect(bounds.height).toBe(Math.floor(1080 * 0.92));
+    expect(bounds.height).toBe(Math.floor(1080 * 0.95));
   });
 
   it('falls back to defaults when saved position is entirely off all displays', () => {

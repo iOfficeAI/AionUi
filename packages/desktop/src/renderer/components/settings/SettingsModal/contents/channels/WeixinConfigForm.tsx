@@ -5,7 +5,8 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
-import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { channel } from '@/common/adapter/ipcBridge';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
@@ -199,10 +200,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   useEffect(() => {
     const load = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([
-          acpConversation.getAvailableAgents.invoke(),
-          configService.get('assistant.weixin.agent'),
-        ]);
+        const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.weixin.agent')]);
         if (Array.isArray(agentsResp)) {
           setAvailableAgents(
             agentsResp.map((a) => ({

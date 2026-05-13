@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 
 export type AgentCheckResult = {
   backend: string;
@@ -131,8 +132,8 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
     }));
 
     try {
-      const agentsList = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-      if (!Array.isArray(agentsList) || agentsList.length === 0) {
+      const agentsList = await getAgents();
+      if (agentsList.length === 0) {
         setState((prev) => ({
           ...prev,
           isChecking: false,

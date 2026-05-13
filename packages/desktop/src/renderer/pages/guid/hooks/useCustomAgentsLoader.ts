@@ -7,9 +7,9 @@
 import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
-import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { mutate } from 'swr';
+import { useAgents } from '@/renderer/hooks/agent/useAgents';
+import { useCallback, useMemo } from 'react';
+import useSWR from 'swr';
 
 type UseCustomAgentsLoaderOptions = {
   /**
@@ -54,8 +54,8 @@ type UseCustomAgentsLoaderResult = {
  *     "what to render in the AssistantSelectionArea pill bar" and what the
  *     editor drawer edits.
  *   - `customAgents: AgentMetadata[]` — user-defined ACP engine rows
- *     fetched from `ipcBridge.acpConversation.getAvailableAgents` (filtered
- *     by `agent_source === 'custom'`) because they describe a CLI binary to
+ *     derived from the shared `useAgents()` SWR cache (filtered by
+ *     `agent_source === 'custom'`) because they describe a CLI binary to
  *     spawn, not a prompt-only preset.
  *
  * Conflating these two as a single `customAgents` list used to be a frequent
@@ -64,8 +64,26 @@ type UseCustomAgentsLoaderResult = {
 export const useCustomAgentsLoader = ({
   availableCustomAgentIds,
 }: UseCustomAgentsLoaderOptions): UseCustomAgentsLoaderResult => {
-  const [assistants, setAssistants] = useState<Assistant[]>([]);
-  const [customAgents, setCustomAgents] = useState<AgentMetadata[]>([]);
+  // Preset assistants share their own cache so settings / guid / conversation
+  // all see the same list without duplicate HTTP calls.
+  const { data: assistantList } = useSWR('assistants.list', async () => {
+    try {
+      return await ipcBridge.assistants.list.invoke();
+    } catch (error) {
+      console.error('Failed to load assistants:', error);
+      return [] as Assistant[];
+    }
+  });
+  const assistants = assistantList ?? [];
+
+  // Execution-engine rows come from the shared agents cache — every subscriber
+  // (guid / conversation / settings / channels / MCP flows) reads through the
+  // same `DETECTED_AGENTS_SWR_KEY` so we make at most one network request.
+  const { agents, revalidate } = useAgents();
+  const customAgents = useMemo(
+    () => agents.filter((a) => a.agent_source === 'custom' && availableCustomAgentIds.has(a.id)),
+    [agents, availableCustomAgentIds]
+  );
 
   const customAgentAvatarMap = useMemo(() => {
     const map = new Map<string, string | undefined>();
@@ -78,42 +96,18 @@ export const useCustomAgentsLoader = ({
     return map;
   }, [assistants, customAgents]);
 
-  const loadCustomAgents = useCallback(async () => {
-    try {
-      const [assistantList, allAgents] = await Promise.all([
-        ipcBridge.assistants.list.invoke().catch(() => [] as Assistant[]),
-        ipcBridge.acpConversation.getAvailableAgents.invoke().catch(() => [] as AgentMetadata[]),
-      ]);
-      setAssistants(assistantList);
-      const filteredCustoms = (Array.isArray(allAgents) ? allAgents : []).filter(
-        (a) => a.agent_source === 'custom' && availableCustomAgentIds.has(a.id)
-      );
-      setCustomAgents(filteredCustoms);
-    } catch (error) {
-      console.error('Failed to load assistants/custom agents:', error);
-    }
-  }, [availableCustomAgentIds]);
-
-  // Initial load
-  useEffect(() => {
-    void loadCustomAgents();
-  }, [loadCustomAgents]);
-
+  // Explicit refresh — used by "switch preset agent type" and the settings
+  // refresh button. Not triggered on mount; we rely on the backend's hydration
+  // + SWR's revalidate-on-focus to keep the list fresh without the old
+  // `useEffect → POST /refresh` loop that fired on every GuidPage mount.
   const refreshCustomAgents = useCallback(async () => {
     try {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
-      await mutate(DETECTED_AGENTS_SWR_KEY);
     } catch (error) {
       console.error('Failed to refresh custom agents:', error);
     }
-    // Re-read backend so UI reflects any changes (e.g. presetAgentType switch
-    // on an assistant, CLI path edit on a custom).
-    await loadCustomAgents();
-  }, [loadCustomAgents]);
-
-  useEffect(() => {
-    void refreshCustomAgents();
-  }, [refreshCustomAgents]);
+    await revalidate();
+  }, [revalidate]);
 
   return {
     assistants,

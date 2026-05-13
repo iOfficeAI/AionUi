@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useState } from 'react';
-import { ipcBridge } from '@/common';
+import React, { useMemo } from 'react';
 import { Tag, Typography } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
+import { useAgents } from '@/renderer/hooks/agent/useAgents';
 
 type AionrsAgentInfo = {
   available: boolean;
@@ -17,16 +17,11 @@ type AionrsAgentInfo = {
 
 const AionrsSettings: React.FC = () => {
   const { t } = useTranslation();
-  const [agentInfo, setAgentInfo] = useState<AionrsAgentInfo | null>(null);
-
-  useEffect(() => {
-    void ipcBridge.acpConversation.getAvailableAgents.invoke().then((agents) => {
-      if (Array.isArray(agents)) {
-        const agent = agents.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-        setAgentInfo(agent ? { available: agent.available } : { available: false });
-      }
-    });
-  }, []);
+  const { agents } = useAgents();
+  const agentInfo = useMemo<AionrsAgentInfo | null>(() => {
+    const agent = agents.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
+    return agent ? { available: agent.available } : { available: false };
+  }, [agents]);
 
   return (
     <SettingsPageWrapper>
