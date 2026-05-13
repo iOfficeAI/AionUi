@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { configService } from '@/common/config/configService';
-import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { IMcpServer } from '@/common/config/storage';
 
 /**
@@ -104,7 +105,7 @@ export const useMcpAgentStatus = () => {
 
       try {
         // 先获取agents信息，然后基于结果获取MCP配置（无法真正并行，因为第二个依赖第一个的结果）
-        const agents = await acpConversation.getAvailableAgents.invoke();
+        const agents = await getAgents();
 
         if (!Array.isArray(agents) || agents.length === 0) {
           // 如果没有检测到agent，只在初次加载时清空状态
@@ -164,8 +165,8 @@ export const useMcpAgentStatus = () => {
 
     try {
       // 获取可用的agents
-      const agents = await acpConversation.getAvailableAgents.invoke();
-      if (!Array.isArray(agents) || agents.length === 0) {
+      const agents = await getAgents();
+      if (agents.length === 0) {
         return;
       }
 

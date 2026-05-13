@@ -1,9 +1,10 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { acpConversation, mcpService } from '@/common/adapter/ipcBridge';
+import { mcpService } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { getSupportedMcpTransports } from '@renderer/utils/model/agentTypes';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { globalMessageQueue } from './messageQueue';
 
 /**
@@ -94,7 +95,7 @@ export const useMcpOperations = (
   // 从agents中删除MCP配置
   const removeMcpFromAgents = useCallback(
     async (server_name: string, successMessage?: string, transport_type?: string) => {
-      const agents = await acpConversation.getAvailableAgents.invoke();
+      const agents = await getAgents();
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support if transport type is known
         const compatibleCount = transport_type
@@ -119,7 +120,7 @@ export const useMcpOperations = (
   // 向agents同步MCP配置
   const syncMcpToAgents = useCallback(
     async (server: IMcpServer, skipRecheck = false) => {
-      const agents = await acpConversation.getAvailableAgents.invoke();
+      const agents = await getAgents();
       if (Array.isArray(agents) && agents.length > 0) {
         // Filter agents by transport type support to show accurate count
         const compatibleCount = agents.filter((a) =>

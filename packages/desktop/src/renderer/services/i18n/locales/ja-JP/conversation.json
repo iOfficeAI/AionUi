@@ -5,7 +5,6 @@
     "uploadFile": "ファイルを追加",
     "linkFolder": "フォルダを追加",
     "newConversation": "新しいチャット",
-    "multiAgentModeEnabled": "マルチエージェントモードに入ります",
     "selectModel": "モデルを選択",
     "useCliModel": "モデルを選択",
     "modelSwitchNotSupported": "初回接続後に利用可能なモデルリストが表示されます。まずメッセージを送信して接続し、利用可能なモデルを読み込んでください。",

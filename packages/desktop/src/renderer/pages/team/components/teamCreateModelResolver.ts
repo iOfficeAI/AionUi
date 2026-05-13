@@ -5,9 +5,8 @@
  */
 
 import { configService } from '@/common/config/configService';
-import { ipcBridge } from '@/common';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -46,7 +45,7 @@ export async function resolveDefaultTeamAgentModel(params: {
 async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
   // 1. Try handshake data from /api/agents
   try {
-    const agents = (await ipcBridge.acpConversation.getAvailableAgents.invoke()) as AgentMetadata[];
+    const agents = await getAgents();
     const matched = agents.find((a) => (a.backend ?? a.agent_type) === agent_type);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (handshakeModels?.current_model_id) {

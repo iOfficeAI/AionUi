@@ -29,7 +29,6 @@ const AcpChat: React.FC<{
   workspace,
   backend,
   session_mode,
-  cached_config_options,
   agent_name,
   cron_job_id,
   hideSendBox,

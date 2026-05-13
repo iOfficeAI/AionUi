@@ -5,7 +5,8 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
-import { acpConversation, channel } from '@/common/adapter/ipcBridge';
+import { channel } from '@/common/adapter/ipcBridge';
+import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
@@ -129,10 +130,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
   useEffect(() => {
     const loadAgentsAndSelection = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([
-          acpConversation.getAvailableAgents.invoke(),
-          configService.get('assistant.lark.agent'),
-        ]);
+        const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.lark.agent')]);
 
         if (Array.isArray(agentsResp)) {
           const list = agentsResp.map((a) => ({

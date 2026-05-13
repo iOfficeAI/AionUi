@@ -5,7 +5,6 @@
     "uploadFile": "Dosya Yükle",
     "linkFolder": "Klasör Aç",
     "newConversation": "Yeni Sohbet",
-    "multiAgentModeEnabled": "Çoklu ajan moduna giriliyor",
     "selectModel": "Model Seç",
     "useCliModel": "Model Seç",
     "modelSwitchNotSupported": "Model listesi ilk bağlantıdan sonra kullanılabilir olacaktır. Bağlanmak ve mevcut modelleri yüklemek için önce bir mesaj gönderin.",
