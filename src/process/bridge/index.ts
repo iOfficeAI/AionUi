@@ -33,6 +33,7 @@ import { initTaskBridge } from './taskBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
+import { initAmbientBridge } from './ambientBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initPptPreviewBridge } from './pptPreviewBridge';
@@ -83,6 +84,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initExtensionsBridge(deps.conversationRepo, deps.workerTaskManager);
   initCronBridge();
   initSystemSettingsBridge();
+  initAmbientBridge();
   initNotificationBridge();
   initTaskBridge(deps.workerTaskManager);
   initStarOfficeBridge();
@@ -132,6 +134,7 @@ export {
   initSpeechToTextBridge,
   initStarOfficeBridge,
   initSystemSettingsBridge,
+  initAmbientBridge,
   initTaskBridge,
   initUpdateBridge,
   initWebuiBridge,

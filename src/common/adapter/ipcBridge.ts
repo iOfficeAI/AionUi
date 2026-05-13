@@ -740,6 +740,15 @@ export const systemSettings = {
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
 };
 
+// Ambient Mode — M1 bubble window (AC-M1-5 / AC-M1-10 / AC-M1-11 / AC-M1-13)
+export type IAmbientBubblePosition = { x: number; y: number; displayId: number };
+export const ambient = {
+  getBubblePosition: bridge.buildProvider<IAmbientBubblePosition | null, void>('ambient.getBubblePosition'),
+  setBubblePosition: bridge.buildProvider<void, IAmbientBubblePosition>('ambient.setBubblePosition'),
+  getEnabled: bridge.buildProvider<boolean, void>('ambient.getEnabled'),
+  setEnabled: bridge.buildProvider<void, { enabled: boolean }>('ambient.setEnabled'),
+};
+
 // 系统通知接口 / System notification API
 export type INotificationOptions = {
   title: string;

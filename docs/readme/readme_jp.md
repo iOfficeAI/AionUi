@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-8.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -630,7 +630,7 @@ brew install aionui
 - [問題を報告](https://github.com/iOfficeAI/AionUi/issues) — バグと機能リクエスト
 - [リリース更新](https://github.com/iOfficeAI/AionUi/releases) — 最新版を取得
 - [Discord コミュニティ](https://discord.gg/2QAwJn7Egx) — 英語コミュニティ
-- [WeChat グループ](../../resources/wx-8.png) — 中国語コミュニティ
+- [WeChat グループ](../../resources/wx-9.png) — 中国語コミュニティ
 
 ### 貢献
 
