@@ -173,7 +173,13 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
                   setCreateTeamVisible(true);
                 }}
               >
-                <Plus theme='outline' size='14' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+                <Plus
+                  theme='outline'
+                  size='14'
+                  fill='currentColor'
+                  className='block leading-none'
+                  style={{ lineHeight: 0 }}
+                />
               </div>
             </Tooltip>
           </div>
