@@ -272,6 +272,14 @@ export class AcpAgent {
 
       const connectStart = Date.now();
       const tryConnect = async () => {
+        // Seed initial mode into connection so initialize() can advertise correct
+        // capabilities (e.g., writeTextFile: false when starting in plan mode).
+        // Must happen inside each attempt because disconnect() clears the field,
+        // and retries need it reseeded.
+        if (this.extra.sessionMode && this.extra.sessionMode !== 'default') {
+          this.connection.setInitialModeId(this.extra.sessionMode);
+        }
+
         const connectTimeoutMs = this.getConnectTimeoutMs();
         let connectTimeoutId: NodeJS.Timeout | null = null;
 
