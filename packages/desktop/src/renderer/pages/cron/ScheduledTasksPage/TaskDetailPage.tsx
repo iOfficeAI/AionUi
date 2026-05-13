@@ -12,10 +12,10 @@ import { Left, Delete, Write, Attention, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
+import { getJobAgentMeta } from './jobAgentMeta';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
@@ -298,10 +298,7 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
-                    const agentKey = job.metadata.agent_type;
-                    const detected = cliAgents.find((a) => (a.backend || a.agent_type) === agentKey);
-                    const displayName = detected?.name || agentKey;
-                    const logo = getAgentLogo(agentKey);
+                    const { name: displayName, logo } = getJobAgentMeta(job, cliAgents);
                     return (
                       <>
                         {logo ? (
