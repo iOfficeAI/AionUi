@@ -5,6 +5,15 @@
   background-color: var(--bg-2);
 }
 
+/* Section title text — light mode uses text-t-tertiary (#86909c).
+   In dark mode, the tertiary token (#5a5a5a) is too dim on #0e0e0e,
+   while --text-secondary (#ced3da) is too bright; pick a mid-gray
+   shared by sidebar section titles and settings group headers. */
+[data-theme='dark'] .sider-section-title,
+[data-theme='dark'] .settings-sider__group-header {
+  color: #9098a1;
+}
+
 /* Layout sider base styles */
 .layout-sider {
   overflow-x: hidden;

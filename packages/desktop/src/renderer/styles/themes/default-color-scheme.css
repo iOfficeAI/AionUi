@@ -32,7 +32,8 @@
   --bg-active: #e5e6eb; /* 激活/按下背景 */
 
   /* Text Colors - Light Mode */
-  --text-primary: #1d2129; /* 主要文字 */
+  --text-primary: #000000; /* 主要文字 */
+  --color-text-1: #000000; /* Arco 主文字 — 与 --text-primary 对齐 */
   --text-secondary: #454d5f; /* 次要文字 — 加深至 ~7.5:1 对比度 */
   --text-disabled: #c9cdd4; /* 禁用文字 */
 
@@ -103,7 +104,8 @@
   --bg-active: #2d2d2d; /* 激活/按下背景 */
 
   /* Text Colors - Dark Mode */
-  --text-primary: #e5e5e5; /* 主要文字 */
+  --text-primary: #ffffff; /* 主要文字 */
+  --color-text-1: #ffffff; /* Arco 主文字 — 与 --text-primary 对齐 */
   --text-secondary: #ced3da; /* 次要文字 — 提亮至 ~11:1 对比度 */
   --text-disabled: #737373; /* 禁用文字 */
 
