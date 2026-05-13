@@ -129,7 +129,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
               <span
                 data-testid='sider-item-menu-trigger'
                 className={classNames(
-                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px bg-fill-2 hover:bg-fill-1',
+                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
                   {
                     flex: menuVisible,
                     'hidden group-hover:flex': !menuVisible,

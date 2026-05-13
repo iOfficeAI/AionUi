@@ -5,6 +5,23 @@
   background-color: var(--bg-2);
 }
 
+/* Sidebar row action buttons (more / plus) — use opaque tokens so text
+   underneath never bleeds through (Arco's fill tokens are semi-transparent
+   in dark mode). Light tier stays lighter than the row hover fill-3;
+   hover lightens one more step. */
+.sider-action-btn {
+  background-color: var(--bg-2);
+}
+.sider-action-btn:hover {
+  background-color: var(--bg-1);
+}
+[data-theme='dark'] .sider-action-btn {
+  background-color: var(--bg-5);
+}
+[data-theme='dark'] .sider-action-btn:hover {
+  background-color: var(--bg-6);
+}
+
 /* Section title text — light mode uses text-t-tertiary (#86909c).
    In dark mode, the tertiary token (#5a5a5a) is too dim on #0e0e0e,
    while --text-secondary (#ced3da) is too bright; pick a mid-gray
