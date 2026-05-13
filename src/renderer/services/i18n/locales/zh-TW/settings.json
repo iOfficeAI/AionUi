@@ -911,5 +911,7 @@
     "version": "版本",
     "path": "路徑",
     "providerNote": "服務商和 API 金鑰設定在模型頁面管理。Aion CLI 支援：Anthropic、OpenAI、AWS Bedrock。"
-  }
+  },
+  "bugReportCaptureScreenshot": "一鍵截圖",
+  "bugReportCaptureScreenshotError": "截圖失敗，請稍後再試"
 }

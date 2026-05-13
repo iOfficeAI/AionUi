@@ -827,5 +827,7 @@
     "version": "Версія",
     "path": "Шлях",
     "providerNote": "Налаштування провайдера та API-ключів керуються на сторінці моделей. Aion CLI підтримує: Anthropic, OpenAI, AWS Bedrock."
-  }
+  },
+  "bugReportCaptureScreenshot": "Зняти поточну сторінку",
+  "bugReportCaptureScreenshotError": "Не вдалося зробити знімок екрана, спробуйте пізніше"
 }

@@ -909,5 +909,7 @@
     "version": "Sürüm",
     "path": "Yol",
     "providerNote": "Sağlayıcı ve API anahtarı ayarları Modeller sayfasında yönetilir. Aion CLI destekler: Anthropic, OpenAI, AWS Bedrock."
-  }
+  },
+  "bugReportCaptureScreenshot": "Mevcut sayfayı yakala",
+  "bugReportCaptureScreenshotError": "Ekran görüntüsü alınamadı, lütfen daha sonra tekrar deneyin"
 }

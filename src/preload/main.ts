@@ -5,13 +5,14 @@
  */
 
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
+import type { ElectronBridgeAPI } from '../common/types/electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from '../common/adapter/constant';
 
 /**
  * @description 注入到renderer进程中, 用于与main进程通信
  * */
 contextBridge.exposeInMainWorld('electronAPI', {
-  emit: (name: string, data: any) => {
+  emit: (name: string, data: unknown) => {
     return ipcRenderer
       .invoke(
         ADAPTER_BRIDGE_EVENT_KEY,
@@ -25,8 +26,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
         throw error;
       });
   },
-  on: (callback: any) => {
-    const handler = (event: any, value: any) => {
+  on: (callback: Parameters<ElectronBridgeAPI['on']>[0]) => {
+    const handler = (event: unknown, value: string) => {
       callback({ event, value });
     };
     ipcRenderer.on(ADAPTER_BRIDGE_EVENT_KEY, handler);
@@ -44,6 +45,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   webuiChangeUsername: (newUsername: string) => ipcRenderer.invoke('webui-direct-change-username', { newUsername }),
   // Feedback: collect and compress recent log files
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
+  captureCurrentPageScreenshot: () => ipcRenderer.invoke('feedback:capture-current-page'),
   // 生��二维码 token / Generate QR token
   webuiGenerateQRToken: () => ipcRenderer.invoke('webui-direct-generate-qr-token'),
   // WeChat login IPC

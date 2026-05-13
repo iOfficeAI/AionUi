@@ -911,5 +911,7 @@
     "version": "버전",
     "path": "경로",
     "providerNote": "제공자 및 API 키 설정은 모델 페이지에서 관리합니다. Aion CLI는 Anthropic, OpenAI, AWS Bedrock을 지원합니다."
-  }
+  },
+  "bugReportCaptureScreenshot": "현재 페이지 캡처",
+  "bugReportCaptureScreenshotError": "스크린샷에 실패했습니다. 잠시 후 다시 시도해 주세요"
 }
