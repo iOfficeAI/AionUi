@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Input, Message } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Button, Checkbox, Input, Message } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { shell, systemSettings } from '@/common/adapter/ipcBridge';
@@ -141,8 +141,13 @@ const INTEGRATION_KEYS: IntegrationDefinition[] = [
 
 const API_KEY_EMPTY_LABEL = '********';
 
-const formatSourceText = (state?: IntegrationState, isStoredValuePresent?: boolean) => {
-  if (state?.configured) return isStoredValuePresent ? 'Stored in AionUi (hidden)' : 'Stored in AionUi';
+const isConfigured = (state?: IntegrationState) => {
+  if (!state) return false;
+  return state.configured || state.hasEnvironmentValue;
+};
+
+const formatSourceText = (state?: IntegrationState) => {
+  if (state?.configured) return 'Stored in AionUi (hidden)';
   if (state?.hasEnvironmentValue) return 'Available in process environment';
   return 'Not configured';
 };
@@ -154,6 +159,25 @@ const ApiKeysSettings: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [clearingMap, setClearingMap] = useState<Record<string, boolean>>({});
+  const [showMissingOnly, setShowMissingOnly] = useState<boolean>(false);
+
+  const missingCount = useMemo(() => {
+    return INTEGRATION_KEYS.reduce((total, item) => {
+      const status = statusMap[item.envKey];
+      return total + (isConfigured(status) ? 0 : 1);
+    }, 0);
+  }, [statusMap]);
+
+  const visibleKeys = useMemo(() => {
+    if (!showMissingOnly) {
+      return INTEGRATION_KEYS;
+    }
+
+    return INTEGRATION_KEYS.filter((item) => {
+      const status = statusMap[item.envKey];
+      return !isConfigured(status);
+    });
+  }, [showMissingOnly, statusMap]);
 
   const loadStatus = useCallback(async () => {
     setLoading(true);
@@ -226,16 +250,26 @@ const ApiKeysSettings: React.FC = () => {
           Store service/API keys in AionUi settings so all local launchers inherit them. Existing values are never rendered back.
         </div>
 
+        <div className='mb-12px rounded-8px border border-dashed border-line p-8px flex flex-wrap items-center justify-between gap-8px text-12px text-t-secondary'>
+          <span>
+            API keys status: <strong>{INTEGRATION_KEYS.length - missingCount} configured</strong>,
+            <strong className='ml-4px text-warning'>{missingCount} missing</strong>
+          </span>
+          <Checkbox checked={showMissingOnly} onChange={setShowMissingOnly}>
+            Show missing only
+          </Checkbox>
+        </div>
+
         <div className='grid gap-12px'>
-          {INTEGRATION_KEYS.map((item) => {
+          {visibleKeys.map((item) => {
             const status = statusMap[item.envKey];
+            const configured = isConfigured(status);
             const hasValueDraft = (draftMap[item.envKey] || '').trim().length > 0;
-            const hasConfigured = status?.configured;
-            const statusText = formatSourceText(status, hasConfigured);
+            const statusText = formatSourceText(status);
             const isSaving = !!savingMap[item.envKey];
             const isClearing = !!clearingMap[item.envKey];
             const canSave = !loading;
-            const canClear = hasConfigured && !isClearing;
+            const canClear = !!status?.configured && !isClearing;
 
             return (
               <div key={item.envKey} className='px-12px py-12px bg-fill-2 rd-12px'>
@@ -245,7 +279,7 @@ const ApiKeysSettings: React.FC = () => {
                     <div className='mt-1 text-12px text-t-secondary font-mono'>{item.envKey}</div>
                     <div
                       className={`mt-2px text-12px ${
-                        hasConfigured || status?.hasEnvironmentValue ? 'text-success' : 'text-t-secondary'
+                        configured ? 'text-success' : 'text-warning'
                       }`}
                     >
                       {statusText}
@@ -264,7 +298,7 @@ const ApiKeysSettings: React.FC = () => {
                     value={draftMap[item.envKey] || ''}
                     onChange={(value) => setDraft(item.envKey, value)}
                     autoSize={{ minRows: 1, maxRows: 4 }}
-                    placeholder={hasConfigured || status?.hasEnvironmentValue ? `${API_KEY_EMPTY_LABEL} ${statusText}` : 'Enter value'}
+                    placeholder={configured ? `${API_KEY_EMPTY_LABEL} ${statusText}` : 'Enter value'}
                     className='w-full'
                     disabled={loading}
                   />
@@ -288,7 +322,9 @@ const ApiKeysSettings: React.FC = () => {
             );
           })}
 
-          {!loading && INTEGRATION_KEYS.length === 0 ? (
+          {!loading && visibleKeys.length === 0 ? <div className='text-12px text-t-secondary'>No matching integration keys.</div> : null}
+
+          {!loading && !showMissingOnly && INTEGRATION_KEYS.length === 0 ? (
             <div className='text-12px text-t-secondary'>No integration keys configured.</div>
           ) : null}
         </div>
