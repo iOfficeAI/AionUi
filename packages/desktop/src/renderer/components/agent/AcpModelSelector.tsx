@@ -7,14 +7,14 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import MarqueePillLabel from './MarqueePillLabel';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | null | undefined): boolean {
   if (a === b) return true;
@@ -102,9 +102,9 @@ const AcpModelSelector: React.FC<{
 
   const reloadModelInfo = useCallback(
     async (options?: { preserveInitialModel?: boolean }) => {
-      let result: Awaited<ReturnType<typeof ipcBridge.acpConversation.getModelInfo.invoke>> | null = null;
+      let result: Awaited<ReturnType<typeof ipcBridge.acpConversation.getModel.invoke>> | null = null;
       try {
-        result = await ipcBridge.acpConversation.getModelInfo.invoke({ conversation_id });
+        result = await ipcBridge.acpConversation.getModel.invoke({ conversation_id });
       } catch {
         // Session may not be warmed up yet (404) — fall through to fallback.
       }
@@ -247,7 +247,7 @@ const AcpModelSelector: React.FC<{
         .invoke({ conversation_id, model_id })
         .then(() => {
           // setModel returns void; re-fetch model info after successful set
-          ipcBridge.acpConversation.getModelInfo
+          ipcBridge.acpConversation.getModel
             .invoke({ conversation_id })
             .then((result) => {
               if (result?.model_info) {
