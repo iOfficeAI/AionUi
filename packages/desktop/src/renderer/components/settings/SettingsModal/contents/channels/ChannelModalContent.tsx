@@ -721,18 +721,15 @@ const ChannelModalContent: React.FC = () => {
       id: 'wecom',
       title: t('settings.channels.wecomTitle', 'WeCom'),
       description: t('settings.channels.wecomDesc', 'Chat with AionUi assistant via WeCom (Enterprise WeChat)'),
-      status: 'active',
-      enabled: wecomPluginStatus?.enabled || false,
-      disabled: wecomEnableLoading,
-      is_connected: wecomPluginStatus?.connected || false,
-      defaultModel: wecomModelSelection.current_model?.use_model,
+      status: 'coming_soon' as const,
+      enabled: false,
+      disabled: true,
       content: (
-        <WecomConfigForm
-          pluginStatus={wecomPluginStatus}
-          modelSelection={wecomModelSelection}
-          onStatusChange={setWecomPluginStatus}
-          webuiStatus={webuiStatus}
-        />
+        <div className='text-14px text-t-secondary py-12px'>
+          {t('settings.channels.comingSoonDesc', 'Support for {{channel}} is coming soon', {
+            channel: t('settings.channels.wecomTitle', 'WeCom'),
+          })}
+        </div>
       ),
     };
 
