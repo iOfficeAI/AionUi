@@ -24,7 +24,7 @@ Add this to your IDE's MCP configuration. The configuration file location depend
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@0.16.0", "--browser-url=http://127.0.0.1:9230"]
+      "args": ["-y", "chrome-devtools-mcp@0.26.0", "--browser-url=http://127.0.0.1:9230"]
     }
   }
 }
@@ -86,7 +86,7 @@ AionUi 支持 CDP 用于外部调试工具集成。在开发模式 (`just dev`) 
   "mcpServers": {
     "chrome-devtools": {
       "command": "npx",
-      "args": ["-y", "chrome-devtools-mcp@0.16.0", "--browser-url=http://127.0.0.1:9230"]
+      "args": ["-y", "chrome-devtools-mcp@0.26.0", "--browser-url=http://127.0.0.1:9230"]
     }
   }
 }

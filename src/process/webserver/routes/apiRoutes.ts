@@ -9,6 +9,7 @@ import { spawn } from 'child_process';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import http from 'node:http';
+import net from 'node:net';
 import os from 'os';
 import path from 'path';
 import multer from 'multer';
@@ -48,7 +49,7 @@ type NovaMasterProbe = {
   healthPath?: string;
   detailPath?: string;
   openUrl: string;
-  kind?: 'http' | 'local';
+  kind?: 'http' | 'tcp' | 'local';
   toolPath?: string;
   rootPath?: string;
   logPath?: string;
@@ -119,28 +120,26 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     id: 'claw3d',
     name: 'Claw3D',
     role: '3D command layer',
-    port: 9119,
-    portFile: '/home/faramix/.hermes/claw3d-port',
-    healthPath: '/api/health',
-    openUrl: 'http://127.0.0.1:{port}',
+    port: 8095,
+    healthPath: '/health',
+    openUrl: 'http://127.0.0.1:3000/#/office',
     launchPath: '/home/faramix/bin/novamaster-open-claw3d-native',
     expectedService: 'claw3d',
     forbiddenService: ['jarvis', 'jarvis-cockpit'],
+    primaryAction: {
+      id: 'rooms',
+      label: 'Rooms',
+      method: 'GET',
+      path: '/rooms',
+    },
   },
   {
     id: 'openclaw',
     name: 'OpenClaw',
     role: 'Gateway and Mission Control',
     port: 18791,
-    healthPath: '/health',
-    detailPath: '/v1/models',
-    openUrl: 'http://127.0.0.1:18791/v1/models',
-    primaryAction: {
-      id: 'models',
-      label: 'Models',
-      method: 'GET',
-      path: '/v1/models',
-    },
+    kind: 'tcp',
+    openUrl: 'ws://127.0.0.1:18791',
   },
   {
     id: 'goclaw',
@@ -457,6 +456,9 @@ async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMaste
   if (probe.kind === 'local') {
     return probeNovaMasterLocalTool(probe);
   }
+  if (probe.kind === 'tcp') {
+    return probeNovaMasterTcpPort(probe);
+  }
 
   const port = await resolveNovaMasterPort(probe);
   const openUrl = resolveNovaMasterOpenUrl(probe, port);
@@ -537,6 +539,76 @@ async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMaste
 
     req.on('error', (error: NodeJS.ErrnoException) => {
       resolve({
+        ...getPublicNovaMasterProbe(probe),
+        port,
+        openUrl,
+        status: 'offline',
+        latencyMs: null,
+        httpStatus: null,
+        error: error.code === 'ECONNREFUSED' ? 'connection refused' : error.message,
+        actions: getNovaMasterActions(probe),
+      });
+    });
+  });
+}
+
+async function probeNovaMasterTcpPort(probe: NovaMasterProbe): Promise<NovaMasterProbeResult> {
+  const port = await resolveNovaMasterPort(probe);
+  const openUrl = resolveNovaMasterOpenUrl(probe, port);
+  const startedAt = Date.now();
+
+  if (!port) {
+    return {
+      ...getPublicNovaMasterProbe(probe),
+      port,
+      openUrl,
+      status: 'offline',
+      latencyMs: null,
+      httpStatus: null,
+      error: 'missing tcp probe target',
+      actions: getNovaMasterActions(probe),
+    };
+  }
+
+  return new Promise((resolve) => {
+    const socket = net.createConnection({ host: '127.0.0.1', port });
+    let settled = false;
+    const finish = (result: NovaMasterProbeResult) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      socket.destroy();
+      resolve(result);
+    };
+
+    socket.setTimeout(1400);
+    socket.once('connect', () => {
+      finish({
+        ...getPublicNovaMasterProbe(probe),
+        port,
+        openUrl,
+        status: 'online',
+        latencyMs: Date.now() - startedAt,
+        httpStatus: null,
+        detail: { protocol: 'tcp' },
+        actions: getNovaMasterActions(probe),
+      });
+    });
+    socket.once('timeout', () => {
+      finish({
+        ...getPublicNovaMasterProbe(probe),
+        port,
+        openUrl,
+        status: 'offline',
+        latencyMs: null,
+        httpStatus: null,
+        error: 'tcp timeout',
+        actions: getNovaMasterActions(probe),
+      });
+    });
+    socket.once('error', (error: NodeJS.ErrnoException) => {
+      finish({
         ...getPublicNovaMasterProbe(probe),
         port,
         openUrl,
@@ -718,6 +790,8 @@ async function launchNovaMasterService(serviceId: string): Promise<Record<string
   }
 
   await fsPromises.access(probe.launchPath, fs.constants.X_OK);
+  const cleanOpenUrl = openUrl.split('#')[0];
+  const backendUrl = port ? `http://127.0.0.1:${port}` : cleanOpenUrl.replace(/\/?$/, '');
   const child = spawn(probe.launchPath, [], {
     detached: true,
     stdio: 'ignore',
@@ -725,10 +799,11 @@ async function launchNovaMasterService(serviceId: string): Promise<Record<string
       ...process.env,
       ...(serviceId === 'claw3d'
         ? {
-            CLAW3D_OFFICE_URL: openUrl,
-            CLAW3D_OFFICE_HEALTH_URL: `${openUrl}/api/health`,
-          }
-        : {}),
+             CLAW3D_OFFICE_URL: openUrl,
+             CLAW3D_OFFICE_BACKEND_URL: backendUrl,
+             CLAW3D_OFFICE_HEALTH_URL: `${backendUrl}/api/health`,
+           }
+         : {}),
     },
   });
   child.unref();
