@@ -47,7 +47,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const cliAgentOptions = useMemo(() => cliAgents.map(cliAgentToOption), [cliAgents]);
   const teamCapableKeys = useMemo(
     () =>
-      new Set(cliAgents.filter((a) => a.team_capable).flatMap((a) => [a.id, a.backend].filter(Boolean) as string[])),
+      new Set(
+        cliAgents
+          .filter((a) => a.team_capable)
+          .flatMap((a) => [a.id, a.backend, a.agent_type].filter(Boolean) as string[])
+      ),
     [cliAgents]
   );
   const presetAssistantOptions = useMemo(
