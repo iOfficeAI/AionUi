@@ -11,6 +11,7 @@ import type { McpSource } from '../../process/services/mcpServices/McpProtocol';
 import type { AgentBackend, AcpModelInfo } from '../types/acpTypes';
 import type { SlashCommandItem } from '../chat/slash/types';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
+import type { DefaultModelIntent } from '../config/storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/preview';
 import type {
   UpdateCheckRequest,
@@ -441,6 +442,12 @@ export const mode = {
   >('mode.get-model-list'),
   saveModelConfig: bridge.buildProvider<IBridgeResponse, IProvider[]>('mode.save-model-config'),
   getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
+  syncDefaultModelBackends: bridge.buildProvider<
+    IBridgeResponse<{
+      results: Array<{ backend: AgentBackend; supported: boolean; reason?: string; appliedModelId?: string }>;
+    }>,
+    { intent: DefaultModelIntent; backends: AgentBackend[] }
+  >('mode.sync-default-model-backends'),
   /** 协议检测接口 - 自动检测 API 端点使用的协议类型 / Protocol detection - auto-detect API protocol type */
   detectProtocol: bridge.buildProvider<IBridgeResponse<ProtocolDetectionResponse>, ProtocolDetectionRequest>(
     'mode.detect-protocol'
@@ -458,7 +465,9 @@ export const acpConversation = {
         backend: string;
         name: string;
         kind?: string;
+        available?: boolean;
         cliPath?: string;
+        version?: string;
         supportedTransports?: string[];
         isExtension?: boolean;
         extensionName?: string;

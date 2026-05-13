@@ -38,6 +38,7 @@ export type GuidSendDeps = {
   pendingConfigOptions: Record<string, string>;
   cachedConfigOptions: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   currentModel: TProviderWithModel | undefined;
+  awaitPendingModelSync: () => Promise<void>;
 
   // Agent helpers
   findAgentByKey: (key: string) => AvailableAgent | undefined;
@@ -96,6 +97,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     pendingConfigOptions,
     cachedConfigOptions,
     currentModel,
+    awaitPendingModelSync,
     findAgentByKey,
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,
@@ -211,6 +213,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
+      await awaitPendingModelSync();
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
       const openclawConversationParams = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
@@ -371,6 +374,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // Remaining agent path (ACP/remote/custom, including preset fallbacks)
     {
+      await awaitPendingModelSync();
+
       // Agent-type fallback only applies to preset assistants whose primary agent
       // was unavailable and got switched (e.g. claude → gemini).  For non-preset
       // agents (including extension-contributed ACP adapters with backend='custom'),
@@ -390,6 +395,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = acpBackend || selectedAgent;
+      const unifiedProviderBackends = new Set(['claude', 'hermes', 'opencode']);
+      const resolvedCurrentModelId = unifiedProviderBackends.has(agentBackend) ? undefined : (selectedAcpModel || undefined);
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
@@ -410,7 +417,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             }
           : undefined,
         sessionMode: selectedMode,
-        currentModelId: selectedAcpModel || undefined,
+        currentModelId: resolvedCurrentModelId,
         extra: {
           defaultFiles: files,
           excludeBuiltinSkills,
@@ -479,6 +486,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     pendingConfigOptions,
     cachedConfigOptions,
     currentModel,
+    awaitPendingModelSync,
     findAgentByKey,
     getEffectiveAgentType,
     resolvePresetRulesAndSkills,

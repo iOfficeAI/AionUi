@@ -31,9 +31,52 @@ interface OpenClawGatewayConfig {
   auth?: OpenClawGatewayAuth;
 }
 
+type OpenClawConfiguredModel =
+  | string
+  | {
+      primary?: string;
+      fallbacks?: string[];
+    };
+
+type OpenClawProviderModel = {
+  id: string;
+  name?: string;
+  input?: string[];
+};
+
+type OpenClawProviderConfig = {
+  baseUrl?: string;
+  apiKey?: string;
+  auth?: 'api-key';
+  api?: string;
+  headers?: Record<string, string>;
+  authHeader?: boolean;
+  models?: OpenClawProviderModel[];
+};
+
 interface OpenClawConfig {
   gateway?: OpenClawGatewayConfig;
+  agents?: {
+    defaults?: {
+      model?: OpenClawConfiguredModel;
+      workspace?: string;
+    };
+  };
+  models?: {
+    mode?: 'merge' | 'replace';
+    providers?: Record<string, OpenClawProviderConfig>;
+  };
 }
+
+export type OpenClawManagedProviderUpdate = {
+  providerId: string;
+  baseUrl: string;
+  apiKey: string;
+  api: string;
+  modelId: string;
+  modelName: string;
+  authHeader?: boolean;
+};
 
 /**
  * Resolve the state directory (default: ~/.openclaw)
@@ -102,6 +145,23 @@ function findConfigPath(): string | null {
   return null;
 }
 
+function readOpenClawConfigFromPath(configPath: string): OpenClawConfig | null {
+  try {
+    const content = fs.readFileSync(configPath, 'utf8');
+    try {
+      return JSON.parse(content) as OpenClawConfig;
+    } catch {
+      const cleanContent = content.replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) =>
+        match.startsWith('"') ? match : ''
+      );
+      return JSON.parse(cleanContent) as OpenClawConfig;
+    }
+  } catch (error) {
+    console.warn('[OpenClawConfig] Failed to read config:', error);
+    return null;
+  }
+}
+
 /**
  * Read OpenClaw config from file
  */
@@ -111,22 +171,87 @@ export function readOpenClawConfig(): OpenClawConfig | null {
     return null;
   }
 
+  return readOpenClawConfigFromPath(configPath);
+}
+
+export function getOpenClawConfigPath(): string {
+  return findConfigPath() ?? path.join(resolveStateDir(), CONFIG_FILENAME);
+}
+
+function writeOpenClawConfig(configPath: string, config: OpenClawConfig): { configPath: string; config: OpenClawConfig } {
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+
   try {
-    const content = fs.readFileSync(configPath, 'utf8');
-    try {
-      return JSON.parse(content) as OpenClawConfig;
-    } catch {
-      // If standard parse fails, try removing comments (JSONC style)
-      // Use a string-aware approach: skip // and /* */ only outside quoted strings
-      const cleanContent = content.replace(/"(?:[^"\\]|\\.)*"|\/\/.*$|\/\*[\s\S]*?\*\//gm, (match) =>
-        match.startsWith('"') ? match : match.startsWith('/*') ? '' : ''
-      );
-      return JSON.parse(cleanContent) as OpenClawConfig;
-    }
-  } catch (error) {
-    console.warn('[OpenClawConfig] Failed to read config:', error);
-    return null;
+    fs.chmodSync(configPath, 0o600);
+  } catch {
+    // Ignore permission normalization failures on unsupported filesystems.
   }
+
+  return { configPath, config };
+}
+
+export function setOpenClawDefaultModel(model: string): { configPath: string; config: OpenClawConfig } {
+  const configPath = getOpenClawConfigPath();
+  const currentConfig = readOpenClawConfigFromPath(configPath) ?? {};
+  const nextConfig: OpenClawConfig = {
+    ...currentConfig,
+    agents: {
+      ...currentConfig.agents,
+      defaults: {
+        ...currentConfig.agents?.defaults,
+        model,
+      },
+    },
+  };
+
+  return writeOpenClawConfig(configPath, nextConfig);
+}
+
+export function setOpenClawManagedProviderModel(update: OpenClawManagedProviderUpdate): {
+  configPath: string;
+  config: OpenClawConfig;
+} {
+  const configPath = getOpenClawConfigPath();
+  const currentConfig = readOpenClawConfigFromPath(configPath) ?? {};
+  const nextProviders = {
+    ...(currentConfig.models?.providers ?? {}),
+    [update.providerId]: {
+      ...(currentConfig.models?.providers?.[update.providerId] ?? {}),
+      baseUrl: update.baseUrl,
+      apiKey: update.apiKey,
+      auth: 'api-key' as const,
+      api: update.api,
+      headers: currentConfig.models?.providers?.[update.providerId]?.headers ?? {},
+      authHeader: update.authHeader,
+      models: [
+        {
+          id: update.modelId,
+          name: update.modelName,
+        },
+      ],
+    },
+  };
+
+  const nextConfig: OpenClawConfig = {
+    ...currentConfig,
+    agents: {
+      ...currentConfig.agents,
+      defaults: {
+        ...currentConfig.agents?.defaults,
+        model: {
+          primary: `${update.providerId}/${update.modelId}`,
+        },
+      },
+    },
+    models: {
+      ...currentConfig.models,
+      mode: 'merge',
+      providers: nextProviders,
+    },
+  };
+
+  return writeOpenClawConfig(configPath, nextConfig);
 }
 
 /**
@@ -168,5 +293,5 @@ export function getGatewayPort(): number {
   if (typeof port === 'number' && Number.isFinite(port) && port > 0) {
     return port;
   }
-  return 18789; // Default port
+  return 18789;
 }

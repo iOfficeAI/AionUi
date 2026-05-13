@@ -26,6 +26,7 @@ import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { ExtensionRegistry } from '@process/extensions';
 import { BedrockClient, ListInferenceProfilesCommand } from '@aws-sdk/client-bedrock';
+import { modelSyncOrchestrator } from '@process/agent/modelSync';
 
 /**
  * OpenAI 兼容 API 的常见路径格式
@@ -566,6 +567,22 @@ export function initModelBridge(): void {
   });
 
   ipcBridge.mode.getModelConfig.provider(() => getMergedModelProviders());
+
+  ipcBridge.mode.syncDefaultModelBackends.provider(async ({ intent, backends }) => {
+    try {
+      await ProcessConfig.set('agent.defaultModelIntent', intent);
+      const results = await modelSyncOrchestrator.syncBackends(intent, backends);
+      return {
+        success: true,
+        data: { results },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : String(error),
+      };
+    }
+  });
 
   // 协议检测接口实现 / Protocol detection implementation
   ipcBridge.mode.detectProtocol.provider(async function detectProtocol(

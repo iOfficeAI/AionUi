@@ -34,7 +34,6 @@ vi.mock('@/common/utils/presetAssistantResources', () => ({
 vi.mock('@/common/types/codex/codexModels', () => ({
   DEFAULT_CODEX_MODELS: defaultCodexModels,
 }));
-
 const { buildPresetAssistantParams, buildCliAgentParams } =
   await import('../../src/renderer/pages/conversation/utils/createConversationParams');
 
@@ -227,6 +226,196 @@ describe('createConversationParams', () => {
     expect(params.extra.currentModelId).toBe('gpt-5-codex');
   });
 
+  it('prefers unified default model intent for Claude ACP sessions', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'agent.defaultModelIntent') {
+        return {
+          providerId: 'provider-1',
+          modelId: 'claude-sonnet-4',
+          updatedAt: 1,
+          source: 'guid',
+        };
+      }
+      if (key === 'model.config') {
+        return [{
+          id: 'provider-1',
+          platform: 'anthropic',
+          name: 'Anthropic',
+          baseUrl: 'https://proxy.example.com/anthropic',
+          apiKey: 'sk-test',
+          model: ['claude-sonnet-4'],
+          enabled: true,
+        }];
+      }
+      if (key === 'acp.config') {
+        return {
+          claude: { preferredMode: 'acceptEdits', preferredModelId: 'opus' },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'claude',
+        name: 'Claude Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBe('acceptEdits');
+    expect(params.extra.currentModelId).toBe('default');
+  });
+
+  it('prefers unified default model intent for OpenClaw workspace conversations', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'agent.defaultModelIntent') {
+        return {
+          providerId: 'provider-3',
+          modelId: 'MiniMax-M2.7-highspeed',
+          updatedAt: 1,
+          source: 'guid',
+        };
+      }
+      if (key === 'model.config') {
+        return [{
+          id: 'provider-3',
+          platform: 'newapi',
+          name: 'MXOU',
+          baseUrl: 'https://api.mxou.cn/v1',
+          apiKey: 'sk-test',
+          model: ['MiniMax-M2.7-highspeed'],
+          enabled: true,
+        }];
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'openclaw-gateway',
+        name: 'OpenClaw Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.type).toBe('openclaw-gateway');
+    expect(params.extra.currentModelId).toBe('MiniMax-M2.7-highspeed');
+  });
+
+  it('prefers unified default model intent for OpenCode ACP sessions', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'agent.defaultModelIntent') {
+        return {
+          providerId: 'provider-9',
+          modelId: 'MiniMax-M2.7-highspeed',
+          updatedAt: 1,
+          source: 'guid',
+        };
+      }
+      if (key === 'model.config') {
+        return [{
+          id: 'provider-9',
+          platform: 'new-api',
+          name: 'MXOU',
+          baseUrl: 'https://api.mxou.cn',
+          apiKey: 'sk-test',
+          model: ['MiniMax-M2.7-highspeed'],
+          enabled: true,
+        }];
+      }
+      if (key === 'acp.config') {
+        return {
+          opencode: { preferredMode: 'build', preferredModelId: 'legacy-model' },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'opencode',
+        name: 'OpenCode Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBe('build');
+    expect(params.extra.currentModelId).toBe('MiniMax-M2.7-highspeed');
+  });
+
+  it('prefers unified default model intent for Hermes ACP sessions', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'agent.defaultModelIntent') {
+        return {
+          providerId: 'provider-2',
+          modelId: 'gpt-4.1',
+          updatedAt: 1,
+          source: 'guid',
+        };
+      }
+      if (key === 'model.config') {
+        return [{
+          id: 'provider-2',
+          platform: 'openai',
+          name: 'Proxy',
+          baseUrl: 'https://proxy.example.com/v1',
+          apiKey: 'sk-test',
+          model: ['gpt-4.1'],
+          enabled: true,
+        }];
+      }
+      if (key === 'acp.config') {
+        return {
+          hermes: { preferredMode: 'acceptEdits', preferredModelId: 'legacy-model' },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'hermes',
+        name: 'Hermes Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBeUndefined();
+    expect(params.extra.currentModelId).toBe('gpt-4.1');
+  });
+
+  it('reuses cached ACP model when no explicit ACP preferred model is saved', async () => {
+    configGet.mockImplementation(async (key: string) => {
+      if (key === 'acp.config') {
+        return {
+          claude: {
+            preferredMode: 'acceptEdits',
+          },
+        };
+      }
+      if (key === 'acp.cachedModels') {
+        return {
+          claude: {
+            currentModelId: 'claude-sonnet-4-5',
+          },
+        };
+      }
+      return undefined;
+    });
+
+    const params = await buildCliAgentParams(
+      {
+        backend: 'claude',
+        name: 'Claude Agent',
+      },
+      '/tmp/workspace'
+    );
+
+    expect(params.extra.sessionMode).toBe('acceptEdits');
+    expect(params.extra.currentModelId).toBe('claude-sonnet-4-5');
+  });
+
   it('falls back to legacy yolo mode when preferred ACP mode is missing', async () => {
     configGet.mockImplementation(async (key: string) => {
       if (key === 'acp.config') {
@@ -320,8 +509,12 @@ describe('createConversationParams', () => {
       { input: 'custom', expected: 'acp' },
     ];
 
-    for (const { input, expected } of backends) {
-      const params = await buildCliAgentParams({ backend: input, name: 'Agent' }, '/tmp');
+    const paramsList = await Promise.all(
+      backends.map(({ input }) => buildCliAgentParams({ backend: input, name: 'Agent' }, '/tmp'))
+    );
+
+    for (const [index, { expected }] of backends.entries()) {
+      const params = paramsList[index];
       expect(params.type).toBe(expected);
     }
   });

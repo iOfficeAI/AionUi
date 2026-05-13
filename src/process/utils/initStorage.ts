@@ -871,6 +871,49 @@ const initStorage = async () => {
     mark('3.1 configMigration');
   }
 
+  try {
+    const { ensureRecommendedCliBootstrap, formatRecommendedCliBootstrapSummary } =
+      await import('@process/agent/recommendedCliBootstrap');
+    const bootstrapResults = await ensureRecommendedCliBootstrap();
+    if (bootstrapResults.length > 0) {
+      console.log(`[AionUi] Recommended CLI bootstrap: ${formatRecommendedCliBootstrapSummary(bootstrapResults)}`);
+    }
+  } catch (error) {
+    console.warn('[AionUi] Recommended CLI bootstrap failed:', error);
+  }
+  mark('3.15 recommendedCliBootstrap');
+
+  try {
+    const { prepareDefaultModelSyncOnStartup } = await import('@process/agent/modelSync/startupSync');
+    const startupModelSync = await prepareDefaultModelSyncOnStartup(
+      configFile as unknown as Parameters<typeof prepareDefaultModelSyncOnStartup>[0]
+    );
+
+    if (startupModelSync.backfilled && startupModelSync.intent) {
+      console.log(
+        `[AionUi] Backfilled agent.defaultModelIntent from legacy defaults: ${startupModelSync.intent.providerId}/${startupModelSync.intent.modelId}`
+      );
+    }
+
+    if (startupModelSync.syncResults.length > 0) {
+      const summary = startupModelSync.syncResults
+        .map((result) =>
+          result.supported
+            ? `${result.backend}=ok(${result.appliedModelId ?? 'applied'})`
+            : `${result.backend}=skip(${result.reason ?? 'unsupported'})`
+        )
+        .join(', ');
+      console.log(`[AionUi] Startup default-model sync: ${summary}`);
+    }
+
+    if (startupModelSync.syncError) {
+      console.warn('[AionUi] Startup default-model sync failed:', startupModelSync.syncError);
+    }
+  } catch (error) {
+    console.warn('[AionUi] Failed to prepare unified default model sync on startup:', error);
+  }
+  mark('3.2 defaultModelIntent');
+
   // 4. 初始化 MCP 配置（为所有用户提供默认配置）
   try {
     const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);

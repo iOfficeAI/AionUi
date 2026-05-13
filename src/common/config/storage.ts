@@ -91,6 +91,14 @@ export interface IConfigStorageRefer {
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string | { id: string; useModel: string };
+  'agent.defaultModelIntent'?: DefaultModelIntent;
+  'agent.startupModelSyncResults'?: Array<{
+    backend: AcpBackendAll | 'gemini' | 'remote' | 'aionrs' | 'nanobot' | 'openclaw-gateway';
+    supported: boolean;
+    state?: 'prepared' | 'degraded' | 'unsupported';
+    reason?: string;
+    appliedModelId?: string;
+  }>;
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
@@ -118,6 +126,8 @@ export interface IConfigStorageRefer {
   'migration.promptsI18nAdded'?: boolean;
   /** Migration flag: split 'assistants' into presets-only + 'acp.customAgents' (user-defined customs). */
   'migration.assistantsSplitCustom'?: boolean;
+  /** Migration flag: backfill agent.defaultModelIntent from legacy gemini/aionrs defaults once. */
+  'migration.defaultModelIntentBackfilled'?: boolean;
   /** Migration flag: Electron desktop config has been imported to server config */
   'migration.electronConfigImported'?: boolean;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
@@ -564,6 +574,17 @@ export interface IProvider {
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & {
   useModel: string;
+};
+
+export type DefaultModelIntentSource = 'guid' | 'migration' | 'sync' | 'unknown';
+
+export type DefaultModelIntent = {
+  providerId: string;
+  modelId: string;
+  providerPlatform?: string;
+  providerName?: string;
+  source?: DefaultModelIntentSource;
+  updatedAt: number;
 };
 
 // MCP Server Configuration Types

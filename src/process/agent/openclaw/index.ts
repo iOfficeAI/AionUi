@@ -291,38 +291,24 @@ export class OpenClawAgent {
 
     const resumeKey = this.config.extra?.sessionKey;
 
-    // If we have a resume key, try to resolve it first
     if (resumeKey) {
       try {
         const result = await this.connection.sessionsResolve({ key: resumeKey });
         this.connection.sessionKey = result.key;
         return;
       } catch (err) {
-        console.warn('[OpenClawAgent] Failed to resume session, using default:', err);
+        console.warn('[OpenClawAgent] Failed to resume session, using implicit creation path:', err);
       }
     }
 
-    // For new conversations: reset creates/clears the session and returns the canonical key.
-    // sessions.reset is sufficient — no need for a subsequent sessions.resolve call.
-    const defaultKey = this.id; // use conversation_id for per-conversation session isolation
-    try {
-      const resetResult = await this.connection.sessionsReset({ key: defaultKey, reason: 'new' });
-      this.connection.sessionKey = resetResult.key;
-    } catch (err) {
-      // Fallback: try plain resolve (handles race conditions where session already exists)
-      console.warn('[OpenClawAgent] Failed to reset session, trying plain resolve:', err);
-      try {
-        const result = await this.connection.sessionsResolve({ key: defaultKey });
-        this.connection.sessionKey = result.key;
-      } catch (resolveErr) {
-        console.warn('[OpenClawAgent] Failed to resolve default session, falling back:', resolveErr);
-        this.connection.sessionKey = defaultKey;
-      }
-    }
+    // Avoid sessions.reset for normal startup: some gateway auth setups only grant
+    // operator.write, while reset requires higher scopes. chat.send can implicitly
+    // create/canonicalize the session on first prompt, so we only prime the key here.
+    const defaultKey = this.id;
+    this.connection.sessionKey = defaultKey;
 
-    // Notify about session key
-    if (this.connection.sessionKey !== resumeKey) {
-      this.onSessionKeyUpdate?.(this.connection.sessionKey!);
+    if (defaultKey !== resumeKey) {
+      this.onSessionKeyUpdate?.(defaultKey);
     }
   }
 

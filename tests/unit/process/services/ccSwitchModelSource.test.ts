@@ -5,7 +5,7 @@
  */
 
 import { afterEach, describe, expect, it } from 'vitest';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { BetterSqlite3Driver } from '../../../../src/process/services/database/drivers/BetterSqlite3Driver';
@@ -13,6 +13,7 @@ import {
   buildClaudeModelInfoFromCcSwitchConfig,
   readClaudeProviderEnvFromCcSwitch,
   readClaudeModelInfoFromCcSwitch,
+  writeClaudeSettingsForProviderSync,
 } from '../../../../src/process/services/ccSwitchModelSource';
 
 let nativeModuleAvailable = true;
@@ -176,41 +177,118 @@ describeOrSkip('ccSwitchModelSource', () => {
     });
   });
 
-  it('returns null when cc-switch files do not describe a Claude provider', () => {
+  it('falls back to native Claude settings when cc-switch files are missing', () => {
     const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aionui-cc-switch-'));
     tempDirs.push(tempDir);
 
-    const settingsPath = path.join(tempDir, 'settings.json');
-    const databasePath = path.join(tempDir, 'cc-switch.db');
-
-    writeFileSync(settingsPath, JSON.stringify({ currentProviderClaude: 'missing-provider' }), 'utf-8');
-
-    const driver = new BetterSqlite3Driver(databasePath);
-    driver.exec(`
-      CREATE TABLE providers (
-        id TEXT PRIMARY KEY,
-        settings_config TEXT
-      );
-      CREATE TABLE model_pricing (
-        model_id TEXT PRIMARY KEY,
-        display_name TEXT
-      );
-    `);
-    driver.close();
-
-    expect(readClaudeModelInfoFromCcSwitch({ settingsPath, databasePath })).toBeNull();
-  });
-
-  it('returns null when the settings file does not exist', () => {
-    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aionui-cc-switch-'));
-    tempDirs.push(tempDir);
+    const claudeSettingsPath = path.join(tempDir, 'claude-settings.json');
+    writeFileSync(
+      claudeSettingsPath,
+      JSON.stringify({
+        model: 'opus',
+        env: {
+          ANTHROPIC_BASE_URL: 'https://proxy.example.com/anthropic',
+          ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+          ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
+          ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
+          ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-4-6-20260301',
+        },
+      }),
+      'utf-8'
+    );
 
     expect(
       readClaudeModelInfoFromCcSwitch({
         settingsPath: path.join(tempDir, 'missing-settings.json'),
         databasePath: path.join(tempDir, 'missing.db'),
+        claudeSettingsPath,
       })
-    ).toBeNull();
+    ).toEqual({
+      currentModelId: 'opus',
+      currentModelLabel: 'claude-opus-4-6-20260301',
+      availableModels: [
+        { id: 'default', label: 'claude-sonnet-4-5-20250514' },
+        { id: 'opus', label: 'claude-opus-4-6-20260301' },
+      ],
+      canSwitch: true,
+      source: 'models',
+      sourceDetail: 'claude-settings',
+    });
+
+    expect(
+      readClaudeProviderEnvFromCcSwitch({
+        settingsPath: path.join(tempDir, 'missing-settings.json'),
+        databasePath: path.join(tempDir, 'missing.db'),
+        claudeSettingsPath,
+      })
+    ).toEqual({
+      ANTHROPIC_BASE_URL: 'https://proxy.example.com/anthropic',
+      ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+      ANTHROPIC_MODEL: 'claude-sonnet-4-5-20250514',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4-5-20250514',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-opus-4-6-20260301',
+    });
+  });
+
+  it('writes managed Claude settings while preserving unrelated settings', () => {
+    const tempDir = mkdtempSync(path.join(os.tmpdir(), 'aionui-cc-switch-'));
+    tempDirs.push(tempDir);
+
+    const claudeSettingsPath = path.join(tempDir, 'claude-settings.json');
+    writeFileSync(
+      claudeSettingsPath,
+      JSON.stringify({
+        model: 'opus',
+        env: {
+          KEEP_ME: '1',
+          ANTHROPIC_API_KEY: 'legacy-key',
+        },
+        hooks: { preToolUse: [] },
+        statusLine: { type: 'default' },
+      }),
+      'utf-8'
+    );
+
+    writeClaudeSettingsForProviderSync(
+      {
+        id: 'provider-1',
+        platform: 'anthropic',
+        name: 'Provider',
+        baseUrl: 'https://proxy.example.com/anthropic',
+        apiKey: 'sk-test-token',
+        useModel: 'claude-sonnet-4',
+      },
+      {
+        provider: {
+          id: 'provider-1',
+          platform: 'anthropic',
+          name: 'Provider',
+          baseUrl: 'https://proxy.example.com/anthropic',
+          apiKey: 'sk-test-token',
+          useModel: 'claude-sonnet-4',
+        },
+        protocol: 'anthropic',
+        normalizedBaseUrl: 'https://proxy.example.com/anthropic',
+        normalizedModelId: 'claude-sonnet-4',
+        managedProviderId: 'aionui-provider-1',
+      },
+      { claudeSettingsPath }
+    );
+
+    const saved = JSON.parse(readFileSync(claudeSettingsPath, 'utf-8')) as Record<string, unknown>;
+    expect(saved.model).toBe('default');
+    expect(saved.hooks).toEqual({ preToolUse: [] });
+    expect(saved.statusLine).toEqual({ type: 'default' });
+    expect(saved.env).toEqual({
+      KEEP_ME: '1',
+      ANTHROPIC_BASE_URL: 'https://proxy.example.com/anthropic',
+      ANTHROPIC_API_KEY: 'sk-test-token',
+      ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+      ANTHROPIC_MODEL: 'claude-sonnet-4',
+      ANTHROPIC_DEFAULT_SONNET_MODEL: 'claude-sonnet-4',
+      ANTHROPIC_DEFAULT_OPUS_MODEL: 'claude-sonnet-4',
+      ANTHROPIC_DEFAULT_HAIKU_MODEL: 'claude-sonnet-4',
+    });
   });
 
   it('reads the current Claude provider env from cc-switch files', () => {
