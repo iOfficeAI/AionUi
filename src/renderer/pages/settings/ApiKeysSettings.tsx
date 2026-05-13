@@ -9,144 +9,23 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { shell, systemSettings } from '@/common/adapter/ipcBridge';
+import { INTEGRATION_KEYS } from '@/common/config/integrationKeys';
 
 type IntegrationState = {
   configured: boolean;
   hasEnvironmentValue: boolean;
+  placeholder: boolean;
 };
-
-type IntegrationDefinition = {
-  envKey: string;
-  label: string;
-  link: string;
-  docsLabel: string;
-};
-
-const INTEGRATION_KEYS: IntegrationDefinition[] = [
-  {
-    envKey: 'OPENAI_API_BASE',
-    label: 'OpenAI API Base',
-    link: 'https://platform.openai.com/docs/api-reference',
-    docsLabel: 'OpenAI API Reference',
-  },
-  {
-    envKey: 'OPENAI_API_KEY',
-    label: 'OpenAI API Key',
-    link: 'https://platform.openai.com/api-keys',
-    docsLabel: 'OpenAI API Keys',
-  },
-  {
-    envKey: 'ANTHROPIC_API_BASE',
-    label: 'Anthropic API Base',
-    link: 'https://docs.anthropic.com/',
-    docsLabel: 'Anthropic Docs',
-  },
-  {
-    envKey: 'ANTHROPIC_API_KEY',
-    label: 'Anthropic API Key',
-    link: 'https://docs.anthropic.com/en/api/api-keys',
-    docsLabel: 'Anthropic API keys',
-  },
-  {
-    envKey: 'GOOGLE_APPLICATION_CREDENTIALS_JSON',
-    label: 'Google Credentials JSON',
-    link: 'https://cloud.google.com/docs/authentication/provide-credentials-adc',
-    docsLabel: 'Google auth docs',
-  },
-  {
-    envKey: 'CLAUDE_API_KEY',
-    label: 'Claude API Key',
-    link: 'https://docs.anthropic.com/en/docs/quickstart',
-    docsLabel: 'Claude docs',
-  },
-  {
-    envKey: 'CLAUDE_ACCESS_TOKEN',
-    label: 'Claude Access Token',
-    link: 'https://claude.ai/settings/tokens',
-    docsLabel: 'Claude token settings',
-  },
-  {
-    envKey: 'HUGGINGFACE_API_KEY',
-    label: 'Hugging Face API Key',
-    link: 'https://huggingface.co/settings/tokens',
-    docsLabel: 'HF token settings',
-  },
-  {
-    envKey: 'HF_TOKEN',
-    label: 'HF Token',
-    link: 'https://huggingface.co/settings/tokens',
-    docsLabel: 'HF token settings',
-  },
-  {
-    envKey: 'KRYVAI_API_KEY',
-    label: 'Kryvai API Key',
-    link: 'https://app.kryvai.com/',
-    docsLabel: 'Kryvai Console',
-  },
-  {
-    envKey: 'SUNO_COOKIE',
-    label: 'Suno Cookie',
-    link: 'https://suno.com/',
-    docsLabel: 'Suno',
-  },
-  {
-    envKey: 'LIVEKIT_API_KEY',
-    label: 'LiveKit API Key',
-    link: 'https://docs.livekit.io/realtime/security/api-keys/',
-    docsLabel: 'LiveKit API keys',
-  },
-  {
-    envKey: 'LIVEKIT_API_SECRET',
-    label: 'LiveKit API Secret',
-    link: 'https://docs.livekit.io/realtime/security/api-keys/',
-    docsLabel: 'LiveKit API keys',
-  },
-  {
-    envKey: 'LIVEKIT_URL',
-    label: 'LiveKit URL',
-    link: 'https://docs.livekit.io/home/self-hosting/docker/',
-    docsLabel: 'LiveKit host setup',
-  },
-  {
-    envKey: 'CLICKUP_API_TOKEN',
-    label: 'ClickUp API Token',
-    link: 'https://help.clickup.com/hc/en-us/articles/6303420891089-API-Token',
-    docsLabel: 'ClickUp API token',
-  },
-  {
-    envKey: 'KAGGLE_USERNAME',
-    label: 'Kaggle Username',
-    link: 'https://www.kaggle.com/settings',
-    docsLabel: 'Kaggle settings',
-  },
-  {
-    envKey: 'WOLFRAM_ALPHA_API_KEY',
-    label: 'Wolfram Alpha API Key',
-    link: 'https://products.wolframalpha.com/api/',
-    docsLabel: 'Wolfram Alpha API',
-  },
-  {
-    envKey: 'CLAW3D_API_KEY',
-    label: 'Claw3D API Key',
-    link: 'https://app.claw3d.ai/',
-    docsLabel: 'Claw3D',
-  },
-  {
-    envKey: 'GITLAB_TOKEN',
-    label: 'GitLab Token',
-    link: 'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
-    docsLabel: 'GitLab PAT guide',
-  },
-];
 
 const API_KEY_EMPTY_LABEL = '********';
 
 const isConfigured = (state?: IntegrationState) => {
   if (!state) return false;
-  return state.configured || state.hasEnvironmentValue;
+  return !state.placeholder && (state.configured || state.hasEnvironmentValue);
 };
 
 const formatSourceText = (state?: IntegrationState) => {
+  if (state?.placeholder) return 'Placeholder found - replace it';
   if (state?.configured) return 'Stored in AionUi (hidden)';
   if (state?.hasEnvironmentValue) return 'Available in process environment';
   return 'Not configured';
@@ -269,7 +148,7 @@ const ApiKeysSettings: React.FC = () => {
             const isSaving = !!savingMap[item.envKey];
             const isClearing = !!clearingMap[item.envKey];
             const canSave = !loading;
-            const canClear = !!status?.configured && !isClearing;
+            const canClear = (!!status?.configured || !!status?.placeholder) && !isClearing;
 
             return (
               <div key={item.envKey} className='px-12px py-12px bg-fill-2 rd-12px'>
@@ -279,7 +158,7 @@ const ApiKeysSettings: React.FC = () => {
                     <div className='mt-1 text-12px text-t-secondary font-mono'>{item.envKey}</div>
                     <div
                       className={`mt-2px text-12px ${
-                        configured ? 'text-success' : 'text-warning'
+                        configured ? 'text-success' : status?.placeholder ? 'text-danger' : 'text-warning'
                       }`}
                     >
                       {statusText}

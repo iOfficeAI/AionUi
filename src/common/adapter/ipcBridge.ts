@@ -730,7 +730,7 @@ export const systemSettings = {
     'system-settings:set-auto-preview-office-files'
   ),
   getIntegrationKeysStatus: bridge.buildProvider<
-    Record<string, { configured: boolean; hasEnvironmentValue: boolean }>,
+    Record<string, { configured: boolean; hasEnvironmentValue: boolean; placeholder: boolean }>,
     void
   >('system-settings:get-integration-keys-status'),
   getIntegrationKey: bridge.buildProvider<string, { key: string }>('system-settings:get-integration-key'),

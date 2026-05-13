@@ -13,37 +13,48 @@
  */
 
 import { ipcBridge } from '@/common';
+import { INTEGRATION_KEY_ALLOWLIST } from '@/common/config/integrationKeys';
 import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
 import type { PetSize } from '@process/pet/petTypes';
 
-const INTEGRATION_KEY_ALLOWLIST = [
-  'OPENAI_API_BASE',
-  'OPENAI_API_KEY',
-  'ANTHROPIC_API_BASE',
-  'ANTHROPIC_API_KEY',
-  'GOOGLE_APPLICATION_CREDENTIALS_JSON',
-  'CLAUDE_API_KEY',
-  'CLAUDE_ACCESS_TOKEN',
-  'HUGGINGFACE_API_KEY',
-  'KRYVAI_API_KEY',
-  'SUNO_COOKIE',
-  'LIVEKIT_API_KEY',
-  'LIVEKIT_API_SECRET',
-  'LIVEKIT_URL',
-  'CLICKUP_API_TOKEN',
-  'KAGGLE_USERNAME',
-  'WOLFRAM_ALPHA_API_KEY',
-  'CLAW3D_API_KEY',
-  'GITLAB_TOKEN',
-  'HF_TOKEN',
-] as const;
-
 type IntegrationKey = (typeof INTEGRATION_KEY_ALLOWLIST)[number];
 
 const isIntegrationKey = (key: string): key is IntegrationKey => {
   return (INTEGRATION_KEY_ALLOWLIST as readonly string[]).includes(key);
+};
+
+type IntegrationKeyStatus = {
+  configured: boolean;
+  hasEnvironmentValue: boolean;
+  placeholder: boolean;
+};
+
+const PLACEHOLDER_PATTERNS = [
+  /^$/,
+  /^<.*>$/,
+  /^your[-_\s]?/i,
+  /placeholder/i,
+  /replace/i,
+  /changeme/i,
+  /missing/i,
+  /todo/i,
+  /^xxx+$/i,
+  /^sk-mis/i,
+];
+
+const isPlaceholderValue = (value: unknown): boolean => {
+  if (typeof value !== 'string') {
+    return false;
+  }
+
+  const trimmed = value.trim();
+  return PLACEHOLDER_PATTERNS.some((pattern) => pattern.test(trimmed));
+};
+
+const isRealValue = (value: unknown): boolean => {
+  return typeof value === 'string' && value.trim().length > 0 && !isPlaceholderValue(value);
 };
 
 // Keep-awake power blocker state
@@ -180,13 +191,17 @@ export function initSystemSettingsBridge(): void {
   // API key vault status used by API keys settings page.
   ipcBridge.systemSettings.getIntegrationKeysStatus.provider(async () => {
     const integrationKeys = (await ProcessConfig.get('integration.keys')) ?? {};
-    const result: Record<string, { configured: boolean; hasEnvironmentValue: boolean }> = {};
+    const result: Record<string, IntegrationKeyStatus> = {};
 
     for (const key of INTEGRATION_KEY_ALLOWLIST) {
       const configuredValue = integrationKeys[key];
+      const environmentValue = process.env[key];
+      const placeholder = isPlaceholderValue(configuredValue) || isPlaceholderValue(environmentValue);
+
       result[key] = {
-        configured: typeof configuredValue === 'string' && configuredValue.trim().length > 0,
-        hasEnvironmentValue: !!process.env[key],
+        configured: isRealValue(configuredValue),
+        hasEnvironmentValue: isRealValue(environmentValue),
+        placeholder,
       };
     }
 

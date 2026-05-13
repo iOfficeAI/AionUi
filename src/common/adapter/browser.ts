@@ -44,6 +44,7 @@ if (win.electronAPI) {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const defaultHost = `${window.location.hostname}:${WEBUI_DEFAULT_PORT}`;
   const socketUrl = `${protocol}//${window.location.host || defaultHost}`;
+  const isLocalhostWebRuntime = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
 
   type QueuedMessage = { name: string; data: unknown };
 
@@ -105,6 +106,13 @@ if (win.electronAPI) {
 
   const handleAuthRejected = async (source: string, delay: number) => {
     clearReconnectTimer();
+
+    if (isLocalhostWebRuntime) {
+      console.warn(`[WebSocket] ${source}; login redirect suppressed for localhost web runtime`);
+      shouldReconnect = false;
+      clearLoginRedirectTimer();
+      return;
+    }
 
     if (await hasActiveWebSession()) {
       console.warn(`[WebSocket] ${source}; active session confirmed, reconnecting`);
