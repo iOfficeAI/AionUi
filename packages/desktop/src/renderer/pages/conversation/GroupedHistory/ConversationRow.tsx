@@ -11,7 +11,7 @@ import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -143,7 +143,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
         id={'c-' + conversation.id}
         className={classNames(
           'chat-history__item h-34px rd-8px flex items-center group cursor-pointer relative overflow-hidden shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px min-w-0 transition-colors',
-          collapsed ? 'justify-center px-0' : 'justify-start gap-8px pr-0',
+          collapsed ? 'justify-center px-0' : 'justify-start gap-8px pr-16px',
           // dimIcon means this row sits inside a project/cron parent — visually indent the row content while keeping the bg full-width
           !collapsed && (dimIcon ? 'pl-34px' : 'pl-10px'),
           {
@@ -178,7 +178,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             </span>
           )}
         </span>
-        <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden pr-24px'>
+        <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden'>
           <Tooltip
             content={conversation.name}
             disabled={!inlineNameTooltipEnabled}
@@ -266,8 +266,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
             >
               <span
                 className={classNames(
-                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary',
-                  'size-20px',
+                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px bg-fill-3 hover:bg-fill-2',
                   {
                     flex: isMobile || menuVisible,
                     'hidden group-hover:flex': !isMobile && !menuVisible,
@@ -278,11 +277,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                   onOpenMenu(conversation);
                 }}
               >
-                <span className='flex flex-col gap-2px items-center justify-center'>
-                  <span className='w-2px h-2px rounded-full bg-current' />
-                  <span className='w-2px h-2px rounded-full bg-current' />
-                  <span className='w-2px h-2px rounded-full bg-current' />
-                </span>
+                <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
               </span>
             </Dropdown>
           </div>

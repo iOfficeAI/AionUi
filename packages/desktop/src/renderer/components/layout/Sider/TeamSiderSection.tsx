@@ -164,16 +164,18 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
             </span>
             {/* [E2E SYNC] data-testid="team-create-btn" 是 E2E 测试的入口 selector，不得删除或重命名。
                 如需修改，必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts。 */}
-            <div
-              data-testid='team-create-btn'
-              className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-3 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
-              onClick={(e) => {
-                e.stopPropagation();
-                setCreateTeamVisible(true);
-              }}
-            >
-              <Plus theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
-            </div>
+            <Tooltip content={t('team.sider.createTeam')} position='top'>
+              <div
+                data-testid='team-create-btn'
+                className='ml-auto -mr-4px size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setCreateTeamVisible(true);
+                }}
+              >
+                <Plus theme='outline' size='14' fill='currentColor' className='block leading-none' style={{ lineHeight: 0 }} />
+              </div>
+            </Tooltip>
           </div>
           {expanded &&
             sortedTeams.length > 0 &&

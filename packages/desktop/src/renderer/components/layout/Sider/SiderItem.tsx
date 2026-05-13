@@ -5,7 +5,7 @@
  */
 
 import { Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Pushpin } from '@icon-park/react';
+import { MoreOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useState } from 'react';
 
@@ -82,7 +82,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
         </span>
 
         {/* Name with truncation — reserve room for the hover three-dot menu */}
-        <div className='h-24px min-w-0 flex-1 overflow-hidden pr-24px'>
+        <div className='h-24px min-w-0 flex-1 overflow-hidden pr-12px'>
           <div className='overflow-hidden text-ellipsis block w-full text-14px font-[500] lh-24px whitespace-nowrap min-w-0 text-t-primary'>
             <span className='block overflow-hidden text-ellipsis whitespace-nowrap'>{name}</span>
           </div>
@@ -129,7 +129,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
               <span
                 data-testid='sider-item-menu-trigger'
                 className={classNames(
-                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px',
+                  'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px bg-fill-3 hover:bg-fill-2',
                   {
                     flex: menuVisible,
                     'hidden group-hover:flex': !menuVisible,
@@ -140,11 +140,7 @@ const SiderItem: React.FC<SiderItemProps> = ({
                   setMenuVisible(true);
                 }}
               >
-                <span className='flex flex-col gap-2px items-center justify-center'>
-                  <span className='w-2px h-2px rounded-full bg-current' />
-                  <span className='w-2px h-2px rounded-full bg-current' />
-                  <span className='w-2px h-2px rounded-full bg-current' />
-                </span>
+                <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
               </span>
             </Dropdown>
           </div>

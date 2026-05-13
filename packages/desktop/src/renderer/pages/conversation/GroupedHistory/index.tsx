@@ -10,8 +10,8 @@ import DirectorySelectionModal from '@/renderer/components/settings/DirectorySel
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Dropdown, Empty, Input, Menu, Modal } from '@arco-design/web-react';
-import { Delete, FolderOpen, Plus, Right } from '@icon-park/react';
+import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
+import { Delete, FolderOpen, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -571,27 +571,28 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                         </span>
                       }
                       trailing={
-                        <span className='flex items-center gap-2px'>
-                          <span
-                            role='button'
-                            tabIndex={0}
-                            aria-label={t('conversation.history.newConversationInProject')}
-                            title={t('conversation.history.newConversationInProject')}
-                            className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px hover:bg-fill-3'
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              void navigate('/guid', { state: { workspace: group.workspace } });
-                            }}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter' || e.key === ' ') {
-                                e.preventDefault();
+                        <span className='flex items-center gap-6px'>
+                          <Tooltip content={t('conversation.history.newConversationInProject')} position='top'>
+                            <span
+                              role='button'
+                              tabIndex={0}
+                              aria-label={t('conversation.history.newConversationInProject')}
+                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px bg-fill-3 hover:bg-fill-2'
+                              onClick={(e) => {
                                 e.stopPropagation();
                                 void navigate('/guid', { state: { workspace: group.workspace } });
-                              }
-                            }}
-                          >
-                            <Plus theme='outline' size='14' fill='currentColor' />
-                          </span>
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  void navigate('/guid', { state: { workspace: group.workspace } });
+                                }
+                              }}
+                            >
+                              <Plus theme='outline' size='14' fill='currentColor' className='block leading-none' />
+                            </span>
+                          </Tooltip>
                           <Dropdown
                             droplist={projectMenu}
                             trigger='click'
@@ -601,14 +602,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                           >
                             <span
                               aria-label='Project actions'
-                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px'
+                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px bg-fill-3 hover:bg-fill-2'
                               onClick={(e) => e.stopPropagation()}
                             >
-                              <span className='flex flex-col gap-2px items-center justify-center'>
-                                <span className='w-2px h-2px rounded-full bg-current' />
-                                <span className='w-2px h-2px rounded-full bg-current' />
-                                <span className='w-2px h-2px rounded-full bg-current' />
-                              </span>
+                              <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
                             </span>
                           </Dropdown>
                         </span>
