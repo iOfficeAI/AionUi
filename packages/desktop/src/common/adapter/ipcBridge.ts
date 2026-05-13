@@ -15,68 +15,68 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
+import type { SlashCommandItem } from '../chat/slash/types';
+import type { ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from '../config/storage';
+import type {
+    Assistant,
+    CreateAssistantRequest,
+    ImportAssistantsRequest,
+    ImportAssistantsResult,
+    SetAssistantStateRequest,
+    UpdateAssistantRequest,
+} from '../types/agent/assistantTypes';
+import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type { AcpModelInfo } from '../types/platform/acpTypes';
 import type {
-  TTeam,
-  TeamAgent,
-  ITeamAgentStatusEvent,
-  ITeamAgentSpawnedEvent,
-  ITeamAgentRemovedEvent,
-  ITeamAgentRenamedEvent,
-  ITeamListChangedEvent,
-  ITeamCreatedEvent,
-  ITeamTeammateMessageEvent,
-} from '../types/team/teamTypes';
-import type { SlashCommandItem } from '../chat/slash/types';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel, ICssTheme } from '../config/storage';
-import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
-import type {
-  UpdateCheckRequest,
-  UpdateCheckResult,
-  UpdateDownloadProgressEvent,
-  UpdateDownloadRequest,
-  UpdateDownloadResult,
-  AutoUpdateStatus,
-} from '../update/updateTypes';
-import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
-import type {
-  CreateProviderRequest,
-  FetchModelsAnonymousRequest,
-  FetchModelsResponse,
-  UpdateProviderRequest,
+    CreateProviderRequest,
+    FetchModelsAnonymousRequest,
+    FetchModelsResponse,
+    UpdateProviderRequest,
 } from '../types/provider/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
-  Assistant,
-  CreateAssistantRequest,
-  ImportAssistantsRequest,
-  ImportAssistantsResult,
-  SetAssistantStateRequest,
-  UpdateAssistantRequest,
-} from '../types/agent/assistantTypes';
-import { toApiModel, toApiModelOptional, fromApiConversation, fromApiPaginatedConversations } from './apiModelMapper';
-import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
-import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
+    ITeamAgentRemovedEvent,
+    ITeamAgentRenamedEvent,
+    ITeamAgentSpawnedEvent,
+    ITeamAgentStatusEvent,
+    ITeamCreatedEvent,
+    ITeamListChangedEvent,
+    ITeamTeammateMessageEvent,
+    TTeam,
+    TeamAgent,
+} from '../types/team/teamTypes';
+import type {
+    AutoUpdateStatus,
+    UpdateCheckRequest,
+    UpdateCheckResult,
+    UpdateDownloadProgressEvent,
+    UpdateDownloadRequest,
+    UpdateDownloadResult,
+} from '../update/updateTypes';
+import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
+import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
-  fromBackendAgent,
-  fromBackendTeam,
-  fromBackendTeamList,
-  fromBackendTeamOptional,
-  toBackendAgent,
-} from './teamMapper';
-import type { ICreateTeamParams, IAddTeamAgentParams } from './teamMapper';
-import {
-  httpRequest,
-  httpGet,
-  httpPost,
-  httpPut,
-  httpPatch,
-  httpDelete,
-  wsEmitter,
-  wsMappedEmitter,
-  stubProvider,
-  withResponseMap,
+    httpDelete,
+    httpGet,
+    httpPatch,
+    httpPost,
+    httpPut,
+    httpRequest,
+    stubProvider,
+    withResponseMap,
+    wsEmitter,
+    wsMappedEmitter,
 } from './httpBridge';
+import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
+import type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
+import {
+    fromBackendAgent,
+    fromBackendTeam,
+    fromBackendTeamList,
+    fromBackendTeamOptional,
+    toBackendAgent,
+} from './teamMapper';
+import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -182,7 +182,7 @@ export const conversation = {
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
-  stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/stop`),
+  stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/cancel`),
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
   sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
@@ -276,19 +276,6 @@ export const conversation = {
   responseSearchWorkSpace: stubProvider<void, { file: number; dir: number; match?: IDirOrFile }>(
     'responseSearchWorkSpace',
     undefined as unknown as void
-  ),
-  reloadContext: httpPost<void, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/reload-context`
-  ),
-  setConfig: httpPost<
-    void,
-    {
-      conversation_id: string;
-      config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string };
-    }
-  >(
-    (p) => `/api/conversations/${p.conversation_id}/config`,
-    (p) => p.config
   ),
   confirmation: {
     add: wsEmitter<IConfirmation<unknown> & { conversation_id: string }>('confirmation.add'),
@@ -663,7 +650,7 @@ export const mode = {
 };
 
 // ---------------------------------------------------------------------------
-// ACP Conversation — routed to /api/acp/* + conversation routes
+// ACP Conversation — routed to /api/agents/* + conversation routes
 // ---------------------------------------------------------------------------
 
 export const acpConversation = {
@@ -719,10 +706,8 @@ export const acpConversation = {
     (p) => `/api/agents/${p.id}/enabled`,
     (p) => ({ enabled: p.enabled })
   ),
-  detectCliPath: httpPost<{ path?: string }, { backend: string }>('/api/acp/detect-cli'),
-  checkEnv: httpGet<{ env: Record<string, string> }, void>('/api/acp/env'),
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
-    '/api/acp/health-check'
+    '/api/agents/health-check'
   ),
   setMode: httpPut<void, { conversation_id: string; mode: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
@@ -731,31 +716,12 @@ export const acpConversation = {
   getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`
   ),
-  getModelInfo: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
+  getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`
   ),
   setModel: httpPut<void, { conversation_id: string; model_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`,
     (p) => ({ model_id: p.model_id })
-  ),
-  getConfigOptions: httpGet<
-    { config_options: import('../types/platform/acpTypes').AcpSessionConfigOption[] },
-    { conversation_id: string }
-  >((p) => `/api/conversations/${p.conversation_id}/config`),
-  getConfigOption: httpGet<
-    { config_option: import('../types/platform/acpTypes').AcpSessionConfigOption | null },
-    { conversation_id: string; config_id: string }
-  >((p) => `/api/conversations/${p.conversation_id}/config/${p.config_id}`),
-  setConfigOptions: httpPut<
-    void,
-    { conversation_id: string; config_options: Array<{ config_id: string; value: string }> }
-  >(
-    (p) => `/api/conversations/${p.conversation_id}/config`,
-    (p) => ({ config_options: p.config_options })
-  ),
-  setConfigOption: httpPut<void, { conversation_id: string; config_id: string; value: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/config/${p.config_id}`,
-    (p) => ({ value: p.value })
   ),
 };
 
@@ -1626,7 +1592,7 @@ export const channel = {
 // Agent Hub API — routed to /api/hub/*
 // ---------------------------------------------------------------------------
 
-import type { IHubAgentItem, HubExtensionStatus } from '@/common/types/agent/hub';
+import type { HubExtensionStatus, IHubAgentItem } from '@/common/types/agent/hub';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {
@@ -1643,7 +1609,7 @@ export const hub = {
 // Team Mode API — routed to /api/teams/*
 // ---------------------------------------------------------------------------
 
-export type { ICreateTeamParams, IAddTeamAgentParams } from './teamMapper';
+export type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
 
 export const team = {
   create: withResponseMap(
