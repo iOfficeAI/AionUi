@@ -26,6 +26,7 @@ import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
   'gemini',
+  'apikeys',
   'agent',
   'model',
   'assistants',
@@ -138,6 +139,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
       gemini: { id: 'gemini', label: t('settings.gemini'), icon: <Gemini />, path: 'gemini' },
+      apikeys: {
+        id: 'apikeys',
+        label: `${t('settings.apiKey', { defaultValue: 'API Key' })}s`,
+        icon: <Lightning />,
+        path: 'apikeys',
+      },
       model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
       assistants: {
         id: 'assistants',

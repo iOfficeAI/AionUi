@@ -729,6 +729,15 @@ export const systemSettings = {
   setAutoPreviewOfficeFiles: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-auto-preview-office-files'
   ),
+  getIntegrationKeysStatus: bridge.buildProvider<
+    Record<string, { configured: boolean; hasEnvironmentValue: boolean }>,
+    void
+  >('system-settings:get-integration-keys-status'),
+  getIntegrationKey: bridge.buildProvider<string, { key: string }>('system-settings:get-integration-key'),
+  setIntegrationKey: bridge.buildProvider<void, { key: string; value: string }>(
+    'system-settings:set-integration-key'
+  ),
+  clearIntegrationKey: bridge.buildProvider<void, { key: string }>('system-settings:clear-integration-key'),
   // Desktop pet settings
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
   setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),

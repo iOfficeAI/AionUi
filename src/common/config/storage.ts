@@ -141,6 +141,8 @@ export interface IConfigStorageRefer {
     customAgentId?: string;
     name?: string;
   };
+  // Central integration key vault for user-managed API keys / 集中管理用户 API 密钥
+  'integration.keys'?: Record<string, string>;
   // Lark assistant default model / Lark 助手默认模型
   'assistant.lark.defaultModel'?: {
     id: string;

@@ -18,6 +18,34 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
 import type { PetSize } from '@process/pet/petTypes';
 
+const INTEGRATION_KEY_ALLOWLIST = [
+  'OPENAI_API_BASE',
+  'OPENAI_API_KEY',
+  'ANTHROPIC_API_BASE',
+  'ANTHROPIC_API_KEY',
+  'GOOGLE_APPLICATION_CREDENTIALS_JSON',
+  'CLAUDE_API_KEY',
+  'CLAUDE_ACCESS_TOKEN',
+  'HUGGINGFACE_API_KEY',
+  'KRYVAI_API_KEY',
+  'SUNO_COOKIE',
+  'LIVEKIT_API_KEY',
+  'LIVEKIT_API_SECRET',
+  'LIVEKIT_URL',
+  'CLICKUP_API_TOKEN',
+  'KAGGLE_USERNAME',
+  'WOLFRAM_ALPHA_API_KEY',
+  'CLAW3D_API_KEY',
+  'GITLAB_TOKEN',
+  'HF_TOKEN',
+] as const;
+
+type IntegrationKey = (typeof INTEGRATION_KEY_ALLOWLIST)[number];
+
+const isIntegrationKey = (key: string): key is IntegrationKey => {
+  return (INTEGRATION_KEY_ALLOWLIST as readonly string[]).includes(key);
+};
+
 // Keep-awake power blocker state
 let _keepAwakeBlockerId: number | null = null;
 
@@ -147,6 +175,59 @@ export function initSystemSettingsBridge(): void {
   // 设置"自动预览新建 Office 文件" / Set "auto preview new Office files"
   ipcBridge.systemSettings.setAutoPreviewOfficeFiles.provider(async ({ enabled }) => {
     await ProcessConfig.set('system.autoPreviewOfficeFiles', enabled);
+  });
+
+  // API key vault status used by API keys settings page.
+  ipcBridge.systemSettings.getIntegrationKeysStatus.provider(async () => {
+    const integrationKeys = (await ProcessConfig.get('integration.keys')) ?? {};
+    const result: Record<string, { configured: boolean; hasEnvironmentValue: boolean }> = {};
+
+    for (const key of INTEGRATION_KEY_ALLOWLIST) {
+      const configuredValue = integrationKeys[key];
+      result[key] = {
+        configured: typeof configuredValue === 'string' && configuredValue.trim().length > 0,
+        hasEnvironmentValue: !!process.env[key],
+      };
+    }
+
+    return result;
+  });
+
+  // Retrieve API key value for managed key editing UI.
+  ipcBridge.systemSettings.getIntegrationKey.provider(async ({ key }) => {
+    if (!isIntegrationKey(key)) {
+      return '';
+    }
+    const keys = (await ProcessConfig.get('integration.keys')) ?? {};
+    const value = keys[key];
+    return typeof value === 'string' ? value : '';
+  });
+
+  ipcBridge.systemSettings.setIntegrationKey.provider(async ({ key, value }) => {
+    if (!isIntegrationKey(key)) {
+      return;
+    }
+
+    const current = (await ProcessConfig.get('integration.keys')) ?? {};
+    const next = {
+      ...current,
+      [key]: value.trim(),
+    };
+    await ProcessConfig.set('integration.keys', next);
+  });
+
+  ipcBridge.systemSettings.clearIntegrationKey.provider(async ({ key }) => {
+    if (!isIntegrationKey(key)) {
+      return;
+    }
+
+    const current = (await ProcessConfig.get('integration.keys')) ?? {};
+    if (!(key in current)) {
+      return;
+    }
+
+    const { [key]: _removed, ...next } = current;
+    await ProcessConfig.set('integration.keys', next as Record<string, string>);
   });
 
   // Desktop pet settings

@@ -11,6 +11,7 @@ const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/C
 const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
 const AionrsSettings = React.lazy(() => import('@renderer/pages/settings/AionrsSettings'));
 const GeminiSettings = React.lazy(() => import('@renderer/pages/settings/GeminiSettings'));
+const ApiKeysSettings = React.lazy(() => import('@renderer/pages/settings/ApiKeysSettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
@@ -64,6 +65,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
             element={TEAM_MODE_ENABLED ? withRouteFallback(TeamIndex) : <Navigate to='/guid' replace />}
           />
           <Route path='/settings/gemini' element={withRouteFallback(GeminiSettings)} />
+          <Route path='/settings/apikeys' element={withRouteFallback(ApiKeysSettings)} />
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
           <Route path='/settings/assistants' element={withRouteFallback(AssistantSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
