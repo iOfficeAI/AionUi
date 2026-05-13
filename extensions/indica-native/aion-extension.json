@@ -1,0 +1,41 @@
+{
+  "$schema": "../../schemas/aion-extension-v1.json",
+  "name": "indica-native",
+  "displayName": "Indica Native Control",
+  "version": "0.1.0",
+  "description": "Connects AionUi agents to Indica's local Windows control layer through the Indica Native Gateway.",
+  "author": "Satyam",
+  "engine": {
+    "aionui": "^1.0.0"
+  },
+  "permissions": {
+    "storage": false,
+    "network": true,
+    "shell": false,
+    "filesystem": "none",
+    "events": false
+  },
+  "contributes": {
+    "mcpServers": [
+      {
+        "name": "indica-native",
+        "description": "Indica native Windows tools: apps, windows, files, clipboard, hotkeys, media keys, screenshots, and PowerShell with confirmation gates.",
+        "enabled": true,
+        "transport": {
+          "type": "streamable_http",
+          "url": "${env:INDICA_GATEWAY_MCP_URL}",
+          "headers": {
+            "X-Indica-Gateway-Token": "${env:INDICA_GATEWAY_TOKEN}"
+          }
+        }
+      }
+    ],
+    "skills": [
+      {
+        "name": "indica-native-control",
+        "description": "Use Indica's local Windows control tools before falling back to generic instructions.",
+        "file": "skills/indica-native-control/SKILL.md"
+      }
+    ]
+  }
+}
