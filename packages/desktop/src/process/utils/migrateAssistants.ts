@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { CreateAssistantRequest } from '@/common/types/agent/assistantTypes';
 import type { ProcessConfig as ProcessConfigType } from './initStorage';
 
@@ -22,6 +23,7 @@ const BUILTIN_ID_PREFIX = 'builtin-';
  */
 const PRESET_ID_WHITELIST = new Set<string>([
   'word-creator',
+  'word-form-creator',
   'ppt-creator',
   'excel-creator',
   'morph-ppt',
@@ -158,6 +160,13 @@ function collectBuiltinOverrides(legacy: Record<string, unknown>[]): BuiltinOver
  * so the caller can keep the migration flag false and retry on next launch.
  * Runs in parallel because each upsert is independent and the set is small
  * (single-digit count in practice).
+ *
+ * 404 is treated as "skip, not failure" — the legacy row references a built-in
+ * id that the current backend manifest no longer ships (e.g. `pdf-to-ppt`,
+ * `pptx-generator` were retired). The user's disabled preference is moot
+ * because the assistant itself is gone. Counting these as failures would keep
+ * the overall migration flag false and trap the user in an endless retry loop
+ * on every launch.
  */
 async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<number> {
   if (overrides.length === 0) return 0;
@@ -165,16 +174,28 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
     overrides.map((ov) => ipcBridge.assistants.setState.invoke({ id: ov.id, enabled: ov.enabled }))
   );
   let failed = 0;
+  let skipped = 0;
   results.forEach((r, i) => {
     if (r.status === 'rejected') {
+      const reason = r.reason;
+      if (isBackendHttpError(reason) && reason.status === 404) {
+        skipped += 1;
+        console.warn(
+          `[AionUi] Skipped override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
+        );
+        return;
+      }
       failed += 1;
-      console.error(`[AionUi] Failed to apply builtin override for ${overrides[i].id}:`, r.reason);
+      console.error(`[AionUi] Failed to apply builtin override for ${overrides[i].id}:`, reason);
     }
   });
+  const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[AionUi] Applied ${overrides.length} builtin disabled-state override(s)`);
+    console.log(`[AionUi] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
   } else {
-    console.error(`[AionUi] Builtin override partial: ${failed}/${overrides.length} failed`);
+    console.error(
+      `[AionUi] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
+    );
   }
   return failed;
 }
