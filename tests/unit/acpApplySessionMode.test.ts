@@ -27,6 +27,8 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     getModels = vi.fn().mockReturnValue(null);
     getModes = vi.fn().mockReturnValue(null);
     setPromptTimeout = vi.fn();
+    setInitialModeId = vi.fn();
+    getCurrentModeId = vi.fn().mockReturnValue(null);
     onSessionUpdate: unknown = undefined;
     onPermissionRequest: unknown = undefined;
     onEndTurn: unknown = undefined;
@@ -71,8 +73,30 @@ vi.mock('../../src/process/agent/acp/mcpSessionConfig', () => ({
   buildBuiltinAcpSessionMcpServers: vi.fn().mockResolvedValue([]),
 }));
 
+vi.mock('../../src/process/team/mcp/guide/teamGuideSingleton', () => ({
+  getTeamGuideStdioConfig: vi.fn().mockResolvedValue(null),
+}));
+
+vi.mock('../../src/process/team/prompts/teamGuideCapability.ts', () => ({
+  shouldInjectTeamGuideMcp: vi.fn().mockReturnValue(false),
+}));
+
+vi.mock('../../src/process/team/mcpReadiness', () => ({
+  waitForMcpReady: vi.fn().mockResolvedValue(undefined),
+}));
+
 vi.mock('../../src/process/utils/mainLogger', () => ({
   mainLog: vi.fn(),
+}));
+
+vi.mock('../../src/common', () => ({
+  ipcBridge: {
+    team: {
+      mcpStatus: {
+        emit: vi.fn(),
+      },
+    },
+  },
 }));
 
 vi.mock('../../src/common/utils', async (importOriginal) => {
@@ -240,5 +264,24 @@ describe('AcpAgent.start() — applySessionMode', () => {
     });
 
     await expect(agent.start()).rejects.toThrow('Failed to enable claude YOLO mode');
+  });
+
+  it('reseeds initialModeId on retry after first connect fails', async () => {
+    mockConnect.mockRejectedValueOnce(new Error('transient failure'));
+    mockConnect.mockResolvedValueOnce(undefined);
+
+    const agent = new AcpAgent({
+      ...baseConfig,
+      extra: {
+        backend: 'claude',
+        sessionMode: 'plan',
+      },
+    });
+
+    await agent.start();
+
+    const conn = (agent as any).connection;
+    expect(conn.setInitialModeId).toHaveBeenCalledTimes(2);
+    expect(conn.setInitialModeId).toHaveBeenCalledWith('plan');
   });
 });

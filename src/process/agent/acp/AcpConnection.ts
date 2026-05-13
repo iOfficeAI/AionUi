@@ -106,6 +106,10 @@ export class AcpConnection {
   private models: AcpSessionModels | null = null;
   private modes: AcpSessionModes | null = null;
 
+  // Local session mode tracking for structural enforcement (e.g., plan-mode write blocking)
+  private currentModeId: string | null = null;
+  private initialModeId: string | null = null;
+
   // Configurable prompt timeout in milliseconds (default: 300000 = 5 minutes)
   private promptTimeoutMs: number = 300000;
 
@@ -435,6 +439,8 @@ export class AcpConnection {
     this.configOptions = null;
     this.models = null;
     this.modes = null;
+    this.currentModeId = null;
+    this.initialModeId = null;
     this.child = null;
 
     // 3. Notify AcpAgent about disconnect
@@ -731,12 +737,16 @@ export class AcpConnection {
   }
 
   private async initialize(): Promise<AcpResponse> {
+    // If starting in plan mode, advertise writeTextFile: false so the backend
+    // knows not to offer write tools. This is a best-effort signal — the local
+    // handleWriteOperation guard is the structural enforcement.
+    const isPlanMode = this.initialModeId === 'plan';
     const initializeParams = {
       protocolVersion: 1,
       clientCapabilities: {
         fs: {
           readTextFile: true,
-          writeTextFile: true,
+          writeTextFile: !isPlanMode,
         },
       },
     };
@@ -750,6 +760,11 @@ export class AcpConnection {
     const initModes = (response as unknown as Record<string, unknown>).modes as AcpSessionModes | undefined;
     if (initModes?.availableModes && initModes.availableModes.length > 0) {
       this.modes = initModes;
+    }
+    // Seed local mode tracking from initialModeId so it is in effect before
+    // any explicit setSessionMode call.
+    if (this.initialModeId) {
+      this.currentModeId = this.initialModeId;
     }
     return response;
   }
@@ -989,6 +1004,9 @@ export class AcpConnection {
       modeId,
     });
 
+    // Update local structural enforcement state
+    this.currentModeId = modeId;
+
     // Optimistically update the cached modes state
     if (this.modes) {
       this.modes = { ...this.modes, currentModeId: modeId };
@@ -1063,6 +1081,22 @@ export class AcpConnection {
     return this.modes;
   }
 
+  /**
+   * Set the initial mode ID before connection initialization.
+   * Used to advertise correct capabilities (e.g., writeTextFile: false in plan mode).
+   */
+  setInitialModeId(modeId: string): void {
+    this.initialModeId = modeId;
+  }
+
+  /**
+   * Get the locally tracked current session mode ID.
+   * This is the structural enforcement source of truth, independent of cached modes.
+   */
+  getCurrentModeId(): string | null {
+    return this.currentModeId;
+  }
+
   async disconnect(): Promise<void> {
     // Try graceful session/close only when the agent declared support.
     // session/close is an ACP RFD — sending it to unsupported agents wastes
@@ -1097,11 +1131,15 @@ export class AcpConnection {
     this.pendingRequests.clear();
     this.sessionId = null;
     this.isInitialized = false;
+    this.isSetupComplete = false;
+    this.isDetached = false;
     this.backend = null;
     this.initializeResult = null;
     this.configOptions = null;
     this.models = null;
     this.modes = null;
+    this.currentModeId = null;
+    this.initialModeId = null;
   }
 
   get isConnected(): boolean {
@@ -1150,6 +1188,12 @@ export class AcpConnection {
   // Normalize write operations and emit UI events so the workspace view stays in sync
   // 将写入操作归一化并通知 UI，保持工作区视图同步
   private async handleWriteOperation(params: { path: string; content: string; sessionId?: string }): Promise<null> {
+    // Structural enforcement: reject writes when local mode is exactly 'plan'.
+    // This blocks the agent from modifying files regardless of backend behavior.
+    if (this.currentModeId === 'plan') {
+      throw new Error('Write operations are disabled in plan mode');
+    }
+
     const resolvedWritePath = this.resolveWorkspacePath(params.path);
     this.onFileOperation({
       method: 'fs/write_text_file',
