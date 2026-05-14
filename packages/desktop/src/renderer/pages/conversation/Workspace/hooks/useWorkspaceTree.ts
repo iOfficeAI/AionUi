@@ -82,6 +82,15 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
             return res;
           }
 
+          // Guard: on subsequent refreshes (not first load, not search), ignore
+          // empty responses when we already have files — prevents the tree from
+          // flashing empty while the backend is temporarily unable to read the
+          // workspace (e.g. concurrent file operations by another agent).
+          const isEmpty = res.length === 0 || (res[0]?.children?.length ?? 0) === 0;
+          if (!isFirstLoadRef.current && !search && isEmpty) {
+            return res;
+          }
+
           setFiles(res);
           // 只在搜索时才重置 Tree key，否则保持选中状态
           // Only reset Tree key when searching, otherwise keep selection state
