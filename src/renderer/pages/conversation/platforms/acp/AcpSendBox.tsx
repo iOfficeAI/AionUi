@@ -48,6 +48,266 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 
+type ModelSortProfile = 'best' | 'coding' | 'reasoning' | 'vision' | 'fast' | 'local' | 'default';
+
+type RankedModel = {
+  id: string;
+  label: string;
+  provider: string;
+  score: number;
+  providerScore: number;
+  tags: string[];
+};
+
+const modelLabel = (model: { id?: string; label?: string }): string => {
+  const id = (model.id || '').trim();
+  const label = (model.label || '').trim();
+  if (id && label && id !== label) {
+    return `${label} (${id})`;
+  }
+  return id || label || 'Unknown model';
+};
+
+const safeModelId = (model: { id?: string; label?: string }): string => {
+  return (model.id || '').trim();
+};
+
+const inferProvider = (model: { id: string; label: string }): string => {
+  const probe = `${model.id || ''} ${model.label || ''}`.toLowerCase();
+  if (probe.includes('gemini') || probe.includes('google')) {
+    return 'gemini';
+  }
+  if (probe.includes('claude') || probe.includes('anthropic')) {
+    return 'claude';
+  }
+  if (probe.includes('grok')) {
+    return 'grok';
+  }
+  if (probe.includes('qwen') || probe.includes('kimi') || probe.includes('llama') || probe.includes('ollama')) {
+    return 'local';
+  }
+  if (probe.includes('gpt') || probe.includes('openai')) {
+    return 'openai';
+  }
+  return 'api';
+};
+
+const normalizeModelText = (value: string): string => value.toLowerCase().trim();
+
+const splitRequestedModel = (input: string): {
+  profile: ModelSortProfile;
+  isList?: boolean;
+} => {
+  const trimmed = normalizeModelText(input);
+  if (!trimmed) {
+    return { profile: 'default' };
+  }
+
+  if (trimmed === 'help' || trimmed === 'list' || trimmed === 'ls' || trimmed === '?' || trimmed === 'h') {
+    return { profile: 'default', isList: true };
+  }
+
+  if (trimmed === 'best' || trimmed.startsWith('best ')) {
+    const extra = trimmed.replace(/^best\s*/i, '').trim();
+    if (!extra) {
+      return { profile: 'best' };
+    }
+    if (extra.includes('code')) {
+      return { profile: 'coding' };
+    }
+    if (extra.includes('reason') || extra.includes('analysis')) {
+      return { profile: 'reasoning' };
+    }
+    if (extra.includes('vision') || extra.includes('img') || extra.includes('image')) {
+      return { profile: 'vision' };
+    }
+    if (extra.includes('speed') || extra.includes('fast')) {
+      return { profile: 'fast' };
+    }
+    if (extra.includes('local')) {
+      return { profile: 'local' };
+    }
+    return { profile: 'best' };
+  }
+
+  if (trimmed === 'coding' || trimmed === 'reasoning' || trimmed === 'vision' || trimmed === 'fast' || trimmed === 'local') {
+    return { profile: trimmed };
+  }
+
+  return { profile: 'default' };
+};
+
+const modelTier = (score: number) => {
+  if (score >= 88) {
+    return { rankEmoji: '🟢', name: 'Best' };
+  }
+  if (score >= 74) {
+    return { rankEmoji: '🟡', name: 'Strong' };
+  }
+  if (score >= 60) {
+    return { rankEmoji: '🔵', name: 'Good' };
+  }
+  return { rankEmoji: '⚪', name: 'Fallback' };
+};
+
+const profileScoreBonus = (profile: ModelSortProfile): Record<string, number> => {
+  switch (profile) {
+    case 'coding':
+      return {
+        local: 14,
+        claude: 15,
+        qwen: 12,
+        grok: 9,
+        gemini: 11,
+        openai: 6,
+        api: 0,
+      };
+    case 'reasoning':
+      return {
+        local: 8,
+        claude: 16,
+        qwen: 12,
+        grok: 10,
+        gemini: 14,
+        openai: 10,
+        api: 0,
+      };
+    case 'vision':
+      return {
+        local: 4,
+        claude: 4,
+        qwen: 8,
+        grok: 3,
+        gemini: 18,
+        openai: 12,
+        api: 0,
+      };
+    case 'fast':
+      return {
+        local: 10,
+        claude: 7,
+        qwen: 9,
+        grok: 14,
+        gemini: 5,
+        openai: 10,
+        api: 0,
+      };
+    case 'local':
+      return {
+        local: 20,
+        claude: 0,
+        qwen: 6,
+        grok: 0,
+        gemini: 0,
+        openai: 0,
+        api: -4,
+      };
+    default:
+      return {
+        local: 14,
+        claude: 11,
+        qwen: 12,
+        grok: 9,
+        gemini: 10,
+        openai: 8,
+        api: 0,
+      };
+  }
+};
+
+const providerBaseScore = (provider: string): number => {
+  switch (provider) {
+    case 'local':
+      return 28;
+    case 'claude':
+      return 22;
+    case 'gemini':
+      return 20;
+    case 'qwen':
+      return 20;
+    case 'grok':
+      return 17;
+    case 'openai':
+      return 16;
+    default:
+      return 10;
+  }
+};
+
+const modelProviderAlias = (provider: string): string => {
+  if (provider === 'local') {
+    return 'local/ollama';
+  }
+  return provider;
+};
+
+const scoreModel = (model: { id: string; label: string }, profile: ModelSortProfile): RankedModel => {
+  const text = `${model.id} ${model.label}`.toLowerCase();
+  const provider = inferProvider(model);
+  const tags: string[] = [];
+  let score = providerBaseScore(provider);
+  const bonus = profileScoreBonus(profile);
+  score += bonus[provider] ?? 0;
+
+  if (text.includes('flash') || text.includes('lite') || text.includes('mini')) {
+    tags.push('low-latency');
+    score += 6;
+  }
+  if (text.includes('pro') || text.includes('sonnet') || text.includes('2.5') || text.includes('3.6')) {
+    tags.push('high-capability');
+    score += 10;
+  }
+  if (text.includes('vision') || text.includes('vision-preview') || text.includes('gemini-2.5-flash')) {
+    tags.push('vision-friendly');
+    score += 6;
+  }
+  if (text.includes('code') || text.includes('coding')) {
+    tags.push('code-first');
+    score += 7;
+  }
+
+  if (profile === 'fast' && (text.includes('flash') || text.includes('mini') || provider === 'grok')) {
+    score += 4;
+  }
+  if (profile === 'reasoning' && (text.includes('2.5-pro') || text.includes('3.6') || text.includes('sonnet') || provider === 'claude')) {
+    score += 7;
+  }
+
+  if (provider === 'local' && text.includes('qwen3')) {
+    tags.push('local-coding');
+    score += 9;
+  }
+  if (!tags.length) {
+    tags.push('balanced');
+  }
+
+  return {
+    id: safeModelId(model),
+    label: modelLabel(model),
+    provider,
+    score,
+    providerScore: providerBaseScore(provider),
+    tags,
+  };
+};
+
+const getRankedModels = (
+  models: Array<{ id?: string; label?: string }>,
+  profile: ModelSortProfile
+): RankedModel[] =>
+  models
+    .filter((model) => safeModelId(model))
+    .map((model) => scoreModel({ id: safeModelId(model), label: modelLabel(model) }, profile))
+    .filter((model) => model.score >= 0)
+    .sort((a, b) => b.score - a.score || b.providerScore - a.providerScore || a.label.localeCompare(b.label));
+
+const formatRankedModelLine = (model: RankedModel, rank: number): string => {
+  const tier = modelTier(model.score);
+  const provider = modelProviderAlias(model.provider);
+  const tags = model.tags.join(' | ');
+  return `${rank}. ${tier.rankEmoji} ${model.label} [${provider}] ${tier.name} • ${tags} • ${model.score}`;
+};
+
 const assertTeamBridgeSuccess = (
   result: void | { __bridgeError?: boolean; message?: string },
   fallbackMessage: string
@@ -269,61 +529,40 @@ Please check your local CLI tool authentication status`,
     const trimmedMessage = message.trim();
     if (trimmedMessage.toLowerCase().startsWith('/model')) {
       const requestedModel = trimmedMessage.replace(/^\/model\s*/i, '').trim();
-
-      const modelLabel = (model: { id?: string; label?: string }): string => {
-        const id = (model.id || '').trim();
-        const label = (model.label || '').trim();
-        if (id && label && id !== label) {
-          return `${label} (${id})`;
-        }
-        return id || label || 'Unknown model';
-      };
-
-      const safeModelId = (model: { id?: string; label?: string }): string => {
-        return (model.id || '').trim();
-      };
-
-      const inferProvider = (model: { id: string; label: string }): string => {
-        const probe = `${model.id || ''} ${model.label || ''}`.toLowerCase();
-        if (probe.includes('gemini') || probe.includes('google')) {
-          return 'gemini';
-        }
-        if (probe.includes('claude') || probe.includes('anthropic')) {
-          return 'claude';
-        }
-        if (probe.includes('qwen') || probe.includes('kimi') || probe.includes('llama') || probe.includes('ollama')) {
-          return 'local';
-        }
-        if (probe.includes('gpt') || probe.includes('openai')) {
-          return 'openai';
-        }
-        return 'api';
-      };
+      const parsedRequest = splitRequestedModel(requestedModel);
+      const requestedProfile = parsedRequest.profile;
 
       const modelInfoResult = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId: conversation_id });
       const modelInfo = modelInfoResult.data?.modelInfo;
       const availableModels = modelInfo?.availableModels ?? [];
 
-      if (requestedModel.length === 0 || ['help', 'list', 'ls', '?', 'h'].includes(requestedModel.toLowerCase())) {
-        const examples = availableModels
-          .slice(0, 8)
-          .map((model) => `${modelLabel(model)} [${inferProvider(model)}]`)
+      if (!modelInfo) {
+        Message.error(
+          t('conversation.model.notReady', {
+            defaultValue: 'Modellen nog niet beschikbaar. Probeer na een kort moment opnieuw.',
+          })
+        );
+        return;
+      }
+
+      const rankedModels = getRankedModels(
+        availableModels,
+        requestedProfile === 'best' ? 'best' : requestedProfile
+      );
+
+      if (!requestedModel || parsedRequest.isList) {
+        const examples = rankedModels
+          .slice(0, 12)
+          .map((model, index) => formatRankedModelLine(model, index + 1))
           .join('\n');
 
         Message.info(
           examples
             ? t('conversation.model.availableModels', {
-                models: examples,
-                defaultValue: `Beschikbare modellen:\n${examples}`,
+                models: `Gebruik: /model <index>, /model <naam>, /model best [coding|reasoning|vision|fast|local]\n${examples}`,
+                defaultValue: `Beschikbare modellen:\nGebruik: /model <index>, /model <naam>, /model best [coding|reasoning|vision|fast|local]\n${examples}`,
               })
             : t('conversation.model.noModels', { defaultValue: 'Geen modellen gevonden voor deze ACP sessie.' })
-        );
-        return;
-      }
-
-      if (!modelInfo) {
-        Message.error(
-          t('conversation.model.notReady', { defaultValue: 'Modellen nog niet beschikbaar. Probeer na een kort moment opnieuw.' })
         );
         return;
       }
@@ -336,16 +575,53 @@ Please check your local CLI tool authentication status`,
       }
 
       const normalizedRequest = requestedModel.trim().toLowerCase();
-      const targetModel = availableModels.find((model) => safeModelId(model).toLowerCase() === normalizedRequest) ||
-        availableModels.find((model) => (model.label || '').toLowerCase() === normalizedRequest) ||
-        availableModels.find(
-          (model) =>
-            safeModelId(model).toLowerCase().includes(normalizedRequest) ||
-            (model.label || '').toLowerCase().includes(normalizedRequest)
-        );
+      const indexRequest = Number.parseInt(normalizedRequest, 10);
+      let targetModel = null as null | { id: string; label: string; provider: string };
+
+      if (Number.isInteger(indexRequest) && indexRequest > 0) {
+        const ranked = rankedModels[indexRequest - 1];
+        if (ranked) {
+          targetModel = {
+            id: ranked.id,
+            label: ranked.label,
+            provider: ranked.provider,
+          };
+        }
+      } else if (
+        requestedProfile !== 'default' &&
+        ['best', 'coding', 'reasoning', 'vision', 'fast', 'local'].includes(requestedProfile)
+      ) {
+        const best = rankedModels[0];
+        if (best) {
+          targetModel = {
+            id: best.id,
+            label: best.label,
+            provider: best.provider,
+          };
+        }
+      } else {
+        targetModel =
+          availableModels.find((model) => safeModelId(model).toLowerCase() === normalizedRequest) ||
+          availableModels.find((model) => (model.label || '').toLowerCase() === normalizedRequest) ||
+          availableModels.find(
+            (model) =>
+              safeModelId(model).toLowerCase().includes(normalizedRequest) ||
+              (model.label || '').toLowerCase().includes(normalizedRequest)
+          );
+        if (targetModel) {
+          const provider = inferProvider({ id: safeModelId(targetModel), label: targetModel.label || safeModelId(targetModel) });
+          targetModel = {
+            ...targetModel,
+            provider,
+          };
+        }
+      }
 
       if (!targetModel) {
-        const preview = availableModels.slice(0, 8).map((model) => modelLabel(model)).join(', ');
+        const preview = rankedModels
+          .slice(0, 8)
+          .map((model) => `${model.id} • ${model.provider} (${model.score})`)
+          .join(', ');
         Message.error(
           t('conversation.model.invalidModel', {
             model: requestedModel,
@@ -375,8 +651,8 @@ Please check your local CLI tool authentication status`,
       Message.success(
         t('conversation.model.switched', {
           model: modelLabel(targetModel),
-          provider: inferProvider(targetModel),
-          defaultValue: `Model wissel gelukt: ${modelLabel(targetModel)} (${inferProvider(targetModel)})`,
+          provider: targetModel.provider || inferProvider({ id: targetModel.id, label: targetModel.label || targetModel.id }),
+          defaultValue: `Model wissel gelukt: ${modelLabel(targetModel)} (${targetModel.provider || inferProvider({ id: targetModel.id, label: targetModel.label || targetModel.id })})`,
         })
       );
       return;
