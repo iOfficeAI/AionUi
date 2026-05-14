@@ -215,8 +215,22 @@ function prepareAionuiBackend(options) {
   const targetDir = path.join(projectRoot, 'resources', 'bundled-aionui-backend', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
+  const manifestPath = path.join(targetDir, 'manifest.json');
 
   console.log(`Preparing aionui-backend for ${runtimeKey} (version: ${tag})`);
+
+  // Check if requested version is already present to skip redundant downloads
+  if (fs.existsSync(targetBinaryPath) && fs.existsSync(manifestPath)) {
+    try {
+      const existingManifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      if (existingManifest.version === tag && existingManifest.arch === arch && existingManifest.platform === platform) {
+        console.log(`  Version ${tag} already present, skipping download.`);
+        return { prepared: true, dir: targetDir, sourceType: 'cache' };
+      }
+    } catch (e) {
+      // Manifest corrupt or old format, proceed to re-download
+    }
+  }
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
