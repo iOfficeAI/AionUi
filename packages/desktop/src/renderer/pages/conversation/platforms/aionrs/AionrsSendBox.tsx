@@ -108,6 +108,7 @@ const AionrsSendBox: React.FC<{
     });
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+  const [agentWarmed, setAgentWarmed] = useState(false);
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -116,9 +117,20 @@ const AionrsSendBox: React.FC<{
     });
   }, [conversation_id]);
 
+  useEffect(() => {
+    if (!conversation_id) return;
+    setAgentWarmed(false);
+    void ipcBridge.conversation.warmup
+      .invoke({ conversation_id })
+      .then(() => {
+        setAgentWarmed(true);
+      })
+      .catch(() => {});
+  }, [conversation_id]);
+
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
-    agentStatus: hasHydratedRunningState ? 'active' : null,
+    agentStatus: agentWarmed ? 'active' : null,
   });
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
