@@ -33,6 +33,32 @@ export const shell = {
   ), // 使用指定工具打开文件夹
 };
 
+export interface ITerminalCreateSessionResult {
+  sessionId: string;
+}
+
+export interface ITerminalDataEvent {
+  sessionId: string;
+  data: string;
+}
+
+export interface ITerminalExitEvent {
+  sessionId: string;
+  code: number | null;
+  signal: string | number | null;
+}
+
+export const terminal = {
+  createSession: bridge.buildProvider<ITerminalCreateSessionResult, { cwd: string; cols?: number; rows?: number }>(
+    'terminal.create-session'
+  ),
+  write: bridge.buildProvider<void, { sessionId: string; data: string }>('terminal.write'),
+  resize: bridge.buildProvider<void, { sessionId: string; cols: number; rows: number }>('terminal.resize'),
+  dispose: bridge.buildProvider<void, { sessionId: string }>('terminal.dispose'),
+  data: bridge.buildEmitter<ITerminalDataEvent>('terminal.data'),
+  exit: bridge.buildEmitter<ITerminalExitEvent>('terminal.exit'),
+};
+
 //通用会话能力
 export const conversation = {
   create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话

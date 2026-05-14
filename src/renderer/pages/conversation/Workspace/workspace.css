@@ -27,6 +27,33 @@
   border: 1px solid var(--bg-3);
 }
 
+.workspace-terminal-resize-handle {
+  cursor: nwse-resize;
+  border-top-left-radius: 12px;
+  background:
+    linear-gradient(135deg, transparent 0 43%, rgba(var(--primary-6), 0.65) 43% 47%, transparent 47% 57%, rgba(var(--primary-6), 0.65) 57% 61%, transparent 61% 100%),
+    linear-gradient(135deg, transparent 0 55%, rgba(var(--primary-6), 0.35) 55% 59%, transparent 59% 100%);
+}
+
+.workspace-terminal-layout-toggle {
+  color: var(--text-secondary);
+  transition:
+    color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.workspace-terminal-layout-toggle:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+.workspace-terminal-layout-toggle--active {
+  color: var(--color-white);
+  background-color: rgb(var(--primary-6));
+  box-shadow: 0 8px 18px rgba(var(--primary-6), 0.22);
+}
+
 /* Mobile: workspace panel adaptation */
 @media (max-width: 767px) {
   .chat-workspace .workspace-toolbar-search {

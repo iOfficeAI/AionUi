@@ -9,7 +9,7 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { emitter } from '@/renderer/utils/emitter';
+import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import {
   isTemporaryWorkspace as checkIsTemporaryWorkspace,
   getWorkspaceDisplayName as getDisplayName,
@@ -24,6 +24,7 @@ import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
+import WorkspaceTerminalPanel from './components/WorkspaceTerminalPanel';
 import { useFileChanges } from './hooks/useFileChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
@@ -64,6 +65,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
+  const [terminalMounted, setTerminalMounted] = useState(false);
   const fileChangesHook = useFileChanges({ workspace });
 
   // Initialize all hooks
@@ -162,6 +164,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     isTemporaryWorkspace,
     teamId,
   });
+
+  useEffect(() => {
+    setTerminalMounted(activeTab === 'terminal');
+  }, [workspace]);
+
+  useEffect(() => {
+    if (activeTab === 'terminal') {
+      setTerminalMounted(true);
+    }
+  }, [activeTab]);
+
+  useAddEventListener(
+    'workspace.terminal.open',
+    (requestedWorkspacePath: string) => {
+      if (requestedWorkspacePath && requestedWorkspacePath !== workspace) {
+        return;
+      }
+      setTerminalMounted(true);
+      setActiveTab('terminal');
+    },
+    [workspace]
+  );
 
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
@@ -529,6 +553,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               ></Tree>
             )}
           </FlexFullContainer>
+        )}
+
+        {/* Terminal tab content */}
+        {!isWorkspaceCollapsed && terminalMounted && (
+          <div style={{ display: activeTab === 'terminal' ? 'flex' : 'none' }} className='flex-1 min-h-0'>
+            <WorkspaceTerminalPanel key={workspace} workspacePath={workspace} visible={activeTab === 'terminal'} />
+          </div>
         )}
 
         {/* Changes tab content */}

@@ -1,10 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mockIsElectronDesktop = vi.fn(() => true);
 const mockIsTemporaryWorkspace = vi.fn(() => false);
 const mockCheckToolInstalled = vi.fn().mockResolvedValue(false);
+const mockOpenFolderWith = vi.fn().mockResolvedValue(undefined);
+const mockDispatchWorkspaceTerminalOpenEvent = vi.fn();
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -18,7 +20,12 @@ vi.mock('@arco-design/web-react', () => ({
       {children}
     </button>
   ),
-  Dropdown: ({ children }: React.PropsWithChildren) => <>{children}</>,
+  Dropdown: ({ children, droplist }: React.PropsWithChildren & { droplist?: React.ReactNode }) => (
+    <>
+      {children}
+      {droplist}
+    </>
+  ),
   Tooltip: ({ children }: React.PropsWithChildren) => <>{children}</>,
 }));
 
@@ -37,11 +44,15 @@ vi.mock('@/renderer/utils/workspace/workspace', () => ({
   isTemporaryWorkspace: (p: string) => mockIsTemporaryWorkspace(p),
 }));
 
+vi.mock('@/renderer/utils/workspace/workspaceEvents', () => ({
+  dispatchWorkspaceTerminalOpenEvent: (...args: unknown[]) => mockDispatchWorkspaceTerminalOpenEvent(...args),
+}));
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     shell: {
       checkToolInstalled: { invoke: (...args: unknown[]) => mockCheckToolInstalled(...args) },
-      openFolderWith: { invoke: vi.fn().mockResolvedValue(undefined) },
+      openFolderWith: { invoke: (...args: unknown[]) => mockOpenFolderWith(...args) },
     },
   },
 }));
@@ -75,8 +86,26 @@ describe('WorkspaceOpenButton', () => {
     expect(container.querySelector('.workspace-open-button')).toBeNull();
   });
 
-  it('shows terminal icon as default tool', () => {
+  it('opens the embedded terminal by default', () => {
     render(<WorkspaceOpenButton workspacePath='/home/user/project' />);
-    expect(screen.getByTestId('icon-terminal')).toBeDefined();
+
+    expect(screen.getAllByTestId('icon-terminal')[0]).toBeDefined();
+    fireEvent.click(screen.getAllByRole('button')[0]);
+
+    expect(mockDispatchWorkspaceTerminalOpenEvent).toHaveBeenCalledWith('/home/user/project');
+    expect(mockOpenFolderWith).not.toHaveBeenCalled();
+  });
+
+  it('keeps external terminal as an explicit pop-out action', async () => {
+    render(<WorkspaceOpenButton workspacePath='/home/user/project' />);
+
+    await waitFor(() => {
+      expect(screen.getByText('External Terminal')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText('External Terminal'));
+
+    expect(mockOpenFolderWith).toHaveBeenCalledWith({ folderPath: '/home/user/project', tool: 'terminal' });
+    expect(mockDispatchWorkspaceTerminalOpenEvent).not.toHaveBeenCalledWith('/home/user/project');
   });
 });

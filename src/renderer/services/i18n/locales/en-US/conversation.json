@@ -182,10 +182,26 @@
       "noUnstaged": "No unstaged changes",
       "noStaged": "No staged changes"
     },
+    "terminal": {
+      "tab": "Terminal",
+      "title": "Terminal",
+      "description": "Open a terminal window here and work from the current workspace.",
+      "openButton": "Open Terminal",
+      "openFailed": "Failed to open Terminal.",
+      "unsupported": "Terminal launching is available in the desktop app.",
+      "statusReady": "Ready",
+      "layoutBottom": "Bottom",
+      "layoutSide": "Side",
+      "layoutFloating": "Float",
+      "resizeAria": "Resize terminal panel",
+      "resetSize": "Reset terminal size",
+      "clearTooltip": "Clear terminal output"
+    },
+    "openEmbeddedTerminal": "Open embedded terminal",
     "openWorkspace": "Open workspace folder",
     "openWith": {
       "vscode": "VS Code",
-      "terminal": "Terminal",
+      "terminalPopOut": "External Terminal",
       "explorer": "File Explorer"
     }
   },

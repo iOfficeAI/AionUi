@@ -1,6 +1,7 @@
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { isTemporaryWorkspace } from '@/renderer/utils/workspace/workspace';
+import { dispatchWorkspaceTerminalOpenEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { Command, Down, Folder, Terminal } from '@icon-park/react';
 import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -22,9 +23,8 @@ interface WorkspaceOpenButtonProps {
 const STORAGE_KEY = 'workspace-open-preference';
 
 /**
- * Workspace Open Button - Opens workspace folder with various tools
- * Supports VS Code, Terminal, and File Explorer
- * Remembers user's preferred tool
+ * Workspace Open Button - Opens the embedded terminal by default and keeps
+ * external tools in the dropdown as explicit pop-out actions.
  */
 const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath }) => {
   const { t } = useTranslation();
@@ -58,12 +58,16 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
   const handleOpenWith = async (tool: ToolType) => {
     try {
       await ipcBridge.shell.openFolderWith.invoke({ folderPath: workspacePath, tool });
-      // Save preference
       localStorage.setItem(STORAGE_KEY, tool);
       setPreferredTool(tool);
     } catch (error) {
       console.error(`[WorkspaceOpenButton] Failed to open folder with ${tool}:`, error);
     }
+    setDropdownOpen(false);
+  };
+
+  const handleOpenEmbeddedTerminal = () => {
+    dispatchWorkspaceTerminalOpenEvent(workspacePath);
     setDropdownOpen(false);
   };
 
@@ -77,7 +81,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     },
     {
       key: 'terminal',
-      label: t('conversation.workspace.openWith.terminal', { defaultValue: 'Terminal' }),
+      label: t('conversation.workspace.openWith.terminalPopOut', { defaultValue: 'External Terminal' }),
       icon: <Terminal size={16} />,
       available: true,
     },
@@ -97,24 +101,11 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     if (isTemporary) {
       return 'explorer';
     }
-    if (preferredTool && availableOptions.some((opt) => opt.key === preferredTool)) {
+    if (preferredTool && preferredTool !== 'terminal' && availableOptions.some((opt) => opt.key === preferredTool)) {
       return preferredTool;
     }
-    return availableOptions[0]?.key ?? 'explorer';
+    return availableOptions.find((opt) => opt.key !== 'terminal')?.key ?? 'explorer';
   }, [isTemporary, preferredTool, availableOptions]);
-
-  // Get current icon based on selected tool
-  const currentIcon = useMemo(() => {
-    switch (currentTool) {
-      case 'vscode':
-        return <Command size={16} />;
-      case 'explorer':
-        return <Folder size={16} />;
-      case 'terminal':
-      default:
-        return <Terminal size={16} />;
-    }
-  }, [currentTool]);
 
   // Don't render in WebUI/browser mode — shell tools open on the server with no visible feedback
   // Don't render if workspace is temporary
@@ -140,14 +131,14 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   return (
     <div className='workspace-open-button flex items-center'>
-      <Tooltip content={t('conversation.workspace.openWorkspace', { defaultValue: 'Open workspace folder' })} mini>
+      <Tooltip content={t('conversation.workspace.openEmbeddedTerminal', { defaultValue: 'Open embedded terminal' })} mini>
         <Button
           type='text'
           size='small'
           className='workspace-open-button__btn flex items-center gap-4px px-8px'
-          onClick={() => handleOpenWith(currentTool)}
+          onClick={handleOpenEmbeddedTerminal}
         >
-          {currentIcon}
+          <Terminal size={16} />
         </Button>
       </Tooltip>
 

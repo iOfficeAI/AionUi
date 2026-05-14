@@ -30,6 +30,7 @@ import { initShellBridge } from './shellBridge';
 import { initStarOfficeBridge } from './starOfficeBridge';
 import { initSpeechToTextBridge } from './speechToTextBridge';
 import { initTaskBridge } from './taskBridge';
+import { initTerminalBridge } from './terminalBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initWebuiBridge } from './webuiBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
@@ -90,6 +91,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initStarOfficeBridge();
   initSpeechToTextBridge();
   initWeixinLoginBridge();
+  initTerminalBridge();
   initWorkspaceSnapshotBridge();
   initRemoteAgentBridge();
   initHubBridge();
@@ -136,6 +138,7 @@ export {
   initSystemSettingsBridge,
   initAmbientBridge,
   initTaskBridge,
+  initTerminalBridge,
   initUpdateBridge,
   initWebuiBridge,
   initRemoteAgentBridge,
@@ -147,5 +150,6 @@ export {
 };
 export { disposeAllSnapshots } from './workspaceSnapshotBridge';
 export { disposeAllTeamSessions } from './teamBridge';
+export { disposeAllTerminalSessions } from './terminalBridge';
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

@@ -46,6 +46,7 @@ interface EventTypes {
   'remote.selected.file.clear': void;
   'remote.workspace.refresh': void;
   'chat.history.refresh': void;
+  'workspace.terminal.open': [string]; // workspace path
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversationId
   // 预览面板事件 / Preview panel events

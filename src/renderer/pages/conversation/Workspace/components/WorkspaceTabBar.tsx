@@ -189,6 +189,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
       extra={branchDropdown}
     >
       <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />
+      <Tabs.TabPane key='terminal' title={t('conversation.workspace.terminal.tab')} />
       <Tabs.TabPane key='changes' title={changesTitle} />
     </Tabs>
   );

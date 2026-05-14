@@ -1,3 +1,5 @@
+import { emitter } from '@/renderer/utils/emitter';
+
 export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
 export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
@@ -30,4 +32,8 @@ export function dispatchWorkspaceHasFilesEvent(hasFiles: boolean, conversationId
   window.dispatchEvent(
     new CustomEvent<WorkspaceHasFilesDetail>(WORKSPACE_HAS_FILES_EVENT, { detail: { hasFiles, conversationId } })
   );
+}
+
+export function dispatchWorkspaceTerminalOpenEvent(workspacePath: string) {
+  emitter.emit('workspace.terminal.open', workspacePath);
 }
