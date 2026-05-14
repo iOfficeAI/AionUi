@@ -149,9 +149,15 @@ const ProvidersCockpit: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    void loadStatus();
+  const handleRefresh = useCallback(() => {
+    loadStatus().catch((error) => {
+      console.error('[ProvidersCockpit] failed to refresh provider key status:', error);
+    });
   }, [loadStatus]);
+
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   const summary = useMemo(() => {
     return INTEGRATION_KEYS.reduce(
@@ -198,7 +204,7 @@ const ProvidersCockpit: React.FC = () => {
   }, [visibleKeys]);
 
   const handleOpenDocs = (url: string) => {
-    void shell.openExternal.invoke(url).catch((error) => {
+    shell.openExternal.invoke(url).catch((error) => {
       console.error('[ProvidersCockpit] failed to open docs:', error);
       Message.error('Failed to open documentation link.');
     });
@@ -332,7 +338,7 @@ const ProvidersCockpit: React.FC = () => {
               <Checkbox checked={showMissingOnly} onChange={setShowMissingOnly}>
                 Missing only
               </Checkbox>
-              <Button size='small' type='outline' icon={<IconRefresh />} loading={loading} onClick={() => void loadStatus()}>
+              <Button size='small' type='outline' icon={<IconRefresh />} loading={loading} onClick={handleRefresh}>
                 Refresh
               </Button>
             </div>

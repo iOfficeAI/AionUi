@@ -71,9 +71,15 @@ const ApiKeysSettings: React.FC = () => {
     }
   }, [t]);
 
-  useEffect(() => {
-    void loadStatus();
+  const handleRefresh = useCallback(() => {
+    loadStatus().catch((error) => {
+      console.error('[ApiKeysSettings] failed to refresh integration key status:', error);
+    });
   }, [loadStatus]);
+
+  useEffect(() => {
+    handleRefresh();
+  }, [handleRefresh]);
 
   const setDraft = (key: string, value: string) => {
     setDraftMap((prev) => ({ ...prev, [key]: value }));
@@ -116,7 +122,7 @@ const ApiKeysSettings: React.FC = () => {
   };
 
   const handleOpenDocs = (url: string) => {
-    void shell.openExternal.invoke(url).catch((error) => {
+    shell.openExternal.invoke(url).catch((error) => {
       console.error('[ApiKeysSettings] failed to open docs:', error);
       Message.error('Failed to open docs link');
     });

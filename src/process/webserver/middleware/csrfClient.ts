@@ -9,6 +9,8 @@ import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@process/webserver/config/co
 
 let cachedCsrfToken: string | null = null;
 
+type CsrfTokenBody<T> = T | (T & { _csrf: string }) | { _csrf: string };
+
 // Read cookie by name in browser environment with error handling
 // 在浏览器环境中根据名称读取指定 Cookie，带错误处理
 function readCookie(name: string): string | null {
@@ -150,16 +152,16 @@ export function withCsrfHeader(headers: HeadersInit = {}): HeadersInit {
 // tiny-csrf expects token in req.body._csrf, not in headers
 // 将 CSRF Token 附加到请求体以兼容 tiny-csrf
 // tiny-csrf 期望从 req.body._csrf 读取 token，而不是从请求头
-export function withCsrfToken<T = unknown>(body: T): T & { _csrf?: string } {
+export function withCsrfToken<T = unknown>(body: T): CsrfTokenBody<T> {
   const token = getCsrfToken();
   if (!token) {
-    return body as T & { _csrf?: string };
+    return body;
   }
 
   try {
     // Handle different body types
     if (body === null || body === undefined) {
-      return { _csrf: token } as T & { _csrf?: string };
+      return { _csrf: token };
     }
 
     if (typeof body === 'object' && !Array.isArray(body)) {
@@ -168,9 +170,9 @@ export function withCsrfToken<T = unknown>(body: T): T & { _csrf?: string } {
 
     // For non-object bodies (string, FormData, etc.), return as-is
     // The caller should handle adding _csrf manually for these cases
-    return body as T & { _csrf?: string };
+    return body;
   } catch (error) {
     console.error('Failed to attach CSRF token:', error);
-    return body as T & { _csrf?: string };
+    return body;
   }
 }

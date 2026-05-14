@@ -109,6 +109,11 @@ const hexToNumber = (hex?: string, fallback = COLORS.accent) => {
   return Number.isFinite(parsed) ? parsed : fallback;
 };
 
+const deterministicUnit = (seed: number) => {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+};
+
 const serviceStatusColor = (status?: ServiceData['status']) => {
   if (status === 'healthy') return '#00ff88';
   if (status === 'degraded') return '#ffaa00';
@@ -252,8 +257,8 @@ const useThreeScene = (
     const particleMat = new THREE.MeshBasicMaterial({ color: COLORS.accent });
     for (let i = 0; i < 80; i++) {
       const angle = (i / 80) * Math.PI * 2;
-      const radius = 1.4 + Math.random() * 0.3;
-      const y = 1 + Math.random() * 2.5;
+      const radius = 1.4 + deterministicUnit(i + 1) * 0.3;
+      const y = 1 + deterministicUnit(i + 81) * 2.5;
       const p = new THREE.Mesh(particleGeom, particleMat);
       p.position.set(Math.cos(angle) * radius, y, Math.sin(angle) * radius);
       particlesGroup.add(p);

@@ -3,14 +3,10 @@
  * Unified telemetry from Claw3D, OpenClaw, Hermes, Space Agent, Ollama
  */
 
-import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
 import { Message, Spin, Tooltip } from '@arco-design/web-react';
-import {
-  Computer, Connection, Cpu, Earth, HomeTwo, PlayOne,
-  Robot, SettingConfig, Thunderstorm, Command, Browser,
-} from '@icon-park/react';
+import { Browser, Command, HomeTwo, Robot, SettingConfig } from '@icon-park/react';
 import { rememberCsrfTokenFromResponse, withCsrfToken } from '@process/webserver/middleware/csrfClient';
 import { NOVA_AGENT_TEAM_ACTIONS, type NovaAgentTeamAction } from '../novamasterMissionControl';
 import styles from '../index.module.css';
@@ -71,15 +67,102 @@ interface NovaStackData {
   updatedAt: string;
 }
 
+type ActivePanel = 'dashboard' | 'openclaw' | 'spaceagent';
+type NovaAccent = 'gold' | 'cyan' | 'green' | 'red';
+
+const SERVICE_STATUS_LABELS: Record<NovaService['status'], string> = {
+  online: 'ON',
+  degraded: 'DEG',
+  offline: 'OFF',
+};
+
+const getLoadAccent = (value: number, mediumAccent: NovaAccent, lowAccent: NovaAccent): NovaAccent => {
+  let accent = lowAccent;
+  if (value > 80) {
+    accent = 'red';
+  } else if (value > 50) {
+    accent = mediumAccent;
+  }
+  return accent;
+};
+
+const getHighWatermarkAccent = (value: number, normalAccent: NovaAccent): NovaAccent => {
+  if (value > 80) {
+    return 'red';
+  }
+  return normalAccent;
+};
+
+const getActionFeedbackStyle = (disabled: boolean, loading: boolean): {
+  opacity: number;
+  cursor: React.CSSProperties['cursor'];
+} => {
+  let opacity = 1;
+  let cursor: React.CSSProperties['cursor'] = 'pointer';
+
+  if (disabled) {
+    opacity = 0.45;
+    cursor = 'not-allowed';
+  } else if (loading) {
+    opacity = 0.7;
+    cursor = 'wait';
+  }
+
+  return { opacity, cursor };
+};
+
+const renderMissionStatus = (
+  stack: NovaStackData | null,
+  error: string | null,
+  telemetry: NovaTelemetry,
+): React.ReactNode => {
+  if (stack) {
+    let autopilotStatus = 'Manual control';
+    if (stack.autopilot === 'auto') {
+      autopilotStatus = 'Autopilot engaged';
+    }
+    return (
+      <>
+        <span className='nova-live-indicator' style={{ marginRight: 8 }}>LIVE</span>
+        {telemetry.servicesOnline}/{telemetry.servicesTotal} services online ·
+        {telemetry.agentsWorking} agents working ·
+        {autopilotStatus}
+      </>
+    );
+  }
+
+  if (error) {
+    return <span style={{ color: 'var(--nova-danger)' }}>{error}</span>;
+  }
+
+  return 'Connecting to Empire...';
+};
+
+const EmbeddedPanel: React.FC<{
+  title: string;
+  badge: string;
+  src: string;
+}> = ({ title, badge, src }) => (
+  <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div className='nova-panel-header'>
+      <span className='nova-panel-title'>{title}</span>
+      <span className='nova-panel-badge'>{badge}</span>
+    </div>
+    <div className='nova-iframe-container' style={{ flex: 1 }}>
+      <iframe src={src} title={title} />
+    </div>
+  </div>
+);
+
 // ─── Sub-components ───────────────────────────────────────────────────
 
 const StatPill: React.FC<{
   label: string;
   value: string | number;
-  accent?: 'gold' | 'cyan' | 'green' | 'red';
+  accent?: NovaAccent;
   subtitle?: string;
 }> = ({ label, value, accent = 'gold', subtitle }) => (
-  <div className='nova-stat-card'>
+  <div className={`nova-stat-card nova-stat-card-${accent}`}>
     <span className='nova-stat-value'>{value}</span>
     <span className='nova-stat-label'>{label}</span>
     {subtitle && <span style={{ fontSize: 10, color: 'var(--text-disabled)' }}>{subtitle}</span>}
@@ -91,7 +174,7 @@ const MetricBar: React.FC<{
   value: number;
   max?: number;
   unit?: string;
-  accent?: 'gold' | 'cyan' | 'green' | 'red';
+  accent?: NovaAccent;
 }> = ({ label, value, max = 100, unit = '%', accent = 'gold' }) => (
   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-secondary)' }}>
@@ -114,13 +197,23 @@ const ServiceChip: React.FC<{
   receipt?: string;
 }> = ({ service, onClick, loading, receipt }) => {
   const statusClass = `nova-status-${service.status}`;
-  const statusLabel = service.status === 'online' ? 'ON' : service.status === 'degraded' ? 'DEG' : 'OFF';
+  const statusLabel = SERVICE_STATUS_LABELS[service.status];
+  const actionStyle = getActionFeedbackStyle(false, loading);
   return (
     <Tooltip content={receipt || `${service.name} :${service.port}`}>
-      <div
+      <button
+        type='button'
         className='nova-agent-card'
         onClick={onClick}
-        style={{ cursor: loading ? 'wait' : 'pointer', opacity: loading ? 0.6 : 1 }}
+        disabled={loading}
+        style={{
+          border: 0,
+          width: '100%',
+          textAlign: 'left',
+          color: 'inherit',
+          font: 'inherit',
+          ...actionStyle,
+        }}
       >
         <div className={`nova-agent-avatar ${service.role.includes('core') ? '' : 'accent'}`}>
           {service.icon || service.name[0]}
@@ -131,7 +224,7 @@ const ServiceChip: React.FC<{
         </div>
         <span className={`nova-status ${statusClass}`} style={{ marginLeft: 'auto' }} />
         {loading && <Spin dot style={{ marginLeft: 8 }} />}
-      </div>
+      </button>
     </Tooltip>
   );
 };
@@ -189,6 +282,7 @@ const AgentTeamButton: React.FC<{
   onRun: () => void;
 }> = ({ action, loading, disabled, receipt, onRun }) => {
   const tooltip = receipt || (disabled ? `${action.team} team unavailable from Jarvis` : action.goal);
+  const actionStyle = getActionFeedbackStyle(disabled, loading);
   return (
     <Tooltip content={tooltip}>
       <button
@@ -198,8 +292,8 @@ const AgentTeamButton: React.FC<{
         style={{
           minHeight: 34,
           justifyContent: 'center',
-          opacity: disabled ? 0.45 : loading ? 0.7 : 1,
-          cursor: disabled ? 'not-allowed' : loading ? 'wait' : 'pointer',
+          opacity: actionStyle.opacity,
+          cursor: actionStyle.cursor,
         }}
       >
         <Robot theme='outline' size={14} />
@@ -212,7 +306,6 @@ const AgentTeamButton: React.FC<{
 // ─── Main Component ───────────────────────────────────────────────────
 
 const NovaMissionControl: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
   const [stack, setStack] = useState<NovaStackData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -220,9 +313,7 @@ const NovaMissionControl: React.FC = () => {
   const [receipts, setReceipts] = useState<Record<string, string>>({});
   const [agentTeamLoadingIds, setAgentTeamLoadingIds] = useState<Set<string>>(new Set());
   const [agentTeamReceipts, setAgentTeamReceipts] = useState<Record<string, string>>({});
-  const [showOpenClaw, setShowOpenClaw] = useState(false);
-  const [showSpaceAgent, setShowSpaceAgent] = useState(false);
-  const [activePanel, setActivePanel] = useState<'dashboard' | 'openclaw' | 'spaceagent'>('dashboard');
+  const [activePanel, setActivePanel] = useState<ActivePanel>('dashboard');
 
   // ── Fetch stack ──
   const fetchStack = useCallback(async () => {
@@ -272,8 +363,8 @@ const NovaMissionControl: React.FC = () => {
       setAgentTeamReceipts((current) => ({ ...current, [action.id]: receipt }));
       Message.success(receipt);
       fetchStack();
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Agent team launch failed';
+    } catch (launchError) {
+      const message = launchError instanceof Error ? launchError.message : 'Agent team launch failed';
       setAgentTeamReceipts((current) => ({ ...current, [action.id]: message }));
       Message.error(message);
     } finally {
@@ -333,6 +424,35 @@ const NovaMissionControl: React.FC = () => {
     };
   }, [stack]);
 
+  const activeAgents = useMemo(() => (stack?.agents || []).filter((agent) => agent.status !== 'offline'), [stack]);
+  const workingAgentCount = useMemo(() => activeAgents.filter((agent) => agent.status === 'working').length, [activeAgents]);
+  const hasAgentTeams = (stack?.agentTeams?.length ?? 0) > 0;
+  const cpuAccent = getLoadAccent(telemetry.cpu, 'cyan', 'gold');
+  const memoryAccent = getHighWatermarkAccent(telemetry.memory, 'cyan');
+  const diskAccent = getHighWatermarkAccent(telemetry.disk, 'gold');
+  const diskMetricAccent = getHighWatermarkAccent(telemetry.disk, 'green');
+  const missionStatus = renderMissionStatus(stack, error, telemetry);
+
+  const togglePanel = useCallback((panel: Exclude<ActivePanel, 'dashboard'>) => {
+    setActivePanel((current) => {
+      if (current === panel) {
+        return 'dashboard';
+      }
+      return panel;
+    });
+  }, []);
+
+  let embeddedPanel: React.ReactNode = null;
+  if (activePanel === 'openclaw') {
+    embeddedPanel = (
+      <EmbeddedPanel title='OpenClaw Gateway' badge=':18791' src='http://localhost:18791/' />
+    );
+  } else if (activePanel === 'spaceagent') {
+    embeddedPanel = (
+      <EmbeddedPanel title='Space Agent' badge=':3003' src='http://localhost:3003/' />
+    );
+  }
+
   // ── Render ──
   return (
     <div className={styles.novaMissionControl}>
@@ -377,18 +497,7 @@ const NovaMissionControl: React.FC = () => {
             fontSize: 12, color: 'var(--text-secondary)',
             margin: 0, lineHeight: 1.5, maxWidth: 340,
           }}>
-            {stack ? (
-              <>
-                <span className='nova-live-indicator' style={{ marginRight: 8 }}>LIVE</span>
-                {telemetry.servicesOnline}/{telemetry.servicesTotal} services online ·
-                {telemetry.agentsWorking} agents working ·
-                {stack?.autopilot === 'auto' ? 'Autopilot engaged' : 'Manual control'}
-              </>
-            ) : error ? (
-              <span style={{ color: 'var(--nova-danger)' }}>{error}</span>
-            ) : (
-              'Connecting to Empire...'
-            )}
+            {missionStatus}
           </p>
 
           {/* Quick nav */}
@@ -396,10 +505,10 @@ const NovaMissionControl: React.FC = () => {
             <button className='nova-btn nova-btn-primary' onClick={() => navigate('/office')}>
               <HomeTwo theme='outline' size={16} /> 3D Office
             </button>
-            <button className='nova-btn' onClick={() => setActivePanel(activePanel === 'openclaw' ? 'dashboard' : 'openclaw')}>
+            <button className='nova-btn' onClick={() => togglePanel('openclaw')}>
               <Command theme='outline' size={16} /> OpenClaw
             </button>
-            <button className='nova-btn' onClick={() => setActivePanel(activePanel === 'spaceagent' ? 'dashboard' : 'spaceagent')}>
+            <button className='nova-btn' onClick={() => togglePanel('spaceagent')}>
               <Browser theme='outline' size={16} /> Space Agent
             </button>
             <button className='nova-btn' onClick={() => navigate('/settings')}>
@@ -416,9 +525,9 @@ const NovaMissionControl: React.FC = () => {
           alignContent: 'start',
           paddingTop: 4,
         }}>
-          <StatPill label="CPU" value={`${telemetry.cpu}%`} accent={telemetry.cpu > 80 ? 'red' : telemetry.cpu > 50 ? 'cyan' : 'gold'} />
-          <StatPill label="Memory" value={`${telemetry.memory}%`} accent={telemetry.memory > 80 ? 'red' : 'cyan'} />
-          <StatPill label="Disk" value={`${telemetry.disk}%`} accent={telemetry.disk > 80 ? 'red' : 'gold'} />
+          <StatPill label="CPU" value={`${telemetry.cpu}%`} accent={cpuAccent} />
+          <StatPill label="Memory" value={`${telemetry.memory}%`} accent={memoryAccent} />
+          <StatPill label="Disk" value={`${telemetry.disk}%`} accent={diskAccent} />
           <StatPill label="Uptime" value={`${telemetry.uptime}h`} accent="green" />
         </div>
 
@@ -429,7 +538,7 @@ const NovaMissionControl: React.FC = () => {
         }}>
           <MetricBar label="CPU Load" value={telemetry.cpu} accent="gold" />
           <MetricBar label="Memory" value={telemetry.memory} accent="cyan" />
-          <MetricBar label="Disk" value={telemetry.disk} accent={telemetry.disk > 80 ? 'red' : 'green'} />
+          <MetricBar label="Disk" value={telemetry.disk} accent={diskMetricAccent} />
         </div>
 
         {/* Bottom: Financial */}
@@ -447,27 +556,7 @@ const NovaMissionControl: React.FC = () => {
 
       {/* ── Right: Services + Agents ── */}
       <div className={styles.novaServiceRail} style={{ position: 'relative', zIndex: 1 }}>
-        {activePanel === 'openclaw' ? (
-          <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className='nova-panel-header'>
-              <span className='nova-panel-title'>OpenClaw Gateway</span>
-              <span className='nova-panel-badge'>:18791</span>
-            </div>
-            <div className='nova-iframe-container' style={{ flex: 1 }}>
-              <iframe src="http://localhost:18791/" title="OpenClaw" />
-            </div>
-          </div>
-        ) : activePanel === 'spaceagent' ? (
-          <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <div className='nova-panel-header'>
-              <span className='nova-panel-title'>Space Agent</span>
-              <span className='nova-panel-badge'>:3003</span>
-            </div>
-            <div className='nova-iframe-container' style={{ flex: 1 }}>
-              <iframe src="http://localhost:3003/" title="Space Agent" />
-            </div>
-          </div>
-        ) : (
+        {embeddedPanel || (
           <div style={{ padding: 16, height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             <div className='nova-panel-header'>
               <span className='nova-panel-title'>Empire Services</span>
@@ -493,10 +582,10 @@ const NovaMissionControl: React.FC = () => {
                 <div className='nova-panel-header'>
                   <span className='nova-panel-title'>Agents</span>
                   <span className='nova-panel-badge'>
-                    {stack!.agents.filter(a => a.status !== 'offline').length} total · {stack!.agents.filter(a => a.status === 'working').length} working
+                    {activeAgents.length} total · {workingAgentCount} working
                   </span>
                 </div>
-                {(stack?.agentTeams?.length ?? 0) > 0 && (
+                {hasAgentTeams && (
                   <div
                     style={{
                       display: 'grid',
@@ -518,7 +607,7 @@ const NovaMissionControl: React.FC = () => {
                   </div>
                 )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflow: 'auto' }}>
-                  {stack!.agents.filter(a => a.status !== 'offline').map((agent) => (
+                  {activeAgents.map((agent) => (
                     <AgentChip key={agent.id} agent={agent} />
                   ))}
                 </div>

@@ -5,7 +5,7 @@
  */
 
 import { type Express, type NextFunction, type Request, type RequestHandler, type Response } from 'express';
-import { spawn } from 'child_process';
+import { spawn } from 'node:child_process';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import http from 'node:http';
@@ -513,7 +513,7 @@ async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMaste
   const openUrl = resolveNovaMasterOpenUrl(probe, port);
 
   if (!port || !probe.healthPath) {
-    return Promise.resolve({
+    return {
       ...getPublicNovaMasterProbe(probe),
       port,
       openUrl,
@@ -522,7 +522,7 @@ async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMaste
       httpStatus: null,
       error: 'missing http probe target',
       actions: getNovaMasterActions(probe),
-    });
+    };
   }
 
   const startedAt = Date.now();
@@ -1514,11 +1514,12 @@ export function registerApiRoutes(app: Express): void {
       const goal = typeof body.goal === 'string' ? body.goal.trim() : '';
       const rawPriority = typeof body.priority === 'string' ? body.priority.trim().toLowerCase() : 'normal';
       const priority = ['low', 'normal', 'high'].includes(rawPriority) ? rawPriority : 'normal';
-      const dryRun = typeof body.dryRun === 'boolean'
-        ? body.dryRun
-        : typeof body.dry_run === 'boolean'
-          ? body.dry_run
-          : false;
+      let dryRun = false;
+      if (typeof body.dryRun === 'boolean') {
+        dryRun = body.dryRun;
+      } else if (typeof body.dry_run === 'boolean') {
+        dryRun = body.dry_run;
+      }
 
       if (!goal) {
         res.status(400).json({ success: false, msg: 'goal is required' });
