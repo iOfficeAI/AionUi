@@ -19,6 +19,7 @@ type SpawnConfig = {
   dbPath: string;
   local: boolean;
   logDir?: string;
+  workDir?: string;
   appVersion: string;
   isPackaged: boolean;
 };
@@ -61,6 +62,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
     config.appVersion,
   ];
   if (config.logDir) args.push('--log-dir', config.logDir);
+  if (config.workDir) args.push('--work-dir', config.workDir);
   if (config.local) args.push('--local');
   return args;
 }
@@ -135,6 +137,7 @@ export class BackendLifecycleManager {
       dbPath,
       local: true,
       logDir,
+      workDir: dirs?.workDir,
       appVersion,
       isPackaged: this.appMeta.isPackaged,
     });
