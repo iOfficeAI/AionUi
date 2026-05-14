@@ -404,7 +404,10 @@ export class WorkspaceSnapshotService {
   }
 
   private async createWorkingTreeSnapshot(workspacePath: string): Promise<string> {
-    const gitdir = path.join(this.snapshotBaseDir, `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const gitdir = path.join(
+      this.snapshotBaseDir,
+      `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    );
     await fs.mkdir(this.snapshotBaseDir, { recursive: true });
     const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
 

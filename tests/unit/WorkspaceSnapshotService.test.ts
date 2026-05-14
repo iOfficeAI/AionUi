@@ -11,15 +11,18 @@ const exec = promisify(execFile);
 describe('WorkspaceSnapshotService', () => {
   let service: WorkspaceSnapshotService;
   let tmpDir: string;
+  let cacheDir: string;
 
   beforeEach(async () => {
-    service = new WorkspaceSnapshotService();
+    cacheDir = await fs.mkdtemp(path.join(os.tmpdir(), 'snapshot-cache-'));
+    service = new WorkspaceSnapshotService(cacheDir);
     tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'snapshot-test-'));
   });
 
   afterEach(async () => {
     await service.disposeAll().catch(() => {});
     await fs.rm(tmpDir, { recursive: true, force: true });
+    await fs.rm(cacheDir, { recursive: true, force: true });
   });
 
   describe('snapshot mode (no .git)', () => {
