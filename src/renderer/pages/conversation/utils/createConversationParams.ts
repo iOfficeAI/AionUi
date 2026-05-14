@@ -179,7 +179,7 @@ async function resolveGeminiModel(): Promise<TProviderWithModel> {
  */
 export async function buildCliAgentParams(
   agent: AvailableAgent,
-  workspace: string
+  workspace?: string
 ): Promise<ICreateConversationParams> {
   const type = getConversationTypeForBackend(agent.backend);
   const preferredMode = await resolvePreferredMode(agent.backend);
@@ -216,13 +216,13 @@ export async function buildCliAgentParams(
  */
 export async function buildPresetAssistantParams(
   agent: AvailableAgent,
-  workspace: string,
-  language: string
+  workspace?: string,
+  language?: string
 ): Promise<ICreateConversationParams> {
   const { customAgentId, presetAgentType = 'gemini' } = agent;
 
   // [BUG-2] Map raw i18n.language to standard locale key
-  const localeKey = resolveLocaleKey(language);
+  const localeKey = resolveLocaleKey(language || 'en-US');
 
   const {
     rules: presetContext,

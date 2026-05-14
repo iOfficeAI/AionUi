@@ -116,10 +116,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
-    if (!dir.trim()) {
-      Message.warning(t('conversation.welcome.specifyWorkspace'));
-      return;
-    }
+    // Workspace is optional — when not specified, the backend auto-creates a temp directory.
+    // No need to block sending when dir is empty.
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
@@ -498,10 +496,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
   const sendMessageHandler = useCallback(() => {
     if (loading || sendingRef.current) return;
-    if (!dir.trim()) {
-      Message.warning(t('conversation.welcome.specifyWorkspace'));
-      return;
-    }
     sendingRef.current = true;
     setLoading(true);
     handleSend()
@@ -537,7 +531,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   // Calculate button disabled state
   const isButtonDisabled =
     loading ||
-    !dir.trim() ||
     !input.trim() ||
     ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) ||
       (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) &&

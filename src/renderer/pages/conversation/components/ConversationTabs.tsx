@@ -248,13 +248,8 @@ const ConversationTabs: React.FC = () => {
       isCreatingRef.current = true;
 
       const currentTab = openTabs.find((tab) => tab.id === activeTabId);
-      if (!currentTab?.workspace) {
-        isCreatingRef.current = false;
-        void navigate('/guid');
-        return;
-      }
-
-      const workspace = currentTab.workspace;
+      // Workspace is optional — when not set, the backend auto-creates a temp directory.
+      const workspace = currentTab?.workspace;
 
       try {
         // [BUG-3] Build params inside try block: getDefaultGeminiModel() may throw if no model configured
@@ -301,7 +296,7 @@ const ConversationTabs: React.FC = () => {
 
         // [BUG-5] Order matters: closeAllTabs() must come before openTab() to prevent append behavior
         closeAllTabs();
-        updateWorkspaceTime(workspace);
+        if (workspace) updateWorkspaceTime(workspace);
         openTab(newConversation);
         void navigate(`/conversation/${newConversation.id}`);
         emitter.emit('chat.history.refresh');

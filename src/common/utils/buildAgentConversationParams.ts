@@ -19,7 +19,7 @@ export type BuildAgentConversationInput = {
   name: string;
   agentName?: string;
   presetAssistantId?: string;
-  workspace: string;
+  workspace?: string;
   model: TProviderWithModel;
   cliPath?: string;
   customAgentId?: string;
@@ -60,7 +60,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     model,
     cliPath,
     customAgentId,
-    customWorkspace = true,
+    customWorkspace = !!workspace,
     isPreset = false,
     presetAgentType,
     presetResources,

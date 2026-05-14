@@ -325,23 +325,19 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
       </div>
       <div className={styles.actionSubmit}>
         {speechInputNode}
-        <Tooltip content={!hasWorkspace ? t('conversation.workspace.migration.noTargetPath') : null}>
-          <span>
-            <Button
-              shape='circle'
-              type='primary'
-              loading={loading}
-              disabled={isButtonDisabled}
-              className='send-button-custom'
-              style={{
-                backgroundColor: isButtonDisabled ? undefined : '#000000',
-                borderColor: isButtonDisabled ? undefined : '#000000',
-              }}
-              icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-              onClick={onSend}
-            />
-          </span>
-        </Tooltip>
+        <Button
+          shape='circle'
+          type='primary'
+          loading={loading}
+          disabled={isButtonDisabled}
+          className='send-button-custom'
+          style={{
+            backgroundColor: isButtonDisabled ? undefined : '#000000',
+            borderColor: isButtonDisabled ? undefined : '#000000',
+          }}
+          icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+          onClick={onSend}
+        />
       </div>
     </div>
   );

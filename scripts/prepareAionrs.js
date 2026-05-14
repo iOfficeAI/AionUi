@@ -264,7 +264,8 @@ function prepareAionrs() {
     return { prepared: true, dir: targetDir, sourceType };
   }
 
-  // Not found — write skip manifest (non-fatal, like bundled-bun)
+  // Download failed — this is a fatal error so CI catches it immediately
+  // and prevents shipping a packaged app without the aionrs binary.
   const manifest = {
     platform,
     arch,
@@ -278,8 +279,11 @@ function prepareAionrs() {
   };
 
   writeJson(path.join(targetDir, 'manifest.json'), manifest);
-  console.warn(`  aionrs not found — skipping bundle (agent will not be available in packaged app)`);
-  return { prepared: false, reason: 'not_found' };
+  throw new Error(
+    `aionrs binary not found for ${runtimeKey} (version: ${tag}). ` +
+      `Ensure the GitHub release at iOfficeAI/aionrs contains the expected asset. ` +
+      `Set AIONRS_VERSION to override, or check network access.`
+  );
 }
 
 module.exports = prepareAionrs;

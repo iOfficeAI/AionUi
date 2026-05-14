@@ -9,13 +9,13 @@ import DirectorySelectionModal from '@/renderer/components/settings/DirectorySel
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { Button, Empty, Input, Modal, Tooltip } from '@arco-design/web-react';
+import { FolderOpen, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import { Down, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -36,6 +36,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   onBatchModeChange,
 }) => {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { t } = useTranslation();
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => new Set());
@@ -435,6 +436,25 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                             <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
                               {group.displayName}
                             </span>
+                            <Tooltip content={t('conversation.workspace.createNewConversation')}>
+                              <div
+                                role='button'
+                                tabIndex={0}
+                                className='shrink-0 w-20px h-20px rd-4px flex items-center justify-center text-t-secondary hover:text-brand hover:bg-fill-3 transition-all cursor-pointer'
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  navigate('/guid', { state: { workspace: group.workspace } });
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.stopPropagation();
+                                    navigate('/guid', { state: { workspace: group.workspace } });
+                                  }
+                                }}
+                              >
+                                <Plus theme='outline' size={14} />
+                              </div>
+                            </Tooltip>
                           </div>
                         }
                       >
