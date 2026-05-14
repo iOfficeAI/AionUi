@@ -180,7 +180,7 @@ const SystemModalContent: React.FC = () => {
   useEffect(() => {
     if (systemInfo) {
       initializingRef.current = true;
-      form.setFieldsValue({ cacheDir: systemInfo.cacheDir, workDir: systemInfo.workDir });
+      form.setFieldsValue({ workDir: systemInfo.workDir });
       requestAnimationFrame(() => {
         initializingRef.current = false;
       });
@@ -246,7 +246,7 @@ const SystemModalContent: React.FC = () => {
     },
   ];
 
-  const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {
+  const saveDirConfigValidate = (_values: { workDir: string }): Promise<unknown> => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.updateConfirm'),
@@ -262,19 +262,20 @@ const SystemModalContent: React.FC = () => {
   const handleValuesChange = useCallback(
     async (_changedValue: unknown, allValues: Record<string, string>) => {
       if (initializingRef.current || savingRef.current || !systemInfo) return;
-      const { cacheDir, workDir } = allValues;
-      const needsRestart = cacheDir !== systemInfo.cacheDir || workDir !== systemInfo.workDir;
+      const { workDir } = allValues;
+      const needsRestart = workDir !== systemInfo.workDir;
       if (!needsRestart) return;
 
       savingRef.current = true;
       setError(null);
       try {
-        await saveDirConfigValidate({ cacheDir, workDir });
-        // updateSystemInfo returns void; success if no throw
-        await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
+        await saveDirConfigValidate({ workDir });
+        // Pass systemInfo.cacheDir as-is: cacheDir is no longer user-editable
+        // (removed from UI), but the backend IPC interface still expects it.
+        // Passing the current value ensures existing custom paths are preserved.
+        await ipcBridge.application.updateSystemInfo.invoke({ cacheDir: systemInfo.cacheDir, workDir });
         await ipcBridge.application.restart.invoke();
       } catch (caughtError: unknown) {
-        form.setFieldValue('cacheDir', systemInfo.cacheDir);
         form.setFieldValue('workDir', systemInfo.workDir);
         if (caughtError) {
           setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
@@ -339,11 +340,10 @@ const SystemModalContent: React.FC = () => {
                 </div>
               </Collapse.Item>
             </Collapse>
-            <Form form={form} layout='vertical' className='space-y-16px' onValuesChange={handleValuesChange}>
-              <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
+            <Form form={form} layout='vertical' className='!mt-32px space-y-16px' onValuesChange={handleValuesChange}>
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {/* Log directory (read-only, click to open in file manager) */}
-              <div className='!mt-32px'>
+              <div>
                 <Form.Item label={t('settings.logDir')}>
                   <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] '>
                     <Tooltip content={systemInfo?.logDir || ''} position='top'>
