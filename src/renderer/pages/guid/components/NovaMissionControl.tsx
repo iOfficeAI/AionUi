@@ -11,6 +11,8 @@ import {
   Computer, Connection, Cpu, Earth, HomeTwo, PlayOne,
   Robot, SettingConfig, Thunderstorm, Command, Browser,
 } from '@icon-park/react';
+import { rememberCsrfTokenFromResponse, withCsrfToken } from '@process/webserver/middleware/csrfClient';
+import { NOVA_AGENT_TEAM_ACTIONS, type NovaAgentTeamAction } from '../novamasterMissionControl';
 import styles from '../index.module.css';
 
 // ─── Types ───────────────────────────────────────────────────────────
@@ -30,6 +32,9 @@ interface NovaAgent {
   id: string;
   name: string;
   status: 'idle' | 'working' | 'error' | 'offline';
+  role?: string;
+  description?: string;
+  queue?: number;
   model?: string;
   task?: string;
   cost_today?: number;
@@ -59,6 +64,7 @@ interface NovaStackSummary {
 interface NovaStackData {
   services: NovaService[];
   agents: NovaAgent[];
+  agentTeams?: string[];
   telemetry?: NovaTelemetry;
   summary?: NovaStackSummary;
   autopilot: string;
@@ -130,6 +136,16 @@ const ServiceChip: React.FC<{
   );
 };
 
+const formatAgentRoleLabel = (role?: string): string | undefined => {
+  if (!role) return undefined;
+  return role
+    .replace(/_agent$/i, '')
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
+    .join(' ');
+};
+
 const AgentChip: React.FC<{ agent: NovaAgent }> = ({ agent }) => {
   const statusMap = {
     working: { cls: 'nova-status-working', label: 'WORK' },
@@ -138,18 +154,58 @@ const AgentChip: React.FC<{ agent: NovaAgent }> = ({ agent }) => {
     offline: { cls: 'nova-status-offline', label: 'OFF' },
   } as const;
   const s = statusMap[agent.status];
+  const roleLabel = formatAgentRoleLabel(agent.role);
+  const detail = agent.task || agent.description || agent.model || roleLabel;
+  const queueLabel = typeof agent.queue === 'number' && agent.queue > 0 ? `${agent.queue} queued` : '';
+  const tooltip = [roleLabel ? `Role: ${roleLabel}` : undefined, agent.description, queueLabel]
+    .filter(Boolean)
+    .join(' · ') || agent.name;
 
   return (
-    <div className='nova-agent-card'>
-      <div className={`nova-agent-avatar ${agent.status === 'working' ? 'success' : ''}`}>
-        {agent.name[0]}
+    <Tooltip content={tooltip}>
+      <div className='nova-agent-card'>
+        <div className={`nova-agent-avatar ${agent.status === 'working' ? 'success' : ''}`}>
+          {agent.name[0]}
+        </div>
+        <div className='nova-agent-info'>
+          <span className='nova-agent-name'>{agent.name}</span>
+          {detail && (
+            <span className='nova-agent-task'>
+              {roleLabel || detail}{queueLabel ? ` · ${queueLabel}` : ''}
+            </span>
+          )}
+        </div>
+        <span className={`nova-status ${s.cls}`} style={{ marginLeft: 'auto' }}>{s.label}</span>
       </div>
-      <div className='nova-agent-info'>
-        <span className='nova-agent-name'>{agent.name}</span>
-        {agent.task && <span className='nova-agent-task'>{agent.task}</span>}
-      </div>
-      <span className={`nova-status ${s.cls}`} style={{ marginLeft: 'auto' }}>{s.label}</span>
-    </div>
+    </Tooltip>
+  );
+};
+
+const AgentTeamButton: React.FC<{
+  action: NovaAgentTeamAction;
+  loading: boolean;
+  disabled: boolean;
+  receipt?: string;
+  onRun: () => void;
+}> = ({ action, loading, disabled, receipt, onRun }) => {
+  const tooltip = receipt || (disabled ? `${action.team} team unavailable from Jarvis` : action.goal);
+  return (
+    <Tooltip content={tooltip}>
+      <button
+        className='nova-btn'
+        disabled={disabled || loading}
+        onClick={onRun}
+        style={{
+          minHeight: 34,
+          justifyContent: 'center',
+          opacity: disabled ? 0.45 : loading ? 0.7 : 1,
+          cursor: disabled ? 'not-allowed' : loading ? 'wait' : 'pointer',
+        }}
+      >
+        <Robot theme='outline' size={14} />
+        {loading ? 'Queueing' : action.label}
+      </button>
+    </Tooltip>
   );
 };
 
@@ -162,6 +218,8 @@ const NovaMissionControl: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [launchingIds, setLaunchingIds] = useState<Set<string>>(new Set());
   const [receipts, setReceipts] = useState<Record<string, string>>({});
+  const [agentTeamLoadingIds, setAgentTeamLoadingIds] = useState<Set<string>>(new Set());
+  const [agentTeamReceipts, setAgentTeamReceipts] = useState<Record<string, string>>({});
   const [showOpenClaw, setShowOpenClaw] = useState(false);
   const [showSpaceAgent, setShowSpaceAgent] = useState(false);
   const [activePanel, setActivePanel] = useState<'dashboard' | 'openclaw' | 'spaceagent'>('dashboard');
@@ -170,6 +228,7 @@ const NovaMissionControl: React.FC = () => {
   const fetchStack = useCallback(async () => {
     try {
       const res = await fetch('/api/novamaster/stack', { credentials: 'include' });
+      rememberCsrfTokenFromResponse(res);
       const payload = await res.json();
       if (payload.success && payload.data) {
         setStack(payload.data);
@@ -186,6 +245,44 @@ const NovaMissionControl: React.FC = () => {
     fetchStack();
     const timer = setInterval(fetchStack, 12000);
     return () => clearInterval(timer);
+  }, [fetchStack]);
+
+  // ── Launch Jarvis team ──
+  const handleAgentTeamRun = useCallback(async (action: NovaAgentTeamAction) => {
+    setAgentTeamLoadingIds((prev) => new Set(prev).add(action.id));
+    try {
+      const res = await fetch('/api/novamaster/agents/spawn-team', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(withCsrfToken({
+          team: action.team,
+          goal: action.goal,
+          priority: action.team === 'full' ? 'low' : 'normal',
+          dryRun: false,
+        })),
+      });
+      const payload = await res.json();
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.msg || `HTTP ${res.status}`);
+      }
+
+      const tasks = Array.isArray(payload.data?.tasks) ? payload.data.tasks : [];
+      const receipt = `${tasks.length} ${action.team} tasks queued`;
+      setAgentTeamReceipts((current) => ({ ...current, [action.id]: receipt }));
+      Message.success(receipt);
+      fetchStack();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Agent team launch failed';
+      setAgentTeamReceipts((current) => ({ ...current, [action.id]: message }));
+      Message.error(message);
+    } finally {
+      setAgentTeamLoadingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(action.id);
+        return next;
+      });
+    }
   }, [fetchStack]);
 
   // ── Launch service ──
@@ -215,6 +312,8 @@ const NovaMissionControl: React.FC = () => {
     const map = new Map((stack?.services || []).map((s) => [s.id, s]));
     return order.map((id) => map.get(id)).filter(Boolean) as NovaService[];
   }, [stack]);
+
+  const availableAgentTeams = useMemo(() => new Set(stack?.agentTeams || []), [stack]);
 
   // ── Telemetry defaults ──
   const telemetry = useMemo<NovaTelemetry>(() => {
@@ -397,6 +496,27 @@ const NovaMissionControl: React.FC = () => {
                     {stack!.agents.filter(a => a.status !== 'offline').length} total · {stack!.agents.filter(a => a.status === 'working').length} working
                   </span>
                 </div>
+                {(stack?.agentTeams?.length ?? 0) > 0 && (
+                  <div
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                      gap: 6,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {NOVA_AGENT_TEAM_ACTIONS.map((action) => (
+                      <AgentTeamButton
+                        key={action.id}
+                        action={action}
+                        loading={agentTeamLoadingIds.has(action.id)}
+                        disabled={!availableAgentTeams.has(action.team)}
+                        receipt={agentTeamReceipts[action.id]}
+                        onRun={() => handleAgentTeamRun(action)}
+                      />
+                    ))}
+                  </div>
+                )}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflow: 'auto' }}>
                   {stack!.agents.filter(a => a.status !== 'offline').map((agent) => (
                     <AgentChip key={agent.id} agent={agent} />

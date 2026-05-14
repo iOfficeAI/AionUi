@@ -74,10 +74,24 @@ type NovaMasterAgent = {
   id: string;
   name: string;
   status: NovaMasterAgentStatus;
+  role?: string;
+  description?: string;
+  queue?: number;
   model?: string;
   task?: string;
   cost_today?: number;
   revenue_impact?: number;
+};
+
+type NovaMasterAgentRole = {
+  role: string;
+  ui_agent: string;
+  description?: string;
+};
+
+type NovaMasterAgentCatalog = {
+  roles: NovaMasterAgentRole[];
+  teams: string[];
 };
 
 type NovaMasterTelemetry = {
@@ -732,6 +746,41 @@ function extractNovaMasterAgentItems(payload: unknown): unknown[] {
   return [];
 }
 
+function extractNovaMasterAgentRoles(payload: unknown): NovaMasterAgentCatalog {
+  const source = toRecord(payload);
+  if (!source) {
+    return { roles: [], teams: [] };
+  }
+
+  const roles = Array.isArray(source.roles)
+    ? source.roles
+        .map((role) => {
+          const item = toRecord(role);
+          const roleName = typeof item?.role === 'string' ? item.role.trim() : '';
+          const uiAgent = typeof item?.ui_agent === 'string' ? item.ui_agent.trim() : '';
+          if (!roleName || !uiAgent) {
+            return undefined;
+          }
+
+          const description = typeof item?.description === 'string' ? item.description.trim() : '';
+          return {
+            role: roleName,
+            ui_agent: uiAgent,
+            ...(description ? { description } : {}),
+          };
+        })
+        .filter((role): role is NovaMasterAgentRole => Boolean(role))
+    : [];
+
+  const teams = Array.isArray(source.teams)
+    ? source.teams
+        .map((team) => (typeof team === 'string' ? team.trim() : ''))
+        .filter(Boolean)
+    : [];
+
+  return { roles, teams };
+}
+
 function normalizeNovaMasterAgentStatus(status: unknown): NovaMasterAgentStatus {
   const normalized = typeof status === 'string' ? status.trim().toLowerCase() : '';
 
@@ -748,6 +797,19 @@ function normalizeNovaMasterAgentStatus(status: unknown): NovaMasterAgentStatus 
   return 'idle';
 }
 
+async function readNovaMasterAgentCatalog(): Promise<NovaMasterAgentCatalog> {
+  try {
+    const response = await requestNovaMasterEndpoint(JARVIS_AGENTS_PORT, '/agents/roles', { timeoutMs: 1500 });
+    if (!response.httpStatus || response.httpStatus < 200 || response.httpStatus >= 300) {
+      return { roles: [], teams: [] };
+    }
+
+    return extractNovaMasterAgentRoles(response.payload);
+  } catch {
+    return { roles: [], teams: [] };
+  }
+}
+
 function titleCaseAgentName(id: string): string {
   return id
     .split(/[-_\s]+/)
@@ -756,7 +818,10 @@ function titleCaseAgentName(id: string): string {
     .join(' ');
 }
 
-function normalizeNovaMasterAgent(agent: unknown): NovaMasterAgent | undefined {
+function normalizeNovaMasterAgent(
+  agent: unknown,
+  rolesByAgentId: Map<string, NovaMasterAgentRole>
+): NovaMasterAgent | undefined {
   const source = toRecord(agent);
   if (!source) {
     return undefined;
@@ -770,10 +835,14 @@ function normalizeNovaMasterAgent(agent: unknown): NovaMasterAgent | undefined {
   }
 
   const queue = typeof source.queue === 'number' && Number.isFinite(source.queue) ? source.queue : 0;
+  const role = rolesByAgentId.get(id);
   const normalized: NovaMasterAgent = {
     id,
     name: rawName || titleCaseAgentName(id),
     status: normalizeNovaMasterAgentStatus(source.status),
+    ...(role?.role ? { role: role.role } : {}),
+    ...(role?.description ? { description: role.description } : {}),
+    ...(queue > 0 ? { queue } : {}),
   };
 
   if (typeof source.model === 'string' && source.model.trim()) {
@@ -788,15 +857,16 @@ function normalizeNovaMasterAgent(agent: unknown): NovaMasterAgent | undefined {
   return normalized;
 }
 
-async function readNovaMasterAgents(): Promise<NovaMasterAgent[]> {
+async function readNovaMasterAgents(catalog: NovaMasterAgentCatalog): Promise<NovaMasterAgent[]> {
   try {
     const response = await requestNovaMasterEndpoint(JARVIS_AGENTS_PORT, '/agents', { timeoutMs: 1500 });
     if (!response.httpStatus || response.httpStatus < 200 || response.httpStatus >= 300) {
       return [];
     }
 
+    const rolesByAgentId = new Map(catalog.roles.map((role) => [role.ui_agent, role]));
     return extractNovaMasterAgentItems(response.payload)
-      .map((agent) => normalizeNovaMasterAgent(agent))
+      .map((agent) => normalizeNovaMasterAgent(agent, rolesByAgentId))
       .filter((agent): agent is NovaMasterAgent => Boolean(agent));
   } catch {
     return [];
@@ -829,7 +899,8 @@ function buildNovaMasterTelemetry(
 
 async function getNovaMasterStackStatus() {
   const services = await Promise.all(NOVAMASTER_PROBES.map((probe) => probeNovaMasterService(probe)));
-  const agents = await readNovaMasterAgents();
+  const agentCatalog = await readNovaMasterAgentCatalog();
+  const agents = await readNovaMasterAgents(agentCatalog);
   const online = services.filter((service) => service.status === 'online').length;
   const degraded = services.filter((service) => service.status === 'degraded').length;
 
@@ -843,6 +914,7 @@ async function getNovaMasterStackStatus() {
     },
     services,
     agents,
+    agentTeams: agentCatalog.teams,
     telemetry: buildNovaMasterTelemetry(services, agents),
     autopilot: 'manual',
   };
@@ -1391,6 +1463,105 @@ export function registerApiRoutes(app: Express): void {
       });
     }
   });
+
+  app.get('/api/novamaster/agents/roles', apiRateLimiter, async (_req: Request, res: Response) => {
+    try {
+      res.json({
+        success: true,
+        data: await readNovaMasterAgentCatalog(),
+      });
+    } catch (error) {
+      console.error('[API] NovaMaster agent roles error:', error);
+      res.status(500).json({
+        success: false,
+        msg: error instanceof Error ? error.message : 'Failed to read NovaMaster agent roles',
+      });
+    }
+  });
+
+  app.get('/api/novamaster/agents/tasks', apiRateLimiter, async (_req: Request, res: Response) => {
+    try {
+      const response = await requestNovaMasterEndpoint(JARVIS_AGENTS_PORT, '/agents/tasks', { timeoutMs: 1800 });
+      if (!response.httpStatus || response.httpStatus < 200 || response.httpStatus >= 300) {
+        res.status(502).json({
+          success: false,
+          msg: `Jarvis agents returned HTTP ${response.httpStatus ?? 'unknown'}`,
+          data: response.payload,
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        data: response.payload,
+      });
+    } catch (error) {
+      console.error('[API] NovaMaster agent tasks error:', error);
+      res.status(500).json({
+        success: false,
+        msg: error instanceof Error ? error.message : 'Failed to read NovaMaster agent tasks',
+      });
+    }
+  });
+
+  app.post(
+    '/api/novamaster/agents/spawn-team',
+    apiRateLimiter,
+    validateApiAccess,
+    wrapRouteHandler(async (req: Request, res: Response) => {
+      const body = toRecord(req.body) ?? {};
+      const team = typeof body.team === 'string' ? body.team.trim().toLowerCase() : '';
+      const goal = typeof body.goal === 'string' ? body.goal.trim() : '';
+      const rawPriority = typeof body.priority === 'string' ? body.priority.trim().toLowerCase() : 'normal';
+      const priority = ['low', 'normal', 'high'].includes(rawPriority) ? rawPriority : 'normal';
+      const dryRun = typeof body.dryRun === 'boolean'
+        ? body.dryRun
+        : typeof body.dry_run === 'boolean'
+          ? body.dry_run
+          : false;
+
+      if (!goal) {
+        res.status(400).json({ success: false, msg: 'goal is required' });
+        return;
+      }
+
+      const catalog = await readNovaMasterAgentCatalog();
+      if (!team || !catalog.teams.includes(team)) {
+        res.status(400).json({
+          success: false,
+          msg: `unsupported team: ${team || 'missing'}`,
+          data: { teams: catalog.teams },
+        });
+        return;
+      }
+
+      try {
+        const response = await requestNovaMasterEndpoint(JARVIS_AGENTS_PORT, '/agents/spawn-team', {
+          method: 'POST',
+          timeoutMs: 5000,
+          body: {
+            team,
+            goal: goal.slice(0, 3000),
+            priority,
+            dry_run: dryRun,
+          },
+        });
+        const ok = Boolean(response.httpStatus && response.httpStatus >= 200 && response.httpStatus < 300);
+
+        res.status(ok ? 202 : 502).json({
+          success: ok,
+          ...(ok ? {} : { msg: `Jarvis agents returned HTTP ${response.httpStatus ?? 'unknown'}` }),
+          data: response.payload,
+        });
+      } catch (error) {
+        console.error('[API] NovaMaster agent team spawn error:', error);
+        res.status(500).json({
+          success: false,
+          msg: error instanceof Error ? error.message : 'Failed to spawn NovaMaster agent team',
+        });
+      }
+    })
+  );
 
   app.get(
     '/api/novamaster/services/:serviceId/open',

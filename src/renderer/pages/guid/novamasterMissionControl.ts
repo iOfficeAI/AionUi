@@ -13,6 +13,13 @@ export type NovaCommandAction = {
   mode: 'open' | 'action';
 };
 
+export type NovaAgentTeamAction = {
+  id: string;
+  label: string;
+  team: 'ops' | 'research' | 'office' | 'full';
+  goal: string;
+};
+
 type ServiceLike = {
   id: string;
 };
@@ -30,6 +37,33 @@ export const NOVA_COMMAND_ACTIONS: NovaCommandAction[] = [
   { id: 'goclaw-health', label: 'GoClaw Health', icon: 'GC', serviceId: 'goclaw', mode: 'action' },
   { id: 'space-health', label: 'Space Health', icon: 'SA', serviceId: 'space-agent', mode: 'action' },
   { id: 'hermes-health', label: 'Hermes Health', icon: 'HM', serviceId: 'hermes', mode: 'action' },
+];
+
+export const NOVA_AGENT_TEAM_ACTIONS: NovaAgentTeamAction[] = [
+  {
+    id: 'team-office',
+    label: 'Office',
+    team: 'office',
+    goal: 'AionUi team check: verify Hermes Office, Claw3D kanban, agents, and gateway state. Return concise findings and next actions.',
+  },
+  {
+    id: 'team-ops',
+    label: 'Ops',
+    team: 'ops',
+    goal: 'AionUi ops check: inspect local services, ports, Telegram-first routing, native shortcuts, and recovery health.',
+  },
+  {
+    id: 'team-research',
+    label: 'Research',
+    team: 'research',
+    goal: 'AionUi research check: inspect Space Agent, browser flow, Hugging Face, Kaggle, and source-backed improvement options.',
+  },
+  {
+    id: 'team-full',
+    label: 'Full',
+    team: 'full',
+    goal: 'AionUi full-stack check: coordinate NovaMaster code, ops, Office, Space Agent, Telegram, Hugging Face, Kaggle, OCR, and computer-use agents.',
+  },
 ];
 
 const NOVA_PRIORITY_SERVICE_IDS = [

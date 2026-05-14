@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  NOVA_AGENT_TEAM_ACTIONS,
   NOVA_COMMAND_ACTIONS,
   NOVA_ORB_OPTIONS,
   getNovaPriorityServices,
@@ -29,6 +30,11 @@ describe('NovaMaster mission control configuration', () => {
       'hermes',
     ]);
     expect(NOVA_COMMAND_ACTIONS.every((action) => action.mode === 'action')).toBe(true);
+  });
+
+  it('exposes Jarvis team actions for the cockpit agent launcher', () => {
+    expect(NOVA_AGENT_TEAM_ACTIONS.map((action) => action.team)).toEqual(['office', 'ops', 'research', 'full']);
+    expect(NOVA_AGENT_TEAM_ACTIONS.every((action) => action.goal.includes('AionUi'))).toBe(true);
   });
 
   it('prioritizes the cockpit services from the live stack payload', () => {
