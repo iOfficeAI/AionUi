@@ -9,6 +9,8 @@ export type IntegrationDefinition = {
   label: string;
   link: string;
   docsLabel: string;
+  helperLink?: string;
+  helperLabel?: string;
   group: 'core' | 'cloud' | 'media' | 'ops' | 'developer';
 };
 
@@ -134,9 +136,20 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
   },
   {
     envKey: 'KRYVAI_API_KEY',
-    label: 'Kryvai API Key',
-    link: 'https://app.kryvai.com/',
-    docsLabel: 'Kryvai Console',
+    label: 'Kryven API Key (legacy)',
+    link: 'https://kryven.cc/docs/',
+    docsLabel: 'Kryven docs',
+    helperLink: 'https://kryven.cc/docs/',
+    helperLabel: 'Get Kryven key',
+    group: 'developer',
+  },
+  {
+    envKey: 'KRYVEN_API_KEY',
+    label: 'Kryven API Key',
+    link: 'https://kryven.cc/docs/',
+    docsLabel: 'Kryven docs',
+    helperLink: 'https://kryven.cc/docs/',
+    helperLabel: 'Get Kryven key',
     group: 'developer',
   },
   {

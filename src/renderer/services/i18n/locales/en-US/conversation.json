@@ -21,6 +21,16 @@
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
+  "model": {
+    "commandDescription": "Switch ACP model",
+    "availableModels": "Available models:\n{{models}}",
+    "noModels": "No models available for this ACP session.",
+    "notReady": "Models not loaded yet. Send a message first and try again in a moment.",
+    "notSwitchable": "Model switching is not available in this session.",
+    "invalidModel": "Model \"{{model}}\" not found. Example: {{preview}}",
+    "switchFailed": "Model switch failed: {{error}}",
+    "switched": "Switched model: {{model}} [{{provider}}]"
+  },
   "history": {
     "recents": "Recents",
     "noHistory": "No chat history",

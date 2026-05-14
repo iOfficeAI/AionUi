@@ -31,7 +31,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -266,6 +266,122 @@ Please check your local CLI tool authentication status`,
   });
 
   const onSendHandler = async (message: string) => {
+    const trimmedMessage = message.trim();
+    if (trimmedMessage.toLowerCase().startsWith('/model')) {
+      const requestedModel = trimmedMessage.replace(/^\/model\s*/i, '').trim();
+
+      const modelLabel = (model: { id?: string; label?: string }): string => {
+        const id = (model.id || '').trim();
+        const label = (model.label || '').trim();
+        if (id && label && id !== label) {
+          return `${label} (${id})`;
+        }
+        return id || label || 'Unknown model';
+      };
+
+      const safeModelId = (model: { id?: string; label?: string }): string => {
+        return (model.id || '').trim();
+      };
+
+      const inferProvider = (model: { id: string; label: string }): string => {
+        const probe = `${model.id || ''} ${model.label || ''}`.toLowerCase();
+        if (probe.includes('gemini') || probe.includes('google')) {
+          return 'gemini';
+        }
+        if (probe.includes('claude') || probe.includes('anthropic')) {
+          return 'claude';
+        }
+        if (probe.includes('qwen') || probe.includes('kimi') || probe.includes('llama') || probe.includes('ollama')) {
+          return 'local';
+        }
+        if (probe.includes('gpt') || probe.includes('openai')) {
+          return 'openai';
+        }
+        return 'api';
+      };
+
+      const modelInfoResult = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId: conversation_id });
+      const modelInfo = modelInfoResult.data?.modelInfo;
+      const availableModels = modelInfo?.availableModels ?? [];
+
+      if (requestedModel.length === 0 || ['help', 'list', 'ls', '?', 'h'].includes(requestedModel.toLowerCase())) {
+        const examples = availableModels
+          .slice(0, 8)
+          .map((model) => `${modelLabel(model)} [${inferProvider(model)}]`)
+          .join('\n');
+
+        Message.info(
+          examples
+            ? t('conversation.model.availableModels', {
+                models: examples,
+                defaultValue: `Beschikbare modellen:\n${examples}`,
+              })
+            : t('conversation.model.noModels', { defaultValue: 'Geen modellen gevonden voor deze ACP sessie.' })
+        );
+        return;
+      }
+
+      if (!modelInfo) {
+        Message.error(
+          t('conversation.model.notReady', { defaultValue: 'Modellen nog niet beschikbaar. Probeer na een kort moment opnieuw.' })
+        );
+        return;
+      }
+
+      if (!modelInfo.canSwitch) {
+        Message.error(
+          t('conversation.model.notSwitchable', { defaultValue: 'Model wisselen is niet beschikbaar in deze sessie.' })
+        );
+        return;
+      }
+
+      const normalizedRequest = requestedModel.trim().toLowerCase();
+      const targetModel = availableModels.find((model) => safeModelId(model).toLowerCase() === normalizedRequest) ||
+        availableModels.find((model) => (model.label || '').toLowerCase() === normalizedRequest) ||
+        availableModels.find(
+          (model) =>
+            safeModelId(model).toLowerCase().includes(normalizedRequest) ||
+            (model.label || '').toLowerCase().includes(normalizedRequest)
+        );
+
+      if (!targetModel) {
+        const preview = availableModels.slice(0, 8).map((model) => modelLabel(model)).join(', ');
+        Message.error(
+          t('conversation.model.invalidModel', {
+            model: requestedModel,
+            preview,
+            defaultValue: `Model "${requestedModel}" niet gevonden. Voorbeeld: ${preview}`,
+          })
+        );
+        return;
+      }
+
+      const result = await ipcBridge.acpConversation.setModel.invoke({
+        conversationId: conversation_id,
+        modelId: targetModel.id,
+      });
+
+      if (!result.success) {
+        Message.error(
+          t('conversation.model.switchFailed', {
+            model: targetModel.id,
+            error: result.msg || 'onbekende fout',
+            defaultValue: `Model switch gefaald: ${result.msg || 'onbekende fout'}`,
+          })
+        );
+        return;
+      }
+
+      Message.success(
+        t('conversation.model.switched', {
+          model: modelLabel(targetModel),
+          provider: inferProvider(targetModel),
+          defaultValue: `Model wissel gelukt: ${modelLabel(targetModel)} (${inferProvider(targetModel)})`,
+        })
+      );
+      return;
+    }
+
     const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
     const allFiles = [...uploadFile, ...atPathFiles];
 

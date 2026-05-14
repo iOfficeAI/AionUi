@@ -422,6 +422,17 @@ const SendBox: React.FC<{
         source: 'builtin',
       });
     }
+    if (conversationContext?.type === 'acp') {
+      commands.push({
+        name: 'model',
+        description: t('conversation.model.commandDescription', {
+          defaultValue: 'Switch ACP model',
+        }),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      });
+    }
     if (conversationContext?.conversationId) {
       commands.push({
         name: 'copy',
