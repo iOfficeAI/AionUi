@@ -15,6 +15,9 @@ Sentry.init({
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+
+Sentry.setTag('app.arch', process.arch);
+Sentry.setTag('app.version', app.getVersion());
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
