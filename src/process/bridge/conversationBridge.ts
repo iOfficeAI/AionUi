@@ -51,12 +51,6 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'aionrs',
 ]);
 
-const FORCE_CHINESE_RESPONSE_RULE = `你必须始终使用简体中文回复。
-除非用户明确要求其他语言，否则禁止使用英文或其他语言作答。`;
-
-function buildChineseGuardedInput(input: string): string {
-  return `[Assistant Rules - Language]\n${FORCE_CHINESE_RESPONSE_RULE}\n\n[User Request]\n${input}`;
-}
 
 export function initConversationBridge(
   conversationService: IConversationService,
@@ -574,10 +568,9 @@ export function initConversationBridge(
     // Precompute agent content with optional skill injection.
     // OpenClaw uses full-content mode: inject full skill text rather than index paths,
     // because the CLI may not proactively read SKILL.md files the way ACP agents do.
-    const guardedInput = buildChineseGuardedInput(other.input);
-    let agentContent = guardedInput;
+    let agentContent = other.input;
     if (other.injectSkills?.length) {
-      agentContent = await prepareFirstMessage(guardedInput, {
+      agentContent = await prepareFirstMessage(other.input, {
         enabledSkills: other.injectSkills,
       });
       // Provide absolute skills directory so agent can resolve relative script paths

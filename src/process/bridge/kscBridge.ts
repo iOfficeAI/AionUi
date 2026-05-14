@@ -52,6 +52,14 @@ const KSC_LOG_TAG = '[KscBridge]';
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+const KSC_FETCH_TIMEOUT_MS = 15_000;
+
+function fetchWithTimeout(url: string, init: RequestInit, timeoutMs = KSC_FETCH_TIMEOUT_MS): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(url, { ...init, signal: controller.signal }).finally(() => clearTimeout(timer));
+}
+
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.trim().replace(/\/+$/, '');
 }
@@ -200,7 +208,7 @@ export function initKscBridge(): void {
       applyKscHeaders(loginHeaders, companyCode);
       mainLog(KSC_LOG_TAG, 'requesting login URL');
       const loginUrlData = await parseKscResponse<KscLoginUrlDto>(
-        await fetch(`${normalizedBase}/cli/login/url`, { method: 'GET', headers: loginHeaders }),
+        await fetchWithTimeout(`${normalizedBase}/cli/login/url`, { method: 'GET', headers: loginHeaders }),
         'Failed to get KSC login URL'
       );
 
@@ -218,13 +226,21 @@ export function initKscBridge(): void {
         mainLog(KSC_LOG_TAG, 'polling login result', { attempt: i + 1, loginUuid });
         const resultHeaders = new Headers();
         applyKscHeaders(resultHeaders, companyCode);
-        loginResult = await parseKscResponse<KscLoginResultDto>(
-          await fetch(`${normalizedBase}/cli/login/result?loginUUID=${encodeURIComponent(loginUuid)}`, {
-            method: 'GET',
-            headers: resultHeaders,
-          }),
-          'Failed to get KSC login result'
-        );
+        try {
+          loginResult = await parseKscResponse<KscLoginResultDto>(
+            await fetchWithTimeout(`${normalizedBase}/cli/login/result?loginUUID=${encodeURIComponent(loginUuid)}`, {
+              method: 'GET',
+              headers: resultHeaders,
+            }),
+            'Failed to get KSC login result'
+          );
+        } catch (pollError) {
+          // Transient network errors (e.g. DNS blip, 503) should not abort the poll;
+          // continue waiting and let the outer timeout handle hard failures.
+          mainWarn(KSC_LOG_TAG, 'transient poll error, retrying', { attempt: i + 1, error: String(pollError) });
+          await sleep(2000);
+          continue;
+        }
 
         const sk = (loginResult.sk || '').trim();
         if (sk) {
@@ -241,7 +257,7 @@ export function initKscBridge(): void {
           try {
             mainLog(KSC_LOG_TAG, 'requesting cli models', { client: chosenClient });
             models = await parseKscResponse<KscModelInfo[]>(
-              await fetch(`${normalizedBase}/cli/models?client=${encodeURIComponent(chosenClient)}`, {
+              await fetchWithTimeout(`${normalizedBase}/cli/models?client=${encodeURIComponent(chosenClient)}`, {
                 method: 'GET',
                 headers: modelHeaders,
               }),
@@ -249,8 +265,10 @@ export function initKscBridge(): void {
             );
           } catch {
             mainWarn(KSC_LOG_TAG, 'cli models failed, falling back to openapi2 list');
+            // Note: sk is passed via header (Authorization + sk), NOT in the URL, to avoid
+            // leaking credentials into server access logs and proxy logs.
             models = await parseKscResponse<KscModelInfo[]>(
-              await fetch(`${normalizedBase}/openapi2/models/list?sk=${encodeURIComponent(sk)}`, {
+              await fetchWithTimeout(`${normalizedBase}/openapi2/models/list`, {
                 method: 'GET',
                 headers: modelHeaders,
               }),
@@ -290,6 +308,21 @@ export function initKscBridge(): void {
       throw new Error('KSC login timed out. Please complete browser login and retry.');
     } catch (error) {
       mainError(KSC_LOG_TAG, 'loginAndSync failed', error);
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.kscAuth.logout.provider(async () => {
+    try {
+      const existing = await ProcessConfig.get('model.config');
+      const providers = Array.isArray(existing) ? (existing as IProvider[]) : [];
+      const retained = providers.filter((p) => !p.id?.startsWith(KSC_PROVIDER_ID_PREFIX));
+      await ProcessConfig.set('model.config', retained);
+      const removedCount = providers.length - retained.length;
+      mainLog(KSC_LOG_TAG, 'logout completed', { removedCount });
+      return { success: true };
+    } catch (error) {
+      mainError(KSC_LOG_TAG, 'logout failed', error);
       return { success: false, msg: error instanceof Error ? error.message : String(error) };
     }
   });

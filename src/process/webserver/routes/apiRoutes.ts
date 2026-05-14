@@ -707,10 +707,23 @@ export function registerApiRoutes(app: Express): void {
         headers.set(key, value);
       });
 
-      const body =
-        req.method === 'GET' || req.method === 'HEAD'
-          ? undefined
-          : JSON.stringify(req.body && typeof req.body === 'object' ? req.body : {});
+      // Buffer the request body once so each retry attempt can reuse it.
+      // For JSON content-type, bodyParser has already parsed it into req.body — re-serialize.
+      // For other content-types, bodyParser skips parsing so the raw stream is still readable — buffer it.
+      let body: Uint8Array | string | undefined;
+      if (req.method !== 'GET' && req.method !== 'HEAD') {
+        const isJsonContentType = typeof contentType === 'string' && contentType.includes('application/json');
+        if (isJsonContentType) {
+          body = JSON.stringify(req.body ?? {});
+        } else {
+          body = await new Promise<Uint8Array>((resolve, reject) => {
+            const chunks: Buffer[] = [];
+            req.on('data', (chunk: Buffer) => chunks.push(chunk));
+            req.on('end', () => resolve(Buffer.concat(chunks)));
+            req.on('error', reject);
+          });
+        }
+      }
 
       let upstream: globalThis.Response | null = null;
       let lastError: unknown;
@@ -722,7 +735,7 @@ export function registerApiRoutes(app: Express): void {
           upstream = await fetch(targetUrl, {
             method: req.method,
             headers,
-            body,
+            body: body as BodyInit,
             signal: controller.signal,
           });
 

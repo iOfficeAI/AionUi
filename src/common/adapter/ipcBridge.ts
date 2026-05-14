@@ -452,6 +452,7 @@ export const kscAuth = {
     IBridgeResponse<{ syncedModels: number; userName?: string; companyName?: string }>,
     { baseUrl: string; companyCode?: string; client?: string; inferenceChatPath?: string }
   >('ksc.auth.login-sync'),
+  logout: bridge.buildProvider<IBridgeResponse, void>('ksc.auth.logout'),
 };
 
 // ACP对话相关接口 - 复用统一的conversation接口
