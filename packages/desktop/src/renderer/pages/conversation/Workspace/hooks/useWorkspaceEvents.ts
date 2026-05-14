@@ -120,7 +120,9 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Listen to agent response stream - auto refresh workspace (throttled)
    */
   useEffect(() => {
-    const handleResponse = (data: { type: string; data?: unknown }) => {
+    const handleResponse = (data: { type: string; data?: unknown; conversation_id?: string }) => {
+      if (data.conversation_id && data.conversation_id !== conversation_id) return;
+
       if (data.type === 'acp_tool_call') {
         throttledRefresh();
       }
