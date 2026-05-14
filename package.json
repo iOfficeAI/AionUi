@@ -1,6 +1,6 @@
 {
   "name": "AionUi",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
@@ -252,7 +252,7 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aionuiBackendVersion": "v0.1.1",
+  "aionuiBackendVersion": "v0.1.2",
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },
