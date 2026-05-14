@@ -6,12 +6,15 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { EditorView } from '@codemirror/view';
+import { loadLanguage } from '@uiw/codemirror-extensions-langs';
 import CodeMirror from '@uiw/react-codemirror';
 import React, { useCallback, useMemo } from 'react';
+import { normalizeTextEditorLanguage } from './textEditorLanguage';
 
 interface TextEditorProps {
   value: string; // 编辑器内容 / Editor content
   onChange: (value: string) => void; // 内容变化回调 / Content change callback
+  language?: string; // 文件语言或扩展名 / File language or extension
   readOnly?: boolean; // 是否只读 / Whether read-only
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
@@ -24,7 +27,14 @@ interface TextEditorProps {
  * 基于 CodeMirror 实现，支持语法高亮和实时编辑
  * Based on CodeMirror, supports syntax highlighting and live editing
  */
-const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = false, containerRef, onScroll }) => {
+const TextEditor: React.FC<TextEditorProps> = ({
+  value,
+  onChange,
+  language,
+  readOnly = false,
+  containerRef,
+  onScroll,
+}) => {
   const { theme } = useThemeContext();
 
   // 监听容器滚动事件 / Listen to container scroll events
@@ -69,13 +79,26 @@ const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = fal
     []
   );
 
+  const languageExtension = useMemo(() => {
+    const languageName = normalizeTextEditorLanguage(language);
+    return languageName ? loadLanguage(languageName) : null;
+  }, [language]);
+
+  const extensions = useMemo(() => {
+    const nextExtensions = [EditorView.lineWrapping];
+    if (languageExtension) {
+      nextExtensions.push(languageExtension);
+    }
+    return nextExtensions;
+  }, [languageExtension]);
+
   return (
     <div ref={containerRef} className='h-full w-full overflow-auto text-left'>
       <CodeMirror
         value={value}
         height='100%'
         theme={theme === 'dark' ? 'dark' : 'light'}
-        extensions={[EditorView.lineWrapping]}
+        extensions={extensions}
         onChange={handleChange}
         readOnly={readOnly}
         basicSetup={basicSetupConfig}

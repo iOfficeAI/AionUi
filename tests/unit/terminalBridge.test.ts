@@ -9,6 +9,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const registeredProviders: Record<string, Function> = {};
 const terminalDataEmit = vi.fn();
 const terminalExitEmit = vi.fn();
+const originalPlatform = process.platform;
+const originalShell = process.env.SHELL;
+const originalComSpec = process.env.ComSpec;
 
 const ptyState = {
   onDataHandler: undefined as ((data: string) => void) | undefined,
@@ -77,6 +80,13 @@ beforeEach(async () => {
   Object.keys(registeredProviders).forEach((key) => delete registeredProviders[key]);
   ptyState.onDataHandler = undefined;
   ptyState.onExitHandler = undefined;
+  Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+  process.env.SHELL = originalShell;
+  if (originalComSpec === undefined) {
+    delete process.env.ComSpec;
+  } else {
+    process.env.ComSpec = originalComSpec;
+  }
 
   const mod = await import('../../src/process/bridge/terminalBridge');
   initTerminalBridge = mod.initTerminalBridge;
@@ -106,6 +116,28 @@ describe('terminalBridge', () => {
       sessionId: result.sessionId,
       data: 'hello',
     });
+  });
+
+  it('uses a bash fallback on linux when SHELL is unavailable', async () => {
+    Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+    delete process.env.SHELL;
+
+    initTerminalBridge();
+
+    await registeredProviders.createSession({ cwd: '/Users/chixson/Documents/project' });
+
+    expect(spawnMock).toHaveBeenCalledWith('/bin/bash', [], expect.any(Object));
+  });
+
+  it('uses ComSpec on windows', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    process.env.ComSpec = 'C:\\Windows\\System32\\cmd.exe';
+
+    initTerminalBridge();
+
+    await registeredProviders.createSession({ cwd: 'C:\\Users\\chixson\\project' });
+
+    expect(spawnMock).toHaveBeenCalledWith('C:\\Windows\\System32\\cmd.exe', [], expect.any(Object));
   });
 
   it('writes, resizes, and disposes the session', async () => {
