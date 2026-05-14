@@ -124,11 +124,20 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
       if (data.conversation_id && data.conversation_id !== conversation_id) return;
 
       if (data.type === 'acp_tool_call') {
-        throttledRefresh();
+        const acpData = data.data as { update?: { kind?: string; status?: string } } | undefined;
+        const kind = acpData?.update?.kind;
+        // Only refresh for file-modifying operations (edit/execute), skip read-only tools
+        if (kind === 'edit' || kind === 'execute') {
+          throttledRefresh();
+        }
       }
       if (data.type === 'tool_call') {
-        const toolData = data.data as { status?: string } | undefined;
+        const toolData = data.data as { status?: string; name?: string } | undefined;
         if (toolData?.status === 'completed') {
+          // Skip team management tools — they never touch the filesystem
+          if (toolData.name && /^mcp__aionui-team-|^team_/.test(toolData.name)) {
+            return;
+          }
           throttledRefresh();
         }
       }
