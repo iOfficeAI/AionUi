@@ -49,10 +49,18 @@ interface NovaTelemetry {
   servicesTotal: number;
 }
 
+interface NovaStackSummary {
+  total: number;
+  online: number;
+  degraded: number;
+  offline: number;
+}
+
 interface NovaStackData {
   services: NovaService[];
   agents: NovaAgent[];
-  telemetry: NovaTelemetry;
+  telemetry?: NovaTelemetry;
+  summary?: NovaStackSummary;
   autopilot: string;
   updatedAt: string;
 }
@@ -209,11 +217,22 @@ const NovaMissionControl: React.FC = () => {
   }, [stack]);
 
   // ── Telemetry defaults ──
-  const telemetry = stack?.telemetry || {
-    cpu: 0, memory: 0, disk: 0, uptime: 0,
-    revenue: 0, cost: 0, agentsTotal: 0, agentsWorking: 0,
-    servicesOnline: 0, servicesTotal: 0,
-  };
+  const telemetry = useMemo<NovaTelemetry>(() => {
+    if (stack?.telemetry) {
+      return stack.telemetry;
+    }
+
+    const services = stack?.services || [];
+    const agents = stack?.agents || [];
+    return {
+      cpu: 0, memory: 0, disk: 0, uptime: 0,
+      revenue: 0, cost: 0,
+      agentsTotal: agents.length,
+      agentsWorking: agents.filter((agent) => agent.status === 'working').length,
+      servicesOnline: stack?.summary?.online ?? services.filter((service) => service.status === 'online').length,
+      servicesTotal: stack?.summary?.total ?? services.length,
+    };
+  }, [stack]);
 
   // ── Render ──
   return (
@@ -373,11 +392,13 @@ const NovaMissionControl: React.FC = () => {
             {(stack?.agents?.length ?? 0) > 0 && (
               <>
                 <div className='nova-panel-header'>
-                  <span className='nova-panel-title'>Active Agents</span>
-                  <span className='nova-panel-badge'>{stack!.agents.filter(a => a.status === 'working').length} working</span>
+                  <span className='nova-panel-title'>Agents</span>
+                  <span className='nova-panel-badge'>
+                    {stack!.agents.filter(a => a.status !== 'offline').length} total · {stack!.agents.filter(a => a.status === 'working').length} working
+                  </span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 200, overflow: 'auto' }}>
-                  {stack!.agents.filter(a => a.status !== 'offline').slice(0, 8).map((agent) => (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, maxHeight: 260, overflow: 'auto' }}>
+                  {stack!.agents.filter(a => a.status !== 'offline').map((agent) => (
                     <AgentChip key={agent.id} agent={agent} />
                   ))}
                 </div>

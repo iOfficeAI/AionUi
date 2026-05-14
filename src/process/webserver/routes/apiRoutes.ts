@@ -68,6 +68,31 @@ type NovaMasterProbeResult = Omit<NovaMasterProbe, 'primaryAction'> & {
   actions?: Array<Pick<NovaMasterServiceAction, 'id' | 'label' | 'method' | 'path'>>;
 };
 
+type NovaMasterAgentStatus = 'idle' | 'working' | 'error' | 'offline';
+
+type NovaMasterAgent = {
+  id: string;
+  name: string;
+  status: NovaMasterAgentStatus;
+  model?: string;
+  task?: string;
+  cost_today?: number;
+  revenue_impact?: number;
+};
+
+type NovaMasterTelemetry = {
+  cpu: number;
+  memory: number;
+  disk: number;
+  uptime: number;
+  revenue: number;
+  cost: number;
+  agentsTotal: number;
+  agentsWorking: number;
+  servicesOnline: number;
+  servicesTotal: number;
+};
+
 type NovaMasterServiceAction = {
   id: string;
   label: string;
@@ -75,6 +100,8 @@ type NovaMasterServiceAction = {
   path: string;
   body?: Record<string, unknown>;
 };
+
+const JARVIS_AGENTS_PORT = 8765;
 
 const NOVAMASTER_PROBES: NovaMasterProbe[] = [
   {
@@ -323,6 +350,14 @@ function getNovaPayloadServiceName(payload: unknown): string | undefined {
   }
 
   return undefined;
+}
+
+function toRecord(value: unknown): Record<string, unknown> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return undefined;
+  }
+
+  return value as Record<string, unknown>;
 }
 
 function validateNovaPayloadService(probe: NovaMasterProbe, payload: unknown): string | undefined {
@@ -675,8 +710,126 @@ async function probeNovaMasterLocalTool(probe: NovaMasterProbe): Promise<NovaMas
   }
 }
 
+function extractNovaMasterAgentItems(payload: unknown): unknown[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  const source = toRecord(payload);
+  if (!source) {
+    return [];
+  }
+
+  if (Array.isArray(source.agents)) {
+    return source.agents;
+  }
+
+  const data = toRecord(source.data);
+  if (data && Array.isArray(data.agents)) {
+    return data.agents;
+  }
+
+  return [];
+}
+
+function normalizeNovaMasterAgentStatus(status: unknown): NovaMasterAgentStatus {
+  const normalized = typeof status === 'string' ? status.trim().toLowerCase() : '';
+
+  if (['working', 'running', 'busy', 'active', 'processing', 'queued'].includes(normalized)) {
+    return 'working';
+  }
+  if (['error', 'failed', 'fail', 'crashed', 'blocked'].includes(normalized)) {
+    return 'error';
+  }
+  if (['offline', 'disabled', 'unavailable', 'stopped'].includes(normalized)) {
+    return 'offline';
+  }
+
+  return 'idle';
+}
+
+function titleCaseAgentName(id: string): string {
+  return id
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
+function normalizeNovaMasterAgent(agent: unknown): NovaMasterAgent | undefined {
+  const source = toRecord(agent);
+  if (!source) {
+    return undefined;
+  }
+
+  const rawId = typeof source.id === 'string' ? source.id.trim() : '';
+  const rawName = typeof source.name === 'string' ? source.name.trim() : '';
+  const id = rawId || rawName.toLowerCase().replace(/\s+/g, '-');
+  if (!id) {
+    return undefined;
+  }
+
+  const queue = typeof source.queue === 'number' && Number.isFinite(source.queue) ? source.queue : 0;
+  const normalized: NovaMasterAgent = {
+    id,
+    name: rawName || titleCaseAgentName(id),
+    status: normalizeNovaMasterAgentStatus(source.status),
+  };
+
+  if (typeof source.model === 'string' && source.model.trim()) {
+    normalized.model = source.model.trim();
+  }
+  if (typeof source.task === 'string' && source.task.trim()) {
+    normalized.task = source.task.trim();
+  } else if (queue > 0) {
+    normalized.task = `${queue} queued`;
+  }
+
+  return normalized;
+}
+
+async function readNovaMasterAgents(): Promise<NovaMasterAgent[]> {
+  try {
+    const response = await requestNovaMasterEndpoint(JARVIS_AGENTS_PORT, '/agents', { timeoutMs: 1500 });
+    if (!response.httpStatus || response.httpStatus < 200 || response.httpStatus >= 300) {
+      return [];
+    }
+
+    return extractNovaMasterAgentItems(response.payload)
+      .map((agent) => normalizeNovaMasterAgent(agent))
+      .filter((agent): agent is NovaMasterAgent => Boolean(agent));
+  } catch {
+    return [];
+  }
+}
+
+function buildNovaMasterTelemetry(
+  services: NovaMasterProbeResult[],
+  agents: NovaMasterAgent[]
+): NovaMasterTelemetry {
+  const servicesOnline = services.filter((service) => service.status === 'online').length;
+  const totalMemory = os.totalmem();
+  const usedMemory = Math.max(totalMemory - os.freemem(), 0);
+  const cpuLoad = os.loadavg()[0] ?? 0;
+  const cpuCount = Math.max(os.cpus().length, 1);
+
+  return {
+    cpu: Math.round(Math.min((cpuLoad / cpuCount) * 100, 100)),
+    memory: totalMemory > 0 ? Math.round((usedMemory / totalMemory) * 100) : 0,
+    disk: 0,
+    uptime: Math.round(os.uptime() / 3600),
+    revenue: 0,
+    cost: 0,
+    agentsTotal: agents.length,
+    agentsWorking: agents.filter((agent) => agent.status === 'working').length,
+    servicesOnline,
+    servicesTotal: services.length,
+  };
+}
+
 async function getNovaMasterStackStatus() {
   const services = await Promise.all(NOVAMASTER_PROBES.map((probe) => probeNovaMasterService(probe)));
+  const agents = await readNovaMasterAgents();
   const online = services.filter((service) => service.status === 'online').length;
   const degraded = services.filter((service) => service.status === 'degraded').length;
 
@@ -689,6 +842,9 @@ async function getNovaMasterStackStatus() {
       offline: services.length - online - degraded,
     },
     services,
+    agents,
+    telemetry: buildNovaMasterTelemetry(services, agents),
+    autopilot: 'manual',
   };
 }
 
