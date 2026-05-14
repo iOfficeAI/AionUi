@@ -15,7 +15,6 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { SlashCommandItem } from '../chat/slash/types';
 import type { ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from '../config/storage';
 import type {
   Assistant,
@@ -193,7 +192,7 @@ export const conversation = {
       inject_skills: p.inject_skills,
     })
   ),
-  getSlashCommands: httpGet<{ commands: SlashCommandItem[] }, { conversation_id: string }>(
+  getSlashCommands: httpGet<Array<{ command: string; description: string }>, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
   ),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(

@@ -116,7 +116,10 @@ const AionrsSendBox: React.FC<{
     });
   }, [conversation_id]);
 
-  const slash_commands = useSlashCommands(conversation_id, { conversation_type: 'aionrs' });
+  const slash_commands = useSlashCommands(conversation_id, {
+    conversation_type: 'aionrs',
+    agentStatus: hasHydratedRunningState ? 'active' : null,
+  });
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const removeMessageByMsgId = useRemoveMessageByMsgId();

@@ -67,8 +67,13 @@ export function useSlashCommands(conversation_id: string, options: UseSlashComma
       return;
     }
 
+    // Skip fetch until agent is ready (agentStatus becomes non-null)
+    if (agentStatus === null || agentStatus === undefined) {
+      return;
+    }
+
     const cached = getCachedCommands(conversation_id);
-    if (canUseCachedCommands && cached) {
+    if (cached) {
       setCommands(cached);
     }
 
@@ -78,12 +83,19 @@ export function useSlashCommands(conversation_id: string, options: UseSlashComma
         if (isCancelled || requestId !== requestIdRef.current) {
           return;
         }
-        if (!result?.commands) {
+        if (!result || !Array.isArray(result) || result.length === 0) {
           setCommands([]);
           return;
         }
-        setCachedCommands(conversation_id, result.commands);
-        setCommands(result.commands);
+        const mapped: SlashCommandItem[] = result.map((item) => ({
+          name: item.command,
+          description: item.description,
+          kind: 'template' as const,
+          source: 'acp' as const,
+          selectionBehavior: 'insert' as const,
+        }));
+        setCachedCommands(conversation_id, mapped);
+        setCommands(mapped);
       })
       .catch((error) => {
         if (isCancelled || requestId !== requestIdRef.current) {
