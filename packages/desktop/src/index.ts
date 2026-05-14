@@ -18,6 +18,7 @@ import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron
 
 Sentry.setTag('app.arch', process.arch);
 Sentry.setTag('app.version', app.getVersion());
+Sentry.setTag('os.name', process.platform);
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
