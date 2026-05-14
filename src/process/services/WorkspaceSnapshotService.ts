@@ -42,6 +42,11 @@ venv/
 
 export class WorkspaceSnapshotService {
   private snapshots = new Map<string, SnapshotState>();
+  private readonly snapshotBaseDir: string;
+
+  constructor(cacheDir: string) {
+    this.snapshotBaseDir = path.join(cacheDir, 'snapshots');
+  }
 
   async init(workspacePath: string): Promise<SnapshotInfo> {
     if (this.snapshots.has(workspacePath)) {
@@ -199,18 +204,28 @@ export class WorkspaceSnapshotService {
    * Remove leftover `aionui-snapshot-*` directories from previous sessions
    * that were not cleaned up (e.g. due to a crash). Safe to call at startup
    * as a fire-and-forget — errors are silently ignored.
+   *
+   * Cleans both the configured cacheDir/snapshots path AND the legacy
+   * os.tmpdir() location used by older versions.
    */
-  static async cleanupStaleSnapshots(): Promise<void> {
-    const tmpdir = os.tmpdir();
-    let entries: string[];
-    try {
-      entries = await fs.readdir(tmpdir);
-    } catch {
-      return;
+  static async cleanupStaleSnapshots(cacheDir?: string): Promise<void> {
+    const dirsToScan: string[] = [os.tmpdir()];
+    if (cacheDir) {
+      dirsToScan.push(path.join(cacheDir, 'snapshots'));
     }
 
-    const stale = entries.filter((name) => name.startsWith('aionui-snapshot-'));
-    await Promise.allSettled(stale.map((name) => fs.rm(path.join(tmpdir, name), { recursive: true, force: true })));
+    await Promise.allSettled(
+      dirsToScan.map(async (dir) => {
+        let entries: string[];
+        try {
+          entries = await fs.readdir(dir);
+        } catch {
+          return;
+        }
+        const stale = entries.filter((name) => name.startsWith('aionui-snapshot-'));
+        await Promise.allSettled(stale.map((name) => fs.rm(path.join(dir, name), { recursive: true, force: true })));
+      })
+    );
   }
 
   // --- Private ---
@@ -389,7 +404,8 @@ export class WorkspaceSnapshotService {
   }
 
   private async createWorkingTreeSnapshot(workspacePath: string): Promise<string> {
-    const gitdir = path.join(os.tmpdir(), `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const gitdir = path.join(this.snapshotBaseDir, `aionui-snapshot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    await fs.mkdir(this.snapshotBaseDir, { recursive: true });
     const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
 
     await execFileAsync('git', ['init', '--bare', gitdir]);

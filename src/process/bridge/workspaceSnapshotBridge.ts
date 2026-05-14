@@ -5,13 +5,15 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getSystemDir } from '@process/utils/initStorage';
 import { WorkspaceSnapshotService } from '@process/services/WorkspaceSnapshotService';
 
-const snapshotService = new WorkspaceSnapshotService();
+const { cacheDir } = getSystemDir();
+const snapshotService = new WorkspaceSnapshotService(cacheDir);
 
 export function initWorkspaceSnapshotBridge(): void {
   // Fire-and-forget: clean up leftover snapshot dirs from previous sessions
-  WorkspaceSnapshotService.cleanupStaleSnapshots().catch(() => {});
+  WorkspaceSnapshotService.cleanupStaleSnapshots(cacheDir).catch(() => {});
 
   ipcBridge.fileSnapshot.init.provider(async ({ workspace }) => {
     return snapshotService.init(workspace);
