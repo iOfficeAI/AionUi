@@ -33,7 +33,7 @@ import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import { useAcpMessage } from './useAcpMessage';
@@ -50,6 +50,11 @@ const EMPTY_UPLOAD_FILES: string[] = [];
 
 type ModelSortProfile = 'best' | 'coding' | 'reasoning' | 'vision' | 'fast' | 'local' | 'default';
 
+const AUTO_MODEL_STORAGE_KEY = 'aionui.acp.autoModelSwitch';
+const AUTO_MODEL_MIN_SCORE = 5;
+const AUTO_MODEL_SCORE_GAP_MIN = 8;
+const AUTO_MODEL_RANK_LIMIT = 12;
+
 type RankedModel = {
   id: string;
   label: string;
@@ -57,6 +62,14 @@ type RankedModel = {
   score: number;
   providerScore: number;
   tags: string[];
+};
+
+type ModelAutoProfile = Exclude<ModelSortProfile, 'best' | 'default'>;
+
+type ModelAutoProfileHint = {
+  profile: ModelAutoProfile | 'default';
+  score: number;
+  rationale: string;
 };
 
 const modelLabel = (model: { id?: string; label?: string }): string => {
@@ -135,6 +148,92 @@ const splitRequestedModel = (input: string): {
   }
 
   return { profile: 'default' };
+};
+
+const inferModelProfileFromMessage = (message: string): ModelAutoProfileHint => {
+  const normalized = normalizeModelText(message);
+  const words = new Set(normalized.split(/[^a-z0-9]+/g).filter(Boolean));
+  const joined = ` ${normalized} `;
+
+  const weights: Record<ModelAutoProfile, number> = {
+    coding: 0,
+    reasoning: 0,
+    vision: 0,
+    fast: 0,
+    local: 0,
+  };
+
+  const bump = (profile: ModelAutoProfile, amount: number, reason: string) => {
+    weights[profile] += amount;
+    return reason;
+  };
+
+  const hasAny = (tokens: string[]) =>
+    tokens.some((token) => {
+      if (token.includes(' ')) {
+        return joined.includes(` ${token} `);
+      }
+      return words.has(token) || joined.includes(` ${token} `);
+    });
+
+  if (hasAny(['code', 'coding', 'refactor', 'bug', 'stack', 'debug', 'api', 'typescript', 'javascript', 'python', 'rust', 'golang', 'go', 'java', 'sql'])) {
+    bump('coding', 3, 'code');
+  }
+  if (hasAny(['implement', 'implementatie', 'function', 'class', 'script', 'module', 'package', 'build', 'npm', 'migrate', 'deployment', 'ci', 'test'])) {
+    bump('coding', 2, 'build/test');
+  }
+
+  if (hasAny(['analyze', 'analyse', 'compare', 'reasoning', 'architect', 'design', 'plan', 'strategy', 'impact', 'tradeoff', 'beslis', 'oordeel', 'root cause'])) {
+    bump('reasoning', 3, 'reasoning');
+  }
+  if (hasAny(['report', 'diagnose', 'investigate', 'onderzoek', 'optimize', 'choose', 'which', 'advies', 'recommend', 'decision'])) {
+    bump('reasoning', 2, 'analysis');
+  }
+
+  if (hasAny(['image', 'screenshot', 'photo', 'video', 'logo', 'diagram', 'visual', 'interface', 'ui', 'ux', 'icon', 'kleur', 'kleurenschema', 'chart', 'graph'])) {
+    bump('vision', 3, 'vision');
+  }
+  if (hasAny(['draw', 'plaatje', 'afbeeld', 'vision', 'figuur', 'poster', 'banner'])) {
+    bump('vision', 2, 'vision');
+  }
+
+  if (hasAny(['kort', 'kort antwoord', 'samenvatting', 'quick', 'snel', 'sneller', 'in het kort', 'kort samengevat', 'brief'])) {
+    bump('fast', 3, 'fast');
+  }
+  if (hasAny(['nu', 'direct', 'urgent', 'meteen', 'snelle', 'realtime', 'latency', 'responsive'])) {
+    bump('fast', 2, 'fast');
+  }
+
+  if (hasAny(['offline', 'lokaal', 'local', 'geen internet', 'geen web', 'private', 'gevoelig', 'compliance', 'geen api kosten', 'cheap', 'budget'])) {
+    bump('local', 3, 'local');
+  }
+  if (hasAny(['no cost', 'save tokens', 'bespaar', 'besparen', 'minder kosten'])) {
+    bump('local', 2, 'local');
+  }
+
+  const bestProfile = (Object.entries(weights) as Array<[ModelAutoProfile, number]>).reduce(
+    (best, [profile, score]) => {
+      if (score > best.score) {
+        return { profile, score, rationale: 'inferred-by-keywords' };
+      }
+      return best;
+    },
+    { profile: 'default' as ModelAutoProfile | 'default', score: 0, rationale: 'neutral' }
+  );
+
+  if (bestProfile.score < AUTO_MODEL_MIN_SCORE) {
+    return {
+      profile: 'default',
+      score: bestProfile.score,
+      rationale: 'geen duidelijke taakindicatie',
+    };
+  }
+
+  return {
+    profile: bestProfile.profile,
+    score: bestProfile.score,
+    rationale: bestProfile.rationale,
+  };
 };
 
 const modelTier = (score: number) => {
@@ -241,6 +340,25 @@ const modelProviderAlias = (provider: string): string => {
   return provider;
 };
 
+const providerColorBadge = (provider: string): string => {
+  switch (provider) {
+    case 'local':
+      return '🟢';
+    case 'claude':
+      return '🟣';
+    case 'gemini':
+      return '🔵';
+    case 'qwen':
+      return '🟠';
+    case 'grok':
+      return '🟡';
+    case 'openai':
+      return '⚪';
+    default:
+      return '⚪';
+  }
+};
+
 const scoreModel = (model: { id: string; label: string }, profile: ModelSortProfile): RankedModel => {
   const text = `${model.id} ${model.label}`.toLowerCase();
   const provider = inferProvider(model);
@@ -305,7 +423,7 @@ const formatRankedModelLine = (model: RankedModel, rank: number): string => {
   const tier = modelTier(model.score);
   const provider = modelProviderAlias(model.provider);
   const tags = model.tags.join(' | ');
-  return `${rank}. ${tier.rankEmoji} ${model.label} [${provider}] ${tier.name} • ${tags} • ${model.score}`;
+  return `${rank}. ${providerColorBadge(model.provider)} ${tier.rankEmoji} ${model.label} [${provider}] ${tier.name} • ${tags} • ${model.score}`;
 };
 
 const assertTeamBridgeSuccess = (
@@ -388,6 +506,14 @@ const AcpSendBox: React.FC<{
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
+  const [autoModelSwitchEnabled, setAutoModelSwitchEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    try {
+      return localStorage.getItem(AUTO_MODEL_STORAGE_KEY) !== 'false';
+    } catch {
+      return true;
+    }
+  });
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
@@ -395,6 +521,14 @@ const AcpSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(AUTO_MODEL_STORAGE_KEY, String(autoModelSwitchEnabled));
+    } catch {
+      // Storage is optional here; ignore persistence errors.
+    }
+  }, [autoModelSwitchEnabled]);
 
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
@@ -404,6 +538,63 @@ const AcpSendBox: React.FC<{
     setUploadFile,
   });
   const isBusy = running || aiProcessing;
+
+  const getModelInfo = useCallback(async () => {
+    const modelInfoResult = await ipcBridge.acpConversation.getModelInfo.invoke({ conversationId: conversation_id });
+    return modelInfoResult.data?.modelInfo ?? null;
+  }, [conversation_id]);
+
+  const ensureContextModel = useCallback(
+    async (text: string): Promise<void> => {
+      if (!autoModelSwitchEnabled) {
+        return;
+      }
+
+      const modelInfo = await getModelInfo();
+      if (!modelInfo || !modelInfo.canSwitch) {
+        return;
+      }
+      if (!modelInfo.availableModels || modelInfo.availableModels.length === 0) {
+        return;
+      }
+
+      const hint = inferModelProfileFromMessage(text);
+      if (hint.profile === 'default' || hint.score < AUTO_MODEL_MIN_SCORE) {
+        return;
+      }
+
+      const rankedModels = getRankedModels(modelInfo.availableModels, hint.profile);
+      const recommended = rankedModels[0];
+      if (!recommended) {
+        return;
+      }
+
+      const secondBest = rankedModels[1];
+      const scoreGap = secondBest ? recommended.score - secondBest.score : Number.POSITIVE_INFINITY;
+      if (secondBest && scoreGap < AUTO_MODEL_SCORE_GAP_MIN) {
+        return;
+      }
+
+      const currentModel = (modelInfo.currentModelId || '').trim().toLowerCase();
+      if (currentModel && currentModel === recommended.id.toLowerCase()) {
+        return;
+      }
+
+      const result = await ipcBridge.acpConversation.setModel.invoke({
+        conversationId: conversation_id,
+        modelId: recommended.id,
+      });
+
+      if (!result.success) {
+        return;
+      }
+
+      Message.info(
+        `Auto-switch: ${recommended.label || recommended.id} (${hint.profile}) • confidence ${hint.score} • margin ${Number.isFinite(scoreGap) ? scoreGap.toFixed(0) : '∞'}`
+      );
+    },
+    [autoModelSwitchEnabled, conversation_id, getModelInfo]
+  );
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
@@ -438,6 +629,10 @@ const AcpSendBox: React.FC<{
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const msg_id = uuid();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
+
+      if (!teamId) {
+        await ensureContextModel(input);
+      }
 
       setAiProcessing(true);
 
@@ -500,7 +695,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamId, workspacePath]
+    [agentSlotId, backend, checkAndUpdateTitle, conversation_id, ensureContextModel, setAiProcessing, t, teamId, workspacePath]
   );
 
   const {
@@ -529,6 +724,30 @@ Please check your local CLI tool authentication status`,
     const trimmedMessage = message.trim();
     if (trimmedMessage.toLowerCase().startsWith('/model')) {
       const requestedModel = trimmedMessage.replace(/^\/model\s*/i, '').trim();
+      const normalizedModelCommand = normalizeModelText(requestedModel);
+      const autoModelCommand = /^auto(\s|$)/.test(normalizedModelCommand);
+      if (autoModelCommand) {
+        const autoArg = normalizedModelCommand.replace(/^auto\s*/i, '').trim();
+        if (!autoArg || autoArg === 'status') {
+          Message.info(`Auto model switch: ${autoModelSwitchEnabled ? 'ON' : 'OFF'} · huidig model: ${
+            (await getModelInfo())?.currentModelId ?? 'onbekend'
+          }`);
+          return;
+        }
+        if (autoArg === 'on') {
+          setAutoModelSwitchEnabled(true);
+          Message.success('Auto model switch ingeschakeld');
+          return;
+        }
+        if (autoArg === 'off') {
+          setAutoModelSwitchEnabled(false);
+          Message.warning('Auto model switch uitgeschakeld');
+          return;
+        }
+        Message.info('Gebruik: /model auto [on|off|status]');
+        return;
+      }
+
       const parsedRequest = splitRequestedModel(requestedModel);
       const requestedProfile = parsedRequest.profile;
 
@@ -552,15 +771,15 @@ Please check your local CLI tool authentication status`,
 
       if (!requestedModel || parsedRequest.isList) {
         const examples = rankedModels
-          .slice(0, 12)
+          .slice(0, AUTO_MODEL_RANK_LIMIT)
           .map((model, index) => formatRankedModelLine(model, index + 1))
           .join('\n');
 
         Message.info(
           examples
             ? t('conversation.model.availableModels', {
-                models: `Gebruik: /model <index>, /model <naam>, /model best [coding|reasoning|vision|fast|local]\n${examples}`,
-                defaultValue: `Beschikbare modellen:\nGebruik: /model <index>, /model <naam>, /model best [coding|reasoning|vision|fast|local]\n${examples}`,
+                models: `Gebruik: /model <index>, /model <naam>, /model best [coding|reasoning|vision|fast|local], /model auto [on|off|status]\n${examples}`,
+                defaultValue: `Beschikbare modellen:\nGebruik: /model <index>, /model <naam>, /model best [coding|reasoning|vision|fast|local], /model auto [on|off|status]\n${examples}`,
               })
             : t('conversation.model.noModels', { defaultValue: 'Geen modellen gevonden voor deze ACP sessie.' })
         );
@@ -574,9 +793,9 @@ Please check your local CLI tool authentication status`,
         return;
       }
 
-      const normalizedRequest = requestedModel.trim().toLowerCase();
-      const indexRequest = Number.parseInt(normalizedRequest, 10);
-      let targetModel = null as null | { id: string; label: string; provider: string };
+      const normalizedModelLookup = requestedModel.trim().toLowerCase();
+      const indexRequest = Number.parseInt(normalizedModelLookup, 10);
+      let targetModel = null as null | { id: string; label: string; provider?: string };
 
       if (Number.isInteger(indexRequest) && indexRequest > 0) {
         const ranked = rankedModels[indexRequest - 1];
@@ -601,12 +820,12 @@ Please check your local CLI tool authentication status`,
         }
       } else {
         targetModel =
-          availableModels.find((model) => safeModelId(model).toLowerCase() === normalizedRequest) ||
-          availableModels.find((model) => (model.label || '').toLowerCase() === normalizedRequest) ||
+          availableModels.find((model) => safeModelId(model).toLowerCase() === normalizedModelLookup) ||
+          availableModels.find((model) => (model.label || '').toLowerCase() === normalizedModelLookup) ||
           availableModels.find(
             (model) =>
-              safeModelId(model).toLowerCase().includes(normalizedRequest) ||
-              (model.label || '').toLowerCase().includes(normalizedRequest)
+              safeModelId(model).toLowerCase().includes(normalizedModelLookup) ||
+              (model.label || '').toLowerCase().includes(normalizedModelLookup)
           );
         if (targetModel) {
           const provider = inferProvider({ id: safeModelId(targetModel), label: targetModel.label || safeModelId(targetModel) });
