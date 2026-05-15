@@ -75,6 +75,7 @@ import {
   fromBackendTeamOptional,
   toBackendAgent,
 } from './teamMapper';
+import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 
 // ---------------------------------------------------------------------------
@@ -546,8 +547,9 @@ export const fileSnapshot = {
   init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
     '/api/fs/snapshot/init'
   ),
-  compare: httpPost<import('@/common/types/platform/fileSnapshot').CompareResult, { workspace: string }>(
-    '/api/fs/snapshot/compare'
+  compare: withResponseMap(
+    httpPost<RawCompareResult, { workspace: string }>('/api/fs/snapshot/compare'),
+    fromBackendCompareResult
   ),
   getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
   getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
