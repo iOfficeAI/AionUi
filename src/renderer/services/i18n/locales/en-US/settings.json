@@ -242,6 +242,8 @@
   "agent": "Agent",
   "tools": "Tools",
   "capabilities": "Capabilities",
+  "skills": "Skills",
+  "mcpNav": "MCP",
   "capabilitiesTab": {
     "skills": "Skills",
     "tools": "MCP & Voice"

@@ -8,6 +8,8 @@ const Guid = React.lazy(() => import('@renderer/pages/guid'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
 const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/AssistantSettings'));
 const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/CapabilitiesSettings'));
+const SkillsHubSettings = React.lazy(() => import('@renderer/pages/settings/SkillsHubSettings'));
+const McpSettings = React.lazy(() => import('@renderer/pages/settings/McpSettings'));
 const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
 const AionrsSettings = React.lazy(() => import('@renderer/pages/settings/AionrsSettings'));
 const GeminiSettings = React.lazy(() => import('@renderer/pages/settings/GeminiSettings'));
@@ -65,10 +67,12 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/model' element={withRouteFallback(ModeSettings)} />
           <Route path='/settings/assistants' element={withRouteFallback(AssistantSettings)} />
           <Route path='/settings/agent' element={withRouteFallback(AgentSettings)} />
-          <Route path='/settings/capabilities' element={withRouteFallback(CapabilitiesSettings)} />
-          {/* Legacy routes — redirect to the merged /settings/capabilities page */}
-          <Route path='/settings/skills-hub' element={<Navigate to='/settings/capabilities?tab=skills' replace />} />
-          <Route path='/settings/tools' element={<Navigate to='/settings/capabilities?tab=tools' replace />} />
+          <Route path='/settings/skills' element={withRouteFallback(SkillsHubSettings)} />
+          <Route path='/settings/mcp' element={withRouteFallback(McpSettings)} />
+          {/* Legacy routes */}
+          <Route path='/settings/capabilities' element={<Navigate to='/settings/skills' replace />} />
+          <Route path='/settings/skills-hub' element={<Navigate to='/settings/skills' replace />} />
+          <Route path='/settings/tools' element={<Navigate to='/settings/mcp' replace />} />
           <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/pet' element={withRouteFallback(PetSettings)} />

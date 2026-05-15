@@ -242,6 +242,8 @@
   "agent": "エージェント",
   "tools": "ツール",
   "capabilities": "能力拡張",
+  "skills": "スキル",
+  "mcpNav": "MCP",
   "capabilitiesTab": {
     "skills": "スキル",
     "tools": "MCP と音声"

@@ -242,6 +242,8 @@
   "agent": "Ajan",
   "tools": "Araçlar",
   "capabilities": "Yetenekler",
+  "skills": "Beceriler",
+  "mcpNav": "MCP",
   "capabilitiesTab": {
     "skills": "Beceriler",
     "tools": "MCP ve Ses"

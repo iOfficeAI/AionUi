@@ -4,7 +4,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { SettingsViewModeProvider } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
-import { Communication, Computer, Earth, Lightning, LinkCloud, Puzzle, Robot, System } from '@icon-park/react';
+import { Api, Communication, Computer, Earth, Lightning, LinkCloud, Puzzle, Robot, System } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
@@ -36,11 +36,17 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       icon: <Robot theme='outline' size='16' />,
       path: 'agent',
     },
-    capabilities: {
-      id: 'capabilities',
-      label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+    skills: {
+      id: 'skills',
+      label: t('settings.skills', { defaultValue: 'Skills' }),
       icon: <Lightning theme='outline' size='16' />,
-      path: 'capabilities',
+      path: 'skills',
+    },
+    mcp: {
+      id: 'mcp',
+      label: t('settings.mcpNav', { defaultValue: 'MCP' }),
+      icon: <Api theme='outline' size='16' />,
+      path: 'mcp',
     },
     display: {
       id: 'display',

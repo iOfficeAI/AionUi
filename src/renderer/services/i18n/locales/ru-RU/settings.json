@@ -911,5 +911,7 @@
     "skills": "Навыки",
     "tools": "Инструменты"
   },
-  "capabilities": "Возможности"
+  "capabilities": "Возможности",
+  "skills": "Навыки",
+  "mcpNav": "MCP"
 }

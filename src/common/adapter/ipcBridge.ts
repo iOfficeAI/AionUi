@@ -281,7 +281,7 @@ export const fs = {
     void
   >('list-available-skills'),
   // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory
-  listBuiltinAutoSkills: bridge.buildProvider<Array<{ name: string; description: string }>, void>(
+  listBuiltinAutoSkills: bridge.buildProvider<Array<{ name: string; description: string; descriptionZh?: string }>, void>(
     'list-builtin-auto-skills'
   ),
   // 读取 skill 信息（不导入）/ Read skill info without importing

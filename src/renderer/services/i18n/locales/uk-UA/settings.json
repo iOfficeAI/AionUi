@@ -240,6 +240,8 @@
   "agent": "Агент",
   "tools": "Інструменти",
   "capabilities": "Можливості",
+  "skills": "Навички",
+  "mcpNav": "MCP",
   "capabilitiesTab": {
     "skills": "Навички",
     "tools": "MCP та Голос"

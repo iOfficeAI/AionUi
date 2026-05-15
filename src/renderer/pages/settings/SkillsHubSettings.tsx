@@ -64,7 +64,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [customPathName, setCustomPathName] = useState('');
   const [customPathValue, setCustomPathValue] = useState('');
   const [refreshing, setRefreshing] = useState(false);
-  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<
+    Array<{ name: string; description: string; descriptionZh?: string }>
+  >([]);
 
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
@@ -669,8 +671,10 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                         {t('settings.autoInjectedSkillsBadge')}
                       </span>
                     </div>
-                    {skill.description && (
-                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>{skill.description}</p>
+                    {(isZh ? skill.descriptionZh || skill.description : skill.description) && (
+                      <p className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'>
+                        {isZh ? skill.descriptionZh || skill.description : skill.description}
+                      </p>
                     )}
                   </div>
                 </div>

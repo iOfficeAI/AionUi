@@ -2,7 +2,7 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import { Communication, Computer, Earth, Lightning, LinkCloud, Puzzle, Robot, Speed, System } from '@icon-park/react';
+import { Api, Communication, Computer, Earth, Lightning, LinkCloud, Puzzle, Robot, Speed, System } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,7 +11,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
-export const BUILTIN_TAB_IDS = ['agent', 'model', 'assistants', 'capabilities', 'display', 'webui', 'system'] as const;
+export const BUILTIN_TAB_IDS = ['agent', 'model', 'assistants', 'skills', 'mcp', 'display', 'webui', 'system'] as const;
 
 /**
  * Legacy anchor IDs that have been merged into other tabs.
@@ -19,8 +19,9 @@ export const BUILTIN_TAB_IDS = ['agent', 'model', 'assistants', 'capabilities', 
  * This keeps older extensions working without requiring them to update.
  */
 export const LEGACY_ANCHOR_REMAP: Record<string, string> = {
-  'skills-hub': 'capabilities',
-  tools: 'capabilities',
+  'skills-hub': 'skills',
+  tools: 'mcp',
+  capabilities: 'skills',
 };
 
 /**
@@ -126,11 +127,17 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Speed />,
         path: 'agent',
       },
-      capabilities: {
-        id: 'capabilities',
-        label: t('settings.capabilities', { defaultValue: 'Capabilities' }),
+      skills: {
+        id: 'skills',
+        label: t('settings.skills', { defaultValue: 'Skills' }),
         icon: <Lightning />,
-        path: 'capabilities',
+        path: 'skills',
+      },
+      mcp: {
+        id: 'mcp',
+        label: t('settings.mcpNav', { defaultValue: 'MCP' }),
+        icon: <Api />,
+        path: 'mcp',
       },
       display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
       webui: {

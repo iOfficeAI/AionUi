@@ -1,6 +1,7 @@
 ---
 name: officecli
 description: Create, analyze, proofread, and modify Office documents (.docx, .xlsx, .pptx) using the officecli CLI tool. Use when the user wants to create, inspect, check formatting, find issues, add charts, or modify Office documents.
+description_zh: '使用 officecli 命令行工具创建、分析、校对和修改 Office 文档（.docx、.xlsx、.pptx）。需要创建、检查格式、查找问题、添加图表或修改 Office 文档时使用。'
 ---
 
 # officecli

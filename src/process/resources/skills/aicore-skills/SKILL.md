@@ -1,6 +1,7 @@
 ---
 name: aicore-skills
 description: 'Access the AICore Skills registry — discover and download AI agent skills. Use when you need to find a reusable skill for a task or manage your agent credentials on the AICore Skills platform.'
+description_zh: '访问 AICore 技能市场——发现并下载 AI 智能体技能。需要为任务寻找可复用技能，或在 AICore Skills 平台管理凭证时使用。'
 ---
 
 # AICore Skills Market

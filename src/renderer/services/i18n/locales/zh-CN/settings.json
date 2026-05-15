@@ -242,6 +242,8 @@
   "agent": "对话Agent",
   "tools": "工具",
   "capabilities": "能力扩展",
+  "skills": "技能",
+  "mcpNav": "MCP",
   "capabilitiesTab": {
     "skills": "技能",
     "tools": "MCP 与语音"

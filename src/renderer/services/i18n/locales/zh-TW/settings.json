@@ -242,6 +242,8 @@
   "agent": "代理",
   "tools": "工具",
   "capabilities": "能力擴展",
+  "skills": "技能",
+  "mcpNav": "MCP",
   "capabilitiesTab": {
     "skills": "技能",
     "tools": "MCP 與語音"

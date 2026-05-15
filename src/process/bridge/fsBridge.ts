@@ -1145,7 +1145,7 @@ export function initFsBridge(): void {
   ipcBridge.fs.listBuiltinAutoSkills.provider(async () => {
     try {
       const autoSkillsDir = getAutoSkillsDir();
-      const skills: Array<{ name: string; description: string }> = [];
+      const skills: Array<{ name: string; description: string; descriptionZh?: string }> = [];
 
       try {
         await fs.access(autoSkillsDir);
@@ -1165,9 +1165,11 @@ export function initFsBridge(): void {
             const yaml = frontMatterMatch[1];
             const nameMatch = yaml.match(/^name:\s*(.+)$/m);
             const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+            const descZhMatch = yaml.match(/^description_zh:\s*['"]?(.+?)['"]?$/m);
             skills.push({
               name: nameMatch ? nameMatch[1].trim() : entry.name,
               description: descMatch ? descMatch[1].trim() : '',
+              descriptionZh: descZhMatch ? descZhMatch[1].trim() : undefined,
             });
           }
         } catch {
