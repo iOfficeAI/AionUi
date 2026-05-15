@@ -13,7 +13,6 @@ import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
-import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
@@ -89,13 +88,13 @@ const AcpSendBox: React.FC<{
   const {
     running,
     hasHydratedRunningState,
-    acpStatus,
     aiProcessing,
     setAiProcessing,
     resetState,
     tokenUsage,
     context_limit,
     hasThinkingMessage,
+    slashCommands,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -103,7 +102,6 @@ const AcpSendBox: React.FC<{
   const showModeSelector = true;
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
-  const slash_commands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
@@ -414,7 +412,7 @@ Please check your local CLI tool authentication status`,
           </>
         }
         onSend={onSendHandler}
-        slash_commands={slash_commands}
+        slash_commands={slashCommands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
         compactActions={false}
