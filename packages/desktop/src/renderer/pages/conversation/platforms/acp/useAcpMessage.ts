@@ -432,15 +432,18 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     };
   }, [conversation_id]);
 
-  // Fetch slash commands via HTTP once conversation hydration completes.
-  // WebSocket push of available_commands happens during warmup when no
+  // Fetch slash commands via HTTP after warmup completes.
+  // WebSocket push of available_commands arrives during warmup when no
   // StreamRelay is listening, so the initial load must come from HTTP.
-  // Subsequent runtime updates still arrive via the WebSocket handler above.
+  // Mirrors the aionrs pattern: warmup first, then fetch.
   useEffect(() => {
-    if (!hasHydratedRunningState) return;
     let cancelled = false;
-    void ipcBridge.conversation.getSlashCommands
+    void ipcBridge.conversation.warmup
       .invoke({ conversation_id })
+      .then(() => {
+        if (cancelled) return;
+        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
+      })
       .then((result) => {
         if (cancelled) return;
         if (!result || !Array.isArray(result) || result.length === 0) return;
@@ -458,7 +461,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     return () => {
       cancelled = true;
     };
-  }, [conversation_id, hasHydratedRunningState]);
+  }, [conversation_id]);
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
